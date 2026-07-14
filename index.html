@@ -393,6 +393,15 @@
   .menu button svg { width: 16px; height: 16px; color: var(--text-muted); flex: none; }
   .menu button.danger, .menu button.danger svg { color: var(--danger); }
   .menu hr { border: 0; border-top: 1px solid var(--border); margin: 6px 4px; }
+  .sync-dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: var(--border-strong); flex: none; }
+  .sync-dot.ok { background: var(--accent); }
+  .sync-dot.busy { background: var(--fr); animation: syncpulse 1s ease-in-out infinite; }
+  .sync-dot.err { background: var(--danger); }
+  .sync-dot.off { background: var(--border-strong); }
+  .av-wrap { position: relative; display: inline-flex; }
+  .sync-dot.chip { position: absolute; right: -1px; bottom: -1px; width: 11px; height: 11px; border: 2px solid var(--surface); box-sizing: border-box; }
+  .menu .msync { display: flex; align-items: center; gap: 7px; margin-top: 9px; font-size: 12px; color: var(--text-muted); }
+  @keyframes syncpulse { 0%, 100% { opacity: 1; } 50% { opacity: .3; } }
 
   .auth { min-height: calc(100vh - 170px); display: grid; place-items: center; padding: 16px 0 60px; }
   .auth-card { width: 100%; max-width: 430px; background: var(--surface); border: 1px solid var(--border); border-radius: 18px; box-shadow: var(--shadow); padding: 34px 30px 26px; text-align: center; }
@@ -404,6 +413,22 @@
   .auth-switch { margin: 14px 0 0; font-size: 12.5px; color: var(--text-muted); }
   .auth-note { font-size: 12px; color: var(--text-muted); margin: 16px 0 0; line-height: 1.5; display: flex; gap: 8px; align-items: flex-start; text-align: left; border-top: 1px solid var(--border); padding-top: 14px; }
   .auth-note svg { width: 15px; height: 15px; flex: none; margin-top: 1px; color: var(--accent); }
+  .auth-card .field + .field { margin-top: 10px; }
+  .auth-err { color: var(--danger); font-size: 12.5px; margin: 12px 0 0; text-align: left; line-height: 1.45; min-height: 0; }
+  .auth-forgot { display: block; text-align: right; font-size: 12px; color: var(--accent-strong); background: 0; border: 0; cursor: pointer; margin: 8px 0 0; padding: 0; }
+  .auth-forgot:hover { text-decoration: underline; }
+  .auth-or { display: flex; align-items: center; gap: 12px; margin: 18px 0 16px; color: var(--text-muted); font-size: 12px; }
+  .auth-or::before, .auth-or::after { content: ""; flex: 1; height: 1px; background: var(--border); }
+  .btn.social { width: 100%; justify-content: center; gap: 10px; padding: 11px; font-size: 14.5px; font-weight: 550; background: var(--surface); border: 1px solid var(--border-strong); color: var(--text); }
+  .btn.social:hover { border-color: var(--accent); background: var(--surface); }
+  .btn.social + .btn.social { margin-top: 9px; }
+  .btn.social svg, .btn.social img { width: 18px; height: 18px; flex: none; }
+  .btn.social.apple { background: #000; border-color: #000; color: #fff; }
+  .btn.social.apple:hover { background: #111; border-color: #111; }
+  .verify-icon { width: 62px; height: 62px; border-radius: 50%; margin: 0 auto 18px; display: grid; place-items: center; background: var(--surface-2); color: var(--accent-strong); }
+  .verify-icon svg { width: 30px; height: 30px; }
+  .auth-mail { font-weight: 650; color: var(--text); word-break: break-all; }
+  .auth-busy { opacity: .6; pointer-events: none; }
 
   .segbar { display: flex; gap: 4px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px; padding: 4px; margin-bottom: 16px; }
   .segbar button { flex: 1; font: inherit; font-size: 13.5px; font-weight: 550; cursor: pointer; border: 0; background: transparent; color: var(--text-muted); padding: 8px; border-radius: 7px; }
@@ -485,6 +510,106 @@
 <div id="print-area" aria-hidden="true"></div>
 <div id="toast" role="status" aria-live="polite"></div>
 
+<!-- ============================================================
+     Cloud-Anmeldung (Firebase) — lädt als ES-Modul.
+     Solange die Config unten Platzhalter enthält ODER das CDN
+     blockiert ist (z. B. im Claude-Artifact), fällt die App
+     automatisch auf den lokalen Login zurück – es bricht nichts.
+     ============================================================ -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
+  import {
+    getAuth, onAuthStateChanged, createUserWithEmailAndPassword,
+    signInWithEmailAndPassword, sendEmailVerification, signOut,
+    updateProfile, sendPasswordResetEmail, setPersistence,
+    browserLocalPersistence, GoogleAuthProvider, OAuthProvider, signInWithPopup
+  } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
+  import {
+    getFirestore, doc, getDoc, setDoc, onSnapshot
+  } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
+
+  /* ▼▼▼ HIER die Werte aus der Firebase-Konsole eintragen ▼▼▼
+     (Projekt-Einstellungen → Deine Apps → Web-App → SDK-Konfiguration) */
+  const firebaseConfig = {
+    apiKey: "AIzaSyAr6kx7lByKgoUrnNJsRD06PKSs3ivplLE",
+    authDomain: "paddys-mealplan.firebaseapp.com",
+    projectId: "paddys-mealplan",
+    storageBucket: "paddys-mealplan.firebasestorage.app",
+    messagingSenderId: "1045496121634",
+    appId: "1:1045496121634:web:c43390145fe7b52789bd7b"
+  };
+  /* ▲▲▲ ------------------------------------------------------- ▲▲▲ */
+
+  const CONFIGURED = firebaseConfig.apiKey && firebaseConfig.apiKey.indexOf("DEIN_") !== 0;
+  window.CloudAuth = { configured: !!CONFIGURED };
+
+  if (!CONFIGURED) {
+    window.dispatchEvent(new CustomEvent("cloudauth:disabled"));
+  } else {
+    try {
+      const app = initializeApp(firebaseConfig);
+      const auth = getAuth(app);
+      auth.languageCode = "de";
+      setPersistence(auth, browserLocalPersistence).catch(function () {});
+
+      Object.assign(window.CloudAuth, {
+        registerEmail: async function (name, email, pw) {
+          const cred = await createUserWithEmailAndPassword(auth, email, pw);
+          if (name) { try { await updateProfile(cred.user, { displayName: name }); } catch (e) {} }
+          await sendEmailVerification(cred.user);
+          return cred.user;
+        },
+        loginEmail: function (email, pw) { return signInWithEmailAndPassword(auth, email, pw); },
+        loginGoogle: function () {
+          const p = new GoogleAuthProvider(); p.setCustomParameters({ prompt: "select_account" });
+          return signInWithPopup(auth, p);
+        },
+        loginApple: function () {
+          const p = new OAuthProvider("apple.com"); p.addScope("email"); p.addScope("name");
+          return signInWithPopup(auth, p);
+        },
+        resendVerification: function () {
+          return auth.currentUser ? sendEmailVerification(auth.currentUser) : Promise.reject(new Error("no-user"));
+        },
+        resetPassword: function (email) { return sendPasswordResetEmail(auth, email); },
+        updateName: function (name) {
+          return auth.currentUser ? updateProfile(auth.currentUser, { displayName: name }) : Promise.reject(new Error("no-user"));
+        },
+        reloadUser: function () {
+          return auth.currentUser ? auth.currentUser.reload().then(function () { return auth.currentUser; }) : Promise.resolve(null);
+        },
+        logout: function () { return signOut(auth); },
+        current: function () { return auth.currentUser; }
+      });
+
+      // ----- Cloud-Sync (Firestore): pro Nutzer ein Dokument users/{uid} -----
+      const db = getFirestore(app);
+      window.CloudSync = {
+        enabled: true,
+        load: function (uid) {
+          return getDoc(doc(db, "users", uid)).then(function (snap) {
+            return snap.exists() ? snap.data() : null;
+          });
+        },
+        save: function (uid, data) {
+          return setDoc(doc(db, "users", uid), data);
+        },
+        watch: function (uid, cb) {
+          return onSnapshot(doc(db, "users", uid), function (snap) {
+            if (snap.exists()) cb(snap.data(), snap.metadata.hasPendingWrites);
+          }, function () {});
+        }
+      };
+
+      onAuthStateChanged(auth, function (user) {
+        if (typeof window.__onCloudAuth === "function") window.__onCloudAuth(user);
+      });
+    } catch (e) {
+      window.dispatchEvent(new CustomEvent("cloudauth:disabled"));
+    }
+  }
+</script>
+
 <script>
 (function () {
   "use strict";
@@ -563,6 +688,110 @@
   function save() {
     try { localStorage.setItem(STORE_KEY, JSON.stringify({ recipes: state.recipes, plan: state.plan, tab: state.tab })); }
     catch (e) { /* storage full / unavailable */ }
+    scheduleCloudPush();
+  }
+
+  // ---------- Cloud-Sync (Firestore) ----------
+  let syncUid = null, syncUnsub = null, pushTimer = null, lastPushedJSON = null;
+
+  function normalizePlan(rawPlan, recipes) {
+    const plan = makeEmptyPlan();
+    const ids = new Set((recipes || []).map(r => r.id));
+    if (rawPlan) DAYS.forEach(d => MEALS.forEach(m => {
+      const raw = rawPlan[d.key] && rawPlan[d.key][m.key];
+      plan[d.key][m.key] = asIdList(raw).filter(id => ids.has(id));
+    }));
+    return plan;
+  }
+  // Vergleichs-Signatur ohne "tab" – ein reiner Tab-Wechsel soll keinen Cloud-Write auslösen.
+  function dataJSON(d) { return JSON.stringify({ recipes: (d && d.recipes) || [], plan: (d && d.plan) || {} }); }
+
+  function scheduleCloudPush() {
+    if (!syncUid) return;
+    clearTimeout(pushTimer);
+    pushTimer = setTimeout(pushNow, 800);
+  }
+  async function pushNow() {
+    if (!syncUid || !window.CloudSync) return;
+    const d = { recipes: state.recipes, plan: state.plan, tab: state.tab };
+    const j = dataJSON(d);
+    if (j === lastPushedJSON) return;
+    lastPushedJSON = j;
+    setSyncStatus("saving");
+    try {
+      await window.CloudSync.save(syncUid, Object.assign({}, d, { updatedAt: Date.now() }));
+      setSyncStatus("synced");
+    } catch (e) {
+      lastPushedJSON = null; setSyncStatus("offline"); /* z. B. offline – nächster Save versucht es erneut */
+    }
+  }
+  function onRemote(data, pending) {
+    if (pending || !data || !Array.isArray(data.recipes)) return; // eigener Schreibvorgang → ignorieren
+    const j = dataJSON(data);
+    if (j === dataJSON(state) || j === lastPushedJSON) return; // nichts Neues
+    state.recipes = data.recipes;
+    state.plan = normalizePlan(data.plan, data.recipes);
+    lastPushedJSON = j;
+    save(); render();
+    setSyncStatus("synced");
+    toast("Von anderem Gerät aktualisiert");
+  }
+  async function startCloudSync(uid) {
+    if (!window.CloudSync || !window.CloudSync.enabled) return;
+    if (syncUid === uid) return;                 // läuft schon
+    stopCloudSync();
+    syncUid = uid;
+    setSyncStatus("connecting");
+    try {
+      const remote = await window.CloudSync.load(uid);
+      if (remote && Array.isArray(remote.recipes) && remote.recipes.length) {
+        // Rezepte zusammenführen (Cloud + lokale, die es dort noch nicht gibt)
+        const map = {};
+        remote.recipes.forEach(r => { if (r && r.id) map[r.id] = r; });
+        state.recipes.forEach(r => { if (r && r.id && !map[r.id]) map[r.id] = r; });
+        state.recipes = Object.values(map);
+        state.plan = normalizePlan(remote.plan, state.recipes);
+        if (remote.tab === "recipes" || remote.tab === "plan") state.tab = remote.tab;
+        save(); render();
+      }
+      lastPushedJSON = null;
+      await pushNow();                            // zusammengeführten Stand als Baseline hochschreiben
+      syncUnsub = window.CloudSync.watch(uid, onRemote);
+      setSyncStatus("synced");
+      toast("Mit deiner Cloud verbunden");
+    } catch (e) { setSyncStatus("offline"); /* offline: App läuft lokal weiter, Sync greift beim nächsten Mal */ }
+  }
+  function stopCloudSync() {
+    if (syncUnsub) { try { syncUnsub(); } catch (e) {} syncUnsub = null; }
+    clearTimeout(pushTimer);
+    syncUid = null; lastPushedJSON = null;
+    setSyncStatus("off");
+  }
+
+  // Sync-Status für die Anzeige: "off" | "connecting" | "synced" | "saving" | "offline"
+  let syncStatus = "off";
+  function syncStatusInfo() {
+    return ({
+      connecting: { cls: "busy", label: "Verbinde …" },
+      synced:     { cls: "ok",   label: "Synchronisiert" },
+      saving:     { cls: "busy", label: "Wird gespeichert …" },
+      offline:    { cls: "err",  label: "Offline – lokal gespeichert" },
+      off:        { cls: "off",  label: "Nicht verbunden" }
+    })[syncStatus] || { cls: "off", label: "Nicht verbunden" };
+  }
+  function setSyncStatus(s) {
+    if (syncStatus === s) return;
+    syncStatus = s;
+    updateSyncUI();
+  }
+  function updateSyncUI() {
+    const info = syncStatusInfo();
+    document.querySelectorAll("[data-sync-dot]").forEach(elm => {
+      elm.classList.remove("ok", "busy", "err", "off");
+      elm.classList.add(info.cls);
+      elm.title = "Cloud-Sync: " + info.label;
+    });
+    document.querySelectorAll("[data-sync-label]").forEach(elm => { elm.textContent = info.label; });
   }
 
   function uid() { return "r" + Math.random().toString(36).slice(2, 9) + Date.now().toString(36).slice(-3); }
@@ -1323,9 +1552,38 @@
       history.replaceState(null, "", location.pathname + location.search);
     } catch (e) {}
   }
+  let authMode = "local";
+  let cloudSignalled = false;
+  function enterLocalMode() {
+    if (cloudSignalled) return;
+    cloudSignalled = true; authMode = "local";
+    if (!profile) renderAuthLocal(); else enterApp();
+  }
+  function handleCloudUser(user) {
+    cloudSignalled = true; authMode = "cloud";
+    if (user && user.emailVerified) {
+      profile = {
+        name: user.displayName || (user.email ? user.email.split("@")[0] : "Ich"),
+        email: user.email || "", uid: user.uid, cloud: true
+      };
+      saveProfile(); rememberLast();
+      enterApp();
+      startCloudSync(user.uid);
+    } else if (user && !user.emailVerified) {
+      stopCloudSync();
+      renderVerifyPending(user);
+    } else {
+      stopCloudSync();
+      renderAuthCloud();
+    }
+  }
   function boot() {
     readSharedFromUrl();
-    if (!profile) renderAuth(); else enterApp();
+    window.__onCloudAuth = handleCloudUser;
+    window.addEventListener("cloudauth:disabled", enterLocalMode);
+    // Falls das Cloud-Modul (CDN blockiert / offline) nie antwortet: nach 6 s lokal weiter.
+    setTimeout(function () { if (!cloudSignalled) enterLocalMode(); }, 6000);
+    renderAuthLoading();
   }
   function enterApp() {
     appEl.classList.remove("authing");
@@ -1349,12 +1607,14 @@
   }
 
   function renderProfileChip() {
+    const cloudDot = authMode === "cloud" ? `<span class="sync-dot chip off" data-sync-dot aria-hidden="true"></span>` : "";
     profileSlot.innerHTML = `<div class="profile">
       <button class="profile-btn" data-action="profile-menu" aria-haspopup="true" aria-label="Profilmenü">
-        <span class="avatar" aria-hidden="true">${esc(initials(profile.name))}</span>
+        <span class="av-wrap"><span class="avatar" aria-hidden="true">${esc(initials(profile.name))}</span>${cloudDot}</span>
         <span class="pname">${esc(profile.name)}</span>
         <svg class="caret" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
       </button></div>`;
+    updateSyncUI();
   }
 
   function toggleProfileMenu() {
@@ -1363,13 +1623,14 @@
     const wrap = document.querySelector(".profile");
     if (!wrap) return;
     const menu = el(`<div class="menu" role="menu">
-      <div class="mhead"><div class="mn">${esc(profile.name)}</div><div class="me">${esc(profile.email)}</div></div>
+      <div class="mhead"><div class="mn">${esc(profile.name)}</div><div class="me">${esc(profile.email)}</div>${authMode === "cloud" ? `<div class="msync"><span class="sync-dot off" data-sync-dot></span><span data-sync-label>Nicht verbunden</span></div>` : ""}</div>
       <button data-mi="edit" role="menuitem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>Profil bearbeiten</button>
       <button data-mi="share" role="menuitem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 13.5 6.8 4M15.4 6.5l-6.8 4"/></svg>Woche teilen · einladen</button>
       <hr>
       <button data-mi="signout" class="danger" role="menuitem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5M21 12H9"/></svg>Abmelden</button>
     </div>`);
     wrap.appendChild(menu);
+    updateSyncUI();
     menu.querySelector("[data-mi='edit']").addEventListener("click", () => { menu.remove(); openProfileForm(); });
     menu.querySelector("[data-mi='share']").addEventListener("click", () => { menu.remove(); openShare(); });
     menu.querySelector("[data-mi='signout']").addEventListener("click", () => { menu.remove(); signOut(); });
@@ -1379,7 +1640,7 @@
     }, 0);
   }
 
-  function renderAuth() {
+  function renderAuthLocal() {
     appEl.classList.add("authing");
     profileSlot.innerHTML = "";
     const last = jget(LAST_KEY, null);
@@ -1411,20 +1672,208 @@
     setTimeout(() => nameEl.focus(), 40);
   }
 
+  /* ---------- Cloud-Anmeldung (Firebase) ---------- */
+  // Apple erst auf true setzen, wenn der Apple-Provider in Firebase aktiviert ist
+  // (braucht einen Apple-Developer-Account).
+  const APPLE_ENABLED = false;
+  const GOOGLE_SVG = '<svg viewBox="0 0 48 48" aria-hidden="true"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3c-1.6 4.7-6.1 8-11.3 8-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34.5 4.1 29.5 2 24 2 11.8 2 2 11.8 2 24s9.8 22 22 22 22-9.8 22-22c0-1.5-.2-2.6-.4-3.5z"/><path fill="#FF3D00" d="M3.2 12.7l6.6 4.8C11.5 13.6 17.3 10 24 10c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34.5 4.1 29.5 2 24 2 15.6 2 8.3 6.9 3.2 12.7z"/><path fill="#4CAF50" d="M24 46c5.4 0 10.3-2.1 14-5.5l-6.5-5.3C29.6 36.8 26.9 38 24 38c-5.2 0-9.6-3.3-11.2-8l-6.5 5C9.5 41 16.2 46 24 46z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.1-4 5.5l6.5 5.3C41.9 35.9 46 30.5 46 24c0-1.5-.2-2.6-.4-3.5z"/></svg>';
+  const APPLE_SVG = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M16.4 12.7c0-2.3 1.9-3.4 2-3.5-1.1-1.6-2.8-1.8-3.4-1.8-1.4-.1-2.8.9-3.5.9-.7 0-1.9-.9-3-.8-1.6 0-3 .9-3.8 2.3-1.6 2.8-.4 7 1.2 9.3.8 1.1 1.7 2.4 2.9 2.3 1.2 0 1.6-.7 3-.7s1.8.7 3 .7 2-1.1 2.8-2.2c.9-1.3 1.2-2.5 1.3-2.6-.1 0-2.5-1-2.5-3.8zM14.2 5.4c.6-.8 1-1.9.9-3-.9 0-2 .6-2.6 1.4-.6.7-1.1 1.8-1 2.8 1 .1 2-.5 2.7-1.2z"/></svg>';
+
+  function renderAuthLoading() {
+    appEl.classList.add("authing");
+    profileSlot.innerHTML = "";
+    view.innerHTML = `<div class="auth"><div class="auth-card">
+      <div class="mark"></div>
+      <h2>Einen Moment…</h2>
+      <p class="lead">Verbindung zu deinem Konto wird hergestellt.</p>
+    </div></div>`;
+  }
+
+  function cloudErrMsg(e) {
+    const c = (e && e.code) || "";
+    const map = {
+      "auth/email-already-in-use": "Diese E-Mail ist bereits registriert. Melde dich stattdessen an.",
+      "auth/invalid-email": "Diese E-Mail-Adresse ist ungültig.",
+      "auth/weak-password": "Das Passwort ist zu schwach (mindestens 6 Zeichen).",
+      "auth/missing-password": "Bitte gib ein Passwort ein.",
+      "auth/invalid-credential": "E-Mail oder Passwort ist falsch.",
+      "auth/wrong-password": "E-Mail oder Passwort ist falsch.",
+      "auth/user-not-found": "Kein Konto mit dieser E-Mail gefunden.",
+      "auth/too-many-requests": "Zu viele Versuche. Bitte warte kurz und versuche es erneut.",
+      "auth/popup-closed-by-user": "Anmeldefenster wurde geschlossen.",
+      "auth/cancelled-popup-request": "Anmeldung abgebrochen.",
+      "auth/popup-blocked": "Das Anmeldefenster wurde blockiert. Erlaube Pop-ups und versuche es erneut.",
+      "auth/network-request-failed": "Keine Verbindung. Bitte prüfe dein Internet.",
+      "auth/operation-not-allowed": "Diese Anmeldeart ist in Firebase noch nicht aktiviert.",
+      "auth/unauthorized-domain": "Diese Domain ist in Firebase nicht freigegeben (Authentication → Settings → Authorized domains)."
+    };
+    return map[c] || ("Es ist ein Fehler aufgetreten." + (c ? " (" + c + ")" : ""));
+  }
+
+  let cloudMode = jget(LAST_KEY, null) ? "login" : "register";
+
+  function renderAuthCloud() {
+    authMode = "cloud";
+    appEl.classList.add("authing");
+    profileSlot.innerHTML = "";
+    drawCloudCard();
+  }
+
+  function drawCloudCard() {
+    const reg = cloudMode === "register";
+    view.innerHTML = `<div class="auth"><div class="auth-card">
+      <div class="mark"></div>
+      <h2>${reg ? "Konto erstellen" : "Willkommen zurück"}</h2>
+      <p class="lead">${reg ? "Registriere dich, um deinen Plan auf allen Geräten zu nutzen." : "Melde dich an, um weiterzuplanen."}</p>
+      ${pendingShare ? `<p class="lead" style="color:var(--accent-strong);font-weight:600;margin-top:-8px">Du wurdest zu einem geteilten Plan eingeladen – melde dich an, um ihn zu übernehmen.</p>` : ""}
+      <div class="segbar" role="tablist" aria-label="Anmelden oder registrieren">
+        <button type="button" role="tab" data-m="register" aria-selected="${reg}">Registrieren</button>
+        <button type="button" role="tab" data-m="login" aria-selected="${!reg}">Anmelden</button>
+      </div>
+      ${reg ? `<div class="field"><label for="c-name">Name</label><input type="text" id="c-name" placeholder="Wie heißt du?" maxlength="40" autocomplete="name"></div>` : ""}
+      <div class="field"><label for="c-email">E-Mail-Adresse</label><input type="email" id="c-email" placeholder="du@beispiel.de" autocomplete="email"></div>
+      <div class="field"><label for="c-pw">Passwort</label><input type="password" id="c-pw" placeholder="${reg ? "Mindestens 6 Zeichen" : "Dein Passwort"}" autocomplete="${reg ? "new-password" : "current-password"}"></div>
+      ${reg ? "" : `<button type="button" class="auth-forgot" id="c-forgot">Passwort vergessen?</button>`}
+      <p class="auth-err" id="c-err" role="alert"></p>
+      <button class="btn primary" id="c-go">${reg ? "Konto erstellen" : "Anmelden"}</button>
+      <div class="auth-or">oder</div>
+      <button class="btn social" id="c-google" type="button">${GOOGLE_SVG}<span>Mit Google ${reg ? "registrieren" : "anmelden"}</span></button>
+      ${APPLE_ENABLED ? `<button class="btn social apple" id="c-apple" type="button">${APPLE_SVG}<span>Mit Apple ${reg ? "registrieren" : "anmelden"}</span></button>` : ""}
+      <p class="auth-note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg><span>Dein Konto liegt sicher in der Cloud – du kannst dich von jedem Gerät aus anmelden. Nach der Registrierung schicken wir dir eine <strong>Bestätigungsmail</strong>.</span></p>
+    </div></div>`;
+
+    const card = view.querySelector(".auth-card");
+    const errEl = view.querySelector("#c-err");
+    const showErr = m => { errEl.textContent = m || ""; };
+    const setBusy = on => { card.classList.toggle("auth-busy", !!on); };
+    const val = id => { const n = view.querySelector(id); return n ? n.value.trim() : ""; };
+
+    view.querySelectorAll(".segbar button").forEach(b => b.addEventListener("click", () => {
+      cloudMode = b.getAttribute("data-m"); drawCloudCard();
+    }));
+
+    async function doPrimary() {
+      showErr("");
+      const email = val("#c-email");
+      const pw = view.querySelector("#c-pw").value;
+      if (!validEmail(email)) { showErr("Bitte gib eine gültige E-Mail-Adresse ein."); return; }
+      if (!pw) { showErr("Bitte gib ein Passwort ein."); return; }
+      setBusy(true);
+      try {
+        if (reg) {
+          const name = val("#c-name");
+          if (!name) { showErr("Bitte gib deinen Namen ein."); setBusy(false); return; }
+          if (pw.length < 6) { showErr("Das Passwort muss mindestens 6 Zeichen haben."); setBusy(false); return; }
+          const user = await window.CloudAuth.registerEmail(name, email, pw);
+          renderVerifyPending(user);
+        } else {
+          await window.CloudAuth.loginEmail(email, pw);
+          // Erfolg → onAuthStateChanged übernimmt (App oder Bestätigungs-Screen)
+        }
+      } catch (e) { setBusy(false); showErr(cloudErrMsg(e)); }
+    }
+
+    async function social(fn) {
+      showErr(""); setBusy(true);
+      try { await fn(); } catch (e) { setBusy(false); showErr(cloudErrMsg(e)); }
+    }
+
+    view.querySelector("#c-go").addEventListener("click", doPrimary);
+    view.querySelectorAll("#c-email, #c-pw, #c-name").forEach(inp =>
+      inp.addEventListener("keydown", e => { if (e.key === "Enter") doPrimary(); }));
+    view.querySelector("#c-google").addEventListener("click", () => social(window.CloudAuth.loginGoogle));
+    const appleBtn = view.querySelector("#c-apple");
+    if (appleBtn) appleBtn.addEventListener("click", () => social(window.CloudAuth.loginApple));
+    const forgot = view.querySelector("#c-forgot");
+    if (forgot) forgot.addEventListener("click", () => openForgotPassword(val("#c-email")));
+
+    setTimeout(() => { const f = view.querySelector(reg ? "#c-name" : "#c-email"); if (f) f.focus(); }, 40);
+  }
+
+  function renderVerifyPending(user) {
+    authMode = "cloud";
+    appEl.classList.add("authing");
+    profileSlot.innerHTML = "";
+    const email = user && user.email ? user.email : "";
+    view.innerHTML = `<div class="auth"><div class="auth-card">
+      <div class="verify-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg></div>
+      <h2>Bestätige deine E-Mail</h2>
+      <p class="lead">Wir haben eine Bestätigungsmail an <span class="auth-mail">${esc(email)}</span> geschickt. Öffne den Link darin – danach kannst du loslegen.</p>
+      <p class="auth-err" id="v-err" role="alert"></p>
+      <button class="btn primary" id="v-check">Ich habe bestätigt</button>
+      <div class="auth-or">oder</div>
+      <button class="btn social" id="v-resend" type="button">Bestätigungsmail erneut senden</button>
+      <p class="auth-switch">Falsche Adresse oder anderes Konto? <button type="button" class="auth-forgot" style="display:inline;margin:0" id="v-back">Abmelden</button></p>
+      <p class="auth-note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></svg><span>Keine Mail erhalten? Schau auch im <strong>Spam-Ordner</strong> nach. Der Link ist einige Zeit gültig.</span></p>
+    </div></div>`;
+    const card = view.querySelector(".auth-card");
+    const errEl = view.querySelector("#v-err");
+    const setBusy = on => card.classList.toggle("auth-busy", !!on);
+
+    view.querySelector("#v-check").addEventListener("click", async () => {
+      errEl.textContent = ""; setBusy(true);
+      try {
+        const u = await window.CloudAuth.reloadUser();
+        if (u && u.emailVerified) { handleCloudUser(u); }
+        else { setBusy(false); errEl.textContent = "Noch nicht bestätigt. Bitte klicke zuerst den Link in der E-Mail."; }
+      } catch (e) { setBusy(false); errEl.textContent = cloudErrMsg(e); }
+    });
+    view.querySelector("#v-resend").addEventListener("click", async () => {
+      errEl.textContent = ""; setBusy(true);
+      try { await window.CloudAuth.resendVerification(); toast("Bestätigungsmail gesendet"); }
+      catch (e) { errEl.textContent = cloudErrMsg(e); }
+      setBusy(false);
+    });
+    view.querySelector("#v-back").addEventListener("click", () => {
+      try { window.CloudAuth.logout(); } catch (e) {}
+      cloudMode = "login";
+    });
+  }
+
+  function openForgotPassword(prefill) {
+    const node = el(`<div class="modal" role="dialog" aria-modal="true" aria-label="Passwort zurücksetzen">
+      <div class="modal-head"><h3>Passwort zurücksetzen</h3><button class="btn ghost sm" data-close>✕</button></div>
+      <div class="modal-body">
+        <p class="share-hint">Gib deine E-Mail-Adresse ein – wir senden dir einen Link zum Zurücksetzen deines Passworts.</p>
+        <div class="field"><label for="fp-email">E-Mail-Adresse</label><input type="email" id="fp-email" value="${esc(prefill || "")}" placeholder="du@beispiel.de"></div>
+        <p class="auth-err" id="fp-err" role="alert"></p>
+      </div>
+      <div class="modal-foot"><button class="btn ghost" data-close>Abbrechen</button><button class="btn primary" data-send>Link senden</button></div>
+    </div>`);
+    node.querySelectorAll("[data-close]").forEach(b => b.addEventListener("click", closeModal));
+    node.querySelector("[data-send]").addEventListener("click", async () => {
+      const email = node.querySelector("#fp-email").value.trim();
+      const err = node.querySelector("#fp-err");
+      if (!validEmail(email)) { err.textContent = "Bitte gib eine gültige E-Mail-Adresse ein."; return; }
+      err.textContent = "";
+      try { await window.CloudAuth.resetPassword(email); closeModal(); toast("E-Mail zum Zurücksetzen gesendet"); }
+      catch (e) { err.textContent = cloudErrMsg(e); }
+    });
+    openModal(node);
+    setTimeout(() => { const f = node.querySelector("#fp-email"); if (f && !prefill) f.focus(); }, 40);
+  }
+
   function openProfileForm() {
     const node = el(`<div class="modal" role="dialog" aria-modal="true" aria-label="Profil bearbeiten">
       <div class="modal-head"><h3>Profil bearbeiten</h3><button class="btn ghost sm" data-close>✕</button></div>
       <div class="modal-body">
         <div class="field"><label for="p-name">Name</label><input type="text" id="p-name" value="${esc(profile.name)}" maxlength="40"></div>
-        <div class="field"><label for="p-email">E-Mail-Adresse</label><input type="email" id="p-email" value="${esc(profile.email)}"></div>
+        <div class="field"><label for="p-email">E-Mail-Adresse</label><input type="email" id="p-email" value="${esc(profile.email)}"${authMode === "cloud" ? " readonly style=\"opacity:.6\"" : ""}></div>
+        ${authMode === "cloud" ? `<p class="share-mini">Deine E-Mail-Adresse ist mit deinem Cloud-Konto verknüpft und kann hier nicht geändert werden.</p>` : ""}
       </div>
       <div class="modal-foot"><button class="btn ghost" data-close>Abbrechen</button><button class="btn primary" data-save>Speichern</button></div>
     </div>`);
     node.querySelectorAll("[data-close]").forEach(b => b.addEventListener("click", closeModal));
-    node.querySelector("[data-save]").addEventListener("click", () => {
+    node.querySelector("[data-save]").addEventListener("click", async () => {
       const name = node.querySelector("#p-name").value.trim();
-      const email = node.querySelector("#p-email").value.trim();
       if (!name) { toast("Bitte gib deinen Namen ein"); return; }
+      if (authMode === "cloud") {
+        try { await window.CloudAuth.updateName(name); } catch (e) { toast("Speichern nicht möglich"); return; }
+        profile = Object.assign({}, profile, { name }); saveProfile(); rememberLast();
+        renderProfileChip(); closeModal(); toast("Profil gespeichert");
+        return;
+      }
+      const email = node.querySelector("#p-email").value.trim();
       if (!validEmail(email)) { toast("Bitte gib eine gültige E-Mail ein"); return; }
       profile = { name, email }; saveProfile(); rememberLast();
       renderProfileChip(); closeModal(); toast("Profil gespeichert");
@@ -1439,7 +1888,17 @@
       <div class="modal-foot"><button class="btn ghost" data-close>Abbrechen</button><button class="btn danger" data-confirm>Abmelden</button></div>
     </div>`);
     node.querySelectorAll("[data-close]").forEach(b => b.addEventListener("click", closeModal));
-    node.querySelector("[data-confirm]").addEventListener("click", () => { profile = null; saveProfile(); closeModal(); renderAuth(); });
+    node.querySelector("[data-confirm]").addEventListener("click", () => {
+      closeModal();
+      if (authMode === "cloud" && window.CloudAuth && window.CloudAuth.logout) {
+        cloudMode = "login";
+        stopCloudSync();
+        window.CloudAuth.logout().catch(() => {});
+        // onAuthStateChanged rendert danach die Anmeldung
+      } else {
+        profile = null; saveProfile(); renderAuthLocal();
+      }
+    });
     openModal(node);
   }
 
