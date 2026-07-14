@@ -508,7 +508,7 @@
         <div class="mark"></div>
         <div>
           <h1>Paddy’s Mealplan</h1>
-          <p>Woche planen · Rezepte · Nährwerte</p>
+          <p>Woche planen · Meals · Nährwerte</p>
         </div>
       </div>
       <div class="tabs" role="tablist" aria-label="Ansicht wählen">
@@ -518,7 +518,7 @@
         </button>
         <button class="tab" role="tab" id="tab-recipes" data-action="tab" data-tab="recipes" aria-selected="false">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4v16a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1V7l-4-3H5a1 1 0 0 0-1 1Z"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>
-          Rezepte <span class="count" id="recipe-count">0</span>
+          Meals <span class="count" id="recipe-count">0</span>
         </button>
       </div>
       <div id="profile-slot"></div>
@@ -1010,10 +1010,10 @@
         <div class="wn-tile t-prot"><div class="val">${nfmt(w.protein)}<span class="u">g</span></div><div class="lbl">Proteine</div></div>
         <div class="wn-tile t-fat"><div class="val">${nfmt(w.fat)}<span class="u">g</span></div><div class="lbl">Fett</div></div>`;
     return `<div class="week-nut">
-        <div class="wn-head"><h3>Nährwerte der Woche</h3><span class="wn-sub">Summe aller eingeplanten Gerichte (je Portion)${avg}</span></div>
+        <div class="wn-head"><h3>Nährwerte der Woche</h3><span class="wn-sub">Summe aller eingeplanten Meals (je Portion)${avg}</span></div>
         ${hasNut(w)
           ? `<div class="wn-tiles">${tiles}</div>`
-          : `<p class="wn-empty">Trage bei deinen Rezepten Nährwerte ein (Kalorien, Kohlenhydrate, Proteine, Fett) – dann erscheint hier die Tages- und Wochenbilanz.</p>`}
+          : `<p class="wn-empty">Trage bei deinen Meals Nährwerte ein (Kalorien, Kohlenhydrate, Proteine, Fett) – dann erscheint hier die Tages- und Wochenbilanz.</p>`}
       </div>`;
   }
 
@@ -1035,7 +1035,7 @@
       <div class="section-head">
         <div class="title">
           <h2>Dein Wochenplan</h2>
-          <div class="sub">${filled} von 21 Mahlzeiten geplant · tippe auf eine Mahlzeit, um ein Rezept zu wählen</div>
+          <div class="sub">${filled} von 21 Mahlzeiten geplant · tippe auf eine Mahlzeit, um ein Meal zu wählen</div>
         </div>
         <button class="btn" data-action="shopping">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6h15l-1.5 9h-12z"/><path d="M6 6 5 2H2"/><circle cx="9" cy="20" r="1.4"/><circle cx="18" cy="20" r="1.4"/></svg>
@@ -1069,7 +1069,7 @@
               <button class="x" data-action="unassign" data-slot-src="${d.key}:${m.key}:${idx}" aria-label="Entfernen" title="Entfernen">✕</button>
             </div>`;
         });
-        html += `<button class="add${shown ? " more" : ""}" data-action="pick" data-day="${d.key}" data-meal="${m.key}">+ ${shown ? "Noch ein Gericht" : "Rezept wählen"}</button>`;
+        html += `<button class="add${shown ? " more" : ""}" data-action="pick" data-day="${d.key}" data-meal="${m.key}">+ ${shown ? "Noch ein Meal" : "Meal wählen"}</button>`;
         html += `</div>`;
       });
       html += `</div>${dayNutHtml(dayNut(d.key))}</section>`;
@@ -1083,21 +1083,21 @@
     let html = `
       <div class="section-head">
         <div class="title">
-          <h2>Meine Rezepte</h2>
-          <div class="sub">${state.recipes.length} Rezept${state.recipes.length === 1 ? "" : "e"} · pflege hier deine Gerichte ein</div>
+          <h2>Meine Meals</h2>
+          <div class="sub">${state.recipes.length} Meal${state.recipes.length === 1 ? "" : "s"} · pflege hier deine Meals ein</div>
         </div>
         <button class="btn primary" data-action="new-recipe">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
-          Neues Rezept
+          Neues Meal
         </button>
       </div>`;
 
     if (state.recipes.length === 0) {
       html += `<div class="empty">
         <svg class="em-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4v16a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1V7l-4-3H5a1 1 0 0 0-1 1Z"/><path d="M8 9h8M8 13h8M8 17h5"/></svg>
-        <h3>Noch keine Rezepte</h3>
-        <p>Lege dein erstes Rezept an – danach kannst du es im Wochenplan auf die Tage verteilen.</p>
-        <button class="btn primary" data-action="new-recipe">Erstes Rezept anlegen</button>
+        <h3>Noch keine Meals</h3>
+        <p>Lege dein erstes Meal an – danach kannst du es im Wochenplan auf die Tage verteilen.</p>
+        <button class="btn primary" data-action="new-recipe">Erstes Meal anlegen</button>
       </div>`;
     } else {
       html += `<div class="recipes">`;
@@ -1153,11 +1153,11 @@
     const r = id ? getRecipe(id) : null;
     let formImage = r ? (r.image || null) : null;
     const opts = CATEGORIES.map(c => `<option value="${c}" ${r && r.category === c ? "selected" : ""}>${c}</option>`).join("");
-    const node = el(`<div class="modal detail" role="dialog" aria-modal="true" aria-label="${r ? "Rezept bearbeiten" : "Neues Rezept"}">
-      <div class="modal-head"><h3>${r ? "Rezept bearbeiten" : "Neues Rezept"}</h3><button class="btn ghost sm" data-close>✕</button></div>
+    const node = el(`<div class="modal detail" role="dialog" aria-modal="true" aria-label="${r ? "Meal bearbeiten" : "Neues Meal"}">
+      <div class="modal-head"><h3>${r ? "Meal bearbeiten" : "Neues Meal"}</h3><button class="btn ghost sm" data-close>✕</button></div>
       <div class="modal-body">
         <div class="field">
-          <label for="f-name">Name des Gerichts</label>
+          <label for="f-name">Name des Meals</label>
           <input type="text" id="f-name" placeholder="z. B. Ofengemüse mit Feta" value="${r ? esc(r.name) : ""}" maxlength="80">
         </div>
         <div class="row2">
@@ -1202,7 +1202,7 @@
       </div>
       <div class="modal-foot">
         <button class="btn ghost" data-close>Abbrechen</button>
-        <button class="btn primary" data-save>${r ? "Speichern" : "Rezept anlegen"}</button>
+        <button class="btn primary" data-save>${r ? "Speichern" : "Meal anlegen"}</button>
       </div>
     </div>`);
 
@@ -1273,8 +1273,8 @@
         steps: node.querySelector("#f-steps").value.trim(),
         image: formImage || null,
       };
-      if (r) { Object.assign(r, data); toast("Rezept gespeichert"); }
-      else { state.recipes.push(Object.assign({ id: uid() }, data)); toast("Rezept angelegt"); }
+      if (r) { Object.assign(r, data); toast("Meal gespeichert"); }
+      else { state.recipes.push(Object.assign({ id: uid() }, data)); toast("Meal angelegt"); }
       closeModal(); render();
     });
     openModal(node);
@@ -1290,7 +1290,7 @@
       : `<p style="color:var(--text-muted);margin:0">Keine Zutaten hinterlegt.</p>`;
     const node = el(`<div class="modal detail" role="dialog" aria-modal="true" aria-label="${esc(r.name)}">
       <div class="modal-head">
-        <div style="flex:1"><div class="kicker">Rezept</div><h3 style="margin-top:2px">${esc(r.name)}</h3></div>
+        <div style="flex:1"><div class="kicker">Meal</div><h3 style="margin-top:2px">${esc(r.name)}</h3></div>
         <span class="chip ${cls}">${esc(r.category || "Gericht")}</span>
         <button class="btn ghost sm" data-close>✕</button>
       </div>
@@ -1324,19 +1324,19 @@
     const mLabel = MEALS.find(m => m.key === meal).label;
     if (state.recipes.length === 0) {
       const node = el(`<div class="modal" role="dialog" aria-modal="true">
-        <div class="modal-head"><h3>Noch keine Rezepte</h3><button class="btn ghost sm" data-close>✕</button></div>
-        <div class="modal-body"><p style="margin:0;color:var(--text-muted)">Du hast noch keine Rezepte angelegt. Wechsle in den Reiter <strong>Rezepte</strong> und leg zuerst ein Gericht an.</p></div>
-        <div class="modal-foot"><button class="btn ghost" data-close>Abbrechen</button><button class="btn primary" data-go>Zu den Rezepten</button></div>
+        <div class="modal-head"><h3>Noch keine Meals</h3><button class="btn ghost sm" data-close>✕</button></div>
+        <div class="modal-body"><p style="margin:0;color:var(--text-muted)">Du hast noch keine Meals angelegt. Wechsle in den Reiter <strong>Meals</strong> und leg zuerst ein Meal an.</p></div>
+        <div class="modal-foot"><button class="btn ghost" data-close>Abbrechen</button><button class="btn primary" data-go>Zu den Meals</button></div>
       </div>`);
       node.querySelectorAll("[data-close]").forEach(b => b.addEventListener("click", closeModal));
       node.querySelector("[data-go]").addEventListener("click", () => { closeModal(); state.tab = "recipes"; render(); openRecipeForm(null); });
       openModal(node);
       return;
     }
-    const node = el(`<div class="modal" role="dialog" aria-modal="true" aria-label="Rezept wählen">
-      <div class="modal-head"><div style="flex:1"><div class="kicker">${esc(dLabel)} · ${esc(mLabel)}</div><h3 style="margin-top:2px">Rezept wählen</h3></div><button class="btn ghost sm" data-close>✕</button></div>
+    const node = el(`<div class="modal" role="dialog" aria-modal="true" aria-label="Meal wählen">
+      <div class="modal-head"><div style="flex:1"><div class="kicker">${esc(dLabel)} · ${esc(mLabel)}</div><h3 style="margin-top:2px">Meal wählen</h3></div><button class="btn ghost sm" data-close>✕</button></div>
       <div class="modal-body">
-        <div class="picker-search"><input type="text" id="p-search" placeholder="Rezept suchen …" autocomplete="off"></div>
+        <div class="picker-search"><input type="text" id="p-search" placeholder="Meal suchen …" autocomplete="off"></div>
         <div class="plist" id="p-list"></div>
       </div>
     </div>`);
@@ -1355,7 +1355,7 @@
         const sa = a.category === mealCat ? 0 : 1, sb = b.category === mealCat ? 0 : 1;
         return sa - sb;
       });
-      if (list.length === 0) { listEl.innerHTML = `<p style="color:var(--text-muted);padding:8px 4px;margin:0">Kein Rezept gefunden.</p>`; return; }
+      if (list.length === 0) { listEl.innerHTML = `<p style="color:var(--text-muted);padding:8px 4px;margin:0">Kein Meal gefunden.</p>`; return; }
       listEl.innerHTML = list.map(r => {
         const suggest = r.category === mealCat ? " suggest" : "";
         return `<button class="pitem${suggest}" data-assign="${r.id}">
@@ -1408,7 +1408,7 @@
             <input type="checkbox" class="shop-check" id="s${idx}">
             <span class="box" aria-hidden="true">${checkSvg}</span>
             <span class="lbl">${esc(it.label)}</span>
-            ${it.count > 1 ? `<span class="qty" title="in ${it.count} Gerichten der Woche">×${it.count}</span>` : ""}
+            ${it.count > 1 ? `<span class="qty" title="in ${it.count} Meals der Woche">×${it.count}</span>` : ""}
           </label>`).join("")}</div>`;
     }
 
@@ -1456,7 +1456,7 @@
   function deleteRecipe(id) {
     const r = getRecipe(id); if (!r) return;
     const node = el(`<div class="modal" role="dialog" aria-modal="true">
-      <div class="modal-head"><h3>Rezept löschen?</h3><button class="btn ghost sm" data-close>✕</button></div>
+      <div class="modal-head"><h3>Meal löschen?</h3><button class="btn ghost sm" data-close>✕</button></div>
       <div class="modal-body"><p style="margin:0">„<strong>${esc(r.name)}</strong>" wird dauerhaft entfernt und aus dem Wochenplan gelöscht.</p></div>
       <div class="modal-foot"><button class="btn ghost" data-close>Abbrechen</button><button class="btn danger" data-confirm>Löschen</button></div>
     </div>`);
@@ -1464,7 +1464,7 @@
     node.querySelector("[data-confirm]").addEventListener("click", () => {
       state.recipes = state.recipes.filter(x => x.id !== id);
       DAYS.forEach(d => MEALS.forEach(m => { state.plan[d.key][m.key] = state.plan[d.key][m.key].filter(x => x !== id); }));
-      closeModal(); render(); toast("Rezept gelöscht");
+      closeModal(); render(); toast("Meal gelöscht");
     });
     openModal(node);
   }
@@ -1473,7 +1473,7 @@
     if (planStats() === 0) { toast("Der Plan ist schon leer"); return; }
     const node = el(`<div class="modal" role="dialog" aria-modal="true">
       <div class="modal-head"><h3>Woche leeren?</h3><button class="btn ghost sm" data-close>✕</button></div>
-      <div class="modal-body"><p style="margin:0">Alle Zuordnungen im Wochenplan werden entfernt. Deine Rezepte bleiben erhalten.</p></div>
+      <div class="modal-body"><p style="margin:0">Alle Zuordnungen im Wochenplan werden entfernt. Deine Meals bleiben erhalten.</p></div>
       <div class="modal-foot"><button class="btn ghost" data-close>Abbrechen</button><button class="btn danger" data-confirm>Woche leeren</button></div>
     </div>`);
     node.querySelectorAll("[data-close]").forEach(b => b.addEventListener("click", closeModal));
@@ -1622,7 +1622,7 @@
     const nrec = d.recipes.length;
     const node = el(`<div class="modal" role="dialog" aria-modal="true" aria-label="Geteilter Plan">
       <div class="modal-head"><div style="flex:1"><div class="kicker">Einladung erhalten</div><h3 style="margin-top:2px">Geteilter Wochenplan</h3></div><button class="btn ghost sm" data-close>✕</button></div>
-      <div class="modal-body"><p style="margin:0"><strong>${who}</strong> hat einen Wochenplan mit dir geteilt (${nrec} Rezept${nrec === 1 ? "" : "e"}). Möchtest du ihn übernehmen? Deine eigenen Rezepte bleiben erhalten, neue kommen dazu – dein aktueller Wochenplan wird durch den geteilten ersetzt.</p></div>
+      <div class="modal-body"><p style="margin:0"><strong>${who}</strong> hat einen Wochenplan mit dir geteilt (${nrec} Meal${nrec === 1 ? "" : "s"}). Möchtest du ihn übernehmen? Deine eigenen Meals bleiben erhalten, neue kommen dazu – dein aktueller Wochenplan wird durch den geteilten ersetzt.</p></div>
       <div class="modal-foot"><button class="btn ghost" data-close>Später</button><button class="btn primary" data-take>Plan übernehmen</button></div>
     </div>`);
     node.querySelectorAll("[data-close]").forEach(b => b.addEventListener("click", closeModal));
@@ -1678,7 +1678,7 @@
       <div class="field"><label for="a-name">Name</label><input type="text" id="a-name" placeholder="Wie heißt du?" value="${back ? esc(last.name) : ""}" maxlength="40" autocomplete="name"></div>
       <div class="field"><label for="a-email">E-Mail-Adresse</label><input type="email" id="a-email" placeholder="du@beispiel.de" value="${back ? esc(last.email) : ""}" autocomplete="email"></div>
       <button class="btn primary" id="a-go">${back ? "Anmelden" : "Profil anlegen"}</button>
-      ${hasData ? `<p class="auth-switch">Deine bisherigen Rezepte und dein Plan auf diesem Gerät bleiben erhalten.</p>` : ""}
+      ${hasData ? `<p class="auth-switch">Deine bisherigen Meals und dein Plan auf diesem Gerät bleiben erhalten.</p>` : ""}
       <p class="auth-note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></svg><span>Dies ist ein <strong>lokales Profil</strong> auf diesem Gerät – kein Cloud-Konto, kein Passwort nötig. Zum gemeinsamen Planen teilst du deine Woche per Einladungs-Code.</span></p>
     </div></div>`;
     const nameEl = view.querySelector("#a-name");
@@ -1908,7 +1908,7 @@
   function signOut() {
     const node = el(`<div class="modal" role="dialog" aria-modal="true">
       <div class="modal-head"><h3>Abmelden?</h3><button class="btn ghost sm" data-close>✕</button></div>
-      <div class="modal-body"><p style="margin:0">Dein Plan und deine Rezepte bleiben auf diesem Gerät gespeichert. Du kannst dich jederzeit wieder anmelden.</p></div>
+      <div class="modal-body"><p style="margin:0">Dein Plan und deine Meals bleiben auf diesem Gerät gespeichert. Du kannst dich jederzeit wieder anmelden.</p></div>
       <div class="modal-foot"><button class="btn ghost" data-close>Abbrechen</button><button class="btn danger" data-confirm>Abmelden</button></div>
     </div>`);
     node.querySelectorAll("[data-close]").forEach(b => b.addEventListener("click", closeModal));
@@ -2069,7 +2069,7 @@
         const shareUrl = location.href.split("#")[0] + "#plan=" + encodeURIComponent(code);
         const tooLong = shareUrl.length > 8000;
         segBody.innerHTML = `
-          <p class="share-hint">Teile deinen Plan als <b>Link</b>, Code oder Datei – er enthält deinen aktuellen Wochenplan und deine Rezepte. <em>Momentaufnahme zum Weitergeben, keine Live-Synchronisierung.</em></p>
+          <p class="share-hint">Teile deinen Plan als <b>Link</b>, Code oder Datei – er enthält deinen aktuellen Wochenplan und deine Meals. <em>Momentaufnahme zum Weitergeben, keine Live-Synchronisierung.</em></p>
           <span class="share-sub">Teilen-Link</span>
           <div class="link-row">
             <input type="text" class="share-link" id="sl" readonly value="${esc(shareUrl)}">
@@ -2093,7 +2093,7 @@
         });
       } else if (mode === "take") {
         segBody.innerHTML = `
-          <p class="share-hint">Füge den Einladungs-Code deines Freundes ein oder lade seine Datei. Seine Rezepte werden zu deinen hinzugefügt.</p>
+          <p class="share-hint">Füge den Einladungs-Code deines Freundes ein oder lade seine Datei. Seine Meals werden zu deinen hinzugefügt.</p>
           <textarea class="share-code" id="tc" placeholder="Code hier einfügen …"></textarea>
           <label style="display:flex;gap:9px;align-items:center;font-size:13.5px;margin:12px 0 2px;cursor:pointer">
             <input type="checkbox" id="tc-plan" checked style="width:17px;height:17px;accent-color:var(--accent)">
@@ -2164,7 +2164,7 @@
     }
     save(); closeModal();
     state.tab = "plan"; render();
-    toast("Importiert" + (data.by ? " von " + data.by : "") + ": " + added + " neue Rezept" + (added === 1 ? "" : "e"));
+    toast("Importiert" + (data.by ? " von " + data.by : "") + ": " + added + " neue Meal" + (added === 1 ? "" : "s"));
   }
 
   // ---------- Boot ----------
