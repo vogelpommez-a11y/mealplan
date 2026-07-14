@@ -276,6 +276,7 @@
   .chip.cat-mi { color: var(--mi); background: color-mix(in srgb, var(--mi) 14%, var(--surface)); }
   .chip.cat-ab { color: var(--ab); background: color-mix(in srgb, var(--ab) 14%, var(--surface)); }
   .chip.cat-x { color: var(--accent-strong); background: color-mix(in srgb, var(--accent) 14%, var(--surface)); }
+  .chip.example { color: var(--fr); background: color-mix(in srgb, var(--fr) 15%, var(--surface)); border: 1px solid color-mix(in srgb, var(--fr) 32%, transparent); }
   .rcard .meta { display: flex; gap: 14px; flex-wrap: wrap; color: var(--text-muted); font-size: 12.5px; }
   .rcard .meta span { display: inline-flex; align-items: center; gap: 5px; }
   .rcard .meta svg { width: 14px; height: 14px; opacity: .8; }
@@ -686,6 +687,21 @@
       steps: "Tomaten, Gurke und Zwiebel grob schneiden. Mit Oliven mischen, Feta darüber bröseln, mit Olivenöl und Oregano beträufeln." },
   ];
 
+  // Erkennt die mitgelieferten Beispiel-Meals: gleicher Name UND unveränderte Zubereitung.
+  // Sobald der Nutzer ein Beispiel bearbeitet, gilt es als sein eigenes (kein Badge mehr).
+  function isExample(r) {
+    if (!r || !r.name) return false;
+    const key = r.name.trim().toLowerCase();
+    const s = SEED.find(x => x.name.trim().toLowerCase() === key);
+    return !!s && String(r.steps || "").trim() === String(s.steps || "").trim();
+  }
+  // IDs aller Meals, die im Wochenplan wirklich eingeplant sind.
+  function planRecipeIds() {
+    const ids = new Set();
+    DAYS.forEach(d => MEALS.forEach(m => { asIdList(state.plan[d.key][m.key]).forEach(id => ids.add(id)); }));
+    return ids;
+  }
+
   // ---------- State ----------
   let state = load();
 
@@ -1095,6 +1111,7 @@
           <h2>Meine Meals</h2>
           <div class="sub">${state.recipes.length} Meal${state.recipes.length === 1 ? "" : "s"} · pflege hier deine Meals ein</div>
         </div>
+        ${state.recipes.some(isExample) ? `<button class="btn ghost sm" data-action="clear-examples">Beispiele entfernen</button>` : ""}
         <button class="btn primary" data-action="new-recipe">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
           Neues Meal
@@ -1119,6 +1136,7 @@
           <div class="rbody">
           <div class="top">
             <h3>${esc(r.name)}</h3>
+            ${isExample(r) ? `<span class="chip example" title="Mitgeliefertes Beispiel-Meal">Beispiel</span>` : ""}
           </div>
           <div class="meta">
             ${r.portions ? `<span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="9" cy="8" r="3"/><path d="M3 20a6 6 0 0 1 12 0"/><path d="M16 5a3 3 0 0 1 0 6M21 20a6 6 0 0 0-5-5.9"/></svg>${esc(r.portions)} Portion${r.portions == 1 ? "" : "en"}</span>` : ""}
@@ -1478,6 +1496,24 @@
     openModal(node);
   }
 
+  function clearExamples() {
+    const exIds = new Set(state.recipes.filter(isExample).map(r => r.id));
+    if (!exIds.size) { toast("Keine Beispiele vorhanden"); return; }
+    const n = exIds.size;
+    const node = el(`<div class="modal" role="dialog" aria-modal="true">
+      <div class="modal-head"><h3>Beispiele entfernen?</h3><button class="btn ghost sm" data-close>✕</button></div>
+      <div class="modal-body"><p style="margin:0">Die ${n} mitgelieferten Beispiel-Meal${n === 1 ? "" : "s"} werden entfernt und aus dem Wochenplan gelöscht. Deine eigenen Meals bleiben erhalten.</p></div>
+      <div class="modal-foot"><button class="btn ghost" data-close>Abbrechen</button><button class="btn danger" data-confirm>Entfernen</button></div>
+    </div>`);
+    node.querySelectorAll("[data-close]").forEach(b => b.addEventListener("click", closeModal));
+    node.querySelector("[data-confirm]").addEventListener("click", () => {
+      state.recipes = state.recipes.filter(r => !exIds.has(r.id));
+      DAYS.forEach(d => MEALS.forEach(m => { state.plan[d.key][m.key] = asIdList(state.plan[d.key][m.key]).filter(x => !exIds.has(x)); }));
+      closeModal(); render(); toast("Beispiele entfernt");
+    });
+    openModal(node);
+  }
+
   function clearWeek() {
     if (planStats() === 0) { toast("Der Plan ist schon leer"); return; }
     const node = el(`<div class="modal" role="dialog" aria-modal="true">
@@ -1509,6 +1545,7 @@
     else if (a === "edit") openRecipeForm(t.dataset.id);
     else if (a === "view") openRecipeDetail(t.dataset.id);
     else if (a === "delete") deleteRecipe(t.dataset.id);
+    else if (a === "clear-examples") clearExamples();
     else if (a === "pick") openPicker(t.dataset.day, t.dataset.meal);
     else if (a === "unassign") { e.stopPropagation(); const [d, m, i] = t.dataset.slotSrc.split(":"); state.plan[d][m].splice(Number(i), 1); render(); }
     else if (a === "shopping") openShopping();
@@ -1938,7 +1975,10 @@
   }
 
   function sharePayload() {
-    return { app: "wochenkueche", v: 1, by: profile ? profile.name : "", when: Date.now(), plan: state.plan, recipes: state.recipes };
+    // Nur die Meals mitschicken, die im Wochenplan eingeplant sind (keine Beispiele/ungenutzten).
+    const ids = planRecipeIds();
+    const recipes = state.recipes.filter(r => ids.has(r.id));
+    return { app: "wochenkueche", v: 1, by: profile ? profile.name : "", when: Date.now(), plan: state.plan, recipes: recipes };
   }
   function shareId() {
     return Math.random().toString(36).slice(2, 8) + Date.now().toString(36).slice(-4);
@@ -2093,6 +2133,7 @@
           const note = segBody.querySelector("#mk-note");
           btn.addEventListener("click", () => {
             const payload = sharePayload();
+            if (!payload.recipes.length) { note.className = "share-mini warn"; note.textContent = "Dein Wochenplan ist noch leer – plane erst Meals auf die Tage ein, dann kannst du ihn teilen."; return; }
             if (JSON.stringify(payload).length > 900000) { note.className = "share-mini warn"; note.textContent = "Dein Plan ist mit den eigenen Fotos zu groß zum Teilen (über 0,9 MB). Nutze den PDF-Export."; return; }
             btn.disabled = true; btn.textContent = "Erstelle Link …"; note.className = "share-mini"; note.textContent = "";
             const id = shareId();
