@@ -681,10 +681,10 @@
       nutrition: { kcal: 480, carbs: 68, protein: 9, fat: 17 },
       ingredients: ["250 g Basmatireis", "1 Dose Kokosmilch", "2 EL rote Currypaste", "1 Paprika", "1 Zucchini", "1 Karotte", "Sojasauce", "frischer Koriander"],
       steps: "Reis kochen. Gemüse in Streifen schneiden. Currypaste kurz anbraten, Kokosmilch angießen, Gemüse zugeben und 12 Min. köcheln. Mit Sojasauce abschmecken, mit Reis und Koriander servieren." },
-    { name: "Griechischer Salat", category: "Beilage", portions: 2, time: 15,
-      nutrition: { kcal: 290, carbs: 12, protein: 9, fat: 23 },
-      ingredients: ["3 Tomaten", "1 Gurke", "1 rote Zwiebel", "150 g Feta", "Oliven", "Olivenöl", "Oregano"],
-      steps: "Tomaten, Gurke und Zwiebel grob schneiden. Mit Oliven mischen, Feta darüber bröseln, mit Olivenöl und Oregano beträufeln." },
+    { name: "Joghurt mit Nüssen & Honig", category: "Snack", portions: 1, time: 5,
+      nutrition: { kcal: 250, carbs: 22, protein: 14, fat: 12 },
+      ingredients: ["150 g Naturjoghurt", "1 Handvoll Walnüsse", "1 TL Honig", "1 TL Leinsamen"],
+      steps: "Joghurt in eine Schale geben und mit Walnüssen, Leinsamen und Honig toppen." },
   ];
 
   // Erkennt die mitgelieferten Beispiel-Meals: gleicher Name UND unveränderte Zubereitung.
@@ -794,10 +794,12 @@
     try {
       const remote = await window.CloudSync.load(uid);
       if (remote && Array.isArray(remote.recipes) && remote.recipes.length) {
-        // Rezepte zusammenführen (Cloud + lokale, die es dort noch nicht gibt)
+        // Rezepte zusammenführen (Cloud + eigene lokale, die es dort noch nicht gibt).
+        // Beispiel-Meals werden NICHT in ein bestehendes Konto übernommen – sie sind nur
+        // ein einmaliges Willkommens-Angebot für neue Konten.
         const map = {};
         remote.recipes.forEach(r => { if (r && r.id) map[r.id] = r; });
-        state.recipes.forEach(r => { if (r && r.id && !map[r.id]) map[r.id] = r; });
+        state.recipes.forEach(r => { if (r && r.id && !map[r.id] && !isExample(r)) map[r.id] = r; });
         state.recipes = Object.values(map);
         state.plan = normalizePlan(remote.plan, state.recipes);
         if (remote.tab === "recipes" || remote.tab === "plan") state.tab = remote.tab;
