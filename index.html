@@ -1,3 +1,7 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#35704A">
+<meta name="theme-color" content="#0F140E" media="(prefers-color-scheme: dark)">
 <title>Paddy’s Mealplan</title>
 <style>
   :root {
@@ -298,7 +302,7 @@
   .field:last-child { margin-bottom: 0; }
   .field label { display: block; font-size: 12.5px; font-weight: 600; margin-bottom: 6px; color: var(--text); letter-spacing: .01em; }
   .field .hint { font-weight: 400; color: var(--text-muted); }
-  input[type="text"], input[type="number"], select, textarea {
+  input[type="text"], input[type="number"], input[type="email"], input[type="password"], input[type="search"], select, textarea {
     font: inherit; font-size: 14px; width: 100%; color: var(--text);
     background: var(--bg); border: 1px solid var(--border-strong); border-radius: var(--radius-sm);
     padding: 9px 11px; transition: border-color .12s, box-shadow .12s;
@@ -470,10 +474,30 @@
   }
 
   @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+  /* ---------- Mobile / Smartphone ---------- */
+  @media (max-width: 720px) {
+    .head-inner { gap: 10px 12px; padding: 11px 0; }
+    .brand h1 { font-size: 19px; }
+    .tabs { order: 3; width: 100%; }
+    .tab { flex: 1; justify-content: center; padding: 9px 10px; }
+  }
   @media (max-width: 560px) {
+    .wrap { padding: 0 14px; }
+    main { padding: 20px 0 64px; }
     .row2 { grid-template-columns: 1fr; }
     .brand p { display: none; }
-    .section-head h2 { font-size: 23px; }
+    .brand .mark { width: 38px; height: 38px; }
+    .section-head { margin-bottom: 18px; }
+    .section-head h2 { font-size: 22px; }
+    .section-head .btn { flex: 1; justify-content: center; }
+    .week { gap: 12px; }
+    .recipes { gap: 12px; }
+    .imgfield { flex-direction: column; align-items: stretch; }
+    .imgprev { width: 100%; }
+    .auth-card { padding: 26px 20px 22px; }
+    .modal-foot .btn { flex: 1; justify-content: center; }
+    /* iOS zoomt Eingabefelder < 16px beim Fokus – das verhindern wir */
+    input[type="text"], input[type="number"], input[type="email"], input[type="password"], input[type="search"], select, textarea { font-size: 16px; }
   }
 </style>
 
