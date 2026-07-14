@@ -127,6 +127,22 @@
 
   main { padding: 28px 0 80px; }
 
+  /* ---------- Footer (Rechtliches) ---------- */
+  .site-foot { border-top: 1px solid var(--border); margin-top: auto; background: color-mix(in srgb, var(--surface-2) 40%, var(--bg)); }
+  .foot-inner { display: flex; align-items: center; justify-content: space-between; gap: 12px 18px; padding: 16px 0; flex-wrap: wrap; }
+  .foot-copy { font-size: 12.5px; color: var(--text-muted); }
+  .foot-nav { display: flex; align-items: center; gap: 8px; }
+  .foot-link { font: inherit; font-size: 12.5px; color: var(--text-muted); background: 0; border: 0; padding: 2px 2px; cursor: pointer; }
+  .foot-link:hover { color: var(--accent-strong); text-decoration: underline; }
+  .foot-sep { color: var(--border-strong); }
+  .app { display: flex; flex-direction: column; min-height: 100vh; }
+  .legal h4 { font-family: var(--font-display); font-size: 15.5px; font-weight: 600; margin: 18px 0 5px; }
+  .legal h4:first-child { margin-top: 0; }
+  .legal p { margin: 0 0 10px; font-size: 13.5px; line-height: 1.6; color: var(--text); }
+  .legal p.muted, .legal a { color: var(--text-muted); }
+  .legal a { color: var(--accent-strong); }
+  .legal-draft { font-size: 12.5px; line-height: 1.55; background: color-mix(in srgb, var(--fr) 12%, var(--surface)); border: 1px solid color-mix(in srgb, var(--fr) 30%, transparent); border-radius: var(--radius-sm); padding: 10px 12px; margin: 0 0 16px; color: var(--text); }
+
   /* ---------- Section head ---------- */
   .section-head { display: flex; align-items: flex-end; gap: 16px; margin-bottom: 22px; flex-wrap: wrap; }
   .section-head .title { margin-right: auto; }
@@ -529,6 +545,17 @@
   <main>
     <div class="wrap" id="view"></div>
   </main>
+
+  <footer class="site-foot">
+    <div class="wrap foot-inner">
+      <span class="foot-copy">© <span id="foot-year">2026</span> Paddy’s Mealplan</span>
+      <nav class="foot-nav" aria-label="Rechtliches">
+        <button type="button" class="foot-link" data-action="impressum">Impressum</button>
+        <span class="foot-sep" aria-hidden="true">·</span>
+        <button type="button" class="foot-link" data-action="datenschutz">Datenschutz</button>
+      </nav>
+    </div>
+  </footer>
 </div>
 
 <div id="modal-root"></div>
@@ -1516,6 +1543,49 @@
     openModal(node);
   }
 
+  // ---------- Rechtstexte (Impressum / Datenschutz) ----------
+  function legalModal(title, bodyHtml) {
+    const node = el(`<div class="modal" role="dialog" aria-modal="true" aria-label="${title}">
+      <div class="modal-head"><h3>${title}</h3><button class="btn ghost sm" data-close>✕</button></div>
+      <div class="modal-body legal">${bodyHtml}</div>
+      <div class="modal-foot"><button class="btn primary" data-close>Schließen</button></div>
+    </div>`);
+    node.querySelectorAll("[data-close]").forEach(b => b.addEventListener("click", closeModal));
+    openModal(node);
+  }
+  function openImpressum() {
+    legalModal("Impressum", `
+      <p class="legal-draft">⚠️ Entwurf: Bitte die <strong>[Platzhalter]</strong> ausfüllen. Prüfe den Text vor dem breiten Teilen mit einem Generator (z. B. e-recht24.de) oder anwaltlich – und lösche diesen Hinweis danach. Dies ist keine Rechtsberatung.</p>
+      <h4>Angaben gemäß § 5 DDG</h4>
+      <p>Patrick Fleischmann<br>[Straße und Hausnummer]<br>[PLZ und Ort]</p>
+      <h4>Kontakt</h4>
+      <p>E-Mail: fleischmann-patrick@gmx.de</p>
+      <h4>Verantwortlich für den Inhalt nach § 18 Abs. 2 MStV</h4>
+      <p>Patrick Fleischmann (Anschrift wie oben)</p>`);
+  }
+  function openDatenschutz() {
+    legalModal("Datenschutzerklärung", `
+      <p class="legal-draft">⚠️ Entwurf/Vorlage: Bitte die <strong>[Platzhalter]</strong> ausfüllen und den Text vor dem breiten Teilen mit einem Generator (z. B. datenschutz-generator.de von Dr. Schwenke, „Firebase" auswählen) oder anwaltlich prüfen. Dies ist keine Rechtsberatung.</p>
+      <h4>1. Verantwortlicher</h4>
+      <p>Patrick Fleischmann, [Straße und Hausnummer], [PLZ und Ort]<br>E-Mail: fleischmann-patrick@gmx.de</p>
+      <h4>2. Welche Daten wir verarbeiten</h4>
+      <p>Bei der Registrierung: <strong>Name und E-Mail-Adresse</strong>. Bei Nutzung der App: die von dir angelegten <strong>Wochenpläne, Meals/Rezepte und ggf. Fotos</strong>. Diese Daten speichern wir, damit du dich anmelden und deine Planung geräteübergreifend nutzen kannst.</p>
+      <h4>3. Zweck &amp; Rechtsgrundlage</h4>
+      <p>Wir verarbeiten die Daten zur Bereitstellung deines Nutzerkontos und der Planer-Funktionen (Art. 6 Abs. 1 lit. b DSGVO – Nutzungsvertrag). Die Bestätigungs-E-Mail dient der Sicherstellung, dass die Adresse dir gehört.</p>
+      <h4>4. Hosting &amp; Cloud-Dienste (Google Firebase)</h4>
+      <p>Für Anmeldung und Speicherung nutzen wir <strong>Google Firebase</strong> (Firebase Authentication und Cloud Firestore) der Google Ireland Ltd., Gordon House, Barrow Street, Dublin 4, Irland. Der Datenbank-Standort ist auf <strong>Europa</strong> eingestellt. Google verarbeitet die Daten als Auftragsverarbeiter; eine Übermittlung in die USA kann nicht ausgeschlossen werden und stützt sich auf die EU-Standardvertragsklauseln bzw. das EU-US Data Privacy Framework. Datenschutz von Google: <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">policies.google.com/privacy</a>.</p>
+      <h4>5. Anmeldung mit Google</h4>
+      <p>Wenn du dich mit „Mit Google anmelden" einloggst, erhält Google die für die Anmeldung nötigen Informationen. Es gelten zusätzlich die Datenschutzbestimmungen von Google.</p>
+      <h4>6. Speicherung im Browser</h4>
+      <p>Zur Anmeldung und für den Offline-Betrieb speichert die App technisch notwendige Daten lokal in deinem Browser (localStorage/IndexedDB). Dafür ist keine Einwilligung erforderlich; ein Tracking findet nicht statt (Google Analytics ist deaktiviert).</p>
+      <h4>7. Teilen-Funktion</h4>
+      <p>Wenn du einen Teilen-Link erstellst, wird eine Kopie deines Wochenplans in der Cloud gespeichert und ist über den (nicht erratbaren) Link für angemeldete Nutzer abrufbar. Teile den Link nur mit Personen, die den Plan sehen dürfen.</p>
+      <h4>8. Speicherdauer &amp; Löschung</h4>
+      <p>Wir speichern deine Daten, solange dein Konto besteht. Du kannst die Löschung deines Kontos und deiner Daten jederzeit per E-Mail an uns verlangen.</p>
+      <h4>9. Deine Rechte</h4>
+      <p>Du hast das Recht auf Auskunft, Berichtigung, Löschung, Einschränkung der Verarbeitung, Datenübertragbarkeit und Widerspruch. Zudem hast du ein Beschwerderecht bei einer Datenschutz-Aufsichtsbehörde.</p>`);
+  }
+
   function clearWeek() {
     if (planStats() === 0) { toast("Der Plan ist schon leer"); return; }
     const node = el(`<div class="modal" role="dialog" aria-modal="true">
@@ -1554,6 +1624,8 @@
     else if (a === "clear-week") clearWeek();
     else if (a === "share") openShare();
     else if (a === "profile-menu") toggleProfileMenu();
+    else if (a === "impressum") openImpressum();
+    else if (a === "datenschutz") openDatenschutz();
   });
 
   // ---------- Drag & drop between slots ----------
@@ -1646,6 +1718,7 @@
     }
   }
   function boot() {
+    const fy = document.getElementById("foot-year"); if (fy) fy.textContent = new Date().getFullYear();
     readSharedFromUrl();
     window.__onCloudAuth = handleCloudUser;
     window.addEventListener("cloudauth:disabled", enterLocalMode);
