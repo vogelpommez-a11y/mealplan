@@ -625,6 +625,15 @@
         }
       };
 
+      // ----- Teilen per Cloud-Link: öffentlich lesbare Snapshots in shared/{id} -----
+      window.CloudShare = {
+        enabled: true,
+        publish: function (id, data) { return setDoc(doc(db, "shared", id), data); },
+        fetch: function (id) {
+          return getDoc(doc(db, "shared", id)).then(function (s) { return s.exists() ? s.data() : null; });
+        }
+      };
+
       onAuthStateChanged(auth, function (user) {
         if (typeof window.__onCloudAuth === "function") window.__onCloudAuth(user);
       });
@@ -1559,21 +1568,17 @@
   function rememberLast() { try { localStorage.setItem(LAST_KEY, JSON.stringify(profile)); } catch (e) {} }
   function initials(name) { return (name || "?").trim().split(/\s+/).slice(0, 2).map(w => w[0] ? w[0].toUpperCase() : "").join("") || "?"; }
   function validEmail(e) { return /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e); }
-  function b64e(s) { return btoa(unescape(encodeURIComponent(s))); }
-  function b64d(s) { return decodeURIComponent(escape(atob(s))); }
 
   const appEl = document.querySelector(".app");
   const profileSlot = document.getElementById("profile-slot");
 
   let pendingShare = null;
-  function decodeShare(code) { try { const d = JSON.parse(b64d(code)); return (d && d.app === "wochenkueche" && Array.isArray(d.recipes)) ? d : null; } catch (e) { return null; } }
   function readSharedFromUrl() {
     try {
-      const m = (location.hash || "").match(/[#&]plan=([^&]+)/);
+      const m = (location.search || "").match(/[?&]s=([A-Za-z0-9_-]+)/);
       if (!m) return;
-      const code = decodeURIComponent(m[1]);
-      if (decodeShare(code)) pendingShare = code;
-      history.replaceState(null, "", location.pathname + location.search);
+      pendingShare = m[1];
+      history.replaceState(null, "", location.pathname);
     } catch (e) {}
   }
   let authMode = "local";
@@ -1613,11 +1618,17 @@
     appEl.classList.remove("authing");
     renderProfileChip();
     render();
-    if (pendingShare) { const c = pendingShare; pendingShare = null; openSharedImport(c); }
+    if (pendingShare) { const id = pendingShare; pendingShare = null; loadSharedById(id); }
   }
-  function openSharedImport(code) {
-    const d = decodeShare(code);
-    if (!d) return;
+  function loadSharedById(id) {
+    if (!window.CloudShare || !window.CloudShare.enabled) { toast("Geteilte Links brauchen ein Cloud-Konto"); return; }
+    window.CloudShare.fetch(id).then(function (data) {
+      if (data && Array.isArray(data.recipes)) openSharedImport(data);
+      else toast("Geteilter Plan nicht gefunden (Link abgelaufen?)");
+    }).catch(function () { toast("Geteilter Plan konnte nicht geladen werden"); });
+  }
+  function openSharedImport(d) {
+    if (!d || !Array.isArray(d.recipes)) return;
     const who = d.by ? esc(d.by) : "Jemand";
     const nrec = d.recipes.length;
     const node = el(`<div class="modal" role="dialog" aria-modal="true" aria-label="Geteilter Plan">
@@ -1626,7 +1637,7 @@
       <div class="modal-foot"><button class="btn ghost" data-close>Später</button><button class="btn primary" data-take>Plan übernehmen</button></div>
     </div>`);
     node.querySelectorAll("[data-close]").forEach(b => b.addEventListener("click", closeModal));
-    node.querySelector("[data-take]").addEventListener("click", () => importShare(code, true));
+    node.querySelector("[data-take]").addEventListener("click", () => applySharedData(d, true));
     openModal(node);
   }
 
@@ -1926,22 +1937,15 @@
     openModal(node);
   }
 
-  function shareCode() {
-    const payload = { app: "wochenkueche", v: 1, by: profile ? profile.name : "", when: Date.now(), plan: state.plan, recipes: state.recipes };
-    return b64e(JSON.stringify(payload));
+  function sharePayload() {
+    return { app: "wochenkueche", v: 1, by: profile ? profile.name : "", when: Date.now(), plan: state.plan, recipes: state.recipes };
+  }
+  function shareId() {
+    return Math.random().toString(36).slice(2, 8) + Date.now().toString(36).slice(-4);
   }
   function copyToClipboard(text, okMsg) {
     if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(() => toast(okMsg || "Kopiert")).catch(() => toast("Kopieren nicht möglich"));
     else { try { const ta = document.createElement("textarea"); ta.value = text; ta.style.position = "fixed"; ta.style.opacity = "0"; document.body.appendChild(ta); ta.select(); document.execCommand("copy"); ta.remove(); toast(okMsg || "Kopiert"); } catch (e) { toast("Kopieren nicht möglich"); } }
-  }
-  function downloadText(filename, text) {
-    try {
-      const blob = new Blob([text], { type: "application/json" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a"); a.href = url; a.download = filename; document.body.appendChild(a); a.click(); a.remove();
-      setTimeout(() => URL.revokeObjectURL(url), 1500);
-      toast("Datei gespeichert");
-    } catch (e) { toast("Speichern nicht möglich"); }
   }
   function planText() {
     return DAYS.map(d => {
@@ -2047,13 +2051,13 @@
   window.addEventListener("beforeprint", () => { const pa = document.getElementById("print-area"); if (pa) pa.innerHTML = buildPrintable(); });
 
   function openShare() {
-    let mode = "give";
+    let mode = "link";
+    let createdUrl = null;
     const node = el(`<div class="modal" role="dialog" aria-modal="true" aria-label="Teilen">
-      <div class="modal-head"><div style="flex:1"><div class="kicker">Gemeinsam planen</div><h3 style="margin-top:2px">Woche teilen · Freund einladen</h3></div><button class="btn ghost sm" data-close>✕</button></div>
+      <div class="modal-head"><div style="flex:1"><div class="kicker">Gemeinsam planen</div><h3 style="margin-top:2px">Woche teilen</h3></div><button class="btn ghost sm" data-close>✕</button></div>
       <div class="modal-body">
         <div class="segbar" role="tablist">
-          <button role="tab" data-seg="give" aria-selected="true">Einladen</button>
-          <button role="tab" data-seg="take" aria-selected="false">Annehmen</button>
+          <button role="tab" data-seg="link" aria-selected="true">Teilen-Link</button>
           <button role="tab" data-seg="pdf" aria-selected="false">PDF &amp; E-Mail</button>
         </div>
         <div id="seg-body"></div>
@@ -2064,54 +2068,38 @@
     const segBtns = node.querySelectorAll("[data-seg]");
     function paint() {
       segBtns.forEach(b => b.setAttribute("aria-selected", String(b.dataset.seg === mode)));
-      if (mode === "give") {
-        const code = shareCode();
-        const shareUrl = location.href.split("#")[0] + "#plan=" + encodeURIComponent(code);
-        const tooLong = shareUrl.length > 8000;
-        segBody.innerHTML = `
-          <p class="share-hint">Teile deinen Plan als <b>Link</b>, Code oder Datei – er enthält deinen aktuellen Wochenplan und deine Meals. <em>Momentaufnahme zum Weitergeben, keine Live-Synchronisierung.</em></p>
-          <span class="share-sub">Teilen-Link</span>
-          <div class="link-row">
-            <input type="text" class="share-link" id="sl" readonly value="${esc(shareUrl)}">
-            <button class="btn primary" id="sl-copy">Link kopieren</button>
-          </div>
-          <p class="share-mini${tooLong ? " warn" : ""}" id="sl-note">${tooLong
-            ? "Dieser Link ist wegen eigener Fotos sehr lang und funktioniert evtl. nicht überall – nutze dann besser Code oder Datei unten."
-            : "Wichtig: Damit dein Freund den Link öffnen kann, teile diese Seite über das Teilen-Menü des Artifacts – und schick den Link vollständig (inkl. dem Teil hinter #)."}</p>
-          <details class="share-more"><summary>Stattdessen Code oder Datei verwenden</summary>
-            <textarea class="share-code" id="sc" readonly>${esc(code)}</textarea>
-            <div class="share-actions">
-              <button class="btn" id="sc-copy">Code kopieren</button>
-              <button class="btn" id="sc-file">Als Datei speichern</button>
+      if (mode === "link") {
+        const cloudOk = window.CloudShare && window.CloudShare.enabled;
+        if (!cloudOk) {
+          segBody.innerHTML = `<p class="share-hint">Der Teilen-Link funktioniert nur, wenn du in deinem <b>Cloud-Konto</b> angemeldet bist. Nutze so lange den PDF-Export.</p>`;
+        } else if (createdUrl) {
+          segBody.innerHTML = `
+            <p class="share-hint">Fertig! Schick diesen Link an Familie oder Freunde – wer ihn öffnet, übernimmt deinen Wochenplan als <b>Kopie</b>. <em>Momentaufnahme, keine Live-Synchronisierung.</em></p>
+            <span class="share-sub">Dein Teilen-Link</span>
+            <div class="link-row">
+              <input type="text" class="share-link" id="sl" readonly value="${esc(createdUrl)}">
+              <button class="btn primary" id="sl-copy">Link kopieren</button>
             </div>
-          </details>`;
-        segBody.querySelector("#sl-copy").addEventListener("click", () => { segBody.querySelector("#sl").select(); copyToClipboard(shareUrl, "Link kopiert"); });
-        segBody.querySelector("#sc-copy").addEventListener("click", () => { segBody.querySelector("#sc").select(); copyToClipboard(code, "Code kopiert"); });
-        segBody.querySelector("#sc-file").addEventListener("click", () => {
-          const who = (profile ? profile.name : "plan").replace(/[^\wäöüßÄÖÜ-]+/g, "_");
-          downloadText("wochenplan-von-" + who + ".wkplan.json", code);
-        });
-      } else if (mode === "take") {
-        segBody.innerHTML = `
-          <p class="share-hint">Füge den Einladungs-Code deines Freundes ein oder lade seine Datei. Seine Meals werden zu deinen hinzugefügt.</p>
-          <textarea class="share-code" id="tc" placeholder="Code hier einfügen …"></textarea>
-          <label style="display:flex;gap:9px;align-items:center;font-size:13.5px;margin:12px 0 2px;cursor:pointer">
-            <input type="checkbox" id="tc-plan" checked style="width:17px;height:17px;accent-color:var(--accent)">
-            Wochenplan übernehmen (ersetzt deinen aktuellen Plan)
-          </label>
-          <div class="share-actions">
-            <button class="btn" id="tc-filebtn">Aus Datei laden</button>
-            <input type="file" id="tc-file" accept=".json,.txt,application/json" class="visually-hidden">
-            <button class="btn primary" id="tc-import">Importieren</button>
-          </div>`;
-        const ta = segBody.querySelector("#tc");
-        const fileInput = segBody.querySelector("#tc-file");
-        segBody.querySelector("#tc-filebtn").addEventListener("click", () => fileInput.click());
-        fileInput.addEventListener("change", () => {
-          const f = fileInput.files && fileInput.files[0]; if (!f) return;
-          const rd = new FileReader(); rd.onload = e => { ta.value = String(e.target.result || "").trim(); toast("Datei geladen"); }; rd.readAsText(f);
-        });
-        segBody.querySelector("#tc-import").addEventListener("click", () => importShare(ta.value.trim(), segBody.querySelector("#tc-plan").checked));
+            <p class="share-mini">Der Empfänger meldet sich einmal kostenlos an (E-Mail oder Google) und kann den Plan dann übernehmen.</p>
+            <div class="share-actions"><button class="btn" id="sl-new">Neuen Link erstellen</button></div>`;
+          segBody.querySelector("#sl-copy").addEventListener("click", () => { segBody.querySelector("#sl").select(); copyToClipboard(createdUrl, "Link kopiert"); });
+          segBody.querySelector("#sl-new").addEventListener("click", () => { createdUrl = null; paint(); });
+        } else {
+          segBody.innerHTML = `
+            <p class="share-hint">Erzeuge einen kurzen Link zu deinem aktuellen Wochenplan (inkl. Meals). Wer ihn öffnet, übernimmt eine <b>Kopie</b>. <em>Momentaufnahme, keine Live-Synchronisierung.</em></p>
+            <button class="btn primary" id="mk-link" style="width:100%;justify-content:center">Teilen-Link erstellen</button>
+            <p class="share-mini" id="mk-note"></p>`;
+          const btn = segBody.querySelector("#mk-link");
+          const note = segBody.querySelector("#mk-note");
+          btn.addEventListener("click", () => {
+            const payload = sharePayload();
+            if (JSON.stringify(payload).length > 900000) { note.className = "share-mini warn"; note.textContent = "Dein Plan ist mit den eigenen Fotos zu groß zum Teilen (über 0,9 MB). Nutze den PDF-Export."; return; }
+            btn.disabled = true; btn.textContent = "Erstelle Link …"; note.className = "share-mini"; note.textContent = "";
+            const id = shareId();
+            window.CloudShare.publish(id, payload).then(() => { createdUrl = location.origin + location.pathname + "?s=" + id; paint(); })
+              .catch(() => { btn.disabled = false; btn.textContent = "Teilen-Link erstellen"; note.className = "share-mini warn"; note.textContent = "Link konnte nicht erstellt werden. Bist du online und angemeldet?"; });
+          });
+        }
       } else if (mode === "pdf") {
         segBody.innerHTML = `
           <p class="share-hint">Erzeuge aus deiner Woche ein <b>PDF</b> und verschick es per E-Mail – so teilst du deinen fertigen Plan.</p>
@@ -2138,11 +2126,8 @@
     openModal(node);
   }
 
-  function importShare(codeStr, takePlan) {
-    if (!codeStr) { toast("Bitte Code einfügen"); return; }
-    let data;
-    try { data = JSON.parse(b64d(codeStr)); } catch (e) { data = null; }
-    if (!data || data.app !== "wochenkueche" || !Array.isArray(data.recipes)) { toast("Code nicht erkannt"); return; }
+  function applySharedData(data, takePlan) {
+    if (!data || !Array.isArray(data.recipes)) { toast("Geteilter Plan nicht lesbar"); return; }
     const idMap = {};
     let added = 0;
     data.recipes.forEach(ir => {

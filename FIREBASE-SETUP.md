@@ -65,11 +65,17 @@ Damit Plan + Rezepte geräteübergreifend synchronisieren:
        match /users/{uid} {
          allow read, write: if request.auth != null && request.auth.uid == uid;
        }
+       match /shared/{id} {
+         allow read: if request.auth != null;
+         allow create: if request.auth != null;
+       }
      }
    }
    ```
 
-   > Damit kann jeder nur sein **eigenes** Dokument (`users/<eigene-uid>`) lesen/schreiben – niemand die Daten anderer.
+   > `users/{uid}`: jeder liest/schreibt nur sein **eigenes** Konto-Dokument.
+   > `shared/{id}`: angemeldete Nutzer dürfen Teilen-Snapshots **erstellen** und **lesen** (für die
+   > Teilen-Link-Funktion). Die IDs sind zufällig/nicht erratbar; Ändern/Löschen fremder Snapshots ist nicht erlaubt.
 
 So funktioniert die Sync dann automatisch:
 - Nach dem Login werden deine Cloud-Daten geladen und mit den lokalen zusammengeführt (Rezepte gehen nie verloren).
