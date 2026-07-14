@@ -513,6 +513,7 @@
     .imgprev { width: 100%; }
     .auth-card { padding: 26px 20px 22px; }
     .modal-foot .btn { flex: 1; justify-content: center; }
+    .foot-inner { flex-direction: column; gap: 8px; text-align: center; }
     /* iOS zoomt Eingabefelder < 16px beim Fokus – das verhindern wir */
     input[type="text"], input[type="number"], input[type="email"], input[type="password"], input[type="search"], select, textarea { font-size: 16px; }
   }
@@ -1555,35 +1556,45 @@
   }
   function openImpressum() {
     legalModal("Impressum", `
-      <p class="legal-draft">⚠️ Entwurf: Bitte den Text vor dem breiten Teilen mit einem Generator (z. B. e-recht24.de) oder anwaltlich prüfen – und diesen Hinweis danach löschen. Dies ist keine Rechtsberatung.</p>
       <h4>Angaben gemäß § 5 DDG</h4>
       <p>Patrick Fleischmann<br>Bauvereinstraße 2<br>97526 Sennfeld</p>
       <h4>Kontakt</h4>
       <p>E-Mail: fleischmann-patrick@gmx.de</p>
       <h4>Verantwortlich für den Inhalt nach § 18 Abs. 2 MStV</h4>
-      <p>Patrick Fleischmann (Anschrift wie oben)</p>`);
+      <p>Patrick Fleischmann (Anschrift wie oben)</p>
+      <h4>Haftung für Inhalte</h4>
+      <p>Als Diensteanbieter sind wir für eigene Inhalte auf diesen Seiten nach den allgemeinen Gesetzen verantwortlich. Wir sind jedoch nicht verpflichtet, übermittelte oder gespeicherte fremde Informationen zu überwachen oder nach Umständen zu forschen, die auf eine rechtswidrige Tätigkeit hinweisen. Verpflichtungen zur Entfernung oder Sperrung der Nutzung von Informationen nach den allgemeinen Gesetzen bleiben hiervon unberührt.</p>
+      <h4>Haftung für Links</h4>
+      <p>Unser Angebot enthält ggf. Links zu externen Websites Dritter, auf deren Inhalte wir keinen Einfluss haben. Für diese fremden Inhalte kann keine Gewähr übernommen werden. Für die Inhalte der verlinkten Seiten ist stets der jeweilige Anbieter oder Betreiber verantwortlich.</p>
+      <h4>Urheberrecht</h4>
+      <p>Die durch den Seitenbetreiber erstellten Inhalte und Werke auf diesen Seiten unterliegen dem deutschen Urheberrecht. Beiträge Dritter sind als solche gekennzeichnet.</p>`);
   }
   function openDatenschutz() {
     legalModal("Datenschutzerklärung", `
-      <p class="legal-draft">⚠️ Entwurf/Vorlage: Bitte den Text vor dem breiten Teilen mit einem Generator (z. B. datenschutz-generator.de von Dr. Schwenke, „Firebase" auswählen) oder anwaltlich prüfen – und diesen Hinweis danach löschen. Dies ist keine Rechtsberatung.</p>
       <h4>1. Verantwortlicher</h4>
       <p>Patrick Fleischmann, Bauvereinstraße 2, 97526 Sennfeld<br>E-Mail: fleischmann-patrick@gmx.de</p>
-      <h4>2. Welche Daten wir verarbeiten</h4>
+      <h4>2. Hosting der Website (GitHub Pages)</h4>
+      <p>Diese Website wird bei GitHub Pages gehostet, einem Dienst der GitHub, Inc., 88 Colin P. Kelly Jr. Street, San Francisco, CA 94107, USA. Beim Aufruf der Seite verarbeitet GitHub technisch notwendige Zugriffsdaten (z. B. deine IP-Adresse), um die Seite auszuliefern und deren Sicherheit zu gewährleisten. Rechtsgrundlage ist unser berechtigtes Interesse an einer sicheren und effizienten Bereitstellung (Art. 6 Abs. 1 lit. f DSGVO). Dabei kann eine Übermittlung in die USA erfolgen. Weitere Infos: <a href="https://docs.github.com/de/site-policy/privacy-policies/github-general-privacy-statement" target="_blank" rel="noopener">GitHub Privacy Statement</a>.</p>
+      <h4>3. Welche Daten wir verarbeiten</h4>
       <p>Bei der Registrierung: <strong>Name und E-Mail-Adresse</strong>. Bei Nutzung der App: die von dir angelegten <strong>Wochenpläne, Meals/Rezepte und ggf. Fotos</strong>. Diese Daten speichern wir, damit du dich anmelden und deine Planung geräteübergreifend nutzen kannst.</p>
-      <h4>3. Zweck &amp; Rechtsgrundlage</h4>
+      <h4>4. Zweck &amp; Rechtsgrundlage</h4>
       <p>Wir verarbeiten die Daten zur Bereitstellung deines Nutzerkontos und der Planer-Funktionen (Art. 6 Abs. 1 lit. b DSGVO – Nutzungsvertrag). Die Bestätigungs-E-Mail dient der Sicherstellung, dass die Adresse dir gehört.</p>
-      <h4>4. Hosting &amp; Cloud-Dienste (Google Firebase)</h4>
-      <p>Für Anmeldung und Speicherung nutzen wir <strong>Google Firebase</strong> (Firebase Authentication und Cloud Firestore) der Google Ireland Ltd., Gordon House, Barrow Street, Dublin 4, Irland. Der Datenbank-Standort ist auf <strong>Europa</strong> eingestellt. Google verarbeitet die Daten als Auftragsverarbeiter; eine Übermittlung in die USA kann nicht ausgeschlossen werden und stützt sich auf die EU-Standardvertragsklauseln bzw. das EU-US Data Privacy Framework. Datenschutz von Google: <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">policies.google.com/privacy</a>.</p>
-      <h4>5. Anmeldung mit Google</h4>
+      <h4>5. Cloud-Dienste (Google Firebase)</h4>
+      <p>Für Anmeldung und Speicherung nutzen wir <strong>Google Firebase</strong> (Firebase Authentication und Cloud Firestore) der Google Ireland Ltd., Gordon House, Barrow Street, Dublin 4, Irland. Der Datenbank-Standort ist auf <strong>Europa</strong> eingestellt. Google verarbeitet die Daten in unserem Auftrag (Auftragsverarbeitung); eine Übermittlung in die USA kann nicht ausgeschlossen werden und stützt sich auf die EU-Standardvertragsklauseln bzw. das EU-US Data Privacy Framework. Datenschutz von Google: <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">policies.google.com/privacy</a>.</p>
+      <h4>6. Anmeldung mit Google</h4>
       <p>Wenn du dich mit „Mit Google anmelden" einloggst, erhält Google die für die Anmeldung nötigen Informationen. Es gelten zusätzlich die Datenschutzbestimmungen von Google.</p>
-      <h4>6. Speicherung im Browser</h4>
+      <h4>7. Speicherung im Browser</h4>
       <p>Zur Anmeldung und für den Offline-Betrieb speichert die App technisch notwendige Daten lokal in deinem Browser (localStorage/IndexedDB). Dafür ist keine Einwilligung erforderlich; ein Tracking findet nicht statt (Google Analytics ist deaktiviert).</p>
-      <h4>7. Teilen-Funktion</h4>
+      <h4>8. Teilen-Funktion</h4>
       <p>Wenn du einen Teilen-Link erstellst, wird eine Kopie deines Wochenplans in der Cloud gespeichert und ist über den (nicht erratbaren) Link für angemeldete Nutzer abrufbar. Teile den Link nur mit Personen, die den Plan sehen dürfen.</p>
-      <h4>8. Speicherdauer &amp; Löschung</h4>
+      <h4>9. Verschlüsselung</h4>
+      <p>Die Übertragung der Daten erfolgt verschlüsselt über HTTPS (SSL/TLS).</p>
+      <h4>10. Speicherdauer &amp; Löschung</h4>
       <p>Wir speichern deine Daten, solange dein Konto besteht. Du kannst die Löschung deines Kontos und deiner Daten jederzeit per E-Mail an uns verlangen.</p>
-      <h4>9. Deine Rechte</h4>
-      <p>Du hast das Recht auf Auskunft, Berichtigung, Löschung, Einschränkung der Verarbeitung, Datenübertragbarkeit und Widerspruch. Zudem hast du ein Beschwerderecht bei einer Datenschutz-Aufsichtsbehörde.</p>`);
+      <h4>11. Deine Rechte</h4>
+      <p>Du hast das Recht auf Auskunft, Berichtigung, Löschung, Einschränkung der Verarbeitung, Datenübertragbarkeit und Widerspruch. Soweit eine Verarbeitung auf deiner Einwilligung beruht, kannst du diese jederzeit mit Wirkung für die Zukunft widerrufen. Zudem hast du ein Beschwerderecht bei einer Datenschutz-Aufsichtsbehörde – für uns zuständig ist das Bayerische Landesamt für Datenschutzaufsicht (BayLDA), Promenade 18, 91522 Ansbach.</p>
+      <h4>12. Automatisierte Entscheidungsfindung</h4>
+      <p>Eine automatisierte Entscheidungsfindung oder ein Profiling im Sinne des Art. 22 DSGVO findet nicht statt.</p>`);
   }
 
   function clearWeek() {
