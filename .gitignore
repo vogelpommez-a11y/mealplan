@@ -1,0 +1,27 @@
+# Alles im Repo landet oeffentlich auf GitHub Pages - auch Dateien, die die Seite nie laedt,
+# und auch Geloeschtes bleibt in der Git-Historie. Deshalb hier draussen halten:
+
+# Eigene Fotos: Bildrechte und EXIF-Standortdaten
+Fotos/
+
+# Backups und Exporte mit echten Plandaten
+wochenplan-backup/
+*.wkplan.json
+wochenplan.json
+
+# Zugangsdaten (Firebase-Web-Config in index.html ist KEIN Geheimnis und darf bleiben)
+.env
+.env.*
+*.key
+*.pem
+serviceAccount*.json
+
+# Lokale Claude-Code-Einstellungen (Rechte dieses Rechners, keine Projektdatei).
+# Die Agent-Definitionen unter .claude/agents/ gehoeren dagegen ins Repo.
+.claude/settings.local.json
+
+# Editor / System
+*~
+*.bak
+.DS_Store
+Thumbs.db

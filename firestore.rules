@@ -1,0 +1,45 @@
+rules_version = '2';
+
+// Sicherheitsregeln für Paddy's Mealplan.
+//
+// WICHTIG: Diese Datei ist die Vorlage. Wirksam wird sie erst, wenn der Inhalt in der
+// Firebase-Konsole unter Firestore Database -> Regeln eingefügt und VERÖFFENTLICHT wird.
+// Sie liegt hier im Repo, damit nachvollziehbar ist, was gelten soll.
+//
+// Stand: 2026-07-15
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ---- Konto-Daten: Plan, Meals, Profil ----
+    // Jede Person liest und schreibt ausschließlich ihr eigenes Dokument.
+    match /users/{uid} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+    }
+
+    // ---- Geteilte Wochenplan-Snapshots ----
+    //
+    // ACHTUNG, hier steckte der Fehler: "allow read" umfasst in Firestore BEIDES,
+    // "get" (ein Dokument per ID) UND "list" (die ganze Sammlung abfragen). Mit
+    // "allow read" konnte jede angemeldete Person sämtliche geteilten Pläne samt
+    // Namen auflisten - der Link war dann kein Schutz mehr, nur Bequemlichkeit.
+    //
+    // Deshalb ausdrücklich nur "get": Wer die ID nicht kennt, kommt nicht heran.
+    // Die IDs sind kryptografisch zufällig (16 Zeichen, 80 Bit, siehe shareId()).
+    match /shared/{id} {
+      allow get: if request.auth != null;
+
+      // Anlegen nur für angemeldete Personen und nur mit der eigenen uid im Dokument,
+      // damit der Snapshot zuordenbar bleibt.
+      allow create: if request.auth != null
+                    && request.resource.data.uid == request.auth.uid;
+
+      // Löschen darf nur, wer den Snapshot erstellt hat (Art. 17 DSGVO).
+      allow delete: if request.auth != null
+                    && resource.data.uid == request.auth.uid;
+
+      // Ändern ist niemandem erlaubt: ein geteilter Snapshot ist eine Momentaufnahme.
+      allow update: if false;
+    }
+  }
+}

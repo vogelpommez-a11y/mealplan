@@ -56,26 +56,23 @@ Damit Plan + Rezepte geräteübergreifend synchronisieren:
 
 1. Firebase-Konsole → **Firestore Database** → **Datenbank erstellen**.
 2. Standort z. B. `eur3 (europe-west)` wählen → **im Produktionsmodus starten** → Fertig.
-3. Reiter **Regeln (Rules)** öffnen und den Inhalt durch das hier ersetzen → **Veröffentlichen**:
+3. Reiter **Regeln (Rules)** öffnen, den kompletten Inhalt von **`firestore.rules`** (liegt im
+   Projektordner) einfügen → **Veröffentlichen**.
 
-   ```
-   rules_version = '2';
-   service cloud.firestore {
-     match /databases/{database}/documents {
-       match /users/{uid} {
-         allow read, write: if request.auth != null && request.auth.uid == uid;
-       }
-       match /shared/{id} {
-         allow read: if request.auth != null;
-         allow create: if request.auth != null;
-       }
-     }
-   }
-   ```
+   Die Regeln stehen bewusst als Datei im Repo, damit nachvollziehbar ist, was gelten soll.
+   Wirksam sind aber immer nur die Regeln, die in der Konsole **veröffentlicht** wurden –
+   nach jeder Änderung an der Datei also erneut einfügen und veröffentlichen.
+
+   Kurzfassung:
 
    > `users/{uid}`: jeder liest/schreibt nur sein **eigenes** Konto-Dokument.
-   > `shared/{id}`: angemeldete Nutzer dürfen Teilen-Snapshots **erstellen** und **lesen** (für die
-   > Teilen-Link-Funktion). Die IDs sind zufällig/nicht erratbar; Ändern/Löschen fremder Snapshots ist nicht erlaubt.
+   > `shared/{id}`: nur **`get`** (Dokument per ID), ausdrücklich **kein `list`**. Ändern verboten,
+   > Löschen nur durch den Urheber.
+
+   ⚠️ **Falls du eine ältere Fassung mit `allow read: if request.auth != null;` unter
+   `shared/{id}` veröffentlicht hast: bitte dringend ersetzen.** In Firestore umfasst `read`
+   sowohl `get` als auch `list` – damit konnte **jede angemeldete Person sämtliche geteilten
+   Wochenpläne samt Namen auflisten**, ganz ohne Link. Das widersprach der Datenschutz&shy;erklärung.
 
 So funktioniert die Sync dann automatisch:
 - Nach dem Login werden deine Cloud-Daten geladen und mit den lokalen zusammengeführt (Rezepte gehen nie verloren).
