@@ -23,6 +23,7 @@
     --accent-contrast: #FFFFFF;
 
     --danger: #C2410C;
+    --ok: #1E9E57;   /* Sync ok / verbunden */
 
     --fr: #A96E12;   /* Frühstück */
     --mi: #2E7D6B;   /* Mittagessen */
@@ -55,6 +56,7 @@
       --accent-contrast: #FFFFFF;
 
       --danger: #FF7A45;
+      --ok: #3DDC84;
 
       --fr: #E0A94A;
       --mi: #58B49E;
@@ -67,7 +69,7 @@
     --logo: var(--logoL);
     --bg: #F6F4F4; --surface: #FFFFFF; --surface-2: #F0ECEC;
     --text: #1A1416; --text-muted: #6B5F62; --border: #E7E0E1; --border-strong: #D6CCCE;
-    --accent: #DC2626; --accent-strong: #B01218; --accent-contrast: #FFFFFF; --danger: #C2410C;
+    --accent: #DC2626; --accent-strong: #B01218; --accent-contrast: #FFFFFF; --danger: #C2410C; --ok: #1E9E57;
     --fr: #A96E12; --mi: #2E7D6B; --ab: #6E5A9E;
     --shadow: 0 1px 2px rgba(20,24,31,.06), 0 8px 24px rgba(20,24,31,.08);
   }
@@ -75,7 +77,7 @@
     --logo: var(--logoD);
     --bg: #0C0A0B; --surface: #141011; --surface-2: #1C1718;
     --text: #F4EFEE; --text-muted: #A69B9D; --border: #2A2223; --border-strong: #3A2F30;
-    --accent: #FF3040; --accent-strong: #FF5A66; --accent-contrast: #FFFFFF; --danger: #FF7A45;
+    --accent: #FF3040; --accent-strong: #FF5A66; --accent-contrast: #FFFFFF; --danger: #FF7A45; --ok: #3DDC84;
     --fr: #E0A94A; --mi: #58B49E; --ab: #AC93E0;
     --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.35);
   }
@@ -135,6 +137,8 @@
   .tab[aria-selected="true"] { background: var(--surface); color: var(--accent-strong); box-shadow: var(--shadow); }
   .tab .count { font-size: 11.5px; background: color-mix(in srgb, var(--accent) 16%, var(--surface)); color: var(--accent-strong); border-radius: 999px; padding: 1px 7px; font-variant-numeric: tabular-nums; }
   .tab .soon-tag { font-family: var(--font-display); font-size: 9.5px; text-transform: uppercase; letter-spacing: .08em; background: var(--accent); color: var(--accent-contrast); border-radius: 5px; padding: 1px 5px; margin-left: 1px; }
+  .tab-pro { color: var(--accent); font-weight: 700; }
+  .tab-pro:hover { color: var(--accent-strong); }
   @media (max-width: 680px) {
     .tabs { overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
     .tabs::-webkit-scrollbar { display: none; }
@@ -183,12 +187,27 @@
   .btn.primary:hover { background: var(--accent-strong); border-color: var(--accent-strong); }
   .btn.ghost { background: transparent; border-color: transparent; color: var(--text-muted); }
   .btn.ghost:hover { color: var(--text); background: var(--surface-2); border-color: transparent; }
-  .btn.danger { color: var(--danger); border-color: transparent; }
-  .btn.danger:hover { background: color-mix(in srgb, var(--danger) 12%, var(--surface)); border-color: transparent; }
+  .btn.danger { color: var(--accent); border-color: transparent; }
+  .btn.danger:hover { background: color-mix(in srgb, var(--accent) 13%, var(--surface)); border-color: transparent; color: var(--accent-strong); }
+  /* Löschen als Icon-Button (Meal-Karte) – dezent grau, Hover in Theme-Rot */
+  .btn.del-ic { margin-left: auto; width: 34px; height: 34px; padding: 0; justify-content: center; color: var(--text-muted); background: transparent; border-color: transparent; }
+  .btn.del-ic svg { width: 17px; height: 17px; }
+  .btn.del-ic:hover { color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, var(--surface)); border-color: transparent; }
   .btn svg { width: 16px; height: 16px; }
   .btn.sm { padding: 6px 11px; font-size: 13px; }
 
   /* ---------- Week grid ---------- */
+  /* Wochenplan-Kopf: Titel oben, Werkzeugleiste eine Zeile darunter */
+  .plan-head { flex-direction: column; align-items: stretch; gap: 16px; }
+  .plan-tools { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .plan-tools .grow { margin-left: auto; }
+  .week-switch { display: inline-flex; background: var(--surface-2); border: 1px solid var(--border); border-radius: 999px; padding: 3px; gap: 2px; }
+  .ws-btn { font: inherit; font-size: 13px; font-weight: 600; letter-spacing: .01em; cursor: pointer; border: 0; background: transparent; color: var(--text-muted); padding: 7px 15px; border-radius: 999px; white-space: nowrap; transition: color .12s, background .12s, box-shadow .12s; }
+  .ws-btn:hover { color: var(--text); }
+  .ws-btn.active { color: var(--accent-contrast); background: linear-gradient(135deg, var(--accent), var(--accent-strong)); box-shadow: 0 2px 8px color-mix(in srgb, var(--accent) 34%, transparent); }
+  .shop-cta { display: flex; align-items: center; justify-content: center; gap: 11px; width: 100%; margin: 22px 0 2px; padding: 16px; font: inherit; font-family: var(--font-display); font-size: 17px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; cursor: pointer; color: var(--accent-contrast); background: linear-gradient(135deg, var(--accent), var(--accent-strong)); border: 0; border-radius: var(--radius); box-shadow: 0 6px 20px color-mix(in srgb, var(--accent) 26%, transparent); transition: transform .14s ease, box-shadow .14s ease; }
+  .shop-cta:hover { transform: translateY(-2px); box-shadow: 0 12px 28px color-mix(in srgb, var(--accent) 32%, transparent); }
+  .shop-cta svg { width: 22px; height: 22px; }
   .week { display: grid; grid-template-columns: repeat(auto-fill, minmax(232px, 1fr)); gap: 16px; }
   .day {
     position: relative;
@@ -198,7 +217,7 @@
   }
   .day::before {
     content: ""; position: absolute; top: 0; left: 0; right: 0; height: 4px; z-index: 1;
-    background: linear-gradient(90deg, var(--accent), #2fb6ac 55%, #4aa8e0);
+    background: linear-gradient(90deg, var(--accent), var(--accent-strong));
   }
   .day:hover {
     transform: translateY(-3px);
@@ -216,10 +235,14 @@
   .day-head .dname { font-family: var(--font-display); font-size: 18px; font-weight: 600; letter-spacing: .2px; }
   .day-head .dtag {
     font-size: 11px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase;
-    color: var(--accent-contrast); background: linear-gradient(135deg, var(--accent), var(--accent-strong));
-    padding: 3px 10px; border-radius: 999px; box-shadow: 0 2px 8px color-mix(in srgb, var(--accent) 38%, transparent);
+    color: var(--text-muted); background: var(--surface-2); border: 1px solid var(--border);
+    padding: 3px 10px; border-radius: 999px;
   }
-  .day.today .dtag { background: linear-gradient(135deg, #2fb6ac, var(--accent)); }
+  .day.today .dtag {
+    color: var(--accent-contrast); border-color: transparent;
+    background: linear-gradient(135deg, var(--accent), var(--accent-strong));
+    box-shadow: 0 2px 8px color-mix(in srgb, var(--accent) 38%, transparent);
+  }
   .day-head .dnum { font-size: 12px; color: var(--text-muted); font-variant-numeric: tabular-nums; }
   .slots { display: flex; flex-direction: column; gap: 2px; padding: 8px; flex: 1; }
 
@@ -234,7 +257,7 @@
 
   /* Wochen-Gesamtübersicht */
   .week-nut { position: relative; overflow: hidden; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); padding: 16px 18px; margin-bottom: 20px; }
-  .week-nut::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 4px; background: linear-gradient(90deg, var(--accent), #2fb6ac 55%, #4AA8E0); }
+  .week-nut::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 4px; background: linear-gradient(90deg, var(--accent), var(--accent-strong)); }
   .week-nut .wn-head { display: flex; align-items: baseline; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; }
   .week-nut .wn-head h3 { font-family: var(--font-display); font-size: 18px; font-weight: 600; margin: 0; }
   .week-nut .wn-head .wn-sub { color: var(--text-muted); font-size: 12.5px; }
@@ -311,9 +334,50 @@
   }
   .recipes { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
   .rcard {
+    position: relative;
     background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
     box-shadow: var(--shadow); padding: 0; display: flex; flex-direction: column; overflow: hidden;
+    transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease;
   }
+  .rcard::before {
+    content: ""; position: absolute; top: 0; left: 0; right: 0; height: 4px; z-index: 2;
+    background: linear-gradient(90deg, var(--accent), var(--accent-strong));
+  }
+  .rcard:hover {
+    transform: translateY(-3px);
+    border-color: color-mix(in srgb, var(--accent) 42%, var(--border));
+    box-shadow: 0 12px 30px color-mix(in srgb, var(--accent) 20%, transparent);
+  }
+  .rcard .imgadd {
+    position: absolute; top: 12px; right: 10px; z-index: 3;
+    width: 28px; height: 28px; border: 0; border-radius: 50%; cursor: pointer;
+    display: grid; place-items: center; font-size: 19px; line-height: 1; padding: 0;
+    color: var(--accent-contrast); background: linear-gradient(135deg, var(--accent), var(--accent-strong));
+    box-shadow: 0 2px 8px rgba(0,0,0,.35); transition: transform .12s ease;
+  }
+  .rcard .imgadd:hover { transform: scale(1.12); }
+
+  /* Zutaten-Zeilen im Meal-Formular */
+  .ing-row { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 11px 12px; margin-bottom: 9px; transition: border-color .12s, box-shadow .12s; }
+  .ing-row:focus-within { border-color: color-mix(in srgb, var(--accent) 45%, var(--border-strong)); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 12%, transparent); }
+  .ing-top { display: flex; align-items: center; gap: 8px; }
+  .ing-top .ing-name { flex: 1; min-width: 0; }
+  /* Gramm-Feld mit integrierter Einheit „g" */
+  .ing-gwrap { position: relative; flex: none; width: 86px; }
+  .ing-gwrap .ing-g { width: 100%; padding-right: 24px; text-align: right; }
+  .ing-gwrap .ing-gu { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); color: var(--text-muted); font-size: 12.5px; pointer-events: none; }
+  .ing-ic { flex: none; width: 34px; height: 34px; border: 1px solid var(--border); background: var(--surface); color: var(--text-muted); border-radius: 9px; cursor: pointer; display: grid; place-items: center; font-size: 14px; line-height: 1; padding: 0; transition: color .12s, border-color .12s, background-color .12s; }
+  .ing-ic svg { width: 17px; height: 17px; }
+  .ing-scan:hover { color: var(--accent); border-color: var(--accent); }
+  .ing-scan.busy { animation: syncpulse 1s ease-in-out infinite; }
+  .ing-del:hover { color: var(--accent); border-color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, var(--surface)); }
+  .ing-nut { margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--border); }
+  .ing-per { display: block; font-size: 10px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 8px; }
+  .ing-vals { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+  .ing-nut label { display: flex; flex-direction: column; gap: 4px; font-size: 10px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--text-muted); text-align: center; }
+  .ing-nut input { width: 100%; padding: 7px 4px; text-align: center; }
+  #f-ing-add { margin-top: 2px; }
+  #f-kcal[readonly], #f-carbs[readonly], #f-protein[readonly], #f-fat[readonly] { opacity: .7; background: var(--surface-2); }
   .rimg { position: relative; height: 116px; display: grid; place-items: center; overflow: hidden; }
   .rimg::after { content: ""; position: absolute; inset: 0; background: radial-gradient(130px 66px at 78% 16%, rgba(255,255,255,.30), transparent); pointer-events: none; }
   .rimg.has-photo::after { display: none; }
@@ -333,7 +397,9 @@
   .rcard .meta span { display: inline-flex; align-items: center; gap: 5px; }
   .rcard .meta svg { width: 14px; height: 14px; opacity: .8; }
   .rcard .ingredients { font-size: 13px; color: var(--text-muted); border-top: 1px dashed var(--border); padding-top: 10px; line-height: 1.5; }
-  .rcard .actions { display: flex; gap: 4px; margin-top: auto; padding-top: 4px; }
+  .rcard .actions { display: flex; align-items: center; gap: 6px; margin-top: auto; padding-top: 4px; }
+  .rcard .actions .btn.sm { gap: 6px; }
+  .rcard .actions .btn.sm svg { width: 15px; height: 15px; }
 
   /* ---------- Empty state ---------- */
   .empty { text-align: center; padding: 60px 24px; border: 1.5px dashed var(--border-strong); border-radius: var(--radius); color: var(--text-muted); background: var(--surface); }
@@ -428,6 +494,11 @@
   .shop-empty { text-align: center; padding: 20px 10px 4px; color: var(--text-muted); }
   .shop-empty .ic { width: 46px; height: 46px; margin: 0 auto 12px; color: var(--accent); opacity: .85; }
   .shop-empty p { margin: 0 auto; max-width: 34ch; line-height: 1.5; }
+  .shop-group { display: flex; flex-direction: column; gap: 7px; }
+  .shop-group:not(:first-child) { margin-top: 10px; }
+  .shop-cat { display: flex; align-items: center; gap: 8px; margin: 0 2px 1px; font-family: var(--font-display); font-size: 12.5px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-muted); }
+  .shop-cat-ic { font-size: 15px; line-height: 1; }
+  .shop-cat-n { margin-left: auto; font-family: var(--font-body); font-size: 11px; font-weight: 650; letter-spacing: 0; color: var(--text-muted); background: var(--surface-2); border: 1px solid var(--border); border-radius: 999px; padding: 1px 8px; }
 
   /* Toast */
   #toast { position: fixed; left: 50%; bottom: 26px; transform: translateX(-50%) translateY(20px); z-index: 90;
@@ -456,7 +527,7 @@
   .menu button.danger, .menu button.danger svg { color: var(--danger); }
   .menu hr { border: 0; border-top: 1px solid var(--border); margin: 6px 4px; }
   .sync-dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: var(--border-strong); flex: none; }
-  .sync-dot.ok { background: var(--accent); }
+  .sync-dot.ok { background: var(--ok); }
   .sync-dot.busy { background: var(--fr); animation: syncpulse 1s ease-in-out infinite; }
   .sync-dot.err { background: var(--danger); }
   .sync-dot.off { background: var(--border-strong); }
@@ -480,6 +551,50 @@
   .soon-card h2 { font-family: var(--font-display); text-transform: uppercase; font-size: 30px; font-weight: 700; letter-spacing: .5px; margin: 0 0 8px; }
   .soon-card p { color: var(--text-muted); font-size: 15px; line-height: 1.55; margin: 0; }
   .soon-card .soon-pill { display: inline-block; margin-top: 16px; font-family: var(--font-display); text-transform: uppercase; letter-spacing: .14em; font-size: 12px; font-weight: 600; color: var(--accent-contrast); background: var(--accent); border-radius: 999px; padding: 6px 14px; }
+  .soon-card .btn.primary { margin-top: 20px; }
+  .soon-card .soon-note { font-size: 12.5px; margin-top: 14px; opacity: .85; }
+
+  /* ---------- Kalorienrechner ---------- */
+  .calc { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: start; }
+  .calc-form .field { margin-bottom: 15px; }
+  .row3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  /* Segmented control (Geschlecht/Ziel) im Stil der Wochen-Umschalter */
+  .seg { display: flex; background: var(--surface-2); border: 1px solid var(--border); border-radius: 999px; padding: 3px; gap: 2px; }
+  .seg button { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; border: 0; background: transparent; color: var(--text-muted); padding: 9px 8px; border-radius: 999px; white-space: nowrap; transition: color .12s, background .12s, box-shadow .12s; }
+  .seg button:hover { color: var(--text); }
+  .seg button.on { color: var(--accent-contrast); background: linear-gradient(135deg, var(--accent), var(--accent-strong)); box-shadow: 0 2px 8px color-mix(in srgb, var(--accent) 32%, transparent); }
+  .seg .seg-hint { font-weight: 500; font-size: 10.5px; opacity: .82; }
+  /* Aktivität als vertikale Knopf-Liste (Label links, Hinweis rechts) */
+  .seg-col { flex-direction: column; gap: 3px; border-radius: var(--radius-sm); padding: 4px; }
+  .seg-col button { flex-direction: row; justify-content: space-between; align-items: center; border-radius: var(--radius-sm); padding: 11px 14px; }
+  .calc-result { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); padding: 26px 22px; text-align: center; position: sticky; top: 92px; }
+  .calc-kcal { font-family: var(--font-display); font-size: 54px; font-weight: 700; color: var(--accent); line-height: 1; letter-spacing: .5px; }
+  .calc-kcal .u { font-family: var(--font-body); font-size: 17px; font-weight: 600; color: var(--text-muted); letter-spacing: 0; }
+  .calc-sub { color: var(--text-muted); font-size: 13px; margin-top: 8px; line-height: 1.5; }
+  .macros { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 22px; }
+  .macro { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 13px 6px; }
+  .macro .mv { font-family: var(--font-display); font-size: 22px; font-weight: 600; color: var(--text); }
+  .macro .ml { font-size: 10.5px; text-transform: uppercase; letter-spacing: .05em; font-weight: 650; color: var(--text-muted); margin-top: 3px; }
+  .calc-result .btn.primary { width: 100%; justify-content: center; margin-top: 22px; }
+  .calc-saved { font-size: 12.5px; color: var(--text-muted); margin-top: 12px; }
+  .calc-empty { color: var(--text-muted); font-size: 14px; line-height: 1.55; padding: 30px 6px; }
+  /* Eingabe-Gruppen (Karten) */
+  .calc-group { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 18px 4px; margin-bottom: 16px; }
+  .calc-group:last-child { margin-bottom: 0; }
+  .calc-group-h { font-family: var(--font-display); font-size: 14px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--text-muted); margin-bottom: 14px; }
+  /* Ziel-Tag + Aufschlüsselung im Ergebnis */
+  .calc-goal-tag { display: inline-block; font-family: var(--font-display); text-transform: uppercase; letter-spacing: .08em; font-size: 11px; font-weight: 700; color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, var(--surface)); border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent); border-radius: 999px; padding: 4px 12px; margin-bottom: 12px; }
+  .breakdown { margin-top: 18px; text-align: left; }
+  .bd-row { display: flex; justify-content: space-between; align-items: center; font-size: 13.5px; padding: 8px 2px; border-top: 1px solid var(--border); color: var(--text-muted); }
+  .bd-row span:last-child { color: var(--text); font-weight: 600; font-variant-numeric: tabular-nums; }
+  .bd-row.bd-mid { color: var(--text); font-weight: 600; }
+  .bd-row.bd-mid span:last-child { font-weight: 700; }
+  .calc-meta { display: flex; justify-content: center; gap: 22px; font-size: 13px; color: var(--text-muted); margin-top: 16px; }
+  .calc-meta b { color: var(--text); }
+  @media (max-width: 720px) {
+    .calc { grid-template-columns: 1fr; gap: 18px; }
+    .calc-result { position: static; }
+  }
   .auth-card { width: 100%; max-width: 430px; background: var(--surface); border: 1px solid var(--border); border-radius: 18px; box-shadow: var(--shadow); padding: 34px 30px 26px; text-align: center; }
   .auth-card .mark { width: 116px; height: 116px; border-radius: 50%; margin: 0 auto 20px; overflow: hidden; background: center / cover no-repeat var(--logo); }
   .auth-card h2 { font-family: var(--font-display); font-size: 25px; font-weight: 600; margin: 0 0 6px; text-wrap: balance; }
@@ -563,10 +678,19 @@
     .section-head { margin-bottom: 18px; }
     .section-head h2 { font-size: 22px; }
     .section-head .btn { flex: 1; justify-content: center; }
+    .plan-tools .week-switch { flex: 1 0 100%; }
+    .plan-tools .week-switch .ws-btn { flex: 1; }
+    .plan-tools .grow { margin-left: 0; }
     .week { gap: 12px; }
     .recipes { gap: 12px; }
     .imgfield { flex-direction: column; align-items: stretch; }
     .imgprev { width: 100%; }
+    /* Zutaten: Name volle Breite, Menge + Buttons in zweiter Zeile */
+    .ing-top { flex-wrap: wrap; }
+    .ing-top .ing-name { flex: 1 0 100%; }
+    .ing-gwrap { flex: 1; width: auto; }
+    .ing-ic { width: 40px; height: 40px; }
+    .ing-nut input { padding: 8px 4px; }
     .auth-card { padding: 26px 20px 22px; }
     .modal-foot .btn { flex: 1; justify-content: center; }
     .foot-inner { flex-direction: column; gap: 8px; text-align: center; }
@@ -597,15 +721,11 @@
           </button>
           <button class="tab" role="tab" id="tab-rechner" data-action="tab" data-tab="rechner" aria-selected="false">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 7h8"/><path d="M8 11h.01M12 11h.01M16 11h.01M8 15h.01M12 15h.01M16 15h.01"/></svg>
-            Kalorienrechner <span class="soon-tag">bald</span>
+            Kalorienrechner
           </button>
-          <button class="tab" id="tab-shopping" data-action="shopping">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6h15l-1.5 9h-12z"/><path d="M6 6 5 2H2"/><circle cx="9" cy="20" r="1.4"/><circle cx="18" cy="20" r="1.4"/></svg>
-            Einkaufsliste
-          </button>
-          <button class="tab" id="tab-share" data-action="share">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 13.5 6.8 4M15.4 6.5l-6.8 4"/></svg>
-            Teilen
+          <button class="tab tab-pro" role="tab" id="tab-pro" data-action="tab" data-tab="pro" aria-selected="false">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 4 7v5c0 4.5 3.2 7.9 8 9 4.8-1.1 8-4.5 8-9V7l-8-4Z"/></svg>
+            Pro <span class="soon-tag">Bald</span>
           </button>
         </div>
       </div>
@@ -818,28 +938,61 @@
   // einzelne ID (oder null) – asIdList normalisiert beide Formen.
   function asIdList(v) { return Array.isArray(v) ? v.slice() : (v ? [v] : []); }
 
+  // ---------- Wochen (aktuelle + naechste, an ISO-Kalenderwochen gebunden) ----------
+  // Plaene liegen unter state.plans["YYYY-Www"]. "Aktuell" ist die ISO-Woche von heute,
+  // "Naechste" die von heute + 7 Tagen — dadurch rueckt am Montag alles automatisch weiter,
+  // ganz ohne Rotationslogik. Verfallene (aeltere) Wochen entfernt pruneWeeks.
+  function isoWeekKey(date) {
+    const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+    const day = d.getUTCDay() || 7;                 // Mo=1 … So=7
+    d.setUTCDate(d.getUTCDate() + 4 - day);         // Donnerstag der Woche (ISO-8601)
+    const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+    const week = Math.ceil((((d - yearStart) / 864e5) + 1) / 7);
+    return d.getUTCFullYear() + "-W" + String(week).padStart(2, "0");
+  }
+  function weekKeyFor(which) {
+    const b = new Date();
+    if (which === "next") b.setDate(b.getDate() + 7);
+    return isoWeekKey(b);
+  }
+  function activeWeekKey() { return weekKeyFor(state.viewWeek === "next" ? "next" : "cur"); }
+  // Nur aktuelle + naechste Woche behalten; alles Aeltere/Fremde verfaellt.
+  function pruneWeeks(plans) {
+    const keep = {}; keep[weekKeyFor("cur")] = 1; keep[weekKeyFor("next")] = 1;
+    Object.keys(plans).forEach(k => { if (!keep[k]) delete plans[k]; });
+    return plans;
+  }
+  // Aktive Woche als Referenz spiegeln, damit alle bestehenden state.plan[..]-Zugriffe gelten.
+  function setViewWeek(which) {
+    state.viewWeek = which === "next" ? "next" : "cur";
+    const key = activeWeekKey();
+    if (!state.plans[key]) state.plans[key] = makeEmptyPlan();
+    state.plan = state.plans[key];
+  }
+
   function load() {
     let data = null;
     try { data = JSON.parse(localStorage.getItem(STORE_KEY)); } catch (e) { data = null; }
+    const curKey = weekKeyFor("cur");
     if (!data || !Array.isArray(data.recipes)) {
       const recipes = SEED.map(r => Object.assign({ id: uid() }, r));
-      return { recipes, plan: makeEmptyPlan(), tab: "plan" };
+      const plans = {}; plans[curKey] = makeEmptyPlan();
+      return { recipes, plans, plan: plans[curKey], viewWeek: "cur", tab: "plan", goal: null };
     }
-    // repair plan shape
-    const plan = makeEmptyPlan();
-    if (data.plan) {
-      DAYS.forEach(d => {
-        MEALS.forEach(m => {
-          const raw = data.plan[d.key] && data.plan[d.key][m.key];
-          plan[d.key][m.key] = asIdList(raw).filter(id => data.recipes.some(r => r.id === id));
-        });
-      });
+    const recipes = data.recipes;
+    const plans = {};
+    if (data.plans && typeof data.plans === "object") {                 // neues Format
+      Object.keys(data.plans).forEach(k => { plans[k] = normalizePlan(data.plans[k], recipes); });
+    } else if (data.plan) {                                             // Migration: alter Einzelplan
+      plans[curKey] = normalizePlan(data.plan, recipes);
     }
-    return { recipes: data.recipes, plan, tab: data.tab === "recipes" ? "recipes" : "plan" };
+    pruneWeeks(plans);
+    if (!plans[curKey]) plans[curKey] = makeEmptyPlan();
+    return { recipes, plans, plan: plans[curKey], viewWeek: "cur", tab: data.tab === "recipes" ? "recipes" : "plan", goal: data.goal || null };
   }
 
   function save() {
-    try { localStorage.setItem(STORE_KEY, JSON.stringify({ recipes: state.recipes, plan: state.plan, tab: state.tab })); }
+    try { localStorage.setItem(STORE_KEY, JSON.stringify({ recipes: state.recipes, plans: state.plans, tab: state.tab, goal: state.goal || null })); }
     catch (e) { /* storage full / unavailable */ }
     scheduleCloudPush();
   }
@@ -856,8 +1009,19 @@
     }));
     return plan;
   }
+  function normalizePlans(rawPlans, recipes) {
+    const out = {};
+    if (rawPlans && typeof rawPlans === "object") Object.keys(rawPlans).forEach(k => { out[k] = normalizePlan(rawPlans[k], recipes); });
+    return out;
+  }
+  // Liefert das Wochen-Dictionary eines Datensatzes; toleriert das alte Einzelplan-Format.
+  function plansField(d) {
+    if (d && d.plans && typeof d.plans === "object") return d.plans;
+    if (d && d.plan) { const o = {}; o[weekKeyFor("cur")] = d.plan; return o; }
+    return {};
+  }
   // Vergleichs-Signatur ohne "tab" – ein reiner Tab-Wechsel soll keinen Cloud-Write auslösen.
-  function dataJSON(d) { return JSON.stringify({ recipes: (d && d.recipes) || [], plan: (d && d.plan) || {} }); }
+  function dataJSON(d) { return JSON.stringify({ recipes: (d && d.recipes) || [], plans: plansField(d), goal: (d && d.goal) || null }); }
 
   function scheduleCloudPush() {
     if (!syncUid) return;
@@ -866,7 +1030,7 @@
   }
   async function pushNow() {
     if (!syncUid || !window.CloudSync) return;
-    const d = { recipes: state.recipes, plan: state.plan, tab: state.tab };
+    const d = { recipes: state.recipes, plans: state.plans, tab: state.tab, goal: state.goal || null };
     const j = dataJSON(d);
     if (j === lastPushedJSON) return;
     lastPushedJSON = j;
@@ -883,7 +1047,9 @@
     const j = dataJSON(data);
     if (j === dataJSON(state) || j === lastPushedJSON) return; // nichts Neues
     state.recipes = data.recipes;
-    state.plan = normalizePlan(data.plan, data.recipes);
+    state.plans = pruneWeeks(normalizePlans(plansField(data), data.recipes));
+    state.goal = data.goal || null;
+    setViewWeek(state.viewWeek);
     lastPushedJSON = j;
     save(); render();
     setSyncStatus("synced");
@@ -905,8 +1071,12 @@
         remote.recipes.forEach(r => { if (r && r.id) map[r.id] = r; });
         state.recipes.forEach(r => { if (r && r.id && !map[r.id] && !isExample(r)) map[r.id] = r; });
         state.recipes = Object.values(map);
-        state.plan = normalizePlan(remote.plan, state.recipes);
-        if (remote.tab === "recipes" || remote.tab === "plan") state.tab = remote.tab;
+        const rp = pruneWeeks(normalizePlans(plansField(remote), state.recipes));
+        Object.keys(state.plans).forEach(k => { if (!rp[k]) rp[k] = state.plans[k]; }); // lokale Wochen behalten, die es remote nicht gibt
+        state.plans = pruneWeeks(rp);
+        if (remote.goal) state.goal = remote.goal; // Ziel aus der Cloud übernehmen; lokales bleibt, falls remote keins hat
+        setViewWeek(state.viewWeek);
+        // state.tab bewusst NICHT aus remote uebernehmen — Start bleibt immer der Wochenplan
         save(); render();
       }
       lastPushedJSON = null;
@@ -968,6 +1138,17 @@
     const d = ICONS[key] || ICONS.pot;
     return `<svg class="${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
   }
+  // Aktions-Icons fuer Meal-Karte und Detail-Ansicht (Ansehen / Bearbeiten / Loeschen)
+  const ACT_ICONS = {
+    view: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>',
+    edit: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>',
+    del:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2"/><path d="M6 6v14a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V6"/><path d="M10 11v6M14 11v6"/></svg>',
+  };
+  // Werkzeug-Icons der Wochenplan-Leiste (Teilen / Leeren)
+  const TOOL_ICONS = {
+    share: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 13.5 6.8 4M15.4 6.5l-6.8 4"/></svg>',
+    clear: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6c1 1 1 2.5 0 3.4L13 21"/><path d="M22 21H7"/><path d="m5 11 9 9"/></svg>',
+  };
 
   // ---------- Gerichtsfotos (eingebettet, nach Namen zugeordnet) ----------
   //
@@ -1094,8 +1275,9 @@
   function render() {
     document.getElementById("recipe-count").textContent = state.recipes.length;
     document.querySelectorAll(".tab").forEach(t => t.setAttribute("aria-selected", String(t.dataset.tab === state.tab)));
-    if (state.tab === "rechner") renderRechnerSoon();
+    if (state.tab === "rechner") renderRechner();
     else if (state.tab === "recipes") renderRecipes();
+    else if (state.tab === "pro") renderProSoon();
     else renderPlan();
     save();
   }
@@ -1115,6 +1297,59 @@
   function weekNut() { let s = { kcal: 0, carbs: 0, protein: 0, fat: 0 }; DAYS.forEach(d => { s = addNut(s, dayNut(d.key)); }); return s; }
   function hasNut(s) { return !!(s.kcal || s.carbs || s.protein || s.fat); }
   function nfmt(n) { return Math.round(n).toLocaleString("de-DE"); }
+
+  // ---------- Strukturierte Zutaten ----------
+  // Eine Zutat ist entweder ein String (Altbestand, reiner Freitext) oder ein Objekt
+  // { name, grams, kcal, carbs, protein, fat } — die Naehrwerte gelten PRO 100 g,
+  // grams ist die eingesetzte Menge. ingContrib rechnet auf die Menge hoch.
+  function ingObj(i) { return (i && typeof i === "object") ? i : { name: String(i == null ? "" : i) }; }
+  function ingLabel(i) { const o = ingObj(i); const n = String(o.name || "").trim(); return nutNum(o.grams) ? nutNum(o.grams) + " g " + n : n; }
+  function ingHasNut(i) { const o = ingObj(i); return o.kcal != null || o.carbs != null || o.protein != null || o.fat != null; }
+  function ingContrib(i) { const o = ingObj(i); const f = nutNum(o.grams) / 100; return { kcal: nutNum(o.kcal) * f, carbs: nutNum(o.carbs) * f, protein: nutNum(o.protein) * f, fat: nutNum(o.fat) * f }; }
+  // Import/Sync-Sicherung: fremde Zutaten-Eintraege auf die zwei erlaubten Formen bringen
+  function sanitizeIng(x) {
+    if (x == null) return null;
+    if (typeof x !== "object") { const s = String(x).trim(); return s || null; }
+    const name = String(x.name || "").trim(); if (!name) return null;
+    const o = { name };
+    ["grams", "kcal", "carbs", "protein", "fat"].forEach(k => { const v = nutParse(x[k]); if (v != null) o[k] = v; });
+    return Object.keys(o).length > 1 ? o : name;
+  }
+
+  // ---------- Naehrwert-Scan (Tesseract.js — OCR laeuft komplett im Browser) ----------
+  // Die Bibliothek wird erst beim ersten Scan vom CDN geladen (die Seite bleibt schlank);
+  // das Foto selbst verlaesst das Geraet nicht.
+  let tessLoad = null;
+  function loadTesseract() {
+    if (window.Tesseract) return Promise.resolve();
+    if (!tessLoad) tessLoad = new Promise((resolve, reject) => {
+      const s = document.createElement("script");
+      s.src = "https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js";
+      s.onload = resolve;
+      s.onerror = () => { tessLoad = null; s.remove(); reject(new Error("tesseract-load")); };
+      document.head.appendChild(s);
+    });
+    return tessLoad;
+  }
+  // Zieht kcal/KH/P/F aus dem OCR-Text einer Naehrwerttabelle (Angaben pro 100 g).
+  // Nimmt jeweils die erste Fundstelle — in EU-Tabellen steht der Gesamtwert vor
+  // "davon gesaettigte …"/"davon Zucker".
+  function parseNutritionText(raw) {
+    const t = " " + String(raw || "").toLowerCase().replace(/\s+/g, " ") + " ";
+    const num = m => (m ? parseFloat(m[1].replace(",", ".")) : null);
+    let kcal = num(t.match(/(\d+(?:[.,]\d+)?)\s*kcal/));
+    if (kcal == null) kcal = num(t.match(/kcal\D{0,8}?(\d+(?:[.,]\d+)?)/));
+    const fat = num(t.match(/fett\D{0,10}?(\d+(?:[.,]\d+)?)/));
+    const carbs = num(t.match(/kohle?n?hydrate\D{0,12}?(\d+(?:[.,]\d+)?)/));
+    const protein = num(t.match(/(?:eiwei[a-zäöüß]{0,3}|protein)\D{0,10}?(\d+(?:[.,]\d+)?)/));
+    if (kcal == null && carbs == null && protein == null && fat == null) return null;
+    return { kcal: kcal, carbs: carbs, protein: protein, fat: fat };
+  }
+  async function ocrNutrition(file) {
+    await loadTesseract();
+    const res = await window.Tesseract.recognize(file, "deu");
+    return parseNutritionText(res && res.data ? res.data.text : "");
+  }
 
   function dayNutHtml(s) {
     if (!hasNut(s)) return "";
@@ -1161,12 +1396,19 @@
     const filled = planStats();
     let html = `${appHeroHtml()}
       ${weekNutHtml()}
-      <div class="section-head">
+      <div class="section-head plan-head">
         <div class="title">
           <h2>Dein Wochenplan</h2>
           <div class="sub">${filled} von 21 Mahlzeiten geplant · tippe auf eine Mahlzeit, um ein Meal zu wählen</div>
         </div>
-        <button class="btn ghost" data-action="clear-week">Woche leeren</button>
+        <div class="plan-tools">
+          <div class="week-switch" role="tablist" aria-label="Woche wählen">
+            <button class="ws-btn${state.viewWeek === "next" ? "" : " active"}" data-action="week" data-week="cur" role="tab" aria-selected="${state.viewWeek === "next" ? "false" : "true"}">Aktuelle Woche</button>
+            <button class="ws-btn${state.viewWeek === "next" ? " active" : ""}" data-action="week" data-week="next" role="tab" aria-selected="${state.viewWeek === "next" ? "true" : "false"}">Nächste Woche</button>
+          </div>
+          <button class="btn ghost grow" data-action="share">${TOOL_ICONS.share}Woche teilen</button>
+          <button class="btn ghost" data-action="clear-week">${TOOL_ICONS.clear}Woche leeren</button>
+        </div>
       </div>
       <div class="week">`;
 
@@ -1185,7 +1427,7 @@
           shown++;
           html += `<div class="filled" draggable="true" data-action="view" data-id="${r.id}" data-slot-src="${d.key}:${m.key}:${idx}" title="${esc(r.name)} – ziehen zum Verschieben">
               ${thumbHtml(r, "r-thumb")}
-              <div><div class="r-name">${esc(r.name)}</div>${r.time ? `<div class="r-meta">${r.portions ? esc(r.portions)+" Port. · " : ""}${esc(r.time)} Min.</div>` : (r.portions ? `<div class="r-meta">${esc(r.portions)} Port.</div>` : "")}</div>
+              <div><div class="r-name">${esc(r.name)}</div>${recipeNut(r).kcal ? `<div class="r-meta">${nfmt(recipeNut(r).kcal)} kcal</div>` : ""}</div>
               <button class="x" data-action="unassign" data-slot-src="${d.key}:${m.key}:${idx}" aria-label="Entfernen" title="Entfernen">✕</button>
             </div>`;
         });
@@ -1195,7 +1437,11 @@
       html += `</div>${dayNutHtml(dayNut(d.key))}</section>`;
     });
 
-    html += `</div>`;
+    html += `</div>
+      <button class="shop-cta" data-action="shopping">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6h15l-1.5 9h-12z"/><path d="M6 6 5 2H2"/><circle cx="9" cy="20" r="1.4"/><circle cx="18" cy="20" r="1.4"/></svg>
+        Einkaufsliste der Woche
+      </button>`;
     view.innerHTML = html;
   }
 
@@ -1245,25 +1491,24 @@
         html += `<div class="recipes">`;
         items.forEach(r => {
         const ing = (r.ingredients || []);
-        const ingPreview = ing.length ? esc(ing.slice(0, 4).join(" · ")) + (ing.length > 4 ? " …" : "") : "Keine Zutaten hinterlegt";
+        const ingPreview = ing.length ? esc(ing.slice(0, 4).map(ingLabel).join(" · ")) + (ing.length > 4 ? " …" : "") : "Keine Zutaten hinterlegt";
         html += `<article class="rcard">
           ${cardImageHtml(r)}
+          <button class="imgadd" data-action="photo" data-id="${r.id}" title="Eigenes Foto für dieses Meal wählen" aria-label="Eigenes Foto für dieses Meal wählen">+</button>
           <div class="rbody">
           <div class="top">
             <h3>${esc(r.name)}</h3>
             ${isExample(r) ? `<span class="chip example" title="Mitgeliefertes Beispiel-Meal">Beispiel</span>` : ""}
           </div>
           <div class="meta">
-            ${r.portions ? `<span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="9" cy="8" r="3"/><path d="M3 20a6 6 0 0 1 12 0"/><path d="M16 5a3 3 0 0 1 0 6M21 20a6 6 0 0 0-5-5.9"/></svg>${esc(r.portions)} Portion${r.portions == 1 ? "" : "en"}</span>` : ""}
-            ${r.time ? `<span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>${esc(r.time)} Min.</span>` : ""}
             ${recipeNut(r).kcal ? `<span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3c1 3 4 4.4 4 8a4 4 0 0 1-8 0c0-1.3.4-2.1 1-3 .3 1 .8 1.6 1.5 1.9C10 8 10.4 5.4 12 3Z"/></svg>${nfmt(recipeNut(r).kcal)} kcal</span>` : ""}
             <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 5h16M4 12h16M4 19h10"/></svg>${ing.length} Zutat${ing.length === 1 ? "" : "en"}</span>
           </div>
           <div class="ingredients">${ingPreview}</div>
           <div class="actions">
-            <button class="btn ghost sm" data-action="view" data-id="${r.id}">Ansehen</button>
-            <button class="btn ghost sm" data-action="edit" data-id="${r.id}">Bearbeiten</button>
-            <button class="btn danger sm" data-action="delete" data-id="${r.id}" style="margin-left:auto">Löschen</button>
+            <button class="btn ghost sm" data-action="view" data-id="${r.id}">${ACT_ICONS.view}Ansehen</button>
+            <button class="btn ghost sm" data-action="edit" data-id="${r.id}">${ACT_ICONS.edit}Bearbeiten</button>
+            <button class="btn del-ic" data-action="delete" data-id="${r.id}" title="Meal löschen" aria-label="Meal löschen">${ACT_ICONS.del}</button>
           </div>
           </div>
         </article>`;
@@ -1294,7 +1539,6 @@
   // ---------- Recipe form ----------
   function openRecipeForm(id) {
     const r = id ? getRecipe(id) : null;
-    let formImage = r ? (r.image || null) : null;
     const opts = CATEGORIES.map(c => `<option value="${c}" ${r && r.category === c ? "selected" : ""}>${c}</option>`).join("");
     const node = el(`<div class="modal detail" role="dialog" aria-modal="true" aria-label="${r ? "Meal bearbeiten" : "Neues Meal"}">
       <div class="modal-head"><h3>${r ? "Meal bearbeiten" : "Neues Meal"}</h3><button class="btn ghost sm" data-close>✕</button></div>
@@ -1303,26 +1547,9 @@
           <label for="f-name">Name des Meals</label>
           <input type="text" id="f-name" placeholder="z. B. Ofengemüse mit Feta" value="${r ? esc(r.name) : ""}" maxlength="80">
         </div>
-        <div class="row2">
-          <div class="field"><label for="f-cat">Kategorie</label><select id="f-cat">${opts}</select></div>
-          <div class="row2" style="gap:12px">
-            <div class="field"><label for="f-port">Portionen</label><input type="number" id="f-port" min="1" max="99" value="${r && r.portions ? esc(r.portions) : ""}" placeholder="2"></div>
-            <div class="field"><label for="f-time">Minuten</label><input type="number" id="f-time" min="1" max="999" value="${r && r.time ? esc(r.time) : ""}" placeholder="30"></div>
-          </div>
-        </div>
+        <div class="field"><label for="f-cat">Kategorie</label><select id="f-cat">${opts}</select></div>
         <div class="field">
-          <label>Foto <span class="hint">– optional; ziehen, einfügen (Strg/⌘+V) oder wählen. Ohne Bild wird automatisch eins zum Namen gewählt</span></label>
-          <div class="imgfield">
-            <div class="imgprev" id="f-imgprev" tabindex="0" role="button" aria-label="Bild wählen, hierher ziehen oder einfügen"></div>
-            <div class="imgbtns">
-              <label class="btn sm" for="f-imgfile">Bild wählen …</label>
-              <input type="file" id="f-imgfile" accept="image/*" class="visually-hidden">
-              <button type="button" class="btn ghost sm" id="f-imgclear">Zurücksetzen</button>
-            </div>
-          </div>
-        </div>
-        <div class="field">
-          <label>Makros <span class="hint">– optional, je Portion</span></label>
+          <label>Makros <span class="hint" id="f-nut-hint">– gesamt; mit Zutaten-Nährwerten automatisch summiert</span></label>
           <div class="row2" style="gap:12px">
             <div class="row2" style="gap:12px">
               <div class="field"><label for="f-kcal" class="hint">Kalorien (kcal)</label><input type="number" id="f-kcal" min="0" max="99999" step="1" value="${r && r.nutrition && r.nutrition.kcal != null ? esc(r.nutrition.kcal) : ""}" placeholder="520"></div>
@@ -1335,8 +1562,10 @@
           </div>
         </div>
         <div class="field">
-          <label for="f-ing">Zutaten <span class="hint">– eine pro Zeile</span></label>
-          <textarea id="f-ing" placeholder="200 g Mehl&#10;2 Eier&#10;1 Prise Salz">${r && r.ingredients ? esc(r.ingredients.join("\n")) : ""}</textarea>
+          <label>Zutaten <span class="hint">– Menge in g, Nährwerte pro 100 g; 📷 liest eine fotografierte Nährwerttabelle</span></label>
+          <div id="f-ings"></div>
+          <button type="button" class="btn sm" id="f-ing-add">+ Weitere Zutat</button>
+          <input type="file" id="f-ing-scan" accept="image/*" capture="environment" class="visually-hidden">
         </div>
         <div class="field">
           <label for="f-steps">Zubereitung <span class="hint">– optional</span></label>
@@ -1351,54 +1580,103 @@
 
     node.querySelectorAll("[data-close]").forEach(b => b.addEventListener("click", closeModal));
 
-    const fileInput = node.querySelector("#f-imgfile");
-    const prev = node.querySelector("#f-imgprev");
-    function renderImgPreview() {
-      if (formImage) {
-        prev.classList.add("has-img");
-        prev.style.backgroundImage = `url(${formImage})`;
-        prev.innerHTML = "";
-      } else {
-        prev.classList.remove("has-img");
-        prev.style.backgroundImage = "none";
-        prev.innerHTML = `<span class="imgprev-hint"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V4M8 8l4-4 4 4"/><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg><span><b>Ziehen</b> · <b>Einfügen</b> · <b>Wählen</b></span></span>`;
-      }
+    // --- Zutaten-Zeilen (Name, Menge, Naehrwerte pro 100 g, Foto-Scan) ---
+    const ingsWrap = node.querySelector("#f-ings");
+    const scanInput = node.querySelector("#f-ing-scan");
+    let scanRow = null;
+    const camSvg = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1Z"/><circle cx="12" cy="14" r="3.4"/></svg>`;
+    function nutVal(v) { return v != null ? esc(v) : ""; }
+    function addIngRow(o) {
+      o = o || {};
+      const row = el(`<div class="ing-row">
+        <div class="ing-top">
+          <input type="text" class="ing-name" placeholder="Zutat, z. B. Reis" maxlength="60" value="${esc(o.name || "")}">
+          <span class="ing-gwrap"><input type="number" class="ing-g" min="0" max="99999" step="1" placeholder="200" value="${nutVal(o.grams)}" aria-label="Menge in Gramm"><span class="ing-gu">g</span></span>
+          <button type="button" class="ing-ic ing-scan" title="Nährwerttabelle fotografieren – füllt Kcal/KH/P/F automatisch">${camSvg}</button>
+          <button type="button" class="ing-ic ing-del" title="Zutat entfernen">✕</button>
+        </div>
+        <div class="ing-nut">
+          <span class="ing-per">pro 100 g:</span>
+          <div class="ing-vals">
+            <label>Kcal<input type="number" class="ing-kcal" min="0" max="9999" step="1" value="${nutVal(o.kcal)}"></label>
+            <label>KH<input type="number" class="ing-carbs" min="0" max="999" step="0.1" value="${nutVal(o.carbs)}"></label>
+            <label>P<input type="number" class="ing-prot" min="0" max="999" step="0.1" value="${nutVal(o.protein)}"></label>
+            <label>F<input type="number" class="ing-fat" min="0" max="999" step="0.1" value="${nutVal(o.fat)}"></label>
+          </div>
+        </div>
+      </div>`);
+      row.querySelector(".ing-del").addEventListener("click", () => { row.remove(); updateMacroSum(); });
+      row.querySelector(".ing-scan").addEventListener("click", () => { scanRow = row; scanInput.click(); });
+      row.querySelectorAll("input").forEach(inp => inp.addEventListener("input", updateMacroSum));
+      ingsWrap.appendChild(row);
+      return row;
     }
-    function applyImageFile(file) {
-      if (!file || !/^image\//.test(file.type)) { toast("Bitte ein Bild verwenden"); return; }
-      readAndDownscale(file, dataUrl => { if (dataUrl) { formImage = dataUrl; renderImgPreview(); toast("Bild übernommen"); } else toast("Bild konnte nicht geladen werden"); });
+    function rowData(row) {
+      const name = row.querySelector(".ing-name").value.trim();
+      if (!name) return null;
+      const o = { name };
+      const grams = nutParse(row.querySelector(".ing-g").value);
+      const kcal = nutParse(row.querySelector(".ing-kcal").value);
+      const carbs = nutParse(row.querySelector(".ing-carbs").value);
+      const protein = nutParse(row.querySelector(".ing-prot").value);
+      const fat = nutParse(row.querySelector(".ing-fat").value);
+      if (grams == null && kcal == null && carbs == null && protein == null && fat == null) return name; // reiner Freitext wie frueher
+      if (grams != null) o.grams = grams;
+      if (kcal != null) o.kcal = kcal;
+      if (carbs != null) o.carbs = carbs;
+      if (protein != null) o.protein = protein;
+      if (fat != null) o.fat = fat;
+      return o;
     }
-    fileInput.addEventListener("change", () => { const f = fileInput.files && fileInput.files[0]; if (f) applyImageFile(f); });
-    node.querySelector("#f-imgclear").addEventListener("click", () => { formImage = null; fileInput.value = ""; renderImgPreview(); });
-    // Klick / Tastatur → Dateiauswahl
-    prev.addEventListener("click", () => fileInput.click());
-    prev.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); fileInput.click(); } });
-    // Drag & Drop einer Bilddatei
-    prev.addEventListener("dragover", e => { e.preventDefault(); e.dataTransfer.dropEffect = "copy"; prev.classList.add("dragover"); });
-    prev.addEventListener("dragleave", e => { if (!prev.contains(e.relatedTarget)) prev.classList.remove("dragover"); });
-    prev.addEventListener("drop", e => {
-      e.preventDefault(); prev.classList.remove("dragover");
-      const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
-      if (f) applyImageFile(f);
-    });
-    // Eingefügtes Bild (Strg/⌘+V) – nur echte Bild-Inhalte abfangen, Text bleibt normal
-    node.addEventListener("paste", e => {
-      const items = (e.clipboardData && e.clipboardData.items) || [];
-      for (let i = 0; i < items.length; i++) {
-        if (items[i].type && items[i].type.indexOf("image") === 0) {
-          const f = items[i].getAsFile();
-          if (f) { e.preventDefault(); applyImageFile(f); return; }
-        }
+    function collectIngs() { return Array.from(ingsWrap.querySelectorAll(".ing-row")).map(rowData).filter(Boolean); }
+    // Summe aller Zutaten (auf Menge hochgerechnet) → Makro-Felder; solange keine Zutat
+    // Naehrwerte hat, bleiben die Felder manuell editierbar.
+    function updateMacroSum() {
+      const withNut = collectIngs().filter(i => typeof i === "object" && nutNum(i.grams) && ingHasNut(i));
+      const auto = withNut.length > 0;
+      if (auto) {
+        let s = { kcal: 0, carbs: 0, protein: 0, fat: 0 };
+        withNut.forEach(i => { s = addNut(s, ingContrib(i)); });
+        node.querySelector("#f-kcal").value = Math.round(s.kcal);
+        node.querySelector("#f-carbs").value = Math.round(s.carbs * 10) / 10;
+        node.querySelector("#f-protein").value = Math.round(s.protein * 10) / 10;
+        node.querySelector("#f-fat").value = Math.round(s.fat * 10) / 10;
+      }
+      ["f-kcal", "f-carbs", "f-protein", "f-fat"].forEach(fid => { node.querySelector("#" + fid).readOnly = auto; });
+      node.querySelector("#f-nut-hint").textContent = auto ? "– Summe aus deinen Zutaten (automatisch)" : "– gesamt; mit Zutaten-Nährwerten automatisch summiert";
+    }
+    (r && r.ingredients && r.ingredients.length ? r.ingredients : [null]).forEach(i => addIngRow(i == null ? null : ingObj(i)));
+    updateMacroSum();
+    node.querySelector("#f-ing-add").addEventListener("click", () => { addIngRow().querySelector(".ing-name").focus(); });
+    // Foto-Scan: Naehrwerttabelle → OCR im Browser → Felder der Zeile fuellen
+    scanInput.addEventListener("change", async () => {
+      const f = scanInput.files && scanInput.files[0];
+      scanInput.value = "";
+      const row = scanRow; scanRow = null;
+      if (!f || !row || !row.isConnected) return;
+      const btn = row.querySelector(".ing-scan");
+      btn.disabled = true; btn.classList.add("busy");
+      toast("Lese Nährwerttabelle …");
+      try {
+        const vals = await ocrNutrition(f);
+        if (!vals) { toast("Keine Nährwerte erkannt – bitte manuell eintragen"); return; }
+        if (vals.kcal != null) row.querySelector(".ing-kcal").value = Math.round(vals.kcal);
+        if (vals.carbs != null) row.querySelector(".ing-carbs").value = vals.carbs;
+        if (vals.protein != null) row.querySelector(".ing-prot").value = vals.protein;
+        if (vals.fat != null) row.querySelector(".ing-fat").value = vals.fat;
+        updateMacroSum();
+        toast("Nährwerte übernommen – bitte kurz prüfen");
+      } catch (e) {
+        toast("Erkennung nicht möglich (offline?) – bitte manuell eintragen");
+      } finally {
+        btn.disabled = false; btn.classList.remove("busy");
       }
     });
-    renderImgPreview();
 
     node.querySelector("[data-save]").addEventListener("click", () => {
       const name = node.querySelector("#f-name").value.trim();
       if (!name) { node.querySelector("#f-name").focus(); node.querySelector("#f-name").style.borderColor = "var(--danger)"; toast("Bitte gib einen Namen ein"); return; }
-      const ingredients = node.querySelector("#f-ing").value.split("\n").map(s => s.trim()).filter(Boolean);
-      const portions = parseInt(node.querySelector("#f-port").value, 10);
-      const time = parseInt(node.querySelector("#f-time").value, 10);
+      const ingredients = collectIngs();
       const nutrition = {
         kcal: nutParse(node.querySelector("#f-kcal").value),
         carbs: nutParse(node.querySelector("#f-carbs").value),
@@ -1406,15 +1684,14 @@
         fat: nutParse(node.querySelector("#f-fat").value),
       };
       const hasAnyNut = nutrition.kcal != null || nutrition.carbs != null || nutrition.protein != null || nutrition.fat != null;
+      // Portionen/Minuten sind bewusst entfallen (ein Meal = eine Portion); das Meal-Bild
+      // wird nicht mehr hier, sondern ueber das "+" auf der Meal-Karte gepflegt.
       const data = {
         name,
         category: node.querySelector("#f-cat").value,
-        portions: portions > 0 ? portions : null,
-        time: time > 0 ? time : null,
         nutrition: hasAnyNut ? nutrition : null,
         ingredients,
         steps: node.querySelector("#f-steps").value.trim(),
-        image: formImage || null,
       };
       if (r) { Object.assign(r, data); toast("Meal gespeichert"); }
       else { state.recipes.push(Object.assign({ id: uid() }, data)); toast("Meal angelegt"); }
@@ -1428,7 +1705,7 @@
     const r = getRecipe(id); if (!r) return;
     const cls = CAT_CLASS[r.category] || "cat-x";
     const ing = r.ingredients && r.ingredients.length
-      ? `<ul>${r.ingredients.map(i => `<li>${esc(i)}</li>`).join("")}</ul>`
+      ? `<ul>${r.ingredients.map(i => `<li>${esc(ingLabel(i))}${ingHasNut(i) && nutNum(ingObj(i).grams) ? ` <span style="color:var(--text-muted);font-size:12px">· ${nfmt(ingContrib(i).kcal)} kcal</span>` : ""}</li>`).join("")}</ul>`
       : `<p style="color:var(--text-muted);margin:0">Keine Zutaten hinterlegt.</p>`;
     const node = el(`<div class="modal detail" role="dialog" aria-modal="true" aria-label="${esc(r.name)}">
       <div class="modal-head">
@@ -1438,17 +1715,13 @@
       </div>
       <div class="modal-body">
         <div class="dbanner has-photo"><img class="rphoto" src="${photoFor(r)}" alt="${esc(r.name)}"></div>
-        <div class="meta" style="display:flex;gap:16px;color:var(--text-muted);font-size:13px">
-          ${r.portions ? `<span>🍽 ${esc(r.portions)} Portion${r.portions==1?"":"en"}</span>` : ""}
-          ${r.time ? `<span>⏱ ${esc(r.time)} Min.</span>` : ""}
-        </div>
         ${nutFactsHtml(r)}
         <div class="dsec"><h4>Zutaten</h4>${ing}</div>
         ${r.steps ? `<div class="dsec"><h4>Zubereitung</h4><div class="steps">${esc(r.steps)}</div></div>` : ""}
       </div>
       <div class="modal-foot">
-        <button class="btn danger" data-del>Löschen</button>
-        <button class="btn" data-edit>Bearbeiten</button>
+        <button class="btn danger" data-del>${ACT_ICONS.del}Löschen</button>
+        <button class="btn" data-edit>${ACT_ICONS.edit}Bearbeiten</button>
         <button class="btn primary" data-close>Schließen</button>
       </div>
     </div>`);
@@ -1530,19 +1803,60 @@
   }
 
   // ---------- Shopping list ----------
+  // Grobe Warengruppen fuer die Einkaufsliste (Stichwort-Matching wie PHOTO_RULES).
+  // Reihenfolge = Pruef- UND Anzeigereihenfolge (grob wie ein Supermarkt-Rundgang);
+  // die zuerst passende Gruppe gewinnt. Stichwoerter mit < 4 Zeichen matchen nur als
+  // ganzes Wort, laengere per Wortanfang/-ende (deutsche Komposita), aber nie in der
+  // Wortmitte -- so schnappt "reis" nicht in "Preiselbeere", "eis" nicht in "Rindfleisch".
+  // Erweitern: einfach Stichwoerter in die passende Liste eintragen (klein, ss statt ss/ß).
+  const SHOP_CATS = [
+    { key: "gemuese", title: "Obst & Gemüse", icon: "🥬", kw: ["zwiebel","knoblauch","schalotte","paprika","tomate","tomaten","tomatenmark","karotte","möhre","moehre","zucchini","gurke","salat","rucola","spinat","brokkoli","blumenkohl","kartoffel","süsskartoffel","pilz","champignon","lauch","porree","sellerie","kohl","kürbis","kuerbis","aubergine","bohne","bohnen","erbse","erbsen","zuckerschote","zuckererbse","mais","avocado","ingwer","chili","kohlrabi","fenchel","spargel","radieschen","rettich","bete","kresse","apfel","äpfel","aepfel","banane","zitrone","limette","orange","clementine","mandarine","beere","beeren","himbeer","erdbeer","heidelbeer","blaubeer","brombeer","traube","trauben","birne","mango","pfirsich","nektarine","aprikose","ananas","melone","kiwi","pflaume","kirsche","feige","petersilie","basilikum","schnittlauch","koriander","minze"] },
+    { key: "fleisch", title: "Fleisch & Fisch", icon: "🥩", kw: ["hackfleisch","hack","fleisch","hähnchen","haehnchen","huhn","hühner","huehner","hühnchen","pute","puten","rind","schwein","kalb","lamm","schnitzel","gulasch","steak","filet","wurst","würstchen","wuerstchen","bratwurst","speck","schinken","salami","bacon","mett","hackbraten","frikadelle","bulette","geschnetzeltes","leberkäse","leberkaese","cabanossi","chorizo","lachs","thunfisch","garnele","garnelen","shrimp","scampi","fisch","forelle","kabeljau","dorsch","seelachs","hering","makrele","sardine","sardellen","muschel","surimi"] },
+    { key: "milch", title: "Milchprodukte & Eier", icon: "🧀", kw: ["milch","butter","sahne","joghurt","jogurt","quark","käse","kaese","gouda","mozzarella","parmesan","feta","frischkäse","frischkaese","schmand","ei","eier","eiweiss","eigelb","margarine","buttermilch","mascarpone","ricotta","hüttenkäse","huettenkaese","emmentaler","cheddar","camembert","brie"] },
+    { key: "teig", title: "Teigwaren, Reis & Getreide", icon: "🍝", kw: ["nudel","nudeln","spaghetti","penne","fusilli","tagliatelle","makkaroni","lasagne","spätzle","spaetzle","gnocchi","tortellini","ravioli","farfalle","rigatoni","pasta","reis","basmati","risotto","couscous","bulgur","quinoa","polenta","griess","haferflocken","hafer","müsli","muesli","cornflakes","porridge"] },
+    { key: "backen", title: "Backen & Mehl", icon: "🧁", kw: ["mehl","zucker","puderzucker","vanillezucker","vanille","backpulver","hefe","kakao","schokolade","schoko","kuvertüre","kuvertuere","backaroma","speisestärke","speisestaerke","stärke","staerke","natron","marzipan","honig","sirup","nuss","nüsse","nuesse","mandel","mandeln","walnuss","haselnuss","erdnuss","cashew","pistazie","rosine","kokosraspel","gelatine"] },
+    { key: "vorrat", title: "Konserven & Vorrat", icon: "🥫", kw: ["dose","konserve","passierte","passata","kokosmilch","linsen","brühe","bruehe","fond","brühwürfel","bruehwuerfel","oliven","kapern","essiggurke","antipasti","instant","tütensuppe","tuetensuppe","suppe","backerbsen"] },
+    { key: "gewuerz", title: "Gewürze, Öle & Saucen", icon: "🧂", kw: ["salz","pfeffer","paprikapulver","curry","currypaste","kurkuma","kümmel","kuemmel","muskat","zimt","nelke","lorbeer","oregano","thymian","majoran","cayenne","essig","balsamico","öl","olivenöl","olivenoel","rapsöl","rapsoel","sonnenblumenöl","sesamöl","sesamoel","kokosöl","pflanzenöl","sojasauce","sojasosse","fischsauce","sauce","sosse","dressing","mayonnaise","mayo","ketchup","senf","pesto","tahini","brühpulver"] },
+  ];
+  const SHOP_OTHER = { key: "sonst", title: "Sonstiges", icon: "📦" };
+  function shopCategory(label) {
+    const toks = label.toLowerCase().replace(/ß/g, "ss").replace(/[0-9]+/g, " ").replace(/[^a-zäöü]+/g, " ").split(/\s+/).filter(Boolean);
+    for (let c = 0; c < SHOP_CATS.length; c++) {
+      const kws = SHOP_CATS[c].kw;
+      for (let k = 0; k < kws.length; k++) {
+        const kw = kws[k];
+        for (let t = 0; t < toks.length; t++) {
+          const tok = toks[t];
+          if (tok === kw) return SHOP_CATS[c];
+          if (kw.length >= 4 && (tok.indexOf(kw) === 0 || tok.slice(-kw.length) === kw)) return SHOP_CATS[c];
+        }
+      }
+    }
+    return SHOP_OTHER;
+  }
+  const SHOP_DONE_KEY = "wochenkueche_shop_v1";
+  function loadShopDone() { try { return new Set(JSON.parse(localStorage.getItem(SHOP_DONE_KEY) || "[]")); } catch (e) { return new Set(); } }
+  function saveShopDone(set) { try { localStorage.setItem(SHOP_DONE_KEY, JSON.stringify(Array.from(set))); } catch (e) {} }
+
   function openShopping() {
     const map = new Map(); // normalized -> {label, count}
     DAYS.forEach(d => MEALS.forEach(m => state.plan[d.key][m.key].forEach(rid => {
       const r = getRecipe(rid);
       if (!r || !r.ingredients) return;
       r.ingredients.forEach(i => {
-        const norm = i.toLowerCase().trim();
+        const lbl = ingLabel(i);
+        const norm = lbl.toLowerCase().trim();
         if (!norm) return;
         if (map.has(norm)) map.get(norm).count++;
-        else map.set(norm, { label: i.trim(), count: 1 });
+        else map.set(norm, { norm: norm, label: lbl, count: 1 });
       });
     })));
     const items = Array.from(map.values()).sort((a, b) => a.label.localeCompare(b.label, "de"));
+    const done = loadShopDone();
+    // nach Warengruppe gruppieren; Reihenfolge = SHOP_CATS, "Sonstiges" ganz am Ende
+    const gmap = {};
+    items.forEach(it => { const c = shopCategory(it.label); (gmap[c.key] || (gmap[c.key] = { cat: c, items: [] })).items.push(it); });
+    const groups = SHOP_CATS.concat([SHOP_OTHER]).map(c => gmap[c.key]).filter(Boolean);
 
     const checkSvg = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>`;
     let body;
@@ -1552,19 +1866,27 @@
         <p>Noch keine Zutaten – plane zuerst ein paar Mahlzeiten im Wochenplan, dann sammeln wir die Zutaten hier automatisch.</p>
       </div>`;
     } else {
+      let idx = 0;
+      const listHtml = groups.map(g => `
+        <div class="shop-group">
+          <div class="shop-cat"><span class="shop-cat-ic" aria-hidden="true">${g.cat.icon}</span>${esc(g.cat.title)}<span class="shop-cat-n">${g.items.length}</span></div>
+          ${g.items.map(it => {
+            const id = "s" + (idx++);
+            return `<label class="shop-item">
+              <input type="checkbox" class="shop-check" id="${id}" data-norm="${esc(it.norm)}"${done.has(it.norm) ? " checked" : ""}>
+              <span class="box" aria-hidden="true">${checkSvg}</span>
+              <span class="lbl">${esc(it.label)}</span>
+              ${it.count > 1 ? `<span class="qty" title="in ${it.count} Meals der Woche">×${it.count}</span>` : ""}
+            </label>`;
+          }).join("")}
+        </div>`).join("");
       body = `
         <div class="shop-progress">
           <span class="ptext" id="shop-count">0 von ${items.length} erledigt</span>
           <div class="bar"><i id="shop-bar"></i></div>
           <button class="toggle-all" id="shop-toggle" type="button">Alle abhaken</button>
         </div>
-        <div class="shop-list">${items.map((it, idx) => `
-          <label class="shop-item">
-            <input type="checkbox" class="shop-check" id="s${idx}">
-            <span class="box" aria-hidden="true">${checkSvg}</span>
-            <span class="lbl">${esc(it.label)}</span>
-            ${it.count > 1 ? `<span class="qty" title="in ${it.count} Meals der Woche">×${it.count}</span>` : ""}
-          </label>`).join("")}</div>`;
+        <div class="shop-list">${listHtml}</div>`;
     }
 
     const node = el(`<div class="modal" role="dialog" aria-modal="true" aria-label="Einkaufsliste">
@@ -1593,13 +1915,14 @@
         countEl.textContent = done + " von " + checks.length + " erledigt";
         toggleBtn.textContent = done === checks.length ? "Zurücksetzen" : "Alle abhaken";
       };
-      checks.forEach(c => c.addEventListener("change", updateProgress));
-      toggleBtn.addEventListener("click", () => { const allDone = checks.every(c => c.checked); checks.forEach(c => { c.checked = !allDone; }); updateProgress(); });
+      const persist = () => { const d = new Set(); checks.forEach(c => { if (c.checked) d.add(c.dataset.norm); }); saveShopDone(d); };
+      checks.forEach(c => c.addEventListener("change", () => { updateProgress(); persist(); }));
+      toggleBtn.addEventListener("click", () => { const allDone = checks.every(c => c.checked); checks.forEach(c => { c.checked = !allDone; }); updateProgress(); persist(); });
       updateProgress();
     }
     const copyBtn = node.querySelector("[data-copy]");
     if (copyBtn) copyBtn.addEventListener("click", () => {
-      const text = items.map(it => "• " + it.label + (it.count > 1 ? " (×" + it.count + ")" : "")).join("\n");
+      const text = groups.map(g => g.cat.title.toUpperCase() + "\n" + g.items.map(it => "• " + it.label + (it.count > 1 ? " (×" + it.count + ")" : "")).join("\n")).join("\n\n");
       if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(text).then(() => toast("Liste kopiert")).catch(() => toast("Kopieren nicht möglich"));
       } else toast("Kopieren nicht möglich");
@@ -1696,7 +2019,9 @@
       <h4>2. Hosting der Website (GitHub Pages)</h4>
       <p>Diese Website wird bei GitHub Pages gehostet, einem Dienst der GitHub, Inc., 88 Colin P. Kelly Jr. Street, San Francisco, CA 94107, USA. Beim Aufruf der Seite verarbeitet GitHub technisch notwendige Zugriffsdaten (z. B. deine IP-Adresse), um die Seite auszuliefern und deren Sicherheit zu gewährleisten. Rechtsgrundlage ist unser berechtigtes Interesse an einer sicheren und effizienten Bereitstellung (Art. 6 Abs. 1 lit. f DSGVO). Dabei kann eine Übermittlung in die USA erfolgen. Weitere Infos: <a href="https://docs.github.com/de/site-policy/privacy-policies/github-general-privacy-statement" target="_blank" rel="noopener">GitHub Privacy Statement</a>.</p>
       <h4>3. Welche Daten wir verarbeiten</h4>
-      <p>Bei der Registrierung: <strong>Name und E-Mail-Adresse</strong>. Bei Nutzung der App: die von dir angelegten <strong>Wochenpläne, Meals/Rezepte und ggf. Fotos</strong>. Diese Daten speichern wir, damit du dich anmelden und deine Planung geräteübergreifend nutzen kannst.</p>
+      <p>Bei der Registrierung: <strong>Name und E-Mail-Adresse</strong>. Bei Nutzung der App: die von dir angelegten <strong>Wochenpläne, Meals/Rezepte und ggf. Fotos</strong> sowie – falls du den Kalorienrechner nutzt und ein Ergebnis speicherst – <strong>Geschlecht, Alter, Größe, Gewicht, Aktivitätsniveau und Ziel</strong> (Details siehe Ziffer 3a). Diese Daten speichern wir, damit du dich anmelden und deine Planung geräteübergreifend nutzen kannst.</p>
+      <h4>3a. Kalorienrechner</h4>
+      <p>Nutzt du den Kalorienrechner, gibst du freiwillig <strong>Geschlecht, Alter, Größe und Gewicht</strong> sowie dein Aktivitätsniveau und Ziel ein. Daraus berechnet die App direkt in deinem Browser deinen Tagesbedarf, deine Makronährstoffe und deinen BMI. Speicherst du das Ergebnis („Als mein Ziel speichern"), werden diese Angaben wie deine übrigen Plandaten lokal und – bei Cloud-Nutzung – in deinem Nutzerkonto (Cloud Firestore, siehe Ziffer 5) gespeichert, um sie geräteübergreifend verfügbar zu halten. Rechtsgrundlage ist wie unter Ziffer 4 die Erfüllung des Nutzungsvertrags (Art. 6 Abs. 1 lit. b DSGVO). Die Eingabe ist freiwillig; lässt du den Rechner ungenutzt, entstehen keine dieser Daten. Diese Angaben werden <strong>nicht</strong> in Teilen-Links aufgenommen (siehe Ziffer 8).</p>
       <h4>4. Zweck &amp; Rechtsgrundlage</h4>
       <p>Wir verarbeiten die Daten zur Bereitstellung deines Nutzerkontos und der Planer-Funktionen (Art. 6 Abs. 1 lit. b DSGVO – Nutzungsvertrag). Die Bestätigungs-E-Mail dient der Sicherstellung, dass die Adresse dir gehört.</p>
       <h4>5. Cloud-Dienste (Google Firebase)</h4>
@@ -1705,6 +2030,13 @@
       <p>Wenn du dich mit „Mit Google anmelden" einloggst, erhält Google die für die Anmeldung nötigen Informationen. Es gelten zusätzlich die Datenschutzbestimmungen von Google.</p>
       <h4>7. Speicherung im Browser</h4>
       <p>Zur Anmeldung und für den Offline-Betrieb speichert die App technisch notwendige Daten lokal in deinem Browser (localStorage/IndexedDB). Dafür ist keine Einwilligung erforderlich; ein Tracking findet nicht statt (Google Analytics ist deaktiviert).</p>
+      <h4>7a. Nährwert-Scan (Foto-Erkennung)</h4>
+      <p>Beim Anlegen von Zutaten kannst du eine Nährwerttabelle fotografieren. Die Texterkennung läuft
+         <strong>vollständig lokal in deinem Browser</strong> – das Foto wird nicht hochgeladen und nicht gespeichert.
+         Beim ersten Scan lädt die App die dafür nötige Open-Source-Software (Tesseract.js) von den
+         Content-Delivery-Netzwerken <strong>cdn.jsdelivr.net</strong> und <strong>tessdata.projectnaptha.com</strong> nach;
+         dabei wird deine IP-Adresse an diese Dienste übermittelt (Art. 6 Abs. 1 lit. f DSGVO – berechtigtes Interesse
+         an der Bereitstellung der Funktion). Nutzt du den Scan nicht, findet kein solcher Abruf statt.</p>
       <h4>8. Teilen-Funktion</h4>
       <p>Wenn du einen Teilen-Link erstellst, wird eine Kopie deines Wochenplans (die eingeplanten Meals, dein
          angezeigter Name und der Zeitpunkt) in der Cloud gespeichert. Sie ist ausschließlich über den Link abrufbar
@@ -1733,7 +2065,7 @@
       <div class="modal-foot"><button class="btn ghost" data-close>Abbrechen</button><button class="btn danger" data-confirm>Woche leeren</button></div>
     </div>`);
     node.querySelectorAll("[data-close]").forEach(b => b.addEventListener("click", closeModal));
-    node.querySelector("[data-confirm]").addEventListener("click", () => { state.plan = makeEmptyPlan(); closeModal(); render(); toast("Wochenplan geleert"); });
+    node.querySelector("[data-confirm]").addEventListener("click", () => { DAYS.forEach(d => MEALS.forEach(m => { state.plan[d.key][m.key] = []; })); save(); closeModal(); render(); toast(state.viewWeek === "next" ? "Nächste Woche geleert" : "Woche geleert"); });
     openModal(node);
   }
 
@@ -1747,11 +2079,27 @@
   }
 
   // ---------- Event delegation ----------
+  // Meal-Foto ueber das "+" auf der Karte (ein globales, wiederverwendetes file-input)
+  const photoInput = document.createElement("input");
+  photoInput.type = "file"; photoInput.accept = "image/*"; photoInput.className = "visually-hidden";
+  document.body.appendChild(photoInput);
+  let photoTargetId = null;
+  photoInput.addEventListener("change", () => {
+    const f = photoInput.files && photoInput.files[0];
+    photoInput.value = "";
+    const r = photoTargetId ? getRecipe(photoTargetId) : null;
+    photoTargetId = null;
+    if (!f || !r) return;
+    if (!/^image\//.test(f.type)) { toast("Bitte ein Bild verwenden"); return; }
+    readAndDownscale(f, dataUrl => { if (dataUrl) { r.image = dataUrl; save(); render(); toast("Foto übernommen"); } else toast("Bild konnte nicht geladen werden"); });
+  });
+
   document.addEventListener("click", e => {
     const t = e.target.closest("[data-action]");
     if (!t) return;
     const a = t.dataset.action;
     if (a === "tab") { state.tab = t.dataset.tab; render(); }
+    else if (a === "photo") { photoTargetId = t.dataset.id; photoInput.click(); }
     else if (a === "new-recipe") openRecipeForm(null);
     else if (a === "edit") openRecipeForm(t.dataset.id);
     else if (a === "view") openRecipeDetail(t.dataset.id);
@@ -1765,6 +2113,7 @@
     else if (a === "pick") openPicker(t.dataset.day, t.dataset.meal);
     else if (a === "unassign") { e.stopPropagation(); const [d, m, i] = t.dataset.slotSrc.split(":"); state.plan[d][m].splice(Number(i), 1); render(); }
     else if (a === "shopping") openShopping();
+    else if (a === "week") { if ((t.dataset.week === "next") !== (state.viewWeek === "next")) { setViewWeek(t.dataset.week); render(); } }
     else if (a === "clear-week") clearWeek();
     else if (a === "share") openShare();
     else if (a === "profile-menu") toggleProfileMenu();
@@ -1884,6 +2233,7 @@
   function enterApp() {
     appEl.classList.remove("authing");
     renderProfileChip();
+    state.tab = "plan"; // Start immer im Wochenplan (Reload & Login)
     render();
     if (pendingShare) { const id = pendingShare; pendingShare = null; loadSharedById(id); }
   }
@@ -1925,16 +2275,14 @@
     const wrap = document.querySelector(".profile");
     if (!wrap) return;
     const menu = el(`<div class="menu" role="menu">
-      <div class="mhead"><div class="mn">${esc(profile.name)}</div><div class="me">${esc(profile.email)}</div>${authMode === "cloud" ? `<div class="msync"><span class="sync-dot off" data-sync-dot></span><span data-sync-label>Nicht verbunden</span></div>` : ""}</div>
+      <div class="mhead"><div class="mn">${esc(profile.name)}</div><div class="me">${esc(profile.email)}</div></div>
       <button data-mi="edit" role="menuitem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>Profil bearbeiten</button>
-      <button data-mi="share" role="menuitem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 13.5 6.8 4M15.4 6.5l-6.8 4"/></svg>Woche teilen · einladen</button>
       <hr>
       <button data-mi="signout" class="danger" role="menuitem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5M21 12H9"/></svg>Abmelden</button>
     </div>`);
     wrap.appendChild(menu);
     updateSyncUI();
     menu.querySelector("[data-mi='edit']").addEventListener("click", () => { menu.remove(); openProfileForm(); });
-    menu.querySelector("[data-mi='share']").addEventListener("click", () => { menu.remove(); openShare(); });
     menu.querySelector("[data-mi='signout']").addEventListener("click", () => { menu.remove(); signOut(); });
     setTimeout(() => {
       const off = e => { if (!menu.contains(e.target) && !e.target.closest(".profile-btn")) { menu.remove(); document.removeEventListener("mousedown", off); } };
@@ -1942,20 +2290,157 @@
     }, 0);
   }
 
-  // Kalorienrechner – Platzhalter, bis die Funktion gebaut ist
-  function renderRechnerSoon() {
+  // ---------- Kalorienrechner (Baustein 1: Tages-/Wochenbedarf → state.goal) ----------
+  const ACTIVITY = [
+    { key: "sed",   f: 1.2,   label: "Sitzend", hint: "wenig/kein Sport" },
+    { key: "light", f: 1.375, label: "Leicht aktiv", hint: "1–3×/Woche" },
+    { key: "mod",   f: 1.55,  label: "Mäßig aktiv", hint: "3–5×/Woche" },
+    { key: "high",  f: 1.725, label: "Sehr aktiv", hint: "6–7×/Woche" },
+    { key: "ext",   f: 1.9,   label: "Extrem aktiv", hint: "Job + Training" }
+  ];
+  const MODE_LABEL = { lose: "Abnehmen", hold: "Gewicht halten", gain: "Zunehmen" };
+  function activityFactor(k) { const a = ACTIVITY.find(x => x.key === k); return a ? a.f : 1.2; }
+  // Anpassung des Erhaltungsbedarfs je nach Ziel/Tempo (kcal/Tag).
+  function paceAdjust(mode, pace) {
+    if (mode === "lose") return ({ light: -250, moderate: -500, strong: -750 })[pace] || -500;
+    if (mode === "gain") return ({ light: 250, moderate: 500 })[pace] || 500;
+    return 0;
+  }
+  // Mifflin-St-Jeor → BMR × Aktivität = TDEE → Ziel-Anpassung. Makros: Protein 2 g/kg, Fett 25 %, Rest KH.
+  function computeGoal(inp) {
+    const w = +inp.weight, h = +inp.height, age = +inp.age;
+    const bmr = 10 * w + 6.25 * h - 5 * age + (inp.sex === "m" ? 5 : -161);
+    const tdee = bmr * activityFactor(inp.activity);
+    const adjust = paceAdjust(inp.mode, inp.pace);
+    const kcal = Math.max(1000, Math.round(tdee + adjust));
+    const protein = Math.round(2.0 * w);
+    const fat = Math.round(kcal * 0.25 / 9);
+    const carbs = Math.max(0, Math.round((kcal - protein * 4 - fat * 9) / 4));
+    const bmi = Math.round(w / ((h / 100) * (h / 100)) * 10) / 10;
+    return { sex: inp.sex, age: age, height: h, weight: w, activity: inp.activity, mode: inp.mode, pace: inp.pace,
+             bmr: Math.round(bmr), tdee: Math.round(tdee), adjust: adjust, kcal: kcal,
+             protein: protein, carbs: carbs, fat: fat, bmi: bmi, updatedAt: Date.now() };
+  }
+  function validCalcInput(i) {
+    return i.age >= 10 && i.age <= 120 && i.height >= 100 && i.height <= 250 && i.weight >= 30 && i.weight <= 400;
+  }
+  function renderRechner() {
+    const g = state.goal || {};
+    let cur = { sex: g.sex || "m", mode: g.mode || "lose", pace: g.pace || "moderate", activity: g.activity || "mod" };
+    const segBtn = (grp, v, label, hint) => `<button type="button" data-v="${v}"${cur[grp] === v ? ' class="on"' : ''}>${label}${hint ? `<span class="seg-hint">${hint}</span>` : ""}</button>`;
+    view.innerHTML = `
+      <div class="section-head"><div class="title">
+        <h2>Kalorienrechner</h2>
+        <div class="sub">Berechne deinen Tages- und Wochenbedarf – abgestimmt auf Aktivität und Ziel.</div>
+      </div></div>
+      <div class="calc">
+        <div class="calc-form">
+          <div class="calc-group">
+            <div class="calc-group-h">Körperdaten</div>
+            <div class="field"><label>Geschlecht</label>
+              <div class="seg" data-seg="sex">${segBtn("sex", "f", "Weiblich")}${segBtn("sex", "m", "Männlich")}</div>
+            </div>
+            <div class="row3">
+              <div class="field"><label for="c-age">Alter</label><input type="number" id="c-age" min="10" max="120" inputmode="numeric" placeholder="Jahre" value="${esc(g.age != null ? String(g.age) : "")}"></div>
+              <div class="field"><label for="c-height">Größe</label><input type="number" id="c-height" min="100" max="250" inputmode="numeric" placeholder="cm" value="${esc(g.height != null ? String(g.height) : "")}"></div>
+              <div class="field"><label for="c-weight">Gewicht</label><input type="number" id="c-weight" min="30" max="400" inputmode="numeric" placeholder="kg" value="${esc(g.weight != null ? String(g.weight) : "")}"></div>
+            </div>
+          </div>
+          <div class="calc-group">
+            <div class="calc-group-h">Aktivität &amp; Ziel</div>
+            <div class="field"><label>Aktivität</label>
+              <div class="seg seg-col" data-seg="activity">${ACTIVITY.map(a => segBtn("activity", a.key, a.label, a.hint)).join("")}</div>
+            </div>
+            <div class="field"><label>Ziel</label>
+              <div class="seg" data-seg="mode">${segBtn("mode", "lose", "Abnehmen")}${segBtn("mode", "hold", "Halten")}${segBtn("mode", "gain", "Zunehmen")}</div>
+            </div>
+            <div class="field" id="c-pace-field"><label>Tempo</label>
+              <div class="seg" data-seg="pace"></div>
+            </div>
+          </div>
+        </div>
+        <div class="calc-result" id="c-result"></div>
+      </div>`;
+
+    const paceField = view.querySelector("#c-pace-field");
+    const paceSeg = view.querySelector('.seg[data-seg="pace"]');
+    function fillPace() {
+      if (cur.mode === "hold") { paceField.style.display = "none"; return; }
+      paceField.style.display = "";
+      const opts = cur.mode === "lose"
+        ? [["light", "Leicht", "0,25 kg/Wo."], ["moderate", "Moderat", "0,5 kg/Wo."], ["strong", "Stark", "0,75 kg/Wo."]]
+        : [["light", "Leicht", "0,25 kg/Wo."], ["moderate", "Moderat", "0,5 kg/Wo."]];
+      if (!opts.some(o => o[0] === cur.pace)) cur.pace = "moderate";
+      paceSeg.innerHTML = opts.map(o => `<button type="button" data-v="${o[0]}"${cur.pace === o[0] ? ' class="on"' : ''}>${o[1]}<span class="seg-hint">${o[2]}</span></button>`).join("");
+    }
+    function readInput() {
+      return { sex: cur.sex, mode: cur.mode, pace: cur.pace, activity: cur.activity,
+               age: +view.querySelector("#c-age").value, height: +view.querySelector("#c-height").value, weight: +view.querySelector("#c-weight").value };
+    }
+    function updateResult() {
+      const res = view.querySelector("#c-result");
+      const inp = readInput();
+      if (!validCalcInput(inp)) {
+        res.innerHTML = `<div class="calc-empty">Trag Alter, Größe und Gewicht ein, dann siehst du hier deinen Tages- und Wochenbedarf.</div>`;
+        return;
+      }
+      const r = computeGoal(inp);
+      const adjStr = r.adjust === 0 ? "±0 kcal" : (r.adjust > 0 ? "+ " : "− ") + nfmt(Math.abs(r.adjust)) + " kcal";
+      res.innerHTML = `
+        <div class="calc-goal-tag">${MODE_LABEL[r.mode] || "Ziel"}</div>
+        <div class="calc-kcal">${nfmt(r.kcal)} <span class="u">kcal / Tag</span></div>
+        <div class="breakdown">
+          <div class="bd-row"><span>Grundumsatz</span><span>${nfmt(r.bmr)} kcal</span></div>
+          <div class="bd-row"><span>Aktivität &amp; Alltag</span><span>+ ${nfmt(r.tdee - r.bmr)} kcal</span></div>
+          <div class="bd-row bd-mid"><span>Erhaltungsbedarf</span><span>${nfmt(r.tdee)} kcal</span></div>
+          <div class="bd-row"><span>Ziel-Anpassung</span><span>${adjStr}</span></div>
+        </div>
+        <div class="macros">
+          <div class="macro"><div class="mv">${nfmt(r.protein)} g</div><div class="ml">Protein</div></div>
+          <div class="macro"><div class="mv">${nfmt(r.carbs)} g</div><div class="ml">Kohlenhydr.</div></div>
+          <div class="macro"><div class="mv">${nfmt(r.fat)} g</div><div class="ml">Fett</div></div>
+        </div>
+        <div class="calc-meta"><span>Woche <b>${nfmt(r.kcal * 7)} kcal</b></span><span>BMI <b>${String(r.bmi).replace(".", ",")}</b></span></div>
+        <button class="btn primary" id="c-save">Als mein Ziel speichern</button>
+        ${state.goal ? `<div class="calc-saved">Gespeichertes Ziel: ${nfmt(state.goal.kcal)} kcal / Tag</div>` : ""}`;
+      res.querySelector("#c-save").addEventListener("click", () => {
+        state.goal = computeGoal(readInput());
+        save();
+        toast("Dein Ziel wurde gespeichert");
+        updateResult();
+      });
+    }
+
+    view.querySelectorAll(".seg").forEach(seg => {
+      seg.addEventListener("click", e => {
+        const b = e.target.closest("button[data-v]"); if (!b) return;
+        seg.querySelectorAll("button").forEach(x => x.classList.remove("on"));
+        b.classList.add("on");
+        cur[seg.dataset.seg] = b.dataset.v;
+        if (seg.dataset.seg === "mode") fillPace();
+        updateResult();
+      });
+    });
+    ["c-age", "c-height", "c-weight"].forEach(id => view.querySelector("#" + id).addEventListener("input", updateResult));
+    fillPace();
+    updateResult();
+  }
+
+  // Pro – eigener Reiter, aktuell nur Vorschau/Platzhalter. Wird ein eigenes Thema.
+  function renderProSoon() {
     view.innerHTML = `<div class="soon-wrap"><div class="soon-card">
-      <div class="soon-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 7h8"/><path d="M8 11h.01M12 11h.01M16 11h.01M8 15h.01M12 15h.01M16 15h.01"/></svg></div>
-      <h2>Kalorienrechner</h2>
-      <p>Hier berechnest du bald deinen Kalorienbedarf und dein Defizit – abgestimmt auf Training und Abnehmziel. Wir bauen gerade daran.</p>
+      <div class="soon-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 4 7v5c0 4.5 3.2 7.9 8 9 4.8-1.1 8-4.5 8-9V7l-8-4Z"/><path d="m9 12 2 2 4-4"/></svg></div>
+      <h2>Paddy's Mealplan Pro</h2>
+      <p>Bald: verfolge deine Ziele und deinen Fortschritt – dein Tagesbedarf direkt im Wochenplan, Makro-Fortschritt und ein Monatskalender mit deiner Gewichtsentwicklung.</p>
       <span class="soon-pill">Kommt bald</span>
     </div></div>`;
   }
 
   // Aktuelle Kalenderwoche + Datumsbereich, z. B. "Woche 29 · 13.–19. Juli"
-  function weekLabel() {
+  function weekLabel(offsetWeeks) {
     const MON = ["Januar", "Februar", "März", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember"];
     const now = new Date();
+    if (offsetWeeks) now.setDate(now.getDate() + offsetWeeks * 7);
     const dow = now.getDay();                              // 0=So … 6=Sa
     const mon = new Date(now); mon.setHours(0, 0, 0, 0);
     mon.setDate(now.getDate() + (dow === 0 ? -6 : 1 - dow)); // Montag dieser Woche
@@ -1974,7 +2459,7 @@
   // Intro-Hero über dem Wochenplan (nur im eingeloggten Bereich)
   function appHeroHtml() {
     return `<div class="app-hero">
-      <span class="eyebrow">${weekLabel()}</span>
+      <span class="eyebrow">${weekLabel(state.viewWeek === "next" ? 1 : 0)}</span>
       <h2>Dein Plan. Dein <em>Vorsprung.</em></h2>
       <p class="hero-sub">Sieben Tage im Blick, jede Mahlzeit mit Kalorien und Makros. Gebaut fürs Training – und fürs Abnehmen.</p>
     </div>`;
@@ -2457,7 +2942,7 @@
       if (existing) { idMap[ir.id] = existing.id; return; }
       const nid = uid();
       idMap[ir.id] = nid;
-      state.recipes.push({ id: nid, name: ir.name, category: ir.category || "Gericht", portions: ir.portions || null, time: ir.time || null, nutrition: (ir.nutrition && typeof ir.nutrition === "object") ? ir.nutrition : null, ingredients: Array.isArray(ir.ingredients) ? ir.ingredients : [], steps: ir.steps || "", image: ir.image || null });
+      state.recipes.push({ id: nid, name: ir.name, category: ir.category || "Gericht", nutrition: (ir.nutrition && typeof ir.nutrition === "object") ? ir.nutrition : null, ingredients: Array.isArray(ir.ingredients) ? ir.ingredients.map(sanitizeIng).filter(Boolean) : [], steps: ir.steps || "", image: ir.image || null });
       added++;
     });
     if (takePlan && data.plan) {
@@ -2466,6 +2951,7 @@
         const raw = data.plan[d.key] && data.plan[d.key][m.key];
         np[d.key][m.key] = asIdList(raw).map(v => idMap[v]).filter(Boolean);
       }));
+      state.plans[activeWeekKey()] = np;   // in die gerade angezeigte Woche importieren
       state.plan = np;
     }
     save(); closeModal();

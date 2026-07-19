@@ -25,3 +25,7 @@ serviceAccount*.json
 *.bak
 .DS_Store
 Thumbs.db
+
+# Lokale Redesign-/Vor-Aenderungs-Backups der App (nie ins oeffentliche Repo)
+index.backup*.html
+*backup*.html
