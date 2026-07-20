@@ -439,14 +439,36 @@
   /* Zutaten-Zeilen im Meal-Formular */
   /* Akzentbalken oben wie bei den Meal-Karten (.rcard::before) — grenzt die einzelnen
      Zutaten sichtbar voneinander ab; etwas schmaler, weil hier mehrere untereinander stehen */
-  .ing-row { position: relative; overflow: hidden; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 14px 12px 11px; margin-bottom: 9px; transition: border-color .12s, box-shadow .12s; }
+  /* overflow bleibt sichtbar, damit die Vorschlagsliste der Zutaten-Suche aus der Zeile
+     herausragen darf; der Akzentbalken rundet sich dafuer selbst oben mit ab. */
+  .ing-row { position: relative; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 14px 12px 11px; margin-bottom: 9px; transition: border-color .12s, box-shadow .12s; }
   .ing-row::before {
     content: ""; position: absolute; top: 0; left: 0; right: 0; height: 3px; z-index: 2;
+    border-radius: var(--radius-sm) var(--radius-sm) 0 0;
     background: linear-gradient(90deg, var(--accent), var(--accent-strong));
   }
   .ing-row:focus-within { border-color: color-mix(in srgb, var(--accent) 45%, var(--border-strong)); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 12%, transparent); }
+  /* Die offene Vorschlagsliste hebt ihre Zeile ueber die darunterliegenden Zeilen */
+  .ing-row.ac-open { z-index: 5; }
   .ing-top { display: flex; align-items: center; gap: 8px; }
-  .ing-top .ing-name { flex: 1; min-width: 0; }
+  .ing-nwrap { position: relative; flex: 1; min-width: 0; }
+  .ing-nwrap .ing-name { width: 100%; }
+  /* Zutaten-Suche: Vorschlaege aus der eingebauten Naehrwerttabelle (ARIA-Listbox) */
+  .ing-ac {
+    position: absolute; z-index: 30; top: calc(100% + 4px); left: 0; right: 0;
+    margin: 0; padding: 4px; list-style: none; max-height: 236px; overflow-y: auto;
+    background: var(--surface); border: 1px solid var(--border-strong);
+    border-radius: var(--radius-sm); box-shadow: var(--shadow);
+  }
+  .ing-ac-item {
+    display: flex; align-items: baseline; justify-content: space-between; gap: 10px;
+    min-height: 40px; padding: 9px 10px; border-radius: 7px; cursor: pointer;
+    transition: background-color .12s, color .12s;
+  }
+  .ing-ac-item .fname { font-weight: 600; color: var(--text); }
+  .ing-ac-item .fnut { flex: none; font-size: 11px; font-weight: 700; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+  .ing-ac-item:hover, .ing-ac-item.on { background: color-mix(in srgb, var(--accent) 14%, var(--surface-2)); }
+  .ing-ac-item:hover .fnut, .ing-ac-item.on .fnut { color: var(--accent); }
   /* Mengen-Feld mit Einheiten-Auswahl (g / ml / Stueck) */
   .ing-gwrap { display: flex; gap: 6px; flex: none; width: 158px; }
   .ing-gwrap .ing-g { flex: none; width: 74px; text-align: right; }
@@ -787,10 +809,11 @@
     .imgprev { width: 100%; }
     /* Zutaten: Name volle Breite, Menge + Buttons in zweiter Zeile */
     .ing-top { flex-wrap: wrap; }
-    .ing-top .ing-name { flex: 1 0 100%; }
+    .ing-nwrap { flex: 1 0 100%; }
     .ing-gwrap { flex: 1; width: auto; }
     .ing-ic { width: 40px; height: 40px; }
     .ing-nut input { padding: 8px 4px; }
+    .ing-ac-item { min-height: 44px; } /* Touch-Ziel */
     .auth-card { padding: 26px 20px 22px; }
     .modal-foot .btn { flex: 1; justify-content: center; }
     .foot-inner { flex-direction: column; gap: 8px; text-align: center; }
@@ -1624,6 +1647,186 @@
     return Object.keys(o).length > 1 ? o : name;
   }
 
+  // ---------- Zutaten-Datenbank fuer die Suche ----------
+  // Handgepflegte Rundwerte fuer GENERISCHE Lebensmittel — bewusst keine Markenprodukte
+  // und bewusst kein Auszug aus einer fremden Datenbank: ein solcher Auszug waere eine
+  // abgeleitete Datenbank und zoege deren Lizenzbedingungen nach sich (z. B. ODbL bei
+  // Open Food Facts). Markenprodukte deckt weiterhin der Foto-Scan ab.
+  // Format: [Name, kcal, KH, Protein, Fett, Einheit?, Synonyme?] je 100 g bzw. 100 ml,
+  // bei Einheit "st" je Stueck. Fehlende Einheit = "g". Die Synonyme stehen nur im
+  // Suchschluessel, nicht in der Anzeige — sie fangen ab, wonach Leute tatsaechlich
+  // suchen ("Huhn" statt "Hähnchenbrustfilet", "Möhren" statt "Karotten") und decken
+  // regionale Namen ab. Weil sie hinten angehaengt werden, ranken sie automatisch
+  // hinter den echten Namenstreffern.
+  /*FOODS_START*/
+  const FOODS = [
+    // Getreide, Beilagen
+    ["Reis, weiß, roh", 350, 78, 7, 0.6], ["Reis, weiß, gekocht", 130, 28, 2.4, 0.3],
+    ["Reis, Vollkorn, roh", 350, 74, 8, 2.5], ["Reis, Vollkorn, gekocht", 123, 25, 2.7, 1],
+    ["Basmatireis, roh", 349, 78, 8, 0.8],
+    ["Nudeln, roh", 350, 71, 12, 1.5, "g", "Pasta Spaghetti Penne Fusilli"],
+    ["Nudeln, gekocht", 140, 28, 5, 0.7, "g", "Pasta Spaghetti"],
+    ["Vollkornnudeln, roh", 335, 62, 14, 2.5, "g", "Pasta"],
+    ["Spätzle, frisch", 165, 28, 6, 2.5], ["Couscous, roh", 355, 72, 12, 1.5],
+    ["Bulgur, roh", 342, 69, 12, 1.3], ["Quinoa, roh", 368, 58, 14, 6],
+    ["Hirse, roh", 354, 69, 11, 4], ["Haferflocken", 372, 59, 13, 7, "g", "Oats Porridge"],
+    ["Dinkelflocken", 340, 63, 12, 2.7], ["Cornflakes, ungesüßt", 360, 84, 7, 0.9],
+    ["Müsli, Basis", 360, 60, 10, 8], ["Knäckebrot", 340, 65, 10, 2],
+    ["Weizenmehl Type 405", 348, 72, 10, 1, "g", "Mehl"], ["Dinkelmehl Type 630", 344, 70, 11, 1.4],
+    ["Vollkornmehl, Weizen", 325, 60, 12, 2], ["Hartweizengrieß", 350, 72, 12, 1],
+    ["Kartoffeln", 70, 15, 2, 0.1, "g", "Erdäpfel"], ["Süßkartoffeln", 86, 20, 1.6, 0.1, "g", "Batate"],
+    ["Pommes frites, TK", 160, 24, 2.5, 5.5], ["Kartoffelpüree, zubereitet", 85, 13, 2, 2.5],
+    ["Gnocchi", 160, 32, 4, 1], ["Maisgrieß / Polenta, roh", 355, 73, 8, 1.5],
+    // Brot und Backwaren
+    ["Vollkornbrot", 210, 35, 8, 2], ["Mischbrot", 240, 45, 7, 1.2],
+    ["Roggenbrot", 220, 42, 6, 1.2], ["Toastbrot", 270, 48, 9, 4],
+    ["Weizenbrötchen", 270, 53, 9, 1.5], ["Vollkornbrötchen", 240, 42, 9, 2],
+    ["Pumpernickel", 190, 36, 6, 1.2], ["Baguette", 270, 55, 8, 1],
+    ["Tortilla-Wrap, Weizen", 300, 50, 8, 7], ["Fladenbrot / Pita", 275, 55, 9, 1.5],
+    // Fleisch und Wurst
+    ["Hähnchenbrustfilet", 105, 0, 23, 1.2, "g", "Huhn Hendl Chicken Geflügel Poulet"],
+    ["Hähnchenschenkel, ohne Haut", 145, 0, 19, 7.5, "g", "Huhn Keule Geflügel"],
+    ["Putenbrustfilet", 105, 0, 24, 1, "g", "Truthahn Geflügel"],
+    ["Hackfleisch, gemischt", 230, 0, 18, 17, "g", "Faschiertes Mett Gehacktes"],
+    ["Rinderhackfleisch, mager", 130, 0, 21, 5, "g", "Rindfleisch Faschiertes Gehacktes"],
+    ["Rinderfilet", 125, 0, 21, 4, "g", "Rindfleisch Steak"],
+    ["Rumpsteak", 140, 0, 22, 5.5, "g", "Rindfleisch Steak"],
+    ["Schweineschnitzel, mager", 105, 0, 22, 2, "g", "Schweinefleisch"],
+    ["Schweinefilet", 110, 0, 22, 2, "g", "Schweinefleisch"], ["Schweinebauch", 320, 0, 17, 28],
+    ["Kasseler", 145, 0, 21, 7], ["Lammkeule", 160, 0, 20, 9],
+    ["Frühstücksspeck / Bacon", 400, 0, 17, 37], ["Kochschinken", 110, 1, 19, 3],
+    ["Serranoschinken", 240, 0, 30, 13], ["Salami", 380, 1, 19, 33],
+    ["Bratwurst", 300, 1, 14, 27], ["Wiener Würstchen", 270, 1, 12, 24],
+    ["Leberkäse", 290, 2, 13, 25], ["Fleischwurst", 300, 1, 12, 27],
+    ["Hähnchen-Nuggets, TK", 250, 17, 14, 14],
+    // Fisch und Meeresfrüchte
+    ["Lachsfilet", 200, 0, 20, 13], ["Lachs, geräuchert", 180, 0, 22, 10],
+    ["Forelle", 105, 0, 20, 3], ["Kabeljau", 76, 0, 17, 0.7],
+    ["Seelachsfilet", 80, 0, 18, 0.9], ["Zander", 83, 0, 19, 0.7],
+    ["Pangasiusfilet", 90, 0, 15, 3], ["Thunfisch, roh", 145, 0, 23, 5],
+    ["Thunfisch in Wasser, Dose", 105, 0, 24, 1], ["Thunfisch in Öl, abgetropft", 190, 0, 25, 10],
+    ["Garnelen", 85, 0, 19, 1], ["Hering", 210, 0, 18, 15],
+    ["Makrele, geräuchert", 280, 0, 21, 22], ["Sardinen in Öl", 220, 0, 21, 15],
+    ["Fischstäbchen, TK", 200, 18, 12, 9],
+    // Milchprodukte und Eier
+    ["Magerquark", 67, 4, 12, 0.3, "g", "Topfen Quark"], ["Speisequark 20 %", 110, 3.5, 12, 5, "g", "Topfen"],
+    ["Speisequark 40 %", 145, 3, 11, 10, "g", "Topfen"], ["Skyr, natur", 63, 4, 11, 0.2],
+    ["Naturjoghurt 3,5 %", 65, 4.7, 3.5, 3.5], ["Joghurt, mager 0,1 %", 40, 5, 4, 0.1],
+    ["Griechischer Joghurt 10 %", 130, 4, 4, 10], ["Hüttenkäse / körniger Frischkäse", 100, 3, 13, 4, "g", "Cottage Cheese"],
+    ["Milch 3,5 %", 64, 4.8, 3.4, 3.5, "ml"], ["Milch 1,5 %", 47, 4.9, 3.4, 1.5, "ml"],
+    ["Magermilch 0,3 %", 35, 5, 3.4, 0.2, "ml"], ["Hafermilch, ungesüßt", 45, 6.5, 0.8, 1.5, "ml"],
+    ["Mandelmilch, ungesüßt", 15, 0.3, 0.5, 1.2, "ml"], ["Sojadrink, ungesüßt", 39, 0.6, 3.3, 1.9, "ml"],
+    ["Sahne 30 %", 290, 3, 2.4, 30, "ml", "Rahm Obers Schlagsahne"], ["Saure Sahne 10 %", 115, 3.5, 3, 10],
+    ["Schmand 24 %", 240, 3.5, 3, 24], ["Crème fraîche", 300, 3, 2.5, 30],
+    ["Frischkäse, Doppelrahmstufe", 250, 3, 6, 24], ["Frischkäse, light", 145, 4, 9, 10],
+    ["Gouda, mittelalt", 355, 0, 25, 28], ["Emmentaler", 380, 0, 28, 30],
+    ["Bergkäse", 400, 0, 29, 31], ["Parmesan", 400, 0, 36, 28],
+    ["Mozzarella", 250, 1, 18, 19], ["Mozzarella, light", 165, 1, 22, 8],
+    ["Feta", 265, 1, 14, 22], ["Camembert", 290, 0.5, 20, 23],
+    ["Harzer Käse", 125, 0, 30, 0.7], ["Schmelzkäse", 280, 4, 12, 24],
+    ["Butter", 740, 0.6, 0.7, 82], ["Margarine", 720, 0.4, 0.2, 80],
+    ["Ei, Größe M", 80, 0.4, 7, 5.7, "st"], ["Eiklar", 52, 0.7, 11, 0.2],
+    ["Eigelb", 350, 0.6, 16, 31],
+    // Hülsenfrüchte und pflanzliches Eiweiß
+    ["Linsen, roh", 340, 50, 24, 1.5], ["Rote Linsen, roh", 350, 52, 24, 1.5],
+    ["Linsen, Dose, abgetropft", 105, 15, 8, 0.5], ["Kichererbsen, roh", 365, 45, 19, 6],
+    ["Kichererbsen, Dose", 120, 15, 7, 2.6], ["Kidneybohnen, Dose", 110, 14, 8, 0.6],
+    ["Weiße Bohnen, Dose", 100, 14, 7, 0.5], ["Erbsen, TK", 80, 11, 5.5, 0.5],
+    ["Tofu, natur", 130, 1, 14, 8], ["Räuchertofu", 165, 1, 17, 10],
+    ["Tempeh", 190, 8, 19, 9], ["Seitan", 145, 4, 25, 2],
+    ["Sojaschnetzel, trocken", 340, 20, 50, 2], ["Hummus", 250, 15, 8, 17],
+    ["Erdnussbutter", 600, 12, 25, 50],
+    // Gemüse
+    ["Brokkoli", 34, 3, 3.8, 0.4], ["Blumenkohl", 25, 3, 2.5, 0.3],
+    ["Karotten", 40, 7, 0.9, 0.2, "g", "Möhren Mohrrüben Karotte"], ["Zucchini", 19, 2, 1.6, 0.4],
+    ["Aubergine", 25, 3, 1, 0.2, "g", "Melanzani"], ["Paprika, rot", 37, 6, 1, 0.4, "g", "Paprikaschote"],
+    ["Tomaten", 18, 3, 0.9, 0.2, "g", "Paradeiser Tomate"], ["Kirschtomaten", 20, 3.4, 0.9, 0.2],
+    ["Passierte Tomaten", 32, 5, 1.4, 0.2], ["Tomatenmark", 80, 13, 4, 0.5],
+    ["Gurke", 12, 1.8, 0.6, 0.1], ["Eisbergsalat", 13, 2, 0.9, 0.2],
+    ["Feldsalat", 21, 0.7, 2, 0.4], ["Rucola", 25, 2, 2.6, 0.7],
+    ["Spinat, frisch", 23, 0.6, 2.9, 0.4], ["Spinat, TK", 25, 1, 3, 0.4],
+    ["Zwiebeln", 28, 5, 1.2, 0.2], ["Knoblauch", 140, 28, 6, 0.5],
+    ["Lauch", 29, 3.3, 2.2, 0.3, "g", "Porree"], ["Champignons", 22, 0.6, 2.7, 0.3, "g", "Pilze"],
+    ["Kräuterseitlinge", 33, 3, 3, 0.4, "g", "Pilze"], ["Weißkohl", 25, 4, 1.3, 0.2, "g", "Kraut"],
+    ["Rotkohl", 30, 4.5, 1.5, 0.2], ["Rosenkohl", 36, 3.3, 4.5, 0.3],
+    ["Grünkohl", 45, 2.5, 4.3, 0.9], ["Sauerkraut", 20, 1, 1.5, 0.3],
+    ["Kürbis, Hokkaido", 63, 12, 1.7, 0.5], ["Knollensellerie", 30, 2.3, 1.6, 0.3],
+    ["Rote Bete", 43, 8, 1.5, 0.2], ["Radieschen", 15, 2, 1, 0.1],
+    ["Mais, Dose", 90, 16, 3, 1.2], ["Grüne Bohnen", 32, 5, 2.4, 0.2],
+    ["Spargel", 20, 2, 2, 0.2], ["Avocado", 160, 1, 2, 15],
+    ["Oliven, grün", 145, 1, 1, 14], ["Ingwer", 80, 15, 1.8, 0.8],
+    ["Chili, frisch", 40, 6, 2, 0.4],
+    // Obst
+    ["Apfel", 52, 12, 0.3, 0.2], ["Banane", 90, 20, 1.1, 0.3],
+    ["Orange", 47, 9, 0.9, 0.1], ["Birne", 55, 12, 0.4, 0.1],
+    ["Erdbeeren", 32, 6, 0.7, 0.3], ["Heidelbeeren", 45, 9, 0.7, 0.3],
+    ["Himbeeren", 34, 5, 1.2, 0.3], ["Weintrauben", 70, 16, 0.7, 0.2],
+    ["Kiwi", 60, 11, 1, 0.5], ["Ananas", 50, 12, 0.5, 0.1],
+    ["Mango", 60, 13, 0.8, 0.4], ["Wassermelone", 30, 7, 0.6, 0.2],
+    ["Pfirsich", 39, 8, 0.9, 0.2], ["Zitrone", 30, 3, 1, 0.3],
+    ["Datteln, getrocknet", 280, 65, 2.5, 0.4], ["Rosinen", 300, 70, 3, 0.5],
+    ["Aprikosen, getrocknet", 240, 50, 3.5, 0.5], ["Apfelmus, ungesüßt", 45, 10, 0.3, 0.1],
+    // Nüsse, Samen, Öle
+    ["Mandeln", 580, 5, 21, 50], ["Walnüsse", 650, 7, 15, 63],
+    ["Cashewkerne", 560, 27, 18, 44], ["Haselnüsse", 640, 7, 14, 61],
+    ["Erdnüsse", 570, 8, 25, 48], ["Pistazien", 570, 17, 20, 45],
+    ["Sonnenblumenkerne", 580, 12, 21, 49], ["Kürbiskerne", 560, 12, 25, 46],
+    ["Leinsamen", 530, 3, 24, 42], ["Chiasamen", 480, 5, 17, 31],
+    ["Olivenöl", 900, 0, 0, 100, "ml", "Öl Speiseöl"], ["Rapsöl", 900, 0, 0, 100, "ml", "Öl Speiseöl"],
+    ["Sonnenblumenöl", 900, 0, 0, 100, "ml", "Öl Speiseöl"], ["Kokosöl", 900, 0, 0, 100, "ml", "Öl"],
+    ["Kokosmilch", 190, 3, 2, 19, "ml"],
+    // Süßes, Snacks, Würzendes
+    ["Zucker", 400, 100, 0, 0], ["Honig", 305, 75, 0.4, 0],
+    ["Ahornsirup", 260, 65, 0, 0], ["Marmelade", 250, 60, 0.4, 0.1],
+    ["Zartbitterschokolade 70 %", 570, 33, 8, 42], ["Vollmilchschokolade", 540, 57, 7, 31],
+    ["Nuss-Nougat-Creme", 540, 57, 6, 31], ["Kartoffelchips", 540, 50, 6, 34],
+    ["Salzstangen", 370, 75, 10, 2], ["Reiswaffeln", 385, 82, 8, 3],
+    ["Speiseeis, Vanille", 200, 22, 3.5, 11], ["Proteinpulver, Whey", 380, 5, 78, 6, "g", "Eiweißpulver Shake Molkenprotein"],
+    ["Proteinriegel", 350, 30, 33, 10], ["Ketchup", 110, 24, 1.2, 0.1],
+    ["Mayonnaise", 700, 2, 1, 75], ["Senf", 90, 5, 5, 5],
+    ["Sojasoße", 60, 5, 8, 0, "ml"], ["Balsamico-Essig", 90, 17, 0.5, 0, "ml"],
+    ["Gemüsebrühe, zubereitet", 5, 0.5, 0.2, 0.2, "ml"],
+    // Getränke
+    ["Orangensaft", 45, 10, 0.7, 0.1, "ml"], ["Apfelsaft", 46, 11, 0.1, 0.1, "ml"],
+    ["Cola", 42, 10.6, 0, 0, "ml"], ["Bier", 43, 3.6, 0.5, 0, "ml"],
+    ["Rotwein", 85, 2.6, 0.1, 0, "ml"]
+  ];
+  /*FOODS_END*/
+  // Umlaute auf den Grundbuchstaben ziehen, damit "kase", "kaese" und "käse" alle
+  // denselben Schluessel ergeben und den Harzer Käse finden. Erst ß, dann die Umlaute,
+  // zuletzt die ausgeschriebenen Varianten — sonst bliebe "kaese" auf halbem Weg stehen.
+  function foodNorm(s) {
+    return String(s == null ? "" : s).toLowerCase()
+      .replace(/ß/g, "ss")
+      .replace(/ä/g, "a").replace(/ö/g, "o").replace(/ü/g, "u")
+      .replace(/ae/g, "a").replace(/oe/g, "o").replace(/ue/g, "u");
+  }
+  // Der Suchindex wird beim ersten Tippen einmal aufgebaut, nicht beim Laden der Seite.
+  let foodIdx = null;
+  function foodList() {
+    if (!foodIdx) foodIdx = FOODS.map(f => ({
+      name: f[0], kcal: f[1], carbs: f[2], protein: f[3], fat: f[4],
+      unit: ING_UNITS.indexOf(f[5]) > 0 ? f[5] : "g",
+      key: foodNorm(f[0] + (f[6] ? " " + f[6] : ""))
+    }));
+    return foodIdx;
+  }
+  // Rangfolge: Treffer am Wortanfang zuerst, dann am Anfang eines spaeteren Wortes,
+  // dann irgendwo mittendrin. Sonst schlaegt "reis" die Preiselbeere vor dem Reis vor.
+  function foodSearch(q, max) {
+    const n = foodNorm(q).trim();
+    if (n.length < 2) return [];
+    const a = [], b = [], c = [];
+    foodList().forEach(f => {
+      const i = f.key.indexOf(n);
+      if (i < 0) return;
+      if (i === 0) a.push(f);
+      else if (/[\s,/-]/.test(f.key.charAt(i - 1))) b.push(f);
+      else c.push(f);
+    });
+    return a.concat(b, c).slice(0, max || 8);
+  }
+
   // ---------- Naehrwert-Scan (Tesseract.js — OCR laeuft komplett im Browser) ----------
   // Die Bibliothek wird erst beim ersten Scan vom CDN geladen (die Seite bleibt schlank);
   // das Foto selbst verlaesst das Geraet nicht.
@@ -2035,7 +2238,7 @@
           </div>
         </div>
         <div class="field">
-          <label>Zutaten <span class="hint">– Menge in g, ml oder Stück; Nährwerte je 100 bzw. je Stück; 📷 liest eine fotografierte Nährwerttabelle</span></label>
+          <label>Zutaten <span class="hint">– Namen tippen und aus der Vorschlagsliste wählen, dann sind die Nährwerte schon drin; 📷 liest die Nährwerttabelle eines Markenprodukts</span></label>
           <div id="f-ings"></div>
           <button type="button" class="btn sm" id="f-ing-add">+ Weitere Zutat</button>
           <input type="file" id="f-ing-scan" accept="image/*" capture="environment" class="visually-hidden">
@@ -2057,6 +2260,7 @@
     const ingsWrap = node.querySelector("#f-ings");
     const scanInput = node.querySelector("#f-ing-scan");
     let scanRow = null;
+    let acSeq = 0; // laufende Nummer fuer die Listbox-IDs (aria-activedescendant)
     const camSvg = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1Z"/><circle cx="12" cy="14" r="3.4"/></svg>`;
     function nutVal(v) { return v != null ? esc(v) : ""; }
     function addIngRow(o) {
@@ -2064,7 +2268,10 @@
       const u = ingUnit(o);
       const row = el(`<div class="ing-row">
         <div class="ing-top">
-          <input type="text" class="ing-name" placeholder="Zutat, z. B. Reis" maxlength="60" value="${esc(o.name || "")}">
+          <span class="ing-nwrap">
+            <input type="text" class="ing-name" placeholder="Zutat, z. B. Reis" maxlength="60" autocomplete="off" value="${esc(o.name || "")}">
+            <ul class="ing-ac" role="listbox" hidden></ul>
+          </span>
           <span class="ing-gwrap">
             <input type="number" class="ing-g" min="0" max="99999" step="1" placeholder="200" value="${nutVal(o.grams)}" aria-label="Menge">
             <select class="ing-u" aria-label="Einheit">
@@ -2101,6 +2308,91 @@
       }
       uSel.addEventListener("change", syncUnit);
       syncUnit();
+
+      // --- Zutaten-Suche (ARIA-Combobox auf dem Namensfeld) ---
+      // Sucht in FOODS und fuellt bei Auswahl Einheit und alle vier Naehrwerte. Wer nichts
+      // auswaehlt, tippt wie bisher frei weiter — die Liste ist ein Angebot, kein Zwang.
+      const nameInp = row.querySelector(".ing-name");
+      const acBox = row.querySelector(".ing-ac");
+      const acId = "ing-ac-" + (++acSeq);
+      acBox.id = acId;
+      nameInp.setAttribute("role", "combobox");
+      nameInp.setAttribute("aria-expanded", "false");
+      nameInp.setAttribute("aria-autocomplete", "list");
+      nameInp.setAttribute("aria-controls", acId);
+      let acHits = [], acCur = -1, acOpen = false;
+      function acClose() {
+        if (!acOpen) return;
+        acOpen = false; acCur = -1;
+        acBox.hidden = true;
+        row.classList.remove("ac-open");
+        nameInp.setAttribute("aria-expanded", "false");
+        nameInp.removeAttribute("aria-activedescendant");
+      }
+      function acMark(i) {
+        acCur = i;
+        Array.prototype.forEach.call(acBox.children, (li, n) => {
+          const on = n === i;
+          li.classList.toggle("on", on);
+          li.setAttribute("aria-selected", on ? "true" : "false");
+        });
+        if (i >= 0) {
+          nameInp.setAttribute("aria-activedescendant", acId + "-" + i);
+          const li = acBox.children[i];
+          if (li && li.scrollIntoView) li.scrollIntoView({ block: "nearest" });
+        } else nameInp.removeAttribute("aria-activedescendant");
+      }
+      function acShow() {
+        acHits = foodSearch(nameInp.value, 8);
+        if (!acHits.length) { acClose(); return; }
+        acBox.innerHTML = acHits.map((f, n) =>
+          `<li class="ing-ac-item" role="option" aria-selected="false" id="${acId}-${n}">` +
+          `<span class="fname">${esc(f.name)}</span>` +
+          `<span class="fnut">${nfmt(f.kcal)} kcal · ${f.unit === "st" ? "je Stück" : "je 100 " + f.unit}</span></li>`).join("");
+        acBox.hidden = false; acOpen = true;
+        row.classList.add("ac-open");
+        nameInp.setAttribute("aria-expanded", "true");
+        acMark(-1);
+      }
+      function acPick(i) {
+        const f = acHits[i];
+        if (!f) return;
+        nameInp.value = f.name;
+        uSel.value = f.unit;
+        row.querySelector(".ing-kcal").value = f.kcal;
+        row.querySelector(".ing-carbs").value = f.carbs;
+        row.querySelector(".ing-prot").value = f.protein;
+        row.querySelector(".ing-fat").value = f.fat;
+        acClose();
+        syncUnit(); // zieht Bezugsgroesse, Scan-Button und die Makro-Summe nach
+        row.querySelector(".ing-g").focus(); // jetzt fehlt nur noch die Menge
+      }
+      nameInp.addEventListener("input", acShow);
+      nameInp.addEventListener("blur", acClose);
+      nameInp.addEventListener("keydown", e => {
+        if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+          if (!acOpen) { acShow(); if (!acOpen) return; }
+          e.preventDefault();
+          let n = acCur + (e.key === "ArrowDown" ? 1 : -1);
+          if (n < 0) n = acHits.length - 1;
+          if (n >= acHits.length) n = 0;
+          acMark(n);
+        } else if (e.key === "Enter" && acOpen && acCur >= 0) {
+          e.preventDefault(); acPick(acCur);
+        } else if (e.key === "Escape" && acOpen) {
+          e.preventDefault();
+          e.stopPropagation(); // nur die Liste schliessen, nicht das ganze Modal
+          acClose();
+        } else if (e.key === "Tab") acClose();
+      });
+      // mousedown abfangen: sonst verliert das Feld den Fokus und blur schliesst die
+      // Liste, bevor der Klick ueberhaupt ankommt.
+      acBox.addEventListener("mousedown", e => e.preventDefault());
+      acBox.addEventListener("click", e => {
+        const li = e.target.closest(".ing-ac-item");
+        if (li) acPick(Array.prototype.indexOf.call(acBox.children, li));
+      });
+
       ingsWrap.appendChild(row);
       return row;
     }
