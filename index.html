@@ -328,13 +328,29 @@
   /* Zwei Spalten: links der heutige Tag (mit Makros), rechts die Woche (nur Kalorien) */
   .wg-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
   .wg-col { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 14px 16px 16px; }
-  .wg-col-h { font-family: var(--font-display); font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--text-muted); font-weight: 700; margin-bottom: 12px; }
+  .wg-col-h { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; font-family: var(--font-display); font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: var(--text); font-weight: 700; margin-bottom: 12px; }
+  /* Kennzeichen neben der Spaltenueberschrift: Ziel-Modus links, Planungsstand rechts.
+     Traegt den Kontext, ohne eine weitere graue Zeile aufzumachen. */
+  .wg-chip {
+    font-family: var(--font-body); font-size: 10px; font-weight: 700; letter-spacing: .06em;
+    padding: 3px 8px; border-radius: 999px; white-space: nowrap;
+    color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, transparent);
+    border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+  }
+  .wg-chip.plain { color: var(--text-muted); background: transparent; border-color: var(--border-strong); text-transform: none; letter-spacing: .02em; }
   .wg-macros { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px 10px; margin-top: 16px; }
   .wg-macros .gm { margin-top: 0; }
   .wg-macros .gm-r { gap: 5px; }
   .wg-macros .gm-n { font-weight: 700; }
   .wg-macros .gm-v { font-size: 11px; }
   @media (max-width: 720px) { .wg-cols { grid-template-columns: 1fr; } }
+  /* Wochenwerte sind vierstellig und passen schmal nicht neben das Kuerzel. Ohne
+     feste Regel bricht nur ein Teil der drei Balken um und sie stehen versetzt —
+     deshalb hier fuer alle drei einheitlich Kuerzel ueber Wert. */
+  @media (max-width: 560px) {
+    .wg-macros .gm-r { flex-direction: column; align-items: flex-start; gap: 2px; }
+    .wg-macros .gm-v { font-size: 11.5px; }
+  }
 
   /* Kalorien breit, darunter P/K/F zu dritt. Die Tageskarte sitzt in einem auto-fill-Grid,
      ihre Breite haengt also nicht am Viewport – die Kuerzel halten die drei Spalten schmal. */
@@ -2143,7 +2159,7 @@
         ${goalBarHtml({ label: "Kalorien", ist: s.kcal, ziel: t.kcal, unit: "kcal", rest: true, unitInline: true })}
         <div class="dg-macros">
           ${goalBarHtml({ label: "P", ist: s.protein, ziel: t.protein, unit: "g", cls: "t-prot", dir: "min", rest: "attention", unitInline: true })}
-          ${goalBarHtml({ label: "K", ist: s.carbs, ziel: t.carbs, unit: "g", cls: "t-carb", rest: "attention", unitInline: true })}
+          ${goalBarHtml({ label: "KH", ist: s.carbs, ziel: t.carbs, unit: "g", cls: "t-carb", rest: "attention", unitInline: true })}
           ${goalBarHtml({ label: "F", ist: s.fat, ziel: t.fat, unit: "g", cls: "t-fat", rest: "attention", unitInline: true })}
         </div>
       </div>`;
@@ -2167,11 +2183,14 @@
   function weekNutHtml() {
     const w = weekNut();
     const activeDays = DAYS.filter(d => hasNut(dayNut(d.key))).length;
-    const avg = activeDays ? ` · ⌀ ${nfmt(w.kcal / activeDays)} kcal an ${activeDays} Tag${activeDays === 1 ? "" : "en"}` : "";
+    // „an x Tagen“ steht jetzt als Kennzeichen in der Wochenspalte, hier reicht der Schnitt.
+    const avg = activeDays ? ` · ⌀ ${nfmt(w.kcal / activeDays)} kcal pro geplantem Tag` : "";
     // Wochenziel = Tagesziel × 7. Dass ein Teil davon noch ungeplant ist, zeigen die
     // Tagessaeulen und die Zeile „x Tage offen“ – ehrlicher als ein verkuerztes Ziel.
     const t = goalTargets(7);
-    const goalSub = t ? ` · Ziel ${nfmt(t.kcal)} kcal / Woche` : "";
+    // Das Wochenziel steht mit Ziel schon in der Wochenspalte („11.900 / 15.400 kcal“) —
+    // in der Kopfzeile waere es ein drittes Kleingedrucktes, das mobil umbricht.
+    const goalSub = "";
     const tiles = `
         <div class="wn-tile t-kcal"><div class="val">${nfmt(w.kcal)}<span class="u">kcal</span></div><div class="lbl">Kalorien</div></div>
         <div class="wn-tile t-carb"><div class="val">${nfmt(w.carbs)}<span class="u">g</span></div><div class="lbl">Kohlenhydrate</div></div>
@@ -2188,14 +2207,15 @@
 
   // Ring mit Kalorienbilanz. `ringLbl` steht in der Mitte unter dem Prozentwert.
   const RING_C = 201; // Umfang bei r=32 (2 × π × 32)
-  function goalRingHtml(ist, ziel, ringLbl, restLbl, sub) {
+  function goalRingHtml(ist, ziel, ringLbl) {
     const rest = Math.round(ziel - ist);
     const st = goalState(ist, ziel);
     const ratio = ziel ? ist / ziel : 0;
     const pct = Math.round(ratio * 100);
     const off = Math.max(0, RING_C * (1 - Math.min(1, ratio)));
     // Zustand immer als Text, nicht nur ueber die Ringfarbe.
-    const head = st === "over" ? `${restLbl} drüber` : st === "ok" ? `${restLbl} im Ziel` : `${restLbl} übrig`;
+    // Nur der Zustand, nicht nochmal der Zeitraum — der steht ueber der Spalte.
+    const head = st === "over" ? "Über dem Ziel" : st === "ok" ? "Im Ziel" : "Noch übrig";
     return `<div class="wg is-${st}">
         <div class="wg-ring">
           <svg viewBox="0 0 78 78" width="78" height="78" aria-hidden="true">
@@ -2207,13 +2227,24 @@
         <div class="wg-txt">
           <span class="wg-lbl">${head}</span>
           <span class="wg-big">${nfmt(Math.abs(rest))} <em>kcal</em></span>
-          <span class="wg-base">${nfmt(ist)} / ${nfmt(ziel)} kcal${sub ? ` · ${sub}` : ""}</span>
+          <span class="wg-base">${nfmt(ist)} / ${nfmt(ziel)} kcal</span>
         </div>
       </div>`;
   }
 
-  // Uebersicht in zwei Spalten: links der heutige Tag (Kalorien + Makros),
-  // rechts die Woche (nur Kalorien).
+  // Die drei Makrobalken einer Spalte. Protein ist eine Untergrenze (dir "min"),
+  // Kohlenhydrate und Fett sind ein Budget — daher unterschiedliche Bewertung.
+  function goalMacrosHtml(s, t) {
+    return `<div class="wg-macros">
+        ${goalBarHtml({ label: "P", ist: s.protein, ziel: t.protein, unit: "g", cls: "t-prot", dir: "min", rest: "attention", unitInline: true })}
+        ${goalBarHtml({ label: "KH", ist: s.carbs, ziel: t.carbs, unit: "g", cls: "t-carb", rest: "attention", unitInline: true })}
+        ${goalBarHtml({ label: "F", ist: s.fat, ziel: t.fat, unit: "g", cls: "t-fat", rest: "attention", unitInline: true })}
+      </div>`;
+  }
+
+  // Zwei gleichwertige Spalten: heutiger Tag und ganze Woche, beide mit Kalorienring
+  // UND Makros. Vorher hatte die Woche nur Kalorien — damit war nicht ablesbar, ob
+  // ueber die Woche genug Protein eingeplant ist, und rechts blieb Flaeche leer.
   function weekGoalHtml(w, t) {
     const day = goalTargets(1);
     const d = DAYS.filter(x => x.key === todayDayKey())[0] || DAYS[0];
@@ -2222,19 +2253,19 @@
     // In der Naechste-Woche-Ansicht ist „heute“ nur der gleiche Wochentag – dann
     // steht der Tagesname allein, damit die Spalte nicht das Falsche behauptet.
     const dayHead = state.viewWeek === "next" ? esc(d.label) : `Heute · ${esc(d.label)}`;
+    // Ohne diesen Kontext ist der Wochenwert nicht deutbar: 60 % sind am Mittwoch
+    // voellig normal und am Sonntag ein Rueckstand.
+    const planned = DAYS.filter(x => hasNut(dayNut(x.key))).length;
     return `<div class="wg-cols">
         <div class="wg-col">
-          <div class="wg-col-h">${dayHead}</div>
-          ${goalRingHtml(s.kcal, day.kcal, "Tag", "Heute", mode ? `Ziel: ${esc(mode)}` : "")}
-          <div class="wg-macros">
-            ${goalBarHtml({ label: "P", ist: s.protein, ziel: day.protein, unit: "g", cls: "t-prot", dir: "min", rest: "attention", unitInline: true })}
-            ${goalBarHtml({ label: "K", ist: s.carbs, ziel: day.carbs, unit: "g", cls: "t-carb", rest: "attention", unitInline: true })}
-            ${goalBarHtml({ label: "F", ist: s.fat, ziel: day.fat, unit: "g", cls: "t-fat", rest: "attention", unitInline: true })}
-          </div>
+          <div class="wg-col-h">${dayHead}${mode ? `<span class="wg-chip">${esc(mode)}</span>` : ""}</div>
+          ${goalRingHtml(s.kcal, day.kcal, "Tag")}
+          ${goalMacrosHtml(s, day)}
         </div>
         <div class="wg-col">
-          <div class="wg-col-h">Diese Woche</div>
-          ${goalRingHtml(w.kcal, t.kcal, "Woche", "Diese Woche", "")}
+          <div class="wg-col-h">Diese Woche<span class="wg-chip plain">${planned} von 7 Tagen geplant</span></div>
+          ${goalRingHtml(w.kcal, t.kcal, "Woche")}
+          ${goalMacrosHtml(w, t)}
         </div>
       </div>`;
   }
