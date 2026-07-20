@@ -340,16 +340,17 @@
   .wg-chip.plain { color: var(--text-muted); background: transparent; border-color: var(--border-strong); text-transform: none; letter-spacing: .02em; }
   .wg-macros { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px 10px; margin-top: 16px; }
   .wg-macros .gm { margin-top: 0; }
-  .wg-macros .gm-r { gap: 5px; }
-  .wg-macros .gm-n { font-weight: 700; }
-  .wg-macros .gm-v { font-size: 11px; }
+  /* Bezeichnung ueber dem Wert statt daneben: ausgeschrieben ("Kohlenhydrate") passt
+     das neben einen vierstelligen Wochenwert auf keiner Breite nebeneinander. */
+  .wg-macros .gm-r { flex-direction: column; align-items: flex-start; gap: 2px; }
+  .wg-macros .gm-n { font-weight: 700; color: var(--text); }
+  .wg-macros .gm-v { font-size: 11.5px; }
   @media (max-width: 720px) { .wg-cols { grid-template-columns: 1fr; } }
-  /* Wochenwerte sind vierstellig und passen schmal nicht neben das Kuerzel. Ohne
-     feste Regel bricht nur ein Teil der drei Balken um und sie stehen versetzt —
-     deshalb hier fuer alle drei einheitlich Kuerzel ueber Wert. */
+  /* Schmal wird aus den drei Spalten eine Reihe untereinander — ausgeschriebene
+     Bezeichnungen nebeneinander waeren auf dem Handy sonst zu gedraengt. */
   @media (max-width: 560px) {
-    .wg-macros .gm-r { flex-direction: column; align-items: flex-start; gap: 2px; }
-    .wg-macros .gm-v { font-size: 11.5px; }
+    .wg-macros { grid-template-columns: 1fr 1fr; gap: 12px; }
+    .wg-macros .gm:last-child { grid-column: 1 / -1; }
   }
 
   /* Kalorien breit, darunter P/K/F zu dritt. Die Tageskarte sitzt in einem auto-fill-Grid,
@@ -2185,8 +2186,8 @@
     const activeDays = DAYS.filter(d => hasNut(dayNut(d.key))).length;
     // „an x Tagen“ steht jetzt als Kennzeichen in der Wochenspalte, hier reicht der Schnitt.
     const avg = activeDays ? ` · ⌀ ${nfmt(w.kcal / activeDays)} kcal pro geplantem Tag` : "";
-    // Wochenziel = Tagesziel × 7. Dass ein Teil davon noch ungeplant ist, zeigen die
-    // Tagessaeulen und die Zeile „x Tage offen“ – ehrlicher als ein verkuerztes Ziel.
+    // Wochenziel = Tagesziel × 7. Dass ein Teil davon noch ungeplant ist, sagt das
+    // Kennzeichen „x von 7 Tagen geplant“ – ehrlicher als ein verkuerztes Ziel.
     const t = goalTargets(7);
     // Das Wochenziel steht mit Ziel schon in der Wochenspalte („11.900 / 15.400 kcal“) —
     // in der Kopfzeile waere es ein drittes Kleingedrucktes, das mobil umbricht.
@@ -2234,11 +2235,13 @@
 
   // Die drei Makrobalken einer Spalte. Protein ist eine Untergrenze (dir "min"),
   // Kohlenhydrate und Fett sind ein Budget — daher unterschiedliche Bewertung.
+  // Hier stehen die Makros ausgeschrieben — anders als in den schmalen Tageskarten
+  // des Plans (dayGoalsHtml), wo nur Kuerzel hineinpassen.
   function goalMacrosHtml(s, t) {
     return `<div class="wg-macros">
-        ${goalBarHtml({ label: "P", ist: s.protein, ziel: t.protein, unit: "g", cls: "t-prot", dir: "min", rest: "attention", unitInline: true })}
-        ${goalBarHtml({ label: "KH", ist: s.carbs, ziel: t.carbs, unit: "g", cls: "t-carb", rest: "attention", unitInline: true })}
-        ${goalBarHtml({ label: "F", ist: s.fat, ziel: t.fat, unit: "g", cls: "t-fat", rest: "attention", unitInline: true })}
+        ${goalBarHtml({ label: "Proteine", ist: s.protein, ziel: t.protein, unit: "g", cls: "t-prot", dir: "min", rest: "attention", unitInline: true })}
+        ${goalBarHtml({ label: "Kohlenhydrate", ist: s.carbs, ziel: t.carbs, unit: "g", cls: "t-carb", rest: "attention", unitInline: true })}
+        ${goalBarHtml({ label: "Fett", ist: s.fat, ziel: t.fat, unit: "g", cls: "t-fat", rest: "attention", unitInline: true })}
       </div>`;
   }
 
@@ -2288,7 +2291,6 @@
   function renderPlan() {
     const filled = planStats();
     let html = `${appHeroHtml()}
-      ${weekNutHtml()}
       <div class="section-head plan-head">
         <div class="title">
           <h2>Dein Wochenplan</h2>
@@ -2332,7 +2334,12 @@
       html += `</div>${dayNutHtml(dayNut(d.key))}</section>`;
     });
 
+    // Die Ziel-Uebersicht steht UNTER dem Plan: sie ist dessen Ergebnis, nicht dessen
+    // Eingabe — dieselbe Logik wie bei „Makros gesamt“ unter den Zutaten im Meal-Formular.
+    // Oben haette sie auf dem Handy den halben ersten Bildschirm belegt, bevor ueberhaupt
+    // ein Wochentag sichtbar wird.
     html += `</div>
+      ${weekNutHtml()}
       <button class="shop-cta" data-action="shopping">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6h15l-1.5 9h-12z"/><path d="M6 6 5 2H2"/><circle cx="9" cy="20" r="1.4"/><circle cx="18" cy="20" r="1.4"/></svg>
         Einkaufsliste der Woche
