@@ -106,11 +106,20 @@
   .wrap { max-width: var(--maxw); margin: 0 auto; padding: 0 20px; }
 
   /* ---------- Header ---------- */
+  /* Hintergrund und Weichzeichnung liegen bewusst auf dem Pseudo-Element, nicht auf
+     dem Kopf selbst: ein backdrop-filter auf einem Element macht dieses zum
+     Bezugsrahmen fuer ALLE fixierten Nachfahren. Die untere Reiterleiste (position:
+     fixed) klebte dadurch am unteren Rand des Kopfes statt am Bildschirm und
+     verdeckte Logo, Slogan und Profil. Auf dem Pseudo-Element hat der Filter
+     denselben optischen Effekt, ohne diese Nebenwirkung. */
   header.site {
     position: sticky; top: 0; z-index: 30;
+    border-bottom: 1px solid var(--border);
+  }
+  header.site::before {
+    content: ""; position: absolute; inset: 0; z-index: -1;
     background: color-mix(in srgb, var(--bg) 88%, transparent);
     backdrop-filter: blur(10px);
-    border-bottom: 1px solid var(--border);
   }
   .head-inner { display: flex; align-items: center; gap: 18px; padding: 14px 0; flex-wrap: wrap; }
   .brand { display: flex; align-items: center; gap: 12px; margin-right: auto; }
