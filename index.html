@@ -519,6 +519,29 @@
   .overlay { position: fixed; inset: 0; z-index: 60; background: color-mix(in srgb, #0a0c07 55%, transparent); display: grid; place-items: start center; padding: 5vh 16px 16px; overflow-y: auto; color: var(--text); font-family: var(--font-body); }
   .modal { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; box-shadow: 0 24px 70px rgba(0,0,0,.35); width: 100%; max-width: 540px; overflow: hidden; animation: pop .16s ease-out; }
   @keyframes pop { from { opacity: 0; transform: translateY(8px) scale(.99);} to { opacity: 1; transform: none; } }
+  /* Live-Barcode-Scanner. Eigene Ebene ueber dem Modal-Overlay (60), aber unter dem
+     Toast (90) - der Scanner wird AUS dem Meal-Formular geoeffnet, das darunter offen
+     bleiben muss. Deshalb bewusst nicht ueber openModal(), das modalRoot leert. */
+  .scanwrap { position: fixed; inset: 0; z-index: 80; background: #0a0c07; display: grid; place-items: center; padding: 16px; color: var(--text); font-family: var(--font-body); }
+  .scanbox { width: 100%; max-width: 480px; display: flex; flex-direction: column; gap: 14px; }
+  .scanhead { display: flex; align-items: center; gap: 12px; color: #F4EFEE; }
+  .scanhead h3 { font-family: var(--font-display); font-size: 20px; margin: 0; flex: 1; letter-spacing: .3px; }
+  .scanhead .btn { flex: none; }
+  /* Feste 4:3-Buehne: reserviert den Platz, bevor das Video laeuft (kein Springen) */
+  .scanvid { position: relative; width: 100%; aspect-ratio: 4 / 3; background: #000; border-radius: var(--radius); overflow: hidden; border: 1px solid var(--border-strong); }
+  .scanvid video { width: 100%; height: 100%; object-fit: cover; display: block; }
+  /* Sucherrahmen: Ecken statt Vollrahmen, damit der Barcode sichtbar bleibt */
+  .scanframe { position: absolute; left: 8%; right: 8%; top: 27%; bottom: 27%; pointer-events: none; }
+  .scanframe::before, .scanframe::after { content: ""; position: absolute; width: 34px; height: 34px; border: 3px solid var(--accent); }
+  .scanframe::before { left: 0; top: 0; border-right: 0; border-bottom: 0; border-radius: 6px 0 0 0; }
+  .scanframe::after { right: 0; bottom: 0; border-left: 0; border-top: 0; border-radius: 0 0 6px 0; }
+  .scanhint { margin: 0; text-align: center; font-size: 14px; color: #A69B9D; min-height: 21px; }
+  .scanhint.err { color: var(--accent); font-weight: 600; }
+  .scanfoot { display: flex; flex-direction: column; gap: 8px; }
+  .scanfoot .btn { width: 100%; justify-content: center; }
+  @media (max-width: 560px) {
+    .scanvid { aspect-ratio: 3 / 4; }
+  }
   .modal-head { display: flex; align-items: center; gap: 12px; padding: 16px 18px; border-bottom: 1px solid var(--border); }
   .modal-head h3 { font-family: var(--font-display); font-size: 19px; margin: 0; flex: 1; }
   .modal-head .kicker { font-size: 11.5px; text-transform: uppercase; letter-spacing: .05em; color: var(--text-muted); }
@@ -1920,6 +1943,137 @@
     return { name: data.product.product_name || null, kcal, carbs, protein, fat };
   }
 
+  // Live-Scanner: Kamerabild statt Einzelfoto — man haelt den Barcode in den Rahmen,
+  // die Suche startet von selbst. Der Kamera-Lifecycle ist hier die heikelste Stelle:
+  // eine weiterlaufende Kamera ist ein Vertrauensbruch, kein Schoenheitsfehler. Deshalb
+  // gibt es genau EINE Abbaustelle (cleanup), sie ist mehrfach aufrufbar, und jeder
+  // Ausgang laeuft durch sie — Treffer, Abbruch, Fehler, Tabwechsel, Seite verlassen.
+  // Aufloesung: { code } bei Treffer, { photo:true } bei Ausweichen aufs Foto,
+  // { cancelled:true } bei Abbruch.
+  let liveScanStop = null;
+  function scanBarcodeLive() {
+    return new Promise(resolve => {
+      let stream = null, reader = null, timer = 0, done = false;
+      const node = el(`<div class="scanwrap" role="dialog" aria-modal="true" aria-label="Barcode scannen">
+        <div class="scanbox">
+          <div class="scanhead">
+            <h3>Barcode scannen</h3>
+            <button type="button" class="btn ghost sm" data-x aria-label="Scanner schließen">✕</button>
+          </div>
+          <div class="scanvid"><video playsinline muted autoplay></video><div class="scanframe"></div></div>
+          <p class="scanhint" role="status">Kamera wird gestartet …</p>
+          <div class="scanfoot">
+            <button type="button" class="btn ghost" data-photo>Stattdessen Foto aufnehmen</button>
+          </div>
+        </div>
+      </div>`);
+      const video = node.querySelector("video");
+      const hint = node.querySelector(".scanhint");
+
+      function cleanup() {
+        if (timer) { clearTimeout(timer); timer = 0; }
+        if (reader) { try { reader.reset(); } catch (e) {} reader = null; }
+        // Eigene Stream-Referenz, weil ZXings stopStreams() nur die Video-Tracks beendet
+        if (stream) { stream.getTracks().forEach(t => { try { t.stop(); } catch (e) {} }); stream = null; }
+        try { video.pause(); video.srcObject = null; } catch (e) {}
+        document.removeEventListener("keydown", onKey, true);
+        document.removeEventListener("visibilitychange", onHide);
+        window.removeEventListener("pagehide", onHide);
+        if (node.parentNode) node.remove();
+        liveScanStop = null;
+      }
+      function finish(res) { if (done) return; done = true; cleanup(); resolve(res); }
+      // Escape darf NUR den Scanner schliessen. Ohne capture + stopPropagation wuerde
+      // modalKeys() darunter greifen und das Meal-Formular samt Eingaben mitschliessen.
+      function onKey(e) {
+        if (e.key !== "Escape") return;
+        e.preventDefault(); e.stopPropagation();
+        finish({ cancelled: true });
+      }
+      function onHide(e) { if (e.type === "pagehide" || document.hidden) finish({ cancelled: true }); }
+      function fail(msg) {
+        if (done) return;
+        hint.textContent = msg;
+        hint.classList.add("err");
+        hint.setAttribute("role", "alert"); // Fehler muss auch vorgelesen werden
+      }
+
+      node.querySelector("[data-x]").addEventListener("click", () => finish({ cancelled: true }));
+      node.querySelector("[data-photo]").addEventListener("click", () => finish({ photo: true }));
+      document.body.appendChild(node);
+      liveScanStop = () => finish({ cancelled: true });
+      document.addEventListener("keydown", onKey, true);
+      document.addEventListener("visibilitychange", onHide);
+      window.addEventListener("pagehide", onHide);
+      node.querySelector("[data-x]").focus();
+
+      (async () => {
+        // getUserMedia gibt es nur im sicheren Kontext: HTTPS oder localhost. Ueber eine
+        // http://-Adresse im WLAN (Handy-Test gegen den PC) blockiert der Browser die Kamera.
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+          fail("Die Kamera braucht eine sichere Verbindung (HTTPS). Nimm stattdessen ein Foto auf.");
+          return;
+        }
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: { ideal: "environment" }, width: { ideal: 1280 }, height: { ideal: 960 } },
+            audio: false
+          });
+        } catch (e) {
+          const n = e && e.name;
+          fail(n === "NotAllowedError" || n === "SecurityError"
+              ? "Kamerazugriff wurde abgelehnt. Erlaube ihn in den Browser-Einstellungen – oder nimm ein Foto auf."
+            : n === "NotFoundError" || n === "OverconstrainedError"
+              ? "Keine passende Kamera gefunden. Nimm stattdessen ein Foto auf."
+              : "Die Kamera lässt sich nicht starten. Nimm stattdessen ein Foto auf.");
+          return;
+        }
+        // Abbruch waehrend der Berechtigungsabfrage: cleanup lief mit stream===null,
+        // die Kamera wuerde sonst unbemerkt weiterlaufen.
+        if (done) { stream.getTracks().forEach(t => { try { t.stop(); } catch (e) {} }); stream = null; return; }
+
+        video.srcObject = stream;
+        // play() bewusst NICHT abwarten: das Promise loest auf manchen Geraeten nie auf,
+        // dann haenge der Scanner dauerhaft in "Kamera wird gestartet". Die Erkennung
+        // vertraegt ein noch nicht bereites Video — sie versucht es im naechsten
+        // Durchlauf einfach erneut. (playsinline + muted decken die Autoplay-Regeln ab.)
+        const playing = video.play();
+        if (playing && playing.catch) playing.catch(() => {});
+        if (done) return;
+        hint.textContent = "Halte den Barcode in den Rahmen …";
+
+        // Schneller Weg: native API (Chrome/Edge, Android). Auf dem iPhone gibt es sie
+        // nicht — auch nicht in Chrome, das dort WebKit nutzt. Dann uebernimmt ZXing.
+        if (window.BarcodeDetector) {
+          try {
+            const det = new window.BarcodeDetector({ formats: BARCODE_FORMATS });
+            const tick = async () => {
+              if (done) return;
+              try {
+                const hits = await det.detect(video);
+                if (done) return;
+                if (hits && hits[0] && hits[0].rawValue) { finish({ code: hits[0].rawValue }); return; }
+              } catch (e) { /* einzelner Frame unlesbar — einfach weiter */ }
+              timer = setTimeout(tick, 160); // ~6 Versuche/s reichen und schonen den Akku
+            };
+            tick();
+            return;
+          } catch (e) { /* Formate nicht unterstuetzt — faellt auf ZXing durch */ }
+        }
+        try { await loadZXing(); }
+        catch (e) { fail("Der Scanner konnte nicht geladen werden (offline?). Nimm stattdessen ein Foto auf."); return; }
+        if (done) return;
+        reader = new window.ZXing.BrowserMultiFormatReader();
+        // Callback feuert pro Frame; ohne Treffer kommt eine NotFoundException, die hier
+        // bewusst ignoriert wird — nur ein echtes Ergebnis beendet den Scan.
+        reader.decodeFromStream(stream, video, res => {
+          if (done || !res || !res.getText) return;
+          finish({ code: res.getText() });
+        });
+      })();
+    });
+  }
+
   // Ziel aus dem Kalorienrechner (state.goal), hochgerechnet auf `days` Tage.
   // Null, solange der Nutzer noch kein Ergebnis gespeichert hat.
   function goalTargets(days) {
@@ -2221,6 +2375,9 @@
   const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
   let lastFocused = null;   // Element, das den Dialog geoeffnet hat
   function closeModal() {
+    // Sicherheitsnetz: schliesst irgendetwas das Formular, waehrend der Live-Scanner
+    // laeuft, darf die Kamera nicht weiterlaufen.
+    if (liveScanStop) liveScanStop();
     modalRoot.innerHTML = "";
     document.removeEventListener("keydown", modalKeys);
     // Fokus dorthin zurueckgeben, wo er herkam - sonst landet er beim Schliessen am
@@ -2342,7 +2499,7 @@
               <option value="st"${u === "st" ? " selected" : ""}>Stück</option>
             </select>
           </span>
-          <button type="button" class="ing-ic ing-barcode" title="Barcode scannen – sucht das Produkt bei Open Food Facts">${barcodeSvg}</button>
+          <button type="button" class="ing-ic ing-barcode" title="Barcode mit der Kamera scannen – sucht das Produkt bei Open Food Facts">${barcodeSvg}</button>
           <button type="button" class="ing-ic ing-scan" title="Nährwerttabelle fotografieren – füllt Kcal/KH/P/F automatisch">${camSvg}</button>
           <button type="button" class="ing-ic ing-del" title="Zutat entfernen">✕</button>
         </div>
@@ -2358,7 +2515,7 @@
       </div>`);
       row.querySelector(".ing-del").addEventListener("click", () => { row.remove(); updateMacroSum(); });
       row.querySelector(".ing-scan").addEventListener("click", () => { scanRow = row; scanInput.click(); });
-      row.querySelector(".ing-barcode").addEventListener("click", () => { barcodeRow = row; barcodeInput.click(); });
+      row.querySelector(".ing-barcode").addEventListener("click", () => { startBarcodeFlow(row); });
       row.querySelectorAll("input").forEach(inp => inp.addEventListener("input", updateMacroSum));
       // Einheit umstellen: Bezugsgroesse der Naehrwerte mitziehen. Bei Stueck gibt es keine
       // 100er-Basis — dann ist auch der Tabellen-Scan (liest pro 100 g) sinnlos und faellt weg.
@@ -2523,22 +2680,15 @@
         btn.disabled = false; btn.classList.remove("busy");
       }
     });
-    // Barcode-Scan: Foto -> Code lokal lesen -> Open Food Facts -> Zeile fuellen.
-    // Ueberschreibt Einheit und Menge-Bezugsgroesse auf "g" (siehe fetchOffNutrition),
-    // laesst den Namen aber nur setzen, wenn das Feld noch leer ist - ein bereits
-    // getippter eigener Name des Nutzers wird nicht überschrieben.
-    barcodeInput.addEventListener("change", async () => {
-      const f = barcodeInput.files && barcodeInput.files[0];
-      barcodeInput.value = "";
-      const row = barcodeRow; barcodeRow = null;
-      if (!f || !row || !row.isConnected) return;
+    // Barcode -> Open Food Facts -> Zeile fuellen. Gemeinsamer Weg fuer beide Zugaenge
+    // (Live-Kamera und Einzelfoto). Ueberschreibt die Einheit auf "g", weil OFF alle
+    // Werte auf 100 g normiert; den Namen nur, wenn das Feld noch leer ist — ein selbst
+    // getippter Name des Nutzers wird nicht ueberschrieben.
+    async function applyBarcode(row, code) {
       const btn = row.querySelector(".ing-barcode");
       btn.disabled = true; btn.classList.add("busy");
-      toast("Lese Barcode …");
+      toast("Suche Produkt …");
       try {
-        const code = await detectBarcode(f);
-        if (!code) { toast("Kein Barcode erkannt – bitte erneut versuchen oder manuell eintragen"); return; }
-        toast("Suche Produkt …");
         const p = await fetchOffNutrition(code);
         if (!p) { toast("Produkt nicht gefunden – bitte manuell eintragen"); return; }
         const nameInp = row.querySelector(".ing-name");
@@ -2556,6 +2706,37 @@
       } finally {
         btn.disabled = false; btn.classList.remove("busy");
       }
+    }
+    // Einstieg ueber den Zeilen-Button: erst Live-Kamera; wer dort aufs Foto ausweicht
+    // (oder wessen Kamera nicht startet), landet auf dem bisherigen Foto-Weg.
+    async function startBarcodeFlow(row) {
+      const r = await scanBarcodeLive();
+      if (!r || r.cancelled) return;
+      if (!row.isConnected) return; // Zeile inzwischen entfernt
+      if (r.photo) { barcodeRow = row; barcodeInput.click(); return; }
+      if (r.code) await applyBarcode(row, r.code);
+    }
+    // Foto-Weg: Bild -> Code lokal auslesen -> gemeinsamer Nachschlage-Pfad
+    barcodeInput.addEventListener("change", async () => {
+      const f = barcodeInput.files && barcodeInput.files[0];
+      barcodeInput.value = "";
+      const row = barcodeRow; barcodeRow = null;
+      if (!f || !row || !row.isConnected) return;
+      const btn = row.querySelector(".ing-barcode");
+      btn.disabled = true; btn.classList.add("busy");
+      toast("Lese Barcode …");
+      let code = null, failed = false;
+      try {
+        code = await detectBarcode(f);
+      } catch (e) {
+        failed = true;
+        toast("Erkennung nicht möglich (offline?) – bitte manuell eintragen");
+      } finally {
+        btn.disabled = false; btn.classList.remove("busy");
+      }
+      if (failed) return;
+      if (!code) { toast("Kein Barcode erkannt – bitte näher heran oder manuell eintragen"); return; }
+      await applyBarcode(row, code);
     });
 
     node.querySelector("[data-save]").addEventListener("click", () => {
@@ -2952,9 +3133,13 @@
          dabei wird deine IP-Adresse an diese Dienste übermittelt (Art. 6 Abs. 1 lit. f DSGVO – berechtigtes Interesse
          an der Bereitstellung der Funktion). Nutzt du den Scan nicht, findet kein solcher Abruf statt.</p>
       <h4>7b. Barcode-Scan (Produktsuche)</h4>
-      <p>Beim Anlegen von Zutaten kannst du auch einen Barcode fotografieren. Die Erkennung des
-         Barcodes läuft <strong>vollständig lokal in deinem Browser</strong> – das Foto verlässt
-         dein Gerät nicht. Unterstützt dein Browser die dafür nötige Technik nicht selbst (z. B.
+      <p>Beim Anlegen von Zutaten kannst du einen Barcode scannen. Dafür fragt die App den Zugriff
+         auf die <strong>Kamera</strong> deines Geräts an und zeigt das Kamerabild live an, bis ein
+         Barcode erkannt oder der Scanner geschlossen wird; alternativ kannst du ein Einzelfoto
+         aufnehmen. Das <strong>Kamerabild wird weder gespeichert noch übertragen</strong> und die
+         Kamera wird beim Schließen des Scanners sofort wieder freigegeben. Die Erkennung des
+         Barcodes läuft <strong>vollständig lokal in deinem Browser</strong> – Bild bzw. Foto
+         verlassen dein Gerät nicht. Unterstützt dein Browser die dafür nötige Technik nicht selbst (z. B.
          auf iPhones), lädt die App beim ersten Scan die Open-Source-Bibliothek <strong>ZXing</strong>
          vom Content-Delivery-Netzwerk <strong>cdn.jsdelivr.net</strong> nach; dabei wird deine
          IP-Adresse an diesen Dienst übermittelt (Art. 6 Abs. 1 lit. f DSGVO – berechtigtes
