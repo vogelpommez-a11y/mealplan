@@ -29,3 +29,8 @@ Thumbs.db
 # Lokale Redesign-/Vor-Aenderungs-Backups der App (nie ins oeffentliche Repo)
 index.backup*.html
 *backup*.html
+
+# Persoenliche Roadmap-Uebersicht. Beschreibt offene Schwachstellen (z. B. dass das
+# Pro-Gating aktuell clientseitig und damit umgehbar ist) und Geschaeftsplanung -
+# das gehoert nicht oeffentlich auf GitHub Pages.
+ROADMAP.html
