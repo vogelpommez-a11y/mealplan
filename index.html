@@ -1011,6 +1011,11 @@
   "use strict";
 
   const STORE_KEY = "wochenkueche_v1";
+  // Ganz oben, weil sanitizeIng() (Zutaten-Einheiten) schon von load() gebraucht wird,
+  // das selbst frueh im Script laeuft (state = load()). Eine const weiter unten im
+  // Script waere zu diesem Zeitpunkt noch nicht initialisiert (Temporal Dead Zone) -
+  // genau das brach die App fuer jeden Nutzer mit einer strukturierten Zutat.
+  const ING_UNITS = ["g", "ml", "st"];
 
   const DAYS = [
     { key: "mon", label: "Montag",     short: "Mo" },
@@ -1581,8 +1586,10 @@
   // (der Feldname bleibt aus Kompatibilitaet, siehe Namensdualitaet in CLAUDE.md), `unit`
   // sagt worin: "g", "ml" oder "st" (Stueck). Fehlendes `unit` = "g" — so bleiben alle
   // Altbestaende gueltig. Die Naehrwerte gelten pro 100 g / pro 100 ml bzw. PRO STUECK;
-  // ingContrib rechnet entsprechend hoch.
-  const ING_UNITS = ["g", "ml", "st"];
+  // ingContrib rechnet entsprechend hoch. (ING_UNITS selbst steht ganz oben im Script,
+  // weil sanitizeIng schon von load() gebraucht wird - eine const hier waere zu diesem
+  // fruehen Zeitpunkt noch nicht initialisiert und haette das ganze Script abgebrochen.
+  // Echter Absturz auf dem Live-Server gewesen, siehe Commit-Historie.)
   function ingUnit(o) { const u = o && o.unit; return ING_UNITS.indexOf(u) >= 0 ? u : "g"; }
   function unitShort(u) { return u === "st" ? "Stück" : u; }
   // Bezugsgroesse der Naehrwertfelder — bei Stueck gibt es keine 100er-Basis
