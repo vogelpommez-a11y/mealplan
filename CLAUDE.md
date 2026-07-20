@@ -215,12 +215,31 @@ Hinweis: Ein **neu angelegter** Agent ist in der laufenden Session noch nicht al
 wählbar — die Liste wird beim Start gelesen. Dann entweder die Session neu starten oder
 `general-purpose` die `.md` lesen lassen.
 
+## ROADMAP.html — verbindlich automatisch pflegen
+
+Im Projektordner liegt `ROADMAP.html`: eine visuelle Übersicht im Design „Performance Dark"
+(erledigte Bausteine, „Als Nächstes", „Später", Leitplanken-Fragen für jedes neue Feature). Der
+Nutzer öffnet sie im Browser, um den Stand zu sehen — sie ist seine Hauptansicht auf das Projekt.
+
+**Nach jedem abgeschlossenen Feature, jeder Entscheidung und jedem Push automatisch mitziehen —
+ohne dass der Nutzer extra danach fragen muss:**
+
+- Karte von „Als Nächstes"/„Später" nach „Erledigt und live" verschieben.
+- Fortschrittszähler und Balkenbreite (`.bar > i { width }`) anpassen.
+- Datum und Commit-Hash im `.stand`-Absatz aktualisieren.
+- Neue offene Fragen/Risiken als `<p class="warn">`-Absatz ergänzen, nicht im Fließtext
+  verstecken.
+
+**Die Datei bleibt in `.gitignore` und wird nie committet.** Sie beschreibt offene Schwachstellen
+(z. B. dass das Pro-Gating aktuell clientseitig und damit umgehbar ist) und Geschäftsplanung —
+das gehört nicht öffentlich auf GitHub Pages.
+
 ## Weiteres
 
 - `FIREBASE-SETUP.md` — Anleitung für den Nutzer (Projekt anlegen, Provider, Authorized Domains,
   Firestore, Regeln veröffentlichen).
-- `.gitignore` hält `Fotos/`, `wochenplan-backup/`, Exporte und `.claude/settings.local.json`
-  draußen. Alles im Repo ist öffentlich — auch Dateien, die die Seite nie lädt, und auch
-  Gelöschtes bleibt in der Historie.
+- `.gitignore` hält `Fotos/`, `ROADMAP.html`, Exporte und `.claude/settings.local.json` draußen.
+  Alles im Repo ist öffentlich — auch Dateien, die die Seite nie lädt, und auch Gelöschtes
+  bleibt in der Historie.
 - Mobile: Media-Queries bei `max-width:720px` und `560px`; Eingaben sind 16 px gegen den
   iOS-Auto-Zoom.
