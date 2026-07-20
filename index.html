@@ -1518,6 +1518,12 @@
 
   function render() {
     hoveredCardId = null; // Kartenknoten werden gleich ersetzt - alte Hover-Referenz waere sonst veraltet
+    // Gleiche Ueberlegung fuer den Tastaturfokus: liegt er gerade auf einem Element in
+    // <main>, wird dieses gleich mitsamt innerHTML ersetzt und der Fokus faellt auf
+    // <body>. Das trifft besonders den Weg "Loeschen bestaetigen" - closeModal() gibt
+    // den Fokus zwar an den ausloesenden Knopf zurueck, aber der verschwindet direkt
+    // danach mit dem Neuaufbau. Deshalb hier merken und unten auffangen.
+    const focusWasInView = view.contains(document.activeElement);
     // Caches nur fuer die Dauer dieses Durchlaufs aufspannen; finally stellt sicher,
     // dass sie auch bei einem Fehler nicht als veraltete Kopie zurueckbleiben.
     recipeIndex = new Map(state.recipes.map(r => [r.id, r]));
@@ -1533,6 +1539,12 @@
     } finally {
       recipeIndex = null;
       dayNutCache = null;
+    }
+    // Fokus nur dann einfangen, wenn er beim Neuaufbau tatsaechlich verloren ging -
+    // der aktive Reiter ist ein stabiler Anker, von dem aus man weitertabben kann.
+    if (focusWasInView && (!document.activeElement || document.activeElement === document.body)) {
+      const t = document.querySelector('.tab[aria-selected="true"]');
+      if (t) t.focus();
     }
     save();
   }
@@ -1962,6 +1974,7 @@
     else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
   }
   function openModal(node) {
+    hoveredCardId = null;   // Maus steht ab jetzt ueber dem Overlay, nicht mehr auf einer Karte
     lastFocused = document.activeElement;
     const overlay = document.createElement("div");
     overlay.className = "overlay";
@@ -2287,7 +2300,7 @@
   const SHOP_CATS = [
     { key: "gemuese", title: "Obst & Gemüse", icon: "🥬", kw: ["zwiebel","knoblauch","schalotte","paprika","tomate","tomaten","tomatenmark","karotte","möhre","moehre","zucchini","gurke","salat","rucola","spinat","brokkoli","blumenkohl","kartoffel","süsskartoffel","pilz","champignon","lauch","porree","sellerie","kohl","kürbis","kuerbis","aubergine","bohne","bohnen","erbse","erbsen","zuckerschote","zuckererbse","mais","avocado","ingwer","chili","kohlrabi","fenchel","spargel","radieschen","rettich","bete","kresse","apfel","äpfel","aepfel","banane","zitrone","limette","orange","clementine","mandarine","beere","beeren","himbeer","erdbeer","heidelbeer","blaubeer","brombeer","traube","trauben","birne","mango","pfirsich","nektarine","aprikose","ananas","melone","kiwi","pflaume","kirsche","feige","petersilie","basilikum","schnittlauch","koriander","minze"] },
     { key: "fleisch", title: "Fleisch & Fisch", icon: "🥩", kw: ["hackfleisch","hack","fleisch","hähnchen","haehnchen","huhn","hühner","huehner","hühnchen","pute","puten","rind","schwein","kalb","lamm","schnitzel","gulasch","steak","filet","wurst","würstchen","wuerstchen","bratwurst","speck","schinken","salami","bacon","mett","hackbraten","frikadelle","bulette","geschnetzeltes","leberkäse","leberkaese","cabanossi","chorizo","lachs","thunfisch","garnele","garnelen","shrimp","scampi","fisch","forelle","kabeljau","dorsch","seelachs","hering","makrele","sardine","sardellen","muschel","surimi"] },
-    { key: "milch", title: "Milchprodukte & Eier", icon: "🧀", kw: ["milch","butter","sahne","joghurt","jogurt","quark","käse","kaese","gouda","mozzarella","parmesan","feta","frischkäse","frischkaese","schmand","ei","eier","eiweiss","eigelb","margarine","buttermilch","mascarpone","ricotta","hüttenkäse","huettenkaese","emmentaler","cheddar","camembert","brie"] },
+    { key: "milch", title: "Milchprodukte & Eier", icon: "🧀", kw: ["milch","butter","sahne","joghurt","jogurt","quark","käse","kaese","gouda","mozzarella","parmesan","feta","frischkäse","frischkaese","schmand","ei","eier","eiweiss","eigelb","margarine","buttermilch","mascarpone","ricotta","hüttenkäse","huettenkaese","emmentaler","cheddar","camembert","brie","whey","protein","casein","kasein"] },
     { key: "teig", title: "Teigwaren, Reis & Getreide", icon: "🍝", kw: ["nudel","nudeln","spaghetti","penne","fusilli","tagliatelle","makkaroni","lasagne","spätzle","spaetzle","gnocchi","tortellini","ravioli","farfalle","rigatoni","pasta","reis","basmati","risotto","couscous","bulgur","quinoa","polenta","griess","haferflocken","hafer","müsli","muesli","cornflakes","porridge"] },
     { key: "backen", title: "Backen & Mehl", icon: "🧁", kw: ["mehl","zucker","puderzucker","vanillezucker","vanille","backpulver","hefe","kakao","schokolade","schoko","kuvertüre","kuvertuere","backaroma","speisestärke","speisestaerke","stärke","staerke","natron","marzipan","honig","sirup","nuss","nüsse","nuesse","mandel","mandeln","walnuss","haselnuss","erdnuss","cashew","pistazie","rosine","kokosraspel","gelatine"] },
     { key: "vorrat", title: "Konserven & Vorrat", icon: "🥫", kw: ["dose","konserve","passierte","passata","kokosmilch","linsen","brühe","bruehe","fond","brühwürfel","bruehwuerfel","oliven","kapern","essiggurke","antipasti","instant","tütensuppe","tuetensuppe","suppe","backerbsen"] },
@@ -2718,6 +2731,10 @@
     if (card && !card.contains(e.relatedTarget)) hoveredCardId = null;
   });
   document.addEventListener("paste", e => {
+    // Bei offenem Dialog nie auf eine Karte einfuegen: hoveredCardId zeigt dann noch
+    // auf die Karte hinter dem Overlay, und ein Screenshot-Einfuegen im
+    // Bearbeiten-Formular wuerde unbemerkt dort landen statt im Formular.
+    if (modalRoot.children.length) return;
     if (state.tab !== "recipes" || !hoveredCardId) return;
     const items = e.clipboardData && e.clipboardData.items;
     if (!items) return;
@@ -2866,7 +2883,9 @@
     if (mode === "gain") return ({ light: 250, moderate: 500 })[pace] || 500;
     return 0;
   }
-  // Mifflin-St-Jeor → BMR × Aktivität = TDEE → Ziel-Anpassung. Makros: Protein 2 g/kg, Fett 25 %, Rest KH.
+  // Mifflin-St-Jeor → BMR × Aktivität = TDEE → Ziel-Anpassung.
+  // Makros: Protein 2 g/kg (ab BMI 27 auf das Gewicht bei BMI 27 gedeckelt),
+  // Fett 25 % der Kalorien (weicht zurueck, wenn sonst die Summe nicht aufgeht), Rest KH.
   function computeGoal(inp) {
     const w = +inp.weight, h = +inp.height, age = +inp.age;
     const bmr = 10 * w + 6.25 * h - 5 * age + (inp.sex === "m" ? 5 : -161);
