@@ -25,7 +25,10 @@
        helle Dark-Rot mit Weiss nur 3,65:1 erreicht – zu wenig fuer Text (4,5:1). */
     --accent-solid: #DC2626;
 
-    --danger: #C2410C;
+    /* War frueher ein eigenes Orange, getrennt von --accent. Kein dokumentierter Token,
+       kein bewusst gewaehltes zweites Rot – nur ein Altlast-Wert. Fehler/Warnung/
+       destruktiv sind im Theme dasselbe Rot wie ueberall sonst, kein zweites Signal. */
+    --danger: var(--accent);
     --ok: #1E9E57;   /* Sync ok / verbunden */
 
     --fr: #A96E12;   /* Frühstück */
@@ -59,7 +62,7 @@
       --accent-contrast: #FFFFFF;
       --accent-solid: #E02234;
 
-      --danger: #FF7A45;
+      --danger: var(--accent);
       --ok: #3DDC84;
 
       --fr: #E0A94A;
@@ -73,7 +76,7 @@
     --logo: var(--logoL);
     --bg: #F6F4F4; --surface: #FFFFFF; --surface-2: #F0ECEC;
     --text: #1A1416; --text-muted: #6B5F62; --border: #E7E0E1; --border-strong: #D6CCCE;
-    --accent: #DC2626; --accent-strong: #B01218; --accent-contrast: #FFFFFF; --accent-solid: #DC2626; --danger: #C2410C; --ok: #1E9E57;
+    --accent: #DC2626; --accent-strong: #B01218; --accent-contrast: #FFFFFF; --accent-solid: #DC2626; --danger: var(--accent); --ok: #1E9E57;
     --fr: #A96E12; --mi: #2E7D6B; --ab: #6E5A9E;
     --shadow: 0 1px 2px rgba(20,24,31,.06), 0 8px 24px rgba(20,24,31,.08);
   }
@@ -81,7 +84,7 @@
     --logo: var(--logoD);
     --bg: #0C0A0B; --surface: #141011; --surface-2: #1C1718;
     --text: #F4EFEE; --text-muted: #A69B9D; --border: #2A2223; --border-strong: #3A2F30;
-    --accent: #FF3040; --accent-strong: #FF5A66; --accent-contrast: #FFFFFF; --accent-solid: #E02234; --danger: #FF7A45; --ok: #3DDC84;
+    --accent: #FF3040; --accent-strong: #FF5A66; --accent-contrast: #FFFFFF; --accent-solid: #E02234; --danger: var(--accent); --ok: #3DDC84;
     --fr: #E0A94A; --mi: #58B49E; --ab: #AC93E0;
     --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.35);
   }
@@ -420,6 +423,10 @@
     border-color: color-mix(in srgb, var(--accent) 42%, var(--border));
     box-shadow: 0 12px 30px color-mix(in srgb, var(--accent) 20%, transparent);
   }
+  /* Ganze Karte als Drop-Ziel fuer ein Foto aus dem Dateisystem (Desktop) - im
+     Ruhezustand unsichtbar, nur waehrend des Ziehens ein Rahmen als Rueckmeldung.
+     Mobil fehlt echtes OS-Datei-Drag ohnehin, daher keine eigene Handhabung noetig. */
+  .rcard.dragover-file { outline: 2px dashed var(--accent); outline-offset: -2px; background: color-mix(in srgb, var(--accent) 8%, var(--surface)); }
   .rcard .imgadd {
     position: absolute; top: 12px; right: 10px; z-index: 3;
     width: 28px; height: 28px; border: 0; border-radius: 50%; cursor: pointer;
@@ -609,6 +616,11 @@
      Loeschaktionen vorbehalten. */
   .menu button.danger:hover { background: color-mix(in srgb, var(--accent) 10%, var(--surface)); color: var(--accent); }
   .menu button.danger:hover svg { color: var(--accent); }
+  /* Konto/Daten loeschen IST destruktiv und unwiderruflich – anders als Abmelden
+     durchgehend rot, nicht erst im Hover, plus eigene Trennlinie zur Abgrenzung
+     von den ungefaehrlichen Eintraegen (destructive-emphasis). */
+  .menu button.destructive, .menu button.destructive svg { color: var(--accent); }
+  .menu button.destructive:hover { background: color-mix(in srgb, var(--accent) 12%, var(--surface)); }
   .menu hr { border: 0; border-top: 1px solid var(--border); margin: 6px 4px; }
   .sync-dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: var(--border-strong); flex: none; }
   .sync-dot.ok { background: var(--ok); }
@@ -661,6 +673,10 @@
   .macro .ml { font-size: 10.5px; text-transform: uppercase; letter-spacing: .05em; font-weight: 650; color: var(--text-muted); margin-top: 3px; }
   .calc-result .btn.primary { width: 100%; justify-content: center; margin-top: 22px; }
   .calc-saved { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 12.5px; color: var(--text-muted); margin-top: 12px; }
+  /* Hinweis, dass die Werte Richtwerte sind – gleiches Muster wie .auth-note */
+  .calc-note { display: flex; gap: 9px; align-items: flex-start; max-width: var(--maxw); font-size: 12px; line-height: 1.55; color: var(--text-muted); margin: 20px 0 0; padding-top: 14px; border-top: 1px solid var(--border); }
+  .calc-note svg { width: 15px; height: 15px; flex: none; margin-top: 2px; color: var(--accent); }
+  .calc-note strong { color: var(--text); font-weight: 600; }
   .calc-empty { color: var(--text-muted); font-size: 14px; line-height: 1.55; padding: 30px 6px; }
   /* Eingabe-Gruppen (Karten) */
   .calc-group { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 18px 4px; margin-bottom: 16px; }
@@ -853,10 +869,11 @@
     getAuth, onAuthStateChanged, createUserWithEmailAndPassword,
     signInWithEmailAndPassword, sendEmailVerification, signOut,
     updateProfile, sendPasswordResetEmail, setPersistence,
-    browserLocalPersistence, GoogleAuthProvider, OAuthProvider, signInWithPopup
+    browserLocalPersistence, GoogleAuthProvider, OAuthProvider, signInWithPopup,
+    deleteUser, reauthenticateWithPopup, reauthenticateWithCredential, EmailAuthProvider
   } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
   import {
-    getFirestore, doc, getDoc, setDoc, onSnapshot
+    getFirestore, doc, getDoc, setDoc, deleteDoc, onSnapshot
   } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 
   /* ▼▼▼ HIER die Werte aus der Firebase-Konsole eintragen ▼▼▼
@@ -910,7 +927,46 @@
           return auth.currentUser ? auth.currentUser.reload().then(function () { return auth.currentUser; }) : Promise.resolve(null);
         },
         logout: function () { return signOut(auth); },
-        current: function () { return auth.currentUser; }
+        current: function () { return auth.currentUser; },
+        // Konto vollstaendig loeschen (Art. 17 DSGVO). Reihenfolge ist wichtig: die
+        // Firestore-Dokumente muessen VOR deleteUser() weg, weil die Security Rules
+        // "request.auth.uid == uid" pruefen - nach deleteUser waere der Nutzer nicht
+        // mehr angemeldet und der Zugriff wuerde verweigert.
+        // opts.password fuer Email/Passwort-Konten, sonst per Popup erneut bestaetigt
+        // (Firebase verlangt fuer diese sensible Aktion eine kuerzliche Anmeldung).
+        deleteAccount: async function (opts) {
+          const user = auth.currentUser;
+          if (!user) throw new Error("no-user");
+          const pid = (user.providerData[0] || {}).providerId;
+          if (pid === "password") {
+            if (!opts || !opts.password) throw new Error("password-required");
+            await reauthenticateWithCredential(user, EmailAuthProvider.credential(user.email, opts.password));
+          } else if (pid === "google.com") {
+            await reauthenticateWithPopup(user, new GoogleAuthProvider());
+          } else if (pid === "apple.com") {
+            await reauthenticateWithPopup(user, new OAuthProvider("apple.com"));
+          }
+          const uid = user.uid;
+          // Fehler beim Loeschen eines geteilten Plans NICHT verschlucken und weitermachen:
+          // sonst koennte "Konto loeschen" durchlaufen, obwohl ein Snapshot liegen blieb -
+          // und der waere danach fuer immer verwaist (die Regel verlangt einen Auth-User
+          // mit genau dieser uid, den es nach deleteUser() nicht mehr gibt). Lieber
+          // abbrechen und dem Nutzer einen erneuten Versuch ermoeglichen (das Wiederholen
+          // ist unproblematisch: bereits geloeschte Dokumente ueberspringt deleteDoc still).
+          const shareIds = (opts && opts.shareIds) || [];
+          for (let i = 0; i < shareIds.length; i++) {
+            await deleteDoc(doc(db, "shared", shareIds[i]));
+          }
+          await deleteDoc(doc(db, "users", uid));
+          try {
+            await deleteUser(user);
+          } catch (e) {
+            // Daten sind zu diesem Zeitpunkt bereits weg; nur noch der Login-Account
+            // besteht. Markieren, damit die App eine passende Meldung zeigen kann.
+            e.dataAlreadyDeleted = true;
+            throw e;
+          }
+        }
       });
 
       // ----- Cloud-Sync (Firestore): pro Nutzer ein Dokument users/{uid} -----
@@ -980,23 +1036,48 @@
     return !bound || bound === mealKey;
   }
 
+  // Beispiel-Meals mit Fitness-/Abnehm-Fokus (viel Protein, realistische Portionen fuers
+  // Meal-Prep) statt generischer Alltagsgerichte - passend zum Zielpublikum der App.
   const SEED = [
-    { name: "Haferbrei mit Beeren", category: "Frühstück", portions: 1, time: 10,
-      nutrition: { kcal: 320, carbs: 52, protein: 12, fat: 7 },
-      ingredients: ["50 g Haferflocken", "200 ml Milch", "1 Handvoll Beeren", "1 TL Honig", "Prise Zimt"],
-      steps: "Haferflocken mit Milch aufkochen und 3 Min. quellen lassen. In eine Schale geben, mit Beeren, Honig und Zimt toppen." },
-    { name: "Spaghetti Bolognese", category: "Abendessen", portions: 4, time: 40,
-      nutrition: { kcal: 620, carbs: 72, protein: 34, fat: 20 },
-      ingredients: ["500 g Spaghetti", "400 g Hackfleisch", "1 Zwiebel", "2 Knoblauchzehen", "1 Dose gehackte Tomaten", "2 EL Tomatenmark", "Olivenöl", "Salz, Pfeffer, Oregano"],
-      steps: "Zwiebel und Knoblauch anschwitzen, Hackfleisch krümelig anbraten. Tomatenmark kurz mitrösten, Tomaten zugeben und 25 Min. köcheln. Spaghetti bissfest kochen und servieren." },
-    { name: "Gemüsecurry mit Reis", category: "Mittagessen", portions: 3, time: 30,
-      nutrition: { kcal: 480, carbs: 68, protein: 9, fat: 17 },
-      ingredients: ["250 g Basmatireis", "1 Dose Kokosmilch", "2 EL rote Currypaste", "1 Paprika", "1 Zucchini", "1 Karotte", "Sojasauce", "frischer Koriander"],
-      steps: "Reis kochen. Gemüse in Streifen schneiden. Currypaste kurz anbraten, Kokosmilch angießen, Gemüse zugeben und 12 Min. köcheln. Mit Sojasauce abschmecken, mit Reis und Koriander servieren." },
-    { name: "Joghurt mit Nüssen & Honig", category: "Snack", portions: 1, time: 5,
-      nutrition: { kcal: 250, carbs: 22, protein: 14, fat: 12 },
-      ingredients: ["150 g Naturjoghurt", "1 Handvoll Walnüsse", "1 TL Honig", "1 TL Leinsamen"],
-      steps: "Joghurt in eine Schale geben und mit Walnüssen, Leinsamen und Honig toppen." },
+    { name: "Protein-Porridge mit Beeren", category: "Frühstück", portions: 1, time: 10,
+      nutrition: { kcal: 530, carbs: 64, protein: 43, fat: 11 },
+      ingredients: [
+        { name: "Haferflocken", grams: 60 },
+        { name: "Milch", grams: 250, unit: "ml" },
+        { name: "Whey-Protein Vanille", grams: 30 },
+        { name: "Beeren, gemischt", grams: 100 },
+        "1 TL Chiasamen", "Prise Zimt"
+      ],
+      steps: "Haferflocken mit Milch aufkochen und 3–4 Min. bei milder Hitze quellen lassen. Vom Herd nehmen, Whey-Protein unterrühren. In eine Schale füllen, mit Beeren, Chiasamen und Zimt toppen." },
+    { name: "Hähnchen mit Pute und Reis", category: "Mittagessen", portions: 2, time: 30,
+      nutrition: { kcal: 620, carbs: 55, protein: 55, fat: 16 },
+      ingredients: [
+        { name: "Hähnchenbrust", grams: 200 },
+        { name: "Putenbrust", grams: 150 },
+        { name: "Basmatireis", grams: 200 },
+        { name: "Paprika", grams: 1, unit: "st" },
+        { name: "Zucchini", grams: 1, unit: "st" },
+        "1 EL Olivenöl", "Sojasauce", "Paprikapulver, Salz, Pfeffer"
+      ],
+      steps: "Reis nach Packungsangabe kochen. Hähnchen- und Putenbrust würfeln, würzen und in Olivenöl scharf anbraten. Paprika und Zucchini kurz mitbraten, mit Sojasauce ablöschen. Alles auf dem Reis anrichten." },
+    { name: "Eiweißshake mit Whey und Milch", category: "Snack", portions: 1, time: 5,
+      nutrition: { kcal: 350, carbs: 39, protein: 35, fat: 6 },
+      ingredients: [
+        { name: "Milch", grams: 300, unit: "ml" },
+        { name: "Whey-Protein", grams: 30 },
+        { name: "Banane", grams: 1, unit: "st" },
+        "Eiswürfel"
+      ],
+      steps: "Milch, Whey-Protein, Banane und ein paar Eiswürfel in den Mixer geben und cremig mixen." },
+    { name: "Rindersteak mit Ofenkartoffeln", category: "Abendessen", portions: 1, time: 35,
+      nutrition: { kcal: 650, carbs: 62, protein: 56, fat: 20 },
+      ingredients: [
+        { name: "Rindersteak (Rumpsteak)", grams: 200 },
+        { name: "Kartoffeln", grams: 300 },
+        { name: "Brokkoli", grams: 150 },
+        "1 EL Olivenöl", "Rosmarin, Salz, Pfeffer"
+      ],
+      steps: "Kartoffeln würfeln, mit Olivenöl und Rosmarin vermengen und im Ofen bei 200 °C ca. 25 Min. rösten. Steak salzen, pfeffern und in einer heißen Pfanne von jeder Seite 2–3 Min. braten, kurz ruhen lassen. Brokkoli dämpfen und alles zusammen anrichten." },
   ];
 
   // Erkennt die mitgelieferten Beispiel-Meals: gleicher Name UND unveränderte Zubereitung.
@@ -1065,9 +1146,9 @@
     if (!data || !Array.isArray(data.recipes)) {
       const recipes = SEED.map(r => Object.assign({ id: uid() }, r));
       const plans = {}; plans[curKey] = makeEmptyPlan();
-      return { recipes, plans, plan: plans[curKey], viewWeek: "cur", tab: "plan", goal: null };
+      return { recipes, plans, plan: plans[curKey], viewWeek: "cur", tab: "plan", goal: null, shares: [] };
     }
-    const recipes = data.recipes;
+    const recipes = sanitizeRecipes(data.recipes);
     const plans = {};
     if (data.plans && typeof data.plans === "object") {                 // neues Format
       Object.keys(data.plans).forEach(k => { plans[k] = normalizePlan(data.plans[k], recipes); });
@@ -1076,14 +1157,31 @@
     }
     pruneWeeks(plans);
     if (!plans[curKey]) plans[curKey] = makeEmptyPlan();
-    return { recipes, plans, plan: plans[curKey], viewWeek: "cur", tab: data.tab === "recipes" ? "recipes" : "plan", goal: data.goal || null };
+    return { recipes, plans, plan: plans[curKey], viewWeek: "cur", tab: data.tab === "recipes" ? "recipes" : "plan", goal: data.goal || null, shares: Array.isArray(data.shares) ? data.shares : [] };
   }
 
+  // Schlaegt das lokale Speichern fehl (Speicher voll, privater Modus), darf das NICHT
+  // stillschweigend passieren: der Nutzer legt sonst weiter Meals an, die beim naechsten
+  // Laden alle weg sind. Einmalig warnen statt bei jedem Tastendruck.
+  let storageFullWarned = false;
   function save() {
-    try { localStorage.setItem(STORE_KEY, JSON.stringify({ recipes: state.recipes, plans: state.plans, tab: state.tab, goal: state.goal || null })); }
-    catch (e) { /* storage full / unavailable */ }
+    try {
+      localStorage.setItem(STORE_KEY, JSON.stringify({ recipes: state.recipes, plans: state.plans, tab: state.tab, goal: state.goal || null, shares: state.shares || [] }));
+      storageFullWarned = false;
+    } catch (e) {
+      if (!storageFullWarned) {
+        storageFullWarned = true;
+        toast(syncUid
+          ? "Der Speicher dieses Geräts ist voll – deine Änderungen liegen nur noch in der Cloud. Entferne ein paar Meal-Fotos."
+          : "Der Speicher dieses Geräts ist voll – neue Änderungen gehen beim Neuladen verloren. Entferne ein paar Meal-Fotos.");
+      }
+    }
     scheduleCloudPush();
   }
+
+  // Vereinigung zweier ID-Listen (Teilen-Links) ohne Duplikate – wird beim Zusammenfuehren
+  // von lokalem und Cloud-Stand gebraucht, damit kein Link "verschwindet".
+  function unionIds(a, b) { return Array.from(new Set([].concat(a || [], b || []))); }
 
   // ---------- Cloud-Sync (Firestore) ----------
   let syncUid = null, syncUnsub = null, pushTimer = null, lastPushedJSON = null;
@@ -1109,18 +1207,35 @@
     return {};
   }
   // Vergleichs-Signatur ohne "tab" – ein reiner Tab-Wechsel soll keinen Cloud-Write auslösen.
-  function dataJSON(d) { return JSON.stringify({ recipes: (d && d.recipes) || [], plans: plansField(d), goal: (d && d.goal) || null }); }
+  function dataJSON(d) { return JSON.stringify({ recipes: (d && d.recipes) || [], plans: plansField(d), goal: (d && d.goal) || null, shares: (d && d.shares) || [] }); }
 
   function scheduleCloudPush() {
     if (!syncUid) return;
     clearTimeout(pushTimer);
     pushTimer = setTimeout(pushNow, 800);
   }
+  // Firestore laesst pro Dokument hoechstens 1 MiB zu. Weil alle Meals samt ihren
+  // Fotos in EINEM Dokument liegen, ist die Grenze mit ein paar Dutzend eigenen
+  // Bildern erreicht. Ohne Vorabpruefung wuerde jeder Push kommentarlos scheitern und
+  // als "offline" erscheinen - der Sync waere dauerhaft tot, ohne dass es jemand merkt.
+  const CLOUD_DOC_MAX = 900000;      // Sicherheitsabstand zur 1-MiB-Grenze
+  let cloudTooBigWarned = false;
   async function pushNow() {
     if (!syncUid || !window.CloudSync) return;
-    const d = { recipes: state.recipes, plans: state.plans, tab: state.tab, goal: state.goal || null };
+    const d = { recipes: state.recipes, plans: state.plans, tab: state.tab, goal: state.goal || null, shares: state.shares || [] };
     const j = dataJSON(d);
     if (j === lastPushedJSON) return;
+    if (j.length > CLOUD_DOC_MAX) {
+      // Nicht als "offline" ausgeben: das Problem loest sich nicht von selbst und
+      // verlangt eine Entscheidung des Nutzers (Fotos entfernen).
+      setSyncStatus("toobig");
+      if (!cloudTooBigWarned) {
+        cloudTooBigWarned = true;
+        toast("Deine Meals mit Fotos sind zu groß für die Cloud – neue Änderungen bleiben nur auf diesem Gerät. Entferne ein paar Fotos, dann läuft der Sync weiter.");
+      }
+      return;
+    }
+    cloudTooBigWarned = false;
     lastPushedJSON = j;
     setSyncStatus("saving");
     try {
@@ -1134,9 +1249,10 @@
     if (pending || !data || !Array.isArray(data.recipes)) return; // eigener Schreibvorgang → ignorieren
     const j = dataJSON(data);
     if (j === dataJSON(state) || j === lastPushedJSON) return; // nichts Neues
-    state.recipes = data.recipes;
-    state.plans = pruneWeeks(normalizePlans(plansField(data), data.recipes));
+    state.recipes = sanitizeRecipes(data.recipes);
+    state.plans = pruneWeeks(normalizePlans(plansField(data), state.recipes));
     state.goal = data.goal || null;
+    state.shares = unionIds(state.shares, data.shares); // nie einen Link verlieren, der nur lokal bekannt ist
     setViewWeek(state.viewWeek);
     lastPushedJSON = j;
     save(); render();
@@ -1156,13 +1272,14 @@
         // Beispiel-Meals werden NICHT in ein bestehendes Konto übernommen – sie sind nur
         // ein einmaliges Willkommens-Angebot für neue Konten.
         const map = {};
-        remote.recipes.forEach(r => { if (r && r.id) map[r.id] = r; });
+        sanitizeRecipes(remote.recipes).forEach(r => { if (r && r.id) map[r.id] = r; });
         state.recipes.forEach(r => { if (r && r.id && !map[r.id] && !isExample(r)) map[r.id] = r; });
         state.recipes = Object.values(map);
         const rp = pruneWeeks(normalizePlans(plansField(remote), state.recipes));
         Object.keys(state.plans).forEach(k => { if (!rp[k]) rp[k] = state.plans[k]; }); // lokale Wochen behalten, die es remote nicht gibt
         state.plans = pruneWeeks(rp);
         if (remote.goal) state.goal = remote.goal; // Ziel aus der Cloud übernehmen; lokales bleibt, falls remote keins hat
+        state.shares = unionIds(state.shares, remote.shares);
         setViewWeek(state.viewWeek);
         // state.tab bewusst NICHT aus remote uebernehmen — Start bleibt immer der Wochenplan
         save(); render();
@@ -1181,7 +1298,7 @@
     setSyncStatus("off");
   }
 
-  // Sync-Status für die Anzeige: "off" | "connecting" | "synced" | "saving" | "offline"
+  // Sync-Status für die Anzeige: "off" | "connecting" | "synced" | "saving" | "offline" | "toobig"
   let syncStatus = "off";
   function syncStatusInfo() {
     return ({
@@ -1189,6 +1306,7 @@
       synced:     { cls: "ok",   label: "Synchronisiert" },
       saving:     { cls: "busy", label: "Wird gespeichert …" },
       offline:    { cls: "err",  label: "Offline – lokal gespeichert" },
+      toobig:     { cls: "err",  label: "Zu viele Fotos für die Cloud" },
       off:        { cls: "off",  label: "Nicht verbunden" }
     })[syncStatus] || { cls: "off", label: "Nicht verbunden" };
   }
@@ -1208,8 +1326,40 @@
   }
 
   function uid() { return "r" + Math.random().toString(36).slice(2, 9) + Date.now().toString(36).slice(-3); }
-  function getRecipe(id) { return state.recipes.find(r => r.id === id) || null; }
+  // Waehrend eines Render-Durchlaufs wird sehr oft nach Rezepten gesucht (jeder Slot,
+  // jede Tagesbilanz). Der Index macht daraus einen Map-Zugriff statt einer linearen
+  // Suche. Er lebt bewusst NUR innerhalb von render(): dort mutiert state.recipes nicht,
+  // ausserhalb koennte er veralten - deshalb faellt getRecipe dann auf die Suche zurueck.
+  let recipeIndex = null;
+  function getRecipe(id) {
+    if (recipeIndex) return recipeIndex.get(id) || null;
+    return state.recipes.find(r => r.id === id) || null;
+  }
   function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;" }[c])); }
+
+  // ---------- Sicherheitsnetz fuer fremde Bilddaten ----------
+  // Ein Meal-Foto landet als data-URL direkt in einem src="..."-Attribut. Kaeme dort
+  // ein fremder String an (etwa aus einem geteilten Plan), koennte er mit einem
+  // Anfuehrungszeichen aus dem Attribut ausbrechen und eigenes JavaScript einschleusen.
+  // Deshalb hier die strenge Gegenprobe: NUR echte Base64-Bild-URLs passieren, und
+  // deren Alphabet (A-Z a-z 0-9 + / =) enthaelt per Definition kein Anfuehrungszeichen.
+  // Angewendet an JEDEM Punkt, an dem Rezepte von aussen hereinkommen (localStorage,
+  // Cloud, geteilte Plaene) - eigene Uploads erzeugt canvas.toDataURL ohnehin sauber.
+  // Regex bewusst IM Funktionskoerper: safeImage wird schon von load() gebraucht, das
+  // weit oben laeuft - eine const hier oben waere zu diesem Zeitpunkt noch nicht
+  // initialisiert (Temporal Dead Zone) und wuerde das ganze Script abbrechen.
+  function safeImage(v) {
+    return (typeof v === "string" && /^data:image\/(jpeg|jpg|png|gif|webp);base64,[A-Za-z0-9+/]+=*$/.test(v)) ? v : null;
+  }
+  // Ein komplettes Rezept aus fremder Quelle auf unbedenkliche Werte bringen.
+  function sanitizeRecipe(r) {
+    if (!r || typeof r !== "object") return null;
+    const out = Object.assign({}, r);
+    out.image = safeImage(r.image);
+    if (Array.isArray(r.ingredients)) out.ingredients = r.ingredients.map(sanitizeIng).filter(Boolean);
+    return out;
+  }
+  function sanitizeRecipes(list) { return Array.isArray(list) ? list.map(sanitizeRecipe).filter(Boolean) : []; }
 
   // ---------- Strich-Icons fuer die Kategorie-Ueberschriften ----------
   // Nur diese sechs werden gebraucht; Meals selbst zeigen immer ein Foto (siehe photoFor).
@@ -1304,7 +1454,7 @@
     [["curry","dal","dhal","tikka","masala","korma","madras","vindaloo"], "curry"],
     [["pizza","flammkuchen","calzone","focaccia"], "pizza"],
     [["spaghetti","pasta","bolognese","penne","lasagne","tagliatelle","carbonara","spätzle","spaetzle","gnocchi","tortellini","ravioli","maccheroni","makkaroni","nudel","cannelloni","fusilli","farfalle","rigatoni","linguine","pesto","arrabbiata","schupfnudel","maultasche","auflauf","gratin","überbacken","ueberbacken","moussaka"], "pasta"],
-    [["porridge","haferbrei","haferflocken","müsli","muesli","granola","overnight","oats","joghurt","quark","chia"], "porridge"],
+    [["porridge","haferbrei","haferflocken","müsli","muesli","granola","overnight","oats","joghurt","quark","magerquark","topfen","hüttenkäse","huettenkaese","chia"], "porridge"],
     [["pfannkuchen","eierkuchen","pancake","crêpe","crepe","kaiserschmarrn","waffel","waffle","french toast","arme ritter"], "pancake"],
     [["omelett","rührei","ruehrei","spiegelei","frittata","shakshuka","eier","pochiert","benedict"], "egg"],
     [["salat","salad","caprese","bowl","rohkost","coleslaw","antipasti","ratatouille","ofengemüse","ofengemuese","gemüse","gemuese","veggie","vegetarisch","vegan","spinat","brokkoli","spargel","grünkohl","gruenkohl","zucchini","aubergine"], "salad"],
@@ -1324,7 +1474,13 @@
   const CAT_PHOTO = { "Frühstück": "porridge", "Snack": "fruit", "Dessert": "cake", "Beilage": "salad" };
   // Liefert IMMER ein Foto: eigenes Bild > Stichwort-Treffer > Kategorie > neutrales Bild.
   function photoFor(r) {
-    if (r.image) return r.image;                    // eigenes Foto hat Vorrang
+    // Zweite Verteidigungslinie unmittelbar vor der Ausgabe: der Wert landet gleich
+    // ungeschuetzt in einem src="..."-Attribut. Die Eingangspunkte filtern bereits
+    // (sanitizeRecipes/safeImage), aber ein kuenftig neu hinzukommender Pfad, der
+    // r.image setzt, waere hier automatisch mitabgesichert - statt die Luecke erneut
+    // zu oeffnen. Greift nur fuer eigene Fotos; die mitgelieferten PHOTOS sind
+    // Konstanten aus dieser Datei und brauchen keine Pruefung.
+    if (r.image) { const ok = safeImage(r.image); if (ok) return ok; }
     const n = (r.name || "").toLowerCase();
     for (const [keys, key] of PHOTO_RULES) { if (keys.some(k => n.includes(k)) && PHOTOS[key]) return PHOTOS[key]; }
     const byCat = CAT_PHOTO[r.category];
@@ -1361,13 +1517,23 @@
   const view = document.getElementById("view");
 
   function render() {
-    document.getElementById("recipe-count").textContent = state.recipes.length;
-    document.querySelectorAll(".tab").forEach(t => t.setAttribute("aria-selected", String(t.dataset.tab === state.tab)));
-    if (state.tab === "rechner") renderRechner();
-    else if (state.tab === "recipes") renderRecipes();
-    else if (state.tab === "fortschritt") renderFortschrittSoon();
-    else if (state.tab === "pro") renderProSoon();
-    else renderPlan();
+    hoveredCardId = null; // Kartenknoten werden gleich ersetzt - alte Hover-Referenz waere sonst veraltet
+    // Caches nur fuer die Dauer dieses Durchlaufs aufspannen; finally stellt sicher,
+    // dass sie auch bei einem Fehler nicht als veraltete Kopie zurueckbleiben.
+    recipeIndex = new Map(state.recipes.map(r => [r.id, r]));
+    dayNutCache = {};
+    try {
+      document.getElementById("recipe-count").textContent = state.recipes.length;
+      document.querySelectorAll(".tab").forEach(t => t.setAttribute("aria-selected", String(t.dataset.tab === state.tab)));
+      if (state.tab === "rechner") renderRechner();
+      else if (state.tab === "recipes") renderRecipes();
+      else if (state.tab === "fortschritt") renderFortschrittSoon();
+      else if (state.tab === "pro") renderProSoon();
+      else renderPlan();
+    } finally {
+      recipeIndex = null;
+      dayNutCache = null;
+    }
     save();
   }
 
@@ -1382,7 +1548,17 @@
   function nutParse(v) { const n = parseFloat(String(v == null ? "" : v).replace(",", ".")); return isFinite(n) && n >= 0 ? n : null; }
   function recipeNut(r) { const n = (r && r.nutrition) || {}; return { kcal: nutNum(n.kcal), carbs: nutNum(n.carbs), protein: nutNum(n.protein), fat: nutNum(n.fat) }; }
   function addNut(a, b) { return { kcal: a.kcal + b.kcal, carbs: a.carbs + b.carbs, protein: a.protein + b.protein, fat: a.fat + b.fat }; }
-  function dayNut(dayKey) { let s = { kcal: 0, carbs: 0, protein: 0, fat: 0 }; MEALS.forEach(m => { state.plan[dayKey][m.key].forEach(rid => { const r = getRecipe(rid); if (r) s = addNut(s, recipeNut(r)); }); }); return s; }
+  // Die Tagesbilanz wird pro Render mehrfach gebraucht (Wochensumme, Ringe, Tageskarte,
+  // Zaehlung der geplanten Tage). Innerhalb eines Durchlaufs aendert sich der Plan nicht,
+  // also genuegt eine Berechnung je Tag - der Cache wird in render() gesetzt und geleert.
+  let dayNutCache = null;
+  function dayNut(dayKey) {
+    if (dayNutCache && dayNutCache[dayKey]) return dayNutCache[dayKey];
+    let s = { kcal: 0, carbs: 0, protein: 0, fat: 0 };
+    MEALS.forEach(m => { state.plan[dayKey][m.key].forEach(rid => { const r = getRecipe(rid); if (r) s = addNut(s, recipeNut(r)); }); });
+    if (dayNutCache) dayNutCache[dayKey] = s;
+    return s;
+  }
   function weekNut() { let s = { kcal: 0, carbs: 0, protein: 0, fat: 0 }; DAYS.forEach(d => { s = addNut(s, dayNut(d.key)); }); return s; }
   function hasNut(s) { return !!(s.kcal || s.carbs || s.protein || s.fat); }
   function nfmt(n) { return Math.round(n).toLocaleString("de-DE"); }
@@ -1733,7 +1909,7 @@
         items.forEach(r => {
         const ing = (r.ingredients || []);
         const ingPreview = ing.length ? esc(ing.slice(0, 4).map(ingLabel).join(" · ")) + (ing.length > 4 ? " …" : "") : "Keine Zutaten hinterlegt";
-        html += `<article class="rcard">
+        html += `<article class="rcard" data-rid="${r.id}">
           ${cardImageHtml(r)}
           <button class="imgadd" data-action="photo" data-id="${r.id}" title="Eigenes Foto für dieses Meal wählen" aria-label="Eigenes Foto für dieses Meal wählen">+</button>
           <div class="rbody">
@@ -1762,20 +1938,56 @@
 
   // ---------- Modal ----------
   const modalRoot = document.getElementById("modal-root");
-  function closeModal() { modalRoot.innerHTML = ""; document.removeEventListener("keydown", escClose); }
-  function escClose(e) { if (e.key === "Escape") closeModal(); }
+  const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+  let lastFocused = null;   // Element, das den Dialog geoeffnet hat
+  function closeModal() {
+    modalRoot.innerHTML = "";
+    document.removeEventListener("keydown", modalKeys);
+    // Fokus dorthin zurueckgeben, wo er herkam - sonst landet er beim Schliessen am
+    // Seitenanfang und Tastaturnutzer verlieren ihre Position.
+    if (lastFocused && document.contains(lastFocused)) { try { lastFocused.focus(); } catch (e) {} }
+    lastFocused = null;
+  }
+  // Escape schliesst; Tab bleibt im Dialog gefangen (sonst wandert der Fokus hinter
+  // den Dialog in die Seite, die visuell gar nicht bedienbar ist).
+  function modalKeys(e) {
+    if (e.key === "Escape") { closeModal(); return; }
+    if (e.key !== "Tab") return;
+    const box = modalRoot.querySelector(".modal");
+    if (!box) return;
+    const items = Array.prototype.filter.call(box.querySelectorAll(FOCUSABLE), el => el.offsetParent !== null);
+    if (!items.length) return;
+    const first = items[0], last = items[items.length - 1];
+    if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+  }
   function openModal(node) {
+    lastFocused = document.activeElement;
     const overlay = document.createElement("div");
     overlay.className = "overlay";
     overlay.addEventListener("mousedown", e => { if (e.target === overlay) closeModal(); });
     overlay.appendChild(node);
     modalRoot.innerHTML = "";
     modalRoot.appendChild(overlay);
-    document.addEventListener("keydown", escClose);
+    document.addEventListener("keydown", modalKeys);
     const focusEl = node.querySelector("input, textarea, select, button");
     if (focusEl) setTimeout(() => focusEl.focus(), 30);
   }
   function el(html) { const t = document.createElement("template"); t.innerHTML = html.trim(); return t.content.firstElementChild; }
+
+  // Einheitlicher Ja/Nein-Dialog. Ersetzt fuenf fast identische Modal-Bloecke; damit
+  // sehen Bestaetigungen ueberall gleich aus und verhalten sich gleich.
+  //   title, text (oder bodyHtml fuer Auszeichnungen), okLabel, onConfirm
+  function confirmModal(o) {
+    const node = el(`<div class="modal" role="dialog" aria-modal="true" aria-label="${esc(o.title)}">
+      <div class="modal-head"><h3>${esc(o.title)}</h3><button class="btn ghost sm" data-close aria-label="Schließen">✕</button></div>
+      <div class="modal-body">${o.bodyHtml || `<p style="margin:0">${esc(o.text || "")}</p>`}</div>
+      <div class="modal-foot"><button class="btn ghost" data-close>Abbrechen</button><button class="btn danger" data-confirm>${esc(o.okLabel || "Löschen")}</button></div>
+    </div>`);
+    node.querySelectorAll("[data-close]").forEach(b => b.addEventListener("click", closeModal));
+    node.querySelector("[data-confirm]").addEventListener("click", () => { closeModal(); o.onConfirm(); });
+    openModal(node);
+  }
 
   // ---------- Recipe form ----------
   function openRecipeForm(id) {
@@ -2207,38 +2419,46 @@
   }
 
   // ---------- Actions ----------
+  // Meal-Verweise aus ALLEN gespeicherten Wochen entfernen, nicht nur aus der gerade
+  // angezeigten - sonst bleibt in der anderen Woche ein Verweis auf ein geloeschtes
+  // Meal stehen (faellt erst beim naechsten Laden weg, weil normalizePlan aufraeumt).
+  function dropRecipeIds(idSet) {
+    Object.keys(state.plans).forEach(key => {
+      const p = state.plans[key];
+      if (!p) return;
+      DAYS.forEach(d => MEALS.forEach(m => {
+        if (p[d.key] && p[d.key][m.key]) p[d.key][m.key] = asIdList(p[d.key][m.key]).filter(x => !idSet.has(x));
+      }));
+    });
+  }
   function deleteRecipe(id) {
     const r = getRecipe(id); if (!r) return;
-    const node = el(`<div class="modal" role="dialog" aria-modal="true">
-      <div class="modal-head"><h3>Meal löschen?</h3><button class="btn ghost sm" data-close>✕</button></div>
-      <div class="modal-body"><p style="margin:0">„<strong>${esc(r.name)}</strong>" wird dauerhaft entfernt und aus dem Wochenplan gelöscht.</p></div>
-      <div class="modal-foot"><button class="btn ghost" data-close>Abbrechen</button><button class="btn danger" data-confirm>Löschen</button></div>
-    </div>`);
-    node.querySelectorAll("[data-close]").forEach(b => b.addEventListener("click", closeModal));
-    node.querySelector("[data-confirm]").addEventListener("click", () => {
-      state.recipes = state.recipes.filter(x => x.id !== id);
-      DAYS.forEach(d => MEALS.forEach(m => { state.plan[d.key][m.key] = state.plan[d.key][m.key].filter(x => x !== id); }));
-      closeModal(); render(); toast("Meal gelöscht");
+    confirmModal({
+      title: "Meal löschen?",
+      bodyHtml: `<p style="margin:0">„<strong>${esc(r.name)}</strong>" wird dauerhaft entfernt und aus dem Wochenplan gelöscht.</p>`,
+      okLabel: "Löschen",
+      onConfirm: () => {
+        state.recipes = state.recipes.filter(x => x.id !== id);
+        dropRecipeIds(new Set([id]));
+        render(); toast("Meal gelöscht");
+      }
     });
-    openModal(node);
   }
 
   function clearExamples() {
     const exIds = new Set(state.recipes.filter(isExample).map(r => r.id));
     if (!exIds.size) { toast("Keine Beispiele vorhanden"); return; }
     const n = exIds.size;
-    const node = el(`<div class="modal" role="dialog" aria-modal="true">
-      <div class="modal-head"><h3>Beispiele entfernen?</h3><button class="btn ghost sm" data-close>✕</button></div>
-      <div class="modal-body"><p style="margin:0">Die ${n} mitgelieferten Beispiel-Meal${n === 1 ? "" : "s"} werden entfernt und aus dem Wochenplan gelöscht. Deine eigenen Meals bleiben erhalten.</p></div>
-      <div class="modal-foot"><button class="btn ghost" data-close>Abbrechen</button><button class="btn danger" data-confirm>Entfernen</button></div>
-    </div>`);
-    node.querySelectorAll("[data-close]").forEach(b => b.addEventListener("click", closeModal));
-    node.querySelector("[data-confirm]").addEventListener("click", () => {
-      state.recipes = state.recipes.filter(r => !exIds.has(r.id));
-      DAYS.forEach(d => MEALS.forEach(m => { state.plan[d.key][m.key] = asIdList(state.plan[d.key][m.key]).filter(x => !exIds.has(x)); }));
-      closeModal(); render(); toast("Beispiele entfernt");
+    confirmModal({
+      title: "Beispiele entfernen?",
+      text: `Die ${n} mitgelieferten Beispiel-Meal${n === 1 ? "" : "s"} werden entfernt und aus dem Wochenplan gelöscht. Deine eigenen Meals bleiben erhalten.`,
+      okLabel: "Entfernen",
+      onConfirm: () => {
+        state.recipes = state.recipes.filter(r => !exIds.has(r.id));
+        dropRecipeIds(exIds);
+        render(); toast("Beispiele entfernt");
+      }
     });
-    openModal(node);
   }
 
   // ---------- Rechtstexte (Impressum / Datenschutz) ----------
@@ -2295,7 +2515,7 @@
       <h4>2. Hosting der Website (GitHub Pages)</h4>
       <p>Diese Website wird bei GitHub Pages gehostet, einem Dienst der GitHub, Inc., 88 Colin P. Kelly Jr. Street, San Francisco, CA 94107, USA. Beim Aufruf der Seite verarbeitet GitHub technisch notwendige Zugriffsdaten (z. B. deine IP-Adresse), um die Seite auszuliefern und deren Sicherheit zu gewährleisten. Rechtsgrundlage ist unser berechtigtes Interesse an einer sicheren und effizienten Bereitstellung (Art. 6 Abs. 1 lit. f DSGVO). Dabei kann eine Übermittlung in die USA erfolgen. Weitere Infos: <a href="https://docs.github.com/de/site-policy/privacy-policies/github-general-privacy-statement" target="_blank" rel="noopener">GitHub Privacy Statement</a>.</p>
       <h4>3. Welche Daten wir verarbeiten</h4>
-      <p>Bei der Registrierung: <strong>Name und E-Mail-Adresse</strong>. Bei Nutzung der App: die von dir angelegten <strong>Wochenpläne, Meals/Rezepte und ggf. Fotos</strong> sowie – falls du den Kalorienrechner nutzt und ein Ergebnis speicherst – <strong>Geschlecht, Alter, Größe, Gewicht, Aktivitätsniveau und Ziel</strong> (Details siehe Ziffer 3a). Diese Daten speichern wir, damit du dich anmelden und deine Planung geräteübergreifend nutzen kannst.</p>
+      <p>Bei der Registrierung: <strong>Name und E-Mail-Adresse</strong>. Bei Nutzung der App: die von dir angelegten <strong>Wochenpläne, Meals/Rezepte und ggf. Fotos</strong> sowie – falls du den Kalorienrechner nutzt und ein Ergebnis speicherst – <strong>Geschlecht, Alter, Größe, Gewicht, Aktivitätsniveau und Ziel</strong> (Details siehe Ziffer 3a). Erstellst du Teilen-Links, merkt sich dein Konto zusätzlich deren <strong>Kennungen</strong> (keine Klardaten, siehe Ziffer 8), damit sie beim Löschen deines Kontos zugeordnet und mitentfernt werden können. Diese Daten speichern wir, damit du dich anmelden und deine Planung geräteübergreifend nutzen kannst.</p>
       <h4>3a. Kalorienrechner</h4>
       <p>Nutzt du den Kalorienrechner, gibst du freiwillig <strong>Geschlecht, Alter, Größe und Gewicht</strong> sowie dein Aktivitätsniveau und Ziel ein. Daraus berechnet die App direkt in deinem Browser deinen Tagesbedarf, deine Makronährstoffe und deinen BMI. Speicherst du das Ergebnis („Als mein Ziel speichern"), werden diese Angaben wie deine übrigen Plandaten lokal und – bei Cloud-Nutzung – in deinem Nutzerkonto (Cloud Firestore, siehe Ziffer 5) gespeichert, um sie geräteübergreifend verfügbar zu halten. Rechtsgrundlage ist wie unter Ziffer 4 die Erfüllung des Nutzungsvertrags (Art. 6 Abs. 1 lit. b DSGVO). Die Eingabe ist freiwillig; lässt du den Rechner ungenutzt, entstehen keine dieser Daten. Diese Angaben werden <strong>nicht</strong> in Teilen-Links aufgenommen (siehe Ziffer 8).</p>
       <h4>4. Zweck &amp; Rechtsgrundlage</h4>
@@ -2323,10 +2543,15 @@
       <h4>9. Verschlüsselung</h4>
       <p>Die Übertragung der Daten erfolgt verschlüsselt über HTTPS (SSL/TLS).</p>
       <h4>10. Speicherdauer &amp; Löschung</h4>
-      <p>Wir speichern deine Daten, solange dein Konto besteht. Du kannst die Löschung deines Kontos und deiner Daten
-         jederzeit per E-Mail an uns verlangen. Das schließt geteilte Wochenpläne ein: Jeder geteilte Plan ist intern
-         deinem Konto zugeordnet, sodass er auf Verlangen gefunden und gelöscht werden kann. Geteilte Pläne bleiben
-         bis dahin abrufbar – auch dann, wenn du den Link nicht mehr weitergibst.</p>
+      <p>Wir speichern deine Daten, solange dein Konto besteht. Über „Konto löschen" im Profilmenü kannst du dein
+         Konto und deine Daten <strong>jederzeit selbst und sofort</strong> unwiderruflich löschen; alternativ kannst
+         du die Löschung auch per E-Mail an uns verlangen. Das schließt die geteilten Wochenpläne ein, die deinem
+         Konto zugeordnet und diesem Gerät bzw. deinem synchronisierten Konto zum Löschzeitpunkt bekannt sind – sie
+         werden automatisch mitentfernt; schlägt das für einen einzelnen Link fehl, bricht die Löschung ab, statt
+         einen Rest zurückzulassen, und du kannst sie erneut anstoßen. Bis zur Löschung bleiben geteilte Pläne
+         abrufbar – auch dann, wenn du den Link nicht mehr weitergibst. Nutzt du die App ohne Cloud-Konto (lokales
+         Profil), kannst du ebenso über „Alle Daten löschen" im Profilmenü sämtliche auf diesem Gerät gespeicherten
+         Daten sofort entfernen.</p>
       <h4>11. Deine Rechte</h4>
       <p>Du hast das Recht auf Auskunft, Berichtigung, Löschung, Einschränkung der Verarbeitung, Datenübertragbarkeit und Widerspruch. Soweit eine Verarbeitung auf deiner Einwilligung beruht, kannst du diese jederzeit mit Wirkung für die Zukunft widerrufen. Zudem hast du ein Beschwerderecht bei einer Datenschutz-Aufsichtsbehörde – für uns zuständig ist das Bayerische Landesamt für Datenschutzaufsicht (BayLDA), Promenade 18, 91522 Ansbach.</p>
       <h4>12. Automatisierte Entscheidungsfindung</h4>
@@ -2335,20 +2560,23 @@
 
   function clearWeek() {
     if (planStats() === 0) { toast("Der Plan ist schon leer"); return; }
-    const node = el(`<div class="modal" role="dialog" aria-modal="true">
-      <div class="modal-head"><h3>Woche leeren?</h3><button class="btn ghost sm" data-close>✕</button></div>
-      <div class="modal-body"><p style="margin:0">Alle Zuordnungen im Wochenplan werden entfernt. Deine Meals bleiben erhalten.</p></div>
-      <div class="modal-foot"><button class="btn ghost" data-close>Abbrechen</button><button class="btn danger" data-confirm>Woche leeren</button></div>
-    </div>`);
-    node.querySelectorAll("[data-close]").forEach(b => b.addEventListener("click", closeModal));
-    node.querySelector("[data-confirm]").addEventListener("click", () => { DAYS.forEach(d => MEALS.forEach(m => { state.plan[d.key][m.key] = []; })); save(); closeModal(); render(); toast(state.viewWeek === "next" ? "Nächste Woche geleert" : "Woche geleert"); });
-    openModal(node);
+    confirmModal({
+      title: "Woche leeren?",
+      text: "Alle Zuordnungen im Wochenplan werden entfernt. Deine Meals bleiben erhalten.",
+      okLabel: "Woche leeren",
+      onConfirm: () => {
+        DAYS.forEach(d => MEALS.forEach(m => { state.plan[d.key][m.key] = []; }));
+        save(); render();
+        toast(state.viewWeek === "next" ? "Nächste Woche geleert" : "Woche geleert");
+      }
+    });
   }
 
   // ---------- Toast ----------
   let toastTimer = null;
   function toast(msg) {
     const t = document.getElementById("toast");
+    if (!t) return;   // wird u. a. aus save() gerufen, das sehr frueh laufen kann
     t.textContent = msg; t.classList.add("show");
     clearTimeout(toastTimer);
     toastTimer = setTimeout(() => t.classList.remove("show"), 1900);
@@ -2448,6 +2676,58 @@
     state.plan[td][tm].push(moving);
     render();
     toast("Verschoben");
+  });
+
+  // ---------- Foto per Drag & Drop auf eine Meal-Karte (Desktop) ----------
+  // Eigene Listener auf demselben "view" wie oben - stoeren sich nicht, weil
+  // ".rcard" (Meals-Tab) und ".slot" (Plan-Tab) nie gleichzeitig im DOM stehen.
+  function isFileDrag(e) { return !!(e.dataTransfer && e.dataTransfer.types && Array.prototype.includes.call(e.dataTransfer.types, "Files")); }
+  view.addEventListener("dragover", e => {
+    const card = e.target.closest(".rcard[data-rid]");
+    if (!card || !isFileDrag(e)) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "copy";
+    card.classList.add("dragover-file");
+  });
+  view.addEventListener("dragleave", e => {
+    const card = e.target.closest(".rcard[data-rid]");
+    if (card && !card.contains(e.relatedTarget)) card.classList.remove("dragover-file");
+  });
+  view.addEventListener("drop", e => {
+    const card = e.target.closest(".rcard[data-rid]");
+    if (!card || !isFileDrag(e)) return;
+    e.preventDefault();
+    card.classList.remove("dragover-file");
+    const f = e.dataTransfer.files && e.dataTransfer.files[0];
+    const r = getRecipe(card.dataset.rid);
+    if (!f || !r) return;
+    if (!/^image\//.test(f.type)) { toast("Bitte ein Bild verwenden"); return; }
+    readAndDownscale(f, dataUrl => { if (dataUrl) { r.image = dataUrl; save(); render(); toast("Foto übernommen"); } else toast("Bild konnte nicht geladen werden"); });
+  });
+
+  // ---------- Foto per Strg+V auf eine Meal-Karte einfuegen ----------
+  // Gleiches Ziel-Prinzip wie beim Datei-Drop: die gerade mit der Maus ueberfahrene
+  // Karte. Ohne Hover-Ziel passiert nichts - kein Rateraten, welches Meal gemeint ist.
+  let hoveredCardId = null;
+  view.addEventListener("mouseover", e => {
+    const card = e.target.closest(".rcard[data-rid]");
+    if (card) hoveredCardId = card.dataset.rid;
+  });
+  view.addEventListener("mouseout", e => {
+    const card = e.target.closest(".rcard[data-rid]");
+    if (card && !card.contains(e.relatedTarget)) hoveredCardId = null;
+  });
+  document.addEventListener("paste", e => {
+    if (state.tab !== "recipes" || !hoveredCardId) return;
+    const items = e.clipboardData && e.clipboardData.items;
+    if (!items) return;
+    let file = null;
+    for (const it of items) { if (it.type && it.type.indexOf("image/") === 0) { file = it.getAsFile(); break; } }
+    if (!file) return; // kein Bild im Clipboard - normales Text-Einfuegen (z. B. im Namensfeld) unangetastet lassen
+    e.preventDefault();
+    const r = getRecipe(hoveredCardId);
+    if (!r) return;
+    readAndDownscale(file, dataUrl => { if (dataUrl) { r.image = dataUrl; save(); render(); toast("Foto eingefügt"); } else toast("Bild konnte nicht geladen werden"); });
   });
 
   // ---------- Profil (lokal) & Teilen ----------
@@ -2550,16 +2830,20 @@
     if (open) { open.remove(); return; }
     const wrap = document.querySelector(".profile");
     if (!wrap) return;
+    const delLabel = authMode === "cloud" ? "Konto löschen" : "Alle Daten löschen";
     const menu = el(`<div class="menu" role="menu">
       <div class="mhead"><div class="mn">${esc(profile.name)}</div><div class="me">${esc(profile.email)}</div></div>
       <button data-mi="edit" role="menuitem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>Profil bearbeiten</button>
       <hr>
       <button data-mi="signout" class="danger" role="menuitem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5M21 12H9"/></svg>Abmelden</button>
+      <hr>
+      <button data-mi="delete" class="destructive" role="menuitem">${ACT_ICONS.del}${delLabel}</button>
     </div>`);
     wrap.appendChild(menu);
     updateSyncUI();
     menu.querySelector("[data-mi='edit']").addEventListener("click", () => { menu.remove(); openProfileForm(); });
     menu.querySelector("[data-mi='signout']").addEventListener("click", () => { menu.remove(); signOut(); });
+    menu.querySelector("[data-mi='delete']").addEventListener("click", () => { menu.remove(); authMode === "cloud" ? deleteAccountFlow() : deleteLocalDataFlow(); });
     setTimeout(() => {
       const off = e => { if (!menu.contains(e.target) && !e.target.closest(".profile-btn")) { menu.remove(); document.removeEventListener("mousedown", off); } };
       document.addEventListener("mousedown", off);
@@ -2588,11 +2872,29 @@
     const bmr = 10 * w + 6.25 * h - 5 * age + (inp.sex === "m" ? 5 : -161);
     const tdee = bmr * activityFactor(inp.activity);
     const adjust = paceAdjust(inp.mode, inp.pace);
-    const kcal = Math.max(1000, Math.round(tdee + adjust));
-    const protein = Math.round(2.0 * w);
-    const fat = Math.round(kcal * 0.25 / 9);
-    const carbs = Math.max(0, Math.round((kcal - protein * 4 - fat * 9) / 4));
+    // Untergrenze geschlechtsabhaengig: die gaengigen Empfehlungen liegen bei 1200 kcal
+    // (weiblich) bzw. 1500 kcal (maennlich). Ein pauschales Minimum von 1000 lag
+    // darunter und haette bei kleinen Personen mit starkem Defizit gegriffen.
+    const floor = inp.sex === "m" ? 1500 : 1200;
+    const kcal = Math.max(floor, Math.round(tdee + adjust));
     const bmi = Math.round(w / ((h / 100) * (h / 100)) * 10) / 10;
+    // Protein NICHT am tatsaechlichen Gewicht bemessen: bei starkem Uebergewicht
+    // ergaeben 2 g/kg absurde Mengen (150 kg -> 300 g). Fett speichert kein Eiweiss,
+    // deshalb wird ab einem BMI von 27 auf das Gewicht bei BMI 27 gedeckelt.
+    // Bewusst 27 und nicht 25: Muskuloese Sportler liegen oft bei BMI 25-27, ohne
+    // Fett anzusetzen - die sollen ihre vollen 2 g/kg behalten.
+    const refW = bmi > 27 ? 27 * (h / 100) * (h / 100) : w;
+    const protein = Math.round(2.0 * refW);
+    let fat = Math.round(kcal * 0.25 / 9);
+    let carbs = Math.round((kcal - protein * 4 - fat * 9) / 4);
+    if (carbs < 0) {
+      // Protein + Fett allein sprengen schon das Kalorienziel. Fett zurueckfahren
+      // (Protein schuetzt im Defizit die Muskulatur), aber nicht unter das
+      // essentielle Minimum von rund 0,5 g/kg.
+      const minFat = Math.round(0.5 * refW);
+      fat = Math.max(minFat, Math.round((kcal - protein * 4) / 9));
+      carbs = Math.max(0, Math.round((kcal - protein * 4 - fat * 9) / 4));
+    }
     return { sex: inp.sex, age: age, height: h, weight: w, activity: inp.activity, mode: inp.mode, pace: inp.pace,
              bmr: Math.round(bmr), tdee: Math.round(tdee), adjust: adjust, kcal: kcal,
              protein: protein, carbs: carbs, fat: fat, bmi: bmi, updatedAt: Date.now() };
@@ -2636,7 +2938,8 @@
           </div>
         </div>
         <div class="calc-result" id="c-result"></div>
-      </div>`;
+      </div>
+      <p class="calc-note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></svg><span>Alle Werte sind <strong>rechnerische Richtwerte</strong> nach der Mifflin-St-Jeor-Formel und ersetzen keine ärztliche oder ernährungsmedizinische Beratung. Bei Erkrankungen, in Schwangerschaft und Stillzeit oder vor einer stärkeren Ernährungsumstellung sprich bitte mit einer Ärztin oder einem Arzt.</span></p>`;
 
     const paceField = view.querySelector("#c-pace-field");
     const paceSeg = view.querySelector('.seg[data-seg="pace"]');
@@ -2826,7 +3129,8 @@
       "auth/popup-blocked": "Das Anmeldefenster wurde blockiert. Erlaube Pop-ups und versuche es erneut.",
       "auth/network-request-failed": "Keine Verbindung. Bitte prüfe dein Internet.",
       "auth/operation-not-allowed": "Diese Anmeldeart ist in Firebase noch nicht aktiviert.",
-      "auth/unauthorized-domain": "Diese Domain ist in Firebase nicht freigegeben (Authentication → Settings → Authorized domains)."
+      "auth/unauthorized-domain": "Diese Domain ist in Firebase nicht freigegeben (Authentication → Settings → Authorized domains).",
+      "auth/requires-recent-login": "Aus Sicherheitsgründen musst du dich für diese Aktion erneut bestätigen."
     };
     return map[c] || ("Es ist ein Fehler aufgetreten." + (c ? " (" + c + ")" : ""));
   }
@@ -3003,24 +3307,100 @@
   }
 
   function signOut() {
-    const node = el(`<div class="modal" role="dialog" aria-modal="true">
-      <div class="modal-head"><h3>Abmelden?</h3><button class="btn ghost sm" data-close>✕</button></div>
-      <div class="modal-body"><p style="margin:0">Dein Plan und deine Meals bleiben auf diesem Gerät gespeichert. Du kannst dich jederzeit wieder anmelden.</p></div>
-      <div class="modal-foot"><button class="btn ghost" data-close>Abbrechen</button><button class="btn danger" data-confirm>Abmelden</button></div>
+    confirmModal({
+      title: "Abmelden?",
+      text: "Dein Plan und deine Meals bleiben auf diesem Gerät gespeichert. Du kannst dich jederzeit wieder anmelden.",
+      okLabel: "Abmelden",
+      onConfirm: () => {
+        if (authMode === "cloud" && window.CloudAuth && window.CloudAuth.logout) {
+          cloudMode = "login";
+          stopCloudSync();
+          window.CloudAuth.logout().catch(() => {});
+          // onAuthStateChanged rendert danach die Anmeldung
+        } else {
+          profile = null; saveProfile(); renderAuthLocal();
+        }
+      }
+    });
+  }
+
+  // Alles, was dieses Geraet ueber den Nutzer lokal gespeichert hat, entfernen –
+  // gemeinsame Endstrecke fuer beide Loesch-Wege (Cloud-Konto und lokales Profil).
+  function wipeLocalData() {
+    [STORE_KEY, PROFILE_KEY, LAST_KEY].forEach(k => { try { localStorage.removeItem(k); } catch (e) {} });
+  }
+
+  // Konto vollstaendig loeschen (Cloud-Konten, Art. 17 DSGVO / Datenschutz Ziffer 10).
+  // Loescht zusaetzlich alle bekannten Teilen-Links, damit kein Snapshot verwaist zurueckbleibt.
+  function deleteAccountFlow() {
+    const user = (window.CloudAuth && window.CloudAuth.current) ? window.CloudAuth.current() : null;
+    const pid = user && user.providerData[0] ? user.providerData[0].providerId : null;
+    const isPw = pid === "password";
+    const n = (state.shares || []).length;
+    const node = el(`<div class="modal" role="dialog" aria-modal="true" aria-label="Konto löschen">
+      <div class="modal-head"><h3>Konto endgültig löschen?</h3><button class="btn ghost sm" data-close>✕</button></div>
+      <div class="modal-body">
+        <p style="margin:0 0 12px">Dein Konto, dein Wochenplan, deine Meals und dein gespeichertes Ziel werden unwiderruflich gelöscht${n ? ` – ebenso ${n} geteilte${n === 1 ? "r" : ""} Wochenplan-Link${n === 1 ? "" : "e"}` : ""}. Das kann nicht rückgängig gemacht werden.</p>
+        ${isPw
+          ? `<div class="field"><label for="del-pw">Passwort zur Bestätigung</label><input type="password" id="del-pw" autocomplete="current-password" placeholder="Dein Passwort"></div>`
+          : `<p class="share-hint" style="margin:0">Zur Bestätigung öffnet sich gleich noch einmal das Anmeldefenster.</p>`}
+        <p class="auth-err" id="del-err" role="alert"></p>
+      </div>
+      <div class="modal-foot"><button class="btn ghost" data-close>Abbrechen</button><button class="btn danger" data-confirm>Konto löschen</button></div>
     </div>`);
     node.querySelectorAll("[data-close]").forEach(b => b.addEventListener("click", closeModal));
-    node.querySelector("[data-confirm]").addEventListener("click", () => {
-      closeModal();
-      if (authMode === "cloud" && window.CloudAuth && window.CloudAuth.logout) {
-        cloudMode = "login";
+    const btn = node.querySelector("[data-confirm]");
+    const err = node.querySelector("#del-err");
+    btn.addEventListener("click", async () => {
+      const pw = isPw ? node.querySelector("#del-pw").value : null;
+      if (isPw && !pw) { err.textContent = "Bitte gib dein Passwort ein."; return; }
+      err.textContent = "";
+      btn.disabled = true; btn.textContent = "Wird gelöscht …";
+      try {
+        await window.CloudAuth.deleteAccount({ password: pw, shareIds: state.shares || [] });
+        closeModal();
         stopCloudSync();
-        window.CloudAuth.logout().catch(() => {});
-        // onAuthStateChanged rendert danach die Anmeldung
-      } else {
-        profile = null; saveProfile(); renderAuthLocal();
+        wipeLocalData();
+        toast("Konto und Daten wurden gelöscht");
+        // Neu laden statt nur weiterzurendern: wipeLocalData() leert nur den
+        // localStorage, nicht das im Speicher gehaltene state-Objekt (Rezepte, Plan,
+        // Ziel) - ohne Reload wuerde ein direkt danach neu registriertes Konto genau
+        // diese stehengebliebenen Daten wieder hochsynchronisieren, als waeren sie neu.
+        setTimeout(() => location.reload(), 900);
+      } catch (e) {
+        if (e && e.dataAlreadyDeleted) {
+          // Firestore-Daten sind schon weg, nur das Loeschen des Login-Zugangs selbst
+          // ist fehlgeschlagen. Sauber abmelden statt einen Zwischenzustand zu zeigen -
+          // ein erneuter Versuch nach dem Wieder-Anmelden schliesst die Loeschung ab.
+          closeModal();
+          stopCloudSync();
+          wipeLocalData();
+          try { window.CloudAuth.logout(); } catch (er) {}
+          toast("Deine Daten wurden gelöscht. Bitte melde dich einmal neu an und wiederhole „Konto löschen“, um auch den Zugang zu entfernen.");
+          setTimeout(() => location.reload(), 900);
+          return;
+        }
+        err.textContent = cloudErrMsg(e);
+        btn.disabled = false; btn.textContent = "Konto löschen";
       }
     });
     openModal(node);
+  }
+
+  // Lokales Profil (kein Cloud-Konto): Daten liegen ausschliesslich auf diesem Geraet,
+  // daher genuegt das Leeren des lokalen Speichers.
+  function deleteLocalDataFlow() {
+    confirmModal({
+      title: "Alle Daten löschen?",
+      text: "Dein Profil, dein Wochenplan, deine Meals und dein gespeichertes Ziel auf diesem Gerät werden unwiderruflich gelöscht. Das kann nicht rückgängig gemacht werden.",
+      okLabel: "Alle Daten löschen",
+      onConfirm: () => {
+        wipeLocalData();
+        profile = null;
+        toast("Alle Daten wurden gelöscht");
+        setTimeout(() => location.reload(), 900); // kurz sichtbar, dann sauberer Neustart
+      }
+    });
   }
 
   function sharePayload() {
@@ -3198,7 +3578,11 @@
             if (JSON.stringify(payload).length > 900000) { note.className = "share-mini warn"; note.textContent = "Dein Plan ist mit den eigenen Fotos zu groß zum Teilen (über 0,9 MB). Nutze den PDF-Export."; return; }
             btn.disabled = true; btn.textContent = "Erstelle Link …"; note.className = "share-mini"; note.textContent = "";
             const id = shareId();
-            window.CloudShare.publish(id, payload).then(() => { createdUrl = location.origin + location.pathname + "?s=" + id; paint(); })
+            window.CloudShare.publish(id, payload).then(() => {
+              // ID merken, damit "Konto löschen" den Snapshot spaeter wiederfindet.
+              if (!(state.shares || []).includes(id)) { state.shares = (state.shares || []).concat(id); save(); }
+              createdUrl = location.origin + location.pathname + "?s=" + id; paint();
+            })
               .catch(() => { btn.disabled = false; btn.textContent = "Teilen-Link erstellen"; note.className = "share-mini warn"; note.textContent = "Link konnte nicht erstellt werden. Bist du online und angemeldet?"; });
           });
         }
@@ -3238,7 +3622,9 @@
       if (existing) { idMap[ir.id] = existing.id; return; }
       const nid = uid();
       idMap[ir.id] = nid;
-      state.recipes.push({ id: nid, name: ir.name, category: ir.category || "Gericht", nutrition: (ir.nutrition && typeof ir.nutrition === "object") ? ir.nutrition : null, ingredients: Array.isArray(ir.ingredients) ? ir.ingredients.map(sanitizeIng).filter(Boolean) : [], steps: ir.steps || "", image: ir.image || null });
+      // image bewusst durch safeImage(): der Snapshot stammt von einer fremden Person,
+      // und nur hier kaeme ein manipulierter Wert ungeprueft in den eigenen Bestand.
+      state.recipes.push({ id: nid, name: ir.name, category: ir.category || "Gericht", nutrition: (ir.nutrition && typeof ir.nutrition === "object") ? ir.nutrition : null, ingredients: Array.isArray(ir.ingredients) ? ir.ingredients.map(sanitizeIng).filter(Boolean) : [], steps: ir.steps || "", image: safeImage(ir.image) });
       added++;
     });
     if (takePlan && data.plan) {
