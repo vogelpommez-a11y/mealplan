@@ -151,10 +151,49 @@
   .tab.tab-pro:hover { background: color-mix(in srgb, var(--accent-solid) 86%, #000); color: var(--accent-contrast); }
   .tab.tab-pro[aria-selected="true"] { background: var(--accent-solid); color: var(--accent-contrast); box-shadow: var(--shadow); }
   .tab.tab-pro .soon-tag { background: var(--accent-contrast); color: var(--accent-solid); }
+  .tab .ts { display: none; } /* Kurzform der Beschriftung, nur im unteren Balken */
+  /* Handy: aus der Reiterleiste im Kopf wird eine feste Leiste am unteren Rand, wie in
+     nativen Apps. Grund ist gemessen, nicht geschaetzt: die fuenf Reiter brauchen
+     742 px, bei 360 px Bildschirmbreite stehen 332 px zur Verfuegung — bisher waren
+     sie also nur durch seitliches Schieben erreichbar, ohne jeden Hinweis darauf.
+     Die Leiste wird per CSS versetzt und NICHT im Markup verdoppelt: sonst muessten
+     zwei Leisten synchron gehalten werden (aria-selected, Meal-Zaehler). */
   @media (max-width: 680px) {
-    .tabs { overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
-    .tabs::-webkit-scrollbar { display: none; }
-    .tab { flex: none; white-space: nowrap; }
+    /* display:contents statt none — none wuerde die (fixierte) Leiste mit ausblenden */
+    .navrow { display: contents; }
+    .tabs {
+      position: fixed; left: 0; right: 0; bottom: 0; z-index: 50;
+      display: grid; grid-template-columns: repeat(5, 1fr); gap: 0;
+      border: 0; border-top: 1px solid var(--border); border-radius: 0;
+      background: color-mix(in srgb, var(--surface) 94%, var(--bg));
+      backdrop-filter: blur(10px);
+      padding: 5px 3px calc(5px + env(safe-area-inset-bottom, 0px)); /* iPhone-Homebar */
+      box-shadow: 0 -6px 20px rgba(0, 0, 0, .18);
+    }
+    .tab {
+      flex: none; flex-direction: column; gap: 3px; padding: 6px 2px 5px;
+      font-size: 10.5px; font-weight: 600; line-height: 1.1; min-height: 46px;
+      justify-content: center; position: relative; border-radius: 10px; white-space: nowrap;
+    }
+    .tab svg { width: 20px; height: 20px; }
+    .tab .tl { display: none; }
+    .tab .ts { display: inline; }
+    .tab[aria-selected="true"] {
+      background: color-mix(in srgb, var(--accent) 12%, transparent);
+      color: var(--accent); box-shadow: none;
+    }
+    /* Kein Vollflaechen-Rot im Balken — als Kachel unter dem Daumen waere das zu laut.
+       Pro bleibt ueber die Akzentfarbe erkennbar. */
+    .tab.tab-pro, .tab.tab-pro:hover, .tab.tab-pro[aria-selected="true"] {
+      background: transparent; color: var(--accent); box-shadow: none;
+    }
+    .tab.tab-pro[aria-selected="true"] { background: color-mix(in srgb, var(--accent) 12%, transparent); }
+    /* Zaehler als Eckmarke am Symbol — neben dem Text ist in 66 px kein Platz */
+    .tab .count { position: absolute; top: 1px; left: 50%; margin-left: 5px; font-size: 9.5px; padding: 0 5px; }
+    .tab .soon-tag { display: none; } /* passt nicht; die Seite selbst sagt „Bald“ */
+    /* Platz schaffen, sonst verdeckt die Leiste Inhalt und Fusszeile */
+    .app { padding-bottom: calc(56px + env(safe-area-inset-bottom, 0px)); }
+    #toast { bottom: calc(72px + env(safe-area-inset-bottom, 0px)); }
   }
 
   main { padding: 28px 0 80px; }
@@ -226,6 +265,10 @@
   .week { display: grid; grid-template-columns: repeat(auto-fill, minmax(232px, 1fr)); gap: 16px; }
   .day {
     position: relative;
+    /* Abfragebasis fuer die Makro-Beschriftung weiter unten: entscheidend ist die
+       Breite der KARTE, nicht die des Bildschirms. Auf dem Handy ist die Karte
+       naemlich breiter (~320 px, volle Breite) als im Desktop-Raster (~232 px). */
+    container-type: inline-size;
     background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
     box-shadow: var(--shadow); overflow: hidden; display: flex; flex-direction: column;
     transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease;
@@ -394,6 +437,19 @@
   .dg-macros .gm-n { font-weight: 700; }
   .dg-macros .gm-n::before { margin-right: 4px; }
   .dg-macros .gm-v { font-size: 11px; }
+  /* Standard: Kurzform. Der Punkt vor dem Kuerzel bleibt in beiden Faellen. */
+  .dg-macros .lbl-l { display: none; }
+  /* Ab 300 px Kartenbreite ist Platz fuer die vollen Namen — das trifft in der Praxis
+     genau die Handy-Ansicht (Karte ~320 px, volle Breite) und nicht das Desktop-Raster
+     (Karte ~232 px). Gemessen, nicht geschaetzt: bei 360 px Seitenbreite hat eine
+     Makro-Spalte 90 px, „Kohlenhydrate“ braucht 78 px.
+     Nebeneinander passt es dort trotzdem nicht, deshalb Name ueber Wert (+ ~15 px Hoehe).
+     Browser ohne Container-Queries zeigen einfach die Kurzform weiter — kein Bruch. */
+  @container (min-width: 300px) {
+    .dg-macros .lbl-s { display: none; }
+    .dg-macros .lbl-l { display: inline; }
+    .dg-macros .gm-r { flex-direction: column; align-items: flex-start; gap: 2px; }
+  }
   @media (max-width: 560px) { .wn-tiles { grid-template-columns: repeat(2, 1fr); } }
 
   /* Nährwerte in der Rezept-Detailansicht */
@@ -889,6 +945,11 @@
   @media (max-width: 720px) {
     .head-inner { gap: 10px 12px; padding: 11px 0; }
     .brand h1 { font-size: 19px; }
+  }
+  /* Nur das schmale Band zwischen Handy-Balken (bis 680) und voller Breite: hier bleibt
+     die Leiste im Kopf und darf scrollen. Bewusst mit min-width abgegrenzt — ohne das
+     ueberschriebe dieser Block das Innenmass des unteren Balkens. */
+  @media (min-width: 681px) and (max-width: 720px) {
     .tabs { width: 100%; overflow-x: auto; scrollbar-width: none; }
     .tabs::-webkit-scrollbar { display: none; }
     .tab { flex: none; white-space: nowrap; padding: 9px 12px; }
@@ -945,23 +1006,23 @@
         <div class="tabs" role="tablist" aria-label="Ansicht wählen">
           <button class="tab" role="tab" id="tab-plan" data-action="tab" data-tab="plan" aria-selected="true">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/></svg>
-            Wochenplan
+            <span class="tl">Wochenplan</span><span class="ts">Plan</span>
           </button>
           <button class="tab" role="tab" id="tab-recipes" data-action="tab" data-tab="recipes" aria-selected="false">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4v16a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1V7l-4-3H5a1 1 0 0 0-1 1Z"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>
-            Meals <span class="count" id="recipe-count">0</span>
+            <span class="tl">Meals</span><span class="ts">Meals</span> <span class="count" id="recipe-count">0</span>
           </button>
           <button class="tab" role="tab" id="tab-fortschritt" data-action="tab" data-tab="fortschritt" aria-selected="false">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 7-7"/><path d="M14 7h7v7"/></svg>
-            Fortschritt <span class="soon-tag">Bald</span>
+            <span class="tl">Fortschritt</span><span class="ts">Verlauf</span> <span class="soon-tag">Bald</span>
           </button>
           <button class="tab" role="tab" id="tab-rechner" data-action="tab" data-tab="rechner" aria-selected="false">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 7h8"/><path d="M8 11h.01M12 11h.01M16 11h.01M8 15h.01M12 15h.01M16 15h.01"/></svg>
-            Kalorienrechner
+            <span class="tl">Kalorienrechner</span><span class="ts">Rechner</span>
           </button>
           <button class="tab tab-pro" role="tab" id="tab-pro" data-action="tab" data-tab="pro" aria-selected="false">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 4 7v5c0 4.5 3.2 7.9 8 9 4.8-1.1 8-4.5 8-9V7l-8-4Z"/></svg>
-            Pro <span class="soon-tag">Bald</span>
+            <span class="tl">Pro</span><span class="ts">Pro</span> <span class="soon-tag">Bald</span>
           </button>
         </div>
       </div>
@@ -2169,6 +2230,8 @@
   //   dir        – "min" = Untergrenze (Protein), sonst Obergrenze
   //   rest       – true = Restzeile immer, "attention" = nur wenn nicht im Ziel, false = nie
   //   unitInline – Einheit in der Zahlenzeile zeigen
+  //   short      – Kurzform der Beschriftung; wird auf schmalen Karten statt `label`
+  //                gezeigt (siehe Container-Query zu .dg-macros)
   function goalBarHtml(o) {
     if (!o.ziel) return "";
     const rest = Math.round(o.ziel - o.ist);
@@ -2186,8 +2249,14 @@
       : o.dir === "min"
         ? `noch ${nfmt(rest)} ${o.unit}`
         : `${nfmt(rest)} ${o.unit} übrig`;
+    // Mit `short` stehen beide Beschriftungen im Markup; welche sichtbar ist, entscheidet
+    // der Container-Query nach Kartenbreite. Vorlesesoftware bekommt ueber aria-label
+    // immer den vollen Namen, egal welche Variante gerade zu sehen ist.
+    const lbl = o.short
+      ? `<span class="lbl-s">${o.short}</span><span class="lbl-l">${o.label}</span>`
+      : o.label;
     return `<div class="gm ${o.cls || ""} is-${st}">
-        <div class="gm-r"><span class="gm-n">${o.label}</span><span class="gm-v"><b>${nfmt(o.ist)}</b>&thinsp;/&thinsp;${nfmt(o.ziel)}${o.unitInline && o.unit ? " " + o.unit : ""}</span></div>
+        <div class="gm-r"><span class="gm-n">${lbl}</span><span class="gm-v"><b>${nfmt(o.ist)}</b>&thinsp;/&thinsp;${nfmt(o.ziel)}${o.unitInline && o.unit ? " " + o.unit : ""}</span></div>
         <div class="gm-bar" role="progressbar" aria-valuenow="${Math.round(o.ist)}" aria-valuemin="0" aria-valuemax="${Math.round(o.ziel)}" aria-label="${esc(o.label)}"><span style="width:${pct}%"></span></div>
         ${showRest ? `<div class="gm-left">${restTxt}</div>` : ""}
       </div>`;
@@ -2199,9 +2268,9 @@
     return `<div class="day-goals">
         ${goalBarHtml({ label: "Kalorien", ist: s.kcal, ziel: t.kcal, unit: "kcal", rest: true, unitInline: true })}
         <div class="dg-macros">
-          ${goalBarHtml({ label: "P", ist: s.protein, ziel: t.protein, unit: "g", cls: "t-prot", dir: "min", rest: "attention", unitInline: true })}
-          ${goalBarHtml({ label: "KH", ist: s.carbs, ziel: t.carbs, unit: "g", cls: "t-carb", rest: "attention", unitInline: true })}
-          ${goalBarHtml({ label: "F", ist: s.fat, ziel: t.fat, unit: "g", cls: "t-fat", rest: "attention", unitInline: true })}
+          ${goalBarHtml({ label: "Proteine", short: "P", ist: s.protein, ziel: t.protein, unit: "g", cls: "t-prot", dir: "min", rest: "attention", unitInline: true })}
+          ${goalBarHtml({ label: "Kohlenhydrate", short: "KH", ist: s.carbs, ziel: t.carbs, unit: "g", cls: "t-carb", rest: "attention", unitInline: true })}
+          ${goalBarHtml({ label: "Fett", short: "F", ist: s.fat, ziel: t.fat, unit: "g", cls: "t-fat", rest: "attention", unitInline: true })}
         </div>
       </div>`;
   }
