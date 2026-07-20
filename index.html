@@ -451,6 +451,8 @@
   /* Die offene Vorschlagsliste hebt ihre Zeile ueber die darunterliegenden Zeilen */
   .ing-row.ac-open { z-index: 5; }
   .ing-top { display: flex; align-items: center; gap: 8px; }
+  /* Name und Barcode-Knopf bleiben zusammen — auch wenn die Zeile mobil umbricht */
+  .ing-nrow { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; }
   .ing-nwrap { position: relative; flex: 1; min-width: 0; }
   .ing-nwrap .ing-name { width: 100%; }
   /* Zutaten-Suche: Vorschlaege aus der eingebauten Naehrwerttabelle (ARIA-Listbox) */
@@ -476,7 +478,7 @@
   .ing-ic { flex: none; width: 34px; height: 34px; border: 1px solid var(--border); background: var(--surface); color: var(--text-muted); border-radius: 9px; cursor: pointer; display: grid; place-items: center; font-size: 14px; line-height: 1; padding: 0; transition: color .12s, border-color .12s, background-color .12s; }
   .ing-ic svg { width: 17px; height: 17px; }
   .ing-ic:disabled { opacity: .5; cursor: default; }
-  .ing-scan:hover, .ing-barcode:hover { color: var(--accent); border-color: var(--accent); }
+  .ing-barcode:hover { color: var(--accent); border-color: var(--accent); }
   .ing-ic.busy { animation: syncpulse 1s ease-in-out infinite; }
   .ing-del:hover { color: var(--accent); border-color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, var(--surface)); }
   .ing-nut { margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--border); }
@@ -833,7 +835,7 @@
     .imgprev { width: 100%; }
     /* Zutaten: Name volle Breite, Menge + Buttons in zweiter Zeile */
     .ing-top { flex-wrap: wrap; }
-    .ing-nwrap { flex: 1 0 100%; }
+    .ing-nrow { flex: 1 0 100%; }
     .ing-gwrap { flex: 1; width: auto; }
     .ing-ic { width: 40px; height: 40px; }
     .ing-nut input { padding: 8px 4px; }
@@ -1675,7 +1677,8 @@
   // Handgepflegte Rundwerte fuer GENERISCHE Lebensmittel — bewusst keine Markenprodukte
   // und bewusst kein Auszug aus einer fremden Datenbank: ein solcher Auszug waere eine
   // abgeleitete Datenbank und zoege deren Lizenzbedingungen nach sich (z. B. ODbL bei
-  // Open Food Facts). Markenprodukte deckt weiterhin der Foto-Scan ab.
+  // Open Food Facts). Markenprodukte deckt stattdessen der Barcode-Scan ab, der einzelne
+  // Produkte live abfragt statt Daten auf Vorrat mitzuliefern.
   // Format: [Name, kcal, KH, Protein, Fett, Einheit?, Synonyme?] je 100 g bzw. 100 ml,
   // bei Einheit "st" je Stueck. Fehlende Einheit = "g". Die Synonyme stehen nur im
   // Suchschluessel, nicht in der Anzeige — sie fangen ab, wonach Leute tatsaechlich
@@ -1851,48 +1854,12 @@
     return a.concat(b, c).slice(0, max || 8);
   }
 
-  // ---------- Naehrwert-Scan (Tesseract.js — OCR laeuft komplett im Browser) ----------
-  // Die Bibliothek wird erst beim ersten Scan vom CDN geladen (die Seite bleibt schlank);
-  // das Foto selbst verlaesst das Geraet nicht.
-  let tessLoad = null;
-  function loadTesseract() {
-    if (window.Tesseract) return Promise.resolve();
-    if (!tessLoad) tessLoad = new Promise((resolve, reject) => {
-      const s = document.createElement("script");
-      s.src = "https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js";
-      s.onload = resolve;
-      s.onerror = () => { tessLoad = null; s.remove(); reject(new Error("tesseract-load")); };
-      document.head.appendChild(s);
-    });
-    return tessLoad;
-  }
-  // Zieht kcal/KH/P/F aus dem OCR-Text einer Naehrwerttabelle (Angaben pro 100 g).
-  // Nimmt jeweils die erste Fundstelle — in EU-Tabellen steht der Gesamtwert vor
-  // "davon gesaettigte …"/"davon Zucker".
-  function parseNutritionText(raw) {
-    const t = " " + String(raw || "").toLowerCase().replace(/\s+/g, " ") + " ";
-    const num = m => (m ? parseFloat(m[1].replace(",", ".")) : null);
-    let kcal = num(t.match(/(\d+(?:[.,]\d+)?)\s*kcal/));
-    if (kcal == null) kcal = num(t.match(/kcal\D{0,8}?(\d+(?:[.,]\d+)?)/));
-    const fat = num(t.match(/fett\D{0,10}?(\d+(?:[.,]\d+)?)/));
-    const carbs = num(t.match(/kohle?n?hydrate\D{0,12}?(\d+(?:[.,]\d+)?)/));
-    const protein = num(t.match(/(?:eiwei[a-zäöüß]{0,3}|protein)\D{0,10}?(\d+(?:[.,]\d+)?)/));
-    if (kcal == null && carbs == null && protein == null && fat == null) return null;
-    return { kcal: kcal, carbs: carbs, protein: protein, fat: fat };
-  }
-  async function ocrNutrition(file) {
-    await loadTesseract();
-    const res = await window.Tesseract.recognize(file, "deu");
-    return parseNutritionText(res && res.data ? res.data.text : "");
-  }
-
   // ---------- Barcode-Scan (Open Food Facts) ----------
   // Foto vom Barcode -> Code lokal aus dem Bild lesen -> Nummer bei Open Food Facts
   // nachschlagen. Nur die Barcode-NUMMER verlaesst das Geraet, nie das Foto selbst.
   // Erkennung bevorzugt die native BarcodeDetector-API (Chrome/Edge/Android); die
   // gibt es auf iOS/Safari nicht - dort laedt loadZXing() beim ersten Scan eine
-  // Open-Source-Bibliothek vom CDN nach, exakt das gleiche Nachlade-Muster wie bei
-  // loadTesseract() oben (und im Datenschutz-Absatz 7a schon erklaert).
+  // Open-Source-Bibliothek vom CDN nach (im Datenschutz-Absatz 7a erklaert).
   let zxLoad = null;
   function loadZXing() {
     if (window.ZXing) return Promise.resolve();
@@ -1928,9 +1895,22 @@
   // Open Food Facts liefert die Naehrwerte unabhaengig von fest/fluessig immer unter
   // den "_100g"-Feldern (auch Cola steht unter carbohydrates_100g, nicht _100ml) -
   // deshalb reicht hier eine feste Basis, ohne nach Einheit zu unterscheiden.
+  // Produktname: die deutschen Felder zuerst — "product_name" ist bei hier ueblichen
+  // Produkten haeufig die englische oder kleingeschriebene Fassung ("coca-cola"),
+  // waehrend "product_name_de" den Namen liefert, den man auf der Packung liest.
+  // Beschreibende generic_name-Felder als letzter Ausweg, damit lieber "Nuss-Nugat-Creme"
+  // im Feld steht als gar nichts. Laenge auf das maxlength des Eingabefelds gekappt.
+  function offName(p) {
+    const cands = [p.product_name_de, p.product_name, p.generic_name_de, p.generic_name];
+    for (let i = 0; i < cands.length; i++) {
+      const s = String(cands[i] == null ? "" : cands[i]).replace(/\s+/g, " ").trim();
+      if (s) return s.slice(0, 60);
+    }
+    return null;
+  }
   async function fetchOffNutrition(code) {
     const url = "https://world.openfoodfacts.org/api/v2/product/" + encodeURIComponent(code) +
-      ".json?fields=product_name,nutriments,status";
+      ".json?fields=product_name,product_name_de,generic_name,generic_name_de,nutriments,status";
     const res = await fetch(url);
     if (!res.ok) throw new Error("off-http-" + res.status);
     const data = await res.json();
@@ -1940,7 +1920,7 @@
     const kcal = num(n["energy-kcal_100g"]), carbs = num(n.carbohydrates_100g),
           protein = num(n.proteins_100g), fat = num(n.fat_100g);
     if (kcal == null && carbs == null && protein == null && fat == null) return null;
-    return { name: data.product.product_name || null, kcal, carbs, protein, fat };
+    return { name: offName(data.product), kcal, carbs, protein, fat };
   }
 
   // Live-Scanner: Kamerabild statt Einzelfoto — man haelt den Barcode in den Rahmen,
@@ -2453,10 +2433,9 @@
           </div>
         </div>
         <div class="field">
-          <label>Zutaten <span class="hint">– Namen tippen und aus der Vorschlagsliste wählen, dann sind die Nährwerte schon drin; das Barcode-Symbol sucht ein Markenprodukt online, 📷 liest dessen Nährwerttabelle</span></label>
+          <label>Zutaten <span class="hint">– Namen tippen und aus der Vorschlagsliste wählen, dann sind die Nährwerte schon drin; bei Markenprodukten den Barcode scannen, das füllt auch den Namen</span></label>
           <div id="f-ings"></div>
           <button type="button" class="btn sm" id="f-ing-add">+ Weitere Zutat</button>
-          <input type="file" id="f-ing-scan" accept="image/*" capture="environment" class="visually-hidden">
           <input type="file" id="f-ing-barcode" accept="image/*" capture="environment" class="visually-hidden">
         </div>
         <div class="field">
@@ -2472,14 +2451,11 @@
 
     node.querySelectorAll("[data-close]").forEach(b => b.addEventListener("click", closeModal));
 
-    // --- Zutaten-Zeilen (Name, Menge, Naehrwerte pro 100 g, Foto-Scan) ---
+    // --- Zutaten-Zeilen (Name, Menge, Naehrwerte pro 100 g, Barcode-Scan) ---
     const ingsWrap = node.querySelector("#f-ings");
-    const scanInput = node.querySelector("#f-ing-scan");
     const barcodeInput = node.querySelector("#f-ing-barcode");
-    let scanRow = null;
     let barcodeRow = null;
     let acSeq = 0; // laufende Nummer fuer die Listbox-IDs (aria-activedescendant)
-    const camSvg = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1Z"/><circle cx="12" cy="14" r="3.4"/></svg>`;
     const barcodeSvg = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round"><path stroke-width="2.4" d="M4 5v14"/><path stroke-width="1.4" d="M7.5 5v14"/><path stroke-width="2.4" d="M10.5 5v14"/><path stroke-width="1.4" d="M13.5 5v14"/><path stroke-width="1.4" d="M16.5 5v14"/><path stroke-width="2.4" d="M19.5 5v14"/></svg>`;
     function nutVal(v) { return v != null ? esc(v) : ""; }
     function addIngRow(o) {
@@ -2487,9 +2463,12 @@
       const u = ingUnit(o);
       const row = el(`<div class="ing-row">
         <div class="ing-top">
-          <span class="ing-nwrap">
-            <input type="text" class="ing-name" placeholder="Zutat, z. B. Reis" maxlength="60" autocomplete="off" value="${esc(o.name || "")}">
-            <ul class="ing-ac" role="listbox" hidden></ul>
+          <span class="ing-nrow">
+            <span class="ing-nwrap">
+              <input type="text" class="ing-name" placeholder="Zutat, z. B. Reis" maxlength="60" autocomplete="off" value="${esc(o.name || "")}">
+              <ul class="ing-ac" role="listbox" hidden></ul>
+            </span>
+            <button type="button" class="ing-ic ing-barcode" title="Barcode mit der Kamera scannen – füllt Name und Nährwerte automatisch">${barcodeSvg}</button>
           </span>
           <span class="ing-gwrap">
             <input type="number" class="ing-g" min="0" max="99999" step="1" placeholder="200" value="${nutVal(o.grams)}" aria-label="Menge">
@@ -2499,8 +2478,6 @@
               <option value="st"${u === "st" ? " selected" : ""}>Stück</option>
             </select>
           </span>
-          <button type="button" class="ing-ic ing-barcode" title="Barcode mit der Kamera scannen – sucht das Produkt bei Open Food Facts">${barcodeSvg}</button>
-          <button type="button" class="ing-ic ing-scan" title="Nährwerttabelle fotografieren – füllt Kcal/KH/P/F automatisch">${camSvg}</button>
           <button type="button" class="ing-ic ing-del" title="Zutat entfernen">✕</button>
         </div>
         <div class="ing-nut">
@@ -2514,17 +2491,16 @@
         </div>
       </div>`);
       row.querySelector(".ing-del").addEventListener("click", () => { row.remove(); updateMacroSum(); });
-      row.querySelector(".ing-scan").addEventListener("click", () => { scanRow = row; scanInput.click(); });
       row.querySelector(".ing-barcode").addEventListener("click", () => { startBarcodeFlow(row); });
       row.querySelectorAll("input").forEach(inp => inp.addEventListener("input", updateMacroSum));
       // Einheit umstellen: Bezugsgroesse der Naehrwerte mitziehen. Bei Stueck gibt es keine
-      // 100er-Basis — dann ist auch der Tabellen-Scan (liest pro 100 g) sinnlos und faellt weg.
+      // 100er-Basis — der Barcode-Scan liefert aber immer pro 100 g und stellt die Einheit
+      // ohnehin selbst zurueck, deshalb bleibt der Knopf hier sichtbar.
       const uSel = row.querySelector(".ing-u");
       function syncUnit() {
         const cur = uSel.value;
         row.querySelector(".ing-per").textContent = ingPerLabel(cur);
         row.querySelector(".ing-g").placeholder = cur === "st" ? "2" : "200";
-        row.querySelector(".ing-scan").hidden = cur === "st";
         updateMacroSum();
       }
       uSel.addEventListener("change", syncUnit);
@@ -2656,30 +2632,6 @@
     (r && r.ingredients && r.ingredients.length ? r.ingredients : [null]).forEach(i => addIngRow(i == null ? null : ingObj(i)));
     updateMacroSum();
     node.querySelector("#f-ing-add").addEventListener("click", () => { addIngRow().querySelector(".ing-name").focus(); });
-    // Foto-Scan: Naehrwerttabelle → OCR im Browser → Felder der Zeile fuellen
-    scanInput.addEventListener("change", async () => {
-      const f = scanInput.files && scanInput.files[0];
-      scanInput.value = "";
-      const row = scanRow; scanRow = null;
-      if (!f || !row || !row.isConnected) return;
-      const btn = row.querySelector(".ing-scan");
-      btn.disabled = true; btn.classList.add("busy");
-      toast("Lese Nährwerttabelle …");
-      try {
-        const vals = await ocrNutrition(f);
-        if (!vals) { toast("Keine Nährwerte erkannt – bitte manuell eintragen"); return; }
-        if (vals.kcal != null) row.querySelector(".ing-kcal").value = Math.round(vals.kcal);
-        if (vals.carbs != null) row.querySelector(".ing-carbs").value = vals.carbs;
-        if (vals.protein != null) row.querySelector(".ing-prot").value = vals.protein;
-        if (vals.fat != null) row.querySelector(".ing-fat").value = vals.fat;
-        updateMacroSum();
-        toast("Nährwerte übernommen – bitte kurz prüfen");
-      } catch (e) {
-        toast("Erkennung nicht möglich (offline?) – bitte manuell eintragen");
-      } finally {
-        btn.disabled = false; btn.classList.remove("busy");
-      }
-    });
     // Barcode -> Open Food Facts -> Zeile fuellen. Gemeinsamer Weg fuer beide Zugaenge
     // (Live-Kamera und Einzelfoto). Ueberschreibt die Einheit auf "g", weil OFF alle
     // Werte auf 100 g normiert; den Namen nur, wenn das Feld noch leer ist — ein selbst
@@ -3125,14 +3077,7 @@
       <p>Wenn du dich mit „Mit Google anmelden" einloggst, erhält Google die für die Anmeldung nötigen Informationen. Es gelten zusätzlich die Datenschutzbestimmungen von Google.</p>
       <h4>7. Speicherung im Browser</h4>
       <p>Zur Anmeldung und für den Offline-Betrieb speichert die App technisch notwendige Daten lokal in deinem Browser (localStorage/IndexedDB). Dafür ist keine Einwilligung erforderlich; ein Tracking findet nicht statt (Google Analytics ist deaktiviert).</p>
-      <h4>7a. Nährwert-Scan (Foto-Erkennung)</h4>
-      <p>Beim Anlegen von Zutaten kannst du eine Nährwerttabelle fotografieren. Die Texterkennung läuft
-         <strong>vollständig lokal in deinem Browser</strong> – das Foto wird nicht hochgeladen und nicht gespeichert.
-         Beim ersten Scan lädt die App die dafür nötige Open-Source-Software (Tesseract.js) von den
-         Content-Delivery-Netzwerken <strong>cdn.jsdelivr.net</strong> und <strong>tessdata.projectnaptha.com</strong> nach;
-         dabei wird deine IP-Adresse an diese Dienste übermittelt (Art. 6 Abs. 1 lit. f DSGVO – berechtigtes Interesse
-         an der Bereitstellung der Funktion). Nutzt du den Scan nicht, findet kein solcher Abruf statt.</p>
-      <h4>7b. Barcode-Scan (Produktsuche)</h4>
+      <h4>7a. Barcode-Scan (Produktsuche)</h4>
       <p>Beim Anlegen von Zutaten kannst du einen Barcode scannen. Dafür fragt die App den Zugriff
          auf die <strong>Kamera</strong> deines Geräts an und zeigt das Kamerabild live an, bis ein
          Barcode erkannt oder der Scanner geschlossen wird; alternativ kannst du ein Einzelfoto
