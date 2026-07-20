@@ -61,7 +61,7 @@ powershell -NoProfile -File test-server.ps1     # -> http://localhost:8000/
 & "C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe" `
   --headless=new --disable-gpu --virtual-time-budget=9000 `
   --user-data-dir="<scratchpad>\edge-profile" `
-  --dump-dom "file:///C:/Users/Paddy/Documents/Rezept/index.html" > dump.html
+  --dump-dom "file:///C:/Users/Paddy/Documents/Paddys%20Mealplan/index.html" > dump.html
 
 # Deployen = pushen. Pages baut automatisch (~1 Min).
 git push origin main
@@ -72,7 +72,40 @@ git push origin main
 nicht nur den HTTP-Status, sondern ob `#view` tatsächlich Inhalt hat (z. B. „Willkommen",
 „Anmelden"). Ein 200er sagt hier gar nichts.
 
-Screenshots der 716-KB-Seite laufen in Timeouts — nutze `--dump-dom` und suche im Text.
+Screenshots der Gesamtseite laufen in Timeouts — nutze `--dump-dom` und suche im Text.
+
+### Ausschneide-Prüfstand (die eigentliche Testmethode)
+
+Der Render-Test sagt nur „kein Syntaxfehler". Er kann **nichts** prüfen, was hinter dem Login oder
+in einem Modal liegt — und das ist fast jede Funktion. Dafür gibt es hier ein Verfahren, das ohne
+Test-Framework auskommt und sich mehrfach bezahlt gemacht hat:
+
+**Den zu prüfenden Teil per Python aus `index.html` herausschneiden** (zwischen zwei Markern im
+Code, z. B. `src.index("// ---------- Barcode-Scan")` bis `src.index("// Ziel aus dem")`),
+in eine kleine HTML-Datei im Scratchpad schreiben, fehlende Helfer (`el`, `esc`, …) stubben und
+headless mit `--dump-dom` ausführen. Ergebnisse in ein `<pre>` schreiben und **nach jedem Schritt**
+aktualisieren — sonst sieht man bei einem Hänger nicht, wie weit es kam.
+
+Entscheidend: **nicht abtippen, sondern ausschneiden.** Getestet wird sonst eine Kopie, die von der
+Wahrheit abweichen kann.
+
+Damit prüfbar, was sonst nur im Handbetrieb auffiele:
+
+- **Reine Logik** gegen echte Daten (Suchranking, Namensauflösung, Plausibilität ganzer Tabellen).
+- **Fremde APIs** wirklich aufrufen statt zu vermuten, welche Felder sie liefern.
+- **Zustandsverwaltung mit Attrappen** — z. B. `navigator.mediaDevices` per
+  `Object.defineProperty` überschreiben (es ist schreibgeschützt) und jedes `stop()` mitzählen, um
+  alle Ausstiegspfade der Kamera zu prüfen. `video.srcObject` akzeptiert dabei nur einen echten
+  `MediaStream`, also `new MediaStream()` als Basis nehmen und `getTracks` überschreiben.
+- **Layout**, indem der `<style>`-Block ausgeschnitten und ein Stück Markup isoliert bei fester
+  Breite fotografiert wird (`--window-size` + `--screenshot`). Kleine Seiten laufen nicht in
+  Timeouts, anders als die Gesamtseite. Beide Themes über `data-theme` prüfen.
+
+Zwei echte Fehler kamen so ans Licht, die im Browser erst der Nutzer gefunden hätte: ein
+`await video.play()`, das auf manchen Geräten nie auflöst (der Scanner wäre dauerhaft in „Kamera
+wird gestartet" hängen geblieben, ohne dass ein `catch` greift), und ein Makro-Raster, das mobil
+vier statt zwei Spalten ergab. Faustregel: Wenn eine Prüfung hängt statt fehlzuschlagen, ist das
+meist ein Befund, kein kaputter Prüfstand.
 
 ### Push-Falle (teuer gelernt)
 
