@@ -242,7 +242,9 @@
   .day.today { border-color: color-mix(in srgb, var(--accent) 55%, var(--border)); box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 40%, transparent), var(--shadow); }
   .day.today::before { height: 5px; }
   .day > .day-head {
-    display: flex; align-items: center; justify-content: space-between; gap: 8px;
+    display: flex; align-items: center; justify-content: space-between; gap: 6px 8px;
+    flex-wrap: wrap; /* schmale Karte: das Ueberschreitungs-Zeichen darf umbrechen,
+                        statt den Heute-Chip aus der Karte zu draengen */
     padding: 15px 15px 12px;
     background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 12%, var(--surface)), var(--surface));
     border-bottom: 1px solid var(--border);
@@ -259,6 +261,15 @@
     box-shadow: 0 2px 8px color-mix(in srgb, var(--accent) 38%, transparent);
   }
   .day-head .dnum { font-size: 12px; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+  /* Ueber dem Tagesziel: Zeichen UND Text, nie nur Farbe. Steht vor dem Tages-Chip,
+     damit es beim Ueberfliegen der Wochenspalten sofort auffaellt. */
+  .day-head .dover {
+    margin-left: auto; font-size: 10px; font-weight: 700; letter-spacing: .03em;
+    white-space: nowrap; color: var(--accent); padding: 3px 8px; border-radius: 999px;
+    background: color-mix(in srgb, var(--accent) 12%, transparent);
+    border: 1px solid color-mix(in srgb, var(--accent) 38%, transparent);
+  }
+  .day.over > .day-head { background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 20%, var(--surface)), var(--surface)); }
   .slots { display: flex; flex-direction: column; gap: 2px; padding: 8px; flex: 1; }
 
   /* Tages-Nährwerte (Fuß der Tageskarte) */
@@ -747,6 +758,7 @@
   .auth { min-height: calc(100vh - 170px); display: grid; place-items: center; padding: 16px 0 60px; }
   /* Intro-Hero über dem Wochenplan */
   .app-hero { margin: 2px 0 22px; }
+  .app-hero.compact { margin: 2px 0 12px; } /* nur noch die Wochenangabe */
   .app-hero .eyebrow { display: inline-block; font-family: var(--font-display); text-transform: uppercase; letter-spacing: .22em; font-size: 12px; font-weight: 600; color: var(--accent-strong); margin-bottom: 8px; }
   .app-hero h2 { font-family: var(--font-display); font-weight: 700; text-transform: uppercase; font-size: clamp(30px, 4.4vw, 50px); line-height: .96; letter-spacing: .5px; margin: 0; text-wrap: balance; }
   .app-hero h2 em { color: var(--accent); font-style: normal; }
@@ -2167,12 +2179,13 @@
     // Wortwahl nach Richtung: Protein ist eine Untergrenze, die man erreichen SOLL
     // („noch 33 g“ ist eine Aufforderung). Fett und Kohlenhydrate sind ein Budget, das
     // man beim Abnehmen gerade nicht ausschoepfen muss – „noch 42 g Fett“ laese sich
-    // dort wie die Aufforderung, sie noch zu essen. Deshalb „Spielraum“.
+    // dort wie die Aufforderung, sie noch zu essen. Deshalb „übrig“ — das ist neutral
+    // und kurz genug fuer die schmalen Tageskarten („Spielraum“ brach dort um).
     const restTxt = rest < 0
       ? `${nfmt(-rest)} ${o.unit} ${o.dir === "min" ? "über Ziel" : "drüber"}`
       : o.dir === "min"
         ? `noch ${nfmt(rest)} ${o.unit}`
-        : `${nfmt(rest)} ${o.unit} Spielraum`;
+        : `${nfmt(rest)} ${o.unit} übrig`;
     return `<div class="gm ${o.cls || ""} is-${st}">
         <div class="gm-r"><span class="gm-n">${o.label}</span><span class="gm-v"><b>${nfmt(o.ist)}</b>&thinsp;/&thinsp;${nfmt(o.ziel)}${o.unitInline && o.unit ? " " + o.unit : ""}</span></div>
         <div class="gm-bar" role="progressbar" aria-valuenow="${Math.round(o.ist)}" aria-valuemin="0" aria-valuemax="${Math.round(o.ziel)}" aria-label="${esc(o.label)}"><span style="width:${pct}%"></span></div>
@@ -2329,7 +2342,7 @@
     // Die Ziel-Uebersicht steht bewusst UEBER dem Plan: der Stand soll beim Oeffnen
     // sofort sichtbar sein. (Unter dem Plan war sie kurzzeitig, hat sich aber nicht
     // bewaehrt — nicht erneut verschieben ohne Ruecksprache.)
-    let html = `${appHeroHtml()}
+    let html = `${appHeroHtml(filled)}
       ${weekNutHtml()}
       <div class="section-head plan-head">
         <div class="title">
@@ -2352,7 +2365,13 @@
     const todayKey = state.viewWeek === "next" ? null : todayDayKey();
     DAYS.forEach(d => {
       const isToday = d.key === todayKey;
-      html += `<section class="day${isToday ? " today" : ""}"><div class="day-head"><span class="dname">${d.label}</span><span class="dtag">${isToday ? "Heute" : d.short}</span></div><div class="slots">`;
+      // Warnzeichen direkt in der Kopfzeile: sonst sieht man erst beim Scrollen zur
+      // Fussbilanz, welcher Tag den Korridor sprengt. Beim Ueberfliegen der Woche ist
+      // aber genau das die Frage — welchen Tag muss ich nachjustieren?
+      const dTarget = goalTargets(1);
+      const dSum = dayNut(d.key);
+      const dOver = dTarget && hasNut(dSum) && goalState(dSum.kcal, dTarget.kcal) === "over";
+      html += `<section class="day${isToday ? " today" : ""}${dOver ? " over" : ""}"><div class="day-head"><span class="dname">${d.label}</span>${dOver ? `<span class="dover" title="Über dem Tagesziel">${nfmt(dSum.kcal - dTarget.kcal)} kcal drüber</span>` : ""}<span class="dtag">${isToday ? "Heute" : d.short}</span></div><div class="slots">`;
       MEALS.forEach(m => {
         const ids = state.plan[d.key][m.key];
         html += `<div class="slot" data-meal="${m.key}" data-slot="${d.key}:${m.key}">
@@ -3735,9 +3754,15 @@
   }
 
   // Intro-Hero über dem Wochenplan (nur im eingeloggten Bereich)
-  function appHeroHtml() {
+  // Der Begruessungstext steht nur, solange die Woche noch leer ist — da hilft er beim
+  // Einstieg. Sobald geplant wird, ist er bei taeglicher Nutzung vor allem Platz vor der
+  // Ziel-Uebersicht; dann bleibt nur die Wochenangabe stehen. Kein Zaehler noetig: der
+  // Fuellstand des Plans sagt schon, ob jemand neu hier ist.
+  function appHeroHtml(filled) {
+    const wk = `<span class="eyebrow">${weekLabel(state.viewWeek === "next" ? 1 : 0)}</span>`;
+    if (filled > 0) return `<div class="app-hero compact">${wk}</div>`;
     return `<div class="app-hero">
-      <span class="eyebrow">${weekLabel(state.viewWeek === "next" ? 1 : 0)}</span>
+      ${wk}
       <h2>Dein Plan. Dein <em>Vorsprung.</em></h2>
       <p class="hero-sub">Sieben Tage im Blick, jede Mahlzeit mit Kalorien und Makros. Gebaut fürs Training – und fürs Abnehmen.</p>
     </div>`;
