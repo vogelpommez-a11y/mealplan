@@ -477,9 +477,20 @@
   .ing-gwrap .ing-u { flex: 1; min-width: 0; padding: 8px 6px; }
   .ing-ic { flex: none; width: 34px; height: 34px; border: 1px solid var(--border); background: var(--surface); color: var(--text-muted); border-radius: 9px; cursor: pointer; display: grid; place-items: center; font-size: 14px; line-height: 1; padding: 0; transition: color .12s, border-color .12s, background-color .12s; }
   .ing-ic svg { width: 17px; height: 17px; }
-  .ing-ic:disabled { opacity: .5; cursor: default; }
-  .ing-barcode:hover { color: var(--accent); border-color: var(--accent); }
-  .ing-ic.busy { animation: syncpulse 1s ease-in-out infinite; }
+  .ing-ic:disabled, .ing-barcode:disabled { opacity: .5; cursor: default; }
+  /* Beschriftet statt nur bebildert: auf Touch gibt es keine Tooltips, ein reines
+     Symbol waere dort unauffindbar. Deshalb traegt der Knopf seinen Namen sichtbar. */
+  .ing-barcode {
+    flex: none; display: inline-flex; align-items: center; gap: 6px; height: 34px;
+    padding: 0 11px; border: 1px solid var(--border); background: var(--surface);
+    color: var(--text-muted); border-radius: 9px; cursor: pointer;
+    font-family: var(--font-body); font-size: 11px; font-weight: 700;
+    letter-spacing: .06em; text-transform: uppercase; white-space: nowrap;
+    transition: color .12s, border-color .12s, background-color .12s;
+  }
+  .ing-barcode svg { width: 17px; height: 17px; flex: none; }
+  .ing-barcode:hover { color: var(--accent); border-color: var(--accent); background: color-mix(in srgb, var(--accent) 8%, var(--surface)); }
+  .ing-ic.busy, .ing-barcode.busy { animation: syncpulse 1s ease-in-out infinite; }
   .ing-del:hover { color: var(--accent); border-color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, var(--surface)); }
   .ing-nut { margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--border); }
   .ing-per { display: block; font-size: 10px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 8px; }
@@ -487,7 +498,22 @@
   .ing-nut label { display: flex; flex-direction: column; gap: 4px; font-size: 10px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--text-muted); text-align: center; }
   .ing-nut input { width: 100%; padding: 7px 4px; text-align: center; }
   #f-ing-add { margin-top: 2px; }
-  #f-kcal[readonly], #f-carbs[readonly], #f-protein[readonly], #f-fat[readonly] { opacity: .7; background: var(--surface-2); }
+  /* Makro-Summe: das Ergebnis der Zutaten, keine weitere Eingabezeile. Roter Rahmen und
+     kraeftigere Schrift grenzen sie von den optisch gleichen Zutatenkarten darueber ab. */
+  .nut-total {
+    border: 1.5px solid var(--accent); border-radius: var(--radius);
+    background: color-mix(in srgb, var(--accent) 6%, var(--surface-2));
+    padding: 14px 14px 12px;
+  }
+  .nut-total > label {
+    font-family: var(--font-display); font-size: 16px; font-weight: 700;
+    letter-spacing: .04em; text-transform: uppercase; color: var(--text);
+  }
+  .nut-total > label .hint { font-family: var(--font-body); text-transform: none; letter-spacing: 0; }
+  .nut-total input { font-weight: 700; font-size: 15px; font-variant-numeric: tabular-nums; }
+  .nut-total #f-kcal { color: var(--accent); }
+  /* Heller Grund statt --surface-2, sonst verschwaenden die Felder im getoenten Kasten */
+  #f-kcal[readonly], #f-carbs[readonly], #f-protein[readonly], #f-fat[readonly] { opacity: .85; background: var(--surface); }
   .rimg { position: relative; height: 116px; display: grid; place-items: center; overflow: hidden; }
   .rimg::after { content: ""; position: absolute; inset: 0; background: radial-gradient(130px 66px at 78% 16%, rgba(255,255,255,.30), transparent); pointer-events: none; }
   .rimg.has-photo::after { display: none; }
@@ -821,6 +847,12 @@
     .wrap { padding: 0 14px; }
     main { padding: 20px 0 64px; }
     .row2 { grid-template-columns: 1fr; }
+    /* Ausnahme: die vier Makro-Werte sind kurze Zahlen. Einspaltig waere die Summe
+       viermal so hoch wie noetig, vierspaltig brechen die Beschriftungen um und die
+       Felder stehen versetzt. Deshalb 2x2: aussen eine Spalte, innen zwei. */
+    .nut-total > .row2 { grid-template-columns: 1fr; gap: 10px; }
+    .nut-total .row2 .row2 { grid-template-columns: 1fr 1fr; gap: 10px; }
+    .nut-total .field > label.hint { font-size: 10.5px; }
     .brand p { display: none; }
     .brand .mark { width: 38px; height: 38px; }
     .section-head { margin-bottom: 18px; }
@@ -837,7 +869,8 @@
     .ing-top { flex-wrap: wrap; }
     .ing-nrow { flex: 1 0 100%; }
     .ing-gwrap { flex: 1; width: auto; }
-    .ing-ic { width: 40px; height: 40px; }
+    .ing-ic { width: 44px; height: 44px; }
+    .ing-barcode { height: 44px; padding: 0 13px; } /* Touch-Ziel */
     .ing-nut input { padding: 8px 4px; }
     .ing-ac-item { min-height: 44px; } /* Touch-Ziel */
     .auth-card { padding: 26px 20px 22px; }
@@ -2420,7 +2453,16 @@
         </div>
         <div class="field"><label for="f-cat">Kategorie</label><select id="f-cat">${opts}</select></div>
         <div class="field">
-          <label>Makros <span class="hint" id="f-nut-hint">– gesamt; mit Zutaten-Nährwerten automatisch summiert</span></label>
+          <label>Zutaten <span class="hint">– Namen tippen und aus der Vorschlagsliste wählen; bei Markenprodukten den Barcode scannen</span></label>
+          <div id="f-ings"></div>
+          <button type="button" class="btn sm" id="f-ing-add">+ Weitere Zutat</button>
+          <input type="file" id="f-ing-barcode" accept="image/*" capture="environment" class="visually-hidden">
+        </div>
+        <!-- Steht bewusst UNTER den Zutaten: es ist deren Ergebnis, nicht noch eine
+             Eingabe. Der Rahmen grenzt die Summe von den gleich aussehenden
+             Zutatenzeilen ab. -->
+        <div class="field nut-total">
+          <label>Makros gesamt <span class="hint" id="f-nut-hint">– mit Zutaten-Nährwerten automatisch summiert</span></label>
           <div class="row2" style="gap:12px">
             <div class="row2" style="gap:12px">
               <div class="field"><label for="f-kcal" class="hint">Kalorien (kcal)</label><input type="number" id="f-kcal" min="0" max="99999" step="1" value="${r && r.nutrition && r.nutrition.kcal != null ? esc(r.nutrition.kcal) : ""}" placeholder="520"></div>
@@ -2431,12 +2473,6 @@
               <div class="field"><label for="f-fat" class="hint">Fett (g)</label><input type="number" id="f-fat" min="0" max="9999" step="0.1" value="${r && r.nutrition && r.nutrition.fat != null ? esc(r.nutrition.fat) : ""}" placeholder="18"></div>
             </div>
           </div>
-        </div>
-        <div class="field">
-          <label>Zutaten <span class="hint">– Namen tippen und aus der Vorschlagsliste wählen, dann sind die Nährwerte schon drin; bei Markenprodukten den Barcode scannen, das füllt auch den Namen</span></label>
-          <div id="f-ings"></div>
-          <button type="button" class="btn sm" id="f-ing-add">+ Weitere Zutat</button>
-          <input type="file" id="f-ing-barcode" accept="image/*" capture="environment" class="visually-hidden">
         </div>
         <div class="field">
           <label for="f-steps">Zubereitung <span class="hint">– optional</span></label>
@@ -2468,7 +2504,7 @@
               <input type="text" class="ing-name" placeholder="Zutat, z. B. Reis" maxlength="60" autocomplete="off" value="${esc(o.name || "")}">
               <ul class="ing-ac" role="listbox" hidden></ul>
             </span>
-            <button type="button" class="ing-ic ing-barcode" title="Barcode mit der Kamera scannen – füllt Name und Nährwerte automatisch">${barcodeSvg}</button>
+            <button type="button" class="ing-barcode" title="Barcode mit der Kamera scannen – füllt Name und Nährwerte automatisch">${barcodeSvg}<span>Scannen</span></button>
           </span>
           <span class="ing-gwrap">
             <input type="number" class="ing-g" min="0" max="99999" step="1" placeholder="200" value="${nutVal(o.grams)}" aria-label="Menge">
@@ -2627,7 +2663,7 @@
         node.querySelector("#f-fat").value = Math.round(s.fat * 10) / 10;
       }
       ["f-kcal", "f-carbs", "f-protein", "f-fat"].forEach(fid => { node.querySelector("#" + fid).readOnly = auto; });
-      node.querySelector("#f-nut-hint").textContent = auto ? "– Summe aus deinen Zutaten (automatisch)" : "– gesamt; mit Zutaten-Nährwerten automatisch summiert";
+      node.querySelector("#f-nut-hint").textContent = auto ? "– Summe aus deinen Zutaten (automatisch)" : "– mit Zutaten-Nährwerten automatisch summiert";
     }
     (r && r.ingredients && r.ingredients.length ? r.ingredients : [null]).forEach(i => addIngRow(i == null ? null : ingObj(i)));
     updateMacroSum();
