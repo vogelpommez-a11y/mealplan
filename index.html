@@ -352,6 +352,19 @@
      nebeneinander passen. Schmaler wuerde nur ein Teil der drei umbrechen und sie
      stuenden versetzt — lieber einer pro Zeile als drei ausgefranste. */
   .wg-macros .gm { margin-top: 0; flex: 1 1 150px; min-width: 0; }
+  /* Protein etwas breiter und kraeftiger als KH/Fett: beim Abnehmen ist es die
+     wichtigste Nebengroesse (Saettigung, Muskelerhalt) und intern schon als
+     Untergrenze modelliert — das darf man auch sehen. */
+  .wg-macros .gm.t-prot { flex-grow: 1.35; }
+  .wg-macros .gm.t-prot .gm-n { font-size: 12.5px; }
+  .wg-macros .gm.t-prot .gm-v b { font-size: 13px; }
+  .wg-macros .gm.t-prot .gm-bar { height: 8px; }
+  /* Restbudget fuer die noch ungeplanten Tage — beim Planen die gesuchte Zahl */
+  .wg-open {
+    margin-top: 11px; padding-top: 10px; border-top: 1px dashed var(--border);
+    font-size: 12px; color: var(--text-muted); font-variant-numeric: tabular-nums;
+  }
+  .wg-open b { color: var(--text); font-weight: 700; }
   .wg-macros .gm-r { gap: 8px; margin-bottom: 5px; }
   .wg-macros .gm-n { font-weight: 700; color: var(--text); }
   .wg-macros .gm-v { font-size: 11.5px; }
@@ -2151,9 +2164,15 @@
     const pct = Math.max(0, Math.min(100, Math.round(o.ist / o.ziel * 100)));
     const showRest = o.rest === true || (o.rest === "attention" && st !== "ok");
     // Der Zustand steht immer auch als Text da – Farbe allein traegt keine Information.
+    // Wortwahl nach Richtung: Protein ist eine Untergrenze, die man erreichen SOLL
+    // („noch 33 g“ ist eine Aufforderung). Fett und Kohlenhydrate sind ein Budget, das
+    // man beim Abnehmen gerade nicht ausschoepfen muss – „noch 42 g Fett“ laese sich
+    // dort wie die Aufforderung, sie noch zu essen. Deshalb „Spielraum“.
     const restTxt = rest < 0
       ? `${nfmt(-rest)} ${o.unit} ${o.dir === "min" ? "über Ziel" : "drüber"}`
-      : `noch ${nfmt(rest)} ${o.unit}`;
+      : o.dir === "min"
+        ? `noch ${nfmt(rest)} ${o.unit}`
+        : `${nfmt(rest)} ${o.unit} Spielraum`;
     return `<div class="gm ${o.cls || ""} is-${st}">
         <div class="gm-r"><span class="gm-n">${o.label}</span><span class="gm-v"><b>${nfmt(o.ist)}</b>&thinsp;/&thinsp;${nfmt(o.ziel)}${o.unitInline && o.unit ? " " + o.unit : ""}</span></div>
         <div class="gm-bar" role="progressbar" aria-valuenow="${Math.round(o.ist)}" aria-valuemin="0" aria-valuemax="${Math.round(o.ziel)}" aria-label="${esc(o.label)}"><span style="width:${pct}%"></span></div>
@@ -2268,14 +2287,25 @@
     // In der Naechste-Woche-Ansicht ist „heute“ nur der gleiche Wochentag – dann
     // steht der Tagesname allein, damit die Spalte nicht das Falsche behauptet.
     const dayHead = state.viewWeek === "next" ? esc(d.label) : `Heute · ${esc(d.label)}`;
-    // Ohne diesen Kontext ist der Wochenwert nicht deutbar: 60 % sind am Mittwoch
-    // voellig normal und am Sonntag ein Rueckstand.
     const planned = DAYS.filter(x => hasNut(dayNut(x.key))).length;
+    const open = 7 - planned;
+    // Verglichen wird gegen das Ziel der GEPLANTEN Tage, nicht gegen Tagesziel x 7.
+    // Sonst meldet die Leiste bei 5 geplanten Tagen „3.500 kcal übrig“, obwohl der
+    // Nutzer auf diesen 5 Tagen bereits ueber seinem Schnitt liegt — die fehlenden
+    // 2 Tage sehen dann wie Spielraum aus, statt schlicht ungeplant zu sein.
+    const wt = planned ? goalTargets(planned) : t;
+    const scope = planned === 7 ? "ganze Woche" : `${planned} geplante Tag${planned === 1 ? "" : "e"}`;
     const dayHeadHtml = `${dayHead}${mode ? `<span class="wg-chip">${esc(mode)}</span>` : ""}`;
-    const weekHeadHtml = `Diese Woche<span class="wg-chip plain">${planned} von 7 Tagen geplant</span>`;
+    const weekHeadHtml = `Diese Woche<span class="wg-chip plain">${scope}</span>`;
+    // Was bleibt fuer die noch leeren Tage? Das ist beim Planen die eigentlich
+    // gesuchte Zahl — der blosse Wochenrest sagt nicht, wie viel pro Tag noch geht.
+    const restKcal = t.kcal - w.kcal;
+    const perOpen = open > 0 && restKcal > 0
+      ? `<div class="wg-open">Für die ${open} offenen Tage bleiben ⌀ <b>${nfmt(restKcal / open)} kcal</b> pro Tag</div>`
+      : "";
     return `<div class="wg-cols">
         <div class="wg-col">${goalRingHtml(s.kcal, day.kcal, "Tag", dayHeadHtml, goalMacrosHtml(s, day))}</div>
-        <div class="wg-col">${goalRingHtml(w.kcal, t.kcal, "Woche", weekHeadHtml, goalMacrosHtml(w, t))}</div>
+        <div class="wg-col">${goalRingHtml(w.kcal, wt.kcal, "Woche", weekHeadHtml, goalMacrosHtml(w, wt))}${perOpen}</div>
       </div>`;
   }
 
