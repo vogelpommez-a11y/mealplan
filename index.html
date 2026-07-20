@@ -475,8 +475,9 @@
   .ing-gwrap .ing-u { flex: 1; min-width: 0; padding: 8px 6px; }
   .ing-ic { flex: none; width: 34px; height: 34px; border: 1px solid var(--border); background: var(--surface); color: var(--text-muted); border-radius: 9px; cursor: pointer; display: grid; place-items: center; font-size: 14px; line-height: 1; padding: 0; transition: color .12s, border-color .12s, background-color .12s; }
   .ing-ic svg { width: 17px; height: 17px; }
-  .ing-scan:hover { color: var(--accent); border-color: var(--accent); }
-  .ing-scan.busy { animation: syncpulse 1s ease-in-out infinite; }
+  .ing-ic:disabled { opacity: .5; cursor: default; }
+  .ing-scan:hover, .ing-barcode:hover { color: var(--accent); border-color: var(--accent); }
+  .ing-ic.busy { animation: syncpulse 1s ease-in-out infinite; }
   .ing-del:hover { color: var(--accent); border-color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, var(--surface)); }
   .ing-nut { margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--border); }
   .ing-per { display: block; font-size: 10px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 8px; }
@@ -1862,6 +1863,63 @@
     return parseNutritionText(res && res.data ? res.data.text : "");
   }
 
+  // ---------- Barcode-Scan (Open Food Facts) ----------
+  // Foto vom Barcode -> Code lokal aus dem Bild lesen -> Nummer bei Open Food Facts
+  // nachschlagen. Nur die Barcode-NUMMER verlaesst das Geraet, nie das Foto selbst.
+  // Erkennung bevorzugt die native BarcodeDetector-API (Chrome/Edge/Android); die
+  // gibt es auf iOS/Safari nicht - dort laedt loadZXing() beim ersten Scan eine
+  // Open-Source-Bibliothek vom CDN nach, exakt das gleiche Nachlade-Muster wie bei
+  // loadTesseract() oben (und im Datenschutz-Absatz 7a schon erklaert).
+  let zxLoad = null;
+  function loadZXing() {
+    if (window.ZXing) return Promise.resolve();
+    if (!zxLoad) zxLoad = new Promise((resolve, reject) => {
+      const s = document.createElement("script");
+      s.src = "https://cdn.jsdelivr.net/npm/@zxing/library@0.21.3/umd/index.min.js";
+      s.onload = resolve;
+      s.onerror = () => { zxLoad = null; s.remove(); reject(new Error("zxing-load")); };
+      document.head.appendChild(s);
+    });
+    return zxLoad;
+  }
+  const BARCODE_FORMATS = ["ean_13", "ean_8", "upc_a", "upc_e", "code_128"];
+  async function detectBarcode(file) {
+    if (window.BarcodeDetector) {
+      try {
+        const det = new window.BarcodeDetector({ formats: BARCODE_FORMATS });
+        const bmp = await createImageBitmap(file);
+        const hits = await det.detect(bmp);
+        if (hits && hits[0] && hits[0].rawValue) return hits[0].rawValue;
+      } catch (e) { /* z. B. Format nicht unterstuetzt - fällt auf ZXing zurueck */ }
+    }
+    await loadZXing();
+    const url = URL.createObjectURL(file);
+    try {
+      const reader = new window.ZXing.BrowserMultiFormatReader();
+      const res = await reader.decodeFromImageUrl(url);
+      return res && res.getText ? res.getText() : null;
+    } finally {
+      URL.revokeObjectURL(url);
+    }
+  }
+  // Open Food Facts liefert die Naehrwerte unabhaengig von fest/fluessig immer unter
+  // den "_100g"-Feldern (auch Cola steht unter carbohydrates_100g, nicht _100ml) -
+  // deshalb reicht hier eine feste Basis, ohne nach Einheit zu unterscheiden.
+  async function fetchOffNutrition(code) {
+    const url = "https://world.openfoodfacts.org/api/v2/product/" + encodeURIComponent(code) +
+      ".json?fields=product_name,nutriments,status";
+    const res = await fetch(url);
+    if (!res.ok) throw new Error("off-http-" + res.status);
+    const data = await res.json();
+    if (data.status !== 1 || !data.product) return null;
+    const n = data.product.nutriments || {};
+    const num = v => (typeof v === "number" && isFinite(v) && v >= 0) ? v : null;
+    const kcal = num(n["energy-kcal_100g"]), carbs = num(n.carbohydrates_100g),
+          protein = num(n.proteins_100g), fat = num(n.fat_100g);
+    if (kcal == null && carbs == null && protein == null && fat == null) return null;
+    return { name: data.product.product_name || null, kcal, carbs, protein, fat };
+  }
+
   // Ziel aus dem Kalorienrechner (state.goal), hochgerechnet auf `days` Tage.
   // Null, solange der Nutzer noch kein Ergebnis gespeichert hat.
   function goalTargets(days) {
@@ -2238,10 +2296,11 @@
           </div>
         </div>
         <div class="field">
-          <label>Zutaten <span class="hint">– Namen tippen und aus der Vorschlagsliste wählen, dann sind die Nährwerte schon drin; 📷 liest die Nährwerttabelle eines Markenprodukts</span></label>
+          <label>Zutaten <span class="hint">– Namen tippen und aus der Vorschlagsliste wählen, dann sind die Nährwerte schon drin; das Barcode-Symbol sucht ein Markenprodukt online, 📷 liest dessen Nährwerttabelle</span></label>
           <div id="f-ings"></div>
           <button type="button" class="btn sm" id="f-ing-add">+ Weitere Zutat</button>
           <input type="file" id="f-ing-scan" accept="image/*" capture="environment" class="visually-hidden">
+          <input type="file" id="f-ing-barcode" accept="image/*" capture="environment" class="visually-hidden">
         </div>
         <div class="field">
           <label for="f-steps">Zubereitung <span class="hint">– optional</span></label>
@@ -2259,9 +2318,12 @@
     // --- Zutaten-Zeilen (Name, Menge, Naehrwerte pro 100 g, Foto-Scan) ---
     const ingsWrap = node.querySelector("#f-ings");
     const scanInput = node.querySelector("#f-ing-scan");
+    const barcodeInput = node.querySelector("#f-ing-barcode");
     let scanRow = null;
+    let barcodeRow = null;
     let acSeq = 0; // laufende Nummer fuer die Listbox-IDs (aria-activedescendant)
     const camSvg = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1Z"/><circle cx="12" cy="14" r="3.4"/></svg>`;
+    const barcodeSvg = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round"><path stroke-width="2.4" d="M4 5v14"/><path stroke-width="1.4" d="M7.5 5v14"/><path stroke-width="2.4" d="M10.5 5v14"/><path stroke-width="1.4" d="M13.5 5v14"/><path stroke-width="1.4" d="M16.5 5v14"/><path stroke-width="2.4" d="M19.5 5v14"/></svg>`;
     function nutVal(v) { return v != null ? esc(v) : ""; }
     function addIngRow(o) {
       o = o || {};
@@ -2280,6 +2342,7 @@
               <option value="st"${u === "st" ? " selected" : ""}>Stück</option>
             </select>
           </span>
+          <button type="button" class="ing-ic ing-barcode" title="Barcode scannen – sucht das Produkt bei Open Food Facts">${barcodeSvg}</button>
           <button type="button" class="ing-ic ing-scan" title="Nährwerttabelle fotografieren – füllt Kcal/KH/P/F automatisch">${camSvg}</button>
           <button type="button" class="ing-ic ing-del" title="Zutat entfernen">✕</button>
         </div>
@@ -2295,6 +2358,7 @@
       </div>`);
       row.querySelector(".ing-del").addEventListener("click", () => { row.remove(); updateMacroSum(); });
       row.querySelector(".ing-scan").addEventListener("click", () => { scanRow = row; scanInput.click(); });
+      row.querySelector(".ing-barcode").addEventListener("click", () => { barcodeRow = row; barcodeInput.click(); });
       row.querySelectorAll("input").forEach(inp => inp.addEventListener("input", updateMacroSum));
       // Einheit umstellen: Bezugsgroesse der Naehrwerte mitziehen. Bei Stueck gibt es keine
       // 100er-Basis — dann ist auch der Tabellen-Scan (liest pro 100 g) sinnlos und faellt weg.
@@ -2455,6 +2519,40 @@
         toast("Nährwerte übernommen – bitte kurz prüfen");
       } catch (e) {
         toast("Erkennung nicht möglich (offline?) – bitte manuell eintragen");
+      } finally {
+        btn.disabled = false; btn.classList.remove("busy");
+      }
+    });
+    // Barcode-Scan: Foto -> Code lokal lesen -> Open Food Facts -> Zeile fuellen.
+    // Ueberschreibt Einheit und Menge-Bezugsgroesse auf "g" (siehe fetchOffNutrition),
+    // laesst den Namen aber nur setzen, wenn das Feld noch leer ist - ein bereits
+    // getippter eigener Name des Nutzers wird nicht überschrieben.
+    barcodeInput.addEventListener("change", async () => {
+      const f = barcodeInput.files && barcodeInput.files[0];
+      barcodeInput.value = "";
+      const row = barcodeRow; barcodeRow = null;
+      if (!f || !row || !row.isConnected) return;
+      const btn = row.querySelector(".ing-barcode");
+      btn.disabled = true; btn.classList.add("busy");
+      toast("Lese Barcode …");
+      try {
+        const code = await detectBarcode(f);
+        if (!code) { toast("Kein Barcode erkannt – bitte erneut versuchen oder manuell eintragen"); return; }
+        toast("Suche Produkt …");
+        const p = await fetchOffNutrition(code);
+        if (!p) { toast("Produkt nicht gefunden – bitte manuell eintragen"); return; }
+        const nameInp = row.querySelector(".ing-name");
+        if (p.name && !nameInp.value.trim()) nameInp.value = p.name;
+        row.querySelector(".ing-u").value = "g";
+        row.querySelector(".ing-u").dispatchEvent(new Event("change"));
+        if (p.kcal != null) row.querySelector(".ing-kcal").value = Math.round(p.kcal);
+        if (p.carbs != null) row.querySelector(".ing-carbs").value = p.carbs;
+        if (p.protein != null) row.querySelector(".ing-prot").value = p.protein;
+        if (p.fat != null) row.querySelector(".ing-fat").value = p.fat;
+        updateMacroSum();
+        toast("Nährwerte übernommen – bitte kurz prüfen");
+      } catch (e) {
+        toast("Suche nicht möglich (offline?) – bitte manuell eintragen");
       } finally {
         btn.disabled = false; btn.classList.remove("busy");
       }
@@ -2802,7 +2900,15 @@
          und dürfen ohne Namensnennung kommerziell genutzt werden. Die Nennung erfolgt freiwillig als Herkunftsnachweis.
          Die Bilder wurden mittig zugeschnitten, sonst nicht verändert. Von Nutzenden selbst hochgeladene Fotos
          sind hier nicht erfasst – dafür ist die jeweilige Person verantwortlich.</p>
-      ${creditsHtml()}`);
+      ${creditsHtml()}
+      <h4>Nährwertdaten</h4>
+      <p>Die Produktdaten beim Barcode-Scan stammen von <strong>Open Food Facts</strong>
+         (<a href="https://world.openfoodfacts.org" target="_blank" rel="noopener noreferrer">world.openfoodfacts.org</a>),
+         einer offenen, gemeinschaftlich gepflegten Datenbank. Die Datenbank als Ganzes steht unter
+         der <a href="https://opendatacommons.org/licenses/odbl/1.0/" target="_blank" rel="noopener noreferrer">Open Database License (ODbL) 1.0</a>,
+         die einzelnen Dateninhalte – genau das, was diese App per Barcode abruft – zusätzlich unter der
+         <a href="https://opendatacommons.org/licenses/dbcl/1.0/" target="_blank" rel="noopener noreferrer">Database Contents License (DbCL) 1.0</a>.
+         Einzelne Angaben können unvollständig oder fehlerhaft sein – bitte vor dem Speichern kurz prüfen.</p>`);
   }
   // Belegt die Herkunft der mitgelieferten Fotos direkt auf der Seite.
   function creditsHtml() {
@@ -2845,6 +2951,19 @@
          Content-Delivery-Netzwerken <strong>cdn.jsdelivr.net</strong> und <strong>tessdata.projectnaptha.com</strong> nach;
          dabei wird deine IP-Adresse an diese Dienste übermittelt (Art. 6 Abs. 1 lit. f DSGVO – berechtigtes Interesse
          an der Bereitstellung der Funktion). Nutzt du den Scan nicht, findet kein solcher Abruf statt.</p>
+      <h4>7b. Barcode-Scan (Produktsuche)</h4>
+      <p>Beim Anlegen von Zutaten kannst du auch einen Barcode fotografieren. Die Erkennung des
+         Barcodes läuft <strong>vollständig lokal in deinem Browser</strong> – das Foto verlässt
+         dein Gerät nicht. Unterstützt dein Browser die dafür nötige Technik nicht selbst (z. B.
+         auf iPhones), lädt die App beim ersten Scan die Open-Source-Bibliothek <strong>ZXing</strong>
+         vom Content-Delivery-Netzwerk <strong>cdn.jsdelivr.net</strong> nach; dabei wird deine
+         IP-Adresse an diesen Dienst übermittelt (Art. 6 Abs. 1 lit. f DSGVO – berechtigtes
+         Interesse an der Bereitstellung der Funktion). Anschließend übermittelt die App die
+         erkannte <strong>Barcode-Nummer</strong> (nicht das Foto) an <strong>Open Food
+         Facts</strong> (Open Food Facts Association, Frankreich), um Name und Nährwerte des
+         Produkts abzurufen; dabei wird ebenfalls deine IP-Adresse an diesen Dienst übermittelt
+         (Art. 6 Abs. 1 lit. f DSGVO). Nutzt du den Barcode-Scan nicht, findet keiner dieser
+         Abrufe statt.</p>
       <h4>8. Teilen-Funktion</h4>
       <p>Wenn du einen Teilen-Link erstellst, wird eine Kopie deines Wochenplans (die eingeplanten Meals, dein
          angezeigter Name und der Zeitpunkt) in der Cloud gespeichert. Sie ist ausschließlich über den Link abrufbar
