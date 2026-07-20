@@ -2290,7 +2290,11 @@
 
   function renderPlan() {
     const filled = planStats();
+    // Die Ziel-Uebersicht steht bewusst UEBER dem Plan: der Stand soll beim Oeffnen
+    // sofort sichtbar sein. (Unter dem Plan war sie kurzzeitig, hat sich aber nicht
+    // bewaehrt — nicht erneut verschieben ohne Ruecksprache.)
     let html = `${appHeroHtml()}
+      ${weekNutHtml()}
       <div class="section-head plan-head">
         <div class="title">
           <h2>Dein Wochenplan</h2>
@@ -2334,12 +2338,7 @@
       html += `</div>${dayNutHtml(dayNut(d.key))}</section>`;
     });
 
-    // Die Ziel-Uebersicht steht UNTER dem Plan: sie ist dessen Ergebnis, nicht dessen
-    // Eingabe — dieselbe Logik wie bei „Makros gesamt“ unter den Zutaten im Meal-Formular.
-    // Oben haette sie auf dem Handy den halben ersten Bildschirm belegt, bevor ueberhaupt
-    // ein Wochentag sichtbar wird.
     html += `</div>
-      ${weekNutHtml()}
       <button class="shop-cta" data-action="shopping">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6h15l-1.5 9h-12z"/><path d="M6 6 5 2H2"/><circle cx="9" cy="20" r="1.4"/><circle cx="18" cy="20" r="1.4"/></svg>
         Einkaufsliste der Woche
