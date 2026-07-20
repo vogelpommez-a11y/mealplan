@@ -2633,9 +2633,12 @@
     updateMacroSum();
     node.querySelector("#f-ing-add").addEventListener("click", () => { addIngRow().querySelector(".ing-name").focus(); });
     // Barcode -> Open Food Facts -> Zeile fuellen. Gemeinsamer Weg fuer beide Zugaenge
-    // (Live-Kamera und Einzelfoto). Ueberschreibt die Einheit auf "g", weil OFF alle
-    // Werte auf 100 g normiert; den Namen nur, wenn das Feld noch leer ist — ein selbst
-    // getippter Name des Nutzers wird nicht ueberschrieben.
+    // (Live-Kamera und Einzelfoto). Der Scan ersetzt die Zeile vollstaendig: Einheit
+    // (OFF normiert alles auf 100 g), alle vier Naehrwerte UND den Namen. Den Namen
+    // auszunehmen waere inkonsequent — er ist die Identitaet des gescannten Produkts,
+    // keine persoenliche Notiz. Liefert der Treffer keinen Namen, bleibt der bisherige
+    // stehen, statt ihn gegen nichts zu tauschen. Die Rueckmeldung nennt das erkannte
+    // Produkt, damit ein ersetzter Name nicht wortlos verschwindet.
     async function applyBarcode(row, code) {
       const btn = row.querySelector(".ing-barcode");
       btn.disabled = true; btn.classList.add("busy");
@@ -2643,8 +2646,7 @@
       try {
         const p = await fetchOffNutrition(code);
         if (!p) { toast("Produkt nicht gefunden – bitte manuell eintragen"); return; }
-        const nameInp = row.querySelector(".ing-name");
-        if (p.name && !nameInp.value.trim()) nameInp.value = p.name;
+        if (p.name) row.querySelector(".ing-name").value = p.name;
         row.querySelector(".ing-u").value = "g";
         row.querySelector(".ing-u").dispatchEvent(new Event("change"));
         if (p.kcal != null) row.querySelector(".ing-kcal").value = Math.round(p.kcal);
@@ -2652,7 +2654,8 @@
         if (p.protein != null) row.querySelector(".ing-prot").value = p.protein;
         if (p.fat != null) row.querySelector(".ing-fat").value = p.fat;
         updateMacroSum();
-        toast("Nährwerte übernommen – bitte kurz prüfen");
+        toast(p.name ? "„" + p.name + "“ übernommen – Werte bitte kurz prüfen"
+                     : "Nährwerte übernommen – bitte kurz prüfen");
       } catch (e) {
         toast("Suche nicht möglich (offline?) – bitte manuell eintragen");
       } finally {
