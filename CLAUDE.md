@@ -5,6 +5,30 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 Die Kommunikation im Projekt läuft auf Deutsch — auch Code-Kommentare und Commit-Messages.
 Commit-Messages werden bewusst in ASCII geschrieben (`geprueft` statt `geprüft`).
 
+## Design-Vorgabe: „Performance Dark" (verbindlich)
+
+**Jede neue oder geänderte UI wird im bestehenden Design „Performance Dark" umgesetzt — egal
+worum es geht.** Kein Neuentwurf eines eigenen Stils, keine fremden Farbpaletten/Schriften.
+Neue Elemente fügen sich in das vorhandene System ein und nutzen dessen CSS-Variablen aus dem
+`:root` von `index.html` (nicht hartkodieren):
+
+- **Schrift:** Display/Headlines `var(--font-display)` (kondensiert, athletisch — Bahnschrift/
+  Arial Narrow/…, nur System-Fonts, kein externes Font-CDN), Fließtext `var(--font-body)`.
+- **Akzent:** Rot — `--accent` (`#DC2626` light / `#FF3040` dark), `--accent-strong`.
+- **Flächen/Text:** `--bg`, `--surface`, `--surface-2`, `--text`, `--text-muted`, `--border`,
+  `--border-strong`. Dark ist der Charakter des Themes; Light- und Dark-Werte immer beide pflegen
+  (Blöcke `@media (prefers-color-scheme: dark)` und `:root[data-theme=…]`).
+- **Form:** `--radius`/`--radius-sm`, `--shadow`, `--maxw`. Kategorie-Farben `--fr`/`--mi`/`--ab`.
+- **Ton:** sportlich/„Performance", Slogan „Plan it. Cook it. Lift it.", rundes Logo auf rotem Kreis.
+
+Wenn eine Design-Entscheidung nicht durch vorhandene Tokens abgedeckt ist, erst fragen bzw. einen
+neuen Token im gleichen Stil anlegen — nicht danebendesignen.
+
+**Bei jeder Design-Änderung zuerst den Skill `ui-ux-pro-max` aufrufen** — verbindlich, nicht
+optional. `ui-ux-pro-max:ui-ux-pro-max` für UI-Zustände, Farben, UX- und A11y-Regeln,
+`ui-ux-pro-max:design` für Branding/Logo/Banner. Dessen Empfehlungen dann auf die Projekt-Tokens
+mappen, nie dessen eigene Variablen übernehmen.
+
 ## Was das ist
 
 „Paddy's Mealplan" — ein deutschsprachiger Wochen-Essensplaner. Die gesamte App ist **eine
@@ -17,9 +41,12 @@ ist geplant, aber noch nicht aktiv.
 
 ## Es gibt keine Toolchain
 
-Kein Build, kein Bundler, kein Test-Framework, kein Linter, kein `package.json`. **Node, Python und
-PHP sind auf diesem Rechner nicht installiert.** Erfinde keine `npm`-Befehle — es gibt sie nicht.
+Kein Build, kein Bundler, kein Test-Framework, kein Linter, kein `package.json`. **Node und PHP sind
+auf diesem Rechner nicht installiert.** Erfinde keine `npm`-Befehle — es gibt sie nicht.
 Eine Änderung an `index.html` ist sofort die fertige App.
+
+**Python ist vorhanden** (`C:\Users\Paddy\AppData\Local\Programs\Python\Python312\python.exe`) — es
+gehört nicht zur App, wird aber von den Skill-Skripten gebraucht (z. B. `ui-ux-pro-max`).
 
 Daraus folgt: JS-Syntax lässt sich nicht direkt prüfen. Verifiziert wird ausschließlich im Browser
 (siehe unten). Das ist keine Bequemlichkeit, sondern die einzige Möglichkeit.
@@ -171,13 +198,18 @@ Datenfeldern arbeitet, ändert damit potenziell die Wahrheit dieser Zusagen.**
 
 ## Prüf-Agenten
 
-Zwei projektspezifische Agenten liegen unter `.claude/agents/`:
+Drei projektspezifische Agenten liegen unter `.claude/agents/`:
 
 - **`website-security`** — Geheimnisse, personenbezogene Daten, XSS, Git-Historie
 - **`anwalt`** — gleicht Rechtstext gegen Code ab (keine Rechtsberatung)
+- **`kvp`** — sieht sich den `git diff` an und schlägt Verbesserungen vor. Fragt immer zuerst,
+  ob die Änderung zum Thema Fitness/Abnehmen und zum Wochenplan-Konzept passt (`state.goal`,
+  Makro-Logik, Wochenrhythmus), danach Design-Konformität, Mobile, Bedienbarkeit, Wartbarkeit
+  und Sync. Ändert bewusst nichts, hat keine Schreibrechte.
 
-Beide vor einem Push einsetzen, wenn ein Dienst, ein Datenfeld oder etwas an der Teilen-Funktion
-dazugekommen ist.
+`website-security` und `anwalt` vor einem Push einsetzen, wenn ein Dienst, ein Datenfeld oder
+etwas an der Teilen-Funktion dazugekommen ist. `kvp` passt davor — wenn eine Änderung fertig ist
+und vor dem Commit noch einmal jemand draufschauen soll.
 
 Hinweis: Ein **neu angelegter** Agent ist in der laufenden Session noch nicht als `subagent_type`
 wählbar — die Liste wird beim Start gelesen. Dann entweder die Session neu starten oder
