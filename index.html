@@ -1177,7 +1177,7 @@
      Sprungziel. Deshalb 44 px hoch – sie ist Bedienelement, keine Dekoration.
      Die beiden Leisten stehen ausserhalb der Handy-Abfrage auf display:none; im
      Markup sind sie immer da, damit renderPlan() nicht zwei Faelle kennen muss. */
-  .daybar, .wgbar { display: none; }
+  .daybar, .wgbar, .calcbar, .calcnav { display: none; }
 
   @media (max-width: 680px) {
     .daybar {
@@ -1273,6 +1273,64 @@
     }
     .wg-cols::-webkit-scrollbar { display: none; }
     .wg-cols > .wg-col { flex: 0 0 100%; scroll-snap-align: start; scroll-snap-stop: always; }
+
+    /* ---- Kalorienrechner als Assistent ----
+       Am Rechner stehen Formular und Ergebnisspalte nebeneinander und das Ergebnis
+       rechnet bei jedem Tastendruck mit – das ist dort die Staerke und bleibt. Auf dem
+       Handy liegen die drei Gruppen untereinander, das Ergebnis ganz unten ausser
+       Sicht; hier fuehren vier Schritte besser. Dieselbe Mechanik wie beim Wochenplan.
+       display:contents flacht .calc-form nur fuer die Darstellung ein, damit die drei
+       Gruppen zu Karten des Streifens werden – im DOM bleibt die Ebene stehen,
+       deshalb bekommt initCarousel die Karten dort ausdruecklich uebergeben. */
+    .calc {
+      display: flex; gap: 12px; align-items: flex-start;
+      overflow-x: auto; overflow-y: hidden;
+      scroll-snap-type: x mandatory; overscroll-behavior-x: contain;
+      scrollbar-width: none;
+    }
+    .calc::-webkit-scrollbar { display: none; }
+    .calc-form { display: contents; }
+    .calc .calc-group, .calc .calc-result {
+      flex: 0 0 100%; scroll-snap-align: start; scroll-snap-stop: always; margin-bottom: 0;
+    }
+
+    .calcbar { display: flex; gap: 4px; margin: 0 0 12px; }
+    .cb-b {
+      flex: 1 1 0; min-width: 0; min-height: 44px;
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+      font: inherit; font-size: 10.5px; font-weight: 650; letter-spacing: .02em;
+      cursor: pointer; white-space: nowrap; overflow: hidden;
+      color: var(--text-muted); background: var(--surface-2);
+      border: 1px solid var(--border); border-radius: var(--radius-sm);
+      transition: color .14s, background .14s, border-color .14s;
+    }
+    /* Die Schrittnummer traegt die Reihenfolge auch dann, wenn die Beschriftung
+       auf schmalen Geraeten kaum zu lesen ist. */
+    .cb-b .cb-n {
+      font-family: var(--font-display); font-size: 13px; font-weight: 700; line-height: 1;
+    }
+    .cb-b.done { color: var(--ok); border-color: color-mix(in srgb, var(--ok) 45%, var(--border)); }
+    .cb-b.active {
+      color: var(--accent-contrast); border-color: transparent;
+      background: linear-gradient(135deg, var(--accent), var(--accent-strong));
+    }
+
+    /* Der Fussknopf ist der Faden durch den Assistenten: Weiter, Weiter, Berechnen,
+       Zuruecksetzen. Klebt am unteren Rand ueber der Reiterleiste, damit er auf jeder
+       Karte erreichbar bleibt, ohne ans Ende scrollen zu muessen. */
+    .calcnav {
+      display: block; position: sticky; z-index: 20;
+      /* ueber der festen Reiterleiste, nicht dahinter. Deren Hoehe misst
+         syncStickyOffsets(); der Rueckfallwert gilt nur, bis das einmal gelaufen ist.
+         env() steckt schon in der Leiste selbst – hier nicht doppelt rechnen. */
+      bottom: calc(var(--tabbar-h, 56px) + 8px);
+      margin: 16px 0 0; padding: 10px 0 4px;
+      background: var(--bg);
+    }
+    .calcnav .btn { width: 100%; justify-content: center; min-height: 48px; font-size: 15px; }
+    /* Auf der Ergebniskarte traegt der Fussknopf die Aktion – der Knopf in der Karte
+       waere dieselbe Handlung ein zweites Mal. */
+    .calc-result #c-save, .calc-result .calc-saved { display: none; }
   }
 </style>
 
@@ -2989,18 +3047,24 @@
   // ungewollt nach oben oder unten springen.
   // Am Rechner steht die Leiste auf display:none, der Streifen ist ein normales
   // Raster – dann laeuft hier nur ein Klick-Handler mit, der nie ausgeloest wird.
-  function initCarousel(scroller, bar) {
-    if (!scroller || !bar) return;
-    const panels = Array.prototype.slice.call(scroller.children);
+  // panelList: nur noetig, wenn die Karten keine direkten Kinder des Streifens sind.
+  // Beim Rechner ist das so – dort flacht display:contents die Zwischenebene nur fuer
+  // die Darstellung ein, im DOM bleibt sie stehen, und .children liefe daneben.
+  // onChange meldet jeden Kartenwechsel; der Rechner haengt daran seinen Fussknopf.
+  function initCarousel(scroller, bar, panelList, onChange) {
+    if (!scroller || !bar) return null;
+    const panels = panelList || Array.prototype.slice.call(scroller.children);
     const btns = Array.prototype.slice.call(bar.children);
-    if (!panels.length || !btns.length) return;
+    if (!panels.length || !btns.length) return null;
 
+    let activeIdx = -1;
     function setActive(idx) {
       btns.forEach((b, i) => {
         const on = i === idx;
         b.classList.toggle("active", on);
         if (on) b.setAttribute("aria-current", "true"); else b.removeAttribute("aria-current");
       });
+      if (idx !== activeIdx) { activeIdx = idx; if (onChange) onChange(idx); }
     }
 
     // Aktiv ist die Karte, deren linke Kante zuletzt vor der Mitte des Fensters lag –
@@ -3040,7 +3104,7 @@
       requestAnimationFrame(() => { ticking = false; markActive(); fitHeight(); });
     }, { passive: true });
 
-    btns.forEach((b, i) => b.addEventListener("click", () => {
+    function go(i) {
       const p = panels[i];
       if (!p) return;
       // Markierung sofort umsetzen, nicht erst wenn das Scroll-Ereignis kommt: beim
@@ -3062,10 +3126,13 @@
       // mitziehen, statt einen Frame lang die alte stehen zu lassen. Beim Sanftlauf
       // rechnet das Scroll-Ereignis unterwegs ohnehin laufend nach.
       fitHeight();
-    }));
+    }
+
+    btns.forEach((b, i) => b.addEventListener("click", () => go(i)));
 
     markActive();
     fitHeight();
+    return { go: go, fit: fitHeight, index: currentIndex };
   }
 
   function reducedMotion() {
@@ -3076,8 +3143,15 @@
   // und Bildschirmbreite (Slogan bricht um, Reiter wandern nach unten) – deshalb
   // gemessen und als --head-h gesetzt, statt im CSS eine Zahl zu raten.
   function syncStickyOffsets() {
+    const root = document.documentElement;
     const head = document.querySelector("header.site");
-    if (head) document.documentElement.style.setProperty("--head-h", head.offsetHeight + "px");
+    if (head) root.style.setProperty("--head-h", head.offsetHeight + "px");
+    // Untere Reiterleiste: auf dem Handy fest am Bildschirmrand. Der klebende
+    // Fussknopf des Rechners muss darueber sitzen, sonst laege er dahinter. Am Rechner
+    // steht die Leiste im Kopf, dann ist der Abstand 0.
+    const tabs = document.querySelector(".tabs");
+    const fixed = tabs && getComputedStyle(tabs).position === "fixed";
+    root.style.setProperty("--tabbar-h", fixed ? tabs.offsetHeight + "px" : "0px");
   }
   window.addEventListener("resize", syncStickyOffsets);
 
@@ -4391,6 +4465,10 @@
         <h2>Kalorienrechner</h2>
         <div class="sub">Berechne deinen Tages- und Wochenbedarf – abgestimmt auf Aktivität und Ziel.</div>
       </div></div>
+      <nav class="calcbar" aria-label="Schritt wählen">
+        ${["Körper", "Alltag", "Training", "Ziel"].map((s, i) =>
+          `<button type="button" class="cb-b"><span class="cb-n">${i + 1}</span><span>${s}</span></button>`).join("")}
+      </nav>
       <div class="calc">
         <div class="calc-form">
           <div class="calc-group">
@@ -4433,6 +4511,7 @@
         </div>
         <div class="calc-result" id="c-result"></div>
       </div>
+      <div class="calcnav"><button type="button" class="btn primary" id="c-step-go">Weiter</button></div>
       <p class="calc-note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></svg><span>Alle Werte sind <strong>rechnerische Richtwerte</strong>: Grundumsatz nach der Mifflin-St-Jeor-Formel, Alltagsbedarf über einen Aktivitätsfaktor (PAL), der Mehrbedarf an Trainingstagen über MET-Schätzwerte. Der tatsächliche Verbrauch kann davon deutlich abweichen. Sie ersetzen keine ärztliche oder ernährungsmedizinische Beratung. Bei Erkrankungen, in Schwangerschaft und Stillzeit oder vor einer stärkeren Ernährungsumstellung sprich bitte mit einer Ärztin oder einem Arzt.</span></p>`;
 
     const paceField = view.querySelector("#c-pace-field");
@@ -4493,9 +4572,27 @@
         </div>`;
       }).join("");
     }
+    // Der Assistent laeuft nur auf dem Handy – erkannt daran, dass .calc dort
+    // tatsaechlich waagerecht scrollt. Als Funktionsdeklaration, damit updateResult
+    // sie auch beim ersten Durchlauf schon aufrufen kann.
+    function wizardActive() {
+      const c = view.querySelector(".calc");
+      return !!c && c.scrollWidth > c.clientWidth + 10;
+    }
+
     function updateResult() {
       const res = view.querySelector("#c-result");
       const inp = readInput();
+      // Im Assistenten wurde das Ziel mit „Berechnen" schon gespeichert. Geht man
+      // danach zurueck und aendert etwas, zieht es still mit – sonst liefe man nach
+      // einer Korrektur mit einem veralteten Ziel weiter, ohne Hinweis darauf. Vor dem
+      // ersten Speichern passiert nichts: wer nur herumprobiert, legt sich kein Ziel an.
+      // Am Rechner bleibt es beim ausdruecklichen Knopf – dort ist die Ergebnisspalte
+      // eine Vorschau zum Vergleichen, die nicht ungefragt Fakten schaffen soll.
+      if (state.goal && validCalcInput(inp) && wizardActive()) {
+        state.goal = computeGoal(inp);
+        save();
+      }
       if (!validCalcInput(inp)) {
         res.innerHTML = `<div class="calc-empty">Trag Alter, Größe und Gewicht ein, dann siehst du hier deinen Tages- und Wochenbedarf.</div>`;
         return;
@@ -4541,7 +4638,7 @@
         <div class="calc-meta"><span>Woche <b>${nfmt(weekKcal)} kcal</b></span><span>BMI <b>${String(r.bmi).replace(".", ",")}</b></span></div>
         <button class="btn primary" id="c-save">Als mein Ziel speichern</button>
         ${state.goal ? `<div class="calc-saved"><span>Gespeichertes Ziel: ${nfmt(state.goal.kcal)} kcal / ${trainingKeys(state.goal.training).length ? "Ruhetag" : "Tag"}${savedDaysTxt()}</span>
-          <button class="btn del-ic" id="c-del" title="Ziel löschen" aria-label="Gespeichertes Ziel löschen">${ACT_ICONS.del}</button></div>` : ""}`;
+          <button class="btn ghost sm" id="c-del">Ziel zurücksetzen</button></div>` : ""}`;
       res.querySelector("#c-save").addEventListener("click", () => {
         state.goal = computeGoal(readInput());
         save();
@@ -4549,14 +4646,7 @@
         updateResult();
       });
       const del = res.querySelector("#c-del");
-      // Kein Rueckfrage-Modal: die Eingaben stehen noch im Formular, ein Klick auf
-      // „Als mein Ziel speichern“ stellt das Ziel sofort wieder her.
-      if (del) del.addEventListener("click", () => {
-        state.goal = null;
-        save();
-        toast("Ziel gelöscht – mit „Als mein Ziel speichern“ wieder aktiv");
-        updateResult();
-      });
+      if (del) del.addEventListener("click", resetCalc);
     }
 
     // Nur die Einfachauswahl-Segmente des Formulars. Die Stufen-Segmente der Trainings-
@@ -4646,6 +4736,93 @@
     fillPace();
     fillTrainDetail();
     updateResult();
+
+    // ---------- Assistent (nur Handy) ----------
+    // Vier Karten: Koerperdaten, Alltag & Ziel, Trainingstage, Ergebnis. Der Fussknopf
+    // fuehrt hindurch. Frei wischen ist erlaubt – vorausschauen darf man, nur das
+    // Rechnen haengt an gueltigen Eingaben. Ein gesperrter Streifen liesse sich mit
+    // nativem Schnappen ohnehin nicht ehrlich umsetzen.
+    syncStickyOffsets(); // der Fussknopf klebt ueber der unteren Reiterleiste
+    const calcEl = view.querySelector(".calc");
+    const calcBar = view.querySelector(".calcbar");
+    const goBtn = view.querySelector("#c-step-go");
+    const stepPanels = Array.prototype.slice.call(view.querySelectorAll(".calc-group"))
+      .concat([view.querySelector("#c-result")]);
+    const LAST = stepPanels.length - 1;
+
+    function bodyDataOk() { return validCalcInput(readInput()); }
+
+    // Der erste Schritt ist der einzige mit Pflichtfeldern – ohne Alter, Groesse und
+    // Gewicht kann nichts gerechnet werden. Der Hinweis nennt das Fehlende beim Namen
+    // und setzt den Fokus dorthin, statt nur „ungueltig" zu melden.
+    function nagBodyData() {
+      const ids = [["c-age", "dein Alter"], ["c-height", "deine Größe"], ["c-weight", "dein Gewicht"]];
+      const fehlt = ids.filter(([id]) => !(+view.querySelector("#" + id).value > 0));
+      const erste = fehlt.length ? view.querySelector("#" + fehlt[0][0]) : view.querySelector("#c-age");
+      toast(fehlt.length ? "Trag noch " + fehlt.map(f => f[1]).join(" und ") + " ein" : "Bitte prüfe deine Körperdaten");
+      if (erste) erste.focus();
+    }
+
+    function setStepBtn(i) {
+      // Schritte gelten als erledigt, sobald die Koerperdaten stehen – nur sie sind Pflicht.
+      const ok = bodyDataOk();
+      Array.prototype.forEach.call(calcBar.children, (b, n) => b.classList.toggle("done", ok && n < i));
+      if (i < 2) { goBtn.textContent = "Weiter"; goBtn.className = "btn primary"; }
+      else if (i === 2) { goBtn.textContent = "Berechnen"; goBtn.className = "btn primary"; }
+      // Auf der Ergebniskarte haengt die Beschriftung daran, ob schon etwas gespeichert
+      // ist: ohne gespeichertes Ziel gaebe es nichts zurueckzusetzen.
+      else if (state.goal) { goBtn.textContent = "Ziel zurücksetzen"; goBtn.className = "btn ghost"; }
+      else { goBtn.textContent = "Berechnen"; goBtn.className = "btn primary"; }
+    }
+
+    const calcCar = initCarousel(calcEl, calcBar, stepPanels, setStepBtn);
+
+    goBtn.addEventListener("click", () => {
+      const i = calcCar ? calcCar.index() : 0;
+      if (i === LAST && state.goal) { resetCalc(); return; }
+      if (i < 2) {
+        if (i === 0 && !bodyDataOk()) { nagBodyData(); return; }
+        if (calcCar) calcCar.go(i + 1);
+        return;
+      }
+      // „Berechnen": speichert und legt die Ergebniskarte vor.
+      if (!bodyDataOk()) { if (calcCar) calcCar.go(0); nagBodyData(); return; }
+      state.goal = computeGoal(readInput());
+      save();
+      updateResult();
+      if (calcCar) calcCar.go(LAST);
+      setStepBtn(LAST);
+      toast("Dein Ziel wurde gespeichert");
+    });
+
+    // Beim Oeffnen mit gespeichertem Ziel gleich das Ergebnis zeigen – die Eingaben
+    // stehen ja schon, und der haeufigste Grund fuer den Rechner ist dann Nachsehen.
+    if (calcCar && state.goal && calcEl.scrollWidth > calcEl.clientWidth + 10) {
+      calcCar.go(LAST);
+      setStepBtn(LAST);
+    } else {
+      setStepBtn(0);
+    }
+
+  }
+
+  // Setzt den Kalorienrechner vollstaendig zurueck: gespeichertes Ziel UND alle
+  // Eingaben. Das Leeren des Formulars passiert ueber den Neuaufbau – renderRechner
+  // liest jedes Feld aus state.goal, ohne Ziel steht dort ueberall der Ausgangswert.
+  // Mit Rueckfrage, anders als frueher beim blossen Loeschen des Ziels: damals blieben
+  // die Eingaben stehen und ein Klick stellte alles wieder her, jetzt sind sie weg.
+  function resetCalc() {
+    confirmModal({
+      title: "Rechner zurücksetzen?",
+      text: "Dein gespeichertes Ziel und alle Eingaben im Kalorienrechner werden gelöscht. Deine Meals und dein Wochenplan bleiben unberührt.",
+      okLabel: "Zurücksetzen",
+      onConfirm: () => {
+        state.goal = null;
+        save();
+        render();
+        toast("Kalorienrechner zurückgesetzt");
+      },
+    });
   }
 
   // Pro – eigener Reiter, aktuell nur Vorschau/Platzhalter. Wird ein eigenes Thema.
