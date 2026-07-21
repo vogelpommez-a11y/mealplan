@@ -1230,6 +1230,11 @@
       overflow-x: auto; overflow-y: hidden;
     }
     .week::-webkit-scrollbar { display: none; }
+    /* flex-start statt des voreingestellten stretch: sonst wird JEDE Tageskarte so
+       hoch wie die hoechste der Woche, und ein leerer Tag bekommt unter "Abendessen"
+       die Leerflaeche des vollsten Tages geschenkt. Die passende Hoehe des Streifens
+       setzt fitHeight() nach, sonst bliebe die Luecke nur ausserhalb der Karte. */
+    .week { align-items: flex-start; }
     .week > .day { flex: 0 0 100%; scroll-snap-align: start; scroll-snap-stop: always; }
     /* Auf dem Handy gibt es kein echtes Hover – beim Wischen setzt der Browser den
        Zustand trotzdem auf die beruehrte Karte. Sie bliebe dann angehoben stehen,
@@ -1264,6 +1269,7 @@
       overflow-x: auto; overflow-y: hidden;
       scroll-snap-type: x mandatory; overscroll-behavior-x: contain;
       scrollbar-width: none;
+      align-items: flex-start; /* gleiche Ueberlegung wie beim Wochenplan */
     }
     .wg-cols::-webkit-scrollbar { display: none; }
     .wg-cols > .wg-col { flex: 0 0 100%; scroll-snap-align: start; scroll-snap-stop: always; }
@@ -2969,6 +2975,14 @@
   }
 
   // ---------- Handy-Karussell (Wochenplan, Wochenziele) ----------
+  // Die Hoehenanpassungen der gerade aufgebauten Streifen. Bewusst eine Liste hier
+  // statt eines window-Listeners je Karussell: die Streifen werden bei jedem render()
+  // neu gebaut, ein Listener pro Durchlauf waere ein Leck. renderPlan() leert die
+  // Liste vor dem Neuaufbau, danach haengt hier genau der aktuelle Stand drin.
+  // Steht VOR initCarousel, damit die Zuweisung sicher vor dem ersten Aufruf lief.
+  const fits = [];
+  window.addEventListener("resize", () => fits.forEach(f => f()));
+
   // Bindet einen waagerecht schnappenden Streifen an die Knopfleiste darueber. Die
   // Kopplung laeuft ueber scrollLeft und NICHT ueber scrollIntoView: letzteres
   // verschiebt die Seite auch senkrecht, man wuerde beim Tagwechsel also
@@ -3000,11 +3014,30 @@
 
     function markActive() { setActive(currentIndex()); }
 
+    // Der Streifen ist von sich aus so hoch wie die hoechste Karte. Mit
+    // align-items: flex-start behaelt zwar jede Karte ihre eigene Hoehe, der
+    // Streifen bliebe aber trotzdem auf Maximalhoehe stehen – die Luecke waere dann
+    // nur nach draussen gewandert, vor die Einkaufsliste. Also die Hoehe der gerade
+    // sichtbaren Karten nachfuehren. Beim Wischen zaehlt das Maximum der angerissenen
+    // Karten, sonst wuerde die hereinkommende hoehere Karte unterwegs abgeschnitten.
+    function fitHeight() {
+      // Am Rechner ist .week ein Raster und scrollt nicht – dort nichts anfassen.
+      if (scroller.scrollWidth <= scroller.clientWidth + 10) { scroller.style.height = ""; return; }
+      const left = scroller.scrollLeft, right = left + scroller.clientWidth;
+      let h = 0;
+      panels.forEach(p => {
+        const a = p.offsetLeft - panels[0].offsetLeft;
+        if (a + p.offsetWidth > left + 1 && a < right - 1) h = Math.max(h, p.offsetHeight);
+      });
+      if (h) scroller.style.height = h + "px";
+    }
+    fits.push(fitHeight);
+
     let ticking = false;
     scroller.addEventListener("scroll", () => {
       if (ticking) return;
       ticking = true;
-      requestAnimationFrame(() => { ticking = false; markActive(); });
+      requestAnimationFrame(() => { ticking = false; markActive(); fitHeight(); });
     }, { passive: true });
 
     btns.forEach((b, i) => b.addEventListener("click", () => {
@@ -3025,9 +3058,14 @@
         left: p.offsetLeft - panels[0].offsetLeft,
         behavior: (neighbour && !reducedMotion()) ? "smooth" : "auto",
       });
+      // Beim Direktsprung steht die neue Position schon – dann die Hoehe sofort
+      // mitziehen, statt einen Frame lang die alte stehen zu lassen. Beim Sanftlauf
+      // rechnet das Scroll-Ereignis unterwegs ohnehin laufend nach.
+      fitHeight();
     }));
 
     markActive();
+    fitHeight();
   }
 
   function reducedMotion() {
@@ -3120,6 +3158,7 @@
       </button>`;
     view.innerHTML = html;
     syncStickyOffsets();
+    fits.length = 0; // die Streifen des vorigen Durchlaufs sind gerade weggeworfen worden
     initCarousel(view.querySelector(".week"), view.querySelector(".daybar"));
     // Nur vorhanden, wenn ein Ziel gespeichert ist – initCarousel faengt null ab.
     initCarousel(view.querySelector(".wg-cols"), view.querySelector(".wgbar"));
