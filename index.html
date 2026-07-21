@@ -257,6 +257,13 @@
   }
   .btn:hover { border-color: var(--accent); }
   .btn:active { transform: translateY(1px); }
+  /* Gesperrte Knoepfe sahen bisher aus wie bedienbare – es gab gar keinen Stil dafuer.
+     Kein Zeiger, kein Hover, kein Anheben beim Druecken: der Knopf soll auch beim
+     Antippen erkennbar nicht reagieren. */
+  .btn:disabled { opacity: .45; cursor: default; box-shadow: none; }
+  .btn:disabled:hover { border-color: var(--border-strong); }
+  .btn.primary:disabled:hover { border-color: var(--accent); }
+  .btn:disabled:active { transform: none; }
   .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-contrast); }
   .btn.primary:hover { background: var(--accent-strong); border-color: var(--accent-strong); }
   .btn.ghost { background: transparent; border-color: transparent; color: var(--text-muted); }
@@ -936,7 +943,10 @@
   #c-tdetail { container-type: inline-size; }
   .trow {
     display: grid; grid-template-columns: 30px 1fr auto;
-    grid-template-areas: "d lv lv" ". min kcal" "def def def";
+    /* Zweite Zeile beginnt am linken Rand statt hinter einer leeren 30px-Zelle: mit
+       der Beschriftung „Dauer" davor liest sie sich als Satz („Dauer 60 Min.") und
+       wirkt nicht mehr wie eine halb leere Zeile. */
+    grid-template-areas: "d lv lv" "min min kcal" "def def def";
     align-items: center; gap: 8px; row-gap: 6px;
     padding: 8px 0; border-top: 1px solid var(--border);
   }
@@ -976,6 +986,11 @@
      Bei sieben Trainingstagen stehen 21 dieser Buttons gleichzeitig auf dem Schirm. */
   .trow-lv button { padding: 8px 4px; font-size: 11.5px; min-height: 40px; }
   .trow-min { display: flex; align-items: center; gap: 4px; }
+  /* Nur im schmalen Raster: dort steht die Dauer in einer eigenen Zeile und braucht
+     die Beschriftung. Passt alles in eine Zeile, ist die Spalte durch ihre Nachbarn
+     erklaert und das Wort waere nur Fuellung, die den Stufen den Platz nimmt. */
+  .trow-min .tm-lbl { display: none; font-size: 11px; color: var(--text-muted); }
+  @container (max-width: 379px) { .trow-min .tm-lbl { display: inline; } }
   .trow-min input {
     width: 58px; text-align: center; padding: 8px 4px; font-size: 16px; /* 16px gegen iOS-Zoom */
     background: var(--surface-2); color: var(--text); border: 1px solid var(--border);
@@ -1012,10 +1027,23 @@
      ueber 50px mitten im Ergebnis. */
   .calc-kcal .u { display: block; margin-top: 7px; font-family: var(--font-body); font-size: 17px; font-weight: 600; color: var(--text-muted); letter-spacing: 0; line-height: 1.2; }
   .calc-sub { color: var(--text-muted); font-size: 13px; margin-top: 8px; line-height: 1.5; }
-  .macros { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 22px; }
+  /* Ueberschrift, damit die drei Kacheln benannt sind – ohne sie standen dort nur drei
+     Zahlen ohne Oberbegriff. Gleiche Machart wie .calc-group-h. */
+  .macros-h {
+    font-family: var(--font-display); font-size: 12px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: .08em; color: var(--text-muted);
+    margin: 22px 0 9px; text-align: left;
+  }
+  .macros-h span { font-family: var(--font-body); text-transform: none; letter-spacing: 0; font-weight: 400; }
+  .macros { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
   .macro { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 13px 6px; }
-  .macro .mv { font-family: var(--font-display); font-size: 22px; font-weight: 600; color: var(--text); }
-  .macro .ml { font-size: 10.5px; text-transform: uppercase; letter-spacing: .05em; font-weight: 650; color: var(--text-muted); margin-top: 3px; }
+  /* Farben wie ueberall sonst im Projekt (Wochenbilanz, Naehrwerte je Portion): jedes
+     Makro hat dort schon seinen Ton. Getragen wird die Zuordnung vom Punkt UND vom
+     Wort darunter – die Farbe allein traegt keine Aussage. */
+  .macro .mv { font-family: var(--font-display); font-size: 22px; font-weight: 600; color: var(--tc, var(--text)); }
+  .macro .ml { display: flex; align-items: center; justify-content: center; gap: 5px; font-size: 10.5px; text-transform: uppercase; letter-spacing: .05em; font-weight: 650; color: var(--text-muted); margin-top: 3px; }
+  .macro .ml::before { content: ""; width: 8px; height: 8px; border-radius: 50%; flex: none; background: var(--tc, var(--accent)); }
+  .macro.t-prot { --tc: #C74B78; } .macro.t-carb { --tc: #E9A03B; } .macro.t-fat { --tc: #4AA8E0; }
   /* Der Abschluss der Seite wird als solcher abgesetzt: mehr Luft nach oben, dazu der
      weiche Akzentschein, den aktive Elemente im Theme ohnehin tragen (Heute-Chip,
      Tages-Umschalter). Hebt den Button heraus, ohne einen neuen Farbwert einzufuehren. */
@@ -1030,8 +1058,25 @@
   }
   .calc-saved { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 12.5px; color: var(--text-muted); margin-top: 12px; }
   /* Hinweis, dass die Werte Richtwerte sind – gleiches Muster wie .auth-note */
-  .calc-note { display: flex; gap: 9px; align-items: flex-start; max-width: var(--maxw); font-size: 12px; line-height: 1.55; color: var(--text-muted); margin: 20px 0 0; padding-top: 14px; border-top: 1px solid var(--border); }
-  .calc-note svg { width: 15px; height: 15px; flex: none; margin-top: 2px; color: var(--accent); }
+  /* Der Haftungshinweis stand als sechszeiliger Block unter dem Rechner und drueckte
+     auf dem Handy alles Wichtige aus dem Bild. Jetzt eine Zeile mit (i), die sich
+     aufklappt. Bewusst <details> und kein selbstgebauter Aufklapper: das funktioniert
+     ohne JS, ist mit der Tastatur bedienbar und wird von Sprachausgaben als
+     zu-/aufgeklappt angesagt. Der Kern bleibt sichtbar in der Zusammenfassung stehen —
+     ein blosses (i) ohne Text waere fuer einen Gesundheitshinweis zu wenig. */
+  .calc-note { max-width: var(--maxw); font-size: 12px; line-height: 1.55; color: var(--text-muted); margin: 20px 0 0; padding-top: 6px; border-top: 1px solid var(--border); }
+  .calc-note > summary {
+    display: flex; align-items: center; gap: 9px; cursor: pointer;
+    min-height: 44px; /* Tippflaeche */
+    list-style: none; font-size: 12px;
+  }
+  .calc-note > summary::-webkit-details-marker { display: none; }
+  .calc-note > summary:hover { color: var(--text); }
+  .calc-note .ci { width: 15px; height: 15px; flex: none; color: var(--accent); }
+  .calc-note .caret { width: 14px; height: 14px; flex: none; margin-left: auto; transition: transform .16s ease; }
+  .calc-note[open] .caret { transform: rotate(90deg); }
+  @media (prefers-reduced-motion: reduce) { .calc-note .caret { transition: none; } }
+  .calc-note .cn-body { padding: 0 0 12px 24px; }
   .calc-note strong { color: var(--text); font-weight: 600; }
   .calc-empty { color: var(--text-muted); font-size: 14px; line-height: 1.55; padding: 30px 6px; }
   /* Eingabe-Gruppen (Karten) */
@@ -1340,10 +1385,24 @@
     }
     /* Zurueck schmal links, die Haupthandlung breit rechts – der Weg nach vorn ist
        das Wahrscheinliche und bekommt das groessere Ziel unter dem Daumen. */
-    .calcnav { display: flex; gap: 8px; }
+    .calcnav .cn-row { display: flex; gap: 8px; }
     .calcnav .btn { justify-content: center; min-height: 48px; font-size: 15px; }
+    /* .btn.ghost hat einen durchsichtigen Rand – im Fussbereich stehen aber teils ZWEI
+       davon nebeneinander (Zurueck + Ziel zuruecksetzen), und die Zeile las sich dann
+       als zwei schwebende Textlinks ohne Bedienhinweis. Hier bekommen sie eine
+       sichtbare Kontur aus den vorhandenen Tokens. */
+    .calcnav .btn.ghost { background: var(--surface); border-color: var(--border-strong); color: var(--text); }
     .calcnav #c-step-back { flex: 0 0 34%; }
     .calcnav #c-step-go { flex: 1 1 auto; }
+    /* Ein gesperrter Knopf ohne Begruendung ist eine Sackgasse: man sieht, dass es
+       nicht weitergeht, aber nicht warum. Deshalb steht direkt darueber, was fehlt.
+       role="status" sagt es auch Sprachausgaben an, sobald es sich aendert. */
+    .calcnav .cn-miss {
+      margin: 0 0 8px; font-size: 12px; line-height: 1.45; color: var(--text-muted);
+      display: flex; align-items: flex-start; gap: 6px;
+    }
+    .calcnav .cn-miss::before { content: "!"; flex: none; display: grid; place-items: center; width: 15px; height: 15px; margin-top: 1px; border-radius: 50%; font-size: 10px; font-weight: 700; color: var(--accent-contrast); background: var(--accent); }
+    .calcnav .cn-miss[hidden] { display: none; }
     /* Auf der Ergebniskarte traegt der Fussknopf die Aktion – der Knopf in der Karte
        waere dieselbe Handlung ein zweites Mal. */
     .calc-result #c-save, .calc-result .calc-saved { display: none; }
@@ -4500,6 +4559,11 @@
     let cur = { sex: g.sex || null, mode: g.mode || null, pace: g.pace || null,
                 activity: ACTIVITY.some(a => a.key === g.activity) ? g.activity : null,
                 training: sanitizeTraining(g.training) };
+    // Haken, ueber den updateResult() den Fussknopf des Assistenten nachzieht. Als
+    // Variable und nicht als direkter Aufruf, weil updateResult() schon einmal laeuft,
+    // bevor der Assistent unten aufgebaut ist – vorher steht hier null und es passiert
+    // nichts. Ein direkter Aufruf liefe dort in die zeitliche Totzone der Konstanten.
+    let refreshStep = null;
     const segBtn = (grp, v, label, hint) => `<button type="button" data-v="${v}"${cur[grp] === v ? ' class="on"' : ''}>${label}${hint ? `<span class="seg-hint">${hint}</span>` : ""}</button>`;
     view.innerHTML = `
       <div class="section-head"><div class="title">
@@ -4553,10 +4617,20 @@
         <div class="calc-result" id="c-result"></div>
       </div>
       <div class="calcnav">
-        <button type="button" class="btn ghost" id="c-step-back">Zurück</button>
-        <button type="button" class="btn primary" id="c-step-go">Weiter</button>
+        <p class="cn-miss" id="c-step-miss" role="status" hidden></p>
+        <div class="cn-row">
+          <button type="button" class="btn ghost" id="c-step-back">Zurück</button>
+          <button type="button" class="btn primary" id="c-step-go">Weiter</button>
+        </div>
       </div>
-      <p class="calc-note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></svg><span>Alle Werte sind <strong>rechnerische Richtwerte</strong>: Grundumsatz nach der Mifflin-St-Jeor-Formel, Alltagsbedarf über einen Aktivitätsfaktor (PAL), der Mehrbedarf an Trainingstagen über MET-Schätzwerte. Der tatsächliche Verbrauch kann davon deutlich abweichen. Sie ersetzen keine ärztliche oder ernährungsmedizinische Beratung. Bei Erkrankungen, in Schwangerschaft und Stillzeit oder vor einer stärkeren Ernährungsumstellung sprich bitte mit einer Ärztin oder einem Arzt.</span></p>`;
+      <details class="calc-note">
+        <summary>
+          <svg class="ci" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></svg>
+          <span>Rechnerische Richtwerte – keine ärztliche Beratung</span>
+          <svg class="caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
+        </summary>
+        <div class="cn-body">Alle Werte sind <strong>rechnerische Richtwerte</strong>: Grundumsatz nach der Mifflin-St-Jeor-Formel, Alltagsbedarf über einen Aktivitätsfaktor (PAL), der Mehrbedarf an Trainingstagen über MET-Schätzwerte. Der tatsächliche Verbrauch kann davon deutlich abweichen. Sie ersetzen keine ärztliche oder ernährungsmedizinische Beratung. Bei Erkrankungen, in Schwangerschaft und Stillzeit oder vor einer stärkeren Ernährungsumstellung sprich bitte mit einer Ärztin oder einem Arzt.</div>
+      </details>`;
 
     const paceField = view.querySelector("#c-pace-field");
     const paceSeg = view.querySelector('.seg[data-seg="pace"]');
@@ -4609,6 +4683,7 @@
           <div class="seg trow-lv" data-tlevel="${k}" role="group" aria-label="Intensität am ${esc(d.label)}">${TRAIN_LEVELS.map(lv =>
             `<button type="button" data-v="${lv.key}"${e.level === lv.key ? ' class="on"' : ''} title="${esc(lv.ex)}">${lv.label}</button>`).join("")}</div>
           <div class="trow-min">
+            <span class="tm-lbl" aria-hidden="true">Dauer</span>
             <input type="number" data-tmin="${k}" value="${e.min}" min="${TRAIN_MIN_MIN}" max="${TRAIN_MIN_MAX}" step="5"
                    inputmode="numeric" aria-label="Dauer am ${esc(d.label)} in Minuten"><span>Min.</span>
           </div>
@@ -4632,6 +4707,9 @@
     function updateResult() {
       const res = view.querySelector("#c-result");
       const inp = readInput();
+      // Ganz vorn, nicht am Ende: unten steht ein frueher return fuer den Fall
+      // unvollstaendiger Eingaben – und genau dann muss der Fussknopf gesperrt werden.
+      if (refreshStep) refreshStep();
       // Im Assistenten wurde das Ziel mit „Berechnen" schon gespeichert. Geht man
       // danach zurueck und aendert etwas, zieht es still mit – sonst liefe man nach
       // einer Korrektur mit einem veralteten Ziel weiter, ohne Hinweis darauf. Vor dem
@@ -4681,10 +4759,11 @@
           <div class="bd-row bd-mid"><span>Erhaltungsbedarf</span><span>${nfmt(r.tdee)} kcal</span></div>
           <div class="bd-row"><span>Ziel-Anpassung</span><span>${adjStr}</span></div>
         </div>
+        <div class="macros-h">Makros <span>· ${tKeys.length ? "je Ruhetag" : "je Tag"}</span></div>
         <div class="macros">
-          <div class="macro"><div class="mv">${nfmt(r.protein)} g</div><div class="ml">Protein</div></div>
-          <div class="macro"><div class="mv">${nfmt(r.carbs)} g</div><div class="ml">Kohlenhydr.</div></div>
-          <div class="macro"><div class="mv">${nfmt(r.fat)} g</div><div class="ml">Fett</div></div>
+          <div class="macro t-prot"><div class="mv">${nfmt(r.protein)} g</div><div class="ml">Protein</div></div>
+          <div class="macro t-carb"><div class="mv">${nfmt(r.carbs)} g</div><div class="ml">Kohlenhydr.</div></div>
+          <div class="macro t-fat"><div class="mv">${nfmt(r.fat)} g</div><div class="ml">Fett</div></div>
         </div>
         ${trainPreview}
         <div class="calc-meta"><span>Woche <b>${nfmt(weekKcal)} kcal</b></span><span>BMI <b>${String(r.bmi).replace(".", ",")}</b></span></div>
@@ -4800,6 +4879,7 @@
     const calcBar = view.querySelector(".calcbar");
     const goBtn = view.querySelector("#c-step-go");
     const backBtn = view.querySelector("#c-step-back");
+    const missEl = view.querySelector("#c-step-miss");
     const stepPanels = Array.prototype.slice.call(view.querySelectorAll(".calc-group"))
       .concat([view.querySelector("#c-result")]);
     const LAST = stepPanels.length - 1;
@@ -4839,6 +4919,24 @@
       });
       // Zurueck erst ab der zweiten Karte – auf der ersten gaebe es kein Ziel dafuer.
       backBtn.style.display = i > 0 ? "" : "none";
+
+      // Der Knopf ist gesperrt, solange die Karte unvollstaendig ist. Auf der
+      // Trainingskarte („Berechnen") zaehlt alles, weil dort gerechnet wird – auch
+      // Angaben aus frueheren Karten, falls jemand zurueckging und etwas leerte.
+      const fehlt = i === 2 ? missingCalc(readInput()) : fehltIn(i);
+      const sperren = i < LAST ? fehlt.length > 0 : (!state.goal && missingCalc(readInput()).length > 0);
+      goBtn.disabled = sperren;
+      // Begruendung nur dort, wo tatsaechlich gesperrt ist.
+      if (sperren && fehlt.length) {
+        missEl.textContent = "Dafür fehlt noch: " + fehlt.join(", ");
+        missEl.hidden = false;
+      } else if (sperren) {
+        missEl.textContent = "Dafür fehlen noch Angaben in den Schritten davor.";
+        missEl.hidden = false;
+      } else {
+        missEl.hidden = true;
+      }
+
       if (i < 2) { goBtn.textContent = "Weiter"; goBtn.className = "btn primary"; }
       else if (i === 2) { goBtn.textContent = "Berechnen"; goBtn.className = "btn primary"; }
       // Auf der Ergebniskarte haengt die Beschriftung daran, ob schon etwas gespeichert
@@ -4882,6 +4980,9 @@
 
     // Beim Oeffnen mit gespeichertem Ziel gleich das Ergebnis zeigen – die Eingaben
     // stehen ja schon, und der haeufigste Grund fuer den Rechner ist dann Nachsehen.
+    // Ab jetzt zieht jede Eingabe den Fussknopf mit (sperren/entsperren + Begruendung).
+    refreshStep = () => setStepBtn(calcCar ? calcCar.index() : 0);
+
     if (calcCar && state.goal && calcEl.scrollWidth > calcEl.clientWidth + 10) {
       gehe(LAST);
     } else {
