@@ -1654,6 +1654,9 @@
 
   // ---------- Cloud-Sync (Firestore) ----------
   let syncUid = null, syncUnsub = null, pushTimer = null, lastPushedJSON = null;
+  // Sperrfrist fuer die „von aussen geaendert"-Meldung (siehe onRemote).
+  const REMOTE_TOAST_GAP = 60000;
+  let lastRemoteToast = 0;
 
   function normalizePlan(rawPlan, recipes) {
     const plan = makeEmptyPlan();
@@ -1726,7 +1729,16 @@
     lastPushedJSON = j;
     save(); render();
     setSyncStatus("synced");
-    toast("Von anderem Gerät aktualisiert");
+    // Nicht bei jedem eingehenden Schreibvorgang melden: wer auf einem Geraet plant,
+    // erzeugt alle 800 ms (Debounce von scheduleCloudPush) einen Push — auf dem zweiten
+    // Geraet prasselten dann im Minutentakt Dutzende Meldungen. Der Stand ist ohnehin
+    // schon uebernommen und der Sync-Punkt zeigt „synced"; die Meldung sagt nur, DASS
+    // sich etwas von aussen geaendert hat, und dafuer reicht ein Hinweis pro Minute.
+    const now = Date.now();
+    if (now - lastRemoteToast >= REMOTE_TOAST_GAP) {
+      lastRemoteToast = now;
+      toast("Von anderem Gerät aktualisiert");
+    }
   }
   async function startCloudSync(uid) {
     if (!window.CloudSync || !window.CloudSync.enabled) return;
@@ -1755,6 +1767,10 @@
       }
       lastPushedJSON = null;
       await pushNow();                            // zusammengeführten Stand als Baseline hochschreiben
+      // Sperrfrist gleich mitstarten: direkt nach dem Verbinden sagt schon „Mit deiner
+      // Cloud verbunden", dass Daten hereingekommen sind — ein zweiter Hinweis darauf
+      // waere in derselben Sekunde nur Laerm.
+      lastRemoteToast = Date.now();
       syncUnsub = window.CloudSync.watch(uid, onRemote);
       setSyncStatus("synced");
       toast("Mit deiner Cloud verbunden");
