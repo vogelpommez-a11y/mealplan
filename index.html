@@ -306,10 +306,6 @@
   .week { display: grid; grid-template-columns: repeat(auto-fill, minmax(232px, 1fr)); gap: 16px; }
   .day {
     position: relative;
-    /* Abfragebasis fuer die Makro-Beschriftung weiter unten: entscheidend ist die
-       Breite der KARTE, nicht die des Bildschirms. Auf dem Handy ist die Karte
-       naemlich breiter (~320 px, volle Breite) als im Desktop-Raster (~232 px). */
-    container-type: inline-size;
     background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
     box-shadow: var(--shadow); overflow: hidden; display: flex; flex-direction: column;
     transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease;
@@ -436,9 +432,17 @@
   .gm.is-over { --sc: var(--accent); --sc2: var(--accent-strong); }
   .gm.is-ok .gm-left { color: var(--ok); }
   .gm.is-over .gm-v b, .gm.is-over .gm-left { color: var(--accent); }
-  /* Wochenansicht mit Ziel: Ring + Kalorien in einer Zeile, Makros darunter. */
-  .wg { display: flex; align-items: center; gap: 20px; flex-wrap: wrap; }
-  .wg-ring { position: relative; width: 78px; height: 78px; flex: none; }
+  /* Wochenansicht mit Ziel: Ring, Text und Makros nebeneinander.
+     BEWUSST Grid statt Flex: in einer Flex-Zeile teilen sich alle Kinder denselben
+     Platz nach Inhalt. Die Kopfzeile der "Heute"-Karte ist laenger als die von "Diese
+     Woche" (Trainings-Badge + Ziel-Chip kommen dazu) - in Flex nahm sie dadurch den
+     Makros mehr Platz weg, und Protein/Kohlenhydrate/Fett wechselten je nach Kartentext
+     zwischen "alle drei nebeneinander" und "zwei plus eins darunter". Mit festen
+     Grid-Spalten hat die Makro-Spalte in beiden Karten dieselbe Breite, unabhaengig
+     vom Kopftext daneben - er darf beliebig lang werden und wirkt sich nur auf seine
+     eigene Spalte aus. */
+  .wg { display: grid; grid-template-columns: auto minmax(0, 1fr) minmax(0, 320px); grid-template-areas: "ring text macros"; align-items: center; gap: 20px; }
+  .wg-ring { grid-area: ring; position: relative; width: 78px; height: 78px; }
   .wg-ring svg { transform: rotate(-90deg); }
   .wg-track { fill: none; stroke: var(--surface-2); stroke-width: 7; }
   .wg-fill { fill: none; stroke: color-mix(in srgb, var(--ok) 55%, var(--surface-2)); stroke-width: 7; stroke-linecap: round; transition: stroke-dashoffset .5s ease; }
@@ -447,9 +451,9 @@
   .wg-c { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; }
   .wg-c b { font-family: var(--font-display); font-size: 19px; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; }
   .wg-c span { font-size: 9px; color: var(--text-muted); letter-spacing: .08em; text-transform: uppercase; font-weight: 700; }
-  /* Schrumpfbar (min-width:0), damit der Textblock neben dem Ring bleibt statt unter
-     ihn zu rutschen, sobald Titelzeile samt Kennzeichen breiter wird. */
-  .wg-txt { display: flex; flex-direction: column; gap: 3px; flex: 0 1 auto; min-width: 0; }
+  /* min-width:0 haelt die Textspalte im eigenen Grid-Track: ohne das wuerde ihr
+     Inhalt (die Titelzeile) die Spalte ueber ihre 1fr-Breite hinaus aufdruecken. */
+  .wg-txt { grid-area: text; display: flex; flex-direction: column; gap: 3px; min-width: 0; }
   /* Titelzeile der Leiste: Zeitraum + Kennzeichen, statt einer eigenen Ueberschriftzeile */
   .wg-lbl { display: flex; align-items: center; flex-wrap: wrap; gap: 7px; font-family: var(--font-display); font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: var(--text); font-weight: 700; }
   .wg-big { font-family: var(--font-display); font-size: 26px; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; color: var(--text); }
@@ -470,13 +474,13 @@
     border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
   }
   .wg-chip.plain { color: var(--text-muted); background: transparent; border-color: var(--border-strong); text-transform: none; letter-spacing: .02em; }
-  /* Makros rechts in der Leiste. margin-left:auto schiebt sie an den rechten Rand,
-     die drei teilen sich den verbleibenden Platz gleichmaessig. */
-  /* Umbruch nicht ueber Breakpoints, sondern intrinsisch: mit flex-wrap und einer
-     Mindestbreite je Balken entscheidet der Browser selbst, ob drei nebeneinander
-     passen. Mit festen Breakpoints stimmte die Annahme sonst irgendwann nicht mehr
-     und die Bezeichnungen wurden abgeschnitten. */
-  .wg-macros { display: flex; flex-wrap: wrap; gap: 12px 14px; margin-left: auto; flex: 1 1 340px; min-width: 0; }
+  /* Eigene Grid-Spalte (siehe .wg oben) statt margin-left:auto in einer Flex-Zeile:
+     so bleibt die Breite unabhaengig vom Text daneben, in beiden Karten identisch. */
+  /* Umbruch der drei Balken INNERHALB der Spalte nicht ueber Breakpoints, sondern
+     intrinsisch: mit flex-wrap und einer Mindestbreite je Balken entscheidet der
+     Browser selbst, ob drei nebeneinander passen. Mit festen Breakpoints stimmte die
+     Annahme sonst irgendwann nicht mehr und die Bezeichnungen wurden abgeschnitten. */
+  .wg-macros { grid-area: macros; display: flex; flex-wrap: wrap; gap: 12px 14px; min-width: 0; }
   /* 150 px Basis ist die Untergrenze, bei der „Kohlenhydrate“ und der Wert noch
      nebeneinander passen. Schmaler wuerde nur ein Teil der drei umbrechen und sie
      stuenden versetzt — lieber einer pro Zeile als drei ausgefranste. */
@@ -497,34 +501,19 @@
   .wg-macros .gm-r { gap: 8px; margin-bottom: 5px; }
   .wg-macros .gm-n { font-weight: 700; color: var(--text); }
   .wg-macros .gm-v { font-size: 11.5px; }
-  /* Schmal rutschen die Makros unter Ring und Kalorien statt daneben. */
+  /* Schmal rutschen die Makros unter Ring und Kalorien statt daneben – als eigene
+     Grid-Zeile, die die volle Breite der Karte nutzt (spannt beide Spalten). */
   @media (max-width: 720px) {
-    .wg { gap: 14px; }
-    .wg-macros { flex: 1 1 100%; margin-left: 0; margin-top: 4px; }
+    .wg { grid-template-columns: auto minmax(0, 1fr); grid-template-areas: "ring text" "macros macros"; gap: 8px 14px; }
+    .wg-macros { margin-top: 4px; }
   }
 
-  /* Kalorien breit, darunter P/K/F zu dritt. Die Tageskarte sitzt in einem auto-fill-Grid,
-     ihre Breite haengt also nicht am Viewport – die Kuerzel halten die drei Spalten schmal. */
+  /* Kalorien breit, darunter die Makros (.wg-macros, wiederverwendet von "Ziele dieser
+     Woche" – siehe dayGoalsHtml). Die Tageskarte sitzt in einem auto-fill-Grid und wird
+     im Desktop-Raster nur ~232px breit; .wg-macros schrumpft dort von selbst auf ein
+     Makro pro Zeile (flex-wrap, siehe dort), statt Namen abzukuerzen. */
   .day-goals { padding: 11px 14px 13px; border-top: 1px dashed var(--border); background: color-mix(in srgb, var(--surface-2) 55%, var(--surface)); }
-  .day-goals .gm { margin-top: 0; }
-  .dg-macros { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px 10px; margin-top: 12px; }
-  .dg-macros .gm-r { gap: 5px; }
-  .dg-macros .gm-n { font-weight: 700; }
-  .dg-macros .gm-n::before { margin-right: 4px; }
-  .dg-macros .gm-v { font-size: 11px; }
-  /* Standard: Kurzform. Der Punkt vor dem Kuerzel bleibt in beiden Faellen. */
-  .dg-macros .lbl-l { display: none; }
-  /* Ab 300 px Kartenbreite ist Platz fuer die vollen Namen — das trifft in der Praxis
-     genau die Handy-Ansicht (Karte ~320 px, volle Breite) und nicht das Desktop-Raster
-     (Karte ~232 px). Gemessen, nicht geschaetzt: bei 360 px Seitenbreite hat eine
-     Makro-Spalte 90 px, „Kohlenhydrate“ braucht 78 px.
-     Nebeneinander passt es dort trotzdem nicht, deshalb Name ueber Wert (+ ~15 px Hoehe).
-     Browser ohne Container-Queries zeigen einfach die Kurzform weiter — kein Bruch. */
-  @container (min-width: 300px) {
-    .dg-macros .lbl-s { display: none; }
-    .dg-macros .lbl-l { display: inline; }
-    .dg-macros .gm-r { flex-direction: column; align-items: flex-start; gap: 2px; }
-  }
+  .day-goals .wg-macros { margin-top: 12px; }
   @media (max-width: 560px) { .wn-tiles { grid-template-columns: repeat(2, 1fr); } }
 
   /* Nährwerte in der Rezept-Detailansicht */
@@ -2914,8 +2903,6 @@
   //   dir        – "min" = Untergrenze (Protein), sonst Obergrenze
   //   rest       – true = Restzeile immer, "attention" = nur wenn nicht im Ziel, false = nie
   //   unitInline – Einheit in der Zahlenzeile zeigen
-  //   short      – Kurzform der Beschriftung; wird auf schmalen Karten statt `label`
-  //                gezeigt (siehe Container-Query zu .dg-macros)
   function goalBarHtml(o) {
     if (!o.ziel) return "";
     const rest = Math.round(o.ziel - o.ist);
@@ -2933,29 +2920,25 @@
       : o.dir === "min"
         ? `noch ${nfmt(rest)} ${o.unit}`
         : `${nfmt(rest)} ${o.unit} übrig`;
-    // Mit `short` stehen beide Beschriftungen im Markup; welche sichtbar ist, entscheidet
-    // der Container-Query nach Kartenbreite. Vorlesesoftware bekommt ueber aria-label
-    // immer den vollen Namen, egal welche Variante gerade zu sehen ist.
-    const lbl = o.short
-      ? `<span class="lbl-s">${o.short}</span><span class="lbl-l">${o.label}</span>`
-      : o.label;
     return `<div class="gm ${o.cls || ""} is-${st}">
-        <div class="gm-r"><span class="gm-n">${lbl}</span><span class="gm-v"><b>${nfmt(o.ist)}</b>&thinsp;/&thinsp;${nfmt(o.ziel)}${o.unitInline && o.unit ? " " + o.unit : ""}</span></div>
+        <div class="gm-r"><span class="gm-n">${o.label}</span><span class="gm-v"><b>${nfmt(o.ist)}</b>&thinsp;/&thinsp;${nfmt(o.ziel)}${o.unitInline && o.unit ? " " + o.unit : ""}</span></div>
         <div class="gm-bar" role="progressbar" aria-valuenow="${Math.round(o.ist)}" aria-valuemin="0" aria-valuemax="${Math.round(o.ziel)}" aria-label="${esc(o.label)}"><span style="width:${pct}%"></span></div>
         ${showRest ? `<div class="gm-left">${restTxt}</div>` : ""}
       </div>`;
   }
 
-  // Kalorien breit in einer Zeile, darunter P/K/F als Kuerzel nebeneinander.
-  // Restzeile bei den Makros nur, wenn noch etwas zu tun ist (nicht im Korridor).
+  // Kalorien breit in einer Zeile, darunter die Makros – ueber goalMacrosHtml()
+  // genau derselbe Baustein wie bei "Ziele dieser Woche": ausgeschriebene Namen,
+  // Label ueber dem Wert. Frueher hatte die Tageskarte eine eigene, engere Variante
+  // mit Kuerzeln (P/KH/F) in einem starren Drei-Spalten-Raster - auf schmalen
+  // Desktop-Karten (~232px) blieb dafuer kein Platz und Wert/Kuerzel standen in zwei
+  // Zeilen uebereinander statt wie hier als Label+Wert PRO Makro. goalMacrosHtml()
+  // wickelt stattdessen jedes Makro einzeln (flex-wrap) und schrumpft dadurch von
+  // selbst auf ein Makro pro Zeile, sobald der Platz fuer drei nicht reicht.
   function dayGoalsHtml(s, t) {
     return `<div class="day-goals">
         ${goalBarHtml({ label: "Kalorien", ist: s.kcal, ziel: t.kcal, unit: "kcal", rest: true, unitInline: true })}
-        <div class="dg-macros">
-          ${goalBarHtml({ label: "Proteine", short: "P", ist: s.protein, ziel: t.protein, unit: "g", cls: "t-prot", dir: "min", rest: "attention", unitInline: true })}
-          ${goalBarHtml({ label: "Kohlenhydrate", short: "KH", ist: s.carbs, ziel: t.carbs, unit: "g", cls: "t-carb", rest: "attention", unitInline: true })}
-          ${goalBarHtml({ label: "Fett", short: "F", ist: s.fat, ziel: t.fat, unit: "g", cls: "t-fat", rest: "attention", unitInline: true })}
-        </div>
+        ${goalMacrosHtml(s, t)}
       </div>`;
   }
 
@@ -3108,13 +3091,21 @@
         </div></div>`;
   }
 
-  // ---------- Handy-Karussell (Wochenplan, Wochenziele) ----------
-  // Die Hoehenanpassungen der gerade aufgebauten Streifen. Bewusst eine Liste hier
-  // statt eines window-Listeners je Karussell: die Streifen werden bei jedem render()
-  // neu gebaut, ein Listener pro Durchlauf waere ein Leck. renderPlan() leert die
-  // Liste vor dem Neuaufbau, danach haengt hier genau der aktuelle Stand drin.
-  // Steht VOR initCarousel, damit die Zuweisung sicher vor dem ersten Aufruf lief.
+  // ---------- Handy-Karussell (Wochenplan, Wochenziele, Rechner) ----------
+  // Die Hoehenanpassungen der gerade aufgebauten Streifen UND deren ResizeObserver.
+  // Bewusst Listen hier statt eines window-Listeners/Observers je Karussell: die
+  // Streifen werden bei jedem render() neu gebaut, ein Listener pro Durchlauf waere
+  // ein Leck. resetCarousels() leert beide Listen vor dem Neuaufbau und trennt die
+  // alten Observer ausdruecklich (sonst haelt ein ResizeObserver seine beobachteten,
+  // laengst aus dem DOM entfernten Knoten weiter am Leben). Steht VOR initCarousel,
+  // damit die Zuweisung sicher vor dem ersten Aufruf lief.
   const fits = [];
+  const carouselObservers = [];
+  function resetCarousels() {
+    carouselObservers.forEach(ro => ro.disconnect());
+    carouselObservers.length = 0;
+    fits.length = 0;
+  }
   window.addEventListener("resize", () => fits.forEach(f => f()));
 
   // Bindet einen waagerecht schnappenden Streifen an die Knopfleiste darueber. Die
@@ -3181,6 +3172,7 @@
     if (window.ResizeObserver) {
       const ro = new ResizeObserver(() => fitHeight());
       panels.forEach(p => ro.observe(p));
+      carouselObservers.push(ro);
     }
 
     let ticking = false;
@@ -3318,7 +3310,7 @@
       </button>`;
     view.innerHTML = html;
     syncStickyOffsets();
-    fits.length = 0; // die Streifen des vorigen Durchlaufs sind gerade weggeworfen worden
+    resetCarousels(); // die Streifen des vorigen Durchlaufs sind gerade weggeworfen worden
     initCarousel(view.querySelector(".week"), view.querySelector(".daybar"));
     // Nur vorhanden, wenn ein Ziel gespeichert ist – initCarousel faengt null ab.
     initCarousel(view.querySelector(".wg-cols"), view.querySelector(".wgbar"));
@@ -4770,7 +4762,12 @@
           <div class="bd-row bd-mid"><span>Erhaltungsbedarf</span><span>${nfmt(r.tdee)} kcal</span></div>
           <div class="bd-row"><span>Ziel-Anpassung</span><span>${adjStr}</span></div>
         </div>
-        <div class="macros-h">Makros <span>· ${tKeys.length ? "je Ruhetag" : "je Tag"}</span></div>
+        <!-- "je Ruhetag" waere hier irrefuehrend: nur Kohlenhydrate aendern sich am
+             Trainingstag (siehe rest-macros-Hinweis unten), Protein und Fett gelten
+             an ALLEN Tagen gleich. Der Zusatz "je Ruhetag" steht deshalb nur bei der
+             kcal-Zahl oben, wo er stimmt - hier nur, wenn es gar keine Trainingstage
+             gibt und der Zusatz unstrittig fuer alle drei Makros gilt. -->
+        <div class="macros-h">Makros${tKeys.length ? "" : ` <span>· je Tag</span>`}</div>
         <div class="macros">
           <div class="macro t-prot"><div class="mv">${nfmt(r.protein)} g</div><div class="ml">Protein</div></div>
           <div class="macro t-carb"><div class="mv">${nfmt(r.carbs)} g</div><div class="ml">Kohlenhydr.</div></div>
@@ -4860,6 +4857,7 @@
     // ist dagegen immer erlaubt, ebenso das Antippen bereits erreichter Schritte in der
     // Leiste: rueckwaerts laesst sich nichts kaputt machen.
     syncStickyOffsets(); // der Fussknopf klebt ueber der unteren Reiterleiste
+    resetCarousels(); // Streifen des vorigen Tab-Besuchs sind gerade weggeworfen worden
     const calcEl = view.querySelector(".calc");
     const calcBar = view.querySelector(".calcbar");
     const goBtn = view.querySelector("#c-step-go");
@@ -4983,7 +4981,7 @@
   // die Eingaben stehen und ein Klick stellte alles wieder her, jetzt sind sie weg.
   function resetCalc() {
     confirmModal({
-      title: "Rechner zurücksetzen?",
+      title: "Ziel zurücksetzen?",
       text: "Dein gespeichertes Ziel und alle Eingaben im Kalorienrechner werden gelöscht. Deine Meals und dein Wochenplan bleiben unberührt.",
       okLabel: "Zurücksetzen",
       onConfirm: () => {
