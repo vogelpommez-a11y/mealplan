@@ -264,6 +264,11 @@
   .btn:disabled:hover { border-color: var(--border-strong); }
   .btn.primary:disabled:hover { border-color: var(--accent); }
   .btn:disabled:active { transform: none; }
+  /* Sieht gesperrt aus, ist es aber nicht: ein echtes disabled schluckt den Klick, und
+     dann liesse sich beim Antippen auch nicht sagen, WARUM es nicht weitergeht. Deshalb
+     nur die Optik plus aria-disabled – die Meldung kommt aus dem Klick-Handler. */
+  .btn.is-off { opacity: .45; box-shadow: none; }
+  .btn.is-off:active { transform: none; }
   .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-contrast); }
   .btn.primary:hover { background: var(--accent-strong); border-color: var(--accent-strong); }
   .btn.ghost { background: transparent; border-color: transparent; color: var(--text-muted); }
@@ -1394,15 +1399,6 @@
     .calcnav .btn.ghost { background: var(--surface); border-color: var(--border-strong); color: var(--text); }
     .calcnav #c-step-back { flex: 0 0 34%; }
     .calcnav #c-step-go { flex: 1 1 auto; }
-    /* Ein gesperrter Knopf ohne Begruendung ist eine Sackgasse: man sieht, dass es
-       nicht weitergeht, aber nicht warum. Deshalb steht direkt darueber, was fehlt.
-       role="status" sagt es auch Sprachausgaben an, sobald es sich aendert. */
-    .calcnav .cn-miss {
-      margin: 0 0 8px; font-size: 12px; line-height: 1.45; color: var(--text-muted);
-      display: flex; align-items: flex-start; gap: 6px;
-    }
-    .calcnav .cn-miss::before { content: "!"; flex: none; display: grid; place-items: center; width: 15px; height: 15px; margin-top: 1px; border-radius: 50%; font-size: 10px; font-weight: 700; color: var(--accent-contrast); background: var(--accent); }
-    .calcnav .cn-miss[hidden] { display: none; }
     /* Auf der Ergebniskarte traegt der Fussknopf die Aktion – der Knopf in der Karte
        waere dieselbe Handlung ein zweites Mal. */
     .calc-result #c-save, .calc-result .calc-saved { display: none; }
@@ -3172,6 +3168,16 @@
     }
     fits.push(fitHeight);
 
+    // Karten koennen nach dem Aufbau wachsen: waehlt man im Rechner ein Ziel, klappt
+    // das Tempo-Feld auf; setzt man Trainingstage, kommen Zeilen dazu. Ohne Nachmessen
+    // behaelt der Streifen seine alte Hoehe und schneidet das Neue mit overflow:hidden
+    // ab – der untere Teil der Karte war dann nicht mehr erreichbar. Ein Beobachter auf
+    // den Karten faengt jede Ursache ab, statt jede einzelne Stelle von Hand nachzuziehen.
+    if (window.ResizeObserver) {
+      const ro = new ResizeObserver(() => fitHeight());
+      panels.forEach(p => ro.observe(p));
+    }
+
     let ticking = false;
     scroller.addEventListener("scroll", () => {
       if (ticking) return;
@@ -4617,7 +4623,6 @@
         <div class="calc-result" id="c-result"></div>
       </div>
       <div class="calcnav">
-        <p class="cn-miss" id="c-step-miss" role="status" hidden></p>
         <div class="cn-row">
           <button type="button" class="btn ghost" id="c-step-back">Zurück</button>
           <button type="button" class="btn primary" id="c-step-go">Weiter</button>
@@ -4879,7 +4884,6 @@
     const calcBar = view.querySelector(".calcbar");
     const goBtn = view.querySelector("#c-step-go");
     const backBtn = view.querySelector("#c-step-back");
-    const missEl = view.querySelector("#c-step-miss");
     const stepPanels = Array.prototype.slice.call(view.querySelectorAll(".calc-group"))
       .concat([view.querySelector("#c-result")]);
     const LAST = stepPanels.length - 1;
@@ -4896,15 +4900,19 @@
     };
     function fehltIn(i) { return missingCalc(readInput()).filter(f => FELD_SCHRITT[f] === i); }
 
-    // Der erste Schritt ist der einzige mit Pflichtfeldern – ohne Alter, Groesse und
-    // Gewicht kann nichts gerechnet werden. Der Hinweis nennt das Fehlende beim Namen
-    // und setzt den Fokus dorthin, statt nur „ungueltig" zu melden.
-    function nagStep(i) {
-      const fehlt = fehltIn(i);
+    // Was blockiert den Fussknopf auf Karte i? Auf den Eingabekarten nur deren eigene
+    // Felder. Ab der Trainingskarte wird gerechnet, dort zaehlt alles – auch Angaben
+    // aus frueheren Karten, falls jemand zurueckging und etwas geleert hat.
+    function fehltFuer(i) {
+      if (i === LAST && state.goal) return []; // dort steht „Ziel zuruecksetzen"
+      return i >= 2 ? missingCalc(readInput()) : fehltIn(i);
+    }
+
+    // Sagt, was fehlt, und fuehrt hin. Nur zu melden, etwas sei unvollstaendig, liesse
+    // jemanden suchen – bei den Zahlenfeldern springt deshalb der Fokus mit.
+    function nag(fehlt) {
       if (!fehlt.length) return;
       toast("Wähle noch " + fehlt.join(" und "));
-      // Bei den Zahlenfeldern direkt hinfuehren; die Auswahlen stehen ohnehin sichtbar
-      // auf der Karte. Nur zu melden, etwas sei unvollstaendig, liesse jemanden suchen.
       const ziele = { "dein Alter": "#c-age", "deine Größe": "#c-height", "dein Gewicht": "#c-weight" };
       const sel = ziele[fehlt[0]];
       const feld = sel && view.querySelector(sel);
@@ -4920,29 +4928,21 @@
       // Zurueck erst ab der zweiten Karte – auf der ersten gaebe es kein Ziel dafuer.
       backBtn.style.display = i > 0 ? "" : "none";
 
-      // Der Knopf ist gesperrt, solange die Karte unvollstaendig ist. Auf der
-      // Trainingskarte („Berechnen") zaehlt alles, weil dort gerechnet wird – auch
-      // Angaben aus frueheren Karten, falls jemand zurueckging und etwas leerte.
-      const fehlt = i === 2 ? missingCalc(readInput()) : fehltIn(i);
-      const sperren = i < LAST ? fehlt.length > 0 : (!state.goal && missingCalc(readInput()).length > 0);
-      goBtn.disabled = sperren;
-      // Begruendung nur dort, wo tatsaechlich gesperrt ist.
-      if (sperren && fehlt.length) {
-        missEl.textContent = "Dafür fehlt noch: " + fehlt.join(", ");
-        missEl.hidden = false;
-      } else if (sperren) {
-        missEl.textContent = "Dafür fehlen noch Angaben in den Schritten davor.";
-        missEl.hidden = false;
-      } else {
-        missEl.hidden = true;
-      }
-
       if (i < 2) { goBtn.textContent = "Weiter"; goBtn.className = "btn primary"; }
       else if (i === 2) { goBtn.textContent = "Berechnen"; goBtn.className = "btn primary"; }
       // Auf der Ergebniskarte haengt die Beschriftung daran, ob schon etwas gespeichert
       // ist: ohne gespeichertes Ziel gaebe es nichts zurueckzusetzen.
       else if (state.goal) { goBtn.textContent = "Ziel zurücksetzen"; goBtn.className = "btn ghost"; }
       else { goBtn.textContent = "Berechnen"; goBtn.className = "btn primary"; }
+
+      // ERST NACH den Beschriftungen: die setzen className komplett neu und wuerden
+      // eine vorher gesetzte Klasse wieder abraeumen. (Genau so ist es passiert.)
+      // Sieht gesperrt aus, bleibt aber anklickbar (siehe .btn.is-off) – erst der Klick
+      // sagt, was fehlt. Ein echtes disabled wuerde den Klick und damit die Erklaerung
+      // schlucken; aria-disabled sagt Sprachausgaben den Zustand trotzdem an.
+      const sperren = fehltFuer(i).length > 0;
+      goBtn.classList.toggle("is-off", sperren);
+      goBtn.setAttribute("aria-disabled", sperren ? "true" : "false");
     }
 
     const calcCar = initCarousel(calcEl, calcBar, stepPanels, setStepBtn);
@@ -4956,20 +4956,18 @@
     goBtn.addEventListener("click", () => {
       const i = calcCar ? calcCar.index() : 0;
       if (i === LAST && state.goal) { resetCalc(); return; }
-      // Weiter nur mit vollstaendigem Schritt – das ist der feste Pfad.
-      if (fehltIn(i).length) { nagStep(i); return; }
-      if (i < 2) { gehe(i + 1); return; }
-      // „Berechnen": speichert und legt die Ergebniskarte vor.
-      // Prueft ALLE Schritte, nicht nur den aktuellen: die Trainingskarte selbst hat
-      // keine Pflichtfelder, ein frueherer Schritt kann aber unvollstaendig sein, wenn
-      // jemand zurueckgegangen ist und etwas geleert hat. Dann dorthin zurueckfuehren.
-      const fehlt = missingCalc(readInput());
+      // Fehlt etwas, sagt der Klick es und fuehrt zu der Karte, auf der es fehlt.
+      // Das ersetzt den frueheren Dauerhinweis ueber dem Knopf.
+      const fehlt = fehltFuer(i);
       if (fehlt.length) {
         const ziel = FELD_SCHRITT[fehlt[0]];
-        gehe(ziel);
-        nagStep(ziel);
+        if (ziel !== i) gehe(ziel);
+        nag(fehlt);
         return;
       }
+      if (i < 2) { gehe(i + 1); return; }
+      // „Berechnen": hier ist alles vollstaendig – die Pruefung oben deckt ueber
+      // fehltFuer() auch die frueheren Karten ab.
       state.goal = computeGoal(readInput());
       save();
       updateResult();
@@ -4980,8 +4978,15 @@
 
     // Beim Oeffnen mit gespeichertem Ziel gleich das Ergebnis zeigen – die Eingaben
     // stehen ja schon, und der haeufigste Grund fuer den Rechner ist dann Nachsehen.
-    // Ab jetzt zieht jede Eingabe den Fussknopf mit (sperren/entsperren + Begruendung).
-    refreshStep = () => setStepBtn(calcCar ? calcCar.index() : 0);
+    // Ab jetzt zieht jede Eingabe den Fussknopf mit – und die Hoehe des Streifens.
+    // Die Hoehe ausdruecklich hier und nicht nur ueber den ResizeObserver: der meldet
+    // erst im naechsten Bild, und eine Karte, die einen Moment lang abgeschnitten ist,
+    // faellt sofort auf. Der Beobachter bleibt als Netz fuer alles, was nicht durch
+    // updateResult() laeuft.
+    refreshStep = () => {
+      setStepBtn(calcCar ? calcCar.index() : 0);
+      if (calcCar) calcCar.fit();
+    };
 
     if (calcCar && state.goal && calcEl.scrollWidth > calcEl.clientWidth + 10) {
       gehe(LAST);
