@@ -660,6 +660,7 @@
   .ing-nut label { display: flex; flex-direction: column; gap: 4px; font-size: 10px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--text-muted); text-align: center; }
   .ing-nut input { width: 100%; padding: 7px 4px; text-align: center; }
   #f-ing-add { margin-top: 2px; }
+  #f-ing-add[hidden] { display: none; }
   /* Makro-Summe: das Ergebnis der Zutaten, keine weitere Eingabezeile. Roter Rahmen und
      kraeftigere Schrift grenzen sie von den optisch gleichen Zutatenkarten darueber ab. */
   .nut-total {
@@ -682,6 +683,16 @@
   .rphoto { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
   .rimg.has-photo .cchip { background: rgba(16,18,13,.62); }
   .rimg .cchip { position: absolute; left: 11px; bottom: 10px; z-index: 1; font-size: 11px; font-weight: 650; letter-spacing: .03em; text-transform: uppercase; color: #fff; background: rgba(16,18,13,.5); backdrop-filter: blur(4px); padding: 3px 10px; border-radius: 999px; }
+  /* Makro-Hinweis oben links: .good (Proteinreich/Low Carb) nutzt --ok, das schon als
+     "positiv"-Signal existiert (Sync verbunden). .fat nutzt dasselbe Blau wie die
+     Naehrwert-Kacheln (--mc/--tc fuer Fett) - kein neuer Fett-Ton.
+     Bis zu zwei Badges (Haupt-Makro + "Low Carb"), daher Flex mit Umbruch: auf
+     schmalen Karten rutscht das zweite in die naechste Zeile statt aus dem Bild. */
+  .rimg .mbadges { position: absolute; left: 11px; top: 10px; z-index: 1; display: flex; flex-wrap: wrap; gap: 5px; max-width: calc(100% - 22px); }
+  .rimg .mbadge { display: inline-flex; align-items: center; gap: 5px; font-size: 10.5px; font-weight: 700; letter-spacing: .03em; text-transform: uppercase; color: #fff; background: rgba(16,18,13,.62); backdrop-filter: blur(4px); padding: 3px 9px 3px 7px; border-radius: 999px; }
+  .rimg .mbadge::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--mbc); flex: none; }
+  .rimg .mbadge.good { --mbc: var(--ok); }
+  .rimg .mbadge.fat { --mbc: #4AA8E0; }
   .rbody { padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; flex: 1; }
   .rcard .top { display: flex; align-items: flex-start; gap: 10px; }
   .rcard h3 { font-family: var(--font-display); font-size: 18px; font-weight: 600; margin: 0; flex: 1; line-height: 1.25; word-break: break-word; }
@@ -1452,7 +1463,7 @@
     return Math.round(lv.netMet * (+weightKg || 0) * (min / 60));
   }
 
-  const CATEGORIES = ["Frühstück", "Mittagessen", "Abendessen", "Snack", "Dessert", "Beilage"];
+  const CATEGORIES = ["Frühstück", "Mittagessen", "Abendessen", "Snack", "Dessert", "Beilage", "Getränk"];
   const CAT_CLASS = { "Frühstück": "cat-fr", "Mittagessen": "cat-mi", "Abendessen": "cat-ab" };
   const CAT_TO_MEAL = { "Frühstück": "fr", "Mittagessen": "mi", "Abendessen": "ab" };
   // Snack/Dessert/Beilage passen in jeden Slot; alles ohne bekannte Kategorie ebenfalls,
@@ -1963,7 +1974,7 @@
   ];
   // Zweite Chance, wenn kein Stichwort greift: passendes Foto je Kategorie.
   // Mittag- und Abendessen fehlen bewusst - die koennen alles sein, dort passt das neutrale Bild.
-  const CAT_PHOTO = { "Frühstück": "porridge", "Snack": "fruit", "Dessert": "cake", "Beilage": "salad" };
+  const CAT_PHOTO = { "Frühstück": "porridge", "Snack": "fruit", "Dessert": "cake", "Beilage": "salad", "Getränk": "drink" };
   // Liefert IMMER ein Foto: eigenes Bild > Stichwort-Treffer > Kategorie > neutrales Bild.
   function photoFor(r) {
     // Zweite Verteidigungslinie unmittelbar vor der Ausgabe: der Wert landet gleich
@@ -1979,9 +1990,39 @@
     if (byCat && PHOTOS[byCat]) return PHOTOS[byCat];
     return PHOTOS.neutral;
   }
+  // Bewertet die Makro-Verteilung ueber den Kalorienanteil (Protein/Kohlenhydrate x4,
+  // Fett x9) und liefert 0 bis 2 Badges fuer die Meal-Karte: ein Haupt-Badge fuer das
+  // dominante Makro und optional "Low Carb" als Zusatz. Ausgewogene Gerichte bekommen
+  // bewusst gar keines - sonst traegt das Badge keine Information mehr.
+  function macroBadges(r) {
+    const n = recipeNut(r);
+    const macroKcal = n.carbs * 4 + n.protein * 4 + n.fat * 9;
+    // Unter ~100 kcal ist ein Makro-Anteil reines Rauschen: ein Kaffee mit einem Schuss
+    // Milch (je 1 g Makro) kaeme sonst auf 53 % Fettanteil und waere "Fettreich".
+    // Prozentual richtig, als Aussage ueber das Gericht aber falsch.
+    if (macroKcal < 100) return [];
+    const proteinShare = (n.protein * 4) / macroKcal;
+    const carbShare = (n.carbs * 4) / macroKcal;
+    const fatShare = (n.fat * 9) / macroKcal;
+    const out = [];
+    // Haupt-Badge: nur eines von beiden. Protein geht vor Fett - ein fettreiches
+    // Gericht mit viel Eiweiss ist fuer den Trainingsplan zuerst eine Eiweissquelle.
+    if (proteinShare >= 0.30) out.push({ label: "Proteinreich", cls: "good" });
+    else if (fatShare >= 0.45) out.push({ label: "Fettreich", cls: "fat" });
+    // Zusatz-Badge, nicht Ersatz. Anteil UND absolute Menge muessen niedrig sein:
+    // 15 % einer 1400-kcal-Portion waeren 52 g Kohlenhydrate - kein Low Carb mehr.
+    // Steht nie allein: bei <=15 % Kohlenhydraten ergeben Protein + Fett zwingend
+    // >=85 %, damit ist immer eine der beiden Schwellen oben gerissen.
+    if (carbShare <= 0.15 && n.carbs <= 20) out.push({ label: "Low Carb", cls: "good" });
+    return out;
+  }
   function cardImageHtml(r) {
     const cat = esc(r.category || "Gericht");
-    return `<div class="rimg has-photo"><img class="rphoto" src="${photoFor(r)}" alt="${esc(r.name)}" loading="lazy"><span class="cchip">${cat}</span></div>`;
+    const mb = macroBadges(r);
+    const badges = mb.length
+      ? `<div class="mbadges">${mb.map(b => `<span class="mbadge ${b.cls}">${esc(b.label)}</span>`).join("")}</div>`
+      : "";
+    return `<div class="rimg has-photo">${badges}<img class="rphoto" src="${photoFor(r)}" alt="${esc(r.name)}" loading="lazy"><span class="cchip">${cat}</span></div>`;
   }
   function thumbHtml(r, cls) {
     return `<img class="${cls}" src="${photoFor(r)}" alt="" loading="lazy">`;
@@ -3011,7 +3052,7 @@
         <div class="field">
           <label>Zutaten <span class="hint">– Namen tippen und aus der Vorschlagsliste wählen; bei Markenprodukten den Barcode scannen</span></label>
           <div id="f-ings"></div>
-          <button type="button" class="btn sm" id="f-ing-add">+ Weitere Zutat</button>
+          <button type="button" class="btn sm" id="f-ing-add" hidden>+ Weitere Zutat</button>
           <input type="file" id="f-ing-barcode" accept="image/*" capture="environment" class="visually-hidden">
         </div>
         <!-- Steht bewusst UNTER den Zutaten: es ist deren Ergebnis, nicht noch eine
@@ -3052,6 +3093,7 @@
     function nutVal(v) { return v != null ? esc(v) : ""; }
     function addIngRow(o) {
       o = o || {};
+      if (o.unit == null && node.querySelector("#f-cat").value === "Getränk") o.unit = "ml";
       const u = ingUnit(o);
       const row = el(`<div class="ing-row">
         <div class="ing-top">
@@ -3220,10 +3262,23 @@
       }
       ["f-kcal", "f-carbs", "f-protein", "f-fat"].forEach(fid => { node.querySelector("#" + fid).readOnly = auto; });
       node.querySelector("#f-nut-hint").textContent = auto ? "– Summe aus deinen Zutaten (automatisch)" : "– mit Zutaten-Nährwerten automatisch summiert";
+      // "+ Weitere Zutat" erst zeigen, wenn die erste Zutat einen Namen hat - sonst wirkt
+      // das Formular ueberladen, bevor ueberhaupt etwas eingetragen wurde.
+      node.querySelector("#f-ing-add").hidden = ![...ingsWrap.querySelectorAll(".ing-name")].some(inp => inp.value.trim());
     }
     (r && r.ingredients && r.ingredients.length ? r.ingredients : [null]).forEach(i => addIngRow(i == null ? null : ingObj(i)));
     updateMacroSum();
     node.querySelector("#f-ing-add").addEventListener("click", () => { addIngRow().querySelector(".ing-name").focus(); });
+    // Kategorie -> Getraenk gewechselt: noch unberuehrte Zutatenzeilen (kein Name, keine
+    // Menge, Einheit noch auf dem "g"-Default) auf ml umstellen. Bereits befuellte Zeilen
+    // bleiben unangetastet, damit keine bewusst gewaehlte Einheit ueberschrieben wird.
+    node.querySelector("#f-cat").addEventListener("change", (e) => {
+      if (e.target.value !== "Getränk") return;
+      ingsWrap.querySelectorAll(".ing-row").forEach(row => {
+        const nameEl = row.querySelector(".ing-name"), gEl = row.querySelector(".ing-g"), uEl = row.querySelector(".ing-u");
+        if (!nameEl.value && !gEl.value && uEl.value === "g") { uEl.value = "ml"; uEl.dispatchEvent(new Event("change")); }
+      });
+    });
     // Barcode -> Open Food Facts -> Zeile fuellen. Gemeinsamer Weg fuer beide Zugaenge
     // (Live-Kamera und Einzelfoto). Der Scan ersetzt die Zeile vollstaendig: Einheit
     // (OFF normiert alles auf 100 g), alle vier Naehrwerte UND den Namen. Den Namen
