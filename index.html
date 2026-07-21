@@ -940,9 +940,21 @@
      und genau dort wird die App benutzt. */
   .trow-def {
     grid-area: def; font-size: 11px; line-height: 1.45; color: var(--text-muted);
-    padding-left: 38px;
+    padding-left: 38px; display: flex; align-items: flex-start; justify-content: space-between; gap: 10px;
   }
+  .trow-def > span { flex: 1; }
   @container (max-width: 379px) { .trow-def { padding-left: 0; } }
+  /* Angleichen der uebrigen Trainingstage. 34px Tippflaeche statt der 40px der
+     Stufen-Buttons: als sekundaere Aktion neben 11px-Fliesstext wuerde ein groesseres
+     Ziel die Zeile dominieren. Bewusste Abwaegung, kein Uebersehen — 34px ist die im
+     Projekt fuer Desktop uebliche Untergrenze und liegt klar ueber den 26px, die hier
+     vor dem Review standen. */
+  .trow-all {
+    flex: none; font: inherit; font-size: 11px; font-weight: 600; cursor: pointer;
+    background: none; border: 0; padding: 8px 0; min-height: 34px; white-space: nowrap;
+    color: var(--accent-strong); text-decoration: underline; text-underline-offset: 2px;
+  }
+  .trow-all:hover { color: var(--accent); }
   .trow:first-child { border-top: 0; }
   .trow-d { font-family: var(--font-display); font-size: 13px; font-weight: 700; color: var(--accent-strong); }
   /* Keine eigene .on-Regel: die rote Auswahl-Optik kommt aus .seg button.on und soll
@@ -2533,6 +2545,22 @@
       return { kcal: a.kcal + t.kcal, carbs: a.carbs + t.carbs, protein: a.protein + t.protein, fat: a.fat + t.fat };
     }, { kcal: 0, carbs: 0, protein: 0, fat: 0 });
   }
+  // Wochensumme der Kalorien fuer EIN Ziel-Objekt — bewusst mit Parameter statt aus
+  // state.goal: der Rechner zeigt die Woche fuer ein gerade berechnetes, noch nicht
+  // gespeichertes Ziel an, alles andere fuer das gespeicherte. Ohne diesen Parameter
+  // gaebe es zwangslaeufig zwei Additionen derselben Sache, die beim naechsten Feature
+  // auseinanderlaufen. Geht ueber trainFromRest, damit eine spaetere Regel dort (etwa
+  // ein Deckel gegen Ausreisser) hier automatisch mitzieht.
+  function weekKcalOf(g) {
+    if (!g || !nutNum(g.kcal)) return 0;
+    const t = sanitizeTraining(g.training);
+    const rest = { kcal: nutNum(g.kcal), carbs: nutNum(g.carbs), protein: nutNum(g.protein), fat: nutNum(g.fat) };
+    return DAYS.reduce((s, d) => {
+      const e = t[d.key];
+      return s + (e ? trainFromRest(rest, trainKcal(e.level, e.min, nutNum(g.weight))).kcal : rest.kcal);
+    }, 0);
+  }
+
   // Markierung fuer die Tages-Kopfzeile. Farbe allein traegt die Information nicht
   // (Rot und Blau liegen bei 1,07:1) — deshalb immer Icon UND Wort.
   function trainBadgeHtml(dayKey) {
@@ -4107,6 +4135,13 @@
       const keys = trainingKeys(cur.training);
       const w = +view.querySelector("#c-weight").value;
       if (!keys.length) { box.innerHTML = ""; return; }
+      // „Auf alle" nur anbieten, solange es etwas anzugleichen GIBT: bei einem einzigen
+      // Trainingstag oder wenn ohnehin alle Tage gleich eingestellt sind, waere der Knopf
+      // wirkungslos. Er loest sich damit nach dem Klick von selbst auf, statt als toter
+      // Hinweis stehen zu bleiben.
+      const first = cur.training[keys[0]];
+      const allSame = keys.every(k => cur.training[k].level === first.level && cur.training[k].min === first.min);
+      const showApply = keys.length > 1 && !allSame;
       box.innerHTML = keys.map(k => {
         const d = DAYS.filter(x => x.key === k)[0];
         const e = cur.training[k];
@@ -4121,7 +4156,11 @@
                    inputmode="numeric" aria-label="Dauer am ${esc(d.label)} in Minuten"><span>Min.</span>
           </div>
           <div class="trow-kcal">${add ? "+" + nfmt(add) + " kcal" : "–"}</div>
-          <div class="trow-def">${esc(lvNow.ex)}</div>
+          <div class="trow-def"><span>${esc(lvNow.ex)}</span>${showApply
+            ? `<button type="button" class="trow-all" data-tall="${k}"
+                 aria-label="Stufe und Dauer vom ${esc(d.label)} auf alle Trainingstage übernehmen"
+                 title="${esc(lvNow.label)}, ${e.min} Min. für alle Trainingstage übernehmen">auf alle</button>`
+            : ""}</div>
         </div>`;
       }).join("");
     }
@@ -4138,10 +4177,7 @@
       // unterscheiden sich jetzt untereinander, „der Trainingstag" gibt es nicht mehr.
       const tKeys = trainingKeys(r.training);
       const rest = { kcal: r.kcal, carbs: r.carbs, protein: r.protein, fat: r.fat };
-      const weekKcal = DAYS.reduce((s, d) => {
-        const e = r.training[d.key];
-        return s + r.kcal + (e ? trainKcal(e.level, e.min, r.weight) : 0);
-      }, 0);
+      const weekKcal = weekKcalOf(r);
       const trainPreview = tKeys.length ? `
         <div class="rest-macros">
           <div class="rm-h">${ICON_DUMBBELL}<span>An Trainingstagen</span></div>
@@ -4223,6 +4259,19 @@
     // Delegation, weil die Zeilen bei jeder Aenderung neu gebaut werden.
     const tdetail = view.querySelector("#c-tdetail");
     tdetail.addEventListener("click", e => {
+      const all = e.target.closest("button[data-tall]");
+      if (all) {
+        const src = cur.training[all.dataset.tall];
+        if (!src) return;
+        // Fuer JEDEN Tag ein eigenes Objekt anlegen, nicht dasselbe mehrfach verlinken:
+        // bei geteilten Referenzen wuerde eine spaetere Aenderung an einem Tag stillschweigend
+        // alle anderen mitziehen.
+        trainingKeys(cur.training).forEach(k => { cur.training[k] = { level: src.level, min: src.min }; });
+        fillTrainDetail();
+        updateResult();
+        toast("Auf alle Trainingstage übernommen");
+        return;
+      }
       const b = e.target.closest(".trow-lv button[data-v]"); if (!b) return;
       const key = b.closest("[data-tlevel]").dataset.tlevel;
       if (!cur.training[key]) return;
