@@ -1166,6 +1166,92 @@
     /* iOS zoomt Eingabefelder < 16px beim Fokus – das verhindern wir */
     input[type="text"], input[type="number"], input[type="email"], input[type="password"], input[type="search"], select, textarea { font-size: 16px; }
   }
+
+  /* ---------- Handy: Wochenplan und Wochenziele werden gewischt ----------
+     Untereinander ergaben die sieben Tageskarten auf dem Handy ein Band von weit
+     ueber 3.000 px Hoehe – Donnerstag erreichte man nur durch langes Scrollen, und
+     nach jedem Einplanen begann die Reise von vorn. Quer liegt jeder Tag auf einer
+     eigenen Bildschirmbreite und wird seitlich gewischt.
+     Die Knopfleiste darueber ist zweierlei zugleich: Anzeige, auf welcher Karte man
+     steht (ein Karussell ohne Anzeige verraet nicht, dass es weitergeht), und
+     Sprungziel. Deshalb 44 px hoch – sie ist Bedienelement, keine Dekoration.
+     Die beiden Leisten stehen ausserhalb der Handy-Abfrage auf display:none; im
+     Markup sind sie immer da, damit renderPlan() nicht zwei Faelle kennen muss. */
+  .daybar, .wgbar { display: none; }
+
+  @media (max-width: 680px) {
+    .daybar {
+      display: flex; gap: 4px;
+      position: sticky; top: var(--head-h, 70px); z-index: 20;
+      margin: 0 0 10px; padding: 6px 0;
+      background: color-mix(in srgb, var(--bg) 92%, transparent);
+      backdrop-filter: blur(8px);
+    }
+    .db-b {
+      flex: 1 1 0; min-width: 0; min-height: 44px;
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
+      font: inherit; font-family: var(--font-display); font-size: 13px; font-weight: 600;
+      letter-spacing: .04em; text-transform: uppercase; cursor: pointer;
+      color: var(--text-muted); background: var(--surface-2);
+      border: 1px solid var(--border); border-radius: var(--radius-sm);
+      transition: color .14s, background .14s, border-color .14s;
+    }
+    /* „Heute" ist im Streifen bewusst nur ein Punkt: die Aussage steht ohnehin als
+       Wort im Kopf der Tageskarte, hier ist sie Wiederholung zur Orientierung. */
+    .db-b .db-dot { width: 4px; height: 4px; border-radius: 50%; background: currentColor; opacity: 0; }
+    .db-b.is-today { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 45%, var(--border)); }
+    .db-b.is-today .db-dot { opacity: 1; }
+    .db-b.active {
+      color: var(--accent-contrast); border-color: transparent;
+      background: linear-gradient(135deg, var(--accent), var(--accent-strong));
+      box-shadow: 0 2px 8px color-mix(in srgb, var(--accent) 34%, transparent);
+    }
+
+    .week {
+      display: flex; gap: 12px;
+      scroll-snap-type: x mandatory;
+      /* Der Wisch darf nicht die Seite darunter mitziehen (Zurueck-Geste, Neuladen). */
+      overscroll-behavior-x: contain;
+      scrollbar-width: none;
+      /* Waagerecht scrollen heisst zwangslaeufig auch: senkrechter Scrollbehaelter.
+         overflow-y: clip waere die Ausnahme, aber die Spezifikation rechnet clip
+         neben overflow-x: auto zu hidden zurueck – im Pruefstand gemessen, nicht
+         vermutet. Folge: eine klebende Kopfzeile INNERHALB einer Tageskarte kann es
+         hier nicht geben, sie richtete sich an .week statt am Bildschirm aus und
+         bliebe einfach stehen. Den Wochentag fixiert deshalb die Tagesleiste
+         darueber – die haengt am Bildschirm und klebt zuverlaessig.
+         Geklemmt wird nichts: .week ist so hoch wie die hoechste Karte. */
+      overflow-x: auto; overflow-y: hidden;
+    }
+    .week::-webkit-scrollbar { display: none; }
+    .week > .day { flex: 0 0 100%; scroll-snap-align: start; scroll-snap-stop: always; }
+    /* Auf dem Handy gibt es kein echtes Hover – der Klebe-Effekt beim Antippen
+       liesse die Karte sonst dauerhaft angehoben stehen. */
+    .week > .day:hover { transform: none; }
+
+    /* Ziele der Woche: gleiches Muster mit zwei Karten (Heute / Diese Woche). */
+    .wgbar { display: flex; gap: 6px; margin: 0 0 10px; }
+    .wg-b {
+      flex: 1 1 0; min-width: 0; min-height: 44px; padding: 0 10px;
+      font: inherit; font-size: 12.5px; font-weight: 700; letter-spacing: .02em;
+      cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      color: var(--text-muted); background: var(--surface-2);
+      border: 1px solid var(--border); border-radius: var(--radius-sm);
+      transition: color .14s, background .14s, border-color .14s;
+    }
+    .wg-b.active {
+      color: var(--accent-contrast); border-color: transparent;
+      background: linear-gradient(135deg, var(--accent), var(--accent-strong));
+    }
+    .wg-cols {
+      flex-direction: row; gap: 12px;
+      overflow-x: auto; overflow-y: hidden;
+      scroll-snap-type: x mandatory; overscroll-behavior-x: contain;
+      scrollbar-width: none;
+    }
+    .wg-cols::-webkit-scrollbar { display: none; }
+    .wg-cols > .wg-col { flex: 0 0 100%; scroll-snap-align: start; scroll-snap-stop: always; }
+  }
 </style>
 
 <div class="app">
@@ -2049,6 +2135,10 @@
   // ---------- Rendering ----------
   const view = document.getElementById("view");
 
+  // Reiter des letzten Durchlaufs. Ein Reiterwechsel soll oben beginnen, jeder andere
+  // Neuaufbau (Meal eingeplant, entfernt, Woche gewechselt) soll die Position halten.
+  let lastRenderTab = null;
+
   function render() {
     hoveredCardId = null; // Kartenknoten werden gleich ersetzt - alte Hover-Referenz waere sonst veraltet
     // Gleiche Ueberlegung fuer den Tastaturfokus: liegt er gerade auf einem Element in
@@ -2057,6 +2147,16 @@
     // den Fokus zwar an den ausloesenden Knopf zurueck, aber der verschwindet direkt
     // danach mit dem Neuaufbau. Deshalb hier merken und unten auffangen.
     const focusWasInView = view.contains(document.activeElement);
+    // Scrollposition ueber den Neuaufbau retten. view.innerHTML = … wirft den ganzen
+    // Inhalt weg, der Browser klemmt die Position dabei auf 0 – nach dem Einplanen
+    // eines Meals landete man deshalb wieder ganz oben. Waagerecht gilt dasselbe fuer
+    // die Handy-Karussells: sonst springt man von Donnerstag zurueck auf Montag.
+    const sameTab = lastRenderTab === state.tab;
+    lastRenderTab = state.tab;
+    const keepY = sameTab ? window.scrollY : 0;
+    const weekEl = view.querySelector(".week"), wgEl = view.querySelector(".wg-cols");
+    const keepWeekX = sameTab && weekEl ? weekEl.scrollLeft : 0;
+    const keepWgX = sameTab && wgEl ? wgEl.scrollLeft : 0;
     // Caches nur fuer die Dauer dieses Durchlaufs aufspannen; finally stellt sicher,
     // dass sie auch bei einem Fehler nicht als veraltete Kopie zurueckbleiben.
     recipeIndex = new Map(state.recipes.map(r => [r.id, r]));
@@ -2079,6 +2179,12 @@
       const t = document.querySelector('.tab[aria-selected="true"]');
       if (t) t.focus();
     }
+    // Erst jetzt zuruecksetzen – der neue Inhalt steht, die Seite ist wieder hoch genug.
+    // Ohne Sanftlauf: das hier ist Wiederherstellen, keine Bewegung, die jemand sehen soll.
+    const newWeek = view.querySelector(".week"), newWg = view.querySelector(".wg-cols");
+    if (keepWeekX && newWeek) newWeek.scrollLeft = keepWeekX;
+    if (keepWgX && newWg) newWg.scrollLeft = keepWgX;
+    window.scrollTo(0, keepY);
     save();
   }
 
@@ -2818,7 +2924,14 @@
     const perOpen = open > 0 && restKcal > 0
       ? `<div class="wg-open">Für die ${open} offenen Tage bleiben ⌀ <b>${nfmt(restKcal / open)} kcal</b> pro Tag</div>`
       : "";
-    return `<div class="wg-cols">
+    // Auf dem Handy liegen die beiden Leisten nebeneinander und werden gewischt
+    // (siehe CSS) – die Knopfleiste sagt, welche gerade zu sehen ist. Am Rechner
+    // ist sie ausgeblendet, dort stehen beide untereinander wie bisher.
+    return `<div class="wgbar" role="group" aria-label="Zielansicht wählen">
+        <button type="button" class="wg-b">${state.viewWeek === "next" ? esc(d.label) : "Heute"}</button>
+        <button type="button" class="wg-b">Diese Woche</button>
+      </div>
+      <div class="wg-cols">
         <div class="wg-col">${goalRingHtml(s.kcal, day.kcal, "Tag", dayHeadHtml, goalMacrosHtml(s, day))}</div>
         <div class="wg-col">${goalRingHtml(w.kcal, wt.kcal, "Woche", weekHeadHtml, goalMacrosHtml(w, wt))}${perOpen}</div>
       </div>`;
@@ -2838,6 +2951,72 @@
           <div class="nf t-fat"><div class="v">${nfmt(n.fat)}<span class="u">g</span></div><div class="k">Fett</div></div>
         </div></div>`;
   }
+
+  // ---------- Handy-Karussell (Wochenplan, Wochenziele) ----------
+  // Bindet einen waagerecht schnappenden Streifen an die Knopfleiste darueber. Die
+  // Kopplung laeuft ueber scrollLeft und NICHT ueber scrollIntoView: letzteres
+  // verschiebt die Seite auch senkrecht, man wuerde beim Tagwechsel also
+  // ungewollt nach oben oder unten springen.
+  // Am Rechner steht die Leiste auf display:none, der Streifen ist ein normales
+  // Raster – dann laeuft hier nur ein Klick-Handler mit, der nie ausgeloest wird.
+  function initCarousel(scroller, bar) {
+    if (!scroller || !bar) return;
+    const panels = Array.prototype.slice.call(scroller.children);
+    const btns = Array.prototype.slice.call(bar.children);
+    if (!panels.length || !btns.length) return;
+
+    function setActive(idx) {
+      btns.forEach((b, i) => {
+        const on = i === idx;
+        b.classList.toggle("active", on);
+        if (on) b.setAttribute("aria-current", "true"); else b.removeAttribute("aria-current");
+      });
+    }
+
+    function markActive() {
+      // Aktiv ist die Karte, deren linke Kante zuletzt vor der Mitte des Fensters
+      // lag – das trifft auch waehrend eines halb gewischten Uebergangs das Richtige.
+      const mid = scroller.scrollLeft + scroller.clientWidth / 2;
+      let idx = 0;
+      panels.forEach((p, i) => { if (p.offsetLeft - panels[0].offsetLeft <= mid) idx = i; });
+      setActive(idx);
+    }
+
+    let ticking = false;
+    scroller.addEventListener("scroll", () => {
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(() => { ticking = false; markActive(); });
+    }, { passive: true });
+
+    btns.forEach((b, i) => b.addEventListener("click", () => {
+      const p = panels[i];
+      if (!p) return;
+      // Markierung sofort umsetzen, nicht erst wenn das Scroll-Ereignis kommt: beim
+      // Sanftlauf dauert das mehrere hundert Millisekunden, und ein Knopf, der nach
+      // dem Tippen noch tot aussieht, wird ein zweites Mal getippt.
+      setActive(i);
+      scroller.scrollTo({
+        left: p.offsetLeft - panels[0].offsetLeft,
+        behavior: reducedMotion() ? "auto" : "smooth",
+      });
+    }));
+
+    markActive();
+  }
+
+  function reducedMotion() {
+    return !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+  }
+
+  // Die Tagesleiste klebt unter dem Seitenkopf. Dessen Hoehe haengt an Schriftgroesse
+  // und Bildschirmbreite (Slogan bricht um, Reiter wandern nach unten) – deshalb
+  // gemessen und als --head-h gesetzt, statt im CSS eine Zahl zu raten.
+  function syncStickyOffsets() {
+    const head = document.querySelector("header.site");
+    if (head) document.documentElement.style.setProperty("--head-h", head.offsetHeight + "px");
+  }
+  window.addEventListener("resize", syncStickyOffsets);
 
   function renderPlan() {
     const filled = planStats();
@@ -2859,12 +3038,23 @@
           <button class="btn ghost grow" data-action="share">${TOOL_ICONS.share}Woche teilen</button>
           <button class="btn ghost" data-action="clear-week">${TOOL_ICONS.clear}Woche leeren</button>
         </div>
-      </div>
-      <div class="week">`;
+      </div>`;
 
     // In der Naechste-Woche-Ansicht gibt es kein „heute“ – sonst wuerde derselbe
     // Wochentag faelschlich als heutiger markiert.
     const todayKey = state.viewWeek === "next" ? null : todayDayKey();
+
+    // Tagesleiste: nur auf dem Handy sichtbar (CSS), dort Anzeige und Sprungziel des
+    // Karussells. Kein role="tablist" – es sind keine Reiter, sondern Sprungmarken
+    // in einen Streifen, der auch gewischt werden kann. Die Kurzform steht sichtbar,
+    // der volle Wochentag im aria-label; sonst laese eine Sprachausgabe nur „Mo“.
+    html += `<nav class="daybar" aria-label="Zum Wochentag springen">`;
+    DAYS.forEach(d => {
+      const isToday = d.key === todayKey;
+      html += `<button type="button" class="db-b${isToday ? " is-today" : ""}" aria-label="${esc(d.label)}${isToday ? " (heute)" : ""}"><span>${d.short}</span><span class="db-dot" aria-hidden="true"></span></button>`;
+    });
+    html += `</nav><div class="week">`;
+
     DAYS.forEach(d => {
       const isToday = d.key === todayKey;
       // Warnzeichen direkt in der Kopfzeile: sonst sieht man erst beim Scrollen zur
@@ -2904,6 +3094,10 @@
         Einkaufsliste der Woche
       </button>`;
     view.innerHTML = html;
+    syncStickyOffsets();
+    initCarousel(view.querySelector(".week"), view.querySelector(".daybar"));
+    // Nur vorhanden, wenn ein Ziel gespeichert ist – initCarousel faengt null ab.
+    initCarousel(view.querySelector(".wg-cols"), view.querySelector(".wgbar"));
   }
 
   // Bewusst nicht gespeichert: beim Neuladen sind alle Kategorien wieder offen.
