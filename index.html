@@ -1284,17 +1284,25 @@
        deshalb bekommt initCarousel die Karten dort ausdruecklich uebergeben. */
     .calc {
       display: flex; gap: 12px; align-items: flex-start;
-      overflow-x: auto; overflow-y: hidden;
-      scroll-snap-type: x mandatory; overscroll-behavior-x: contain;
-      scrollbar-width: none;
+      /* hidden statt auto: der Weg durch den Rechner ist fest, gewischt wird nicht.
+         Programmgesteuertes Scrollen (Weiter/Zurueck) funktioniert weiter – ein
+         overflow:hidden-Element ist nach wie vor ein Scrollbehaelter, nur eben keiner,
+         den der Finger bewegt. Deshalb greifen auch fitHeight() und wizardActive()
+         unveraendert, die beide an scrollWidth > clientWidth haengen. */
+      overflow: hidden;
     }
-    .calc::-webkit-scrollbar { display: none; }
     .calc-form { display: contents; }
-    .calc .calc-group, .calc .calc-result {
-      flex: 0 0 100%; scroll-snap-align: start; scroll-snap-stop: always; margin-bottom: 0;
-    }
+    .calc .calc-group, .calc .calc-result { flex: 0 0 100%; margin-bottom: 0; }
 
-    .calcbar { display: flex; gap: 4px; margin: 0 0 12px; }
+    /* Wie die Tagesleiste im Wochenplan: klebt unter dem Kopf, damit beim Scrollen
+       durch eine lange Karte sichtbar bleibt, in welchem Schritt man steht. */
+    .calcbar {
+      display: flex; gap: 4px;
+      position: sticky; top: var(--head-h, 70px); z-index: 20;
+      margin: 0 0 12px; padding: 6px 0;
+      background: var(--bg);
+      box-shadow: 0 6px 12px -8px rgba(0, 0, 0, .45);
+    }
     .cb-b {
       flex: 1 1 0; min-width: 0; min-height: 44px;
       display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
@@ -1314,6 +1322,9 @@
       color: var(--accent-contrast); border-color: transparent;
       background: linear-gradient(135deg, var(--accent), var(--accent-strong));
     }
+    /* Noch nicht erreichte Schritte sind echt deaktiviert, nicht nur blass: sonst
+       fuehrt ein Tippen ins Leere, ohne dass jemand versteht warum. */
+    .cb-b:disabled { opacity: .4; cursor: default; }
 
     /* Der Fussknopf ist der Faden durch den Assistenten: Weiter, Weiter, Berechnen,
        Zuruecksetzen. Klebt am unteren Rand ueber der Reiterleiste, damit er auf jeder
@@ -1327,7 +1338,12 @@
       margin: 16px 0 0; padding: 10px 0 4px;
       background: var(--bg);
     }
-    .calcnav .btn { width: 100%; justify-content: center; min-height: 48px; font-size: 15px; }
+    /* Zurueck schmal links, die Haupthandlung breit rechts – der Weg nach vorn ist
+       das Wahrscheinliche und bekommt das groessere Ziel unter dem Daumen. */
+    .calcnav { display: flex; gap: 8px; }
+    .calcnav .btn { justify-content: center; min-height: 48px; font-size: 15px; }
+    .calcnav #c-step-back { flex: 0 0 34%; }
+    .calcnav #c-step-go { flex: 1 1 auto; }
     /* Auf der Ergebniskarte traegt der Fussknopf die Aktion – der Knopf in der Karte
        waere dieselbe Handlung ein zweites Mal. */
     .calc-result #c-save, .calc-result .calc-saved { display: none; }
@@ -4451,13 +4467,38 @@
              training: sanitizeTraining(inp.training),
              updatedAt: Date.now() };
   }
-  function validCalcInput(i) {
-    return i.age >= 10 && i.age <= 120 && i.height >= 100 && i.height <= 250 && i.weight >= 30 && i.weight <= 400;
+  // Welche Tempo-Stufen es zu einem Ziel gibt. Muss mit den Knoepfen in fillPace()
+  // uebereinstimmen – beides aendern oder keines.
+  function paceKeys(mode) {
+    return mode === "lose" ? ["light", "moderate", "strong"]
+         : mode === "gain" ? ["light", "moderate"] : [];
   }
+
+  // Was fehlt noch, in Worten? Eine Quelle fuer beides: den Hinweis im Assistenten
+  // und den Text der leeren Ergebniskarte. Reihenfolge wie im Formular, damit der
+  // erste Eintrag auch das erste fehlende Feld ist.
+  // Nichts ist mehr vorbelegt – Geschlecht, Alltagsbewegung, Ziel und Tempo muessen
+  // bewusst gewaehlt werden. Eine Voreinstellung wird sonst leicht ueberlesen und
+  // geht als bewusste Angabe in die Rechnung ein, was sie nicht ist.
+  function missingCalc(i) {
+    const m = [];
+    if (i.sex !== "m" && i.sex !== "f") m.push("dein Geschlecht");
+    if (!(i.age >= 10 && i.age <= 120)) m.push("dein Alter");
+    if (!(i.height >= 100 && i.height <= 250)) m.push("deine Größe");
+    if (!(i.weight >= 30 && i.weight <= 400)) m.push("dein Gewicht");
+    if (!ACTIVITY.some(a => a.key === i.activity)) m.push("deine Bewegung im Alltag");
+    if (["lose", "hold", "gain"].indexOf(i.mode) === -1) m.push("dein Ziel");
+    else if (i.mode !== "hold" && paceKeys(i.mode).indexOf(i.pace) === -1) m.push("dein Tempo");
+    return m;
+  }
+  function validCalcInput(i) { return missingCalc(i).length === 0; }
   function renderRechner() {
     const g = state.goal || {};
-    let cur = { sex: g.sex || "m", mode: g.mode || "lose", pace: g.pace || "moderate",
-                activity: ACTIVITY.some(a => a.key === g.activity) ? g.activity : "pal14",
+    // Ohne gespeichertes Ziel ist NICHTS vorbelegt (siehe missingCalc): eine
+    // Voreinstellung wird ueberlesen und geht dann als bewusste Angabe in die
+    // Rechnung ein. Mit gespeichertem Ziel stehen die eigenen Werte drin.
+    let cur = { sex: g.sex || null, mode: g.mode || null, pace: g.pace || null,
+                activity: ACTIVITY.some(a => a.key === g.activity) ? g.activity : null,
                 training: sanitizeTraining(g.training) };
     const segBtn = (grp, v, label, hint) => `<button type="button" data-v="${v}"${cur[grp] === v ? ' class="on"' : ''}>${label}${hint ? `<span class="seg-hint">${hint}</span>` : ""}</button>`;
     view.innerHTML = `
@@ -4511,18 +4552,26 @@
         </div>
         <div class="calc-result" id="c-result"></div>
       </div>
-      <div class="calcnav"><button type="button" class="btn primary" id="c-step-go">Weiter</button></div>
+      <div class="calcnav">
+        <button type="button" class="btn ghost" id="c-step-back">Zurück</button>
+        <button type="button" class="btn primary" id="c-step-go">Weiter</button>
+      </div>
       <p class="calc-note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></svg><span>Alle Werte sind <strong>rechnerische Richtwerte</strong>: Grundumsatz nach der Mifflin-St-Jeor-Formel, Alltagsbedarf über einen Aktivitätsfaktor (PAL), der Mehrbedarf an Trainingstagen über MET-Schätzwerte. Der tatsächliche Verbrauch kann davon deutlich abweichen. Sie ersetzen keine ärztliche oder ernährungsmedizinische Beratung. Bei Erkrankungen, in Schwangerschaft und Stillzeit oder vor einer stärkeren Ernährungsumstellung sprich bitte mit einer Ärztin oder einem Arzt.</span></p>`;
 
     const paceField = view.querySelector("#c-pace-field");
     const paceSeg = view.querySelector('.seg[data-seg="pace"]');
     function fillPace() {
-      if (cur.mode === "hold") { paceField.style.display = "none"; return; }
+      // Ohne gewaehltes Ziel gibt es noch kein Tempo – das Feld erscheint erst, wenn
+      // die Frage davor beantwortet ist. Bei „Halten" gibt es keins.
+      if (!cur.mode || cur.mode === "hold") { paceField.style.display = "none"; return; }
       paceField.style.display = "";
+      // Die Schluessel hier muessen zu paceKeys() passen – beides aendern oder keines.
       const opts = cur.mode === "lose"
         ? [["light", "Leicht", "0,25 kg/Wo."], ["moderate", "Moderat", "0,5 kg/Wo."], ["strong", "Stark", "0,75 kg/Wo."]]
         : [["light", "Leicht", "0,25 kg/Wo."], ["moderate", "Moderat", "0,5 kg/Wo."]];
-      if (!opts.some(o => o[0] === cur.pace)) cur.pace = "moderate";
+      // Passt das bisherige Tempo nicht zum neuen Ziel, bleibt es leer statt still auf
+      // „Moderat" zu springen – auch das waere eine unbemerkte Voreinstellung.
+      if (!opts.some(o => o[0] === cur.pace)) cur.pace = null;
       paceSeg.innerHTML = opts.map(o => `<button type="button" data-v="${o[0]}"${cur.pace === o[0] ? ' class="on"' : ''}>${o[1]}<span class="seg-hint">${o[2]}</span></button>`).join("");
     }
     function readInput() {
@@ -4593,8 +4642,11 @@
         state.goal = computeGoal(inp);
         save();
       }
-      if (!validCalcInput(inp)) {
-        res.innerHTML = `<div class="calc-empty">Trag Alter, Größe und Gewicht ein, dann siehst du hier deinen Tages- und Wochenbedarf.</div>`;
+      const fehlt = missingCalc(inp);
+      if (fehlt.length) {
+        // Benennt das Fehlende statt allgemein „trag etwas ein" – seit nichts mehr
+        // vorbelegt ist, koennen es auch Auswahlfelder sein, nicht nur die Zahlen.
+        res.innerHTML = `<div class="calc-empty">Für deinen Tages- und Wochenbedarf fehlt noch:<br><b>${esc(fehlt.join(", "))}</b>.</div>`;
         return;
       }
       const r = computeGoal(inp);
@@ -4738,35 +4790,55 @@
     updateResult();
 
     // ---------- Assistent (nur Handy) ----------
-    // Vier Karten: Koerperdaten, Alltag & Ziel, Trainingstage, Ergebnis. Der Fussknopf
-    // fuehrt hindurch. Frei wischen ist erlaubt – vorausschauen darf man, nur das
-    // Rechnen haengt an gueltigen Eingaben. Ein gesperrter Streifen liesse sich mit
-    // nativem Schnappen ohnehin nicht ehrlich umsetzen.
+    // Vier Karten: Koerperdaten, Alltag & Ziel, Trainingstage, Ergebnis. Der Weg ist
+    // fest – gewischt wird nicht (siehe .calc { overflow: hidden }), weiter geht es nur
+    // ueber den Fussknopf und nur, wenn der aktuelle Schritt vollstaendig ist. Zurueck
+    // ist dagegen immer erlaubt, ebenso das Antippen bereits erreichter Schritte in der
+    // Leiste: rueckwaerts laesst sich nichts kaputt machen.
     syncStickyOffsets(); // der Fussknopf klebt ueber der unteren Reiterleiste
     const calcEl = view.querySelector(".calc");
     const calcBar = view.querySelector(".calcbar");
     const goBtn = view.querySelector("#c-step-go");
+    const backBtn = view.querySelector("#c-step-back");
     const stepPanels = Array.prototype.slice.call(view.querySelectorAll(".calc-group"))
       .concat([view.querySelector("#c-result")]);
     const LAST = stepPanels.length - 1;
+    // Bis hierher darf zurueck- und wieder vorgesprungen werden. Mit gespeichertem Ziel
+    // sind alle Schritte schon einmal durchlaufen worden.
+    let maxStep = state.goal ? LAST : 0;
 
-    function bodyDataOk() { return validCalcInput(readInput()); }
+    // Was fehlt in Schritt i? Die Zuordnung folgt den Karten: Geschlecht und die drei
+    // Zahlen stehen in Koerperdaten, Bewegung/Ziel/Tempo in Alltag & Ziel. Die
+    // Trainingstage sind freiwillig und kommen deshalb hier nicht vor.
+    const FELD_SCHRITT = {
+      "dein Geschlecht": 0, "dein Alter": 0, "deine Größe": 0, "dein Gewicht": 0,
+      "deine Bewegung im Alltag": 1, "dein Ziel": 1, "dein Tempo": 1,
+    };
+    function fehltIn(i) { return missingCalc(readInput()).filter(f => FELD_SCHRITT[f] === i); }
 
     // Der erste Schritt ist der einzige mit Pflichtfeldern – ohne Alter, Groesse und
     // Gewicht kann nichts gerechnet werden. Der Hinweis nennt das Fehlende beim Namen
     // und setzt den Fokus dorthin, statt nur „ungueltig" zu melden.
-    function nagBodyData() {
-      const ids = [["c-age", "dein Alter"], ["c-height", "deine Größe"], ["c-weight", "dein Gewicht"]];
-      const fehlt = ids.filter(([id]) => !(+view.querySelector("#" + id).value > 0));
-      const erste = fehlt.length ? view.querySelector("#" + fehlt[0][0]) : view.querySelector("#c-age");
-      toast(fehlt.length ? "Trag noch " + fehlt.map(f => f[1]).join(" und ") + " ein" : "Bitte prüfe deine Körperdaten");
-      if (erste) erste.focus();
+    function nagStep(i) {
+      const fehlt = fehltIn(i);
+      if (!fehlt.length) return;
+      toast("Wähle noch " + fehlt.join(" und "));
+      // Bei den Zahlenfeldern direkt hinfuehren; die Auswahlen stehen ohnehin sichtbar
+      // auf der Karte. Nur zu melden, etwas sei unvollstaendig, liesse jemanden suchen.
+      const ziele = { "dein Alter": "#c-age", "deine Größe": "#c-height", "dein Gewicht": "#c-weight" };
+      const sel = ziele[fehlt[0]];
+      const feld = sel && view.querySelector(sel);
+      if (feld) feld.focus();
     }
 
     function setStepBtn(i) {
-      // Schritte gelten als erledigt, sobald die Koerperdaten stehen – nur sie sind Pflicht.
-      const ok = bodyDataOk();
-      Array.prototype.forEach.call(calcBar.children, (b, n) => b.classList.toggle("done", ok && n < i));
+      maxStep = Math.max(maxStep, i);
+      Array.prototype.forEach.call(calcBar.children, (b, n) => {
+        b.classList.toggle("done", n < i && !fehltIn(n).length);
+        b.disabled = n > maxStep;
+      });
+      // Zurueck erst ab der zweiten Karte – auf der ersten gaebe es kein Ziel dafuer.
+      backBtn.style.display = i > 0 ? "" : "none";
       if (i < 2) { goBtn.textContent = "Weiter"; goBtn.className = "btn primary"; }
       else if (i === 2) { goBtn.textContent = "Berechnen"; goBtn.className = "btn primary"; }
       // Auf der Ergebniskarte haengt die Beschriftung daran, ob schon etwas gespeichert
@@ -4776,30 +4848,42 @@
     }
 
     const calcCar = initCarousel(calcEl, calcBar, stepPanels, setStepBtn);
+    function gehe(i) { if (calcCar) { calcCar.go(i); setStepBtn(i); } }
+
+    backBtn.addEventListener("click", () => {
+      const i = calcCar ? calcCar.index() : 0;
+      if (i > 0) gehe(i - 1);
+    });
 
     goBtn.addEventListener("click", () => {
       const i = calcCar ? calcCar.index() : 0;
       if (i === LAST && state.goal) { resetCalc(); return; }
-      if (i < 2) {
-        if (i === 0 && !bodyDataOk()) { nagBodyData(); return; }
-        if (calcCar) calcCar.go(i + 1);
+      // Weiter nur mit vollstaendigem Schritt – das ist der feste Pfad.
+      if (fehltIn(i).length) { nagStep(i); return; }
+      if (i < 2) { gehe(i + 1); return; }
+      // „Berechnen": speichert und legt die Ergebniskarte vor.
+      // Prueft ALLE Schritte, nicht nur den aktuellen: die Trainingskarte selbst hat
+      // keine Pflichtfelder, ein frueherer Schritt kann aber unvollstaendig sein, wenn
+      // jemand zurueckgegangen ist und etwas geleert hat. Dann dorthin zurueckfuehren.
+      const fehlt = missingCalc(readInput());
+      if (fehlt.length) {
+        const ziel = FELD_SCHRITT[fehlt[0]];
+        gehe(ziel);
+        nagStep(ziel);
         return;
       }
-      // „Berechnen": speichert und legt die Ergebniskarte vor.
-      if (!bodyDataOk()) { if (calcCar) calcCar.go(0); nagBodyData(); return; }
       state.goal = computeGoal(readInput());
       save();
       updateResult();
-      if (calcCar) calcCar.go(LAST);
-      setStepBtn(LAST);
+      maxStep = LAST;
+      gehe(LAST);
       toast("Dein Ziel wurde gespeichert");
     });
 
     // Beim Oeffnen mit gespeichertem Ziel gleich das Ergebnis zeigen – die Eingaben
     // stehen ja schon, und der haeufigste Grund fuer den Rechner ist dann Nachsehen.
     if (calcCar && state.goal && calcEl.scrollWidth > calcEl.clientWidth + 10) {
-      calcCar.go(LAST);
-      setStepBtn(LAST);
+      gehe(LAST);
     } else {
       setStepBtn(0);
     }
