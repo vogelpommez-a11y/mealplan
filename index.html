@@ -35,6 +35,15 @@
     --mi: #2E7D6B;   /* Mittagessen */
     --ab: #6E5A9E;   /* Abendessen */
 
+    /* Trainingstag. Das einzige Blau im Theme und bewusst gesetzt: Rot ist hier die
+       Grundfarbe UND das Warnsignal ("drueber"), ein rot markierter Trainingstag waere
+       daher nicht als neutrale Eigenschaft lesbar. Blau ist der einzige Ton, der sich
+       von beidem absetzt. Achtung: Rot und Blau haben zueinander nur 1,07:1 Kontrast —
+       fuer Farbenblinde sind sie ununterscheidbar. Die Markierung traegt deshalb NIE
+       allein ueber die Farbe, sondern immer zusaetzlich Hantel-Icon + Text. */
+    --train: #2563EB;
+    --train-strong: #1D4ED8;
+
     --shadow: 0 1px 2px rgba(20,24,31,.06), 0 8px 24px rgba(20,24,31,.08);
     --radius: 12px;
     --radius-sm: 8px;
@@ -69,6 +78,9 @@
       --mi: #58B49E;
       --ab: #AC93E0;
 
+      --train: #60A5FA;
+      --train-strong: #93C5FD;
+
       --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.35);
     }
   }
@@ -78,6 +90,7 @@
     --text: #1A1416; --text-muted: #6B5F62; --border: #E7E0E1; --border-strong: #D6CCCE;
     --accent: #DC2626; --accent-strong: #B01218; --accent-contrast: #FFFFFF; --accent-solid: #DC2626; --danger: var(--accent); --ok: #1E9E57;
     --fr: #A96E12; --mi: #2E7D6B; --ab: #6E5A9E;
+    --train: #2563EB; --train-strong: #1D4ED8;
     --shadow: 0 1px 2px rgba(20,24,31,.06), 0 8px 24px rgba(20,24,31,.08);
   }
   :root[data-theme="dark"] {
@@ -86,6 +99,7 @@
     --text: #F4EFEE; --text-muted: #A69B9D; --border: #2A2223; --border-strong: #3A2F30;
     --accent: #FF3040; --accent-strong: #FF5A66; --accent-contrast: #FFFFFF; --accent-solid: #E02234; --danger: var(--accent); --ok: #3DDC84;
     --fr: #E0A94A; --mi: #58B49E; --ab: #AC93E0;
+    --train: #60A5FA; --train-strong: #93C5FD;
     --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.35);
   }
 
@@ -322,6 +336,40 @@
     border: 1px solid color-mix(in srgb, var(--accent) 38%, transparent);
   }
   .day.over > .day-head { background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 20%, var(--surface)), var(--surface)); }
+
+  /* ---- Trainingstag ----
+     Rot und Blau sind fast gleich hell (1,07:1) und fuer Farbenblinde nicht zu trennen.
+     Die Markierung besteht deshalb aus drei Trägern: Rand, Hantel-Icon UND dem Wort
+     „Training". Wer nur einen davon entfernt, nimmt der Markierung ihre Zugaenglichkeit. */
+  .day.training { border-color: color-mix(in srgb, var(--train) 55%, var(--border)); }
+  .day.training::before { background: linear-gradient(90deg, var(--train), var(--train-strong)); }
+  /* Kopfzeile zieht mit — sonst steht ein blauer Rand ueber rosa Verlauf. Das :not(.over)
+     ist bewusst und nicht durch Reihenfolge ersetzbar: ueberschreitet der Tag sein Ziel,
+     muss die Warnung rot bleiben, egal ob trainiert wird. */
+  .day.training:not(.over) > .day-head {
+    background: linear-gradient(180deg, color-mix(in srgb, var(--train) 12%, var(--surface)), var(--surface));
+  }
+  .day.training:hover {
+    border-color: color-mix(in srgb, var(--train) 70%, var(--border));
+    box-shadow: 0 12px 30px color-mix(in srgb, var(--train) 20%, transparent);
+  }
+  /* Faellt „heute" auf einen Trainingstag, wird auch der Ring blau — sonst stossen roter
+     Ring und blauer Rand aneinander. Dass es heute ist, traegt weiter der rote Chip. */
+  .day.training.today { box-shadow: 0 0 0 1px color-mix(in srgb, var(--train) 45%, transparent), var(--shadow); }
+  .day-head .dtrain {
+    /* klebt am Tagesnamen und schiebt Ueberschreitungs-Zeichen + Tages-Chip nach rechts */
+    margin-right: auto;
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 10px; font-weight: 700; letter-spacing: .03em; text-transform: uppercase;
+    white-space: nowrap; color: var(--train-strong); padding: 3px 8px; border-radius: 999px;
+    background: color-mix(in srgb, var(--train) 14%, transparent);
+    border: 1px solid color-mix(in srgb, var(--train) 40%, transparent);
+  }
+  /* 13px. Kein stroke-width hier: das Icon bringt seine Staerken selbst mit, und eine
+     CSS-Regel wuerde das Praesentationsattribut im SVG ueberschreiben. */
+  .day-head .dtrain svg { width: 13px; height: 13px; flex: none; }
+  .wg-train { display: inline-flex; align-items: center; gap: 4px; color: var(--train-strong); }
+  .wg-train svg { width: 13px; height: 13px; flex: none; }
   .slots { display: flex; flex-direction: column; gap: 2px; padding: 8px; flex: 1; }
 
   /* Tages-Nährwerte (Fuß der Tageskarte) */
@@ -850,17 +898,113 @@
   .seg button.on { color: var(--accent-contrast); background: linear-gradient(135deg, var(--accent), var(--accent-strong)); box-shadow: 0 2px 8px color-mix(in srgb, var(--accent) 32%, transparent); }
   .seg .seg-hint { font-weight: 500; font-size: 10.5px; opacity: .82; }
   /* Aktivität als vertikale Knopf-Liste (Label links, Hinweis rechts) */
+  /* Trainingstage: sieben Umschalter, Mehrfachauswahl. Bewusst NICHT .seg, obwohl es
+     so aussieht — .seg ist eine Einfachauswahl (genau ein .on). Gleiche Optik, aber
+     eigene Klasse, damit niemand die Seg-Logik darauf loslaesst. */
+  .tdays { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 4px; }
+  .tdays button {
+    font: inherit; font-size: 12.5px; font-weight: 700; cursor: pointer; border: 0;
+    background: transparent; color: var(--text-muted); padding: 9px 2px; min-height: 44px;
+    border-radius: var(--radius-sm); transition: color .12s, background .12s, box-shadow .12s;
+  }
+  .tdays button:hover { color: var(--text); }
+  /* Im RECHNER ist die Auswahl rot wie jede andere Auswahl im Formular. Das Blau ist der
+     Statusfarbe im Wochenplan vorbehalten, wo es einen Tag als Trainingstag markiert —
+     hier waere es nur ein zweiter Akzent ohne eigene Bedeutung. */
+  .tdays button[aria-pressed="true"] {
+    color: var(--accent-contrast); background: linear-gradient(135deg, var(--accent), var(--accent-strong));
+    box-shadow: 0 2px 8px color-mix(in srgb, var(--accent) 32%, transparent);
+  }
+  .tdays-note { font-size: 11.5px; color: var(--text-muted); margin: 8px 0 15px; line-height: 1.45; }
+  .tdays-note b { color: var(--text); font-weight: 600; }
+  /* Eine Zeile je Trainingstag: Kuerzel, Stufe, Dauer, Aufschlag.
+     Abfragebasis ist die Breite des FELDES, nicht die des Bildschirms — wie bei den
+     Makro-Beschriftungen der Tageskarten. Eine Bildschirm-Query war hier nachweislich
+     falsch: im zweispaltigen Rechner-Layout ist die Formularspalte auch auf einem
+     breiten Monitor schmal, die Zeile lief dann um 67px ueber ihren Container hinaus. */
+  #c-tdetail { container-type: inline-size; }
+  .trow {
+    display: grid; grid-template-columns: 30px 1fr auto;
+    grid-template-areas: "d lv lv" ". min kcal" "def def def";
+    align-items: center; gap: 8px; row-gap: 6px;
+    padding: 8px 0; border-top: 1px solid var(--border);
+  }
+  .trow-d { grid-area: d; } .trow-lv { grid-area: lv; }
+  .trow-min { grid-area: min; } .trow-kcal { grid-area: kcal; }
+  /* Erst wenn wirklich Platz ist, alles in eine Zeile — die Definition bleibt darunter. */
+  @container (min-width: 380px) {
+    .trow { grid-template-columns: 30px 1fr auto auto; grid-template-areas: "d lv min kcal" "def def def def"; row-gap: 6px; }
+  }
+  /* Beispiele zur GEWAEHLTEN Stufe. Stehen sichtbar in der Zeile und nicht nur im
+     title-Attribut: auf dem Handy gibt es keine Tooltips, dort waeren sie unsichtbar —
+     und genau dort wird die App benutzt. */
+  .trow-def {
+    grid-area: def; font-size: 11px; line-height: 1.45; color: var(--text-muted);
+    padding-left: 38px;
+  }
+  @container (max-width: 379px) { .trow-def { padding-left: 0; } }
+  .trow:first-child { border-top: 0; }
+  .trow-d { font-family: var(--font-display); font-size: 13px; font-weight: 700; color: var(--accent-strong); }
+  /* Keine eigene .on-Regel: die rote Auswahl-Optik kommt aus .seg button.on und soll
+     hier genau so aussehen wie in den uebrigen Formularfeldern. */
+  .trow-lv { padding: 2px; gap: 1px; }
+  /* min-height, damit die Stufen mit dem Daumen zu treffen sind: ohne sie waren die
+     Buttons 26px hoch, waehrend die Wochentag-Umschalter direkt darueber 44px haben.
+     Bei sieben Trainingstagen stehen 21 dieser Buttons gleichzeitig auf dem Schirm. */
+  .trow-lv button { padding: 8px 4px; font-size: 11.5px; min-height: 40px; }
+  .trow-min { display: flex; align-items: center; gap: 4px; }
+  .trow-min input {
+    width: 58px; text-align: center; padding: 8px 4px; font-size: 16px; /* 16px gegen iOS-Zoom */
+    background: var(--surface-2); color: var(--text); border: 1px solid var(--border);
+    border-radius: var(--radius-sm); font-variant-numeric: tabular-nums;
+  }
+  .trow-min span { font-size: 11px; color: var(--text-muted); }
+  .trow-kcal {
+    font-size: 12px; font-weight: 700; color: var(--accent-strong); white-space: nowrap;
+    font-variant-numeric: tabular-nums; min-width: 62px; text-align: right;
+  }
+  /* Vorschau je Trainingstag im Ergebnis */
+  .tprev { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; padding: 5px 0; }
+  .tprev + .tprev { border-top: 1px dashed var(--border); }
+  .tprev-d { font-size: 12px; font-weight: 700; color: var(--text); }
+  .tprev-d span { font-weight: 400; color: var(--text-muted); margin-left: 6px; font-size: 11px; }
+  .tprev-v { font-size: 12px; color: var(--text-muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .tprev-v b { color: var(--text); font-size: 13px; }
+  .tprev-v span { margin-left: 8px; }
+  /* Ruhetag-Werte im Ergebnis: zweite Makro-Zeile, klar als Ableitung erkennbar. */
+  .rest-macros { border-top: 1px dashed var(--border); margin-top: 12px; padding-top: 12px; }
+  .rest-macros .rm-h { display: flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--text-muted); margin-bottom: 8px; }
+  .rest-macros .rm-h svg { width: 13px; height: 13px; flex: none; color: var(--accent-strong); }
+
   .seg-col { flex-direction: column; gap: 3px; border-radius: var(--radius-sm); padding: 4px; }
   .seg-col button { flex-direction: row; justify-content: space-between; align-items: center; border-radius: var(--radius-sm); padding: 11px 14px; }
   .calc-result { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); padding: 26px 22px; text-align: center; position: sticky; top: 92px; }
-  .calc-kcal { font-family: var(--font-display); font-size: 54px; font-weight: 700; color: var(--accent); line-height: 1; letter-spacing: .5px; }
-  .calc-kcal .u { font-family: var(--font-body); font-size: 17px; font-weight: 600; color: var(--text-muted); letter-spacing: 0; }
+  /* Die Kernzahl ist das Ergebnis der ganzen Seite. Hervorgehoben wird sie ueber RAUM,
+     nicht ueber eine weitere Farbe: 54px sind bereits die groesste Schrift der App, und
+     ein zweiter Akzentton wuerde nur die Bedeutung des roten schwaechen. */
+  .calc-kcal { font-family: var(--font-display); font-size: 54px; font-weight: 700; color: var(--accent); line-height: 1; letter-spacing: .5px; margin: 12px 0 6px; }
+  /* Die Einheit steht bewusst als eigene Zeile statt neben der Zahl: „2.062 kcal / Ruhetag"
+     passt bei 54px Zifferngroesse in kein Panel dieser Breite. Ohne block brach sie hinter
+     dem Schraegstrich um und erbte dabei die Zeilenhoehe der grossen Zahl — ein Loch von
+     ueber 50px mitten im Ergebnis. */
+  .calc-kcal .u { display: block; margin-top: 7px; font-family: var(--font-body); font-size: 17px; font-weight: 600; color: var(--text-muted); letter-spacing: 0; line-height: 1.2; }
   .calc-sub { color: var(--text-muted); font-size: 13px; margin-top: 8px; line-height: 1.5; }
   .macros { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 22px; }
   .macro { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 13px 6px; }
   .macro .mv { font-family: var(--font-display); font-size: 22px; font-weight: 600; color: var(--text); }
   .macro .ml { font-size: 10.5px; text-transform: uppercase; letter-spacing: .05em; font-weight: 650; color: var(--text-muted); margin-top: 3px; }
-  .calc-result .btn.primary { width: 100%; justify-content: center; margin-top: 22px; }
+  /* Der Abschluss der Seite wird als solcher abgesetzt: mehr Luft nach oben, dazu der
+     weiche Akzentschein, den aktive Elemente im Theme ohnehin tragen (Heute-Chip,
+     Tages-Umschalter). Hebt den Button heraus, ohne einen neuen Farbwert einzufuehren. */
+  .calc-result .btn.primary {
+    width: 100%; justify-content: center; margin-top: 28px;
+    box-shadow: 0 4px 16px color-mix(in srgb, var(--accent) 34%, transparent);
+  }
+  .calc-result .btn.primary:hover { box-shadow: 0 6px 20px color-mix(in srgb, var(--accent) 44%, transparent); }
+  /* Der Schein ist Dekoration: wer Bewegung/Effekte reduziert, bekommt ihn flacher. */
+  @media (prefers-reduced-motion: reduce) {
+    .calc-result .btn.primary, .calc-result .btn.primary:hover { box-shadow: var(--shadow); }
+  }
   .calc-saved { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 12.5px; color: var(--text-muted); margin-top: 12px; }
   /* Hinweis, dass die Werte Richtwerte sind – gleiches Muster wie .auth-note */
   .calc-note { display: flex; gap: 9px; align-items: flex-start; max-width: var(--maxw); font-size: 12px; line-height: 1.55; color: var(--text-muted); margin: 20px 0 0; padding-top: 14px; border-top: 1px solid var(--border); }
@@ -1233,6 +1377,69 @@
     { key: "mi", label: "Mittagessen" },
     { key: "ab", label: "Abendessen"  },
   ];
+  // ---------- Aktivitaet und Training (Stammdaten des Kalorienrechners) ----------
+  // Stehen hier oben und nicht beim Rechner, weil sanitizeGoal() sie braucht und das
+  // bereits in `let state = load()` laeuft — weiter unten waeren sie dort noch in der
+  // temporalen Todeszone und die App wuerde beim Start sterben.
+  //
+  // Alltags- und Berufsbewegung OHNE Sport (PAL-Systematik nach DGE bzw. FAO/WHO/UNU).
+  // Bewusste Abkehr von den frueheren Faktoren 1,2/1,375/1,55/1,725/1,9: die waren mit
+  // dem Sport DRIN definiert ("3-5x/Woche"). Solange das Training nicht separat erfasst
+  // wurde, war das richtig — jetzt wuerde es das Training doppelt zaehlen, einmal im
+  // Faktor und einmal ueber die Trainingstage. PAL-Werte sind genau fuer den Fall
+  // gemacht, dass Sport obendrauf kommt.
+  // Wer hier Werte aendert, muss ACTIVITY_MIGRATE mitziehen.
+  const ACTIVITY = [
+    { key: "pal12", f: 1.2, label: "Kaum Bewegung",  hint: "fast nur sitzend/liegend" },
+    { key: "pal14", f: 1.4, label: "Sitzend",        hint: "Büro, Auto, abends Sofa" },
+    { key: "pal16", f: 1.6, label: "Sitzend + Wege", hint: "Büro, aber viel zu Fuß" },
+    { key: "pal18", f: 1.8, label: "Stehend/gehend", hint: "Verkauf, Pflege, Gastro" },
+    { key: "pal20", f: 2.0, label: "Körperlich",     hint: "Bau, Handwerk, Landwirtschaft" }
+  ];
+  // Alte, sportinklusive Schluessel auf die neue Alltags-Skala. Verlustfrei geht das nicht:
+  // in "3-5x/Woche" steckte Sport, dessen Umfang wir nicht kennen. Deshalb konservativ nach
+  // unten gemappt — der Sport kommt jetzt ueber die Trainingstage dazu. Laeuft still, weil
+  // die App noch keinen Nutzerkreis hat; sollte sich das aendern, gehoert an dieser Stelle
+  // ein Hinweis in den Rechner, dass die Einstufung einmal zu pruefen ist.
+  const ACTIVITY_MIGRATE = { sed: "pal14", light: "pal14", mod: "pal14", high: "pal16", ext: "pal18" };
+  function activityFactor(k) { const a = ACTIVITY.find(x => x.key === k); return a ? a.f : 1.4; }
+
+  // Trainingsstufen. netMet ist bewusst der NETTO-Wert (MET − 1): die uebliche Formel
+  // kcal = MET × kg × h liefert den Bruttoumsatz inklusive dessen, was der Koerper in
+  // derselben Zeit ohnehin verbraucht haette. Dieser Ruheanteil steckt hier aber schon im
+  // Alltagsbedarf (BMR × PAL) — ihn nochmal mitzurechnen waere der zweite Doppelzaehler
+  // und wuerde die Einheit je nach Laenge um 40-120 kcal zu teuer machen.
+  // MET-Werte nach dem Compendium of Physical Activities: Krafttraining allgemein 3,5,
+  // kraeftig 5-6, intensive Einheiten/HIIT ~7.
+  // Die Stufen folgen der ACSM-Einteilung light/moderate/vigorous; eingeordnet wird ueber
+  // die Beispiele in `ex`, die dem Nutzer in der Trainingszeile angezeigt werden.
+  //
+  // WICHTIG bei `ex`: Laufen, Spinning und zuegiges Radfahren gehoeren zu „Intensiv",
+  // auch lockeres Joggen. Ausdauersport liegt im Compendium systematisch hoeher als
+  // Krafttraining (Joggen ~7 MET, Laufen 8 km/h ~8,3, Radfahren 19-22 km/h ~8,0), weil
+  // Krafttraining viele Pausen enthaelt. Wer Laufen unter „Normal" einordnet, unterschaetzt
+  // sich um rund 40 % — deshalb stehen diese Sportarten namentlich in der intensiven Zeile.
+  // Die Beispiele sind damit nicht nur Illustration, sondern die eigentliche Definition.
+  // Die Schluessel (light/mod/hard) bleiben unveraendert, damit gespeicherte Plaene gelten.
+  const TRAIN_LEVELS = [
+    { key: "light", label: "Locker",   met: 3.5, netMet: 2.5, defMin: 30,
+      ex: "Spaziergang, gemütliches Radeln, Yoga, Mobility, Krafttraining mit langen Pausen" },
+    { key: "mod",   label: "Normal",   met: 5.0, netMet: 4.0, defMin: 60,
+      ex: "Normales Krafttraining, zügiges Wandern, ruhiges Schwimmen, Radfahren im Alltagstempo" },
+    { key: "hard",  label: "Intensiv", met: 7.0, netMet: 6.0, defMin: 75,
+      ex: "HIIT, Intervalle, Laufen (auch lockeres Joggen), schweres Krafttraining, Spinning" }
+  ];
+  const TRAIN_MIN_MIN = 10, TRAIN_MIN_MAX = 240;
+  function trainLevel(k) { return TRAIN_LEVELS.find(x => x.key === k) || TRAIN_LEVELS[1]; }
+  // Zusatzverbrauch einer Einheit in kcal: netto-MET × Koerpergewicht × Stunden.
+  // Haengt am Gewicht — dieselbe Einheit sind bei 55 kg gut 220 kcal und bei 120 kg 480.
+  // Deshalb gibt es hier auch keine festen kcal-Spannen je Stufe.
+  function trainKcal(levelKey, minutes, weightKg) {
+    const lv = trainLevel(levelKey);
+    const min = Math.max(TRAIN_MIN_MIN, Math.min(TRAIN_MIN_MAX, +minutes || lv.defMin));
+    return Math.round(lv.netMet * (+weightKg || 0) * (min / 60));
+  }
+
   const CATEGORIES = ["Frühstück", "Mittagessen", "Abendessen", "Snack", "Dessert", "Beilage"];
   const CAT_CLASS = { "Frühstück": "cat-fr", "Mittagessen": "cat-mi", "Abendessen": "cat-ab" };
   const CAT_TO_MEAL = { "Frühstück": "fr", "Mittagessen": "mi", "Abendessen": "ab" };
@@ -1346,6 +1553,49 @@
     state.plan = state.plans[key];
   }
 
+  // Trainingsplan auf gueltige Wochentage eindampfen: fremde Schluessel raus, Stufe auf
+  // eine bekannte Stufe zwingen, Dauer in den erlaubten Bereich klemmen.
+  // Bewusst eine `function` und keine `const`-Arrow — load() laeuft frueh, eine spaeter
+  // deklarierte Konstante waere dort noch in der temporalen Todeszone und wuerde die
+  // ganze App beim Start killen.
+  function sanitizeTraining(t) {
+    const out = {};
+    if (!t || typeof t !== "object") return out;
+    // Zwischenstand-Format: ["mon","wed"] ohne Stufe/Dauer. Kam aus der ersten Fassung
+    // der Trainingstage (nie veroeffentlicht, aber lokal getestet) — auf die Standard-
+    // stufe heben, statt die Auswahl des Nutzers wegzuwerfen.
+    if (Array.isArray(t)) {
+      DAYS.forEach(d => { if (t.indexOf(d.key) !== -1) out[d.key] = { level: "mod", min: 60 }; });
+      return out;
+    }
+    DAYS.forEach(d => {
+      const e = t[d.key];
+      if (!e || typeof e !== "object") return;
+      const lv = TRAIN_LEVELS.some(x => x.key === e.level) ? e.level : "mod";
+      const min = Math.max(TRAIN_MIN_MIN, Math.min(TRAIN_MIN_MAX, Math.round(+e.min) || trainLevel(lv).defMin));
+      out[d.key] = { level: lv, min: min };
+    });
+    return out;
+  }
+  function trainingKeys(t) { return DAYS.filter(d => t && t[d.key]).map(d => d.key); }
+
+  // Jedes von aussen kommende Ziel laeuft hier durch (localStorage, Cloud, Import).
+  // Zwei Migrationen stecken hier drin, beide unvermeidlich:
+  //  1. trainingDays (Liste) -> training (Objekt mit Stufe und Dauer)
+  //  2. sportinklusive Aktivitaetsschluessel -> reine Alltags-PAL-Skala
+  // (2) laeuft still, ohne Hinweis an den Nutzer: die App hat noch keinen Nutzerkreis,
+  // dessen alte Einstufung man erklaeren muesste. Die Zuordnung selbst muss aber bleiben —
+  // ein Schluessel wie "mod" haette in der neuen Skala sonst gar keinen gueltigen Faktor.
+  function sanitizeGoal(g) {
+    if (!g || typeof g !== "object") return null;
+    const out = Object.assign({}, g);
+    out.training = sanitizeTraining(g.training != null ? g.training : g.trainingDays);
+    delete out.trainingDays;
+    if (ACTIVITY_MIGRATE[out.activity]) out.activity = ACTIVITY_MIGRATE[out.activity];
+    else if (!ACTIVITY.some(a => a.key === out.activity)) out.activity = "pal14";
+    return out;
+  }
+
   function load() {
     let data = null;
     try { data = JSON.parse(localStorage.getItem(STORE_KEY)); } catch (e) { data = null; }
@@ -1364,7 +1614,7 @@
     }
     pruneWeeks(plans);
     if (!plans[curKey]) plans[curKey] = makeEmptyPlan();
-    return { recipes, plans, plan: plans[curKey], viewWeek: "cur", tab: data.tab === "recipes" ? "recipes" : "plan", goal: data.goal || null, shares: Array.isArray(data.shares) ? data.shares : [] };
+    return { recipes, plans, plan: plans[curKey], viewWeek: "cur", tab: data.tab === "recipes" ? "recipes" : "plan", goal: sanitizeGoal(data.goal), shares: Array.isArray(data.shares) ? data.shares : [] };
   }
 
   // Schlaegt das lokale Speichern fehl (Speicher voll, privater Modus), darf das NICHT
@@ -1458,7 +1708,7 @@
     if (j === dataJSON(state) || j === lastPushedJSON) return; // nichts Neues
     state.recipes = sanitizeRecipes(data.recipes);
     state.plans = pruneWeeks(normalizePlans(plansField(data), state.recipes));
-    state.goal = data.goal || null;
+    state.goal = sanitizeGoal(data.goal);
     state.shares = unionIds(state.shares, data.shares); // nie einen Link verlieren, der nur lokal bekannt ist
     setViewWeek(state.viewWeek);
     lastPushedJSON = j;
@@ -1485,7 +1735,7 @@
         const rp = pruneWeeks(normalizePlans(plansField(remote), state.recipes));
         Object.keys(state.plans).forEach(k => { if (!rp[k]) rp[k] = state.plans[k]; }); // lokale Wochen behalten, die es remote nicht gibt
         state.plans = pruneWeeks(rp);
-        if (remote.goal) state.goal = remote.goal; // Ziel aus der Cloud übernehmen; lokales bleibt, falls remote keins hat
+        if (remote.goal) state.goal = sanitizeGoal(remote.goal); // Ziel aus der Cloud übernehmen; lokales bleibt, falls remote keins hat
         state.shares = unionIds(state.shares, remote.shares);
         setViewWeek(state.viewWeek);
         // state.tab bewusst NICHT aus remote uebernehmen — Start bleibt immer der Wochenplan
@@ -1594,6 +1844,13 @@
     share: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 13.5 6.8 4M15.4 6.5l-6.8 4"/></svg>',
     clear: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6c1 1 1 2.5 0 3.4L13 21"/><path d="M22 21H7"/><path d="m5 11 9 9"/></svg>',
   };
+  // Hantel (Trainingstag). Als EINZIGES Icon der App mit gefuellten Flaechen statt reiner
+  // Konturen — und das aus einem geprueften Grund: Bei 13 px, wie es in der Tages-Kopfzeile
+  // steht, verschmelzen duenne Striche. Eine Kontur-Hantel mit je zwei Scheiben wurde dort
+  // zu einem unleserlichen Gewusel, eine mit je einer Scheibe zu einem „H". Zwei gefuellte
+  // Bloecke plus Stange bleiben klein eindeutig als Hantel lesbar.
+  // Wer das Icon gegen ein Kontur-Icon tauscht, muss es bei 13 px gegenpruefen.
+  const ICON_DUMBBELL = '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="2" y="7.5" width="5" height="9" rx="1.6" fill="currentColor"/><rect x="17" y="7.5" width="5" height="9" rx="1.6" fill="currentColor"/><path d="M7 12h10" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg>';
 
   // ---------- Gerichtsfotos (eingebettet, nach Namen zugeordnet) ----------
   //
@@ -2207,13 +2464,84 @@
     });
   }
 
-  // Ziel aus dem Kalorienrechner (state.goal), hochgerechnet auf `days` Tage.
+  // Ruhetag-Ziel aus dem Kalorienrechner (state.goal), hochgerechnet auf `days` Tage.
   // Null, solange der Nutzer noch kein Ergebnis gespeichert hat.
+  // Das gespeicherte Ziel ist der RUHETAG-Wert: Alltagsbedarf (BMR × PAL) plus Ziel-
+  // Anpassung, ohne Training. An Trainingstagen kommt der Verbrauch der Einheit obendrauf
+  // (siehe trainTargets) — deshalb ist der Ruhetag der niedrigste Tag der Woche.
   function goalTargets(days) {
     const g = state.goal;
     if (!g || !nutNum(g.kcal)) return null;
     const n = days || 1;
     return { kcal: nutNum(g.kcal) * n, carbs: nutNum(g.carbs) * n, protein: nutNum(g.protein) * n, fat: nutNum(g.fat) * n };
+  }
+
+  // ---------- Trainingstage (Verbrauch je Einheit) ----------
+  //
+  // Der Trainingsplan haengt an state.goal.training — ein Objekt { mon: {level, min} } —
+  // und wird mit dem Ziel zusammen gespeichert und synchronisiert. Bewusst NICHT pro
+  // Kalenderwoche: die App haelt ohnehin nur die aktuelle und die naechste Woche vor
+  // (pruneWeeks), aeltere verfallen beim Laden. Ein einziger Plan erfuellt „gilt fuer
+  // aktuelle + naechste Woche" damit von selbst — und rueckt beim Wochenwechsel
+  // automatisch mit, weil der Wochenschluessel wandert, der Plan aber bleibt.
+  //
+  // Rechenweg je Trainingstag:
+  //   kcal   = Ruhetag-kcal + (netto-MET × Gewicht × Stunden)
+  //   Eiweiss und Fett bleiben in GRAMM gleich wie am Ruhetag
+  //   die gesamte Zusatzenergie geht in die Kohlenhydrate
+  // Letzteres ist Absicht und nicht bloss die einfachste Loesung: Kohlenhydrate fuellen
+  // die Glykogenspeicher, die die Einheit gerade geleert hat. Eiweiss am Trainingstag
+  // zusaetzlich zu erhoehen braeuchte es nicht — der Bedarf richtet sich nach Koerper-
+  // gewicht, nicht nach Tagesform.
+  function goalTraining() {
+    const g = state.goal;
+    return (g && g.training && typeof g.training === "object") ? g.training : {};
+  }
+  function isTrainingDay(dayKey) { return !!goalTraining()[dayKey]; }
+  function anyTraining() { return trainingKeys(goalTraining()).length > 0; }
+
+  // Zusatzverbrauch eines Tages in kcal (0 am Ruhetag). Braucht das Koerpergewicht aus
+  // dem Ziel — fehlt es (Alt-Daten), gibt es keinen Aufschlag statt eines Fantasiewerts.
+  function dayTrainKcal(dayKey) {
+    const g = state.goal;
+    const e = goalTraining()[dayKey];
+    if (!g || !e || !nutNum(g.weight)) return 0;
+    return trainKcal(e.level, e.min, nutNum(g.weight));
+  }
+  // Reine Rechnung auf dem Ruhetag-Wert. Getrennt gehalten, damit der Rechner die
+  // Trainingstag-Werte schon in der Vorschau zeigen kann — dort gibt es noch kein
+  // gespeichertes state.goal, und zwei getrennte Formeln wuerden auseinanderlaufen.
+  function trainFromRest(rest, extraKcal) {
+    const add = Math.max(0, Math.round(extraKcal || 0));
+    return { kcal: rest.kcal + add, carbs: rest.carbs + Math.round(add / 4),
+             protein: rest.protein, fat: rest.fat };
+  }
+  // Das Ziel EINES Tages, je nach Tagestyp.
+  function goalTargetsForDay(dayKey) {
+    const rest = goalTargets(1);
+    if (!rest) return null;
+    if (!isTrainingDay(dayKey)) return rest;
+    return trainFromRest(rest, dayTrainKcal(dayKey));
+  }
+  // Summe der Ziele mehrerer Tage. Ersetzt goalTargets(n) ueberall dort, wo ueber Tage
+  // aggregiert wird: die Tage unterscheiden sich jetzt in kcal UND Kohlenhydraten, ein
+  // „Tagesziel x 7" waere schlicht falsch.
+  function goalTargetsForDays(dayKeys) {
+    if (!goalTargets(1)) return null;
+    return (dayKeys || []).reduce((a, k) => {
+      const t = goalTargetsForDay(k);
+      return { kcal: a.kcal + t.kcal, carbs: a.carbs + t.carbs, protein: a.protein + t.protein, fat: a.fat + t.fat };
+    }, { kcal: 0, carbs: 0, protein: 0, fat: 0 });
+  }
+  // Markierung fuer die Tages-Kopfzeile. Farbe allein traegt die Information nicht
+  // (Rot und Blau liegen bei 1,07:1) — deshalb immer Icon UND Wort.
+  function trainBadgeHtml(dayKey) {
+    const e = goalTraining()[dayKey];
+    if (!e) return "";
+    const lv = trainLevel(e.level);
+    const add = dayTrainKcal(dayKey);
+    const title = `Trainingstag: ${lv.label}, ${e.min} Min.${add ? ` · +${nfmt(add)} kcal` : ""}`;
+    return `<span class="dtrain" title="${esc(title)}">${ICON_DUMBBELL}${esc(lv.label)}</span>`;
   }
 
   // Ab diesem Anteil des Ziels gilt der Korridor als getroffen. Darunter ist nicht
@@ -2284,9 +2612,10 @@
       </div>`;
   }
 
-  function dayNutHtml(s) {
+  function dayNutHtml(s, dayKey) {
     if (!hasNut(s)) return "";
-    const t = goalTargets(1);
+    // Ziel des konkreten Tages: am Ruhetag weniger Kohlenhydrate, dafuer mehr Fett.
+    const t = goalTargetsForDay(dayKey);
     // Mit gespeichertem Ziel ersetzen die Balken die Textzeile – sonst staende alles doppelt.
     if (t) return dayGoalsHtml(s, t);
     return `<div class="day-nut">
@@ -2304,9 +2633,11 @@
     const activeDays = DAYS.filter(d => hasNut(dayNut(d.key))).length;
     // „an x Tagen“ steht jetzt als Kennzeichen in der Wochenspalte, hier reicht der Schnitt.
     const avg = activeDays ? ` · ⌀ ${nfmt(w.kcal / activeDays)} kcal pro geplantem Tag` : "";
-    // Wochenziel = Tagesziel × 7. Dass ein Teil davon noch ungeplant ist, sagt das
-    // Kennzeichen „x von 7 Tagen geplant“ – ehrlicher als ein verkuerztes Ziel.
-    const t = goalTargets(7);
+    // Wochenziel = Summe aller sieben Tagesziele. Bewusst summiert statt „Tagesziel x 7“:
+    // mit Carb-Cycling unterscheiden sich Kohlenhydrate und Fett je Tagestyp, die Woche
+    // haengt dann davon ab, WELCHE Tage Trainingstage sind. Dass ein Teil davon noch
+    // ungeplant ist, sagt das Kennzeichen „x von 7 Tagen geplant“.
+    const t = goalTargetsForDays(DAYS.map(d => d.key));
     // Das Wochenziel steht mit Ziel schon in der Wochenspalte („11.900 / 15.400 kcal“) —
     // in der Kopfzeile waere es ein drittes Kleingedrucktes, das mobil umbricht.
     const goalSub = "";
@@ -2371,22 +2702,30 @@
   // die volle Breite nutzt — die Makros passen dann rechts daneben statt darunter,
   // und der ganze Block bleibt flach.
   function weekGoalHtml(w, t) {
-    const day = goalTargets(1);
     const d = DAYS.filter(x => x.key === todayDayKey())[0] || DAYS[0];
+    const day = goalTargetsForDay(d.key);
     const s = dayNut(d.key);
     const mode = state.goal && MODE_LABEL[state.goal.mode];
     // In der Naechste-Woche-Ansicht ist „heute“ nur der gleiche Wochentag – dann
     // steht der Tagesname allein, damit die Spalte nicht das Falsche behauptet.
     const dayHead = state.viewWeek === "next" ? esc(d.label) : `Heute · ${esc(d.label)}`;
-    const planned = DAYS.filter(x => hasNut(dayNut(x.key))).length;
+    const plannedKeys = DAYS.filter(x => hasNut(dayNut(x.key))).map(x => x.key);
+    const planned = plannedKeys.length;
     const open = 7 - planned;
     // Verglichen wird gegen das Ziel der GEPLANTEN Tage, nicht gegen Tagesziel x 7.
     // Sonst meldet die Leiste bei 5 geplanten Tagen „3.500 kcal übrig“, obwohl der
     // Nutzer auf diesen 5 Tagen bereits ueber seinem Schnitt liegt — die fehlenden
     // 2 Tage sehen dann wie Spielraum aus, statt schlicht ungeplant zu sein.
-    const wt = planned ? goalTargets(planned) : t;
+    // Summiert ueber die konkreten Tage, weil Kohlenhydrate und Fett am Ruhetag anders
+    // liegen — welche fuenf Tage geplant sind, entscheidet dann ueber das Wochenziel.
+    const wt = planned ? goalTargetsForDays(plannedKeys) : t;
     const scope = planned === 7 ? "ganze Woche" : `${planned} geplante Tag${planned === 1 ? "" : "e"}`;
-    const dayHeadHtml = `${dayHead}${mode ? `<span class="wg-chip">${esc(mode)}</span>` : ""}`;
+    // Trainings-Kennzeichen auch in der Tagesspalte der Uebersicht — sonst erklaert
+    // sich das abweichende Kohlenhydrat-Ziel dort nicht.
+    const dayTrainAdd = isTrainingDay(d.key) ? dayTrainKcal(d.key) : 0;
+    const dayTrain = isTrainingDay(d.key)
+      ? `<span class="wg-train" title="Trainingstag: ${esc(trainLevel((goalTraining()[d.key] || {}).level).label)}">${ICON_DUMBBELL}${dayTrainAdd ? `+${nfmt(dayTrainAdd)} kcal` : "Training"}</span>` : "";
+    const dayHeadHtml = `${dayHead}${dayTrain}${mode ? `<span class="wg-chip">${esc(mode)}</span>` : ""}`;
     const weekHeadHtml = `Diese Woche<span class="wg-chip plain">${scope}</span>`;
     // Was bleibt fuer die noch leeren Tage? Das ist beim Planen die eigentlich
     // gesuchte Zahl — der blosse Wochenrest sagt nicht, wie viel pro Tag noch geht.
@@ -2446,10 +2785,13 @@
       // Warnzeichen direkt in der Kopfzeile: sonst sieht man erst beim Scrollen zur
       // Fussbilanz, welcher Tag den Korridor sprengt. Beim Ueberfliegen der Woche ist
       // aber genau das die Frage — welchen Tag muss ich nachjustieren?
-      const dTarget = goalTargets(1);
+      const dTarget = goalTargetsForDay(d.key);
       const dSum = dayNut(d.key);
       const dOver = dTarget && hasNut(dSum) && goalState(dSum.kcal, dTarget.kcal) === "over";
-      html += `<section class="day${isToday ? " today" : ""}${dOver ? " over" : ""}"><div class="day-head"><span class="dname">${d.label}</span>${dOver ? `<span class="dover" title="Über dem Tagesziel">${nfmt(dSum.kcal - dTarget.kcal)} kcal drüber</span>` : ""}<span class="dtag">${isToday ? "Heute" : d.short}</span></div><div class="slots">`;
+      // Die Trainings-Markierung haengt am gespeicherten Ziel: ohne Ziel gibt es auch
+      // keine Tagestypen, dann bleibt die Karte wie bisher.
+      const isTrain = !!state.goal && isTrainingDay(d.key);
+      html += `<section class="day${isToday ? " today" : ""}${dOver ? " over" : ""}${isTrain ? " training" : ""}"><div class="day-head"><span class="dname">${d.label}</span>${isTrain ? trainBadgeHtml(d.key) : ""}${dOver ? `<span class="dover" title="Über dem Tagesziel">${nfmt(dSum.kcal - dTarget.kcal)} kcal drüber</span>` : ""}<span class="dtag">${isToday ? "Heute" : d.short}</span></div><div class="slots">`;
       MEALS.forEach(m => {
         const ids = state.plan[d.key][m.key];
         html += `<div class="slot" data-meal="${m.key}" data-slot="${d.key}:${m.key}">
@@ -2468,7 +2810,7 @@
         html += `<button class="add${shown ? " more" : ""}" data-action="pick" data-day="${d.key}" data-meal="${m.key}">+ ${shown ? "Noch ein Meal" : "Meal wählen"}</button>`;
         html += `</div>`;
       });
-      html += `</div>${dayNutHtml(dayNut(d.key))}</section>`;
+      html += `</div>${dayNutHtml(dayNut(d.key), d.key)}</section>`;
     });
 
     html += `</div>
@@ -3275,9 +3617,9 @@
       <h4>2. Hosting der Website (GitHub Pages)</h4>
       <p>Diese Website wird bei GitHub Pages gehostet, einem Dienst der GitHub, Inc., 88 Colin P. Kelly Jr. Street, San Francisco, CA 94107, USA. Beim Aufruf der Seite verarbeitet GitHub technisch notwendige Zugriffsdaten (z. B. deine IP-Adresse), um die Seite auszuliefern und deren Sicherheit zu gewährleisten. Rechtsgrundlage ist unser berechtigtes Interesse an einer sicheren und effizienten Bereitstellung (Art. 6 Abs. 1 lit. f DSGVO). Dabei kann eine Übermittlung in die USA erfolgen. Weitere Infos: <a href="https://docs.github.com/de/site-policy/privacy-policies/github-general-privacy-statement" target="_blank" rel="noopener">GitHub Privacy Statement</a>.</p>
       <h4>3. Welche Daten wir verarbeiten</h4>
-      <p>Bei der Registrierung: <strong>Name und E-Mail-Adresse</strong>. Bei Nutzung der App: die von dir angelegten <strong>Wochenpläne, Meals/Rezepte und ggf. Fotos</strong> sowie – falls du den Kalorienrechner nutzt und ein Ergebnis speicherst – <strong>Geschlecht, Alter, Größe, Gewicht, Aktivitätsniveau und Ziel</strong> (Details siehe Ziffer 3a). Erstellst du Teilen-Links, merkt sich dein Konto zusätzlich deren <strong>Kennungen</strong> (keine Klardaten, siehe Ziffer 8), damit sie beim Löschen deines Kontos zugeordnet und mitentfernt werden können. Diese Daten speichern wir, damit du dich anmelden und deine Planung geräteübergreifend nutzen kannst.</p>
+      <p>Bei der Registrierung: <strong>Name und E-Mail-Adresse</strong>. Bei Nutzung der App: die von dir angelegten <strong>Wochenpläne, Meals/Rezepte und ggf. Fotos</strong> sowie – falls du den Kalorienrechner nutzt und ein Ergebnis speicherst – <strong>Geschlecht, Alter, Größe, Gewicht, Alltagsbewegung, Ziel sowie deine Trainingstage</strong> (Wochentag, Intensität und Dauer; Details siehe Ziffer 3a). Erstellst du Teilen-Links, merkt sich dein Konto zusätzlich deren <strong>Kennungen</strong> (keine Klardaten, siehe Ziffer 8), damit sie beim Löschen deines Kontos zugeordnet und mitentfernt werden können. Diese Daten speichern wir, damit du dich anmelden und deine Planung geräteübergreifend nutzen kannst.</p>
       <h4>3a. Kalorienrechner</h4>
-      <p>Nutzt du den Kalorienrechner, gibst du freiwillig <strong>Geschlecht, Alter, Größe und Gewicht</strong> sowie dein Aktivitätsniveau und Ziel ein. Daraus berechnet die App direkt in deinem Browser deinen Tagesbedarf, deine Makronährstoffe und deinen BMI. Speicherst du das Ergebnis („Als mein Ziel speichern"), werden diese Angaben wie deine übrigen Plandaten lokal und – bei Cloud-Nutzung – in deinem Nutzerkonto (Cloud Firestore, siehe Ziffer 5) gespeichert, um sie geräteübergreifend verfügbar zu halten. Rechtsgrundlage ist wie unter Ziffer 4 die Erfüllung des Nutzungsvertrags (Art. 6 Abs. 1 lit. b DSGVO). Die Eingabe ist freiwillig; lässt du den Rechner ungenutzt, entstehen keine dieser Daten. Diese Angaben werden <strong>nicht</strong> in Teilen-Links aufgenommen (siehe Ziffer 8).</p>
+      <p>Nutzt du den Kalorienrechner, gibst du freiwillig <strong>Geschlecht, Alter, Größe und Gewicht</strong> sowie deine Alltagsbewegung und dein Ziel ein. Optional legst du zusätzlich deine <strong>Trainingstage</strong> fest – also an welchen Wochentagen du trainierst, mit welcher Intensität und wie lange. Daraus berechnet die App direkt in deinem Browser deinen Tagesbedarf, deine Makronährstoffe und deinen BMI; an Trainingstagen zusätzlich den geschätzten Mehrbedarf durch die jeweilige Einheit. Speicherst du das Ergebnis („Als mein Ziel speichern"), werden diese Angaben wie deine übrigen Plandaten lokal und – bei Cloud-Nutzung – in deinem Nutzerkonto (Cloud Firestore, siehe Ziffer 5) gespeichert, um sie geräteübergreifend verfügbar zu halten. Rechtsgrundlage ist wie unter Ziffer 4 die Erfüllung des Nutzungsvertrags (Art. 6 Abs. 1 lit. b DSGVO). Die Eingabe ist freiwillig; lässt du den Rechner ungenutzt, entstehen keine dieser Daten. Diese Angaben werden <strong>nicht</strong> in Teilen-Links aufgenommen (siehe Ziffer 8).</p>
       <h4>4. Zweck &amp; Rechtsgrundlage</h4>
       <p>Wir verarbeiten die Daten zur Bereitstellung deines Nutzerkontos und der Planer-Funktionen (Art. 6 Abs. 1 lit. b DSGVO – Nutzungsvertrag). Die Bestätigungs-E-Mail dient der Sicherstellung, dass die Adresse dir gehört.</p>
       <h4>5. Cloud-Dienste (Google Firebase)</h4>
@@ -3625,22 +3967,20 @@
   }
 
   // ---------- Kalorienrechner (Baustein 1: Tages-/Wochenbedarf → state.goal) ----------
-  const ACTIVITY = [
-    { key: "sed",   f: 1.2,   label: "Sitzend", hint: "wenig/kein Sport" },
-    { key: "light", f: 1.375, label: "Leicht aktiv", hint: "1–3×/Woche" },
-    { key: "mod",   f: 1.55,  label: "Mäßig aktiv", hint: "3–5×/Woche" },
-    { key: "high",  f: 1.725, label: "Sehr aktiv", hint: "6–7×/Woche" },
-    { key: "ext",   f: 1.9,   label: "Extrem aktiv", hint: "Job + Training" }
-  ];
+  // ACTIVITY, TRAIN_LEVELS und ihre Helfer stehen bewusst weit oben bei DAYS/MEALS und
+  // nicht hier: sanitizeGoal() braucht sie, und das laeuft schon in `let state = load()`.
+  // Von hier aus waeren sie dort noch in der temporalen Todeszone — die App wuerde beim
+  // Start mit einem ReferenceError sterben, ohne dass ein catch greift.
   const MODE_LABEL = { lose: "Abnehmen", hold: "Gewicht halten", gain: "Zunehmen" };
-  function activityFactor(k) { const a = ACTIVITY.find(x => x.key === k); return a ? a.f : 1.2; }
   // Anpassung des Erhaltungsbedarfs je nach Ziel/Tempo (kcal/Tag).
   function paceAdjust(mode, pace) {
     if (mode === "lose") return ({ light: -250, moderate: -500, strong: -750 })[pace] || -500;
     if (mode === "gain") return ({ light: 250, moderate: 500 })[pace] || 500;
     return 0;
   }
-  // Mifflin-St-Jeor → BMR × Aktivität = TDEE → Ziel-Anpassung.
+  // Mifflin-St-Jeor → BMR × PAL = Alltagsbedarf → Ziel-Anpassung = RUHETAG-Ziel.
+  // Der Alltagsbedarf gilt an jedem Tag; an Trainingstagen kommt der Trainingsverbrauch
+  // obendrauf (siehe dayKcal). Am Ruhetag ist er der ganze Bedarf.
   // Makros: Protein 2 g/kg (ab BMI 27 auf das Gewicht bei BMI 27 gedeckelt),
   // Fett 25 % der Kalorien (weicht zurueck, wenn sonst die Summe nicht aufgeht), Rest KH.
   function computeGoal(inp) {
@@ -3651,6 +3991,7 @@
     // Untergrenze geschlechtsabhaengig: die gaengigen Empfehlungen liegen bei 1200 kcal
     // (weiblich) bzw. 1500 kcal (maennlich). Ein pauschales Minimum von 1000 lag
     // darunter und haette bei kleinen Personen mit starkem Defizit gegriffen.
+    // Sie greift auf dem Ruhetag, also dem niedrigsten Tag der Woche.
     const floor = inp.sex === "m" ? 1500 : 1200;
     const kcal = Math.max(floor, Math.round(tdee + adjust));
     const bmi = Math.round(w / ((h / 100) * (h / 100)) * 10) / 10;
@@ -3673,14 +4014,20 @@
     }
     return { sex: inp.sex, age: age, height: h, weight: w, activity: inp.activity, mode: inp.mode, pace: inp.pace,
              bmr: Math.round(bmr), tdee: Math.round(tdee), adjust: adjust, kcal: kcal,
-             protein: protein, carbs: carbs, fat: fat, bmi: bmi, updatedAt: Date.now() };
+             protein: protein, carbs: carbs, fat: fat, bmi: bmi,
+             // Trainingsplan je Wochentag: { mon: { level, min } }. Leer = keine
+             // Trainingstage, dann gilt das Ruhetag-Ziel an allen sieben Tagen.
+             training: sanitizeTraining(inp.training),
+             updatedAt: Date.now() };
   }
   function validCalcInput(i) {
     return i.age >= 10 && i.age <= 120 && i.height >= 100 && i.height <= 250 && i.weight >= 30 && i.weight <= 400;
   }
   function renderRechner() {
     const g = state.goal || {};
-    let cur = { sex: g.sex || "m", mode: g.mode || "lose", pace: g.pace || "moderate", activity: g.activity || "mod" };
+    let cur = { sex: g.sex || "m", mode: g.mode || "lose", pace: g.pace || "moderate",
+                activity: ACTIVITY.some(a => a.key === g.activity) ? g.activity : "pal14",
+                training: sanitizeTraining(g.training) };
     const segBtn = (grp, v, label, hint) => `<button type="button" data-v="${v}"${cur[grp] === v ? ' class="on"' : ''}>${label}${hint ? `<span class="seg-hint">${hint}</span>` : ""}</button>`;
     view.innerHTML = `
       <div class="section-head"><div class="title">
@@ -3701,9 +4048,11 @@
             </div>
           </div>
           <div class="calc-group">
-            <div class="calc-group-h">Aktivität &amp; Ziel</div>
-            <div class="field"><label>Aktivität</label>
+            <div class="calc-group-h">Alltag &amp; Ziel</div>
+            <div class="field"><label>Bewegung im Alltag <span class="hint">– ohne Sport</span></label>
               <div class="seg seg-col" data-seg="activity">${ACTIVITY.map(a => segBtn("activity", a.key, a.label, a.hint)).join("")}</div>
+              <p class="tdays-note">Nur Beruf und Alltag. Dein <b>Training zählt hier nicht mit</b> — das trägst du unten
+                als Trainingstage ein und es wird auf den jeweiligen Tag aufgeschlagen.</p>
             </div>
             <div class="field"><label>Ziel</label>
               <div class="seg" data-seg="mode">${segBtn("mode", "lose", "Abnehmen")}${segBtn("mode", "hold", "Halten")}${segBtn("mode", "gain", "Zunehmen")}</div>
@@ -3712,10 +4061,22 @@
               <div class="seg" data-seg="pace"></div>
             </div>
           </div>
+          <div class="calc-group">
+            <div class="calc-group-h">Trainingstage</div>
+            <div class="field">
+              <label id="c-tdays-lbl">An welchen Tagen trainierst du?</label>
+              <div class="tdays" role="group" aria-labelledby="c-tdays-lbl" id="c-tdays">
+                ${DAYS.map(d => `<button type="button" data-day="${d.key}" aria-pressed="${cur.training[d.key] ? "true" : "false"}" aria-label="${d.label}">${d.short}</button>`).join("")}
+              </div>
+              <div id="c-tdetail"></div>
+              <p class="tdays-note">Optional. Jede Einheit wird <b>auf ihren Tag aufgeschlagen</b> – nach Intensität,
+                Dauer und deinem Gewicht. An Ruhetagen gilt dein Alltagsbedarf. Ohne Auswahl gilt er an allen sieben Tagen.</p>
+            </div>
+          </div>
         </div>
         <div class="calc-result" id="c-result"></div>
       </div>
-      <p class="calc-note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></svg><span>Alle Werte sind <strong>rechnerische Richtwerte</strong> nach der Mifflin-St-Jeor-Formel und ersetzen keine ärztliche oder ernährungsmedizinische Beratung. Bei Erkrankungen, in Schwangerschaft und Stillzeit oder vor einer stärkeren Ernährungsumstellung sprich bitte mit einer Ärztin oder einem Arzt.</span></p>`;
+      <p class="calc-note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></svg><span>Alle Werte sind <strong>rechnerische Richtwerte</strong>: Grundumsatz nach der Mifflin-St-Jeor-Formel, Alltagsbedarf über einen Aktivitätsfaktor (PAL), der Mehrbedarf an Trainingstagen über MET-Schätzwerte. Der tatsächliche Verbrauch kann davon deutlich abweichen. Sie ersetzen keine ärztliche oder ernährungsmedizinische Beratung. Bei Erkrankungen, in Schwangerschaft und Stillzeit oder vor einer stärkeren Ernährungsumstellung sprich bitte mit einer Ärztin oder einem Arzt.</span></p>`;
 
     const paceField = view.querySelector("#c-pace-field");
     const paceSeg = view.querySelector('.seg[data-seg="pace"]');
@@ -3729,8 +4090,40 @@
       paceSeg.innerHTML = opts.map(o => `<button type="button" data-v="${o[0]}"${cur.pace === o[0] ? ' class="on"' : ''}>${o[1]}<span class="seg-hint">${o[2]}</span></button>`).join("");
     }
     function readInput() {
-      return { sex: cur.sex, mode: cur.mode, pace: cur.pace, activity: cur.activity,
+      return { sex: cur.sex, mode: cur.mode, pace: cur.pace, activity: cur.activity, training: cur.training,
                age: +view.querySelector("#c-age").value, height: +view.querySelector("#c-height").value, weight: +view.querySelector("#c-weight").value };
+    }
+    // Kurzform der gespeicherten Trainingstage („· Training: Mo, Mi, Fr“).
+    function savedDaysTxt() {
+      const keys = trainingKeys(state.goal && state.goal.training);
+      if (!keys.length) return "";
+      return " · Training: " + DAYS.filter(d => keys.indexOf(d.key) !== -1).map(d => d.short).join(", ");
+    }
+    // Je aktivem Trainingstag eine Zeile: Stufe, Dauer und der daraus folgende Aufschlag.
+    // Der Aufschlag steht bewusst direkt daneben — sonst muesste der Nutzer raten, was
+    // „Hart, 90 Min." fuer sein Ziel bedeutet.
+    function fillTrainDetail() {
+      const box = view.querySelector("#c-tdetail");
+      const keys = trainingKeys(cur.training);
+      const w = +view.querySelector("#c-weight").value;
+      if (!keys.length) { box.innerHTML = ""; return; }
+      box.innerHTML = keys.map(k => {
+        const d = DAYS.filter(x => x.key === k)[0];
+        const e = cur.training[k];
+        const lvNow = trainLevel(e.level);
+        const add = w >= 30 ? trainKcal(e.level, e.min, w) : 0;
+        return `<div class="trow" data-day="${k}">
+          <div class="trow-d">${d.short}</div>
+          <div class="seg trow-lv" data-tlevel="${k}" role="group" aria-label="Intensität am ${esc(d.label)}">${TRAIN_LEVELS.map(lv =>
+            `<button type="button" data-v="${lv.key}"${e.level === lv.key ? ' class="on"' : ''} title="${esc(lv.ex)}">${lv.label}</button>`).join("")}</div>
+          <div class="trow-min">
+            <input type="number" data-tmin="${k}" value="${e.min}" min="${TRAIN_MIN_MIN}" max="${TRAIN_MIN_MAX}" step="5"
+                   inputmode="numeric" aria-label="Dauer am ${esc(d.label)} in Minuten"><span>Min.</span>
+          </div>
+          <div class="trow-kcal">${add ? "+" + nfmt(add) + " kcal" : "–"}</div>
+          <div class="trow-def">${esc(lvNow.ex)}</div>
+        </div>`;
+      }).join("");
     }
     function updateResult() {
       const res = view.querySelector("#c-result");
@@ -3741,12 +4134,36 @@
       }
       const r = computeGoal(inp);
       const adjStr = r.adjust === 0 ? "±0 kcal" : (r.adjust > 0 ? "+ " : "− ") + nfmt(Math.abs(r.adjust)) + " kcal";
+      // Trainingstage-Vorschau. Zeigt jeden Tag einzeln statt eines Sammelwerts: die Tage
+      // unterscheiden sich jetzt untereinander, „der Trainingstag" gibt es nicht mehr.
+      const tKeys = trainingKeys(r.training);
+      const rest = { kcal: r.kcal, carbs: r.carbs, protein: r.protein, fat: r.fat };
+      const weekKcal = DAYS.reduce((s, d) => {
+        const e = r.training[d.key];
+        return s + r.kcal + (e ? trainKcal(e.level, e.min, r.weight) : 0);
+      }, 0);
+      const trainPreview = tKeys.length ? `
+        <div class="rest-macros">
+          <div class="rm-h">${ICON_DUMBBELL}<span>An Trainingstagen</span></div>
+          ${tKeys.map(k => {
+            const d = DAYS.filter(x => x.key === k)[0];
+            const e = r.training[k];
+            const t = trainFromRest(rest, trainKcal(e.level, e.min, r.weight));
+            return `<div class="tprev">
+              <div class="tprev-d">${d.short}<span>${esc(trainLevel(e.level).label)} · ${e.min} Min.</span></div>
+              <div class="tprev-v"><b>${nfmt(t.kcal)}</b> kcal<span>${nfmt(t.carbs)} g KH</span></div>
+            </div>`;
+          }).join("")}
+          <div class="tdays-note" style="margin-bottom:0">Oben steht dein <b>Ruhetag</b> (${nfmt(r.kcal)} kcal).
+            Eiweiß und Fett bleiben an allen Tagen gleich – die zusätzliche Energie kommt als
+            Kohlenhydrate dazu, weil das Training genau die leert.</div>
+        </div>` : "";
       res.innerHTML = `
         <div class="calc-goal-tag">${MODE_LABEL[r.mode] || "Ziel"}</div>
-        <div class="calc-kcal">${nfmt(r.kcal)} <span class="u">kcal / Tag</span></div>
+        <div class="calc-kcal">${nfmt(r.kcal)} <span class="u">kcal / ${tKeys.length ? "Ruhetag" : "Tag"}</span></div>
         <div class="breakdown">
           <div class="bd-row"><span>Grundumsatz</span><span>${nfmt(r.bmr)} kcal</span></div>
-          <div class="bd-row"><span>Aktivität &amp; Alltag</span><span>+ ${nfmt(r.tdee - r.bmr)} kcal</span></div>
+          <div class="bd-row"><span>Alltag &amp; Beruf</span><span>+ ${nfmt(r.tdee - r.bmr)} kcal</span></div>
           <div class="bd-row bd-mid"><span>Erhaltungsbedarf</span><span>${nfmt(r.tdee)} kcal</span></div>
           <div class="bd-row"><span>Ziel-Anpassung</span><span>${adjStr}</span></div>
         </div>
@@ -3755,9 +4172,10 @@
           <div class="macro"><div class="mv">${nfmt(r.carbs)} g</div><div class="ml">Kohlenhydr.</div></div>
           <div class="macro"><div class="mv">${nfmt(r.fat)} g</div><div class="ml">Fett</div></div>
         </div>
-        <div class="calc-meta"><span>Woche <b>${nfmt(r.kcal * 7)} kcal</b></span><span>BMI <b>${String(r.bmi).replace(".", ",")}</b></span></div>
+        ${trainPreview}
+        <div class="calc-meta"><span>Woche <b>${nfmt(weekKcal)} kcal</b></span><span>BMI <b>${String(r.bmi).replace(".", ",")}</b></span></div>
         <button class="btn primary" id="c-save">Als mein Ziel speichern</button>
-        ${state.goal ? `<div class="calc-saved"><span>Gespeichertes Ziel: ${nfmt(state.goal.kcal)} kcal / Tag</span>
+        ${state.goal ? `<div class="calc-saved"><span>Gespeichertes Ziel: ${nfmt(state.goal.kcal)} kcal / ${trainingKeys(state.goal.training).length ? "Ruhetag" : "Tag"}${savedDaysTxt()}</span>
           <button class="btn del-ic" id="c-del" title="Ziel löschen" aria-label="Gespeichertes Ziel löschen">${ACT_ICONS.del}</button></div>` : ""}`;
       res.querySelector("#c-save").addEventListener("click", () => {
         state.goal = computeGoal(readInput());
@@ -3776,7 +4194,10 @@
       });
     }
 
-    view.querySelectorAll(".seg").forEach(seg => {
+    // Nur die Einfachauswahl-Segmente des Formulars. Die Stufen-Segmente der Trainings-
+    // zeilen tragen bewusst kein data-seg und haengen an ihrem eigenen Handler unten —
+    // sie werden dynamisch neu erzeugt und wuerden hier sonst cur[undefined] setzen.
+    view.querySelectorAll(".seg[data-seg]").forEach(seg => {
       seg.addEventListener("click", e => {
         const b = e.target.closest("button[data-v]"); if (!b) return;
         seg.querySelectorAll("button").forEach(x => x.classList.remove("on"));
@@ -3786,8 +4207,66 @@
         updateResult();
       });
     });
-    ["c-age", "c-height", "c-weight"].forEach(id => view.querySelector("#" + id).addEventListener("input", updateResult));
+    // Trainingstage an/aus: Mehrfachauswahl, deshalb aria-pressed statt der .on-Logik.
+    // Ein neu aktivierter Tag bekommt die Standardstufe („Moderat", 60 Min.), damit sofort
+    // ein sinnvoller Wert dasteht und niemand erst drei Felder ausfuellen muss.
+    view.querySelector("#c-tdays").addEventListener("click", e => {
+      const b = e.target.closest("button[data-day]"); if (!b) return;
+      const key = b.dataset.day;
+      const on = !cur.training[key];
+      if (on) cur.training[key] = { level: "mod", min: trainLevel("mod").defMin };
+      else delete cur.training[key];
+      b.setAttribute("aria-pressed", on ? "true" : "false");
+      fillTrainDetail();
+      updateResult();
+    });
+    // Delegation, weil die Zeilen bei jeder Aenderung neu gebaut werden.
+    const tdetail = view.querySelector("#c-tdetail");
+    tdetail.addEventListener("click", e => {
+      const b = e.target.closest(".trow-lv button[data-v]"); if (!b) return;
+      const key = b.closest("[data-tlevel]").dataset.tlevel;
+      if (!cur.training[key]) return;
+      // Die Dauer zieht auf den Standardwert der neuen Stufe mit — aber nur, wenn sie
+      // noch auf dem Standard der alten stand. Eine selbst eingetragene Dauer bleibt.
+      const oldLv = trainLevel(cur.training[key].level);
+      if (cur.training[key].min === oldLv.defMin) cur.training[key].min = trainLevel(b.dataset.v).defMin;
+      cur.training[key].level = b.dataset.v;
+      fillTrainDetail();
+      updateResult();
+    });
+    tdetail.addEventListener("input", e => {
+      const inp = e.target.closest("input[data-tmin]"); if (!inp) return;
+      const key = inp.dataset.tmin;
+      if (!cur.training[key]) return;
+      // Beim Tippen NICHT klemmen — sonst springt eine halb eingetippte „9" sofort auf 10
+      // und man kann 90 gar nicht eintippen. Geklemmt wird beim Verlassen und in
+      // sanitizeTraining, das ohnehin jeden Wert vor dem Speichern durchlaeuft.
+      const v = Math.round(+inp.value);
+      if (isFinite(v) && v > 0) { cur.training[key].min = v; updateKcalCells(); updateResult(); }
+    });
+    tdetail.addEventListener("change", e => {
+      const inp = e.target.closest("input[data-tmin]"); if (!inp) return;
+      cur.training = sanitizeTraining(cur.training);
+      fillTrainDetail();
+      updateResult();
+    });
+    // Nur die kcal-Zellen nachziehen, ohne die Zeilen neu zu bauen: ein Neuaufbau
+    // waehrend des Tippens wuerde den Fokus aus dem Eingabefeld werfen.
+    function updateKcalCells() {
+      const w = +view.querySelector("#c-weight").value;
+      tdetail.querySelectorAll(".trow").forEach(row => {
+        const e = cur.training[row.dataset.day];
+        if (!e) return;
+        const add = w >= 30 ? trainKcal(e.level, e.min, w) : 0;
+        row.querySelector(".trow-kcal").textContent = add ? "+" + nfmt(add) + " kcal" : "–";
+      });
+    }
+    ["c-age", "c-height", "c-weight"].forEach(id => view.querySelector("#" + id).addEventListener("input", () => {
+      updateKcalCells();   // Gewicht aendert jeden Trainingsaufschlag
+      updateResult();
+    }));
     fillPace();
+    fillTrainDetail();
     updateResult();
   }
 
