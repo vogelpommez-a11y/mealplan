@@ -974,34 +974,26 @@
   .calc-form { display: contents; }
   .calc .calc-group, .calc .calc-result { flex: 0 0 100%; margin-bottom: 0; }
   /* Klebt unter dem Kopf, damit beim Scrollen durch eine lange Karte sichtbar bleibt,
-     in welchem Schritt man steht. */
+     in welchem Schritt man steht. Durchgaengiger Balken wie bei den ersten Schritten —
+     dieselbe Klasse .wg-progress-bar, nicht nachgebaut, rein visuell wie dort (kein
+     Antippen). .calcbar-track/.cb-seg sind unsichtbare Platzhalter ohne jede eigene
+     Optik oder Interaktion (pointer-events:none, aria-hidden) — initCarousel() braucht
+     vier Kind-Elemente als technisches Geruest, um den Schritt zu verfolgen; ohne sie
+     bricht die Navigation. */
   .calcbar {
-    display: flex; gap: 4px;
     position: sticky; top: var(--head-h, 70px); z-index: 20;
-    margin: 0 0 12px; padding: 6px 0;
+    margin: 0 0 18px; padding: 10px 0 0;
     background: var(--bg);
-    box-shadow: 0 6px 12px -8px rgba(0, 0, 0, .45);
   }
-  .cb-b {
-    flex: 1 1 0; min-width: 0; min-height: 44px;
-    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
-    font: inherit; font-size: 10.5px; font-weight: 650; letter-spacing: .02em;
-    cursor: pointer; white-space: nowrap; overflow: hidden;
-    color: var(--text-muted); background: var(--surface-2);
-    border: 1px solid var(--border); border-radius: var(--radius-sm);
-    transition: color .14s, background .14s, border-color .14s;
+  .calcbar .wg-progress-bar { height: 6px; box-shadow: none; }
+  .calcbar .wg-progress-bar > span { box-shadow: 0 0 12px color-mix(in srgb, var(--accent) 55%, transparent); }
+  .calcbar-track { display: flex; height: 0; overflow: hidden; pointer-events: none; }
+  .cb-seg { flex: 1 1 0; height: 0; padding: 0; margin: 0; border: 0; background: transparent; }
+  .calcbar-label {
+    margin-top: 10px; font-family: var(--font-display); font-size: 12px;
+    letter-spacing: .12em; text-transform: uppercase; color: var(--text-muted);
   }
-  /* Die Schrittnummer traegt die Reihenfolge auch dann, wenn die Beschriftung
-     auf schmalen Geraeten kaum zu lesen ist. */
-  .cb-b .cb-n { font-family: var(--font-display); font-size: 13px; font-weight: 700; line-height: 1; }
-  .cb-b.done { color: var(--ok); border-color: color-mix(in srgb, var(--ok) 45%, var(--border)); }
-  .cb-b.active {
-    color: var(--accent-contrast); border-color: transparent;
-    background: linear-gradient(135deg, var(--accent), var(--accent-strong));
-  }
-  /* Noch nicht erreichte Schritte sind echt deaktiviert, nicht nur blass: sonst
-     fuehrt ein Tippen ins Leere, ohne dass jemand versteht warum. */
-  .cb-b:disabled { opacity: .4; cursor: default; }
+  .calcbar-label b { color: var(--text); font-weight: 650; letter-spacing: normal; text-transform: none; }
   /* Der Fussknopf ist der Faden durch den Assistenten: Weiter, Weiter, Berechnen,
      Zuruecksetzen. Auf dem Handy klebt er ueber der unteren Reiterleiste (siehe
      Media-Query unten fuer bottom/bg); auf breiten Screens reicht ein normaler Fluss. */
@@ -4942,14 +4934,18 @@
     // bevor der Assistent unten aufgebaut ist – vorher steht hier null und es passiert
     // nichts. Ein direkter Aufruf liefe dort in die zeitliche Totzone der Konstanten.
     let refreshStep = null;
+    const CB_STEPS = ["Körper", "Alltag", "Training", "Ziel"];
     const segBtn = (grp, v, label, hint) => `<button type="button" data-v="${v}"${cur[grp] === v ? ' class="on"' : ''}>${label}${hint ? `<span class="seg-hint">${hint}</span>` : ""}</button>`;
     view.innerHTML = `
       <div class="section-head"><div class="title">
         <h2>Kalorienrechner</h2>
       </div></div>
-      <nav class="calcbar" aria-label="Schritt wählen">
-        ${["Körper", "Alltag", "Training", "Ziel"].map((s, i) =>
-          `<button type="button" class="cb-b"><span class="cb-n">${i + 1}</span><span>${s}</span></button>`).join("")}
+      <nav class="calcbar">
+        <div class="wg-progress-bar" role="progressbar" aria-valuemin="1" aria-valuemax="${CB_STEPS.length}" aria-valuenow="1" aria-label="Schritt im Kalorienrechner"><span style="width:${100 / CB_STEPS.length}%"></span></div>
+        <div class="calcbar-track" aria-hidden="true">
+          ${CB_STEPS.map(() => `<button type="button" class="cb-seg" tabindex="-1"></button>`).join("")}
+        </div>
+        <div class="calcbar-label">Schritt <span class="cb-i">1</span> von ${CB_STEPS.length} · <b class="cb-name">${esc(CB_STEPS[0])}</b></div>
       </nav>
       <div class="calc">
         <div class="calc-form">
@@ -5277,7 +5273,13 @@
     syncStickyOffsets(); // der Fussknopf klebt ueber der unteren Reiterleiste
     resetCarousels(); // Streifen des vorigen Tab-Besuchs sind gerade weggeworfen worden
     const calcEl = view.querySelector(".calc");
-    const calcBar = view.querySelector(".calcbar");
+    // .calcbar-track traegt die vier unsichtbaren Platzhalter, die initCarousel als
+    // technisches Geruest braucht (siehe CSS-Kommentar dort). calcBarEl ist die aeussere
+    // <nav>, darin liegt der eigentlich sichtbare Balken (.wg-progress-bar).
+    const calcBarEl = view.querySelector(".calcbar");
+    const calcBar = view.querySelector(".calcbar-track");
+    const calcLblI = view.querySelector(".calcbar-label .cb-i");
+    const calcLblName = view.querySelector(".calcbar-label .cb-name");
     const goBtn = view.querySelector("#c-step-go");
     const backBtn = view.querySelector("#c-step-back");
     const stepPanels = Array.prototype.slice.call(view.querySelectorAll(".calc-group"))
@@ -5317,10 +5319,17 @@
 
     function setStepBtn(i) {
       maxStep = Math.max(maxStep, i);
-      Array.prototype.forEach.call(calcBar.children, (b, n) => {
-        b.classList.toggle("done", n < i && !fehltIn(n).length);
-        b.disabled = n > maxStep;
-      });
+      // Die vier .cb-seg-Platzhalter brauchen kein eigenes .done/.active mehr (rein
+      // visuell traegt allein der durchgaengige Balken den Fortschritt) - nur noch
+      // Fuellstand und Text, im selben Stil wie "Schritt 3 von 15" bei den ersten
+      // Schritten.
+      const pct = ((i + 1) / CB_STEPS.length) * 100;
+      const fill = calcBarEl && calcBarEl.querySelector(".wg-progress-bar > span");
+      if (fill) fill.style.width = pct + "%";
+      const track = calcBarEl && calcBarEl.querySelector(".wg-progress-bar");
+      if (track) track.setAttribute("aria-valuenow", String(i + 1));
+      if (calcLblI) calcLblI.textContent = String(i + 1);
+      if (calcLblName) calcLblName.textContent = CB_STEPS[i] || "";
       // Zurueck erst ab der zweiten Karte – auf der ersten gaebe es kein Ziel dafuer.
       backBtn.style.display = i > 0 ? "" : "none";
 
