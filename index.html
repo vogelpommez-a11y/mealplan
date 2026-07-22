@@ -397,21 +397,24 @@
   .day-nut .m::before { content: ""; display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 4px; vertical-align: baseline; background: var(--mc, var(--accent)); }
   .m.carb { --mc: #E9A03B; } .m.prot { --mc: #C74B78; } .m.fat { --mc: #4AA8E0; }
 
-  /* Wochen-Gesamtübersicht */
-  .week-nut { position: relative; overflow: hidden; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); padding: 16px 18px; margin-bottom: 20px; }
-  .week-nut::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 4px; background: linear-gradient(90deg, var(--accent), var(--accent-strong)); }
-  .week-nut .wn-head { display: flex; align-items: baseline; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; }
-  .week-nut .wn-head h3 { font-family: var(--font-display); font-size: 18px; font-weight: 600; margin: 0; }
-  .week-nut .wn-head .wn-sub { color: var(--text-muted); font-size: 12.5px; }
-  .wn-tiles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+  /* Wochen-Gesamtübersicht: kein eigener Rahmen mehr - Heute/Woche stehen mit ihrer
+     eigenen Kartenoptik (.wg-col) direkt auf der Seite, ohne umschliessende zweite Karte
+     ("Deine Ziele" als Aussenrahmen war Karte-in-der-Karte und ist entfallen). Der Block
+     bleibt nur fuer den Abstand zum Wochenplan darunter bestehen. */
+  .week-nut { margin-bottom: 20px; }
+  /* Ohne Ziel gibt es nur noch die Kalorien-Kachel - die frueheren Makro-Kacheln sind
+     entfallen (siehe weekNutHtml), deshalb nur noch eine schmale Kachel statt Raster. */
+  /* Kein max-width mehr: eine schmale 220px-Kachel wirkte neben der breiten Ring-Ansicht
+     (sobald ein Ziel existiert) kleinlich und unfertig. Volle Breite wie die uebrigen
+     Karten dieser Ansicht. */
+  .wn-tiles { display: grid; grid-template-columns: 1fr; gap: 10px; }
   .wn-tile { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px 14px; }
   .wn-tile .val { font-family: var(--font-display); font-size: 24px; font-weight: 600; line-height: 1; font-variant-numeric: tabular-nums; }
   .wn-tile .val .u { font-size: 13px; font-weight: 600; color: var(--text-muted); margin-left: 3px; font-family: var(--font-body); }
   .wn-tile .lbl { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-muted); margin-top: 6px; }
   .wn-tile .lbl::before { content: ""; width: 9px; height: 9px; border-radius: 50%; background: var(--tc, var(--accent)); }
   .wn-tile.t-kcal { --tc: var(--accent); }
-  .wn-tile.t-carb { --tc: #E9A03B; } .wn-tile.t-prot { --tc: #C74B78; } .wn-tile.t-fat { --tc: #4AA8E0; }
-  .week-nut .wn-empty { color: var(--text-muted); font-size: 13.5px; margin: 2px 0 0; }
+  .wn-empty { color: var(--text-muted); font-size: 13.5px; margin: 0; }
   /* Ziel-Fortschritt: Balken gegen das im Kalorienrechner gespeicherte Tagesziel.
      Ueberschreitung faerbt bernstein (--danger) – Rot ist bereits die Akzentfarbe. */
   /* Zwei getrennte Farbachsen: --mc sagt WELCHES Makro (Punkt vor dem Label),
@@ -434,39 +437,76 @@
   .gm.is-over { --sc: var(--accent); --sc2: var(--accent-strong); }
   .gm.is-ok .gm-left { color: var(--ok); }
   .gm.is-over .gm-v b, .gm.is-over .gm-left { color: var(--accent); }
-  /* Wochenansicht mit Ziel: Ring, Text und Makros nebeneinander.
-     BEWUSST Grid statt Flex: in einer Flex-Zeile teilen sich alle Kinder denselben
-     Platz nach Inhalt. Die Kopfzeile der "Heute"-Karte ist laenger als die von "Diese
-     Woche" (Trainings-Badge + Ziel-Chip kommen dazu) - in Flex nahm sie dadurch den
-     Makros mehr Platz weg, und Protein/Kohlenhydrate/Fett wechselten je nach Kartentext
-     zwischen "alle drei nebeneinander" und "zwei plus eins darunter". Mit festen
-     Grid-Spalten hat die Makro-Spalte in beiden Karten dieselbe Breite, unabhaengig
-     vom Kopftext daneben - er darf beliebig lang werden und wirkt sich nur auf seine
-     eigene Spalte aus. */
-  .wg { display: grid; grid-template-columns: auto minmax(0, 1fr) minmax(0, 320px); grid-template-areas: "ring text macros"; align-items: center; gap: 20px; }
-  .wg-ring { grid-area: ring; position: relative; width: 78px; height: 78px; }
+  /* Ring + Kennzahlen-Liste statt Fortschrittsring mit Text daneben (Vorbild: schlichte
+     Fitness-App-Karte, siehe Nutzer-Screenshot "Beispiel"). Der Ring traegt keinen
+     Fortschritts-Bogen: farbig nach Zustand (is-ok gruen, is-over Akzent), Rest bleibt
+     zusaetzlich IMMER als Text da (Zahl + Wortwechsel "Verbleibend"/"Drüber" in .wg-c) -
+     die Farbe des Bogens verstaerkt nur, traegt die Information nicht allein.
+     Kein Prozentwert mehr - er stand nirgends in einer Handlung, "wie viel bleibt in
+     kcal" beantwortet die Frage direkter. */
+  /* Eyebrow-Zeile (Zeitraum + Kennzeichen) steht jetzt UEBER beiden Spalten, spannt die
+     volle Breite - vorher war sie Teil der linken Spalte, wodurch "Makros" rechts auf
+     Hoehe der Eyebrow-Zeile stand statt auf Hoehe von "Kalorien" (beide Ueberschriften
+     muessen gleich weit oben stehen, sonst wirkt es wie zwei verschieden hohe Karten). */
+  .wg { display: flex; flex-direction: column; gap: 10px; }
+  .wg-row { display: flex; flex-wrap: wrap; gap: 26px; align-items: flex-start; }
+  /* Zwei Spalten wie im Vorbild: links "Kalorien" (Ring+Kennzahlen), rechts "Makros"
+     (Balken). flex-wrap statt fester Breakpoint - auf schmalen Screens faellt die
+     Makro-Spalte von selbst darunter, sobald fuer beide nebeneinander kein Platz mehr ist. */
+  .wg-col-cal { flex: 2 1 320px; min-width: 0; }
+  .wg-col-macros { flex: 1 1 220px; min-width: 200px; }
+  /* Kleine Zeile ueber den grossen Ueberschriften: Zeitraum + Kennzeichen. */
+  .wg-lbl { display: flex; align-items: center; flex-wrap: wrap; gap: 7px; font-family: var(--font-display); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--text-muted); font-weight: 700; }
+  /* Grosse Ueberschrift "Kalorien"/"Makros" - traegt jetzt, was vorher eine kleine
+     Eyebrow-Zeile war. Normale Gross-/Kleinschreibung wie im Vorbild, nicht Versalien. */
+  .wg-h { font-family: var(--font-display); font-size: 21px; font-weight: 700; color: var(--text); margin: 0 0 14px; }
+  .wg-main { display: flex; align-items: center; gap: 22px; flex-wrap: wrap; }
+  .wg-ring { flex: none; position: relative; width: 118px; height: 118px; }
   .wg-ring svg { transform: rotate(-90deg); }
-  .wg-track { fill: none; stroke: var(--surface-2); stroke-width: 7; }
-  .wg-fill { fill: none; stroke: color-mix(in srgb, var(--ok) 55%, var(--surface-2)); stroke-width: 7; stroke-linecap: round; transition: stroke-dashoffset .5s ease; }
+  /* --border-strong statt --surface-2: die Ring-Karte (.wg-col) hat selbst
+     --surface-2 als Hintergrund - bei 0% (kein farbiger Bogen sichtbar) war die Kontur
+     bislang exakt so dunkel wie die Flaeche dahinter und damit komplett unsichtbar. */
+  .wg-track { fill: none; stroke: var(--border-strong); stroke-width: 6; }
+  .wg-fill { fill: none; stroke: color-mix(in srgb, var(--ok) 55%, var(--surface-2)); stroke-width: 6; stroke-linecap: round; transition: stroke-dashoffset .5s ease; }
   .wg.is-ok .wg-fill { stroke: var(--ok); }
   .wg.is-over .wg-fill { stroke: var(--accent); }
-  .wg-c { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; }
-  .wg-c b { font-family: var(--font-display); font-size: 19px; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; }
-  .wg-c span { font-size: 9px; color: var(--text-muted); letter-spacing: .08em; text-transform: uppercase; font-weight: 700; }
-  /* min-width:0 haelt die Textspalte im eigenen Grid-Track: ohne das wuerde ihr
-     Inhalt (die Titelzeile) die Spalte ueber ihre 1fr-Breite hinaus aufdruecken. */
-  .wg-txt { grid-area: text; display: flex; flex-direction: column; gap: 3px; min-width: 0; }
-  /* Titelzeile der Leiste: Zeitraum + Kennzeichen, statt einer eigenen Ueberschriftzeile */
-  .wg-lbl { display: flex; align-items: center; flex-wrap: wrap; gap: 7px; font-family: var(--font-display); font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: var(--text); font-weight: 700; }
-  .wg-big { font-family: var(--font-display); font-size: 26px; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; color: var(--text); }
-  .wg-big em { font-style: normal; font-size: 14px; font-weight: 600; color: var(--text-muted); font-family: var(--font-body); }
-  .wg.is-ok .wg-big { color: var(--ok); }
-  .wg.is-over .wg-big { color: var(--accent); }
-  .wg-base { font-size: 12px; color: var(--text-muted); font-weight: 600; font-variant-numeric: tabular-nums; }
-  /* Zwei flache Leisten untereinander (Tag, Woche). Volle Breite je Leiste, damit die
-     Makros rechts NEBEN den Kalorien Platz haben statt darunter. */
+  /* Zahl in der Ringmitte bleibt IMMER neutral (--text/--text-muted), auch bei "Drüber" -
+     nur der Ring-Bogen faerbt sich nach Zustand (siehe .wg-fill oben). Zwei rote Elemente
+     an derselben Stelle (Bogen UND Zahl) wirkten zu einfarbig; das Wort "Drüber" traegt
+     den Zustand als Text bereits, dafuer muss die Zahl nicht auch noch rot werden. Genau
+     wie im Vorbild-Screenshot: Ring farbig, Zahl in der Mitte bleibt weiss. */
+  .wg-c { position: absolute; inset: 0; display: grid; place-content: center; gap: 2px; text-align: center; }
+  .wg-c b { font-family: var(--font-display); font-size: 25px; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; color: var(--text); }
+  .wg-c span { font-size: 10.5px; color: var(--text-muted); font-weight: 700; letter-spacing: .04em; }
+  /* Kennzahlen-Liste (Grundziel/Ernaehrung/Training): Icon in einer dezenten Kachel,
+     Label ueber dem Wert - wie im Vorbild, nicht Wert-dann-Label wie die uebrigen
+     Kacheln der App (.wn-tile), weil hier bewusst 1:1 nachgebaut wird. */
+  .wg-stats { display: flex; flex-direction: column; gap: 13px; flex: 1 1 150px; min-width: 140px; }
+  .wg-stat { display: flex; align-items: center; gap: 10px; }
+  .wg-stat-ic {
+    flex: none; width: 32px; height: 32px; border-radius: 9px;
+    display: grid; place-items: center; background: var(--surface-2);
+  }
+  .wg-stat-ic svg { width: 16px; height: 16px; }
+  .wg-stat.base .wg-stat-ic { color: var(--text-muted); }
+  .wg-stat.food .wg-stat-ic { color: var(--accent); }
+  .wg-stat.train .wg-stat-ic { color: var(--train); }
+  .wg-stat-txt { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+  .wg-stat-txt small { font-size: 11px; color: var(--text-muted); font-weight: 600; }
+  .wg-stat-txt b { font-family: var(--font-display); font-size: 15px; font-weight: 700; color: var(--text); font-variant-numeric: tabular-nums; }
+  /* Zwei flache Leisten untereinander (Tag, Woche). */
   .wg-cols { display: flex; flex-direction: column; gap: 10px; }
-  .wg-col { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 13px 16px; }
+  .wg-col { position: relative; overflow: hidden; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 13px 16px; transition: border-color .16s ease; }
+  /* An Trainingstagen bekommt die "Heute"-Karte denselben blauen Rand + Kopfstreifen wie
+     die Tageskarten im Wochenplan (.day.training) - direkt beim App-Start sichtbar, ohne
+     erst die Wochenansicht durchsuchen zu muessen. Icon+Wort "Training" stehen bereits in
+     der Eyebrow-Zeile (dayTrain) - der Rand ist hier nur die zusaetzliche, schnell
+     erfassbare Verstaerkung, nicht der einzige Traeger der Information. */
+  .wg-col.wg-col-training { border-color: color-mix(in srgb, var(--train) 55%, var(--border)); }
+  .wg-col.wg-col-training::before {
+    content: ""; position: absolute; top: 0; left: 0; right: 0; height: 4px;
+    background: linear-gradient(90deg, var(--train), var(--train-strong));
+  }
   /* Kennzeichen in der Titelzeile: Ziel-Modus bei „Heute“, Planungsstand bei der Woche.
      Traegt den Kontext, ohne eine weitere Zeile aufzumachen. */
   .wg-chip {
@@ -476,13 +516,19 @@
     border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
   }
   .wg-chip.plain { color: var(--text-muted); background: transparent; border-color: var(--border-strong); text-transform: none; letter-spacing: .02em; }
-  /* Eigene Grid-Spalte (siehe .wg oben) statt margin-left:auto in einer Flex-Zeile:
-     so bleibt die Breite unabhaengig vom Text daneben, in beiden Karten identisch. */
-  /* Umbruch der drei Balken INNERHALB der Spalte nicht ueber Breakpoints, sondern
-     intrinsisch: mit flex-wrap und einer Mindestbreite je Balken entscheidet der
-     Browser selbst, ob drei nebeneinander passen. Mit festen Breakpoints stimmte die
-     Annahme sonst irgendwann nicht mehr und die Bezeichnungen wurden abgeschnitten. */
-  .wg-macros { grid-area: macros; display: flex; flex-wrap: wrap; gap: 12px 14px; min-width: 0; }
+  .wg-macros { display: flex; flex-wrap: wrap; gap: 12px 14px; min-width: 0; }
+  /* Eigene Spalte statt Zeile unter Ring+Liste (siehe .wg-col-macros oben) - betrifft
+     aktuell nur die "Heute"-Karte (dort stehen die Makros weiterhin rechts). "Diese
+     Woche" hat rechts stattdessen "Fortschritt" (siehe weekGoalHtml), keine Makros mehr.
+     Nur in dieser Spalte untereinander statt nebeneinander, weil die Spalte selbst schon
+     schmal ist (siehe .wg-col-macros) - die Tageskarten (.day-goals .wg-macros) bleiben
+     von dieser Regel unberuehrt.
+     WICHTIG: flex-basis 150px (unten, .wg-macros .gm) ist fuer die REIHEN-Anordnung
+     gedacht (Breite). In flex-direction:column wird dieselbe Basis zur Hoehe - jeder
+     Balken wollte dadurch 150px HOCH sein, was den riesigen Abstand zwischen Protein/
+     Kohlenhydrate/Fett verursacht hat. Deshalb hier auf auto zuruecksetzen. */
+  .wg-col-macros .wg-macros { flex-direction: column; }
+  .wg-col-macros .wg-macros .gm { flex: 0 0 auto; }
   /* 150 px Basis ist die Untergrenze, bei der „Kohlenhydrate“ und der Wert noch
      nebeneinander passen. Schmaler wuerde nur ein Teil der drei umbrechen und sie
      stuenden versetzt — lieber einer pro Zeile als drei ausgefranste. */
@@ -500,15 +546,14 @@
     font-size: 12px; color: var(--text-muted); font-variant-numeric: tabular-nums;
   }
   .wg-open b { color: var(--text); font-weight: 700; }
+  /* Fortschritt der Woche - rechte Spalte bei "Diese Woche" statt Makros (siehe
+     weekGoalHtml): wie viele der 7 Tage schon geplant sind. */
+  .wg-progress-txt { font-size: 13px; color: var(--text); font-weight: 600; margin-bottom: 8px; }
+  .wg-progress-bar { height: 8px; border-radius: 999px; background: var(--surface-2); overflow: hidden; box-shadow: inset 0 0 0 1px var(--border); }
+  .wg-progress-bar > span { display: block; height: 100%; border-radius: 999px; background: linear-gradient(90deg, var(--accent), var(--accent-strong)); transition: width .3s ease; }
   .wg-macros .gm-r { gap: 8px; margin-bottom: 5px; }
   .wg-macros .gm-n { font-weight: 700; color: var(--text); }
   .wg-macros .gm-v { font-size: 11.5px; }
-  /* Schmal rutschen die Makros unter Ring und Kalorien statt daneben – als eigene
-     Grid-Zeile, die die volle Breite der Karte nutzt (spannt beide Spalten). */
-  @media (max-width: 720px) {
-    .wg { grid-template-columns: auto minmax(0, 1fr); grid-template-areas: "ring text" "macros macros"; gap: 8px 14px; }
-    .wg-macros { margin-top: 4px; }
-  }
 
   /* Kalorien breit, darunter die Makros (.wg-macros, wiederverwendet von "Ziele dieser
      Woche" – siehe dayGoalsHtml). Die Tageskarte sitzt in einem auto-fill-Grid und wird
@@ -526,7 +571,6 @@
   .day-goals-toggle:hover { color: var(--text); }
   .day-goals-toggle .caret { width: 13px; height: 13px; flex: none; transition: transform .15s; }
   .day-goals-toggle .caret.open { transform: rotate(90deg); }
-  @media (max-width: 560px) { .wn-tiles { grid-template-columns: repeat(2, 1fr); } }
 
   /* Nährwerte in der Rezept-Detailansicht */
   .nutfacts { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
@@ -1251,6 +1295,16 @@
     .nut-total > .row2 { grid-template-columns: 1fr; gap: 10px; }
     .nut-total .row2 .row2 { grid-template-columns: 1fr 1fr; gap: 10px; }
     .nut-total .field > label.hint { font-size: 10.5px; }
+    /* Ohne diese Regel wickelt .wg-macros Protein+Kohlenhydrate in eine Zeile und
+       Fett allein in die naechste (flex-wrap trifft bei ~340-400px Breite genau diesen
+       ungleichen Schnitt) - auf dem Handy sieht das schief aus. Erzwingt stattdessen
+       immer einen Balken pro Zeile, wie es die schmale .wg-col-macros-Spalte ohnehin
+       schon macht. Betrifft sowohl die Tageskarten im Wochenplan als auch "Deine Ziele".
+       flex:0 0 auto ist zwingend noetig (siehe Kommentar bei .wg-col-macros): die
+       150px-Basis von .wg-macros .gm ist fuer Reihen (Breite) gedacht, in Spalten
+       wuerde sie sonst zur Hoehe und riesige Abstaende erzeugen. */
+    .wg-macros { flex-direction: column; }
+    .wg-macros .gm { flex: 0 0 auto; }
     .brand p { display: none; }
     .brand .mark { width: 38px; height: 38px; }
     .section-head { margin-bottom: 18px; }
@@ -2121,6 +2175,8 @@
   const ICON_DUMBBELL = '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="2" y="7.5" width="5" height="9" rx="1.6" fill="currentColor"/><rect x="17" y="7.5" width="5" height="9" rx="1.6" fill="currentColor"/><path d="M7 12h10" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg>';
   // Warnzeichen fuers kompakte Ueber-Ziel-Badge im Tageskopf - der volle Satz steht im title.
   const ICON_WARN = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/></svg>';
+  // Flagge fuers "Grundziel" in der Ring-Kennzahlenliste (goalRingHtml).
+  const ICON_FLAG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 21V4"/><path d="M5 4h13l-3 4.5L18 13H5"/></svg>';
 
   // ---------- Gerichtsfotos (eingebettet, nach Namen zugeordnet) ----------
   //
@@ -2977,58 +3033,74 @@
 
   function weekNutHtml() {
     const w = weekNut();
-    const activeDays = DAYS.filter(d => hasNut(dayNut(d.key))).length;
-    // „an x Tagen“ steht jetzt als Kennzeichen in der Wochenspalte, hier reicht der Schnitt.
-    const avg = activeDays ? ` · ⌀ ${nfmt(w.kcal / activeDays)} kcal pro geplantem Tag` : "";
     // Wochenziel = Summe aller sieben Tagesziele. Bewusst summiert statt „Tagesziel x 7“:
     // mit Carb-Cycling unterscheiden sich Kohlenhydrate und Fett je Tagestyp, die Woche
     // haengt dann davon ab, WELCHE Tage Trainingstage sind. Dass ein Teil davon noch
     // ungeplant ist, sagt das Kennzeichen „x von 7 Tagen geplant“.
     const t = goalTargetsForDays(DAYS.map(d => d.key));
-    // Das Wochenziel steht mit Ziel schon in der Wochenspalte („11.900 / 15.400 kcal“) —
-    // in der Kopfzeile waere es ein drittes Kleingedrucktes, das mobil umbricht.
-    const goalSub = "";
-    const tiles = `
-        <div class="wn-tile t-kcal"><div class="val">${nfmt(w.kcal)}<span class="u">kcal</span></div><div class="lbl">Kalorien</div></div>
-        <div class="wn-tile t-carb"><div class="val">${nfmt(w.carbs)}<span class="u">g</span></div><div class="lbl">Kohlenhydrate</div></div>
-        <div class="wn-tile t-prot"><div class="val">${nfmt(w.protein)}<span class="u">g</span></div><div class="lbl">Proteine</div></div>
-        <div class="wn-tile t-fat"><div class="val">${nfmt(w.fat)}<span class="u">g</span></div><div class="lbl">Fett</div></div>`;
+    // Nur noch Kalorien fuer die Woche - Kohlenhydrate/Protein/Fett ueber sieben Tage
+    // aufsummiert war eine Zahl ohne Handlung: entschieden wird immer auf Tagesebene,
+    // nie "diese Woche insgesamt 980g Protein". Die Makrobalken bleiben, wo sie etwas
+    // sagen: je Tag (dayGoalsHtml) und im Tages-Ring hier drunter (weekGoalHtml).
+    const tiles = `<div class="wn-tile t-kcal"><div class="val">${nfmt(w.kcal)}<span class="u">kcal</span></div><div class="lbl">Kalorien</div></div>`;
     const body = t && hasNut(w) ? weekGoalHtml(w, t) : `<div class="wn-tiles">${tiles}</div>`;
+    // Kein umschliessender Rahmen mehr ("Deine Ziele"-Karte): Heute/Woche stehen mit
+    // ihrer eigenen Kartenoptik (.wg-col) direkt auf der Seite - Karte-in-der-Karte war
+    // doppelt genestet, und beide Karten tragen mit "Kalorien" + Eyebrow-Zeile schon
+    // genug eigenen Kontext, um ohne uebergeordneten Titel verstaendlich zu sein.
     return `<div class="week-nut">
-        <div class="wn-head"><h3>${t ? "Ziele dieser Woche" : "Wochenbilanz"}</h3><span class="wn-sub">Summe aller eingeplanten Meals (je Portion)${avg}${goalSub}</span></div>
         ${hasNut(w)
           ? body
           : `<p class="wn-empty">Trage bei deinen Meals Makros ein (Kalorien, Kohlenhydrate, Proteine, Fett) – dann erscheint hier die Tages- und Wochenbilanz.</p>`}
       </div>`;
   }
 
-  // Eine flache Statusleiste: Ring links, Text daneben, Makros rechts. `headHtml` ist
-  // die Titelzeile (Zeitraum + Kennzeichen) und sitzt IM Textblock statt als eigene
-  // Ueberschrift darueber — das spart genau die Hoehe, die den Block vorher so wuchtig
-  // gemacht hat. `ringLbl` steht in der Ringmitte unter dem Prozentwert.
+  // Ring + Kennzahlenliste + eigene Makro-Spalte, nachgebaut nach einem Screenshot einer
+  // anderen Fitness-App (siehe Fotos/WhatsApp Image ...). `grundziel` ist das Ziel OHNE
+  // Trainings-Zuschlag, `trainingAdd` der Zuschlag des Tages/der Woche (0 an Ruhetagen) -
+  // zusammen ergeben sie das tatsaechliche Ziel, exakt wie computeGoal()/trainFromRest()
+  // es schon rechnen (ziel = grundziel + trainingAdd), hier nur sichtbar aufgeteilt statt
+  // fertig addiert. `headHtml` ist die kleine Zeile UEBER der grossen Ueberschrift
+  // "Kalorien" (Zeitraum + Kennzeichen, z.B. "Heute · Montag"). `rightColHtml` ist der
+  // KOMPLETTE Inhalt der zweiten Spalte samt eigener Ueberschrift (nicht nur Makros) -
+  // bleibt die Spalte leer ("") faellt sie ganz weg. `grundzielLbl` heisst "Grundbedarf"
+  // (Heute wie Woche) - NICHT "Tagesziel"/"Wochenziel": genau dieses Wort bezeichnet im
+  // Tageskopf-Badge (.dover) den VOLLEN Wert MIT Trainingszuschlag. Dieselbe Bezeichnung
+  // fuer zwei unterschiedliche Zahlen (mit/ohne Training) haette an Trainingstagen dazu
+  // gefuehrt, dass "Tagesziel: 2.200" gelesen wird, obwohl das tatsaechliche Budget an dem
+  // Tag 2.200 + Trainingszuschlag ist - "Grundbedarf" macht das "ohne Training" explizit.
   const RING_C = 201; // Umfang bei r=32 (2 × π × 32)
-  function goalRingHtml(ist, ziel, ringLbl, headHtml, macrosHtml) {
+  function goalRingHtml(ist, grundziel, trainingAdd, headHtml, rightColHtml, grundzielLbl) {
+    const ziel = grundziel + trainingAdd;
     const rest = Math.round(ziel - ist);
     const st = goalState(ist, ziel);
     const ratio = ziel ? ist / ziel : 0;
-    const pct = Math.round(ratio * 100);
     const off = Math.max(0, RING_C * (1 - Math.min(1, ratio)));
-    // Zustand immer als Text, nicht nur ueber die Ringfarbe.
-    const stTxt = st === "over" ? "drüber" : st === "ok" ? "im Ziel" : "übrig";
+    // Zustand steht zusaetzlich IMMER als Text da (Zahl + Wortwechsel) - der Bogen
+    // verstaerkt das nur farblich, ersetzt es nicht (siehe CSS-Kommentar bei .wg).
+    const stLbl = st === "over" ? "Drüber" : "Verbleibend";
     return `<div class="wg is-${st}">
-        <div class="wg-ring">
-          <svg viewBox="0 0 78 78" width="78" height="78" aria-hidden="true">
-            <circle class="wg-track" cx="39" cy="39" r="32"/>
-            <circle class="wg-fill" cx="39" cy="39" r="32" stroke-dasharray="${RING_C}" stroke-dashoffset="${off}"/>
-          </svg>
-          <div class="wg-c"><b>${pct}%</b><span>${ringLbl}</span></div>
+        <div class="wg-lbl">${headHtml}</div>
+        <div class="wg-row">
+          <div class="wg-col-cal">
+            <h3 class="wg-h">Kalorien</h3>
+            <div class="wg-main">
+              <div class="wg-ring">
+                <svg viewBox="0 0 78 78" width="118" height="118" aria-hidden="true">
+                  <circle class="wg-track" cx="39" cy="39" r="32"/>
+                  <circle class="wg-fill" cx="39" cy="39" r="32" stroke-dasharray="${RING_C}" stroke-dashoffset="${off}"/>
+                </svg>
+                <div class="wg-c"><b>${nfmt(Math.abs(rest))}</b><span>${stLbl}</span></div>
+              </div>
+              <div class="wg-stats">
+                <div class="wg-stat base" role="group" aria-label="${grundzielLbl}: ${nfmt(grundziel)} kcal"><span class="wg-stat-ic">${ICON_FLAG}</span><span class="wg-stat-txt"><small>${grundzielLbl}</small><b>${nfmt(grundziel)}</b></span></div>
+                <div class="wg-stat food" role="group" aria-label="Ernährung: ${nfmt(ist)} kcal"><span class="wg-stat-ic">${iconSvg("utensils", "")}</span><span class="wg-stat-txt"><small>Ernährung</small><b>${nfmt(ist)}</b></span></div>
+                <div class="wg-stat train" role="group" aria-label="Training: ${nfmt(trainingAdd)} kcal"><span class="wg-stat-ic">${ICON_DUMBBELL}</span><span class="wg-stat-txt"><small>Training</small><b>${nfmt(trainingAdd)}</b></span></div>
+              </div>
+            </div>
+          </div>
+          ${rightColHtml ? `<div class="wg-col-macros">${rightColHtml}</div>` : ""}
         </div>
-        <div class="wg-txt">
-          <span class="wg-lbl">${headHtml}</span>
-          <span class="wg-big">${nfmt(Math.abs(rest))} <em>kcal ${stTxt}</em></span>
-          <span class="wg-base">${nfmt(ist)} / ${nfmt(ziel)} kcal</span>
-        </div>
-        ${macrosHtml || ""}
       </div>`;
   }
 
@@ -3059,19 +3131,26 @@
     const plannedKeys = DAYS.filter(x => hasNut(dayNut(x.key))).map(x => x.key);
     const planned = plannedKeys.length;
     const open = 7 - planned;
-    // Verglichen wird gegen das Ziel der GEPLANTEN Tage, nicht gegen Tagesziel x 7.
-    // Sonst meldet die Leiste bei 5 geplanten Tagen „3.500 kcal übrig“, obwohl der
-    // Nutzer auf diesen 5 Tagen bereits ueber seinem Schnitt liegt — die fehlenden
-    // 2 Tage sehen dann wie Spielraum aus, statt schlicht ungeplant zu sein.
-    // Summiert ueber die konkreten Tage, weil Kohlenhydrate und Fett am Ruhetag anders
-    // liegen — welche fuenf Tage geplant sind, entscheidet dann ueber das Wochenziel.
-    const wt = planned ? goalTargetsForDays(plannedKeys) : t;
     const scope = planned === 7 ? "ganze Woche" : `${planned} geplante Tag${planned === 1 ? "" : "e"}`;
+    // Grundziel/Training fuer goalRingHtml aufgeteilt statt fertig addiert (siehe dort).
+    // Bewusst gegen ALLE sieben Tage gerechnet (t, aus weekNutHtml uebergeben), nicht nur
+    // die mit bereits eingeplanten Meals: Trainingstage sind eine Eigenschaft des
+    // gespeicherten Ziels (state.goal.training), keine des Wochenplans - ein Trainingstag
+    // zaehlt sein Kalorien-Plus auch dann, wenn dafuer noch kein Meal eingetragen ist.
+    // Vorher haengte das an "geplanten" Tagen (goalTargetsForDays(plannedKeys)) - dadurch
+    // fehlte der Trainings-Zuschlag fuer jeden Trainingstag ohne Meal komplett (zeigte
+    // faelschlich "Training: 0"), und Grundziel war zu niedrig. rest1 ist garantiert nicht
+    // null: weekGoalHtml laeuft nur, wenn ein Ziel existiert (siehe Aufrufer in weekNutHtml).
+    const rest1 = goalTargets(1);
+    const weekGrund = rest1.kcal * 7;
+    const weekTrainAdd = t.kcal - weekGrund;
     // Trainings-Kennzeichen auch in der Tagesspalte der Uebersicht — sonst erklaert
-    // sich das abweichende Kohlenhydrat-Ziel dort nicht.
+    // sich das abweichende Kohlenhydrat-Ziel dort nicht. Ohne den kcal-Aufschlag im
+    // Badge selbst: der steht jetzt schon in der Training-Zeile der Kennzahlenliste
+    // (goalRingHtml) - hier direkt daneben noch einmal waere dieselbe Zahl doppelt.
     const dayTrainAdd = isTrainingDay(d.key) ? dayTrainKcal(d.key) : 0;
     const dayTrain = isTrainingDay(d.key)
-      ? `<span class="wg-train" title="Trainingstag: ${esc(trainLevel((goalTraining()[d.key] || {}).level).label)}">${ICON_DUMBBELL}${dayTrainAdd ? `+${nfmt(dayTrainAdd)} kcal` : "Training"}</span>` : "";
+      ? `<span class="wg-train" title="Trainingstag: ${esc(trainLevel((goalTraining()[d.key] || {}).level).label)}">${ICON_DUMBBELL}Training</span>` : "";
     const dayHeadHtml = `${dayHead}${dayTrain}${mode ? `<span class="wg-chip">${esc(mode)}</span>` : ""}`;
     const weekHeadHtml = `Diese Woche<span class="wg-chip plain">${scope}</span>`;
     // Was bleibt fuer die noch leeren Tage? Das ist beim Planen die eigentlich
@@ -3080,6 +3159,18 @@
     const perOpen = open > 0 && restKcal > 0
       ? `<div class="wg-open">Für die ${open} offenen Tage bleiben ⌀ <b>${nfmt(restKcal / open)} kcal</b> pro Tag</div>`
       : "";
+    // Rechte Spalte der Wochenkarte: Fortschritt statt Makros (Wochenmakros interessieren
+    // niemanden - Makro-Entscheidungen fallen auf Tagesebene, siehe dayGoalsHtml/Kommentar
+    // in weekNutHtml). Zeigt, wie viele der 7 Tage schon geplant sind, plus das Budget
+    // fuer die restigen Tage (perOpen) - beides war ohnehin schon berechnet.
+    const planPct = Math.round(planned / 7 * 100);
+    const weekProgressHtml = `
+      <h3 class="wg-h">Fortschritt</h3>
+      <div class="wg-progress">
+        <div class="wg-progress-txt">${planned} von 7 Tagen geplant</div>
+        <div class="wg-progress-bar" role="progressbar" aria-valuenow="${planned}" aria-valuemin="0" aria-valuemax="7" aria-label="Tage geplant"><span style="width:${planPct}%"></span></div>
+        ${perOpen}
+      </div>`;
     // Auf dem Handy liegen die beiden Leisten nebeneinander und werden gewischt
     // (siehe CSS) – die Knopfleiste sagt, welche gerade zu sehen ist. Am Rechner
     // ist sie ausgeblendet, dort stehen beide untereinander wie bisher.
@@ -3088,8 +3179,8 @@
         <button type="button" class="wg-b">Diese Woche</button>
       </div>
       <div class="wg-cols">
-        <div class="wg-col">${goalRingHtml(s.kcal, day.kcal, "Tag", dayHeadHtml, goalMacrosHtml(s, day))}</div>
-        <div class="wg-col">${goalRingHtml(w.kcal, wt.kcal, "Woche", weekHeadHtml, goalMacrosHtml(w, wt))}${perOpen}</div>
+        <div class="wg-col${isTrainingDay(d.key) ? " wg-col-training" : ""}">${goalRingHtml(s.kcal, rest1.kcal, dayTrainAdd, dayHeadHtml, `<h3 class="wg-h">Makros</h3>${goalMacrosHtml(s, day)}`, "Grundbedarf")}</div>
+        <div class="wg-col">${goalRingHtml(w.kcal, weekGrund, weekTrainAdd, weekHeadHtml, weekProgressHtml, "Grundbedarf")}</div>
       </div>`;
   }
 
@@ -3260,7 +3351,6 @@
       <div class="section-head plan-head">
         <div class="title">
           <h2>Dein Wochenplan</h2>
-          <div class="sub">${filled} von 21 Mahlzeiten geplant · tippe auf eine Mahlzeit, um ein Meal zu wählen</div>
         </div>
         <div class="plan-tools">
           <div class="week-switch" role="tablist" aria-label="Woche wählen">
@@ -3350,7 +3440,6 @@
       <div class="section-head">
         <div class="title">
           <h2>Meine Meals</h2>
-          <div class="sub">${state.recipes.length} Meal${state.recipes.length === 1 ? "" : "s"} · pflege hier deine Meals ein</div>
         </div>
         ${state.recipes.some(isExample) ? `<button class="btn ghost sm" data-action="clear-examples">Beispiele entfernen</button>` : ""}
         <button class="btn primary" data-action="new-recipe">
@@ -3954,11 +4043,17 @@
   function saveShopDone(set) { try { localStorage.setItem(SHOP_DONE_KEY, JSON.stringify(Array.from(set))); } catch (e) {} }
 
   function openShopping() {
+    // In der aktuellen Woche zaehlen nur heute und die kommenden Tage - fuer bereits
+    // vergangene Tage wird nicht mehr eingekauft, ihre Zutaten sollen die Summe also
+    // nicht mehr aufblaehen. In der naechsten Woche gibt es aus heutiger Sicht kein
+    // "vergangen", dort zaehlt die ganze Woche wie bisher.
+    const todayIdx = DAYS.findIndex(d => d.key === todayDayKey());
+    const relevantDays = state.viewWeek === "next" ? DAYS : DAYS.slice(todayIdx);
     // Zusammenfassen: gleiche Zutat + gleiche Einheit werden addiert (7 × 400 ml Milch
     // -> "2,8 L Milch"). Zutaten ohne Menge (Freitext wie "Salz, Pfeffer") haben nichts
     // zu addieren und werden wie bisher gezaehlt.
     const map = new Map(); // key -> {label, count, qty, unit, name}
-    DAYS.forEach(d => MEALS.forEach(m => state.plan[d.key][m.key].forEach(rid => {
+    relevantDays.forEach(d => MEALS.forEach(m => state.plan[d.key][m.key].forEach(rid => {
       const r = getRecipe(rid);
       if (!r || !r.ingredients) return;
       r.ingredients.forEach(i => {
@@ -4021,7 +4116,7 @@
       <div class="modal-head">
         <div class="shop-head" style="flex:1">
           <div class="cart" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6h15l-1.5 9h-12z"/><path d="M6 6 5 2H2"/><circle cx="9" cy="20" r="1.4"/><circle cx="18" cy="20" r="1.4"/></svg></div>
-          <div><div class="kicker">${items.length} Position${items.length===1?"":"en"} · diese Woche</div><h3 style="margin:2px 0 0">Einkaufsliste der Woche</h3></div>
+          <div><div class="kicker">${items.length} Position${items.length===1?"":"en"} · ${state.viewWeek !== "next" && todayIdx > 0 ? "ab heute" : "diese Woche"}</div><h3 style="margin:2px 0 0">Einkaufsliste der Woche</h3></div>
         </div>
         <button class="btn ghost sm" data-close>✕</button>
       </div>
@@ -4626,7 +4721,6 @@
     view.innerHTML = `
       <div class="section-head"><div class="title">
         <h2>Kalorienrechner</h2>
-        <div class="sub">Berechne deinen Tages- und Wochenbedarf – abgestimmt auf Aktivität und Ziel.</div>
       </div></div>
       <nav class="calcbar" aria-label="Schritt wählen">
         ${["Körper", "Alltag", "Training", "Ziel"].map((s, i) =>
