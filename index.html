@@ -555,6 +555,54 @@
   .wg-macros .gm-n { font-weight: 700; color: var(--text); }
   .wg-macros .gm-v { font-size: 11.5px; }
 
+  /* „Ziele <Jahr>" – Gewichtsverlauf. Sitzt in derselben Kartenschale wie die
+     Kalorien-Ringe (.wg-col), damit auf dem Startreiter eine Optik herrscht.
+     Alle Farben kommen aus Tokens: nur so stimmen Hell und Dunkel beide. */
+  .wch { margin-top: 10px; }
+  .wch-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+  .wch-head .wg-h { margin-bottom: 10px; }
+  .wch-stats { display: flex; gap: 16px; flex-wrap: wrap; }
+  .wch-s { display: flex; flex-direction: column; gap: 2px; }
+  .wch-s small { font-size: 10.5px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--text-muted); }
+  .wch-s b { font-family: var(--font-display); font-size: 21px; font-weight: 700; line-height: 1; color: var(--text); font-variant-numeric: tabular-nums; }
+  .wch-s b span { font-size: 11px; font-weight: 600; color: var(--text-muted); margin-left: 3px; font-family: var(--font-body); }
+  /* Richtung der Veraenderung: gruen heisst „naeher am Ziel", nicht „weniger" — wer
+     aufbaut, sieht eine Zunahme gruen (siehe zunahmeIstZiel in weightHtml). Das
+     Vorzeichen steht im Text daneben, die Farbe verstaerkt es nur. */
+  .wch-s b.is-toward { color: var(--ok); }
+  .wch-s b.is-away { color: var(--accent-strong); }
+  .wch .week-switch { margin: 2px 0 10px; }
+  .wch-plot { width: 100%; }
+  .wch-svg { display: block; max-width: 100%; overflow: visible; }
+  .wch-grid { stroke: var(--border); stroke-width: 1; }
+  .wch-ay { fill: var(--text-muted); font-size: 10px; text-anchor: end; font-family: var(--font-body); }
+  .wch-ax { fill: var(--text-muted); font-size: 10px; text-anchor: middle; font-family: var(--font-body); }
+  .wch-line { fill: none; stroke: var(--accent); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+  .wch-goal { stroke: var(--text-muted); stroke-width: 2; stroke-dasharray: 5 5; stroke-linecap: round; }
+  /* Hohl statt gefuellt: unterscheidet den Zielpunkt im Dezember auf einen Blick von
+     den gefuellten Messpunkten und beendet die Linie sichtbar, statt sie auslaufen
+     zu lassen. */
+  .wch-goal-dot { fill: var(--surface-2); stroke: var(--text-muted); stroke-width: 2; }
+  .wch-dot { fill: var(--accent); stroke: var(--surface); stroke-width: 2; }
+  /* Unsichtbare, aber grosse Trefferflaeche: der sichtbare Punkt ist 8px breit und
+     mit dem Finger sonst nicht zu treffen. */
+  .wch-hit { fill: transparent; }
+  .wch-pt { cursor: pointer; }
+  .wch-pt:focus { outline: none; }
+  .wch-pt.is-on .wch-dot, .wch-pt:focus-visible .wch-dot { r: 6; stroke: var(--accent-strong); }
+  .wch-leg { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 10px; font-size: 11.5px; color: var(--text-muted); }
+  .wch-leg span { display: inline-flex; align-items: center; gap: 6px; }
+  .wch-leg i { width: 16px; height: 0; border-top: 2px solid var(--accent); border-radius: 2px; }
+  .wch-leg i.k-goal { border-top-style: dashed; border-color: var(--text-muted); }
+  .wch-tip { margin-top: 8px; font-size: 12px; color: var(--text-muted); font-variant-numeric: tabular-nums; min-height: 17px; }
+  .wch-empty { margin: 6px 0 0; font-size: 13.5px; color: var(--text-muted); }
+  .wch-acts { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
+  /* Verlaufsliste im Wiegen-Dialog */
+  .wl-row { display: flex; align-items: center; gap: 10px; padding: 8px 2px; border-top: 1px solid var(--border); font-variant-numeric: tabular-nums; }
+  .wl-row .wl-d { flex: 1; font-size: 13.5px; color: var(--text); }
+  .wl-row .wl-k { font-weight: 700; font-size: 14px; }
+  .wl-empty { font-size: 13px; color: var(--text-muted); margin: 8px 0 0; }
+
   /* Kalorien breit, darunter die Makros (.wg-macros, wiederverwendet von "Ziele dieser
      Woche" – siehe dayGoalsHtml). Die Tageskarte sitzt in einem auto-fill-Grid und wird
      im Desktop-Raster nur ~232px breit; .wg-macros schrumpft dort von selbst auf ein
@@ -1281,6 +1329,14 @@
     .wrap { padding: 0 14px; }
     main { padding: 20px 0 64px; }
     .row2 { grid-template-columns: 1fr; }
+    /* Auf dem Handy sollen die beiden Knoepfe die Zeile fuellen (Daumenbreite), am
+       Rechner behalten sie ihre natuerliche Breite - dort wirkte ein 1000px breiter
+       "Wiegen"-Knopf wie ein Fehler. */
+    .wch-acts .btn { flex: 1 1 auto; }
+    /* Drei Kennzahlen nebeneinander werden auf schmalen Geraeten eng - etwas kleinere
+       Zahlen und weniger Abstand halten sie in einer Zeile, statt sie umbrechen zu lassen. */
+    .wch-stats { gap: 12px; }
+    .wch-s b { font-size: 18px; }
     /* Ausnahme: die vier Makro-Werte sind kurze Zahlen. Einspaltig waere die Summe
        viermal so hoch wie noetig, vierspaltig brechen die Beschriftungen um und die
        Felder stehen versetzt. Deshalb 2x2: aussen eine Spalte, innen zwei. */
@@ -1648,7 +1704,11 @@
       </div>
       <div class="navrow">
         <div class="tabs" role="tablist" aria-label="Ansicht wählen">
-          <button class="tab" role="tab" id="tab-plan" data-action="tab" data-tab="plan" aria-selected="true">
+          <button class="tab" role="tab" id="tab-home" data-action="tab" data-tab="home" aria-selected="true">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8"/><path d="M5 10v10a1 1 0 0 0 1 1h3v-6h6v6h3a1 1 0 0 0 1-1V10"/></svg>
+            <span class="tl">Home</span><span class="ts">Home</span>
+          </button>
+          <button class="tab" role="tab" id="tab-plan" data-action="tab" data-tab="plan" aria-selected="false">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/></svg>
             <span class="tl">Wochenplan</span><span class="ts">Plan</span>
           </button>
@@ -1864,6 +1924,13 @@
     { key: "mi", label: "Mittagessen" },
     { key: "ab", label: "Abendessen"  },
   ];
+  // Plausible Gewichtsgrenzen, gleiche Werte wie im Rechner (missingCalc). Stehen aus
+  // demselben Grund hier oben wie ACTIVITY darunter: sanitizeWeights() braucht sie und
+  // laeuft schon in `let state = load()`. Weiter unten deklariert waren sie dort in der
+  // temporalen Todeszone — die App startete mit „Cannot access 'KG_MIN' before
+  // initialization" und blieb mit leerem #view stehen.
+  const KG_MIN = 30, KG_MAX = 400;
+
   // ---------- Aktivitaet und Training (Stammdaten des Kalorienrechners) ----------
   // Stehen hier oben und nicht beim Rechner, weil sanitizeGoal() sie braucht und das
   // bereits in `let state = load()` laeuft — weiter unten waeren sie dort noch in der
@@ -2083,6 +2150,70 @@
     return out;
   }
 
+  // ---------- Gewichtsverlauf ----------
+  // KG_MIN/KG_MAX stehen weiter oben bei den Stammdaten — siehe Begruendung dort.
+  //
+  // Ein Eintrag je MONAT, nicht je Tag. Ueber ein Jahr betrachtet sagt der Tag nichts:
+  // Tagesschwankungen (Wasser, Mahlzeiten) liegen in derselben Groessenordnung wie die
+  // echte Veraenderung eines Monats. Monatsgenau macht die Eingabe kuerzer und das
+  // Diagramm ehrlicher.
+  //
+  // Monat IMMER lokal bilden, nie ueber toISOString(): das rechnet nach UTC um und
+  // kippt in unserer Zeitzone am Monatsersten kurz nach Mitternacht in den Vormonat.
+  function monthKey(dt) {
+    const d = dt || new Date();
+    return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0");
+  }
+  function validMonthKey(s) {
+    if (typeof s !== "string" || !/^\d{4}-\d{2}$/.test(s)) return false;
+    const m = +s.slice(5, 7);
+    return m >= 1 && m <= 12;
+  }
+  function monthIdx(s) { return +s.slice(5, 7) - 1; }
+
+  // Bewusst `function` und keine const-Arrow: laeuft aus load() heraus, also bevor die
+  // meisten Konstanten deklariert sind (gleiche TDZ-Falle wie bei sanitizeTraining).
+  // Ein Monat = ein Eintrag; der letzte gewinnt. Aufsteigend sortiert, damit alles
+  // Weitere (Diagramm, "juengste Messung") sich darauf verlassen kann.
+  function sanitizeWeights(w) {
+    if (!Array.isArray(w)) return [];
+    const map = {};
+    w.forEach(e => {
+      if (!e || typeof e !== "object") return;
+      // Migration: die erste Fassung speicherte taggenau unter `d` ("2026-07-22").
+      // Auf den Monat eindampfen statt wegzuwerfen - innerhalb eines Monats gewinnt
+      // der zuletzt einsortierte Wert.
+      let m = e.m;
+      if (!m && typeof e.d === "string" && e.d.length >= 7) m = e.d.slice(0, 7);
+      if (!validMonthKey(m)) return;
+      const kg = Math.round((parseFloat(e.kg) || 0) * 10) / 10;
+      if (!(kg >= KG_MIN && kg <= KG_MAX)) return;
+      map[m] = { m: m, kg: kg };
+    });
+    return Object.keys(map).sort().map(k => map[k]);
+  }
+  // Zusammenfuehren zweier Verlaeufe (Cloud + lokal): Union ueber den Monat, nie eine
+  // Messung verlieren, die nur auf einem Geraet steht - wie bei den Rezepten in
+  // startCloudSync und in der Absicht von unionIds bei den Teilen-Links. Bei gleichem
+  // Monat gewinnt `prim` (dort steht beim Sync die Cloud).
+  function mergeWeights(prim, sec) {
+    const map = {};
+    sanitizeWeights(sec).forEach(e => { map[e.m] = e; });
+    sanitizeWeights(prim).forEach(e => { map[e.m] = e; });
+    return Object.keys(map).sort().map(k => map[k]);
+  }
+  // Jahres-Zielgewicht, je Jahr eines: { "2026": 75 }. Fremde Schluessel fliegen raus.
+  function sanitizeWeightGoals(g) {
+    const out = {};
+    if (!g || typeof g !== "object") return out;
+    Object.keys(g).forEach(y => {
+      if (!/^\d{4}$/.test(y)) return;
+      const kg = Math.round((parseFloat(g[y]) || 0) * 10) / 10;
+      if (kg >= KG_MIN && kg <= KG_MAX) out[y] = kg;
+    });
+    return out;
+  }
+
   function load() {
     let data = null;
     try { data = JSON.parse(localStorage.getItem(STORE_KEY)); } catch (e) { data = null; }
@@ -2090,7 +2221,7 @@
     if (!data || !Array.isArray(data.recipes)) {
       const recipes = SEED.map(r => Object.assign({ id: uid() }, r));
       const plans = {}; plans[curKey] = makeEmptyPlan();
-      return { recipes, plans, plan: plans[curKey], viewWeek: "cur", tab: "plan", goal: null, shares: [], onboarded: false };
+      return { recipes, plans, plan: plans[curKey], viewWeek: "cur", viewYear: new Date().getFullYear(), tab: "home", goal: null, shares: [], onboarded: false, weights: [], weightGoals: {} };
     }
     const recipes = sanitizeRecipes(data.recipes);
     const plans = {};
@@ -2101,7 +2232,7 @@
     }
     pruneWeeks(plans);
     if (!plans[curKey]) plans[curKey] = makeEmptyPlan();
-    return { recipes, plans, plan: plans[curKey], viewWeek: "cur", tab: data.tab === "recipes" ? "recipes" : "plan", goal: sanitizeGoal(data.goal), shares: Array.isArray(data.shares) ? data.shares : [], onboarded: data.onboarded === true };
+    return { recipes, plans, plan: plans[curKey], viewWeek: "cur", viewYear: new Date().getFullYear(), tab: data.tab === "recipes" ? "recipes" : "home", goal: sanitizeGoal(data.goal), shares: Array.isArray(data.shares) ? data.shares : [], onboarded: data.onboarded === true, weights: sanitizeWeights(data.weights), weightGoals: sanitizeWeightGoals(data.weightGoals) };
   }
 
   // Schlaegt das lokale Speichern fehl (Speicher voll, privater Modus), darf das NICHT
@@ -2110,7 +2241,7 @@
   let storageFullWarned = false;
   function save() {
     try {
-      localStorage.setItem(STORE_KEY, JSON.stringify({ recipes: state.recipes, plans: state.plans, tab: state.tab, goal: state.goal || null, shares: state.shares || [], onboarded: state.onboarded === true }));
+      localStorage.setItem(STORE_KEY, JSON.stringify({ recipes: state.recipes, plans: state.plans, tab: state.tab, goal: state.goal || null, shares: state.shares || [], onboarded: state.onboarded === true, weights: state.weights || [], weightGoals: state.weightGoals || {} }));
       storageFullWarned = false;
     } catch (e) {
       if (!storageFullWarned) {
@@ -2158,7 +2289,10 @@
   // nie gepusht und der Ablauf startete auf jedem weiteren Geraet erneut. Die Normalisierung
   // auf !! ist wichtig: alte Konten haben das Feld nicht, undefined vs. false wuerde sie
   // sonst dauerhaft als "veraendert" erscheinen lassen und bei jedem Start einen Write ausloesen.
-  function dataJSON(d) { return JSON.stringify({ recipes: (d && d.recipes) || [], plans: plansField(d), goal: (d && d.goal) || null, shares: (d && d.shares) || [], onboarded: !!(d && d.onboarded) }); }
+  // weights/weightGoals MUESSEN hier stehen: fehlen sie, sieht der Vergleich eine neue
+  // Wiegung nie als Aenderung - sie wuerde nie in die Cloud gepusht (gleiche Falle wie
+  // oben bei "onboarded" beschrieben).
+  function dataJSON(d) { return JSON.stringify({ recipes: (d && d.recipes) || [], plans: plansField(d), goal: (d && d.goal) || null, shares: (d && d.shares) || [], onboarded: !!(d && d.onboarded), weights: (d && d.weights) || [], weightGoals: (d && d.weightGoals) || {} }); }
 
   function scheduleCloudPush() {
     if (!syncUid) return;
@@ -2173,7 +2307,7 @@
   let cloudTooBigWarned = false;
   async function pushNow() {
     if (!syncUid || !window.CloudSync) return;
-    const d = { recipes: state.recipes, plans: state.plans, tab: state.tab, goal: state.goal || null, shares: state.shares || [], onboarded: state.onboarded === true };
+    const d = { recipes: state.recipes, plans: state.plans, tab: state.tab, goal: state.goal || null, shares: state.shares || [], onboarded: state.onboarded === true, weights: state.weights || [], weightGoals: state.weightGoals || {} };
     const j = dataJSON(d);
     if (j === lastPushedJSON) return;
     if (j.length > CLOUD_DOC_MAX) {
@@ -2204,6 +2338,8 @@
     state.plans = pruneWeeks(normalizePlans(plansField(data), state.recipes));
     state.goal = sanitizeGoal(data.goal);
     state.shares = unionIds(state.shares, data.shares); // nie einen Link verlieren, der nur lokal bekannt ist
+    state.weights = mergeWeights(data.weights, state.weights); // desgleichen fuer Wiegungen
+    state.weightGoals = Object.assign({}, sanitizeWeightGoals(state.weightGoals), sanitizeWeightGoals(data.weightGoals));
     if (data.onboarded) state.onboarded = true;         // nur in eine Richtung, siehe startCloudSync
     setViewWeek(state.viewWeek);
     lastPushedJSON = j;
@@ -2233,6 +2369,12 @@
       // in eine Richtung — waere das Flag zurueckziehbar, startete der Ablauf auf Geraet 2
       // erneut, solange Geraet 1 seinen Stand noch nicht hochgeschrieben hat.
       if (remote && remote.onboarded) state.onboarded = true;
+      // Aus demselben Grund hier oben und nicht im Block darunter: wer sich wiegt, aber
+      // (noch) keine Meals angelegt hat, verloere seinen Verlauf sonst beim Anmelden.
+      if (remote) {
+        state.weights = mergeWeights(remote.weights, state.weights);
+        state.weightGoals = Object.assign({}, sanitizeWeightGoals(state.weightGoals), sanitizeWeightGoals(remote.weightGoals));
+      }
       if (remote && Array.isArray(remote.recipes) && remote.recipes.length) {
         // Rezepte zusammenführen (Cloud + eigene lokale, die es dort noch nicht gibt).
         // Beispiel-Meals werden NICHT in ein bestehendes Konto übernommen – sie sind nur
@@ -2574,7 +2716,8 @@
       if (state.tab === "rechner") renderRechner();
       else if (state.tab === "recipes") renderRecipes();
       else if (state.tab === "bald") renderBaldSoon();
-      else renderPlan();
+      else if (state.tab === "plan") renderPlan();
+      else renderHome();
     } finally {
       recipeIndex = null;
       dayNutCache = null;
@@ -2609,10 +2752,16 @@
   // Zaehlung der geplanten Tage). Innerhalb eines Durchlaufs aendert sich der Plan nicht,
   // also genuegt eine Berechnung je Tag - der Cache wird in render() gesetzt und geleert.
   let dayNutCache = null;
+  // Von state.plan entkoppelt, damit "heute" in weekGoalHtml auch in der
+  // Naechste-Woche-Ansicht gegen den Plan der AKTUELLEN Woche rechnen kann.
+  function dayNutOf(plan, dayKey) {
+    let s = { kcal: 0, carbs: 0, protein: 0, fat: 0 };
+    MEALS.forEach(m => { plan[dayKey][m.key].forEach(rid => { const r = getRecipe(rid); if (r) s = addNut(s, recipeNut(r)); }); });
+    return s;
+  }
   function dayNut(dayKey) {
     if (dayNutCache && dayNutCache[dayKey]) return dayNutCache[dayKey];
-    let s = { kcal: 0, carbs: 0, protein: 0, fat: 0 };
-    MEALS.forEach(m => { state.plan[dayKey][m.key].forEach(rid => { const r = getRecipe(rid); if (r) s = addNut(s, recipeNut(r)); }); });
+    const s = dayNutOf(state.plan, dayKey);
     if (dayNutCache) dayNutCache[dayKey] = s;
     return s;
   }
@@ -3329,11 +3478,12 @@
   function weekGoalHtml(w, t) {
     const d = DAYS.filter(x => x.key === todayDayKey())[0] || DAYS[0];
     const day = goalTargetsForDay(d.key);
-    const s = dayNut(d.key);
+    // Immer gegen den Plan der AKTUELLEN Woche rechnen, auch wenn state.plan gerade
+    // auf die naechste Woche zeigt - "heute" bleibt heute, unabhaengig von der
+    // gewaehlten Ansicht (siehe dayNutOf-Kommentar).
+    const s = state.viewWeek === "next" ? dayNutOf(state.plans[weekKeyFor("cur")] || makeEmptyPlan(), d.key) : dayNut(d.key);
     const mode = state.goal && MODE_LABEL[state.goal.mode];
-    // In der Naechste-Woche-Ansicht ist „heute“ nur der gleiche Wochentag – dann
-    // steht der Tagesname allein, damit die Spalte nicht das Falsche behauptet.
-    const dayHead = state.viewWeek === "next" ? esc(d.label) : `Heute · ${esc(d.label)}`;
+    const dayHead = `Heute · ${esc(d.label)}`;
     const plannedKeys = DAYS.filter(x => hasNut(dayNut(x.key))).map(x => x.key);
     const planned = plannedKeys.length;
     const open = 7 - planned;
@@ -3358,7 +3508,8 @@
     const dayTrain = isTrainingDay(d.key)
       ? `<span class="wg-train" title="Trainingstag: ${esc(trainLevel((goalTraining()[d.key] || {}).level).label)}">${ICON_DUMBBELL}Training</span>` : "";
     const dayHeadHtml = `${dayHead}${dayTrain}${mode ? `<span class="wg-chip">${esc(mode)}</span>` : ""}`;
-    const weekHeadHtml = `Diese Woche<span class="wg-chip plain">${scope}</span>`;
+    const weekLbl = state.viewWeek === "next" ? "Nächste Woche" : "Diese Woche";
+    const weekHeadHtml = `${weekLbl}<span class="wg-chip plain">${scope}</span>`;
     // Was bleibt fuer die noch leeren Tage? Das ist beim Planen die eigentlich
     // gesuchte Zahl — der blosse Wochenrest sagt nicht, wie viel pro Tag noch geht.
     const restKcal = t.kcal - w.kcal;
@@ -3381,8 +3532,8 @@
     // (siehe CSS) – die Knopfleiste sagt, welche gerade zu sehen ist. Am Rechner
     // ist sie ausgeblendet, dort stehen beide untereinander wie bisher.
     return `<div class="wgbar" role="group" aria-label="Zielansicht wählen">
-        <button type="button" class="wg-b">${state.viewWeek === "next" ? esc(d.label) : "Heute"}</button>
-        <button type="button" class="wg-b">Diese Woche</button>
+        <button type="button" class="wg-b">Heute</button>
+        <button type="button" class="wg-b">${weekLbl}</button>
       </div>
       <div class="wg-cols">
         <div class="wg-col${isTrainingDay(d.key) ? " wg-col-training" : ""}">${goalRingHtml(s.kcal, rest1.kcal, dayTrainAdd, dayHeadHtml, `<h3 class="wg-h">Makros</h3>${goalMacrosHtml(s, day)}`, "Grundbedarf")}</div>
@@ -3547,14 +3698,246 @@
   }
   window.addEventListener("resize", syncStickyOffsets);
 
-  function renderPlan() {
+  // ---------- „Ziele <Jahr>": Gewichtsverlauf als Jahresdiagramm ----------
+  const MON_SHORT = ["J", "F", "M", "A", "M", "J", "J", "A", "S", "O", "N", "D"];
+  const MON_LONG = ["Januar", "Februar", "März", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember"];
+  function kgfmt(n) { return (Math.round(n * 10) / 10).toLocaleString("de-DE", { minimumFractionDigits: 1, maximumFractionDigits: 1 }); }
+  // Naechstgroessere "runde" Schrittweite (1, 2, 2,5, 5, 10 und Zehnerpotenzen davon).
+  function niceStep(raw) {
+    if (!(raw > 0)) return 1;
+    const p = Math.pow(10, Math.floor(Math.log10(raw))), n = raw / p;
+    return (n <= 1 ? 1 : n <= 2 ? 2 : n <= 2.5 ? 2.5 : n <= 5 ? 5 : 10) * p;
+  }
+  function monthLabel(m) { return MON_LONG[monthIdx(m)] + " " + m.slice(0, 4); }
+  // Jahre, die eine Ansicht verdienen: alles mit Messung oder Ziel, plus das laufende Jahr.
+  function weightYears() {
+    const ys = {};
+    (state.weights || []).forEach(e => { ys[e.m.slice(0, 4)] = 1; });
+    Object.keys(state.weightGoals || {}).forEach(y => { ys[y] = 1; });
+    ys[String(new Date().getFullYear())] = 1;
+    return Object.keys(ys).sort();
+  }
+  function activeYear() {
+    const ys = weightYears();
+    const y = String(state.viewYear || new Date().getFullYear());
+    return ys.indexOf(y) !== -1 ? y : ys[ys.length - 1];
+  }
+
+  // Das Diagramm. Bewusst reines SVG ohne Bibliothek: die App laedt nichts nach, und bei
+  // hoechstens ein paar hundert Punkten ist SVG ohnehin die richtige Wahl.
+  // Die X-Achse steht FEST auf die zwoelf Monate und dehnt sich nicht nach den Daten.
+  // Das ist der Grund, warum auch wenige Messungen hier ehrlich aussehen: die Skala kann
+  // nicht ueber das Tempo luegen. Januar sitzt ganz links, Dezember ganz rechts - damit
+  // endet auch die Ziellinie sichtbar am Dezember und laeuft nicht aus dem Bild.
+  // Die Breite kommt als Pixelmass von aussen (siehe initWeightChart), damit eine
+  // SVG-Einheit genau ein Bildschirmpunkt ist. Mit fester viewBox waere die Schrift
+  // sonst auf dem Handy auf ein Drittel geschrumpft und am breiten Bildschirm riesig -
+  // im Layout-Test war die Achsenbeschriftung dadurch unlesbar.
+  const WCH = { PL: 42, PR: 22, PT: 14, PB: 26 };
+  function weightChartSvg(year, rows, ziel, width) {
+    const W = Math.max(260, Math.round(width || 600));
+    // Hoehe an die Breite koppeln, aber gedeckelt: auf einem breiten Bildschirm waere
+    // ein Diagramm mit fester Hoehe fast 5:1 flach und die Kurve darin gestaucht -
+    // Veraenderungen von ein, zwei Kilo waeren nicht mehr abzulesen.
+    const g = Object.assign({ W: W, H: Math.max(190, Math.min(300, Math.round(W * 0.42))) }, WCH);
+    const plotW = g.W - g.PL - g.PR, plotH = g.H - g.PT - g.PB;
+    // Monatsindex 0..11 auf die Breite verteilt - keine Datumsarithmetik mehr noetig,
+    // seit ein Eintrag fuer einen ganzen Monat steht.
+    const px = i => g.PL + (i / 11) * plotW;
+
+    let lo = Infinity, hi = -Infinity;
+    rows.forEach(r => { lo = Math.min(lo, r.kg); hi = Math.max(hi, r.kg); });
+    if (ziel != null) { lo = Math.min(lo, ziel); hi = Math.max(hi, ziel); }
+    // Sonderfall: eine einzige Messung oder lauter gleiche Werte -> Spanne 0. Ohne diesen
+    // Mindestabstand teilte die Skala durch null und das ganze Diagramm waere NaN.
+    let pad = (hi - lo) * 0.18;
+    if (!(pad > 0.05)) pad = 1.5;
+    lo -= pad; hi += pad;
+    // Auf runde Schritte aufziehen: "90 / 85 / 80" liest sich im Vorbeigehen, die
+    // rechnerisch exakten Grenzen ergaeben "90,8 / 86,3 / 81,7" - Zahlen, die niemand
+    // im Kopf zuordnet.
+    const step = niceStep((hi - lo) / 4);
+    lo = Math.floor(lo / step) * step;
+    hi = Math.ceil(hi / step) * step;
+    const py = kg => g.PT + (hi - kg) / (hi - lo) * plotH;
+
+    // Waagerechtes Gitter, zurueckhaltend - es soll die Kurve stuetzen, nicht mit ihr
+    // um Aufmerksamkeit ringen.
+    let grid = "";
+    for (let kg = lo; kg <= hi + step / 2; kg += step) {
+      const y = py(kg);
+      grid += `<line class="wch-grid" x1="${g.PL}" y1="${y.toFixed(1)}" x2="${g.W - g.PR}" y2="${y.toFixed(1)}"/>`
+            + `<text class="wch-ay" x="${g.PL - 7}" y="${(y + 3.5).toFixed(1)}">${kgfmt(kg)}</text>`;
+    }
+    // Monatsachse: zwoelf Marken, genau unter den moeglichen Messpunkten. Ausgeschrieben,
+    // sobald Platz ist - "J F M A M J J A S O N D" hat zweimal J und zweimal M und ist
+    // damit mehrdeutig.
+    const wide = g.W >= 460;
+    let months = "";
+    for (let m = 0; m < 12; m++) {
+      months += `<text class="wch-ax" x="${px(m).toFixed(1)}" y="${g.H - 10}">${wide ? MON_LONG[m].slice(0, 3) : MON_SHORT[m]}</text>`;
+    }
+
+    // Ziellinie: vom ersten bekannten Stand des Jahres zum Wunschgewicht im Dezember.
+    // Gestrichelt und in gedaempfter Farbe - die Serien unterscheiden sich damit auch
+    // ohne Farbsehen, was eine reine Farbunterscheidung nicht leisten wuerde.
+    // Der hohle Endpunkt ist wichtig: ohne ihn lief die Linie am Bildrand einfach aus
+    // und sah aus, als ginge sie ins Unendliche weiter, statt im Dezember anzukommen.
+    let zielEl = "";
+    if (ziel != null && rows.length) {
+      const zx = px(11), zy = py(ziel);
+      zielEl = `<line class="wch-goal" x1="${px(monthIdx(rows[0].m)).toFixed(1)}" y1="${py(rows[0].kg).toFixed(1)}"
+          x2="${zx.toFixed(1)}" y2="${zy.toFixed(1)}"/>
+        <circle class="wch-goal-dot" cx="${zx.toFixed(1)}" cy="${zy.toFixed(1)}" r="4.5"/>`;
+    }
+
+    const pts = rows.map(r => `${px(monthIdx(r.m)).toFixed(1)},${py(r.kg).toFixed(1)}`).join(" ");
+    const line = rows.length > 1 ? `<polyline class="wch-line" points="${pts}"/>` : "";
+    // Zwei Kreise je Messung: der sichtbare kleine und ein unsichtbarer grosser als
+    // Trefferflaeche - ein 4-px-Punkt ist mit dem Finger nicht zu treffen. Der Radius
+    // waechst mit dem Monatsabstand (eine SVG-Einheit = ein Bildschirmpunkt), bleibt
+    // aber bei 18 gedeckelt: auf breiten Schirmen braucht es keine 60-px-Flaechen, auf
+    // schmalen duerfen sich die Flaechen leicht ueberlappen - getroffen wird ohnehin
+    // der oberste Punkt, und zu klein waere hier das groessere Uebel.
+    const hitR = Math.max(11, Math.min(18, plotW / 11 / 2)).toFixed(1);
+    const dots = rows.map(r =>
+      `<g class="wch-pt" tabindex="0" role="img" data-m="${r.m}" aria-label="${esc(monthLabel(r.m))}: ${kgfmt(r.kg)} Kilogramm">
+         <title>${esc(monthLabel(r.m))}: ${kgfmt(r.kg)} kg</title>
+         <circle class="wch-hit" cx="${px(monthIdx(r.m)).toFixed(1)}" cy="${py(r.kg).toFixed(1)}" r="${hitR}"/>
+         <circle class="wch-dot" cx="${px(monthIdx(r.m)).toFixed(1)}" cy="${py(r.kg).toFixed(1)}" r="4"/>
+       </g>`).join("");
+
+    return `<svg class="wch-svg" viewBox="0 0 ${g.W} ${g.H}" width="${g.W}" height="${g.H}"
+        role="img" aria-label="Gewichtsverlauf ${year}, ${rows.length} Messung${rows.length === 1 ? "" : "en"}">
+        ${grid}${months}${zielEl}${line}${dots}
+      </svg>`;
+  }
+
+  // Die ganze Karte: Kopf mit Jahr und Kennzahlen, Jahreswechsel, Diagramm, Legende.
+  function weightHtml() {
+    const year = activeYear();
+    const all = state.weights || [];
+    const rows = all.filter(e => e.m.slice(0, 4) === year);
+    const ziel = (state.weightGoals || {})[year];
+    const years = weightYears();
+    const first = rows.length ? rows[0] : null;
+    const last = rows.length ? rows[rows.length - 1] : null;
+    const diff = first && last ? last.kg - first.kg : null;
+
+    // Kennzahlen statt Fliesstext: Start, aktueller Stand, Ziel. Die Veraenderung traegt
+    // ihr Vorzeichen sichtbar, damit "-2,4 kg" nicht als Zunahme gelesen wird.
+    // Der abkuerzende Punkt gehoert nur an echte Abkuerzungen: "Jan." ja, "Mai" nein -
+    // dreibuchstabige Monatsnamen (Mai) sind schon vollstaendig.
+    const fromMon = first ? MON_LONG[monthIdx(first.m)] : "";
+    const fromLbl = fromMon.length > 3 ? fromMon.slice(0, 3) + "." : fromMon;
+    // Gruen heisst „naeher am Ziel", NICHT „weniger". Die Richtung kommt deshalb aus dem
+    // Jahresziel (liegt es ueber dem Startgewicht, ist eine Zunahme der Fortschritt),
+    // ersatzweise aus dem Ziel des Rechners. Ohne beides bleibt Abnehmen die Annahme.
+    // Fest an „runter = gut" gekoppelt haette die App jedem, der aufbaut, seinen Erfolg
+    // in Alarmrot gezeigt - in einer App, die ausdruecklich auch fuer Muskelaufbau rechnet.
+    const zunahmeIstZiel = ziel != null ? ziel > (first ? first.kg : 0)
+      : !!(state.goal && state.goal.mode === "gain");
+    const towardGoal = zunahmeIstZiel ? diff >= 0 : diff <= 0;
+    const stats = `<div class="wch-stats">
+        ${last ? `<div class="wch-s"><small>Aktuell</small><b>${kgfmt(last.kg)}<span>kg</span></b></div>` : ""}
+        ${diff != null && rows.length > 1 ? `<div class="wch-s"><small>Seit ${fromLbl}</small><b class="${towardGoal ? "is-toward" : "is-away"}">${diff > 0 ? "+" : "−"}${kgfmt(Math.abs(diff))}<span>kg</span></b></div>` : ""}
+        ${ziel != null ? `<div class="wch-s"><small>Ziel</small><b>${kgfmt(ziel)}<span>kg</span></b></div>` : ""}
+      </div>`;
+
+    // Jahreswechsel nur zeigen, wenn es etwas zu wechseln gibt. Gleiche Knopfoptik wie
+    // der Wochenwechsel im Plan (.week-switch/.ws-btn) statt eines zweiten Musters.
+    const yearBar = years.length > 1
+      ? `<div class="week-switch" role="tablist" aria-label="Jahr wählen">
+          ${years.map(y => `<button class="ws-btn${y === year ? " active" : ""}" data-action="wyear" data-year="${y}" role="tab" aria-selected="${y === year}">${y}</button>`).join("")}
+        </div>`
+      : "";
+
+    let body;
+    if (!rows.length) {
+      // Leerer Zustand mit Handlung statt leerer Flaeche.
+      body = `<p class="wch-empty">Noch keine Messung ${year === String(new Date().getFullYear()) ? "in diesem Jahr" : "in " + year}.</p>`;
+    } else {
+      // Der Plot bleibt hier leer: initWeightChart misst die tatsaechliche Breite und
+      // zeichnet erst dann - nur so stimmt die Schriftgroesse auf jedem Bildschirm.
+      body = `<div class="wch-plot"></div>`
+        // Legende ist Pflicht, sobald zwei Serien im Bild sind.
+        // Nur "Ziel", nicht "Ziel 75,0 kg": die Zahl steht schon in der Kennzahlenreihe
+        // darueber - zweimal dieselbe Zahl im selben Bild ist Fuellung, keine Information.
+        + (ziel != null && rows.length ? `<div class="wch-leg">
+            <span><i class="k-line"></i>Gemessen</span><span><i class="k-goal"></i>Ziel</span>
+          </div>` : "")
+        // Ausgabefeld fuer den angetippten Punkt - ohne Bedienhinweis. Dass ein Punkt
+        // antippbar ist, zeigt er selbst; ein Satz daneben waere genau die Erklaerung,
+        // die die Textmenge-Vorgabe untersagt. Bei nur einer Messung steht hier der Wert,
+        // weil es dort nichts zu vergleichen gibt.
+        + `<div class="wch-tip" aria-live="polite">${rows.length > 1 ? "" : monthLabel(last.m) + " · " + kgfmt(last.kg) + " kg"}</div>`;
+    }
+
+    return `<div class="wg-col wch">
+        <div class="wch-head">
+          <div>
+            <div class="wg-lbl">Ziele ${year}</div>
+            <h3 class="wg-h">Gewicht</h3>
+          </div>
+          ${stats}
+        </div>
+        ${yearBar}
+        ${body}
+        <div class="wch-acts">
+          <button class="btn primary" data-action="weigh">Wiegen</button>
+          <button class="btn ghost" data-action="weight-goal">${ziel != null ? "Ziel ändern" : "Jahresziel setzen"}</button>
+        </div>
+      </div>`;
+  }
+
+  // Startreiter: Begruessungs-Hero + Kalorien-Uebersicht (Heute/Woche-Ringe), beide vormals
+  // oben im Wochenplan. Dort war es voll, bevor man ueberhaupt beim Tagesraster war - jetzt
+  // eigene Landingpage, der Wochenplan startet direkt mit "Dein Wochenplan".
+  function renderHome() {
     const filled = planStats();
-    // Die Ziel-Uebersicht steht bewusst UEBER dem Plan: der Stand soll beim Oeffnen
-    // sofort sichtbar sein. (Unter dem Plan war sie kurzzeitig, hat sich aber nicht
-    // bewaehrt — nicht erneut verschieben ohne Ruecksprache.)
-    let html = `${appHeroHtml(filled)}
-      ${weekNutHtml()}
-      <div class="section-head plan-head">
+    view.innerHTML = `${appHeroHtml(filled)}${weekNutHtml()}${weightHtml()}`;
+    resetCarousels();
+    initCarousel(view.querySelector(".wg-cols"), view.querySelector(".wgbar"));
+    initWeightChart();
+  }
+
+  // Zeichnet das Diagramm in der gemessenen Breite und haengt die Bedienung dran.
+  // Punkt antippen/anfahren -> Datum und Gewicht in die Zeile darunter. Ein reiner
+  // Hover-Tooltip haette auf dem Handy gar nichts gezeigt, deshalb Klick UND Fokus
+  // (letzterer bedient zugleich die Tastatur).
+  function initWeightChart() {
+    const host = view.querySelector(".wch-plot");
+    if (!host) return;
+    const tip = view.querySelector(".wch-tip");
+    const base = tip ? tip.textContent : "";
+    const year = activeYear();
+    const rows = (state.weights || []).filter(e => e.m.slice(0, 4) === year);
+    const ziel = (state.weightGoals || {})[year];
+    if (!rows.length) return;
+
+    host.innerHTML = weightChartSvg(year, rows, ziel != null ? ziel : null, host.clientWidth);
+    host.querySelectorAll(".wch-pt").forEach(pt => {
+      const show = () => {
+        const row = rows.filter(e => e.m === pt.dataset.m)[0];
+        if (row && tip) tip.textContent = monthLabel(row.m) + " · " + kgfmt(row.kg) + " kg";
+        host.querySelectorAll(".wch-pt").forEach(o => o.classList.toggle("is-on", o === pt));
+      };
+      pt.addEventListener("click", show);
+      pt.addEventListener("focus", show);
+      pt.addEventListener("mouseenter", show);
+    });
+    const svg = host.querySelector(".wch-svg");
+    if (svg) svg.addEventListener("mouseleave", () => {
+      if (tip) tip.textContent = base;
+      host.querySelectorAll(".wch-pt").forEach(o => o.classList.remove("is-on"));
+    });
+  }
+  // Breite aendert sich (Drehen, Fenster ziehen) -> neu zeichnen, sonst behielte das
+  // SVG seine alte Pixelbreite und stuende zu schmal oder abgeschnitten da.
+  window.addEventListener("resize", () => { if (view.querySelector(".wch-plot")) initWeightChart(); });
+
+  function renderPlan() {
+    let html = `<div class="section-head plan-head">
         <div class="title">
           <h2>Dein Wochenplan</h2>
         </div>
@@ -3631,8 +4014,6 @@
     syncStickyOffsets();
     resetCarousels(); // die Streifen des vorigen Durchlaufs sind gerade weggeworfen worden
     initCarousel(view.querySelector(".week"), view.querySelector(".daybar"));
-    // Nur vorhanden, wenn ein Ziel gespeichert ist – initCarousel faengt null ab.
-    initCarousel(view.querySelector(".wg-cols"), view.querySelector(".wgbar"));
   }
 
   // Bewusst nicht gespeichert: beim Neuladen gilt wieder die Standardvorbelegung unten.
@@ -3776,6 +4157,117 @@
     </div>`);
     node.querySelectorAll("[data-close]").forEach(b => b.addEventListener("click", closeModal));
     node.querySelector("[data-confirm]").addEventListener("click", () => { closeModal(); o.onConfirm(); });
+    openModal(node);
+  }
+
+  // ---------- Wiegen ----------
+  // Ein Formular fuer beides: diesen Monat wiegen und frühere Monate nachtragen. Bewusst
+  // zwei Auswahlfelder und kein <input type="month">: das kennt Safari auf dem iPhone
+  // nicht und faellt dort auf ein nacktes Textfeld zurueck - ausgerechnet auf dem Geraet,
+  // auf dem die App laufen soll.
+  function openWeighForm() {
+    const nowY = new Date().getFullYear(), nowM = new Date().getMonth();
+    const last = latestWeight();
+    // Vorbelegt ist das Jahr, das gerade im Diagramm steht - nicht stur das laufende.
+    // Wer ueber den Jahreswechsel auf „Ziele 2025" schaut und dort etwas nachtragen
+    // will, muesste sonst erst zurueckschalten.
+    const startY = activeYear();
+    // Auswaehlbare Jahre: die letzten drei plus alle, in denen schon etwas steht.
+    const yset = {};
+    for (let i = 0; i < 3; i++) yset[nowY - i] = 1;
+    yset[startY] = 1;
+    (state.weights || []).forEach(e => { yset[e.m.slice(0, 4)] = 1; });
+    const years = Object.keys(yset).sort().reverse();
+
+    const node = el(`<div class="modal" role="dialog" aria-modal="true" aria-label="Wiegen">
+      <div class="modal-head"><h3>Wiegen</h3><button class="btn ghost sm" data-close aria-label="Schließen">✕</button></div>
+      <div class="modal-body">
+        <div class="field"><label for="w-kg">Gewicht</label><input type="number" id="w-kg" step="0.1" min="${KG_MIN}" max="${KG_MAX}" inputmode="decimal" placeholder="kg" value="${last ? esc(String(last.kg)) : ""}"></div>
+        <div class="row2">
+          <div class="field"><label for="w-m">Monat</label><select id="w-m"></select></div>
+          <div class="field"><label for="w-y">Jahr</label><select id="w-y">
+            ${years.map(y => `<option value="${y}"${y === startY ? " selected" : ""}>${y}</option>`).join("")}
+          </select></div>
+        </div>
+        <div id="w-list"></div>
+      </div>
+      <div class="modal-foot"><button class="btn ghost" data-close>Abbrechen</button><button class="btn primary" id="w-ok">Speichern</button></div>
+    </div>`);
+    node.querySelectorAll("[data-close]").forEach(b => b.addEventListener("click", closeModal));
+
+    const mEl = node.querySelector("#w-m"), yEl = node.querySelector("#w-y");
+    // Im laufenden Jahr enden die Monate beim aktuellen: ein Gewicht fuer den naechsten
+    // Monat kann niemand gemessen haben.
+    function fillMonths() {
+      const sel = mEl.value;
+      const maxM = +yEl.value === nowY ? nowM : 11;
+      mEl.innerHTML = MON_LONG.slice(0, maxM + 1)
+        .map((n, i) => `<option value="${String(i + 1).padStart(2, "0")}">${n}</option>`).join("");
+      mEl.value = (sel && +sel <= maxM + 1) ? sel : String(maxM + 1).padStart(2, "0");
+    }
+    fillMonths();
+    yEl.addEventListener("change", fillMonths);
+
+    const listEl = node.querySelector("#w-list");
+    function paintList() {
+      const rows = (state.weights || []).slice().reverse();
+      listEl.innerHTML = rows.length
+        ? `<h4 style="margin:18px 0 2px;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--text-muted)">Verlauf</h4>`
+          + rows.map(r => `<div class="wl-row"><span class="wl-d">${esc(monthLabel(r.m))}</span><span class="wl-k">${kgfmt(r.kg)} kg</span>
+              <button class="btn ghost sm" data-del="${r.m}" aria-label="Eintrag ${esc(monthLabel(r.m))} löschen">✕</button></div>`).join("")
+        : `<p class="wl-empty">Noch keine Messung.</p>`;
+      listEl.querySelectorAll("[data-del]").forEach(b => b.addEventListener("click", () => {
+        removeWeight(b.dataset.del); save(); paintList(); render();
+      }));
+    }
+    paintList();
+
+    node.querySelector("#w-ok").addEventListener("click", () => {
+      const kgEl = node.querySelector("#w-kg");
+      // nutParse akzeptiert Komma wie Punkt - auf deutschen Tastaturen wird das Komma getippt.
+      const kg = nutParse(kgEl.value);
+      if (!(kg >= KG_MIN && kg <= KG_MAX)) { kgEl.focus(); kgEl.style.borderColor = "var(--danger)"; toast("Bitte ein Gewicht zwischen " + KG_MIN + " und " + KG_MAX + " kg eintragen"); return; }
+      const m = yEl.value + "-" + mEl.value;
+      if (!validMonthKey(m) || m > monthKey()) { toast("Bitte einen Monat bis heute wählen"); return; }
+      const neu = !(state.weights || []).some(e => e.m === m);
+      setWeight(m, kg);
+      // Auf das Jahr springen, in das der Eintrag gehoert - sonst traegt man den Januar
+      // nach und sieht ihn nicht, weil noch ein anderes Jahr im Bild steht.
+      state.viewYear = +yEl.value;
+      save(); closeModal(); render();
+      toast(m === monthKey() ? "Gewicht gespeichert" : (neu ? "Nachgetragen: " : "Geändert: ") + monthLabel(m));
+    });
+    openModal(node);
+  }
+
+  // Jahres-Zielgewicht. Eigener kleiner Dialog, weil es genau ein Feld ist und nicht in
+  // jedem Wiegen-Vorgang im Weg stehen soll.
+  function openWeightGoalForm() {
+    const year = activeYear();
+    const cur = (state.weightGoals || {})[year];
+    const node = el(`<div class="modal" role="dialog" aria-modal="true" aria-label="Jahresziel ${year}">
+      <div class="modal-head"><h3>Ziel ${year}</h3><button class="btn ghost sm" data-close aria-label="Schließen">✕</button></div>
+      <div class="modal-body">
+        <div class="field"><label for="wg-kg">Wunschgewicht zum Jahresende</label><input type="number" id="wg-kg" step="0.1" min="${KG_MIN}" max="${KG_MAX}" inputmode="decimal" placeholder="kg" value="${cur != null ? esc(String(cur)) : ""}"></div>
+      </div>
+      <div class="modal-foot">
+        ${cur != null ? `<button class="btn ghost" id="wg-del">Ziel entfernen</button>` : `<button class="btn ghost" data-close>Abbrechen</button>`}
+        <button class="btn primary" id="wg-ok">Speichern</button>
+      </div>
+    </div>`);
+    node.querySelectorAll("[data-close]").forEach(b => b.addEventListener("click", closeModal));
+    const del = node.querySelector("#wg-del");
+    if (del) del.addEventListener("click", () => {
+      delete state.weightGoals[year]; save(); closeModal(); render(); toast("Jahresziel entfernt");
+    });
+    node.querySelector("#wg-ok").addEventListener("click", () => {
+      const inp = node.querySelector("#wg-kg");
+      const kg = nutParse(inp.value);
+      if (!(kg >= KG_MIN && kg <= KG_MAX)) { inp.focus(); inp.style.borderColor = "var(--danger)"; toast("Bitte ein Gewicht zwischen " + KG_MIN + " und " + KG_MAX + " kg eintragen"); return; }
+      if (!state.weightGoals) state.weightGoals = {};
+      state.weightGoals[year] = Math.round(kg * 10) / 10;
+      save(); closeModal(); render(); toast("Ziel für " + year + " gespeichert");
+    });
     openModal(node);
   }
 
@@ -4464,9 +4956,11 @@
       <h4>2. Hosting der Website (GitHub Pages)</h4>
       <p>Diese Website wird bei GitHub Pages gehostet, einem Dienst der GitHub, Inc., 88 Colin P. Kelly Jr. Street, San Francisco, CA 94107, USA. Beim Aufruf der Seite verarbeitet GitHub technisch notwendige Zugriffsdaten (z. B. deine IP-Adresse), um die Seite auszuliefern und deren Sicherheit zu gewährleisten. Rechtsgrundlage ist unser berechtigtes Interesse an einer sicheren und effizienten Bereitstellung (Art. 6 Abs. 1 lit. f DSGVO). Dabei kann eine Übermittlung in die USA erfolgen. Weitere Infos: <a href="https://docs.github.com/de/site-policy/privacy-policies/github-general-privacy-statement" target="_blank" rel="noopener">GitHub Privacy Statement</a>.</p>
       <h4>3. Welche Daten wir verarbeiten</h4>
-      <p>Bei der Registrierung: <strong>Name und E-Mail-Adresse</strong>. Bei Nutzung der App: die von dir angelegten <strong>Wochenpläne, Meals/Rezepte und ggf. Fotos</strong> sowie – falls du den Kalorienrechner nutzt und ein Ergebnis speicherst – <strong>Geschlecht, Alter, Größe, Gewicht, Alltagsbewegung, Ziel sowie deine Trainingstage</strong> (Wochentag, Intensität und Dauer; Details siehe Ziffer 3a). Zusätzlich speichern wir eine technische Markierung, ob du die <strong>Einführungsfragen nach der Registrierung</strong> („Erste Schritte") bereits durchlaufen hast, damit dir der Ablauf nicht bei jeder Anmeldung erneut angezeigt wird. Erstellst du Teilen-Links, merkt sich dein Konto zusätzlich deren <strong>Kennungen</strong> (keine Klardaten, siehe Ziffer 8), damit sie beim Löschen deines Kontos zugeordnet und mitentfernt werden können. Diese Daten speichern wir, damit du dich anmelden und deine Planung geräteübergreifend nutzen kannst.</p>
+      <p>Bei der Registrierung: <strong>Name und E-Mail-Adresse</strong>. Bei Nutzung der App: die von dir angelegten <strong>Wochenpläne, Meals/Rezepte und ggf. Fotos</strong> sowie – falls du den Kalorienrechner nutzt und ein Ergebnis speicherst – <strong>Geschlecht, Alter, Größe, Gewicht, Alltagsbewegung, Ziel sowie deine Trainingstage</strong> (Wochentag, Intensität und Dauer; Details siehe Ziffer 3a). Zusätzlich speichern wir eine technische Markierung, ob du die <strong>Einführungsfragen nach der Registrierung</strong> („Erste Schritte") bereits durchlaufen hast, damit dir der Ablauf nicht bei jeder Anmeldung erneut angezeigt wird. Erstellst du Teilen-Links, merkt sich dein Konto zusätzlich deren <strong>Kennungen</strong> (keine Klardaten, siehe Ziffer 8), damit sie beim Löschen deines Kontos zugeordnet und mitentfernt werden können. Trägst du eine Wiegung ein oder speicherst du im Kalorienrechner ein Ergebnis, speichern wir außerdem deinen <strong>Gewichtsverlauf</strong> – je Eintrag Monat und Gewicht – sowie ein optionales <strong>Jahres-Zielgewicht</strong> (Details siehe Ziffer 3b). Diese Daten speichern wir, damit du dich anmelden und deine Planung geräteübergreifend nutzen kannst.</p>
       <h4>3a. Kalorienrechner</h4>
       <p>Nutzt du den Kalorienrechner, gibst du freiwillig <strong>Geschlecht, Alter, Größe und Gewicht</strong> sowie deine Alltagsbewegung und dein Ziel ein. Optional legst du zusätzlich deine <strong>Trainingstage</strong> fest – also an welchen Wochentagen du trainierst, mit welcher Intensität und wie lange. Daraus berechnet die App direkt in deinem Browser deinen Tagesbedarf, deine Makronährstoffe und deinen BMI; an Trainingstagen zusätzlich den geschätzten Mehrbedarf durch die jeweilige Einheit. Speicherst du das Ergebnis („Als mein Ziel speichern"), werden diese Angaben wie deine übrigen Plandaten lokal und – bei Cloud-Nutzung – in deinem Nutzerkonto (Cloud Firestore, siehe Ziffer 5) gespeichert, um sie geräteübergreifend verfügbar zu halten. Rechtsgrundlage ist wie unter Ziffer 4 die Erfüllung des Nutzungsvertrags (Art. 6 Abs. 1 lit. b DSGVO). Die Eingabe ist freiwillig; lässt du den Rechner ungenutzt, entstehen keine dieser Daten. Diese Angaben werden <strong>nicht</strong> in Teilen-Links aufgenommen (siehe Ziffer 8).</p>
+      <h4>3b. Gewichtsverlauf („Ziele &lt;Jahr&gt;")</h4>
+      <p>Ein Eintrag im Gewichtsverlauf besteht aus <strong>Monat und Gewicht</strong> – taggenaue Angaben werden nicht erhoben; zusätzlich kannst du ein <strong>Zielgewicht je Kalenderjahr</strong> festlegen. Ein solcher Eintrag entsteht auf zwei Wegen: wenn du im Bereich „Ziele" eine Wiegung einträgst – auch nachträglich für zurückliegende Monate –, und automatisch dann, wenn du im <strong>Kalorienrechner oder in den ersten Schritten</strong> ein Ergebnis mit deinem Gewicht speicherst und dieses vom zuletzt erfassten Wert abweicht. Die Daten dienen allein der Darstellung deines Verlaufs als Diagramm; die jeweils jüngste Wiegung aktualisiert zusätzlich das im Kalorienrechner hinterlegte Gewicht, damit dein Kalorien- und Makroziel zu deinem aktuellen Gewicht passt (Ziffer 3a). Speicherung und Rechtsgrundlage entsprechen Ziffer 3a: lokal auf deinem Gerät und – bei Cloud-Nutzung – in deinem Nutzerkonto, Art. 6 Abs. 1 lit. b DSGVO. Die Eingabe ist <strong>freiwillig</strong>; ohne Wiegung entstehen keine dieser Daten. Einzelne Einträge kannst du jederzeit im Wiegen-Dialog löschen, den gesamten Verlauf mit deinem Konto (Ziffer 10). Diese Angaben werden <strong>nicht</strong> in Teilen-Links aufgenommen (siehe Ziffer 8).</p>
       <h4>4. Zweck &amp; Rechtsgrundlage</h4>
       <p>Wir verarbeiten die Daten zur Bereitstellung deines Nutzerkontos und der Planer-Funktionen (Art. 6 Abs. 1 lit. b DSGVO – Nutzungsvertrag). Die Bestätigungs-E-Mail dient der Sicherstellung, dass die Adresse dir gehört.</p>
       <h4>5. Cloud-Dienste (Google Firebase)</h4>
@@ -4582,6 +5076,9 @@
     else if (a === "unassign") { e.stopPropagation(); const [d, m, i] = t.dataset.slotSrc.split(":"); state.plan[d][m].splice(Number(i), 1); render(); }
     else if (a === "shopping") openShopping();
     else if (a === "week") { if ((t.dataset.week === "next") !== (state.viewWeek === "next")) { setViewWeek(t.dataset.week); render(); } }
+    else if (a === "wyear") { if (String(state.viewYear) !== t.dataset.year) { state.viewYear = +t.dataset.year; render(); } }
+    else if (a === "weigh") openWeighForm();
+    else if (a === "weight-goal") openWeightGoalForm();
     else if (a === "clear-week") clearWeek();
     else if (a === "share") openShare();
     else if (a === "profile-menu") toggleProfileMenu();
@@ -4761,7 +5258,7 @@
   function enterApp() {
     appEl.classList.remove("authing");
     renderProfileChip();
-    state.tab = "plan"; // Start immer im Wochenplan (Reload & Login)
+    state.tab = "home"; // Start immer im Home-Reiter (Reload & Login)
     render();
     if (pendingShare) { const id = pendingShare; pendingShare = null; shareOnStart = true; loadSharedById(id); }
     // Im Cloud-Modus entscheidet startCloudSync ueber die ersten Schritte, nicht wir: das
@@ -4889,6 +5386,53 @@
     return [];
   }
   function paceKeys(mode) { return paceOptions(mode).map(o => o[0]); }
+
+  // ---------- Wiegen: speichern, loeschen, ans Ziel koppeln ----------
+  // Ein Monat, ein Wert - erneutes Wiegen im selben Monat ersetzt den Eintrag.
+  function setWeight(m, kg) {
+    const list = (state.weights || []).filter(e => e.m !== m);
+    list.push({ m: m, kg: Math.round(kg * 10) / 10 });
+    list.sort((a, b) => a.m < b.m ? -1 : 1);
+    state.weights = list;
+    syncGoalWeight();
+  }
+  function removeWeight(m) {
+    state.weights = (state.weights || []).filter(e => e.m !== m);
+    syncGoalWeight();
+  }
+  function latestWeight() { const w = state.weights || []; return w.length ? w[w.length - 1] : null; }
+
+  // Das Kalorienziel haengt am Gewicht (BMR, Protein), also zieht die JUENGSTE Messung es
+  // nach. Bewusst nur die juengste: traegt man im Juli den Januar nach, darf das aktuelle
+  // Ziel nicht auf den alten Wert zurueckspringen - sonst macht Nachtragen die Tagesziele
+  // kaputt. Ohne gespeichertes Ziel gibt es nichts nachzuziehen (der Verlauf laeuft
+  // trotzdem weiter, er haengt nicht am Rechner).
+  function syncGoalWeight() {
+    const last = latestWeight();
+    if (!state.goal || !last || state.goal.weight === last.kg) return;
+    state.goal = computeGoal(Object.assign({}, state.goal, { weight: last.kg }));
+  }
+  // Die Gegenrichtung zu syncGoalWeight: Das Gewicht wird auch im Rechner und in den
+  // ersten Schritten abgefragt: Wer dort etwas eintraegt, hat sich gewogen - das gehoert
+  // in den Verlauf, sonst zeigt die Kurve weiter den alten Wert.
+  //  - noch nichts gemessen -> Startpunkt zum Monat des Ziels (der Verlauf braucht einen Anfang)
+  //  - schon Messungen da, Rechner-Gewicht weicht ab -> als Messung dieses Monats
+  // Beide Richtungen pruefen auf Gleichheit und laufen sich deshalb nicht gegenseitig hoch.
+  // (Ziffer 3b der Datenschutzerklaerung nennt diesen zweiten Weg ausdruecklich.)
+  function noteWeightFromGoal() {
+    if (!state.goal) return;
+    const kg = Math.round(+state.goal.weight * 10) / 10;
+    if (!(kg >= KG_MIN && kg <= KG_MAX)) return;
+    const last = latestWeight();
+    if (!last) {
+      // Durch sanitizeWeights schicken statt direkt zuzuweisen: updatedAt kommt aus
+      // gespeicherten Daten und koennte beschaedigt sein - ein "NaN-NaN" als Monat
+      // wuerde sonst bis ins Diagramm durchlaufen.
+      state.weights = sanitizeWeights([{ m: monthKey(new Date(state.goal.updatedAt || Date.now())), kg: kg }]);
+    } else if (last.kg !== kg) {
+      setWeight(monthKey(), kg);
+    }
+  }
 
   // Was fehlt noch, in Worten? Eine Quelle fuer beides: den Hinweis im Assistenten
   // und den Text der leeren Ergebniskarte. Reihenfolge wie im Formular, damit der
@@ -5118,6 +5662,7 @@
       // passiert nichts: wer nur herumprobiert, legt sich kein Ziel an.
       if (state.goal && validCalcInput(inp) && wizardActive()) {
         state.goal = computeGoal(inp);
+        noteWeightFromGoal();
         save();
       }
       const fehlt = missingCalc(inp);
@@ -5177,6 +5722,7 @@
           <button class="btn ghost sm" id="c-del">Ziel zurücksetzen</button></div>` : ""}`;
       res.querySelector("#c-save").addEventListener("click", () => {
         state.goal = computeGoal(readInput());
+        noteWeightFromGoal();
         save();
         toast("Dein Ziel wurde gespeichert");
         updateResult();
@@ -5374,6 +5920,7 @@
       // „Berechnen": hier ist alles vollstaendig – die Pruefung oben deckt ueber
       // fehltFuer() auch die frueheren Karten ab.
       state.goal = computeGoal(readInput());
+      noteWeightFromGoal();
       save();
       updateResult();
       maxStep = LAST;
@@ -5524,7 +6071,7 @@
     onb = null;
     state.onboarded = true;
     appEl.classList.remove("onboarding");
-    state.tab = "plan";
+    state.tab = "home";
     save();
     render();
     syncStickyOffsets();
@@ -5807,7 +6354,7 @@
           toast("Dein Name steht auf diesem Gerät, konnte aber nicht in deinem Konto gespeichert werden");
         });
       }
-      if (id === "result") { state.goal = computeGoal(onbGoalInput()); save(); }
+      if (id === "result") { state.goal = computeGoal(onbGoalInput()); noteWeightFromGoal(); save(); }
       onbGo(1);
     });
     view.querySelector(".onb-back").addEventListener("click", () => onbGo(-1));
