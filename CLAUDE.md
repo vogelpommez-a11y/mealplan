@@ -24,6 +24,28 @@ Neue Elemente fügen sich in das vorhandene System ein und nutzen dessen CSS-Var
 Wenn eine Design-Entscheidung nicht durch vorhandene Tokens abgedeckt ist, erst fragen bzw. einen
 neuen Token im gleichen Stil anlegen — nicht danebendesignen.
 
+## Schritt-für-Schritt-Abläufe: durchgängige Leiste (verbindlich)
+
+**Jeder mehrstufige Ablauf (Assistent/Wizard, der Objekte/Werte schrittweise abfragt oder
+einpflegt) zeigt seinen Fortschritt als durchgängige Leiste — dieselbe Klasse
+`.wg-progress-bar`, nicht neu gebaut.** Ein rein visueller Balken, der sich anteilig füllt
+(`(aktueller Schritt + 1) / Gesamtschritte`), plus ein kurzer Text darunter im Stil
+„Schritt 3 von 4 · Training". Kein Rückgriff auf einzelne nummerierte Kacheln/Buttons je
+Schritt (wie früher `.cb-b` im Kalorienrechner: vier 44 px hohe Zwei-Zeilen-Kästen mit
+Nummer + Beschriftung) — das wirkt klobig neben der schlanken Optik der ersten Schritte
+(Onboarding) und wurde deshalb im Kalorienrechner durch genau diese Leiste ersetzt.
+
+Die Leiste ist **nicht antippbar** — kein Sprung auf einen beliebigen früheren Schritt per
+Klick auf die Leiste. Zurück geht ausschließlich über einen eigenen „Zurück"-Knopf, wie im
+Onboarding. Ein Zwischenstand mit vier antippbaren Segmenten (Sprung auf jeden erreichten
+Schritt) wurde bewusst wieder verworfen, um exakt der Onboarding-Optik zu folgen.
+
+Technischer Hinweis, falls der Ablauf auf `initCarousel()` aufsetzt (wie der Kalorienrechner):
+Die Funktion braucht intern eine feste Anzahl Kind-Elemente als Gerüst, um den aktuellen
+Schritt zu verfolgen — ohne sie bricht die Navigation. Diese Platzhalter bleiben unsichtbar
+und aus Tastatur-/Screenreader-Fokus genommen (`aria-hidden="true"`, `tabindex="-1"` auf den
+Elementen), sichtbar ist ausschließlich der durchgängige Balken darüber.
+
 ## Textmenge-Vorgabe: knapp statt erklärend (verbindlich)
 
 **Die App bleibt übersichtlich. Jede UI zeigt so wenig Text wie möglich, nicht so viel wie
