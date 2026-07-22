@@ -182,8 +182,8 @@
   .tab.tab-pro .soon-tag { background: var(--accent-contrast); color: var(--accent-solid); }
   .tab .ts { display: none; } /* Kurzform der Beschriftung, nur im unteren Balken */
   /* Handy: aus der Reiterleiste im Kopf wird eine feste Leiste am unteren Rand, wie in
-     nativen Apps. Grund ist gemessen, nicht geschaetzt: die fuenf Reiter brauchen
-     742 px, bei 360 px Bildschirmbreite stehen 332 px zur Verfuegung — bisher waren
+     nativen Apps. Grund ist gemessen, nicht geschaetzt: schon vier Reiter brauchen mehr
+     Breite, als bei 360 px Bildschirmbreite zur Verfuegung steht — bisher waren
      sie also nur durch seitliches Schieben erreichbar, ohne jeden Hinweis darauf.
      Die Leiste wird per CSS versetzt und NICHT im Markup verdoppelt: sonst muessten
      zwei Leisten synchron gehalten werden (aria-selected, Meal-Zaehler). */
@@ -192,7 +192,7 @@
     .navrow { display: contents; }
     .tabs {
       position: fixed; left: 0; right: 0; bottom: 0; z-index: 50;
-      display: grid; grid-template-columns: repeat(5, 1fr); gap: 0;
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 0;
       border: 0; border-top: 1px solid var(--border); border-radius: 0;
       background: color-mix(in srgb, var(--surface) 94%, var(--bg));
       backdrop-filter: blur(10px);
@@ -344,11 +344,13 @@
   /* Ueber dem Tagesziel: Zeichen UND Text, nie nur Farbe. Steht vor dem Tages-Chip,
      damit es beim Ueberfliegen der Wochenspalten sofort auffaellt. */
   .day-head .dover {
-    margin-left: auto; font-size: 10px; font-weight: 700; letter-spacing: .03em;
+    margin-left: auto; display: inline-flex; align-items: center; gap: 3px;
+    font-size: 10px; font-weight: 700; letter-spacing: .03em;
     white-space: nowrap; color: var(--accent); padding: 3px 8px; border-radius: 999px;
     background: color-mix(in srgb, var(--accent) 12%, transparent);
     border: 1px solid color-mix(in srgb, var(--accent) 38%, transparent);
   }
+  .day-head .dover svg { width: 11px; height: 11px; flex: none; }
   .day.over > .day-head { background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 20%, var(--surface)), var(--surface)); }
 
   /* ---- Trainingstag ----
@@ -514,6 +516,16 @@
      Makro pro Zeile (flex-wrap, siehe dort), statt Namen abzukuerzen. */
   .day-goals { padding: 11px 14px 13px; border-top: 1px dashed var(--border); background: color-mix(in srgb, var(--surface-2) 55%, var(--surface)); }
   .day-goals .wg-macros { margin-top: 12px; }
+  /* Aufklapp-Knopf fuer die drei Makrobalken - im Ruhezustand zaehlt nur der
+     Kalorien-Balken, die Makros stehen einen Tap entfernt (siehe dayGoalsHtml). */
+  .day-goals-toggle {
+    display: flex; align-items: center; gap: 4px; width: 100%; margin-top: 9px;
+    font: inherit; font-size: 11px; font-weight: 600; color: var(--text-muted);
+    background: none; border: 0; padding: 6px 0; cursor: pointer; min-height: 32px;
+  }
+  .day-goals-toggle:hover { color: var(--text); }
+  .day-goals-toggle .caret { width: 13px; height: 13px; flex: none; transition: transform .15s; }
+  .day-goals-toggle .caret.open { transform: rotate(90deg); }
   @media (max-width: 560px) { .wn-tiles { grid-template-columns: repeat(2, 1fr); } }
 
   /* Nährwerte in der Rezept-Detailansicht */
@@ -895,7 +907,7 @@
   .app-hero h2 em { color: var(--accent); font-style: normal; }
   .app-hero .hero-sub { color: var(--text-muted); font-size: 15.5px; line-height: 1.5; margin: 12px 0 0; max-width: 60ch; }
   /* Kalorienrechner-Platzhalter (kommt bald) */
-  .soon-wrap { min-height: 46vh; display: grid; place-items: center; text-align: center; padding: 40px 0; }
+  .soon-wrap { min-height: 46vh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 36px; text-align: center; padding: 40px 0; }
   .soon-card { max-width: 460px; }
   .soon-card .soon-ic { width: 60px; height: 60px; border-radius: 16px; display: grid; place-items: center; margin: 0 auto 18px; background: color-mix(in srgb, var(--accent) 12%, var(--surface)); border: 1px solid color-mix(in srgb, var(--accent) 34%, transparent); color: var(--accent); }
   .soon-card .soon-ic svg { width: 28px; height: 28px; }
@@ -906,7 +918,58 @@
   .soon-card .soon-note { font-size: 12.5px; margin-top: 14px; opacity: .85; }
 
   /* ---------- Kalorienrechner ---------- */
-  .calc { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: start; }
+  /* Assistent auf jeder Breite: vier Karten (Koerperdaten, Alltag & Ziel, Trainingstage,
+     Ergebnis), ein Karussell mit fester Reihenfolge - gewischt wird nicht (siehe
+     overflow:hidden), nur "Weiter"/"Zurueck" und die Schritt-Leiste bewegen es. Fruehher
+     stand auf Desktop Formular und Ergebnisspalte nebeneinander mit Live-Vorschau; das
+     entfaellt jetzt zugunsten eines einheitlichen Ablaufs auf allen Groessen (siehe
+     UX-Review). display:contents flacht .calc-form nur fuer die Darstellung ein, im DOM
+     bleibt die Ebene stehen - initCarousel bekommt die Karten deshalb ausdruecklich
+     uebergeben. */
+  .calc { display: flex; gap: 12px; align-items: flex-start; overflow: hidden; }
+  .calc-form { display: contents; }
+  .calc .calc-group, .calc .calc-result { flex: 0 0 100%; margin-bottom: 0; }
+  /* Klebt unter dem Kopf, damit beim Scrollen durch eine lange Karte sichtbar bleibt,
+     in welchem Schritt man steht. */
+  .calcbar {
+    display: flex; gap: 4px;
+    position: sticky; top: var(--head-h, 70px); z-index: 20;
+    margin: 0 0 12px; padding: 6px 0;
+    background: var(--bg);
+    box-shadow: 0 6px 12px -8px rgba(0, 0, 0, .45);
+  }
+  .cb-b {
+    flex: 1 1 0; min-width: 0; min-height: 44px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+    font: inherit; font-size: 10.5px; font-weight: 650; letter-spacing: .02em;
+    cursor: pointer; white-space: nowrap; overflow: hidden;
+    color: var(--text-muted); background: var(--surface-2);
+    border: 1px solid var(--border); border-radius: var(--radius-sm);
+    transition: color .14s, background .14s, border-color .14s;
+  }
+  /* Die Schrittnummer traegt die Reihenfolge auch dann, wenn die Beschriftung
+     auf schmalen Geraeten kaum zu lesen ist. */
+  .cb-b .cb-n { font-family: var(--font-display); font-size: 13px; font-weight: 700; line-height: 1; }
+  .cb-b.done { color: var(--ok); border-color: color-mix(in srgb, var(--ok) 45%, var(--border)); }
+  .cb-b.active {
+    color: var(--accent-contrast); border-color: transparent;
+    background: linear-gradient(135deg, var(--accent), var(--accent-strong));
+  }
+  /* Noch nicht erreichte Schritte sind echt deaktiviert, nicht nur blass: sonst
+     fuehrt ein Tippen ins Leere, ohne dass jemand versteht warum. */
+  .cb-b:disabled { opacity: .4; cursor: default; }
+  /* Der Fussknopf ist der Faden durch den Assistenten: Weiter, Weiter, Berechnen,
+     Zuruecksetzen. Auf dem Handy klebt er ueber der unteren Reiterleiste (siehe
+     Media-Query unten fuer bottom/bg); auf breiten Screens reicht ein normaler Fluss. */
+  .calcnav { display: block; margin: 16px 0 0; padding: 10px 0 4px; }
+  .calcnav .cn-row { display: flex; gap: 8px; max-width: 420px; margin: 0 auto; }
+  .calcnav .btn { justify-content: center; min-height: 48px; font-size: 15px; }
+  .calcnav .btn.ghost { background: var(--surface); border-color: var(--border-strong); color: var(--text); }
+  .calcnav #c-step-back { flex: 0 0 34%; }
+  .calcnav #c-step-go { flex: 1 1 auto; }
+  /* Auf der Ergebniskarte traegt der Fussknopf die Aktion – der Knopf in der Karte
+     waere dieselbe Handlung ein zweites Mal. */
+  .calc-result #c-save, .calc-result .calc-saved { display: none; }
   .calc-form .field { margin-bottom: 15px; }
   .row3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
   /* Segmented control (Geschlecht/Ziel) im Stil der Wochen-Umschalter */
@@ -969,6 +1032,14 @@
     font-variant-numeric: tabular-nums; color: var(--text);
     background: var(--surface); border: 1px solid var(--border-strong); border-radius: var(--radius-sm);
   }
+  /* Umschalter fuer eine gemeinsame Intensitaetszeile statt einer je Trainingstag -
+     bei vielen gewaehlten Tagen sonst zu viele Segmented-Controls auf einer Karte. */
+  .tsame {
+    display: flex; align-items: center; gap: 9px; min-height: 36px;
+    padding: 2px 2px 10px; font-size: 12.5px; font-weight: 600; color: var(--text);
+    cursor: pointer;
+  }
+  .tsame input { width: 18px; height: 18px; accent-color: var(--accent); flex: none; cursor: pointer; }
   .tmin-f input:focus-visible { outline: 2px solid var(--train); outline-offset: 1px; }
   /* Beispiele zur GEWAEHLTEN Stufe. Stehen sichtbar in der Zeile und nicht nur im
      title-Attribut: auf dem Handy gibt es keine Tooltips, dort waeren sie unsichtbar —
@@ -1015,7 +1086,7 @@
 
   .seg-col { flex-direction: column; gap: 3px; border-radius: var(--radius-sm); padding: 4px; }
   .seg-col button { flex-direction: row; justify-content: space-between; align-items: center; border-radius: var(--radius-sm); padding: 11px 14px; }
-  .calc-result { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); padding: 26px 22px; text-align: center; position: sticky; top: 92px; }
+  .calc-result { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); padding: 26px 22px; text-align: center; }
   /* Die Kernzahl ist das Ergebnis der ganzen Seite. Hervorgehoben wird sie ueber RAUM,
      nicht ueber eine weitere Farbe: 54px sind bereits die groesste Schrift der App, und
      ein zweiter Akzentton wuerde nur die Bedeutung des roten schwaechen. */
@@ -1091,10 +1162,6 @@
   .bd-row.bd-mid span:last-child { font-weight: 700; }
   .calc-meta { display: flex; justify-content: center; gap: 22px; font-size: 13px; color: var(--text-muted); margin-top: 16px; }
   .calc-meta b { color: var(--text); }
-  @media (max-width: 720px) {
-    .calc { grid-template-columns: 1fr; gap: 18px; }
-    .calc-result { position: static; }
-  }
   .auth-card { width: 100%; max-width: 430px; background: var(--surface); border: 1px solid var(--border); border-radius: 18px; box-shadow: var(--shadow); padding: 34px 30px 26px; text-align: center; }
   .auth-card .mark { width: 116px; height: 116px; border-radius: 50%; margin: 0 auto 20px; overflow: hidden; background: center / cover no-repeat var(--logo); }
   .auth-card h2 { font-family: var(--font-display); font-size: 25px; font-weight: 600; margin: 0 0 6px; text-wrap: balance; }
@@ -1221,7 +1288,7 @@
      Sprungziel. Deshalb 44 px hoch – sie ist Bedienelement, keine Dekoration.
      Die beiden Leisten stehen ausserhalb der Handy-Abfrage auf display:none; im
      Markup sind sie immer da, damit renderPlan() nicht zwei Faelle kennen muss. */
-  .daybar, .wgbar, .calcbar, .calcnav { display: none; }
+  .daybar, .wgbar { display: none; }
 
   @media (max-width: 680px) {
     .daybar {
@@ -1318,84 +1385,19 @@
     .wg-cols::-webkit-scrollbar { display: none; }
     .wg-cols > .wg-col { flex: 0 0 100%; scroll-snap-align: start; scroll-snap-stop: always; }
 
-    /* ---- Kalorienrechner als Assistent ----
-       Am Rechner stehen Formular und Ergebnisspalte nebeneinander und das Ergebnis
-       rechnet bei jedem Tastendruck mit – das ist dort die Staerke und bleibt. Auf dem
-       Handy liegen die drei Gruppen untereinander, das Ergebnis ganz unten ausser
-       Sicht; hier fuehren vier Schritte besser. Dieselbe Mechanik wie beim Wochenplan.
-       display:contents flacht .calc-form nur fuer die Darstellung ein, damit die drei
-       Gruppen zu Karten des Streifens werden – im DOM bleibt die Ebene stehen,
-       deshalb bekommt initCarousel die Karten dort ausdruecklich uebergeben. */
-    .calc {
-      display: flex; gap: 12px; align-items: flex-start;
-      /* hidden statt auto: der Weg durch den Rechner ist fest, gewischt wird nicht.
-         Programmgesteuertes Scrollen (Weiter/Zurueck) funktioniert weiter – ein
-         overflow:hidden-Element ist nach wie vor ein Scrollbehaelter, nur eben keiner,
-         den der Finger bewegt. Deshalb greifen auch fitHeight() und wizardActive()
-         unveraendert, die beide an scrollWidth > clientWidth haengen. */
-      overflow: hidden;
-    }
-    .calc-form { display: contents; }
-    .calc .calc-group, .calc .calc-result { flex: 0 0 100%; margin-bottom: 0; }
-
-    /* Wie die Tagesleiste im Wochenplan: klebt unter dem Kopf, damit beim Scrollen
-       durch eine lange Karte sichtbar bleibt, in welchem Schritt man steht. */
-    .calcbar {
-      display: flex; gap: 4px;
-      position: sticky; top: var(--head-h, 70px); z-index: 20;
-      margin: 0 0 12px; padding: 6px 0;
-      background: var(--bg);
-      box-shadow: 0 6px 12px -8px rgba(0, 0, 0, .45);
-    }
-    .cb-b {
-      flex: 1 1 0; min-width: 0; min-height: 44px;
-      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
-      font: inherit; font-size: 10.5px; font-weight: 650; letter-spacing: .02em;
-      cursor: pointer; white-space: nowrap; overflow: hidden;
-      color: var(--text-muted); background: var(--surface-2);
-      border: 1px solid var(--border); border-radius: var(--radius-sm);
-      transition: color .14s, background .14s, border-color .14s;
-    }
-    /* Die Schrittnummer traegt die Reihenfolge auch dann, wenn die Beschriftung
-       auf schmalen Geraeten kaum zu lesen ist. */
-    .cb-b .cb-n {
-      font-family: var(--font-display); font-size: 13px; font-weight: 700; line-height: 1;
-    }
-    .cb-b.done { color: var(--ok); border-color: color-mix(in srgb, var(--ok) 45%, var(--border)); }
-    .cb-b.active {
-      color: var(--accent-contrast); border-color: transparent;
-      background: linear-gradient(135deg, var(--accent), var(--accent-strong));
-    }
-    /* Noch nicht erreichte Schritte sind echt deaktiviert, nicht nur blass: sonst
-       fuehrt ein Tippen ins Leere, ohne dass jemand versteht warum. */
-    .cb-b:disabled { opacity: .4; cursor: default; }
-
-    /* Der Fussknopf ist der Faden durch den Assistenten: Weiter, Weiter, Berechnen,
-       Zuruecksetzen. Klebt am unteren Rand ueber der Reiterleiste, damit er auf jeder
-       Karte erreichbar bleibt, ohne ans Ende scrollen zu muessen. */
+    /* Kalorienrechner-Assistent (Basisregeln jetzt oben, breitenunabhaengig): auf dem
+       Handy klebt der Fussknopf zusaetzlich ueber der unteren Reiterleiste, damit er auf
+       jeder Karte erreichbar bleibt, ohne ans Ende scrollen zu muessen. Auf breiten
+       Screens reicht der normale Fluss der Basisregel. */
     .calcnav {
-      display: block; position: sticky; z-index: 20;
+      position: sticky; z-index: 20;
       /* ueber der festen Reiterleiste, nicht dahinter. Deren Hoehe misst
          syncStickyOffsets(); der Rueckfallwert gilt nur, bis das einmal gelaufen ist.
          env() steckt schon in der Leiste selbst – hier nicht doppelt rechnen. */
       bottom: calc(var(--tabbar-h, 56px) + 8px);
-      margin: 16px 0 0; padding: 10px 0 4px;
       background: var(--bg);
     }
-    /* Zurueck schmal links, die Haupthandlung breit rechts – der Weg nach vorn ist
-       das Wahrscheinliche und bekommt das groessere Ziel unter dem Daumen. */
-    .calcnav .cn-row { display: flex; gap: 8px; }
-    .calcnav .btn { justify-content: center; min-height: 48px; font-size: 15px; }
-    /* .btn.ghost hat einen durchsichtigen Rand – im Fussbereich stehen aber teils ZWEI
-       davon nebeneinander (Zurueck + Ziel zuruecksetzen), und die Zeile las sich dann
-       als zwei schwebende Textlinks ohne Bedienhinweis. Hier bekommen sie eine
-       sichtbare Kontur aus den vorhandenen Tokens. */
-    .calcnav .btn.ghost { background: var(--surface); border-color: var(--border-strong); color: var(--text); }
-    .calcnav #c-step-back { flex: 0 0 34%; }
-    .calcnav #c-step-go { flex: 1 1 auto; }
-    /* Auf der Ergebniskarte traegt der Fussknopf die Aktion – der Knopf in der Karte
-       waere dieselbe Handlung ein zweites Mal. */
-    .calc-result #c-save, .calc-result .calc-saved { display: none; }
+    .calcnav .cn-row { max-width: none; margin: 0; }
   }
 </style>
 
@@ -1419,17 +1421,13 @@
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4v16a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1V7l-4-3H5a1 1 0 0 0-1 1Z"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>
             <span class="tl">Meals</span><span class="ts">Meals</span> <span class="count" id="recipe-count">0</span>
           </button>
-          <button class="tab" role="tab" id="tab-fortschritt" data-action="tab" data-tab="fortschritt" aria-selected="false">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 7-7"/><path d="M14 7h7v7"/></svg>
-            <span class="tl">Fortschritt</span><span class="ts">Verlauf</span> <span class="soon-tag">Bald</span>
-          </button>
           <button class="tab" role="tab" id="tab-rechner" data-action="tab" data-tab="rechner" aria-selected="false">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 7h8"/><path d="M8 11h.01M12 11h.01M16 11h.01M8 15h.01M12 15h.01M16 15h.01"/></svg>
             <span class="tl">Kalorienrechner</span><span class="ts">Rechner</span>
           </button>
-          <button class="tab tab-pro" role="tab" id="tab-pro" data-action="tab" data-tab="pro" aria-selected="false">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 4 7v5c0 4.5 3.2 7.9 8 9 4.8-1.1 8-4.5 8-9V7l-8-4Z"/></svg>
-            <span class="tl">Pro</span><span class="ts">Pro</span> <span class="soon-tag">Bald</span>
+          <button class="tab" role="tab" id="tab-bald" data-action="tab" data-tab="bald" aria-selected="false">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 7-7"/><path d="M14 7h7v7"/></svg>
+            <span class="tl">Bald verfügbar</span><span class="ts">Bald</span>
           </button>
         </div>
       </div>
@@ -2121,6 +2119,8 @@
   // Bloecke plus Stange bleiben klein eindeutig als Hantel lesbar.
   // Wer das Icon gegen ein Kontur-Icon tauscht, muss es bei 13 px gegenpruefen.
   const ICON_DUMBBELL = '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="2" y="7.5" width="5" height="9" rx="1.6" fill="currentColor"/><rect x="17" y="7.5" width="5" height="9" rx="1.6" fill="currentColor"/><path d="M7 12h10" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg>';
+  // Warnzeichen fuers kompakte Ueber-Ziel-Badge im Tageskopf - der volle Satz steht im title.
+  const ICON_WARN = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/></svg>';
 
   // ---------- Gerichtsfotos (eingebettet, nach Namen zugeordnet) ----------
   //
@@ -2311,8 +2311,7 @@
       document.querySelectorAll(".tab").forEach(t => t.setAttribute("aria-selected", String(t.dataset.tab === state.tab)));
       if (state.tab === "rechner") renderRechner();
       else if (state.tab === "recipes") renderRecipes();
-      else if (state.tab === "fortschritt") renderFortschrittSoon();
-      else if (state.tab === "pro") renderProSoon();
+      else if (state.tab === "bald") renderBaldSoon();
       else renderPlan();
     } finally {
       recipeIndex = null;
@@ -2927,18 +2926,36 @@
       </div>`;
   }
 
-  // Kalorien breit in einer Zeile, darunter die Makros – ueber goalMacrosHtml()
-  // genau derselbe Baustein wie bei "Ziele dieser Woche": ausgeschriebene Namen,
-  // Label ueber dem Wert. Frueher hatte die Tageskarte eine eigene, engere Variante
-  // mit Kuerzeln (P/KH/F) in einem starren Drei-Spalten-Raster - auf schmalen
-  // Desktop-Karten (~232px) blieb dafuer kein Platz und Wert/Kuerzel standen in zwei
-  // Zeilen uebereinander statt wie hier als Label+Wert PRO Makro. goalMacrosHtml()
-  // wickelt stattdessen jedes Makro einzeln (flex-wrap) und schrumpft dadurch von
-  // selbst auf ein Makro pro Zeile, sobald der Platz fuer drei nicht reicht.
-  function dayGoalsHtml(s, t) {
+  // Welche Tage ihre Makrobalken aufgeklappt haben. Bewusst nicht gespeichert: beim
+  // Neuladen sind alle Tageskarten wieder eingeklappt (gleiches Muster wie collapsedCats
+  // bei den Meal-Kategorien).
+  const expandedDayGoals = new Set();
+
+  // Kalorien breit in einer Zeile – die Makros stehen dahinter, standardmaessig
+  // eingeklappt. Sieben Tage x 4 Balken (Kalorien + 3 Makros) gleichzeitig sichtbar
+  // war beim UX-Review der groesste Befund fuer "zu viel auf einen Blick"; jetzt zeigt
+  // die Karte im Ruhezustand nur noch den einen Balken, der beim Ueberfliegen der Woche
+  // zaehlt. ueber goalMacrosHtml() derselbe Baustein wie bei "Ziele dieser Woche":
+  // ausgeschriebene Namen, Label ueber dem Wert. Frueher hatte die Tageskarte eine
+  // eigene, engere Variante mit Kuerzeln (P/KH/F) in einem starren Drei-Spalten-Raster -
+  // auf schmalen Desktop-Karten (~232px) blieb dafuer kein Platz und Wert/Kuerzel
+  // standen in zwei Zeilen uebereinander statt wie hier als Label+Wert PRO Makro.
+  // goalMacrosHtml() wickelt stattdessen jedes Makro einzeln (flex-wrap) und schrumpft
+  // dadurch von selbst auf ein Makro pro Zeile, sobald der Platz fuer drei nicht reicht.
+  function dayGoalsHtml(s, t, dayKey) {
+    const over = goalState(s.kcal, t.kcal) === "over";
+    const open = expandedDayGoals.has(dayKey);
+    // Ist der Tag ueber dem Ziel, sagt das schon das .dover-Badge im Kartenkopf mit der
+    // exakten Zahl - die Restzeile im Balken wuerde denselben Wert ein zweites Mal
+    // direkt darunter zeigen. Unter dem Ziel gibt es kein Badge, dort bleibt "noch X kcal"
+    // die einzige Stelle, die das sagt.
     return `<div class="day-goals">
-        ${goalBarHtml({ label: "Kalorien", ist: s.kcal, ziel: t.kcal, unit: "kcal", rest: true, unitInline: true })}
-        ${goalMacrosHtml(s, t)}
+        ${goalBarHtml({ label: "Kalorien", ist: s.kcal, ziel: t.kcal, unit: "kcal", rest: over ? false : "attention", unitInline: true })}
+        <button type="button" class="day-goals-toggle" data-action="toggle-day-goals" data-day="${dayKey}" aria-expanded="${open}">
+          <span>Makros</span>
+          <svg class="caret${open ? " open" : ""}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
+        </button>
+        ${open ? goalMacrosHtml(s, t) : ""}
       </div>`;
   }
 
@@ -2947,7 +2964,7 @@
     // Ziel des konkreten Tages: am Ruhetag weniger Kohlenhydrate, dafuer mehr Fett.
     const t = goalTargetsForDay(dayKey);
     // Mit gespeichertem Ziel ersetzen die Balken die Textzeile – sonst staende alles doppelt.
-    if (t) return dayGoalsHtml(s, t);
+    if (t) return dayGoalsHtml(s, t, dayKey);
     return `<div class="day-nut">
         <span class="kcal">${nfmt(s.kcal)} <small>kcal</small></span>
         <span class="macros">
@@ -3281,7 +3298,13 @@
       // Die Trainings-Markierung haengt am gespeicherten Ziel: ohne Ziel gibt es auch
       // keine Tagestypen, dann bleibt die Karte wie bisher.
       const isTrain = !!state.goal && isTrainingDay(d.key);
-      html += `<section class="day${isToday ? " today" : ""}${dOver ? " over" : ""}${isTrain ? " training" : ""}"><div class="day-head"><span class="dname">${d.label}</span>${isTrain ? trainBadgeHtml(d.key) : ""}${dOver ? `<span class="dover" title="Über dem Tagesziel">${nfmt(dSum.kcal - dTarget.kcal)} kcal drüber</span>` : ""}<span class="dtag">${isToday ? "Heute" : d.short}</span></div><div class="slots">`;
+      // Kompakt als Icon+Zahl statt Volltext ("120 kcal drüber") - der ausgeschriebene
+      // Satz steht im title, wie beim Trainings-Badge daneben. Zwei ausgeschriebene
+      // Badges plus Tagesname sprengten auf schmalen Karten sonst die Kopfzeile.
+      const dOverBadge = dOver
+        ? `<span class="dover" title="${esc(nfmt(dSum.kcal - dTarget.kcal) + " kcal über dem Tagesziel")}">${ICON_WARN}${nfmt(dSum.kcal - dTarget.kcal)}</span>`
+        : "";
+      html += `<section class="day${isToday ? " today" : ""}${dOver ? " over" : ""}${isTrain ? " training" : ""}"><div class="day-head"><span class="dname">${d.label}</span>${isTrain ? trainBadgeHtml(d.key) : ""}${dOverBadge}<span class="dtag">${isToday ? "Heute" : d.short}</span></div><div class="slots">`;
       MEALS.forEach(m => {
         const ids = state.plan[d.key][m.key];
         html += `<div class="slot" data-meal="${m.key}" data-slot="${d.key}:${m.key}">
@@ -3316,8 +3339,11 @@
     initCarousel(view.querySelector(".wg-cols"), view.querySelector(".wgbar"));
   }
 
-  // Bewusst nicht gespeichert: beim Neuladen sind alle Kategorien wieder offen.
+  // Bewusst nicht gespeichert: beim Neuladen gilt wieder die Standardvorbelegung unten.
   const collapsedCats = new Set();
+  // Vorbelegung laeuft nur einmal: sonst wuerfe jeder renderRecipes()-Aufruf (z. B. nach
+  // dem Aufklappen einer Kategorie) die eigene Auswahl des Nutzers wieder um.
+  let collapsedCatsSeeded = false;
 
   function renderRecipes() {
     let html = `
@@ -3348,6 +3374,18 @@
         groups.get(c).push(r);
       });
 
+      // Erste Kategorie mit Inhalt bleibt offen, alle anderen starten eingeklappt -
+      // bei vielen Meals in mehreren Kategorien war "alles auf einmal offen" beim ersten
+      // Blick auf den Reiter eine sehr lange Liste.
+      if (!collapsedCatsSeeded) {
+        collapsedCatsSeeded = true;
+        let firstSeen = false;
+        for (const [cat, items] of groups) {
+          if (items.length === 0) continue;
+          if (firstSeen) collapsedCats.add(cat); else firstSeen = true;
+        }
+      }
+
       for (const [cat, items] of groups) {
         if (items.length === 0) continue;
         items.sort((a, b) => a.name.localeCompare(b.name, "de"));
@@ -3373,7 +3411,6 @@
           </div>
           <div class="meta">
             ${recipeNut(r).kcal ? `<span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3c1 3 4 4.4 4 8a4 4 0 0 1-8 0c0-1.3.4-2.1 1-3 .3 1 .8 1.6 1.5 1.9C10 8 10.4 5.4 12 3Z"/></svg>${nfmt(recipeNut(r).kcal)} kcal</span>` : ""}
-            <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 5h16M4 12h16M4 19h10"/></svg>${ing.length} Zutat${ing.length === 1 ? "" : "en"}</span>
           </div>
           <div class="ingredients">${ingPreview}</div>
           <div class="actions">
@@ -4235,6 +4272,11 @@
       if (collapsedCats.has(c)) collapsedCats.delete(c); else collapsedCats.add(c);
       render();
     }
+    else if (a === "toggle-day-goals") {
+      const d = t.dataset.day;
+      if (expandedDayGoals.has(d)) expandedDayGoals.delete(d); else expandedDayGoals.add(d);
+      render();
+    }
     else if (a === "pick") openPicker(t.dataset.day, t.dataset.meal);
     else if (a === "unassign") { e.stopPropagation(); const [d, m, i] = t.dataset.slotSrc.split(":"); state.plan[d][m].splice(Number(i), 1); render(); }
     else if (a === "shopping") openShopping();
@@ -4569,6 +4611,11 @@
     cur.trainMin = tkeysInit.length ? cur.training[tkeysInit[0]].min : trainLevel("mod").defMin;
     function applyTrainMin() { trainingKeys(cur.training).forEach(k => { cur.training[k].min = cur.trainMin; }); }
     applyTrainMin();
+    // Bei mehr als zwei Trainingstagen startet standardmaessig EINE gemeinsame
+    // Intensitaetszeile statt einer je Tag – weniger Zeilen fuer den Regelfall, volle
+    // Kontrolle (eine Zeile je Tag) bleibt ein Klick am Umschalter entfernt. Reiner
+    // UI-Zustand wie cur.trainMin, nicht Teil des gespeicherten Ziels.
+    cur.trainSameLevel = tkeysInit.length > 2;
 
     // Haken, ueber den updateResult() den Fussknopf des Assistenten nachzieht. Als
     // Variable und nicht als direkter Aufruf, weil updateResult() schon einmal laeuft,
@@ -4680,28 +4727,68 @@
       // hier bei sieben Tagen ein Feld statt sieben. Das Datenmodell bleibt unveraendert
       // (je Tag { level, min }), der Wert wird nur auf alle Tage geschrieben; damit
       // bleiben gespeicherte Ziele und computeGoal() unberuehrt.
-      box.innerHTML = `
+      const durationHtml = `
         <div class="tmin">
           <label for="c-tmin">Dauer je Einheit</label>
           <div class="tmin-f">
             <input type="number" id="c-tmin" value="${cur.trainMin}" min="${TRAIN_MIN_MIN}" max="${TRAIN_MIN_MAX}"
                    step="5" inputmode="numeric"><span>Min.</span>
           </div>
-        </div>` + keys.map(k => {
-        const d = DAYS.filter(x => x.key === k)[0];
-        const e = cur.training[k];
-        const lvNow = trainLevel(e.level);
-        return `<div class="trow" data-day="${k}">
-          <div class="trow-d">${d.short}</div>
-          <div class="seg trow-lv" data-tlevel="${k}" role="group" aria-label="Intensität am ${esc(d.label)}">${TRAIN_LEVELS.map(lv =>
-            `<button type="button" data-v="${lv.key}"${e.level === lv.key ? ' class="on"' : ''} title="${esc(lv.ex)}">${lv.label}</button>`).join("")}</div>
-          <div class="trow-def"><span>${esc(lvNow.ex)}</span></div>
         </div>`;
-      }).join("");
+      // Der Umschalter erscheint erst ab zwei Tagen - bei einem einzigen Tag gibt es
+      // ohnehin nur eine Zeile, ein Umschalter waere dort ohne Wirkung.
+      const toggleHtml = keys.length > 1 ? `
+        <label class="tsame">
+          <input type="checkbox" id="c-tsame"${cur.trainSameLevel ? " checked" : ""}>
+          <span>Gleiche Intensität für alle Trainingstage</span>
+        </label>` : "";
+      const rowsHtml = (keys.length > 1 && cur.trainSameLevel)
+        // Eine Zeile fuer alle gewaehlten Tage zusammen. Referenz ist der erste Tag -
+        // toggleSameLevel() gleicht beim Einschalten alle Tage darauf an, direkt danach
+        // koennen sie also nicht auseinanderlaufen.
+        ? (() => {
+            const lvl = cur.training[keys[0]].level;
+            const lvNow = trainLevel(lvl);
+            return `<div class="trow" data-day="all">
+              <div class="trow-d">Alle</div>
+              <div class="seg trow-lv" data-tlevel="all" role="group" aria-label="Intensität an Trainingstagen">${TRAIN_LEVELS.map(lv =>
+                `<button type="button" data-v="${lv.key}"${lvl === lv.key ? ' class="on"' : ''} title="${esc(lv.ex)}">${lv.label}</button>`).join("")}</div>
+              <div class="trow-def"><span>${esc(lvNow.ex)}</span></div>
+            </div>`;
+          })()
+        : keys.map(k => {
+            const d = DAYS.filter(x => x.key === k)[0];
+            const e = cur.training[k];
+            const lvNow = trainLevel(e.level);
+            return `<div class="trow" data-day="${k}">
+              <div class="trow-d">${d.short}</div>
+              <div class="seg trow-lv" data-tlevel="${k}" role="group" aria-label="Intensität am ${esc(d.label)}">${TRAIN_LEVELS.map(lv =>
+                `<button type="button" data-v="${lv.key}"${e.level === lv.key ? ' class="on"' : ''} title="${esc(lv.ex)}">${lv.label}</button>`).join("")}</div>
+              <div class="trow-def"><span>${esc(lvNow.ex)}</span></div>
+            </div>`;
+          }).join("");
+      box.innerHTML = durationHtml + toggleHtml + rowsHtml;
     }
-    // Der Assistent laeuft nur auf dem Handy – erkannt daran, dass .calc dort
-    // tatsaechlich waagerecht scrollt. Als Funktionsdeklaration, damit updateResult
-    // sie auch beim ersten Durchlauf schon aufrufen kann.
+    // Beim Einschalten des Umschalters alle Tage auf die Stufe des ersten Tages
+    // angleichen - sonst zeigte die neue Sammelzeile einen Wert, der fuer die anderen
+    // Tage gar nicht mehr stimmt.
+    function toggleSameLevel(on) {
+      cur.trainSameLevel = on;
+      if (on) {
+        const keys = trainingKeys(cur.training);
+        if (keys.length) {
+          const lvl = cur.training[keys[0]].level;
+          keys.forEach(k => { cur.training[k].level = lvl; });
+        }
+      }
+      fillTrainDetail();
+      updateResult();
+    }
+    // Der Assistent laeuft jetzt auf jeder Breite (siehe CSS bei .calc) – .calc scrollt
+    // dadurch immer waagerecht, wizardActive() liefert also immer true. Die Funktion
+    // bleibt trotzdem stehen: sie ist die einzige Stelle, die diese Annahme kennt, und
+    // faengt ab, falls .calc noch nicht im DOM ist. Als Funktionsdeklaration, damit
+    // updateResult sie auch beim ersten Durchlauf schon aufrufen kann.
     function wizardActive() {
       const c = view.querySelector(".calc");
       return !!c && c.scrollWidth > c.clientWidth + 10;
@@ -4713,12 +4800,10 @@
       // Ganz vorn, nicht am Ende: unten steht ein frueher return fuer den Fall
       // unvollstaendiger Eingaben – und genau dann muss der Fussknopf gesperrt werden.
       if (refreshStep) refreshStep();
-      // Im Assistenten wurde das Ziel mit „Berechnen" schon gespeichert. Geht man
-      // danach zurueck und aendert etwas, zieht es still mit – sonst liefe man nach
-      // einer Korrektur mit einem veralteten Ziel weiter, ohne Hinweis darauf. Vor dem
-      // ersten Speichern passiert nichts: wer nur herumprobiert, legt sich kein Ziel an.
-      // Am Rechner bleibt es beim ausdruecklichen Knopf – dort ist die Ergebnisspalte
-      // eine Vorschau zum Vergleichen, die nicht ungefragt Fakten schaffen soll.
+      // Das Ziel wurde mit „Berechnen" schon gespeichert. Geht man danach zurueck und
+      // aendert etwas, zieht es still mit – sonst liefe man nach einer Korrektur mit
+      // einem veralteten Ziel weiter, ohne Hinweis darauf. Vor dem ersten Speichern
+      // passiert nichts: wer nur herumprobiert, legt sich kein Ziel an.
       if (state.goal && validCalcInput(inp) && wizardActive()) {
         state.goal = computeGoal(inp);
         save();
@@ -4808,7 +4893,14 @@
       const b = e.target.closest("button[data-day]"); if (!b) return;
       const key = b.dataset.day;
       const on = !cur.training[key];
-      if (on) cur.training[key] = { level: "mod", min: cur.trainMin };
+      if (on) {
+        // Bei eingeschaltetem Umschalter zeigt die Sammelzeile nur die Stufe des ersten
+        // Tages - ein neuer Tag muss deshalb dieselbe Stufe bekommen, sonst wiche sein
+        // tatsaechlicher Wert unbemerkt von dem ab, was die eine sichtbare Zeile sagt.
+        const existing = trainingKeys(cur.training);
+        const lvl = (cur.trainSameLevel && existing.length) ? cur.training[existing[0]].level : "mod";
+        cur.training[key] = { level: lvl, min: cur.trainMin };
+      }
       else delete cur.training[key];
       b.setAttribute("aria-pressed", on ? "true" : "false");
       fillTrainDetail();
@@ -4819,11 +4911,21 @@
     tdetail.addEventListener("click", e => {
       const b = e.target.closest(".trow-lv button[data-v]"); if (!b) return;
       const key = b.closest("[data-tlevel]").dataset.tlevel;
-      if (!cur.training[key]) return;
-      // Die Dauer haengt nicht mehr an der Stufe – sie gilt einmal fuer alle Einheiten.
-      cur.training[key].level = b.dataset.v;
+      // "all" ist die Sammelzeile bei eingeschaltetem Umschalter - dort gilt die
+      // gewaehlte Stufe fuer jeden gerade aktiven Trainingstag statt fuer einen einzelnen.
+      if (key === "all") {
+        trainingKeys(cur.training).forEach(k => { cur.training[k].level = b.dataset.v; });
+      } else {
+        if (!cur.training[key]) return;
+        // Die Dauer haengt nicht mehr an der Stufe – sie gilt einmal fuer alle Einheiten.
+        cur.training[key].level = b.dataset.v;
+      }
       fillTrainDetail();
       updateResult();
+    });
+    tdetail.addEventListener("change", e => {
+      if (!e.target.closest("#c-tsame")) return;
+      toggleSameLevel(e.target.checked);
     });
     tdetail.addEventListener("input", e => {
       if (!e.target.closest("#c-tmin")) return;
@@ -4850,7 +4952,7 @@
     fillTrainDetail();
     updateResult();
 
-    // ---------- Assistent (nur Handy) ----------
+    // ---------- Assistent (jede Breite) ----------
     // Vier Karten: Koerperdaten, Alltag & Ziel, Trainingstage, Ergebnis. Der Weg ist
     // fest – gewischt wird nicht (siehe .calc { overflow: hidden }), weiter geht es nur
     // ueber den Fussknopf und nur, wenn der aktuelle Schritt vollstaendig ist. Zurueck
@@ -4995,22 +5097,24 @@
 
   // Pro – eigener Reiter, aktuell nur Vorschau/Platzhalter. Wird ein eigenes Thema.
   // Platzhalter – die eigentliche Fortschritts-Ansicht ist die naechste Baustelle.
-  function renderFortschrittSoon() {
-    view.innerHTML = `<div class="soon-wrap"><div class="soon-card">
-      <div class="soon-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 7-7"/><path d="M14 7h7v7"/></svg></div>
-      <h2>Dein Fortschritt</h2>
-      <p>Bald: dein Gewichtsverlauf im Monatskalender, erreichte Ziel-Tage pro Woche und die Entwicklung deiner Kalorien- und Makro-Bilanz über die Zeit.</p>
-      <span class="soon-pill">Kommt bald</span>
-    </div></div>`;
-  }
-
-  function renderProSoon() {
-    view.innerHTML = `<div class="soon-wrap"><div class="soon-card">
-      <div class="soon-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 4 7v5c0 4.5 3.2 7.9 8 9 4.8-1.1 8-4.5 8-9V7l-8-4Z"/><path d="m9 12 2 2 4-4"/></svg></div>
-      <h2>Paddy's Mealplan Pro</h2>
-      <p>Bald: verfolge deine Ziele und deinen Fortschritt – dein Tagesbedarf direkt im Wochenplan, Makro-Fortschritt und ein Monatskalender mit deiner Gewichtsentwicklung.</p>
-      <span class="soon-pill">Kommt bald</span>
-    </div></div>`;
+  // Fruehere Reiter "Fortschritt" und "Pro" bewarben inhaltlich fast dasselbe
+  // (Gewichtsverlauf, Makro-Fortschritt) - jetzt ein Reiter mit zwei klar getrennten
+  // Ankuendigungen statt zwei Platzhalter-Reitern mit ueberlappendem Inhalt.
+  function renderBaldSoon() {
+    view.innerHTML = `<div class="soon-wrap">
+      <div class="soon-card">
+        <div class="soon-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 7-7"/><path d="M14 7h7v7"/></svg></div>
+        <h2>Dein Fortschritt</h2>
+        <p>Bald: dein Gewichtsverlauf im Monatskalender, erreichte Ziel-Tage pro Woche und die Entwicklung deiner Kalorien- und Makro-Bilanz über die Zeit.</p>
+        <span class="soon-pill">Kommt bald</span>
+      </div>
+      <div class="soon-card">
+        <div class="soon-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 4 7v5c0 4.5 3.2 7.9 8 9 4.8-1.1 8-4.5 8-9V7l-8-4Z"/><path d="m9 12 2 2 4-4"/></svg></div>
+        <h2>Paddy's Mealplan Pro</h2>
+        <p>Bald: erweiterte Auswertungen und Komfortfunktionen obendrauf – Details folgen, sobald Pro startet.</p>
+        <span class="soon-pill">Kommt bald</span>
+      </div>
+    </div>`;
   }
 
   // Aktuelle Kalenderwoche + Datumsbereich, z. B. "Woche 29 · 13.–19. Juli"
