@@ -1453,6 +1453,195 @@
     }
     .calcnav .cn-row { max-width: none; margin: 0; }
   }
+
+  /* ---------- Erste Schritte (Onboarding) ----------
+     Eine Frage je Bildschirm. Waehrend der Einfuehrung ist die Reiterleiste weg – nicht
+     um jemanden einzusperren (Ueberspringen steht immer da), sondern damit auf dem Handy
+     kein zweites Bedienelement um den unteren Rand konkurriert. syncStickyOffsets() setzt
+     --tabbar-h dann von selbst auf 0, weil die ausgeblendete Leiste 0 hoch ist.
+     Alle Farben kommen aus den Tokens, damit Light und Dark ohne eigenen Block tragen. */
+  .app.onboarding .tabs { display: none; }
+  .onb { max-width: 560px; margin: 0 auto; }
+
+  /* Fortschritt: schlanke Schiene mit Glut am Ende statt eines dicken Balkens. Das Glimmen
+     ist derselbe Akzent, nur als Schein – es macht den Fortschritt spuerbar, ohne eine
+     zweite Farbe einzufuehren. */
+  .onb-top { margin-bottom: 24px; }
+  .onb-top .wg-progress-bar { height: 6px; }
+  .onb-top .wg-progress-bar > span { box-shadow: 0 0 12px color-mix(in srgb, var(--accent) 55%, transparent); }
+  .onb-count {
+    margin-top: 9px; font-family: var(--font-display); font-size: 12px; color: var(--text-muted);
+    letter-spacing: .14em; text-transform: uppercase;
+  }
+  /* Expo-out: startet schnell, laeuft weich aus – dieselbe Kurve wie bei den Karten der App. */
+  .onb-stage { animation: onbin .26s cubic-bezier(.16, 1, .3, 1); }
+  @keyframes onbin { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+  .onb-q {
+    display: block; font-family: var(--font-display); font-size: 30px; line-height: 1.08;
+    letter-spacing: -.005em; margin: 0 0 9px; color: var(--text); text-wrap: balance;
+  }
+  .onb-kicker {
+    margin: 0 0 6px; font-family: var(--font-display); font-size: 13px; letter-spacing: .16em;
+    text-transform: uppercase; color: var(--accent);
+  }
+  /* Der Fokus wandert beim Schrittwechsel programmatisch auf die Frage, damit ein
+     Screenreader sie vorliest. Sichtbar soll er dort NICHT sein: das Element traegt
+     tabindex="-1" und ist per Tastatur nie anwaehlbar – ein Rahmen um die Ueberschrift
+     sieht aus wie ein Eingabefeld. */
+  .onb-q:focus { outline: none; }
+  .onb-why { margin: 0 0 20px; color: var(--text-muted); font-size: 14.5px; line-height: 1.55; }
+  .onb-why b { color: var(--text); }
+  .onb-list { margin: 0; padding: 0; list-style: none; display: grid; gap: 10px; }
+  /* Akzentkante links: macht aus einer Aufzaehlung eine Liste mit Richtung. */
+  .onb-list li {
+    padding: 13px 15px; border: 1px solid var(--border); border-left: 3px solid var(--accent);
+    border-radius: var(--radius-sm); background: var(--surface-2);
+    font-size: 14px; line-height: 1.5; color: var(--text-muted);
+  }
+  .onb-list li b { color: var(--text); font-weight: 650; }
+
+  /* Auswahlkacheln. Die Auswahl haengt nie allein an der Farbe – das Haekchen traegt sie
+     mit (sonst waere sie fuer Farbfehlsichtige nicht erkennbar). */
+  .onb-opts { display: grid; grid-template-columns: 1fr 1fr; gap: 11px; }
+  .onb-opts-1 { grid-template-columns: 1fr; }
+  /* Kacheln mit etwas Tiefe: leichter Verlauf statt einer flachen Flaeche, eine helle
+     Kante oben (Licht von oben) und beim Druecken ein Nachgeben. Gewaehlt heisst: Akzent-
+     Kante plus warmer Schein – die Tiefe macht den Unterschied, nicht eine neue Farbe. */
+  .onb-opt {
+    position: relative; display: flex; flex-direction: column; justify-content: center; gap: 3px;
+    min-height: 68px; padding: 15px 46px 15px 17px; text-align: left; cursor: pointer;
+    background: linear-gradient(180deg, var(--surface), var(--surface-2));
+    color: var(--text); border: 1.5px solid var(--border-strong); border-radius: var(--radius);
+    box-shadow: inset 0 1px 0 color-mix(in srgb, var(--text) 7%, transparent);
+    font: inherit; transition: border-color .15s, box-shadow .15s, transform .1s;
+  }
+  .onb-opt:hover { border-color: var(--text-muted); }
+  .onb-opt:active { transform: scale(.985); }
+  .onb-opt.on {
+    border-color: var(--accent);
+    background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 13%, var(--surface)), var(--surface));
+    box-shadow: 0 0 0 1px var(--accent), 0 6px 20px color-mix(in srgb, var(--accent) 20%, transparent);
+  }
+  .onb-opt:focus-visible { outline: none; box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 34%, transparent); }
+  .onb-opt-t { font-weight: 650; font-size: 16px; letter-spacing: .005em; }
+  .onb-opt-h { font-size: 12.5px; color: var(--text-muted); line-height: 1.4; }
+  .onb-tick { position: absolute; right: 15px; top: 50%; transform: translateY(-50%); width: 21px; height: 21px; color: var(--accent); }
+
+  /* Zahlenfelder: gross gesetzt, aber ein normales input – die Einheit steht daneben,
+     damit im Feld selbst nur die Zahl steht (sonst stolpert die Tastatur darueber). */
+  .onb-numrow { display: flex; align-items: baseline; justify-content: center; gap: 12px; }
+  /* Zwei Klassen, nicht eine: die globale Regel fuer Eingabefelder trifft ueber
+     input[type="number"] und liegt damit (Attributselektor!) ueber einer einzelnen
+     Klasse – Breite und Schriftgroesse waeren sonst still ueberstimmt worden. */
+  .onb-numrow .onb-num {
+    width: 190px; text-align: center; font-family: var(--font-display);
+    font-size: 40px; padding: 12px 10px; letter-spacing: .02em;
+    -moz-appearance: textfield;
+  }
+  .onb-num::-webkit-outer-spin-button, .onb-num::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+  .onb-unit { font-size: 17px; color: var(--text-muted); font-weight: 600; }
+
+  /* Textfeld (Name) – zwei Klassen aus demselben Grund wie beim Zahlenfeld: die globale
+     Regel trifft ueber input[type="text"] und liegt damit ueber einer einzelnen Klasse. */
+  .onb-stage .onb-text { width: 100%; font-size: 17px; padding: 13px 14px; }
+
+  /* Trainingstage: Mehrfachauswahl. .tdays bringt das Raster schon mit, hier nur die
+     Groesse fuer den Einstieg – sieben Knoepfe muessen auf 320 px Breite passen. */
+  .onb-tdays { margin-top: 4px; }
+  .onb-tdays button { min-height: 52px; font-size: 14px; }
+  .onb-sel { margin-top: 12px; margin-bottom: 0; font-size: 13.5px; }
+
+  /* Ergebniskarte: der Moment, auf den der ganze Ablauf hinarbeitet. Deshalb ein Hauch
+     Buehne – ein Akzentschimmer von oben hinter der Zahl, sonst nichts Zusaetzliches. */
+  .onb-res {
+    position: relative; overflow: hidden;
+    border: 1px solid var(--border-strong); border-radius: var(--radius); background: var(--surface);
+    box-shadow: var(--shadow); padding: 26px 18px 22px; text-align: center;
+  }
+  .onb-res::before {
+    content: ""; position: absolute; inset: -60% 0 auto 0; height: 150px; pointer-events: none;
+    background: radial-gradient(ellipse at 50% 100%, color-mix(in srgb, var(--accent) 20%, transparent), transparent 70%);
+  }
+  .onb-res-k {
+    position: relative; font-family: var(--font-display); font-size: 58px; line-height: .95;
+    letter-spacing: -.02em; color: var(--accent); font-variant-numeric: tabular-nums;
+    text-shadow: 0 0 34px color-mix(in srgb, var(--accent) 38%, transparent);
+  }
+  .onb-res-k span {
+    display: block; margin-top: 9px; font-family: var(--font-display); font-size: 12px; font-weight: 600;
+    letter-spacing: .16em; text-transform: uppercase; color: var(--text-muted); text-shadow: none;
+  }
+  .onb-res-m { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; margin-top: 20px; padding-top: 18px; border-top: 1px solid var(--border); }
+  .onb-res-m > div + div { border-left: 1px solid var(--border); }
+  /* Dieselben Makrofarben wie ueberall sonst in der App (.macro, .nutfacts, .wg-macros) –
+     bewusst dieselben Hex-Werte, nicht neu erfunden, damit Protein/KH/Fett app-weit auf
+     einen Blick zuzuordnen sind, auch ohne die Beschriftung zu lesen. */
+  .onb-res-m .t-prot { --tc: #C74B78; } .onb-res-m .t-carb { --tc: #E9A03B; } .onb-res-m .t-fat { --tc: #4AA8E0; }
+  .onb-res-m b { display: block; font-family: var(--font-display); font-size: 21px; letter-spacing: -.01em; font-variant-numeric: tabular-nums; color: var(--tc, var(--text)); }
+  .onb-res-m span { display: flex; align-items: center; justify-content: center; gap: 5px; margin-top: 3px; font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--text-muted); }
+  .onb-res-m span::before { content: ""; width: 7px; height: 7px; border-radius: 50%; flex: none; background: var(--tc, var(--accent)); }
+  .onb-res-t {
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    margin-top: 18px; padding: 12px 14px; border-radius: var(--radius-sm);
+    background: color-mix(in srgb, var(--train) 12%, transparent);
+    text-align: left; font-size: 12.5px; color: var(--text-muted); line-height: 1.35;
+  }
+  .onb-res-t b { font-family: var(--font-display); font-size: 20px; color: var(--train); white-space: nowrap; font-variant-numeric: tabular-nums; }
+
+  .onb-hi { text-align: center; }
+  .onb-hi .onb-q { font-size: 34px; }
+  .onb-hi .onb-list { text-align: left; margin-top: 22px; }
+  /* Das Logo mit einem Schein dahinter statt nackt auf der Flaeche – gibt der Startseite
+     einen Mittelpunkt, ohne ein zusaetzliches Bild zu brauchen. */
+  .onb-mark {
+    position: relative; width: 88px; height: 88px; border-radius: 50%; margin: 6px auto 20px;
+    background: center / cover no-repeat var(--logo);
+    box-shadow: 0 0 0 6px color-mix(in srgb, var(--accent) 10%, transparent),
+                0 10px 34px color-mix(in srgb, var(--accent) 26%, transparent);
+  }
+  .onb-keep { margin-top: 20px; width: 100%; justify-content: center; }
+  .onb-note { margin-top: 18px; }
+
+  /* Miniatur des Wochenplans – reine Deko, deshalb aria-hidden im Markup. */
+  .onb-mock { display: grid; gap: 8px; margin-bottom: 18px; }
+  .onb-mock-d { display: flex; align-items: center; gap: 7px; padding: 9px 11px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface); }
+  .onb-mock-d span { font-family: var(--font-display); font-size: 12px; color: var(--text-muted); width: 26px; }
+  .onb-mock-d i { height: 9px; border-radius: 999px; flex: 1; }
+  .onb-mock-d i.fr { background: var(--fr); }
+  .onb-mock-d i.mi { background: var(--mi); }
+  .onb-mock-d i.ab { background: var(--ab); }
+
+  .onb-foot { margin-top: 28px; }
+  .onb-foot .onb-next {
+    width: 100%; justify-content: center; min-height: 52px;
+    font-family: var(--font-display); font-size: 18px; letter-spacing: .04em;
+    box-shadow: 0 6px 20px color-mix(in srgb, var(--accent) 30%, transparent);
+  }
+  .onb-foot .onb-next.is-off { box-shadow: none; }
+  .onb-foot2 { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; }
+  .onb-foot2 .btn { min-height: 44px; }
+
+  /* Einstellungen-Dialog: Zeilenliste im Modal. */
+  .setlist { display: grid; gap: 9px; }
+  .setrow {
+    display: flex; align-items: center; width: 100%; text-align: left; cursor: pointer;
+    padding: 13px 15px; background: var(--surface-2); color: var(--text);
+    border: 1px solid var(--border); border-radius: var(--radius-sm); font: inherit;
+  }
+  .setrow:hover { border-color: var(--border-strong); }
+  .setrow:focus-visible { outline: none; box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 26%, transparent); }
+  .setrow b { display: block; font-size: 14.5px; font-weight: 650; }
+  .setrow small { display: block; margin-top: 2px; font-size: 12.5px; color: var(--text-muted); }
+
+  @media (max-width: 560px) {
+    /* Zwei Kacheln nebeneinander werden hier zu schmal fuer die Beschriftung. */
+    .onb-opts { grid-template-columns: 1fr; }
+    .onb-q { font-size: 26px; }
+    .onb-hi .onb-q { font-size: 29px; }
+    .onb-numrow .onb-num { width: 150px; font-size: 36px; }
+    .onb-res-k { font-size: 48px; }
+    .onb-res-m b { font-size: 19px; }
+  }
 </style>
 
 <div class="app">
@@ -1909,7 +2098,7 @@
     if (!data || !Array.isArray(data.recipes)) {
       const recipes = SEED.map(r => Object.assign({ id: uid() }, r));
       const plans = {}; plans[curKey] = makeEmptyPlan();
-      return { recipes, plans, plan: plans[curKey], viewWeek: "cur", tab: "plan", goal: null, shares: [] };
+      return { recipes, plans, plan: plans[curKey], viewWeek: "cur", tab: "plan", goal: null, shares: [], onboarded: false };
     }
     const recipes = sanitizeRecipes(data.recipes);
     const plans = {};
@@ -1920,7 +2109,7 @@
     }
     pruneWeeks(plans);
     if (!plans[curKey]) plans[curKey] = makeEmptyPlan();
-    return { recipes, plans, plan: plans[curKey], viewWeek: "cur", tab: data.tab === "recipes" ? "recipes" : "plan", goal: sanitizeGoal(data.goal), shares: Array.isArray(data.shares) ? data.shares : [] };
+    return { recipes, plans, plan: plans[curKey], viewWeek: "cur", tab: data.tab === "recipes" ? "recipes" : "plan", goal: sanitizeGoal(data.goal), shares: Array.isArray(data.shares) ? data.shares : [], onboarded: data.onboarded === true };
   }
 
   // Schlaegt das lokale Speichern fehl (Speicher voll, privater Modus), darf das NICHT
@@ -1929,7 +2118,7 @@
   let storageFullWarned = false;
   function save() {
     try {
-      localStorage.setItem(STORE_KEY, JSON.stringify({ recipes: state.recipes, plans: state.plans, tab: state.tab, goal: state.goal || null, shares: state.shares || [] }));
+      localStorage.setItem(STORE_KEY, JSON.stringify({ recipes: state.recipes, plans: state.plans, tab: state.tab, goal: state.goal || null, shares: state.shares || [], onboarded: state.onboarded === true }));
       storageFullWarned = false;
     } catch (e) {
       if (!storageFullWarned) {
@@ -1973,7 +2162,11 @@
     return {};
   }
   // Vergleichs-Signatur ohne "tab" – ein reiner Tab-Wechsel soll keinen Cloud-Write auslösen.
-  function dataJSON(d) { return JSON.stringify({ recipes: (d && d.recipes) || [], plans: plansField(d), goal: (d && d.goal) || null, shares: (d && d.shares) || [] }); }
+  // "onboarded" gehoert dagegen hinein, sonst wuerde das Abschliessen der ersten Schritte
+  // nie gepusht und der Ablauf startete auf jedem weiteren Geraet erneut. Die Normalisierung
+  // auf !! ist wichtig: alte Konten haben das Feld nicht, undefined vs. false wuerde sie
+  // sonst dauerhaft als "veraendert" erscheinen lassen und bei jedem Start einen Write ausloesen.
+  function dataJSON(d) { return JSON.stringify({ recipes: (d && d.recipes) || [], plans: plansField(d), goal: (d && d.goal) || null, shares: (d && d.shares) || [], onboarded: !!(d && d.onboarded) }); }
 
   function scheduleCloudPush() {
     if (!syncUid) return;
@@ -1988,7 +2181,7 @@
   let cloudTooBigWarned = false;
   async function pushNow() {
     if (!syncUid || !window.CloudSync) return;
-    const d = { recipes: state.recipes, plans: state.plans, tab: state.tab, goal: state.goal || null, shares: state.shares || [] };
+    const d = { recipes: state.recipes, plans: state.plans, tab: state.tab, goal: state.goal || null, shares: state.shares || [], onboarded: state.onboarded === true };
     const j = dataJSON(d);
     if (j === lastPushedJSON) return;
     if (j.length > CLOUD_DOC_MAX) {
@@ -2019,6 +2212,7 @@
     state.plans = pruneWeeks(normalizePlans(plansField(data), state.recipes));
     state.goal = sanitizeGoal(data.goal);
     state.shares = unionIds(state.shares, data.shares); // nie einen Link verlieren, der nur lokal bekannt ist
+    if (data.onboarded) state.onboarded = true;         // nur in eine Richtung, siehe startCloudSync
     setViewWeek(state.viewWeek);
     lastPushedJSON = j;
     save(); render();
@@ -2035,13 +2229,18 @@
     }
   }
   async function startCloudSync(uid) {
-    if (!window.CloudSync || !window.CloudSync.enabled) return;
+    if (!window.CloudSync || !window.CloudSync.enabled) { maybeStartOnboarding(); return; }
     if (syncUid === uid) return;                 // läuft schon
     stopCloudSync();
     syncUid = uid;
     setSyncStatus("connecting");
     try {
       const remote = await window.CloudSync.load(uid);
+      // Vor dem Rezept-Merge und ausserhalb davon: ein Konto ohne Rezepte laeuft am Block
+      // unten vorbei, haette die ersten Schritte aber trotzdem schon hinter sich. Und nur
+      // in eine Richtung — waere das Flag zurueckziehbar, startete der Ablauf auf Geraet 2
+      // erneut, solange Geraet 1 seinen Stand noch nicht hochgeschrieben hat.
+      if (remote && remote.onboarded) state.onboarded = true;
       if (remote && Array.isArray(remote.recipes) && remote.recipes.length) {
         // Rezepte zusammenführen (Cloud + eigene lokale, die es dort noch nicht gibt).
         // Beispiel-Meals werden NICHT in ein bestehendes Konto übernommen – sie sind nur
@@ -2068,7 +2267,14 @@
       syncUnsub = window.CloudSync.watch(uid, onRemote);
       setSyncStatus("synced");
       toast("Mit deiner Cloud verbunden");
-    } catch (e) { setSyncStatus("offline"); /* offline: App läuft lokal weiter, Sync greift beim nächsten Mal */ }
+      // Erst JETZT ueber die ersten Schritte entscheiden: enterApp() laeuft schon, waehrend
+      // dieser Aufruf noch unterwegs ist. Wer den Ablauf dort startete, bekaeme ihn bei jedem
+      // Login auf einem neuen Geraet kurz zu sehen, bevor das Flag aus der Cloud eintrifft.
+      maybeStartOnboarding();
+    } catch (e) {
+      setSyncStatus("offline"); /* offline: App läuft lokal weiter, Sync greift beim nächsten Mal */
+      maybeStartOnboarding();   // ohne Cloud entscheidet der lokale Stand
+    }
   }
   function stopCloudSync() {
     if (syncUnsub) { try { syncUnsub(); } catch (e) {} syncUnsub = null; }
@@ -2341,6 +2547,14 @@
   let lastRenderTab = null;
 
   function render() {
+    // Solange die ersten Schritte laufen, gehoert <main> ihnen. render() kommt aus mehreren
+    // Richtungen, die waehrenddessen ganz normal weiterlaufen: onRemote() beim ersten
+    // Firestore-Snapshot (und bei jeder Aenderung von einem anderen Geraet) und enterApp(),
+    // weil onAuthStateChanged beim Anmelden regelmaessig MEHRFACH feuert. Ohne diese Sperre
+    // blitzte der Ablauf nur kurz auf und wurde sofort vom Wochenplan ueberschrieben.
+    // Der Zustand wird trotzdem uebernommen - nur gezeichnet wird er erst nach dem Abschluss,
+    // denn finishOnboarding() ruft render() selbst auf.
+    if (onb) return;
     hoveredCardId = null; // Kartenknoten werden gleich ersetzt - alte Hover-Referenz waere sonst veraltet
     // Gleiche Ueberlegung fuer den Tastaturfokus: liegt er gerade auf einem Element in
     // <main>, wird dieses gleich mitsamt innerHTML ersetzt und der Fokus faellt auf
@@ -4258,7 +4472,7 @@
       <h4>2. Hosting der Website (GitHub Pages)</h4>
       <p>Diese Website wird bei GitHub Pages gehostet, einem Dienst der GitHub, Inc., 88 Colin P. Kelly Jr. Street, San Francisco, CA 94107, USA. Beim Aufruf der Seite verarbeitet GitHub technisch notwendige Zugriffsdaten (z. B. deine IP-Adresse), um die Seite auszuliefern und deren Sicherheit zu gewährleisten. Rechtsgrundlage ist unser berechtigtes Interesse an einer sicheren und effizienten Bereitstellung (Art. 6 Abs. 1 lit. f DSGVO). Dabei kann eine Übermittlung in die USA erfolgen. Weitere Infos: <a href="https://docs.github.com/de/site-policy/privacy-policies/github-general-privacy-statement" target="_blank" rel="noopener">GitHub Privacy Statement</a>.</p>
       <h4>3. Welche Daten wir verarbeiten</h4>
-      <p>Bei der Registrierung: <strong>Name und E-Mail-Adresse</strong>. Bei Nutzung der App: die von dir angelegten <strong>Wochenpläne, Meals/Rezepte und ggf. Fotos</strong> sowie – falls du den Kalorienrechner nutzt und ein Ergebnis speicherst – <strong>Geschlecht, Alter, Größe, Gewicht, Alltagsbewegung, Ziel sowie deine Trainingstage</strong> (Wochentag, Intensität und Dauer; Details siehe Ziffer 3a). Erstellst du Teilen-Links, merkt sich dein Konto zusätzlich deren <strong>Kennungen</strong> (keine Klardaten, siehe Ziffer 8), damit sie beim Löschen deines Kontos zugeordnet und mitentfernt werden können. Diese Daten speichern wir, damit du dich anmelden und deine Planung geräteübergreifend nutzen kannst.</p>
+      <p>Bei der Registrierung: <strong>Name und E-Mail-Adresse</strong>. Bei Nutzung der App: die von dir angelegten <strong>Wochenpläne, Meals/Rezepte und ggf. Fotos</strong> sowie – falls du den Kalorienrechner nutzt und ein Ergebnis speicherst – <strong>Geschlecht, Alter, Größe, Gewicht, Alltagsbewegung, Ziel sowie deine Trainingstage</strong> (Wochentag, Intensität und Dauer; Details siehe Ziffer 3a). Zusätzlich speichern wir eine technische Markierung, ob du die <strong>Einführungsfragen nach der Registrierung</strong> („Erste Schritte") bereits durchlaufen hast, damit dir der Ablauf nicht bei jeder Anmeldung erneut angezeigt wird. Erstellst du Teilen-Links, merkt sich dein Konto zusätzlich deren <strong>Kennungen</strong> (keine Klardaten, siehe Ziffer 8), damit sie beim Löschen deines Kontos zugeordnet und mitentfernt werden können. Diese Daten speichern wir, damit du dich anmelden und deine Planung geräteübergreifend nutzen kannst.</p>
       <h4>3a. Kalorienrechner</h4>
       <p>Nutzt du den Kalorienrechner, gibst du freiwillig <strong>Geschlecht, Alter, Größe und Gewicht</strong> sowie deine Alltagsbewegung und dein Ziel ein. Optional legst du zusätzlich deine <strong>Trainingstage</strong> fest – also an welchen Wochentagen du trainierst, mit welcher Intensität und wie lange. Daraus berechnet die App direkt in deinem Browser deinen Tagesbedarf, deine Makronährstoffe und deinen BMI; an Trainingstagen zusätzlich den geschätzten Mehrbedarf durch die jeweilige Einheit. Speicherst du das Ergebnis („Als mein Ziel speichern"), werden diese Angaben wie deine übrigen Plandaten lokal und – bei Cloud-Nutzung – in deinem Nutzerkonto (Cloud Firestore, siehe Ziffer 5) gespeichert, um sie geräteübergreifend verfügbar zu halten. Rechtsgrundlage ist wie unter Ziffer 4 die Erfüllung des Nutzungsvertrags (Art. 6 Abs. 1 lit. b DSGVO). Die Eingabe ist freiwillig; lässt du den Rechner ungenutzt, entstehen keine dieser Daten. Diese Angaben werden <strong>nicht</strong> in Teilen-Links aufgenommen (siehe Ziffer 8).</p>
       <h4>4. Zweck &amp; Rechtsgrundlage</h4>
@@ -4506,6 +4720,10 @@
   const profileSlot = document.getElementById("profile-slot");
 
   let pendingShare = null;
+  // Merkt, dass dieser Start ueber einen Teilen-Link kam. pendingShare selbst ist zu dem
+  // Zeitpunkt, an dem ueber die ersten Schritte entschieden wird, schon wieder null –
+  // das Modal des geteilten Plans steht dann aber noch aus.
+  let shareOnStart = false;
   function readSharedFromUrl() {
     try {
       const m = (location.search || "").match(/[?&]s=([A-Za-z0-9_-]+)/);
@@ -4553,7 +4771,10 @@
     renderProfileChip();
     state.tab = "plan"; // Start immer im Wochenplan (Reload & Login)
     render();
-    if (pendingShare) { const id = pendingShare; pendingShare = null; loadSharedById(id); }
+    if (pendingShare) { const id = pendingShare; pendingShare = null; shareOnStart = true; loadSharedById(id); }
+    // Im Cloud-Modus entscheidet startCloudSync ueber die ersten Schritte, nicht wir: das
+    // Flag kann noch aus der Cloud nachkommen. Lokal gibt es niemanden, auf den zu warten waere.
+    if (authMode === "local") maybeStartOnboarding();
   }
   function loadSharedById(id) {
     if (!window.CloudShare || !window.CloudShare.enabled) { toast("Geteilte Links brauchen ein Cloud-Konto"); return; }
@@ -4595,7 +4816,7 @@
     const delLabel = authMode === "cloud" ? "Konto löschen" : "Alle Daten löschen";
     const menu = el(`<div class="menu" role="menu">
       <div class="mhead"><div class="mn">${esc(profile.name)}</div><div class="me">${esc(profile.email)}</div></div>
-      <button data-mi="edit" role="menuitem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>Profil bearbeiten</button>
+      <button data-mi="settings" role="menuitem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1.08-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg>Einstellungen</button>
       <hr>
       <button data-mi="signout" class="danger" role="menuitem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5M21 12H9"/></svg>Abmelden</button>
       <hr>
@@ -4603,7 +4824,7 @@
     </div>`);
     wrap.appendChild(menu);
     updateSyncUI();
-    menu.querySelector("[data-mi='edit']").addEventListener("click", () => { menu.remove(); openProfileForm(); });
+    menu.querySelector("[data-mi='settings']").addEventListener("click", () => { menu.remove(); openSettings(); });
     menu.querySelector("[data-mi='signout']").addEventListener("click", () => { menu.remove(); signOut(); });
     menu.querySelector("[data-mi='delete']").addEventListener("click", () => { menu.remove(); authMode === "cloud" ? deleteAccountFlow() : deleteLocalDataFlow(); });
     setTimeout(() => {
@@ -4666,12 +4887,16 @@
              training: sanitizeTraining(inp.training),
              updatedAt: Date.now() };
   }
-  // Welche Tempo-Stufen es zu einem Ziel gibt. Muss mit den Knoepfen in fillPace()
-  // uebereinstimmen – beides aendern oder keines.
-  function paceKeys(mode) {
-    return mode === "lose" ? ["light", "moderate", "strong"]
-         : mode === "gain" ? ["light", "moderate"] : [];
+  // Welche Tempo-Stufen es zu einem Ziel gibt, samt Beschriftung – die EINE Quelle dafuer.
+  // Frueher standen die Schluessel in paceKeys() und die Knoepfe noch einmal in fillPace();
+  // mit den ersten Schritten waere das die dritte Stelle geworden. Wer hier etwas aendert,
+  // muss paceAdjust() mitziehen – dort haengen die kcal an denselben Schluesseln.
+  function paceOptions(mode) {
+    if (mode === "lose") return [["light", "Leicht", "0,25 kg/Wo."], ["moderate", "Moderat", "0,5 kg/Wo."], ["strong", "Stark", "0,75 kg/Wo."]];
+    if (mode === "gain") return [["light", "Leicht", "0,25 kg/Wo."], ["moderate", "Moderat", "0,5 kg/Wo."]];
+    return [];
   }
+  function paceKeys(mode) { return paceOptions(mode).map(o => o[0]); }
 
   // Was fehlt noch, in Worten? Eine Quelle fuer beides: den Hinweis im Assistenten
   // und den Text der leeren Ergebniskarte. Reihenfolge wie im Formular, damit der
@@ -4790,10 +5015,7 @@
       // die Frage davor beantwortet ist. Bei „Halten" gibt es keins.
       if (!cur.mode || cur.mode === "hold") { paceField.style.display = "none"; return; }
       paceField.style.display = "";
-      // Die Schluessel hier muessen zu paceKeys() passen – beides aendern oder keines.
-      const opts = cur.mode === "lose"
-        ? [["light", "Leicht", "0,25 kg/Wo."], ["moderate", "Moderat", "0,5 kg/Wo."], ["strong", "Stark", "0,75 kg/Wo."]]
-        : [["light", "Leicht", "0,25 kg/Wo."], ["moderate", "Moderat", "0,5 kg/Wo."]];
+      const opts = paceOptions(cur.mode);
       // Passt das bisherige Tempo nicht zum neuen Ziel, bleibt es leer statt still auf
       // „Moderat" zu springen – auch das waere eine unbemerkte Voreinstellung.
       if (!opts.some(o => o[0] === cur.pace)) cur.pace = null;
@@ -5189,6 +5411,429 @@
     });
   }
 
+  // ---------- Erste Schritte (Onboarding) ----------
+  // Eine Frage je Bildschirm statt eines Formulars: die Koerperdaten sind heikel genug,
+  // dass jede Frage ihre eigene Begruendung verdient ("wozu willst du mein Gewicht?").
+  // Der Rechner-Reiter bleibt daneben unveraendert — er ist das Werkzeug zum Nachjustieren
+  // (inklusive Trainingstage, die hier bewusst fehlen), dies hier ist der Erstkontakt.
+  // Geteilt wird die Rechnung (computeGoal, ACTIVITY, paceOptions), nicht die Oberflaeche.
+
+  // Kurzfassung eines Ziels – gebraucht auf der Ergebnisseite, am Ende und auf der
+  // Startseite fuer "Mein Ziel behalten".
+  function goalSummaryHtml(g) {
+    if (!g) return "";
+    return `<b>${g.kcal.toLocaleString("de-DE")} kcal</b> am Tag · ${g.protein} g Eiweiß · ${g.fat} g Fett · ${g.carbs} g Kohlenhydrate`;
+  }
+
+  // Reihenfolge der Bildschirme. Zwei Stellen fallen je nach Antwort heraus: "pace" bei
+  // "Gewicht halten", und die beiden Trainings-Details, wenn kein Trainingstag gewaehlt
+  // ist. Die Schrittzahl ist deshalb nicht konstant und wird ueberall aus onbSteps()
+  // abgeleitet – nie hart hinschreiben.
+  const ONB_ORDER = ["hi", "name", "sex", "age", "height", "weight", "activity", "mode", "pace",
+                     "tdays", "tlevel", "tmin", "result", "how", "go"];
+  const ONB_NUM = {
+    age:    { unit: "Jahre", min: 10,  max: 120, q: "Wie alt bist du?" },
+    height: { unit: "cm",    min: 100, max: 250, q: "Wie groß bist du?" },
+    weight: { unit: "kg",    min: 30,  max: 400, q: "Was wiegst du?" },
+    tmin:   { unit: "Min.",  min: TRAIN_MIN_MIN, max: TRAIN_MIN_MAX, q: "Wie lange dauert eine Einheit?" }
+  };
+  const ONB_TEXT = {
+    name: { q: "Wie heißt du?", max: 40, placeholder: "Dein Vorname" }
+  };
+
+  let onb = null;          // null = laeuft gerade nicht
+  let onbGateDone = false; // die Startentscheidung faellt genau einmal je Sitzung
+
+  // Nach dem Namen fragen wir nur, wenn wirklich keiner da ist. Bei der Registrierung
+  // per E-Mail wird er abgefragt (registerEmail schreibt ihn als displayName), und Google
+  // liefert den Klarnamen — in beiden Faellen waere die Frage eine Wiederholung.
+  // Uebrig bleibt der eine Fall, in dem handleCloudUser mangels displayName den Teil vor
+  // dem @ einsetzt: "fleischmann-patrick" will niemand als Anrede lesen. Das ist exakt
+  // pruefbar, nicht geraten.
+  function onbNameFehlt() {
+    const n = String((profile && profile.name) || "").trim();
+    if (!n) return true;
+    const vorm = String((profile && profile.email) || "").split("@")[0];
+    return !!vorm && n === vorm;
+  }
+  function onbSteps() {
+    return ONB_ORDER.filter(id => {
+      if (id === "name") return onbNameFehlt();
+      if (id === "pace") return onb.cur.mode !== "hold";       // "Halten" kennt kein Tempo
+      if (id === "tlevel" || id === "tmin") return onb.cur.tdays.length > 0;
+      return true;
+    });
+  }
+
+  // Startentscheidung. Idempotent, weil sie aus mehreren Richtungen kommt: lokal aus
+  // enterApp(), im Cloud-Modus aus startCloudSync() (dort erst, wenn der Stand aus der
+  // Cloud da ist – sonst blitzten die ersten Schritte bei jedem Login kurz auf).
+  function maybeStartOnboarding() {
+    if (onbGateDone) return;
+    onbGateDone = true;
+    if (state.onboarded) return;
+    // Ein geteilter Plan wartet schon als Modal – zwei Dinge gleichzeitig waeren zu viel.
+    // Die ersten Schritte kommen dann beim naechsten Start, das Flag bleibt ungesetzt.
+    if (shareOnStart) return;
+    startOnboarding({ first: true });
+  }
+
+  function startOnboarding(opts) {
+    const g = state.goal || {};
+    // Trainingstage aus einem gespeicherten Ziel: die Stufe und die Dauer des ersten
+    // Tages gelten hier fuer alle. Der Rechner erlaubt je Tag eigene Werte – wer die
+    // gesetzt hat und die ersten Schritte erneut durchlaeuft, gleicht sie damit an.
+    // Bewusst so: sieben Bildschirme fuer sieben Dauern waeren der falsche Einstieg.
+    const tk = trainingKeys(g.training);
+    onb = {
+      first: !(opts && opts.first === false),
+      i: 0,
+      // Vorbelegt aus einem vorhandenen Ziel (Bestandskonten sehen die ersten Schritte
+      // einmalig), sonst leer. Nichts vorgeben, was als bewusste Angabe durchginge.
+      cur: {
+        name: (profile && profile.name) || "",
+        sex: g.sex || null,
+        age: g.age != null ? String(g.age) : "",
+        height: g.height != null ? String(g.height) : "",
+        weight: g.weight != null ? String(g.weight) : "",
+        activity: ACTIVITY.some(a => a.key === g.activity) ? g.activity : null,
+        mode: g.mode || null,
+        pace: g.pace || null,
+        tdays: tk,
+        tlevel: tk.length ? g.training[tk[0]].level : null,
+        tmin: tk.length ? String(g.training[tk[0]].min) : ""
+      }
+    };
+    appEl.classList.add("onboarding");
+    renderOnboardStep();
+    syncStickyOffsets(); // erst jetzt: die Reiterleiste ist weg, --tabbar-h muss auf 0
+  }
+
+  // Beendet den Ablauf. Das Flag wird IMMER gesetzt, auch beim Ueberspringen – sonst
+  // stuende der Ablauf beim naechsten Start wieder da, obwohl er abgelehnt wurde.
+  function finishOnboarding(msg) {
+    onb = null;
+    state.onboarded = true;
+    appEl.classList.remove("onboarding");
+    state.tab = "plan";
+    save();
+    render();
+    syncStickyOffsets();
+    if (msg) toast(msg);
+  }
+
+  // Was fehlt auf dem aktuellen Bildschirm? Leerer String = alles gut. Der Text landet
+  // im Toast, wenn jemand auf den gesperrten Weiter-Knopf tippt – ein toter Knopf
+  // erklaert nichts (gleiche Ueberlegung wie bei .is-off im Rechner).
+  function onbMissing(id) {
+    const c = onb.cur;
+    if (id === "name" && !String(c.name || "").trim()) return "Wie sollen wir dich nennen?";
+    if (id === "sex" && c.sex !== "m" && c.sex !== "f") return "Wähle noch dein Geschlecht";
+    // "tdays" ist bewusst ohne Pflicht: keine Trainingstage ist eine gueltige Antwort.
+    if (id === "tlevel" && !c.tlevel) return "Wähle noch, wie hart du trainierst";
+    if (id === "activity" && !c.activity) return "Wähle noch deine Bewegung im Alltag";
+    if (id === "mode" && !c.mode) return "Wähle noch dein Ziel";
+    if (id === "pace" && !c.pace) return "Wähle noch dein Tempo";
+    if (id === "result") { const f = missingCalc(onbGoalInput()); if (f.length) return "Es fehlt noch " + f.join(" und "); }
+    const num = ONB_NUM[id];
+    if (num) {
+      const v = Number(c[id]);
+      if (!c[id] || !isFinite(v)) return "Trag noch " + (id === "age" ? "dein Alter" : id === "height" ? "deine Größe" : "dein Gewicht") + " ein";
+      if (v < num.min || v > num.max) return `Bitte einen Wert zwischen ${num.min} und ${num.max} ${num.unit}`;
+    }
+    return "";
+  }
+
+  function onbGoalInput() {
+    const c = onb.cur;
+    // Eine Stufe und eine Dauer fuer alle gewaehlten Tage – das Datenmodell bleibt aber
+    // das des Rechners (je Tag { level, min }), damit gespeicherte Ziele und computeGoal()
+    // unberuehrt bleiben und man im Rechner hinterher je Tag nachjustieren kann.
+    const training = {};
+    const lvl = c.tlevel || "mod";
+    const min = +c.tmin || trainLevel(lvl).defMin;
+    c.tdays.forEach(k => { training[k] = { level: lvl, min: min }; });
+    return { sex: c.sex, mode: c.mode, pace: c.pace, activity: c.activity, training: training,
+             age: +c.age, height: +c.height, weight: +c.weight };
+  }
+
+  function onbGo(delta) {
+    const steps = onbSteps();
+    const next = onb.i + delta;
+    if (next < 0) return;
+    if (next >= steps.length) { finishOnboarding(onb.first ? "Viel Erfolg!" : null); return; }
+    onb.i = next;
+    renderOnboardStep();
+  }
+
+  // Auswahlkachel. Die Auswahl haengt NICHT allein an der Farbe – das Haekchen traegt
+  // sie mit, sonst waere sie fuer Farbfehlsichtige nicht zu erkennen.
+  const ONB_TICK = `<svg class="onb-tick" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>`;
+  function onbOpt(grp, v, label, hint) {
+    const on = onb.cur[grp] === v;
+    return `<button type="button" class="onb-opt${on ? " on" : ""}" data-opt="${grp}" data-v="${esc(v)}" aria-pressed="${on ? "true" : "false"}">
+      <span class="onb-opt-t">${esc(label)}</span>${hint ? `<span class="onb-opt-h">${esc(hint)}</span>` : ""}${on ? ONB_TICK : ""}</button>`;
+  }
+
+  function onbStepHtml(id) {
+    const c = onb.cur;
+    if (id === "hi") {
+      const keep = state.goal
+        ? `<button type="button" class="btn ghost onb-keep">Mein Ziel behalten (${state.goal.kcal.toLocaleString("de-DE")} kcal)</button>` : "";
+      // Steht der Name schon fest, wird er hier zur Begruessung – dann ist die Frage
+      // danach ueberfluessig (siehe onbNameFehlt) und der Name trotzdem sichtbar.
+      const vorname = onbNameFehlt() ? "" : String(c.name || "").trim().split(/\s+/)[0];
+      return `<div class="onb-hi">
+        <div class="onb-mark" aria-hidden="true"></div>
+        ${vorname ? `<p class="onb-kicker">Willkommen, ${esc(vorname)}</p>` : ""}
+        <h2 class="onb-q">Plan it. Cook it. Lift it.</h2>
+        <ul class="onb-list">
+          <li><b>Ziel</b> – Kalorien und Makros aus deinen Daten.</li>
+          <li><b>Wochenplan</b> – Frühstück, Mittag, Abend.</li>
+          <li><b>Einkaufsliste</b> – automatisch aus deinem Plan.</li>
+        </ul>
+        ${keep}</div>`;
+    }
+    const txt = ONB_TEXT[id];
+    if (txt) {
+      return `<label class="onb-q" for="onb-text" tabindex="-1">${txt.q}</label>
+        <input type="text" id="onb-text" class="onb-text" maxlength="${txt.max}"
+               autocomplete="given-name" placeholder="${esc(txt.placeholder)}" value="${esc(c[id])}">`;
+    }
+    if (id === "sex") {
+      return `<h2 class="onb-q" tabindex="-1">Was ist dein Geschlecht?</h2>
+        <div class="onb-opts">${onbOpt("sex", "f", "Weiblich")}${onbOpt("sex", "m", "Männlich")}</div>`;
+    }
+    const num = ONB_NUM[id];
+    if (num) {
+      return `<label class="onb-q" for="onb-num" tabindex="-1">${num.q}</label>
+        <div class="onb-numrow">
+          <input type="number" id="onb-num" class="onb-num" inputmode="numeric" min="${num.min}" max="${num.max}"
+                 value="${esc(c[id])}" placeholder="0" aria-describedby="onb-unit">
+          <span class="onb-unit" id="onb-unit">${num.unit}</span>
+        </div>`;
+    }
+    if (id === "activity") {
+      return `<h2 class="onb-q" tabindex="-1">Wie viel bewegst du dich im Alltag?</h2>
+        <p class="onb-why">Nur Beruf und Alltag – Training zählt separat.</p>
+        <div class="onb-opts onb-opts-1">${ACTIVITY.map(a => onbOpt("activity", a.key, a.label, a.hint)).join("")}</div>`;
+    }
+    if (id === "mode") {
+      return `<h2 class="onb-q" tabindex="-1">Was ist dein Ziel?</h2>
+        <div class="onb-opts onb-opts-1">${onbOpt("mode", "lose", "Abnehmen", "Kalorien unter dem Bedarf")}${onbOpt("mode", "hold", "Gewicht halten", "Kalorien auf Bedarfshöhe")}${onbOpt("mode", "gain", "Zunehmen", "Kalorien über dem Bedarf")}</div>`;
+    }
+    if (id === "pace") {
+      return `<h2 class="onb-q" tabindex="-1">Wie schnell?</h2>
+        <div class="onb-opts onb-opts-1">${paceOptions(c.mode).map(o => onbOpt("pace", o[0], o[1], o[2])).join("")}</div>`;
+    }
+    if (id === "tdays") {
+      return `<h2 class="onb-q" tabindex="-1">An welchen Tagen trainierst du?</h2>
+        <div class="tdays onb-tdays" role="group" aria-label="Trainingstage">
+          ${DAYS.map(d => `<button type="button" data-tday="${d.key}" aria-pressed="${c.tdays.indexOf(d.key) !== -1 ? "true" : "false"}" aria-label="${esc(d.label)}">${d.short}</button>`).join("")}
+        </div>
+        ${c.tdays.length ? `<p class="onb-why onb-sel">${esc(DAYS.filter(d => c.tdays.indexOf(d.key) !== -1).map(d => d.label).join(", "))}</p>` : ""}`;
+    }
+    if (id === "tlevel") {
+      return `<h2 class="onb-q" tabindex="-1">Wie hart trainierst du?</h2>
+        <div class="onb-opts onb-opts-1">${TRAIN_LEVELS.map(lv => onbOpt("tlevel", lv.key, lv.label, lv.ex)).join("")}</div>`;
+    }
+    if (id === "result") {
+      // Kann eigentlich nicht vorkommen (der Weiter-Knopf laesst niemanden mit Luecken
+      // hierher), aber ueber Zurueck-Navigation und alte Ziele ist es denkbar. Lieber
+      // eine Ansage als eine Karte voller NaN.
+      const fehlt = missingCalc(onbGoalInput());
+      if (fehlt.length) {
+        return `<h2 class="onb-q" tabindex="-1">Da fehlt noch etwas</h2>
+          <p class="onb-why">Für die Rechnung fehlt ${esc(fehlt.join(" und "))}. Geh mit <b>Zurück</b> ein paar Schritte zurück.</p>`;
+      }
+      const g = computeGoal(onbGoalInput());
+      const hatT = c.tdays.length > 0;
+      // Mit Trainingstagen den Wert dafuer gleich mitzeigen: „an Trainingstagen kommt
+      // etwas obendrauf" bleibt sonst eine Behauptung, mit der niemand rechnen kann.
+      // Dieselben Helfer wie im Rechner, damit beide nie auseinanderlaufen.
+      const tPlus = hatT ? trainKcal(c.tlevel || "mod", +c.tmin, g.weight) : 0;
+      const tTag = hatT ? trainFromRest({ kcal: g.kcal, carbs: g.carbs, protein: g.protein, fat: g.fat }, tPlus) : null;
+      return `<h2 class="onb-q" tabindex="-1">Dein Ziel steht</h2>
+        ${hatT ? `<p class="onb-why">Wert für einen Tag ohne Training.</p>` : ""}
+        <div class="onb-res">
+          <div class="onb-res-k">${g.kcal.toLocaleString("de-DE")}<span>kcal / ${hatT ? "Ruhetag" : "Tag"}</span></div>
+          <div class="onb-res-m">
+            <div class="t-prot"><b>${g.protein} g</b><span>Eiweiß</span></div>
+            <div class="t-carb"><b>${g.carbs} g</b><span>Kohlenhydrate</span></div>
+            <div class="t-fat"><b>${g.fat} g</b><span>Fett</span></div>
+          </div>
+          ${hatT ? `<div class="onb-res-t">
+            <span>An Trainingstagen (${esc(trainLevel(c.tlevel || "mod").label)}, ${+c.tmin || trainLevel(c.tlevel || "mod").defMin} Min.)</span>
+            <b>${tTag.kcal.toLocaleString("de-DE")} kcal</b>
+          </div>` : ""}
+        </div>
+        <details class="calc-note onb-note"><summary>
+          <svg class="ci" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></svg>
+          <span>Rechnerische Richtwerte – keine ärztliche Beratung</span>
+          <svg class="caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
+        </summary>
+        <div class="cn-body">Alle Werte sind <strong>rechnerische Richtwerte</strong>: Grundumsatz nach der Mifflin-St-Jeor-Formel, Alltagsbedarf über einen Aktivitätsfaktor (PAL). Der tatsächliche Verbrauch kann davon deutlich abweichen. Sie ersetzen keine ärztliche oder ernährungsmedizinische Beratung. Bei Erkrankungen, in Schwangerschaft und Stillzeit oder vor einer stärkeren Ernährungsumstellung sprich bitte mit einer Ärztin oder einem Arzt.</div></details>`;
+    }
+    if (id === "how") {
+      return `<h2 class="onb-q" tabindex="-1">So läuft deine Woche</h2>
+        <div class="onb-mock" aria-hidden="true">
+          <div class="onb-mock-d"><span>MO</span><i class="fr"></i><i class="mi"></i><i class="ab"></i></div>
+          <div class="onb-mock-d"><span>DI</span><i class="fr"></i><i class="mi"></i><i class="ab"></i></div>
+          <div class="onb-mock-d"><span>MI</span><i class="fr"></i><i class="mi"></i><i class="ab"></i></div>
+        </div>
+        <ul class="onb-list">
+          <li><b>Meals</b> – vier Beispiele sind schon da.</li>
+          <li><b>Einkaufsliste</b> – automatisch, unter dem Wochenplan.</li>
+          <li><b>Teilen</b> – deine Woche als Link.</li>
+        </ul>`;
+    }
+    // "go"
+    const g = state.goal;
+    const vorname = String(c.name || "").trim().split(/\s+/)[0];
+    return `<div class="onb-hi">
+      <div class="onb-mark" aria-hidden="true"></div>
+      <h2 class="onb-q" tabindex="-1">${vorname ? "Alles bereit, " + esc(vorname) : "Alles bereit"}</h2>
+      ${g ? `<p class="onb-why">${goalSummaryHtml(g)}</p>` : ""}
+    </div>`;
+  }
+
+  function renderOnboardStep() {
+    const steps = onbSteps();
+    const id = steps[onb.i];
+    const last = onb.i === steps.length - 1;
+    const showTop = onb.i > 0;
+    const pct = Math.round((onb.i + 1) / steps.length * 100);
+    const nextLabel = id === "result" ? "Ziel übernehmen" : last ? (onb.first ? "Zum Wochenplan" : "Fertig") : "Weiter";
+    const miss = onbMissing(id);
+
+    view.innerHTML = `<div class="onb">
+      ${showTop ? `<div class="onb-top">
+        <div class="wg-progress-bar" role="progressbar" aria-valuemin="1" aria-valuemax="${steps.length}" aria-valuenow="${onb.i + 1}" aria-label="Fortschritt der Einführung"><span style="width:${pct}%"></span></div>
+        <div class="onb-count">Schritt ${onb.i + 1} von ${steps.length}</div>
+      </div>` : ""}
+      <div class="onb-stage">${onbStepHtml(id)}</div>
+      <div class="onb-foot">
+        <button type="button" class="btn primary onb-next${miss ? " is-off" : ""}"${miss ? ' aria-disabled="true"' : ""}>${nextLabel}</button>
+        <div class="onb-foot2">
+          <button type="button" class="btn ghost sm onb-back"${onb.i === 0 ? ' style="visibility:hidden"' : ""}>Zurück</button>
+          <button type="button" class="btn ghost sm onb-skip">${onb.first ? "Überspringen" : "Schließen"}</button>
+        </div>
+      </div>
+    </div>`;
+
+    // Fokus auf die neue Frage: sonst bliebe er am Weiter-Knopf haengen und ein
+    // Screenreader bekaeme vom Bildschirmwechsel nichts mit. Das Zahlenfeld bewusst
+    // NICHT fokussieren – die Tastatur schoebe sich auf dem Handy ueber den Weiter-Knopf.
+    const q = view.querySelector(".onb-q");
+    if (q) setTimeout(() => { try { q.focus({ preventScroll: true }); } catch (e) { q.focus(); } }, 30);
+
+    view.querySelectorAll("[data-opt]").forEach(b => b.addEventListener("click", () => {
+      onb.cur[b.dataset.opt] = b.dataset.v;
+      // Passt das bisherige Tempo nicht mehr zum neuen Ziel, faellt es weg statt still
+      // auf "Moderat" zu springen – dieselbe Ueberlegung wie in fillPace().
+      if (b.dataset.opt === "mode" && !paceKeys(onb.cur.mode).some(k => k === onb.cur.pace)) onb.cur.pace = null;
+      // Die uebliche Dauer der gewaehlten Stufe als Startwert – sie steht dann sichtbar im
+      // Feld und ist damit keine unbemerkte Vorgabe, sondern ein Vorschlag zum Ueberschreiben.
+      if (b.dataset.opt === "tlevel" && !onb.cur.tmin) onb.cur.tmin = String(trainLevel(onb.cur.tlevel).defMin);
+      renderOnboardStep();
+      // Weiterspringen statt einen zweiten Tipp zu verlangen: bei einer Einfachauswahl
+      // ist die Antwort mit dem Tipp gegeben. Kurz warten, damit die Auswahl noch zu
+      // sehen ist – ohne Bewegungswunsch sofort.
+      // Nur springen, wenn wir noch auf demselben Bildschirm stehen – der Name der
+      // Gruppe ist zugleich die Kennung des Schritts.
+      setTimeout(() => { if (onb && onbSteps()[onb.i] === b.dataset.opt) onbGo(1); }, reducedMotion() ? 0 : 260);
+    }));
+
+    const numEl = view.querySelector("#onb-num");
+    if (numEl) {
+      numEl.addEventListener("input", () => {
+        onb.cur[id] = numEl.value;
+        const m = onbMissing(id);
+        const nb = view.querySelector(".onb-next");
+        nb.classList.toggle("is-off", !!m);
+        if (m) nb.setAttribute("aria-disabled", "true"); else nb.removeAttribute("aria-disabled");
+      });
+      numEl.addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); view.querySelector(".onb-next").click(); } });
+    }
+
+    const textEl = view.querySelector("#onb-text");
+    if (textEl) {
+      textEl.addEventListener("input", () => {
+        onb.cur[id] = textEl.value;
+        const m = onbMissing(id);
+        const nb = view.querySelector(".onb-next");
+        nb.classList.toggle("is-off", !!m);
+        if (m) nb.setAttribute("aria-disabled", "true"); else nb.removeAttribute("aria-disabled");
+      });
+      textEl.addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); view.querySelector(".onb-next").click(); } });
+    }
+
+    // Trainingstage: Mehrfachauswahl, deshalb aria-pressed und KEIN Weiterspringen –
+    // wer Mo/Mi/Fr trainiert, ist mit dem ersten Tipp noch nicht fertig.
+    const tdaysEl = view.querySelector(".onb-tdays");
+    if (tdaysEl) tdaysEl.addEventListener("click", e => {
+      const b = e.target.closest("button[data-tday]"); if (!b) return;
+      const k = b.dataset.tday;
+      const i = onb.cur.tdays.indexOf(k);
+      if (i === -1) onb.cur.tdays.push(k); else onb.cur.tdays.splice(i, 1);
+      // In der Reihenfolge der Woche halten, nicht in der des Antippens.
+      onb.cur.tdays = DAYS.filter(d => onb.cur.tdays.indexOf(d.key) !== -1).map(d => d.key);
+      renderOnboardStep();
+    });
+
+    view.querySelector(".onb-next").addEventListener("click", () => {
+      const m = onbMissing(id);
+      if (m) { toast(m); if (numEl) numEl.focus(); else if (textEl) textEl.focus(); return; }
+      // Der Name gehoert ins Firebase-Profil, nicht nur in den lokalen Zustand: sonst
+      // ueberschreibt handleCloudUser ihn bei der naechsten Anmeldung mit dem displayName.
+      // Bewusst ohne await – ein langsames Netz darf den Ablauf nicht anhalten.
+      if (id === "name") {
+        const nm = String(onb.cur.name).trim();
+        applyDisplayName(nm).catch(() => {
+          // Cloud-Update gescheitert (offline). Lokal trotzdem uebernehmen, damit der Name
+          // wenigstens oben rechts steht, und das ehrlich sagen: bei der naechsten Anmeldung
+          // gewinnt sonst wieder der alte displayName.
+          profile = Object.assign({}, profile, { name: nm });
+          saveProfile(); rememberLast(); renderProfileChip();
+          toast("Dein Name steht auf diesem Gerät, konnte aber nicht in deinem Konto gespeichert werden");
+        });
+      }
+      if (id === "result") { state.goal = computeGoal(onbGoalInput()); save(); }
+      onbGo(1);
+    });
+    view.querySelector(".onb-back").addEventListener("click", () => onbGo(-1));
+    view.querySelector(".onb-skip").addEventListener("click", () => finishOnboarding(null));
+    const keep = view.querySelector(".onb-keep");
+    if (keep) keep.addEventListener("click", () => { onb.i = onbSteps().indexOf("how"); renderOnboardStep(); });
+  }
+
+  // ---------- Einstellungen ----------
+  function openSettings() {
+    const hasEx = state.recipes.some(isExample);
+    const node = el(`<div class="modal" role="dialog" aria-modal="true" aria-label="Einstellungen">
+      <div class="modal-head"><h3>Einstellungen</h3><button class="btn ghost sm" data-close aria-label="Schließen">✕</button></div>
+      <div class="modal-body">
+        <div class="setlist">
+          <button type="button" class="setrow" data-si="onboard"><span><b>Erste Schritte ansehen</b><small>Die Einführung noch einmal durchgehen</small></span></button>
+          <button type="button" class="setrow" data-si="profile"><span><b>Profil bearbeiten</b><small>Name und E-Mail</small></span></button>
+          <button type="button" class="setrow" data-si="goal"><span><b>Ziel bearbeiten</b><small>Kalorienrechner öffnen${state.goal ? " – aktuell " + state.goal.kcal.toLocaleString("de-DE") + " kcal" : ""}</small></span></button>
+          ${hasEx ? `<button type="button" class="setrow" data-si="examples"><span><b>Beispiel-Meals entfernen</b><small>Die mitgelieferten Meals löschen</small></span></button>` : ""}
+        </div>
+      </div>
+      <div class="modal-foot"><button class="btn primary" data-close>Schließen</button></div>
+    </div>`);
+    node.querySelectorAll("[data-close]").forEach(b => b.addEventListener("click", closeModal));
+    node.querySelectorAll("[data-si]").forEach(b => b.addEventListener("click", () => {
+      const k = b.dataset.si;
+      closeModal();
+      if (k === "onboard") startOnboarding({ first: false });
+      else if (k === "profile") openProfileForm();
+      else if (k === "goal") { state.tab = "rechner"; render(); }
+      else if (k === "examples") clearExamples();
+    }));
+    openModal(node);
+  }
+
   // Pro – eigener Reiter, aktuell nur Vorschau/Platzhalter. Wird ein eigenes Thema.
   // Platzhalter – die eigentliche Fortschritts-Ansicht ist die naechste Baustelle.
   // Fruehere Reiter "Fortschritt" und "Pro" bewarben inhaltlich fast dasselbe
@@ -5460,6 +6105,19 @@
     setTimeout(() => { const f = node.querySelector("#fp-email"); if (f && !prefill) f.focus(); }, 40);
   }
 
+  // Den Anzeigenamen ueberall hinschreiben, wo er hingehoert. Im Cloud-Modus MUSS er ins
+  // Firebase-Profil (displayName) – handleCloudUser baut `profile` bei jeder Anmeldung neu
+  // daraus auf, ein nur lokal gesetzter Name waere beim naechsten Login wieder weg.
+  // Wirft weiter, wenn das Cloud-Update scheitert; die Aufrufer entscheiden, wie hart sie
+  // darauf reagieren.
+  async function applyDisplayName(name) {
+    if (authMode === "cloud" && window.CloudAuth && window.CloudAuth.updateName) {
+      await window.CloudAuth.updateName(name);
+    }
+    profile = Object.assign({}, profile, { name });
+    saveProfile(); rememberLast(); renderProfileChip();
+  }
+
   function openProfileForm() {
     const node = el(`<div class="modal" role="dialog" aria-modal="true" aria-label="Profil bearbeiten">
       <div class="modal-head"><h3>Profil bearbeiten</h3><button class="btn ghost sm" data-close>✕</button></div>
@@ -5475,9 +6133,8 @@
       const name = node.querySelector("#p-name").value.trim();
       if (!name) { toast("Bitte gib deinen Namen ein"); return; }
       if (authMode === "cloud") {
-        try { await window.CloudAuth.updateName(name); } catch (e) { toast("Speichern nicht möglich"); return; }
-        profile = Object.assign({}, profile, { name }); saveProfile(); rememberLast();
-        renderProfileChip(); closeModal(); toast("Profil gespeichert");
+        try { await applyDisplayName(name); } catch (e) { toast("Speichern nicht möglich"); return; }
+        closeModal(); toast("Profil gespeichert");
         return;
       }
       const email = node.querySelector("#p-email").value.trim();

@@ -24,6 +24,25 @@ Neue Elemente fügen sich in das vorhandene System ein und nutzen dessen CSS-Var
 Wenn eine Design-Entscheidung nicht durch vorhandene Tokens abgedeckt ist, erst fragen bzw. einen
 neuen Token im gleichen Stil anlegen — nicht danebendesignen.
 
+## Textmenge-Vorgabe: knapp statt erklärend (verbindlich)
+
+**Die App bleibt übersichtlich. Jede UI zeigt so wenig Text wie möglich, nicht so viel wie
+möglich erklärt.** Kein Zusatzsatz, der begründet, *warum* eine Frage gestellt wird oder was ein
+Wert *bedeutet*, wenn die Frage/Beschriftung/das Beispiel für sich schon verständlich ist.
+
+Negativbeispiel, das genau deshalb entfernt wurde: „Für den Grundumsatz – bei sonst gleichen
+Werten macht das rund 160 kcal aus." unter der Frage „Was ist dein Geschlecht?" — die Frage
+steht sichtbar im Kontext eines Kalorienrechners, die Begründung war überflüssige Fachsimpelei.
+
+Faustregel vor jedem neuen Hilfetext (`.onb-why`, `.hint`, `.tdays-note`, Platzhaltertexte o. ä.):
+- Erklärt der Satz etwas, das aus Frage + Optionen/Platzhalter/Beispiel schon hervorgeht? → weg.
+- Bleibt beim Streichen eine echte Lücke (z. B. „dein Training zählt hier NICHT mit" — sonst
+  läuft die Rechnung doppelt)? → ein kurzer Halbsatz reicht, kein ganzer Absatz.
+- Rechtlich/fachlich nötige Hinweise (Disclaimer, Datenschutz) gehören hinter ein `<details>`,
+  nicht offen im Fließtext — sie sind Pflicht, aber keine Zusatzinformation für den Regelfall.
+
+Gilt für alle Screens, nicht nur den Rechner/das Onboarding.
+
 **Bei jeder Design-Änderung zuerst den Skill `ui-ux-pro-max` aufrufen** — verbindlich, nicht
 optional. `ui-ux-pro-max:ui-ux-pro-max` für UI-Zustände, Farben, UX- und A11y-Regeln,
 `ui-ux-pro-max:design` für Branding/Logo/Banner. Dessen Empfehlungen dann auf die Projekt-Tokens
