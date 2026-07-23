@@ -6,7 +6,7 @@ rules_version = '2';
 // Firebase-Konsole unter Firestore Database -> Regeln eingefügt und VERÖFFENTLICHT wird.
 // Sie liegt hier im Repo, damit nachvollziehbar ist, was gelten soll.
 //
-// Stand: 2026-07-15
+// Stand: 2026-07-24
 
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -14,6 +14,14 @@ service cloud.firestore {
     // ---- Konto-Daten: Plan, Meals, Profil ----
     // Jede Person liest und schreibt ausschließlich ihr eigenes Dokument.
     match /users/{uid} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+    }
+
+    // ---- Rezepte: eigenes Dokument je Meal, damit Fotos nicht mehr gegen die
+    // 1-MiB-Grenze des Hauptdokuments laufen. Regeln vererben sich in Firestore
+    // NICHT automatisch auf Subcollections - deshalb ein eigener Block, gleiche
+    // Zugriffslogik wie beim Hauptdokument. ----
+    match /users/{uid}/recipes/{recipeId} {
       allow read, write: if request.auth != null && request.auth.uid == uid;
     }
 

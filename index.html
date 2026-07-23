@@ -866,8 +866,6 @@
   .nut-total .t-carb { --tc: #E9A03B; }
   .nut-total .t-prot { --tc: #C74B78; }
   .nut-total .t-fat  { --tc: #4AA8E0; }
-  /* Heller Grund statt --surface-2, sonst verschwaenden die Felder im getoenten Kasten */
-  #f-kcal[readonly], #f-carbs[readonly], #f-protein[readonly], #f-fat[readonly] { opacity: .85; background: var(--surface); }
   .rimg { position: relative; height: 116px; display: grid; place-items: center; overflow: hidden; }
   .rimg::after { content: ""; position: absolute; inset: 0; background: radial-gradient(130px 66px at 78% 16%, rgba(255,255,255,.30), transparent); pointer-events: none; }
   .rimg.has-photo::after { display: none; }
@@ -1870,7 +1868,7 @@
     deleteUser, reauthenticateWithPopup, reauthenticateWithCredential, EmailAuthProvider
   } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
   import {
-    getFirestore, doc, getDoc, setDoc, deleteDoc, onSnapshot
+    getFirestore, doc, collection, getDoc, getDocs, setDoc, deleteDoc, writeBatch, onSnapshot
   } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 
   /* ▼▼▼ HIER die Werte aus der Firebase-Konsole eintragen ▼▼▼
@@ -1954,6 +1952,12 @@
           for (let i = 0; i < shareIds.length; i++) {
             await deleteDoc(doc(db, "shared", shareIds[i]));
           }
+          // Rezepte liegen seit dem Subcollection-Umbau in eigenen Dokumenten - Firestore
+          // loescht Subcollections NICHT automatisch mit, wenn das Elternobjekt verschwindet.
+          const recipeIds = (opts && opts.recipeIds) || [];
+          for (let i = 0; i < recipeIds.length; i++) {
+            await deleteDoc(doc(db, "users", uid, "recipes", recipeIds[i]));
+          }
           await deleteDoc(doc(db, "users", uid));
           try {
             await deleteUser(user);
@@ -1981,6 +1985,29 @@
         watch: function (uid, cb) {
           return onSnapshot(doc(db, "users", uid), function (snap) {
             if (snap.exists()) cb(snap.data(), snap.metadata.hasPendingWrites);
+          }, function () {});
+        },
+        // ----- Rezepte: eigenes Dokument je Meal (users/{uid}/recipes/{id}) -----
+        // Batch statt Einzel-setDoc/deleteDoc: batch.commit() ist atomar - entweder
+        // landen alle Aenderungen dieses Zyklus, oder keine. Bricht ein Netzabbruch
+        // mitten in commit() ab, bleibt die lokale Baseline unveraendert und der
+        // naechste Zyklus versucht denselben Diff erneut (siehe syncRecipes()).
+        loadRecipes: function (uid) {
+          return getDocs(collection(db, "users", uid, "recipes")).then(function (snap) {
+            return snap.docs.map(function (d) { return d.data(); });
+          });
+        },
+        saveRecipesBatch: function (uid, puts, delIds) {
+          const batch = writeBatch(db);
+          puts.forEach(function (r) { batch.set(doc(db, "users", uid, "recipes", r.id), r); });
+          delIds.forEach(function (id) { batch.delete(doc(db, "users", uid, "recipes", id)); });
+          return batch.commit();
+        },
+        watchRecipes: function (uid, cb) {
+          return onSnapshot(collection(db, "users", uid, "recipes"), function (snap) {
+            cb(snap.docChanges().map(function (c) {
+              return { type: c.type, id: c.doc.id, data: c.doc.data(), pending: c.doc.metadata.hasPendingWrites };
+            }));
           }, function () {});
         }
       };
@@ -2012,7 +2039,7 @@
   // das selbst frueh im Script laeuft (state = load()). Eine const weiter unten im
   // Script waere zu diesem Zeitpunkt noch nicht initialisiert (Temporal Dead Zone) -
   // genau das brach die App fuer jeden Nutzer mit einer strukturierten Zutat.
-  const ING_UNITS = ["g", "ml", "st"];
+  const ING_UNITS = ["g", "ml", "st", "el", "tl"];
 
   const DAYS = [
     { key: "mon", label: "Montag",     short: "Mo" },
@@ -2363,7 +2390,8 @@
   function unionIds(a, b) { return Array.from(new Set([].concat(a || [], b || []))); }
 
   // ---------- Cloud-Sync (Firestore) ----------
-  let syncUid = null, syncUnsub = null, pushTimer = null, lastPushedJSON = null;
+  let syncUid = null, syncUnsub = null, syncUnsubRecipes = null, pushTimer = null,
+      lastPushedJSON = null, lastPushedRecipes = null, recipesSyncFailed = false;
   // Sperrfrist fuer die „von aussen geaendert"-Meldung (siehe onRemote).
   const REMOTE_TOAST_GAP = 60000;
   let lastRemoteToast = 0;
@@ -2396,31 +2424,81 @@
   // weights/weightGoals MUESSEN hier stehen: fehlen sie, sieht der Vergleich eine neue
   // Wiegung nie als Aenderung - sie wuerde nie in die Cloud gepusht (gleiche Falle wie
   // oben bei "onboarded" beschrieben).
-  function dataJSON(d) { return JSON.stringify({ recipes: (d && d.recipes) || [], plans: plansField(d), goal: (d && d.goal) || null, shares: (d && d.shares) || [], onboarded: !!(d && d.onboarded), weights: (d && d.weights) || [], weightGoals: (d && d.weightGoals) || {}, profileImage: (d && d.profileImage) || null }); }
+  // KEIN "recipes"-Feld mehr: Rezepte leben seit dem Subcollection-Umbau in eigenen
+  // Dokumenten (siehe syncRecipes()/onRecipesRemote()) und werden ueber lastPushedRecipes
+  // separat verglichen. Wuerde hier trotzdem "recipes" auftauchen, laege state.recipes
+  // (immer voll) permanent quer zu d.recipes (nie mehr vorhanden) - der Vergleich griffe
+  // nie mehr, jeder Remote-Snapshot loeste unnoetig render()/Toast aus.
+  function dataJSON(d) { return JSON.stringify({ plans: plansField(d), goal: (d && d.goal) || null, shares: (d && d.shares) || [], onboarded: !!(d && d.onboarded), weights: (d && d.weights) || [], weightGoals: (d && d.weightGoals) || {}, profileImage: (d && d.profileImage) || null }); }
 
   function scheduleCloudPush() {
     if (!syncUid) return;
     clearTimeout(pushTimer);
     pushTimer = setTimeout(pushNow, 800);
   }
-  // Firestore laesst pro Dokument hoechstens 1 MiB zu. Weil alle Meals samt ihren
-  // Fotos in EINEM Dokument liegen, ist die Grenze mit ein paar Dutzend eigenen
-  // Bildern erreicht. Ohne Vorabpruefung wuerde jeder Push kommentarlos scheitern und
-  // als "offline" erscheinen - der Sync waere dauerhaft tot, ohne dass es jemand merkt.
+  // Firestore laesst pro Dokument hoechstens 1 MiB zu. Frueher lagen alle Meals samt
+  // ihren Fotos in EINEM Dokument, die Grenze war mit ein paar Dutzend eigenen Bildern
+  // erreicht. Seit dem Subcollection-Umbau (syncRecipes()) gilt die Grenze pro Rezept,
+  // nicht mehr fuers ganze Konto - dieser Check bleibt trotzdem als Sicherheitsnetz fuers
+  // (jetzt winzige) Hauptdokument bestehen, loest praktisch nie mehr aus.
   const CLOUD_DOC_MAX = 900000;      // Sicherheitsabstand zur 1-MiB-Grenze
   let cloudTooBigWarned = false;
+  // Rezepte einzeln synchronisieren (users/{uid}/recipes/{id}), diff-basiert genau wie
+  // der Rest des States: lastPushedRecipes ist die zuletzt bestaetigte Baseline (Map
+  // id -> JSON-String). Nur was sich seitdem geaendert hat, wird geschrieben/geloescht -
+  // keine der Rezept-Mutationsstellen (Formular, Loeschen, Foto-Upload, Import) muss
+  // dafuer angefasst werden, sie rufen weiterhin nur render()/save() wie bisher.
+  async function syncRecipes() {
+    if (!syncUid || !window.CloudSync || !window.CloudSync.saveRecipesBatch) return;
+    const cur = new Map(state.recipes.map(r => [r.id, JSON.stringify(r)]));
+    const prev = lastPushedRecipes || new Map();
+    const puts = [], delIds = [];
+    cur.forEach((json, id) => {
+      if (prev.get(id) === json) return;
+      if (json.length > CLOUD_DOC_MAX) {
+        toast(`Das Foto bei „${JSON.parse(json).name}" ist zu groß für die Cloud – wähle ein kleineres Bild.`);
+        return; // dieses eine Rezept bleibt lokal, bis das Foto verkleinert wird
+      }
+      puts.push(JSON.parse(json));
+    });
+    prev.forEach((_, id) => { if (!cur.has(id)) delIds.push(id); });
+    if (!puts.length && !delIds.length) { if (!lastPushedRecipes) lastPushedRecipes = cur; return; }
+    try {
+      await window.CloudSync.saveRecipesBatch(syncUid, puts, delIds);
+      puts.forEach(r => prev.set(r.id, JSON.stringify(r)));
+      delIds.forEach(id => prev.delete(id));
+      lastPushedRecipes = prev; // dieselbe Map weiterfuehren, nie komplett ersetzen -
+      // sonst koennte ein waehrend des await hereingekommener Remote-Change (onRecipesRemote
+      // mutiert dieselbe Map) wieder verloren gehen.
+      recipesSyncFailed = false;
+    } catch (e) {
+      // Still bleiben wie bei "offline" waere hier gefaehrlich: der Hauptdokument-Push
+      // laeuft unabhaengig weiter und zeigt "synced", waehrend Rezeptfotos nie ankommen -
+      // z.B. wenn die neue Firestore-Regel noch nicht veroeffentlicht wurde. Einmalig
+      // melden, damit das nicht unbemerkt bleibt (analog cloudTooBigWarned oben).
+      if (!recipesSyncFailed) {
+        recipesSyncFailed = true;
+        toast("Deine Meal-Fotos konnten gerade nicht mit der Cloud synchronisiert werden – wird automatisch erneut versucht.");
+      }
+      // lastPushedRecipes bleibt unveraendert -> naechster Zyklus versucht denselben Diff erneut
+    }
+  }
   async function pushNow() {
     if (!syncUid || !window.CloudSync) return;
-    const d = { recipes: state.recipes, plans: state.plans, tab: state.tab, goal: state.goal || null, shares: state.shares || [], onboarded: state.onboarded === true, weights: state.weights || [], weightGoals: state.weightGoals || {}, profileImage: state.profileImage || null };
+    await syncRecipes();
+    const d = { plans: state.plans, tab: state.tab, goal: state.goal || null, shares: state.shares || [], onboarded: state.onboarded === true, weights: state.weights || [], weightGoals: state.weightGoals || {}, profileImage: state.profileImage || null };
     const j = dataJSON(d);
     if (j === lastPushedJSON) return;
     if (j.length > CLOUD_DOC_MAX) {
       // Nicht als "offline" ausgeben: das Problem loest sich nicht von selbst und
-      // verlangt eine Entscheidung des Nutzers (Fotos entfernen).
+      // verlangt eine Entscheidung des Nutzers. Seit dem Subcollection-Umbau enthaelt
+      // dieses Dokument keine Meal-Fotos mehr - der alte Text waere hier irrefuehrend,
+      // treffen kann es jetzt nur noch sehr grosse Gewichtsverlaeufe/Freigabelisten/das
+      // Profilbild.
       setSyncStatus("toobig");
       if (!cloudTooBigWarned) {
         cloudTooBigWarned = true;
-        toast("Deine Meals mit Fotos sind zu groß für die Cloud – neue Änderungen bleiben nur auf diesem Gerät. Entferne ein paar Fotos, dann läuft der Sync weiter.");
+        toast("Deine Kontodaten sind zu groß für die Cloud – neue Änderungen bleiben nur auf diesem Gerät.");
       }
       return;
     }
@@ -2435,10 +2513,15 @@
     }
   }
   function onRemote(data, pending) {
-    if (pending || !data || !Array.isArray(data.recipes)) return; // eigener Schreibvorgang → ignorieren
+    // KEIN Array.isArray(data.recipes)-Check mehr: das Hauptdokument hat seit dem
+    // Subcollection-Umbau nie mehr ein "recipes"-Feld. Wuerde der Check bleiben, wuerde
+    // JEDER eingehende Snapshot dauerhaft ignoriert - Plan/Ziel/Gewichte/Profilbild
+    // wuerden nie mehr geraeteuebergreifend synchronisiert.
+    if (pending || !data) return; // eigener Schreibvorgang → ignorieren
     const j = dataJSON(data);
     if (j === dataJSON(state) || j === lastPushedJSON) return; // nichts Neues
-    state.recipes = sanitizeRecipes(data.recipes);
+    // state.recipes wird hier NICHT mehr ersetzt - Rezepte kommen ausschliesslich ueber
+    // onRecipesRemote() (eigener Listener auf die recipes-Subcollection).
     state.plans = pruneWeeks(normalizePlans(plansField(data), state.recipes));
     state.goal = sanitizeGoal(data.goal);
     state.shares = unionIds(state.shares, data.shares); // nie einen Link verlieren, der nur lokal bekannt ist
@@ -2461,6 +2544,34 @@
       toast("Von anderem Gerät aktualisiert");
     }
   }
+  // Eingehende Aenderungen aus der recipes-Subcollection (ein Eintrag je geaendertem/
+  // geloeschtem Dokument, siehe watchRecipes()). Aktualisiert state.recipes granular
+  // statt es komplett zu ersetzen, und haelt lastPushedRecipes synchron mit - sonst
+  // wuerde der naechste eigene pushNow()-Zyklus denselben, gerade erst empfangenen
+  // Stand fuer unveraendert halten oder ihn faelschlich erneut schreiben (Ping-Pong).
+  function onRecipesRemote(changes) {
+    let changed = false;
+    changes.forEach(c => {
+      if (c.pending) return; // eigener Schreibvorgang → ignorieren
+      if (c.type === "removed") {
+        if (getRecipe(c.id)) {
+          state.recipes = state.recipes.filter(r => r.id !== c.id);
+          dropRecipeIds(new Set([c.id])); // sonst bleibt auf diesem Geraet ein Geisterverweis im Wochenplan
+          changed = true;
+        }
+        if (lastPushedRecipes) lastPushedRecipes.delete(c.id);
+      } else {
+        const incoming = sanitizeRecipe(Object.assign({}, c.data, { id: c.id }));
+        if (!incoming) return;
+        const json = JSON.stringify(incoming);
+        const idx = state.recipes.findIndex(r => r.id === c.id);
+        if (idx === -1) { state.recipes.push(incoming); changed = true; }
+        else if (JSON.stringify(state.recipes[idx]) !== json) { state.recipes[idx] = incoming; changed = true; }
+        if (lastPushedRecipes) lastPushedRecipes.set(c.id, json);
+      }
+    });
+    if (changed) { save(); render(); }
+  }
   async function startCloudSync(uid) {
     if (!window.CloudSync || !window.CloudSync.enabled) { maybeStartOnboarding(); return; }
     if (syncUid === uid) return;                 // läuft schon
@@ -2481,12 +2592,14 @@
         state.weightGoals = Object.assign({}, sanitizeWeightGoals(state.weightGoals), sanitizeWeightGoals(remote.weightGoals));
         if (remote.profileImage && typeof remote.profileImage === "string") { state.profileImage = remote.profileImage; renderProfileChip(); }
       }
-      if (remote && Array.isArray(remote.recipes) && remote.recipes.length) {
-        // Rezepte zusammenführen (Cloud + eigene lokale, die es dort noch nicht gibt).
-        // Beispiel-Meals werden NICHT in ein bestehendes Konto übernommen – sie sind nur
-        // ein einmaliges Willkommens-Angebot für neue Konten.
+      // Rezepte zusammenführen (Cloud + eigene lokale, die es dort noch nicht gibt).
+      // Beispiel-Meals werden NICHT in ein bestehendes Konto übernommen – sie sind nur
+      // ein einmaliges Willkommens-Angebot für neue Konten. Ausgelagert, weil sowohl der
+      // Normalfall (Subcollection) als auch die Alt-Migration (Inline-Array) dieselbe
+      // Logik brauchen.
+      function mergeRemoteRecipes(list) {
         const map = {};
-        sanitizeRecipes(remote.recipes).forEach(r => { if (r && r.id) map[r.id] = r; });
+        sanitizeRecipes(list).forEach(r => { if (r && r.id) map[r.id] = r; });
         state.recipes.forEach(r => { if (r && r.id && !map[r.id] && !isExample(r)) map[r.id] = r; });
         state.recipes = Object.values(map);
         const rp = pruneWeeks(normalizePlans(plansField(remote), state.recipes));
@@ -2498,6 +2611,23 @@
         // state.tab bewusst NICHT aus remote uebernehmen — Start bleibt immer der Wochenplan
         save(); render();
       }
+      // Rezepte kommen jetzt aus der eigenen Subcollection statt aus dem Hauptdokument.
+      // remote.recipes (Alt-Format) wird nur noch als Migrations-Quelle genutzt, falls
+      // die Subcollection noch leer ist - verschwindet von selbst, sobald der naechste
+      // Hauptdokument-Push (ohne "recipes"-Feld) durchlaeuft. Beide Quellen zusammenfuehren
+      // statt Entweder-Oder: bei einer nur TEILWEISE abgeschlossenen Migration (z.B. ein
+      // anderes Geraet hat schon einen Teil in die Subcollection geschrieben, aber das
+      // Hauptdokument-Feld noch nicht geleert) wuerden sonst die restlichen Alt-Rezepte
+      // uebersehen. legacyRecipes zuerst, cloudRecipes danach - bei gleicher ID gewinnt
+      // die frischere Subcollection-Version (mergeRemoteRecipes ueberschreibt in Reihenfolge).
+      const cloudRecipes = window.CloudSync.loadRecipes ? await window.CloudSync.loadRecipes(uid) : [];
+      const legacyRecipes = (remote && Array.isArray(remote.recipes)) ? remote.recipes : [];
+      if (cloudRecipes.length || legacyRecipes.length) mergeRemoteRecipes(legacyRecipes.concat(cloudRecipes));
+      // Baseline aus dem geladenen Cloud-Stand vorbefuellen statt auf null zu setzen:
+      // so schreibt der folgende pushNow()-Lauf nur, was wirklich neu/geaendert ist
+      // (Migration UND Normalfall gleichermassen abgedeckt), statt bei JEDEM Login alle
+      // Rezepte erneut zu schreiben.
+      lastPushedRecipes = new Map(cloudRecipes.map(r => [r.id, JSON.stringify(r)]));
       lastPushedJSON = null;
       await pushNow();                            // zusammengeführten Stand als Baseline hochschreiben
       // Sperrfrist gleich mitstarten: direkt nach dem Verbinden sagt schon „Mit deiner
@@ -2505,6 +2635,7 @@
       // waere in derselben Sekunde nur Laerm.
       lastRemoteToast = Date.now();
       syncUnsub = window.CloudSync.watch(uid, onRemote);
+      syncUnsubRecipes = window.CloudSync.watchRecipes ? window.CloudSync.watchRecipes(uid, onRecipesRemote) : null;
       setSyncStatus("synced");
       toast("Mit deiner Cloud verbunden");
       // Erst JETZT ueber die ersten Schritte entscheiden: enterApp() laeuft schon, waehrend
@@ -2518,8 +2649,9 @@
   }
   function stopCloudSync() {
     if (syncUnsub) { try { syncUnsub(); } catch (e) {} syncUnsub = null; }
+    if (syncUnsubRecipes) { try { syncUnsubRecipes(); } catch (e) {} syncUnsubRecipes = null; }
     clearTimeout(pushTimer);
-    syncUid = null; lastPushedJSON = null;
+    syncUid = null; lastPushedJSON = null; lastPushedRecipes = null; recipesSyncFailed = false;
     setSyncStatus("off");
   }
 
@@ -2944,9 +3076,14 @@
   // fruehen Zeitpunkt noch nicht initialisiert und haette das ganze Script abgebrochen.
   // Echter Absturz auf dem Live-Server gewesen, siehe Commit-Historie.)
   function ingUnit(o) { const u = o && o.unit; return ING_UNITS.indexOf(u) >= 0 ? u : "g"; }
-  function unitShort(u) { return u === "st" ? "Stück" : u; }
-  // Bezugsgroesse der Naehrwertfelder — bei Stueck gibt es keine 100er-Basis
-  function ingPerLabel(u) { return u === "st" ? "pro Stück:" : "pro 100 " + u + ":"; }
+  function unitShort(u) { return ({ st: "Stück", el: "EL", tl: "TL" })[u] || u; }
+  // Bezugsgroesse der Naehrwertfelder — bei Stueck/EL/TL gibt es keine 100er-Basis,
+  // der Naehrwert gilt direkt je Einheit.
+  function ingPerLabel(u) {
+    if (u === "st") return "pro Stück:";
+    if (u === "el" || u === "tl") return "pro " + unitShort(u) + ":";
+    return "pro 100 " + u + ":";
+  }
   function ingObj(i) { return (i && typeof i === "object") ? i : { name: String(i == null ? "" : i) }; }
   function ingLabel(i) {
     const o = ingObj(i), n = String(o.name || "").trim(), q = nutNum(o.grams);
@@ -2955,13 +3092,15 @@
   function ingHasNut(i) { const o = ingObj(i); return o.kcal != null || o.carbs != null || o.protein != null || o.fat != null; }
   function ingContrib(i) {
     const o = ingObj(i);
-    // Stueck: Naehrwert gilt je Stueck (×Menge). g/ml: Naehrwert gilt je 100 (×Menge/100).
-    const f = ingUnit(o) === "st" ? nutNum(o.grams) : nutNum(o.grams) / 100;
+    const u = ingUnit(o);
+    // Stueck/EL/TL: Naehrwert gilt je Einheit (×Menge). g/ml: Naehrwert gilt je 100 (×Menge/100).
+    const f = (u === "st" || u === "el" || u === "tl") ? nutNum(o.grams) : nutNum(o.grams) / 100;
     return { kcal: nutNum(o.kcal) * f, carbs: nutNum(o.carbs) * f, protein: nutNum(o.protein) * f, fat: nutNum(o.fat) * f };
   }
   // Menge lesbar machen: ab 1000 auf die grosse Einheit (2800 ml -> 2,8 L, 1500 g -> 1,5 kg).
   function qtyLabel(n, u) {
     if (u === "st") return numLabel(n) + "×"; // "35× Ei" liest sich besser als "35 Stück Ei"
+    if (u === "el" || u === "tl") return numLabel(n) + " " + unitShort(u);
     if (n >= 1000) return numLabel(Math.round(n / 10) / 100) + (u === "ml" ? " L" : " kg");
     return numLabel(n) + " " + u;
   }
@@ -4462,7 +4601,7 @@
              Eingabe. Der Rahmen grenzt die Summe von den gleich aussehenden
              Zutatenzeilen ab. -->
         <div class="field nut-total">
-          <label>Makros gesamt <span class="hint" id="f-nut-hint">– mit Zutaten-Nährwerten automatisch summiert</span></label>
+          <label>Makros gesamt <span class="hint" id="f-nut-hint">– mit Zutaten-Nährwerten automatisch summiert</span> <button type="button" id="f-nut-reset" class="btn ghost sm" hidden>Automatisch übernehmen</button></label>
           <div class="row2" style="gap:12px">
             <div class="row2" style="gap:12px">
               <div class="field"><label for="f-kcal"><span class="ing-lbl hint t-kcal">Kcal</span></label><input type="number" id="f-kcal" min="0" max="99999" step="1" value="${r && r.nutrition && r.nutrition.kcal != null ? esc(r.nutrition.kcal) : ""}" placeholder="520"></div>
@@ -4513,6 +4652,8 @@
               <option value="g"${u === "g" ? " selected" : ""}>g</option>
               <option value="ml"${u === "ml" ? " selected" : ""}>ml</option>
               <option value="st"${u === "st" ? " selected" : ""}>Stück</option>
+              <option value="el"${u === "el" ? " selected" : ""}>EL</option>
+              <option value="tl"${u === "tl" ? " selected" : ""}>TL</option>
             </select>
           </span>
           <button type="button" class="ing-ic ing-del" title="Zutat entfernen">✕</button>
@@ -4556,6 +4697,23 @@
       // 100er-Basis — der Barcode-Scan liefert aber immer pro 100 g und stellt die Einheit
       // ohnehin selbst zurueck, deshalb bleibt der Knopf hier sichtbar.
       const uSel = row.querySelector(".ing-u");
+      // Feste Umrechnung beim Wechsel zwischen "pro-100"-Einheiten (g/ml) und
+      // Loeffelmassen (EL/TL) - 1 EL = 15 ml/g, 1 TL = 5 ml/g (Kuechen-Konvention,
+      // Naeherung fuer Fluessigkeiten wie Feststoffe gleichermassen). "st" bleibt aussen
+      // vor, wie bisher schon keine feste Bezugsgroesse.
+      const UNIT_BASIS = { g: 100, ml: 100, el: 15, tl: 5 };
+      let prevUnit = u; // Einheit VOR dem Wechsel, fuer die Umrechnung noetig
+      function convertNutValues(oldUnit, newUnit) {
+        if (oldUnit === newUnit || !(oldUnit in UNIT_BASIS) || !(newUnit in UNIT_BASIS)) return;
+        const ratio = UNIT_BASIS[newUnit] / UNIT_BASIS[oldUnit];
+        const kcalEl = row.querySelector(".ing-kcal"), carbsEl = row.querySelector(".ing-carbs"),
+              protEl = row.querySelector(".ing-prot"), fatEl = row.querySelector(".ing-fat");
+        const k = nutParse(kcalEl.value), kh = nutParse(carbsEl.value), p = nutParse(protEl.value), fa = nutParse(fatEl.value);
+        if (k != null) kcalEl.value = Math.round(k * ratio);
+        if (kh != null) carbsEl.value = Math.round(kh * ratio * 10) / 10;
+        if (p != null) protEl.value = Math.round(p * ratio * 10) / 10;
+        if (fa != null) fatEl.value = Math.round(fa * ratio * 10) / 10;
+      }
       function syncUnit() {
         const cur = uSel.value;
         row.querySelector(".ing-per").textContent = ingPerLabel(cur);
@@ -4563,7 +4721,15 @@
         updateMacroSum();
         paintNut();
       }
-      uSel.addEventListener("change", syncUnit);
+      // Umrechnung nur bei echtem Nutzer-Wechsel (change-Event) - nicht beim initialen
+      // Zeilenaufbau und nicht in acPick() (setzt Einheit+Werte direkt aus der
+      // Zutaten-Datenbank, ruft syncUnit() ohne change-Event auf).
+      uSel.addEventListener("change", () => {
+        const newUnit = uSel.value;
+        convertNutValues(prevUnit, newUnit);
+        prevUnit = newUnit;
+        syncUnit();
+      });
       syncUnit();
 
       // --- Zutaten-Suche (ARIA-Combobox auf dem Namensfeld) ---
@@ -4616,6 +4782,7 @@
         if (!f) return;
         nameInp.value = f.name;
         uSel.value = f.unit;
+        prevUnit = f.unit; // sonst wuerde ein direkt folgender manueller Wechsel mit einer veralteten Ausgangseinheit umrechnen
         row.querySelector(".ing-kcal").value = f.kcal;
         row.querySelector(".ing-carbs").value = f.carbs;
         row.querySelector(".ing-prot").value = f.protein;
@@ -4673,12 +4840,16 @@
       return o;
     }
     function collectIngs() { return Array.from(ingsWrap.querySelectorAll(".ing-row")).map(rowData).filter(Boolean); }
-    // Summe aller Zutaten (auf Menge hochgerechnet) → Makro-Felder; solange keine Zutat
-    // Naehrwerte hat, bleiben die Felder manuell editierbar.
+    // Summe aller Zutaten (auf Menge hochgerechnet) → Makro-Felder; die Felder bleiben
+    // dabei IMMER von Hand editierbar (frueher gesperrt, solange Zutaten Naehrwerte
+    // hatten). Tippt der Nutzer selbst hinein, gilt sein Wert ab da als Uebersteuerung
+    // und wird von weiteren Zutaten-Aenderungen nicht mehr ueberschrieben, bis er per
+    // "Automatisch uebernehmen" wieder zurueckgesetzt wird.
+    let macroOverridden = false;
     function updateMacroSum() {
       const withNut = collectIngs().filter(i => typeof i === "object" && nutNum(i.grams) && ingHasNut(i));
       const auto = withNut.length > 0;
-      if (auto) {
+      if (auto && !macroOverridden) {
         let s = { kcal: 0, carbs: 0, protein: 0, fat: 0 };
         withNut.forEach(i => { s = addNut(s, ingContrib(i)); });
         node.querySelector("#f-kcal").value = Math.round(s.kcal);
@@ -4686,12 +4857,19 @@
         node.querySelector("#f-protein").value = Math.round(s.protein * 10) / 10;
         node.querySelector("#f-fat").value = Math.round(s.fat * 10) / 10;
       }
-      ["f-kcal", "f-carbs", "f-protein", "f-fat"].forEach(fid => { node.querySelector("#" + fid).readOnly = auto; });
-      node.querySelector("#f-nut-hint").textContent = auto ? "– Summe aus deinen Zutaten (automatisch)" : "– mit Zutaten-Nährwerten automatisch summiert";
+      const hint = node.querySelector("#f-nut-hint");
+      const resetBtn = node.querySelector("#f-nut-reset");
+      if (auto && macroOverridden) { hint.textContent = "– manuell angepasst"; resetBtn.hidden = false; }
+      else if (auto) { hint.textContent = "– Summe aus deinen Zutaten (automatisch)"; resetBtn.hidden = true; }
+      else { hint.textContent = "– mit Zutaten-Nährwerten automatisch summiert"; resetBtn.hidden = true; }
       // "+ Weitere Zutat" erst zeigen, wenn die erste Zutat einen Namen hat - sonst wirkt
       // das Formular ueberladen, bevor ueberhaupt etwas eingetragen wurde.
       node.querySelector("#f-ing-add").hidden = ![...ingsWrap.querySelectorAll(".ing-name")].some(inp => inp.value.trim());
     }
+    ["f-kcal", "f-carbs", "f-protein", "f-fat"].forEach(fid => {
+      node.querySelector("#" + fid).addEventListener("input", () => { macroOverridden = true; updateMacroSum(); });
+    });
+    node.querySelector("#f-nut-reset").addEventListener("click", () => { macroOverridden = false; updateMacroSum(); });
     (r && r.ingredients && r.ingredients.length ? r.ingredients : [null]).forEach(i => addIngRow(i == null ? null : ingObj(i)));
     updateMacroSum();
     node.querySelector("#f-ing-add").addEventListener("click", () => { addIngRow().querySelector(".ing-name").focus(); });
@@ -7168,7 +7346,14 @@
       err.textContent = "";
       btn.disabled = true; btn.textContent = "Wird gelöscht …";
       try {
-        await window.CloudAuth.deleteAccount({ password: pw, shareIds: state.shares || [] });
+        // Frisch aus der Cloud laden statt state.recipes zu nehmen: auf einem zweiten
+        // Geraet angelegte Rezepte, die dieses Geraet noch nicht per Live-Sync erhalten
+        // hat, muessen trotzdem mitgeloescht werden (Art. 17 DSGVO) - state.recipes waere
+        // sonst potenziell unvollstaendig.
+        const cloudRecipeIds = (window.CloudSync && window.CloudSync.loadRecipes && user)
+          ? (await window.CloudSync.loadRecipes(user.uid)).map(r => r.id)
+          : state.recipes.map(r => r.id);
+        await window.CloudAuth.deleteAccount({ password: pw, shareIds: state.shares || [], recipeIds: cloudRecipeIds });
         closeModal();
         stopCloudSync();
         wipeLocalData();
