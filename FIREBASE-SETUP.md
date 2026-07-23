@@ -79,7 +79,57 @@ So funktioniert die Sync dann automatisch:
 - Jede Änderung wird ~1 Sek. später in die Cloud geschrieben.
 - Änderungen auf einem anderen, gleichzeitig eingeloggten Gerät erscheinen **live** (Meldung „Von anderem Gerät aktualisiert").
 
-## 7. Testen & veröffentlichen
+## 7. Datenschutz-Einstellungen prüfen
+
+Firebase-Konsole → **Projekteinstellungen** (Zahnrad oben links) → Bereich **Datenschutz**.
+Direktlink: `https://console.firebase.google.com/project/paddys-mealplan/settings/general`
+
+### 7a. Freigabe der „Firebase-Dienstdaten" abschalten
+
+Dort steht eine Option sinngemäß:
+
+> „Google darf meine Firebase-Dienstdaten verwenden, um … die **Nicht-Firebase-Dienste**
+> von Google zu verbessern."
+
+**Häkchen entfernen.** Grund: Die Datenschutzerklärung der App sagt zu, dass Google die Daten
+*in unserem Auftrag* verarbeitet (Auftragsverarbeitung). Diese Option erlaubt ausdrücklich eine
+Nutzung für **Googles eigene Zwecke** und steht dieser Zusage entgegen.
+
+> Zur Einordnung: Betroffen sind nur **Dienstdaten** – Metadaten darüber, wie *du* das Projekt
+> nutzt. Die Daten der App-Nutzer (Wochenplan, Meals, Gewicht) sind **Kundendaten** und
+> ausdrücklich ausgenommen. Das Abschalten kostet keine Funktion.
+
+Nach dem Klick die Seite **neu laden** und nachsehen, ob das Häkchen leer geblieben ist – das
+ist der einzige verlässliche Beleg dafür, dass gespeichert wurde.
+
+### 7b. Datenschutzbeauftragter
+
+Auf derselben Seite lässt sich ein **Datenschutzbeauftragter (DSB)** eintragen. Für den
+Betrieb als Privatperson ist das **nicht erforderlich** – das Feld bleibt leer.
+
+Art. 37 DSGVO verlangt einen DSB nur, wenn man eine Behörde ist, die Kerntätigkeit in
+umfangreicher systematischer Überwachung besteht, oder **umfangreich** besondere
+Datenkategorien (Art. 9) verarbeitet werden. Erwägungsgrund 91 der DSGVO nimmt einzelne
+Personen von „umfangreich" ausdrücklich aus.
+
+⚠️ **Neu bewerten**, sobald die App kommerzialisiert wird oder die Nutzerzahl deutlich
+wächst. Das gilt besonders, weil ungeklärt ist, ob der Gewichtsverlauf ein Gesundheitsdatum
+nach Art. 9 DSGVO ist.
+
+### 7c. Auftragsverarbeitungs-Addendum (DPA)
+
+§5 der Datenschutzerklärung stützt sich darauf, dass Google Auftragsverarbeiter ist. Einen
+eigenen Menüpunkt zum Annehmen eines DPA gibt es in der Konsole **nicht** (mehr) – Google hat
+den *Cloud Data Processing Addendum* offenbar fest in die Nutzungsbedingungen integriert,
+sodass er automatisch gilt.
+
+Bestätigt ist das hier nicht. Wer es belastbar braucht, liest im Original nach:
+<https://cloud.google.com/terms/data-processing-addendum>
+
+> Dieser Abschnitt ist eine Einrichtungshilfe, **keine Rechtsberatung**. Google baut diese
+> Menüs regelmäßig um – Bezeichnungen und Pfade können abweichen.
+
+## 8. Testen & veröffentlichen
 
 1. Lokal öffnen und mit E-Mail registrieren → du bekommst die Bestätigungsmail → Link klicken → einloggen.
 2. Passt alles: committen und pushen (`git push origin main`), GitHub Pages baut neu.
