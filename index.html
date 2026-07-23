@@ -1038,7 +1038,8 @@
   .profile { position: relative; }
   .profile-btn { display: flex; align-items: center; gap: 9px; font: inherit; cursor: pointer; background: var(--surface); border: 1px solid var(--border); border-radius: 999px; padding: 4px 12px 4px 4px; color: var(--text); transition: border-color .12s; }
   .profile-btn:hover { border-color: var(--accent); }
-  .avatar { width: 30px; height: 30px; border-radius: 50%; flex: none; display: grid; place-items: center; font-size: 12.5px; font-weight: 700; color: var(--accent-contrast); background: linear-gradient(150deg, var(--accent), var(--accent-strong)); }
+  .avatar { width: 30px; height: 30px; border-radius: 50%; flex: none; display: grid; place-items: center; font-size: 12.5px; font-weight: 700; color: var(--accent-contrast); background: linear-gradient(150deg, var(--accent), var(--accent-strong)); overflow: hidden; }
+  .avatar img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; display: block; }
   .profile-btn .pname { font-size: 13.5px; font-weight: 550; max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .profile-btn .caret { color: var(--text-muted); }
   .menu { position: absolute; right: 0; top: calc(100% + 8px); z-index: 40; min-width: 216px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: 0 18px 50px rgba(0,0,0,.28); padding: 6px; animation: pop .14s ease-out; }
@@ -1070,6 +1071,33 @@
   .sync-dot.chip { position: absolute; right: -1px; bottom: -1px; width: 11px; height: 11px; border: 2px solid var(--surface); box-sizing: border-box; }
   .menu .msync { display: flex; align-items: center; gap: 7px; margin-top: 9px; font-size: 12px; color: var(--text-muted); }
   @keyframes syncpulse { 0%, 100% { opacity: 1; } 50% { opacity: .3; } }
+
+  /* Profilbild-Vorschau im "Profil bearbeiten"-Formular - gleiche Gradient/Initialen-
+     Optik wie der Header-Avatar, nur groesser. Rund-Button zum Aendern nach Vorbild
+     .rcard .imgadd (gleiche Masse/Farbe), hier relativ zum Vorschau-Kreis positioniert. */
+  .avatar-edit-row { display: flex; align-items: center; gap: 16px; margin-bottom: 18px; }
+  .avatar-edit { position: relative; width: 76px; height: 76px; border-radius: 50%; flex: none; display: grid; place-items: center; font-size: 24px; font-weight: 700; color: var(--accent-contrast); background: linear-gradient(150deg, var(--accent), var(--accent-strong)); }
+  .avatar-edit img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; display: block; }
+  .avatar-edit-btn {
+    position: absolute; bottom: -2px; right: -2px; width: 28px; height: 28px; border: 2px solid var(--surface);
+    border-radius: 50%; cursor: pointer; display: grid; place-items: center; padding: 0;
+    color: var(--accent-contrast); background: linear-gradient(135deg, var(--accent), var(--accent-strong));
+    box-shadow: 0 2px 8px rgba(0,0,0,.35); transition: transform .12s ease;
+  }
+  /* Sichtbar bleibt 28px wie beim Meal-Foto-Button (.rcard .imgadd) - die Trefferflaeche
+     wird per Pseudo-Element auf 44x44 erweitert, gleiches hitSlop-Muster wie .btn.icon-gh. */
+  .avatar-edit-btn::after { content: ""; position: absolute; inset: -8px; }
+  .avatar-edit-btn:hover { transform: scale(1.12); }
+  .avatar-edit-btn svg { width: 14px; height: 14px; }
+
+  /* ---------- Profilbild-Zuschnitt (Kreis-Crop) ---------- */
+  .crop-stage { position: relative; width: 260px; height: 260px; max-width: 100%; aspect-ratio: 1; margin: 0 auto; overflow: hidden; border-radius: var(--radius-sm); background: var(--surface-2); cursor: grab; touch-action: none; }
+  .crop-stage.dragging { cursor: grabbing; }
+  .crop-stage img { position: absolute; top: 0; left: 0; transform-origin: 0 0; user-select: none; -webkit-user-drag: none; pointer-events: none; }
+  /* Kreis-Fenster per riesigem box-shadow statt SVG-Maske - dieselbe Abdunklung wie
+     .overlay, damit ausserhalb des Kreises sichtbar "verworfen" wirkt. */
+  .crop-guide { position: absolute; inset: 0; margin: auto; width: 100%; height: 100%; border-radius: 50%; pointer-events: none; box-shadow: 0 0 0 9999px color-mix(in srgb, #0a0c07 55%, transparent); border: 2px solid rgba(255,255,255,.7); box-sizing: border-box; }
+  .crop-zoom { display: flex; align-items: center; justify-content: center; gap: 14px; margin-top: 16px; }
 
   .auth { min-height: calc(100vh - 170px); display: grid; place-items: center; padding: 16px 0 60px; }
   /* Intro-Hero über dem Wochenplan */
@@ -2297,7 +2325,7 @@
     if (!data || !Array.isArray(data.recipes)) {
       const recipes = SEED.map(r => Object.assign({ id: uid() }, r));
       const plans = {}; plans[curKey] = makeEmptyPlan();
-      return { recipes, plans, plan: plans[curKey], viewWeek: "cur", viewYear: new Date().getFullYear(), tab: "home", goal: null, shares: [], onboarded: false, weights: [], weightGoals: {} };
+      return { recipes, plans, plan: plans[curKey], viewWeek: "cur", viewYear: new Date().getFullYear(), tab: "home", goal: null, shares: [], onboarded: false, weights: [], weightGoals: {}, profileImage: null };
     }
     const recipes = sanitizeRecipes(data.recipes);
     const plans = {};
@@ -2308,7 +2336,7 @@
     }
     pruneWeeks(plans);
     if (!plans[curKey]) plans[curKey] = makeEmptyPlan();
-    return { recipes, plans, plan: plans[curKey], viewWeek: "cur", viewYear: new Date().getFullYear(), tab: data.tab === "recipes" ? "recipes" : "home", goal: sanitizeGoal(data.goal), shares: Array.isArray(data.shares) ? data.shares : [], onboarded: data.onboarded === true, weights: sanitizeWeights(data.weights), weightGoals: sanitizeWeightGoals(data.weightGoals) };
+    return { recipes, plans, plan: plans[curKey], viewWeek: "cur", viewYear: new Date().getFullYear(), tab: data.tab === "recipes" ? "recipes" : "home", goal: sanitizeGoal(data.goal), shares: Array.isArray(data.shares) ? data.shares : [], onboarded: data.onboarded === true, weights: sanitizeWeights(data.weights), weightGoals: sanitizeWeightGoals(data.weightGoals), profileImage: typeof data.profileImage === "string" ? data.profileImage : null };
   }
 
   // Schlaegt das lokale Speichern fehl (Speicher voll, privater Modus), darf das NICHT
@@ -2317,7 +2345,7 @@
   let storageFullWarned = false;
   function save() {
     try {
-      localStorage.setItem(STORE_KEY, JSON.stringify({ recipes: state.recipes, plans: state.plans, tab: state.tab, goal: state.goal || null, shares: state.shares || [], onboarded: state.onboarded === true, weights: state.weights || [], weightGoals: state.weightGoals || {} }));
+      localStorage.setItem(STORE_KEY, JSON.stringify({ recipes: state.recipes, plans: state.plans, tab: state.tab, goal: state.goal || null, shares: state.shares || [], onboarded: state.onboarded === true, weights: state.weights || [], weightGoals: state.weightGoals || {}, profileImage: state.profileImage || null }));
       storageFullWarned = false;
     } catch (e) {
       if (!storageFullWarned) {
@@ -2368,7 +2396,7 @@
   // weights/weightGoals MUESSEN hier stehen: fehlen sie, sieht der Vergleich eine neue
   // Wiegung nie als Aenderung - sie wuerde nie in die Cloud gepusht (gleiche Falle wie
   // oben bei "onboarded" beschrieben).
-  function dataJSON(d) { return JSON.stringify({ recipes: (d && d.recipes) || [], plans: plansField(d), goal: (d && d.goal) || null, shares: (d && d.shares) || [], onboarded: !!(d && d.onboarded), weights: (d && d.weights) || [], weightGoals: (d && d.weightGoals) || {} }); }
+  function dataJSON(d) { return JSON.stringify({ recipes: (d && d.recipes) || [], plans: plansField(d), goal: (d && d.goal) || null, shares: (d && d.shares) || [], onboarded: !!(d && d.onboarded), weights: (d && d.weights) || [], weightGoals: (d && d.weightGoals) || {}, profileImage: (d && d.profileImage) || null }); }
 
   function scheduleCloudPush() {
     if (!syncUid) return;
@@ -2383,7 +2411,7 @@
   let cloudTooBigWarned = false;
   async function pushNow() {
     if (!syncUid || !window.CloudSync) return;
-    const d = { recipes: state.recipes, plans: state.plans, tab: state.tab, goal: state.goal || null, shares: state.shares || [], onboarded: state.onboarded === true, weights: state.weights || [], weightGoals: state.weightGoals || {} };
+    const d = { recipes: state.recipes, plans: state.plans, tab: state.tab, goal: state.goal || null, shares: state.shares || [], onboarded: state.onboarded === true, weights: state.weights || [], weightGoals: state.weightGoals || {}, profileImage: state.profileImage || null };
     const j = dataJSON(d);
     if (j === lastPushedJSON) return;
     if (j.length > CLOUD_DOC_MAX) {
@@ -2416,10 +2444,11 @@
     state.shares = unionIds(state.shares, data.shares); // nie einen Link verlieren, der nur lokal bekannt ist
     state.weights = mergeWeights(data.weights, state.weights); // desgleichen fuer Wiegungen
     state.weightGoals = Object.assign({}, sanitizeWeightGoals(state.weightGoals), sanitizeWeightGoals(data.weightGoals));
+    if (data.profileImage !== undefined) state.profileImage = typeof data.profileImage === "string" ? data.profileImage : null;
     if (data.onboarded) state.onboarded = true;         // nur in eine Richtung, siehe startCloudSync
     setViewWeek(state.viewWeek);
     lastPushedJSON = j;
-    save(); render();
+    save(); render(); renderProfileChip();
     setSyncStatus("synced");
     // Nicht bei jedem eingehenden Schreibvorgang melden: wer auf einem Geraet plant,
     // erzeugt alle 800 ms (Debounce von scheduleCloudPush) einen Push — auf dem zweiten
@@ -2450,6 +2479,7 @@
       if (remote) {
         state.weights = mergeWeights(remote.weights, state.weights);
         state.weightGoals = Object.assign({}, sanitizeWeightGoals(state.weightGoals), sanitizeWeightGoals(remote.weightGoals));
+        if (remote.profileImage && typeof remote.profileImage === "string") { state.profileImage = remote.profileImage; renderProfileChip(); }
       }
       if (remote && Array.isArray(remote.recipes) && remote.recipes.length) {
         // Rezepte zusammenführen (Cloud + eigene lokale, die es dort noch nicht gibt).
@@ -5120,7 +5150,7 @@
       <h4>2. Hosting der Website (GitHub Pages)</h4>
       <p>Diese Website wird bei GitHub Pages gehostet, einem Dienst der GitHub, Inc., 88 Colin P. Kelly Jr. Street, San Francisco, CA 94107, USA. Beim Aufruf der Seite verarbeitet GitHub technisch notwendige Zugriffsdaten (z. B. deine IP-Adresse), um die Seite auszuliefern und deren Sicherheit zu gewährleisten. Rechtsgrundlage ist unser berechtigtes Interesse an einer sicheren und effizienten Bereitstellung (Art. 6 Abs. 1 lit. f DSGVO). Dabei kann eine Übermittlung in die USA erfolgen. Weitere Infos: <a href="https://docs.github.com/de/site-policy/privacy-policies/github-general-privacy-statement" target="_blank" rel="noopener">GitHub Privacy Statement</a>.</p>
       <h4>3. Welche Daten wir verarbeiten</h4>
-      <p>Bei der Registrierung: <strong>Name und E-Mail-Adresse</strong>. Bei Nutzung der App: die von dir angelegten <strong>Wochenpläne, Meals/Rezepte und ggf. Fotos</strong> sowie – falls du den Kalorienrechner nutzt und ein Ergebnis speicherst – <strong>Geschlecht, Alter, Größe, Gewicht, Alltagsbewegung, Ziel sowie deine Trainingstage</strong> (Wochentag, Intensität und Dauer; Details siehe Ziffer 3a). Zusätzlich speichern wir eine technische Markierung, ob du die <strong>Einführungsfragen nach der Registrierung</strong> („Erste Schritte") bereits durchlaufen hast, damit dir der Ablauf nicht bei jeder Anmeldung erneut angezeigt wird. Erstellst du Teilen-Links, merkt sich dein Konto zusätzlich deren <strong>Kennungen</strong> (keine Klardaten, siehe Ziffer 8), damit sie beim Löschen deines Kontos zugeordnet und mitentfernt werden können. Trägst du eine Wiegung ein oder speicherst du im Kalorienrechner ein Ergebnis, speichern wir außerdem deinen <strong>Gewichtsverlauf</strong> – je Eintrag Monat und Gewicht – sowie ein optionales <strong>Jahres-Zielgewicht</strong> (Details siehe Ziffer 3b). Diese Daten speichern wir, damit du dich anmelden und deine Planung geräteübergreifend nutzen kannst.</p>
+      <p>Bei der Registrierung: <strong>Name und E-Mail-Adresse</strong>. Bei Nutzung der App: die von dir angelegten <strong>Wochenpläne, Meals/Rezepte und ggf. Fotos</strong> sowie ein optionales <strong>Profilbild</strong> (als Kreis-Avatar zugeschnitten, in deinem Nutzerkonto gespeichert, nicht Teil von Teilen-Links) sowie – falls du den Kalorienrechner nutzt und ein Ergebnis speicherst – <strong>Geschlecht, Alter, Größe, Gewicht, Alltagsbewegung, Ziel sowie deine Trainingstage</strong> (Wochentag, Intensität und Dauer; Details siehe Ziffer 3a). Zusätzlich speichern wir eine technische Markierung, ob du die <strong>Einführungsfragen nach der Registrierung</strong> („Erste Schritte") bereits durchlaufen hast, damit dir der Ablauf nicht bei jeder Anmeldung erneut angezeigt wird. Erstellst du Teilen-Links, merkt sich dein Konto zusätzlich deren <strong>Kennungen</strong> (keine Klardaten, siehe Ziffer 8), damit sie beim Löschen deines Kontos zugeordnet und mitentfernt werden können. Trägst du eine Wiegung ein oder speicherst du im Kalorienrechner ein Ergebnis, speichern wir außerdem deinen <strong>Gewichtsverlauf</strong> – je Eintrag Monat und Gewicht – sowie ein optionales <strong>Jahres-Zielgewicht</strong> (Details siehe Ziffer 3b). Diese Daten speichern wir, damit du dich anmelden und deine Planung geräteübergreifend nutzen kannst.</p>
       <h4>3a. Kalorienrechner</h4>
       <p>Nutzt du den Kalorienrechner, gibst du freiwillig <strong>Geschlecht, Alter, Größe und Gewicht</strong> sowie deine Alltagsbewegung und dein Ziel ein. Optional legst du zusätzlich deine <strong>Trainingstage</strong> fest – also an welchen Wochentagen du trainierst, mit welcher Intensität und wie lange. Daraus berechnet die App direkt in deinem Browser deinen Tagesbedarf, deine Makronährstoffe und deinen BMI; an Trainingstagen zusätzlich den geschätzten Mehrbedarf durch die jeweilige Einheit. Speicherst du das Ergebnis („Als mein Ziel speichern"), werden diese Angaben wie deine übrigen Plandaten lokal und – bei Cloud-Nutzung – in deinem Nutzerkonto (Cloud Firestore, siehe Ziffer 5) gespeichert, um sie geräteübergreifend verfügbar zu halten. Rechtsgrundlage ist wie unter Ziffer 4 die Erfüllung des Nutzungsvertrags (Art. 6 Abs. 1 lit. b DSGVO). Die Eingabe ist freiwillig; lässt du den Rechner ungenutzt, entstehen keine dieser Daten. Diese Angaben werden <strong>nicht</strong> in Teilen-Links aufgenommen (siehe Ziffer 8).</p>
       <h4>3b. Gewichtsverlauf („Ziele &lt;Jahr&gt;")</h4>
@@ -5215,6 +5245,21 @@
     if (!f || !r) return;
     if (!/^image\//.test(f.type)) { toast("Bitte ein Bild verwenden"); return; }
     readAndDownscale(f, dataUrl => { if (dataUrl) { r.image = dataUrl; save(); render(); toast("Foto übernommen"); } else toast("Bild konnte nicht geladen werden"); });
+  });
+
+  // Profilbild ueber "Profil bearbeiten" (eigenes file-input, bewusst nicht photoInput
+  // wiederverwendet - das haengt an Rezept-IDs, hier gibt es kein Zielobjekt dieser Art).
+  const avatarInput = document.createElement("input");
+  avatarInput.type = "file"; avatarInput.accept = "image/*"; avatarInput.className = "visually-hidden";
+  document.body.appendChild(avatarInput);
+  let avatarCropCb = null;
+  avatarInput.addEventListener("change", () => {
+    const f = avatarInput.files && avatarInput.files[0];
+    avatarInput.value = "";
+    const cb = avatarCropCb; avatarCropCb = null;
+    if (!f || !cb) return;
+    if (!/^image\//.test(f.type)) { toast("Bitte ein Bild verwenden"); return; }
+    openAvatarCropper(f, cb);
   });
 
   document.addEventListener("click", e => {
@@ -5461,9 +5506,10 @@
 
   function renderProfileChip() {
     const cloudDot = authMode === "cloud" ? `<span class="sync-dot chip off" data-sync-dot aria-hidden="true"></span>` : "";
+    const avatarInner = state.profileImage ? `<img src="${esc(state.profileImage)}" alt="">` : esc(initials(profile.name));
     profileSlot.innerHTML = `<div class="profile">
       <button class="profile-btn" data-action="profile-menu" aria-haspopup="true" aria-label="Profilmenü">
-        <span class="av-wrap"><span class="avatar" aria-hidden="true">${esc(initials(profile.name))}</span>${cloudDot}</span>
+        <span class="av-wrap"><span class="avatar" aria-hidden="true">${avatarInner}</span>${cloudDot}</span>
         <span class="pname">${esc(profile.name)}</span>
         <svg class="caret" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
       </button></div>`;
@@ -6938,17 +6984,123 @@
     saveProfile(); rememberLast(); renderProfileChip();
   }
 
-  function openProfileForm() {
+  // Kreis-Zuschnitt fuers Profilbild: Bild per Pointer-Drag positionieren, per +/- zoomen.
+  // Export bleibt quadratisch (kein Canvas-Kreis-Clip) - .avatar/.avatar-edit clippen
+  // per CSS border-radius:50%, exakt wie .auth-card .mark es schon fuer das Logo tut.
+  function openAvatarCropper(file, onDone) {
+    const STAGE = 260, OUT = 240;
+    const reader = new FileReader();
+    reader.onload = e => {
+      const img = new Image();
+      img.onload = () => {
+        const natW = img.naturalWidth, natH = img.naturalHeight;
+        const minScale = STAGE / Math.min(natW, natH);
+        const maxScale = minScale * 3;
+        let scale = minScale, tx = 0, ty = 0;
+        const node = el(`<div class="modal" role="dialog" aria-modal="true" aria-label="Profilbild zuschneiden">
+          <div class="modal-head"><h3>Profilbild zuschneiden</h3><button class="btn ghost sm" data-close>✕</button></div>
+          <div class="modal-body">
+            <div class="crop-stage"><img alt="" draggable="false"><div class="crop-guide"></div></div>
+            <div class="crop-zoom">
+              <button type="button" class="btn ghost icon-gh" data-zoom-out title="Verkleinern" aria-label="Verkleinern"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14"/></svg></button>
+              <button type="button" class="btn ghost icon-gh" data-zoom-in title="Vergrößern" aria-label="Vergrößern"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
+            </div>
+          </div>
+          <div class="modal-foot"><button class="btn ghost" data-close>Abbrechen</button><button class="btn primary" data-ok>Übernehmen</button></div>
+        </div>`);
+        const stage = node.querySelector(".crop-stage");
+        const imgEl = stage.querySelector("img");
+        imgEl.src = e.target.result;
+        function clampPan() {
+          const dispW = natW * scale, dispH = natH * scale;
+          const maxX = Math.max(0, (dispW - STAGE) / 2);
+          const maxY = Math.max(0, (dispH - STAGE) / 2);
+          tx = Math.min(maxX, Math.max(-maxX, tx));
+          ty = Math.min(maxY, Math.max(-maxY, ty));
+        }
+        function paint() {
+          const dispW = natW * scale, dispH = natH * scale;
+          imgEl.style.width = dispW + "px"; imgEl.style.height = dispH + "px";
+          imgEl.style.transform = `translate(${STAGE / 2 - dispW / 2 + tx}px, ${STAGE / 2 - dispH / 2 + ty}px)`;
+        }
+        clampPan(); paint();
+        let dragging = false, dragStartX = 0, dragStartY = 0, panStartX = 0, panStartY = 0;
+        stage.addEventListener("pointerdown", e => {
+          dragging = true; stage.classList.add("dragging");
+          dragStartX = e.clientX; dragStartY = e.clientY; panStartX = tx; panStartY = ty;
+          stage.setPointerCapture(e.pointerId);
+        });
+        stage.addEventListener("pointermove", e => {
+          if (!dragging) return;
+          tx = panStartX + (e.clientX - dragStartX);
+          ty = panStartY + (e.clientY - dragStartY);
+          clampPan(); paint();
+        });
+        function endDrag() { dragging = false; stage.classList.remove("dragging"); }
+        stage.addEventListener("pointerup", endDrag);
+        stage.addEventListener("pointercancel", endDrag);
+        function zoom(factor) {
+          scale = Math.min(maxScale, Math.max(minScale, scale * factor));
+          clampPan(); paint();
+        }
+        node.querySelector("[data-zoom-in]").addEventListener("click", () => zoom(1.2));
+        node.querySelector("[data-zoom-out]").addEventListener("click", () => zoom(1 / 1.2));
+        node.querySelectorAll("[data-close]").forEach(b => b.addEventListener("click", closeModal));
+        node.querySelector("[data-ok]").addEventListener("click", () => {
+          const c = document.createElement("canvas"); c.width = OUT; c.height = OUT;
+          const ctx = c.getContext("2d");
+          const exportScale = OUT / STAGE;
+          const dispW = natW * scale, dispH = natH * scale;
+          const left = STAGE / 2 - dispW / 2 + tx, top = STAGE / 2 - dispH / 2 + ty;
+          ctx.drawImage(img, 0, 0, natW, natH, left * exportScale, top * exportScale, dispW * exportScale, dispH * exportScale);
+          let dataUrl = null;
+          try { dataUrl = c.toDataURL("image/jpeg", 0.85); } catch (err) { dataUrl = null; }
+          closeModal();
+          onDone(dataUrl);
+        });
+        openModal(node);
+      };
+      img.onerror = () => toast("Bild konnte nicht geladen werden");
+      img.src = e.target.result;
+    };
+    reader.onerror = () => toast("Bild konnte nicht geladen werden");
+    reader.readAsDataURL(file);
+  }
+
+  function openProfileForm(prefillName) {
     const node = el(`<div class="modal" role="dialog" aria-modal="true" aria-label="Profil bearbeiten">
       <div class="modal-head"><h3>Profil bearbeiten</h3><button class="btn ghost sm" data-close>✕</button></div>
       <div class="modal-body">
-        <div class="field"><label for="p-name">Name</label><input type="text" id="p-name" value="${esc(profile.name)}" maxlength="40"></div>
+        <div class="avatar-edit-row">
+          <div class="avatar-edit" id="p-avatar">
+            ${state.profileImage ? `<img src="${esc(state.profileImage)}" alt="">` : esc(initials(profile.name))}
+            <button type="button" class="avatar-edit-btn" id="p-avatar-pick" title="Profilbild ändern" aria-label="Profilbild ändern">${ACT_ICONS.edit}</button>
+          </div>
+          ${state.profileImage ? `<button type="button" class="btn ghost sm" id="p-avatar-remove">Foto entfernen</button>` : ""}
+        </div>
+        <div class="field"><label for="p-name">Name</label><input type="text" id="p-name" value="${esc(prefillName != null ? prefillName : profile.name)}" maxlength="40"></div>
         <div class="field"><label for="p-email">E-Mail-Adresse</label><input type="email" id="p-email" value="${esc(profile.email)}"${authMode === "cloud" ? " readonly style=\"opacity:.6\"" : ""}></div>
         ${authMode === "cloud" ? `<p class="share-mini">Deine E-Mail-Adresse ist mit deinem Cloud-Konto verknüpft und kann hier nicht geändert werden.</p>` : ""}
       </div>
       <div class="modal-foot"><button class="btn ghost" data-close>Abbrechen</button><button class="btn primary" data-save>Speichern</button></div>
     </div>`);
     node.querySelectorAll("[data-close]").forEach(b => b.addEventListener("click", closeModal));
+    node.querySelector("#p-avatar-pick").addEventListener("click", () => {
+      const keepName = node.querySelector("#p-name").value.trim();
+      avatarCropCb = dataUrl => {
+        if (dataUrl) { state.profileImage = dataUrl; save(); renderProfileChip(); toast("Profilbild übernommen"); }
+        else toast("Bild konnte nicht geladen werden");
+        openProfileForm(keepName || undefined);
+      };
+      avatarInput.click();
+    });
+    const removeBtn = node.querySelector("#p-avatar-remove");
+    if (removeBtn) removeBtn.addEventListener("click", () => {
+      const keepName = node.querySelector("#p-name").value.trim();
+      state.profileImage = null; save(); renderProfileChip();
+      toast("Foto entfernt");
+      openProfileForm(keepName || undefined);
+    });
     node.querySelector("[data-save]").addEventListener("click", async () => {
       const name = node.querySelector("#p-name").value.trim();
       if (!name) { toast("Bitte gib deinen Namen ein"); return; }
