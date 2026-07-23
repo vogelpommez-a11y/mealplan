@@ -427,7 +427,6 @@
   .wn-tile .lbl { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-muted); margin-top: 6px; }
   .wn-tile .lbl::before { content: ""; width: 9px; height: 9px; border-radius: 50%; background: var(--tc, var(--accent)); }
   .wn-tile.t-kcal { --tc: var(--accent); }
-  .wn-empty { color: var(--text-muted); font-size: 13.5px; margin: 0; }
   /* Ziel-Fortschritt: Balken gegen das im Kalorienrechner gespeicherte Tagesziel.
      Ueberschreitung faerbt bernstein (--danger) – Rot ist bereits die Akzentfarbe. */
   /* Zwei getrennte Farbachsen: --mc sagt WELCHES Makro (Punkt vor dem Label),
@@ -571,8 +570,24 @@
   /* „Ziele <Jahr>" – Gewichtsverlauf. Sitzt in derselben Kartenschale wie die
      Kalorien-Ringe (.wg-col), damit auf dem Startreiter eine Optik herrscht.
      Alle Farben kommen aus Tokens: nur so stimmen Hell und Dunkel beide. */
-  .wch { margin-top: 10px; }
+  /* overflow sichtbar (anders als .wg-col): sonst schneidet die Kartenkante das Menue
+     hinter dem Plus-Knopf ab. Geclippt werden muss hier nichts - das Diagramm-SVG
+     regelt seinen Ueberstand selbst. */
+  .wch { margin-top: 10px; overflow: visible; }
   .wch-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+  /* Ankerpunkt fuer .menu (position:absolute; right:0) - ohne ihn haengt das Menue an
+     der ganzen Karte und rutscht an deren rechten Rand. */
+  .wch-menu { position: relative; flex: none; }
+  /* Gleiche Optik wie das Foto-Plus auf den Meal-Karten (.rcard .imgadd), nur groesser
+     und im Fluss statt absolut: 36px sichtbar, Trefferflaeche per ::after auf 44px. */
+  .wch-add {
+    position: relative; width: 36px; height: 36px; border: 0; border-radius: 50%; cursor: pointer;
+    display: grid; place-items: center; font-size: 23px; line-height: 1; padding: 0;
+    color: var(--accent-contrast); background: linear-gradient(135deg, var(--accent), var(--accent-strong));
+    box-shadow: 0 2px 8px rgba(0,0,0,.35); transition: transform .12s ease;
+  }
+  .wch-add::after { content: ""; position: absolute; inset: -4px; border-radius: 50%; }
+  .wch-add:hover { transform: scale(1.12); }
   .wch-head .wg-h { margin-bottom: 10px; }
   .wch-stats { display: flex; gap: 16px; flex-wrap: wrap; }
   .wch-s { display: flex; flex-direction: column; gap: 2px; }
@@ -609,7 +624,8 @@
   .wch-leg i.k-goal { border-top-style: dashed; border-color: var(--text-muted); }
   .wch-tip { margin-top: 8px; font-size: 12px; color: var(--text-muted); font-variant-numeric: tabular-nums; min-height: 17px; }
   .wch-empty { margin: 6px 0 0; font-size: 13.5px; color: var(--text-muted); }
-  .wch-acts { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
+  /* Kennzahlenreihe als Fuss der Karte: Trennlinie setzt sie vom Diagramm ab. */
+  .wch-foot { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border); }
   /* Verlaufsliste im Wiegen-Dialog */
   .wl-row { display: flex; align-items: center; gap: 10px; padding: 8px 2px; border-top: 1px solid var(--border); font-variant-numeric: tabular-nums; }
   .wl-row .wl-d { flex: 1; font-size: 13.5px; color: var(--text); }
@@ -1024,7 +1040,6 @@
   .auth { min-height: calc(100vh - 170px); display: grid; place-items: center; padding: 16px 0 60px; }
   /* Intro-Hero über dem Wochenplan */
   .app-hero { margin: 2px 0 22px; }
-  .app-hero.compact { margin: 2px 0 12px; } /* nur noch die Wochenangabe */
   .app-hero .eyebrow { display: inline-block; font-family: var(--font-display); text-transform: uppercase; letter-spacing: .22em; font-size: 12px; font-weight: 600; color: var(--accent-strong); margin-bottom: 8px; }
   .app-hero h2 { font-family: var(--font-display); font-weight: 700; text-transform: uppercase; font-size: clamp(30px, 4.4vw, 50px); line-height: .96; letter-spacing: .5px; margin: 0; text-wrap: balance; }
   .app-hero h2 em { color: var(--accent); font-style: normal; }
@@ -3486,11 +3501,11 @@
     // ihrer eigenen Kartenoptik (.wg-col) direkt auf der Seite - Karte-in-der-Karte war
     // doppelt genestet, und beide Karten tragen mit "Kalorien" + Eyebrow-Zeile schon
     // genug eigenen Kontext, um ohne uebergeordneten Titel verstaendlich zu sein.
-    return `<div class="week-nut">
-        ${hasNut(w)
-          ? body
-          : `<p class="wn-empty">Trage bei deinen Meals Makros ein (Kalorien, Kohlenhydrate, Proteine, Fett) – dann erscheint hier die Tages- und Wochenbilanz.</p>`}
-      </div>`;
+    // Ohne einen einzigen Makrowert faellt der Bereich ganz weg statt einen Hinweistext zu
+    // zeigen ("Trage bei deinen Meals Makros ein …"): das Makro-Feld steht im Meal-Formular
+    // sichtbar bereit, der Satz war die Erklaerung dazu und damit Fuellung.
+    if (!hasNut(w)) return "";
+    return `<div class="week-nut">${body}</div>`;
   }
 
   // Ring + Kennzahlenliste + eigene Makro-Spalte, nachgebaut nach einem Screenshot einer
@@ -3921,11 +3936,15 @@
     const zunahmeIstZiel = ziel != null ? ziel > (first ? first.kg : 0)
       : !!(state.goal && state.goal.mode === "gain");
     const towardGoal = zunahmeIstZiel ? diff >= 0 : diff <= 0;
-    const stats = `<div class="wch-stats">
+    // Die Kennzahlen stehen unter dem Diagramm, nicht in der Kopfzeile: oben steht jetzt der
+    // Plus-Knopf, und die Zahlen lesen sich als Bilanz nach der Kurve besser als davor.
+    // Ohne Messung und ohne Ziel entfaellt der Block ganz — sonst bliebe eine Trennlinie
+    // ueber einer leeren Zeile stehen.
+    const stats = (last || ziel != null) ? `<div class="wch-stats wch-foot">
         ${last ? `<div class="wch-s"><small>Aktuell</small><b>${kgfmt(last.kg)}<span>kg</span></b></div>` : ""}
         ${diff != null && rows.length > 1 ? `<div class="wch-s"><small>Seit ${fromLbl}</small><b class="${towardGoal ? "is-toward" : "is-away"}">${diff > 0 ? "+" : "−"}${kgfmt(Math.abs(diff))}<span>kg</span></b></div>` : ""}
         ${ziel != null ? `<div class="wch-s"><small>Ziel</small><b>${kgfmt(ziel)}<span>kg</span></b></div>` : ""}
-      </div>`;
+      </div>` : "";
 
     // Jahreswechsel nur zeigen, wenn es etwas zu wechseln gibt. Gleiche Knopfoptik wie
     // der Wochenwechsel im Plan (.week-switch/.ws-btn) statt eines zweiten Musters.
@@ -3956,20 +3975,21 @@
         + `<div class="wch-tip" aria-live="polite">${rows.length > 1 ? "" : monthLabel(last.m) + " · " + kgfmt(last.kg) + " kg"}</div>`;
     }
 
+    // Eine Aktion oben rechts statt zweier Knoepfe unten: dasselbe rote Plus wie auf den
+    // Meal-Karten (.imgadd), dahinter das Menue mit "Gewicht eintragen" / "Ziel aendern".
     return `<div class="wg-col wch">
         <div class="wch-head">
           <div>
             <div class="wg-lbl">Ziele ${year}</div>
             <h3 class="wg-h">Gewicht</h3>
           </div>
-          ${stats}
+          <div class="wch-menu">
+            <button class="wch-add" data-action="weight-menu" aria-haspopup="menu" aria-expanded="false" aria-label="Gewicht eintragen oder Ziel ändern">+</button>
+          </div>
         </div>
         ${yearBar}
         ${body}
-        <div class="wch-acts">
-          <button class="btn primary" data-action="weigh">Wiegen</button>
-          <button class="btn ghost" data-action="weight-goal">${ziel != null ? "Ziel ändern" : "Jahresziel setzen"}</button>
-        </div>
+        ${stats}
       </div>`;
   }
 
@@ -3977,8 +3997,7 @@
   // oben im Wochenplan. Dort war es voll, bevor man ueberhaupt beim Tagesraster war - jetzt
   // eigene Landingpage, der Wochenplan startet direkt mit "Dein Wochenplan".
   function renderHome() {
-    const filled = planStats();
-    view.innerHTML = `${appHeroHtml(filled)}${weekNutHtml()}${weightHtml()}`;
+    view.innerHTML = `${appHeroHtml()}${weekNutHtml()}${weightHtml()}`;
     resetCarousels();
     initCarousel(view.querySelector(".wg-cols"), view.querySelector(".wgbar"));
     initWeightChart();
@@ -5184,6 +5203,7 @@
     else if (a === "wyear") { if (String(state.viewYear) !== t.dataset.year) { state.viewYear = +t.dataset.year; render(); } }
     else if (a === "weigh") openWeighForm();
     else if (a === "weight-goal") openWeightGoalForm();
+    else if (a === "weight-menu") toggleWeightMenu(t);
     else if (a === "clear-week") clearWeek();
     else if (a === "share") openShare();
     else if (a === "profile-menu") toggleProfileMenu();
@@ -5402,9 +5422,47 @@
     updateSyncUI();
   }
 
+  // Gemeinsames Schliessverhalten aller .menu-Dropdowns (Profil, Gewicht): Klick daneben,
+  // Escape mit Fokus zurueck auf den Ausloeser, aria-expanded am Ausloeser, Fokus beim
+  // Oeffnen auf den ersten Eintrag. Ein zweites Mal von Hand gebaut waeren es zwei Muster
+  // mit zwei Luecken. Liefert close() zurueck und haengt es als __close ans Menue, damit
+  // ein erneuter Klick auf den Ausloeser sauber schliesst statt nur das DOM zu entfernen.
+  function attachMenuDismiss(menu, trigger) {
+    if (trigger) trigger.setAttribute("aria-expanded", "true");
+    const close = back => {
+      menu.remove();
+      document.removeEventListener("mousedown", onDown, true);
+      document.removeEventListener("keydown", onKey, true);
+      if (!trigger) return;
+      trigger.setAttribute("aria-expanded", "false");
+      if (back && trigger.isConnected) trigger.focus();
+    };
+    // Nach einem render() ist das Menue aus dem DOM, ohne dass close() lief - dann hier
+    // aufraeumen, damit keine Zuhoerer am document zurueckbleiben.
+    const onDown = e => {
+      if (!menu.isConnected) { close(false); return; }
+      if (menu.contains(e.target) || (trigger && trigger.contains(e.target))) return;
+      close(false);
+    };
+    const onKey = e => {
+      if (!menu.isConnected) { close(false); return; }
+      if (e.key === "Escape") { e.stopPropagation(); close(true); }
+    };
+    setTimeout(() => {
+      document.addEventListener("mousedown", onDown, true);
+      document.addEventListener("keydown", onKey, true);
+    }, 0);
+    const first = menu.querySelector("[role='menuitem']");
+    if (first) first.focus();
+    menu.__close = close;
+    return close;
+  }
+
+  function closeMenuNode(node) { if (node.__close) node.__close(false); else node.remove(); }
+
   function toggleProfileMenu() {
     const open = document.querySelector(".profile .menu");
-    if (open) { open.remove(); return; }
+    if (open) { closeMenuNode(open); return; }
     const wrap = document.querySelector(".profile");
     if (!wrap) return;
     const delLabel = authMode === "cloud" ? "Konto löschen" : "Alle Daten löschen";
@@ -5418,13 +5476,28 @@
     </div>`);
     wrap.appendChild(menu);
     updateSyncUI();
-    menu.querySelector("[data-mi='settings']").addEventListener("click", () => { menu.remove(); openSettings(); });
-    menu.querySelector("[data-mi='signout']").addEventListener("click", () => { menu.remove(); signOut(); });
-    menu.querySelector("[data-mi='delete']").addEventListener("click", () => { menu.remove(); authMode === "cloud" ? deleteAccountFlow() : deleteLocalDataFlow(); });
-    setTimeout(() => {
-      const off = e => { if (!menu.contains(e.target) && !e.target.closest(".profile-btn")) { menu.remove(); document.removeEventListener("mousedown", off); } };
-      document.addEventListener("mousedown", off);
-    }, 0);
+    const close = attachMenuDismiss(menu, wrap.querySelector(".profile-btn"));
+    menu.querySelector("[data-mi='settings']").addEventListener("click", () => { close(false); openSettings(); });
+    menu.querySelector("[data-mi='signout']").addEventListener("click", () => { close(false); signOut(); });
+    menu.querySelector("[data-mi='delete']").addEventListener("click", () => { close(false); authMode === "cloud" ? deleteAccountFlow() : deleteLocalDataFlow(); });
+  }
+
+  // Menue hinter dem roten Plus der Gewichtskarte. Beide Eintraege oeffnen die Dialoge,
+  // die frueher an den Knoepfen "Wiegen" / "Ziel aendern" unter der Karte hingen.
+  function toggleWeightMenu(btn) {
+    const wrap = btn.closest(".wch-menu");
+    if (!wrap) return;
+    const open = wrap.querySelector(".menu");
+    if (open) { closeMenuNode(open); return; }
+    const hatZiel = (state.weightGoals || {})[activeYear()] != null;
+    const menu = el(`<div class="menu" role="menu">
+      <button data-mi="weigh" role="menuitem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="M7 21h10"/><path d="M12 3v18"/><path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2"/></svg>Gewicht eintragen</button>
+      <button data-mi="goal" role="menuitem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.5"/></svg>${hatZiel ? "Ziel ändern" : "Jahresziel setzen"}</button>
+    </div>`);
+    wrap.appendChild(menu);
+    const close = attachMenuDismiss(menu, btn);
+    menu.querySelector("[data-mi='weigh']").addEventListener("click", () => { close(false); openWeighForm(); });
+    menu.querySelector("[data-mi='goal']").addEventListener("click", () => { close(false); openWeightGoalForm(); });
   }
 
   // ---------- Kalorienrechner (Baustein 1: Tages-/Wochenbedarf → state.goal) ----------
@@ -6579,17 +6652,14 @@
   }
 
   // Intro-Hero über dem Wochenplan (nur im eingeloggten Bereich)
-  // Der Begruessungstext steht nur, solange die Woche noch leer ist — da hilft er beim
-  // Einstieg. Sobald geplant wird, ist er bei taeglicher Nutzung vor allem Platz vor der
-  // Ziel-Uebersicht; dann bleibt nur die Wochenangabe stehen. Kein Zaehler noetig: der
-  // Fuellstand des Plans sagt schon, ob jemand neu hier ist.
-  function appHeroHtml(filled) {
-    const wk = `<span class="eyebrow">${weekLabel(state.viewWeek === "next" ? 1 : 0)}</span>`;
-    if (filled > 0) return `<div class="app-hero compact">${wk}</div>`;
+  // Steht dauerhaft, nicht nur bei leerer Woche: der Startreiter braucht einen festen Kopf,
+  // sonst springt das Layout je nach Planungsstand. Der Text nennt beide Saeulen der App
+  // (Plan + Fortschritt) und deckt damit auch die Gewichtskarte darunter ab.
+  function appHeroHtml() {
     return `<div class="app-hero">
-      ${wk}
-      <h2>Dein Plan. Dein <em>Vorsprung.</em></h2>
-      <p class="hero-sub">Sieben Tage im Blick, jede Mahlzeit mit Kalorien und Makros. Gebaut fürs Training – und fürs Abnehmen.</p>
+      <span class="eyebrow">${weekLabel(state.viewWeek === "next" ? 1 : 0)}</span>
+      <h2>Dein Plan. Dein <em>Fortschritt.</em></h2>
+      <p class="hero-sub">Sieben Tage im Blick, jede Mahlzeit geplant, jeder Fortschritt begleitet – dein Plan fürs Training und fürs Abnehmen.</p>
     </div>`;
   }
 
