@@ -34,3 +34,7 @@ index.backup*.html
 # Pro-Gating aktuell clientseitig und damit umgehbar ist) und Geschaeftsplanung -
 # das gehoert nicht oeffentlich auf GitHub Pages.
 ROADMAP.html
+
+# Marketing-Assets (Banner o. Ae.): fuer externen Gebrauch, nicht von der App
+# geladen - muessen nicht oeffentlich im Repo liegen.
+Marketing/

@@ -296,8 +296,10 @@
   .btn.danger:hover { background: color-mix(in srgb, var(--accent) 13%, var(--surface)); border-color: transparent; color: var(--accent-strong); }
   /* Löschen als Icon-Button (Meal-Karte) – dezent grau, Hover in Theme-Rot.
      Sichtbar 34 px, Trefferflaeche per Pseudo-Element auf 44 × 44 erweitert
-     (hitSlop-Muster) – so bleibt die Button-Zeile niedrig und der Touch-Target konform. */
-  .btn.del-ic { position: relative; margin-left: auto; width: 34px; height: 34px; padding: 0; justify-content: center; color: var(--text-muted); background: transparent; border-color: transparent; }
+     (hitSlop-Muster) – so bleibt die Button-Zeile niedrig und der Touch-Target konform.
+     Das Abruecken nach rechts (margin-left:auto) sitzt am Teilen-Button davor, nicht
+     hier - sonst klemmen bei vier Buttons drei links und nur einer isoliert rechts. */
+  .btn.del-ic { position: relative; width: 34px; height: 34px; padding: 0; justify-content: center; color: var(--text-muted); background: transparent; border-color: transparent; }
   .btn.del-ic::after { content: ""; position: absolute; inset: -5px; }
   .btn.del-ic svg { width: 17px; height: 17px; }
   .btn.del-ic:hover { color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, var(--surface)); border-color: transparent; }
@@ -817,9 +819,26 @@
   }
   .ing-nut[open] .ing-nsum::after { transform: rotate(180deg); }
   .ing-per { display: block; font-size: 10px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; color: var(--text-muted); }
-  .ing-brief { font-size: 11.5px; color: var(--text-muted); font-variant-numeric: tabular-nums; min-width: 0; }
+  .ing-brief { display: flex; align-items: center; flex-wrap: wrap; gap: 5px; font-size: 11.5px; color: var(--text-muted); font-variant-numeric: tabular-nums; min-width: 0; }
+  .ing-brief .ing-sep { color: var(--border-strong); }
+  /* Aufgeklappt stehen dieselben Werte schon unten in den Feldern - die Kurzfassung
+     in der Kopfzeile waere doppelt, deshalb nur zugeklappt sichtbar. */
+  .ing-nut[open] .ing-brief { display: none; }
+  .ing-brief .t-kcal { --tc: var(--accent); }
+  .ing-brief .t-carb { --tc: #E9A03B; }
+  .ing-brief .t-prot { --tc: #C74B78; }
+  .ing-brief .t-fat  { --tc: #4AA8E0; }
   .ing-vals { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; padding-bottom: 3px; }
   .ing-nut label { display: flex; flex-direction: column; gap: 4px; font-size: 10px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--text-muted); text-align: center; }
+  /* Farbpunkt vor dem Feldnamen, gleiches Muster wie .nutfacts .k / .macro .ml (nur der
+     Punkt traegt Farbe, der Text bleibt --text-muted) - so uebernimmt sich die bekannte
+     Kontrastschwaeche von Amber/Blau auf hellem Grund nicht in ein neues Textelement. */
+  .ing-lbl { display: inline-flex; align-items: center; justify-content: center; gap: 5px; }
+  .ing-lbl::before { content: ""; width: 7px; height: 7px; border-radius: 50%; flex: none; background: var(--tc, var(--text-muted)); }
+  .ing-vals label.t-kcal { --tc: var(--accent); }
+  .ing-vals label.t-carb { --tc: #E9A03B; }
+  .ing-vals label.t-prot { --tc: #C74B78; }
+  .ing-vals label.t-fat  { --tc: #4AA8E0; }
   .ing-nut input { width: 100%; padding: 7px 4px; text-align: center; }
   #f-ing-add { margin-top: 2px; }
   #f-ing-add[hidden] { display: none; }
@@ -837,6 +856,16 @@
   .nut-total > label .hint { font-family: var(--font-body); text-transform: none; letter-spacing: 0; }
   .nut-total input { font-weight: 700; font-size: 15px; font-variant-numeric: tabular-nums; }
   .nut-total #f-kcal { color: var(--accent); }
+  /* Gleiche Farbpunkte UND Kurzbeschriftung wie bei den Zutaten-Naehrwerten (.ing-lbl,
+     .ing-nut label): Kcal/KH/P/F statt ausgeschriebener Woerter, damit "Makros gesamt"
+     nicht anders beschriftet ist als die Zutatenzeilen darueber. Nur der Punkt traegt
+     Farbe, der Text bleibt ueber .hint gedaempft (Kontrastschwaeche von Amber/Blau auf
+     hellem Grund bleibt so aussen vor). */
+  .nut-total .field .ing-lbl { font-size: 10px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; }
+  .nut-total .t-kcal { --tc: var(--accent); }
+  .nut-total .t-carb { --tc: #E9A03B; }
+  .nut-total .t-prot { --tc: #C74B78; }
+  .nut-total .t-fat  { --tc: #4AA8E0; }
   /* Heller Grund statt --surface-2, sonst verschwaenden die Felder im getoenten Kasten */
   #f-kcal[readonly], #f-carbs[readonly], #f-protein[readonly], #f-fat[readonly] { opacity: .85; background: var(--surface); }
   .rimg { position: relative; height: 116px; display: grid; place-items: center; overflow: hidden; }
@@ -864,9 +893,12 @@
   .chip.example { color: var(--fr); background: color-mix(in srgb, var(--fr) 15%, var(--surface)); border: 1px solid color-mix(in srgb, var(--fr) 32%, transparent); }
   .rcard .meta { display: flex; gap: 14px; flex-wrap: wrap; color: var(--text-muted); font-size: 12.5px; }
   .rcard .meta span { display: inline-flex; align-items: center; gap: 5px; }
-  .rcard .meta svg { width: 14px; height: 14px; opacity: .8; }
+  .rcard .meta svg { width: 14px; height: 14px; color: var(--accent); opacity: 1; }
   .rcard .ingredients { font-size: 13px; color: var(--text-muted); border-top: 1px dashed var(--border); padding-top: 10px; line-height: 1.5; }
   .rcard .actions { display: flex; align-items: center; gap: 10px; margin-top: auto; padding-top: 4px; }
+  /* Teilen+Loeschen als Icon-Paar rechts gruppiert, Ansehen+Bearbeiten links - sonst
+     klemmen bei vier Buttons drei links und nur einer isoliert rechts (siehe .del-ic). */
+  .rcard .actions .btn.icon-gh { margin-left: auto; }
   .rcard .actions .btn.sm { gap: 6px; }
   .rcard .actions .btn.sm svg { width: 15px; height: 15px; }
 
@@ -1410,6 +1442,11 @@
     .ing-ac-item { min-height: 44px; } /* Touch-Ziel */
     .auth-card { padding: 26px 20px 22px; }
     .modal-foot .btn { flex: 1; justify-content: center; }
+    /* Die Meal-Detailansicht hat vier Fuss-Buttons: mit reinem "flex:1" passen drei
+       schmale (Bearbeiten/Teilen/Loeschen) noch in eine Zeile, nur "Schliessen" faellt
+       allein und ueber die volle Breite gestreckt in die naechste - wirkt schief.
+       Feste 50%-Basis erzwingt ein sauberes 2x2-Raster unabhaengig von der Textlaenge. */
+    .modal.detail .modal-foot .btn { flex: 1 1 calc(50% - 4px); }
     .foot-inner { flex-direction: column; gap: 8px; text-align: center; }
     /* iOS zoomt Eingabefelder < 16px beim Fokus – das verhindern wir */
     input[type="text"], input[type="number"], input[type="email"], input[type="password"], input[type="search"], select, textarea { font-size: 16px; }
@@ -3646,10 +3683,10 @@
     if (!hasNut(n)) return "";
     return `<div class="dsec"><h4>Makros <span style="text-transform:none;letter-spacing:0;font-weight:400">· je Portion</span></h4>
         <div class="nutfacts">
-          <div class="nf t-kcal"><div class="v">${nfmt(n.kcal)}<span class="u">kcal</span></div><div class="k">Kalorien</div></div>
-          <div class="nf t-carb"><div class="v">${nfmt(n.carbs)}<span class="u">g</span></div><div class="k">Kohlenhydrate</div></div>
-          <div class="nf t-prot"><div class="v">${nfmt(n.protein)}<span class="u">g</span></div><div class="k">Proteine</div></div>
-          <div class="nf t-fat"><div class="v">${nfmt(n.fat)}<span class="u">g</span></div><div class="k">Fett</div></div>
+          <div class="nf t-kcal"><div class="v">${nfmt(n.kcal)}<span class="u">kcal</span></div><div class="k">Kcal</div></div>
+          <div class="nf t-carb"><div class="v">${nfmt(n.carbs)}<span class="u">g</span></div><div class="k">KH</div></div>
+          <div class="nf t-prot"><div class="v">${nfmt(n.protein)}<span class="u">g</span></div><div class="k">P</div></div>
+          <div class="nf t-fat"><div class="v">${nfmt(n.fat)}<span class="u">g</span></div><div class="k">F</div></div>
         </div></div>`;
   }
 
@@ -4193,6 +4230,7 @@
           <div class="actions">
             <button class="btn ghost sm" data-action="view" data-id="${r.id}">${ACT_ICONS.view}Ansehen</button>
             <button class="btn ghost sm" data-action="edit" data-id="${r.id}">${ACT_ICONS.edit}Bearbeiten</button>
+            <button class="btn ghost icon-gh" data-action="share-recipe" data-id="${r.id}" title="Meal teilen" aria-label="Meal teilen">${TOOL_ICONS.share}</button>
             <button class="btn del-ic" data-action="delete" data-id="${r.id}" title="Meal löschen" aria-label="Meal löschen">${ACT_ICONS.del}</button>
           </div>
           </div>
@@ -4397,12 +4435,12 @@
           <label>Makros gesamt <span class="hint" id="f-nut-hint">– mit Zutaten-Nährwerten automatisch summiert</span></label>
           <div class="row2" style="gap:12px">
             <div class="row2" style="gap:12px">
-              <div class="field"><label for="f-kcal" class="hint">Kalorien (kcal)</label><input type="number" id="f-kcal" min="0" max="99999" step="1" value="${r && r.nutrition && r.nutrition.kcal != null ? esc(r.nutrition.kcal) : ""}" placeholder="520"></div>
-              <div class="field"><label for="f-carbs" class="hint">Kohlenhydrate (g)</label><input type="number" id="f-carbs" min="0" max="9999" step="0.1" value="${r && r.nutrition && r.nutrition.carbs != null ? esc(r.nutrition.carbs) : ""}" placeholder="60"></div>
+              <div class="field"><label for="f-kcal"><span class="ing-lbl hint t-kcal">Kcal</span></label><input type="number" id="f-kcal" min="0" max="99999" step="1" value="${r && r.nutrition && r.nutrition.kcal != null ? esc(r.nutrition.kcal) : ""}" placeholder="520"></div>
+              <div class="field"><label for="f-carbs"><span class="ing-lbl hint t-carb">KH</span></label><input type="number" id="f-carbs" min="0" max="9999" step="0.1" value="${r && r.nutrition && r.nutrition.carbs != null ? esc(r.nutrition.carbs) : ""}" placeholder="60"></div>
             </div>
             <div class="row2" style="gap:12px">
-              <div class="field"><label for="f-protein" class="hint">Proteine (g)</label><input type="number" id="f-protein" min="0" max="9999" step="0.1" value="${r && r.nutrition && r.nutrition.protein != null ? esc(r.nutrition.protein) : ""}" placeholder="30"></div>
-              <div class="field"><label for="f-fat" class="hint">Fett (g)</label><input type="number" id="f-fat" min="0" max="9999" step="0.1" value="${r && r.nutrition && r.nutrition.fat != null ? esc(r.nutrition.fat) : ""}" placeholder="18"></div>
+              <div class="field"><label for="f-protein"><span class="ing-lbl hint t-prot">P</span></label><input type="number" id="f-protein" min="0" max="9999" step="0.1" value="${r && r.nutrition && r.nutrition.protein != null ? esc(r.nutrition.protein) : ""}" placeholder="30"></div>
+              <div class="field"><label for="f-fat"><span class="ing-lbl hint t-fat">F</span></label><input type="number" id="f-fat" min="0" max="9999" step="0.1" value="${r && r.nutrition && r.nutrition.fat != null ? esc(r.nutrition.fat) : ""}" placeholder="18"></div>
             </div>
           </div>
         </div>
@@ -4455,10 +4493,10 @@
             <span class="ing-brief"></span>
           </summary>
           <div class="ing-vals">
-            <label>Kcal<input type="number" class="ing-kcal" min="0" max="9999" step="1" value="${nutVal(o.kcal)}"></label>
-            <label>KH<input type="number" class="ing-carbs" min="0" max="999" step="0.1" value="${nutVal(o.carbs)}"></label>
-            <label>P<input type="number" class="ing-prot" min="0" max="999" step="0.1" value="${nutVal(o.protein)}"></label>
-            <label>F<input type="number" class="ing-fat" min="0" max="999" step="0.1" value="${nutVal(o.fat)}"></label>
+            <label class="t-kcal"><span class="ing-lbl">Kcal</span><input type="number" class="ing-kcal" min="0" max="9999" step="1" value="${nutVal(o.kcal)}"></label>
+            <label class="t-carb"><span class="ing-lbl">KH</span><input type="number" class="ing-carbs" min="0" max="999" step="0.1" value="${nutVal(o.carbs)}"></label>
+            <label class="t-prot"><span class="ing-lbl">P</span><input type="number" class="ing-prot" min="0" max="999" step="0.1" value="${nutVal(o.protein)}"></label>
+            <label class="t-fat"><span class="ing-lbl">F</span><input type="number" class="ing-fat" min="0" max="999" step="0.1" value="${nutVal(o.fat)}"></label>
           </div>
         </details>
       </div>`);
@@ -4473,14 +4511,15 @@
         const nz = v => (Math.round(v * 10) / 10).toLocaleString("de-DE");
         const k = g(".ing-kcal"), kh = g(".ing-carbs"), p = g(".ing-prot"), fa = g(".ing-fat");
         const t = [];
-        if (k != null) t.push(nfmt(k) + " kcal");
-        if (kh != null) t.push(nz(kh) + " KH");
-        if (p != null) t.push(nz(p) + " P");
-        if (fa != null) t.push(nz(fa) + " F");
+        if (k != null) t.push(`<span class="ing-lbl t-kcal">${nfmt(k)} kcal</span>`);
+        if (kh != null) t.push(`<span class="ing-lbl t-carb">${nz(kh)} KH</span>`);
+        if (p != null) t.push(`<span class="ing-lbl t-prot">${nz(p)} P</span>`);
+        if (fa != null) t.push(`<span class="ing-lbl t-fat">${nz(fa)} F</span>`);
         // "–" statt eines Aufforderungstexts: Der Pfeil rechts zeigt bereits, dass sich
         // die Zeile oeffnen laesst, und "eintragen" war nicht zu unterscheiden von einem
         // Zustand ("leer"). Gleiches Zeichen wie beim leeren Auswahlrad im Onboarding.
-        row.querySelector(".ing-brief").textContent = t.length ? t.join(" · ") : "–";
+        // k/kh/p/fa sind Zahlen aus nfmt()/nz() (kein Nutzertext) - innerHTML ist hier sicher.
+        row.querySelector(".ing-brief").innerHTML = t.length ? t.join(' <span class="ing-sep">·</span> ') : "–";
       }
       row.querySelectorAll("input").forEach(inp => inp.addEventListener("input", () => { updateMacroSum(); paintNut(); }));
       // Einheit umstellen: Bezugsgroesse der Naehrwerte mitziehen. Bei Stueck gibt es keine
@@ -4745,13 +4784,15 @@
         ${r.steps ? `<div class="dsec"><h4>Zubereitung</h4><div class="steps">${esc(r.steps)}</div></div>` : ""}
       </div>
       <div class="modal-foot">
-        <button class="btn danger" data-del>${ACT_ICONS.del}Löschen</button>
         <button class="btn" data-edit>${ACT_ICONS.edit}Bearbeiten</button>
+        <button class="btn" data-share>${TOOL_ICONS.share}Teilen</button>
+        <button class="btn danger" data-del>${ACT_ICONS.del}Löschen</button>
         <button class="btn primary" data-close>Schließen</button>
       </div>
     </div>`);
     node.querySelectorAll("[data-close]").forEach(b => b.addEventListener("click", closeModal));
     node.querySelector("[data-edit]").addEventListener("click", () => { closeModal(); openRecipeForm(r.id); });
+    node.querySelector("[data-share]").addEventListener("click", () => { closeModal(); openShareRecipe(r.id); });
     node.querySelector("[data-del]").addEventListener("click", () => { closeModal(); deleteRecipe(r.id); });
     openModal(node);
   }
@@ -5110,21 +5151,23 @@
          (Art. 6 Abs. 1 lit. f DSGVO). Nutzt du den Barcode-Scan nicht, findet keiner dieser
          Abrufe statt.</p>
       <h4>8. Teilen-Funktion</h4>
-      <p>Wenn du einen Teilen-Link erstellst, wird eine Kopie deines Wochenplans (die eingeplanten Meals, dein
-         angezeigter Name und der Zeitpunkt) in der Cloud gespeichert. Sie ist ausschließlich über den Link abrufbar
+      <p>Wenn du einen Teilen-Link erstellst, wird eine Kopie deines Wochenplans oder eines einzelnen Meals
+         (die eingeplanten bzw. das einzelne Meal inkl. eines eigenen Fotos, falls vorhanden, dein angezeigter Name
+         und der Zeitpunkt) in der Cloud gespeichert. Sie ist ausschließlich über den Link abrufbar
          und nur für angemeldete Nutzer. Die Kennung im Link wird mit 80&nbsp;Bit Zufall erzeugt und ist praktisch
-         nicht erratbar; ein Auflisten oder Durchsuchen der geteilten Pläne ist technisch unterbunden. Der Link ist
-         damit der einzige Zugang – <strong>teile ihn nur mit Personen, die den Plan sehen dürfen</strong>, denn wer
-         ihn hat, kann den Plan öffnen.</p>
+         nicht erratbar; ein Auflisten oder Durchsuchen der geteilten Inhalte ist technisch unterbunden. Der Link ist
+         damit der einzige Zugang – <strong>teile ihn nur mit Personen, die den Inhalt sehen dürfen</strong>, denn wer
+         ihn hat, kann ihn öffnen.</p>
       <h4>9. Verschlüsselung</h4>
       <p>Die Übertragung der Daten erfolgt verschlüsselt über HTTPS (SSL/TLS).</p>
       <h4>10. Speicherdauer &amp; Löschung</h4>
       <p>Wir speichern deine Daten, solange dein Konto besteht. Über „Konto löschen" im Profilmenü kannst du dein
          Konto und deine Daten <strong>jederzeit selbst und sofort</strong> unwiderruflich löschen; alternativ kannst
-         du die Löschung auch per E-Mail an uns verlangen. Das schließt die geteilten Wochenpläne ein, die deinem
+         du die Löschung auch per E-Mail an uns verlangen. Das schließt alle Teilen-Links (Wochenpläne und einzelne
+         Meals) ein, die deinem
          Konto zugeordnet und diesem Gerät bzw. deinem synchronisierten Konto zum Löschzeitpunkt bekannt sind – sie
          werden automatisch mitentfernt; schlägt das für einen einzelnen Link fehl, bricht die Löschung ab, statt
-         einen Rest zurückzulassen, und du kannst sie erneut anstoßen. Bis zur Löschung bleiben geteilte Pläne
+         einen Rest zurückzulassen, und du kannst sie erneut anstoßen. Bis zur Löschung bleiben geteilte Inhalte
          abrufbar – auch dann, wenn du den Link nicht mehr weitergibst. Nutzt du die App ohne Cloud-Konto (lokales
          Profil), kannst du ebenso über „Alle Daten löschen" im Profilmenü sämtliche auf diesem Gerät gespeicherten
          Daten sofort entfernen.</p>
@@ -5184,6 +5227,7 @@
     else if (a === "edit") openRecipeForm(t.dataset.id);
     else if (a === "view") openRecipeDetail(t.dataset.id);
     else if (a === "delete") deleteRecipe(t.dataset.id);
+    else if (a === "share-recipe") openShareRecipe(t.dataset.id);
     else if (a === "clear-examples") clearExamples();
     else if (a === "toggle-cat") {
       const c = t.dataset.cat;
@@ -5400,13 +5444,18 @@
     if (!d || !Array.isArray(d.recipes)) return;
     const who = d.by ? esc(d.by) : "Jemand";
     const nrec = d.recipes.length;
-    const node = el(`<div class="modal" role="dialog" aria-modal="true" aria-label="Geteilter Plan">
+    const isMeal = d.type === "meal";
+    const node = el(isMeal ? `<div class="modal" role="dialog" aria-modal="true" aria-label="Geteiltes Meal">
+      <div class="modal-head"><div style="flex:1"><div class="kicker">Einladung erhalten</div><h3 style="margin-top:2px">Geteiltes Meal</h3></div><button class="btn ghost sm" data-close>✕</button></div>
+      <div class="modal-body"><p style="margin:0"><strong>${who}</strong> hat ein Meal mit dir geteilt: <strong>${esc(d.recipes[0] ? d.recipes[0].name : "")}</strong>. Übernehmen?</p></div>
+      <div class="modal-foot"><button class="btn ghost" data-close>Später</button><button class="btn primary" data-take>Meal übernehmen</button></div>
+    </div>` : `<div class="modal" role="dialog" aria-modal="true" aria-label="Geteilter Plan">
       <div class="modal-head"><div style="flex:1"><div class="kicker">Einladung erhalten</div><h3 style="margin-top:2px">Geteilter Wochenplan</h3></div><button class="btn ghost sm" data-close>✕</button></div>
       <div class="modal-body"><p style="margin:0"><strong>${who}</strong> hat einen Wochenplan mit dir geteilt (${nrec} Meal${nrec === 1 ? "" : "s"}). Möchtest du ihn übernehmen? Deine eigenen Meals bleiben erhalten, neue kommen dazu – dein aktueller Wochenplan wird durch den geteilten ersetzt.</p></div>
       <div class="modal-foot"><button class="btn ghost" data-close>Später</button><button class="btn primary" data-take>Plan übernehmen</button></div>
     </div>`);
     node.querySelectorAll("[data-close]").forEach(b => b.addEventListener("click", closeModal));
-    node.querySelector("[data-take]").addEventListener("click", () => applySharedData(d, true));
+    node.querySelector("[data-take]").addEventListener("click", () => applySharedData(d, !isMeal));
     openModal(node);
   }
 
@@ -6672,7 +6721,7 @@
       <div class="mark"></div>
       <h2>${back ? "Willkommen zurück" : "Willkommen bei Paddy’s Mealplan"}</h2>
       <p class="lead">${back ? "Melde dich an, um weiterzuplanen." : "Leg ein Profil an, um deine Woche zu planen und Pläne mit Freunden zu teilen."}</p>
-      ${pendingShare ? `<p class="lead" style="color:var(--accent-strong);font-weight:600;margin-top:-8px">Du wurdest zu einem geteilten Plan eingeladen – melde dich an, um ihn zu übernehmen.</p>` : ""}
+      ${pendingShare ? `<p class="lead" style="color:var(--accent-strong);font-weight:600;margin-top:-8px">Du wurdest eingeladen, ein Meal oder einen Wochenplan zu übernehmen – melde dich an.</p>` : ""}
       <div class="field"><label for="a-name">Name</label><input type="text" id="a-name" placeholder="Wie heißt du?" value="${back ? esc(last.name) : ""}" maxlength="40" autocomplete="name"></div>
       <div class="field"><label for="a-email">E-Mail-Adresse</label><input type="email" id="a-email" placeholder="du@beispiel.de" value="${back ? esc(last.email) : ""}" autocomplete="email"></div>
       <button class="btn primary" id="a-go">${back ? "Anmelden" : "Profil anlegen"}</button>
@@ -6748,7 +6797,7 @@
       <div class="mark"></div>
       <h2>${reg ? "Konto erstellen" : "Willkommen zurück"}</h2>
       <p class="lead">${reg ? "Registriere dich, um deinen Plan auf allen Geräten zu nutzen." : "Melde dich an, um weiterzuplanen."}</p>
-      ${pendingShare ? `<p class="lead" style="color:var(--accent-strong);font-weight:600;margin-top:-8px">Du wurdest zu einem geteilten Plan eingeladen – melde dich an, um ihn zu übernehmen.</p>` : ""}
+      ${pendingShare ? `<p class="lead" style="color:var(--accent-strong);font-weight:600;margin-top:-8px">Du wurdest eingeladen, ein Meal oder einen Wochenplan zu übernehmen – melde dich an.</p>` : ""}
       <div class="segbar" role="tablist" aria-label="Anmelden oder registrieren">
         <button type="button" role="tab" data-m="register" aria-selected="${reg}">Registrieren</button>
         <button type="button" role="tab" data-m="login" aria-selected="${!reg}">Anmelden</button>
@@ -7022,6 +7071,11 @@
     // erlaubt Loeschen ausschliesslich dem Urheber.
     return { app: "wochenkueche", v: 1, uid: syncUid || "", by: profile ? profile.name : "", when: Date.now(), plan: state.plan, recipes: recipes };
   }
+  function shareMealPayload(recipeId) {
+    const r = getRecipe(recipeId);
+    if (!r) return null;
+    return { app: "wochenkueche", v: 1, type: "meal", uid: syncUid || "", by: profile ? profile.name : "", when: Date.now(), recipes: [r] };
+  }
   // Der Link ist der einzige Schutz des geteilten Plans, also muss die ID unerratbar sein.
   // Math.random() ist dafuer ungeeignet (nicht kryptografisch) und ein Zeitstempel erst recht.
   // 16 Zeichen aus einem 32er-Alphabet = 80 Bit; 32 teilt 256 glatt, daher kein Modulo-Bias.
@@ -7218,6 +7272,56 @@
       }
     }
     segBtns.forEach(b => b.addEventListener("click", () => { mode = b.dataset.seg; paint(); }));
+    paint();
+    openModal(node);
+  }
+
+  function openShareRecipe(recipeId) {
+    const r = getRecipe(recipeId);
+    if (!r) return;
+    let createdUrl = null;
+    const node = el(`<div class="modal" role="dialog" aria-modal="true" aria-label="Meal teilen">
+      <div class="modal-head"><div style="flex:1"><div class="kicker">Meal teilen</div><h3 style="margin-top:2px">${esc(r.name)} teilen</h3></div><button class="btn ghost sm" data-close>✕</button></div>
+      <div class="modal-body"><div id="sr-body"></div></div>
+    </div>`);
+    node.querySelectorAll("[data-close]").forEach(b => b.addEventListener("click", closeModal));
+    const body = node.querySelector("#sr-body");
+    function paint() {
+      const cloudOk = window.CloudShare && window.CloudShare.enabled;
+      if (!cloudOk) {
+        body.innerHTML = `<p class="share-hint">Du brauchst ein <b>Cloud-Konto</b> zum Teilen.</p>`;
+      } else if (createdUrl) {
+        body.innerHTML = `
+          <p class="share-hint">Fertig! Wer den Link öffnet, übernimmt dieses Meal als <b>Kopie</b>.</p>
+          <span class="share-sub">Dein Teilen-Link</span>
+          <div class="link-row">
+            <input type="text" class="share-link" id="sl" readonly value="${esc(createdUrl)}">
+            <button class="btn primary" id="sl-copy">Link kopieren</button>
+          </div>
+          <p class="share-mini">Der Empfänger meldet sich einmal kostenlos an und kann das Meal dann übernehmen.</p>
+          <div class="share-actions"><button class="btn" id="sl-new">Neuen Link erstellen</button></div>`;
+        body.querySelector("#sl-copy").addEventListener("click", () => { body.querySelector("#sl").select(); copyToClipboard(createdUrl, "Link kopiert"); });
+        body.querySelector("#sl-new").addEventListener("click", () => { createdUrl = null; paint(); });
+      } else {
+        body.innerHTML = `
+          <p class="share-hint">Der Link erstellt eine <b>Kopie</b> dieses Meals.</p>
+          <button class="btn primary" id="mk-link" style="width:100%;justify-content:center">Meal-Link erstellen</button>
+          <p class="share-mini" id="mk-note"></p>`;
+        const btn = body.querySelector("#mk-link");
+        const note = body.querySelector("#mk-note");
+        btn.addEventListener("click", () => {
+          const payload = shareMealPayload(recipeId);
+          if (!payload) { note.className = "share-mini warn"; note.textContent = "Meal nicht gefunden."; return; }
+          if (JSON.stringify(payload).length > 400000) { note.className = "share-mini warn"; note.textContent = "Das Foto dieses Meals ist zu groß zum Teilen."; return; }
+          btn.disabled = true; btn.textContent = "Erstelle Link …"; note.className = "share-mini"; note.textContent = "";
+          const id = shareId();
+          window.CloudShare.publish(id, payload).then(() => {
+            if (!(state.shares || []).includes(id)) { state.shares = (state.shares || []).concat(id); save(); }
+            createdUrl = location.origin + location.pathname + "?s=" + id; paint();
+          }).catch(() => { btn.disabled = false; btn.textContent = "Meal-Link erstellen"; note.className = "share-mini warn"; note.textContent = "Link konnte nicht erstellt werden. Bist du online und angemeldet?"; });
+        });
+      }
+    }
     paint();
     openModal(node);
   }
