@@ -302,13 +302,17 @@
   .btn.del-ic svg { width: 17px; height: 17px; }
   .btn.del-ic:hover { color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, var(--surface)); border-color: transparent; }
   .btn svg { width: 16px; height: 16px; }
+  /* Icon-Button ohne Text, gleiches hitSlop-Muster wie .btn.del-ic, aber neutral statt
+     rot beim Hover - "Woche teilen"/"Woche leeren" sind keine Loeschaktionen. */
+  .btn.icon-gh { position: relative; width: 34px; height: 34px; padding: 0; justify-content: center; }
+  .btn.icon-gh::after { content: ""; position: absolute; inset: -5px; }
+  .btn.icon-gh svg { width: 17px; height: 17px; }
   .btn.sm { padding: 6px 11px; font-size: 13px; }
 
   /* ---------- Week grid ---------- */
   /* Wochenplan-Kopf: Titel oben, Werkzeugleiste eine Zeile darunter */
   .plan-head { flex-direction: column; align-items: stretch; gap: 16px; }
   .plan-tools { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-  .plan-tools .grow { margin-left: auto; }
   .week-switch { display: inline-flex; background: var(--surface-2); border: 1px solid var(--border); border-radius: 999px; padding: 3px; gap: 2px; }
   .ws-btn { font: inherit; font-size: 13px; font-weight: 600; letter-spacing: .01em; cursor: pointer; border: 0; background: transparent; color: var(--text-muted); padding: 7px 15px; border-radius: 999px; white-space: nowrap; transition: color .12s, background .12s, box-shadow .12s; }
   .ws-btn:hover { color: var(--text); }
@@ -839,8 +843,6 @@
   .rimg::after { content: ""; position: absolute; inset: 0; background: radial-gradient(130px 66px at 78% 16%, rgba(255,255,255,.30), transparent); pointer-events: none; }
   .rimg.has-photo::after { display: none; }
   .rphoto { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
-  .rimg.has-photo .cchip { background: rgba(16,18,13,.62); }
-  .rimg .cchip { position: absolute; left: 11px; bottom: 10px; z-index: 1; font-size: 11px; font-weight: 650; letter-spacing: .03em; text-transform: uppercase; color: #fff; background: rgba(16,18,13,.5); backdrop-filter: blur(4px); padding: 3px 10px; border-radius: 999px; }
   /* Makro-Hinweis oben links: .good (Proteinreich/Low Carb) nutzt --ok, das schon als
      "positiv"-Signal existiert (Sync verbunden). .fat nutzt dasselbe Blau wie die
      Naehrwert-Kacheln (--mc/--tc fuer Fett) - kein neuer Fett-Ton.
@@ -1366,10 +1368,6 @@
     .wrap { padding: 0 14px; }
     main { padding: 20px 0 64px; }
     .row2 { grid-template-columns: 1fr; }
-    /* Auf dem Handy sollen die beiden Knoepfe die Zeile fuellen (Daumenbreite), am
-       Rechner behalten sie ihre natuerliche Breite - dort wirkte ein 1000px breiter
-       "Wiegen"-Knopf wie ein Fehler. */
-    .wch-acts .btn { flex: 1 1 auto; }
     /* Drei Kennzahlen nebeneinander werden auf schmalen Geraeten eng - etwas kleinere
        Zahlen und weniger Abstand halten sie in einer Zeile, statt sie umbrechen zu lassen. */
     .wch-stats { gap: 12px; }
@@ -1395,9 +1393,9 @@
     .section-head { margin-bottom: 18px; }
     .section-head h2 { font-size: 22px; }
     .section-head .btn { flex: 1; justify-content: center; }
-    .plan-tools .week-switch { flex: 1 0 100%; }
-    .plan-tools .week-switch .ws-btn { flex: 1; }
-    .plan-tools .grow { margin-left: 0; }
+    /* Die Icon-Knoepfe (Woche teilen/leeren) bleiben quadratisch neben den Tabs -
+       ohne diese Ausnahme wuerden sie durch die Regel darueber in die Breite gezogen. */
+    .plan-tools .icon-gh { flex: none; }
     .week { gap: 12px; }
     .recipes { gap: 12px; }
     .imgfield { flex-direction: column; align-items: stretch; }
@@ -2743,12 +2741,13 @@
     return out;
   }
   function cardImageHtml(r) {
-    const cat = esc(r.category || "Gericht");
     const mb = macroBadges(r);
     const badges = mb.length
       ? `<div class="mbadges">${mb.map(b => `<span class="mbadge ${b.cls}">${esc(b.label)}</span>`).join("")}</div>`
       : "";
-    return `<div class="rimg has-photo">${badges}<img class="rphoto" src="${photoFor(r)}" alt="${esc(r.name)}" loading="lazy"><span class="cchip">${cat}</span></div>`;
+    // Keine Kategorie-Chip mehr im Bild: die Karten stehen bereits unter ihrer
+    // Kategorie-Ueberschrift gruppiert - die Angabe war doppelt.
+    return `<div class="rimg has-photo">${badges}<img class="rphoto" src="${photoFor(r)}" alt="${esc(r.name)}" loading="lazy"></div>`;
   }
   function thumbHtml(r, cls) {
     return `<img class="${cls}" src="${photoFor(r)}" alt="" loading="lazy">`;
@@ -4048,8 +4047,8 @@
             <button class="ws-btn${state.viewWeek === "next" ? "" : " active"}" data-action="week" data-week="cur" role="tab" aria-selected="${state.viewWeek === "next" ? "false" : "true"}">Aktuelle Woche</button>
             <button class="ws-btn${state.viewWeek === "next" ? " active" : ""}" data-action="week" data-week="next" role="tab" aria-selected="${state.viewWeek === "next" ? "true" : "false"}">Nächste Woche</button>
           </div>
-          <button class="btn ghost grow" data-action="share">${TOOL_ICONS.share}Woche teilen</button>
-          <button class="btn ghost" data-action="clear-week">${TOOL_ICONS.clear}Woche leeren</button>
+          <button class="btn ghost icon-gh" data-action="share" title="Woche teilen" aria-label="Woche teilen">${TOOL_ICONS.share}</button>
+          <button class="btn ghost icon-gh" data-action="clear-week" title="Woche leeren" aria-label="Woche leeren">${TOOL_ICONS.clear}</button>
         </div>
       </div>`;
 
