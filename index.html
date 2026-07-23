@@ -2,6 +2,19 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#DC2626">
 <meta name="theme-color" content="#0C0A0B" media="(prefers-color-scheme: dark)">
+<script>
+  /* Erscheinungsbild vor dem ersten Paint setzen — sonst blitzt beim Laden kurz das
+     falsche Theme auf. Ohne gespeicherte Wahl bleibt das Attribut weg, dann greift
+     wie bisher prefers-color-scheme. Laeuft absichtlich vor allem anderen. */
+  try {
+    var t = localStorage.getItem("wochenkueche_theme_v1");
+    if (t === "light" || t === "dark") {
+      document.documentElement.setAttribute("data-theme", t);
+      var m = document.querySelector('meta[name="theme-color"][media]');
+      if (m) m.setAttribute("media", t === "dark" ? "all" : "not all");
+    }
+  } catch (e) {}
+</script>
 <title>Paddy’s Mealplan</title>
 <style>
   :root {
@@ -765,9 +778,27 @@
   .ing-barcode:hover { color: var(--accent); border-color: var(--accent); background: color-mix(in srgb, var(--accent) 8%, var(--surface)); }
   .ing-ic.busy, .ing-barcode.busy { animation: syncpulse 1s ease-in-out infinite; }
   .ing-del:hover { color: var(--accent); border-color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, var(--surface)); }
+  /* Naehrwerte zugeklappt. Wer die Zutat aus der Vorschlagsliste waehlt, bekommt sie
+     automatisch gefuellt und muss sie gar nicht sehen — sichtbar kosteten die vier
+     Felder 93 von 225 px Zeilenhoehe (gemessen). Zum Nachbessern aufklappbar, ueber
+     <details> statt eigenem Zustand: nativ per Tastatur und Screenreader bedienbar. */
   .ing-nut { margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--border); }
-  .ing-per { display: block; font-size: 10px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 8px; }
-  .ing-vals { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+  /* Zugeklappt braucht der Trennstrich weniger Luft — die Zeile traegt sich selbst. */
+  .ing-nut:not([open]) { margin-top: 5px; padding-top: 4px; }
+  .ing-nsum {
+    display: flex; align-items: center; gap: 10px; min-height: 44px; cursor: pointer;
+    list-style: none; /* Firefox */
+  }
+  .ing-nsum::-webkit-details-marker { display: none; } /* Safari/Chrome */
+  .ing-nsum:focus-visible { outline: none; box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 26%, transparent); border-radius: var(--radius-sm); }
+  .ing-nsum::after {
+    content: "▾"; margin-left: auto; flex: none; color: var(--text);
+    font-size: 14px; line-height: 1; opacity: .7; transition: transform .12s;
+  }
+  .ing-nut[open] .ing-nsum::after { transform: rotate(180deg); }
+  .ing-per { display: block; font-size: 10px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; color: var(--text-muted); }
+  .ing-brief { font-size: 11.5px; color: var(--text-muted); font-variant-numeric: tabular-nums; min-width: 0; }
+  .ing-vals { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; padding-bottom: 3px; }
   .ing-nut label { display: flex; flex-direction: column; gap: 4px; font-size: 10px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--text-muted); text-align: center; }
   .ing-nut input { width: 100%; padding: 7px 4px; text-align: center; }
   #f-ing-add { margin-top: 2px; }
@@ -999,15 +1030,6 @@
   .app-hero h2 em { color: var(--accent); font-style: normal; }
   .app-hero .hero-sub { color: var(--text-muted); font-size: 15.5px; line-height: 1.5; margin: 12px 0 0; max-width: 60ch; }
   /* Kalorienrechner-Platzhalter (kommt bald) */
-  .soon-wrap { min-height: 46vh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 36px; text-align: center; padding: 40px 0; }
-  .soon-card { max-width: 460px; }
-  .soon-card .soon-ic { width: 60px; height: 60px; border-radius: 16px; display: grid; place-items: center; margin: 0 auto 18px; background: color-mix(in srgb, var(--accent) 12%, var(--surface)); border: 1px solid color-mix(in srgb, var(--accent) 34%, transparent); color: var(--accent); }
-  .soon-card .soon-ic svg { width: 28px; height: 28px; }
-  .soon-card h2 { font-family: var(--font-display); text-transform: uppercase; font-size: 30px; font-weight: 700; letter-spacing: .5px; margin: 0 0 8px; }
-  .soon-card p { color: var(--text-muted); font-size: 15px; line-height: 1.55; margin: 0; }
-  .soon-card .soon-pill { display: inline-block; margin-top: 16px; font-family: var(--font-display); text-transform: uppercase; letter-spacing: .14em; font-size: 12px; font-weight: 600; color: var(--accent-contrast); background: var(--accent); border-radius: 999px; padding: 6px 14px; }
-  .soon-card .btn.primary { margin-top: 20px; }
-  .soon-card .soon-note { font-size: 12.5px; margin-top: 14px; opacity: .85; }
 
   /* ---------- Kalorienrechner ---------- */
   /* Assistent auf jeder Breite: vier Karten (Koerperdaten, Alltag & Ziel, Trainingstage,
@@ -1680,6 +1702,14 @@
   .setrow:focus-visible { outline: none; box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 26%, transparent); }
   .setrow b { display: block; font-size: 14.5px; font-weight: 650; }
   .setrow small { display: block; margin-top: 2px; font-size: 12.5px; color: var(--text-muted); }
+  /* Zeile mit Direktauswahl statt Sprungziel (Erscheinungsbild) — gleiche Huelle wie
+     .setrow, aber kein Knopf: die Auswahl steckt im .seg darunter. */
+  .setpick { padding: 13px 15px; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-sm); }
+  .setpick > b { display: block; font-size: 14.5px; font-weight: 650; margin-bottom: 9px; }
+  /* Die Knoepfe im Rechner sind zweizeilig (Label + Hinweis) und dadurch von selbst
+     hoch genug. Hier steht nur ein Wort, das ergaebe knapp 35 px — zu wenig zum
+     Treffen mit dem Daumen. Deshalb hier die 44 px erzwingen, nicht global in .seg. */
+  .setpick .seg button { min-height: 44px; }
 
   @media (max-width: 560px) {
     /* Zwei Kacheln nebeneinander werden hier zu schmal fuer die Beschriftung. */
@@ -1719,10 +1749,6 @@
           <button class="tab" role="tab" id="tab-rechner" data-action="tab" data-tab="rechner" aria-selected="false">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 7h8"/><path d="M8 11h.01M12 11h.01M16 11h.01M8 15h.01M12 15h.01M16 15h.01"/></svg>
             <span class="tl">Kalorienrechner</span><span class="ts">Rechner</span>
-          </button>
-          <button class="tab" role="tab" id="tab-bald" data-action="tab" data-tab="bald" aria-selected="false">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 7-7"/><path d="M14 7h7v7"/></svg>
-            <span class="tl">Bald verfügbar</span><span class="ts">Bald</span>
           </button>
         </div>
       </div>
@@ -2456,6 +2482,64 @@
   }
   function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;" }[c])); }
 
+  // ---------- Zahleneingabe: Rad am Handy, Tastatur am Rechner ----------
+  // Ein <select> rendert Safari auf dem iPhone als natives Auswahlrad (UIPickerView),
+  // Android als Auswahlliste. Am Rechner waere ein Aufklappmenue mit 150 Eintraegen
+  // dagegen langsamer als zwei Tastenanschlaege — dort bleibt es beim Zahlenfeld.
+  // Gefragt wird das Eingabegeraet ("pointer: coarse" = Finger), NICHT der User-Agent:
+  // Kennungen luegen, und ein Tablet mit Maus soll die Tastatur-Variante bekommen.
+  function coarsePointer() {
+    try { return window.matchMedia("(pointer: coarse)").matches; } catch (e) { return false; }
+  }
+
+  // Liefert je nach Eingabegeraet <input type="number"> ODER <select> — beide mit
+  // derselben id. Auslesende Stellen lesen weiterhin nur .value und brauchen nicht
+  // zu wissen, was davon gerendert wurde.
+  // Wichtig: Ein vorhandener Wert, der nicht auf dem Raster liegt (z. B. 82,4 kg bei
+  // Ganzzahl-Schritten), wird als eigene Option ergaenzt — sonst faellt er beim
+  // Rendern still auf einen Nachbarwert und die Eingabe des Nutzers waere verfaelscht.
+  // ACHTUNG bei o.extra: Der Wert wird als fertiges Attribut eingesetzt und deshalb
+  // NICHT escaped — esc() wuerde die Anfuehrungszeichen zerstoeren und das Attribut
+  // unbrauchbar machen. Hier darf ausschliesslich hartkodierter Text hinein, niemals
+  // etwas aus Nutzereingaben oder gespeicherten Daten.
+  // o.step muss ein glatter Wert sein (1, 5, 0.1) - die Nachkommastellen werden aus
+  // seiner Textdarstellung abgeleitet.
+  function numField(o) {
+    const step = o.step || 1;
+    const val = (o.value == null || o.value === "") ? "" : String(o.value);
+    const cls = o.cls ? ` class="${o.cls}"` : "";
+    const extra = o.extra ? " " + o.extra : "";
+    if (!coarsePointer()) {
+      return `<input type="number" id="${o.id}"${cls} min="${o.min}" max="${o.max}" step="${step}"`
+        + ` inputmode="${step < 1 ? "decimal" : "numeric"}" placeholder="${esc(o.placeholder || "")}"`
+        + ` value="${esc(val)}"${extra}>`;
+    }
+    // In Ganzzahlen rechnen: 0.1er-Schritte per Addition sammeln Rundungsfehler an.
+    const f = step < 1 ? Math.round(1 / step) : 1;
+    const lo = Math.round(o.min * f), hi = Math.round(o.max * f), sp = Math.round(step * f);
+    // NICHT runden: Ein gespeichertes 82,4 wuerde sonst auf 82 einrasten und der Wert
+    // waere ohne Zutun des Nutzers veraendert. Verglichen wird mit Toleranz, weil
+    // 82.4 * 10 in Gleitkomma 824.0000000000001 ergibt.
+    const num = val === "" ? null : parseFloat(val) * f;
+    let onGrid = false, out = "";
+    // Der value bleibt mit Punkt (parseFloat liest ihn), nur die Anzeige bekommt das
+    // im Deutschen uebliche Komma — "82,4 kg" im Rad, "82.4" im Datenmodell.
+    const de = t => t.replace(".", ",");
+    for (let v = lo; v <= hi; v += sp) {
+      const shown = f === 1 ? String(v) : (v / f).toFixed(String(step).split(".")[1].length);
+      const sel = (num != null && Math.abs(num - v) < 1e-6) ? (onGrid = true, " selected") : "";
+      out += `<option value="${shown}"${sel}>${de(shown)}${o.unit ? " " + esc(o.unit) : ""}</option>`;
+    }
+    // Wert vorhanden, aber nicht auf dem Raster: unveraendert als eigene Option.
+    if (num != null && !onGrid) {
+      out = `<option value="${esc(val)}" selected>${de(esc(val))}${o.unit ? " " + esc(o.unit) : ""}</option>` + out;
+    }
+    // Eigener Platzhaltertext fuers Rad: Im Zahlenfeld ist "0" ein grauer Hinweis,
+    // als Option saehe dasselbe "0" wie ein bereits gewaehlter Wert aus.
+    const ph = `<option value=""${val === "" ? " selected" : ""}>${esc(o.pickerPlaceholder || o.placeholder || "Bitte wählen")}</option>`;
+    return `<select id="${o.id}"${cls}${extra}>${ph}${out}</select>`;
+  }
+
   // ---------- Sicherheitsnetz fuer fremde Bilddaten ----------
   // Ein Meal-Foto landet als data-URL direkt in einem src="..."-Attribut. Kaeme dort
   // ein fremder String an (etwa aus einem geteilten Plan), koennte er mit einem
@@ -2715,7 +2799,6 @@
       document.querySelectorAll(".tab").forEach(t => t.setAttribute("aria-selected", String(t.dataset.tab === state.tab)));
       if (state.tab === "rechner") renderRechner();
       else if (state.tab === "recipes") renderRecipes();
-      else if (state.tab === "bald") renderBaldSoon();
       else if (state.tab === "plan") renderPlan();
       else renderHome();
     } finally {
@@ -4182,7 +4265,7 @@
     const node = el(`<div class="modal" role="dialog" aria-modal="true" aria-label="Wiegen">
       <div class="modal-head"><h3>Wiegen</h3><button class="btn ghost sm" data-close aria-label="Schließen">✕</button></div>
       <div class="modal-body">
-        <div class="field"><label for="w-kg">Gewicht</label><input type="number" id="w-kg" step="0.1" min="${KG_MIN}" max="${KG_MAX}" inputmode="decimal" placeholder="kg" value="${last ? esc(String(last.kg)) : ""}"></div>
+        <div class="field"><label for="w-kg">Gewicht</label>${numField({ id: "w-kg", min: KG_MIN, max: KG_MAX, step: 0.1, unit: "kg", placeholder: "kg", value: last ? String(last.kg) : "" })}</div>
         <div class="row2">
           <div class="field"><label for="w-m">Monat</label><select id="w-m"></select></div>
           <div class="field"><label for="w-y">Jahr</label><select id="w-y">
@@ -4248,7 +4331,7 @@
     const node = el(`<div class="modal" role="dialog" aria-modal="true" aria-label="Jahresziel ${year}">
       <div class="modal-head"><h3>Ziel ${year}</h3><button class="btn ghost sm" data-close aria-label="Schließen">✕</button></div>
       <div class="modal-body">
-        <div class="field"><label for="wg-kg">Wunschgewicht zum Jahresende</label><input type="number" id="wg-kg" step="0.1" min="${KG_MIN}" max="${KG_MAX}" inputmode="decimal" placeholder="kg" value="${cur != null ? esc(String(cur)) : ""}"></div>
+        <div class="field"><label for="wg-kg">Wunschgewicht zum Jahresende</label>${numField({ id: "wg-kg", min: KG_MIN, max: KG_MAX, step: 0.1, unit: "kg", placeholder: "kg", value: cur != null ? String(cur) : "" })}</div>
       </div>
       <div class="modal-foot">
         ${cur != null ? `<button class="btn ghost" id="wg-del">Ziel entfernen</button>` : `<button class="btn ghost" data-close>Abbrechen</button>`}
@@ -4348,19 +4431,40 @@
           </span>
           <button type="button" class="ing-ic ing-del" title="Zutat entfernen">✕</button>
         </div>
-        <div class="ing-nut">
-          <span class="ing-per">${ingPerLabel(u)}</span>
+        <details class="ing-nut">
+          <summary class="ing-nsum">
+            <span class="ing-per">${ingPerLabel(u)}</span>
+            <span class="ing-brief"></span>
+          </summary>
           <div class="ing-vals">
             <label>Kcal<input type="number" class="ing-kcal" min="0" max="9999" step="1" value="${nutVal(o.kcal)}"></label>
             <label>KH<input type="number" class="ing-carbs" min="0" max="999" step="0.1" value="${nutVal(o.carbs)}"></label>
             <label>P<input type="number" class="ing-prot" min="0" max="999" step="0.1" value="${nutVal(o.protein)}"></label>
             <label>F<input type="number" class="ing-fat" min="0" max="999" step="0.1" value="${nutVal(o.fat)}"></label>
           </div>
-        </div>
+        </details>
       </div>`);
       row.querySelector(".ing-del").addEventListener("click", () => { row.remove(); updateMacroSum(); });
       row.querySelector(".ing-barcode").addEventListener("click", () => { startBarcodeFlow(row); });
-      row.querySelectorAll("input").forEach(inp => inp.addEventListener("input", updateMacroSum));
+      // Kurzfassung fuer die zugeklappte Zeile. Die vier Felder bleiben im DOM und
+      // werden nur ausgeblendet - rowData() liest sie unveraendert ueber .value.
+      function paintNut() {
+        const g = sel => nutParse(row.querySelector(sel).value);
+        // Eine Nachkommastelle behalten: nfmt() rundet auf ganze Zahlen und machte
+        // aus 0,6 g Fett eine 1.
+        const nz = v => (Math.round(v * 10) / 10).toLocaleString("de-DE");
+        const k = g(".ing-kcal"), kh = g(".ing-carbs"), p = g(".ing-prot"), fa = g(".ing-fat");
+        const t = [];
+        if (k != null) t.push(nfmt(k) + " kcal");
+        if (kh != null) t.push(nz(kh) + " KH");
+        if (p != null) t.push(nz(p) + " P");
+        if (fa != null) t.push(nz(fa) + " F");
+        // "–" statt eines Aufforderungstexts: Der Pfeil rechts zeigt bereits, dass sich
+        // die Zeile oeffnen laesst, und "eintragen" war nicht zu unterscheiden von einem
+        // Zustand ("leer"). Gleiches Zeichen wie beim leeren Auswahlrad im Onboarding.
+        row.querySelector(".ing-brief").textContent = t.length ? t.join(" · ") : "–";
+      }
+      row.querySelectorAll("input").forEach(inp => inp.addEventListener("input", () => { updateMacroSum(); paintNut(); }));
       // Einheit umstellen: Bezugsgroesse der Naehrwerte mitziehen. Bei Stueck gibt es keine
       // 100er-Basis — der Barcode-Scan liefert aber immer pro 100 g und stellt die Einheit
       // ohnehin selbst zurueck, deshalb bleibt der Knopf hier sichtbar.
@@ -4370,6 +4474,7 @@
         row.querySelector(".ing-per").textContent = ingPerLabel(cur);
         row.querySelector(".ing-g").placeholder = cur === "st" ? "2" : "200";
         updateMacroSum();
+        paintNut();
       }
       uSel.addEventListener("change", syncUnit);
       syncUnit();
@@ -5499,9 +5604,9 @@
               <div class="seg" data-seg="sex">${segBtn("sex", "f", "Weiblich")}${segBtn("sex", "m", "Männlich")}</div>
             </div>
             <div class="row3">
-              <div class="field"><label for="c-age">Alter</label><input type="number" id="c-age" min="10" max="120" inputmode="numeric" placeholder="Jahre" value="${esc(g.age != null ? String(g.age) : "")}"></div>
-              <div class="field"><label for="c-height">Größe</label><input type="number" id="c-height" min="100" max="250" inputmode="numeric" placeholder="cm" value="${esc(g.height != null ? String(g.height) : "")}"></div>
-              <div class="field"><label for="c-weight">Gewicht</label><input type="number" id="c-weight" min="30" max="400" inputmode="numeric" placeholder="kg" value="${esc(g.weight != null ? String(g.weight) : "")}"></div>
+              <div class="field"><label for="c-age">Alter</label>${numField({ id: "c-age", min: 10, max: 120, unit: "Jahre", placeholder: "Jahre", value: g.age != null ? String(g.age) : "" })}</div>
+              <div class="field"><label for="c-height">Größe</label>${numField({ id: "c-height", min: 100, max: 250, unit: "cm", placeholder: "cm", value: g.height != null ? String(g.height) : "" })}</div>
+              <div class="field"><label for="c-weight">Gewicht</label>${numField({ id: "c-weight", min: 30, max: 400, unit: "kg", placeholder: "kg", value: g.weight != null ? String(g.weight) : "" })}</div>
             </div>
           </div>
           <div class="calc-group">
@@ -5587,8 +5692,7 @@
         <div class="tmin">
           <label for="c-tmin">Dauer je Einheit</label>
           <div class="tmin-f">
-            <input type="number" id="c-tmin" value="${cur.trainMin}" min="${TRAIN_MIN_MIN}" max="${TRAIN_MIN_MAX}"
-                   step="5" inputmode="numeric"><span>Min.</span>
+            ${numField({ id: "c-tmin", min: TRAIN_MIN_MIN, max: TRAIN_MIN_MAX, step: 5, value: cur.trainMin })}<span>Min.</span>
           </div>
         </div>`;
       // Der Umschalter erscheint erst ab zwei Tagen - bei einem einzigen Tag gibt es
@@ -5805,7 +5909,13 @@
     });
     // Die frueheren kcal-Zellen je Zeile sind entfallen (der Aufschlag steht im
     // Ergebnis), damit auch das gezielte Nachziehen dieser Zellen beim Tippen.
-    ["c-age", "c-height", "c-weight"].forEach(id => view.querySelector("#" + id).addEventListener("input", updateResult));
+    // Beide Ereignisse: Das Zahlenfeld meldet sich beim Tippen ueber "input", das
+    // Auswahlrad auf dem Handy zuverlaessig erst ueber "change".
+    ["c-age", "c-height", "c-weight"].forEach(id => {
+      const f = view.querySelector("#" + id);
+      f.addEventListener("input", updateResult);
+      f.addEventListener("change", updateResult);
+    });
     fillPace();
     fillTrainDetail();
     updateResult();
@@ -6164,8 +6274,9 @@
     if (num) {
       return `<label class="onb-q" for="onb-num" tabindex="-1">${num.q}</label>
         <div class="onb-numrow">
-          <input type="number" id="onb-num" class="onb-num" inputmode="numeric" min="${num.min}" max="${num.max}"
-                 value="${esc(c[id])}" placeholder="0" aria-describedby="onb-unit">
+          ${numField({ id: "onb-num", cls: "onb-num", min: num.min, max: num.max,
+                       step: id === "tmin" ? 5 : 1, value: c[id], placeholder: "0",
+                       pickerPlaceholder: "–", extra: 'aria-describedby="onb-unit"' })}
           <span class="onb-unit" id="onb-unit">${num.unit}</span>
         </div>`;
     }
@@ -6302,13 +6413,16 @@
 
     const numEl = view.querySelector("#onb-num");
     if (numEl) {
-      numEl.addEventListener("input", () => {
+      const onNum = () => {
         onb.cur[id] = numEl.value;
         const m = onbMissing(id);
         const nb = view.querySelector(".onb-next");
         nb.classList.toggle("is-off", !!m);
         if (m) nb.setAttribute("aria-disabled", "true"); else nb.removeAttribute("aria-disabled");
-      });
+      };
+      // "change" zusaetzlich, weil das Auswahlrad auf dem Handy nur darueber meldet.
+      numEl.addEventListener("input", onNum);
+      numEl.addEventListener("change", onNum);
       numEl.addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); view.querySelector(".onb-next").click(); } });
     }
 
@@ -6363,9 +6477,35 @@
     if (keep) keep.addEventListener("click", () => { onb.i = onbSteps().indexOf("how"); renderOnboardStep(); });
   }
 
+  // ---------- Erscheinungsbild ----------
+  // Bewusst nur lokal und NICHT im Cloud-State: Das Geraet entscheidet, nicht das
+  // Konto — Handy dunkel und Laptop hell soll unabhaengig bleiben. Deshalb eigener
+  // localStorage-Key statt eines Feldes in state.
+  const THEME_KEY = "wochenkueche_theme_v1";
+  function getTheme() {
+    try { const t = localStorage.getItem(THEME_KEY); return (t === "light" || t === "dark") ? t : "system"; }
+    catch (e) { return "system"; }
+  }
+  function applyTheme(mode) {
+    const root = document.documentElement;
+    if (mode === "light" || mode === "dark") root.setAttribute("data-theme", mode);
+    else root.removeAttribute("data-theme");
+    // Browser-/Statusleiste auf dem Handy mitziehen. Das zweite theme-color-Meta traegt
+    // die dunkle Farbe: "all" erzwingt sie, "not all" schaltet sie ab (dann greift das
+    // erste, rote Meta), und bei "system" wieder die urspruengliche Media-Abfrage.
+    const m = document.querySelector('meta[name="theme-color"][media]');
+    if (m) m.setAttribute("media", mode === "dark" ? "all" : mode === "light" ? "not all" : "(prefers-color-scheme: dark)");
+    try {
+      if (mode === "system") localStorage.removeItem(THEME_KEY);
+      else localStorage.setItem(THEME_KEY, mode);
+    } catch (e) {}
+  }
+
   // ---------- Einstellungen ----------
   function openSettings() {
     const hasEx = state.recipes.some(isExample);
+    const th = getTheme();
+    const thBtn = (v, label) => `<button type="button" role="radio" data-th="${v}" aria-checked="${th === v}" tabindex="${th === v ? 0 : -1}"${th === v ? ' class="on"' : ""}>${label}</button>`;
     const node = el(`<div class="modal" role="dialog" aria-modal="true" aria-label="Einstellungen">
       <div class="modal-head"><h3>Einstellungen</h3><button class="btn ghost sm" data-close aria-label="Schließen">✕</button></div>
       <div class="modal-body">
@@ -6373,12 +6513,40 @@
           <button type="button" class="setrow" data-si="onboard"><span><b>Erste Schritte ansehen</b><small>Die Einführung noch einmal durchgehen</small></span></button>
           <button type="button" class="setrow" data-si="profile"><span><b>Profil bearbeiten</b><small>Name und E-Mail</small></span></button>
           <button type="button" class="setrow" data-si="goal"><span><b>Ziel bearbeiten</b><small>Kalorienrechner öffnen${state.goal ? " – aktuell " + state.goal.kcal.toLocaleString("de-DE") + " kcal" : ""}</small></span></button>
+          <div class="setpick">
+            <b id="setth-l">Erscheinungsbild</b>
+            <div class="seg" data-thgrp role="radiogroup" aria-labelledby="setth-l">${thBtn("light", "Hell")}${thBtn("dark", "Dunkel")}${thBtn("system", "System")}</div>
+          </div>
           ${hasEx ? `<button type="button" class="setrow" data-si="examples"><span><b>Beispiel-Meals entfernen</b><small>Die mitgelieferten Meals löschen</small></span></button>` : ""}
         </div>
       </div>
       <div class="modal-foot"><button class="btn primary" data-close>Schließen</button></div>
     </div>`);
     node.querySelectorAll("[data-close]").forEach(b => b.addEventListener("click", closeModal));
+    // Erscheinungsbild: greift sofort, das Modal bleibt offen — der Wechsel ist die
+    // Rueckmeldung. Rollende tabindex-Vergabe, weil eine Radiogruppe per Pfeiltaste
+    // bedient wird und nicht per Tab durch alle drei Knoepfe.
+    const thBtns = Array.from(node.querySelectorAll("[data-th]"));
+    function pickTheme(b) {
+      applyTheme(b.dataset.th);
+      thBtns.forEach(x => {
+        const on = x === b;
+        x.classList.toggle("on", on);
+        x.setAttribute("aria-checked", String(on));
+        x.tabIndex = on ? 0 : -1;
+      });
+      b.focus();
+    }
+    thBtns.forEach((b, i) => {
+      b.addEventListener("click", () => pickTheme(b));
+      b.addEventListener("keydown", e => {
+        const d = (e.key === "ArrowRight" || e.key === "ArrowDown") ? 1
+                : (e.key === "ArrowLeft" || e.key === "ArrowUp") ? -1 : 0;
+        if (!d) return;
+        e.preventDefault();
+        pickTheme(thBtns[(i + d + thBtns.length) % thBtns.length]);
+      });
+    });
     node.querySelectorAll("[data-si]").forEach(b => b.addEventListener("click", () => {
       const k = b.dataset.si;
       closeModal();
@@ -6388,28 +6556,6 @@
       else if (k === "examples") clearExamples();
     }));
     openModal(node);
-  }
-
-  // Pro – eigener Reiter, aktuell nur Vorschau/Platzhalter. Wird ein eigenes Thema.
-  // Platzhalter – die eigentliche Fortschritts-Ansicht ist die naechste Baustelle.
-  // Fruehere Reiter "Fortschritt" und "Pro" bewarben inhaltlich fast dasselbe
-  // (Gewichtsverlauf, Makro-Fortschritt) - jetzt ein Reiter mit zwei klar getrennten
-  // Ankuendigungen statt zwei Platzhalter-Reitern mit ueberlappendem Inhalt.
-  function renderBaldSoon() {
-    view.innerHTML = `<div class="soon-wrap">
-      <div class="soon-card">
-        <div class="soon-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 7-7"/><path d="M14 7h7v7"/></svg></div>
-        <h2>Dein Fortschritt</h2>
-        <p>Bald: dein Gewichtsverlauf im Monatskalender, erreichte Ziel-Tage pro Woche und die Entwicklung deiner Kalorien- und Makro-Bilanz über die Zeit.</p>
-        <span class="soon-pill">Kommt bald</span>
-      </div>
-      <div class="soon-card">
-        <div class="soon-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 4 7v5c0 4.5 3.2 7.9 8 9 4.8-1.1 8-4.5 8-9V7l-8-4Z"/><path d="m9 12 2 2 4-4"/></svg></div>
-        <h2>Paddy's Mealplan Pro</h2>
-        <p>Bald: erweiterte Auswertungen und Komfortfunktionen obendrauf – Details folgen, sobald Pro startet.</p>
-        <span class="soon-pill">Kommt bald</span>
-      </div>
-    </div>`;
   }
 
   // Aktuelle Kalenderwoche + Datumsbereich, z. B. "Woche 29 · 13.–19. Juli"
