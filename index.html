@@ -5532,8 +5532,8 @@
     if (copyBtn) copyBtn.addEventListener("click", () => {
       const text = groups.map(g => g.cat.title.toUpperCase() + "\n" + g.items.map(it => "• " + it.label + (it.count > 1 ? " (×" + it.count + ")" : "")).join("\n")).join("\n\n");
       if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(text).then(() => toast("Liste kopiert")).catch(() => toast("Kopieren nicht möglich"));
-      } else toast("Kopieren nicht möglich");
+        navigator.clipboard.writeText(text).then(() => toast("Liste kopiert")).catch(() => toast("Kopieren hat nicht geklappt"));
+      } else toast("Kopieren hat nicht geklappt");
     });
     // Paket B3: Einkaufsliste als PDF, analog zum bestehenden Wochenplan-PDF (downloadPdf).
     const pdfBtn = node.querySelector("[data-pdf]");
@@ -7241,7 +7241,7 @@
       const name = node.querySelector("#p-name").value.trim();
       if (!name) { toast("Bitte gib deinen Namen ein"); return; }
       if (authMode === "cloud") {
-        try { await applyDisplayName(name); } catch (e) { toast("Speichern nicht möglich"); return; }
+        try { await applyDisplayName(name); } catch (e) { toast("Hat nicht geklappt – versuch’s nochmal"); return; }
         closeModal(); toast("Profil gespeichert");
         return;
       }
@@ -7384,8 +7384,8 @@
     return s;
   }
   function copyToClipboard(text, okMsg) {
-    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(() => toast(okMsg || "Kopiert")).catch(() => toast("Kopieren nicht möglich"));
-    else { try { const ta = document.createElement("textarea"); ta.value = text; ta.style.position = "fixed"; ta.style.opacity = "0"; document.body.appendChild(ta); ta.select(); document.execCommand("copy"); ta.remove(); toast(okMsg || "Kopiert"); } catch (e) { toast("Kopieren nicht möglich"); } }
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(() => toast(okMsg || "Kopiert")).catch(() => toast("Kopieren hat nicht geklappt"));
+    else { try { const ta = document.createElement("textarea"); ta.value = text; ta.style.position = "fixed"; ta.style.opacity = "0"; document.body.appendChild(ta); ta.select(); document.execCommand("copy"); ta.remove(); toast(okMsg || "Kopiert"); } catch (e) { toast("Kopieren hat nicht geklappt"); } }
   }
   function planText() {
     return DAYS.map(d => {
@@ -7709,7 +7709,7 @@
   }
 
   function applySharedData(data, takePlan) {
-    if (!data || !Array.isArray(data.recipes)) { toast("Geteilter Plan nicht lesbar"); return; }
+    if (!data || !Array.isArray(data.recipes)) { toast("Geteilter Plan konnte nicht gelesen werden"); return; }
     const idMap = {};
     let added = 0;
     data.recipes.forEach(ir => {
