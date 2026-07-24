@@ -88,6 +88,119 @@ Firebase vom CDN). Sie wird unverändert von GitHub Pages ausgeliefert:
 Betreiber ist eine Privatperson; die Seite ist öffentlich und nicht kommerziell. Monetarisierung
 ist geplant, aber noch nicht aktiv.
 
+## Produktphilosophie
+
+**Paddy's Mealplan ist kein Kalorien-Tracker.** Es ist ein intelligenter Ernährungsplaner. Der
+Unterschied ist die Blickrichtung: ein Tracker schaut zurück („was habe ich gegessen?"), diese App
+schaut nach vorn („was werde ich essen?") — und nimmt dem Nutzer dabei Entscheidungen ab, statt sie
+nur zu protokollieren.
+
+Jedes Feature muss sich daran messen lassen:
+- Es spart Zeit.
+- Es reduziert Entscheidungen.
+- Es vereinfacht Ernährung.
+
+**Qualität vor Quantität, Einfachheit vor unnötigen Funktionen.** Ein Feature kommt nur dazu, wenn
+es echten Nutzwert stiftet — nicht weil es technisch machbar oder „auch ganz nett" wäre.
+
+## Markenphilosophie
+
+Die App soll sich anfühlen wie ein erfahrener Trainingspartner: motivierend, freundlich, modern,
+vertrauenswürdig. Nicht wie Behördensoftware, nicht wie Medizinsoftware, nicht wie ein kompliziertes
+Ernährungs-Fachprogramm.
+
+**Die Marke hilft dem Nutzer. Sie bewertet ihn niemals.** Das gilt für Texte, Fehlermeldungen und
+UI-Zustände gleichermaßen — siehe Markenstimme.
+
+## Markenstimme
+
+Alle Texte in der App — Buttons, Meldungen, Platzhalter, Beschriftungen — folgen derselben
+Tonalität: freundlich, motivierend, kurz, modern, positiv, leicht verständlich.
+
+Vermeiden:
+- Roboterhafte Sprache, Behörden-Deutsch, komplizierte Fach-Erklärungen, unnötig lange Texte.
+- Slang wie „Bro", „Digga" o. Ä. — die App ist locker, nicht flapsig.
+
+Berechnungen dürfen fachlich korrekt erklärt werden, aber immer leicht verständlich bleiben.
+Buttons sind aktiv formuliert („Meal anlegen", nicht „Neues Meal wird angelegt"). Fehlermeldungen
+sind freundlich, nicht anklagend. Erfolgsmeldungen motivieren, statt nur zu bestätigen.
+
+Bezug zur Textmenge-Vorgabe oben: Die dort beschriebene Knappheit („so wenig Text wie möglich")
+ist Teil dieser Stimme, nicht ihr Widerspruch — kurz UND freundlich schließen sich nicht aus.
+
+## UX-Philosophie
+
+Jeder Screen löst genau ein Problem. Keine Seite wird überladen. Weniger Optionen sind besser als
+mehr. Jede Entscheidung reduziert kognitive Last, statt sie zu erhöhen.
+
+**Immer den einfachsten Nutzerfluss wählen.** Sind zwei Umsetzungen technisch gleichwertig möglich,
+gewinnt die mit weniger nötigen Nutzerinteraktionen — nicht die eleganter zu bauende.
+
+## Feature-Entscheidungsregeln (verbindlich)
+
+Vor jeder neuen Funktion — auch vor jedem bloßen Vorschlag dazu — prüfen:
+
+- Spart es Zeit?
+- Reduziert es Entscheidungen des Nutzers?
+- Verbessert es die Nutzererfahrung?
+- Passt es zu Paddy's Mealplan (Wochenplan-Konzept, Fitness/Abnehmen, `state.goal`)?
+
+**Trifft eine dieser Fragen nicht zu, wird das Feature nicht umgesetzt** — auch nicht als
+Kompromiss oder abgespeckte Variante. Das ist derselbe Filter, den der `kvp`-Agent nachträglich am
+`git diff` anlegt (siehe Prüf-Agenten weiter unten); hier greift er schon VOR der Umsetzung.
+
+## Premium-Philosophie
+
+Premium-Features verstecken niemals nur vorhandene Funktionen hinter einer Bezahlschranke. Premium
+automatisiert, optimiert, spart Zeit, gibt intelligente Unterstützung — es tut mehr, nicht weniger.
+
+Beispiele: automatische Wochenplanung, adaptive Kalorienanpassung, KI-Meal-Empfehlungen,
+Budget-Optimierung, intelligente Einkaufs-Unterstützung.
+
+Zum aktuellen Stand der Monetarisierung siehe „Was das ist" oben, zur bekannten Pro-Gating-
+Schwachstelle siehe ROADMAP.html weiter unten.
+
+## Langfristige Vision
+
+Heute: Meal Planner. Morgen: Nutrition Assistant. Später: Intelligent Nutrition Coach.
+
+Die App soll langfristig möglichst viele Alltagsentscheidungen automatisch übernehmen —
+Wochenplanung, Einkaufslisten, Kalorienanpassung, Budgetplanung, personalisierte Empfehlungen.
+Jede Architektur- und Feature-Entscheidung sollte in diese Richtung tragfähig sein, nicht dagegen.
+
+## Meal-Datenbank-Philosophie
+
+Meals sind hochwertig, fitness-fokussiert, sauber getaggt, strukturiert, wiederverwendbar.
+
+Langfristig trägt jedes Meal Metadaten wie: Kategorie, Ziel (Abnehmen/Halten/Aufbauen),
+Zubereitungszeit, Meal-Prep-Eignung, Preis, Schwierigkeit, Tags, Zutaten, Makros, Bild. Die
+Datenbank soll intelligent filterbar und automatisierbar sein — Grundlage für die Premium- und
+Langfrist-Features oben (adaptive Vorschläge, automatische Wochenplanung).
+
+## Architektur-Entscheidungsregel (verbindlich)
+
+Sind mehrere technische Lösungen möglich, gewinnt die, die:
+
+- gut skaliert
+- wartbar ist
+- modular ist
+- die UX verbessert
+- keine technischen Schulden aufbaut
+
+**Provisorische Workarounds vermeiden, wo eine saubere Architektur machbar ist.** Das ergänzt die
+Ausschneide-Prüfstand-Praxis weiter unten: gründlich testen UND gründlich bauen.
+
+## Produktidentität
+
+Was Paddy's Mealplan von anderen Apps unterscheidet — die App:
+
+- **plant**, statt nur zu protokollieren
+- **automatisiert**, statt zusätzliche Arbeit zu erzeugen
+- **motiviert**, statt zu bewerten
+- **vereinfacht**, statt zu überfordern
+
+Ziel ist, dem Nutzer im Alltag möglichst viele Entscheidungen abzunehmen.
+
 ## Es gibt keine Toolchain
 
 Kein Build, kein Bundler, kein Test-Framework, kein Linter, kein `package.json`. **Node und PHP sind
