@@ -55,6 +55,14 @@
     --fr: #A96E12;   /* Frühstück */
     --mi: #2E7D6B;   /* Mittagessen */
     --ab: #6E5A9E;   /* Abendessen */
+    /* Makro-Farben (Paket D1): bisher an 13 Stellen als Hex-Wert dupliziert, jetzt hier
+       zentral. Bewusst in EINEM Theme-neutralen Block, nicht je Theme dupliziert wie
+       --fr/--mi/--ab: die Werte waren schon immer in Hell/Dunkel identisch, die
+       spezifischeren [data-theme=...]-Bloecke unten ueberschreiben sie nicht und erben
+       sie so unveraendert (CSS-Custom-Properties kaskadieren pro Eigenschaft einzeln). */
+    --carb: #E9A03B; /* Kohlenhydrate */
+    --prot: #C74B78; /* Protein */
+    --fat: #4AA8E0;  /* Fett */
 
     /* Trainingstag. Das einzige Blau im Theme und bewusst gesetzt: Rot ist hier die
        Grundfarbe UND das Warnsignal ("drueber"), ein rot markierter Trainingstag waere
@@ -195,19 +203,11 @@
     font: inherit; font-size: 14px; font-weight: 550;
     border: 0; background: transparent; color: var(--text-muted);
     padding: 8px 18px; border-radius: 999px; cursor: pointer;
-    display: flex; align-items: center; gap: 7px; transition: color .15s, background .15s;
+    display: flex; align-items: center; gap: 7px; transition: color var(--dur-fast), background var(--dur-fast);
   }
   .tab:hover { color: var(--text); }
   .tab[aria-selected="true"] { background: var(--surface); color: var(--accent-strong); box-shadow: var(--shadow); }
   .tab .count { font-size: 11.5px; background: color-mix(in srgb, var(--accent) 16%, var(--surface)); color: var(--accent-strong); border-radius: 999px; padding: 1px 7px; font-variant-numeric: tabular-nums; }
-  .tab .soon-tag { font-family: var(--font-display); font-size: 9.5px; text-transform: uppercase; letter-spacing: .08em; background: var(--accent); color: var(--accent-contrast); border-radius: 5px; padding: 1px 5px; margin-left: 1px; }
-  /* Pro sticht als einziger Reiter als Vollflaeche heraus. Spezifitaet .tab.tab-pro,
-     damit die Regel gegen .tab[aria-selected="true"] gewinnt – sonst waere der
-     Knopf ausgerechnet im aktiven Zustand wieder unauffaellig. */
-  .tab.tab-pro { background: var(--accent-solid); color: var(--accent-contrast); font-weight: 700; }
-  .tab.tab-pro:hover { background: color-mix(in srgb, var(--accent-solid) 86%, #000); color: var(--accent-contrast); }
-  .tab.tab-pro[aria-selected="true"] { background: var(--accent-solid); color: var(--accent-contrast); box-shadow: var(--shadow); }
-  .tab.tab-pro .soon-tag { background: var(--accent-contrast); color: var(--accent-solid); }
   .tab .ts { display: none; } /* Kurzform der Beschriftung, nur im unteren Balken */
   /* Handy: aus der Reiterleiste im Kopf wird eine feste Leiste am unteren Rand, wie in
      nativen Apps. Grund ist gemessen, nicht geschaetzt: schon vier Reiter brauchen mehr
@@ -239,15 +239,8 @@
       background: color-mix(in srgb, var(--accent) 12%, transparent);
       color: var(--accent); box-shadow: none;
     }
-    /* Kein Vollflaechen-Rot im Balken — als Kachel unter dem Daumen waere das zu laut.
-       Pro bleibt ueber die Akzentfarbe erkennbar. */
-    .tab.tab-pro, .tab.tab-pro:hover, .tab.tab-pro[aria-selected="true"] {
-      background: transparent; color: var(--accent); box-shadow: none;
-    }
-    .tab.tab-pro[aria-selected="true"] { background: color-mix(in srgb, var(--accent) 12%, transparent); }
     /* Zaehler als Eckmarke am Symbol — neben dem Text ist in 66 px kein Platz */
     .tab .count { position: absolute; top: 1px; left: 50%; margin-left: 5px; font-size: 9.5px; padding: 0 5px; }
-    .tab .soon-tag { display: none; } /* passt nicht; die Seite selbst sagt „Bald“ */
     /* Platz schaffen, sonst verdeckt die Leiste Inhalt und Fusszeile */
     .app { padding-bottom: calc(56px + env(safe-area-inset-bottom, 0px)); }
     #toast { bottom: calc(72px + env(safe-area-inset-bottom, 0px)); }
@@ -287,7 +280,7 @@
     font: inherit; font-size: 14px; font-weight: 550; cursor: pointer;
     border: 1px solid var(--border-strong); background: var(--surface); color: var(--text);
     padding: 9px 15px; border-radius: var(--radius-sm);
-    display: inline-flex; align-items: center; gap: 8px; transition: border-color .15s, background .15s, transform .05s;
+    display: inline-flex; align-items: center; gap: 8px; transition: border-color var(--dur-fast), background var(--dur-fast), transform var(--dur-fast);
   }
   .btn:hover { border-color: var(--accent); }
   .btn:active { transform: translateY(1px); }
@@ -331,10 +324,10 @@
   .plan-head { flex-direction: column; align-items: stretch; gap: 16px; }
   .plan-tools { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
   .week-switch { display: inline-flex; background: var(--surface-2); border: 1px solid var(--border); border-radius: 999px; padding: 3px; gap: 2px; }
-  .ws-btn { font: inherit; font-size: 13px; font-weight: 600; letter-spacing: .01em; cursor: pointer; border: 0; background: transparent; color: var(--text-muted); padding: 7px 15px; border-radius: 999px; white-space: nowrap; transition: color .12s, background .12s, box-shadow .12s; }
+  .ws-btn { font: inherit; font-size: 13px; font-weight: 600; letter-spacing: .01em; cursor: pointer; border: 0; background: transparent; color: var(--text-muted); padding: 7px 15px; border-radius: 999px; white-space: nowrap; transition: color var(--dur-fast), background var(--dur-fast), box-shadow var(--dur-fast); }
   .ws-btn:hover { color: var(--text); }
   .ws-btn.active { color: var(--accent-contrast); background: linear-gradient(135deg, var(--accent), var(--accent-strong)); box-shadow: 0 2px 8px color-mix(in srgb, var(--accent) 34%, transparent); }
-  .shop-cta { display: flex; align-items: center; justify-content: center; gap: 11px; width: 100%; margin: 22px 0 2px; padding: 16px; font: inherit; font-family: var(--font-display); font-size: 17px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; cursor: pointer; color: var(--accent-contrast); background: linear-gradient(135deg, var(--accent), var(--accent-strong)); border: 0; border-radius: var(--radius); box-shadow: 0 6px 20px color-mix(in srgb, var(--accent) 26%, transparent); transition: transform .14s ease, box-shadow .14s ease; }
+  .shop-cta { display: flex; align-items: center; justify-content: center; gap: 11px; width: 100%; margin: 22px 0 2px; padding: 16px; font: inherit; font-family: var(--font-display); font-size: 17px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; cursor: pointer; color: var(--accent-contrast); background: linear-gradient(135deg, var(--accent), var(--accent-strong)); border: 0; border-radius: var(--radius); box-shadow: 0 6px 20px color-mix(in srgb, var(--accent) 26%, transparent); transition: transform var(--dur-fast) ease, box-shadow var(--dur-fast) ease; }
   .shop-cta:hover { transform: translateY(-2px); box-shadow: 0 12px 28px color-mix(in srgb, var(--accent) 32%, transparent); }
   .shop-cta svg { width: 22px; height: 22px; }
   .week { display: grid; grid-template-columns: repeat(auto-fill, minmax(232px, 1fr)); gap: 16px; }
@@ -342,7 +335,7 @@
     position: relative;
     background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
     box-shadow: var(--shadow); overflow: hidden; display: flex; flex-direction: column;
-    transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease;
+    transition: transform var(--dur-fast) ease, box-shadow var(--dur-fast) ease, border-color var(--dur-fast) ease;
   }
   .day::before {
     content: ""; position: absolute; top: 0; left: 0; right: 0; height: 4px; z-index: 1;
@@ -429,7 +422,7 @@
   .day-nut .macros { display: flex; gap: 9px; margin-left: auto; font-size: 11.5px; color: var(--text-muted); font-variant-numeric: tabular-nums; }
   .day-nut .macros b { font-weight: 650; color: var(--text); }
   .day-nut .m::before { content: ""; display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 4px; vertical-align: baseline; background: var(--mc, var(--accent)); }
-  .m.carb { --mc: #E9A03B; } .m.prot { --mc: #C74B78; } .m.fat { --mc: #4AA8E0; }
+  .m.carb { --mc: var(--carb); } .m.prot { --mc: var(--prot); } .m.fat { --mc: var(--fat); }
 
   /* Wochen-Gesamtübersicht: kein eigener Rahmen mehr - Heute/Woche stehen mit ihrer
      eigenen Kartenoptik (.wg-col) direkt auf der Seite, ohne umschliessende zweite Karte
@@ -462,9 +455,9 @@
   .gm-v { color: var(--text-muted); font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
   .gm-v b { color: var(--text); font-weight: 700; }
   .gm-bar { height: 6px; border-radius: 999px; background: var(--surface-2); overflow: hidden; box-shadow: inset 0 0 0 1px var(--border); }
-  .gm-bar > span { display: block; height: 100%; border-radius: 999px; background: linear-gradient(90deg, var(--sc2), var(--sc)); transition: width .25s ease; }
+  .gm-bar > span { display: block; height: 100%; border-radius: 999px; background: linear-gradient(90deg, var(--sc2), var(--sc)); transition: width var(--dur-slow) ease; }
   .gm-left { font-size: 11px; color: var(--text-muted); font-weight: 600; margin-top: 5px; font-variant-numeric: tabular-nums; }
-  .gm.t-carb { --mc: #E9A03B; } .gm.t-prot { --mc: #C74B78; } .gm.t-fat { --mc: #4AA8E0; }
+  .gm.t-carb { --mc: var(--carb); } .gm.t-prot { --mc: var(--prot); } .gm.t-fat { --mc: var(--fat); }
   /* Zustaende: noch offen (neutral) – im Ziel (gruen) – drueber (rot) */
   .gm.is-ok   { --sc: var(--ok); --sc2: color-mix(in srgb, var(--ok) 72%, #000); }
   .gm.is-over { --sc: var(--accent); --sc2: var(--accent-strong); }
@@ -529,7 +522,7 @@
   .wg-stat-txt b { font-family: var(--font-display); font-size: 15px; font-weight: 700; color: var(--text); font-variant-numeric: tabular-nums; }
   /* Zwei flache Leisten untereinander (Tag, Woche). */
   .wg-cols { display: flex; flex-direction: column; gap: 10px; }
-  .wg-col { position: relative; overflow: hidden; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 13px 16px; transition: border-color .16s ease; }
+  .wg-col { position: relative; overflow: hidden; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 13px 16px; transition: border-color var(--dur-fast) ease; }
   /* Kopfzeile der Karte: Eyebrow links, optionaler Aktionslink rechts (nur Heute-Karte,
      siehe recalcLink in weekGoalHtml). Ohne zweites Kind verhaelt sich .wg-head wie zuvor
      die blosse .wg-lbl allein - kein Effekt auf die Diese-Woche-Karte. */
@@ -605,7 +598,7 @@
      weekGoalHtml): wie viele der 7 Tage schon geplant sind. */
   .wg-progress-txt { font-size: 13px; color: var(--text); font-weight: 600; margin-bottom: 8px; }
   .wg-progress-bar { height: 8px; border-radius: 999px; background: var(--surface-2); overflow: hidden; box-shadow: inset 0 0 0 1px var(--border); }
-  .wg-progress-bar > span { display: block; height: 100%; border-radius: 999px; background: linear-gradient(90deg, var(--accent), var(--accent-strong)); transition: width .3s ease; }
+  .wg-progress-bar > span { display: block; height: 100%; border-radius: 999px; background: linear-gradient(90deg, var(--accent), var(--accent-strong)); transition: width var(--dur-slow) ease; }
   .wg-macros .gm-r { gap: 8px; margin-bottom: 5px; }
   .wg-macros .gm-n { font-weight: 700; color: var(--text); }
   .wg-macros .gm-v { font-size: 11.5px; }
@@ -627,7 +620,7 @@
     position: relative; width: 36px; height: 36px; border: 0; border-radius: 50%; cursor: pointer;
     display: grid; place-items: center; font-size: 23px; line-height: 1; padding: 0;
     color: var(--accent-contrast); background: linear-gradient(135deg, var(--accent), var(--accent-strong));
-    box-shadow: 0 2px 8px rgba(0,0,0,.35); transition: transform .12s ease;
+    box-shadow: 0 2px 8px rgba(0,0,0,.35); transition: transform var(--dur-fast) ease;
   }
   .wch-add::after { content: ""; position: absolute; inset: -4px; border-radius: 50%; }
   .wch-add:hover { transform: scale(1.12); }
@@ -689,7 +682,7 @@
     background: none; border: 0; padding: 6px 0; cursor: pointer; min-height: 32px;
   }
   .day-goals-toggle:hover { color: var(--text); }
-  .day-goals-toggle .caret { width: 13px; height: 13px; flex: none; transition: transform .15s; }
+  .day-goals-toggle .caret { width: 13px; height: 13px; flex: none; transition: transform var(--dur-fast); }
   .day-goals-toggle .caret.open { transform: rotate(90deg); }
 
   /* Nährwerte in der Rezept-Detailansicht */
@@ -699,10 +692,10 @@
   .nutfacts .nf .v .u { font-size: 11px; font-weight: 600; color: var(--text-muted); margin-left: 2px; }
   .nutfacts .nf .k { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--text-muted); margin-top: 2px; }
   .nutfacts .nf .k::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--tc, var(--accent)); }
-  .nutfacts .nf.t-kcal { --tc: var(--accent); } .nutfacts .nf.t-carb { --tc: #E9A03B; } .nutfacts .nf.t-prot { --tc: #C74B78; } .nutfacts .nf.t-fat { --tc: #4AA8E0; }
+  .nutfacts .nf.t-kcal { --tc: var(--accent); } .nutfacts .nf.t-carb { --tc: var(--carb); } .nutfacts .nf.t-prot { --tc: var(--prot); } .nutfacts .nf.t-fat { --tc: var(--fat); }
   @media (max-width: 560px) { .nutfacts { grid-template-columns: repeat(2, 1fr); } }
 
-  .slot { position: relative; border-radius: var(--radius-sm); padding: 8px 10px 9px 12px; transition: background .12s; }
+  .slot { position: relative; border-radius: var(--radius-sm); padding: 8px 10px 9px 12px; transition: background var(--dur-fast); }
   .slot::before { content:""; position:absolute; left:5px; top:10px; bottom:10px; width:3px; border-radius:3px; background: var(--slot-c); opacity:.9; }
   .slot[data-meal="fr"] { --slot-c: var(--fr); }
   .slot[data-meal="mi"] { --slot-c: var(--mi); }
@@ -711,7 +704,7 @@
   .slot .add {
     font: inherit; font-size: 13px; width: 100%; text-align: left; cursor: pointer;
     border: 1px dashed var(--border-strong); background: transparent; color: var(--text-muted);
-    padding: 7px 10px; border-radius: var(--radius-sm); transition: border-color .12s, color .12s, background .12s;
+    padding: 7px 10px; border-radius: var(--radius-sm); transition: border-color var(--dur-fast), color var(--dur-fast), background var(--dur-fast);
   }
   .slot .add:hover { border-color: var(--slot-c); color: var(--text); background: color-mix(in srgb, var(--slot-c) 7%, transparent); }
   .slot .add.more { font-size: 12px; padding: 5px 10px; opacity: .8; }
@@ -743,7 +736,7 @@
     color: var(--text); font: inherit; cursor: pointer; text-align: left;
   }
   .cathead:hover { border-bottom-color: var(--border-strong); }
-  .cathead .caret { width: 15px; height: 15px; flex: none; color: var(--text-muted); transition: transform .15s; }
+  .cathead .caret { width: 15px; height: 15px; flex: none; color: var(--text-muted); transition: transform var(--dur-fast); }
   .cathead .caret.open { transform: rotate(90deg); }
   .cathead .cname { font-size: 14.5px; font-weight: 650; letter-spacing: .01em; display: inline-flex; align-items: center; gap: 7px; }
   .cathead .cname .cicon { width: 16px; height: 16px; flex: none; color: var(--text-muted); }
@@ -757,7 +750,7 @@
     position: relative;
     background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
     box-shadow: var(--shadow); padding: 0; display: flex; flex-direction: column; overflow: hidden;
-    transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease;
+    transition: transform var(--dur-fast) ease, box-shadow var(--dur-fast) ease, border-color var(--dur-fast) ease;
   }
   .rcard::before {
     content: ""; position: absolute; top: 0; left: 0; right: 0; height: 4px; z-index: 2;
@@ -777,7 +770,7 @@
     width: 28px; height: 28px; border: 0; border-radius: 50%; cursor: pointer;
     display: grid; place-items: center; font-size: 19px; line-height: 1; padding: 0;
     color: var(--accent-contrast); background: linear-gradient(135deg, var(--accent), var(--accent-strong));
-    box-shadow: 0 2px 8px rgba(0,0,0,.35); transition: transform .12s ease;
+    box-shadow: 0 2px 8px rgba(0,0,0,.35); transition: transform var(--dur-fast) ease;
   }
   .rcard .imgadd:hover { transform: scale(1.12); }
 
@@ -786,7 +779,7 @@
      Zutaten sichtbar voneinander ab; etwas schmaler, weil hier mehrere untereinander stehen */
   /* overflow bleibt sichtbar, damit die Vorschlagsliste der Zutaten-Suche aus der Zeile
      herausragen darf; der Akzentbalken rundet sich dafuer selbst oben mit ab. */
-  .ing-row { position: relative; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 14px 12px 11px; margin-bottom: 9px; transition: border-color .12s, box-shadow .12s; }
+  .ing-row { position: relative; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 14px 12px 11px; margin-bottom: 9px; transition: border-color var(--dur-fast), box-shadow var(--dur-fast); }
   .ing-row::before {
     content: ""; position: absolute; top: 0; left: 0; right: 0; height: 3px; z-index: 2;
     border-radius: var(--radius-sm) var(--radius-sm) 0 0;
@@ -810,7 +803,7 @@
   .ing-ac-item {
     display: flex; align-items: baseline; justify-content: space-between; gap: 10px;
     min-height: 40px; padding: 9px 10px; border-radius: 7px; cursor: pointer;
-    transition: background-color .12s, color .12s;
+    transition: background-color var(--dur-fast), color var(--dur-fast);
   }
   .ing-ac-item .fname { font-weight: 600; color: var(--text); }
   .ing-ac-item .fnut { flex: none; font-size: 11px; font-weight: 700; color: var(--text-muted); font-variant-numeric: tabular-nums; }
@@ -820,7 +813,7 @@
   .ing-gwrap { display: flex; gap: 6px; flex: none; width: 158px; }
   .ing-gwrap .ing-g { flex: none; width: 74px; text-align: right; }
   .ing-gwrap .ing-u { flex: 1; min-width: 0; padding: 8px 6px; }
-  .ing-ic { flex: none; width: 34px; height: 34px; border: 1px solid var(--border); background: var(--surface); color: var(--text-muted); border-radius: 9px; cursor: pointer; display: grid; place-items: center; font-size: 14px; line-height: 1; padding: 0; transition: color .12s, border-color .12s, background-color .12s; }
+  .ing-ic { flex: none; width: 34px; height: 34px; border: 1px solid var(--border); background: var(--surface); color: var(--text-muted); border-radius: 9px; cursor: pointer; display: grid; place-items: center; font-size: 14px; line-height: 1; padding: 0; transition: color var(--dur-fast), border-color var(--dur-fast), background-color var(--dur-fast); }
   .ing-ic svg { width: 17px; height: 17px; }
   .ing-ic:disabled, .ing-barcode:disabled { opacity: .5; cursor: default; }
   /* Beschriftet statt nur bebildert: auf Touch gibt es keine Tooltips, ein reines
@@ -831,7 +824,7 @@
     color: var(--text-muted); border-radius: 9px; cursor: pointer;
     font-family: var(--font-body); font-size: 11px; font-weight: 700;
     letter-spacing: .06em; text-transform: uppercase; white-space: nowrap;
-    transition: color .12s, border-color .12s, background-color .12s;
+    transition: color var(--dur-fast), border-color var(--dur-fast), background-color var(--dur-fast);
   }
   .ing-barcode svg { width: 17px; height: 17px; flex: none; }
   .ing-barcode:hover { color: var(--accent); border-color: var(--accent); background: color-mix(in srgb, var(--accent) 8%, var(--surface)); }
@@ -852,7 +845,7 @@
   .ing-nsum:focus-visible { outline: none; box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 26%, transparent); border-radius: var(--radius-sm); }
   .ing-nsum::after {
     content: "▾"; margin-left: auto; flex: none; color: var(--text);
-    font-size: 14px; line-height: 1; opacity: .7; transition: transform .12s;
+    font-size: 14px; line-height: 1; opacity: .7; transition: transform var(--dur-fast);
   }
   .ing-nut[open] .ing-nsum::after { transform: rotate(180deg); }
   .ing-per { display: block; font-size: 10px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; color: var(--text-muted); }
@@ -862,9 +855,9 @@
      in der Kopfzeile waere doppelt, deshalb nur zugeklappt sichtbar. */
   .ing-nut[open] .ing-brief { display: none; }
   .ing-brief .t-kcal { --tc: var(--accent); }
-  .ing-brief .t-carb { --tc: #E9A03B; }
-  .ing-brief .t-prot { --tc: #C74B78; }
-  .ing-brief .t-fat  { --tc: #4AA8E0; }
+  .ing-brief .t-carb { --tc: var(--carb); }
+  .ing-brief .t-prot { --tc: var(--prot); }
+  .ing-brief .t-fat  { --tc: var(--fat); }
   .ing-vals { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; padding-bottom: 3px; }
   .ing-nut label { display: flex; flex-direction: column; gap: 4px; font-size: 10px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--text-muted); text-align: center; }
   /* Farbpunkt vor dem Feldnamen, gleiches Muster wie .nutfacts .k / .macro .ml (nur der
@@ -873,9 +866,9 @@
   .ing-lbl { display: inline-flex; align-items: center; justify-content: center; gap: 5px; }
   .ing-lbl::before { content: ""; width: 7px; height: 7px; border-radius: 50%; flex: none; background: var(--tc, var(--text-muted)); }
   .ing-vals label.t-kcal { --tc: var(--accent); }
-  .ing-vals label.t-carb { --tc: #E9A03B; }
-  .ing-vals label.t-prot { --tc: #C74B78; }
-  .ing-vals label.t-fat  { --tc: #4AA8E0; }
+  .ing-vals label.t-carb { --tc: var(--carb); }
+  .ing-vals label.t-prot { --tc: var(--prot); }
+  .ing-vals label.t-fat  { --tc: var(--fat); }
   .ing-nut input { width: 100%; padding: 7px 4px; text-align: center; }
   #f-ing-add { margin-top: 2px; }
   #f-ing-add[hidden] { display: none; }
@@ -900,9 +893,9 @@
      hellem Grund bleibt so aussen vor). */
   .nut-total .field .ing-lbl { font-size: 10px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; }
   .nut-total .t-kcal { --tc: var(--accent); }
-  .nut-total .t-carb { --tc: #E9A03B; }
-  .nut-total .t-prot { --tc: #C74B78; }
-  .nut-total .t-fat  { --tc: #4AA8E0; }
+  .nut-total .t-carb { --tc: var(--carb); }
+  .nut-total .t-prot { --tc: var(--prot); }
+  .nut-total .t-fat  { --tc: var(--fat); }
   .rimg { position: relative; height: 116px; display: grid; place-items: center; overflow: hidden; }
   .rimg::after { content: ""; position: absolute; inset: 0; background: radial-gradient(130px 66px at 78% 16%, rgba(255,255,255,.30), transparent); pointer-events: none; }
   .rimg.has-photo::after { display: none; }
@@ -916,7 +909,7 @@
   .rimg .mbadge { display: inline-flex; align-items: center; gap: 5px; font-size: 10.5px; font-weight: 700; letter-spacing: .03em; text-transform: uppercase; color: #fff; background: rgba(16,18,13,.62); backdrop-filter: blur(4px); padding: 3px 9px 3px 7px; border-radius: 999px; }
   .rimg .mbadge::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--mbc); flex: none; }
   .rimg .mbadge.good { --mbc: var(--ok); }
-  .rimg .mbadge.fat { --mbc: #4AA8E0; }
+  .rimg .mbadge.fat { --mbc: var(--fat); }
   .rbody { padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; flex: 1; }
   .rcard .top { display: flex; align-items: flex-start; gap: 10px; }
   .rcard h3 { font-family: var(--font-display); font-size: 18px; font-weight: 600; margin: 0; flex: 1; line-height: 1.25; word-break: break-word; }
@@ -956,7 +949,13 @@
   @keyframes pop { from { opacity: 0; transform: translateY(8px) scale(.99);} to { opacity: 1; transform: none; } }
   /* Live-Barcode-Scanner. Eigene Ebene ueber dem Modal-Overlay (60), aber unter dem
      Toast (90) - der Scanner wird AUS dem Meal-Formular geoeffnet, das darunter offen
-     bleiben muss. Deshalb bewusst nicht ueber openModal(), das modalRoot leert. */
+     bleiben muss. Deshalb bewusst nicht ueber openModal(), das modalRoot leert.
+     Farben (Paket D6, gepruefte Entscheidung, kein Uebersehen): bewusst FEST dunkel in
+     beiden Themes, nicht auf --bg/--text-Tokens gemappt. Ein Kamera-Sucher ist wie ein
+     Fotoapp-Viewfinder immer dunkel, unabhaengig vom Erscheinungsbild der App - genau wie
+     bei nativen Kamera-UIs verbessert das feste Dunkel den Kontrast zum Kamerabild UND
+     zum hellen Sucherrahmen (.scanframe, --accent). Im Hell-Theme waeren --bg/--text hier
+     falsch (heller Sucher blendet, Rahmen ginge im hellen Hintergrund unter). */
   .scanwrap { position: fixed; inset: 0; z-index: 80; background: #0a0c07; display: grid; place-items: center; padding: 16px; color: var(--text); font-family: var(--font-body); }
   .scanbox { width: 100%; max-width: 480px; display: flex; flex-direction: column; gap: 14px; }
   .scanhead { display: flex; align-items: center; gap: 12px; color: #F4EFEE; }
@@ -990,13 +989,13 @@
   input[type="text"], input[type="number"], input[type="email"], input[type="password"], input[type="search"], select, textarea {
     font: inherit; font-size: 14px; width: 100%; color: var(--text);
     background: var(--bg); border: 1px solid var(--border-strong); border-radius: var(--radius-sm);
-    padding: 9px 11px; transition: border-color .12s, box-shadow .12s;
+    padding: 9px 11px; transition: border-color var(--dur-fast), box-shadow var(--dur-fast);
   }
   textarea { resize: vertical; min-height: 74px; line-height: 1.5; }
   input:focus, select:focus, textarea:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent); }
   .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
   .imgfield { display: flex; gap: 14px; align-items: center; }
-  .imgprev { width: 156px; min-height: 96px; flex: none; border-radius: 10px; border: 1.5px dashed var(--border-strong); background-color: var(--surface-2); background-size: cover; background-position: center; overflow: hidden; display: grid; place-items: center; text-align: center; color: var(--text-muted); cursor: pointer; transition: border-color .12s, background-color .12s; }
+  .imgprev { width: 156px; min-height: 96px; flex: none; border-radius: 10px; border: 1.5px dashed var(--border-strong); background-color: var(--surface-2); background-size: cover; background-position: center; overflow: hidden; display: grid; place-items: center; text-align: center; color: var(--text-muted); cursor: pointer; transition: border-color var(--dur-fast), background-color var(--dur-fast); }
   .imgprev.has-img { border-style: solid; border-color: var(--border); }
   .imgprev:hover { border-color: var(--accent); }
   .imgprev.dragover { border-color: var(--accent); background-color: color-mix(in srgb, var(--accent) 13%, var(--surface-2)); }
@@ -1039,23 +1038,23 @@
   .shop-head .cart { flex: none; width: 42px; height: 42px; border-radius: 12px; display: grid; place-items: center; color: var(--accent-contrast); background: linear-gradient(150deg, var(--accent), var(--accent-strong)); box-shadow: var(--shadow); }
   .shop-progress { display: flex; align-items: center; gap: 12px; margin-bottom: 15px; }
   .shop-progress .bar { flex: 1; height: 7px; border-radius: 99px; background: var(--surface-2); overflow: hidden; }
-  .shop-progress .bar > i { display: block; height: 100%; width: 0; border-radius: 99px; background: linear-gradient(90deg, var(--accent), var(--accent-strong)); transition: width .3s ease; }
+  .shop-progress .bar > i { display: block; height: 100%; width: 0; border-radius: 99px; background: linear-gradient(90deg, var(--accent), var(--accent-strong)); transition: width var(--dur-slow) ease; }
   .shop-progress .ptext { font-size: 12.5px; color: var(--text-muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
   .shop-progress .toggle-all { font: inherit; font-size: 12.5px; font-weight: 550; color: var(--accent-strong); background: none; border: 0; cursor: pointer; padding: 3px 7px; border-radius: 6px; white-space: nowrap; }
   .shop-progress .toggle-all:hover { background: color-mix(in srgb, var(--accent) 12%, transparent); }
   .shop-list { display: flex; flex-direction: column; gap: 7px; max-height: 46vh; overflow-y: auto; margin: 0 -6px; padding: 2px 6px; }
-  .shop-item { display: flex; align-items: center; gap: 13px; padding: 11px 13px; border-radius: 11px; background: var(--surface-2); border: 1px solid var(--border); cursor: pointer; transition: border-color .12s, background .12s; }
+  .shop-item { display: flex; align-items: center; gap: 13px; padding: 11px 13px; border-radius: 11px; background: var(--surface-2); border: 1px solid var(--border); cursor: pointer; transition: border-color var(--dur-fast), background var(--dur-fast); }
   .shop-item:hover { border-color: var(--border-strong); }
   .shop-item:has(.shop-check:checked) { background: color-mix(in srgb, var(--accent) 6%, var(--surface)); border-color: color-mix(in srgb, var(--accent) 24%, var(--border)); }
   .shop-check { position: absolute; opacity: 0; width: 1px; height: 1px; }
-  .shop-item .box { flex: none; width: 23px; height: 23px; border-radius: 7px; border: 2px solid var(--border-strong); display: grid; place-items: center; color: #fff; transition: background .15s, border-color .15s; }
-  .shop-item .box svg { width: 13px; height: 13px; opacity: 0; transform: scale(.5); transition: opacity .12s, transform .15s; }
+  .shop-item .box { flex: none; width: 23px; height: 23px; border-radius: 7px; border: 2px solid var(--border-strong); display: grid; place-items: center; color: #fff; transition: background var(--dur-fast), border-color var(--dur-fast); }
+  .shop-item .box svg { width: 13px; height: 13px; opacity: 0; transform: scale(.5); transition: opacity var(--dur-fast), transform var(--dur-fast); }
   .shop-check:checked + .box { background: var(--accent); border-color: var(--accent); }
   .shop-check:checked + .box svg { opacity: 1; transform: none; }
   .shop-check:focus-visible + .box { outline: 2px solid var(--accent); outline-offset: 2px; }
   .shop-item .lbl { flex: 1; font-size: 14.5px; line-height: 1.35; word-break: break-word; }
   .shop-check:checked ~ .lbl { text-decoration: line-through; color: var(--text-muted); }
-  .shop-item .qty { flex: none; font-size: 11.5px; font-weight: 650; color: var(--accent-strong); background: color-mix(in srgb, var(--accent) 14%, var(--surface)); border-radius: 99px; padding: 3px 9px; font-variant-numeric: tabular-nums; }
+  .shop-item .qty { flex: none; font-size: 11.5px; font-weight: 650; color: var(--accent-strong); background: color-mix(in srgb, var(--accent) 14%, var(--surface)); border-radius: 999px; padding: 3px 9px; font-variant-numeric: tabular-nums; }
   .shop-check:checked ~ .qty { opacity: .5; }
   .shop-empty { text-align: center; padding: 20px 10px 4px; color: var(--text-muted); }
   .shop-empty .ic { width: 46px; height: 46px; margin: 0 auto 12px; color: var(--accent); opacity: .85; }
@@ -1091,7 +1090,7 @@
   /* ---------- Profil (Login) & Teilen ---------- */
   .app.authing .tabs, .app.authing #profile-slot { display: none; }
   .profile { position: relative; }
-  .profile-btn { display: flex; align-items: center; gap: 9px; font: inherit; cursor: pointer; background: var(--surface); border: 1px solid var(--border); border-radius: 999px; padding: 4px 12px 4px 4px; color: var(--text); transition: border-color .12s; }
+  .profile-btn { display: flex; align-items: center; gap: 9px; font: inherit; cursor: pointer; background: var(--surface); border: 1px solid var(--border); border-radius: 999px; padding: 4px 12px 4px 4px; color: var(--text); transition: border-color var(--dur-fast); }
   .profile-btn:hover { border-color: var(--accent); }
   .avatar { width: 30px; height: 30px; border-radius: 50%; flex: none; display: grid; place-items: center; font-size: 12.5px; font-weight: 700; color: var(--accent-contrast); background: linear-gradient(150deg, var(--accent), var(--accent-strong)); overflow: hidden; }
   .avatar img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; display: block; }
@@ -1137,7 +1136,7 @@
     position: absolute; bottom: -2px; right: -2px; width: 28px; height: 28px; border: 2px solid var(--surface);
     border-radius: 50%; cursor: pointer; display: grid; place-items: center; padding: 0;
     color: var(--accent-contrast); background: linear-gradient(135deg, var(--accent), var(--accent-strong));
-    box-shadow: 0 2px 8px rgba(0,0,0,.35); transition: transform .12s ease;
+    box-shadow: 0 2px 8px rgba(0,0,0,.35); transition: transform var(--dur-fast) ease;
   }
   /* Sichtbar bleibt 28px wie beim Meal-Foto-Button (.rcard .imgadd) - die Trefferflaeche
      wird per Pseudo-Element auf 44x44 erweitert, gleiches hitSlop-Muster wie .btn.icon-gh. */
@@ -1161,12 +1160,11 @@
   .app-hero h2 { font-family: var(--font-display); font-weight: 700; text-transform: uppercase; font-size: clamp(30px, 4.4vw, 50px); line-height: .96; letter-spacing: .5px; margin: 0; text-wrap: balance; }
   .app-hero h2 em { color: var(--accent); font-style: normal; }
   .app-hero .hero-sub { color: var(--text-muted); font-size: 15.5px; line-height: 1.5; margin: 12px 0 0; max-width: 60ch; }
-  /* Kalorienrechner-Platzhalter (kommt bald) */
 
   .row3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
   /* Segmented control (Geschlecht/Ziel) im Stil der Wochen-Umschalter */
   .seg { display: flex; background: var(--surface-2); border: 1px solid var(--border); border-radius: 999px; padding: 3px; gap: 2px; }
-  .seg button { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; border: 0; background: transparent; color: var(--text-muted); padding: 9px 8px; border-radius: 999px; white-space: nowrap; transition: color .12s, background .12s, box-shadow .12s; }
+  .seg button { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; border: 0; background: transparent; color: var(--text-muted); padding: 9px 8px; border-radius: 999px; white-space: nowrap; transition: color var(--dur-fast), background var(--dur-fast), box-shadow var(--dur-fast); }
   .seg button:hover { color: var(--text); }
   .seg button.on { color: var(--accent-contrast); background: linear-gradient(135deg, var(--accent), var(--accent-strong)); box-shadow: 0 2px 8px color-mix(in srgb, var(--accent) 32%, transparent); }
   .seg .seg-hint { font-weight: 500; font-size: 10.5px; opacity: .82; }
@@ -1178,7 +1176,7 @@
   .tdays button {
     font: inherit; font-size: 12.5px; font-weight: 700; cursor: pointer; border: 0;
     background: transparent; color: var(--text-muted); padding: 9px 2px; min-height: 44px;
-    border-radius: var(--radius-sm); transition: color .12s, background .12s, box-shadow .12s;
+    border-radius: var(--radius-sm); transition: color var(--dur-fast), background var(--dur-fast), box-shadow var(--dur-fast);
   }
   .tdays button:hover { color: var(--text); }
   /* Im RECHNER ist die Auswahl rot wie jede andere Auswahl im Formular. Das Blau ist der
@@ -1288,7 +1286,7 @@
   .calc-note > summary::-webkit-details-marker { display: none; }
   .calc-note > summary:hover { color: var(--text); }
   .calc-note .ci { width: 15px; height: 15px; flex: none; color: var(--accent); }
-  .calc-note .caret { width: 14px; height: 14px; flex: none; margin-left: auto; transition: transform .16s ease; }
+  .calc-note .caret { width: 14px; height: 14px; flex: none; margin-left: auto; transition: transform var(--dur-fast) ease; }
   .calc-note[open] .caret { transform: rotate(90deg); }
   @media (prefers-reduced-motion: reduce) { .calc-note .caret { transition: none; } }
   .calc-note .cn-body { padding: 0 0 12px 24px; }
@@ -1298,7 +1296,7 @@
   .bd-row span:last-child { color: var(--text); font-weight: 600; font-variant-numeric: tabular-nums; }
   .bd-row.bd-mid { color: var(--text); font-weight: 600; }
   .bd-row.bd-mid span:last-child { font-weight: 700; }
-  .auth-card { width: 100%; max-width: 430px; background: var(--surface); border: 1px solid var(--border); border-radius: 18px; box-shadow: var(--shadow); padding: 34px 30px 26px; text-align: center; }
+  .auth-card { width: 100%; max-width: 430px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); padding: 34px 30px 26px; text-align: center; }
   .auth-card .mark { width: 116px; height: 116px; border-radius: 50%; margin: 0 auto 20px; overflow: hidden; background: center / cover no-repeat var(--logo); }
   .auth-card h2 { font-family: var(--font-display); font-size: 25px; font-weight: 600; margin: 0 0 6px; text-wrap: balance; }
   .auth-card .lead { color: var(--text-muted); font-size: 14.5px; margin: 0 0 22px; line-height: 1.5; text-wrap: balance; }
@@ -1367,7 +1365,7 @@
      bleiben, weil sie Zustandswechsel (Modal/Toast/Onboarding) verstehbar halten. */
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; }
-    .modal, #toast, .onb-stage, .onb-opt { transition: opacity .15s ease !important; transform: none !important; animation: none !important; }
+    .modal, #toast, .onb-stage, .onb-opt { transition: opacity var(--dur-fast) ease !important; transform: none !important; animation: none !important; }
     * { transition-property: opacity, color, background-color, border-color, box-shadow !important; }
   }
   /* ---------- Mobile / Smartphone ---------- */
@@ -1472,7 +1470,7 @@
       letter-spacing: .04em; text-transform: uppercase; cursor: pointer;
       color: var(--text-muted); background: var(--surface-2);
       border: 1px solid var(--border); border-radius: var(--radius-sm);
-      transition: color .14s, background .14s, border-color .14s;
+      transition: color var(--dur-fast), background var(--dur-fast), border-color var(--dur-fast);
     }
     /* „Heute" ist im Streifen bewusst nur ein Punkt: die Aussage steht ohnehin als
        Wort im Kopf der Tageskarte, hier ist sie Wiederholung zur Orientierung. */
@@ -1530,7 +1528,7 @@
       cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
       color: var(--text-muted); background: var(--surface-2);
       border: 1px solid var(--border); border-radius: var(--radius-sm);
-      transition: color .14s, background .14s, border-color .14s;
+      transition: color var(--dur-fast), background var(--dur-fast), border-color var(--dur-fast);
     }
     .wg-b.active {
       color: var(--accent-contrast); border-color: transparent;
@@ -1608,7 +1606,7 @@
     background: linear-gradient(180deg, var(--surface), var(--surface-2));
     color: var(--text); border: 1.5px solid var(--border-strong); border-radius: var(--radius);
     box-shadow: inset 0 1px 0 color-mix(in srgb, var(--text) 7%, transparent);
-    font: inherit; transition: border-color .15s, box-shadow .15s, transform .1s;
+    font: inherit; transition: border-color var(--dur-fast), box-shadow var(--dur-fast), transform var(--dur-fast);
     opacity: 0; transform: translateY(6px); animation: onbin var(--dur-slow) var(--ease-out) forwards;
   }
   .onb-opt:nth-child(1) { animation-delay: 0ms; }
@@ -1677,7 +1675,7 @@
   /* Dieselben Makrofarben wie ueberall sonst in der App (.macro, .nutfacts, .wg-macros) –
      bewusst dieselben Hex-Werte, nicht neu erfunden, damit Protein/KH/Fett app-weit auf
      einen Blick zuzuordnen sind, auch ohne die Beschriftung zu lesen. */
-  .onb-res-m .t-prot { --tc: #C74B78; } .onb-res-m .t-carb { --tc: #E9A03B; } .onb-res-m .t-fat { --tc: #4AA8E0; }
+  .onb-res-m .t-prot { --tc: var(--prot); } .onb-res-m .t-carb { --tc: var(--carb); } .onb-res-m .t-fat { --tc: var(--fat); }
   .onb-res-m b { display: block; font-family: var(--font-display); font-size: 21px; letter-spacing: -.01em; font-variant-numeric: tabular-nums; color: var(--tc, var(--text)); }
   .onb-res-m span { display: flex; align-items: center; justify-content: center; gap: 5px; margin-top: 3px; font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--text-muted); }
   .onb-res-m span::before { content: ""; width: 7px; height: 7px; border-radius: 50%; flex: none; background: var(--tc, var(--accent)); }
