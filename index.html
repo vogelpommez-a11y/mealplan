@@ -316,11 +316,6 @@
   .btn.icon-gh { position: relative; width: 34px; height: 34px; padding: 0; justify-content: center; }
   .btn.icon-gh::after { content: ""; position: absolute; inset: -5px; }
   .btn.icon-gh svg { width: 17px; height: 17px; }
-  /* "Ziel neu berechnen": am Rechner Icon + Text (auffindbarer, siehe ux-reviewer),
-     auf dem Handy nur das Icon — die feste 34px-Breite von .icon-gh wird hier ueberschrieben
-     und in der Handy-Media-Query wieder gesetzt. */
-  .btn.recalc-btn { width: auto; padding: 0 12px; gap: 6px; }
-  .recalc-btn .rc-t { font-size: 14px; }
   .btn.sm { padding: 6px 11px; font-size: 13px; }
 
   /* ---------- Week grid ---------- */
@@ -527,18 +522,14 @@
   /* Zwei flache Leisten untereinander (Tag, Woche). */
   .wg-cols { display: flex; flex-direction: column; gap: 10px; }
   .wg-col { position: relative; overflow: hidden; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 13px 16px; transition: border-color .16s ease; }
-  /* Leerzustand der Diese-Woche-Karte: accent-getoentes Icon-Chip (gleiche Machart wie
-     .calc-goal-tag) plus ein kurzer Erklaersatz. Nur bestehende Tokens, kein Ring. */
-  .wg-empty-body { display: flex; align-items: center; gap: 14px; padding: 8px 0 6px; }
-  .wg-empty-ic {
-    flex: none; width: 42px; height: 42px; display: grid; place-content: center;
-    color: var(--accent); border-radius: 12px;
-    background: color-mix(in srgb, var(--accent) 12%, var(--surface));
-    border: 1px solid color-mix(in srgb, var(--accent) 26%, transparent);
-  }
-  .wg-empty-ic svg { width: 21px; height: 21px; }
-  .wg-empty p { margin: 0; font-size: 14px; line-height: 1.5; color: var(--text-muted); max-width: 46ch; }
-  /* Hinweis in der rechten Spalte der Heute-Karte, wo im Leerzustand die Makrobalken saessen. */
+  /* Kopfzeile der Karte: Eyebrow links, optionaler Aktionslink rechts (nur Heute-Karte,
+     siehe recalcLink in weekGoalHtml). Ohne zweites Kind verhaelt sich .wg-head wie zuvor
+     die blosse .wg-lbl allein - kein Effekt auf die Diese-Woche-Karte. */
+  .wg-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+  .wg-recalc { padding: 4px 10px; height: auto; font-size: 12px; gap: 5px; }
+  .wg-recalc svg { width: 14px; height: 14px; }
+  /* Hinweis in der rechten Spalte, wo im Leerzustand sonst Makrobalken bzw. Fortschrittsbalken
+     saessen (dayRight/weekRight in weekGoalHtml). */
   .wg-side-note { margin: 2px 0 0; font-size: 13.5px; line-height: 1.5; color: var(--text-muted); max-width: 34ch; }
   /* An Trainingstagen bekommt die "Heute"-Karte denselben blauen Rand + Kopfstreifen wie
      die Tageskarten im Wochenplan (.day.training) - direkt beim App-Start sichtbar, ohne
@@ -1390,9 +1381,6 @@
     /* Die Icon-Knoepfe (Woche teilen/leeren) bleiben quadratisch neben den Tabs -
        ohne diese Ausnahme wuerden sie durch die Regel darueber in die Breite gezogen. */
     .plan-tools .icon-gh { flex: none; }
-    /* Am Handy kein Text am Ziel-Knopf, nur das Icon (zurueck zum quadratischen .icon-gh). */
-    .plan-tools .recalc-btn { width: 34px; padding: 0; }
-    .plan-tools .recalc-btn .rc-t { display: none; }
     .week { gap: 12px; }
     .recipes { gap: 12px; }
     .imgfield { flex-direction: column; align-items: stretch; }
@@ -3739,7 +3727,7 @@
   // gefuehrt, dass "Tagesziel: 2.200" gelesen wird, obwohl das tatsaechliche Budget an dem
   // Tag 2.200 + Trainingszuschlag ist - "Grundbedarf" macht das "ohne Training" explizit.
   const RING_C = 201; // Umfang bei r=32 (2 × π × 32)
-  function goalRingHtml(ist, grundziel, trainingAdd, headHtml, rightColHtml, grundzielLbl) {
+  function goalRingHtml(ist, grundziel, trainingAdd, headHtml, rightColHtml, grundzielLbl, actionHtml) {
     const ziel = grundziel + trainingAdd;
     const rest = Math.round(ziel - ist);
     const st = goalState(ist, ziel);
@@ -3749,7 +3737,10 @@
     // verstaerkt das nur farblich, ersetzt es nicht (siehe CSS-Kommentar bei .wg).
     const stLbl = st === "over" ? "Drüber" : "Verbleibend";
     return `<div class="wg is-${st}">
-        <div class="wg-lbl">${headHtml}</div>
+        <div class="wg-head">
+          <div class="wg-lbl">${headHtml}</div>
+          ${actionHtml || ""}
+        </div>
         <div class="wg-row">
           <div class="wg-col-cal">
             <h3 class="wg-h">Kalorien</h3>
@@ -3801,12 +3792,10 @@
     // Diese-Woche-Karte wird zum Erklaerpanel, solange die ganze Woche leer ist.
     const dayEmpty = !hasNut(s);
     const weekEmpty = !hasNut(w);
-    const mode = state.goal && MODE_LABEL[state.goal.mode];
-    const dayHead = `Heute · ${esc(d.label)}`;
+    const dayHead = `Deine Ziele für Heute · ${esc(d.label)}`;
     const plannedKeys = DAYS.filter(x => hasNut(dayNut(x.key))).map(x => x.key);
     const planned = plannedKeys.length;
     const open = 7 - planned;
-    const scope = planned === 7 ? "ganze Woche" : `${planned} geplante Tag${planned === 1 ? "" : "e"}`;
     // Grundziel/Training fuer goalRingHtml aufgeteilt statt fertig addiert (siehe dort).
     // Bewusst gegen ALLE sieben Tage gerechnet (t, aus weekNutHtml uebergeben), nicht nur
     // die mit bereits eingeplanten Meals: Trainingstage sind eine Eigenschaft des
@@ -3826,9 +3815,12 @@
     const dayTrainAdd = isTrainingDay(d.key) ? dayTrainKcal(d.key) : 0;
     const dayTrain = isTrainingDay(d.key)
       ? `<span class="wg-train" title="Trainingstag: ${esc(trainLevel((goalTraining()[d.key] || {}).level).label)}">${ICON_DUMBBELL}Training</span>` : "";
-    const dayHeadHtml = `${dayHead}${dayTrain}${mode ? `<span class="wg-chip">${esc(mode)}</span>` : ""}`;
+    const dayHeadHtml = `${dayHead}${dayTrain}`;
     const weekLbl = state.viewWeek === "next" ? "Nächste Woche" : "Diese Woche";
-    const weekHeadHtml = `${weekLbl}<span class="wg-chip plain">${scope}</span>`;
+    // Eyebrow der Karte laenger/erklaerender als die kurze Wisch-Tab-Beschriftung (weekLbl bleibt
+    // dafuer unveraendert). Der fruehere "X geplante Tage"-Chip ist raus: dieselbe Information
+    // steht bereits rechts im Fortschritt-Balken ("x von 7 Tagen geplant") - Dopplung entfernt.
+    const weekHeadHtml = state.viewWeek === "next" ? "Deine Ziele für nächste Woche" : "Deine Ziele für diese Woche";
     // Was bleibt fuer die noch leeren Tage? Das ist beim Planen die eigentlich
     // gesuchte Zahl — der blosse Wochenrest sagt nicht, wie viel pro Tag noch geht.
     const restKcal = t.kcal - w.kcal;
@@ -3855,6 +3847,18 @@
     const dayRight = dayEmpty
       ? `<h3 class="wg-h">Makros</h3><p class="wg-side-note">Trage für heute ein Meal ein, dann erscheinen hier deine Makros: Proteine, Kohlenhydrate und Fett.</p>`
       : `<h3 class="wg-h">Makros</h3>${goalMacrosHtml(s, day)}`;
+    // Rechte Spalte der Diese-Woche-Karte: gleiches Muster wie dayRight — die Ueberschrift
+    // "Fortschritt" bleibt als Kontext stehen, nur der Inhalt darunter wechselt. So haben beide
+    // Karten immer Ring + Grundbedarf/Ernaehrung/Training UND dieselbe Form/Hoehe, auch auf dem
+    // Handy im Wisch-Karussell (vorher wurde die ganze Karte zu einem separaten Panel ohne Ring).
+    const weekRight = weekEmpty
+      ? `<h3 class="wg-h">Fortschritt</h3><p class="wg-side-note">Plane deine Woche — hier siehst du dann Kalorien, Ernährung, Training und Makros auf einen Blick.</p>`
+      : weekProgressHtml;
+    // Der "Neu berechnen"-Link sitzt bewusst nur an der Heute-Karte (Grouping: die Aktion
+    // betrifft das Ziel insgesamt, nicht "diese eine Woche") - nicht an der Diese-Woche-Karte,
+    // sonst stuende er doppelt da. Vormals in der Wochenplan-Werkzeugleiste, dort konzeptionell
+    // falsch einsortiert (neben Teilen/Leeren DIESER Woche).
+    const recalcLink = `<button type="button" class="btn ghost sm wg-recalc" data-action="recalc-goal" title="Ziele neu berechnen" aria-label="Ziele neu berechnen">${TOOL_ICONS.recalc}<span>Ziele neu berechnen</span></button>`;
     // Auf dem Handy liegen die beiden Leisten nebeneinander und werden gewischt
     // (siehe CSS) – die Knopfleiste sagt, welche gerade zu sehen ist. Am Rechner
     // ist sie ausgeblendet, dort stehen beide untereinander wie bisher.
@@ -3863,23 +3867,8 @@
         <button type="button" class="wg-b">${weekLbl}</button>
       </div>
       <div class="wg-cols">
-        <div class="wg-col${isTrainingDay(d.key) ? " wg-col-training" : ""}">${goalRingHtml(s.kcal, rest1.kcal, dayTrainAdd, dayHeadHtml, dayRight, "Grundbedarf")}</div>
-        <div class="wg-col">${weekEmpty ? weekEmptyHtml(weekLbl) : goalRingHtml(w.kcal, weekGrund, weekTrainAdd, weekHeadHtml, weekProgressHtml, "Grundbedarf")}</div>
-      </div>`;
-  }
-
-  // Leerzustand der Diese-Woche-Karte (Ziel gesetzt, aber noch kein Meal geplant): kein
-  // Datenring, sondern ein kurzes Erklaerpanel in derselben .wg-col-Huelle. Sagt konkret,
-  // welche Kennzahlen hier auftauchen, sobald geplant wird — bewusst nicht die generische
-  // "plane deine Woche"-Aussage des Home-Heros. Die Heute-Karte daneben zeigt weiter die
-  // Ziele (Ring + Makros bei Verzehr 0).
-  function weekEmptyHtml(weekLbl) {
-    return `<div class="wg wg-empty">
-        <div class="wg-lbl">${esc(weekLbl)}</div>
-        <div class="wg-empty-body">
-          <span class="wg-empty-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 21h18"/><rect x="5" y="12" width="3.6" height="6" rx="1"/><rect x="10.2" y="8" width="3.6" height="10" rx="1"/><rect x="15.4" y="4" width="3.6" height="14" rx="1"/></svg></span>
-          <p>Plane deine Woche — hier siehst du dann Kalorien, Ernährung, Training und Makros auf einen Blick.</p>
-        </div>
+        <div class="wg-col${isTrainingDay(d.key) ? " wg-col-training" : ""}">${goalRingHtml(s.kcal, rest1.kcal, dayTrainAdd, dayHeadHtml, dayRight, "Grundbedarf", recalcLink)}</div>
+        <div class="wg-col">${goalRingHtml(w.kcal, weekGrund, weekTrainAdd, weekHeadHtml, weekRight, "Grundbedarf")}</div>
       </div>`;
   }
 
@@ -4292,7 +4281,6 @@
             <button class="ws-btn${state.viewWeek === "next" ? "" : " active"}" data-action="week" data-week="cur" role="tab" aria-selected="${state.viewWeek === "next" ? "false" : "true"}">Aktuelle Woche</button>
             <button class="ws-btn${state.viewWeek === "next" ? " active" : ""}" data-action="week" data-week="next" role="tab" aria-selected="${state.viewWeek === "next" ? "true" : "false"}">Nächste Woche</button>
           </div>
-          <button class="btn ghost icon-gh recalc-btn" data-action="recalc-goal" title="Ziel neu berechnen" aria-label="Ziel neu berechnen">${TOOL_ICONS.recalc}<span class="rc-t">Ziel neu berechnen</span></button>
           <button class="btn ghost icon-gh" data-action="share" title="Woche teilen" aria-label="Woche teilen">${TOOL_ICONS.share}</button>
           <button class="btn ghost icon-gh" data-action="clear-week" title="Woche leeren" aria-label="Woche leeren">${TOOL_ICONS.clear}</button>
         </div>
@@ -5844,7 +5832,6 @@
   // nicht hier: sanitizeGoal() braucht sie, und das laeuft schon in `let state = load()`.
   // Von hier aus waeren sie dort noch in der temporalen Todeszone — die App wuerde beim
   // Start mit einem ReferenceError sterben, ohne dass ein catch greift.
-  const MODE_LABEL = { lose: "Abnehmen", hold: "Gewicht halten", gain: "Zunehmen" };
   // Anpassung des Erhaltungsbedarfs je nach Ziel/Tempo (kcal/Tag).
   function paceAdjust(mode, pace) {
     if (mode === "lose") return ({ light: -250, moderate: -500, strong: -750 })[pace] || -500;
