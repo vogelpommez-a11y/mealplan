@@ -5193,12 +5193,26 @@
         const p = await fetchOffNutrition(code);
         if (!p) { toast("Produkt nicht gefunden – bitte manuell eintragen"); return; }
         if (p.name) row.querySelector(".ing-name").value = p.name;
+        // Reihenfolge bewusst so: das change-Event fuer die Einheit laeuft ZUERST, waehrend
+        // die Naehrwertfelder noch ihre ALTEN Werte tragen - eine dabei ausgeloeste Umrechnung
+        // (convertNutValues, z. B. falls die Zeile zuvor auf EL/TL stand) betrifft dann nur
+        // Werte, die im naechsten Moment ohnehin durch die echten Barcode-Werte ueberschrieben
+        // werden. Wuerden die Naehrwerte VOR dem change-Event gesetzt, liefe die
+        // EL/TL-Umrechnung auf den frisch gesetzten (schon korrekten Pro-100g-)Werten und
+        // wuerde sie verfaelschen.
         row.querySelector(".ing-u").value = "g";
         row.querySelector(".ing-u").dispatchEvent(new Event("change"));
         if (p.kcal != null) row.querySelector(".ing-kcal").value = Math.round(p.kcal);
         if (p.carbs != null) row.querySelector(".ing-carbs").value = p.carbs;
         if (p.protein != null) row.querySelector(".ing-prot").value = p.protein;
         if (p.fat != null) row.querySelector(".ing-fat").value = p.fat;
+        // Paket B7 (Fund beim Durchsehen): .value setzen loest kein "input"-Event aus (das
+        // tut nur echte Tastatureingabe) - die zugeklappte Kurzfassung der Zeile (paintNut,
+        // reagiert auf "input") zeigte nach einem Barcode-Scan deshalb weiterhin "–", obwohl
+        // die Werte laengst korrekt im DOM standen. Ein manuelles "input" auf einem der Felder
+        // stoesst die Kurzfassung an, OHNE erneut ueber das Einheiten-change-Event (und damit
+        // die Umrechnung) zu laufen.
+        row.querySelector(".ing-kcal").dispatchEvent(new Event("input"));
         updateMacroSum();
         toast(p.name ? "„" + p.name + "“ übernommen – Werte bitte kurz prüfen"
                      : "Nährwerte übernommen – bitte kurz prüfen");
