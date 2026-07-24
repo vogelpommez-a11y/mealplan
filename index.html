@@ -2,6 +2,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#DC2626">
 <meta name="theme-color" content="#0C0A0B" media="(prefers-color-scheme: dark)">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Mealplan">
+<meta name="mobile-web-app-capable" content="yes">
 <script>
   /* Erscheinungsbild vor dem ersten Paint setzen — sonst blitzt beim Laden kurz das
      falsche Theme auf. Ohne gespeicherte Wahl bleibt das Attribut weg, dann greift
@@ -7281,4 +7289,15 @@
   // ---------- Boot ----------
   boot();
 })();
+</script>
+<script>
+  /* Service Worker registrieren — rein additiv: die App muss ohne ihn voll funktionieren
+     (Graceful Fallback, wie beim blockierten Firebase-CDN). Relativer Pfad + Scope, weil die
+     Seite unter .../mealplan/ liegt, nicht auf dem Domain-Root. Erst nach 'load', um den
+     ersten Paint/Boot nicht zu verzoegern. Fehler still schlucken. */
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", function () {
+      navigator.serviceWorker.register("sw.js", { scope: "./" }).catch(function () {});
+    });
+  }
 </script>
