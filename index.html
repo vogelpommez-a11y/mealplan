@@ -5407,7 +5407,10 @@
   function loadShopDone() { try { return new Set(JSON.parse(localStorage.getItem(SHOP_DONE_KEY) || "[]")); } catch (e) { return new Set(); } }
   function saveShopDone(set) { try { localStorage.setItem(SHOP_DONE_KEY, JSON.stringify(Array.from(set))); } catch (e) {} }
 
-  function openShopping() {
+  // Aggregiert die Zutaten der relevanten Tage zu einer sortierten, nach Warengruppe
+  // gruppierten Einkaufsliste. Ausgelagert aus openShopping() (Paket B3), damit der neue
+  // PDF-Export (shopPdfPages) dieselbe Aggregation nutzt statt sie zu duplizieren.
+  function buildShoppingList() {
     // In der aktuellen Woche zaehlen nur heute und die kommenden Tage - fuer bereits
     // vergangene Tage wird nicht mehr eingekauft, ihre Zutaten sollen die Summe also
     // nicht mehr aufblaehen. In der naechsten Woche gibt es aus heutiger Sicht kein
@@ -5440,11 +5443,16 @@
     map.forEach(it => { it.label = it.qty ? qtyLabel(it.qty, it.unit) + " " + it.name : it.name; });
     // nach Zutatennamen sortieren, nicht nach Label — sonst ordnet die Menge die Liste
     const items = Array.from(map.values()).sort((a, b) => (a.name || a.label).localeCompare(b.name || b.label, "de"));
-    const done = loadShopDone();
     // nach Warengruppe gruppieren; Reihenfolge = SHOP_CATS, "Sonstiges" ganz am Ende
     const gmap = {};
     items.forEach(it => { const c = shopCategory(it.name || it.label); (gmap[c.key] || (gmap[c.key] = { cat: c, items: [] })).items.push(it); });
     const groups = SHOP_CATS.concat([SHOP_OTHER]).map(c => gmap[c.key]).filter(Boolean);
+    return { items, groups, todayIdx };
+  }
+
+  function openShopping() {
+    const { items, groups, todayIdx } = buildShoppingList();
+    const done = loadShopDone();
 
     const checkSvg = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>`;
     let body;
@@ -5487,7 +5495,7 @@
       </div>
       <div class="modal-body">${body}</div>
       <div class="modal-foot">
-        ${items.length ? `<button class="btn" data-copy>Als Text kopieren</button>` : ""}
+        ${items.length ? `<button class="btn ghost" data-pdf>Als PDF</button><button class="btn" data-copy>Als Text kopieren</button>` : ""}
         <button class="btn primary" data-close>Schließen</button>
       </div>
     </div>`);
@@ -5515,6 +5523,9 @@
         navigator.clipboard.writeText(text).then(() => toast("Liste kopiert")).catch(() => toast("Kopieren nicht möglich"));
       } else toast("Kopieren nicht möglich");
     });
+    // Paket B3: Einkaufsliste als PDF, analog zum bestehenden Wochenplan-PDF (downloadPdf).
+    const pdfBtn = node.querySelector("[data-pdf]");
+    if (pdfBtn) pdfBtn.addEventListener("click", downloadShopPdf);
     openModal(node);
   }
 
@@ -7456,6 +7467,93 @@
       const url = URL.createObjectURL(blob);
       const who = (profile ? profile.name : "plan").replace(/[^\wäöüßÄÖÜ-]+/g, "_");
       const a = document.createElement("a"); a.href = url; a.download = "wochenplan-" + who + ".pdf"; document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1500);
+      toast("PDF gespeichert");
+    } catch (e) { toast("PDF konnte nicht erstellt werden"); }
+  }
+
+  // ----- Einkaufsliste als PDF (Paket B3) -----
+  // Anders als der Wochenplan (immer 7 Tage, eine feste Seite) ist die Einkaufsliste beliebig
+  // lang - deshalb mehrseitig statt der festen Ein-Seiten-Struktur von planPdfString(). Baut
+  // je Seite einen eigenen Content-Stream und haengt sie am Ende zu einem gemeinsamen PDF
+  // zusammen, gleiche Bausteine (pdfEsc/trunc/WinAnsi-Fonts) wie beim Wochenplan-PDF.
+  function shopPdfPages() {
+    const { items, groups } = buildShoppingList();
+    const L = 56, R = 539;
+    const dateStr = new Date().toLocaleDateString("de-DE", { day: "numeric", month: "long", year: "numeric" });
+    const scope = state.viewWeek === "next" ? "Nächste Woche" : "Diese Woche";
+    const pages = [];
+    let cs = "", y = 0, pageNum = 0;
+    function startPage() {
+      pageNum++;
+      cs = "0.208 0.439 0.290 RG 2 w " + L + " 752 m " + R + " 752 l S\nBT\n";
+      if (pageNum === 1) {
+        cs += "0 0 0 rg /F2 24 Tf 1 0 0 1 " + L + " 786 Tm (" + pdfEsc("Einkaufsliste") + ") Tj\n";
+        cs += "0.4 0.4 0.4 rg /F1 11 Tf 1 0 0 1 " + L + " 764 Tm (" + pdfEsc(scope + "   ·   " + dateStr) + ") Tj\n";
+        cs += "0 0 0 rg\n";
+      }
+      y = 722;
+    }
+    function endPage() { cs += "ET\n"; pages.push(cs); }
+    // Reicht der Rest der Seite fuer "need" Punkt Text nicht mehr, neue Seite beginnen -
+    // 60pt Fussabstand bleibt frei, damit auf der letzten Seite der Fusszeilen-Text passt.
+    function ensureSpace(need) { if (y - need < 60) { endPage(); startPage(); } }
+    startPage();
+    if (!items.length) {
+      cs += "0.5 0.5 0.5 rg /F1 12 Tf 1 0 0 1 " + L + " " + y + " Tm (" + pdfEsc("Noch keine Zutaten geplant.") + ") Tj\n0 0 0 rg\n";
+      y -= 20;
+    } else {
+      groups.forEach(g => {
+        ensureSpace(20 + 16); // Gruppenkopf + mindestens eine Zeile zusammenhalten
+        cs += "/F2 13 Tf 1 0 0 1 " + L + " " + y + " Tm (" + pdfEsc(g.cat.title) + ") Tj\n";
+        y -= 20;
+        g.items.forEach(it => {
+          ensureSpace(16);
+          const label = it.label + (it.count > 1 ? " (×" + it.count + ")" : "");
+          cs += "/F1 11 Tf 1 0 0 1 " + (L + 18) + " " + y + " Tm (" + pdfEsc(trunc(label, 58)) + ") Tj\n";
+          y -= 16;
+        });
+        y -= 8;
+      });
+    }
+    ensureSpace(20);
+    cs += "0.6 0.6 0.6 rg /F1 9 Tf 1 0 0 1 " + L + " 44 Tm (" + pdfEsc("Erstellt mit Paddy’s Mealplan") + ") Tj\n0 0 0 rg\n";
+    endPage();
+    return pages;
+  }
+  function shopPdfString() {
+    const pages = shopPdfPages();
+    const n = pages.length;
+    const fontsStart = 3 + 2 * n; // Objekt-ID der ersten Schriftart, nach Catalog+Pages+je Seite (Page+Content)
+    const objs = [];
+    objs[0] = "<< /Type /Catalog /Pages 2 0 R >>";
+    const kids = [];
+    for (let i = 0; i < n; i++) kids.push((3 + 2 * i) + " 0 R");
+    objs[1] = "<< /Type /Pages /Kids [" + kids.join(" ") + "] /Count " + n + " >>";
+    for (let i = 0; i < n; i++) {
+      const pageId = 3 + 2 * i, contentId = 4 + 2 * i;
+      objs[pageId - 1] = "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 " + fontsStart + " 0 R /F2 " + (fontsStart + 1) + " 0 R >> >> /Contents " + contentId + " 0 R >>";
+      objs[contentId - 1] = "<< /Length " + pages[i].length + " >>\nstream\n" + pages[i] + "endstream";
+    }
+    objs[fontsStart - 1] = "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>";
+    objs[fontsStart] = "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>";
+    let pdf = "%PDF-1.4\n";
+    const offsets = [];
+    objs.forEach((o, i) => { offsets.push(pdf.length); pdf += (i + 1) + " 0 obj\n" + o + "\nendobj\n"; });
+    const xref = pdf.length;
+    pdf += "xref\n0 " + (objs.length + 1) + "\n0000000000 65535 f \n";
+    offsets.forEach(off => { pdf += String(off).padStart(10, "0") + " 00000 n \n"; });
+    pdf += "trailer\n<< /Size " + (objs.length + 1) + " /Root 1 0 R >>\nstartxref\n" + xref + "\n%%EOF";
+    return pdf;
+  }
+  function downloadShopPdf() {
+    try {
+      const pdf = shopPdfString();
+      const bytes = new Uint8Array(pdf.length);
+      for (let i = 0; i < pdf.length; i++) bytes[i] = pdf.charCodeAt(i) & 0xff;
+      const blob = new Blob([bytes], { type: "application/pdf" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a"); a.href = url; a.download = "einkaufsliste.pdf"; document.body.appendChild(a); a.click(); a.remove();
       setTimeout(() => URL.revokeObjectURL(url), 1500);
       toast("PDF gespeichert");
     } catch (e) { toast("PDF konnte nicht erstellt werden"); }
