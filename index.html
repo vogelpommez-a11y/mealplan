@@ -4081,7 +4081,7 @@
   // Beim Rechner ist das so – dort flacht display:contents die Zwischenebene nur fuer
   // die Darstellung ein, im DOM bleibt sie stehen, und .children liefe daneben.
   // onChange meldet jeden Kartenwechsel; der Rechner haengt daran seinen Fussknopf.
-  function initCarousel(scroller, bar, panelList, onChange) {
+  function initCarousel(scroller, bar, panelList, onChange, opts) {
     if (!scroller || !bar) return null;
     const panels = panelList || Array.prototype.slice.call(scroller.children);
     const btns = Array.prototype.slice.call(bar.children);
@@ -4117,12 +4117,22 @@
     function fitHeight() {
       // Am Rechner ist .week ein Raster und scrollt nicht – dort nichts anfassen.
       if (scroller.scrollWidth <= scroller.clientWidth + 10) { scroller.style.height = ""; return; }
-      const left = scroller.scrollLeft, right = left + scroller.clientWidth;
       let h = 0;
-      panels.forEach(p => {
-        const a = p.offsetLeft - panels[0].offsetLeft;
-        if (a + p.offsetWidth > left + 1 && a < right - 1) h = Math.max(h, p.offsetHeight);
-      });
+      // fixedHeight: Karten, die als gleich hoch gedacht sind (Heute/Woche-Ziele),
+      // aber durch bedingten Inhalt (Trainings-Badge, "Neu berechnen"-Knopf) leicht
+      // abweichen koennen. Ohne festes Mass auf das Maximum ALLER Karten wuerde der
+      // Streifen beim Wischen zwischen beiden Hoehen wackeln, statt einmal fest zu
+      // stehen. Der Wochenplan (.week) bleibt bewusst variabel: dort ist die
+      // unterschiedliche Hoehe pro Tag gewollt (siehe Kommentar bei .week weiter oben).
+      if (opts && opts.fixedHeight) {
+        panels.forEach(p => { h = Math.max(h, p.offsetHeight); });
+      } else {
+        const left = scroller.scrollLeft, right = left + scroller.clientWidth;
+        panels.forEach(p => {
+          const a = p.offsetLeft - panels[0].offsetLeft;
+          if (a + p.offsetWidth > left + 1 && a < right - 1) h = Math.max(h, p.offsetHeight);
+        });
+      }
       if (h) scroller.style.height = h + "px";
     }
     fits.push(fitHeight);
@@ -4399,7 +4409,7 @@
   function renderHome() {
     view.innerHTML = `${appHeroHtml()}${weekNutHtml()}${rueckblickHtml()}${weightHtml()}`;
     resetCarousels();
-    initCarousel(view.querySelector(".wg-cols"), view.querySelector(".wgbar"));
+    initCarousel(view.querySelector(".wg-cols"), view.querySelector(".wgbar"), null, null, { fixedHeight: true });
     initWeightChart();
   }
 
