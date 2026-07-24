@@ -65,10 +65,18 @@ Faustregel vor jedem neuen Hilfetext (`.onb-why`, `.hint`, `.tdays-note`, Platzh
 
 Gilt für alle Screens, nicht nur den Rechner/das Onboarding.
 
-**Bei jeder Design-Änderung zuerst den Skill `ui-ux-pro-max` aufrufen** — verbindlich, nicht
-optional. `ui-ux-pro-max:ui-ux-pro-max` für UI-Zustände, Farben, UX- und A11y-Regeln,
-`ui-ux-pro-max:design` für Branding/Logo/Banner. Dessen Empfehlungen dann auf die Projekt-Tokens
-mappen, nie dessen eigene Variablen übernehmen.
+**Bei jeder Design-Änderung immer alle drei Design-Skills vorab durchlaufen — verbindlich, nicht
+optional, in dieser Reihenfolge:**
+
+1. `ui-ux-pro-max` — `ui-ux-pro-max:ui-ux-pro-max` für UI-Zustände, Farben, UX- und A11y-Regeln,
+   `ui-ux-pro-max:design` für Branding/Logo/Banner.
+2. `apple-design` — fluide Interaktion, Motion/Springs, Materialien, Wayfinding/Agency.
+3. `emil-design-eng` — Politur-Detail, Animations-Entscheidungen (frequenzbasiert), Press-States.
+
+Die Empfehlungen aller drei danach auf die Projekt-Tokens „Performance Dark" mappen, **nie deren
+eigene Variablen/Kurven übernehmen** — bestehende CSS-Variablen und Motion-Timing-Tokens nutzen.
+Die Animations-Skills (`find-animation-opportunities` / `improve-animations`) nur situativ, wenn
+Bewegung tatsächlich betroffen ist.
 
 ## Was das ist
 

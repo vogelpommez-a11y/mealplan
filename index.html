@@ -212,7 +212,7 @@
     .navrow { display: contents; }
     .tabs {
       position: fixed; left: 0; right: 0; bottom: 0; z-index: 50;
-      display: grid; grid-template-columns: repeat(4, 1fr); gap: 0;
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 0;
       border: 0; border-top: 1px solid var(--border); border-radius: 0;
       background: color-mix(in srgb, var(--surface) 94%, var(--bg));
       backdrop-filter: blur(10px);
@@ -316,6 +316,11 @@
   .btn.icon-gh { position: relative; width: 34px; height: 34px; padding: 0; justify-content: center; }
   .btn.icon-gh::after { content: ""; position: absolute; inset: -5px; }
   .btn.icon-gh svg { width: 17px; height: 17px; }
+  /* "Ziel neu berechnen": am Rechner Icon + Text (auffindbarer, siehe ux-reviewer),
+     auf dem Handy nur das Icon — die feste 34px-Breite von .icon-gh wird hier ueberschrieben
+     und in der Handy-Media-Query wieder gesetzt. */
+  .btn.recalc-btn { width: auto; padding: 0 12px; gap: 6px; }
+  .recalc-btn .rc-t { font-size: 14px; }
   .btn.sm { padding: 6px 11px; font-size: 13px; }
 
   /* ---------- Week grid ---------- */
@@ -522,6 +527,19 @@
   /* Zwei flache Leisten untereinander (Tag, Woche). */
   .wg-cols { display: flex; flex-direction: column; gap: 10px; }
   .wg-col { position: relative; overflow: hidden; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 13px 16px; transition: border-color .16s ease; }
+  /* Leerzustand der Diese-Woche-Karte: accent-getoentes Icon-Chip (gleiche Machart wie
+     .calc-goal-tag) plus ein kurzer Erklaersatz. Nur bestehende Tokens, kein Ring. */
+  .wg-empty-body { display: flex; align-items: center; gap: 14px; padding: 8px 0 6px; }
+  .wg-empty-ic {
+    flex: none; width: 42px; height: 42px; display: grid; place-content: center;
+    color: var(--accent); border-radius: 12px;
+    background: color-mix(in srgb, var(--accent) 12%, var(--surface));
+    border: 1px solid color-mix(in srgb, var(--accent) 26%, transparent);
+  }
+  .wg-empty-ic svg { width: 21px; height: 21px; }
+  .wg-empty p { margin: 0; font-size: 14px; line-height: 1.5; color: var(--text-muted); max-width: 46ch; }
+  /* Hinweis in der rechten Spalte der Heute-Karte, wo im Leerzustand die Makrobalken saessen. */
+  .wg-side-note { margin: 2px 0 0; font-size: 13.5px; line-height: 1.5; color: var(--text-muted); max-width: 34ch; }
   /* An Trainingstagen bekommt die "Heute"-Karte denselben blauen Rand + Kopfstreifen wie
      die Tageskarten im Wochenplan (.day.training) - direkt beim App-Start sichtbar, ohne
      erst die Wochenansicht durchsuchen zu muessen. Icon+Wort "Training" stehen bereits in
@@ -1120,52 +1138,6 @@
   .app-hero .hero-sub { color: var(--text-muted); font-size: 15.5px; line-height: 1.5; margin: 12px 0 0; max-width: 60ch; }
   /* Kalorienrechner-Platzhalter (kommt bald) */
 
-  /* ---------- Kalorienrechner ---------- */
-  /* Assistent auf jeder Breite: vier Karten (Koerperdaten, Alltag & Ziel, Trainingstage,
-     Ergebnis), ein Karussell mit fester Reihenfolge - gewischt wird nicht (siehe
-     overflow:hidden), nur "Weiter"/"Zurueck" und die Schritt-Leiste bewegen es. Fruehher
-     stand auf Desktop Formular und Ergebnisspalte nebeneinander mit Live-Vorschau; das
-     entfaellt jetzt zugunsten eines einheitlichen Ablaufs auf allen Groessen (siehe
-     UX-Review). display:contents flacht .calc-form nur fuer die Darstellung ein, im DOM
-     bleibt die Ebene stehen - initCarousel bekommt die Karten deshalb ausdruecklich
-     uebergeben. */
-  .calc { display: flex; gap: 12px; align-items: flex-start; overflow: hidden; }
-  .calc-form { display: contents; }
-  .calc .calc-group, .calc .calc-result { flex: 0 0 100%; margin-bottom: 0; }
-  /* Klebt unter dem Kopf, damit beim Scrollen durch eine lange Karte sichtbar bleibt,
-     in welchem Schritt man steht. Durchgaengiger Balken wie bei den ersten Schritten —
-     dieselbe Klasse .wg-progress-bar, nicht nachgebaut, rein visuell wie dort (kein
-     Antippen). .calcbar-track/.cb-seg sind unsichtbare Platzhalter ohne jede eigene
-     Optik oder Interaktion (pointer-events:none, aria-hidden) — initCarousel() braucht
-     vier Kind-Elemente als technisches Geruest, um den Schritt zu verfolgen; ohne sie
-     bricht die Navigation. */
-  .calcbar {
-    position: sticky; top: var(--head-h, 70px); z-index: 20;
-    margin: 0 0 18px; padding: 10px 0 0;
-    background: var(--bg);
-  }
-  .calcbar .wg-progress-bar { height: 6px; box-shadow: none; }
-  .calcbar .wg-progress-bar > span { box-shadow: 0 0 12px color-mix(in srgb, var(--accent) 55%, transparent); }
-  .calcbar-track { display: flex; height: 0; overflow: hidden; pointer-events: none; }
-  .cb-seg { flex: 1 1 0; height: 0; padding: 0; margin: 0; border: 0; background: transparent; }
-  .calcbar-label {
-    margin-top: 10px; font-family: var(--font-display); font-size: 12px;
-    letter-spacing: .12em; text-transform: uppercase; color: var(--text-muted);
-  }
-  .calcbar-label b { color: var(--text); font-weight: 650; letter-spacing: normal; text-transform: none; }
-  /* Der Fussknopf ist der Faden durch den Assistenten: Weiter, Weiter, Berechnen,
-     Zuruecksetzen. Auf dem Handy klebt er ueber der unteren Reiterleiste (siehe
-     Media-Query unten fuer bottom/bg); auf breiten Screens reicht ein normaler Fluss. */
-  .calcnav { display: block; margin: 16px 0 0; padding: 10px 0 4px; }
-  .calcnav .cn-row { display: flex; gap: 8px; max-width: 420px; margin: 0 auto; }
-  .calcnav .btn { justify-content: center; min-height: 48px; font-size: 15px; }
-  .calcnav .btn.ghost { background: var(--surface); border-color: var(--border-strong); color: var(--text); }
-  .calcnav #c-step-back { flex: 0 0 34%; }
-  .calcnav #c-step-go { flex: 1 1 auto; }
-  /* Auf der Ergebniskarte traegt der Fussknopf die Aktion – der Knopf in der Karte
-     waere dieselbe Handlung ein zweites Mal. */
-  .calc-result #c-save, .calc-result .calc-saved { display: none; }
-  .calc-form .field { margin-bottom: 15px; }
   .row3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
   /* Segmented control (Geschlecht/Ziel) im Stil der Wochen-Umschalter */
   .seg { display: flex; background: var(--surface-2); border: 1px solid var(--border); border-radius: 999px; padding: 3px; gap: 2px; }
@@ -1281,54 +1253,7 @@
 
   .seg-col { flex-direction: column; gap: 3px; border-radius: var(--radius-sm); padding: 4px; }
   .seg-col button { flex-direction: row; justify-content: space-between; align-items: center; border-radius: var(--radius-sm); padding: 11px 14px; }
-  .calc-result { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); padding: 26px 22px; text-align: center; }
-  /* Die Kernzahl ist das Ergebnis der ganzen Seite. Hervorgehoben wird sie ueber RAUM,
-     nicht ueber eine weitere Farbe: 54px sind bereits die groesste Schrift der App, und
-     ein zweiter Akzentton wuerde nur die Bedeutung des roten schwaechen. */
-  .calc-kcal { font-family: var(--font-display); font-size: 54px; font-weight: 700; color: var(--accent); line-height: 1; letter-spacing: .5px; margin: 12px 0 6px; }
-  /* Die Einheit steht bewusst als eigene Zeile statt neben der Zahl: „2.062 kcal / Ruhetag"
-     passt bei 54px Zifferngroesse in kein Panel dieser Breite. Ohne block brach sie hinter
-     dem Schraegstrich um und erbte dabei die Zeilenhoehe der grossen Zahl — ein Loch von
-     ueber 50px mitten im Ergebnis. */
-  .calc-kcal .u { display: block; margin-top: 7px; font-family: var(--font-body); font-size: 17px; font-weight: 600; color: var(--text-muted); letter-spacing: 0; line-height: 1.2; }
-  .calc-sub { color: var(--text-muted); font-size: 13px; margin-top: 8px; line-height: 1.5; }
-  /* Ueberschrift, damit die drei Kacheln benannt sind – ohne sie standen dort nur drei
-     Zahlen ohne Oberbegriff. Gleiche Machart wie .calc-group-h. */
-  .macros-h {
-    font-family: var(--font-display); font-size: 12px; font-weight: 700;
-    text-transform: uppercase; letter-spacing: .08em; color: var(--text-muted);
-    margin: 22px 0 9px; text-align: left;
-  }
-  .macros-h span { font-family: var(--font-body); text-transform: none; letter-spacing: 0; font-weight: 400; }
   .macros { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
-  .macro { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 13px 6px; }
-  /* Farben wie ueberall sonst im Projekt (Wochenbilanz, Naehrwerte je Portion): jedes
-     Makro hat dort schon seinen Ton. Getragen wird die Zuordnung vom Punkt UND vom
-     Wort darunter – die Farbe allein traegt keine Aussage. */
-  .macro .mv { font-family: var(--font-display); font-size: 22px; font-weight: 600; color: var(--tc, var(--text)); }
-  .macro .ml { display: flex; align-items: center; justify-content: center; gap: 5px; font-size: 10.5px; text-transform: uppercase; letter-spacing: .05em; font-weight: 650; color: var(--text-muted); margin-top: 3px; }
-  .macro .ml::before { content: ""; width: 8px; height: 8px; border-radius: 50%; flex: none; background: var(--tc, var(--accent)); }
-  .macro.t-prot { --tc: #C74B78; } .macro.t-carb { --tc: #E9A03B; } .macro.t-fat { --tc: #4AA8E0; }
-  /* Der Abschluss der Seite wird als solcher abgesetzt: mehr Luft nach oben, dazu der
-     weiche Akzentschein, den aktive Elemente im Theme ohnehin tragen (Heute-Chip,
-     Tages-Umschalter). Hebt den Button heraus, ohne einen neuen Farbwert einzufuehren. */
-  .calc-result .btn.primary {
-    width: 100%; justify-content: center; margin-top: 28px;
-    box-shadow: 0 4px 16px color-mix(in srgb, var(--accent) 34%, transparent);
-  }
-  .calc-result .btn.primary:hover { box-shadow: 0 6px 20px color-mix(in srgb, var(--accent) 44%, transparent); }
-  /* Der Schein ist Dekoration: wer Bewegung/Effekte reduziert, bekommt ihn flacher. */
-  @media (prefers-reduced-motion: reduce) {
-    .calc-result .btn.primary, .calc-result .btn.primary:hover { box-shadow: var(--shadow); }
-  }
-  .calc-saved { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 12.5px; color: var(--text-muted); margin-top: 12px; }
-  /* Hinweis, dass die Werte Richtwerte sind – gleiches Muster wie .auth-note */
-  /* Der Haftungshinweis stand als sechszeiliger Block unter dem Rechner und drueckte
-     auf dem Handy alles Wichtige aus dem Bild. Jetzt eine Zeile mit (i), die sich
-     aufklappt. Bewusst <details> und kein selbstgebauter Aufklapper: das funktioniert
-     ohne JS, ist mit der Tastatur bedienbar und wird von Sprachausgaben als
-     zu-/aufgeklappt angesagt. Der Kern bleibt sichtbar in der Zusammenfassung stehen —
-     ein blosses (i) ohne Text waere fuer einen Gesundheitshinweis zu wenig. */
   .calc-note { max-width: var(--maxw); font-size: 12px; line-height: 1.55; color: var(--text-muted); margin: 20px 0 0; padding-top: 6px; border-top: 1px solid var(--border); }
   .calc-note > summary {
     display: flex; align-items: center; gap: 9px; cursor: pointer;
@@ -1343,20 +1268,11 @@
   @media (prefers-reduced-motion: reduce) { .calc-note .caret { transition: none; } }
   .calc-note .cn-body { padding: 0 0 12px 24px; }
   .calc-note strong { color: var(--text); font-weight: 600; }
-  .calc-empty { color: var(--text-muted); font-size: 14px; line-height: 1.55; padding: 30px 6px; }
-  /* Eingabe-Gruppen (Karten) */
-  .calc-group { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 18px 4px; margin-bottom: 16px; }
-  .calc-group:last-child { margin-bottom: 0; }
-  .calc-group-h { font-family: var(--font-display); font-size: 14px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--text-muted); margin-bottom: 14px; }
-  /* Ziel-Tag + Aufschlüsselung im Ergebnis */
-  .calc-goal-tag { display: inline-block; font-family: var(--font-display); text-transform: uppercase; letter-spacing: .08em; font-size: 11px; font-weight: 700; color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, var(--surface)); border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent); border-radius: 999px; padding: 4px 12px; margin-bottom: 12px; }
   .breakdown { margin-top: 18px; text-align: left; }
   .bd-row { display: flex; justify-content: space-between; align-items: center; font-size: 13.5px; padding: 8px 2px; border-top: 1px solid var(--border); color: var(--text-muted); }
   .bd-row span:last-child { color: var(--text); font-weight: 600; font-variant-numeric: tabular-nums; }
   .bd-row.bd-mid { color: var(--text); font-weight: 600; }
   .bd-row.bd-mid span:last-child { font-weight: 700; }
-  .calc-meta { display: flex; justify-content: center; gap: 22px; font-size: 13px; color: var(--text-muted); margin-top: 16px; }
-  .calc-meta b { color: var(--text); }
   .auth-card { width: 100%; max-width: 430px; background: var(--surface); border: 1px solid var(--border); border-radius: 18px; box-shadow: var(--shadow); padding: 34px 30px 26px; text-align: center; }
   .auth-card .mark { width: 116px; height: 116px; border-radius: 50%; margin: 0 auto 20px; overflow: hidden; background: center / cover no-repeat var(--logo); }
   .auth-card h2 { font-family: var(--font-display); font-size: 25px; font-weight: 600; margin: 0 0 6px; text-wrap: balance; }
@@ -1474,6 +1390,9 @@
     /* Die Icon-Knoepfe (Woche teilen/leeren) bleiben quadratisch neben den Tabs -
        ohne diese Ausnahme wuerden sie durch die Regel darueber in die Breite gezogen. */
     .plan-tools .icon-gh { flex: none; }
+    /* Am Handy kein Text am Ziel-Knopf, nur das Icon (zurueck zum quadratischen .icon-gh). */
+    .plan-tools .recalc-btn { width: 34px; padding: 0; }
+    .plan-tools .recalc-btn .rc-t { display: none; }
     .week { gap: 12px; }
     .recipes { gap: 12px; }
     .imgfield { flex-direction: column; align-items: stretch; }
@@ -1605,25 +1524,13 @@
     .wg-cols::-webkit-scrollbar { display: none; }
     .wg-cols > .wg-col { flex: 0 0 100%; scroll-snap-align: start; scroll-snap-stop: always; }
 
-    /* Kalorienrechner-Assistent (Basisregeln jetzt oben, breitenunabhaengig): auf dem
-       Handy klebt der Fussknopf zusaetzlich ueber der unteren Reiterleiste, damit er auf
-       jeder Karte erreichbar bleibt, ohne ans Ende scrollen zu muessen. Auf breiten
-       Screens reicht der normale Fluss der Basisregel. */
-    .calcnav {
-      position: sticky; z-index: 20;
-      /* ueber der festen Reiterleiste, nicht dahinter. Deren Hoehe misst
-         syncStickyOffsets(); der Rueckfallwert gilt nur, bis das einmal gelaufen ist.
-         env() steckt schon in der Leiste selbst – hier nicht doppelt rechnen. */
-      bottom: calc(var(--tabbar-h, 56px) + 8px);
-      background: var(--bg);
-    }
-    .calcnav .cn-row { max-width: none; margin: 0; }
   }
 
   /* ---------- Erste Schritte (Onboarding) ----------
-     Eine Frage je Bildschirm. Waehrend der Einfuehrung ist die Reiterleiste weg – nicht
-     um jemanden einzusperren (Ueberspringen steht immer da), sondern damit auf dem Handy
-     kein zweites Bedienelement um den unteren Rand konkurriert. syncStickyOffsets() setzt
+     Eine Frage je Bildschirm. Waehrend der Einfuehrung ist die Reiterleiste weg, damit auf
+     dem Handy kein zweites Bedienelement um den unteren Rand konkurriert. Ohne gesetztes Ziel
+     ist der Ablauf bewusst nicht verlassbar (Schliessen erscheint erst, wenn ein Ziel
+     existiert). syncStickyOffsets() setzt
      --tabbar-h dann von selbst auf 0, weil die ausgeblendete Leiste 0 hoch ist.
      Alle Farben kommen aus den Tokens, damit Light und Dark ohne eigenen Block tragen. */
   .app.onboarding .tabs { display: none; }
@@ -1847,10 +1754,6 @@
           <button class="tab" role="tab" id="tab-recipes" data-action="tab" data-tab="recipes" aria-selected="false">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4v16a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1V7l-4-3H5a1 1 0 0 0-1 1Z"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>
             <span class="tl">Meals</span><span class="ts">Meals</span> <span class="count" id="recipe-count">0</span>
-          </button>
-          <button class="tab" role="tab" id="tab-rechner" data-action="tab" data-tab="rechner" aria-selected="false">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 7h8"/><path d="M8 11h.01M12 11h.01M16 11h.01M8 15h.01M12 15h.01M16 15h.01"/></svg>
-            <span class="tl">Kalorienrechner</span><span class="ts">Rechner</span>
           </button>
         </div>
       </div>
@@ -2827,6 +2730,8 @@
   const TOOL_ICONS = {
     share: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 13.5 6.8 4M15.4 6.5l-6.8 4"/></svg>',
     clear: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6c1 1 1 2.5 0 3.4L13 21"/><path d="M22 21H7"/><path d="m5 11 9 9"/></svg>',
+    // Taschenrechner — vom frueheren Kalorienrechner-Reiter uebernommen (Wiedererkennung).
+    recalc: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 7h8"/><path d="M8 11h.01M12 11h.01M16 11h.01M8 15h.01M12 15h.01M16 15h.01"/></svg>',
   };
   // Hantel (Trainingstag). Als EINZIGES Icon der App mit gefuellten Flaechen statt reiner
   // Konturen — und das aus einem geprueften Grund: Bei 13 px, wie es in der Tages-Kopfzeile
@@ -3075,8 +2980,7 @@
     try {
       document.getElementById("recipe-count").textContent = state.recipes.length;
       document.querySelectorAll(".tab").forEach(t => t.setAttribute("aria-selected", String(t.dataset.tab === state.tab)));
-      if (state.tab === "rechner") renderRechner();
-      else if (state.tab === "recipes") renderRecipes();
+      if (state.tab === "recipes") renderRecipes();
       else if (state.tab === "plan") renderPlan();
       else renderHome();
     } finally {
@@ -3803,17 +3707,21 @@
     // aufsummiert war eine Zahl ohne Handlung: entschieden wird immer auf Tagesebene,
     // nie "diese Woche insgesamt 980g Protein". Die Makrobalken bleiben, wo sie etwas
     // sagen: je Tag (dayGoalsHtml) und im Tages-Ring hier drunter (weekGoalHtml).
-    const tiles = `<div class="wn-tile t-kcal"><div class="val">${nfmt(w.kcal)}<span class="u">kcal</span></div><div class="lbl">Kalorien</div></div>`;
-    const body = t && hasNut(w) ? weekGoalHtml(w, t) : `<div class="wn-tiles">${tiles}</div>`;
     // Kein umschliessender Rahmen mehr ("Deine Ziele"-Karte): Heute/Woche stehen mit
     // ihrer eigenen Kartenoptik (.wg-col) direkt auf der Seite - Karte-in-der-Karte war
     // doppelt genestet, und beide Karten tragen mit "Kalorien" + Eyebrow-Zeile schon
     // genug eigenen Kontext, um ohne uebergeordneten Titel verstaendlich zu sein.
-    // Ohne einen einzigen Makrowert faellt der Bereich ganz weg statt einen Hinweistext zu
-    // zeigen ("Trage bei deinen Meals Makros ein …"): das Makro-Feld steht im Meal-Formular
-    // sichtbar bereit, der Satz war die Erklaerung dazu und damit Fuellung.
+    //
+    // Ziel vorhanden: die beiden Zielkarten IMMER zeigen — auch ohne ein einziges geplantes
+    // Meal. Der leere Zustand (keine Naehrwerte in der Woche) wird an weekGoalHtml durchgereicht;
+    // die Diese-Woche-Karte wird dann zum Erklaerpanel statt zum Datenring, die Heute-Karte zeigt
+    // bei Verzehr 0 die Ziele (Ring "Verbleibend" = volles Tagesziel, Makrobalken 0/Ziel).
+    if (t) return `<div class="week-nut">${weekGoalHtml(w, t)}</div>`;
+    // Randfall ohne gespeichertes Ziel (die App fuehrt sonst ins Onboarding): nur bei
+    // vorhandenen Naehrwerten die Kalorien-Kachel, sonst faellt der Bereich ganz weg.
     if (!hasNut(w)) return "";
-    return `<div class="week-nut">${body}</div>`;
+    const tiles = `<div class="wn-tile t-kcal"><div class="val">${nfmt(w.kcal)}<span class="u">kcal</span></div><div class="lbl">Kalorien</div></div>`;
+    return `<div class="week-nut"><div class="wn-tiles">${tiles}</div></div>`;
   }
 
   // Ring + Kennzahlenliste + eigene Makro-Spalte, nachgebaut nach einem Screenshot einer
@@ -3888,6 +3796,11 @@
     // auf die naechste Woche zeigt - "heute" bleibt heute, unabhaengig von der
     // gewaehlten Ansicht (siehe dayNutOf-Kommentar).
     const s = state.viewWeek === "next" ? dayNutOf(state.plans[weekKeyFor("cur")] || makeEmptyPlan(), d.key) : dayNut(d.key);
+    // Leerzustand je Karte getrennt: die Heute-Karte zeigt ihren Makro-Hinweis, solange HEUTE
+    // kein Meal hat (nicht schon, wenn irgendein anderer Wochentag geplant ist); die
+    // Diese-Woche-Karte wird zum Erklaerpanel, solange die ganze Woche leer ist.
+    const dayEmpty = !hasNut(s);
+    const weekEmpty = !hasNut(w);
     const mode = state.goal && MODE_LABEL[state.goal.mode];
     const dayHead = `Heute · ${esc(d.label)}`;
     const plannedKeys = DAYS.filter(x => hasNut(dayNut(x.key))).map(x => x.key);
@@ -3934,6 +3847,14 @@
         <div class="wg-progress-bar" role="progressbar" aria-valuenow="${planned}" aria-valuemin="0" aria-valuemax="7" aria-label="Tage geplant"><span style="width:${planPct}%"></span></div>
         ${perOpen}
       </div>`;
+    // Rechte Spalte der Heute-Karte: im Leerzustand stehen die Makrobalken alle auf 0/Ziel und
+    // sagen nichts - daher stattdessen ein kurzer Hinweis, was hier erscheint. Die Ueberschrift
+    // "Makros" bleibt als Kontext. Ring + Grundbedarf/Ernaehrung/Training bleiben, die zeigen die
+    // Ziele auch ohne geplantes Meal. Bewusst ein eigener, Makro-bezogener Satz (nicht der der
+    // Diese-Woche-Karte), damit er auf dem Rechner nicht doppelt untereinander steht.
+    const dayRight = dayEmpty
+      ? `<h3 class="wg-h">Makros</h3><p class="wg-side-note">Trage für heute ein Meal ein, dann erscheinen hier deine Makros: Proteine, Kohlenhydrate und Fett.</p>`
+      : `<h3 class="wg-h">Makros</h3>${goalMacrosHtml(s, day)}`;
     // Auf dem Handy liegen die beiden Leisten nebeneinander und werden gewischt
     // (siehe CSS) – die Knopfleiste sagt, welche gerade zu sehen ist. Am Rechner
     // ist sie ausgeblendet, dort stehen beide untereinander wie bisher.
@@ -3942,8 +3863,23 @@
         <button type="button" class="wg-b">${weekLbl}</button>
       </div>
       <div class="wg-cols">
-        <div class="wg-col${isTrainingDay(d.key) ? " wg-col-training" : ""}">${goalRingHtml(s.kcal, rest1.kcal, dayTrainAdd, dayHeadHtml, `<h3 class="wg-h">Makros</h3>${goalMacrosHtml(s, day)}`, "Grundbedarf")}</div>
-        <div class="wg-col">${goalRingHtml(w.kcal, weekGrund, weekTrainAdd, weekHeadHtml, weekProgressHtml, "Grundbedarf")}</div>
+        <div class="wg-col${isTrainingDay(d.key) ? " wg-col-training" : ""}">${goalRingHtml(s.kcal, rest1.kcal, dayTrainAdd, dayHeadHtml, dayRight, "Grundbedarf")}</div>
+        <div class="wg-col">${weekEmpty ? weekEmptyHtml(weekLbl) : goalRingHtml(w.kcal, weekGrund, weekTrainAdd, weekHeadHtml, weekProgressHtml, "Grundbedarf")}</div>
+      </div>`;
+  }
+
+  // Leerzustand der Diese-Woche-Karte (Ziel gesetzt, aber noch kein Meal geplant): kein
+  // Datenring, sondern ein kurzes Erklaerpanel in derselben .wg-col-Huelle. Sagt konkret,
+  // welche Kennzahlen hier auftauchen, sobald geplant wird — bewusst nicht die generische
+  // "plane deine Woche"-Aussage des Home-Heros. Die Heute-Karte daneben zeigt weiter die
+  // Ziele (Ring + Makros bei Verzehr 0).
+  function weekEmptyHtml(weekLbl) {
+    return `<div class="wg wg-empty">
+        <div class="wg-lbl">${esc(weekLbl)}</div>
+        <div class="wg-empty-body">
+          <span class="wg-empty-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 21h18"/><rect x="5" y="12" width="3.6" height="6" rx="1"/><rect x="10.2" y="8" width="3.6" height="10" rx="1"/><rect x="15.4" y="4" width="3.6" height="14" rx="1"/></svg></span>
+          <p>Plane deine Woche — hier siehst du dann Kalorien, Ernährung, Training und Makros auf einen Blick.</p>
+        </div>
       </div>`;
   }
 
@@ -4356,6 +4292,7 @@
             <button class="ws-btn${state.viewWeek === "next" ? "" : " active"}" data-action="week" data-week="cur" role="tab" aria-selected="${state.viewWeek === "next" ? "false" : "true"}">Aktuelle Woche</button>
             <button class="ws-btn${state.viewWeek === "next" ? " active" : ""}" data-action="week" data-week="next" role="tab" aria-selected="${state.viewWeek === "next" ? "true" : "false"}">Nächste Woche</button>
           </div>
+          <button class="btn ghost icon-gh recalc-btn" data-action="recalc-goal" title="Ziel neu berechnen" aria-label="Ziel neu berechnen">${TOOL_ICONS.recalc}<span class="rc-t">Ziel neu berechnen</span></button>
           <button class="btn ghost icon-gh" data-action="share" title="Woche teilen" aria-label="Woche teilen">${TOOL_ICONS.share}</button>
           <button class="btn ghost icon-gh" data-action="clear-week" title="Woche leeren" aria-label="Woche leeren">${TOOL_ICONS.clear}</button>
         </div>
@@ -5457,11 +5394,11 @@
       <h4>2. Hosting der Website (GitHub Pages)</h4>
       <p>Diese Website wird bei GitHub Pages gehostet, einem Dienst der GitHub, Inc., 88 Colin P. Kelly Jr. Street, San Francisco, CA 94107, USA. Beim Aufruf der Seite verarbeitet GitHub technisch notwendige Zugriffsdaten (z. B. deine IP-Adresse), um die Seite auszuliefern und deren Sicherheit zu gewährleisten. Rechtsgrundlage ist unser berechtigtes Interesse an einer sicheren und effizienten Bereitstellung (Art. 6 Abs. 1 lit. f DSGVO). Dabei kann eine Übermittlung in die USA erfolgen. Weitere Infos: <a href="https://docs.github.com/de/site-policy/privacy-policies/github-general-privacy-statement" target="_blank" rel="noopener">GitHub Privacy Statement</a>.</p>
       <h4>3. Welche Daten wir verarbeiten</h4>
-      <p>Bei der Registrierung: <strong>Name und E-Mail-Adresse</strong>. Bei Nutzung der App: die von dir angelegten <strong>Wochenpläne, Meals/Rezepte und ggf. Fotos</strong> sowie ein optionales <strong>Profilbild</strong> (als Kreis-Avatar zugeschnitten, in deinem Nutzerkonto gespeichert, nicht Teil von Teilen-Links) sowie – falls du den Kalorienrechner nutzt und ein Ergebnis speicherst – <strong>Geschlecht, Alter, Größe, Gewicht, Alltagsbewegung, Ziel sowie deine Trainingstage</strong> (Wochentag, Intensität und Dauer; Details siehe Ziffer 3a). Zusätzlich speichern wir eine technische Markierung, ob du die <strong>Einführungsfragen nach der Registrierung</strong> („Erste Schritte") bereits durchlaufen hast, damit dir der Ablauf nicht bei jeder Anmeldung erneut angezeigt wird. Erstellst du Teilen-Links, merkt sich dein Konto zusätzlich deren <strong>Kennungen</strong> (keine Klardaten, siehe Ziffer 8), damit sie beim Löschen deines Kontos zugeordnet und mitentfernt werden können. Trägst du eine Wiegung ein oder speicherst du im Kalorienrechner ein Ergebnis, speichern wir außerdem deinen <strong>Gewichtsverlauf</strong> – je Eintrag Monat und Gewicht – sowie ein optionales <strong>Jahres-Zielgewicht</strong> (Details siehe Ziffer 3b). Diese Daten speichern wir, damit du dich anmelden und deine Planung geräteübergreifend nutzen kannst.</p>
-      <h4>3a. Kalorienrechner</h4>
-      <p>Nutzt du den Kalorienrechner, gibst du freiwillig <strong>Geschlecht, Alter, Größe und Gewicht</strong> sowie deine Alltagsbewegung und dein Ziel ein. Optional legst du zusätzlich deine <strong>Trainingstage</strong> fest – also an welchen Wochentagen du trainierst, mit welcher Intensität und wie lange. Daraus berechnet die App direkt in deinem Browser deinen Tagesbedarf, deine Makronährstoffe und deinen BMI; an Trainingstagen zusätzlich den geschätzten Mehrbedarf durch die jeweilige Einheit. Speicherst du das Ergebnis („Als mein Ziel speichern"), werden diese Angaben wie deine übrigen Plandaten lokal und – bei Cloud-Nutzung – in deinem Nutzerkonto (Cloud Firestore, siehe Ziffer 5) gespeichert, um sie geräteübergreifend verfügbar zu halten. Rechtsgrundlage ist wie unter Ziffer 4 die Erfüllung des Nutzungsvertrags (Art. 6 Abs. 1 lit. b DSGVO). Die Eingabe ist freiwillig; lässt du den Rechner ungenutzt, entstehen keine dieser Daten. Diese Angaben werden <strong>nicht</strong> in Teilen-Links aufgenommen (siehe Ziffer 8).</p>
+      <p>Bei der Registrierung: <strong>Name und E-Mail-Adresse</strong>. Bei Nutzung der App: die von dir angelegten <strong>Wochenpläne, Meals/Rezepte und ggf. Fotos</strong> sowie ein optionales <strong>Profilbild</strong> (als Kreis-Avatar zugeschnitten, in deinem Nutzerkonto gespeichert, nicht Teil von Teilen-Links) sowie – im Rahmen der Einführungsfragen nach der Registrierung, die zur Nutzung der App erforderlich sind – <strong>Geschlecht, Alter, Größe, Gewicht, Alltagsbewegung und Ziel</strong> sowie optional deine <strong>Trainingstage</strong> (Wochentag, Intensität und Dauer; Details siehe Ziffer 3a). Erstellst du Teilen-Links, merkt sich dein Konto zusätzlich deren <strong>Kennungen</strong> (keine Klardaten, siehe Ziffer 8), damit sie beim Löschen deines Kontos zugeordnet und mitentfernt werden können. Trägst du eine Wiegung ein oder aktualisierst du dein Ziel, speichern wir außerdem deinen <strong>Gewichtsverlauf</strong> – je Eintrag Monat und Gewicht – sowie ein optionales <strong>Jahres-Zielgewicht</strong> (Details siehe Ziffer 3b). Diese Daten speichern wir, damit du dich anmelden und deine Planung geräteübergreifend nutzen kannst.</p>
+      <h4>3a. Ziel-Berechnung (Einführungsfragen)</h4>
+      <p>Zur Nutzung der App gibst du bei den Einführungsfragen nach der Registrierung <strong>Geschlecht, Alter, Größe und Gewicht</strong> sowie deine Alltagsbewegung und dein Ziel an – ohne diese Angaben lässt sich kein Kalorien- und Makroziel berechnen und die App steht dir nicht zur Verfügung. Optional legst du zusätzlich deine <strong>Trainingstage</strong> fest – also an welchen Wochentagen du trainierst, mit welcher Intensität und wie lange; diese Angabe kannst du auch weglassen. Daraus berechnet die App direkt in deinem Browser deinen Tagesbedarf, deine Makronährstoffe und deinen BMI; an Trainingstagen zusätzlich den geschätzten Mehrbedarf durch die jeweilige Einheit. Übernimmst du das Ergebnis als dein Ziel, werden diese Angaben wie deine übrigen Plandaten lokal und – bei Cloud-Nutzung – in deinem Nutzerkonto (Cloud Firestore, siehe Ziffer 5) gespeichert, um sie geräteübergreifend verfügbar zu halten. Du kannst dein Ziel jederzeit über den Knopf „Ziel neu berechnen" im Wochenplan neu berechnen; die vorherigen Werte sind dann durch die neuen ersetzt. Rechtsgrundlage ist wie unter Ziffer 4 die Erfüllung des Nutzungsvertrags (Art. 6 Abs. 1 lit. b DSGVO). Diese Angaben werden <strong>nicht</strong> in Teilen-Links aufgenommen (siehe Ziffer 8).</p>
       <h4>3b. Gewichtsverlauf („Ziele &lt;Jahr&gt;")</h4>
-      <p>Ein Eintrag im Gewichtsverlauf besteht aus <strong>Monat und Gewicht</strong> – taggenaue Angaben werden nicht erhoben; zusätzlich kannst du ein <strong>Zielgewicht je Kalenderjahr</strong> festlegen. Ein solcher Eintrag entsteht auf zwei Wegen: wenn du im Bereich „Ziele" eine Wiegung einträgst – auch nachträglich für zurückliegende Monate –, und automatisch dann, wenn du im <strong>Kalorienrechner oder in den ersten Schritten</strong> ein Ergebnis mit deinem Gewicht speicherst und dieses vom zuletzt erfassten Wert abweicht. Die Daten dienen allein der Darstellung deines Verlaufs als Diagramm; die jeweils jüngste Wiegung aktualisiert zusätzlich das im Kalorienrechner hinterlegte Gewicht, damit dein Kalorien- und Makroziel zu deinem aktuellen Gewicht passt (Ziffer 3a). Speicherung und Rechtsgrundlage entsprechen Ziffer 3a: lokal auf deinem Gerät und – bei Cloud-Nutzung – in deinem Nutzerkonto, Art. 6 Abs. 1 lit. b DSGVO. Die Eingabe ist <strong>freiwillig</strong>; ohne Wiegung entstehen keine dieser Daten. Einzelne Einträge kannst du jederzeit im Wiegen-Dialog löschen, den gesamten Verlauf mit deinem Konto (Ziffer 10). Diese Angaben werden <strong>nicht</strong> in Teilen-Links aufgenommen (siehe Ziffer 8).</p>
+      <p>Ein Eintrag im Gewichtsverlauf besteht aus <strong>Monat und Gewicht</strong> – taggenaue Angaben werden nicht erhoben; zusätzlich kannst du ein <strong>Zielgewicht je Kalenderjahr</strong> festlegen. Ein solcher Eintrag entsteht auf zwei Wegen: wenn du im Bereich „Ziele" eine Wiegung einträgst – auch nachträglich für zurückliegende Monate –, und automatisch dann, wenn du bei den <strong>Einführungsfragen</strong> oder beim <strong>Neuberechnen deines Ziels</strong> dein Gewicht angibst und dieses vom zuletzt erfassten Wert abweicht. Die Daten dienen allein der Darstellung deines Verlaufs als Diagramm; die jeweils jüngste Wiegung aktualisiert zusätzlich das bei der Ziel-Berechnung hinterlegte Gewicht, damit dein Kalorien- und Makroziel zu deinem aktuellen Gewicht passt (Ziffer 3a). Speicherung und Rechtsgrundlage entsprechen Ziffer 3a: lokal auf deinem Gerät und – bei Cloud-Nutzung – in deinem Nutzerkonto, Art. 6 Abs. 1 lit. b DSGVO. Die Eingabe ist <strong>freiwillig</strong>; ohne Wiegung entstehen keine dieser Daten. Einzelne Einträge kannst du jederzeit im Wiegen-Dialog löschen, den gesamten Verlauf mit deinem Konto (Ziffer 10). Diese Angaben werden <strong>nicht</strong> in Teilen-Links aufgenommen (siehe Ziffer 8).</p>
       <h4>4. Zweck &amp; Rechtsgrundlage</h4>
       <p>Wir verarbeiten die Daten zur Bereitstellung deines Nutzerkontos und der Planer-Funktionen (Art. 6 Abs. 1 lit. b DSGVO – Nutzungsvertrag). Die Bestätigungs-E-Mail dient der Sicherstellung, dass die Adresse dir gehört.</p>
       <h4>5. Cloud-Dienste (Google Firebase)</h4>
@@ -5600,6 +5537,7 @@
     else if (a === "weight-goal") openWeightGoalForm();
     else if (a === "weight-menu") toggleWeightMenu(t);
     else if (a === "clear-week") clearWeek();
+    else if (a === "recalc-goal") startOnboarding({ first: false });
     else if (a === "share") openShare();
     else if (a === "profile-menu") toggleProfileMenu();
     else if (a === "impressum") openImpressum();
@@ -6030,533 +5968,13 @@
     else if (i.mode !== "hold" && paceKeys(i.mode).indexOf(i.pace) === -1) m.push("dein Tempo");
     return m;
   }
-  function validCalcInput(i) { return missingCalc(i).length === 0; }
-  function renderRechner() {
-    const g = state.goal || {};
-    // Ohne gespeichertes Ziel ist NICHTS vorbelegt (siehe missingCalc): eine
-    // Voreinstellung wird ueberlesen und geht dann als bewusste Angabe in die
-    // Rechnung ein. Mit gespeichertem Ziel stehen die eigenen Werte drin.
-    let cur = { sex: g.sex || null, mode: g.mode || null, pace: g.pace || null,
-                activity: ACTIVITY.some(a => a.key === g.activity) ? g.activity : null,
-                training: sanitizeTraining(g.training) };
-    // Eine Dauer fuer ALLE Trainingseinheiten (frueher ein Feld je Tag). Aus einem
-    // gespeicherten Ziel wird der Wert des ersten Trainingstags uebernommen; standen
-    // dort ausnahmsweise verschiedene Dauern, gleichen sie sich beim naechsten Aendern an.
-    const tkeysInit = trainingKeys(cur.training);
-    cur.trainMin = tkeysInit.length ? cur.training[tkeysInit[0]].min : trainLevel("mod").defMin;
-    function applyTrainMin() { trainingKeys(cur.training).forEach(k => { cur.training[k].min = cur.trainMin; }); }
-    applyTrainMin();
-    // Bei mehr als zwei Trainingstagen startet standardmaessig EINE gemeinsame
-    // Intensitaetszeile statt einer je Tag – weniger Zeilen fuer den Regelfall, volle
-    // Kontrolle (eine Zeile je Tag) bleibt ein Klick am Umschalter entfernt. Reiner
-    // UI-Zustand wie cur.trainMin, nicht Teil des gespeicherten Ziels.
-    cur.trainSameLevel = tkeysInit.length > 2;
-
-    // Haken, ueber den updateResult() den Fussknopf des Assistenten nachzieht. Als
-    // Variable und nicht als direkter Aufruf, weil updateResult() schon einmal laeuft,
-    // bevor der Assistent unten aufgebaut ist – vorher steht hier null und es passiert
-    // nichts. Ein direkter Aufruf liefe dort in die zeitliche Totzone der Konstanten.
-    let refreshStep = null;
-    const CB_STEPS = ["Körper", "Alltag", "Training", "Ziel"];
-    const segBtn = (grp, v, label, hint) => `<button type="button" data-v="${v}"${cur[grp] === v ? ' class="on"' : ''}>${label}${hint ? `<span class="seg-hint">${hint}</span>` : ""}</button>`;
-    view.innerHTML = `
-      <div class="section-head"><div class="title">
-        <h2>Kalorienrechner</h2>
-      </div></div>
-      <nav class="calcbar">
-        <div class="wg-progress-bar" role="progressbar" aria-valuemin="1" aria-valuemax="${CB_STEPS.length}" aria-valuenow="1" aria-label="Schritt im Kalorienrechner"><span style="width:${100 / CB_STEPS.length}%"></span></div>
-        <div class="calcbar-track" aria-hidden="true">
-          ${CB_STEPS.map(() => `<button type="button" class="cb-seg" tabindex="-1"></button>`).join("")}
-        </div>
-        <div class="calcbar-label">Schritt <span class="cb-i">1</span> von ${CB_STEPS.length} · <b class="cb-name">${esc(CB_STEPS[0])}</b></div>
-      </nav>
-      <div class="calc">
-        <div class="calc-form">
-          <div class="calc-group">
-            <div class="calc-group-h">Körperdaten</div>
-            <div class="field"><label>Geschlecht</label>
-              <div class="seg" data-seg="sex">${segBtn("sex", "f", "Weiblich")}${segBtn("sex", "m", "Männlich")}</div>
-            </div>
-            <div class="row3">
-              <div class="field"><label for="c-age">Alter</label>${numField({ id: "c-age", min: 10, max: 120, unit: "Jahre", placeholder: "Jahre", value: g.age != null ? String(g.age) : "" })}</div>
-              <div class="field"><label for="c-height">Größe</label>${numField({ id: "c-height", min: 100, max: 250, unit: "cm", placeholder: "cm", value: g.height != null ? String(g.height) : "" })}</div>
-              <div class="field"><label for="c-weight">Gewicht</label>${numField({ id: "c-weight", min: 30, max: 400, unit: "kg", placeholder: "kg", value: g.weight != null ? String(g.weight) : "" })}</div>
-            </div>
-          </div>
-          <div class="calc-group">
-            <div class="calc-group-h">Alltag &amp; Ziel</div>
-            <div class="field"><label>Bewegung im Alltag <span class="hint">– ohne Sport</span></label>
-              <div class="seg seg-col" data-seg="activity">${ACTIVITY.map(a => segBtn("activity", a.key, a.label, a.hint)).join("")}</div>
-              <p class="tdays-note">Nur Beruf und Alltag. Dein <b>Training zählt hier nicht mit</b> — das trägst du unten
-                als Trainingstage ein und es wird auf den jeweiligen Tag aufgeschlagen.</p>
-            </div>
-            <div class="field"><label>Ziel</label>
-              <div class="seg" data-seg="mode">${segBtn("mode", "lose", "Abnehmen")}${segBtn("mode", "hold", "Halten")}${segBtn("mode", "gain", "Zunehmen")}</div>
-            </div>
-            <div class="field" id="c-pace-field"><label>Tempo</label>
-              <div class="seg" data-seg="pace"></div>
-            </div>
-          </div>
-          <div class="calc-group">
-            <div class="calc-group-h">Trainingstage</div>
-            <div class="field">
-              <label id="c-tdays-lbl">An welchen Tagen trainierst du?</label>
-              <div class="tdays" role="group" aria-labelledby="c-tdays-lbl" id="c-tdays">
-                ${DAYS.map(d => `<button type="button" data-day="${d.key}" aria-pressed="${cur.training[d.key] ? "true" : "false"}" aria-label="${d.label}">${d.short}</button>`).join("")}
-              </div>
-              <div id="c-tdetail"></div>
-              <p class="tdays-note">Optional. Jede Einheit wird <b>auf ihren Tag aufgeschlagen</b> – nach Intensität,
-                Dauer und deinem Gewicht. An Ruhetagen gilt dein Alltagsbedarf. Ohne Auswahl gilt er an allen sieben Tagen.</p>
-            </div>
-          </div>
-        </div>
-        <div class="calc-result" id="c-result"></div>
-      </div>
-      <div class="calcnav">
-        <div class="cn-row">
-          <button type="button" class="btn ghost" id="c-step-back">Zurück</button>
-          <button type="button" class="btn primary" id="c-step-go">Weiter</button>
-        </div>
-      </div>
-      <details class="calc-note">
-        <summary>
-          <svg class="ci" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></svg>
-          <span>Rechnerische Richtwerte – keine ärztliche Beratung</span>
-          <svg class="caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
-        </summary>
-        <div class="cn-body">Alle Werte sind <strong>rechnerische Richtwerte</strong>: Grundumsatz nach der Mifflin-St-Jeor-Formel, Alltagsbedarf über einen Aktivitätsfaktor (PAL), der Mehrbedarf an Trainingstagen über MET-Schätzwerte. Der tatsächliche Verbrauch kann davon deutlich abweichen. Sie ersetzen keine ärztliche oder ernährungsmedizinische Beratung. Bei Erkrankungen, in Schwangerschaft und Stillzeit oder vor einer stärkeren Ernährungsumstellung sprich bitte mit einer Ärztin oder einem Arzt.</div>
-      </details>`;
-
-    const paceField = view.querySelector("#c-pace-field");
-    const paceSeg = view.querySelector('.seg[data-seg="pace"]');
-    function fillPace() {
-      // Ohne gewaehltes Ziel gibt es noch kein Tempo – das Feld erscheint erst, wenn
-      // die Frage davor beantwortet ist. Bei „Halten" gibt es keins.
-      if (!cur.mode || cur.mode === "hold") { paceField.style.display = "none"; return; }
-      paceField.style.display = "";
-      const opts = paceOptions(cur.mode);
-      // Passt das bisherige Tempo nicht zum neuen Ziel, bleibt es leer statt still auf
-      // „Moderat" zu springen – auch das waere eine unbemerkte Voreinstellung.
-      if (!opts.some(o => o[0] === cur.pace)) cur.pace = null;
-      paceSeg.innerHTML = opts.map(o => `<button type="button" data-v="${o[0]}"${cur.pace === o[0] ? ' class="on"' : ''}>${o[1]}<span class="seg-hint">${o[2]}</span></button>`).join("");
-    }
-    function readInput() {
-      return { sex: cur.sex, mode: cur.mode, pace: cur.pace, activity: cur.activity, training: cur.training,
-               age: +view.querySelector("#c-age").value, height: +view.querySelector("#c-height").value, weight: +view.querySelector("#c-weight").value };
-    }
-    // Kurzform der gespeicherten Trainingstage („· Training: Mo, Mi, Fr“).
-    function savedDaysTxt() {
-      const keys = trainingKeys(state.goal && state.goal.training);
-      if (!keys.length) return "";
-      return " · Training: " + DAYS.filter(d => keys.indexOf(d.key) !== -1).map(d => d.short).join(", ");
-    }
-    // Je aktivem Trainingstag eine Zeile: Stufe, Dauer und der daraus folgende Aufschlag.
-    // Der Aufschlag steht bewusst direkt daneben — sonst muesste der Nutzer raten, was
-    // „Hart, 90 Min." fuer sein Ziel bedeutet.
-    function fillTrainDetail() {
-      const box = view.querySelector("#c-tdetail");
-      const keys = trainingKeys(cur.training);
-      if (!keys.length) { box.innerHTML = ""; return; }
-      // Eine Dauer fuer alle Einheiten statt eines Feldes je Tag. Wer wirklich an jedem
-      // Tag unterschiedlich lange trainiert, verliert etwas Genauigkeit – dafuer stehen
-      // hier bei sieben Tagen ein Feld statt sieben. Das Datenmodell bleibt unveraendert
-      // (je Tag { level, min }), der Wert wird nur auf alle Tage geschrieben; damit
-      // bleiben gespeicherte Ziele und computeGoal() unberuehrt.
-      const durationHtml = `
-        <div class="tmin">
-          <label for="c-tmin">Dauer je Einheit</label>
-          <div class="tmin-f">
-            ${numField({ id: "c-tmin", min: TRAIN_MIN_MIN, max: TRAIN_MIN_MAX, step: 5, value: cur.trainMin })}<span>Min.</span>
-          </div>
-        </div>`;
-      // Der Umschalter erscheint erst ab zwei Tagen - bei einem einzigen Tag gibt es
-      // ohnehin nur eine Zeile, ein Umschalter waere dort ohne Wirkung.
-      const toggleHtml = keys.length > 1 ? `
-        <label class="tsame">
-          <input type="checkbox" id="c-tsame"${cur.trainSameLevel ? " checked" : ""}>
-          <span>Gleiche Intensität für alle Trainingstage</span>
-        </label>` : "";
-      const rowsHtml = (keys.length > 1 && cur.trainSameLevel)
-        // Eine Zeile fuer alle gewaehlten Tage zusammen. Referenz ist der erste Tag -
-        // toggleSameLevel() gleicht beim Einschalten alle Tage darauf an, direkt danach
-        // koennen sie also nicht auseinanderlaufen.
-        ? (() => {
-            const lvl = cur.training[keys[0]].level;
-            const lvNow = trainLevel(lvl);
-            return `<div class="trow" data-day="all">
-              <div class="trow-d">Alle</div>
-              <div class="seg trow-lv" data-tlevel="all" role="group" aria-label="Intensität an Trainingstagen">${TRAIN_LEVELS.map(lv =>
-                `<button type="button" data-v="${lv.key}"${lvl === lv.key ? ' class="on"' : ''} title="${esc(lv.ex)}">${lv.label}</button>`).join("")}</div>
-              <div class="trow-def"><span>${esc(lvNow.ex)}</span></div>
-            </div>`;
-          })()
-        : keys.map(k => {
-            const d = DAYS.filter(x => x.key === k)[0];
-            const e = cur.training[k];
-            const lvNow = trainLevel(e.level);
-            return `<div class="trow" data-day="${k}">
-              <div class="trow-d">${d.short}</div>
-              <div class="seg trow-lv" data-tlevel="${k}" role="group" aria-label="Intensität am ${esc(d.label)}">${TRAIN_LEVELS.map(lv =>
-                `<button type="button" data-v="${lv.key}"${e.level === lv.key ? ' class="on"' : ''} title="${esc(lv.ex)}">${lv.label}</button>`).join("")}</div>
-              <div class="trow-def"><span>${esc(lvNow.ex)}</span></div>
-            </div>`;
-          }).join("");
-      box.innerHTML = durationHtml + toggleHtml + rowsHtml;
-    }
-    // Beim Einschalten des Umschalters alle Tage auf die Stufe des ersten Tages
-    // angleichen - sonst zeigte die neue Sammelzeile einen Wert, der fuer die anderen
-    // Tage gar nicht mehr stimmt.
-    function toggleSameLevel(on) {
-      cur.trainSameLevel = on;
-      if (on) {
-        const keys = trainingKeys(cur.training);
-        if (keys.length) {
-          const lvl = cur.training[keys[0]].level;
-          keys.forEach(k => { cur.training[k].level = lvl; });
-        }
-      }
-      fillTrainDetail();
-      updateResult();
-    }
-    // Der Assistent laeuft jetzt auf jeder Breite (siehe CSS bei .calc) – .calc scrollt
-    // dadurch immer waagerecht, wizardActive() liefert also immer true. Die Funktion
-    // bleibt trotzdem stehen: sie ist die einzige Stelle, die diese Annahme kennt, und
-    // faengt ab, falls .calc noch nicht im DOM ist. Als Funktionsdeklaration, damit
-    // updateResult sie auch beim ersten Durchlauf schon aufrufen kann.
-    function wizardActive() {
-      const c = view.querySelector(".calc");
-      return !!c && c.scrollWidth > c.clientWidth + 10;
-    }
-
-    function updateResult() {
-      const res = view.querySelector("#c-result");
-      const inp = readInput();
-      // Ganz vorn, nicht am Ende: unten steht ein frueher return fuer den Fall
-      // unvollstaendiger Eingaben – und genau dann muss der Fussknopf gesperrt werden.
-      if (refreshStep) refreshStep();
-      // Das Ziel wurde mit „Berechnen" schon gespeichert. Geht man danach zurueck und
-      // aendert etwas, zieht es still mit – sonst liefe man nach einer Korrektur mit
-      // einem veralteten Ziel weiter, ohne Hinweis darauf. Vor dem ersten Speichern
-      // passiert nichts: wer nur herumprobiert, legt sich kein Ziel an.
-      if (state.goal && validCalcInput(inp) && wizardActive()) {
-        state.goal = computeGoal(inp);
-        noteWeightFromGoal();
-        save();
-      }
-      const fehlt = missingCalc(inp);
-      if (fehlt.length) {
-        // Benennt das Fehlende statt allgemein „trag etwas ein" – seit nichts mehr
-        // vorbelegt ist, koennen es auch Auswahlfelder sein, nicht nur die Zahlen.
-        res.innerHTML = `<div class="calc-empty">Für deinen Tages- und Wochenbedarf fehlt noch:<br><b>${esc(fehlt.join(", "))}</b>.</div>`;
-        return;
-      }
-      const r = computeGoal(inp);
-      const adjStr = r.adjust === 0 ? "±0 kcal" : (r.adjust > 0 ? "+ " : "− ") + nfmt(Math.abs(r.adjust)) + " kcal";
-      // Trainingstage-Vorschau. Zeigt jeden Tag einzeln statt eines Sammelwerts: die Tage
-      // unterscheiden sich jetzt untereinander, „der Trainingstag" gibt es nicht mehr.
-      const tKeys = trainingKeys(r.training);
-      const rest = { kcal: r.kcal, carbs: r.carbs, protein: r.protein, fat: r.fat };
-      const weekKcal = weekKcalOf(r);
-      const trainPreview = tKeys.length ? `
-        <div class="rest-macros">
-          <div class="rm-h">${ICON_DUMBBELL}<span>An Trainingstagen</span></div>
-          ${tKeys.map(k => {
-            const d = DAYS.filter(x => x.key === k)[0];
-            const e = r.training[k];
-            const t = trainFromRest(rest, trainKcal(e.level, e.min, r.weight));
-            return `<div class="tprev">
-              <div class="tprev-d">${d.short}<span>${esc(trainLevel(e.level).label)} · ${e.min} Min.</span></div>
-              <div class="tprev-v"><b>${nfmt(t.kcal)}</b> kcal<span>${nfmt(t.carbs)} g KH</span></div>
-            </div>`;
-          }).join("")}
-          <div class="tdays-note" style="margin-bottom:0">Oben steht dein <b>Ruhetag</b> (${nfmt(r.kcal)} kcal).
-            Eiweiß und Fett bleiben an allen Tagen gleich – die zusätzliche Energie kommt als
-            Kohlenhydrate dazu, weil das Training genau die leert.</div>
-        </div>` : "";
-      res.innerHTML = `
-        <div class="calc-goal-tag">${MODE_LABEL[r.mode] || "Ziel"}</div>
-        <div class="calc-kcal">${nfmt(r.kcal)} <span class="u">kcal / ${tKeys.length ? "Ruhetag" : "Tag"}</span></div>
-        <div class="breakdown">
-          <div class="bd-row"><span>Grundumsatz</span><span>${nfmt(r.bmr)} kcal</span></div>
-          <div class="bd-row"><span>Alltag &amp; Beruf</span><span>+ ${nfmt(r.tdee - r.bmr)} kcal</span></div>
-          <div class="bd-row bd-mid"><span>Erhaltungsbedarf</span><span>${nfmt(r.tdee)} kcal</span></div>
-          <div class="bd-row"><span>Ziel-Anpassung</span><span>${adjStr}</span></div>
-        </div>
-        <!-- "je Ruhetag" waere hier irrefuehrend: nur Kohlenhydrate aendern sich am
-             Trainingstag (siehe rest-macros-Hinweis unten), Protein und Fett gelten
-             an ALLEN Tagen gleich. Der Zusatz "je Ruhetag" steht deshalb nur bei der
-             kcal-Zahl oben, wo er stimmt - hier nur, wenn es gar keine Trainingstage
-             gibt und der Zusatz unstrittig fuer alle drei Makros gilt. -->
-        <div class="macros-h">Makros${tKeys.length ? "" : ` <span>· je Tag</span>`}</div>
-        <div class="macros">
-          <div class="macro t-prot"><div class="mv">${nfmt(r.protein)} g</div><div class="ml">Protein</div></div>
-          <div class="macro t-carb"><div class="mv">${nfmt(r.carbs)} g</div><div class="ml">Kohlenhydr.</div></div>
-          <div class="macro t-fat"><div class="mv">${nfmt(r.fat)} g</div><div class="ml">Fett</div></div>
-        </div>
-        ${trainPreview}
-        <div class="calc-meta"><span>Woche <b>${nfmt(weekKcal)} kcal</b></span><span>BMI <b>${String(r.bmi).replace(".", ",")}</b></span></div>
-        <button class="btn primary" id="c-save">Als mein Ziel speichern</button>
-        ${state.goal ? `<div class="calc-saved"><span>Gespeichertes Ziel: ${nfmt(state.goal.kcal)} kcal / ${trainingKeys(state.goal.training).length ? "Ruhetag" : "Tag"}${savedDaysTxt()}</span>
-          <button class="btn ghost sm" id="c-del">Ziel zurücksetzen</button></div>` : ""}`;
-      res.querySelector("#c-save").addEventListener("click", () => {
-        state.goal = computeGoal(readInput());
-        noteWeightFromGoal();
-        save();
-        toast("Dein Ziel wurde gespeichert");
-        updateResult();
-      });
-      const del = res.querySelector("#c-del");
-      if (del) del.addEventListener("click", resetCalc);
-    }
-
-    // Nur die Einfachauswahl-Segmente des Formulars. Die Stufen-Segmente der Trainings-
-    // zeilen tragen bewusst kein data-seg und haengen an ihrem eigenen Handler unten —
-    // sie werden dynamisch neu erzeugt und wuerden hier sonst cur[undefined] setzen.
-    view.querySelectorAll(".seg[data-seg]").forEach(seg => {
-      seg.addEventListener("click", e => {
-        const b = e.target.closest("button[data-v]"); if (!b) return;
-        seg.querySelectorAll("button").forEach(x => x.classList.remove("on"));
-        b.classList.add("on");
-        cur[seg.dataset.seg] = b.dataset.v;
-        if (seg.dataset.seg === "mode") fillPace();
-        updateResult();
-      });
-    });
-    // Trainingstage an/aus: Mehrfachauswahl, deshalb aria-pressed statt der .on-Logik.
-    // Ein neu aktivierter Tag bekommt die Standardstufe („Moderat", 60 Min.), damit sofort
-    // ein sinnvoller Wert dasteht und niemand erst drei Felder ausfuellen muss.
-    view.querySelector("#c-tdays").addEventListener("click", e => {
-      const b = e.target.closest("button[data-day]"); if (!b) return;
-      const key = b.dataset.day;
-      const on = !cur.training[key];
-      if (on) {
-        // Bei eingeschaltetem Umschalter zeigt die Sammelzeile nur die Stufe des ersten
-        // Tages - ein neuer Tag muss deshalb dieselbe Stufe bekommen, sonst wiche sein
-        // tatsaechlicher Wert unbemerkt von dem ab, was die eine sichtbare Zeile sagt.
-        const existing = trainingKeys(cur.training);
-        const lvl = (cur.trainSameLevel && existing.length) ? cur.training[existing[0]].level : "mod";
-        cur.training[key] = { level: lvl, min: cur.trainMin };
-      }
-      else delete cur.training[key];
-      b.setAttribute("aria-pressed", on ? "true" : "false");
-      fillTrainDetail();
-      updateResult();
-    });
-    // Delegation, weil die Zeilen bei jeder Aenderung neu gebaut werden.
-    const tdetail = view.querySelector("#c-tdetail");
-    tdetail.addEventListener("click", e => {
-      const b = e.target.closest(".trow-lv button[data-v]"); if (!b) return;
-      const key = b.closest("[data-tlevel]").dataset.tlevel;
-      // "all" ist die Sammelzeile bei eingeschaltetem Umschalter - dort gilt die
-      // gewaehlte Stufe fuer jeden gerade aktiven Trainingstag statt fuer einen einzelnen.
-      if (key === "all") {
-        trainingKeys(cur.training).forEach(k => { cur.training[k].level = b.dataset.v; });
-      } else {
-        if (!cur.training[key]) return;
-        // Die Dauer haengt nicht mehr an der Stufe – sie gilt einmal fuer alle Einheiten.
-        cur.training[key].level = b.dataset.v;
-      }
-      fillTrainDetail();
-      updateResult();
-    });
-    tdetail.addEventListener("change", e => {
-      if (!e.target.closest("#c-tsame")) return;
-      toggleSameLevel(e.target.checked);
-    });
-    tdetail.addEventListener("input", e => {
-      if (!e.target.closest("#c-tmin")) return;
-      // Beim Tippen NICHT klemmen — sonst springt eine halb eingetippte „9" sofort auf 10
-      // und man kann 90 gar nicht eintippen. Geklemmt wird beim Verlassen und in
-      // sanitizeTraining, das ohnehin jeden Wert vor dem Speichern durchlaeuft.
-      const v = Math.round(+e.target.value);
-      if (isFinite(v) && v > 0) { cur.trainMin = v; applyTrainMin(); updateResult(); }
-    });
-    tdetail.addEventListener("change", e => {
-      if (!e.target.closest("#c-tmin")) return;
-      cur.training = sanitizeTraining(cur.training);
-      // Nach dem Klemmen den gemeinsamen Wert aus dem Modell zurueckholen, damit Feld
-      // und Daten nicht auseinanderlaufen (z. B. bei einer eingetippten 5).
-      const ks = trainingKeys(cur.training);
-      if (ks.length) cur.trainMin = cur.training[ks[0]].min;
-      fillTrainDetail();
-      updateResult();
-    });
-    // Die frueheren kcal-Zellen je Zeile sind entfallen (der Aufschlag steht im
-    // Ergebnis), damit auch das gezielte Nachziehen dieser Zellen beim Tippen.
-    // Beide Ereignisse: Das Zahlenfeld meldet sich beim Tippen ueber "input", das
-    // Auswahlrad auf dem Handy zuverlaessig erst ueber "change".
-    ["c-age", "c-height", "c-weight"].forEach(id => {
-      const f = view.querySelector("#" + id);
-      f.addEventListener("input", updateResult);
-      f.addEventListener("change", updateResult);
-    });
-    fillPace();
-    fillTrainDetail();
-    updateResult();
-
-    // ---------- Assistent (jede Breite) ----------
-    // Vier Karten: Koerperdaten, Alltag & Ziel, Trainingstage, Ergebnis. Der Weg ist
-    // fest – gewischt wird nicht (siehe .calc { overflow: hidden }), weiter geht es nur
-    // ueber den Fussknopf und nur, wenn der aktuelle Schritt vollstaendig ist. Zurueck
-    // ist dagegen immer erlaubt, ebenso das Antippen bereits erreichter Schritte in der
-    // Leiste: rueckwaerts laesst sich nichts kaputt machen.
-    syncStickyOffsets(); // der Fussknopf klebt ueber der unteren Reiterleiste
-    resetCarousels(); // Streifen des vorigen Tab-Besuchs sind gerade weggeworfen worden
-    const calcEl = view.querySelector(".calc");
-    // .calcbar-track traegt die vier unsichtbaren Platzhalter, die initCarousel als
-    // technisches Geruest braucht (siehe CSS-Kommentar dort). calcBarEl ist die aeussere
-    // <nav>, darin liegt der eigentlich sichtbare Balken (.wg-progress-bar).
-    const calcBarEl = view.querySelector(".calcbar");
-    const calcBar = view.querySelector(".calcbar-track");
-    const calcLblI = view.querySelector(".calcbar-label .cb-i");
-    const calcLblName = view.querySelector(".calcbar-label .cb-name");
-    const goBtn = view.querySelector("#c-step-go");
-    const backBtn = view.querySelector("#c-step-back");
-    const stepPanels = Array.prototype.slice.call(view.querySelectorAll(".calc-group"))
-      .concat([view.querySelector("#c-result")]);
-    const LAST = stepPanels.length - 1;
-    // Bis hierher darf zurueck- und wieder vorgesprungen werden. Mit gespeichertem Ziel
-    // sind alle Schritte schon einmal durchlaufen worden.
-    let maxStep = state.goal ? LAST : 0;
-
-    // Was fehlt in Schritt i? Die Zuordnung folgt den Karten: Geschlecht und die drei
-    // Zahlen stehen in Koerperdaten, Bewegung/Ziel/Tempo in Alltag & Ziel. Die
-    // Trainingstage sind freiwillig und kommen deshalb hier nicht vor.
-    const FELD_SCHRITT = {
-      "dein Geschlecht": 0, "dein Alter": 0, "deine Größe": 0, "dein Gewicht": 0,
-      "deine Bewegung im Alltag": 1, "dein Ziel": 1, "dein Tempo": 1,
-    };
-    function fehltIn(i) { return missingCalc(readInput()).filter(f => FELD_SCHRITT[f] === i); }
-
-    // Was blockiert den Fussknopf auf Karte i? Auf den Eingabekarten nur deren eigene
-    // Felder. Ab der Trainingskarte wird gerechnet, dort zaehlt alles – auch Angaben
-    // aus frueheren Karten, falls jemand zurueckging und etwas geleert hat.
-    function fehltFuer(i) {
-      if (i === LAST && state.goal) return []; // dort steht „Ziel zuruecksetzen"
-      return i >= 2 ? missingCalc(readInput()) : fehltIn(i);
-    }
-
-    // Sagt, was fehlt, und fuehrt hin. Nur zu melden, etwas sei unvollstaendig, liesse
-    // jemanden suchen – bei den Zahlenfeldern springt deshalb der Fokus mit.
-    function nag(fehlt) {
-      if (!fehlt.length) return;
-      toast("Wähle noch " + fehlt.join(" und "));
-      const ziele = { "dein Alter": "#c-age", "deine Größe": "#c-height", "dein Gewicht": "#c-weight" };
-      const sel = ziele[fehlt[0]];
-      const feld = sel && view.querySelector(sel);
-      if (feld) feld.focus();
-    }
-
-    function setStepBtn(i) {
-      maxStep = Math.max(maxStep, i);
-      // Die vier .cb-seg-Platzhalter brauchen kein eigenes .done/.active mehr (rein
-      // visuell traegt allein der durchgaengige Balken den Fortschritt) - nur noch
-      // Fuellstand und Text, im selben Stil wie "Schritt 3 von 15" bei den ersten
-      // Schritten.
-      const pct = ((i + 1) / CB_STEPS.length) * 100;
-      const fill = calcBarEl && calcBarEl.querySelector(".wg-progress-bar > span");
-      if (fill) fill.style.width = pct + "%";
-      const track = calcBarEl && calcBarEl.querySelector(".wg-progress-bar");
-      if (track) track.setAttribute("aria-valuenow", String(i + 1));
-      if (calcLblI) calcLblI.textContent = String(i + 1);
-      if (calcLblName) calcLblName.textContent = CB_STEPS[i] || "";
-      // Zurueck erst ab der zweiten Karte – auf der ersten gaebe es kein Ziel dafuer.
-      backBtn.style.display = i > 0 ? "" : "none";
-
-      if (i < 2) { goBtn.textContent = "Weiter"; goBtn.className = "btn primary"; }
-      else if (i === 2) { goBtn.textContent = "Berechnen"; goBtn.className = "btn primary"; }
-      // Auf der Ergebniskarte haengt die Beschriftung daran, ob schon etwas gespeichert
-      // ist: ohne gespeichertes Ziel gaebe es nichts zurueckzusetzen.
-      else if (state.goal) { goBtn.textContent = "Ziel zurücksetzen"; goBtn.className = "btn ghost"; }
-      else { goBtn.textContent = "Berechnen"; goBtn.className = "btn primary"; }
-
-      // ERST NACH den Beschriftungen: die setzen className komplett neu und wuerden
-      // eine vorher gesetzte Klasse wieder abraeumen. (Genau so ist es passiert.)
-      // Sieht gesperrt aus, bleibt aber anklickbar (siehe .btn.is-off) – erst der Klick
-      // sagt, was fehlt. Ein echtes disabled wuerde den Klick und damit die Erklaerung
-      // schlucken; aria-disabled sagt Sprachausgaben den Zustand trotzdem an.
-      const sperren = fehltFuer(i).length > 0;
-      goBtn.classList.toggle("is-off", sperren);
-      goBtn.setAttribute("aria-disabled", sperren ? "true" : "false");
-    }
-
-    const calcCar = initCarousel(calcEl, calcBar, stepPanels, setStepBtn);
-    function gehe(i) { if (calcCar) { calcCar.go(i); setStepBtn(i); } }
-
-    backBtn.addEventListener("click", () => {
-      const i = calcCar ? calcCar.index() : 0;
-      if (i > 0) gehe(i - 1);
-    });
-
-    goBtn.addEventListener("click", () => {
-      const i = calcCar ? calcCar.index() : 0;
-      if (i === LAST && state.goal) { resetCalc(); return; }
-      // Fehlt etwas, sagt der Klick es und fuehrt zu der Karte, auf der es fehlt.
-      // Das ersetzt den frueheren Dauerhinweis ueber dem Knopf.
-      const fehlt = fehltFuer(i);
-      if (fehlt.length) {
-        const ziel = FELD_SCHRITT[fehlt[0]];
-        if (ziel !== i) gehe(ziel);
-        nag(fehlt);
-        return;
-      }
-      if (i < 2) { gehe(i + 1); return; }
-      // „Berechnen": hier ist alles vollstaendig – die Pruefung oben deckt ueber
-      // fehltFuer() auch die frueheren Karten ab.
-      state.goal = computeGoal(readInput());
-      noteWeightFromGoal();
-      save();
-      updateResult();
-      maxStep = LAST;
-      gehe(LAST);
-      toast("Dein Ziel wurde gespeichert");
-    });
-
-    // Beim Oeffnen mit gespeichertem Ziel gleich das Ergebnis zeigen – die Eingaben
-    // stehen ja schon, und der haeufigste Grund fuer den Rechner ist dann Nachsehen.
-    // Ab jetzt zieht jede Eingabe den Fussknopf mit – und die Hoehe des Streifens.
-    // Die Hoehe ausdruecklich hier und nicht nur ueber den ResizeObserver: der meldet
-    // erst im naechsten Bild, und eine Karte, die einen Moment lang abgeschnitten ist,
-    // faellt sofort auf. Der Beobachter bleibt als Netz fuer alles, was nicht durch
-    // updateResult() laeuft.
-    refreshStep = () => {
-      setStepBtn(calcCar ? calcCar.index() : 0);
-      if (calcCar) calcCar.fit();
-    };
-
-    if (calcCar && state.goal && calcEl.scrollWidth > calcEl.clientWidth + 10) {
-      gehe(LAST);
-    } else {
-      setStepBtn(0);
-    }
-
-  }
-
-  // Setzt den Kalorienrechner vollstaendig zurueck: gespeichertes Ziel UND alle
-  // Eingaben. Das Leeren des Formulars passiert ueber den Neuaufbau – renderRechner
-  // liest jedes Feld aus state.goal, ohne Ziel steht dort ueberall der Ausgangswert.
-  // Mit Rueckfrage, anders als frueher beim blossen Loeschen des Ziels: damals blieben
-  // die Eingaben stehen und ein Klick stellte alles wieder her, jetzt sind sie weg.
-  function resetCalc() {
-    confirmModal({
-      title: "Ziel zurücksetzen?",
-      text: "Dein gespeichertes Ziel und alle Eingaben im Kalorienrechner werden gelöscht. Deine Meals und dein Wochenplan bleiben unberührt.",
-      okLabel: "Zurücksetzen",
-      onConfirm: () => {
-        state.goal = null;
-        save();
-        render();
-        toast("Kalorienrechner zurückgesetzt");
-      },
-    });
-  }
-
   // ---------- Erste Schritte (Onboarding) ----------
   // Eine Frage je Bildschirm statt eines Formulars: die Koerperdaten sind heikel genug,
   // dass jede Frage ihre eigene Begruendung verdient ("wozu willst du mein Gewicht?").
-  // Der Rechner-Reiter bleibt daneben unveraendert — er ist das Werkzeug zum Nachjustieren
-  // (inklusive Trainingstage, die hier bewusst fehlen), dies hier ist der Erstkontakt.
-  // Geteilt wird die Rechnung (computeGoal, ACTIVITY, paceOptions), nicht die Oberflaeche.
+  // Dies ist der EINZIGE Weg, ein Ziel zu setzen oder neu zu berechnen (der fruehere
+  // Kalorienrechner-Reiter ist entfallen). Ohne Ziel ist die App nicht benutzbar, daher
+  // ist der Ablauf ohne vorhandenes Ziel nicht ueberspringbar (siehe maybeStartOnboarding).
+  // Genutzt wird computeGoal/ACTIVITY/paceOptions samt missingCalc fuer die Pflichtfelder.
 
   // Kurzfassung eines Ziels – gebraucht auf der Ergebnisseite, am Ende und auf der
   // Startseite fuer "Mein Ziel behalten".
@@ -6611,7 +6029,10 @@
   function maybeStartOnboarding() {
     if (onbGateDone) return;
     onbGateDone = true;
-    if (state.onboarded) return;
+    // Die App ist ohne Ziel nicht benutzbar: allein das Vorhandensein von state.goal
+    // entscheidet, nicht mehr das onboarded-Flag. Wer kein Ziel hat (neu ODER nach einem
+    // "neu berechnen", das das Ziel ersetzt), landet zwingend in den ersten Schritten.
+    if (state.goal) return;
     // Ein geteilter Plan wartet schon als Modal – zwei Dinge gleichzeitig waeren zu viel.
     // Die ersten Schritte kommen dann beim naechsten Start, das Flag bleibt ungesetzt.
     if (shareOnStart) return;
@@ -6875,7 +6296,7 @@
         <button type="button" class="btn primary onb-next${miss ? " is-off" : ""}"${miss ? ' aria-disabled="true"' : ""}>${nextLabel}</button>
         <div class="onb-foot2">
           <button type="button" class="btn ghost sm onb-back"${onb.i === 0 ? ' style="visibility:hidden"' : ""}>Zurück</button>
-          <button type="button" class="btn ghost sm onb-skip">${onb.first ? "Überspringen" : "Schließen"}</button>
+          ${state.goal ? `<button type="button" class="btn ghost sm onb-skip">Schließen</button>` : ""}
         </div>
       </div>
     </div>`;
@@ -6975,7 +6396,10 @@
       onbGo(1);
     });
     view.querySelector(".onb-back").addEventListener("click", () => onbGo(-1));
-    view.querySelector(".onb-skip").addEventListener("click", () => finishOnboarding(null));
+    // Der Schliessen-Knopf existiert nur, wenn bereits ein Ziel gesetzt ist (ohne Ziel
+    // ist der Ablauf nicht verlassbar – siehe maybeStartOnboarding).
+    const sk = view.querySelector(".onb-skip");
+    if (sk) sk.addEventListener("click", () => finishOnboarding(null));
     const keep = view.querySelector(".onb-keep");
     if (keep) keep.addEventListener("click", () => { onb.i = onbSteps().indexOf("how"); renderOnboardStep(); });
   }
@@ -7013,9 +6437,7 @@
       <div class="modal-head"><h3>Einstellungen</h3><button class="btn ghost sm" data-close aria-label="Schließen">✕</button></div>
       <div class="modal-body">
         <div class="setlist">
-          <button type="button" class="setrow" data-si="onboard"><span><b>Erste Schritte ansehen</b><small>Die Einführung noch einmal durchgehen</small></span></button>
           <button type="button" class="setrow" data-si="profile"><span><b>Profil bearbeiten</b><small>Name und E-Mail</small></span></button>
-          <button type="button" class="setrow" data-si="goal"><span><b>Ziel bearbeiten</b><small>Kalorienrechner öffnen${state.goal ? " – aktuell " + state.goal.kcal.toLocaleString("de-DE") + " kcal" : ""}</small></span></button>
           <div class="setpick">
             <b id="setth-l">Erscheinungsbild</b>
             <div class="seg" data-thgrp role="radiogroup" aria-labelledby="setth-l">${thBtn("light", "Hell")}${thBtn("dark", "Dunkel")}${thBtn("system", "System")}</div>
@@ -7053,9 +6475,7 @@
     node.querySelectorAll("[data-si]").forEach(b => b.addEventListener("click", () => {
       const k = b.dataset.si;
       closeModal();
-      if (k === "onboard") startOnboarding({ first: false });
-      else if (k === "profile") openProfileForm();
-      else if (k === "goal") { state.tab = "rechner"; render(); }
+      if (k === "profile") openProfileForm();
       else if (k === "examples") clearExamples();
     }));
     openModal(node);
