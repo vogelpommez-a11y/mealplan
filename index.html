@@ -3305,13 +3305,16 @@
   // nachschlagen. Nur die Barcode-NUMMER verlaesst das Geraet, nie das Foto selbst.
   // Erkennung bevorzugt die native BarcodeDetector-API (Chrome/Edge/Android); die
   // gibt es auf iOS/Safari nicht - dort laedt loadZXing() beim ersten Scan eine
-  // Open-Source-Bibliothek vom CDN nach (im Datenschutz-Absatz 7a erklaert).
+  // Open-Source-Bibliothek (ZXing) nach. Sie liegt seit Paket A2 LOKAL im Repo
+  // (vendor/zxing.min.js, @zxing/library@0.21.3), nicht mehr auf einem Fremd-CDN:
+  // kein Drittserver-Abruf, offline-tauglich und Store-konform (kein Remote-Code).
+  // Relativer Pfad wegen des GitHub-Pages-Unterpfads /mealplan/.
   let zxLoad = null;
   function loadZXing() {
     if (window.ZXing) return Promise.resolve();
     if (!zxLoad) zxLoad = new Promise((resolve, reject) => {
       const s = document.createElement("script");
-      s.src = "https://cdn.jsdelivr.net/npm/@zxing/library@0.21.3/umd/index.min.js";
+      s.src = "vendor/zxing.min.js";
       s.onload = resolve;
       s.onerror = () => { zxLoad = null; s.remove(); reject(new Error("zxing-load")); };
       document.head.appendChild(s);
@@ -5411,10 +5414,9 @@
          Kamera wird beim Schließen des Scanners sofort wieder freigegeben. Die Erkennung des
          Barcodes läuft <strong>vollständig lokal in deinem Browser</strong> – Bild bzw. Foto
          verlassen dein Gerät nicht. Unterstützt dein Browser die dafür nötige Technik nicht selbst (z. B.
-         auf iPhones), lädt die App beim ersten Scan die Open-Source-Bibliothek <strong>ZXing</strong>
-         vom Content-Delivery-Netzwerk <strong>cdn.jsdelivr.net</strong> nach; dabei wird deine
-         IP-Adresse an diesen Dienst übermittelt (Art. 6 Abs. 1 lit. f DSGVO – berechtigtes
-         Interesse an der Bereitstellung der Funktion). Anschließend übermittelt die App die
+         auf iPhones), nutzt die App die Open-Source-Bibliothek <strong>ZXing</strong>, die
+         <strong>mit der App ausgeliefert</strong> wird (kein Nachladen von einem fremden Server, keine
+         Übermittlung deiner IP-Adresse an Dritte dafür). Anschließend übermittelt die App die
          erkannte <strong>Barcode-Nummer</strong> (nicht das Foto) an <strong>Open Food
          Facts</strong> (Open Food Facts Association, Frankreich), um Name und Nährwerte des
          Produkts abzurufen; dabei wird ebenfalls deine IP-Adresse an diesen Dienst übermittelt
