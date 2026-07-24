@@ -82,8 +82,10 @@ Bewegung tatsächlich betroffen ist.
 
 „Paddy's Mealplan" — ein deutschsprachiger Wochen-Essensplaner. Die gesamte App ist **eine
 einzige Datei**: `index.html` (~716 KB, HTML + CSS + JS inline, keine Abhängigkeiten außer
-Firebase vom CDN). Sie wird unverändert von GitHub Pages ausgeliefert:
-<https://vogelpommez-a11y.github.io/mealplan/> (Repo `vogelpommez-a11y/mealplan`, Branch `main`).
+Firebase vom CDN). Sie wird unverändert von GitHub Pages ausgeliefert, erreichbar über die eigene
+Domain <https://www.paddysmealplan.de> (Custom Domain, DNS bei INWX) und weiterhin über die
+alte Adresse <https://vogelpommez-a11y.github.io/mealplan/> (Repo `vogelpommez-a11y/mealplan`,
+Branch `main`) — GitHub leitet automatisch von dort auf die eigene Domain weiter.
 
 Betreiber ist eine Privatperson; die Seite ist öffentlich und nicht kommerziell. Monetarisierung
 ist geplant, aber noch nicht aktiv.
@@ -327,6 +329,12 @@ Beim Login merged `startCloudSync(uid)` die Rezepte per Union (nichts geht verlo
 dabei `!isExample(r)`, damit die Beispiel-Meals nicht in ein bestehendes Konto wandern.
 
 ## Fallen, die Geld oder Daten gekostet haben
+
+**Jede neue Domain/Subdomain muss auch in Firebase eingetragen werden.** Eine Custom Domain bei
+GitHub Pages reicht allein nicht — ohne einen passenden Eintrag unter Firebase Console →
+Authentication → Settings → Authorized domains brechen Login und Cloud-Sync auf der neuen Adresse,
+obwohl die Seite selbst normal lädt. Bei der Umstellung auf `www.paddysmealplan.de` am 24.07.2026
+so gehandhabt; bei jedem künftigen Domain-Wechsel wieder nötig.
 
 **Die Datei ist zu groß zum Lesen.** Die Base64-Fotos sind einzelne Zeilen mit zehntausenden
 Zeichen. Nie `Read` ohne `offset`/`limit`, nie `cat`. Immer `Grep` und nur die Trefferstellen
