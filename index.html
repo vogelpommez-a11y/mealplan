@@ -2297,7 +2297,15 @@
   let storageFullWarned = false;
   function save() {
     try {
-      localStorage.setItem(STORE_KEY, JSON.stringify({ recipes: state.recipes, plans: state.plans, tab: state.tab, goal: state.goal || null, shares: state.shares || [], onboarded: state.onboarded === true, weights: state.weights || [], weightGoals: state.weightGoals || {}, profileImage: state.profileImage || null }));
+      // Paket A3: Meal-Fotos (r.image) und das Profilbild NICHT mehr ins localStorage-JSON -
+      // sie liegen in IndexedDB (persistImagesNow). Hier bleibt nur Text/IDs, das war der
+      // Engpass fuer "Speicher voll". state (RAM) und Firestore tragen die Bilder weiter.
+      // ABER nur wenn IDB verfuegbar ist (idbOK): faellt es aus (privater Modus, blockiert),
+      // bleiben die Bilder wie frueher im localStorage, sonst gingen sie beim Neuladen verloren.
+      const recipesForLS = idbOK
+        ? state.recipes.map(r => { const c = Object.assign({}, r); delete c.image; return c; })
+        : state.recipes;
+      localStorage.setItem(STORE_KEY, JSON.stringify({ recipes: recipesForLS, plans: state.plans, tab: state.tab, goal: state.goal || null, shares: state.shares || [], onboarded: state.onboarded === true, weights: state.weights || [], weightGoals: state.weightGoals || {}, profileImage: idbOK ? null : (state.profileImage || null) }));
       storageFullWarned = false;
     } catch (e) {
       if (!storageFullWarned) {
@@ -2307,7 +2315,85 @@
           : "Der Speicher dieses Geräts ist voll – neue Änderungen gehen beim Neuladen verloren. Entferne ein paar Meal-Fotos.");
       }
     }
+    if (idbOK) persistImagesNow();   // Bilder nach IndexedDB (Meal-Fotos + Profilbild)
     scheduleCloudPush();
+  }
+
+  // ---------- Bilder in IndexedDB (Paket A3) ----------
+  // Meal-Fotos (r.image) und das Profilbild sind Data-URLs und waren frueher Teil des
+  // localStorage-JSON — genau der Engpass, an dem "Speicher voll" auftrat. Sie liegen jetzt
+  // in IndexedDB (Store "images", Schluessel = Rezept-ID bzw. "__profile__"). In-Memory (state)
+  // und Cloud (Firestore-Rezeptdokumente) tragen ihr Bild unveraendert weiter — nur der lokale
+  // Persistenzpfad aendert sich. Faellt IDB aus (privater Modus o.ae.), bleiben Bilder in RAM
+  // und (bei Cloud-Konten) in Firestore; die App bricht nie deswegen.
+  let idbP = null, idbOK = false, imagesHydrated = false, imagesReady = Promise.resolve();
+  let imgSaved = new Map();  // key -> Kurz-Signatur des zuletzt geschriebenen Bildes
+  function idbOpen() {
+    if (idbP) return idbP;
+    idbP = new Promise((res, rej) => {
+      let req; try { req = indexedDB.open("mealplan-media", 1); } catch (e) { rej(e); return; }
+      req.onupgradeneeded = () => { const db = req.result; if (!db.objectStoreNames.contains("images")) db.createObjectStore("images"); };
+      req.onsuccess = () => res(req.result);
+      req.onerror = () => rej(req.error);
+    });
+    return idbP;
+  }
+  function idbRW(fn) {
+    return idbOpen().then(db => new Promise((res, rej) => {
+      const tx = db.transaction("images", "readwrite");
+      fn(tx.objectStore("images"));
+      tx.oncomplete = () => res(); tx.onerror = () => rej(tx.error); tx.onabort = () => rej(tx.error);
+    }));
+  }
+  function idbGetAllImages() {
+    return idbOpen().then(db => new Promise((res, rej) => {
+      const out = {}; const cur = db.transaction("images", "readonly").objectStore("images").openCursor();
+      cur.onsuccess = e => { const c = e.target.result; if (c) { out[c.key] = c.value; c.continue(); } else res(out); };
+      cur.onerror = () => rej(cur.error);
+    }));
+  }
+  function imgSig(u) { return u ? (u.length + "|" + u.slice(0, 24) + u.slice(-12)) : ""; }
+  // Schreibt geaenderte Bilder nach IDB und loescht verwaiste (entferntes Meal / Profilbild weg).
+  // Diff ueber imgSaved, damit unveraenderte (grosse) Blobs nicht bei jedem save neu geschrieben
+  // werden. Nicht debounced: ein Foto-Wechsel ist eine bewusste Einzelaktion, kein Dauerfeuer.
+  function persistImagesNow() {
+    const wanted = new Map();
+    state.recipes.forEach(r => { if (r && r.id && r.image) wanted.set(r.id, r.image); });
+    if (state.profileImage) wanted.set("__profile__", state.profileImage);
+    const puts = [], dels = [];
+    wanted.forEach((v, k) => { if (imgSaved.get(k) !== imgSig(v)) puts.push([k, v]); });
+    imgSaved.forEach((_, k) => { if (!wanted.has(k)) dels.push(k); });
+    if (!puts.length && !dels.length) return Promise.resolve();
+    return idbRW(store => { puts.forEach(([k, v]) => store.put(v, k)); dels.forEach(k => store.delete(k)); })
+      .then(() => { puts.forEach(([k, v]) => imgSaved.set(k, imgSig(v))); dels.forEach(k => imgSaved.delete(k)); })
+      .catch(() => {});
+  }
+  // Beim Start: Bilder aus IDB in den State ziehen (Karten zeigen bis dahin den photoFor-Fallback,
+  // der immer ein Bild liefert), Alt-Konten mit Inline-Bildern im localStorage einmalig nach IDB
+  // migrieren und das JSON schlank machen. Laeuft in boot() VOR Auth/Sync/Render (imagesReady),
+  // damit kein Cloud-Push bildlose Rezepte hochschreibt.
+  async function hydrateImages() {
+    let map = {};
+    // Timeout gegen ein IDB, das weder aufloest noch ablehnt (z.B. file://): die App muss
+    // starten koennen. Faellt IDB aus, bleibt idbOK=false -> save() behaelt Bilder im
+    // localStorage wie frueher (kein Datenverlust, nur der Speicher-Engpass bleibt bestehen).
+    try {
+      map = await Promise.race([
+        idbGetAllImages(),
+        new Promise((_, rej) => setTimeout(() => rej(new Error("idb-timeout")), 4000))
+      ]);
+      idbOK = true;
+    } catch (e) { idbOK = false; map = {}; }
+    imagesHydrated = true;
+    if (!idbOK) return;   // ohne IDB: nichts hydrieren/migrieren, alter localStorage-Pfad gilt
+    state.recipes.forEach(r => { if (r && r.id && !r.image && map[r.id]) r.image = map[r.id]; });
+    if (!state.profileImage && map.__profile__) state.profileImage = map.__profile__;
+    // Baseline: was aus IDB kam, gilt als bereits gespeichert.
+    imgSaved = new Map(Object.keys(map).map(k => [k, imgSig(map[k])]));
+    // Migration Alt->Neu: Inline-Bilder (in state, aber nicht in IDB) ERST nach IDB schreiben,
+    // DANN das localStorage-JSON schlank speichern (Reihenfolge gegen Datenverlust).
+    try { await persistImagesNow(); } catch (e) {}
+    save();
   }
 
   // Vereinigung zweier ID-Listen (Teilen-Links) ohne Duplikate – wird beim Zusammenfuehren
@@ -2503,6 +2589,8 @@
     stopCloudSync();
     syncUid = uid;
     setSyncStatus("connecting");
+    await imagesReady;   // Paket A3: lokale Bilder muessen im State sein, bevor der Merge/pushNow
+                         // laeuft - sonst schriebe der Baseline-Push bildlose Rezepte in die Cloud.
     try {
       const remote = await window.CloudSync.load(uid);
       // Vor dem Rezept-Merge und ausserhalb davon: ein Konto ohne Rezepte laeuft am Block
@@ -5705,13 +5793,18 @@
   function boot() {
     const fy = document.getElementById("foot-year"); if (fy) fy.textContent = new Date().getFullYear();
     readSharedFromUrl();
+    // Paket A3: Bilder aus IndexedDB in den State ziehen, BEVOR Auth/Sync/Render laufen -
+    // enterApp() und startCloudSync() warten auf imagesReady, damit kein Push bildlose
+    // Rezepte hochschreibt. Der Ladebildschirm zeigt derweil ohnehin keine Meal-Fotos.
+    imagesReady = hydrateImages();
     window.__onCloudAuth = handleCloudUser;
     window.addEventListener("cloudauth:disabled", enterLocalMode);
     // Falls das Cloud-Modul (CDN blockiert / offline) nie antwortet: nach 6 s lokal weiter.
     setTimeout(function () { if (!cloudSignalled) enterLocalMode(); }, 6000);
     renderAuthLoading();
   }
-  function enterApp() {
+  async function enterApp() {
+    await imagesReady;   // Paket A3: erst rendern, wenn die Bilder aus IDB im State sind
     appEl.classList.remove("authing");
     renderProfileChip();
     state.tab = "home"; // Start immer im Home-Reiter (Reload & Login)
