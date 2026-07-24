@@ -4563,7 +4563,13 @@
     view.innerHTML = html;
     syncStickyOffsets();
     resetCarousels(); // die Streifen des vorigen Durchlaufs sind gerade weggeworfen worden
-    initCarousel(view.querySelector(".week"), view.querySelector(".daybar"));
+    const planCarousel = initCarousel(view.querySelector(".week"), view.querySelector(".daybar"));
+    // Ohne diesen Sprung stuende beim Reiterwechsel auf dem Handy immer Montag da,
+    // egal welcher Wochentag gerade ist – "next" hat kein "heute", dort bleibt Montag.
+    if (planCarousel && todayKey) {
+      const todayIdx = DAYS.findIndex(d => d.key === todayKey);
+      if (todayIdx > 0) planCarousel.go(todayIdx);
+    }
   }
 
   // Bewusst nicht gespeichert: beim Neuladen gilt wieder die Standardvorbelegung unten.
