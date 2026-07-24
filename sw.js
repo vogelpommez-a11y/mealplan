@@ -11,7 +11,7 @@
  * Alle Pfade relativ, weil die App unter .../mealplan/ liegt, nicht auf dem Domain-Root.
  * Die Versionsnummer bei jedem inhaltlichen SW-Wechsel erhoehen -> activate raeumt Altes weg.
  */
-const VERSION = "pm-v2";
+const VERSION = "pm-v3";
 const SHELL_CACHE = "shell-" + VERSION;
 
 // Kern-Assets, die die App-Huelle offline tragen. index.html liegt zusaetzlich im Cache,
