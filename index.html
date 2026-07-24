@@ -1540,7 +1540,10 @@
       overflow-x: auto; overflow-y: hidden;
       scroll-snap-type: x mandatory; overscroll-behavior-x: contain;
       scrollbar-width: none;
-      align-items: flex-start; /* gleiche Ueberlegung wie beim Wochenplan */
+      /* Gegenteil von .week: hier SOLLEN beide Karten (Heute/Woche) gleich hoch wirken.
+         fitHeight() (initCarousel) setzt schon die Scroller-Hoehe aufs Maximum beider Karten -
+         ohne stretch behielt die kuerzere .wg-col trotzdem ihre eigene, kleinere Innenhoehe. */
+      align-items: stretch;
     }
     .wg-cols::-webkit-scrollbar { display: none; }
     .wg-cols > .wg-col { flex: 0 0 100%; scroll-snap-align: start; scroll-snap-stop: always; }
@@ -2335,6 +2338,24 @@
     });
     return out;
   }
+  // Einwilligung in den Gewichtsverlauf (Art. 9 DSGVO, siehe Ziffer 3b der Datenschutz-
+  // erklaerung): { given: bool, at: ISOString|null }. `at` ist die letzte Entscheidung -
+  // damit ein Widerruf auf Geraet A eine aeltere Zustimmung auf Geraet B beim Sync ueberstimmt.
+  // Funktion statt const: load() laeuft schon in `let state = load()` frueh im Script
+  // (Zeile ~2148) - eine const an dieser Stelle waere dort noch in der temporalen
+  // Totzone. Eine Funktionsdeklaration wird dagegen komplett gehoistet.
+  function noConsent() { return { given: false, at: null }; }
+  function sanitizeConsent(c) {
+    if (!c || typeof c !== "object") return noConsent();
+    return { given: c.given === true, at: typeof c.at === "string" ? c.at : null };
+  }
+  function mergeConsent(a, b) {
+    const ca = sanitizeConsent(a), cb = sanitizeConsent(b);
+    if (!ca.at) return cb; if (!cb.at) return ca;
+    return ca.at >= cb.at ? ca : cb;
+  }
+  function hasWeightConsent() { return sanitizeConsent(state.weightConsent).given; }
+  function setWeightConsent(given) { state.weightConsent = { given: given, at: new Date().toISOString() }; }
 
   function load() {
     let data = null;
@@ -2343,7 +2364,7 @@
     if (!data || !Array.isArray(data.recipes)) {
       const recipes = SEED.map(r => Object.assign({ id: uid() }, r));
       const plans = {}; plans[curKey] = makeEmptyPlan();
-      return { recipes, plans, plan: plans[curKey], viewWeek: "cur", viewYear: new Date().getFullYear(), tab: "home", goal: null, shares: [], onboarded: false, weights: [], weightGoals: {}, weekStats: {}, profileImage: null };
+      return { recipes, plans, plan: plans[curKey], viewWeek: "cur", viewYear: new Date().getFullYear(), tab: "home", goal: null, shares: [], onboarded: false, weights: [], weightGoals: {}, weekStats: {}, profileImage: null, weightConsent: noConsent() };
     }
     const recipes = sanitizeRecipes(data.recipes);
     const plans = {};
@@ -2356,7 +2377,7 @@
     // und braucht dafuer state (Ziel, Rezepte). Das laeuft noch nicht — state = load() ist gerade
     // erst am Entstehen. boot() ruft pruneWeeks(state.plans) direkt nach dem State-Aufbau nach.
     if (!plans[curKey]) plans[curKey] = makeEmptyPlan();
-    return { recipes, plans, plan: plans[curKey], viewWeek: "cur", viewYear: new Date().getFullYear(), tab: data.tab === "recipes" ? "recipes" : "home", goal: sanitizeGoal(data.goal), shares: Array.isArray(data.shares) ? data.shares : [], onboarded: data.onboarded === true, weights: sanitizeWeights(data.weights), weightGoals: sanitizeWeightGoals(data.weightGoals), weekStats: sanitizeWeekStats(data.weekStats), profileImage: typeof data.profileImage === "string" ? data.profileImage : null };
+    return { recipes, plans, plan: plans[curKey], viewWeek: "cur", viewYear: new Date().getFullYear(), tab: data.tab === "recipes" ? "recipes" : "home", goal: sanitizeGoal(data.goal), shares: Array.isArray(data.shares) ? data.shares : [], onboarded: data.onboarded === true, weights: sanitizeWeights(data.weights), weightGoals: sanitizeWeightGoals(data.weightGoals), weekStats: sanitizeWeekStats(data.weekStats), profileImage: typeof data.profileImage === "string" ? data.profileImage : null, weightConsent: sanitizeConsent(data.weightConsent) };
   }
 
   // Schlaegt das lokale Speichern fehl (Speicher voll, privater Modus), darf das NICHT
@@ -2373,7 +2394,7 @@
       const recipesForLS = idbOK
         ? state.recipes.map(r => { const c = Object.assign({}, r); delete c.image; return c; })
         : state.recipes;
-      localStorage.setItem(STORE_KEY, JSON.stringify({ recipes: recipesForLS, plans: state.plans, tab: state.tab, goal: state.goal || null, shares: state.shares || [], onboarded: state.onboarded === true, weights: state.weights || [], weightGoals: state.weightGoals || {}, weekStats: state.weekStats || {}, profileImage: idbOK ? null : (state.profileImage || null) }));
+      localStorage.setItem(STORE_KEY, JSON.stringify({ recipes: recipesForLS, plans: state.plans, tab: state.tab, goal: state.goal || null, shares: state.shares || [], onboarded: state.onboarded === true, weights: state.weights || [], weightGoals: state.weightGoals || {}, weekStats: state.weekStats || {}, profileImage: idbOK ? null : (state.profileImage || null), weightConsent: state.weightConsent || noConsent() }));
       storageFullWarned = false;
     } catch (e) {
       if (!storageFullWarned) {
@@ -2508,7 +2529,7 @@
   // separat verglichen. Wuerde hier trotzdem "recipes" auftauchen, laege state.recipes
   // (immer voll) permanent quer zu d.recipes (nie mehr vorhanden) - der Vergleich griffe
   // nie mehr, jeder Remote-Snapshot loeste unnoetig render()/Toast aus.
-  function dataJSON(d) { return JSON.stringify({ plans: plansField(d), goal: (d && d.goal) || null, shares: (d && d.shares) || [], onboarded: !!(d && d.onboarded), weights: (d && d.weights) || [], weightGoals: (d && d.weightGoals) || {}, profileImage: (d && d.profileImage) || null }); }
+  function dataJSON(d) { return JSON.stringify({ plans: plansField(d), goal: (d && d.goal) || null, shares: (d && d.shares) || [], onboarded: !!(d && d.onboarded), weights: (d && d.weights) || [], weightGoals: (d && d.weightGoals) || {}, profileImage: (d && d.profileImage) || null, weightConsent: (d && d.weightConsent) || noConsent() }); }
 
   function scheduleCloudPush() {
     if (!syncUid) return;
@@ -2565,7 +2586,7 @@
   async function pushNow() {
     if (!syncUid || !window.CloudSync) return;
     await syncRecipes();
-    const d = { plans: state.plans, tab: state.tab, goal: state.goal || null, shares: state.shares || [], onboarded: state.onboarded === true, weights: state.weights || [], weightGoals: state.weightGoals || {}, profileImage: state.profileImage || null };
+    const d = { plans: state.plans, tab: state.tab, goal: state.goal || null, shares: state.shares || [], onboarded: state.onboarded === true, weights: state.weights || [], weightGoals: state.weightGoals || {}, profileImage: state.profileImage || null, weightConsent: state.weightConsent || noConsent() };
     const j = dataJSON(d);
     if (j === lastPushedJSON) return;
     if (j.length > CLOUD_DOC_MAX) {
@@ -2606,6 +2627,7 @@
     state.shares = unionIds(state.shares, data.shares); // nie einen Link verlieren, der nur lokal bekannt ist
     state.weights = mergeWeights(data.weights, state.weights); // desgleichen fuer Wiegungen
     state.weightGoals = Object.assign({}, sanitizeWeightGoals(state.weightGoals), sanitizeWeightGoals(data.weightGoals));
+    state.weightConsent = mergeConsent(data.weightConsent, state.weightConsent); // juengste Entscheidung gewinnt
     if (data.profileImage !== undefined) state.profileImage = typeof data.profileImage === "string" ? data.profileImage : null;
     if (data.onboarded) state.onboarded = true;         // nur in eine Richtung, siehe startCloudSync
     setViewWeek(state.viewWeek);
@@ -2671,6 +2693,7 @@
       if (remote) {
         state.weights = mergeWeights(remote.weights, state.weights);
         state.weightGoals = Object.assign({}, sanitizeWeightGoals(state.weightGoals), sanitizeWeightGoals(remote.weightGoals));
+        state.weightConsent = mergeConsent(remote.weightConsent, state.weightConsent);
         if (remote.profileImage && typeof remote.profileImage === "string") { state.profileImage = remote.profileImage; renderProfileChip(); }
       }
       // Rezepte zusammenführen (Cloud + eigene lokale, die es dort noch nicht gibt).
@@ -4002,7 +4025,7 @@
     const weekProgressHtml = `
       <h3 class="wg-h">Fortschritt</h3>
       <div class="wg-progress">
-        <div class="wg-progress-txt">${planned} von 7 Tagen geplant</div>
+        <div class="wg-progress-txt" data-planned="${planned}">${planned} von 7 Tagen geplant</div>
         <div class="wg-progress-bar" role="progressbar" aria-valuenow="${planned}" aria-valuemin="0" aria-valuemax="7" aria-label="Tage geplant"><span style="width:${planPct}%"></span></div>
         ${perOpen}
       </div>`;
@@ -4037,6 +4060,36 @@
         <div class="wg-col${isTrainingDay(d.key) ? " wg-col-training" : ""}">${goalRingHtml(s.kcal, rest1.kcal, dayTrainAdd, dayHeadHtml, dayRight, "Grundbedarf", recalcLink)}</div>
         <div class="wg-col">${goalRingHtml(w.kcal, weekGrund, weekTrainAdd, weekHeadHtml, weekRight, "Grundbedarf")}</div>
       </div>`;
+  }
+
+  // Zaehlt "X von 7 Tagen geplant" weich hoch statt den Endwert sofort hinzustellen -
+  // aber nur, wenn sich die Zahl seit dem letzten Anzeigen wirklich veraendert hat. Sonst
+  // wuerde jeder blosse Tab-Wechsel zurueck zu Home dieselbe Animation erneut abspulen,
+  // und genau das soll bei einer haeufig besuchten Seite nicht passieren (siehe
+  // apple-design/emil-design-eng: Animation nur, wo sie etwas zeigt, nicht bei jedem Blick).
+  let lastShownPlanned = null; // nur fuer die laufende Sitzung, kein State-Feld noetig
+  function animateProgressCount() {
+    const txt = view.querySelector(".wg-progress-txt");
+    const bar = view.querySelector(".wg-progress-bar > span");
+    if (!txt) return; // Leerzustand (weekEmpty) hat keinen Fortschrittsbalken
+    const planned = +txt.dataset.planned || 0;
+    const from = lastShownPlanned == null ? 0 : lastShownPlanned;
+    lastShownPlanned = planned;
+    if (from === planned || reducedMotion()) {
+      txt.textContent = planned + " von 7 Tagen geplant";
+      if (bar) bar.style.width = Math.round(planned / 7 * 100) + "%";
+      return;
+    }
+    const dur = 700, t0 = performance.now();
+    function frame(now) {
+      const p = Math.min(1, (now - t0) / dur);
+      const eased = 1 - Math.pow(1 - p, 3); // --ease-out als JS-Aequivalent
+      const cur = Math.round(from + (planned - from) * eased);
+      txt.textContent = cur + " von 7 Tagen geplant";
+      if (bar) bar.style.width = Math.round(cur / 7 * 100) + "%";
+      if (p < 1) requestAnimationFrame(frame); else { txt.textContent = planned + " von 7 Tagen geplant"; if (bar) bar.style.width = Math.round(planned / 7 * 100) + "%"; }
+    }
+    requestAnimationFrame(frame);
   }
 
   // Wochentag von heute – geteilt von der Uebersicht und der „Heute“-Markierung im Plan.
@@ -4321,8 +4374,29 @@
       </svg>`;
   }
 
+  // Ohne Einwilligung entfaellt Diagramm/Menue komplett - Gewicht ist ein Gesundheitsdatum
+  // (Art. 9 DSGVO, Ziffer 3b der Datenschutzerklaerung) und wird nicht stillschweigend
+  // mitgetrackt, auch wenn schon ein Gewicht aus der Ziel-Berechnung vorliegt.
+  function weightConsentHtml() {
+    // Widerruf loescht keine Bestandsdaten (siehe weightConsentRevokeModal/Ziffer 3b) - das
+    // Recht, sie einzusehen und einzeln zu loeschen, darf deshalb nicht an der Einwilligung
+    // haengen. Nur "Gewicht eintragen" (neue Erfassung) ist an sie gebunden.
+    const hasData = (state.weights || []).length > 0;
+    return `<div class="wg-col wch">
+        <div class="wch-head">
+          <div>
+            <div class="wg-lbl">Ziele ${activeYear()}</div>
+            <h3 class="wg-h">Gewicht</h3>
+          </div>
+        </div>
+        <button class="btn primary" data-action="weight-consent-in">Verlauf aktivieren</button>
+        ${hasData ? `<button class="btn ghost sm" data-action="weight-manage" style="margin-top:8px">Bestehende Einträge verwalten</button>` : ""}
+      </div>`;
+  }
+
   // Die ganze Karte: Kopf mit Jahr und Kennzahlen, Jahreswechsel, Diagramm, Legende.
   function weightHtml() {
+    if (!hasWeightConsent()) return weightConsentHtml();
     const year = activeYear();
     const all = state.weights || [];
     const rows = all.filter(e => e.m.slice(0, 4) === year);
@@ -4410,6 +4484,7 @@
     view.innerHTML = `${appHeroHtml()}${weekNutHtml()}${rueckblickHtml()}${weightHtml()}`;
     resetCarousels();
     initCarousel(view.querySelector(".wg-cols"), view.querySelector(".wgbar"), null, null, { fixedHeight: true });
+    animateProgressCount();
     initWeightChart();
   }
 
@@ -4733,7 +4808,11 @@
   // zwei Auswahlfelder und kein <input type="month">: das kennt Safari auf dem iPhone
   // nicht und faellt dort auf ein nacktes Textfeld zurueck - ausgerechnet auf dem Geraet,
   // auf dem die App laufen soll.
-  function openWeighForm() {
+  // manageOnly (Art. 9 DSGVO): ohne Einwilligung darf kein NEUER Eintrag entstehen, das
+  // Recht auf Loeschung bestehender Eintraege bleibt aber unabhaengig davon bestehen -
+  // deshalb Eingabefelder und "Speichern" ausblenden, die Liste mit den Loeschen-Knoepfen
+  // bleibt unveraendert. Siehe weightConsentHtml() fuer den Aufrufweg ohne Einwilligung.
+  function openWeighForm(manageOnly) {
     const nowY = new Date().getFullYear(), nowM = new Date().getMonth();
     const last = latestWeight();
     // Vorbelegt ist das Jahr, das gerade im Diagramm steht - nicht stur das laufende.
@@ -4747,19 +4826,19 @@
     (state.weights || []).forEach(e => { yset[e.m.slice(0, 4)] = 1; });
     const years = Object.keys(yset).sort().reverse();
 
-    const node = el(`<div class="modal" role="dialog" aria-modal="true" aria-label="Wiegen">
-      <div class="modal-head"><h3>Wiegen</h3><button class="btn ghost sm" data-close aria-label="Schließen">✕</button></div>
+    const node = el(`<div class="modal" role="dialog" aria-modal="true" aria-label="${manageOnly ? "Verlauf verwalten" : "Wiegen"}">
+      <div class="modal-head"><h3>${manageOnly ? "Verlauf verwalten" : "Wiegen"}</h3><button class="btn ghost sm" data-close aria-label="Schließen">✕</button></div>
       <div class="modal-body">
-        <div class="field"><label for="w-kg">Gewicht</label>${numField({ id: "w-kg", min: KG_MIN, max: KG_MAX, step: 0.1, unit: "kg", placeholder: "kg", value: last ? String(last.kg) : "" })}</div>
+        ${manageOnly ? "" : `<div class="field"><label for="w-kg">Gewicht</label>${numField({ id: "w-kg", min: KG_MIN, max: KG_MAX, step: 0.1, unit: "kg", placeholder: "kg", value: last ? String(last.kg) : "" })}</div>
         <div class="row2">
           <div class="field"><label for="w-m">Monat</label><select id="w-m"></select></div>
           <div class="field"><label for="w-y">Jahr</label><select id="w-y">
             ${years.map(y => `<option value="${y}"${y === startY ? " selected" : ""}>${y}</option>`).join("")}
           </select></div>
-        </div>
+        </div>`}
         <div id="w-list"></div>
       </div>
-      <div class="modal-foot"><button class="btn ghost" data-close>Abbrechen</button><button class="btn primary" id="w-ok">Speichern</button></div>
+      <div class="modal-foot">${manageOnly ? `<button class="btn primary" data-close>Fertig</button>` : `<button class="btn ghost" data-close>Abbrechen</button><button class="btn primary" id="w-ok">Speichern</button>`}</div>
     </div>`);
     node.querySelectorAll("[data-close]").forEach(b => b.addEventListener("click", closeModal));
 
@@ -4767,6 +4846,7 @@
     // Im laufenden Jahr enden die Monate beim aktuellen: ein Gewicht fuer den naechsten
     // Monat kann niemand gemessen haben.
     function fillMonths() {
+      if (!mEl || !yEl) return;
       const sel = mEl.value;
       const maxM = +yEl.value === nowY ? nowM : 11;
       mEl.innerHTML = MON_LONG.slice(0, maxM + 1)
@@ -4774,7 +4854,7 @@
       mEl.value = (sel && +sel <= maxM + 1) ? sel : String(maxM + 1).padStart(2, "0");
     }
     fillMonths();
-    yEl.addEventListener("change", fillMonths);
+    if (yEl) yEl.addEventListener("change", fillMonths);
 
     const listEl = node.querySelector("#w-list");
     function paintList() {
@@ -4808,6 +4888,8 @@
       }));
     }
     paintList();
+
+    if (manageOnly) { openModal(node); return; }
 
     node.querySelector("#w-ok").addEventListener("click", () => {
       const kgEl = node.querySelector("#w-kg");
@@ -5672,11 +5754,11 @@
       <h4>2. Hosting der Website (GitHub Pages)</h4>
       <p>Diese Website wird bei GitHub Pages gehostet, einem Dienst der GitHub, Inc., 88 Colin P. Kelly Jr. Street, San Francisco, CA 94107, USA. Beim Aufruf der Seite verarbeitet GitHub technisch notwendige Zugriffsdaten (z. B. deine IP-Adresse), um die Seite auszuliefern und deren Sicherheit zu gewährleisten. Rechtsgrundlage ist unser berechtigtes Interesse an einer sicheren und effizienten Bereitstellung (Art. 6 Abs. 1 lit. f DSGVO). Dabei kann eine Übermittlung in die USA erfolgen. Weitere Infos: <a href="https://docs.github.com/de/site-policy/privacy-policies/github-general-privacy-statement" target="_blank" rel="noopener">GitHub Privacy Statement</a>.</p>
       <h4>3. Welche Daten wir verarbeiten</h4>
-      <p>Bei der Registrierung: <strong>Name und E-Mail-Adresse</strong>. Bei Nutzung der App: die von dir angelegten <strong>Wochenpläne, Meals/Rezepte und ggf. Fotos</strong> sowie ein optionales <strong>Profilbild</strong> (als Kreis-Avatar zugeschnitten, in deinem Nutzerkonto gespeichert, nicht Teil von Teilen-Links) sowie – im Rahmen der Einführungsfragen nach der Registrierung, die zur Nutzung der App erforderlich sind – <strong>Geschlecht, Alter, Größe, Gewicht, Alltagsbewegung und Ziel</strong> sowie optional deine <strong>Trainingstage</strong> (Wochentag, Intensität und Dauer; Details siehe Ziffer 3a). Erstellst du Teilen-Links, merkt sich dein Konto zusätzlich deren <strong>Kennungen</strong> (keine Klardaten, siehe Ziffer 8), damit sie beim Löschen deines Kontos zugeordnet und mitentfernt werden können. Trägst du eine Wiegung ein oder aktualisierst du dein Ziel, speichern wir außerdem deinen <strong>Gewichtsverlauf</strong> – je Eintrag Monat und Gewicht – sowie ein optionales <strong>Jahres-Zielgewicht</strong> (Details siehe Ziffer 3b). Diese Daten speichern wir, damit du dich anmelden und deine Planung geräteübergreifend nutzen kannst.</p>
+      <p>Bei der Registrierung: <strong>Name und E-Mail-Adresse</strong>. Bei Nutzung der App: die von dir angelegten <strong>Wochenpläne, Meals/Rezepte und ggf. Fotos</strong> sowie ein optionales <strong>Profilbild</strong> (als Kreis-Avatar zugeschnitten, in deinem Nutzerkonto gespeichert, nicht Teil von Teilen-Links) sowie – im Rahmen der Einführungsfragen nach der Registrierung, die zur Nutzung der App erforderlich sind – <strong>Geschlecht, Alter, Größe, Gewicht, Alltagsbewegung und Ziel</strong> sowie optional deine <strong>Trainingstage</strong> (Wochentag, Intensität und Dauer; Details siehe Ziffer 3a). Erstellst du Teilen-Links, merkt sich dein Konto zusätzlich deren <strong>Kennungen</strong> (keine Klardaten, siehe Ziffer 8), damit sie beim Löschen deines Kontos zugeordnet und mitentfernt werden können. Stimmst du der Speicherung deines <strong>Gewichtsverlaufs</strong> ausdrücklich zu, speichern wir je Eintrag Monat und Gewicht sowie ein optionales <strong>Jahres-Zielgewicht</strong> (Details und Widerruf siehe Ziffer 3b). Diese Daten speichern wir, damit du dich anmelden und deine Planung geräteübergreifend nutzen kannst.</p>
       <h4>3a. Ziel-Berechnung (Einführungsfragen)</h4>
       <p>Zur Nutzung der App gibst du bei den Einführungsfragen nach der Registrierung <strong>Geschlecht, Alter, Größe und Gewicht</strong> sowie deine Alltagsbewegung und dein Ziel an – ohne diese Angaben lässt sich kein Kalorien- und Makroziel berechnen und die App steht dir nicht zur Verfügung. Optional legst du zusätzlich deine <strong>Trainingstage</strong> fest – also an welchen Wochentagen du trainierst, mit welcher Intensität und wie lange; diese Angabe kannst du auch weglassen. Daraus berechnet die App direkt in deinem Browser deinen Tagesbedarf, deine Makronährstoffe und deinen BMI; an Trainingstagen zusätzlich den geschätzten Mehrbedarf durch die jeweilige Einheit. Übernimmst du das Ergebnis als dein Ziel, werden diese Angaben wie deine übrigen Plandaten lokal und – bei Cloud-Nutzung – in deinem Nutzerkonto (Cloud Firestore, siehe Ziffer 5) gespeichert, um sie geräteübergreifend verfügbar zu halten. Du kannst dein Ziel jederzeit über den Knopf „Ziel neu berechnen" im Wochenplan neu berechnen; die vorherigen Werte sind dann durch die neuen ersetzt. Rechtsgrundlage ist wie unter Ziffer 4 die Erfüllung des Nutzungsvertrags (Art. 6 Abs. 1 lit. b DSGVO). Diese Angaben werden <strong>nicht</strong> in Teilen-Links aufgenommen (siehe Ziffer 8).</p>
       <h4>3b. Gewichtsverlauf („Ziele &lt;Jahr&gt;")</h4>
-      <p>Ein Eintrag im Gewichtsverlauf besteht aus <strong>Monat und Gewicht</strong> – taggenaue Angaben werden nicht erhoben; zusätzlich kannst du ein <strong>Zielgewicht je Kalenderjahr</strong> festlegen. Ein solcher Eintrag entsteht auf zwei Wegen: wenn du im Bereich „Ziele" eine Wiegung einträgst – auch nachträglich für zurückliegende Monate –, und automatisch dann, wenn du bei den <strong>Einführungsfragen</strong> oder beim <strong>Neuberechnen deines Ziels</strong> dein Gewicht angibst und dieses vom zuletzt erfassten Wert abweicht. Die Daten dienen allein der Darstellung deines Verlaufs als Diagramm; die jeweils jüngste Wiegung aktualisiert zusätzlich das bei der Ziel-Berechnung hinterlegte Gewicht, damit dein Kalorien- und Makroziel zu deinem aktuellen Gewicht passt (Ziffer 3a). Speicherung und Rechtsgrundlage entsprechen Ziffer 3a: lokal auf deinem Gerät und – bei Cloud-Nutzung – in deinem Nutzerkonto, Art. 6 Abs. 1 lit. b DSGVO. Die Eingabe ist <strong>freiwillig</strong>; ohne Wiegung entstehen keine dieser Daten. Einzelne Einträge kannst du jederzeit im Wiegen-Dialog löschen, den gesamten Verlauf mit deinem Konto (Ziffer 10). Diese Angaben werden <strong>nicht</strong> in Teilen-Links aufgenommen (siehe Ziffer 8).</p>
+      <p>Dein Gewichtsverlauf ist ein <strong>Gesundheitsdatum</strong> (Art. 9 DSGVO) und wird deshalb nur mit deiner ausdrücklichen, jederzeit widerrufbaren <strong>Einwilligung</strong> gespeichert (Art. 9 Abs. 2 lit. a DSGVO). Ohne diese Einwilligung zeigt dir die App unter „Ziele &lt;Jahr&gt;" lediglich einen Knopf zum Aktivieren – auch ein bei den Einführungsfragen oder beim Neuberechnen deines Ziels angegebenes Gewicht wird dann <strong>nicht</strong> automatisch als Verlauf gespeichert, sondern nur einmalig für die Berechnung deines Kalorien- und Makroziels verwendet (Ziffer 3a). Stimmst du zu, besteht ein Eintrag aus <strong>Monat und Gewicht</strong> – taggenaue Angaben werden nicht erhoben; zusätzlich kannst du ein <strong>Zielgewicht je Kalenderjahr</strong> festlegen. Ein Eintrag entsteht dann, wenn du im Bereich „Ziele" eine Wiegung einträgst – auch nachträglich für zurückliegende Monate –, und automatisch, wenn du bei den Einführungsfragen oder beim Neuberechnen deines Ziels dein Gewicht angibst und dieses vom zuletzt erfassten Wert abweicht. Die jeweils jüngste Wiegung aktualisiert zusätzlich das bei der Ziel-Berechnung hinterlegte Gewicht, damit dein Kalorien- und Makroziel zu deinem aktuellen Gewicht passt. Speicherung: lokal auf deinem Gerät und – bei Cloud-Nutzung – in deinem Nutzerkonto. Deine Einwilligung kannst du jederzeit über das Menü der Karte widerrufen; bereits gespeicherte Einträge bleiben dabei bestehen, es kommen nur keine neuen automatischen Einträge mehr hinzu. Einzelne Einträge kannst du jederzeit im Wiegen-Dialog löschen, den gesamten Verlauf mit deinem Konto (Ziffer 10). Diese Angaben werden <strong>nicht</strong> in Teilen-Links aufgenommen (siehe Ziffer 8).</p>
       <h4>4. Zweck &amp; Rechtsgrundlage</h4>
       <p>Wir verarbeiten die Daten zur Bereitstellung deines Nutzerkontos und der Planer-Funktionen (Art. 6 Abs. 1 lit. b DSGVO – Nutzungsvertrag). Die Bestätigungs-E-Mail dient der Sicherstellung, dass die Adresse dir gehört.</p>
       <h4>5. Cloud-Dienste (Google Firebase)</h4>
@@ -5849,6 +5931,8 @@
     else if (a === "weigh") openWeighForm();
     else if (a === "weight-goal") openWeightGoalForm();
     else if (a === "weight-menu") toggleWeightMenu(t);
+    else if (a === "weight-consent-in") weightConsentModal();
+    else if (a === "weight-manage") openWeighForm(true);
     else if (a === "clear-week") clearWeek();
     else if (a === "recalc-goal") startOnboarding({ first: false });
     else if (a === "share") openShare();
@@ -6178,11 +6262,57 @@
     const menu = el(`<div class="menu" role="menu">
       <button data-mi="weigh" role="menuitem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="M7 21h10"/><path d="M12 3v18"/><path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2"/></svg>Gewicht eintragen</button>
       <button data-mi="goal" role="menuitem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.5"/></svg>${hatZiel ? "Ziel ändern" : "Jahresziel setzen"}</button>
+      <hr>
+      <button data-mi="consent-out" class="destructive" role="menuitem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5M21 12H9"/></svg>Einwilligung widerrufen</button>
     </div>`);
     wrap.appendChild(menu);
     const close = attachMenuDismiss(menu, btn);
     menu.querySelector("[data-mi='weigh']").addEventListener("click", () => { close(false); openWeighForm(); });
     menu.querySelector("[data-mi='goal']").addEventListener("click", () => { close(false); openWeightGoalForm(); });
+    const outBtn = menu.querySelector("[data-mi='consent-out']");
+    if (outBtn) outBtn.addEventListener("click", () => { close(false); weightConsentRevokeModal(); });
+  }
+
+  // Einwilligung erteilen (Art. 9 Abs. 2 lit. a DSGVO): eigener kurzer Dialog statt einer
+  // Checkbox mitten im Wiegen-Formular, weil die Zustimmung eine bewusste, einzelne
+  // Entscheidung sein soll - kein Haekchen, das man beim Ausfuellen mitwegklickt.
+  function weightConsentModal() {
+    const node = el(`<div class="modal" role="dialog" aria-modal="true" aria-label="Gewichtsverlauf aktivieren">
+      <div class="modal-head"><h3>Gewichtsverlauf aktivieren</h3><button class="btn ghost sm" data-close aria-label="Schließen">✕</button></div>
+      <div class="modal-body">
+        <p style="margin:0">Dein Gewicht ist ein Gesundheitsdatum. Mit „Zustimmen" speichern wir deine Wiegungen als Verlauf – jederzeit widerrufbar über das Menü der Karte.</p>
+      </div>
+      <div class="modal-foot"><button class="btn ghost" data-close>Abbrechen</button><button class="btn primary" id="wc-in-ok">Zustimmen</button></div>
+    </div>`);
+    node.querySelectorAll("[data-close]").forEach(b => b.addEventListener("click", closeModal));
+    node.querySelector("#wc-in-ok").addEventListener("click", () => {
+      setWeightConsent(true);
+      // Liegt aus der Ziel-Berechnung schon ein Gewicht vor, gleich als ersten Punkt
+      // uebernehmen - sonst startete das Diagramm trotz vorhandenem Wert leer.
+      noteWeightFromGoal();
+      save(); closeModal(); render();
+      toast("Gewichtsverlauf aktiviert");
+    });
+    openModal(node);
+  }
+
+  // Widerruf: bestaetigen statt sofort ausfuehren - loescht keine bestehenden Daten (die
+  // stehen weiter im Diagramm/koennen einzeln geloescht werden), stoppt nur kuenftige
+  // automatische Eintraege aus dem Rechner und blendet die Karte wieder auf den Einstieg zurueck.
+  function weightConsentRevokeModal() {
+    const node = el(`<div class="modal" role="dialog" aria-modal="true" aria-label="Einwilligung widerrufen">
+      <div class="modal-head"><h3>Einwilligung widerrufen</h3><button class="btn ghost sm" data-close aria-label="Schließen">✕</button></div>
+      <div class="modal-body">
+        <p style="margin:0">Dein bisheriger Verlauf bleibt gespeichert, es kommen nur keine neuen Einträge mehr automatisch dazu.</p>
+      </div>
+      <div class="modal-foot"><button class="btn ghost" data-close>Abbrechen</button><button class="btn primary" id="wc-out-ok">Widerrufen</button></div>
+    </div>`);
+    node.querySelectorAll("[data-close]").forEach(b => b.addEventListener("click", closeModal));
+    node.querySelector("#wc-out-ok").addEventListener("click", () => {
+      setWeightConsent(false); save(); closeModal(); render();
+      toast("Einwilligung widerrufen");
+    });
+    openModal(node);
   }
 
   // ---------- Kalorienrechner (Baustein 1: Tages-/Wochenbedarf → state.goal) ----------
@@ -6282,7 +6412,7 @@
   // Beide Richtungen pruefen auf Gleichheit und laufen sich deshalb nicht gegenseitig hoch.
   // (Ziffer 3b der Datenschutzerklaerung nennt diesen zweiten Weg ausdruecklich.)
   function noteWeightFromGoal() {
-    if (!state.goal) return;
+    if (!state.goal || !hasWeightConsent()) return;
     const kg = Math.round(+state.goal.weight * 10) / 10;
     if (!(kg >= KG_MIN && kg <= KG_MAX)) return;
     const last = latestWeight();
@@ -6332,8 +6462,8 @@
   // "Gewicht halten", und die beiden Trainings-Details, wenn kein Trainingstag gewaehlt
   // ist. Die Schrittzahl ist deshalb nicht konstant und wird ueberall aus onbSteps()
   // abgeleitet – nie hart hinschreiben.
-  const ONB_ORDER = ["hi", "name", "sex", "age", "height", "weight", "weightGoal", "activity",
-                     "mode", "pace", "tdays", "tlevel", "tmin", "result", "how", "go"];
+  const ONB_ORDER = ["hi", "name", "sex", "age", "height", "weight", "weightGoal", "weightConsent",
+                     "activity", "mode", "pace", "tdays", "tlevel", "tmin", "result", "how", "go"];
   const ONB_NUM = {
     age:    { unit: "Jahre", min: 10,  max: 120, q: "Wie alt bist du?" },
     height: { unit: "cm",    min: 100, max: 250, q: "Wie groß bist du?" },
@@ -6346,6 +6476,7 @@
 
   let onb = null;          // null = laeuft gerade nicht
   let onbGateDone = false; // die Startentscheidung faellt genau einmal je Sitzung
+  let lastOnbStep = null;  // fuer die Fortschritts-Animation, siehe animateOnbProgress()
 
   // Nach dem Namen fragen wir nur, wenn wirklich keiner da ist. Bei der Registrierung
   // per E-Mail wird er abgefragt (registerEmail schreibt ihn als displayName), und Google
@@ -6364,6 +6495,8 @@
       if (id === "name") return onbNameFehlt();
       if (id === "pace") return onb.cur.mode !== "hold";       // "Halten" kennt kein Tempo
       if (id === "tlevel" || id === "tmin") return onb.cur.tdays.length > 0;
+      // Gesundheitsdatum (Art. 9 DSGVO) - nur fragen, solange nie entschieden wurde.
+      if (id === "weightConsent") return sanitizeConsent(state.weightConsent).at === null;
       return true;
     });
   }
@@ -6391,6 +6524,7 @@
     // gesetzt hat und die ersten Schritte erneut durchlaeuft, gleicht sie damit an.
     // Bewusst so: sieben Bildschirme fuer sieben Dauern waeren der falsche Einstieg.
     const tk = trainingKeys(g.training);
+    lastOnbStep = null; // neuer Lauf, alte Animationsposition verwirft sich
     onb = {
       first: !(opts && opts.first === false),
       i: 0,
@@ -6404,6 +6538,11 @@
         weight: g.weight != null ? String(g.weight) : "",
         weightGoal: (state.weightGoals && state.weightGoals[activeYear()] != null)
           ? String(state.weightGoals[activeYear()]) : "",
+        // null = noch nie entschieden (Frage erscheint), sonst "yes"/"no" - vorbelegt aus
+        // einer schon getroffenen Entscheidung, damit ein erneuter Durchlauf sie nicht
+        // stillschweigend zuruecksetzt.
+        weightConsent: sanitizeConsent(state.weightConsent).at
+          ? (sanitizeConsent(state.weightConsent).given ? "yes" : "no") : null,
         activity: ACTIVITY.some(a => a.key === g.activity) ? g.activity : null,
         mode: g.mode || null,
         pace: g.pace || null,
@@ -6418,7 +6557,9 @@
     // (onbMissing("result") deckt alle Pflichtfelder in einem Aufruf ab), startet der Ablauf
     // direkt beim Ergebnis-Schritt; "Zurueck" fuehrt weiterhin zu jedem einzelnen Schritt, falls
     // etwas geaendert werden soll. Gleiches Sprung-Muster wie "Mein Ziel behalten" (siehe unten).
-    if (onb.first === false && !onbMissing("result")) {
+    // Ausnahme: die Einwilligungsfrage darf der Sprung nicht uebergehen, solange sie noch nie
+    // beantwortet wurde - sonst wuerde "Ziel neu berechnen" sie fuer immer umgehen.
+    if (onb.first === false && !onbMissing("result") && sanitizeConsent(state.weightConsent).at !== null) {
       const resultIdx = onbSteps().indexOf("result");
       if (resultIdx !== -1) onb.i = resultIdx;
     }
@@ -6451,6 +6592,7 @@
     if (id === "tlevel" && !c.tlevel) return "Wähle noch, wie hart du trainierst";
     if (id === "activity" && !c.activity) return "Wähle noch deine Bewegung im Alltag";
     if (id === "mode" && !c.mode) return "Wähle noch dein Ziel";
+    if (id === "weightConsent" && c.weightConsent !== "yes" && c.weightConsent !== "no") return "Wähle eine Option";
     if (id === "pace" && !c.pace) return "Wähle noch dein Tempo";
     if (id === "result") { const f = missingCalc(onbGoalInput()); if (f.length) return "Es fehlt noch " + f.join(" und "); }
     if (id === "weightGoal") {
@@ -6548,6 +6690,11 @@
           <span class="onb-unit" id="onb-unit">kg</span>
         </div>`;
     }
+    if (id === "weightConsent") {
+      return `<h2 class="onb-q" tabindex="-1">Möchtest du deinen Gewichtsverlauf speichern?</h2>
+        <p class="onb-why">Dein Gewicht ist ein Gesundheitsdatum – jederzeit widerrufbar.</p>
+        <div class="onb-opts">${onbOpt("weightConsent", "yes", "Ja, speichern", "Diagramm & Zielgewicht")}${onbOpt("weightConsent", "no", "Nein, danke")}</div>`;
+    }
     if (id === "activity") {
       return `<h2 class="onb-q" tabindex="-1">Wie viel bewegst du dich im Alltag?</h2>
         <p class="onb-why">Nur Beruf und Alltag – Training zählt separat.</p>
@@ -6632,6 +6779,34 @@
     </div>`;
   }
 
+  // Gleiches Prinzip wie animateProgressCount() auf Home: weich hochzaehlen (und beim
+  // "Zurueck" ebenso weich runter), aber nur bei echtem Schrittwechsel - ein Re-Render
+  // desselben Schritts (z.B. Trainingstage antippen) soll nicht erneut animieren.
+  function animateOnbProgress() {
+    const span = view.querySelector(".wg-progress-bar > span");
+    const count = view.querySelector(".onb-count");
+    if (!span) { lastOnbStep = null; return; } // kein .onb-top auf diesem Schritt
+    const step = +span.dataset.step, total = +span.dataset.total;
+    const from = lastOnbStep == null ? Math.max(1, step - 1) : lastOnbStep;
+    lastOnbStep = step;
+    if (from === step || reducedMotion()) {
+      span.style.width = Math.round(step / total * 100) + "%";
+      if (count) count.textContent = `Schritt ${step} von ${total}`;
+      return;
+    }
+    const dur = 700, t0 = performance.now();
+    function frame(now) {
+      const p = Math.min(1, (now - t0) / dur);
+      const eased = 1 - Math.pow(1 - p, 3);
+      const cur = from + (step - from) * eased;
+      span.style.width = Math.round(cur / total * 100) + "%";
+      if (count) count.textContent = `Schritt ${Math.round(cur)} von ${total}`;
+      if (p < 1) requestAnimationFrame(frame);
+      else { span.style.width = Math.round(step / total * 100) + "%"; if (count) count.textContent = `Schritt ${step} von ${total}`; }
+    }
+    requestAnimationFrame(frame);
+  }
+
   function renderOnboardStep() {
     const steps = onbSteps();
     const id = steps[onb.i];
@@ -6643,7 +6818,7 @@
 
     view.innerHTML = `<div class="onb">
       ${showTop ? `<div class="onb-top">
-        <div class="wg-progress-bar" role="progressbar" aria-valuemin="1" aria-valuemax="${steps.length}" aria-valuenow="${onb.i + 1}" aria-label="Fortschritt der Einführung"><span style="width:${pct}%"></span></div>
+        <div class="wg-progress-bar" role="progressbar" aria-valuemin="1" aria-valuemax="${steps.length}" aria-valuenow="${onb.i + 1}" aria-label="Fortschritt der Einführung"><span style="width:${pct}%" data-step="${onb.i + 1}" data-total="${steps.length}"></span></div>
         <div class="onb-count">Schritt ${onb.i + 1} von ${steps.length}</div>
       </div>` : ""}
       <div class="onb-stage">${onbStepHtml(id)}</div>
@@ -6655,6 +6830,7 @@
         </div>
       </div>
     </div>`;
+    animateOnbProgress();
 
     // Fokus auf die neue Frage: sonst bliebe er am Weiter-Knopf haengen und ein
     // Screenreader bekaeme vom Bildschirmwechsel nichts mit. Das Zahlenfeld bewusst
@@ -6676,7 +6852,23 @@
       // sehen ist – ohne Bewegungswunsch sofort.
       // Nur springen, wenn wir noch auf demselben Bildschirm stehen – der Name der
       // Gruppe ist zugleich die Kennung des Schritts.
-      setTimeout(() => { if (onb && onbSteps()[onb.i] === b.dataset.opt) onbGo(1); }, reducedMotion() ? 0 : 260);
+      setTimeout(() => {
+        if (!onb || onbSteps()[onb.i] !== b.dataset.opt) return;
+        if (b.dataset.opt === "weightConsent") {
+          // Erst JETZT committen, nach der sichtbaren Haken-Pause oben - stuende die
+          // Entscheidung schon vorher in state.weightConsent, wuerde onbSteps() diesen
+          // Schritt sofort herausfiltern und der naechste Schritt erschiene ohne
+          // sichtbaren Haken (siehe kvp-Review). Ziel-Schritt vorher merken, weil sich
+          // die Listenposition durchs Herausfallen dieses Schritts verschiebt.
+          const nextId = onbSteps()[onb.i + 1];
+          setWeightConsent(b.dataset.v === "yes"); save();
+          const idx = onbSteps().indexOf(nextId);
+          if (idx !== -1) { onb.i = idx; renderOnboardStep(); }
+          else finishOnboarding(onb.first ? "Viel Erfolg!" : null);
+          return;
+        }
+        onbGo(1);
+      }, reducedMotion() ? 0 : 260);
     }));
 
     const numEl = view.querySelector("#onb-num");
