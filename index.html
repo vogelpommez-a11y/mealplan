@@ -171,6 +171,7 @@
   header.site {
     position: sticky; top: 0; z-index: 30;
     border-bottom: 1px solid var(--border);
+    padding-top: env(safe-area-inset-top, 0px); /* Statusleiste/Notch bei viewport-fit=cover */
   }
   header.site::before {
     content: ""; position: absolute; inset: 0; z-index: -1;
