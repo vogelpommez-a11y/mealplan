@@ -539,6 +539,19 @@
   /* Hinweis in der rechten Spalte, wo im Leerzustand sonst Makrobalken bzw. Fortschrittsbalken
      saessen (dayRight/weekRight in weekGoalHtml). */
   .wg-side-note { margin: 2px 0 0; font-size: 13.5px; line-height: 1.5; color: var(--text-muted); max-width: 34ch; }
+  /* Rueckblick (Paket C1): Streak + Mini-Trend + Ziel-Treffer. Gleiche Kartenoptik wie .wg-col. */
+  .rueck { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 14px 16px; margin-top: 10px; }
+  .rueck-streak { display: flex; align-items: center; gap: 8px; margin: 8px 0 2px; font-size: 14px; color: var(--text); }
+  .rueck-streak b { font-family: var(--font-display); font-size: 17px; color: var(--accent); font-variant-numeric: tabular-nums; }
+  .rueck-fl { width: 18px; height: 18px; flex: none; color: var(--accent); }
+  .rueck-bars { display: flex; align-items: flex-end; gap: 5px; height: 60px; margin: 14px 0 0; }
+  .rueck-bar { flex: 1 1 0; min-width: 0; display: flex; align-items: flex-end; height: 100%; }
+  .rueck-bar i { display: block; width: 100%; border-radius: 4px 4px 2px 2px; background: linear-gradient(180deg, var(--accent), var(--accent-strong)); }
+  .rueck-foot { display: flex; gap: 22px; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); }
+  .rueck-s { display: flex; flex-direction: column; gap: 2px; }
+  .rueck-s small { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: .05em; }
+  .rueck-s b { font-family: var(--font-display); font-size: 18px; color: var(--text); font-variant-numeric: tabular-nums; }
+  .rueck-s b span { font-family: var(--font-body); font-size: 12px; font-weight: 400; color: var(--text-muted); margin-left: 3px; }
   /* An Trainingstagen bekommt die "Heute"-Karte denselben blauen Rand + Kopfstreifen wie
      die Tageskarten im Wochenplan (.day.training) - direkt beim App-Start sichtbar, ohne
      erst die Wochenansicht durchsuchen zu muessen. Icon+Wort "Training" stehen bereits in
@@ -2149,11 +2162,52 @@
     return isoWeekKey(b);
   }
   function activeWeekKey() { return weekKeyFor(state.viewWeek === "next" ? "next" : "cur"); }
-  // Nur aktuelle + naechste Woche behalten; alles Aeltere/Fremde verfaellt.
+  // Nur aktuelle + naechste Woche behalten; alles Aeltere/Fremde verfaellt. Paket C1: bevor
+  // eine VERGANGENE Woche verworfen wird, werden ihre Kennzahlen (Schnitt-kcal, geplante Tage,
+  // Ziel-Treffer) fuer den Rueckblick archiviert. Nur zur Laufzeit aufrufen (archiveWeek greift
+  // auf state zu) — load() ruft pruneWeeks daher NICHT mehr, sondern boot() nach dem State-Aufbau.
   function pruneWeeks(plans) {
-    const keep = {}; keep[weekKeyFor("cur")] = 1; keep[weekKeyFor("next")] = 1;
-    Object.keys(plans).forEach(k => { if (!keep[k]) delete plans[k]; });
+    const cur = weekKeyFor("cur");
+    const keep = {}; keep[cur] = 1; keep[weekKeyFor("next")] = 1;
+    Object.keys(plans).forEach(k => {
+      if (keep[k]) return;
+      if (k < cur) archiveWeek(k, plans[k]);   // vergangene Woche als Kennzahlen sichern
+      delete plans[k];
+    });
     return plans;
+  }
+  // Kennzahlen einer abgelaufenen Woche fuer den Rueckblick festhalten. Bewusst NUR Summen/
+  // Zahlen, keine Meal-Referenzen — winzig, kein Foto-Ballast. Ziel-Treffer = Tag geplant UND
+  // Tageskalorien innerhalb +/-10 % des (heutigen) Tagesziels. Ohne Ziel keine Treffer-Quote.
+  function archiveWeek(wk, pl) {
+    if (!pl || !state.goal) return;
+    let sum = 0, days = 0, hit = 0;
+    DAYS.forEach(d => {
+      const n = dayNutOf(pl, d.key);
+      if (!hasNut(n)) return;
+      days++; sum += n.kcal;
+      const t = goalTargetsForDay(d.key);
+      if (t && t.kcal && Math.abs(n.kcal - t.kcal) <= t.kcal * 0.1) hit++;
+    });
+    if (!days) return;                          // leere Woche hat keinen Rueckblick-Wert
+    if (!state.weekStats) state.weekStats = {};
+    state.weekStats[wk] = { kcal: Math.round(sum / days), days: days, hit: hit };
+  }
+  // Archiv saeubern: nur gueltige "YYYY-Www"-Eintraege, geklemmte Werte, hoechstens die letzten
+  // 26 Wochen (halbes Jahr) — das Archiv soll nicht endlos wachsen.
+  function sanitizeWeekStats(o) {
+    const out = {};
+    if (!o || typeof o !== "object") return out;
+    Object.keys(o).forEach(k => {
+      if (!/^\d{4}-W\d{2}$/.test(k)) return;
+      const s = o[k]; if (!s || typeof s !== "object") return;
+      const days = Math.max(0, Math.min(7, Math.round(Number(s.days) || 0)));
+      if (!days) return;
+      out[k] = { kcal: Math.max(0, Math.round(Number(s.kcal) || 0)), days: days, hit: Math.max(0, Math.min(days, Math.round(Number(s.hit) || 0))) };
+    });
+    const trimmed = {};
+    Object.keys(out).sort().slice(-26).forEach(k => { trimmed[k] = out[k]; });
+    return trimmed;
   }
   // Aktive Woche als Referenz spiegeln, damit alle bestehenden state.plan[..]-Zugriffe gelten.
   function setViewWeek(which) {
@@ -2277,7 +2331,7 @@
     if (!data || !Array.isArray(data.recipes)) {
       const recipes = SEED.map(r => Object.assign({ id: uid() }, r));
       const plans = {}; plans[curKey] = makeEmptyPlan();
-      return { recipes, plans, plan: plans[curKey], viewWeek: "cur", viewYear: new Date().getFullYear(), tab: "home", goal: null, shares: [], onboarded: false, weights: [], weightGoals: {}, profileImage: null };
+      return { recipes, plans, plan: plans[curKey], viewWeek: "cur", viewYear: new Date().getFullYear(), tab: "home", goal: null, shares: [], onboarded: false, weights: [], weightGoals: {}, weekStats: {}, profileImage: null };
     }
     const recipes = sanitizeRecipes(data.recipes);
     const plans = {};
@@ -2286,9 +2340,11 @@
     } else if (data.plan) {                                             // Migration: alter Einzelplan
       plans[curKey] = normalizePlan(data.plan, recipes);
     }
-    pruneWeeks(plans);
+    // Alte Wochen NICHT hier beschneiden: pruneWeeks archiviert seit Paket C1 vergangene Wochen
+    // und braucht dafuer state (Ziel, Rezepte). Das laeuft noch nicht — state = load() ist gerade
+    // erst am Entstehen. boot() ruft pruneWeeks(state.plans) direkt nach dem State-Aufbau nach.
     if (!plans[curKey]) plans[curKey] = makeEmptyPlan();
-    return { recipes, plans, plan: plans[curKey], viewWeek: "cur", viewYear: new Date().getFullYear(), tab: data.tab === "recipes" ? "recipes" : "home", goal: sanitizeGoal(data.goal), shares: Array.isArray(data.shares) ? data.shares : [], onboarded: data.onboarded === true, weights: sanitizeWeights(data.weights), weightGoals: sanitizeWeightGoals(data.weightGoals), profileImage: typeof data.profileImage === "string" ? data.profileImage : null };
+    return { recipes, plans, plan: plans[curKey], viewWeek: "cur", viewYear: new Date().getFullYear(), tab: data.tab === "recipes" ? "recipes" : "home", goal: sanitizeGoal(data.goal), shares: Array.isArray(data.shares) ? data.shares : [], onboarded: data.onboarded === true, weights: sanitizeWeights(data.weights), weightGoals: sanitizeWeightGoals(data.weightGoals), weekStats: sanitizeWeekStats(data.weekStats), profileImage: typeof data.profileImage === "string" ? data.profileImage : null };
   }
 
   // Schlaegt das lokale Speichern fehl (Speicher voll, privater Modus), darf das NICHT
@@ -2305,7 +2361,7 @@
       const recipesForLS = idbOK
         ? state.recipes.map(r => { const c = Object.assign({}, r); delete c.image; return c; })
         : state.recipes;
-      localStorage.setItem(STORE_KEY, JSON.stringify({ recipes: recipesForLS, plans: state.plans, tab: state.tab, goal: state.goal || null, shares: state.shares || [], onboarded: state.onboarded === true, weights: state.weights || [], weightGoals: state.weightGoals || {}, profileImage: idbOK ? null : (state.profileImage || null) }));
+      localStorage.setItem(STORE_KEY, JSON.stringify({ recipes: recipesForLS, plans: state.plans, tab: state.tab, goal: state.goal || null, shares: state.shares || [], onboarded: state.onboarded === true, weights: state.weights || [], weightGoals: state.weightGoals || {}, weekStats: state.weekStats || {}, profileImage: idbOK ? null : (state.profileImage || null) }));
       storageFullWarned = false;
     } catch (e) {
       if (!storageFullWarned) {
@@ -4329,10 +4385,59 @@
   // oben im Wochenplan. Dort war es voll, bevor man ueberhaupt beim Tagesraster war - jetzt
   // eigene Landingpage, der Wochenplan startet direkt mit "Dein Wochenplan".
   function renderHome() {
-    view.innerHTML = `${appHeroHtml()}${weekNutHtml()}${weightHtml()}`;
+    view.innerHTML = `${appHeroHtml()}${weekNutHtml()}${rueckblickHtml()}${weightHtml()}`;
     resetCarousels();
     initCarousel(view.querySelector(".wg-cols"), view.querySelector(".wgbar"));
     initWeightChart();
+  }
+
+  // Kurzform eines Wochenschluessels fuers Label: "2026-W29" -> "KW 29".
+  function weekKwLabel(wk) { const m = /-W(\d+)$/.exec(wk); return m ? "KW " + Number(m[1]) : wk; }
+  // Paket C1: Rueckblick auf Home — Streak (Wochen in Folge geplant) + Mini-Trend der
+  // durchschnittlichen Tageskalorien der letzten Wochen + Ziel-Treffer-Quote. Quelle ist das
+  // schlanke Archiv state.weekStats (abgelaufene Wochen, siehe archiveWeek). Ohne Ziel oder ohne
+  // jede Historie/ Streak faellt der Block ganz weg (kein leerer Kasten fuer neue Nutzer).
+  function rueckblickHtml() {
+    if (!state.goal) return "";
+    const stats = state.weekStats || {};
+    const keys = Object.keys(stats).sort();
+    // Streak: aufeinanderfolgende Wochen rueckwaerts mit geplanten Tagen; die aktuelle zaehlt
+    // mit, sobald sie schon geplant ist.
+    const curKey = weekKeyFor("cur");
+    const curPlan = state.plans[curKey];
+    const curPlanned = !!(curPlan && DAYS.some(d => hasNut(dayNutOf(curPlan, d.key))));
+    let streak = 0; const dcur = new Date(); dcur.setDate(dcur.getDate() - 7);
+    while (true) { const wk = isoWeekKey(dcur); if (stats[wk] && stats[wk].days > 0) { streak++; dcur.setDate(dcur.getDate() - 7); } else break; }
+    if (curPlanned) streak++;
+    if (!keys.length && !streak) return "";
+    const shownKeys = keys.slice(-8);
+    let chart = "";
+    if (shownKeys.length) {
+      const vals = shownKeys.map(k => stats[k].kcal);
+      const max = Math.max.apply(null, vals), min = Math.min.apply(null, vals), span = (max - min) || 1;
+      const bars = shownKeys.map(k => {
+        const s = stats[k];
+        const h = 22 + Math.round((s.kcal - min) / span * 78);   // 22..100 %, damit auch das Minimum sichtbar bleibt
+        return `<span class="rueck-bar" title="${weekKwLabel(k)}: Ø ${nfmt(s.kcal)} kcal, ${s.hit}/${s.days} Tage im Ziel"><i style="height:${h}%"></i></span>`;
+      }).join("");
+      const totDays = shownKeys.reduce((a, k) => a + stats[k].days, 0);
+      const totHit = shownKeys.reduce((a, k) => a + stats[k].hit, 0);
+      const avgKcal = Math.round(vals.reduce((a, v) => a + v, 0) / vals.length);
+      chart = `<div class="rueck-bars" aria-hidden="true">${bars}</div>
+        <div class="rueck-foot">
+          <div class="rueck-s"><small>&#216; pro Tag</small><b>${nfmt(avgKcal)}<span>kcal</span></b></div>
+          <div class="rueck-s"><small>Ziel getroffen</small><b>${totHit}<span>/${totDays} Tage</span></b></div>
+        </div>`;
+    }
+    const flame = `<svg class="rueck-fl" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M13.5 2c.4 3-1.6 4.2-2.9 5.6C9.2 9 8 10.4 8 12.6a4 4 0 0 0 8 .2c0-1.3-.5-2.3-1-3 .9.4 1.7 1.2 2.2 2.3.3-.7.5-1.6.5-2.6 0-3.4-2.3-5.4-4.2-7.5z"/></svg>`;
+    const streakLine = streak
+      ? `<div class="rueck-streak">${flame}<span><b>${streak}</b> Woche${streak === 1 ? "" : "n"} in Folge geplant</span></div>`
+      : "";
+    return `<section class="rueck">
+        <div class="wg-lbl">Rückblick</div>
+        ${streakLine}
+        ${chart}
+      </section>`;
   }
 
   // Zeichnet das Diagramm in der gemessenen Breite und haengt die Bedienung dran.
@@ -5792,6 +5897,12 @@
   }
   function boot() {
     const fy = document.getElementById("foot-year"); if (fy) fy.textContent = new Date().getFullYear();
+    // Paket C1: jetzt (state existiert) vergangene Wochen archivieren + verwerfen — in load()
+    // ging das noch nicht (state war in der TDZ). Danach einmal speichern, damit Archiv und
+    // beschnittene Plaene persistiert sind. state.plan zeigt weiter auf die aktuelle Woche
+    // (die wird nie beschnitten).
+    pruneWeeks(state.plans);
+    save();
     readSharedFromUrl();
     // Paket A3: Bilder aus IndexedDB in den State ziehen, BEVOR Auth/Sync/Render laufen -
     // enterApp() und startCloudSync() warten auf imagesReady, damit kein Push bildlose
