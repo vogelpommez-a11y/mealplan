@@ -1366,7 +1366,7 @@
      bleiben, weil sie Zustandswechsel (Modal/Toast/Onboarding) verstehbar halten. */
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; }
-    .modal, #toast, .onb-stage, .onb-opt { transition: opacity var(--dur-fast) ease !important; transform: none !important; animation: none !important; }
+    .modal, #toast, .onb-stage, .onb-opt, .onb-bf-o { transition: opacity var(--dur-fast) ease !important; transform: none !important; animation: none !important; }
     * { transition-property: opacity, color, background-color, border-color, box-shadow !important; }
   }
   /* ---------- Mobile / Smartphone ---------- */
@@ -1630,19 +1630,77 @@
   .onb-opt-h { font-size: 12.5px; color: var(--text-muted); line-height: 1.4; }
   .onb-tick { position: absolute; right: 15px; top: 50%; transform: translateY(-50%); width: 21px; height: 21px; color: var(--accent); }
 
-  /* Zahlenfelder: gross gesetzt, aber ein normales input – die Einheit steht daneben,
-     damit im Feld selbst nur die Zahl steht (sonst stolpert die Tastatur darueber). */
-  .onb-numrow { display: flex; align-items: baseline; justify-content: center; gap: 12px; }
+  /* Zahlenfelder. Frueher stand eines gross und allein auf seinem Bildschirm; jetzt
+     stehen drei nebeneinander (Alter/Groesse/Gewicht), also kleiner gesetzt und jedes
+     mit eigener Beschriftung – die Ueberschrift traegt die Bedeutung nicht mehr allein.
+     Die Einheit steht neben dem Feld, damit darin nur die Zahl steht (sonst stolpert die
+     Tastatur darueber). */
+  .onb-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-top: 15px; }
+  .onb-grid-1 { grid-template-columns: 1fr; max-width: 250px; }
+  .onb-f { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+  .onb-f-l { font-size: 12.5px; font-weight: 650; color: var(--text-muted); letter-spacing: .01em; }
+  .onb-f-opt { font-weight: 500; opacity: .75; }
+  .onb-f-in { display: flex; align-items: baseline; gap: 6px; min-width: 0; }
   /* Zwei Klassen, nicht eine: die globale Regel fuer Eingabefelder trifft ueber
      input[type="number"] und liegt damit (Attributselektor!) ueber einer einzelnen
      Klasse – Breite und Schriftgroesse waeren sonst still ueberstimmt worden. */
-  .onb-numrow .onb-num {
-    width: 190px; text-align: center; font-family: var(--font-display);
-    font-size: 40px; padding: 12px 10px; letter-spacing: .02em;
+  .onb-f-in .onb-num {
+    width: 100%; min-width: 0; text-align: center; font-family: var(--font-display);
+    font-size: 24px; padding: 10px 6px; letter-spacing: .02em;
     -moz-appearance: textfield;
   }
   .onb-num::-webkit-outer-spin-button, .onb-num::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
-  .onb-unit { font-size: 17px; color: var(--text-muted); font-weight: 600; }
+  .onb-f-u { flex: none; font-size: 13px; color: var(--text-muted); font-weight: 600; }
+
+  /* Zweite Frage auf demselben Bildschirm (Tempo unter dem Ziel, Haerte unter den
+     Trainingstagen). Eine feine Linie trennt sie, statt sie nur tiefer zu setzen. */
+  .onb-sub { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--border); }
+  /* Farbe ausdruecklich, nicht geerbt: die Textfarbe haengt sonst an .app weit oben im
+     Baum – eine Ueberschrift soll nicht davon abhaengen, wo sie eingehaengt wird. */
+  .onb-sub-q { font-family: var(--font-display); font-size: 17px; font-weight: 650; letter-spacing: .01em; color: var(--text); margin: 0 0 10px; }
+
+  /* Koerperfett: 2x2, damit alle vier Skizzen gleichzeitig zu sehen und damit
+     vergleichbar sind – untereinander ginge genau der Vergleich verloren, auf den die
+     Auswahl hinauslaeuft. Bleibt deshalb auch auf dem Handy zweispaltig. */
+  .onb-bf { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .onb-bf-o {
+    position: relative; display: flex; flex-direction: column; align-items: center; gap: 2px;
+    padding: 12px 10px 11px; cursor: pointer; font: inherit; text-align: center;
+    background: linear-gradient(180deg, var(--surface), var(--surface-2));
+    color: var(--text-muted); border: 1.5px solid var(--border-strong); border-radius: var(--radius);
+    box-shadow: inset 0 1px 0 color-mix(in srgb, var(--text) 7%, transparent);
+    transition: border-color var(--dur-fast), box-shadow var(--dur-fast), transform var(--dur-fast), color var(--dur-fast);
+    opacity: 0; transform: translateY(6px); animation: onbin var(--dur-slow) var(--ease-out) forwards;
+  }
+  .onb-bf-o:nth-child(1) { animation-delay: 0ms; }
+  .onb-bf-o:nth-child(2) { animation-delay: 40ms; }
+  .onb-bf-o:nth-child(3) { animation-delay: 80ms; }
+  .onb-bf-o:nth-child(4) { animation-delay: 120ms; }
+  .onb-bf-o:hover { border-color: var(--text-muted); }
+  .onb-bf-o:active { transform: scale(.985); }
+  .onb-bf-o.on {
+    border-color: var(--accent); color: var(--accent);
+    background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 13%, var(--surface)), var(--surface));
+    box-shadow: 0 0 0 1px var(--accent), 0 6px 20px color-mix(in srgb, var(--accent) 20%, transparent);
+  }
+  .onb-bf-o:focus-visible { outline: none; box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 34%, transparent); }
+  /* Die Skizze erbt ueber currentColor die Farbe der Kachel – hell/dunkel und der
+     gewaehlte Zustand stimmen damit ohne eine einzige eigene Regel. */
+  .onb-bf-fig { flex: none; width: 48px; height: 66px; margin-bottom: 2px; }
+  /* Die Spanne traegt die Kachel: Wer seinen Wert kennt, sucht genau danach und soll ihn
+     nicht aus dem Kleingedruckten fischen muessen. Ziffernbreite fest, damit die vier
+     Zahlen untereinander fluchten. */
+  .onb-bf-p {
+    font-family: var(--font-display); font-size: 16px; font-weight: 700;
+    color: var(--text); letter-spacing: .02em; font-variant-numeric: tabular-nums;
+  }
+  .onb-bf-t { font-size: 13px; font-weight: 650; color: var(--text); }
+  .onb-bf-h { font-size: 11px; line-height: 1.3; color: var(--text-muted); }
+  /* Das Haekchen sitzt hier oben in der Ecke, nicht mittig rechts wie auf einer
+     Textkachel – in der Mitte laege es sonst auf der Zeichnung. */
+  .onb-bf-o .onb-tick { top: 9px; right: 9px; transform: none; width: 17px; height: 17px; }
+  .onb-bf-skip { width: 100%; margin-top: 11px; justify-content: center; }
+  .onb-bf-skip.on { color: var(--accent); border-color: var(--accent); }
 
   /* Textfeld (Name) – zwei Klassen aus demselben Grund wie beim Zahlenfeld: die globale
      Regel trifft ueber input[type="text"] und liegt damit ueber einer einzelnen Klasse. */
@@ -1652,7 +1710,8 @@
      Groesse fuer den Einstieg – sieben Knoepfe muessen auf 320 px Breite passen. */
   .onb-tdays { margin-top: 4px; }
   .onb-tdays button { min-height: 52px; font-size: 14px; }
-  .onb-sel { margin-top: 12px; margin-bottom: 0; font-size: 13.5px; }
+  /* Die frueher darunter stehende Zeile "Montag, Mittwoch, Freitag" (.onb-sel) ist
+     entfallen: Die hervorgehobenen Knoepfe sagen dasselbe schon. */
 
   /* Ergebniskarte: der Moment, auf den der ganze Ablauf hinarbeitet. Deshalb ein Hauch
      Buehne – ein Akzentschimmer von oben hinter der Zahl, sonst nichts Zusaetzliches. */
@@ -1702,17 +1761,11 @@
     box-shadow: 0 0 0 6px color-mix(in srgb, var(--accent) 10%, transparent),
                 0 10px 34px color-mix(in srgb, var(--accent) 26%, transparent);
   }
-  .onb-keep { margin-top: 20px; width: 100%; justify-content: center; }
   .onb-note { margin-top: 18px; }
 
-  /* Miniatur des Wochenplans – reine Deko, deshalb aria-hidden im Markup. */
-  .onb-mock { display: grid; gap: 8px; margin-bottom: 18px; }
-  .onb-mock-d { display: flex; align-items: center; gap: 7px; padding: 9px 11px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface); }
-  .onb-mock-d span { font-family: var(--font-display); font-size: 12px; color: var(--text-muted); width: 26px; }
-  .onb-mock-d i { height: 9px; border-radius: 999px; flex: 1; }
-  .onb-mock-d i.fr { background: var(--fr); }
-  .onb-mock-d i.mi { background: var(--mi); }
-  .onb-mock-d i.ab { background: var(--ab); }
+  /* Die Miniatur des Wochenplans (.onb-mock) sass auf dem eigenen Schritt "how" nach dem
+     Ergebnis. Der Schritt ist entfallen – zwei reine Textbildschirme nach dem Ergebnis
+     liessen den Hoehepunkt verpuffen –, damit auch seine Regeln. */
 
   .onb-foot { margin-top: 28px; }
   .onb-foot .onb-next {
@@ -1747,9 +1800,20 @@
   @media (max-width: 560px) {
     /* Zwei Kacheln nebeneinander werden hier zu schmal fuer die Beschriftung. */
     .onb-opts { grid-template-columns: 1fr; }
+    /* Ausnahme: "Weiblich"/"Männlich" ist kurz genug und steht auf dem Koerperdaten-
+       Bildschirm ueber drei Feldern – untereinander waere der Bildschirm zu hoch. */
+    .onb-opts-2 { grid-template-columns: 1fr 1fr; }
     .onb-q { font-size: 26px; }
     .onb-hi .onb-q { font-size: 29px; }
-    .onb-numrow .onb-num { width: 150px; font-size: 36px; }
+    /* Drei Felder nebeneinander auf schmalem Schirm: Schrift und Innenabstand zurueck,
+       damit dreistellige Werte nicht abgeschnitten werden. */
+    .onb-grid { gap: 7px; }
+    .onb-f-in { gap: 4px; }
+    .onb-f-in .onb-num { font-size: 20px; padding: 10px 3px; }
+    .onb-f-u { font-size: 12px; }
+    .onb-bf-fig { width: 42px; height: 58px; }
+    .onb-bf-p { font-size: 15px; }
+    .onb-bf-h { font-size: 10.5px; }
     .onb-res-k { font-size: 48px; }
     .onb-res-m b { font-size: 19px; }
   }
@@ -2014,6 +2078,10 @@
   // temporalen Todeszone — die App startete mit „Cannot access 'KG_MIN' before
   // initialization" und blieb mit leerem #view stehen.
   const KG_MIN = 30, KG_MAX = 400;
+  // Koerperfettanteil in Prozent. Aus demselben TDZ-Grund hier oben: sanitizeBodyfat()
+  // haengt daran und laeuft ueber computeGoal/sanitizeGoal ebenfalls schon in `load()`.
+  // Die Spanne ist bewusst weit — sie soll nur Unsinn abfangen, nicht bewerten.
+  const BF_MIN = 3, BF_MAX = 65;
 
   // ---------- Aktivitaet und Training (Stammdaten des Kalorienrechners) ----------
   // Stehen hier oben und nicht beim Rechner, weil sanitizeGoal() sie braucht und das
@@ -2272,6 +2340,10 @@
     delete out.trainingDays;
     if (ACTIVITY_MIGRATE[out.activity]) out.activity = ACTIVITY_MIGRATE[out.activity];
     else if (!ACTIVITY.some(a => a.key === out.activity)) out.activity = "pal14";
+    // Ziele aus der Zeit vor dem KFA haben das Feld gar nicht, beschaedigte koennten
+    // Unsinn tragen. Beides wird hier zu null — dann rechnet computeGoal wie frueher
+    // nach Mifflin weiter, statt mit einer kaputten fettfreien Masse.
+    out.bodyfat = sanitizeBodyfat(out.bodyfat);
     return out;
   }
 
@@ -5754,9 +5826,9 @@
       <h4>2. Hosting der Website (GitHub Pages)</h4>
       <p>Diese Website wird bei GitHub Pages gehostet, einem Dienst der GitHub, Inc., 88 Colin P. Kelly Jr. Street, San Francisco, CA 94107, USA. Beim Aufruf der Seite verarbeitet GitHub technisch notwendige Zugriffsdaten (z. B. deine IP-Adresse), um die Seite auszuliefern und deren Sicherheit zu gewährleisten. Rechtsgrundlage ist unser berechtigtes Interesse an einer sicheren und effizienten Bereitstellung (Art. 6 Abs. 1 lit. f DSGVO). Dabei kann eine Übermittlung in die USA erfolgen. Weitere Infos: <a href="https://docs.github.com/de/site-policy/privacy-policies/github-general-privacy-statement" target="_blank" rel="noopener">GitHub Privacy Statement</a>.</p>
       <h4>3. Welche Daten wir verarbeiten</h4>
-      <p>Bei der Registrierung: <strong>Name und E-Mail-Adresse</strong>. Bei Nutzung der App: die von dir angelegten <strong>Wochenpläne, Meals/Rezepte und ggf. Fotos</strong> sowie ein optionales <strong>Profilbild</strong> (als Kreis-Avatar zugeschnitten, in deinem Nutzerkonto gespeichert, nicht Teil von Teilen-Links) sowie – im Rahmen der Einführungsfragen nach der Registrierung, die zur Nutzung der App erforderlich sind – <strong>Geschlecht, Alter, Größe, Gewicht, Alltagsbewegung und Ziel</strong> sowie optional deine <strong>Trainingstage</strong> (Wochentag, Intensität und Dauer; Details siehe Ziffer 3a). Erstellst du Teilen-Links, merkt sich dein Konto zusätzlich deren <strong>Kennungen</strong> (keine Klardaten, siehe Ziffer 8), damit sie beim Löschen deines Kontos zugeordnet und mitentfernt werden können. Stimmst du der Speicherung deines <strong>Gewichtsverlaufs</strong> ausdrücklich zu, speichern wir je Eintrag Monat und Gewicht sowie ein optionales <strong>Jahres-Zielgewicht</strong> (Details und Widerruf siehe Ziffer 3b). Diese Daten speichern wir, damit du dich anmelden und deine Planung geräteübergreifend nutzen kannst.</p>
+      <p>Bei der Registrierung: <strong>Name und E-Mail-Adresse</strong>. Bei Nutzung der App: die von dir angelegten <strong>Wochenpläne, Meals/Rezepte und ggf. Fotos</strong> sowie ein optionales <strong>Profilbild</strong> (als Kreis-Avatar zugeschnitten, in deinem Nutzerkonto gespeichert, nicht Teil von Teilen-Links) sowie – im Rahmen der Einführungsfragen nach der Registrierung, die zur Nutzung der App erforderlich sind – <strong>Geschlecht, Alter, Größe, Gewicht, Alltagsbewegung und Ziel</strong> sowie optional deine <strong>Trainingstage</strong> (Wochentag, Intensität und Dauer) und deinen <strong>Körperfettanteil</strong> (als grobe Stufe; Details zu beidem siehe Ziffer 3a). Erstellst du Teilen-Links, merkt sich dein Konto zusätzlich deren <strong>Kennungen</strong> (keine Klardaten, siehe Ziffer 8), damit sie beim Löschen deines Kontos zugeordnet und mitentfernt werden können. Stimmst du der Speicherung deines <strong>Gewichtsverlaufs</strong> ausdrücklich zu, speichern wir je Eintrag Monat und Gewicht sowie ein optionales <strong>Jahres-Zielgewicht</strong> (Details und Widerruf siehe Ziffer 3b). Diese Daten speichern wir, damit du dich anmelden und deine Planung geräteübergreifend nutzen kannst.</p>
       <h4>3a. Ziel-Berechnung (Einführungsfragen)</h4>
-      <p>Zur Nutzung der App gibst du bei den Einführungsfragen nach der Registrierung <strong>Geschlecht, Alter, Größe und Gewicht</strong> sowie deine Alltagsbewegung und dein Ziel an – ohne diese Angaben lässt sich kein Kalorien- und Makroziel berechnen und die App steht dir nicht zur Verfügung. Optional legst du zusätzlich deine <strong>Trainingstage</strong> fest – also an welchen Wochentagen du trainierst, mit welcher Intensität und wie lange; diese Angabe kannst du auch weglassen. Daraus berechnet die App direkt in deinem Browser deinen Tagesbedarf, deine Makronährstoffe und deinen BMI; an Trainingstagen zusätzlich den geschätzten Mehrbedarf durch die jeweilige Einheit. Übernimmst du das Ergebnis als dein Ziel, werden diese Angaben wie deine übrigen Plandaten lokal und – bei Cloud-Nutzung – in deinem Nutzerkonto (Cloud Firestore, siehe Ziffer 5) gespeichert, um sie geräteübergreifend verfügbar zu halten. Du kannst dein Ziel jederzeit über den Knopf „Ziel neu berechnen" im Wochenplan neu berechnen; die vorherigen Werte sind dann durch die neuen ersetzt. Rechtsgrundlage ist wie unter Ziffer 4 die Erfüllung des Nutzungsvertrags (Art. 6 Abs. 1 lit. b DSGVO). Diese Angaben werden <strong>nicht</strong> in Teilen-Links aufgenommen (siehe Ziffer 8).</p>
+      <p>Zur Nutzung der App gibst du bei den Einführungsfragen nach der Registrierung <strong>Geschlecht, Alter, Größe und Gewicht</strong> sowie deine Alltagsbewegung und dein Ziel an – ohne diese Angaben lässt sich kein Kalorien- und Makroziel berechnen und die App steht dir nicht zur Verfügung. Optional legst du zusätzlich deine <strong>Trainingstage</strong> fest – also an welchen Wochentagen du trainierst, mit welcher Intensität und wie lange; diese Angabe kannst du auch weglassen. Ebenfalls optional wählst du eine grobe Stufe für deinen <strong>Körperfettanteil</strong> – gibst du sie an, berechnet die App deinen Grundumsatz nach der Katch-McArdle-Formel über die fettfreie Masse statt nach Mifflin-St-Jeor; wählst du „Weiß ich nicht", bleibt es bei Mifflin-St-Jeor. Daraus berechnet die App direkt in deinem Browser deinen Tagesbedarf, deine Makronährstoffe und deinen BMI; an Trainingstagen zusätzlich den geschätzten Mehrbedarf durch die jeweilige Einheit. Übernimmst du das Ergebnis als dein Ziel, werden diese Angaben wie deine übrigen Plandaten lokal und – bei Cloud-Nutzung – in deinem Nutzerkonto (Cloud Firestore, siehe Ziffer 5) gespeichert, um sie geräteübergreifend verfügbar zu halten. Du kannst dein Ziel jederzeit über den Knopf „Ziel neu berechnen" im Wochenplan neu berechnen; die vorherigen Werte sind dann durch die neuen ersetzt. Rechtsgrundlage ist wie unter Ziffer 4 die Erfüllung des Nutzungsvertrags (Art. 6 Abs. 1 lit. b DSGVO). Diese Angaben werden <strong>nicht</strong> in Teilen-Links aufgenommen (siehe Ziffer 8).</p>
       <h4>3b. Gewichtsverlauf („Ziele &lt;Jahr&gt;")</h4>
       <p>Dein Gewichtsverlauf ist ein <strong>Gesundheitsdatum</strong> (Art. 9 DSGVO) und wird deshalb nur mit deiner ausdrücklichen, jederzeit widerrufbaren <strong>Einwilligung</strong> gespeichert (Art. 9 Abs. 2 lit. a DSGVO). Ohne diese Einwilligung zeigt dir die App unter „Ziele &lt;Jahr&gt;" lediglich einen Knopf zum Aktivieren – auch ein bei den Einführungsfragen oder beim Neuberechnen deines Ziels angegebenes Gewicht wird dann <strong>nicht</strong> automatisch als Verlauf gespeichert, sondern nur einmalig für die Berechnung deines Kalorien- und Makroziels verwendet (Ziffer 3a). Stimmst du zu, besteht ein Eintrag aus <strong>Monat und Gewicht</strong> – taggenaue Angaben werden nicht erhoben; zusätzlich kannst du ein <strong>Zielgewicht je Kalenderjahr</strong> festlegen. Ein Eintrag entsteht dann, wenn du im Bereich „Ziele" eine Wiegung einträgst – auch nachträglich für zurückliegende Monate –, und automatisch, wenn du bei den Einführungsfragen oder beim Neuberechnen deines Ziels dein Gewicht angibst und dieses vom zuletzt erfassten Wert abweicht. Die jeweils jüngste Wiegung aktualisiert zusätzlich das bei der Ziel-Berechnung hinterlegte Gewicht, damit dein Kalorien- und Makroziel zu deinem aktuellen Gewicht passt. Speicherung: lokal auf deinem Gerät und – bei Cloud-Nutzung – in deinem Nutzerkonto. Deine Einwilligung kannst du jederzeit über das Menü der Karte widerrufen; bereits gespeicherte Einträge bleiben dabei bestehen, es kommen nur keine neuen automatischen Einträge mehr hinzu. Einzelne Einträge kannst du jederzeit im Wiegen-Dialog löschen, den gesamten Verlauf mit deinem Konto (Ziffer 10). Diese Angaben werden <strong>nicht</strong> in Teilen-Links aufgenommen (siehe Ziffer 8).</p>
       <h4>4. Zweck &amp; Rechtsgrundlage</h4>
@@ -6326,14 +6398,31 @@
     if (mode === "gain") return ({ light: 250, moderate: 500 })[pace] || 500;
     return 0;
   }
-  // Mifflin-St-Jeor → BMR × PAL = Alltagsbedarf → Ziel-Anpassung = RUHETAG-Ziel.
+  // Koerperfettanteil in Prozent, oder null wenn nicht angegeben. Eine Quelle fuer alle
+  // Stellen, die den Wert aus einem Ziel oder einer Eingabe holen — er ist freiwillig,
+  // also muss jede davon mit "nicht da" umgehen koennen.
+  function sanitizeBodyfat(v) {
+    const n = +v;
+    if (v == null || v === "" || !isFinite(n)) return null;
+    return (n >= BF_MIN && n <= BF_MAX) ? Math.round(n * 10) / 10 : null;
+  }
+  // BMR × PAL = Alltagsbedarf → Ziel-Anpassung = RUHETAG-Ziel.
   // Der Alltagsbedarf gilt an jedem Tag; an Trainingstagen kommt der Trainingsverbrauch
   // obendrauf (siehe dayKcal). Am Ruhetag ist er der ganze Bedarf.
+  // Zwei Formeln fuer den Grundumsatz, je nachdem was bekannt ist:
+  //  - mit Koerperfettanteil: Katch-McArdle ueber die fettfreie Masse. Mifflin kennt nur
+  //    Gewicht und Groesse und haelt 85 kg Muskeln fuer dasselbe wie 85 kg Fett — bei
+  //    Kraftsportlern liegt es deshalb systematisch zu niedrig.
+  //  - ohne: Mifflin-St-Jeor wie bisher. Der KFA ist freiwillig, also muss dieser Weg
+  //    unveraendert bestehen bleiben; missingCalc fordert Alter/Groesse weiterhin.
   // Makros: Protein 2 g/kg (ab BMI 27 auf das Gewicht bei BMI 27 gedeckelt),
   // Fett 25 % der Kalorien (weicht zurueck, wenn sonst die Summe nicht aufgeht), Rest KH.
   function computeGoal(inp) {
     const w = +inp.weight, h = +inp.height, age = +inp.age;
-    const bmr = 10 * w + 6.25 * h - 5 * age + (inp.sex === "m" ? 5 : -161);
+    const bf = sanitizeBodyfat(inp.bodyfat);
+    const bmr = bf != null
+      ? 370 + 21.6 * (w * (1 - bf / 100))
+      : 10 * w + 6.25 * h - 5 * age + (inp.sex === "m" ? 5 : -161);
     const tdee = bmr * activityFactor(inp.activity);
     const adjust = paceAdjust(inp.mode, inp.pace);
     // Untergrenze geschlechtsabhaengig: die gaengigen Empfehlungen liegen bei 1200 kcal
@@ -6361,6 +6450,10 @@
       carbs = Math.max(0, Math.round((kcal - protein * 4 - fat * 9) / 4));
     }
     return { sex: inp.sex, age: age, height: h, weight: w, activity: inp.activity, mode: inp.mode, pace: inp.pace,
+             // null = kein KFA angegeben. Muss mit ins Ziel, sonst faellt die Angabe beim
+             // naechsten Wiegen (syncGoalWeight rechnet aus state.goal neu) still heraus
+             // und der Grundumsatz spraenge zurueck auf Mifflin.
+             bodyfat: bf,
              bmr: Math.round(bmr), tdee: Math.round(tdee), adjust: adjust, kcal: kcal,
              protein: protein, carbs: carbs, fat: fat, bmi: bmi,
              // Trainingsplan je Wochentag: { mon: { level, min } }. Leer = keine
@@ -6458,21 +6551,89 @@
     return `<b>${g.kcal.toLocaleString("de-DE")} kcal</b> am Tag · ${g.protein} g Eiweiß · ${g.fat} g Fett · ${g.carbs} g Kohlenhydrate`;
   }
 
-  // Reihenfolge der Bildschirme. Zwei Stellen fallen je nach Antwort heraus: "pace" bei
-  // "Gewicht halten", und die beiden Trainings-Details, wenn kein Trainingstag gewaehlt
-  // ist. Die Schrittzahl ist deshalb nicht konstant und wird ueberall aus onbSteps()
-  // abgeleitet – nie hart hinschreiben.
-  const ONB_ORDER = ["hi", "name", "sex", "age", "height", "weight", "weightGoal", "weightConsent",
-                     "activity", "mode", "pace", "tdays", "tlevel", "tmin", "result", "how", "go"];
+  // Reihenfolge der Bildschirme. Verwandte Fragen stehen zusammen auf EINEM Bildschirm:
+  // Koerperdaten, Training (Tage + Haerte + Dauer), Ziel + Tempo, Zielgewicht +
+  // Einwilligung. Frueher war jede Frage ein eigener Schritt — das ergab 16 Bildschirme,
+  // bevor die App ueberhaupt zu sehen war.
+  //
+  // Heraus fallen koennen nur noch "name" (steht meist schon fest) sowie "hi"/"go" beim
+  // Neuberechnen. Alle drei entscheiden sich VOR dem ersten Rendern und aendern sich
+  // waehrend eines Laufs nicht mehr. Damit ist die Gesamtzahl konstant und der
+  // Fortschrittsbalken kann nicht mehr zurueckspringen — frueher warf "Gewicht halten"
+  // das Tempo und "kein Trainingstag" zwei weitere Schritte mitten im Ablauf heraus,
+  // und aus "Schritt 9 von 16" wurde unvermittelt "von 14".
+  const ONB_ORDER = ["hi", "name", "body", "bodyfat", "activity", "training", "goal",
+                     "target", "result", "go"];
+  // Zahlenfelder. `lab` ist die Feldbeschriftung auf den Sammel-Bildschirmen (dort traegt
+  // nicht mehr die Ueberschrift die Bedeutung, also braucht jedes Feld ein eigenes
+  // <label>), `miss` der Klartext fuer den Hinweis, wenn es leer bleibt.
   const ONB_NUM = {
-    age:    { unit: "Jahre", min: 10,  max: 120, q: "Wie alt bist du?" },
-    height: { unit: "cm",    min: 100, max: 250, q: "Wie groß bist du?" },
-    weight: { unit: "kg",    min: 30,  max: 400, q: "Was wiegst du?" },
-    tmin:   { unit: "Min.",  min: TRAIN_MIN_MIN, max: TRAIN_MIN_MAX, q: "Wie lange dauert eine Einheit?" }
+    age:    { unit: "Jahre", min: 10,      max: 120,          lab: "Alter",   miss: "dein Alter" },
+    height: { unit: "cm",    min: 100,     max: 250,          lab: "Größe",   miss: "deine Größe" },
+    weight: { unit: "kg",    min: KG_MIN,  max: KG_MAX,       lab: "Gewicht", miss: "dein Gewicht" },
+    tmin:   { unit: "Min.",  min: TRAIN_MIN_MIN, max: TRAIN_MIN_MAX, lab: "Dauer", miss: "die Dauer einer Einheit" }
   };
   const ONB_TEXT = {
     name: { q: "Wie heißt du?", max: 40, placeholder: "Dein Vorname" }
   };
+
+  // Koerperfett-Stufen je Geschlecht. Vier Stufen statt eines Prozent-Felds: Eine Skizze
+  // trifft fast jeder auf Anhieb, den genauen Wert kennen die wenigsten.
+  //  - `v`   Mittelwert der Stufe, geht so in Katch-McArdle ein.
+  //  - `r`   die Spanne, sichtbar auf der Kachel. Wer seinen KFA schon einmal hat rechnen
+  //          lassen, sucht danach und muss nicht ueber die Zeichnung gehen. Bewusst eine
+  //          Spanne und keine einzelne Zahl: die Stufe IST ein Bereich, ein exakter Wert
+  //          waere eine Genauigkeit, die vier Kacheln nicht hergeben.
+  // Die Spannen schliessen luckenlos aneinander an und liegen um `v` herum, damit Bild,
+  // Zahl und Rechnung dasselbe sagen. Frauen tragen bei gleicher Optik rund 8 Punkte mehr.
+  const BODYFAT = {
+    m: [{ v: 12, r: "10–14 %", label: "Definiert", hint: "Bauchmuskeln sichtbar" },
+        { v: 18, r: "15–20 %", label: "Athletisch", hint: "flacher Bauch" },
+        { v: 25, r: "21–28 %", label: "Normal", hint: "kein sichtbarer Ansatz" },
+        { v: 32, r: "ab 29 %", label: "Kräftig", hint: "deutlicher Bauchansatz" }],
+    f: [{ v: 20, r: "17–22 %", label: "Definiert", hint: "Bauchmuskeln sichtbar" },
+        { v: 26, r: "23–29 %", label: "Athletisch", hint: "flacher Bauch" },
+        { v: 33, r: "30–36 %", label: "Normal", hint: "kein sichtbarer Ansatz" },
+        { v: 40, r: "ab 37 %", label: "Kräftig", hint: "deutlicher Bauchansatz" }]
+  };
+  // Die Silhouetten, je Geschlecht ein eigener Satz — dieselben Prozentwerte sehen an
+  // einem weiblichen und einem maennlichen Koerper deutlich verschieden aus, eine
+  // gemeinsame Zeichnung waere fuer die Haelfte der Nutzer die falsche Vorlage.
+  // Selbst gezeichnet: fremde Vorlagen kaemen mit einer Lizenzfrage, die dieses Projekt
+  // bei Bildern konsequent vermeidet (siehe PHOTO_CREDITS).
+  //
+  // Innerhalb eines Satzes bleibt die Schulterbreite gleich, damit allein Taille und
+  // Bauchzeichnung den Unterschied tragen. Zwischen den Saetzen unterscheiden sie sich:
+  // maennlich x 7..37 mit V-Form nach unten, weiblich x 10..34 mit breiterer Huefte.
+  // Wenige Linien, damit die Zeichnung auf einer kleinen Kachel lesbar bleibt.
+  // `currentColor` erbt die Farbe der Kachel, womit hell/dunkel und der ausgewaehlte
+  // Zustand ohne eigene Regeln stimmen.
+  const BF_SHAPES = {
+    m: [
+      { d: "M15 6h14c5 1 8 4 8 9c0 6-7 8-7 19c0 8 1 14 2 21H12c1-7 2-13 2-21c0-11-7-13-7-19c0-5 3-8 8-9Z",
+        det: '<path d="M22 18v22M16 24h12M16 31h12M17 38h10"/>' },
+      { d: "M15 6h14c5 1 8 4 8 9c0 6-5 8-5 19c0 8 0 14 1 21H11c1-7 1-13 1-21c0-11-5-13-5-19c0-5 3-8 8-9Z",
+        det: '<path d="M22 20v18M16 27h12"/>' },
+      { d: "M15 6h14c5 1 8 4 8 9c0 6-2 8-2 19c0 8 0 14-1 21H10c-1-7-1-13-1-21c0-11-2-13-2-19c0-5 3-8 8-9Z",
+        det: '<path d="M22 33v4"/>' },
+      { d: "M15 6h14c5 1 8 4 8 9c0 6 2 8 2 19c0 8-2 14-4 21H9c-2-7-4-13-4-21c0-11 2-13 2-19c0-5 3-8 8-9Z",
+        det: '<path d="M14 34c3 6 13 6 16 0"/>' }
+    ],
+    f: [
+      { d: "M17 6h10c4 1 7 4 7 8c0 6-6 8-6 20c0 8 5 14 5 21H11c0-7 5-13 5-21c0-12-6-14-6-20c0-4 3-7 7-8Z",
+        det: '<path d="M15 20c2 3 5 3 7 0M29 20c-2 3-5 3-7 0"/><path d="M22 26v12M17 31h10"/>' },
+      { d: "M17 6h10c4 1 7 4 7 8c0 6-5 8-5 20c0 8 5 14 5 21H10c0-7 5-13 5-21c0-12-5-14-5-20c0-4 3-7 7-8Z",
+        det: '<path d="M15 20c2 3 5 3 7 0M29 20c-2 3-5 3-7 0"/><path d="M22 28v9"/>' },
+      { d: "M17 6h10c4 1 7 4 7 8c0 6-3 8-3 20c0 8 4 14 4 21H9c0-7 4-13 4-21c0-12-3-14-3-20c0-4 3-7 7-8Z",
+        det: '<path d="M15 20c2 3 5 3 7 0M29 20c-2 3-5 3-7 0"/><path d="M22 34v4"/>' },
+      { d: "M17 6h10c4 1 7 4 7 8c0 6 0 8 0 20c0 8 3 14 3 21H7c0-7 3-13 3-21c0-12 0-14 0-20c0-4 3-7 7-8Z",
+        det: '<path d="M15 20c2 3 5 3 7 0M29 20c-2 3-5 3-7 0"/><path d="M13 35c4 6 14 6 18 0"/>' }
+    ]
+  };
+  function bfSvg(sex, i) {
+    const s = (BF_SHAPES[sex] || BF_SHAPES.m)[i];
+    return `<svg class="onb-bf-fig" viewBox="0 0 44 60" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${s.d}"/>${s.det}</svg>`;
+  }
 
   let onb = null;          // null = laeuft gerade nicht
   let onbGateDone = false; // die Startentscheidung faellt genau einmal je Sitzung
@@ -6493,10 +6654,9 @@
   function onbSteps() {
     return ONB_ORDER.filter(id => {
       if (id === "name") return onbNameFehlt();
-      if (id === "pace") return onb.cur.mode !== "hold";       // "Halten" kennt kein Tempo
-      if (id === "tlevel" || id === "tmin") return onb.cur.tdays.length > 0;
-      // Gesundheitsdatum (Art. 9 DSGVO) - nur fragen, solange nie entschieden wurde.
-      if (id === "weightConsent") return sanitizeConsent(state.weightConsent).at === null;
+      // Begruessung und Schlussbild nur beim Erstkontakt: Wer sein Ziel neu berechnet,
+      // kennt die App und will zu seinen Zahlen, nicht durch eine Vorstellung.
+      if (id === "hi" || id === "go") return onb.first;
       return true;
     });
   }
@@ -6543,6 +6703,10 @@
         // stillschweigend zuruecksetzt.
         weightConsent: sanitizeConsent(state.weightConsent).at
           ? (sanitizeConsent(state.weightConsent).given ? "yes" : "no") : null,
+        // Als Zeichenkette gehalten wie die anderen Felder, damit der Vergleich in
+        // onbOpt() ohne Sonderfall auskommt. Drei Zustaende: null = noch nicht gefragt,
+        // "" = ausdruecklich "weiss ich nicht" (dann rechnet Mifflin), sonst der Prozentwert.
+        bodyfat: g.bodyfat != null ? String(g.bodyfat) : null,
         activity: ACTIVITY.some(a => a.key === g.activity) ? g.activity : null,
         mode: g.mode || null,
         pace: g.pace || null,
@@ -6551,18 +6715,14 @@
         tmin: tk.length ? String(g.training[tk[0]].min) : ""
       }
     };
-    // Paket B2: Beim Neu-Berechnen (nicht beim Erstkontakt) sind alle Werte schon vorbelegt -
-    // steppt man trotzdem durch jede Frage einzeln, sind das bei einem vollstaendigen Ziel gut
-    // zehn reine "Weiter"-Klicks ohne jede Aenderung. Ist alles fuers Ergebnis schon gueltig
-    // (onbMissing("result") deckt alle Pflichtfelder in einem Aufruf ab), startet der Ablauf
-    // direkt beim Ergebnis-Schritt; "Zurueck" fuehrt weiterhin zu jedem einzelnen Schritt, falls
-    // etwas geaendert werden soll. Gleiches Sprung-Muster wie "Mein Ziel behalten" (siehe unten).
-    // Ausnahme: die Einwilligungsfrage darf der Sprung nicht uebergehen, solange sie noch nie
-    // beantwortet wurde - sonst wuerde "Ziel neu berechnen" sie fuer immer umgehen.
-    if (onb.first === false && !onbMissing("result") && sanitizeConsent(state.weightConsent).at !== null) {
-      const resultIdx = onbSteps().indexOf("result");
-      if (resultIdx !== -1) onb.i = resultIdx;
-    }
+    // Beim Neu-Berechnen faengt der Ablauf bei den Koerperdaten an, nicht bei der
+    // Begruessung: Geschlecht und Groesse aendern sich praktisch nie, das GEWICHT schon —
+    // und genau das steht auf diesem Bildschirm mit drauf, vorbelegt. Korrigieren,
+    // "Weiter", fertig. Ein eigener Sprung ist dafuer nicht noetig, weil onbSteps()
+    // "hi" bei first === false bereits herausfiltert; damit ist "body" von sich aus der
+    // erste Schritt (oder "name", falls ausnahmsweise noch keiner feststeht).
+    // Frueher sprang der Ablauf hier direkt aufs Ergebnis — wer sein Gewicht anpassen
+    // wollte, musste sich rueckwaerts durchklicken.
     appEl.classList.add("onboarding");
     renderOnboardStep();
     syncStickyOffsets(); // erst jetzt: die Reiterleiste ist weg, --tabbar-h muss auf 0
@@ -6587,27 +6747,47 @@
   function onbMissing(id) {
     const c = onb.cur;
     if (id === "name" && !String(c.name || "").trim()) return "Wie sollen wir dich nennen?";
-    if (id === "sex" && c.sex !== "m" && c.sex !== "f") return "Wähle noch dein Geschlecht";
-    // "tdays" ist bewusst ohne Pflicht: keine Trainingstage ist eine gueltige Antwort.
-    if (id === "tlevel" && !c.tlevel) return "Wähle noch, wie hart du trainierst";
+    if (id === "body") {
+      if (c.sex !== "m" && c.sex !== "f") return "Wähle noch dein Geschlecht";
+      // Reihenfolge wie im Bildschirm, damit der Hinweis das oberste leere Feld benennt.
+      const f = ["age", "height", "weight"].map(onbNumMissing).filter(Boolean);
+      if (f.length) return f[0];
+    }
+    // "bodyfat" hat bewusst keine Pflicht: "Weiß ich nicht" ist eine gueltige Antwort,
+    // und ohne Wert rechnet computeGoal wie bisher nach Mifflin.
     if (id === "activity" && !c.activity) return "Wähle noch deine Bewegung im Alltag";
-    if (id === "mode" && !c.mode) return "Wähle noch dein Ziel";
-    if (id === "weightConsent" && c.weightConsent !== "yes" && c.weightConsent !== "no") return "Wähle eine Option";
-    if (id === "pace" && !c.pace) return "Wähle noch dein Tempo";
+    // Keine Trainingstage ist eine gueltige Antwort — erst wer welche waehlt, muss auch
+    // Haerte und Dauer angeben.
+    if (id === "training" && c.tdays.length) {
+      if (!c.tlevel) return "Wähle noch, wie hart du trainierst";
+      const m = onbNumMissing("tmin"); if (m) return m;
+    }
+    if (id === "goal") {
+      if (!c.mode) return "Wähle noch dein Ziel";
+      if (c.mode !== "hold" && !c.pace) return "Wähle noch dein Tempo";
+    }
+    if (id === "target") {
+      if (c.weightConsent !== "yes" && c.weightConsent !== "no") return "Sag noch, ob wir dein Gewicht speichern dürfen";
+      // Das Zielgewicht steht nur bei erteilter Einwilligung ueberhaupt da.
+      if (c.weightConsent === "yes") {
+        const v = c.weightGoal;
+        if (v === "" || v == null) return "";  // optional, leer ist gueltig
+        const n = Number(v);
+        if (!isFinite(n) || n < KG_MIN || n > KG_MAX) return `Bitte ein Zielgewicht zwischen ${KG_MIN} und ${KG_MAX} kg oder leer lassen`;
+      }
+    }
     if (id === "result") { const f = missingCalc(onbGoalInput()); if (f.length) return "Es fehlt noch " + f.join(" und "); }
-    if (id === "weightGoal") {
-      const v = c.weightGoal;
-      if (v === "" || v == null) return "";  // optional, leer ist gueltig
-      const n = Number(v);
-      if (!isFinite(n) || n < KG_MIN || n > KG_MAX) return `Bitte einen Wert zwischen ${KG_MIN} und ${KG_MAX} kg oder leer lassen`;
-      return "";
-    }
-    const num = ONB_NUM[id];
-    if (num) {
-      const v = Number(c[id]);
-      if (!c[id] || !isFinite(v)) return "Trag noch " + (id === "age" ? "dein Alter" : id === "height" ? "deine Größe" : "dein Gewicht") + " ein";
-      if (v < num.min || v > num.max) return `Bitte einen Wert zwischen ${num.min} und ${num.max} ${num.unit}`;
-    }
+    return "";
+  }
+  // Ein einzelnes Zahlenfeld pruefen. Eigene Funktion, weil auf den Sammel-Bildschirmen
+  // mehrere davon nebeneinanderstehen und der Hinweis sagen muss, welches gemeint ist.
+  function onbNumMissing(k) {
+    // Nicht jedes Zahlenfeld ist ein Pflichtfeld aus ONB_NUM: das Zielgewicht auf
+    // "target" ist freiwillig und wird in onbMissing("target") eigens geprueft.
+    const num = ONB_NUM[k]; if (!num) return "";
+    const raw = onb.cur[k], v = Number(raw);
+    if (!raw || !isFinite(v)) return "Trag noch " + num.miss + " ein";
+    if (v < num.min || v > num.max) return `${num.lab}: bitte ein Wert zwischen ${num.min} und ${num.max} ${num.unit}`;
     return "";
   }
 
@@ -6621,7 +6801,24 @@
     const min = +c.tmin || trainLevel(lvl).defMin;
     c.tdays.forEach(k => { training[k] = { level: lvl, min: min }; });
     return { sex: c.sex, mode: c.mode, pace: c.pace, activity: c.activity, training: training,
-             age: +c.age, height: +c.height, weight: +c.weight };
+             age: +c.age, height: +c.height, weight: +c.weight,
+             // "" ist die ausdrueckliche Antwort "weiss ich nicht", null die noch nicht
+             // gestellte Frage — beide fuehren zu Mifflin statt Katch-McArdle.
+             bodyfat: (c.bodyfat === "" || c.bodyfat == null) ? null : +c.bodyfat };
+  }
+
+  // Nach welcher Kachelauswahl darf der Ablauf von selbst weiterspringen? Frueher hing
+  // das daran, dass die Auswahlgruppe zufaellig genauso hiess wie der Schritt – auf den
+  // Sammel-Bildschirmen stimmt das nicht mehr (Gruppe "sex" auf Schritt "body"), also
+  // steht es hier ausdruecklich. Ein Sprung ist nur richtig, wenn der Bildschirm mit
+  // dieser einen Antwort vollstaendig beantwortet ist.
+  function onbAutoNext(stepId) {
+    const c = onb.cur;
+    if (stepId === "bodyfat" || stepId === "activity") return true;
+    // "goal" traegt zwei Fragen: nach dem Ziel erscheint erst das Tempo. Springen also
+    // nur, wenn beides steht – bei "Halten" gibt es kein Tempo.
+    if (stepId === "goal") return !!c.mode && (c.mode === "hold" || !!c.pace);
+    return false;
   }
 
   function onbGo(delta) {
@@ -6642,11 +6839,31 @@
       <span class="onb-opt-t">${esc(label)}</span>${hint ? `<span class="onb-opt-h">${esc(hint)}</span>` : ""}${on ? ONB_TICK : ""}</button>`;
   }
 
+  // Ein beschriftetes Zahlenfeld fuer die Sammel-Bildschirme. Auf den frueheren
+  // Ein-Frage-Bildschirmen trug die Ueberschrift die Bedeutung des Felds; stehen
+  // mehrere nebeneinander, braucht jedes sein eigenes <label for>. numField() liefert
+  // am Handy ein <select> (Auswahlrad) statt eines Zahlenfelds – das bleibt so.
+  function onbNumField(k) {
+    const num = ONB_NUM[k];
+    return `<div class="onb-f">
+      <label class="onb-f-l" for="onb-${k}">${esc(num.lab)}</label>
+      <div class="onb-f-in">
+        ${numField({ id: "onb-" + k, cls: "onb-num", min: num.min, max: num.max,
+                     step: k === "tmin" ? 5 : 1, value: onb.cur[k], placeholder: "–",
+                     pickerPlaceholder: "–", extra: 'data-num="' + k + '"' })}
+        <span class="onb-f-u">${esc(num.unit)}</span>
+      </div>
+    </div>`;
+  }
+
   function onbStepHtml(id) {
     const c = onb.cur;
     if (id === "hi") {
-      const keep = state.goal
-        ? `<button type="button" class="btn ghost onb-keep">Mein Ziel behalten (${state.goal.kcal.toLocaleString("de-DE")} kcal)</button>` : "";
+      // Frueher stand hier ein Knopf "Mein Ziel behalten". Der konnte nie erscheinen:
+      // "hi" gibt es nur beim Erstkontakt, und den startet maybeStartOnboarding
+      // ausschliesslich, wenn noch KEIN Ziel existiert. Mitsamt seinem Handler entfernt,
+      // der auf den inzwischen aufgeloesten Schritt "how" gesprungen waere.
+      //
       // Steht der Name schon fest, wird er hier zur Begruessung – dann ist die Frage
       // danach ueberfluessig (siehe onbNameFehlt) und der Name trotzdem sichtbar.
       const vorname = onbNameFehlt() ? "" : String(c.name || "").trim().split(/\s+/)[0];
@@ -6658,8 +6875,7 @@
           <li><b>Ziel</b> – Kalorien und Makros aus deinen Daten.</li>
           <li><b>Wochenplan</b> – Frühstück, Mittag, Abend.</li>
           <li><b>Einkaufsliste</b> – automatisch aus deinem Plan.</li>
-        </ul>
-        ${keep}</div>`;
+        </ul></div>`;
     }
     const txt = ONB_TEXT[id];
     if (txt) {
@@ -6667,57 +6883,79 @@
         <input type="text" id="onb-text" class="onb-text" maxlength="${txt.max}"
                autocomplete="given-name" placeholder="${esc(txt.placeholder)}" value="${esc(c[id])}">`;
     }
-    if (id === "sex") {
-      return `<h2 class="onb-q" tabindex="-1">Was ist dein Geschlecht?</h2>
-        <div class="onb-opts">${onbOpt("sex", "f", "Weiblich")}${onbOpt("sex", "m", "Männlich")}</div>`;
+    // Koerperdaten: Geschlecht plus die drei Zahlen. Zusammen auf einem Bildschirm, weil
+    // sie zusammengehoeren und niemand vier Mal "Weiter" tippen will, um sein Alter,
+    // seine Groesse und sein Gewicht zu nennen. Jedes Feld traegt sein eigenes <label>.
+    if (id === "body") {
+      return `<h2 class="onb-q" tabindex="-1">Erzähl uns von dir</h2>
+        <div class="onb-opts onb-opts-2">${onbOpt("sex", "f", "Weiblich")}${onbOpt("sex", "m", "Männlich")}</div>
+        <div class="onb-grid">${onbNumField("age")}${onbNumField("height")}${onbNumField("weight")}</div>`;
     }
-    const num = ONB_NUM[id];
-    if (num) {
-      return `<label class="onb-q" for="onb-num" tabindex="-1">${num.q}</label>
-        <div class="onb-numrow">
-          ${numField({ id: "onb-num", cls: "onb-num", min: num.min, max: num.max,
-                       step: id === "tmin" ? 5 : 1, value: c[id], placeholder: "0",
-                       pickerPlaceholder: "–", extra: 'aria-describedby="onb-unit"' })}
-          <span class="onb-unit" id="onb-unit">${num.unit}</span>
-        </div>`;
-    }
-    if (id === "weightGoal") {
-      return `<label class="onb-q" for="onb-num" tabindex="-1">Was ist dein Zielgewicht für dieses Jahr?</label>
-        <div class="onb-numrow">
-          ${numField({ id: "onb-num", cls: "onb-num", min: KG_MIN, max: KG_MAX, step: 0.1,
-                       value: c.weightGoal, placeholder: "optional", pickerPlaceholder: "–",
-                       extra: 'aria-describedby="onb-unit"' })}
-          <span class="onb-unit" id="onb-unit">kg</span>
-        </div>`;
-    }
-    if (id === "weightConsent") {
-      return `<h2 class="onb-q" tabindex="-1">Möchtest du deinen Gewichtsverlauf speichern?</h2>
-        <p class="onb-why">Dein Gewicht ist ein Gesundheitsdatum – jederzeit widerrufbar.</p>
-        <div class="onb-opts">${onbOpt("weightConsent", "yes", "Ja, speichern", "Diagramm & Zielgewicht")}${onbOpt("weightConsent", "no", "Nein, danke")}</div>`;
+    if (id === "bodyfat") {
+      const list = BODYFAT[c.sex] || BODYFAT.m;
+      return `<h2 class="onb-q" tabindex="-1">Was kommt deinem Körper am nächsten?</h2>
+        <p class="onb-why">Damit rechnen wir genauer als mit Gewicht allein.</p>
+        <div class="onb-bf">${list.map((o, i) => {
+          const on = c.bodyfat === String(o.v);
+          return `<button type="button" class="onb-bf-o${on ? " on" : ""}" data-opt="bodyfat" data-v="${o.v}" aria-pressed="${on ? "true" : "false"}">
+            ${bfSvg(c.sex, i)}
+            <span class="onb-bf-p">${esc(o.r)}</span>
+            <span class="onb-bf-t">${esc(o.label)}</span>
+            <span class="onb-bf-h">${esc(o.hint)}</span>${on ? ONB_TICK : ""}</button>`;
+        }).join("")}</div>
+        <button type="button" class="btn ghost sm onb-bf-skip${c.bodyfat === "" ? " on" : ""}" data-opt="bodyfat" data-v="" aria-pressed="${c.bodyfat === "" ? "true" : "false"}">Weiß ich nicht</button>`;
     }
     if (id === "activity") {
       return `<h2 class="onb-q" tabindex="-1">Wie viel bewegst du dich im Alltag?</h2>
         <p class="onb-why">Nur Beruf und Alltag – Training zählt separat.</p>
         <div class="onb-opts onb-opts-1">${ACTIVITY.map(a => onbOpt("activity", a.key, a.label, a.hint)).join("")}</div>`;
     }
-    if (id === "mode") {
-      return `<h2 class="onb-q" tabindex="-1">Was ist dein Ziel?</h2>
-        <div class="onb-opts onb-opts-1">${onbOpt("mode", "lose", "Abnehmen", "Kalorien unter dem Bedarf")}${onbOpt("mode", "hold", "Gewicht halten", "Kalorien auf Bedarfshöhe")}${onbOpt("mode", "gain", "Zunehmen", "Kalorien über dem Bedarf")}</div>`;
-    }
-    if (id === "pace") {
-      return `<h2 class="onb-q" tabindex="-1">Wie schnell?</h2>
-        <div class="onb-opts onb-opts-1">${paceOptions(c.mode).map(o => onbOpt("pace", o[0], o[1], o[2])).join("")}</div>`;
-    }
-    if (id === "tdays") {
-      return `<h2 class="onb-q" tabindex="-1">An welchen Tagen trainierst du?</h2>
+    // Training: Tage, Haerte und Dauer auf einem Bildschirm. Haerte und Dauer erscheinen
+    // erst, wenn ein Tag gewaehlt ist – frueher fielen dafuer zwei ganze Schritte weg
+    // und die Gesamtzahl sprang mitten im Ablauf.
+    if (id === "training") {
+      const hat = c.tdays.length > 0;
+      return `<h2 class="onb-q" tabindex="-1">Wann trainierst du?</h2>
         <div class="tdays onb-tdays" role="group" aria-label="Trainingstage">
           ${DAYS.map(d => `<button type="button" data-tday="${d.key}" aria-pressed="${c.tdays.indexOf(d.key) !== -1 ? "true" : "false"}" aria-label="${esc(d.label)}">${d.short}</button>`).join("")}
         </div>
-        ${c.tdays.length ? `<p class="onb-why onb-sel">${esc(DAYS.filter(d => c.tdays.indexOf(d.key) !== -1).map(d => d.label).join(", "))}</p>` : ""}`;
+        ${hat ? `<div class="onb-sub">
+          <h3 class="onb-sub-q">Wie hart?</h3>
+          <div class="onb-opts onb-opts-1">${TRAIN_LEVELS.map(lv => onbOpt("tlevel", lv.key, lv.label, lv.ex)).join("")}</div>
+          <div class="onb-grid onb-grid-1">${onbNumField("tmin")}</div>
+        </div>` : `<p class="onb-why">Kein Trainingstag? Lass die Woche einfach leer.</p>`}`;
     }
-    if (id === "tlevel") {
-      return `<h2 class="onb-q" tabindex="-1">Wie hart trainierst du?</h2>
-        <div class="onb-opts onb-opts-1">${TRAIN_LEVELS.map(lv => onbOpt("tlevel", lv.key, lv.label, lv.ex)).join("")}</div>`;
+    // Ziel und Tempo zusammen: Das Tempo hat je nach Ziel nur zwei bis drei Kacheln und
+    // ergibt ohne das Ziel darueber ohnehin keinen Sinn. Bei "Halten" bleibt der untere
+    // Block leer, statt dass ein ganzer Schritt verschwindet.
+    if (id === "goal") {
+      const pace = paceOptions(c.mode);
+      return `<h2 class="onb-q" tabindex="-1">Was ist dein Ziel?</h2>
+        <div class="onb-opts onb-opts-1">${onbOpt("mode", "lose", "Abnehmen", "Kalorien unter dem Bedarf")}${onbOpt("mode", "hold", "Gewicht halten", "Kalorien auf Bedarfshöhe")}${onbOpt("mode", "gain", "Zunehmen", "Kalorien über dem Bedarf")}</div>
+        ${pace.length ? `<div class="onb-sub">
+          <h3 class="onb-sub-q">Wie schnell?</h3>
+          <div class="onb-opts onb-opts-1">${pace.map(o => onbOpt("pace", o[0], o[1], o[2])).join("")}</div>
+        </div>` : ""}`;
+    }
+    // Einwilligung und Zielgewicht gehoeren zusammen: Das Zielgewicht setzt voraus, dass
+    // wir das Gewicht ueberhaupt speichern duerfen, und erscheint deshalb erst danach.
+    if (id === "target") {
+      return `<h2 class="onb-q" tabindex="-1">Dürfen wir dein Gewicht speichern?</h2>
+        <p class="onb-why">Gesundheitsdatum – jederzeit widerrufbar.</p>
+        <div class="onb-opts">${onbOpt("weightConsent", "yes", "Ja, speichern", "Diagramm & Zielgewicht")}${onbOpt("weightConsent", "no", "Nein, danke")}</div>
+        ${c.weightConsent === "yes" ? `<div class="onb-sub">
+          <div class="onb-grid onb-grid-1">
+            <div class="onb-f">
+              <label class="onb-f-l" for="onb-weightGoal">Zielgewicht dieses Jahr <span class="onb-f-opt">optional</span></label>
+              <div class="onb-f-in">
+                ${numField({ id: "onb-weightGoal", cls: "onb-num", min: KG_MIN, max: KG_MAX, step: 0.1,
+                             value: c.weightGoal, placeholder: "–", pickerPlaceholder: "–",
+                             extra: 'data-num="weightGoal"' })}
+                <span class="onb-f-u">kg</span>
+              </div>
+            </div>
+          </div>
+        </div>` : ""}`;
     }
     if (id === "result") {
       // Kann eigentlich nicht vorkommen (der Weiter-Knopf laesst niemanden mit Luecken
@@ -6754,28 +6992,22 @@
           <span>Rechnerische Richtwerte – keine ärztliche Beratung</span>
           <svg class="caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
         </summary>
-        <div class="cn-body">Alle Werte sind <strong>rechnerische Richtwerte</strong>: Grundumsatz nach der Mifflin-St-Jeor-Formel, Alltagsbedarf über einen Aktivitätsfaktor (PAL). Der tatsächliche Verbrauch kann davon deutlich abweichen. Sie ersetzen keine ärztliche oder ernährungsmedizinische Beratung. Bei Erkrankungen, in Schwangerschaft und Stillzeit oder vor einer stärkeren Ernährungsumstellung sprich bitte mit einer Ärztin oder einem Arzt.</div></details>`;
+        <div class="cn-body">Alle Werte sind <strong>rechnerische Richtwerte</strong>: Grundumsatz nach Katch-McArdle (mit Körperfettanteil) oder Mifflin-St-Jeor (ohne), Alltagsbedarf über einen Aktivitätsfaktor (PAL). Der tatsächliche Verbrauch kann davon deutlich abweichen. Sie ersetzen keine ärztliche oder ernährungsmedizinische Beratung. Bei Erkrankungen, in Schwangerschaft und Stillzeit oder vor einer stärkeren Ernährungsumstellung sprich bitte mit einer Ärztin oder einem Arzt.</div></details>`;
     }
-    if (id === "how") {
-      return `<h2 class="onb-q" tabindex="-1">So läuft deine Woche</h2>
-        <div class="onb-mock" aria-hidden="true">
-          <div class="onb-mock-d"><span>MO</span><i class="fr"></i><i class="mi"></i><i class="ab"></i></div>
-          <div class="onb-mock-d"><span>DI</span><i class="fr"></i><i class="mi"></i><i class="ab"></i></div>
-          <div class="onb-mock-d"><span>MI</span><i class="fr"></i><i class="mi"></i><i class="ab"></i></div>
-        </div>
-        <ul class="onb-list">
-          <li><b>Meals</b> – vier Beispiele sind schon da.</li>
-          <li><b>Einkaufsliste</b> – automatisch, unter dem Wochenplan.</li>
-          <li><b>Teilen</b> – deine Woche als Link.</li>
-        </ul>`;
-    }
-    // "go"
+    // "go" – Schlussbild, nur beim Erstkontakt. Der frueher eigene Schritt "how"
+    // ("So laeuft deine Woche") ist hier als Liste aufgegangen: Nach dem Ergebnis noch
+    // zwei reine Textbildschirme zu zeigen, liess den Hoehepunkt verpuffen.
     const g = state.goal;
     const vorname = String(c.name || "").trim().split(/\s+/)[0];
     return `<div class="onb-hi">
       <div class="onb-mark" aria-hidden="true"></div>
       <h2 class="onb-q" tabindex="-1">${vorname ? "Alles bereit, " + esc(vorname) : "Alles bereit"}</h2>
       ${g ? `<p class="onb-why">${goalSummaryHtml(g)}</p>` : ""}
+      <ul class="onb-list">
+        <li><b>Meals</b> – vier Beispiele sind schon da.</li>
+        <li><b>Einkaufsliste</b> – automatisch, unter dem Wochenplan.</li>
+        <li><b>Teilen</b> – deine Woche als Link.</li>
+      </ul>
     </div>`;
   }
 
@@ -6838,63 +7070,59 @@
     const q = view.querySelector(".onb-q");
     if (q) setTimeout(() => { try { q.focus({ preventScroll: true }); } catch (e) { q.focus(); } }, 30);
 
+    // Den Weiter-Knopf an den aktuellen Stand angleichen, ohne den Bildschirm neu zu
+    // bauen – ein Re-Render bei jedem Tastendruck wuerde den Fokus aus dem Feld werfen.
+    const refreshNext = () => {
+      const m = onbMissing(id);
+      const nb = view.querySelector(".onb-next");
+      nb.classList.toggle("is-off", !!m);
+      if (m) nb.setAttribute("aria-disabled", "true"); else nb.removeAttribute("aria-disabled");
+    };
+
     view.querySelectorAll("[data-opt]").forEach(b => b.addEventListener("click", () => {
-      onb.cur[b.dataset.opt] = b.dataset.v;
+      const grp = b.dataset.opt;
+      onb.cur[grp] = b.dataset.v;
       // Passt das bisherige Tempo nicht mehr zum neuen Ziel, faellt es weg statt still
       // auf "Moderat" zu springen – dieselbe Ueberlegung wie in fillPace().
-      if (b.dataset.opt === "mode" && !paceKeys(onb.cur.mode).some(k => k === onb.cur.pace)) onb.cur.pace = null;
+      if (grp === "mode" && !paceKeys(onb.cur.mode).some(k => k === onb.cur.pace)) onb.cur.pace = null;
       // Die uebliche Dauer der gewaehlten Stufe als Startwert – sie steht dann sichtbar im
       // Feld und ist damit keine unbemerkte Vorgabe, sondern ein Vorschlag zum Ueberschreiben.
-      if (b.dataset.opt === "tlevel" && !onb.cur.tmin) onb.cur.tmin = String(trainLevel(onb.cur.tlevel).defMin);
+      if (grp === "tlevel" && !onb.cur.tmin) onb.cur.tmin = String(trainLevel(onb.cur.tlevel).defMin);
+      // Die Koerperfett-Stufen sind je Geschlecht andere Prozentwerte. Wer das Geschlecht
+      // wechselt, haette sonst eine Auswahl stehen, zu der keine Kachel mehr passt.
+      if (grp === "sex" && onb.cur.bodyfat) {
+        const list = BODYFAT[onb.cur.sex] || [];
+        if (!list.some(o => String(o.v) === onb.cur.bodyfat)) onb.cur.bodyfat = null;
+      }
+      // Die Einwilligung darf sofort verbindlich werden: Ihr Schritt faellt nicht mehr
+      // aus der Liste (frueher tat er das, weshalb sie erst nach der Haken-Pause
+      // committet werden durfte – sonst sprang der Ablauf ohne sichtbaren Haken weiter).
+      if (grp === "weightConsent") { setWeightConsent(b.dataset.v === "yes"); save(); }
       renderOnboardStep();
-      // Weiterspringen statt einen zweiten Tipp zu verlangen: bei einer Einfachauswahl
-      // ist die Antwort mit dem Tipp gegeben. Kurz warten, damit die Auswahl noch zu
-      // sehen ist – ohne Bewegungswunsch sofort.
-      // Nur springen, wenn wir noch auf demselben Bildschirm stehen – der Name der
-      // Gruppe ist zugleich die Kennung des Schritts.
+      // Weiterspringen statt einen zweiten Tipp zu verlangen – aber nur auf Bildschirmen,
+      // die mit dieser einen Antwort fertig beantwortet sind. Kurz warten, damit die
+      // Auswahl noch zu sehen ist; ohne Bewegungswunsch sofort.
+      if (!onbAutoNext(id)) return;
       setTimeout(() => {
-        if (!onb || onbSteps()[onb.i] !== b.dataset.opt) return;
-        if (b.dataset.opt === "weightConsent") {
-          // Erst JETZT committen, nach der sichtbaren Haken-Pause oben - stuende die
-          // Entscheidung schon vorher in state.weightConsent, wuerde onbSteps() diesen
-          // Schritt sofort herausfiltern und der naechste Schritt erschiene ohne
-          // sichtbaren Haken (siehe kvp-Review). Ziel-Schritt vorher merken, weil sich
-          // die Listenposition durchs Herausfallen dieses Schritts verschiebt.
-          const nextId = onbSteps()[onb.i + 1];
-          setWeightConsent(b.dataset.v === "yes"); save();
-          const idx = onbSteps().indexOf(nextId);
-          if (idx !== -1) { onb.i = idx; renderOnboardStep(); }
-          else finishOnboarding(onb.first ? "Viel Erfolg!" : null);
-          return;
-        }
+        if (!onb || onbSteps()[onb.i] !== id) return;   // inzwischen woanders
         onbGo(1);
       }, reducedMotion() ? 0 : 260);
     }));
 
-    const numEl = view.querySelector("#onb-num");
-    if (numEl) {
-      const onNum = () => {
-        onb.cur[id] = numEl.value;
-        const m = onbMissing(id);
-        const nb = view.querySelector(".onb-next");
-        nb.classList.toggle("is-off", !!m);
-        if (m) nb.setAttribute("aria-disabled", "true"); else nb.removeAttribute("aria-disabled");
-      };
-      // "change" zusaetzlich, weil das Auswahlrad auf dem Handy nur darueber meldet.
-      numEl.addEventListener("input", onNum);
-      numEl.addEventListener("change", onNum);
-      numEl.addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); view.querySelector(".onb-next").click(); } });
-    }
+    // Auf den Sammel-Bildschirmen stehen mehrere Zahlenfelder nebeneinander, deshalb
+    // ueber data-num statt einer festen Kennung. "change" zusaetzlich zu "input", weil
+    // das Auswahlrad auf dem Handy nur darueber meldet.
+    view.querySelectorAll("[data-num]").forEach(inp => {
+      const k = inp.dataset.num;
+      const onNum = () => { onb.cur[k] = inp.value; refreshNext(); };
+      inp.addEventListener("input", onNum);
+      inp.addEventListener("change", onNum);
+      inp.addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); view.querySelector(".onb-next").click(); } });
+    });
 
     const textEl = view.querySelector("#onb-text");
     if (textEl) {
-      textEl.addEventListener("input", () => {
-        onb.cur[id] = textEl.value;
-        const m = onbMissing(id);
-        const nb = view.querySelector(".onb-next");
-        nb.classList.toggle("is-off", !!m);
-        if (m) nb.setAttribute("aria-disabled", "true"); else nb.removeAttribute("aria-disabled");
-      });
+      textEl.addEventListener("input", () => { onb.cur[id] = textEl.value; refreshNext(); });
       textEl.addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); view.querySelector(".onb-next").click(); } });
     }
 
@@ -6913,7 +7141,16 @@
 
     view.querySelector(".onb-next").addEventListener("click", () => {
       const m = onbMissing(id);
-      if (m) { toast(m); if (numEl) numEl.focus(); else if (textEl) textEl.focus(); return; }
+      if (m) {
+        toast(m);
+        // Auf den Sammel-Bildschirmen in das erste lückenhafte Feld springen, nicht
+        // pauschal ins erste – sonst zeigt der Hinweis auf "Gewicht" und der Fokus steht
+        // im Alter. Gibt es kein passendes Feld (reine Kachelauswahl), bleibt der Fokus.
+        const first = Array.prototype.find.call(view.querySelectorAll("[data-num]"),
+          el2 => onbNumMissing(el2.dataset.num));
+        if (first) first.focus(); else if (textEl) textEl.focus();
+        return;
+      }
       // Der Name gehoert ins Firebase-Profil, nicht nur in den lokalen Zustand: sonst
       // ueberschreibt handleCloudUser ihn bei der naechsten Anmeldung mit dem displayName.
       // Bewusst ohne await – ein langsames Netz darf den Ablauf nicht anhalten.
@@ -6928,7 +7165,9 @@
           toast("Dein Name steht auf diesem Gerät, konnte aber nicht in deinem Konto gespeichert werden");
         });
       }
-      if (id === "weightGoal") {
+      // Das Zielgewicht steht jetzt auf "target" (zusammen mit der Einwilligung, die es
+      // voraussetzt) statt auf einem eigenen Bildschirm.
+      if (id === "target") {
         const v = onb.cur.weightGoal;
         if (v !== "" && v != null) {
           const n = Number(v);
@@ -6947,8 +7186,6 @@
     // ist der Ablauf nicht verlassbar – siehe maybeStartOnboarding).
     const sk = view.querySelector(".onb-skip");
     if (sk) sk.addEventListener("click", () => finishOnboarding(null));
-    const keep = view.querySelector(".onb-keep");
-    if (keep) keep.addEventListener("click", () => { onb.i = onbSteps().indexOf("how"); renderOnboardStep(); });
   }
 
   // ---------- Erscheinungsbild ----------
