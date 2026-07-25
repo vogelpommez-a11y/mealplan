@@ -1468,12 +1468,6 @@
        allein und ueber die volle Breite gestreckt in die naechste - wirkt schief.
        Feste 50%-Basis erzwingt ein sauberes 2x2-Raster unabhaengig von der Textlaenge. */
     .modal.detail .modal-foot .btn { flex: 1 1 calc(50% - 4px); }
-    /* Gleiches Problem, gleiche Loesung: Sobald die Einkaufsliste den Teilen-Knopf zeigt,
-       hat ihr Fuss vier Buttons. Bei 320/360px gemessen: ohne diese Regel 3+1 mit allein
-       gestrecktem "Schliessen" in Zeile 2, und ein Button faellt auf 39px unter das
-       44px-Touchziel. Die Klasse setzt das JS nur, wenn der vierte Knopf wirklich da ist -
-       mit drei Buttons passt eine Zeile, die soll nicht unnoetig zu 2x2 werden. */
-    .modal-foot.foot-2x2 .btn { flex: 1 1 calc(50% - 4px); }
     .foot-inner { flex-direction: column; gap: 8px; text-align: center; }
     /* iOS zoomt Eingabefelder < 16px beim Fokus – das verhindern wir */
     input[type="text"], input[type="number"], input[type="email"], input[type="password"], input[type="search"], select, textarea { font-size: 16px; }
@@ -5741,8 +5735,10 @@
         <button class="btn ghost sm" data-close>✕</button>
       </div>
       <div class="modal-body">${body}</div>
-      <div class="modal-foot${items.length && canShare() ? " foot-2x2" : ""}">
-        ${items.length ? `${canShare() ? `<button class="btn" data-share>Teilen</button>` : ""}<button class="btn ghost" data-pdf>Als PDF</button><button class="btn" data-copy>Als Text kopieren</button>` : ""}
+      <div class="modal-foot">
+        ${items.length ? (canShare()
+          ? `<button class="btn" data-share>Teilen</button>`
+          : `<button class="btn ghost" data-pdf>Als PDF</button><button class="btn" data-copy>Als Text kopieren</button>`) : ""}
         <button class="btn primary" data-close>Schließen</button>
       </div>
     </div>`);
@@ -8371,7 +8367,7 @@
       <div class="modal-body">
         <div class="segbar" role="tablist">
           <button role="tab" data-seg="link" aria-selected="true">Teilen-Link</button>
-          <button role="tab" data-seg="pdf" aria-selected="false">PDF &amp; E-Mail</button>
+          <button role="tab" data-seg="pdf" aria-selected="false">${canShare() ? "PDF" : "PDF &amp; E-Mail"}</button>
         </div>
         <div id="seg-body"></div>
       </div>
@@ -8419,28 +8415,32 @@
           });
         }
       } else if (mode === "pdf") {
-        // Kann das Geraet nativ teilen (Handy), fuehrt dieser Weg: ein Tippen, dann waehlt der
-        // Nutzer WhatsApp/Mail/… und die PDF haengt schon dran. "Mail-App oeffnen" ist dann
-        // ueberfluessig und wird weggelassen - der Knopf ist der unzuverlaessigste im Modal
-        // (mailto reisst bei vollen Wochenplaenen die ~2000-Zeichen-Grenze von Windows/Outlook).
+        // Kann das Geraet nativ teilen (Handy), fuehrt genau ein Knopf zum Ziel: die PDF
+        // haengt am Teilen-Dialog, kein Zwischenschritt ueber Zwischenablage/mailto noetig.
+        // Ohne Web Share (Desktop/aeltere Browser) bleibt der komplette alte Weg erhalten,
+        // sonst gaebe es dort gar keine Moeglichkeit mehr, an PDF oder Text zu kommen -
+        // "Mail-App oeffnen" war ohnehin der unzuverlaessigste Knopf (mailto reisst bei
+        // vollen Wochenplaenen die ~2000-Zeichen-Grenze von Windows/Outlook, siehe buildMailto).
         const shareOk = canShare();
-        segBody.innerHTML = `
-          <p class="share-hint">Erzeuge aus deiner Woche ein <b>PDF</b> – so teilst du deinen fertigen Plan auch mit Leuten ohne Konto.</p>
-          ${shareOk ? `<button class="btn primary" id="share-btn" style="width:100%;justify-content:center">Wochenplan teilen</button>
-          <p class="share-mini">Öffnet die Teilen-Auswahl deines Geräts – die PDF hängt direkt dran.</p>
-          <button class="btn" id="pdf-btn" style="width:100%;justify-content:center;margin-top:10px">Nur als PDF speichern</button>`
-          : `<button class="btn primary" id="pdf-btn" style="width:100%;justify-content:center">Wochenplan als PDF speichern</button>
-          <p class="share-mini">Lädt eine PDF-Datei mit deinem kompletten Wochenplan herunter.</p>`}
+        segBody.innerHTML = shareOk ? `
+          <p class="share-hint">Erzeuge aus deiner Woche ein <b>PDF</b> und teile es direkt – so gelangt dein fertiger Plan auch zu Leuten ohne Konto.</p>
+          <button class="btn primary" id="share-btn" style="width:100%;justify-content:center">Wochenplan teilen</button>
+          <p class="share-mini">Öffnet die Teilen-Auswahl deines Geräts – die PDF hängt direkt dran.</p>`
+          : `
+          <p class="share-hint">Erzeuge aus deiner Woche ein <b>PDF</b> und verschick es per E-Mail – so teilst du deinen fertigen Plan.</p>
+          <button class="btn primary" id="pdf-btn" style="width:100%;justify-content:center">Wochenplan als PDF speichern</button>
+          <p class="share-mini">Lädt eine PDF-Datei mit deinem kompletten Wochenplan herunter.</p>
           <span class="share-sub" style="display:block;margin-top:18px">Per E-Mail senden</span>
           <div class="field"><input type="email" class="share-link" id="mail-to" placeholder="empfaenger@beispiel.de (optional)"></div>
           <div class="share-actions">
             <button class="btn primary" id="mail-copy">E-Mail-Text kopieren</button>
-            ${shareOk ? "" : `<a class="btn" id="mail-open" href="#" target="_blank" rel="noopener">Mail-App öffnen</a>`}
+            <a class="btn" id="mail-open" href="#" target="_blank" rel="noopener">Mail-App öffnen</a>
           </div>
-          <p class="share-mini">Am zuverlässigsten: <b>Text kopieren</b> und in deine Mail einfügen. Die zuvor gespeicherte PDF hängst du in der Mail an.${shareOk ? "" : " „Mail-App öffnen“ startet dein Mail-Programm in einem neuen Tab (klappt je nach Umgebung nicht immer)."}</p>`;
-        segBody.querySelector("#pdf-btn").addEventListener("click", downloadPdf);
+          <p class="share-mini">Am zuverlässigsten: <b>Text kopieren</b> und in deine Mail einfügen. Die zuvor gespeicherte PDF hängst du in der Mail an. „Mail-App öffnen“ startet dein Mail-Programm in einem neuen Tab (klappt je nach Umgebung nicht immer).</p>`;
         const shareBtn = segBody.querySelector("#share-btn");
         if (shareBtn) shareBtn.addEventListener("click", sharePlanPdf);
+        const pdfBtn = segBody.querySelector("#pdf-btn");
+        if (pdfBtn) pdfBtn.addEventListener("click", downloadPdf);
         const mailTo = segBody.querySelector("#mail-to");
         const mailOpen = segBody.querySelector("#mail-open");
         if (mailOpen) {
@@ -8448,7 +8448,8 @@
           mailTo.addEventListener("input", updateMailHref);
           updateMailHref();
         }
-        segBody.querySelector("#mail-copy").addEventListener("click", () => copyToClipboard(emailText(mailTo.value.trim()), "E-Mail-Text kopiert"));
+        const mailCopy = segBody.querySelector("#mail-copy");
+        if (mailCopy) mailCopy.addEventListener("click", () => copyToClipboard(emailText(mailTo.value.trim()), "E-Mail-Text kopiert"));
       }
     }
     segBtns.forEach(b => b.addEventListener("click", () => { mode = b.dataset.seg; paint(); }));
