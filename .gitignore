@@ -17,8 +17,16 @@ wochenplan.json
 serviceAccount*.json
 
 # Lokale Claude-Code-Einstellungen (Rechte dieses Rechners, keine Projektdatei).
-# Die Agent-Definitionen unter .claude/agents/ gehoeren dagegen ins Repo.
+# Die Agent-Definitionen unter .claude/agents/ und die Befehle unter .claude/commands/
+# gehoeren dagegen ins Repo - die sind selbst geschrieben und projektspezifisch.
 .claude/settings.local.json
+
+# Skill-Texte von Dritten (apple-design, emil-design-eng, die Animations-Skills u. a.).
+# Fremde Inhalte ohne belegte Lizenz kommen nicht ins oeffentliche Repo - dieselbe Regel
+# wie bei Fotos, und Geloeschtes bliebe hier ohnehin in der Historie stehen. Claude Code
+# laedt die Skills auch ohne Repo-Kopie, der Ablauf haengt also nicht daran.
+.claude/Skills/
+.claude/skills/
 
 # Editor / System
 *~
