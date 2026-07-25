@@ -55,14 +55,32 @@
     --fr: #A96E12;   /* Frühstück */
     --mi: #2E7D6B;   /* Mittagessen */
     --ab: #6E5A9E;   /* Abendessen */
-    /* Makro-Farben (Paket D1): bisher an 13 Stellen als Hex-Wert dupliziert, jetzt hier
-       zentral. Bewusst in EINEM Theme-neutralen Block, nicht je Theme dupliziert wie
-       --fr/--mi/--ab: die Werte waren schon immer in Hell/Dunkel identisch, die
-       spezifischeren [data-theme=...]-Bloecke unten ueberschreiben sie nicht und erben
-       sie so unveraendert (CSS-Custom-Properties kaskadieren pro Eigenschaft einzeln). */
-    --carb: #E9A03B; /* Kohlenhydrate */
-    --prot: #C74B78; /* Protein */
-    --fat: #4AA8E0;  /* Fett */
+    /* Makro-Farben (Paket D1): bisher an 13 Stellen als Hex-Wert dupliziert, seit D1
+       zentral hier. Sie standen zunaechst in EINEM Theme-neutralen Block, weil Hell und
+       Dunkel denselben Wert trugen — das ging nicht mehr auf: Auf hellem --surface kam
+       das alte Amber #E9A03B nur auf 2,20:1 und das alte Blau #4AA8E0 auf 2,64:1, also
+       unter die 3:1-Schwelle fuer grosse Schrift. Jetzt wie --fr/--mi/--ab in ALLEN vier
+       Bloecken gepflegt (:root, @media dark, [data-theme=light], [data-theme=dark]).
+       Das ist Pflicht, nicht Fleissarbeit: Ohne den Eintrag in [data-theme=light] wuerde
+       auf einem System-dunklen Geraet mit manuell hellem Theme der Dark-Wert durchschlagen
+       (der @media-Block greift dort weiterhin, und was er setzt, ueberschreibt der
+       spezifischere Attribut-Block nur, wenn er dieselbe Eigenschaft nennt).
+       Hell: gemeinsames Kontrastband 4,46-4,56:1 auf --surface, damit alle drei Makros
+       gleich schwer wiegen. Der Farbton bleibt (Drift 1-2 Grad), nur die Helligkeit sinkt;
+       Saettigung sogar minimal hoeher, damit nichts schlammig wird.
+       Dunkel: unveraendert, dort war der Kontrast nie das Problem (7-8,6:1).
+       Achtung wie bei --train: Die drei sind untereinander praktisch luminanzgleich
+       (1,00-1,02:1). Sie duerfen deshalb NIE allein tragen — an jeder Fundstelle steht
+       zusaetzlich ein Text-Label (KH / F / Kohlenhydrate ...), geprueft.
+       Bekannt und bewusst in Kauf genommen: --carb liegt hell jetzt sehr nah an --fr
+       (#A96E12, Fruehstueck) — vorher trennte die Helligkeit, die dem Kontrast weichen
+       musste. Nebeneinander gerendert und fuer unkritisch befunden, weil die beiden nie
+       dieselbe Rolle spielen: --fr erscheint als blasser Tint hinter einem Chip, der
+       seine Kategorie ausschreibt, --carb als 7px-Punkt neben seinem Makro-Label.
+       Wer --carb kuenftig als grosse Flaeche einsetzt, muss das neu bewerten. */
+    --carb: #A26A11; /* Kohlenhydrate - hell 4,56:1 */
+    --prot: #C74B78; /* Protein      - hell 4,46:1, unveraendert */
+    --fat:  #1C7EB3; /* Fett         - hell 4,48:1 */
 
     /* Trainingstag. Das einzige Blau im Theme und bewusst gesetzt: Rot ist hier die
        Grundfarbe UND das Warnsignal ("drueber"), ein rot markierter Trainingstag waere
@@ -119,6 +137,11 @@
       --mi: #58B49E;
       --ab: #AC93E0;
 
+      /* Dunkel: die urspruenglichen Makro-Werte, hier unveraendert (7-8,6:1 auf --surface) */
+      --carb: #E9A03B;
+      --prot: #C74B78;
+      --fat: #4AA8E0;
+
       --train: #60A5FA;
       --train-strong: #93C5FD;
       --train-contrast: #0C1220;
@@ -132,6 +155,7 @@
     --text: #1A1416; --text-muted: #6B5F62; --border: #E7E0E1; --border-strong: #D6CCCE;
     --accent: #DC2626; --accent-strong: #B01218; --accent-contrast: #FFFFFF; --accent-solid: #DC2626; --danger: var(--accent); --ok: #1E9E57;
     --fr: #A96E12; --mi: #2E7D6B; --ab: #6E5A9E;
+    --carb: #A26A11; --prot: #C74B78; --fat: #1C7EB3;
     --train: #2563EB; --train-strong: #1D4ED8; --train-contrast: #FFFFFF;
     --shadow: 0 1px 2px rgba(20,24,31,.06), 0 8px 24px rgba(20,24,31,.08);
   }
@@ -141,6 +165,7 @@
     --text: #F4EFEE; --text-muted: #A69B9D; --border: #2A2223; --border-strong: #3A2F30;
     --accent: #FF3040; --accent-strong: #FF5A66; --accent-contrast: #FFFFFF; --accent-solid: #E02234; --danger: var(--accent); --ok: #3DDC84;
     --fr: #E0A94A; --mi: #58B49E; --ab: #AC93E0;
+    --carb: #E9A03B; --prot: #C74B78; --fat: #4AA8E0;
     --train: #60A5FA; --train-strong: #93C5FD; --train-contrast: #0C1220;
     --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.35);
   }
@@ -1345,12 +1370,18 @@
   /* ---------- PDF / Druck ---------- */
   #print-area { display: none; }
   #print-area .pt-doc { font-family: var(--font-body); color: #1a1a1a; }
-  #print-area .pt-head { border-bottom: 3px solid #35704A; padding-bottom: 12px; margin-bottom: 20px; display: flex; align-items: baseline; justify-content: space-between; gap: 16px; }
+  /* Feste Hex-Werte statt --accent: Diese Ansicht ist fuers Papier gedacht (siehe #1a1a1a/
+     #666 daneben) und darf nicht das grelle Dark-Theme-Neonrot uebernehmen, falls gerade
+     das dunkle Theme aktiv ist. */
+  #print-area .pt-head { border-bottom: 3px solid #DC2626; padding-bottom: 12px; margin-bottom: 20px; display: flex; align-items: baseline; justify-content: space-between; gap: 16px; }
   #print-area h1 { font-family: var(--font-display); font-size: 30px; font-weight: 600; margin: 0; color: #1a1a1a; }
   #print-area .pt-meta { color: #666; font-size: 13px; text-align: right; }
   #print-area .pt-table { width: 100%; border-collapse: collapse; }
   #print-area .pt-table th, #print-area .pt-table td { border: 1px solid #cfcfc7; padding: 11px 13px; text-align: left; font-size: 13px; vertical-align: top; }
-  #print-area .pt-table thead th { background: #eef3ec; color: #2A5A3B; font-size: 11px; text-transform: uppercase; letter-spacing: .05em; }
+  /* Kopfzeile war frueher gruen (#eef3ec/#2A5A3B) - ein Rest aus der Zeit vor der
+     Rot-Umstellung der App. Jetzt Rot passend zur Marke, gemessen 6,09:1 (vorher 7,11:1),
+     beides ueber der 4,5:1-Schwelle fuer Normaltext. */
+  #print-area .pt-table thead th { background: #FBE9E9; color: #B01218; font-size: 11px; text-transform: uppercase; letter-spacing: .05em; }
   #print-area .pt-table tbody th { background: #f6f6f1; font-weight: 600; width: 96px; font-size: 14px; }
   #print-area .pt-empty { color: #bcbcbc; }
   #print-area .pt-foot { margin-top: 18px; color: #999; font-size: 11px; text-align: right; }
@@ -1427,12 +1458,22 @@
     .ing-nut input { padding: 8px 4px; }
     .ing-ac-item { min-height: 44px; } /* Touch-Ziel */
     .auth-card { padding: 26px 20px 22px; }
-    .modal-foot .btn { flex: 1; justify-content: center; }
+    /* min-height gehoert hierher, nicht dem Zufall ueberlassen: Die Fuss-Buttons kamen
+       bisher nur deshalb ueber 44px, weil ihr Text auf schmalen Geraeten umbrach. Sobald
+       einer mehr Platz hat und einzeilig bleibt (z. B. im 2x2-Raster unten), faellt er
+       sonst auf 39px - gemessen bei 320-414px. */
+    .modal-foot .btn { flex: 1; justify-content: center; min-height: 44px; }
     /* Die Meal-Detailansicht hat vier Fuss-Buttons: mit reinem "flex:1" passen drei
        schmale (Bearbeiten/Teilen/Loeschen) noch in eine Zeile, nur "Schliessen" faellt
        allein und ueber die volle Breite gestreckt in die naechste - wirkt schief.
        Feste 50%-Basis erzwingt ein sauberes 2x2-Raster unabhaengig von der Textlaenge. */
     .modal.detail .modal-foot .btn { flex: 1 1 calc(50% - 4px); }
+    /* Gleiches Problem, gleiche Loesung: Sobald die Einkaufsliste den Teilen-Knopf zeigt,
+       hat ihr Fuss vier Buttons. Bei 320/360px gemessen: ohne diese Regel 3+1 mit allein
+       gestrecktem "Schliessen" in Zeile 2, und ein Button faellt auf 39px unter das
+       44px-Touchziel. Die Klasse setzt das JS nur, wenn der vierte Knopf wirklich da ist -
+       mit drei Buttons passt eine Zeile, die soll nicht unnoetig zu 2x2 werden. */
+    .modal-foot.foot-2x2 .btn { flex: 1 1 calc(50% - 4px); }
     .foot-inner { flex-direction: column; gap: 8px; text-align: center; }
     /* iOS zoomt Eingabefelder < 16px beim Fokus – das verhindern wir */
     input[type="text"], input[type="number"], input[type="email"], input[type="password"], input[type="search"], select, textarea { font-size: 16px; }
@@ -1749,8 +1790,11 @@
   .onb-res-m { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; margin-top: 20px; padding-top: 18px; border-top: 1px solid var(--border); }
   .onb-res-m > div + div { border-left: 1px solid var(--border); }
   /* Dieselben Makrofarben wie ueberall sonst in der App (.macro, .nutfacts, .wg-macros) –
-     bewusst dieselben Hex-Werte, nicht neu erfunden, damit Protein/KH/Fett app-weit auf
-     einen Blick zuzuordnen sind, auch ohne die Beschriftung zu lesen. */
+     bewusst dieselben Tokens, nicht neu erfunden, damit Protein/KH/Fett app-weit auf
+     einen Blick zuzuordnen sind. Die Farbe ist dabei die schnellere, nicht die einzige
+     Spur: Das Label darunter nennt das Makro immer aus (siehe Token-Kommentar oben).
+     Einzige Stelle der App, an der eine Makro-Farbe als Schriftfarbe dient — deshalb
+     haengt an ihr die 3:1-Schwelle fuer grosse Schrift (21px/19px fett). */
   .onb-res-m .t-prot { --tc: var(--prot); } .onb-res-m .t-carb { --tc: var(--carb); } .onb-res-m .t-fat { --tc: var(--fat); }
   .onb-res-m b { display: block; font-family: var(--font-display); font-size: 21px; letter-spacing: -.01em; font-variant-numeric: tabular-nums; color: var(--tc, var(--text)); }
   .onb-res-m span { display: flex; align-items: center; justify-content: center; gap: 5px; margin-top: 3px; font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--text-muted); }
@@ -5603,9 +5647,16 @@
   function loadShopDone() { try { return new Set(JSON.parse(localStorage.getItem(SHOP_DONE_KEY) || "[]")); } catch (e) { return new Set(); } }
   function saveShopDone(set) { try { localStorage.setItem(SHOP_DONE_KEY, JSON.stringify(Array.from(set))); } catch (e) {} }
 
+  // Einkaufsliste als Klartext (Warengruppe als Ueberschrift, Zutaten mit Punkt). Eine Quelle
+  // fuer "Als Text kopieren" und fuers Teilen ueber den nativen Dialog - sonst laufen die
+  // beiden Formate frueher oder spaeter auseinander.
+  function shoppingText(groups) {
+    return groups.map(g => g.cat.title.toUpperCase() + "\n"
+      + g.items.map(it => "• " + it.label + (it.count > 1 ? " (×" + it.count + ")" : "")).join("\n")).join("\n\n");
+  }
   // Aggregiert die Zutaten der relevanten Tage zu einer sortierten, nach Warengruppe
   // gruppierten Einkaufsliste. Ausgelagert aus openShopping() (Paket B3), damit der neue
-  // PDF-Export (shopPdfPages) dieselbe Aggregation nutzt statt sie zu duplizieren.
+  // PDF-Export (shopPdfString/planShopPages) dieselbe Aggregation nutzt statt sie zu duplizieren.
   function buildShoppingList() {
     // In der aktuellen Woche zaehlen nur heute und die kommenden Tage - fuer bereits
     // vergangene Tage wird nicht mehr eingekauft, ihre Zutaten sollen die Summe also
@@ -5690,8 +5741,8 @@
         <button class="btn ghost sm" data-close>✕</button>
       </div>
       <div class="modal-body">${body}</div>
-      <div class="modal-foot">
-        ${items.length ? `<button class="btn ghost" data-pdf>Als PDF</button><button class="btn" data-copy>Als Text kopieren</button>` : ""}
+      <div class="modal-foot${items.length && canShare() ? " foot-2x2" : ""}">
+        ${items.length ? `${canShare() ? `<button class="btn" data-share>Teilen</button>` : ""}<button class="btn ghost" data-pdf>Als PDF</button><button class="btn" data-copy>Als Text kopieren</button>` : ""}
         <button class="btn primary" data-close>Schließen</button>
       </div>
     </div>`);
@@ -5714,11 +5765,14 @@
     }
     const copyBtn = node.querySelector("[data-copy]");
     if (copyBtn) copyBtn.addEventListener("click", () => {
-      const text = groups.map(g => g.cat.title.toUpperCase() + "\n" + g.items.map(it => "• " + it.label + (it.count > 1 ? " (×" + it.count + ")" : "")).join("\n")).join("\n\n");
+      const text = shoppingText(groups);
       if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(text).then(() => toast("Liste kopiert")).catch(() => toast("Kopieren hat nicht geklappt"));
       } else toast("Kopieren hat nicht geklappt");
     });
+    // Nativer Teilen-Dialog (nur wenn das Geraet ihn kann - sonst steht der Knopf gar nicht da)
+    const shareBtn = node.querySelector("[data-share]");
+    if (shareBtn) shareBtn.addEventListener("click", shareShopPdf);
     // Paket B3: Einkaufsliste als PDF, analog zum bestehenden Wochenplan-PDF (downloadPdf).
     const pdfBtn = node.querySelector("[data-pdf]");
     if (pdfBtn) pdfBtn.addEventListener("click", downloadShopPdf);
@@ -7881,7 +7935,9 @@
     </div>`;
   }
   // ----- PDF selbst erzeugen (kein window.print, sandbox-sicher) -----
-  const WINANSI = { "ä":"344","ö":"366","ü":"374","Ä":"304","Ö":"326","Ü":"334","ß":"337","·":"267","–":"226","—":"227","…":"205","é":"351","è":"350","ê":"352","á":"341","à":"340","â":"342","ç":"347","ñ":"361","€":"200","°":"260","„":"204","“":"223","”":"224","‘":"221","’":"222" };
+  // "×" (0327) fehlte hier - im Ausschneide-Pruefstand fuer den neuen PDF-Marken-Kopf
+  // gefunden: Zutaten-Mengen wie "(×3)" in der Einkaufslisten-PDF zeigten "(?3)".
+  const WINANSI = { "ä":"344","ö":"366","ü":"374","Ä":"304","Ö":"326","Ü":"334","ß":"337","·":"267","–":"226","—":"227","…":"205","é":"351","è":"350","ê":"352","á":"341","à":"340","â":"342","ç":"347","ñ":"361","€":"200","°":"260","„":"204","“":"223","”":"224","‘":"221","’":"222","×":"327" };
   function pdfEsc(str) {
     let out = "";
     for (const ch of String(str)) {
@@ -7896,17 +7952,189 @@
     return out;
   }
   function trunc(s, n) { s = String(s); return s.length > n ? s.slice(0, n - 1) + "…" : s; }
+
+  // ----- Marken-Kopf fuer die PDFs (Logo, "PADDY'S MEALPLAN", Slogan) -----
+  // Nur die Grossbuchstaben/Zeichen, die in der Wortmarke ("PADDY'S MEALPLAN") und im
+  // Vektor-Rueckfall-Kreis ("PM") tatsaechlich vorkommen - keine vollstaendige AFM-Tabelle
+  // noetig, da Slogan und Metazeilen einfarbig/linksbuendig bleiben und keine Breite brauchen.
+  // Werte sind die festen Adobe-Standardbreiten von Helvetica-Bold (1000-Einheiten-Raster,
+  // Teil der PDF-Basis-14-Schriften, nicht dokumentspezifisch).
+  const HB_WIDTH = { " ": 278, "P": 667, "A": 722, "D": 722, "Y": 722, "’": 278, "S": 667, "M": 833, "E": 667, "L": 556, "N": 722 };
+  function hbWidth(str, size) {
+    let w = 0;
+    for (const ch of str) w += (HB_WIDTH[ch] != null ? HB_WIDTH[ch] : 600);
+    return w / 1000 * size;
+  }
+  // Kreis als 4 Bezier-Kurven (Standardnaeherung, k=0.5523) - rohes PDF kennt keinen
+  // Kreis-Operator. f = fuellen; die Fuellfarbe muss VOR dem Aufruf per "rg" gesetzt sein.
+  function pdfCirclePath(cx, cy, r) {
+    const k = 0.5522847498, rk = r * k;
+    return cx + r + " " + cy + " m\n"
+      + (cx + r) + " " + (cy + rk) + " " + (cx + rk) + " " + (cy + r) + " " + cx + " " + (cy + r) + " c\n"
+      + (cx - rk) + " " + (cy + r) + " " + (cx - r) + " " + (cy + rk) + " " + (cx - r) + " " + cy + " c\n"
+      + (cx - r) + " " + (cy - rk) + " " + (cx - rk) + " " + (cy - r) + " " + cx + " " + (cy - r) + " c\n"
+      + (cx + rk) + " " + (cy - r) + " " + (cx + r) + " " + (cy - rk) + " " + (cx + r) + " " + cy + " c\nh\n";
+  }
+  // Logo-Marke: echtes Bild-XObject (logo!=null) oder roter Vektor-Kreis mit "PM" als
+  // Rueckfall (gleiches Muster wie der Platzhalter in ROADMAP.html). Path-Operatoren (m/c/f)
+  // und "Do" duerfen nicht innerhalb eines BT/ET-Textblocks stehen, deshalb eigene BT/ET
+  // nur um den "PM"-Text herum.
+  function pdfMarkOps(cx, cy, r, logo) {
+    if (logo) {
+      const d = r * 2, x = cx - r, y = cy - r;
+      return "q\n" + d + " 0 0 " + d + " " + x + " " + y + " cm\n/Im0 Do\nQ\n";
+    }
+    let ops = "0.863 0.149 0.149 rg\n" + pdfCirclePath(cx, cy, r) + "f\n";
+    const fontSize = r * 0.82;
+    const tx = cx - hbWidth("PM", fontSize) / 2;
+    const ty = cy - fontSize * 0.36;
+    ops += "1 1 1 rg BT /F2 " + fontSize.toFixed(2) + " Tf 1 0 0 1 " + tx.toFixed(2) + " " + ty.toFixed(2) + " Tm (PM) Tj ET\n0 0 0 rg\n";
+    return ops;
+  }
+  // Voller Marken-Kopf: Logo + zweifarbige Wortmarke + Slogan + Trennlinie + Dokumenttitel +
+  // Metazeile. Genutzt auf Seite 1 beider PDFs (Wochenplan hat nur eine Seite). Inhalt der
+  // aufrufenden Funktion beginnt danach bei y=700.
+  // Der Dokumenttitel steht bewusst auf 17pt statt der frueheren 24pt: Damals war er das
+  // einzige grosse Element der Seite, jetzt fuehrt die Wortmarke darueber. Zwei konkurrierende
+  // Ueberschriften in aehnlicher Groesse wuerden sich gegenseitig die Wirkung nehmen -
+  // "Wochenplan"/"Einkaufsliste" ist hier die zweite Ebene, nicht die erste.
+  function pdfBrandHeader(L, R, docTitle, metaLine, logo) {
+    const cx = L + 17, cy = 798, wx = 100, wsize = 15;
+    let cs = pdfMarkOps(cx, cy, 17, logo);
+    const first = "PADDY’S ";
+    cs += "BT\n0 0 0 rg /F2 " + wsize + " Tf 1 0 0 1 " + wx + " 804 Tm (" + pdfEsc(first) + ") Tj\n";
+    cs += "0.863 0.149 0.149 rg 1 0 0 1 " + (wx + hbWidth(first, wsize)).toFixed(2) + " 804 Tm (" + pdfEsc("MEALPLAN") + ") Tj\n0 0 0 rg\nET\n";
+    cs += "BT\n0.45 0.45 0.45 rg /F3 9.5 Tf 1 0 0 1 " + wx + " 790 Tm (" + pdfEsc("Plan it. Cook it. Lift it.") + ") Tj\n0 0 0 rg\nET\n";
+    cs += "0.863 0.149 0.149 RG 1.5 w " + L + " 772 m " + R + " 772 l S\n";
+    cs += "BT\n0 0 0 rg /F2 17 Tf 1 0 0 1 " + L + " 750 Tm (" + pdfEsc(docTitle) + ") Tj\n";
+    cs += "0.4 0.4 0.4 rg /F1 11 Tf 1 0 0 1 " + L + " 734 Tm (" + pdfEsc(metaLine) + ") Tj\n0 0 0 rg\nET\n";
+    return cs;
+  }
+  // Schlanker Kopf fuer Folgeseiten der Einkaufsliste: kleinere Logo-Marke (dasselbe
+  // Bild-XObject, nur anders skaliert - keine zweite Einbettung), Titel + Seitenzahl,
+  // duennere Trennlinie. Inhalt beginnt danach bei y=778.
+  function pdfSlimHeader(L, R, pageNum, totalPages, logo) {
+    let cs = pdfMarkOps(L + 11, 812, 11, logo);
+    cs += "BT\n0 0 0 rg /F2 12 Tf 1 0 0 1 100 816 Tm (" + pdfEsc("Einkaufsliste") + ") Tj\n";
+    cs += "0.5 0.5 0.5 rg /F1 9 Tf 1 0 0 1 100 802 Tm (" + pdfEsc("Seite " + pageNum + " von " + totalPages) + ") Tj\n0 0 0 rg\nET\n";
+    cs += "0.863 0.149 0.149 RG 1 w " + L + " 792 m " + R + " 792 l S\n";
+    return cs;
+  }
+
+  // ----- Echtes Logo-PNG fuer die PDFs vorbereiten (einmalig, async, gecacht) -----
+  // Rohes PDF kennt nur RGB-Bilder + optionale Graustufen-/SMask fuer Transparenz, kein
+  // natives RGBA. Das App-Logo (--logoL) ist ein 220x220 RGBA-PNG (per Analyse bestaetigt:
+  // bitdepth 8, colortype 6, kein Interlacing). Pipeline: Base64 -> PNG-Chunks lesen ->
+  // IDAT inflaten -> PNG-Filter pro Scanline rueckgaengig machen -> in RGB- und
+  // Alpha-Puffer trennen -> beide einzeln wieder deflaten (klein, da grossflaechig einfarbig).
+  // logoPdfAsset bleibt "undefined" bis zum ersten Versuch, "null" wenn PNG-Format/Browser
+  // nicht passt (-> Vektor-Rueckfall in pdfMarkOps), sonst das fertige Objekt.
+  let logoPdfAsset;
+  function parsePngChunks(bytes) {
+    const pos0 = 8;
+    const chunks = [];
+    let pos = pos0;
+    while (pos < bytes.length) {
+      const len = (bytes[pos] << 24 | bytes[pos + 1] << 16 | bytes[pos + 2] << 8 | bytes[pos + 3]) >>> 0;
+      const type = String.fromCharCode(bytes[pos + 4], bytes[pos + 5], bytes[pos + 6], bytes[pos + 7]);
+      chunks.push({ type: type, data: bytes.subarray(pos + 8, pos + 8 + len) });
+      pos += 12 + len;
+      if (type === "IEND") break;
+    }
+    return chunks;
+  }
+  function pngUnfilter(raw, width, height, bpp) {
+    const stride = width * bpp;
+    const out = new Uint8Array(height * stride);
+    let rawPos = 0, outPos = 0;
+    for (let y = 0; y < height; y++) {
+      const filter = raw[rawPos++];
+      for (let x = 0; x < stride; x++) {
+        const a = x >= bpp ? out[outPos + x - bpp] : 0;
+        const b = y > 0 ? out[outPos - stride + x] : 0;
+        const c = (y > 0 && x >= bpp) ? out[outPos - stride + x - bpp] : 0;
+        const v = raw[rawPos++];
+        let recon;
+        if (filter === 0) recon = v;
+        else if (filter === 1) recon = v + a;
+        else if (filter === 2) recon = v + b;
+        else if (filter === 3) recon = v + ((a + b) >> 1);
+        else { // Paeth
+          const p = a + b - c, pa = Math.abs(p - a), pb = Math.abs(p - b), pc = Math.abs(p - c);
+          recon = v + (pa <= pb && pa <= pc ? a : (pb <= pc ? b : c));
+        }
+        out[outPos + x] = recon & 0xff;
+      }
+      outPos += stride;
+    }
+    return out;
+  }
+  function bytesToBinaryString(bytes) {
+    let s = "", CHUNK = 8000;
+    for (let i = 0; i < bytes.length; i += CHUNK) s += String.fromCharCode.apply(null, bytes.subarray(i, i + CHUNK));
+    return s;
+  }
+  async function inflateBytes(bytes) {
+    const ds = new DecompressionStream("deflate");
+    const w = ds.writable.getWriter();
+    w.write(bytes); w.close();
+    return new Uint8Array(await new Response(ds.readable).arrayBuffer());
+  }
+  async function deflateToBinaryString(bytes) {
+    const cs = new CompressionStream("deflate");
+    const w = cs.writable.getWriter();
+    w.write(bytes); w.close();
+    const out = new Uint8Array(await new Response(cs.readable).arrayBuffer());
+    return bytesToBinaryString(out);
+  }
+  async function prepareLogoForPdf() {
+    if (logoPdfAsset !== undefined) return logoPdfAsset;
+    try {
+      if (!("CompressionStream" in window) || !("DecompressionStream" in window)) { logoPdfAsset = null; return null; }
+      const raw = getComputedStyle(document.documentElement).getPropertyValue("--logoL").trim();
+      const m = raw.match(/^url\(data:image\/png;base64,([^)]+)\)$/);
+      if (!m) { logoPdfAsset = null; return null; }
+      const bin = atob(m[1]);
+      const bytes = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+      if (!(bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4E && bytes[3] === 0x47)) { logoPdfAsset = null; return null; }
+      const chunks = parsePngChunks(bytes);
+      const ihdr = chunks.find(c => c.type === "IHDR");
+      if (!ihdr) { logoPdfAsset = null; return null; }
+      const d = ihdr.data;
+      const width = (d[0] << 24 | d[1] << 16 | d[2] << 8 | d[3]) >>> 0;
+      const height = (d[4] << 24 | d[5] << 16 | d[6] << 8 | d[7]) >>> 0;
+      const bitDepth = d[8], colorType = d[9], interlace = d[12];
+      if (bitDepth !== 8 || colorType !== 6 || interlace !== 0) { logoPdfAsset = null; return null; }
+      const idatChunks = chunks.filter(c => c.type === "IDAT");
+      let idatLen = 0; idatChunks.forEach(c => idatLen += c.data.length);
+      const idat = new Uint8Array(idatLen);
+      let off = 0; idatChunks.forEach(c => { idat.set(c.data, off); off += c.data.length; });
+      const rawScan = await inflateBytes(idat);
+      const px = pngUnfilter(rawScan, width, height, 4);
+      const n = width * height;
+      const rgb = new Uint8Array(n * 3), alpha = new Uint8Array(n);
+      for (let i = 0; i < n; i++) {
+        rgb[i * 3] = px[i * 4]; rgb[i * 3 + 1] = px[i * 4 + 1]; rgb[i * 3 + 2] = px[i * 4 + 2];
+        alpha[i] = px[i * 4 + 3];
+      }
+      const rgbStream = await deflateToBinaryString(rgb);
+      const alphaStream = await deflateToBinaryString(alpha);
+      logoPdfAsset = { w: width, h: height, rgbStream: rgbStream, rgbLen: rgbStream.length, alphaStream: alphaStream, alphaLen: alphaStream.length };
+    } catch (e) { logoPdfAsset = null; }
+    return logoPdfAsset;
+  }
+
   function planPdfString() {
     const L = 56, R = 539;
     const dateStr = new Date().toLocaleDateString("de-DE", { day: "numeric", month: "long", year: "numeric" });
     const name = profile ? profile.name : "";
-    let cs = "0.208 0.439 0.290 RG 2 w " + L + " 752 m " + R + " 752 l S\nBT\n";
-    cs += "0 0 0 rg /F2 24 Tf 1 0 0 1 " + L + " 786 Tm (" + pdfEsc("Wochenplan") + ") Tj\n";
-    cs += "0.4 0.4 0.4 rg /F1 11 Tf 1 0 0 1 " + L + " 764 Tm (" + pdfEsc((name ? name + "   ·   " : "") + dateStr) + ") Tj\n";
-    cs += "0 0 0 rg\n";
-    let y = 722;
+    const logo = logoPdfAsset;
+    let cs = pdfBrandHeader(L, R, "Wochenplan", (name ? name + "   ·   " : "") + dateStr, logo);
+    cs += "BT\n";
+    let y = 700;
     DAYS.forEach(d => {
-      cs += "/F2 13 Tf 1 0 0 1 " + L + " " + y + " Tm (" + pdfEsc(d.label) + ") Tj\n";
+      cs += "0 0 0 rg /F2 13 Tf 1 0 0 1 " + L + " " + y + " Tm (" + pdfEsc(d.label) + ") Tj\n";
       MEALS.forEach((m, i) => {
         const names = state.plan[d.key][m.key].map(rid => { const r = getRecipe(rid); return r ? r.name : null; }).filter(Boolean);
         const yy = y - 17 - i * 15;
@@ -7920,10 +8148,16 @@
     const objs = [];
     objs.push("<< /Type /Catalog /Pages 2 0 R >>");
     objs.push("<< /Type /Pages /Kids [3 0 R] /Count 1 >>");
-    objs.push("<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 5 0 R /F2 6 0 R >> >> /Contents 4 0 R >>");
+    const xobjRes = logo ? " /XObject << /Im0 8 0 R >>" : "";
+    objs.push("<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 5 0 R /F2 6 0 R /F3 7 0 R >>" + xobjRes + " >> /Contents 4 0 R >>");
     objs.push("<< /Length " + cs.length + " >>\nstream\n" + cs + "endstream");
     objs.push("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>");
     objs.push("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>");
+    objs.push("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Oblique /Encoding /WinAnsiEncoding >>");
+    if (logo) {
+      objs.push("<< /Type /XObject /Subtype /Image /Width " + logo.w + " /Height " + logo.h + " /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /FlateDecode /SMask 9 0 R /Length " + logo.rgbLen + " >>\nstream\n" + logo.rgbStream + "\nendstream");
+      objs.push("<< /Type /XObject /Subtype /Image /Width " + logo.w + " /Height " + logo.h + " /ColorSpace /DeviceGray /BitsPerComponent 8 /Filter /FlateDecode /Length " + logo.alphaLen + " >>\nstream\n" + logo.alphaStream + "\nendstream");
+    }
     let pdf = "%PDF-1.4\n";
     const offsets = [];
     objs.forEach((o, i) => { offsets.push(pdf.length); pdf += (i + 1) + " 0 obj\n" + o + "\nendobj\n"; });
@@ -7933,18 +8167,62 @@
     pdf += "trailer\n<< /Size " + (objs.length + 1) + " /Root 1 0 R >>\nstartxref\n" + xref + "\n%%EOF";
     return pdf;
   }
-  function downloadPdf() {
+  // PDF-String -> Bytes. Ein JS-Zeichen ist hier genau ein Byte (siehe pdfEsc/Bild-Streams).
+  function pdfBytes(pdf) {
+    const bytes = new Uint8Array(pdf.length);
+    for (let i = 0; i < pdf.length; i++) bytes[i] = pdf.charCodeAt(i) & 0xff;
+    return bytes;
+  }
+  function saveBlob(blob, filename) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a"); a.href = url; a.download = filename; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1500);
+  }
+  function planPdfName() {
+    const who = (profile ? profile.name : "plan").replace(/[^\wäöüßÄÖÜ-]+/g, "_");
+    return "wochenplan-" + who + ".pdf";
+  }
+  async function downloadPdf() {
     try {
-      const pdf = planPdfString();
-      const bytes = new Uint8Array(pdf.length);
-      for (let i = 0; i < pdf.length; i++) bytes[i] = pdf.charCodeAt(i) & 0xff;
-      const blob = new Blob([bytes], { type: "application/pdf" });
-      const url = URL.createObjectURL(blob);
-      const who = (profile ? profile.name : "plan").replace(/[^\wäöüßÄÖÜ-]+/g, "_");
-      const a = document.createElement("a"); a.href = url; a.download = "wochenplan-" + who + ".pdf"; document.body.appendChild(a); a.click(); a.remove();
-      setTimeout(() => URL.revokeObjectURL(url), 1500);
+      await prepareLogoForPdf();
+      saveBlob(new Blob([pdfBytes(planPdfString())], { type: "application/pdf" }), planPdfName());
       toast("PDF gespeichert");
     } catch (e) { toast("PDF konnte nicht erstellt werden"); }
+  }
+
+  // ----- Teilen ueber den nativen Dialog des Geraets (Web Share API) -----
+  // Auf dem Handy der kuerzeste Weg: ein Tippen, dann waehlt der Nutzer WhatsApp, Signal,
+  // Mail o. Ä. - kein Umweg ueber Zwischenablage oder mailto (das bei vollen Wochenplaenen
+  // ohnehin an der ~2000-Zeichen-Grenze von Windows/Outlook scheitert).
+  // canShareFiles() ist bewusst strenger als "navigator.share existiert": Desktop-Chrome
+  // kennt share(), kann aber je nach System keine Dateien - dann lieber Text teilen als
+  // einen Knopf anzubieten, der wirft.
+  function canShare() { return typeof navigator !== "undefined" && typeof navigator.share === "function"; }
+  function canShareFiles(files) {
+    try { return canShare() && typeof navigator.canShare === "function" && navigator.canShare({ files: files }); }
+    catch (e) { return false; }
+  }
+  // Teilt eine Datei, faellt auf Text zurueck, wenn das Geraet keine Dateien teilen kann.
+  // Rueckgabe: true = geteilt, false = Nutzer hat abgebrochen oder es ging nicht.
+  async function shareFileOrText(bytes, filename, title, fallbackText) {
+    let file = null;
+    try { file = new File([bytes], filename, { type: "application/pdf" }); } catch (e) { file = null; }
+    try {
+      if (file && canShareFiles([file])) { await navigator.share({ files: [file], title: title }); return true; }
+      if (canShare()) { await navigator.share({ title: title, text: fallbackText }); return true; }
+    } catch (e) {
+      // AbortError = Nutzer hat den Dialog weggewischt. Das ist kein Fehler, nur ein Nein.
+      if (e && e.name === "AbortError") return false;
+      throw e;
+    }
+    return false;
+  }
+  async function sharePlanPdf() {
+    try {
+      await prepareLogoForPdf();
+      const ok = await shareFileOrText(pdfBytes(planPdfString()), planPdfName(), emailSubject(), emailBody());
+      if (ok) toast("Wochenplan geteilt");
+    } catch (e) { toast("Teilen hat nicht geklappt"); }
   }
 
   // ----- Einkaufsliste als PDF (Paket B3) -----
@@ -7952,66 +8230,97 @@
   // lang - deshalb mehrseitig statt der festen Ein-Seiten-Struktur von planPdfString(). Baut
   // je Seite einen eigenen Content-Stream und haengt sie am Ende zu einem gemeinsamen PDF
   // zusammen, gleiche Bausteine (pdfEsc/trunc/WinAnsi-Fonts) wie beim Wochenplan-PDF.
-  function shopPdfPages() {
-    const { items, groups } = buildShoppingList();
-    const L = 56, R = 539;
-    const dateStr = new Date().toLocaleDateString("de-DE", { day: "numeric", month: "long", year: "numeric" });
-    const scope = state.viewWeek === "next" ? "Nächste Woche" : "Diese Woche";
+  // Reine Layout-Planung ohne Kopf-Text (planShopPages): verteilt Gruppen/Zutaten auf
+  // Seiten, renderShopPage baut daraus die eigentlichen Content-Streams. Getrennt vom
+  // Rendern, weil die Gesamtseitenzahl (fuer "Seite X von Y" im Kopf jeder Seite) erst nach
+  // dem vollstaendigen Layout feststeht. Seite 1 hat wegen des vollen Marken-Kopfs weniger
+  // Content-Hoehe als die Folgeseiten mit schlankem Kopf - deshalb die zwei TOP-Werte.
+  function planShopPages(items, groups) {
+    const TOP_FIRST = 700, TOP_CONT = 778, BOTTOM = 60;
     const pages = [];
-    let cs = "", y = 0, pageNum = 0;
-    function startPage() {
-      pageNum++;
-      cs = "0.208 0.439 0.290 RG 2 w " + L + " 752 m " + R + " 752 l S\nBT\n";
-      if (pageNum === 1) {
-        cs += "0 0 0 rg /F2 24 Tf 1 0 0 1 " + L + " 786 Tm (" + pdfEsc("Einkaufsliste") + ") Tj\n";
-        cs += "0.4 0.4 0.4 rg /F1 11 Tf 1 0 0 1 " + L + " 764 Tm (" + pdfEsc(scope + "   ·   " + dateStr) + ") Tj\n";
-        cs += "0 0 0 rg\n";
-      }
-      y = 722;
-    }
-    function endPage() { cs += "ET\n"; pages.push(cs); }
-    // Reicht der Rest der Seite fuer "need" Punkt Text nicht mehr, neue Seite beginnen -
-    // 60pt Fussabstand bleibt frei, damit auf der letzten Seite der Fusszeilen-Text passt.
-    function ensureSpace(need) { if (y - need < 60) { endPage(); startPage(); } }
-    startPage();
+    let page = [], y = TOP_FIRST;
+    function newPage() { pages.push(page); page = []; y = TOP_CONT; }
+    function ensureSpace(need) { if (y - need < BOTTOM) newPage(); }
     if (!items.length) {
-      cs += "0.5 0.5 0.5 rg /F1 12 Tf 1 0 0 1 " + L + " " + y + " Tm (" + pdfEsc("Noch keine Zutaten geplant.") + ") Tj\n0 0 0 rg\n";
+      page.push({ kind: "empty" });
       y -= 20;
     } else {
       groups.forEach(g => {
         ensureSpace(20 + 16); // Gruppenkopf + mindestens eine Zeile zusammenhalten
-        cs += "/F2 13 Tf 1 0 0 1 " + L + " " + y + " Tm (" + pdfEsc(g.cat.title) + ") Tj\n";
+        page.push({ kind: "group", title: g.cat.title });
         y -= 20;
         g.items.forEach(it => {
           ensureSpace(16);
-          const label = it.label + (it.count > 1 ? " (×" + it.count + ")" : "");
-          cs += "/F1 11 Tf 1 0 0 1 " + (L + 18) + " " + y + " Tm (" + pdfEsc(trunc(label, 58)) + ") Tj\n";
+          page.push({ kind: "item", label: it.label + (it.count > 1 ? " (×" + it.count + ")" : "") });
           y -= 16;
         });
+        page.push({ kind: "gap", amount: 8 });
         y -= 8;
       });
     }
     ensureSpace(20);
-    cs += "0.6 0.6 0.6 rg /F1 9 Tf 1 0 0 1 " + L + " 44 Tm (" + pdfEsc("Erstellt mit Paddy’s Mealplan") + ") Tj\n0 0 0 rg\n";
-    endPage();
+    page.push({ kind: "footer" });
+    pages.push(page);
     return pages;
   }
+  // Rendert eine geplante Seite zu einem Content-Stream. Seite 1 bekommt den vollen
+  // Marken-Kopf, jede weitere den schlanken Kopf mit Seitenzahl.
+  function renderShopPage(entries, pageNum, totalPages, scope, dateStr, logo) {
+    const L = 56, R = 539;
+    let cs = pageNum === 1
+      ? pdfBrandHeader(L, R, "Einkaufsliste", scope + "   ·   " + dateStr, logo)
+      : pdfSlimHeader(L, R, pageNum, totalPages, logo);
+    cs += "BT\n";
+    let y = pageNum === 1 ? 700 : 778;
+    entries.forEach(entry => {
+      if (entry.kind === "empty") {
+        cs += "0.5 0.5 0.5 rg /F1 12 Tf 1 0 0 1 " + L + " " + y + " Tm (" + pdfEsc("Noch keine Zutaten geplant.") + ") Tj\n0 0 0 rg\n";
+        y -= 20;
+      } else if (entry.kind === "group") {
+        cs += "0 0 0 rg /F2 13 Tf 1 0 0 1 " + L + " " + y + " Tm (" + pdfEsc(entry.title) + ") Tj\n";
+        y -= 20;
+      } else if (entry.kind === "item") {
+        cs += "0 0 0 rg /F1 11 Tf 1 0 0 1 " + (L + 18) + " " + y + " Tm (" + pdfEsc(trunc(entry.label, 58)) + ") Tj\n";
+        y -= 16;
+      } else if (entry.kind === "gap") {
+        y -= entry.amount;
+      } else if (entry.kind === "footer") {
+        cs += "0.6 0.6 0.6 rg /F1 9 Tf 1 0 0 1 " + L + " " + y + " Tm (" + pdfEsc("Erstellt mit Paddy’s Mealplan") + ") Tj\n0 0 0 rg\n";
+      }
+    });
+    cs += "ET\n";
+    return cs;
+  }
   function shopPdfString() {
-    const pages = shopPdfPages();
-    const n = pages.length;
+    const { items, groups } = buildShoppingList();
+    const dateStr = new Date().toLocaleDateString("de-DE", { day: "numeric", month: "long", year: "numeric" });
+    const scope = state.viewWeek === "next" ? "Nächste Woche" : "Diese Woche";
+    const logo = logoPdfAsset;
+    const planned = planShopPages(items, groups);
+    const n = planned.length;
+    const pages = planned.map((p, i) => renderShopPage(p, i + 1, n, scope, dateStr, logo));
+
     const fontsStart = 3 + 2 * n; // Objekt-ID der ersten Schriftart, nach Catalog+Pages+je Seite (Page+Content)
+    const imageId = fontsStart + 3, smaskId = fontsStart + 4;
     const objs = [];
     objs[0] = "<< /Type /Catalog /Pages 2 0 R >>";
     const kids = [];
     for (let i = 0; i < n; i++) kids.push((3 + 2 * i) + " 0 R");
     objs[1] = "<< /Type /Pages /Kids [" + kids.join(" ") + "] /Count " + n + " >>";
+    const fontRes = "/F1 " + fontsStart + " 0 R /F2 " + (fontsStart + 1) + " 0 R /F3 " + (fontsStart + 2) + " 0 R";
+    const xobjRes = logo ? " /XObject << /Im0 " + imageId + " 0 R >>" : "";
     for (let i = 0; i < n; i++) {
       const pageId = 3 + 2 * i, contentId = 4 + 2 * i;
-      objs[pageId - 1] = "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 " + fontsStart + " 0 R /F2 " + (fontsStart + 1) + " 0 R >> >> /Contents " + contentId + " 0 R >>";
+      objs[pageId - 1] = "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << " + fontRes + " >>" + xobjRes + " >> /Contents " + contentId + " 0 R >>";
       objs[contentId - 1] = "<< /Length " + pages[i].length + " >>\nstream\n" + pages[i] + "endstream";
     }
     objs[fontsStart - 1] = "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>";
     objs[fontsStart] = "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>";
+    objs[fontsStart + 1] = "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Oblique /Encoding /WinAnsiEncoding >>";
+    if (logo) {
+      objs[imageId - 1] = "<< /Type /XObject /Subtype /Image /Width " + logo.w + " /Height " + logo.h + " /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /FlateDecode /SMask " + smaskId + " 0 R /Length " + logo.rgbLen + " >>\nstream\n" + logo.rgbStream + "\nendstream";
+      objs[smaskId - 1] = "<< /Type /XObject /Subtype /Image /Width " + logo.w + " /Height " + logo.h + " /ColorSpace /DeviceGray /BitsPerComponent 8 /Filter /FlateDecode /Length " + logo.alphaLen + " >>\nstream\n" + logo.alphaStream + "\nendstream";
+    }
     let pdf = "%PDF-1.4\n";
     const offsets = [];
     objs.forEach((o, i) => { offsets.push(pdf.length); pdf += (i + 1) + " 0 obj\n" + o + "\nendobj\n"; });
@@ -8021,23 +8330,37 @@
     pdf += "trailer\n<< /Size " + (objs.length + 1) + " /Root 1 0 R >>\nstartxref\n" + xref + "\n%%EOF";
     return pdf;
   }
-  function downloadShopPdf() {
+  async function downloadShopPdf() {
     try {
-      const pdf = shopPdfString();
-      const bytes = new Uint8Array(pdf.length);
-      for (let i = 0; i < pdf.length; i++) bytes[i] = pdf.charCodeAt(i) & 0xff;
-      const blob = new Blob([bytes], { type: "application/pdf" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a"); a.href = url; a.download = "einkaufsliste.pdf"; document.body.appendChild(a); a.click(); a.remove();
-      setTimeout(() => URL.revokeObjectURL(url), 1500);
+      await prepareLogoForPdf();
+      saveBlob(new Blob([pdfBytes(shopPdfString())], { type: "application/pdf" }), "einkaufsliste.pdf");
       toast("PDF gespeichert");
     } catch (e) { toast("PDF konnte nicht erstellt werden"); }
+  }
+  async function shareShopPdf() {
+    try {
+      await prepareLogoForPdf();
+      const ok = await shareFileOrText(pdfBytes(shopPdfString()), "einkaufsliste.pdf", "Einkaufsliste", shoppingText(buildShoppingList().groups));
+      if (ok) toast("Einkaufsliste geteilt");
+    } catch (e) { toast("Teilen hat nicht geklappt"); }
   }
 
   function emailSubject() { return "Mein Wochenplan" + (profile ? " von " + profile.name : ""); }
   function emailBody() { return "Hallo,\n\nhier ist mein Wochenplan:\n\n" + planText() + "\n\n(Die PDF hänge ich an.)\n\nViele Grüße" + (profile ? "\n" + profile.name : ""); }
   function emailText(to) { return (to ? "An: " + to + "\n" : "") + "Betreff: " + emailSubject() + "\n\n" + emailBody(); }
-  function buildMailto(to) { return "mailto:" + (to || "") + "?subject=" + encodeURIComponent(emailSubject()) + "&body=" + encodeURIComponent(emailBody()); }
+  // Windows/Outlook nehmen eine mailto-URL nur bis ~2048 Zeichen an; darueber oeffnet das
+  // Mail-Programm gar nicht oder schneidet den Text still ab. Ein voller Wochenplan mit
+  // mehreren Meals je Slot kommt gemessen auf ~2600 Zeichen. Statt es darauf ankommen zu
+  // lassen, kuerzen wir den Body dann selbst auf einen Verweis auf die PDF - lieber eine
+  // kurze Mail, die aufgeht, als eine lange, die abbricht.
+  const MAILTO_MAX = 1800;
+  function buildMailto(to) {
+    const base = "mailto:" + (to || "") + "?subject=" + encodeURIComponent(emailSubject()) + "&body=";
+    const full = base + encodeURIComponent(emailBody());
+    if (full.length <= MAILTO_MAX) return full;
+    const short = "Hallo,\n\nmeinen Wochenplan hänge ich als PDF an.\n\nViele Grüße" + (profile ? "\n" + profile.name : "");
+    return base + encodeURIComponent(short);
+  }
   window.addEventListener("beforeprint", () => { const pa = document.getElementById("print-area"); if (pa) pa.innerHTML = buildPrintable(); });
 
   function openShare() {
@@ -8096,23 +8419,35 @@
           });
         }
       } else if (mode === "pdf") {
+        // Kann das Geraet nativ teilen (Handy), fuehrt dieser Weg: ein Tippen, dann waehlt der
+        // Nutzer WhatsApp/Mail/… und die PDF haengt schon dran. "Mail-App oeffnen" ist dann
+        // ueberfluessig und wird weggelassen - der Knopf ist der unzuverlaessigste im Modal
+        // (mailto reisst bei vollen Wochenplaenen die ~2000-Zeichen-Grenze von Windows/Outlook).
+        const shareOk = canShare();
         segBody.innerHTML = `
-          <p class="share-hint">Erzeuge aus deiner Woche ein <b>PDF</b> und verschick es per E-Mail – so teilst du deinen fertigen Plan.</p>
-          <button class="btn primary" id="pdf-btn" style="width:100%;justify-content:center">Wochenplan als PDF speichern</button>
-          <p class="share-mini">Lädt eine PDF-Datei mit deinem kompletten Wochenplan herunter.</p>
+          <p class="share-hint">Erzeuge aus deiner Woche ein <b>PDF</b> – so teilst du deinen fertigen Plan auch mit Leuten ohne Konto.</p>
+          ${shareOk ? `<button class="btn primary" id="share-btn" style="width:100%;justify-content:center">Wochenplan teilen</button>
+          <p class="share-mini">Öffnet die Teilen-Auswahl deines Geräts – die PDF hängt direkt dran.</p>
+          <button class="btn" id="pdf-btn" style="width:100%;justify-content:center;margin-top:10px">Nur als PDF speichern</button>`
+          : `<button class="btn primary" id="pdf-btn" style="width:100%;justify-content:center">Wochenplan als PDF speichern</button>
+          <p class="share-mini">Lädt eine PDF-Datei mit deinem kompletten Wochenplan herunter.</p>`}
           <span class="share-sub" style="display:block;margin-top:18px">Per E-Mail senden</span>
           <div class="field"><input type="email" class="share-link" id="mail-to" placeholder="empfaenger@beispiel.de (optional)"></div>
           <div class="share-actions">
             <button class="btn primary" id="mail-copy">E-Mail-Text kopieren</button>
-            <a class="btn" id="mail-open" href="#" target="_blank" rel="noopener">Mail-App öffnen</a>
+            ${shareOk ? "" : `<a class="btn" id="mail-open" href="#" target="_blank" rel="noopener">Mail-App öffnen</a>`}
           </div>
-          <p class="share-mini">Am zuverlässigsten: <b>Text kopieren</b> und in deine Mail einfügen. „Mail-App öffnen" startet dein Mail-Programm in einem neuen Tab (klappt je nach Umgebung nicht immer). Die zuvor gespeicherte PDF hängst du in der Mail an.</p>`;
+          <p class="share-mini">Am zuverlässigsten: <b>Text kopieren</b> und in deine Mail einfügen. Die zuvor gespeicherte PDF hängst du in der Mail an.${shareOk ? "" : " „Mail-App öffnen“ startet dein Mail-Programm in einem neuen Tab (klappt je nach Umgebung nicht immer)."}</p>`;
         segBody.querySelector("#pdf-btn").addEventListener("click", downloadPdf);
+        const shareBtn = segBody.querySelector("#share-btn");
+        if (shareBtn) shareBtn.addEventListener("click", sharePlanPdf);
         const mailTo = segBody.querySelector("#mail-to");
         const mailOpen = segBody.querySelector("#mail-open");
-        const updateMailHref = () => { mailOpen.href = buildMailto(mailTo.value.trim()); };
-        mailTo.addEventListener("input", updateMailHref);
-        updateMailHref();
+        if (mailOpen) {
+          const updateMailHref = () => { mailOpen.href = buildMailto(mailTo.value.trim()); };
+          mailTo.addEventListener("input", updateMailHref);
+          updateMailHref();
+        }
         segBody.querySelector("#mail-copy").addEventListener("click", () => copyToClipboard(emailText(mailTo.value.trim()), "E-Mail-Text kopiert"));
       }
     }
