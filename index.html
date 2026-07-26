@@ -1062,6 +1062,27 @@
   .detail .steps { white-space: pre-wrap; line-height: 1.6; font-size: 14px; }
   .shop-head { display: flex; align-items: center; gap: 13px; }
   .shop-head .cart { flex: none; width: 42px; height: 42px; border-radius: 12px; display: grid; place-items: center; color: var(--accent-contrast); background: linear-gradient(150deg, var(--accent), var(--accent-strong)); box-shadow: var(--shadow); }
+  /* Personenanzahl: eine Zeile im Stil der .shop-item-Reihen darunter, damit sie als Teil
+     der Liste liest und nicht als fremdes Bedienfeld. 44px-Knoepfe sind Pflicht (Touch),
+     ergeben hier zufaellig genau die Hoehe einer .shop-item-Zeile - passt also auch optisch. */
+  .shop-persons { display: flex; align-items: center; justify-content: space-between; gap: 10px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 11px; padding: 4px 4px 4px 14px; margin-bottom: 13px; }
+  .shop-persons .lbl { font-size: 14.5px; }
+  .shop-persons .step { display: flex; align-items: center; flex: none; }
+  .shop-persons .pnum { min-width: 96px; text-align: center; font-size: 14.5px; font-weight: 650; font-variant-numeric: tabular-nums; }
+  .shop-persons .pbtn {
+    width: 44px; height: 44px; flex: none; display: grid; place-items: center; padding: 0;
+    border: 1px solid var(--border-strong); background: var(--surface); color: var(--text);
+    border-radius: 10px; cursor: pointer; touch-action: manipulation;
+    transition: transform var(--dur-fast) var(--ease-out), border-color var(--dur-fast), background var(--dur-fast), opacity var(--dur-fast);
+  }
+  .shop-persons .pbtn svg { width: 17px; height: 17px; }
+  .shop-persons .pbtn:hover:not(:disabled) { border-color: var(--accent); color: var(--accent-strong); }
+  /* Rueckmeldung im Moment des Drucks, nicht erst beim Loslassen */
+  .shop-persons .pbtn:active:not(:disabled) { transform: scale(.94); }
+  /* Am Anschlag ausgegraut statt versteckt: ein verschwindender Knopf laesst den zweiten
+     springen und nimmt dem Nutzer die Orientierung, wo die Grenze liegt. */
+  .shop-persons .pbtn:disabled { opacity: .35; cursor: default; }
+  @media (prefers-reduced-motion: reduce) { .shop-persons .pbtn { transition: none; } .shop-persons .pbtn:active:not(:disabled) { transform: none; } }
   .shop-progress { display: flex; align-items: center; gap: 12px; margin-bottom: 15px; }
   .shop-progress .bar { flex: 1; height: 7px; border-radius: 99px; background: var(--surface-2); overflow: hidden; }
   .shop-progress .bar > i { display: block; height: 100%; width: 0; border-radius: 99px; background: linear-gradient(90deg, var(--accent), var(--accent-strong)); transition: width var(--dur-slow) ease; }
@@ -1115,12 +1136,32 @@
 
   /* ---------- Profil (Login) & Teilen ---------- */
   .app.authing .tabs, .app.authing #profile-slot { display: none; }
-  .profile { position: relative; }
+  .profile { position: relative; display: flex; align-items: center; }
   .profile-btn { display: flex; align-items: center; gap: 9px; font: inherit; cursor: pointer; background: var(--surface); border: 1px solid var(--border); border-radius: 999px; padding: 4px 12px 4px 4px; color: var(--text); transition: border-color var(--dur-fast); }
   .profile-btn:hover { border-color: var(--accent); }
   .avatar { width: 30px; height: 30px; border-radius: 50%; flex: none; display: grid; place-items: center; font-size: 12.5px; font-weight: 700; color: var(--accent-contrast); background: linear-gradient(150deg, var(--accent), var(--accent-strong)); overflow: hidden; }
   .avatar img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; display: block; }
   .profile-btn .pname { font-size: 13.5px; font-weight: 550; max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  /* Mitglieder der Gruppe, links neben dem eigenen Avatar. Ueberlappend statt in einer
+     Reihe: das signalisiert "gehoert zusammen" und spart im Kopf den knappen Platz.
+     Der Rand in --bg trennt die Kreise optisch voneinander (nicht --surface: der Stack
+     sitzt auf dem Seitenhintergrund, nicht auf einer Karte). */
+  .mstack { display: flex; align-items: center; flex: none; padding-right: 10px; }
+  .mstack > * { margin-right: -9px; border: 2px solid var(--bg); box-sizing: content-box; }
+  /* Ohne eigenes Foto neutral statt im Akzent-Verlauf: drei rote Kreise nebeneinander
+     verschwimmen zu einem Klumpen, in dem niemand mehr zu erkennen ist. Rot bleibt dem
+     eigenen Avatar - so liest der Stack sofort als "die anderen" plus "ich". */
+  .mstack .avatar { width: 26px; height: 26px; font-size: 11px; background: var(--surface-2); color: var(--text-muted); }
+  .mstack .avatar:has(img) { background: none; }
+  /* "+3", wenn mehr Mitglieder da sind als Platz. Neutral gehalten - der Akzent gehoert
+     dem eigenen Avatar, nicht der Zaehlung. */
+  .mstack .more { width: 26px; height: 26px; border-radius: 50%; flex: none; display: grid; place-items: center; font-size: 10.5px; font-weight: 700; color: var(--text-muted); background: var(--surface-2); }
+  /* Ab hier ist der Name schon ausgeblendet (siehe .pname unten) - dann muss auch der
+     Stack schrumpfen, sonst draengt er die Reiter aus dem Kopf. */
+  @media (max-width: 560px) {
+    .mstack .avatar, .mstack .more { width: 23px; height: 23px; font-size: 10px; }
+    .mstack > * { margin-right: -9px; }
+  }
   .profile-btn .caret { color: var(--text-muted); }
   .menu { position: absolute; right: 0; top: calc(100% + 8px); z-index: 40; min-width: 216px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: 0 18px 50px rgba(0,0,0,.28); padding: 6px; animation: pop .14s ease-out; }
   .menu .mhead { padding: 8px 11px 11px; border-bottom: 1px solid var(--border); margin-bottom: 6px; }
@@ -1848,6 +1889,31 @@
      Treffen mit dem Daumen. Deshalb hier die 44 px erzwingen, nicht global in .seg. */
   .setpick .seg button { min-height: 44px; }
 
+  /* ---------- Gemeinsam planen (Gruppe) ---------- */
+  /* Eine Zeile je Mitglied, gleiche Huelle wie .setrow - die Liste soll wie die uebrigen
+     Einstellungen lesen, nicht wie eine Nutzerverwaltung. */
+  .grp-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
+  .grp-m { display: flex; align-items: center; flex-wrap: wrap; gap: 10px 12px; padding: 10px 12px; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-sm); }
+  .grp-m .avatar { width: 34px; height: 34px; font-size: 13px; }
+  /* Basis 140px statt 0: mit `flex: 1` bekaeme der Name nur den REST, und die Rollenwahl
+     daneben quetschte ihn auf ein paar Pixel ("Anna Beispiel" wurde zu "M…"). Reicht der
+     Platz trotzdem nicht, bricht die Zeile um (flex-wrap oben) statt abzuschneiden. */
+  .grp-m .who { flex: 1 1 120px; min-width: 0; }
+  .grp-m .who b { display: block; font-size: 14px; font-weight: 620; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .grp-m .who small { display: block; font-size: 12px; color: var(--text-muted); }
+  /* Rollenwahl je Mitglied. Nur der Inhaber sieht sie; fuer alle anderen steht die Rolle
+     als reiner Text in .who small - ein ausgegrautes Bedienelement waere nur Rauschen. */
+  /* width:auto muss sein: die globale Formularregel weiter oben setzt fuer JEDES select
+     width:100% - hier zog das die Rollenwahl auf die volle Zeilenbreite und drueckte den
+     Namen daneben in eine eigene Zeile. */
+  .grp-m select { flex: none; width: auto; max-width: 128px; font: inherit; font-size: 13px; min-height: 44px; padding: 6px 8px; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--surface); color: var(--text); }
+  .grp-m .btn.icon-gh { flex: none; }
+  /* Der rechtliche Hinweis beim Gruppenstart gehoert hinter ein <details>: er ist Pflicht,
+     aber keine Information, die im Regelfall gebraucht wird. */
+  .grp-note { margin: 12px 0 0; font-size: 12.5px; color: var(--text-muted); }
+  .grp-note summary { cursor: pointer; font-weight: 600; color: var(--text); }
+  .grp-note p { margin: 8px 0 0; line-height: 1.55; }
+
   @media (max-width: 560px) {
     /* Zwei Kacheln nebeneinander werden hier zu schmal fuer die Beschriftung. */
     .onb-opts { grid-template-columns: 1fr; }
@@ -1936,7 +2002,7 @@
     deleteUser, reauthenticateWithPopup, reauthenticateWithCredential, EmailAuthProvider
   } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
   import {
-    getFirestore, doc, collection, getDoc, getDocs, setDoc, deleteDoc, writeBatch, onSnapshot
+    getFirestore, doc, collection, getDoc, getDocs, setDoc, updateDoc, deleteDoc, writeBatch, onSnapshot
   } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 
   /* ▼▼▼ HIER die Werte aus der Firebase-Konsole eintragen ▼▼▼
@@ -2026,6 +2092,20 @@
           for (let i = 0; i < recipeIds.length; i++) {
             await deleteDoc(doc(db, "users", uid, "recipes", recipeIds[i]));
           }
+          // Mitgliedschaft in einer Gruppe: Name und Bild liegen in einem Dokument, das
+          // NICHT unter users/{uid} haengt und deshalb sonst zurueckbliebe - in einer
+          // fremden Gruppe, fuer immer, ohne dass es danach noch jemand loeschen koennte
+          // (die Regel verlangt genau diese uid). Aus demselben Grund wie oben bei den
+          // geteilten Plaenen: Fehler nicht verschlucken, lieber abbrechen.
+          if (opts && opts.groupId) {
+            await deleteDoc(doc(db, "groups", opts.groupId, "members", uid));
+          }
+          // Selbst erzeugte Einladungscodes: sie zeigen auf die Gruppe und traegen die
+          // eigene uid im Feld "by".
+          const inviteCodes = (opts && opts.inviteCodes) || [];
+          for (let i = 0; i < inviteCodes.length; i++) {
+            await deleteDoc(doc(db, "invites", inviteCodes[i]));
+          }
           await deleteDoc(doc(db, "users", uid));
           try {
             await deleteUser(user);
@@ -2040,6 +2120,14 @@
 
       // ----- Cloud-Sync (Firestore): pro Nutzer ein Dokument users/{uid} -----
       const db = getFirestore(app);
+      // Rezepte liegen zweimal in derselben Struktur: unter users/{uid}/recipes fuer das
+      // eigene Konto und unter groups/{gid}/recipes fuer eine gemeinsame Gruppe. Deshalb
+      // nehmen die Rezept-Funktionen unten einen Basispfad ["users", uid] bzw.
+      // ["groups", gid] statt einer uid - ein Parameter statt zweier fast gleicher
+      // Funktionspaare, die auseinanderlaufen koennten.
+      function recipesCol(base) { return collection(db, base[0], base[1], "recipes"); }
+      function recipeDoc(base, id) { return doc(db, base[0], base[1], "recipes", id); }
+
       window.CloudSync = {
         enabled: true,
         load: function (uid) {
@@ -2047,8 +2135,12 @@
             return snap.exists() ? snap.data() : null;
           });
         },
-        save: function (uid, data) {
-          return setDoc(doc(db, "users", uid), data);
+        // merge=true schreibt nur die uebergebenen Felder und laesst alles andere stehen.
+        // Wichtig, sobald der Wochenplan in einer Gruppe liegt: das Kontodokument wird dann
+        // ohne "plans" gepusht - ohne merge wuerde jeder Push das Feld beim Verlassen der
+        // Gruppe geloescht zuruecklassen. Ohne Gruppe ist es schlicht die sicherere Variante.
+        save: function (uid, data, merge) {
+          return setDoc(doc(db, "users", uid), data, { merge: merge !== false });
         },
         watch: function (uid, cb) {
           return onSnapshot(doc(db, "users", uid), function (snap) {
@@ -2060,19 +2152,19 @@
         // landen alle Aenderungen dieses Zyklus, oder keine. Bricht ein Netzabbruch
         // mitten in commit() ab, bleibt die lokale Baseline unveraendert und der
         // naechste Zyklus versucht denselben Diff erneut (siehe syncRecipes()).
-        loadRecipes: function (uid) {
-          return getDocs(collection(db, "users", uid, "recipes")).then(function (snap) {
+        loadRecipes: function (base) {
+          return getDocs(recipesCol(base)).then(function (snap) {
             return snap.docs.map(function (d) { return d.data(); });
           });
         },
-        saveRecipesBatch: function (uid, puts, delIds) {
+        saveRecipesBatch: function (base, puts, delIds) {
           const batch = writeBatch(db);
-          puts.forEach(function (r) { batch.set(doc(db, "users", uid, "recipes", r.id), r); });
-          delIds.forEach(function (id) { batch.delete(doc(db, "users", uid, "recipes", id)); });
+          puts.forEach(function (r) { batch.set(recipeDoc(base, r.id), r); });
+          delIds.forEach(function (id) { batch.delete(recipeDoc(base, id)); });
           return batch.commit();
         },
-        watchRecipes: function (uid, cb) {
-          return onSnapshot(collection(db, "users", uid, "recipes"), function (snap) {
+        watchRecipes: function (base, cb) {
+          return onSnapshot(recipesCol(base), function (snap) {
             cb(snap.docChanges().map(function (c) {
               return { type: c.type, id: c.doc.id, data: c.doc.data(), pending: c.doc.metadata.hasPendingWrites };
             }));
@@ -2087,6 +2179,77 @@
         fetch: function (id) {
           return getDoc(doc(db, "shared", id)).then(function (s) { return s.exists() ? s.data() : null; });
         }
+      };
+
+      // ----- Gemeinsam planen: groups/{gid} mit Mitgliedern, Wochenplan und Meals -----
+      // Bewusst ein eigenes Fenster-Objekt neben CloudSync/CloudShare statt eines weiteren
+      // Anbaus an CloudSync: es ist eine eigene Datenwelt mit eigenen Regeln.
+      //
+      // Warum ein Dokument JE WOCHE mit flachen Slot-Feldern ("mo_fr", "di_ab", …) und
+      // nicht ein "plans"-Objekt wie im Kontodokument: In einer Gruppe schreiben mehrere
+      // Leute gleichzeitig. Ein ganzes plans-Objekt zu setzen hiesse, dass der zweite
+      // Push den ersten ueberschreibt (der Debounce betraegt 800 ms - abends plant ein
+      // Paar genau gleichzeitig). Mit flachen Feldern und merge:true kollidieren nur noch
+      // Schreibvorgaenge auf DENSELBEN Slot desselben Tages; dort ist "letzter gewinnt"
+      // die erwartete Semantik. Und je Woche ein Dokument, damit pruneWeeks() eine
+      // vergangene Woche wirklich loeschen kann, statt tote Felder anzuhaeufen.
+      function groupDoc(gid) { return doc(db, "groups", gid); }
+      window.CloudGroup = {
+        enabled: true,
+        create: function (gid, data) { return setDoc(groupDoc(gid), data); },
+        fetch: function (gid) {
+          return getDoc(groupDoc(gid)).then(function (s) { return s.exists() ? s.data() : null; });
+        },
+        watch: function (gid, cb) {
+          return onSnapshot(groupDoc(gid), function (s) { if (s.exists()) cb(s.data(), s.metadata.hasPendingWrites); }, function () {});
+        },
+        // updateDoc statt setDoc(merge): scheitert laut, wenn die Gruppe nicht mehr da ist.
+        setSettings: function (gid, settings) { return updateDoc(groupDoc(gid), { settings: settings }); },
+        remove: function (gid) { return deleteDoc(groupDoc(gid)); },
+
+        // ----- Mitglieder: ein Dokument je Person, damit Rollenrechte pro Dokument gelten -----
+        fetchMembers: function (gid) {
+          return getDocs(collection(db, "groups", gid, "members")).then(function (snap) {
+            return snap.docs.map(function (d) { return Object.assign({ uid: d.id }, d.data()); });
+          });
+        },
+        watchMembers: function (gid, cb) {
+          return onSnapshot(collection(db, "groups", gid, "members"), function (snap) {
+            cb(snap.docs.map(function (d) { return Object.assign({ uid: d.id }, d.data()); }));
+          }, function () {});
+        },
+        putMember: function (gid, uid, data) { return setDoc(doc(db, "groups", gid, "members", uid), data, { merge: true }); },
+        setRole: function (gid, uid, role) { return updateDoc(doc(db, "groups", gid, "members", uid), { role: role }); },
+        removeMember: function (gid, uid) { return deleteDoc(doc(db, "groups", gid, "members", uid)); },
+
+        // ----- Wochenplan -----
+        loadPlans: function (gid) {
+          return getDocs(collection(db, "groups", gid, "plans")).then(function (snap) {
+            return snap.docs.map(function (d) { return { week: d.id, fields: d.data() }; });
+          });
+        },
+        savePlanWeek: function (gid, week, patch) {
+          return setDoc(doc(db, "groups", gid, "plans", week), patch, { merge: true });
+        },
+        deletePlanWeek: function (gid, week) { return deleteDoc(doc(db, "groups", gid, "plans", week)); },
+        watchPlans: function (gid, cb) {
+          return onSnapshot(collection(db, "groups", gid, "plans"), function (snap) {
+            cb(snap.docChanges().map(function (c) {
+              return { type: c.type, week: c.doc.id, fields: c.doc.data(), pending: c.doc.metadata.hasPendingWrites };
+            }));
+          }, function () {});
+        },
+
+        // ----- Einladungscodes -----
+        // Gleiches Modell wie die Teilen-Links: der Code IST der Zugang (80 Bit aus
+        // crypto.getRandomValues, siehe shareId()), und die Regel erlaubt ausdruecklich
+        // nur "get" - waere "list" erlaubt, koennte jeder Angemeldete alle Codes und
+        // damit alle Gruppen auflisten. Genau dieser Fehler steckte einmal in shared/.
+        createInvite: function (code, data) { return setDoc(doc(db, "invites", code), data); },
+        fetchInvite: function (code) {
+          return getDoc(doc(db, "invites", code)).then(function (s) { return s.exists() ? s.data() : null; });
+        },
+        deleteInvite: function (code) { return deleteDoc(doc(db, "invites", code)); }
       };
 
       onAuthStateChanged(auth, function (user) {
@@ -2480,6 +2643,22 @@
   function hasWeightConsent() { return sanitizeConsent(state.weightConsent).given; }
   function setWeightConsent(given) { state.weightConsent = { given: given, at: new Date().toISOString() }; }
 
+  // Personenanzahl der Einkaufsliste. Obergrenze 12 ist kein Geschmack, sondern ein Riegel:
+  // die Zahl multipliziert jede Menge, ein verrutschter Wert liesse die Liste sinnlos werden.
+  function sanitizeShopPersons(v) { const n = Math.round(nutNum(v)); return n >= 1 && n <= 12 ? n : 1; }
+  // Einzige Quelle der Personenzahl - save(), dataJSON() und die Einkaufsliste fragen alle
+  // hier. Laeuft sehr frueh (save() kann vor dem ersten render() feuern), deshalb defensiv
+  // gegen ein state, das das Feld noch nicht traegt.
+  // Steht "Einkauf für alle rechnen" in der Gruppe, gibt die Mitgliederzahl den Takt vor -
+  // sonst kauft man fuer eine Person ein und kocht fuer zwei. Eine von Hand gesetzte Zahl
+  // gewinnt trotzdem: Besuch, Meal-Prep oder ein Mitglied, das nicht mitisst.
+  function shopPersons() {
+    const own = sanitizeShopPersons(state && state.shopPersons);
+    if (own > 1) return own;
+    if (syncGid && groupSetting("shopForAll") && groupMembers.length > 1) return sanitizeShopPersons(groupMembers.length);
+    return own;
+  }
+
   function load() {
     let data = null;
     try { data = JSON.parse(localStorage.getItem(STORE_KEY)); } catch (e) { data = null; }
@@ -2487,7 +2666,7 @@
     if (!data || !Array.isArray(data.recipes)) {
       const recipes = SEED.map(r => Object.assign({ id: uid() }, r));
       const plans = {}; plans[curKey] = makeEmptyPlan();
-      return { recipes, plans, plan: plans[curKey], viewWeek: "cur", viewYear: new Date().getFullYear(), tab: "home", goal: null, shares: [], onboarded: false, weights: [], weightGoals: {}, weekStats: {}, profileImage: null, weightConsent: noConsent() };
+      return { recipes, plans, plan: plans[curKey], viewWeek: "cur", viewYear: new Date().getFullYear(), tab: "home", goal: null, shares: [], onboarded: false, weights: [], weightGoals: {}, weekStats: {}, profileImage: null, weightConsent: noConsent(), shopPersons: 1, groupId: "", inviteCodes: [] };
     }
     const recipes = sanitizeRecipes(data.recipes);
     const plans = {};
@@ -2500,7 +2679,7 @@
     // und braucht dafuer state (Ziel, Rezepte). Das laeuft noch nicht — state = load() ist gerade
     // erst am Entstehen. boot() ruft pruneWeeks(state.plans) direkt nach dem State-Aufbau nach.
     if (!plans[curKey]) plans[curKey] = makeEmptyPlan();
-    return { recipes, plans, plan: plans[curKey], viewWeek: "cur", viewYear: new Date().getFullYear(), tab: data.tab === "recipes" ? "recipes" : "home", goal: sanitizeGoal(data.goal), shares: Array.isArray(data.shares) ? data.shares : [], onboarded: data.onboarded === true, weights: sanitizeWeights(data.weights), weightGoals: sanitizeWeightGoals(data.weightGoals), weekStats: sanitizeWeekStats(data.weekStats), profileImage: typeof data.profileImage === "string" ? data.profileImage : null, weightConsent: sanitizeConsent(data.weightConsent) };
+    return { recipes, plans, plan: plans[curKey], viewWeek: "cur", viewYear: new Date().getFullYear(), tab: data.tab === "recipes" ? "recipes" : "home", goal: sanitizeGoal(data.goal), shares: Array.isArray(data.shares) ? data.shares : [], onboarded: data.onboarded === true, weights: sanitizeWeights(data.weights), weightGoals: sanitizeWeightGoals(data.weightGoals), weekStats: sanitizeWeekStats(data.weekStats), profileImage: typeof data.profileImage === "string" ? data.profileImage : null, weightConsent: sanitizeConsent(data.weightConsent), shopPersons: sanitizeShopPersons(data.shopPersons), groupId: typeof data.groupId === "string" ? data.groupId : "", inviteCodes: Array.isArray(data.inviteCodes) ? data.inviteCodes : [] };
   }
 
   // Schlaegt das lokale Speichern fehl (Speicher voll, privater Modus), darf das NICHT
@@ -2517,7 +2696,7 @@
       const recipesForLS = idbOK
         ? state.recipes.map(r => { const c = Object.assign({}, r); delete c.image; return c; })
         : state.recipes;
-      localStorage.setItem(STORE_KEY, JSON.stringify({ recipes: recipesForLS, plans: state.plans, tab: state.tab, goal: state.goal || null, shares: state.shares || [], onboarded: state.onboarded === true, weights: state.weights || [], weightGoals: state.weightGoals || {}, weekStats: state.weekStats || {}, profileImage: idbOK ? null : (state.profileImage || null), weightConsent: state.weightConsent || noConsent() }));
+      localStorage.setItem(STORE_KEY, JSON.stringify({ recipes: recipesForLS, plans: state.plans, tab: state.tab, goal: state.goal || null, shares: state.shares || [], onboarded: state.onboarded === true, weights: state.weights || [], weightGoals: state.weightGoals || {}, weekStats: state.weekStats || {}, profileImage: idbOK ? null : (state.profileImage || null), weightConsent: state.weightConsent || noConsent(), shopPersons: shopPersons(), groupId: state.groupId || "", inviteCodes: state.inviteCodes || [] }));
       storageFullWarned = false;
     } catch (e) {
       if (!storageFullWarned) {
@@ -2619,6 +2798,29 @@
   const REMOTE_TOAST_GAP = 60000;
   let lastRemoteToast = 0;
 
+  // ---------- Gemeinsam planen: Gruppenmodus ----------
+  // Ist syncGid gesetzt, kommen Wochenplan UND Meals aus der Gruppe statt aus dem eigenen
+  // Konto. Persoenlich bleiben Ziel, Gewichte, Profilbild - ein Paar mit unterschiedlichen
+  // Kalorienzielen sieht denselben Plan gegen sein jeweils eigenes Ziel.
+  let syncGid = null, groupInfo = null, groupMembers = [], myRole = null,
+      lastPushedSlots = null, syncUnsubGroup = null, syncUnsubMembers = null, syncUnsubGroupPlans = null;
+  // Steht der Gruppen-Dialog offen, frischt er sich auf, wenn jemand beitritt oder Rechte
+  // wechseln. Ganz oben deklariert, weil closeModal() weiter unten darauf zugreift - eine
+  // Deklaration erst bei openGroupModal() waere fuer closeModal() eine temporale Todeszone.
+  let groupModalRepaint = null;
+
+  // Basispfad fuer die Rezept-Funktionen: in der Gruppe die gemeinsamen Meals, sonst die
+  // eigenen. Eine Stelle, damit push- und watch-Pfad nie auseinanderlaufen koennen.
+  function recipeBase() { return syncGid ? ["groups", syncGid] : ["users", syncUid]; }
+  // Rolle in der aktiven Gruppe: "owner" | "edit" | "view" | null (= keine Gruppe).
+  function groupRole() { return syncGid ? myRole : null; }
+  // Ohne Gruppe darf man immer alles - die Sperre gilt nur fuer Nur-Ansehen-Mitglieder.
+  function canEdit() { return groupRole() !== "view"; }
+  function memberByUid(uid) { for (let i = 0; i < groupMembers.length; i++) if (groupMembers[i].uid === uid) return groupMembers[i]; return null; }
+  // Nur der Vorname: die Meal-Karte hat wenig Platz, und der Nachname sagt in einer
+  // Gruppe von zwei bis fuenf Leuten nichts dazu.
+  function firstName(n) { return String(n || "").trim().split(/\s+/)[0] || ""; }
+
   function normalizePlan(rawPlan, recipes) {
     const plan = makeEmptyPlan();
     const ids = new Set((recipes || []).map(r => r.id));
@@ -2634,6 +2836,33 @@
     return out;
   }
   // Liefert das Wochen-Dictionary eines Datensatzes; toleriert das alte Einzelplan-Format.
+  // ---------- Wochenplan flach <-> verschachtelt (fuer Gruppen-Dokumente) ----------
+  // Ein Gruppen-Wochendokument speichert jeden Slot als eigenes Feld ("mon_fr", "sat_ab"),
+  // damit zwei gleichzeitig planende Leute sich nicht gegenseitig ueberschreiben (siehe
+  // die Begruendung bei window.CloudGroup). LEERE Slots werden bewusst NICHT geschrieben:
+  // sonst legte jedes Betrachten einer noch leeren Woche 21 Felder an und jeder Wechsel
+  // der Wochenansicht loeste einen Schreibvorgang aus.
+  function flattenWeek(plan) {
+    const out = {};
+    if (!plan) return out;
+    DAYS.forEach(d => MEALS.forEach(m => {
+      const ids = plan[d.key] && plan[d.key][m.key];
+      if (Array.isArray(ids) && ids.length) out[d.key + "_" + m.key] = ids.slice();
+    }));
+    return out;
+  }
+  // Gegenrichtung. Unbekannte Feldnamen (etwa "by", das den Schreiber mitfuehrt) werden
+  // uebergangen - ein Wochendokument darf mehr enthalten als nur Slots.
+  function unflattenWeek(fields) {
+    const plan = makeEmptyPlan();
+    if (!fields) return plan;
+    DAYS.forEach(d => MEALS.forEach(m => {
+      const ids = fields[d.key + "_" + m.key];
+      if (Array.isArray(ids)) plan[d.key][m.key] = ids.filter(x => typeof x === "string");
+    }));
+    return plan;
+  }
+
   function plansField(d) {
     if (d && d.plans && typeof d.plans === "object") return d.plans;
     if (d && d.plan) { const o = {}; o[weekKeyFor("cur")] = d.plan; return o; }
@@ -2652,7 +2881,16 @@
   // separat verglichen. Wuerde hier trotzdem "recipes" auftauchen, laege state.recipes
   // (immer voll) permanent quer zu d.recipes (nie mehr vorhanden) - der Vergleich griffe
   // nie mehr, jeder Remote-Snapshot loeste unnoetig render()/Toast aus.
-  function dataJSON(d) { return JSON.stringify({ plans: plansField(d), goal: (d && d.goal) || null, shares: (d && d.shares) || [], onboarded: !!(d && d.onboarded), weights: (d && d.weights) || [], weightGoals: (d && d.weightGoals) || {}, profileImage: (d && d.profileImage) || null, weightConsent: (d && d.weightConsent) || noConsent() }); }
+  // shopPersons gehoert mit hinein und MUSS durch den Sanitizer: alte Konten haben das Feld
+  // nicht (undefined), der lokale State immer eine Zahl - ohne die Normalisierung auf 1
+  // laege beides dauerhaft quer und jeder eingehende Snapshot galte als Aenderung
+  // (dieselbe Falle wie oben bei "onboarded").
+  // In einer Gruppe MUSS "plans" hier herausfallen: der Wochenplan liegt dann in
+  // groups/{gid}/plans, waehrend das Konto-Dokument noch den eingefrorenen alten Stand
+  // traegt. Bliebe das Feld drin, laege state.plans (= Gruppenplan) dauerhaft quer zu
+  // data.plans (= alter Kontostand) - jeder eingehende Snapshot galte als Aenderung,
+  // Endlos-Toast und Endlos-Push. Exakt die Falle, die oben schon fuer "recipes" steht.
+  function dataJSON(d) { return JSON.stringify({ plans: syncGid ? null : plansField(d), goal: (d && d.goal) || null, shares: (d && d.shares) || [], onboarded: !!(d && d.onboarded), weights: (d && d.weights) || [], weightGoals: (d && d.weightGoals) || {}, profileImage: (d && d.profileImage) || null, weightConsent: (d && d.weightConsent) || noConsent(), shopPersons: sanitizeShopPersons(d && d.shopPersons), inviteCodes: (d && d.inviteCodes) || [] }); }
 
   function scheduleCloudPush() {
     if (!syncUid) return;
@@ -2687,7 +2925,7 @@
     prev.forEach((_, id) => { if (!cur.has(id)) delIds.push(id); });
     if (!puts.length && !delIds.length) { if (!lastPushedRecipes) lastPushedRecipes = cur; return; }
     try {
-      await window.CloudSync.saveRecipesBatch(syncUid, puts, delIds);
+      await window.CloudSync.saveRecipesBatch(recipeBase(), puts, delIds);
       puts.forEach(r => prev.set(r.id, JSON.stringify(r)));
       delIds.forEach(id => prev.delete(id));
       lastPushedRecipes = prev; // dieselbe Map weiterfuehren, nie komplett ersetzen -
@@ -2706,10 +2944,84 @@
       // lastPushedRecipes bleibt unveraendert -> naechster Zyklus versucht denselben Diff erneut
     }
   }
+  // Gemeinsamen Wochenplan schreiben - diff-basiert wie syncRecipes(), nur auf Feldebene
+  // statt auf Dokumentebene. lastPushedSlots ist die zuletzt bestaetigte Baseline
+  // (Map "weekKey.slotFeld" -> JSON) und entscheidet, was ueberhaupt in den Patch kommt.
+  //
+  // Der Fall, der ohne Zutun falsch liefe: Ein GELEERTER Slot taucht in flattenWeek()
+  // gar nicht mehr auf (bewusst so, siehe dort). Wuerde nur ueber die neuen Felder
+  // iteriert, bliebe der alte Eintrag in der Cloud stehen - das Meal kaeme beim naechsten
+  // Snapshot zurueck. Deshalb unten die zweite Schleife ueber die Baseline, die
+  // verschwundene Felder ausdruecklich als leeres Array schreibt.
+  async function pushGroupPlan() {
+    if (!syncGid || !window.CloudGroup || !canEdit()) return;   // Nur-Ansehen schreibt nie
+    const prev = lastPushedSlots || new Map();
+    const weeks = Object.keys(state.plans || {});
+    const patches = {};   // weekKey -> Feld-Patch
+    const mark = (wk, field, json) => {
+      (patches[wk] || (patches[wk] = {}))[field] = JSON.parse(json);
+    };
+    const seen = new Set();
+    weeks.forEach(wk => {
+      const flat = flattenWeek(state.plans[wk]);
+      Object.keys(flat).forEach(field => {
+        const key = wk + "." + field, json = JSON.stringify(flat[field]);
+        seen.add(key);
+        if (prev.get(key) !== json) mark(wk, field, json);
+      });
+    });
+    // Was frueher belegt war und jetzt fehlt: aktiv leeren (siehe Kommentar oben).
+    // Ist die GANZE Woche verschwunden (pruneWeeks raeumt vergangene Wochen weg), wird
+    // stattdessen das ganze Dokument geloescht - sonst sammelten sich in der Gruppe
+    // Woche fuer Woche tote Dokumente an, die niemand mehr liest.
+    const deadWeeks = new Set();
+    prev.forEach((_, key) => {
+      if (seen.has(key)) return;
+      const dot = key.indexOf(".");
+      const wk = key.slice(0, dot), field = key.slice(dot + 1);
+      if (weeks.indexOf(wk) === -1) { deadWeeks.add(wk); return; }
+      mark(wk, field, "[]");
+    });
+    for (const wk of deadWeeks) {
+      try {
+        await window.CloudGroup.deletePlanWeek(syncGid, wk);
+        Array.from(prev.keys()).forEach(k => { if (k.indexOf(wk + ".") === 0) prev.delete(k); });
+      } catch (e) { /* naechster Zyklus versucht es erneut */ }
+    }
+    const wkList = Object.keys(patches);
+    if (!wkList.length) { if (!lastPushedSlots) lastPushedSlots = prev; return; }
+    try {
+      for (const wk of wkList) {
+        // "by" faehrt mit, damit der Empfaenger sagen kann, WER geaendert hat - Firestore
+        // liefert den Schreiber nicht mit, und eine Serverseite gibt es hier nicht.
+        await window.CloudGroup.savePlanWeek(syncGid, wk, Object.assign({}, patches[wk], { by: syncUid, at: Date.now() }));
+        // Geleerte Felder aus der Baseline ENTFERNEN statt sie mit "[]" zu merken: sonst
+        // faende die Schleife oben den Slot bei jedem weiteren Push erneut als "fehlt in
+        // flattenWeek" und schriebe dieselbe Leerung endlos weiter - bei jedem render().
+        // Die Baseline bleibt so deckungsgleich mit dem, was flattenWeek() liefert.
+        Object.keys(patches[wk]).forEach(field => {
+          const json = JSON.stringify(patches[wk][field]);
+          if (json === "[]") prev.delete(wk + "." + field);
+          else prev.set(wk + "." + field, json);
+        });
+      }
+      lastPushedSlots = prev;   // dieselbe Map weiterfuehren, nie ersetzen (wie bei lastPushedRecipes)
+    } catch (e) {
+      // Baseline unveraendert lassen -> naechster Zyklus versucht denselben Diff erneut.
+      setSyncStatus("offline");
+    }
+  }
+
   async function pushNow() {
     if (!syncUid || !window.CloudSync) return;
     await syncRecipes();
-    const d = { plans: state.plans, tab: state.tab, goal: state.goal || null, shares: state.shares || [], onboarded: state.onboarded === true, weights: state.weights || [], weightGoals: state.weightGoals || {}, profileImage: state.profileImage || null, weightConsent: state.weightConsent || noConsent() };
+    await pushGroupPlan();
+    const d = { tab: state.tab, goal: state.goal || null, shares: state.shares || [], onboarded: state.onboarded === true, weights: state.weights || [], weightGoals: state.weightGoals || {}, profileImage: state.profileImage || null, weightConsent: state.weightConsent || noConsent(), shopPersons: shopPersons(), groupId: syncGid || "", inviteCodes: state.inviteCodes || [] };
+    // In einer Gruppe wandert der Wochenplan nach groups/{gid}/plans - dann NICHT auch noch
+    // ins Kontodokument schreiben. Dank merge:true bleibt das dortige "plans"-Feld als
+    // Stand von vor dem Beitritt liegen; beim Verlassen wird der Gruppenplan bewusst
+    // hineinkopiert (leaveGroup), statt ihn hier fortlaufend zu ueberschreiben.
+    if (!syncGid) d.plans = state.plans;
     const j = dataJSON(d);
     if (j === lastPushedJSON) return;
     if (j.length > CLOUD_DOC_MAX) {
@@ -2741,17 +3053,27 @@
     // JEDER eingehende Snapshot dauerhaft ignoriert - Plan/Ziel/Gewichte/Profilbild
     // wuerden nie mehr geraeteuebergreifend synchronisiert.
     if (pending || !data) return; // eigener Schreibvorgang → ignorieren
+    // Beitritt/Austritt auf einem ANDEREN Geraet: das Konto-Dokument ist der einzige Ort,
+    // an dem beide Geraete sich darueber verstaendigen. Muss vor dem Vergleich unten
+    // stehen und bricht hier ab - switchGroup() baut den Sync komplett neu auf.
+    const remoteGid = typeof data.groupId === "string" && data.groupId ? data.groupId : null;
+    if (remoteGid !== syncGid) { switchGroup(remoteGid); return; }
     const j = dataJSON(data);
     if (j === dataJSON(state) || j === lastPushedJSON) return; // nichts Neues
     // state.recipes wird hier NICHT mehr ersetzt - Rezepte kommen ausschliesslich ueber
     // onRecipesRemote() (eigener Listener auf die recipes-Subcollection).
-    state.plans = pruneWeeks(normalizePlans(plansField(data), state.recipes));
+    // In einer Gruppe kommt der Plan aus groups/{gid}/plans (onGroupPlansRemote) - das
+    // Feld im Kontodokument ist dann der eingefrorene Stand von vor dem Beitritt und
+    // wuerde den Gruppenplan ueberschreiben.
+    if (!syncGid) state.plans = pruneWeeks(normalizePlans(plansField(data), state.recipes));
     state.goal = sanitizeGoal(data.goal);
     state.shares = unionIds(state.shares, data.shares); // nie einen Link verlieren, der nur lokal bekannt ist
+    state.inviteCodes = unionIds(state.inviteCodes, data.inviteCodes); // desgleichen fuer Einladungscodes
     state.weights = mergeWeights(data.weights, state.weights); // desgleichen fuer Wiegungen
     state.weightGoals = Object.assign({}, sanitizeWeightGoals(state.weightGoals), sanitizeWeightGoals(data.weightGoals));
     state.weightConsent = mergeConsent(data.weightConsent, state.weightConsent); // juengste Entscheidung gewinnt
     if (data.profileImage !== undefined) state.profileImage = typeof data.profileImage === "string" ? data.profileImage : null;
+    if (data.shopPersons !== undefined) state.shopPersons = sanitizeShopPersons(data.shopPersons);
     if (data.onboarded) state.onboarded = true;         // nur in eine Richtung, siehe startCloudSync
     setViewWeek(state.viewWeek);
     lastPushedJSON = j;
@@ -2796,6 +3118,204 @@
     });
     if (changed) { save(); render(); }
   }
+
+  // ---------- Empfaenger fuer die Gruppe ----------
+  // Spiegelt onRecipesRemote(): pending-Filter, Baseline mitpflegen, Baseline nie ersetzen.
+  // Das Mitpflegen ist der entscheidende Teil - ohne es hielte der naechste eigene
+  // pushGroupPlan() den gerade empfangenen Stand fuer eine eigene Aenderung und schriebe
+  // ihn zurueck (Ping-Pong zwischen zwei Geraeten).
+  function onGroupPlansRemote(changes) {
+    let changed = false;
+    const touchedDays = [];
+    let author = null;
+    changes.forEach(c => {
+      if (c.pending) return; // eigener Schreibvorgang → ignorieren
+      if (c.type === "removed") {
+        if (state.plans[c.week]) { delete state.plans[c.week]; changed = true; }
+        if (lastPushedSlots) Array.from(lastPushedSlots.keys()).forEach(k => { if (k.indexOf(c.week + ".") === 0) lastPushedSlots.delete(k); });
+        return;
+      }
+      const incoming = normalizePlan(unflattenWeek(c.fields), state.recipes);
+      if (JSON.stringify(state.plans[c.week]) !== JSON.stringify(incoming)) {
+        // Welcher Tag hat sich geaendert? Nur fuer die Meldung, deshalb bewusst grob.
+        DAYS.forEach(d => {
+          const before = state.plans[c.week] ? JSON.stringify(state.plans[c.week][d.key]) : null;
+          if (before !== JSON.stringify(incoming[d.key]) && touchedDays.indexOf(d.label) === -1) touchedDays.push(d.label);
+        });
+        state.plans[c.week] = incoming;
+        changed = true;
+      }
+      if (typeof c.fields.by === "string" && c.fields.by !== syncUid) author = c.fields.by;
+      if (lastPushedSlots) {
+        const flat = flattenWeek(incoming);
+        Array.from(lastPushedSlots.keys()).forEach(k => { if (k.indexOf(c.week + ".") === 0) lastPushedSlots.delete(k); });
+        Object.keys(flat).forEach(f => lastPushedSlots.set(c.week + "." + f, JSON.stringify(flat[f])));
+      }
+    });
+    if (!changed) return;
+    setViewWeek(state.viewWeek);
+    save(); render();
+    setSyncStatus("synced");
+    const now = Date.now();
+    if (now - lastRemoteToast < REMOTE_TOAST_GAP) return;
+    lastRemoteToast = now;
+    // Mit Namen, wenn die Gruppeneinstellung es will und der Schreiber bekannt ist -
+    // sonst der neutrale Text. Ersetzt die Meldung, kommt nicht zusaetzlich.
+    const who = author && groupSetting("changeHints") ? firstName((memberByUid(author) || {}).name) : "";
+    if (who && touchedDays.length === 1) toast(who + " hat " + touchedDays[0] + " geändert");
+    else if (who) toast(who + " hat den Plan geändert");
+    else toast("Plan aktualisiert");
+  }
+
+  // Mitgliederliste: treibt den Avatar-Stack im Kopf und die eigene Rolle.
+  function onMembersRemote(list) {
+    groupMembers = Array.isArray(list) ? list : [];
+    const me = memberByUid(syncUid);
+    const roleBefore = myRole;
+    if (!me) {
+      // Aus der Gruppe entfernt worden - nicht stillschweigend weiterlaufen lassen,
+      // sonst schriebe man ins Leere und wunderte sich, warum nichts ankommt.
+      toast("Du bist nicht mehr Teil der Gruppe.");
+      switchGroup(null);
+      return;
+    }
+    myRole = me.role === "owner" || me.role === "edit" || me.role === "view" ? me.role : "view";
+    renderProfileChip();
+    if (groupModalRepaint) groupModalRepaint();   // offener Dialog zeigt sonst einen alten Stand
+    // Ein Rollenwechsel aendert, welche Knoepfe ueberhaupt dastehen -> neu zeichnen.
+    if (roleBefore !== myRole) {
+      render();
+      if (roleBefore) toast(myRole === "view" ? "Du kannst den Plan jetzt nur noch ansehen." : "Du kannst jetzt mitplanen.");
+    }
+  }
+
+  function onGroupRemote(data) {
+    groupInfo = data || null;
+    renderProfileChip();
+  }
+
+  // Eine Gruppeneinstellung lesen. Standard so gewaehlt, dass eine alte Gruppe ohne
+  // settings-Feld sich vernuenftig verhaelt.
+  function groupSetting(key) {
+    const s = (groupInfo && groupInfo.settings) || {};
+    if (s[key] !== undefined) return s[key];
+    return key === "changeHints" ? true : (key === "defaultRole" ? "edit" : false);
+  }
+
+  // Winziges Abbild des Profilbilds fuer den Mitglieder-Eintrag. Das volle Bild (bis 640px)
+  // gehoert NICHT in die Gruppe: es wuerde bei jedem Snapshot an alle Mitglieder
+  // uebertragen, und angezeigt wird es dort nur als 26px-Kreis im Kopf.
+  const MEMBER_AV = 64;
+  function smallAvatar(dataUrl) {
+    return new Promise(resolve => {
+      if (!dataUrl || typeof dataUrl !== "string") { resolve(""); return; }
+      const img = new Image();
+      img.onload = () => {
+        try {
+          const c = document.createElement("canvas");
+          c.width = c.height = MEMBER_AV;
+          c.getContext("2d").drawImage(img, 0, 0, MEMBER_AV, MEMBER_AV);
+          resolve(c.toDataURL("image/jpeg", 0.7));
+        } catch (e) { resolve(""); }
+      };
+      img.onerror = () => resolve("");
+      img.src = dataUrl;
+    });
+  }
+
+  // Eigenen Mitglieder-Eintrag aktuell halten (Name, kleines Bild). Die Rolle wird hier
+  // NICHT mitgeschrieben - sie gehoert dem Inhaber, und die Firestore-Regel lehnt eine
+  // Rollenaenderung an sich selbst ohnehin ab.
+  // Die E-Mail steht bewusst nicht drin: sie ist die einzige Angabe, die die Person
+  // ausserhalb der App identifizierbar macht, und die Datenschutzerklaerung sagt zu,
+  // dass sie nicht geteilt wird.
+  async function syncMyMember() {
+    if (!syncGid || !window.CloudGroup || !syncUid) return;
+    try {
+      await window.CloudGroup.putMember(syncGid, syncUid, {
+        name: profile.name || "",
+        avatar: await smallAvatar(state.profileImage)
+      });
+    } catch (e) { /* nicht kritisch: Name/Bild sind Beiwerk, der Sync laeuft weiter */ }
+  }
+
+  // In den Gruppenmodus wechseln. Liefert false, wenn die Gruppe nicht (mehr) erreichbar
+  // ist oder man kein Mitglied mehr ist - der Aufrufer laeuft dann persoenlich weiter.
+  async function enterGroupSync(gid) {
+    if (!gid || !window.CloudGroup || !window.CloudGroup.enabled) return false;
+    try {
+      const info = await window.CloudGroup.fetch(gid);
+      if (!info) return false;
+      const members = await window.CloudGroup.fetchMembers(gid);
+      const me = members.filter(m => m.uid === syncUid)[0];
+      if (!me) return false;                        // entfernt worden
+      syncGid = gid;
+      state.groupId = gid;    // mit syncGid synchron halten - save() persistiert es lokal
+      groupInfo = info;
+      groupMembers = members;
+      myRole = me.role === "owner" || me.role === "edit" ? me.role : "view";
+
+      // Meals der Gruppe ERSETZEN den lokalen Bestand, nicht ergaenzen: in einer Gruppe
+      // ist die Gruppe die Wahrheit. Wuerde gemergt, saehe jeder zusaetzlich seine alten
+      // Meals, die die anderen gar nicht haben - der Plan waere nicht mehr gemeinsam
+      // lesbar. Die eigenen Meals sind beim Beitritt in die Gruppe kopiert worden.
+      const gRecipes = sanitizeRecipes(await window.CloudSync.loadRecipes(["groups", gid]));
+      state.recipes = gRecipes;
+      lastPushedRecipes = new Map(gRecipes.map(r => [r.id, JSON.stringify(r)]));
+
+      // Wochenplan der Gruppe uebernehmen (ebenfalls ersetzen, gleiche Begruendung).
+      const weeks = await window.CloudGroup.loadPlans(gid);
+      const plans = {};
+      const slots = new Map();
+      weeks.forEach(w => {
+        const plan = normalizePlan(unflattenWeek(w.fields), state.recipes);
+        plans[w.week] = plan;
+        const flat = flattenWeek(plan);
+        Object.keys(flat).forEach(f => slots.set(w.week + "." + f, JSON.stringify(flat[f])));
+      });
+      state.plans = pruneWeeks(plans);
+      // Baseline aus dem geladenen Stand vorbefuellen statt leer lassen - sonst schriebe
+      // der erste pushGroupPlan() nach jedem Login alle Slots erneut (gleiche Begruendung
+      // wie bei lastPushedRecipes unten).
+      lastPushedSlots = slots;
+      setViewWeek(state.viewWeek);
+
+      syncUnsubGroup = window.CloudGroup.watch(gid, onGroupRemote);
+      syncUnsubMembers = window.CloudGroup.watchMembers(gid, onMembersRemote);
+      syncUnsubGroupPlans = window.CloudGroup.watchPlans(gid, onGroupPlansRemote);
+      syncUnsubRecipes = window.CloudSync.watchRecipes(["groups", gid], onRecipesRemote);
+      syncMyMember();          // bewusst ohne await: Name/Bild duerfen den Start nicht aufhalten
+      return true;
+    } catch (e) {
+      // Haeufigster Fall: die Firestore-Regeln sind noch nicht veroeffentlicht, jeder
+      // Gruppen-Zugriff scheitert. Nicht still bleiben - sonst sieht der Nutzer nur einen
+      // leeren Plan und haelt seine Daten fuer verloren.
+      leaveGroupState();
+      toast("Die Gruppe ist gerade nicht erreichbar – du planst vorerst für dich.");
+      return false;
+    }
+  }
+
+  // Nur den lokalen Gruppenzustand abbauen (Listener + Variablen), ohne die Cloud
+  // anzufassen. Getrennt von leaveGroup(), das die Mitgliedschaft wirklich beendet.
+  function leaveGroupState() {
+    if (syncUnsubGroup) { try { syncUnsubGroup(); } catch (e) {} syncUnsubGroup = null; }
+    if (syncUnsubMembers) { try { syncUnsubMembers(); } catch (e) {} syncUnsubMembers = null; }
+    if (syncUnsubGroupPlans) { try { syncUnsubGroupPlans(); } catch (e) {} syncUnsubGroupPlans = null; }
+    syncGid = null; groupInfo = null; groupMembers = []; myRole = null; lastPushedSlots = null;
+  }
+
+  // Gruppenwechsel zur Laufzeit (Beitritt/Austritt auf einem anderen Geraet, Kick).
+  // Baut den Sync komplett neu auf - das ist ehrlicher als zu versuchen, den halben
+  // Zustand umzubiegen, und passiert selten genug, dass die Sekunde nicht stoert.
+  async function switchGroup(gid) {
+    const uid = syncUid;
+    if (!uid) return;
+    stopCloudSync();
+    state.groupId = gid || "";
+    await startCloudSync(uid);
+  }
+
   async function startCloudSync(uid) {
     if (!window.CloudSync || !window.CloudSync.enabled) { maybeStartOnboarding(); return; }
     if (syncUid === uid) return;                 // läuft schon
@@ -2818,6 +3338,9 @@
         state.weightGoals = Object.assign({}, sanitizeWeightGoals(state.weightGoals), sanitizeWeightGoals(remote.weightGoals));
         state.weightConsent = mergeConsent(remote.weightConsent, state.weightConsent);
         if (remote.profileImage && typeof remote.profileImage === "string") { state.profileImage = remote.profileImage; renderProfileChip(); }
+        // Cloud gewinnt: die Personenzahl ist eine Kontoeinstellung, kein Geraetezustand -
+        // sonst ueberschriebe ein frisch angemeldetes zweites Geraet sie mit seiner 1.
+        if (remote.shopPersons !== undefined) state.shopPersons = sanitizeShopPersons(remote.shopPersons);
       }
       // Rezepte zusammenführen (Cloud + eigene lokale, die es dort noch nicht gibt).
       // Beispiel-Meals werden NICHT in ein bestehendes Konto übernommen – sie sind nur
@@ -2847,14 +3370,30 @@
       // Hauptdokument-Feld noch nicht geleert) wuerden sonst die restlichen Alt-Rezepte
       // uebersehen. legacyRecipes zuerst, cloudRecipes danach - bei gleicher ID gewinnt
       // die frischere Subcollection-Version (mergeRemoteRecipes ueberschreibt in Reihenfolge).
-      const cloudRecipes = window.CloudSync.loadRecipes ? await window.CloudSync.loadRecipes(uid) : [];
-      const legacyRecipes = (remote && Array.isArray(remote.recipes)) ? remote.recipes : [];
-      if (cloudRecipes.length || legacyRecipes.length) mergeRemoteRecipes(legacyRecipes.concat(cloudRecipes));
-      // Baseline aus dem geladenen Cloud-Stand vorbefuellen statt auf null zu setzen:
-      // so schreibt der folgende pushNow()-Lauf nur, was wirklich neu/geaendert ist
-      // (Migration UND Normalfall gleichermassen abgedeckt), statt bei JEDEM Login alle
-      // Rezepte erneut zu schreiben.
-      lastPushedRecipes = new Map(cloudRecipes.map(r => [r.id, JSON.stringify(r)]));
+      // Gehoert das Konto zu einer Gruppe? Dann kommen Plan UND Meals von dort, und der
+      // Zusammenfuehr-Block darunter entfaellt komplett. Persoenlich bleiben Ziel,
+      // Gewichte, Profilbild und die Freigabe-Kennungen - die stehen weiter im Konto.
+      const wantGid = (remote && typeof remote.groupId === "string" && remote.groupId) ? remote.groupId : null;
+      const inGroup = wantGid ? await enterGroupSync(wantGid) : false;
+      // Als Mitglied entfernt worden, waehrend dieses Geraet offline war: das Feld lokal
+      // raeumen, sonst versucht es der naechste Start wieder.
+      if (wantGid && !inGroup) state.groupId = "";
+
+      if (inGroup) {
+        if (remote.goal) state.goal = sanitizeGoal(remote.goal);
+        state.shares = unionIds(state.shares, remote.shares);
+        save(); render();
+      } else {
+        const cloudRecipes = window.CloudSync.loadRecipes ? await window.CloudSync.loadRecipes(["users", uid]) : [];
+        const legacyRecipes = (remote && Array.isArray(remote.recipes)) ? remote.recipes : [];
+        if (cloudRecipes.length || legacyRecipes.length) mergeRemoteRecipes(legacyRecipes.concat(cloudRecipes));
+        // Baseline aus dem geladenen Cloud-Stand vorbefuellen statt auf null zu setzen:
+        // so schreibt der folgende pushNow()-Lauf nur, was wirklich neu/geaendert ist
+        // (Migration UND Normalfall gleichermassen abgedeckt), statt bei JEDEM Login alle
+        // Rezepte erneut zu schreiben.
+        lastPushedRecipes = new Map(cloudRecipes.map(r => [r.id, JSON.stringify(r)]));
+        syncUnsubRecipes = window.CloudSync.watchRecipes ? window.CloudSync.watchRecipes(["users", uid], onRecipesRemote) : null;
+      }
       lastPushedJSON = null;
       await pushNow();                            // zusammengeführten Stand als Baseline hochschreiben
       // Sperrfrist gleich mitstarten: direkt nach dem Verbinden sagt schon „Mit deiner
@@ -2862,9 +3401,8 @@
       // waere in derselben Sekunde nur Laerm.
       lastRemoteToast = Date.now();
       syncUnsub = window.CloudSync.watch(uid, onRemote);
-      syncUnsubRecipes = window.CloudSync.watchRecipes ? window.CloudSync.watchRecipes(uid, onRecipesRemote) : null;
       setSyncStatus("synced");
-      toast("Mit deiner Cloud verbunden");
+      toast(syncGid ? "Mit eurer Gruppe verbunden" : "Mit deiner Cloud verbunden");
       // Erst JETZT ueber die ersten Schritte entscheiden: enterApp() laeuft schon, waehrend
       // dieser Aufruf noch unterwegs ist. Wer den Ablauf dort startete, bekaeme ihn bei jedem
       // Login auf einem neuen Geraet kurz zu sehen, bevor das Flag aus der Cloud eintrifft.
@@ -2877,6 +3415,7 @@
   function stopCloudSync() {
     if (syncUnsub) { try { syncUnsub(); } catch (e) {} syncUnsub = null; }
     if (syncUnsubRecipes) { try { syncUnsubRecipes(); } catch (e) {} syncUnsubRecipes = null; }
+    leaveGroupState();   // Gruppen-Listener haengen sonst weiter und schreiben in den alten Zustand
     clearTimeout(pushTimer);
     syncUid = null; lastPushedJSON = null; lastPushedRecipes = null; recipesSyncFailed = false;
     setSyncStatus("off");
@@ -4706,7 +5245,7 @@
             <button class="ws-btn${state.viewWeek === "next" ? " active" : ""}" data-action="week" data-week="next" role="tab" aria-selected="${state.viewWeek === "next" ? "true" : "false"}">Nächste Woche</button>
           </div>
           <button class="btn ghost icon-gh" data-action="share" title="Woche teilen" aria-label="Woche teilen">${TOOL_ICONS.share}</button>
-          <button class="btn ghost icon-gh" data-action="clear-week" title="Woche leeren" aria-label="Woche leeren">${TOOL_ICONS.clear}</button>
+          ${canEdit() ? `<button class="btn ghost icon-gh" data-action="clear-week" title="Woche leeren" aria-label="Woche leeren">${TOOL_ICONS.clear}</button>` : ""}
         </div>
       </div>`;
 
@@ -4752,13 +5291,14 @@
           const r = getRecipe(rid);
           if (!r) return;
           shown++;
-          html += `<div class="filled" draggable="true" data-action="view" data-id="${r.id}" data-slot-src="${d.key}:${m.key}:${idx}" title="${esc(r.name)} – ziehen zum Verschieben">
+          const drag = canEdit();
+          html += `<div class="filled"${drag ? ` draggable="true"` : ""} data-action="view" data-id="${r.id}" data-slot-src="${d.key}:${m.key}:${idx}" title="${esc(r.name)}${drag ? " – ziehen zum Verschieben" : ""}">
               ${thumbHtml(r, "r-thumb")}
               <div><div class="r-name">${esc(r.name)}</div>${recipeNut(r).kcal ? `<div class="r-meta">${nfmt(recipeNut(r).kcal)} kcal</div>` : ""}</div>
-              <button class="x" data-action="unassign" data-slot-src="${d.key}:${m.key}:${idx}" aria-label="Entfernen" title="Entfernen">✕</button>
+              ${drag ? `<button class="x" data-action="unassign" data-slot-src="${d.key}:${m.key}:${idx}" aria-label="Entfernen" title="Entfernen">✕</button>` : ""}
             </div>`;
         });
-        html += `<button class="add${shown ? " more" : ""}" data-action="pick" data-day="${d.key}" data-meal="${m.key}">+ ${shown ? "Noch ein Meal" : "Meal wählen"}</button>`;
+        if (canEdit()) html += `<button class="add${shown ? " more" : ""}" data-action="pick" data-day="${d.key}" data-meal="${m.key}">+ ${shown ? "Noch ein Meal" : "Meal wählen"}</button>`;
         html += `</div>`;
       });
       html += `</div>${dayNutHtml(dayNut(d.key), d.key)}</section>`;
@@ -4787,25 +5327,38 @@
   // dem Aufklappen einer Kategorie) die eigene Auswahl des Nutzers wieder um.
   let collapsedCatsSeeded = false;
 
+  // "von Anna" auf der Karte - nur in einer Gruppe, nur bei fremden Meals, nur der Vorname.
+  //
+  // Das Meal speichert bei "by" ausschliesslich die uid, nie den Namen: der wird erst zur
+  // Anzeigezeit aus der Mitgliederliste aufgeloest. Dadurch verschwindet der Personenbezug
+  // automatisch, sobald jemand die Gruppe verlaesst oder sein Konto loescht - ohne dass in
+  // n Meal-Dokumenten nachgeraeumt werden muss. Ist die uid unbekannt, steht schlicht nichts da.
+  function recipeAuthorHtml(r) {
+    if (!syncGid || !r || !r.by || r.by === syncUid) return "";
+    const who = firstName((memberByUid(r.by) || {}).name);
+    if (!who) return "";
+    return `<span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>${esc(who)}</span>`;
+  }
+
   function renderRecipes() {
     let html = `
       <div class="section-head">
         <div class="title">
           <h2>Meine Meals</h2>
         </div>
-        ${state.recipes.some(isExample) ? `<button class="btn ghost sm" data-action="clear-examples">Beispiele entfernen</button>` : ""}
-        <button class="btn primary" data-action="new-recipe">
+        ${canEdit() && state.recipes.some(isExample) ? `<button class="btn ghost sm" data-action="clear-examples">Beispiele entfernen</button>` : ""}
+        ${canEdit() ? `<button class="btn primary" data-action="new-recipe">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
           Neues Meal
-        </button>
+        </button>` : ""}
       </div>`;
 
     if (state.recipes.length === 0) {
       html += `<div class="empty">
         <svg class="em-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4v16a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1V7l-4-3H5a1 1 0 0 0-1 1Z"/><path d="M8 9h8M8 13h8M8 17h5"/></svg>
-        <h3>Noch keine Meals</h3>
-        <p>Lege dein erstes Meal an – danach kannst du es im Wochenplan auf die Tage verteilen.</p>
-        <button class="btn primary" data-action="new-recipe">Erstes Meal anlegen</button>
+        <h3>${canEdit() ? "Noch keine Meals" : "Hier ist noch nichts"}</h3>
+        <p>${canEdit() ? "Lege dein erstes Meal an – danach kannst du es im Wochenplan auf die Tage verteilen." : "Sobald jemand aus eurer Gruppe ein Meal anlegt, siehst du es hier."}</p>
+        ${canEdit() ? `<button class="btn primary" data-action="new-recipe">Erstes Meal anlegen</button>` : ""}
       </div>`;
     } else {
       const groups = new Map(CATEGORIES.map(c => [c, []]));
@@ -4844,7 +5397,7 @@
         const ingPreview = ing.length ? esc(ing.slice(0, 4).map(ingLabel).join(" · ")) + (ing.length > 4 ? " …" : "") : "Keine Zutaten hinterlegt";
         html += `<article class="rcard" data-rid="${r.id}">
           ${cardImageHtml(r)}
-          <button class="imgadd" data-action="photo" data-id="${r.id}" title="Eigenes Foto für dieses Meal wählen" aria-label="Eigenes Foto für dieses Meal wählen">+</button>
+          ${canEdit() ? `<button class="imgadd" data-action="photo" data-id="${r.id}" title="Eigenes Foto für dieses Meal wählen" aria-label="Eigenes Foto für dieses Meal wählen">+</button>` : ""}
           <div class="rbody">
           <div class="top">
             <h3>${esc(r.name)}</h3>
@@ -4852,13 +5405,14 @@
           </div>
           <div class="meta">
             ${recipeNut(r).kcal ? `<span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3c1 3 4 4.4 4 8a4 4 0 0 1-8 0c0-1.3.4-2.1 1-3 .3 1 .8 1.6 1.5 1.9C10 8 10.4 5.4 12 3Z"/></svg>${nfmt(recipeNut(r).kcal)} kcal</span>` : ""}
+            ${recipeAuthorHtml(r)}
           </div>
           <div class="ingredients">${ingPreview}</div>
           <div class="actions">
             <button class="btn ghost sm" data-action="view" data-id="${r.id}">${ACT_ICONS.view}Ansehen</button>
-            <button class="btn ghost sm" data-action="edit" data-id="${r.id}">${ACT_ICONS.edit}Bearbeiten</button>
+            ${canEdit() ? `<button class="btn ghost sm" data-action="edit" data-id="${r.id}">${ACT_ICONS.edit}Bearbeiten</button>` : ""}
             <button class="btn ghost icon-gh" data-action="share-recipe" data-id="${r.id}" title="Meal teilen" aria-label="Meal teilen">${TOOL_ICONS.share}</button>
-            <button class="btn del-ic" data-action="delete" data-id="${r.id}" title="Meal löschen" aria-label="Meal löschen">${ACT_ICONS.del}</button>
+            ${canEdit() ? `<button class="btn del-ic" data-action="delete" data-id="${r.id}" title="Meal löschen" aria-label="Meal löschen">${ACT_ICONS.del}</button>` : ""}
           </div>
           </div>
         </article>`;
@@ -4877,6 +5431,7 @@
     // Sicherheitsnetz: schliesst irgendetwas das Formular, waehrend der Live-Scanner
     // laeuft, darf die Kamera nicht weiterlaufen.
     if (liveScanStop) liveScanStop();
+    groupModalRepaint = null;   // sonst zeichnete ein spaeterer Mitglieder-Snapshot in ein totes DOM
     modalRoot.innerHTML = "";
     document.removeEventListener("keydown", modalKeys);
     // Fokus dorthin zurueckgeben, wo er herkam - sonst landet er beim Schliessen am
@@ -5494,8 +6049,11 @@
         ingredients,
         steps: node.querySelector("#f-steps").value.trim(),
       };
+      // In einer Gruppe merkt sich ein neues Meal, WER es angelegt hat - nur die uid,
+      // nie den Namen (siehe recipeAuthorHtml). Beim Bearbeiten bleibt der Urheber stehen:
+      // wer ein fremdes Meal anpasst, wird dadurch nicht zum Autor.
       if (r) { Object.assign(r, data); toast("Meal gespeichert"); }
-      else { state.recipes.push(Object.assign({ id: uid() }, data)); toast("Meal angelegt"); }
+      else { state.recipes.push(Object.assign({ id: uid() }, data, syncGid ? { by: syncUid } : null)); toast("Meal angelegt"); }
       closeModal(); render();
     });
     openModal(node);
@@ -5521,16 +6079,19 @@
         ${r.steps ? `<div class="dsec"><h4>Zubereitung</h4><div class="steps">${esc(r.steps)}</div></div>` : ""}
       </div>
       <div class="modal-foot">
-        <button class="btn" data-edit>${ACT_ICONS.edit}Bearbeiten</button>
+        ${canEdit() ? `<button class="btn" data-edit>${ACT_ICONS.edit}Bearbeiten</button>` : ""}
         <button class="btn" data-share>${TOOL_ICONS.share}Teilen</button>
-        <button class="btn danger" data-del>${ACT_ICONS.del}Löschen</button>
+        ${canEdit() ? `<button class="btn danger" data-del>${ACT_ICONS.del}Löschen</button>` : ""}
         <button class="btn primary" data-close>Schließen</button>
       </div>
     </div>`);
     node.querySelectorAll("[data-close]").forEach(b => b.addEventListener("click", closeModal));
-    node.querySelector("[data-edit]").addEventListener("click", () => { closeModal(); openRecipeForm(r.id); });
+    // Beim Nur-Ansehen stehen die beiden Knoepfe gar nicht erst da (siehe oben).
+    const editBtn = node.querySelector("[data-edit]");
+    if (editBtn) editBtn.addEventListener("click", () => { closeModal(); openRecipeForm(r.id); });
     node.querySelector("[data-share]").addEventListener("click", () => { closeModal(); openShareRecipe(r.id); });
-    node.querySelector("[data-del]").addEventListener("click", () => { closeModal(); deleteRecipe(r.id); });
+    const delBtn = node.querySelector("[data-del]");
+    if (delBtn) delBtn.addEventListener("click", () => { closeModal(); deleteRecipe(r.id); });
     openModal(node);
   }
 
@@ -5651,7 +6212,11 @@
   // Aggregiert die Zutaten der relevanten Tage zu einer sortierten, nach Warengruppe
   // gruppierten Einkaufsliste. Ausgelagert aus openShopping() (Paket B3), damit der neue
   // PDF-Export (shopPdfString/planShopPages) dieselbe Aggregation nutzt statt sie zu duplizieren.
-  function buildShoppingList() {
+  // persons: fuer wie viele Personen eingekauft wird. Default ist die Kontoeinstellung -
+  // alle Aufrufer (Modal, Text, PDF, Teilen) erben die Zahl dadurch automatisch, ohne dass
+  // jeder sie selbst durchreichen muss.
+  function buildShoppingList(persons) {
+    const per = sanitizeShopPersons(persons === undefined ? shopPersons() : persons);
     // In der aktuellen Woche zaehlen nur heute und die kommenden Tage - fuer bereits
     // vergangene Tage wird nicht mehr eingekauft, ihre Zutaten sollen die Summe also
     // nicht mehr aufblaehen. In der naechsten Woche gibt es aus heutiger Sicht kein
@@ -5680,6 +6245,13 @@
         else map.set(norm, { norm: norm, name: name, qty: qty, unit: unit, count: 1 });
       });
     })));
+    // Hochrechnen auf die Personenzahl - vor der Label-Bildung, damit qtyLabel unten anhand
+    // der ENDgueltigen Summe ueber g/kg bzw. ml/L entscheidet. Zutaten ohne Menge (Freitext
+    // wie "Salz, Pfeffer") bleiben unangetastet: ihr "×count" heisst "in N Meals der Woche",
+    // nicht "N Stueck" - mal 2 genommen waere es schlicht falsch.
+    if (per > 1) map.forEach(it => { if (it.qty) it.qty *= per; });
+    // it.norm bleibt bewusst unberuehrt (Name + Einheit, ohne Menge): daran haengt der
+    // abgehakte Zustand in SHOP_DONE_KEY - er soll eine geaenderte Personenzahl ueberleben.
     // Anzeige-Label erst am Ende bilden — die Summe entscheidet ueber g/kg bzw. ml/L
     map.forEach(it => { it.label = it.qty ? qtyLabel(it.qty, it.unit) + " " + it.name : it.name; });
     // nach Zutatennamen sortieren, nicht nach Label — sonst ordnet die Menge die Liste
@@ -5688,11 +6260,19 @@
     const gmap = {};
     items.forEach(it => { const c = shopCategory(it.name || it.label); (gmap[c.key] || (gmap[c.key] = { cat: c, items: [] })).items.push(it); });
     const groups = SHOP_CATS.concat([SHOP_OTHER]).map(c => gmap[c.key]).filter(Boolean);
-    return { items, groups, todayIdx };
+    return { items, groups, todayIdx, persons: per };
   }
 
+  // "2 Personen" / "1 Person" - eine Stelle, damit Knopf-Beschriftung und Vorlesetext
+  // nicht auseinanderlaufen koennen.
+  function personsLabel(n) { return n + (n === 1 ? " Person" : " Personen"); }
+
   function openShopping() {
-    const { items, groups, todayIdx } = buildShoppingList();
+    // cur wird beim Aendern der Personenzahl neu berechnet; items/todayIdx bleiben dabei
+    // gueltig, weil die Personenzahl nur die MENGEN skaliert - Anzahl der Positionen,
+    // Sortierung und Warengruppen aendern sich nicht.
+    let cur = buildShoppingList();
+    const { items, todayIdx } = cur;
     const done = loadShopDone();
 
     const checkSvg = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>`;
@@ -5704,7 +6284,7 @@
       </div>`;
     } else {
       let idx = 0;
-      const listHtml = groups.map(g => `
+      const listHtml = cur.groups.map(g => `
         <div class="shop-group">
           <div class="shop-cat"><span class="shop-cat-ic" aria-hidden="true">${g.cat.icon}</span>${esc(g.cat.title)}<span class="shop-cat-n">${g.items.length}</span></div>
           ${g.items.map(it => {
@@ -5717,7 +6297,17 @@
             </label>`;
           }).join("")}
         </div>`).join("");
+      const minus = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M5 12h14"/></svg>`;
+      const plus = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>`;
       body = `
+        <div class="shop-persons">
+          <span class="lbl">Einkauf für</span>
+          <div class="step" role="group" aria-label="Personenanzahl">
+            <button type="button" class="pbtn" data-pers="-1" aria-label="Eine Person weniger">${minus}</button>
+            <span class="pnum" id="shop-pers" aria-live="polite">${esc(personsLabel(cur.persons))}</span>
+            <button type="button" class="pbtn" data-pers="1" aria-label="Eine Person mehr">${plus}</button>
+          </div>
+        </div>
         <div class="shop-progress">
           <span class="ptext" id="shop-count">0 von ${items.length} erledigt</span>
           <div class="bar"><i id="shop-bar"></i></div>
@@ -5743,7 +6333,31 @@
       </div>
     </div>`);
     node.querySelectorAll("[data-close]").forEach(b => b.addEventListener("click", closeModal));
+    // Personenzahl: nur die Mengen-Beschriftungen austauschen statt die Liste neu zu bauen.
+    // Positionen, Reihenfolge und Abhak-Zustand bleiben dadurch unberuehrt, und der Fokus
+    // bleibt auf dem gedrueckten Knopf - mehrfaches Tippen/Enter funktioniert weiter.
     if (items.length) {
+      const persEl = node.querySelector("#shop-pers");
+      const persBtns = Array.from(node.querySelectorAll(".shop-persons .pbtn"));
+      const applyPersons = () => {
+        persEl.textContent = personsLabel(cur.persons);
+        persBtns.forEach(b => { b.disabled = cur.persons + Number(b.dataset.pers) < 1 || cur.persons + Number(b.dataset.pers) > 12; });
+        const byNorm = new Map(cur.items.map(it => [it.norm, it.label]));
+        node.querySelectorAll(".shop-check").forEach(c => {
+          const lbl = c.parentElement.querySelector(".lbl");
+          if (lbl && byNorm.has(c.dataset.norm)) lbl.textContent = byNorm.get(c.dataset.norm);
+        });
+      };
+      persBtns.forEach(b => b.addEventListener("click", () => {
+        const next = sanitizeShopPersons(cur.persons + Number(b.dataset.pers));
+        if (next === cur.persons) return;
+        state.shopPersons = next;
+        cur = buildShoppingList();
+        applyPersons();
+        save();   // Kontoeinstellung: gilt auch fuer PDF, Text und das naechste Oeffnen
+      }));
+      applyPersons();
+
       const checks = Array.from(node.querySelectorAll(".shop-check"));
       const bar = node.querySelector("#shop-bar");
       const countEl = node.querySelector("#shop-count");
@@ -5761,7 +6375,7 @@
     }
     const copyBtn = node.querySelector("[data-copy]");
     if (copyBtn) copyBtn.addEventListener("click", () => {
-      const text = shoppingText(groups);
+      const text = shoppingText(cur.groups);
       if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(text).then(() => toast("Liste kopiert")).catch(() => toast("Kopieren hat nicht geklappt"));
       } else toast("Kopieren hat nicht geklappt");
@@ -5889,7 +6503,7 @@
       <h4>2. Hosting der Website (GitHub Pages)</h4>
       <p>Diese Website wird bei GitHub Pages gehostet, einem Dienst der GitHub, Inc., 88 Colin P. Kelly Jr. Street, San Francisco, CA 94107, USA. Beim Aufruf der Seite verarbeitet GitHub technisch notwendige Zugriffsdaten (z. B. deine IP-Adresse), um die Seite auszuliefern und deren Sicherheit zu gewährleisten. Rechtsgrundlage ist unser berechtigtes Interesse an einer sicheren und effizienten Bereitstellung (Art. 6 Abs. 1 lit. f DSGVO). Dabei kann eine Übermittlung in die USA erfolgen. Weitere Infos: <a href="https://docs.github.com/de/site-policy/privacy-policies/github-general-privacy-statement" target="_blank" rel="noopener">GitHub Privacy Statement</a>.</p>
       <h4>3. Welche Daten wir verarbeiten</h4>
-      <p>Bei der Registrierung: <strong>Name und E-Mail-Adresse</strong>. Bei Nutzung der App: die von dir angelegten <strong>Wochenpläne, Meals/Rezepte und ggf. Fotos</strong> sowie ein optionales <strong>Profilbild</strong> (als Kreis-Avatar zugeschnitten, in deinem Nutzerkonto gespeichert, nicht Teil von Teilen-Links) sowie – im Rahmen der Einführungsfragen nach der Registrierung, die zur Nutzung der App erforderlich sind – <strong>Geschlecht, Alter, Größe, Gewicht, Alltagsbewegung und Ziel</strong> sowie optional deine <strong>Trainingstage</strong> (Wochentag, Intensität und Dauer) und deinen <strong>Körperfettanteil</strong> (als grobe Stufe; Details zu beidem siehe Ziffer 3a). Erstellst du Teilen-Links, merkt sich dein Konto zusätzlich deren <strong>Kennungen</strong> (keine Klardaten, siehe Ziffer 8), damit sie beim Löschen deines Kontos zugeordnet und mitentfernt werden können. Stimmst du der Speicherung deines <strong>Gewichtsverlaufs</strong> ausdrücklich zu, speichern wir je Eintrag Monat und Gewicht sowie ein optionales <strong>Jahres-Zielgewicht</strong> (Details und Widerruf siehe Ziffer 3b). Diese Daten speichern wir, damit du dich anmelden und deine Planung geräteübergreifend nutzen kannst.</p>
+      <p>Bei der Registrierung: <strong>Name und E-Mail-Adresse</strong>. Bei Nutzung der App: die von dir angelegten <strong>Wochenpläne, Meals/Rezepte und ggf. Fotos</strong> sowie ein optionales <strong>Profilbild</strong> (als Kreis-Avatar zugeschnitten, in deinem Nutzerkonto gespeichert, nicht Teil von Teilen-Links) sowie – im Rahmen der Einführungsfragen nach der Registrierung, die zur Nutzung der App erforderlich sind – <strong>Geschlecht, Alter, Größe, Gewicht, Alltagsbewegung und Ziel</strong> sowie optional deine <strong>Trainingstage</strong> (Wochentag, Intensität und Dauer) und deinen <strong>Körperfettanteil</strong> (als grobe Stufe; Details zu beidem siehe Ziffer 3a). Erstellst du Teilen-Links, merkt sich dein Konto zusätzlich deren <strong>Kennungen</strong> (keine Klardaten, siehe Ziffer 8), damit sie beim Löschen deines Kontos zugeordnet und mitentfernt werden können. Nutzt du „Gemeinsam planen", speichert dein Konto außerdem die <strong>Kennung deiner Gruppe</strong> sowie die Kennungen der von dir erstellten <strong>Einladungslinks</strong> – aus demselben Grund (siehe Ziffer 8a); an einem in einer Gruppe angelegten Meal wird zusätzlich deine <strong>Nutzerkennung</strong> vermerkt, damit sichtbar ist, wer es angelegt hat. Stellst du in der Einkaufsliste eine <strong>Personenanzahl</strong> ein, wird auch diese gespeichert. Stimmst du der Speicherung deines <strong>Gewichtsverlaufs</strong> ausdrücklich zu, speichern wir je Eintrag Monat und Gewicht sowie ein optionales <strong>Jahres-Zielgewicht</strong> (Details und Widerruf siehe Ziffer 3b). Diese Daten speichern wir, damit du dich anmelden und deine Planung geräteübergreifend nutzen kannst.</p>
       <h4>3a. Ziel-Berechnung (Einführungsfragen)</h4>
       <p>Zur Nutzung der App gibst du bei den Einführungsfragen nach der Registrierung <strong>Geschlecht, Alter, Größe und Gewicht</strong> sowie deine Alltagsbewegung und dein Ziel an – ohne diese Angaben lässt sich kein Kalorien- und Makroziel berechnen und die App steht dir nicht zur Verfügung. Optional legst du zusätzlich deine <strong>Trainingstage</strong> fest – also an welchen Wochentagen du trainierst, mit welcher Intensität und wie lange; diese Angabe kannst du auch weglassen. Ebenfalls optional wählst du eine grobe Stufe für deinen <strong>Körperfettanteil</strong> – gibst du sie an, berechnet die App deinen Grundumsatz nach der Katch-McArdle-Formel über die fettfreie Masse statt nach Mifflin-St-Jeor; wählst du „Weiß ich nicht", bleibt es bei Mifflin-St-Jeor. Daraus berechnet die App direkt in deinem Browser deinen Tagesbedarf, deine Makronährstoffe und deinen BMI; an Trainingstagen zusätzlich den geschätzten Mehrbedarf durch die jeweilige Einheit. Übernimmst du das Ergebnis als dein Ziel, werden diese Angaben wie deine übrigen Plandaten lokal und – bei Cloud-Nutzung – in deinem Nutzerkonto (Cloud Firestore, siehe Ziffer 5) gespeichert, um sie geräteübergreifend verfügbar zu halten. Du kannst dein Ziel jederzeit über den Knopf „Ziel neu berechnen" im Wochenplan neu berechnen; die vorherigen Werte sind dann durch die neuen ersetzt. Rechtsgrundlage ist wie unter Ziffer 4 die Erfüllung des Nutzungsvertrags (Art. 6 Abs. 1 lit. b DSGVO). Diese Angaben werden <strong>nicht</strong> in Teilen-Links aufgenommen (siehe Ziffer 8).</p>
       <h4>3b. Gewichtsverlauf („Ziele &lt;Jahr&gt;")</h4>
@@ -5925,7 +6539,27 @@
          und nur für angemeldete Nutzer. Die Kennung im Link wird mit 80&nbsp;Bit Zufall erzeugt und ist praktisch
          nicht erratbar; ein Auflisten oder Durchsuchen der geteilten Inhalte ist technisch unterbunden. Der Link ist
          damit der einzige Zugang – <strong>teile ihn nur mit Personen, die den Inhalt sehen dürfen</strong>, denn wer
-         ihn hat, kann ihn öffnen.</p>
+         ihn hat, kann ihn öffnen. Ein Teilen-Link ist eine <strong>Momentaufnahme</strong>: Wer ihn öffnet, erhält
+         eine Kopie und kann deinen Plan nicht verändern. Das gemeinsame Planen in einer Gruppe funktioniert anders –
+         siehe Ziffer 8a.</p>
+      <h4>8a. Gemeinsam planen (Gruppen)</h4>
+      <p>Mit „Gemeinsam planen" könnt ihr – etwa als Paar oder WG – <strong>denselben</strong> Wochenplan nutzen.
+         Anders als beim Teilen-Link (Ziffer 8) ist das keine Kopie: Änderungen sind für alle Mitglieder sofort
+         sichtbar. Für alle Mitglieder der Gruppe sichtbar sind dein <strong>angezeigter Name</strong>, dein
+         optionales <strong>Profilbild</strong> (als kleines Abbild), deine <strong>Meals samt Fotos</strong>, der
+         gemeinsame <strong>Wochenplan</strong> und die Angabe, <strong>wer welches Meal angelegt hat</strong>
+         (gespeichert wird dafür nur deine Nutzerkennung, nicht dein Name).</p>
+      <p><strong>Nicht</strong> geteilt werden dein Kalorien- und Makroziel, deine Angaben aus den Einführungsfragen
+         (Ziffer 3a), dein Gewichtsverlauf (Ziffer 3b) und deine <strong>E-Mail-Adresse</strong>. Jedes Mitglied
+         sieht denselben Plan gegen sein jeweils eigenes Ziel.</p>
+      <p>Eingeladen wird über einen <strong>Einladungslink</strong>. Für ihn gilt dasselbe wie für den Teilen-Link:
+         80&nbsp;Bit Zufall, nicht erratbar, ein Auflisten ist technisch unterbunden. Ein Unterschied ist aber
+         wesentlich – wer den Einladungslink öffnet und sich anmeldet, wird <strong>Mitglied</strong> und erhält je
+         nach vergebenem Recht auch <strong>Schreibzugriff</strong> auf den gemeinsamen Plan und die gemeinsamen
+         Meals. Beim Erstellen legst du fest, ob die eingeladene Person <strong>mitplanen</strong> oder nur
+         <strong>mitlesen</strong> darf; die Inhaberin oder der Inhaber der Gruppe kann Rechte später ändern,
+         Mitglieder entfernen und den Einladungslink zurückziehen. Der Beitritt erfolgt nie automatisch – die App
+         fragt dich vorher.</p>
       <h4>9. Verschlüsselung</h4>
       <p>Die Übertragung der Daten erfolgt verschlüsselt über HTTPS (SSL/TLS).</p>
       <h4>10. Speicherdauer &amp; Löschung</h4>
@@ -5939,6 +6573,16 @@
          abrufbar – auch dann, wenn du den Link nicht mehr weitergibst. Nutzt du die App ohne Cloud-Konto (lokales
          Profil), kannst du ebenso über „Alle Daten löschen" im Profilmenü sämtliche auf diesem Gerät gespeicherten
          Daten sofort entfernen.</p>
+      <p>Bist du <strong>Mitglied einer Gruppe</strong> (Ziffer 8a), werden beim Löschen deines Kontos zusätzlich
+         dein Mitglieder-Eintrag (Name und Bild) sowie die von dir erstellten Einladungslinks mitentfernt. Bist du
+         <strong>Inhaber</strong> einer Gruppe, musst du sie vorher auflösen – die App weist dich darauf hin, damit
+         keine Gruppe ohne Inhaber zurückbleibt.</p>
+      <p>Verlässt du eine Gruppe, wird dein Mitglieder-Eintrag entfernt und du siehst den gemeinsamen Plan nicht
+         mehr. Die Meals und Wochenpläne, die in der Gruppe entstanden sind, <strong>bleiben bei der Gruppe</strong>
+         – du behältst davon eine eigene Kopie. Das gilt auch für Meals, die ursprünglich von dir stammen: Sobald du
+         sie in eine Gruppe eingebracht hast, kannst du sie den übrigen Mitgliedern nicht mehr einseitig entziehen.
+         Der Personenbezug entfällt dabei, weil zu einem Meal nur deine Nutzerkennung gespeichert ist, die mit
+         deinem Mitglieder-Eintrag verschwindet.</p>
       <h4>11. Deine Rechte</h4>
       <p>Du hast das Recht auf Auskunft, Berichtigung, Löschung, Einschränkung der Verarbeitung, Datenübertragbarkeit und Widerspruch. Soweit eine Verarbeitung auf deiner Einwilligung beruht, kannst du diese jederzeit mit Wirkung für die Zukunft widerrufen. Zudem hast du ein Beschwerderecht bei einer Datenschutz-Aufsichtsbehörde – für uns zuständig ist das Bayerische Landesamt für Datenschutzaufsicht (BayLDA), Promenade 18, 91522 Ansbach.</p>
       <h4>12. Automatisierte Entscheidungsfindung</h4>
@@ -6009,6 +6653,7 @@
     const r = photoTargetId ? getRecipe(photoTargetId) : null;
     photoTargetId = null;
     if (!f || !r) return;
+    if (!canEdit()) return;   // laeuft nicht ueber die Delegation, deshalb hier eigens
     if (!/^image\//.test(f.type)) { toast("Bitte ein Bild verwenden"); return; }
     readAndDownscale(f, dataUrl => { if (dataUrl) { r.image = dataUrl; save(); render(); toast("Foto übernommen"); } else toast("Bild konnte nicht geladen werden"); });
   });
@@ -6028,10 +6673,23 @@
     openAvatarCropper(f, cb);
   });
 
+  // Alles, was Meals oder den Wochenplan veraendert. Ein Nur-Ansehen-Mitglied wird hier
+  // an EINER Stelle abgefangen, statt in acht einzelnen Zweigen - so kann kein neuer
+  // Zweig die Sperre versehentlich umgehen.
+  // Verbindlich ist trotzdem allein die Firestore-Regel: Was hier passiert, ist Komfort
+  // und mit den Entwicklerwerkzeugen umgehbar.
+  const WRITE_ACTIONS = ["new-recipe", "edit", "delete", "photo", "pick", "unassign", "clear-week", "clear-examples"];
+  function blockedByRole() {
+    if (canEdit()) return false;
+    toast("Du kannst diesen Plan ansehen – zum Mitplanen bitten die Inhaberin oder den Inhaber um Rechte.");
+    return true;
+  }
+
   document.addEventListener("click", e => {
     const t = e.target.closest("[data-action]");
     if (!t) return;
     const a = t.dataset.action;
+    if (WRITE_ACTIONS.indexOf(a) !== -1 && blockedByRole()) return;
     if (a === "tab") { state.tab = t.dataset.tab; render(); }
     else if (a === "photo") { photoTargetId = t.dataset.id; photoInput.click(); }
     else if (a === "new-recipe") openRecipeForm(null);
@@ -6081,6 +6739,9 @@
   view.addEventListener("dragstart", e => {
     const f = e.target.closest(".filled[data-slot-src]");
     if (!f) return;
+    // Beim Nur-Ansehen gar nicht erst greifen lassen: den Drop zu blockieren erzeugte
+    // sichtbares Zieh-Feedback, das dann folgenlos bleibt - das wirkt kaputt.
+    if (!canEdit()) { e.preventDefault(); return; }
     dragSrc = f.dataset.slotSrc;
     f.classList.add("dragging");
     e.dataTransfer.effectAllowed = "move";
@@ -6158,6 +6819,7 @@
     const f = e.dataTransfer.files && e.dataTransfer.files[0];
     const r = getRecipe(card.dataset.rid);
     if (!f || !r) return;
+    if (blockedByRole()) return;   // laeuft nicht ueber die Delegation
     if (!/^image\//.test(f.type)) { toast("Bitte ein Bild verwenden"); return; }
     readAndDownscale(f, dataUrl => { if (dataUrl) { r.image = dataUrl; save(); render(); toast("Foto übernommen"); } else toast("Bild konnte nicht geladen werden"); });
   });
@@ -6180,6 +6842,7 @@
     // Bearbeiten-Formular wuerde unbemerkt dort landen statt im Formular.
     if (modalRoot.children.length) return;
     if (state.tab !== "recipes" || !hoveredCardId) return;
+    if (!canEdit()) return;   // laeuft nicht ueber die Delegation
     const items = e.clipboardData && e.clipboardData.items;
     if (!items) return;
     let file = null;
@@ -6205,12 +6868,22 @@
   const profileSlot = document.getElementById("profile-slot");
 
   let pendingShare = null;
+  // Einladungscode aus ?g=, bis die Anmeldung durch ist (siehe enterApp).
+  let pendingInvite = null;
   // Merkt, dass dieser Start ueber einen Teilen-Link kam. pendingShare selbst ist zu dem
   // Zeitpunkt, an dem ueber die ersten Schritte entschieden wird, schon wieder null –
   // das Modal des geteilten Plans steht dann aber noch aus.
   let shareOnStart = false;
   function readSharedFromUrl() {
     try {
+      // ?g= ist die Gruppen-Einladung, ?s= der alte Teilen-Link (Momentaufnahme).
+      // Beide raeumen die Adresszeile auf, damit ein Neuladen nicht erneut fragt.
+      const g = (location.search || "").match(/[?&]g=([A-Za-z0-9_-]+)/);
+      if (g) {
+        pendingInvite = g[1];
+        history.replaceState(null, "", location.pathname);
+        return;
+      }
       const m = (location.search || "").match(/[?&]s=([A-Za-z0-9_-]+)/);
       if (!m) return;
       pendingShare = m[1];
@@ -6268,11 +6941,55 @@
     renderProfileChip();
     state.tab = "home"; // Start immer im Home-Reiter (Reload & Login)
     render();
-    if (pendingShare) { const id = pendingShare; pendingShare = null; shareOnStart = true; loadSharedById(id); }
+    if (pendingInvite) { const code = pendingInvite; pendingInvite = null; openInviteModal(code); }
+    else if (pendingShare) { const id = pendingShare; pendingShare = null; shareOnStart = true; loadSharedById(id); }
     // Im Cloud-Modus entscheidet startCloudSync ueber die ersten Schritte, nicht wir: das
     // Flag kann noch aus der Cloud nachkommen. Lokal gibt es niemanden, auf den zu warten waere.
     if (authMode === "local") maybeStartOnboarding();
   }
+  // Einladung aus einem ?g=-Link. Fragt IMMER nach, statt still beizutreten: der Beitritt
+  // macht die eigenen Meals fuer andere sichtbar - das darf nicht ungefragt passieren,
+  // nur weil jemand auf einen Link getippt hat.
+  function openInviteModal(code) {
+    if (authMode !== "cloud") {
+      confirmModal({
+        title: "Cloud-Konto nötig",
+        text: "Diese Einladung braucht ein Cloud-Konto – nur so kommt euer gemeinsamer Plan auf beide Geräte.",
+        okLabel: "Cloud-Konto anmelden",
+        onConfirm: () => { pendingInvite = code; authMode = "cloud"; renderAuthCloud(); }
+      });
+      return;
+    }
+    if (!window.CloudGroup || !window.CloudGroup.enabled) { toast("Einladungen brauchen ein Cloud-Konto"); return; }
+    window.CloudGroup.fetchInvite(code).then(inv => {
+      if (!inv || !inv.gid) { toast("Diese Einladung gilt nicht mehr."); return; }
+      if (syncGid === inv.gid) { toast("Du bist schon dabei."); return; }
+      const viewOnly = inv.role === "view";
+      const switching = !!syncGid;
+      const node = el(`<div class="modal" role="dialog" aria-modal="true" aria-label="Einladung">
+        <div class="modal-head"><div style="flex:1"><div class="kicker">Einladung erhalten</div><h3 style="margin-top:2px">Gemeinsam planen</h3></div><button class="btn ghost sm" data-close>✕</button></div>
+        <div class="modal-body">
+          <p style="margin:0 0 4px">Du bist eingeladen, einen Wochenplan gemeinsam zu nutzen – ${viewOnly ? "zum <b>Ansehen</b>" : "mit dem Recht, <b>mitzuplanen</b>"}.</p>
+          ${switching ? `<p class="share-mini warn">Du bist schon in einer Gruppe. Trittst du bei, verlässt du die alte.</p>` : ""}
+          <details class="grp-note">
+            <summary>Was teile ich damit?</summary>
+            <p>Die Mitglieder sehen deinen Namen, dein Profilbild, ${viewOnly ? "den gemeinsamen Wochenplan" : "deine Meals samt Fotos und den Wochenplan"} – und wer welches Meal angelegt hat. <b>Nicht</b> geteilt werden dein Kalorien- und Makroziel, deine Angaben aus den Einführungsfragen, dein Gewichtsverlauf und deine E-Mail-Adresse.</p>
+          </details>
+        </div>
+        <div class="modal-foot"><button class="btn ghost" data-close>Später</button><button class="btn primary" data-join>Beitreten</button></div>
+      </div>`);
+      node.querySelectorAll("[data-close]").forEach(b => b.addEventListener("click", closeModal));
+      const join = node.querySelector("[data-join]");
+      join.addEventListener("click", async () => {
+        join.disabled = true; join.textContent = "Einen Moment …";
+        if (switching) await leaveGroup();
+        await joinGroup(code);
+        closeModal();
+      });
+      openModal(node);
+    }).catch(() => toast("Die Einladung konnte nicht geladen werden."));
+  }
+
   function loadSharedById(id) {
     if (!window.CloudShare || !window.CloudShare.enabled) { toast("Geteilte Links brauchen ein Cloud-Konto"); return; }
     // Paket B5: CloudShare.enabled sagt nur, dass Firebase konfiguriert ist - nicht, dass DIESE
@@ -6314,10 +7031,44 @@
     openModal(node);
   }
 
+  // Avatar eines Mitglieds: Bild, sonst Initialen. Im ueberlappenden Stack nur EIN
+  // Buchstabe - der zweite laege unter dem naechsten Kreis und waere angeschnitten
+  // ("AB" las sich als "AE"). In der Mitgliederliste, wo nichts ueberlappt, beide.
+  function memberAvatarHtml(m, short) {
+    const ini = initials(m.name || "?");
+    // safeImage() ist Pflicht, weil dieses Feld von einer ANDEREN Person kommt: Es laesst
+    // nur data:image-URLs durch. Ohne die Pruefung koennte ein Mitglied dort eine fremde
+    // http-Adresse eintragen - der Browser jedes anderen Mitglieds wuerde sie abrufen und
+    // damit seine IP-Adresse an einen Dritten senden, ohne dass jemand es merkt.
+    // (Ein Ausbruch aus dem Attribut ist durch esc() ohnehin ausgeschlossen, das auch
+    // Anfuehrungszeichen wandelt - hier geht es um den Abruf selbst.)
+    const src = safeImage(m.avatar);
+    const inner = src ? `<img src="${esc(src)}" alt="">` : esc(short ? ini.slice(0, 1) : ini);
+    return `<span class="avatar" aria-hidden="true">${inner}</span>`;
+  }
+
+  // Die anderen Mitglieder der Gruppe, links neben dem eigenen Avatar. Ab vier Personen
+  // wird abgekuerzt - mehr Kreise als das passen im Kopf neben die Reiter nicht, und die
+  // vollstaendige Liste steht ohnehin einen Klick entfernt im Gruppen-Dialog.
+  const MSTACK_MAX = 3;
+  function memberStackHtml() {
+    if (!syncGid || !groupMembers.length) return "";
+    const others = groupMembers.filter(m => m.uid !== syncUid);
+    if (!others.length) return "";
+    const shown = others.slice(0, MSTACK_MAX);
+    const rest = others.length - shown.length;
+    const names = others.map(m => firstName(m.name) || "Jemand").join(", ");
+    return `<span class="mstack" title="${esc(names)}" aria-label="Gemeinsam mit ${esc(names)}">`
+      + shown.map(m => memberAvatarHtml(m, true)).join("")
+      + (rest > 0 ? `<span class="more" aria-hidden="true">+${rest}</span>` : "")
+      + `</span>`;
+  }
+
   function renderProfileChip() {
     const cloudDot = authMode === "cloud" ? `<span class="sync-dot chip off" data-sync-dot aria-hidden="true"></span>` : "";
     const avatarInner = state.profileImage ? `<img src="${esc(state.profileImage)}" alt="">` : esc(initials(profile.name));
     profileSlot.innerHTML = `<div class="profile">
+      ${memberStackHtml()}
       <button class="profile-btn" data-action="profile-menu" aria-haspopup="true" aria-label="Profilmenü">
         <span class="av-wrap"><span class="avatar" aria-hidden="true">${avatarInner}</span>${cloudDot}</span>
         <span class="pname">${esc(profile.name)}</span>
@@ -6373,6 +7124,7 @@
     const menu = el(`<div class="menu" role="menu">
       <div class="mhead"><div class="mn">${esc(profile.name)}</div><div class="me">${esc(profile.email)}</div></div>
       <button data-mi="settings" role="menuitem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1.08-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg>Einstellungen</button>
+      <button data-mi="group" role="menuitem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>${syncGid ? "Gruppe" : "Gemeinsam planen"}</button>
       <hr>
       <button data-mi="signout" class="danger" role="menuitem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5M21 12H9"/></svg>Abmelden</button>
       <hr>
@@ -6382,6 +7134,7 @@
     updateSyncUI();
     const close = attachMenuDismiss(menu, wrap.querySelector(".profile-btn"));
     menu.querySelector("[data-mi='settings']").addEventListener("click", () => { close(false); openSettings(); });
+    menu.querySelector("[data-mi='group']").addEventListener("click", () => { close(false); openGroupModal(); });
     menu.querySelector("[data-mi='signout']").addEventListener("click", () => { close(false); signOut(); });
     menu.querySelector("[data-mi='delete']").addEventListener("click", () => { close(false); authMode === "cloud" ? deleteAccountFlow() : deleteLocalDataFlow(); });
   }
@@ -7793,6 +8546,21 @@
   // Konto vollstaendig loeschen (Cloud-Konten, Art. 17 DSGVO / Datenschutz Ziffer 10).
   // Loescht zusaetzlich alle bekannten Teilen-Links, damit kein Snapshot verwaist zurueckbleibt.
   function deleteAccountFlow() {
+    // Als Inhaber einer Gruppe erst eine Entscheidung erzwingen: bliebe die Gruppe ohne
+    // Inhaber zurueck, koennte niemand mehr Rollen vergeben oder sie aufloesen - und die
+    // Zusage aus Ziffer 10 der Datenschutzerklaerung waere nicht mehr wahr.
+    if (syncGid && groupRole() === "owner") {
+      const others = groupMembers.filter(m => m.uid !== syncUid).length;
+      confirmModal({
+        title: "Erst die Gruppe auflösen",
+        text: others
+          ? `Du bist Inhaber eurer Gruppe mit ${others} weiteren ${others === 1 ? "Person" : "Personen"}. Löse sie zuerst auf oder übergib sie – danach kannst du dein Konto löschen.`
+          : "Du bist Inhaber einer Gruppe. Löse sie zuerst auf – danach kannst du dein Konto löschen.",
+        okLabel: "Zur Gruppe",
+        onConfirm: () => openGroupModal()
+      });
+      return;
+    }
     const user = (window.CloudAuth && window.CloudAuth.current) ? window.CloudAuth.current() : null;
     const pid = user && user.providerData[0] ? user.providerData[0].providerId : null;
     const isPw = pid === "password";
@@ -7822,9 +8590,15 @@
         // hat, muessen trotzdem mitgeloescht werden (Art. 17 DSGVO) - state.recipes waere
         // sonst potenziell unvollstaendig.
         const cloudRecipeIds = (window.CloudSync && window.CloudSync.loadRecipes && user)
-          ? (await window.CloudSync.loadRecipes(user.uid)).map(r => r.id)
+          ? (await window.CloudSync.loadRecipes(["users", user.uid])).map(r => r.id)
           : state.recipes.map(r => r.id);
-        await window.CloudAuth.deleteAccount({ password: pw, shareIds: state.shares || [], recipeIds: cloudRecipeIds });
+        // groupId mitgeben, damit der eigene Mitglieder-Eintrag (Name, Bild) nicht in einer
+        // fremden Gruppe zurueckbleibt - er haengt nicht unter users/{uid} und wird deshalb
+        // nicht mitgeloescht.
+        await window.CloudAuth.deleteAccount({
+          password: pw, shareIds: state.shares || [], recipeIds: cloudRecipeIds,
+          groupId: syncGid || "", inviteCodes: state.inviteCodes || []
+        });
         closeModal();
         stopCloudSync();
         wipeLocalData();
@@ -7868,6 +8642,335 @@
         setTimeout(() => location.reload(), 900); // kurz sichtbar, dann sauberer Neustart
       }
     });
+  }
+
+  // ================= Gemeinsam planen (Gruppe) =================
+  const ROLE_LABEL = { owner: "Inhaber", edit: "Mitplanen", view: "Nur ansehen" };
+
+  // Eigene Meals in die Gruppe kopieren. Beispiel-Meals bleiben aussen vor - sie sind ein
+  // einmaliges Willkommens-Angebot und haetten in einer fremden Sammlung nichts verloren
+  // (gleicher Filter wie beim Konto-Merge in startCloudSync).
+  async function copyOwnRecipesToGroup(gid) {
+    const mine = state.recipes.filter(r => r && r.id && !isExample(r));
+    if (!mine.length) return;
+    // In Haeppchen: writeBatch vertraegt hoechstens 500 Vorgaenge, und Meals mit Fotos
+    // sind gross - lieber mehrere kleine Batches als einer, der ganz scheitert.
+    for (let i = 0; i < mine.length; i += 20) {
+      await window.CloudSync.saveRecipesBatch(["groups", gid], mine.slice(i, i + 20), []);
+    }
+  }
+
+  async function createGroup() {
+    if (!syncUid || !window.CloudGroup) { toast("Dafür brauchst du dein Cloud-Konto."); return; }
+    const gid = shareId();
+    try {
+      await window.CloudGroup.create(gid, {
+        name: "", owner: syncUid, createdAt: Date.now(),
+        settings: { inviteByPlanners: false, shopForAll: true, defaultRole: "edit", changeHints: true }
+      });
+      await window.CloudGroup.putMember(gid, syncUid, {
+        name: profile.name || "", avatar: await smallAvatar(state.profileImage),
+        role: "owner", joinedAt: Date.now()
+      });
+      // Erst die Meals, dann umschalten: enterGroupSync ersetzt state.recipes durch den
+      // Gruppenbestand - waeren die eigenen noch nicht oben, waeren sie danach weg.
+      await copyOwnRecipesToGroup(gid);
+      // Der eigene Wochenplan wandert ebenfalls mit, sonst startet die Gruppe leer,
+      // obwohl gerade noch eine geplante Woche zu sehen war.
+      for (const wk of Object.keys(state.plans || {})) {
+        const flat = flattenWeek(state.plans[wk]);
+        if (Object.keys(flat).length) await window.CloudGroup.savePlanWeek(gid, wk, Object.assign(flat, { by: syncUid, at: Date.now() }));
+      }
+      // Erst die Cloud, dann der lokale Stand: Scheitert der Schreibvorgang, darf hier kein
+      // groupId zurueckbleiben, das nur dieses Geraet kennt - der naechste save() haette es
+      // ins localStorage geschrieben, waehrend das Konto in der Cloud gar keine Gruppe hat.
+      await window.CloudSync.save(syncUid, { groupId: gid });
+      state.groupId = gid;
+      await switchGroup(gid);
+      toast("Gruppe steht – jetzt jemanden einladen");
+      openGroupModal();
+    } catch (e) {
+      state.groupId = "";
+      toast("Die Gruppe konnte nicht angelegt werden. Versuch es gleich noch einmal.");
+    }
+  }
+
+  // Einladungslink erzeugen. Der Code ist der Zugang (80 Bit, wie die Teilen-Links) -
+  // deshalb ist er in Firestore ausdruecklich nicht auflistbar.
+  async function createInviteLink(role) {
+    const code = shareId();
+    await window.CloudGroup.createInvite(code, { gid: syncGid, role: role, by: syncUid, createdAt: Date.now() });
+    // Code im eigenen Konto merken - genau wie die Teilen-Links (state.shares). Ohne das
+    // liesse er sich spaeter nicht mehr zurueckziehen und bliebe beim Loeschen des Kontos
+    // als offene Tuer in die Gruppe zurueck.
+    state.inviteCodes = unionIds(state.inviteCodes, [code]);
+    save();
+    return location.origin + location.pathname + "?g=" + code;
+  }
+
+  async function joinGroup(code) {
+    if (!syncUid || !window.CloudGroup) return;
+    try {
+      const inv = await window.CloudGroup.fetchInvite(code);
+      if (!inv || !inv.gid) { toast("Diese Einladung gilt nicht mehr."); return; }
+      if (syncGid === inv.gid) { toast("Du bist schon dabei."); return; }
+      const role = inv.role === "view" ? "view" : "edit";
+      await window.CloudGroup.putMember(inv.gid, syncUid, {
+        name: profile.name || "", avatar: await smallAvatar(state.profileImage),
+        role: role, via: code, joinedAt: Date.now()
+      });
+      // Nur mitlesende Mitglieder duerfen laut Regel gar nichts in die Gruppe schreiben -
+      // ihre eigenen Meals bleiben deshalb im eigenen Konto liegen, statt hier an einer
+      // abgelehnten Schreiboperation haengen zu bleiben.
+      if (role !== "view") await copyOwnRecipesToGroup(inv.gid);
+      // Cloud zuerst, siehe Begruendung in createGroup().
+      await window.CloudSync.save(syncUid, { groupId: inv.gid });
+      state.groupId = inv.gid;
+      await switchGroup(inv.gid);
+      toast("Ihr plant jetzt gemeinsam");
+    } catch (e) {
+      state.groupId = "";
+      toast("Der Beitritt hat nicht geklappt. Bitte den Link noch einmal öffnen.");
+    }
+  }
+
+  // Gruppe verlassen. Plan und Meals bleiben als eigene Kopie erhalten - sie stehen ja
+  // schon vollstaendig im lokalen State; sie werden nur wieder ins eigene Konto geschrieben.
+  async function leaveGroup() {
+    if (!syncGid || !syncUid) return;
+    const gid = syncGid;
+    const keepRecipes = state.recipes.slice();
+    const keepPlans = JSON.parse(JSON.stringify(state.plans || {}));
+    try {
+      await window.CloudGroup.removeMember(gid, syncUid);
+    } catch (e) { /* schon entfernt - der Rest muss trotzdem laufen */ }
+    state.groupId = "";
+    leaveGroupState();
+    state.recipes = keepRecipes;
+    state.plans = keepPlans;
+    setViewWeek(state.viewWeek);
+    try {
+      await window.CloudSync.save(syncUid, { groupId: "", plans: keepPlans });
+      // Baseline leeren, damit der naechste Zyklus alle Meals als "neu" ins eigene
+      // Konto schreibt - dort liegen sie ja noch nicht.
+      lastPushedRecipes = new Map();
+      lastPushedJSON = null;
+    } catch (e) {}
+    await switchGroup(null);
+    toast("Du planst wieder für dich – deine Meals sind mitgekommen");
+  }
+
+  function openGroupModal() {
+    if (authMode !== "cloud") {
+      confirmModal({
+        title: "Cloud-Konto nötig",
+        text: "Gemeinsam planen geht nur mit einem Cloud-Konto – nur so kommt euer Plan auf beide Geräte.",
+        okLabel: "Cloud-Konto anmelden",
+        onConfirm: () => { authMode = "cloud"; renderAuthCloud(); }
+      });
+      return;
+    }
+    let seg = "members";
+    let createdUrl = null;
+    const node = el(`<div class="modal" role="dialog" aria-modal="true" aria-label="Gemeinsam planen">
+      <div class="modal-head"><div style="flex:1"><div class="kicker">Gemeinsam planen</div><h3 style="margin-top:2px" id="grp-title"></h3></div><button class="btn ghost sm" data-close>✕</button></div>
+      <div class="modal-body"><div id="grp-body"></div></div>
+    </div>`);
+    node.querySelectorAll("[data-close]").forEach(b => b.addEventListener("click", closeModal));
+    const body = node.querySelector("#grp-body");
+    const title = node.querySelector("#grp-title");
+
+    function paint() {
+      title.textContent = syncGid ? "Eure Gruppe" : "Zu zweit planen";
+      if (!syncGid) { body.innerHTML = startHtml(); wire(); return; }
+      // Die Einstellungen gehoeren dem Inhaber - fuer alle anderen waere ein zweiter
+      // Reiter voller ausgegrauter Schalter nur Rauschen.
+      const owner = groupRole() === "owner";
+      body.innerHTML = (owner ? `<div class="segbar" role="tablist">
+          <button role="tab" data-seg="members" aria-selected="${seg === "members"}">Mitglieder</button>
+          <button role="tab" data-seg="settings" aria-selected="${seg === "settings"}">Einstellungen</button>
+        </div>` : "")
+        + (owner && seg === "settings" ? settingsSegHtml() : memberSegHtml());
+      body.querySelectorAll("[data-seg]").forEach(b => b.addEventListener("click", () => { seg = b.dataset.seg; paint(); }));
+      wire();
+    }
+
+    // Vier Schalter, vier Zeilen. Bewusst ohne Begruendungssaetze - was sie tun, steht in
+    // der Beschriftung, und die App bleibt uebersichtlich.
+    function settingsSegHtml() {
+      const row = (key, label, hint, on, off) => `
+        <div class="setpick" style="margin-bottom:10px">
+          <b>${label}</b>${hint ? `<small style="display:block;margin:-6px 0 9px;color:var(--text-muted);font-size:12.5px">${hint}</small>` : ""}
+          <div class="seg" data-set="${key}" role="group" aria-label="${label}">
+            <button type="button" data-v="1" class="${groupSetting(key) ? "on" : ""}">${on}</button>
+            <button type="button" data-v="0" class="${groupSetting(key) ? "" : "on"}">${off}</button>
+          </div>
+        </div>`;
+      return row("shopForAll", "Einkauf für alle rechnen", "Mengen × Mitglieder", "An", "Aus")
+        + row("inviteByPlanners", "Wer darf einladen", "", "Alle Mitplanenden", "Nur ich")
+        + row("changeHints", "Hinweis bei Änderungen", "", "An", "Aus")
+        + `<div class="setpick">
+             <b>Standardrolle für Einladungen</b>
+             <div class="seg" data-set="defaultRole" role="group" aria-label="Standardrolle für Einladungen">
+               <button type="button" data-v="edit" class="${groupSetting("defaultRole") === "view" ? "" : "on"}">Mitplanen</button>
+               <button type="button" data-v="view" class="${groupSetting("defaultRole") === "view" ? "on" : ""}">Nur ansehen</button>
+             </div>
+           </div>`;
+    }
+
+    function startHtml() {
+      return `
+        <p class="share-hint">Plant euren Wochenplan gemeinsam – einer trägt ein, beide sehen es sofort. Kalorienziel und Gewicht bleiben privat.</p>
+        <button class="btn primary" id="grp-create" style="width:100%">Gruppe starten</button>
+        <details class="grp-note">
+          <summary>Was teile ich damit?</summary>
+          <p>Alle Mitglieder sehen deinen Namen, dein Profilbild, deine Meals samt Fotos und den Wochenplan – und wer welches Meal angelegt hat. <b>Nicht</b> geteilt werden dein Kalorien- und Makroziel, deine Angaben aus den Einführungsfragen, dein Gewichtsverlauf und deine E-Mail-Adresse.</p>
+        </details>`;
+    }
+
+    function memberSegHtml() {
+      const owner = groupRole() === "owner";
+      const canInvite = owner || (canEdit() && groupSetting("inviteByPlanners"));
+      const rows = groupMembers.map(m => {
+        const me = m.uid === syncUid;
+        const label = ROLE_LABEL[m.role] || ROLE_LABEL.view;
+        // Rollenwahl nur beim Inhaber und nie fuer ihn selbst - er soll sich nicht
+        // versehentlich degradieren und die Gruppe fuehrungslos machen.
+        const pick = (owner && !me && m.role !== "owner")
+          ? `<select data-role-for="${esc(m.uid)}" aria-label="Rechte von ${esc(firstName(m.name) || "Mitglied")}">
+               <option value="edit"${m.role === "edit" ? " selected" : ""}>Mitplanen</option>
+               <option value="view"${m.role === "view" ? " selected" : ""}>Nur ansehen</option>
+             </select>`
+          : "";
+        // Als Symbol statt "Entfernen": in einer Zeile mit Name und Rollenwahl waere der
+        // Text der Tropfen, der das Fass auf schmalen Geraeten zum Ueberlaufen bringt.
+        // Die Beschriftung steckt im aria-label und im title.
+        const kick = (owner && !me)
+          ? `<button class="btn ghost icon-gh" data-kick="${esc(m.uid)}" title="${esc(firstName(m.name) || "Mitglied")} entfernen" aria-label="${esc(firstName(m.name) || "Mitglied")} entfernen">${ACT_ICONS.del}</button>`
+          : "";
+        return `<div class="grp-m">
+          ${memberAvatarHtml(m)}
+          <span class="who"><b>${esc(m.name || "Ohne Namen")}${me ? " (du)" : ""}</b><small>${esc(label)}</small></span>
+          ${pick}${kick}
+        </div>`;
+      }).join("");
+      const inviteBlock = canInvite ? (createdUrl ? `
+        <span class="share-sub">Einladungslink</span>
+        <div class="link-row">
+          <input type="text" class="share-link" id="grp-link" readonly value="${esc(createdUrl)}">
+          <button class="btn primary" id="grp-copy">${canShare() ? "Senden" : "Kopieren"}</button>
+        </div>
+        <p class="share-mini">Wer den Link öffnet und sich anmeldet, ist dabei. Zurückziehen kannst du ihn unten.</p>
+        <button class="btn ghost sm" id="grp-revoke" style="margin-top:8px">Link zurückziehen</button>`
+      : `
+        <div class="setpick" style="margin-bottom:10px">
+          <b>Was darf die eingeladene Person?</b>
+          <div class="seg" id="grp-role" role="group" aria-label="Rechte für die Einladung">
+            <button type="button" data-r="edit" class="${(inviteRole || groupSetting("defaultRole")) === "view" ? "" : "on"}">Mitplanen</button>
+            <button type="button" data-r="view" class="${(inviteRole || groupSetting("defaultRole")) === "view" ? "on" : ""}">Nur ansehen</button>
+          </div>
+        </div>
+        <button class="btn primary" id="grp-invite" style="width:100%">Einladungslink erstellen</button>`) : "";
+      return `<div class="grp-list">${rows}</div>${inviteBlock}
+        <hr style="border:0;border-top:1px solid var(--border);margin:16px 0 12px">
+        <button class="btn ghost sm" id="grp-leave">${owner ? "Gruppe auflösen" : "Gruppe verlassen"}</button>`;
+    }
+
+    let inviteRole = null;   // null = noch nichts gewaehlt -> Standardrolle der Gruppe
+    function wire() {
+      // Einstellungs-Schalter. Sofort speichern statt "Sichern"-Knopf: eine Einstellung
+      // ist kein Formular, und die Firestore-Regel prueft die Rolle ohnehin serverseitig.
+      body.querySelectorAll("[data-set]").forEach(grp => grp.querySelectorAll("[data-v]").forEach(b => b.addEventListener("click", async () => {
+        const key = grp.dataset.set;
+        const val = key === "defaultRole" ? b.dataset.v : b.dataset.v === "1";
+        const next = Object.assign({}, (groupInfo && groupInfo.settings) || {});
+        next[key] = val;
+        grp.querySelectorAll("[data-v]").forEach(x => x.classList.toggle("on", x === b));
+        try {
+          await window.CloudGroup.setSettings(syncGid, next);
+          groupInfo = Object.assign({}, groupInfo, { settings: next });
+          if (key === "shopForAll") save();   // wirkt auf die Einkaufsliste
+        } catch (e) { toast("Die Einstellung konnte nicht gespeichert werden."); paint(); }
+      })));
+
+      const create = body.querySelector("#grp-create");
+      if (create) create.addEventListener("click", async () => {
+        create.disabled = true; create.textContent = "Wird angelegt …";
+        await createGroup();
+      });
+
+      const roleSeg = body.querySelector("#grp-role");
+      if (roleSeg) roleSeg.querySelectorAll("[data-r]").forEach(b => b.addEventListener("click", () => {
+        inviteRole = b.dataset.r;
+        roleSeg.querySelectorAll("[data-r]").forEach(x => x.classList.toggle("on", x === b));
+      }));
+
+      const inv = body.querySelector("#grp-invite");
+      if (inv) inv.addEventListener("click", async () => {
+        inv.disabled = true; inv.textContent = "Wird erstellt …";
+        try { createdUrl = await createInviteLink(inviteRole || (groupSetting("defaultRole") === "view" ? "view" : "edit")); paint(); }
+        catch (e) { inv.disabled = false; inv.textContent = "Einladungslink erstellen"; toast("Der Link konnte nicht erstellt werden."); }
+      });
+
+      const copy = body.querySelector("#grp-copy");
+      if (copy) copy.addEventListener("click", () => {
+        const text = "Plan mit mir zusammen bei Paddy's Mealplan: " + createdUrl;
+        // Auf dem Handy den Systemdialog nehmen - er trifft WhatsApp direkt, statt den
+        // Link nur in die Zwischenablage zu legen.
+        if (canShare()) navigator.share({ title: "Gemeinsam planen", text: text }).catch(() => {});
+        else copyToClipboard(createdUrl, "Link kopiert");
+      });
+
+      const rev = body.querySelector("#grp-revoke");
+      if (rev) rev.addEventListener("click", async () => {
+        const code = (createdUrl || "").split("?g=")[1];
+        try { if (code) await window.CloudGroup.deleteInvite(code); } catch (e) {}
+        if (code) { state.inviteCodes = (state.inviteCodes || []).filter(c => c !== code); save(); }
+        createdUrl = null; paint(); toast("Link zurückgezogen");
+      });
+
+      body.querySelectorAll("[data-role-for]").forEach(sel => sel.addEventListener("change", async () => {
+        try { await window.CloudGroup.setRole(syncGid, sel.dataset.roleFor, sel.value); toast("Rechte geändert"); }
+        catch (e) { toast("Die Rechte konnten nicht geändert werden."); paint(); }
+      }));
+
+      body.querySelectorAll("[data-kick]").forEach(b => b.addEventListener("click", () => {
+        const m = memberByUid(b.dataset.kick) || {};
+        confirmModal({
+          title: (firstName(m.name) || "Mitglied") + " entfernen?",
+          text: "Die Person sieht euren gemeinsamen Plan dann nicht mehr. Die von ihr angelegten Meals bleiben bei euch.",
+          okLabel: "Entfernen",
+          onConfirm: async () => {
+            try { await window.CloudGroup.removeMember(syncGid, b.dataset.kick); } catch (e) { toast("Das hat nicht geklappt."); }
+          }
+        });
+      }));
+
+      const leave = body.querySelector("#grp-leave");
+      if (leave) leave.addEventListener("click", () => {
+        const owner = groupRole() === "owner";
+        confirmModal({
+          title: owner ? "Gruppe auflösen?" : "Gruppe verlassen?",
+          text: owner
+            ? "Alle verlieren den Zugriff auf den gemeinsamen Plan. Deine Meals und dein Wochenplan bleiben dir erhalten."
+            : "Du planst danach wieder für dich. Deine Meals und der Wochenplan kommen als Kopie mit.",
+          okLabel: owner ? "Auflösen" : "Verlassen",
+          onConfirm: async () => {
+            const gid = syncGid;
+            const wasOwner = owner;
+            await leaveGroup();
+            if (wasOwner) { try { await window.CloudGroup.remove(gid); } catch (e) {} }
+            closeModal();
+          }
+        });
+      });
+    }
+
+    paint();
+    openModal(node);
+    // Aendert sich die Mitgliederliste, waehrend der Dialog offen steht (jemand tritt bei),
+    // soll er das zeigen statt zu veralten.
+    groupModalRepaint = paint;
   }
 
   function sharePayload() {
@@ -8509,6 +9612,9 @@
 
   function applySharedData(data, takePlan) {
     if (!data || !Array.isArray(data.recipes)) { toast("Geteilter Plan konnte nicht gelesen werden"); return; }
+    // Ein geteilter Plan wuerde hier in die GEMEINSAME Sammlung geschrieben - dafuer fehlen
+    // einem Nur-Ansehen-Mitglied die Rechte, und der Vorgang liefe still ins Leere.
+    if (blockedByRole()) { closeModal(); return; }
     const idMap = {};
     let added = 0;
     data.recipes.forEach(ir => {

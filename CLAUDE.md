@@ -298,8 +298,11 @@ Das **Modul-Script** (`type="module"`, läuft *vor* der App) importiert Firebase
 gstatic-CDN und legt drei Objekte auf `window`:
 
 - `window.CloudAuth` — Registrieren/Login (E-Mail + Google), Bestätigungsmail, Passwort-Reset
-- `window.CloudSync` — `load`/`save`/`watch` auf `users/{uid}`
+- `window.CloudSync` — `load`/`save`/`watch` auf `users/{uid}`; die Rezept-Funktionen nehmen
+  einen **Basispfad** (`["users", uid]` oder `["groups", gid]`), keine uid
 - `window.CloudShare` — `publish`/`fetch` auf `shared/{id}`
+- `window.CloudGroup` — „Gemeinsam planen": `groups/{gid}` mit `members/{uid}`,
+  `plans/{weekKey}`, `recipes/{rid}` sowie `invites/{code}`
 
 Die Verbindung zur App läuft über **eine einzige Brücke**: Das Modul ruft aus
 `onAuthStateChanged` heraus `window.__onCloudAuth(user)`; die App setzt dieses Feld auf ihre
@@ -328,6 +331,34 @@ ausgenommen, damit ein Tab-Wechsel keinen Write auslöst.
 Beim Login merged `startCloudSync(uid)` die Rezepte per Union (nichts geht verloren) und filtert
 dabei `!isExample(r)`, damit die Beispiel-Meals nicht in ein bestehendes Konto wandern.
 
+### Gruppenmodus („Gemeinsam planen")
+
+Ist `syncGid` gesetzt, kommen **Wochenplan und Meals aus der Gruppe** statt aus dem eigenen
+Konto. Persönlich bleiben `goal`, `weights`, `weightGoals`, `weightConsent`, `profileImage`,
+`onboarded` — ein Paar sieht denselben Plan gegen sein jeweils eigenes Kalorienziel. Gefunden
+wird die Gruppe über ein Feld `groupId` im eigenen `users/{uid}`-Dokument; dadurch braucht es
+keine `query`/`where`-Imports. Genau eine Gruppe pro Konto, kein Umschalter.
+
+**Der Wochenplan liegt als ein Dokument je ISO-Woche mit flachen Slot-Feldern**
+(`"mon_fr": ["r1"]`), geschrieben per `setDoc(…, {merge:true})` mit Baseline-Diff
+(`lastPushedSlots`) — genau die Mechanik von `syncRecipes()`. Grund: `pushNow` schreibt sonst
+das ganze `plans`-Objekt, und beim gemeinsamen Planen überschreibt der zweite Push den ersten
+(Fenster ~1–2 s). So kollidieren nur noch Schreibvorgänge auf **denselben Slot desselben Tages**.
+
+Zwei Fallen, die dort schon zugeschnappt sind:
+
+- **`dataJSON` muss `plans` auslassen, wenn `syncGid` gesetzt ist.** Sonst liegt `state.plans`
+  (Gruppe) dauerhaft quer zu `data.plans` (eingefrorener Kontostand) → jeder Snapshot gilt als
+  Änderung, Endlos-Toast und Endlos-Push. Dieselbe Falle wie damals bei `recipes`.
+- **Geleerte Slots aus der Baseline entfernen, nicht mit `"[]"` merken.** `flattenWeek` gibt
+  leere Slots gar nicht aus; ein gemerktes `"[]"` gälte bei jedem Push erneut als „fehlt" und
+  schriebe dieselbe Leerung bei **jedem `render()`** neu in die Cloud.
+
+Rollen: `owner` / `edit` / `view`. Die UI-Sperre sitzt an **einem** Choke-Point in der
+Event-Delegation (`WRITE_ACTIONS` + `blockedByRole()`) plus vier nicht-delegierten Pfaden
+(`photoInput.change`, Datei-Drop, Strg+V, `dragstart`). **Verbindlich ist allein die
+Firestore-Regel** — die UI-Sperren sind Komfort und mit Devtools umgehbar.
+
 ## Fallen, die Geld oder Daten gekostet haben
 
 **Jede neue Domain/Subdomain muss auch in Firebase eingetragen werden.** Eine Custom Domain bei
@@ -351,6 +382,12 @@ injizieren.
 
 **`allow read` in Firestore umfasst `get` UND `list`.** Genau daran hing ein echtes Leck: Jede
 angemeldete Person konnte alle geteilten Pläne auflisten. Deshalb steht dort jetzt `allow get`.
+
+**Ein Meal speichert bei `by` nur die uid, nie den Namen.** Der Name wird zur Anzeigezeit aus
+`groupMembers` aufgelöst. Damit verschwindet der Personenbezug automatisch mit dem
+Mitglieder-Dokument — sonst müsste beim Verlassen oder Kontolöschen in n Meal-Dokumenten
+nachgeräumt werden, und Ziffer 10 der Datenschutzerklärung wäre nicht mehr wahr. Aus demselben
+Grund gehört die **E-Mail-Adresse nicht** ins Mitglieder-Dokument (Zusage in Ziffer 8a).
 
 **`firestore.rules` im Repo ist nur eine Vorlage.** Wirksam ist ausschließlich, was in der
 Firebase-Konsole **veröffentlicht** wurde. Der Live-Stand ist von hier aus nicht abrufbar — bei

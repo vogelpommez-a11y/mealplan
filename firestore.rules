@@ -6,10 +6,34 @@ rules_version = '2';
 // Firebase-Konsole unter Firestore Database -> Regeln eingefügt und VERÖFFENTLICHT wird.
 // Sie liegt hier im Repo, damit nachvollziehbar ist, was gelten soll.
 //
-// Stand: 2026-07-24
+// Stand: 2026-07-26
 
 service cloud.firestore {
   match /databases/{database}/documents {
+
+    // ---- Helfer für "Gemeinsam planen" (Gruppen) ----
+    // Die Mitgliedschaft steht in einem eigenen Dokument je Person, nicht als Feld im
+    // Gruppendokument: nur so lässt sich sauber trennen, wer seinen eigenen Eintrag
+    // ändern darf (Name, Bild) und wer Rollen vergeben darf (nur der Inhaber).
+    function memberPath(gid) {
+      return /databases/$(database)/documents/groups/$(gid)/members/$(request.auth.uid);
+    }
+    function isMember(gid) {
+      return request.auth != null && exists(memberPath(gid));
+    }
+    function myRole(gid) {
+      return get(memberPath(gid)).data.role;
+    }
+    // "edit" = mitplanen (Meals anlegen und einplanen), "view" = nur mitlesen.
+    function canWrite(gid) {
+      return isMember(gid) && (myRole(gid) == "owner" || myRole(gid) == "edit");
+    }
+    function isOwner(gid) {
+      return isMember(gid) && myRole(gid) == "owner";
+    }
+    function inviteData(code) {
+      return get(/databases/$(database)/documents/invites/$(code)).data;
+    }
 
     // ---- Konto-Daten: Plan, Meals, Profil ----
     // Jede Person liest und schreibt ausschließlich ihr eigenes Dokument.
@@ -48,6 +72,104 @@ service cloud.firestore {
 
       // Ändern ist niemandem erlaubt: ein geteilter Snapshot ist eine Momentaufnahme.
       allow update: if false;
+    }
+
+    // ================= Gemeinsam planen (Gruppen) =================
+    //
+    // WICHTIG: Diese Regeln sind die EINZIGE verbindliche Durchsetzung der Rollen.
+    // Die Sperren in der Oberfläche ("Nur ansehen" blendet Knöpfe aus) sind reiner
+    // Komfort und mit den Entwicklerwerkzeugen des Browsers umgehbar.
+
+    // ---- Die Gruppe selbst: Name und Einstellungen ----
+    match /groups/{gid} {
+      allow get: if isMember(gid);
+      // Wie bei shared/: NIE auflistbar. Wäre "list" erlaubt, könnte jede angemeldete
+      // Person sämtliche Gruppen samt Namen abfragen.
+      allow list: if false;
+
+      allow create: if request.auth != null
+                    && request.resource.data.owner == request.auth.uid;
+
+      // Nur der Inhaber ändert Name/Einstellungen – und kann sich dabei nicht selbst
+      // gegen jemand anderen austauschen.
+      allow update: if isOwner(gid)
+                    && request.resource.data.owner == resource.data.owner;
+
+      allow delete: if isOwner(gid);
+    }
+
+    // ---- Mitglieder: ein Dokument je Person ----
+    match /groups/{gid}/members/{uid} {
+      allow get, list: if isMember(gid);
+
+      // Zwei Wege hinein:
+      // 1) Der Gründer legt sich selbst als Inhaber an (die Gruppe gehört ihm bereits).
+      // 2) Beitritt über einen Einladungscode. Der Code bestimmt Gruppe UND Rolle, und
+      //    beides wird gegengeprüft - sonst könnte sich jeder mit einem Nur-Lesen-Code
+      //    selbst zum Inhaber oder Mitplaner machen.
+      allow create: if request.auth != null && request.auth.uid == uid
+                    && (
+                         (get(/databases/$(database)/documents/groups/$(gid)).data.owner == request.auth.uid
+                          && request.resource.data.role == "owner")
+                      || (request.resource.data.via is string
+                          && inviteData(request.resource.data.via).gid == gid
+                          && inviteData(request.resource.data.via).role == request.resource.data.role
+                          && request.resource.data.role in ["edit", "view"])
+                       );
+
+      // Name und Bild ändert jeder nur an sich selbst - und die eigene Rolle dabei NICHT.
+      // Rollen vergibt ausschließlich der Inhaber, und nicht an sich selbst (sonst könnte
+      // er sich versehentlich degradieren und die Gruppe wäre führungslos).
+      allow update: if request.auth != null
+                    && (
+                         (request.auth.uid == uid && request.resource.data.role == resource.data.role)
+                      || (isOwner(gid) && uid != request.auth.uid)
+                       );
+
+      // Selbst verlassen, oder vom Inhaber entfernt werden.
+      allow delete: if request.auth != null
+                    && (request.auth.uid == uid || isOwner(gid));
+    }
+
+    // ---- Gemeinsamer Wochenplan: ein Dokument je ISO-Woche ----
+    // Felder sind einzelne Slots ("mon_fr", "sat_ab"), damit gleichzeitiges Planen sich
+    // nicht gegenseitig überschreibt. Hier greift "Nur ansehen" wirklich.
+    match /groups/{gid}/plans/{weekKey} {
+      allow get, list: if isMember(gid);
+      allow create, update, delete: if canWrite(gid);
+    }
+
+    // ---- Gemeinsame Meals: gleiche Struktur wie users/{uid}/recipes ----
+    match /groups/{gid}/recipes/{recipeId} {
+      allow get, list: if isMember(gid);
+      allow create, update, delete: if canWrite(gid);
+    }
+
+    // ---- Einladungscodes ----
+    // Gleiches Modell wie shared/: der Code IST der Zugang, 80 Bit Zufall (shareId()).
+    // Ausdrücklich nur "get", nie "list" - sonst wären alle Gruppen auffindbar.
+    match /invites/{code} {
+      allow get: if request.auth != null;
+      allow list: if false;
+
+      // Einladen darf der Inhaber immer; Mitplaner nur, wenn die Gruppeneinstellung
+      // es erlaubt. Damit ist "Wer darf einladen" serverseitig echt und nicht bloß
+      // eine Attrappe in der Oberfläche.
+      allow create: if request.auth != null
+                    && request.resource.data.by == request.auth.uid
+                    && request.resource.data.role in ["edit", "view"]
+                    && (
+                         isOwner(request.resource.data.gid)
+                      || (canWrite(request.resource.data.gid)
+                          && get(/databases/$(database)/documents/groups/$(request.resource.data.gid)).data.settings.inviteByPlanners == true)
+                       );
+
+      // Ein Code ist unveränderlich - wer andere Rechte vergeben will, erzeugt einen neuen.
+      allow update: if false;
+
+      // Zurückziehen darf, wer ihn erzeugt hat, sowie der Inhaber der Gruppe.
+      allow delete: if request.auth != null
+                    && (resource.data.by == request.auth.uid || isOwner(resource.data.gid));
     }
   }
 }

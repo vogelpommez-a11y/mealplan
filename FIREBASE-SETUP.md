@@ -68,6 +68,14 @@ Damit Plan + Rezepte geräteübergreifend synchronisieren:
    > `users/{uid}`: jeder liest/schreibt nur sein **eigenes** Konto-Dokument.
    > `shared/{id}`: nur **`get`** (Dokument per ID), ausdrücklich **kein `list`**. Ändern verboten,
    > Löschen nur durch den Urheber.
+   > `groups/{gid}` (+ `members`, `plans`, `recipes`) und `invites/{code}`: „Gemeinsam planen".
+   > Lesen nur für Mitglieder, Schreiben nur für Rolle `owner`/`edit`. Auch hier **kein `list`**
+   > auf `groups` und `invites`.
+
+   ⚠️ **Ohne diesen Schritt gibt es kein „Gemeinsam planen".** Jeder Gruppen-Schreibvorgang
+   scheitert, und die Rollen („Nur ansehen" vs. „Mitplanen") existieren schlicht nicht — die
+   Sperren in der Oberfläche sind nur Komfort und mit den Entwicklerwerkzeugen des Browsers
+   umgehbar. Verbindlich ist ausschließlich die veröffentlichte Regel.
 
    ⚠️ **Falls du eine ältere Fassung mit `allow read: if request.auth != null;` unter
    `shared/{id}` veröffentlicht hast: bitte dringend ersetzen.** In Firestore umfasst `read`
