@@ -119,11 +119,15 @@ service cloud.firestore {
 
       // Name und Bild ändert jeder nur an sich selbst - und die eigene Rolle dabei NICHT.
       // Rollen vergibt ausschließlich der Inhaber, und nicht an sich selbst (sonst könnte
-      // er sich versehentlich degradieren und die Gruppe wäre führungslos).
+      // er sich versehentlich degradieren und die Gruppe wäre führungslos). Der Wertebereich
+      // "edit"/"view" gilt hier ausdrücklich auch für fremde Mitglieder (Zeile 127) - ohne das
+      // könnte der Inhaber ein fremdes role-Feld technisch auf einen beliebigen Wert setzen,
+      // z. B. "owner". Nur er selbst könnte das (kein Weg für Dritte), aber es war unsauber.
       allow update: if request.auth != null
                     && (
                          (request.auth.uid == uid && request.resource.data.role == resource.data.role)
-                      || (isOwner(gid) && uid != request.auth.uid)
+                      || (isOwner(gid) && uid != request.auth.uid
+                          && request.resource.data.role in ["edit", "view"])
                        );
 
       // Selbst verlassen, oder vom Inhaber entfernt werden.

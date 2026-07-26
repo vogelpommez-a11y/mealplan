@@ -1,3 +1,5 @@
+<!doctype html>
+<html lang="de">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#DC2626">
@@ -10,6 +12,20 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Mealplan">
 <meta name="mobile-web-app-capable" content="yes">
+<meta name="description" content="Paddy's Mealplan: Wochen-Essensplaner mit Kalorienziel, Makros und Training. Du planst deine Woche, die App rechnet mit – die Einkaufsliste schreibt sich von selbst.">
+<!-- Open Graph/Twitter: og:image nutzt bewusst icon-512.png als Zwischenloesung (quadratisch,
+     kein eigens gestaltetes 1200x630-Vorschaubild vorhanden) - eine data:-URL funktioniert hier
+     nicht, Vorschaukarten brauchen eine ladbare Bild-URL. -->
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://www.paddysmealplan.de/">
+<meta property="og:title" content="Paddy's Mealplan – Plan it. Cook it. Lift it.">
+<meta property="og:description" content="Wochen-Essensplaner mit Kalorienziel, Makros und Training. Du planst deine Woche, die App rechnet mit – die Einkaufsliste schreibt sich von selbst.">
+<meta property="og:image" content="https://www.paddysmealplan.de/icon-512.png">
+<meta property="og:locale" content="de_DE">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Paddy's Mealplan – Plan it. Cook it. Lift it.">
+<meta name="twitter:description" content="Wochen-Essensplaner mit Kalorienziel, Makros und Training. Du planst deine Woche, die App rechnet mit – die Einkaufsliste schreibt sich von selbst.">
+<meta name="twitter:image" content="https://www.paddysmealplan.de/icon-512.png">
 <script>
   /* Erscheinungsbild vor dem ersten Paint setzen — sonst blitzt beim Laden kurz das
      falsche Theme auf. Ohne gespeicherte Wahl bleibt das Attribut weg, dann greift
@@ -2071,6 +2087,7 @@
     signInWithEmailAndPassword, sendEmailVerification, signOut,
     updateProfile, sendPasswordResetEmail, setPersistence,
     browserLocalPersistence, GoogleAuthProvider, OAuthProvider, signInWithPopup,
+    signInWithRedirect, getRedirectResult,
     deleteUser, reauthenticateWithPopup, reauthenticateWithCredential, EmailAuthProvider
   } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
   import {
@@ -2101,6 +2118,20 @@
       auth.languageCode = "de";
       setPersistence(auth, browserLocalPersistence).catch(function () {});
 
+      function popupFallback(e, provider) {
+        const c = e && e.code;
+        if (c === "auth/popup-blocked" || c === "auth/operation-not-supported-in-this-environment") {
+          return signInWithRedirect(auth, provider);
+        }
+        throw e;
+      }
+      // Nach signInWithRedirect verlaesst die Seite den Tab komplett und laedt danach neu -
+      // das Ergebnis (oder ein Fehler wie "account-exists-with-different-credential") kommt
+      // erst hier an, nie ueber das Promise von loginGoogle/loginApple. onAuthStateChanged holt
+      // den erfolgreich angemeldeten User ohnehin automatisch ab; hier wird nur der Fehlerfall
+      // eingefangen, damit er nicht stillschweigend verschwindet.
+      getRedirectResult(auth).catch(function (e) { window.CloudAuth.redirectError = e; });
+
       Object.assign(window.CloudAuth, {
         registerEmail: async function (name, email, pw) {
           const cred = await createUserWithEmailAndPassword(auth, email, pw);
@@ -2109,13 +2140,18 @@
           return cred.user;
         },
         loginEmail: function (email, pw) { return signInWithEmailAndPassword(auth, email, pw); },
+        // In-App-Browser (Instagram, Facebook, TikTok) blockieren OAuth-Popups routinemaessig -
+        // dort kommt "auth/popup-blocked", und "Erlaube Pop-ups" laesst sich dort nicht befolgen
+        // (es gibt keine Popup-Einstellung). Ausweg: bei genau diesen Fehlercodes auf einen
+        // vollen Seitenwechsel (signInWithRedirect) umsteigen. Das Ergebnis holt getRedirectResult()
+        // weiter unten ab, sobald die Seite danach neu laedt.
         loginGoogle: function () {
           const p = new GoogleAuthProvider(); p.setCustomParameters({ prompt: "select_account" });
-          return signInWithPopup(auth, p);
+          return signInWithPopup(auth, p).catch(function (e) { return popupFallback(e, p); });
         },
         loginApple: function () {
           const p = new OAuthProvider("apple.com"); p.addScope("email"); p.addScope("name");
-          return signInWithPopup(auth, p);
+          return signInWithPopup(auth, p).catch(function (e) { return popupFallback(e, p); });
         },
         resendVerification: function () {
           return auth.currentUser ? sendEmailVerification(auth.currentUser) : Promise.reject(new Error("no-user"));
@@ -2278,6 +2314,23 @@
         // updateDoc statt setDoc(merge): scheitert laut, wenn die Gruppe nicht mehr da ist.
         setSettings: function (gid, settings) { return updateDoc(groupDoc(gid), { settings: settings }); },
         remove: function (gid) { return deleteDoc(groupDoc(gid)); },
+        // Vollstaendiges Aufloesen: Gruppendokument + ALLE Mitglieder + ALLE Wochenplaene +
+        // ALLE Meals in einem Batch. Firestore loescht Unterkollektionen NIE automatisch mit dem
+        // Elterndokument - ohne dies blieben die Eintraege der uebrigen Mitglieder sowie Plaene/
+        // Meals fuer immer als Karteileichen stehen (das widersprach Ziffer 10 der
+        // Datenschutzerklaerung woertlich). Der eigene Mitglieder-Eintrag steckt bewusst MIT im
+        // Batch statt separat geloescht zu werden: Firestore prueft Regeln fuer jede Operation
+        // eines Batches gegen den Stand VOR dem Commit, die eigene Owner-Mitgliedschaft (die
+        // isOwner() fuer alle anderen Loeschungen braucht) muss also beim Abschicken noch
+        // bestehen, nicht erst danach geloescht werden.
+        dissolve: function (gid, memberUids, planWeeks, recipeIds) {
+          const batch = writeBatch(db);
+          memberUids.forEach(function (uid) { batch.delete(doc(db, "groups", gid, "members", uid)); });
+          planWeeks.forEach(function (wk) { batch.delete(doc(db, "groups", gid, "plans", wk)); });
+          recipeIds.forEach(function (id) { batch.delete(doc(db, "groups", gid, "recipes", id)); });
+          batch.delete(groupDoc(gid));
+          return batch.commit();
+        },
 
         // ----- Mitglieder: ein Dokument je Person, damit Rollenrechte pro Dokument gelten -----
         fetchMembers: function (gid) {
@@ -3317,7 +3370,15 @@
     if (!gid || !window.CloudGroup || !window.CloudGroup.enabled) return false;
     try {
       const info = await window.CloudGroup.fetch(gid);
-      if (!info) return false;
+      // Die Gruppe ist weg (aufgeloest). dissolveGroup() raeumt inzwischen alle Mitglieder in
+      // einem Batch mit auf, aber falls hier trotzdem noch ein eigener Eintrag haengt (aeltere,
+      // vor diesem Fix aufgeloeste Gruppe; oder die Gruppe wurde ausserhalb der App entfernt):
+      // aktiv nachraeumen statt nur lokal state.groupId zu leeren, sonst bliebe Name+Bild fuer
+      // immer in einer nicht mehr existierenden Gruppe stehen.
+      if (!info) {
+        try { await window.CloudGroup.removeMember(gid, syncUid); } catch (e) {}
+        return false;
+      }
       const members = await window.CloudGroup.fetchMembers(gid);
       const me = members.filter(m => m.uid === syncUid)[0];
       if (!me) return false;                        // entfernt worden
@@ -6600,7 +6661,7 @@
       <h4>4. Zweck &amp; Rechtsgrundlage</h4>
       <p>Wir verarbeiten die Daten zur Bereitstellung deines Nutzerkontos und der Planer-Funktionen (Art. 6 Abs. 1 lit. b DSGVO – Nutzungsvertrag). Die Bestätigungs-E-Mail dient der Sicherstellung, dass die Adresse dir gehört.</p>
       <h4>5. Cloud-Dienste (Google Firebase)</h4>
-      <p>Für Anmeldung und Speicherung nutzen wir <strong>Google Firebase</strong> (Firebase Authentication und Cloud Firestore) der Google Ireland Ltd., Gordon House, Barrow Street, Dublin 4, Irland. Der Datenbank-Standort ist auf <strong>Europa</strong> eingestellt. Google verarbeitet die Daten in unserem Auftrag (Auftragsverarbeitung); eine Übermittlung in die USA kann nicht ausgeschlossen werden und stützt sich auf die EU-Standardvertragsklauseln bzw. das EU-US Data Privacy Framework. Datenschutz von Google: <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">policies.google.com/privacy</a>.</p>
+      <p>Für Anmeldung und Speicherung nutzen wir <strong>Google Firebase</strong> (Firebase Authentication und Cloud Firestore) der Google Ireland Ltd., Gordon House, Barrow Street, Dublin 4, Irland. Bereits beim <strong>Aufruf dieser Seite</strong> lädt dein Browser dafür technisch notwendige Software von Google-Servern nach – unabhängig davon, ob du dich anmeldest oder ein Konto anlegst; dabei wird deine IP-Adresse an Google übermittelt. Der Datenbank-Standort ist auf <strong>Europa</strong> eingestellt. Google verarbeitet die Daten in unserem Auftrag (Auftragsverarbeitung); eine Übermittlung in die USA kann nicht ausgeschlossen werden und stützt sich auf die EU-Standardvertragsklauseln bzw. das EU-US Data Privacy Framework. Datenschutz von Google: <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">policies.google.com/privacy</a>.</p>
       <h4>6. Anmeldung mit Google</h4>
       <p>Wenn du dich mit „Mit Google anmelden" einloggst, erhält Google die für die Anmeldung nötigen Informationen. Es gelten zusätzlich die Datenschutzbestimmungen von Google.</p>
       <h4>7. Speicherung im Browser</h4>
@@ -8280,7 +8341,12 @@
       "auth/too-many-requests": "Zu viele Versuche. Bitte warte kurz und versuche es erneut.",
       "auth/popup-closed-by-user": "Anmeldefenster wurde geschlossen.",
       "auth/cancelled-popup-request": "Anmeldung abgebrochen.",
-      "auth/popup-blocked": "Das Anmeldefenster wurde blockiert. Erlaube Pop-ups und versuche es erneut.",
+      // "Erlaube Pop-ups" hilft nur im normalen Browser. In einem In-App-Browser (Instagram,
+      // Facebook, TikTok) gibt es dafuer keine Einstellung - loginGoogle/loginApple weichen bei
+      // diesem Code bereits automatisch auf signInWithRedirect aus (siehe Modul-Script), diese
+      // Meldung bleibt nur als Rueckfall fuer den seltenen Fall, dass auch das fehlschlaegt.
+      "auth/popup-blocked": "Das hat hier nicht geklappt. Öffne die Seite im Browser deines Geräts (z. B. über „In Chrome öffnen“ im Menü) und versuche es dort erneut.",
+      "auth/account-exists-with-different-credential": "Diese E-Mail ist bereits mit einer anderen Anmeldeart registriert.",
       "auth/network-request-failed": "Keine Verbindung. Bitte prüfe dein Internet.",
       "auth/operation-not-allowed": "Diese Anmeldeart ist in Firebase noch nicht aktiviert.",
       "auth/unauthorized-domain": "Diese Domain ist in Firebase nicht freigegeben (Authentication → Settings → Authorized domains).",
@@ -8326,6 +8392,15 @@
     const showErr = m => { errEl.textContent = m || ""; };
     const setBusy = on => { card.classList.toggle("auth-busy", !!on); };
     const val = id => { const n = view.querySelector(id); return n ? n.value.trim() : ""; };
+
+    // Kommt jemand nach einem signInWithRedirect (siehe Modul-Script) hierher zurueck, weil die
+    // Anmeldung fehlschlug, liegt der Fehler in window.CloudAuth.redirectError - hier einmalig
+    // abholen und zeigen. Erfolgreiche Anmeldungen landen nie auf diesem Screen: dort ruft
+    // onAuthStateChanged vorher schon enterApp/renderVerifyPending auf.
+    if (window.CloudAuth && window.CloudAuth.redirectError) {
+      showErr(cloudErrMsg(window.CloudAuth.redirectError));
+      window.CloudAuth.redirectError = null;
+    }
 
     view.querySelectorAll(".segbar button").forEach(b => b.addEventListener("click", () => {
       cloudMode = b.getAttribute("data-m"); drawCloudCard();
@@ -8827,6 +8902,46 @@
     }
   }
 
+  // Gruppe vollstaendig aufloesen (nur der Inhaber, ueber "Auflösen"). Erst der Batch aus
+  // CloudGroup.dissolve (Gruppendokument + ALLE Mitglieder + ALLE Plaene + ALLE Meals in einem
+  // Rutsch - Firestore loescht Unterkollektionen sonst nie mit), danach dieselbe lokale
+  // Aufraeumarbeit wie beim einfachen Verlassen. Der eigene Mitglieder-Eintrag ist durch den
+  // Batch schon weg; removeMember() darin (in leaveGroup()) ist dann ein folgenloser
+  // Zweitversuch auf ein bereits geloeschtes Dokument.
+  async function dissolveGroup() {
+    if (!syncGid || !syncUid) return;
+    const gid = syncGid;
+    try {
+      const [members, plans, recipes] = await Promise.all([
+        window.CloudGroup.fetchMembers(gid),
+        window.CloudGroup.loadPlans(gid),
+        window.CloudGroup.loadRecipes(["groups", gid])
+      ]);
+      await window.CloudGroup.dissolve(gid, members.map(m => m.uid), plans.map(p => p.week), recipes.map(r => r.id));
+      // Eigene Einladungscodes fuer GENAU diese Gruppe zusaetzlich loeschen. invites/{code} ist
+      // bewusst nicht auflistbar (siehe firestore.rules) - deshalb ueber state.inviteCodes gehen,
+      // dieselbe Liste, die auch beim Konto-Loeschen benutzt wird (deleteAccountFlow), und nur
+      // die Codes entfernen, die wirklich zu dieser Gruppe gehoeren (die Liste koennte theoretisch
+      // Codes einer laengst verlassenen frueheren Gruppe enthalten).
+      const ownCodes = [];
+      for (const code of (state.inviteCodes || [])) {
+        try {
+          const inv = await window.CloudGroup.fetchInvite(code);
+          if (inv && inv.gid === gid) ownCodes.push(code);
+        } catch (e) {}
+      }
+      for (const code of ownCodes) {
+        try { await window.CloudGroup.deleteInvite(code); } catch (e) {}
+      }
+      if (ownCodes.length) state.inviteCodes = (state.inviteCodes || []).filter(c => ownCodes.indexOf(c) === -1);
+    } catch (e) {
+      // Batch schlug fehl (z. B. offline) - lieber lokal trotzdem aufraeumen, statt den Nutzer
+      // in einer Gruppe festzuhalten, die er gerade aufloesen wollte. Auf dem Server bleibt sie
+      // dann zwar bestehen, leaveGroup() unten entfernt zumindest den eigenen Zugriff.
+    }
+    await leaveGroup();
+  }
+
   // Gruppe verlassen. Plan und Meals bleiben als eigene Kopie erhalten - sie stehen ja
   // schon vollstaendig im lokalen State; sie werden nur wieder ins eigene Konto geschrieben.
   async function leaveGroup() {
@@ -9036,10 +9151,7 @@
             : "Du planst danach wieder für dich. Deine Meals und der Wochenplan kommen als Kopie mit.",
           okLabel: owner ? "Auflösen" : "Verlassen",
           onConfirm: async () => {
-            const gid = syncGid;
-            const wasOwner = owner;
-            await leaveGroup();
-            if (wasOwner) { try { await window.CloudGroup.remove(gid); } catch (e) {} }
+            if (owner) await dissolveGroup(); else await leaveGroup();
             closeModal();
           }
         });
@@ -9737,3 +9849,4 @@
     });
   }
 </script>
+</html>
