@@ -3554,19 +3554,31 @@
   // etwas aus Nutzereingaben oder gespeicherten Daten.
   // o.step muss ein glatter Wert sein (1, 5, 0.1) - die Nachkommastellen werden aus
   // seiner Textdarstellung abgeleitet.
+  //
+  // Ab wie vielen Eintraegen das Rad umschlaegt: Dieselbe Abwaegung wie am Rechner, nur
+  // spaeter. Ein Rad gewinnt, solange man das Ziel im Vorbeiziehen sieht - beim Gewicht
+  // (30-400 kg in 0,1er-Schritten) waeren es 3.701 Eintraege, und bis 82,4 kg muesste man
+  // 525 Zeilen weit scrollen. Auf dem iPhone federt das Schwungrad das noch ab, Android
+  // rendert eine schlichte Liste: dort war die Eingabe im Test unbenutzbar. Ab dieser
+  // Grenze ist Tippen schneller, deshalb dann auch am Handy das Zahlenfeld.
+  // 200 liegt bewusst zwischen Groesse (151 Eintraege, bleibt Rad) und dem ganzzahligen
+  // Gewicht (371) - Alter (111) und Trainingsdauer (47) bleiben ebenfalls Rad.
+  const PICKER_MAX_OPTIONS = 200;
   function numField(o) {
     const step = o.step || 1;
     const val = (o.value == null || o.value === "") ? "" : String(o.value);
     const cls = o.cls ? ` class="${o.cls}"` : "";
     const extra = o.extra ? " " + o.extra : "";
-    if (!coarsePointer()) {
+    // In Ganzzahlen rechnen: 0.1er-Schritte per Addition sammeln Rundungsfehler an.
+    // Steht vor der Verzweigung, weil schon das Abzaehlen der Eintraege es braucht.
+    const f = step < 1 ? Math.round(1 / step) : 1;
+    const lo = Math.round(o.min * f), hi = Math.round(o.max * f), sp = Math.round(step * f);
+    const optionCount = Math.floor((hi - lo) / sp) + 1;
+    if (!coarsePointer() || optionCount > PICKER_MAX_OPTIONS) {
       return `<input type="number" id="${o.id}"${cls} min="${o.min}" max="${o.max}" step="${step}"`
         + ` inputmode="${step < 1 ? "decimal" : "numeric"}" placeholder="${esc(o.placeholder || "")}"`
         + ` value="${esc(val)}"${extra}>`;
     }
-    // In Ganzzahlen rechnen: 0.1er-Schritte per Addition sammeln Rundungsfehler an.
-    const f = step < 1 ? Math.round(1 / step) : 1;
-    const lo = Math.round(o.min * f), hi = Math.round(o.max * f), sp = Math.round(step * f);
     // NICHT runden: Ein gespeichertes 82,4 wuerde sonst auf 82 einrasten und der Wert
     // waere ohne Zutun des Nutzers veraendert. Verglichen wird mit Toleranz, weil
     // 82.4 * 10 in Gleitkomma 824.0000000000001 ergibt.
