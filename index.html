@@ -39,6 +39,17 @@
     --border: #E7E0E1;
     --border-strong: #D6CCCE;
 
+    /* Glas: Kopfzeile und die schwebende Reiterleiste auf dem Handy. --glass-bg-strong ist
+       bewusst dichter als --glass-bg — im Kopf steht Text, unter dem Meal-Fotos durchscrollen,
+       waehrend die Leiste ein freistehendes Bedienelement ohne Hintergrundtext ist.
+       --glass-edge ist die Lichtkante, die eine echte Glasflaeche oben einfaengt. */
+    --glass-bg: color-mix(in srgb, var(--surface) 68%, transparent);
+    --glass-bg-strong: color-mix(in srgb, var(--surface) 82%, transparent);
+    --glass-edge: rgba(255, 255, 255, .72);
+    --glass-shadow: 0 8px 28px rgba(20, 24, 31, .16);
+    /* Nur hier, nicht je Theme: die Weichzeichnung ist in Hell und Dunkel gleich stark. */
+    --glass-blur: 22px;
+
     --accent: #DC2626;
     --accent-strong: #B01218;
     --accent-contrast: #FFFFFF;
@@ -125,6 +136,11 @@
       --border: #2A2223;
       --border-strong: #3A2F30;
 
+      --glass-bg: color-mix(in srgb, var(--surface) 66%, transparent);
+      --glass-bg-strong: color-mix(in srgb, var(--surface) 80%, transparent);
+      --glass-edge: rgba(255, 255, 255, .10);
+      --glass-shadow: 0 8px 30px rgba(0, 0, 0, .55);
+
       --accent: #FF3040;
       --accent-strong: #FF5A66;
       --accent-contrast: #FFFFFF;
@@ -153,6 +169,9 @@
     --logo: var(--logoL);
     --bg: #F6F4F4; --surface: #FFFFFF; --surface-2: #F0ECEC;
     --text: #1A1416; --text-muted: #6B5F62; --border: #E7E0E1; --border-strong: #D6CCCE;
+    --glass-bg: color-mix(in srgb, var(--surface) 68%, transparent);
+    --glass-bg-strong: color-mix(in srgb, var(--surface) 82%, transparent);
+    --glass-edge: rgba(255, 255, 255, .72); --glass-shadow: 0 8px 28px rgba(20, 24, 31, .16);
     --accent: #DC2626; --accent-strong: #B01218; --accent-contrast: #FFFFFF; --accent-solid: #DC2626; --danger: var(--accent); --ok: #1E9E57;
     --fr: #A96E12; --mi: #2E7D6B; --ab: #6E5A9E;
     --carb: #A26A11; --prot: #C74B78; --fat: #1C7EB3;
@@ -163,6 +182,9 @@
     --logo: var(--logoD);
     --bg: #0C0A0B; --surface: #141011; --surface-2: #1C1718;
     --text: #F4EFEE; --text-muted: #A69B9D; --border: #2A2223; --border-strong: #3A2F30;
+    --glass-bg: color-mix(in srgb, var(--surface) 66%, transparent);
+    --glass-bg-strong: color-mix(in srgb, var(--surface) 80%, transparent);
+    --glass-edge: rgba(255, 255, 255, .10); --glass-shadow: 0 8px 30px rgba(0, 0, 0, .55);
     --accent: #FF3040; --accent-strong: #FF5A66; --accent-contrast: #FFFFFF; --accent-solid: #E02234; --danger: var(--accent); --ok: #3DDC84;
     --fr: #E0A94A; --mi: #58B49E; --ab: #AC93E0;
     --carb: #E9A03B; --prot: #C74B78; --fat: #4AA8E0;
@@ -200,8 +222,9 @@
   }
   header.site::before {
     content: ""; position: absolute; inset: 0; z-index: -1;
-    background: color-mix(in srgb, var(--bg) 88%, transparent);
-    backdrop-filter: blur(10px);
+    background: var(--glass-bg-strong);
+    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(180%);
+    backdrop-filter: blur(var(--glass-blur)) saturate(180%);
   }
   .head-inner { display: flex; align-items: center; gap: 18px; padding: 14px 0; flex-wrap: wrap; }
   .brand { display: flex; align-items: center; gap: 12px; margin-right: auto; }
@@ -244,32 +267,67 @@
   @media (max-width: 680px) {
     /* display:contents statt none — none wuerde die (fixierte) Leiste mit ausblenden */
     .navrow { display: contents; }
+    /* Freistehende Kapsel statt Leiste am Rand: sie schwebt ueber dem Inhalt, der beim
+       Scrollen sichtbar dahinter durchwandert. Die Homebar-Freihaltung sitzt in `bottom`,
+       nicht im `padding` — sonst waere die Kapsel unten aufgeblaeht statt hochgeschoben. */
     .tabs {
-      position: fixed; left: 0; right: 0; bottom: 0; z-index: 50;
+      position: fixed; z-index: 50;
+      left: 12px; right: 12px;
+      bottom: calc(10px + env(safe-area-inset-bottom, 0px));
       display: grid; grid-template-columns: repeat(3, 1fr); gap: 0;
-      border: 0; border-top: 1px solid var(--border); border-radius: 0;
-      background: color-mix(in srgb, var(--surface) 94%, var(--bg));
-      backdrop-filter: blur(10px);
-      padding: 5px 3px calc(5px + env(safe-area-inset-bottom, 0px)); /* iPhone-Homebar */
-      box-shadow: 0 -6px 20px rgba(0, 0, 0, .18);
+      border: 1px solid var(--glass-edge); border-radius: 999px;
+      background: var(--glass-bg);
+      -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(180%);
+      backdrop-filter: blur(var(--glass-blur)) saturate(180%);
+      padding: 5px 6px;
+      box-shadow: var(--glass-shadow);
     }
     .tab {
       flex: none; flex-direction: column; gap: 3px; padding: 6px 2px 5px;
       font-size: 10.5px; font-weight: 600; line-height: 1.1; min-height: 46px;
-      justify-content: center; position: relative; border-radius: 10px; white-space: nowrap;
+      justify-content: center; position: relative; border-radius: 999px; white-space: nowrap;
+      /* Voller Textkontrast statt --text-muted: hinter dem Glas kann jederzeit ein Meal-Foto
+         liegen, und flaues Grau darauf kippt unter 4.5:1. Welcher Reiter aktiv ist, traegt
+         die gefuellte Pille — nicht ein Helligkeitsunterschied. */
+      color: var(--text);
+      transition: color var(--dur-fast), background var(--dur-fast), transform 120ms var(--ease-out);
     }
+    .tab:active { transform: scale(.96); }
     .tab svg { width: 20px; height: 20px; }
     .tab .tl { display: none; }
     .tab .ts { display: inline; }
+    /* Die aktive Pille ist DECKEND, nicht getoent. Getoent auf Glas gerechnet: liegt hinter
+       der Kapsel eine helle Bildstelle (weisser Teller), faellt Akzentrot darauf auf ~1.8:1.
+       Deckend steht die Beschriftung auf definiertem Grund — 6:1 dunkel, 8:1 hell — und die
+       Pille hebt sich zugleich klarer von der Glasflaeche ab. */
     .tab[aria-selected="true"] {
-      background: color-mix(in srgb, var(--accent) 12%, transparent);
-      color: var(--accent); box-shadow: none;
+      background: var(--surface);
+      color: var(--accent-strong);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, .12);
     }
-    /* Zaehler als Eckmarke am Symbol — neben dem Text ist in 66 px kein Platz */
-    .tab .count { position: absolute; top: 1px; left: 50%; margin-left: 5px; font-size: 9.5px; padding: 0 5px; }
-    /* Platz schaffen, sonst verdeckt die Leiste Inhalt und Fusszeile */
-    .app { padding-bottom: calc(56px + env(safe-area-inset-bottom, 0px)); }
-    #toast { bottom: calc(72px + env(safe-area-inset-bottom, 0px)); }
+    /* Zaehler als Eckmarke am Symbol — neben dem Text ist in 66 px kein Platz.
+       3px statt 1px: in der gerundeten Kapsel sitzt er sonst auf der Oberkante. */
+    .tab .count { position: absolute; top: 3px; left: 50%; margin-left: 5px; font-size: 9.5px; padding: 0 5px; }
+    /* Inset am Seitenende, damit das letzte Element und die Fusszeile (Impressum,
+       Datenschutz) frei ueber der Kapsel stehen. Bewusst NICHT 0: dahinter durchwandern
+       soll der Inhalt beim Scrollen, dauerhaft verdeckt sein darf er nicht.
+       --tabbar-h misst syncStickyOffsets(); der Rueckfall 58px ist die gerechnete Hoehe
+       (5 + 46 + 5 Innenmass + 2 Rahmen) und haelt den ersten Bildaufbau ruhig. */
+    .app { padding-bottom: calc(var(--tabbar-h, 58px) + 24px + env(safe-area-inset-bottom, 0px)); }
+    #toast { bottom: calc(var(--tabbar-h, 58px) + 28px + env(safe-area-inset-bottom, 0px)); }
+  }
+  /* Rueckfall ohne Weichzeichner: halbtransparent OHNE Blur hiesse Text auf Text. Dann
+     lieber deckend. Gleiches gilt fuer "Transparenz reduzieren" im Betriebssystem. */
+  @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    header.site::before { background: color-mix(in srgb, var(--bg) 97%, var(--surface)); }
+    /* Nur die schwebende Kapsel: am Rechner steht die Leiste im Kopf und ist ohnehin deckend. */
+    @media (max-width: 680px) { .tabs { background: color-mix(in srgb, var(--surface) 96%, var(--bg)); } }
+  }
+  @media (prefers-reduced-transparency: reduce) {
+    header.site::before { -webkit-backdrop-filter: none; backdrop-filter: none; background: var(--bg); }
+    @media (max-width: 680px) {
+      .tabs { -webkit-backdrop-filter: none; backdrop-filter: none; background: color-mix(in srgb, var(--surface) 97%, var(--bg)); }
+    }
   }
 
   main { padding: 28px 0 80px; }
@@ -1457,6 +1515,8 @@
   @media (max-width: 560px) {
     .wrap { padding: 0 14px; }
     main { padding: 20px 0 64px; }
+    /* Auf sehr schmalen Geraeten etwas naeher an den Rand — sonst wird die Kapsel innen eng. */
+    .tabs { left: 10px; right: 10px; }
     .row2 { grid-template-columns: 1fr; }
     /* Drei Kennzahlen nebeneinander werden auf schmalen Geraeten eng - etwas kleinere
        Zahlen und weniger Abstand halten sie in einer Zeile, statt sie umbrechen zu lassen. */
@@ -1902,11 +1962,11 @@
   .grp-m .who b { display: block; font-size: 14px; font-weight: 620; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .grp-m .who small { display: block; font-size: 12px; color: var(--text-muted); }
   /* Rollenwahl je Mitglied. Nur der Inhaber sieht sie; fuer alle anderen steht die Rolle
-     als reiner Text in .who small - ein ausgegrautes Bedienelement waere nur Rauschen. */
-  /* width:auto muss sein: die globale Formularregel weiter oben setzt fuer JEDES select
-     width:100% - hier zog das die Rollenwahl auf die volle Zeilenbreite und drueckte den
-     Namen daneben in eine eigene Zeile. */
-  .grp-m select { flex: none; width: auto; max-width: 128px; font: inherit; font-size: 13px; min-height: 44px; padding: 6px 8px; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--surface); color: var(--text); }
+     als reiner Text in .who small - ein ausgegrautes Bedienelement waere nur Rauschen.
+     Eigene Zeile unter dem Namen, eingerueckt um 46px (Avatar 34 + gap 12), damit sie
+     buendig darunter beginnt: neben dem Namen passte sie bei 390px nicht mehr mit dem
+     Entfernen-Knopf zusammen, und der rutschte dann allein in die zweite Zeile. */
+  .grp-m select { flex: 0 0 calc(100% - 46px); margin-left: 46px; width: auto; font: inherit; font-size: 13px; min-height: 44px; padding: 6px 8px; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--surface); color: var(--text); }
   .grp-m .btn.icon-gh { flex: none; }
   /* Der rechtliche Hinweis beim Gruppenstart gehoert hinter ein <details>: er ist Pflicht,
      aber keine Information, die im Regelfall gebraucht wird. */
@@ -3199,7 +3259,7 @@
   function groupSetting(key) {
     const s = (groupInfo && groupInfo.settings) || {};
     if (s[key] !== undefined) return s[key];
-    return key === "changeHints" ? true : (key === "defaultRole" ? "edit" : false);
+    return key === "changeHints";
   }
 
   // Winziges Abbild des Profilbilds fuer den Mitglieder-Eintrag. Das volle Bild (bis 640px)
@@ -6941,6 +7001,10 @@
     renderProfileChip();
     state.tab = "home"; // Start immer im Home-Reiter (Reload & Login)
     render();
+    // Einmal messen, sobald die Leiste steht: --tabbar-h haelt das Inset am Seitenende und
+    // die Toast-Hoehe. Ohne diesen Aufruf griffe im Home-Reiter dauerhaft der CSS-Rueckfall,
+    // weil sonst nur renderPlan() und das Ende der Einfuehrung messen.
+    syncStickyOffsets();
     if (pendingInvite) { const code = pendingInvite; pendingInvite = null; openInviteModal(code); }
     else if (pendingShare) { const id = pendingShare; pendingShare = null; shareOnStart = true; loadSharedById(id); }
     // Im Cloud-Modus entscheidet startCloudSync ueber die ersten Schritte, nicht wir: das
@@ -8666,7 +8730,7 @@
     try {
       await window.CloudGroup.create(gid, {
         name: "", owner: syncUid, createdAt: Date.now(),
-        settings: { inviteByPlanners: false, shopForAll: true, defaultRole: "edit", changeHints: true }
+        settings: { shopForAll: true, changeHints: true }
       });
       await window.CloudGroup.putMember(gid, syncUid, {
         name: profile.name || "", avatar: await smallAvatar(state.profileImage),
@@ -8770,7 +8834,6 @@
       });
       return;
     }
-    let seg = "members";
     let createdUrl = null;
     const node = el(`<div class="modal" role="dialog" aria-modal="true" aria-label="Gemeinsam planen">
       <div class="modal-head"><div style="flex:1"><div class="kicker">Gemeinsam planen</div><h3 style="margin-top:2px" id="grp-title"></h3></div><button class="btn ghost sm" data-close>✕</button></div>
@@ -8782,24 +8845,17 @@
 
     function paint() {
       title.textContent = syncGid ? "Eure Gruppe" : "Zu zweit planen";
-      if (!syncGid) { body.innerHTML = startHtml(); wire(); return; }
-      // Die Einstellungen gehoeren dem Inhaber - fuer alle anderen waere ein zweiter
-      // Reiter voller ausgegrauter Schalter nur Rauschen.
-      const owner = groupRole() === "owner";
-      body.innerHTML = (owner ? `<div class="segbar" role="tablist">
-          <button role="tab" data-seg="members" aria-selected="${seg === "members"}">Mitglieder</button>
-          <button role="tab" data-seg="settings" aria-selected="${seg === "settings"}">Einstellungen</button>
-        </div>` : "")
-        + (owner && seg === "settings" ? settingsSegHtml() : memberSegHtml());
-      body.querySelectorAll("[data-seg]").forEach(b => b.addEventListener("click", () => { seg = b.dataset.seg; paint(); }));
+      body.innerHTML = syncGid ? groupHtml() : startHtml();
       wire();
     }
 
-    // Vier Schalter, vier Zeilen. Bewusst ohne Begruendungssaetze - was sie tun, steht in
-    // der Beschriftung, und die App bleibt uebersichtlich.
-    function settingsSegHtml() {
+    // Zwei Schalter, mehr braucht eine Gruppe aus zwei Leuten nicht. Sie stehen direkt
+    // unter der Mitgliederliste statt hinter einem eigenen Reiter - fuer zwei Zeilen
+    // waere ein Reiterwechsel ein Klick zu viel, und "Einkauf fuer alle rechnen" soll
+    // man sehen, nicht suchen.
+    function settingsHtml() {
       const row = (key, label, hint, on, off) => `
-        <div class="setpick" style="margin-bottom:10px">
+        <div class="setpick" style="margin-top:10px">
           <b>${label}</b>${hint ? `<small style="display:block;margin:-6px 0 9px;color:var(--text-muted);font-size:12.5px">${hint}</small>` : ""}
           <div class="seg" data-set="${key}" role="group" aria-label="${label}">
             <button type="button" data-v="1" class="${groupSetting(key) ? "on" : ""}">${on}</button>
@@ -8807,15 +8863,7 @@
           </div>
         </div>`;
       return row("shopForAll", "Einkauf für alle rechnen", "Mengen × Mitglieder", "An", "Aus")
-        + row("inviteByPlanners", "Wer darf einladen", "", "Alle Mitplanenden", "Nur ich")
-        + row("changeHints", "Hinweis bei Änderungen", "", "An", "Aus")
-        + `<div class="setpick">
-             <b>Standardrolle für Einladungen</b>
-             <div class="seg" data-set="defaultRole" role="group" aria-label="Standardrolle für Einladungen">
-               <button type="button" data-v="edit" class="${groupSetting("defaultRole") === "view" ? "" : "on"}">Mitplanen</button>
-               <button type="button" data-v="view" class="${groupSetting("defaultRole") === "view" ? "on" : ""}">Nur ansehen</button>
-             </div>
-           </div>`;
+        + row("changeHints", "Hinweis bei Änderungen", "", "An", "Aus");
     }
 
     function startHtml() {
@@ -8828,14 +8876,15 @@
         </details>`;
     }
 
-    function memberSegHtml() {
+    function groupHtml() {
       const owner = groupRole() === "owner";
-      const canInvite = owner || (canEdit() && groupSetting("inviteByPlanners"));
       const rows = groupMembers.map(m => {
         const me = m.uid === syncUid;
         const label = ROLE_LABEL[m.role] || ROLE_LABEL.view;
         // Rollenwahl nur beim Inhaber und nie fuer ihn selbst - er soll sich nicht
-        // versehentlich degradieren und die Gruppe fuehrungslos machen.
+        // versehentlich degradieren und die Gruppe fuehrungslos machen. Steht sie da,
+        // entfaellt der Rollen-Text unter dem Namen: er saesse sonst zweimal in derselben
+        // Zeile, einmal als Text und einmal als gewaehlte Option.
         const pick = (owner && !me && m.role !== "owner")
           ? `<select data-role-for="${esc(m.uid)}" aria-label="Rechte von ${esc(firstName(m.name) || "Mitglied")}">
                <option value="edit"${m.role === "edit" ? " selected" : ""}>Mitplanen</option>
@@ -8848,13 +8897,15 @@
         const kick = (owner && !me)
           ? `<button class="btn ghost icon-gh" data-kick="${esc(m.uid)}" title="${esc(firstName(m.name) || "Mitglied")} entfernen" aria-label="${esc(firstName(m.name) || "Mitglied")} entfernen">${ACT_ICONS.del}</button>`
           : "";
+        // kick vor pick: die Rollenwahl bricht per flex-basis in die zweite Zeile um, und
+        // stuende sie im Markup davor, schoebe sie den Entfernen-Knopf in eine dritte.
         return `<div class="grp-m">
           ${memberAvatarHtml(m)}
-          <span class="who"><b>${esc(m.name || "Ohne Namen")}${me ? " (du)" : ""}</b><small>${esc(label)}</small></span>
-          ${pick}${kick}
+          <span class="who"><b>${esc(m.name || "Ohne Namen")}${me ? " (du)" : ""}</b>${pick ? "" : `<small>${esc(label)}</small>`}</span>
+          ${kick}${pick}
         </div>`;
       }).join("");
-      const inviteBlock = canInvite ? (createdUrl ? `
+      const inviteBlock = owner ? (createdUrl ? `
         <span class="share-sub">Einladungslink</span>
         <div class="link-row">
           <input type="text" class="share-link" id="grp-link" readonly value="${esc(createdUrl)}">
@@ -8866,23 +8917,23 @@
         <div class="setpick" style="margin-bottom:10px">
           <b>Was darf die eingeladene Person?</b>
           <div class="seg" id="grp-role" role="group" aria-label="Rechte für die Einladung">
-            <button type="button" data-r="edit" class="${(inviteRole || groupSetting("defaultRole")) === "view" ? "" : "on"}">Mitplanen</button>
-            <button type="button" data-r="view" class="${(inviteRole || groupSetting("defaultRole")) === "view" ? "on" : ""}">Nur ansehen</button>
+            <button type="button" data-r="edit" class="${inviteRole === "view" ? "" : "on"}">Mitplanen</button>
+            <button type="button" data-r="view" class="${inviteRole === "view" ? "on" : ""}">Nur ansehen</button>
           </div>
         </div>
         <button class="btn primary" id="grp-invite" style="width:100%">Einladungslink erstellen</button>`) : "";
-      return `<div class="grp-list">${rows}</div>${inviteBlock}
+      return `<div class="grp-list">${rows}</div>${inviteBlock}${owner ? settingsHtml() : ""}
         <hr style="border:0;border-top:1px solid var(--border);margin:16px 0 12px">
         <button class="btn ghost sm" id="grp-leave">${owner ? "Gruppe auflösen" : "Gruppe verlassen"}</button>`;
     }
 
-    let inviteRole = null;   // null = noch nichts gewaehlt -> Standardrolle der Gruppe
+    let inviteRole = null;   // null = noch nichts gewaehlt -> "Mitplanen"
     function wire() {
       // Einstellungs-Schalter. Sofort speichern statt "Sichern"-Knopf: eine Einstellung
       // ist kein Formular, und die Firestore-Regel prueft die Rolle ohnehin serverseitig.
       body.querySelectorAll("[data-set]").forEach(grp => grp.querySelectorAll("[data-v]").forEach(b => b.addEventListener("click", async () => {
         const key = grp.dataset.set;
-        const val = key === "defaultRole" ? b.dataset.v : b.dataset.v === "1";
+        const val = b.dataset.v === "1";
         const next = Object.assign({}, (groupInfo && groupInfo.settings) || {});
         next[key] = val;
         grp.querySelectorAll("[data-v]").forEach(x => x.classList.toggle("on", x === b));
@@ -8908,7 +8959,7 @@
       const inv = body.querySelector("#grp-invite");
       if (inv) inv.addEventListener("click", async () => {
         inv.disabled = true; inv.textContent = "Wird erstellt …";
-        try { createdUrl = await createInviteLink(inviteRole || (groupSetting("defaultRole") === "view" ? "view" : "edit")); paint(); }
+        try { createdUrl = await createInviteLink(inviteRole || "edit"); paint(); }
         catch (e) { inv.disabled = false; inv.textContent = "Einladungslink erstellen"; toast("Der Link konnte nicht erstellt werden."); }
       });
 

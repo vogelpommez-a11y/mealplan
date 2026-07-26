@@ -152,17 +152,13 @@ service cloud.firestore {
       allow get: if request.auth != null;
       allow list: if false;
 
-      // Einladen darf der Inhaber immer; Mitplaner nur, wenn die Gruppeneinstellung
-      // es erlaubt. Damit ist "Wer darf einladen" serverseitig echt und nicht bloß
-      // eine Attrappe in der Oberfläche.
+      // Einladen darf ausschließlich der Inhaber der Gruppe. Das spart gegenüber einer
+      // Einstellung "Mitplaner dürfen auch" einen get() je Einladung - und zu zweit gäbe
+      // es nach dem Beitritt ohnehin niemanden mehr einzuladen.
       allow create: if request.auth != null
                     && request.resource.data.by == request.auth.uid
                     && request.resource.data.role in ["edit", "view"]
-                    && (
-                         isOwner(request.resource.data.gid)
-                      || (canWrite(request.resource.data.gid)
-                          && get(/databases/$(database)/documents/groups/$(request.resource.data.gid)).data.settings.inviteByPlanners == true)
-                       );
+                    && isOwner(request.resource.data.gid);
 
       // Ein Code ist unveränderlich - wer andere Rechte vergeben will, erzeugt einen neuen.
       allow update: if false;
