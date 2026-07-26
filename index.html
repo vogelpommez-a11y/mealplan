@@ -607,12 +607,13 @@
   /* Zwei flache Leisten untereinander (Tag, Woche). */
   .wg-cols { display: flex; flex-direction: column; gap: 10px; }
   .wg-col { position: relative; overflow: hidden; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 13px 16px; transition: border-color var(--dur-fast) ease; }
-  /* Kopfzeile der Karte: Eyebrow links, optionaler Aktionslink rechts (nur Heute-Karte,
-     siehe recalcLink in weekGoalHtml). Ohne zweites Kind verhaelt sich .wg-head wie zuvor
-     die blosse .wg-lbl allein - kein Effekt auf die Diese-Woche-Karte. */
-  .wg-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
-  .wg-recalc { padding: 4px 10px; height: auto; font-size: 12px; gap: 5px; }
-  .wg-recalc svg { width: 14px; height: 14px; }
+  /* Zielaktion ("Ziele neu berechnen"): eine eigene Zeile UNTER beiden Karten, weil sie
+     beide betrifft - das Ziel gilt fuer Tag wie Woche. Vorher sass sie in der Kopfzeile nur
+     der Heute-Karte und machte deren Kopf rund 17px hoeher als den der Wochenkarte; auf dem
+     Handy sprang "Kalorien" samt Ring beim Wischen um genau diesen Betrag. Am Rechner
+     rechtsbuendig und dezent, auf dem Handy volle Breite (siehe Handy-Abfrage). */
+  .wg-actions { display: flex; justify-content: flex-end; margin-top: 10px; }
+  .wg-recalc svg { width: 15px; height: 15px; }
   /* Hinweis in der rechten Spalte, wo im Leerzustand sonst Makrobalken bzw. Fortschrittsbalken
      saessen (dayRight/weekRight in weekGoalHtml). */
   .wg-side-note { margin: 2px 0 0; font-size: 13.5px; line-height: 1.5; color: var(--text-muted); max-width: 34ch; }
@@ -1684,6 +1685,17 @@
     .wg-cols::-webkit-scrollbar { display: none; }
     .wg-cols > .wg-col { flex: 0 0 100%; scroll-snap-align: start; scroll-snap-stop: always; }
 
+    /* "Ziele neu berechnen" wird hier zur flachen Aktionsflaeche ueber die volle Breite, in
+       derselben Optik wie die Zielkarten (.wg-col) - so gehoert der Knopf sichtbar zum
+       Ziele-Bereich, statt als schwebender Textlink darunter zu haengen. 44px, weil er das
+       einzige Bedienelement unter dem Streifen ist. Die Hover-Zeile muss sein: .btn.ghost:hover
+       ist eine Klasse spezifischer und wuerde die Flaeche sonst beim Beruehren wieder leeren. */
+    .wg-actions { margin-top: 12px; }
+    .wg-actions .wg-recalc {
+      flex: 1 1 auto; justify-content: center; min-height: 44px;
+      background: var(--surface-2); border-color: var(--border); color: var(--text);
+    }
+    .wg-actions .wg-recalc:hover { background: var(--surface-2); border-color: var(--accent); }
   }
 
   /* ---------- Erste Schritte (Onboarding) ----------
@@ -4639,7 +4651,7 @@
   // gefuehrt, dass "Tagesziel: 2.200" gelesen wird, obwohl das tatsaechliche Budget an dem
   // Tag 2.200 + Trainingszuschlag ist - "Grundbedarf" macht das "ohne Training" explizit.
   const RING_C = 201; // Umfang bei r=32 (2 × π × 32)
-  function goalRingHtml(ist, grundziel, trainingAdd, headHtml, rightColHtml, grundzielLbl, actionHtml) {
+  function goalRingHtml(ist, grundziel, trainingAdd, headHtml, rightColHtml, grundzielLbl) {
     const ziel = grundziel + trainingAdd;
     const rest = Math.round(ziel - ist);
     const st = goalState(ist, ziel);
@@ -4649,10 +4661,7 @@
     // verstaerkt das nur farblich, ersetzt es nicht (siehe CSS-Kommentar bei .wg).
     const stLbl = st === "over" ? "Drüber" : "Verbleibend";
     return `<div class="wg is-${st}">
-        <div class="wg-head">
-          <div class="wg-lbl">${headHtml}</div>
-          ${actionHtml || ""}
-        </div>
+        <div class="wg-lbl">${headHtml}</div>
         <div class="wg-row">
           <div class="wg-col-cal">
             <h3 class="wg-h">Kalorien</h3>
@@ -4766,22 +4775,30 @@
     const weekRight = weekEmpty
       ? `<h3 class="wg-h">Fortschritt</h3><p class="wg-side-note">Plane deine Woche — hier siehst du dann Kalorien, Ernährung, Training und Makros auf einen Blick.</p>`
       : weekProgressHtml;
-    // Der "Neu berechnen"-Link sitzt bewusst nur an der Heute-Karte (Grouping: die Aktion
-    // betrifft das Ziel insgesamt, nicht "diese eine Woche") - nicht an der Diese-Woche-Karte,
-    // sonst stuende er doppelt da. Vormals in der Wochenplan-Werkzeugleiste, dort konzeptionell
-    // falsch einsortiert (neben Teilen/Leeren DIESER Woche).
+    // Der "Neu berechnen"-Knopf steht AUSSERHALB beider Karten, in einer eigenen Zeile unter
+    // dem Wischstreifen. Zwei Gruende: Die Aktion betrifft das Ziel insgesamt (Tag UND Woche),
+    // gehoert also an eine Stelle, die zu beiden gehoert - und in der Kopfzeile nur der
+    // Heute-Karte machte er genau diese Kopfzeile rund 17px hoeher als die der Wochenkarte,
+    // wodurch "Kalorien" samt Ring beim Wischen um diesen Betrag sprang. Zudem war er auf der
+    // Wochenkarte gar nicht mehr zu sehen, weil er mit weggewischt wurde. Vormals in der
+    // Wochenplan-Werkzeugleiste, dort konzeptionell falsch einsortiert (neben Teilen/Leeren
+    // DIESER Woche).
     const recalcLink = `<button type="button" class="btn ghost sm wg-recalc" data-action="recalc-goal" title="Ziele neu berechnen" aria-label="Ziele neu berechnen">${TOOL_ICONS.recalc}<span>Ziele neu berechnen</span></button>`;
     // Auf dem Handy liegen die beiden Leisten nebeneinander und werden gewischt
     // (siehe CSS) – die Knopfleiste sagt, welche gerade zu sehen ist. Am Rechner
     // ist sie ausgeblendet, dort stehen beide untereinander wie bisher.
+    // .wg-actions liegt bewusst weder in .wgbar noch in .wg-cols: initCarousel liest die
+    // Kinder der Leiste als Sprungziele und die des Streifens als Karten - ein Knopf in
+    // einem der beiden waere ein dritter, toter Slide-Schalter.
     return `<div class="wgbar" role="group" aria-label="Zielansicht wählen">
         <button type="button" class="wg-b">Heute</button>
         <button type="button" class="wg-b">${weekLbl}</button>
       </div>
       <div class="wg-cols">
-        <div class="wg-col${isTrainingDay(d.key) ? " wg-col-training" : ""}">${goalRingHtml(s.kcal, rest1.kcal, dayTrainAdd, dayHeadHtml, dayRight, "Grundbedarf", recalcLink)}</div>
+        <div class="wg-col${isTrainingDay(d.key) ? " wg-col-training" : ""}">${goalRingHtml(s.kcal, rest1.kcal, dayTrainAdd, dayHeadHtml, dayRight, "Grundbedarf")}</div>
         <div class="wg-col">${goalRingHtml(w.kcal, weekGrund, weekTrainAdd, weekHeadHtml, weekRight, "Grundbedarf")}</div>
-      </div>`;
+      </div>
+      <div class="wg-actions">${recalcLink}</div>`;
   }
 
   // Zaehlt "X von 7 Tagen geplant" weich hoch statt den Endwert sofort hinzustellen -
