@@ -11,8 +11,21 @@
  * Alle Pfade relativ, weil die App unter .../mealplan/ liegt, nicht auf dem Domain-Root.
  * Die Versionsnummer bei jedem inhaltlichen SW-Wechsel erhoehen -> activate raeumt Altes weg.
  */
-const VERSION = "pm-v3";
+const VERSION = "pm-v4";
 const SHELL_CACHE = "shell-" + VERSION;
+
+// Die Meal-Fotos aus PHOTOS (index.html). Frueher als Base64 in der HTML-Datei - dadurch lud
+// jeder erste Seitenaufruf rund 1 MB mit, auch wer nur den Login sah. Jetzt eigene Dateien:
+// die Seite startet mit ~240 statt ~1000 KB, die Bilder kommen einzeln nach und bleiben
+// dauerhaft im Cache statt bei jedem Deploy erneut durch die Leitung zu gehen.
+// ACHTUNG: Sie werden Cache-First ausgeliefert. Wird ein Foto ausgetauscht, muss VERSION
+// hoch - sonst sieht ein wiederkehrender Nutzer weiter das alte Bild.
+const PHOTO_ASSETS = [
+  "pasta", "curry", "salad", "porridge", "pizza", "burger", "chicken", "beef",
+  "fish", "soup", "rice", "pancake", "noodle", "egg", "cake", "sandwich",
+  "potato", "drink", "fruit", "neutral", "wrap", "taco", "toast", "sushi",
+  "seafood", "steak", "icecream", "waffle", "coffee", "casserole", "stew", "cheese"
+].map((k) => "./img/" + k + ".jpg");
 
 // Kern-Assets, die die App-Huelle offline tragen. index.html liegt zusaetzlich im Cache,
 // damit eine Navigation offline etwas zum Ausliefern hat.
@@ -25,7 +38,7 @@ const SHELL_ASSETS = [
   "./icon-maskable-512.png",
   "./apple-touch-icon.png",
   "./vendor/zxing.min.js"
-];
+].concat(PHOTO_ASSETS);
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
