@@ -2827,6 +2827,55 @@
   }
   function isFav(id) { return (state.favs || []).indexOf(id) !== -1; }
 
+  // ---------- Grabsteine geloeschter Meals ----------
+  // Der Zusammenfuehr-Schritt beim Anmelden (mergeRemoteRecipes) kann von sich aus nicht
+  // unterscheiden, ob ein nur lokal vorhandenes Meal NEU ist (noch nicht hochgeladen) oder
+  // auf einem anderen Geraet GELOESCHT wurde - er entschied sich immer fuers Behalten.
+  // Geloeschte Meals kamen dadurch beim naechsten Login zurueck und wurden von dort sogar
+  // wieder in die Cloud geschrieben (also auch auf das Geraet, auf dem geloescht wurde).
+  // Deshalb merkt sich jedes Loeschen die ID mit Zeitpunkt (state.deleted: id -> ms). Der
+  // Eintrag reist im Kontodokument mit und heilt beide Richtungen: er haelt lokale Leichen
+  // aus dem Merge heraus UND loescht in der Cloud nach, was ein abgebrochener Push (Tab zu,
+  // Abmelden innerhalb der 800-ms-Sperre, offline) dort stehen liess.
+  const TOMB_TTL = 90 * 24 * 3600 * 1000;   // danach ist jedes Geraet laengst nachgezogen
+  function sanitizeTombstones(v) {
+    const out = {};
+    if (!v || typeof v !== "object") return out;
+    const now = Date.now(), min = now - TOMB_TTL;
+    // Sortiert aufbauen, damit JSON.stringify IMMER dieselbe Zeichenkette liefert: dataJSON()
+    // vergleicht lokalen und entfernten Stand als String, und Firestore gibt die Felder in
+    // beliebiger Reihenfolge zurueck. Ohne die Sortierung gaelte jeder Snapshot als Aenderung
+    // -> Endlos-Toast und Endlos-Push (dieselbe Falle wie bei "plans" im Gruppenmodus).
+    Object.keys(v).sort().forEach(id => {
+      if (typeof id !== "string" || !id) return;
+      const t = Number(v[id]);
+      // Nach oben grosszuegig: eine falsch gestellte Geraeteuhr darf einen Grabstein nicht
+      // sofort verfallen lassen - das brachte den Fehler ja gerade zurueck.
+      if (isFinite(t) && t > min && t < now + TOMB_TTL) out[id] = t;
+    });
+    return out;
+  }
+  // Union, juengerer Zeitpunkt gewinnt - wie mergeWeights/unionIds nebenan.
+  function mergeTombstones(a, b) {
+    const out = sanitizeTombstones(a), other = sanitizeTombstones(b);
+    Object.keys(other).forEach(id => { if (!out[id] || other[id] > out[id]) out[id] = other[id]; });
+    return out;
+  }
+  function isDeleted(id) { return !!(state.deleted && state.deleted[id]); }
+  // In der Gruppe ist die Gruppe die Wahrheit: enterGroupSync ERSETZT den Bestand, es gibt
+  // dort gar keinen Union-Merge und damit auch nichts zu heilen. Ein persoenlicher Grabstein
+  // wuerde nur spaeter, nach einem Austritt, das gleichnamige eigene Meal mitreissen.
+  function markDeleted(ids) {
+    if (syncGid) return;
+    if (!state.deleted) state.deleted = {};
+    const now = Date.now();
+    ids.forEach(id => { state.deleted[id] = now; });
+  }
+  function unmarkDeleted(ids) {
+    if (!state.deleted) return;
+    ids.forEach(id => { delete state.deleted[id]; });
+  }
+
   function load() {
     let data = null;
     try { data = JSON.parse(localStorage.getItem(STORE_KEY)); } catch (e) { data = null; }
@@ -2834,7 +2883,7 @@
     if (!data || !Array.isArray(data.recipes)) {
       const recipes = SEED.map(r => Object.assign({ id: uid() }, r));
       const plans = {}; plans[curKey] = makeEmptyPlan();
-      return { recipes, plans, plan: plans[curKey], viewWeek: "cur", viewYear: new Date().getFullYear(), tab: "home", goal: null, shares: [], onboarded: false, weights: [], weightGoals: {}, weekStats: {}, profileImage: null, weightConsent: noConsent(), shopPersons: 1, groupId: "", inviteCodes: [], favs: [] };
+      return { recipes, plans, plan: plans[curKey], viewWeek: "cur", viewYear: new Date().getFullYear(), tab: "home", goal: null, shares: [], onboarded: false, weights: [], weightGoals: {}, weekStats: {}, profileImage: null, weightConsent: noConsent(), shopPersons: 1, groupId: "", inviteCodes: [], favs: [], deleted: {} };
     }
     const recipes = sanitizeRecipes(data.recipes);
     const plans = {};
@@ -2847,7 +2896,7 @@
     // und braucht dafuer state (Ziel, Rezepte). Das laeuft noch nicht — state = load() ist gerade
     // erst am Entstehen. boot() ruft pruneWeeks(state.plans) direkt nach dem State-Aufbau nach.
     if (!plans[curKey]) plans[curKey] = makeEmptyPlan();
-    return { recipes, plans, plan: plans[curKey], viewWeek: "cur", viewYear: new Date().getFullYear(), tab: data.tab === "recipes" ? "recipes" : "home", goal: sanitizeGoal(data.goal), shares: Array.isArray(data.shares) ? data.shares : [], onboarded: data.onboarded === true, weights: sanitizeWeights(data.weights), weightGoals: sanitizeWeightGoals(data.weightGoals), weekStats: sanitizeWeekStats(data.weekStats), profileImage: typeof data.profileImage === "string" ? data.profileImage : null, weightConsent: sanitizeConsent(data.weightConsent), shopPersons: sanitizeShopPersons(data.shopPersons), groupId: typeof data.groupId === "string" ? data.groupId : "", inviteCodes: Array.isArray(data.inviteCodes) ? data.inviteCodes : [], favs: sanitizeFavs(data.favs) };
+    return { recipes, plans, plan: plans[curKey], viewWeek: "cur", viewYear: new Date().getFullYear(), tab: data.tab === "recipes" ? "recipes" : "home", goal: sanitizeGoal(data.goal), shares: Array.isArray(data.shares) ? data.shares : [], onboarded: data.onboarded === true, weights: sanitizeWeights(data.weights), weightGoals: sanitizeWeightGoals(data.weightGoals), weekStats: sanitizeWeekStats(data.weekStats), profileImage: typeof data.profileImage === "string" ? data.profileImage : null, weightConsent: sanitizeConsent(data.weightConsent), shopPersons: sanitizeShopPersons(data.shopPersons), groupId: typeof data.groupId === "string" ? data.groupId : "", inviteCodes: Array.isArray(data.inviteCodes) ? data.inviteCodes : [], favs: sanitizeFavs(data.favs), deleted: sanitizeTombstones(data.deleted) };
   }
 
   // Schlaegt das lokale Speichern fehl (Speicher voll, privater Modus), darf das NICHT
@@ -2864,7 +2913,7 @@
       const recipesForLS = idbOK
         ? state.recipes.map(r => { const c = Object.assign({}, r); delete c.image; return c; })
         : state.recipes;
-      localStorage.setItem(STORE_KEY, JSON.stringify({ recipes: recipesForLS, plans: state.plans, tab: state.tab, goal: state.goal || null, shares: state.shares || [], onboarded: state.onboarded === true, weights: state.weights || [], weightGoals: state.weightGoals || {}, weekStats: state.weekStats || {}, profileImage: idbOK ? null : (state.profileImage || null), weightConsent: state.weightConsent || noConsent(), shopPersons: shopPersons(), groupId: state.groupId || "", inviteCodes: state.inviteCodes || [], favs: state.favs || [] }));
+      localStorage.setItem(STORE_KEY, JSON.stringify({ recipes: recipesForLS, plans: state.plans, tab: state.tab, goal: state.goal || null, shares: state.shares || [], onboarded: state.onboarded === true, weights: state.weights || [], weightGoals: state.weightGoals || {}, weekStats: state.weekStats || {}, profileImage: idbOK ? null : (state.profileImage || null), weightConsent: state.weightConsent || noConsent(), shopPersons: shopPersons(), groupId: state.groupId || "", inviteCodes: state.inviteCodes || [], favs: state.favs || [], deleted: sanitizeTombstones(state.deleted) }));
       storageFullWarned = false;
     } catch (e) {
       if (!storageFullWarned) {
@@ -3058,7 +3107,7 @@
   // traegt. Bliebe das Feld drin, laege state.plans (= Gruppenplan) dauerhaft quer zu
   // data.plans (= alter Kontostand) - jeder eingehende Snapshot galte als Aenderung,
   // Endlos-Toast und Endlos-Push. Exakt die Falle, die oben schon fuer "recipes" steht.
-  function dataJSON(d) { return JSON.stringify({ plans: syncGid ? null : plansField(d), goal: (d && d.goal) || null, shares: (d && d.shares) || [], onboarded: !!(d && d.onboarded), weights: (d && d.weights) || [], weightGoals: (d && d.weightGoals) || {}, profileImage: (d && d.profileImage) || null, weightConsent: (d && d.weightConsent) || noConsent(), shopPersons: sanitizeShopPersons(d && d.shopPersons), inviteCodes: (d && d.inviteCodes) || [], favs: sanitizeFavs(d && d.favs) }); }
+  function dataJSON(d) { return JSON.stringify({ plans: syncGid ? null : plansField(d), goal: (d && d.goal) || null, shares: (d && d.shares) || [], onboarded: !!(d && d.onboarded), weights: (d && d.weights) || [], weightGoals: (d && d.weightGoals) || {}, profileImage: (d && d.profileImage) || null, weightConsent: (d && d.weightConsent) || noConsent(), shopPersons: sanitizeShopPersons(d && d.shopPersons), inviteCodes: (d && d.inviteCodes) || [], favs: sanitizeFavs(d && d.favs), deleted: sanitizeTombstones(d && d.deleted) }); }
 
   function scheduleCloudPush() {
     if (!syncUid) return;
@@ -3184,7 +3233,7 @@
     if (!syncUid || !window.CloudSync) return;
     await syncRecipes();
     await pushGroupPlan();
-    const d = { tab: state.tab, goal: state.goal || null, shares: state.shares || [], onboarded: state.onboarded === true, weights: state.weights || [], weightGoals: state.weightGoals || {}, profileImage: state.profileImage || null, weightConsent: state.weightConsent || noConsent(), shopPersons: shopPersons(), groupId: syncGid || "", inviteCodes: state.inviteCodes || [], favs: sanitizeFavs(state.favs) };
+    const d = { tab: state.tab, goal: state.goal || null, shares: state.shares || [], onboarded: state.onboarded === true, weights: state.weights || [], weightGoals: state.weightGoals || {}, profileImage: state.profileImage || null, weightConsent: state.weightConsent || noConsent(), shopPersons: shopPersons(), groupId: syncGid || "", inviteCodes: state.inviteCodes || [], favs: sanitizeFavs(state.favs), deleted: sanitizeTombstones(state.deleted) };
     // In einer Gruppe wandert der Wochenplan nach groups/{gid}/plans - dann NICHT auch noch
     // ins Kontodokument schreiben. Dank merge:true bleibt das dortige "plans"-Feld als
     // Stand von vor dem Beitritt liegen; beim Verlassen wird der Gruppenplan bewusst
@@ -3243,6 +3292,10 @@
     if (data.profileImage !== undefined) state.profileImage = typeof data.profileImage === "string" ? data.profileImage : null;
     if (data.shopPersons !== undefined) state.shopPersons = sanitizeShopPersons(data.shopPersons);
     if (data.favs !== undefined) state.favs = sanitizeFavs(data.favs); // Cloud gewinnt, kein Union (siehe sanitizeFavs)
+    // Grabsteine immer vereinigen, nie ersetzen: ein Loeschen, das dieses Geraet gerade erst
+    // vorgemerkt und noch nicht gepusht hat, darf durch einen eingehenden Snapshot nicht
+    // verschwinden - sonst kaeme das Meal genau auf dem Weg zurueck, den das hier verhindert.
+    state.deleted = mergeTombstones(state.deleted, data.deleted);
     if (data.onboarded) state.onboarded = true;         // nur in eine Richtung, siehe startCloudSync
     setViewWeek(state.viewWeek);
     lastPushedJSON = j;
@@ -3279,6 +3332,12 @@
         const incoming = sanitizeRecipe(Object.assign({}, c.data, { id: c.id }));
         if (!incoming) return;
         const json = JSON.stringify(incoming);
+        // Traegt die ID einen Grabstein, ist das ein Nachzuegler: ein anderes Geraet hat das
+        // Meal noch einmal geschrieben, bevor es die Loeschung gesehen hat. Nicht aufnehmen,
+        // aber in die Baseline schreiben - dadurch faellt es beim naechsten syncRecipes()
+        // unter delIds und verschwindet auch in der Cloud. Nur ausserhalb der Gruppe, dort
+        // gibt es keine persoenlichen Grabsteine (siehe markDeleted).
+        if (!syncGid && isDeleted(c.id)) { if (lastPushedRecipes) lastPushedRecipes.set(c.id, json); return; }
         const idx = state.recipes.findIndex(r => r.id === c.id);
         if (idx === -1) { state.recipes.push(incoming); changed = true; }
         else if (JSON.stringify(state.recipes[idx]) !== json) { state.recipes[idx] = incoming; changed = true; }
@@ -3519,16 +3578,24 @@
         // sonst ueberschriebe ein frisch angemeldetes zweites Geraet sie mit seiner 1.
         if (remote.shopPersons !== undefined) state.shopPersons = sanitizeShopPersons(remote.shopPersons);
         if (remote.favs !== undefined) state.favs = sanitizeFavs(remote.favs); // Cloud gewinnt, kein Union
+        // Muss VOR dem Rezept-Merge stehen: der fragt die Grabsteine ab, um zu entscheiden,
+        // was ueberhaupt noch in den Bestand darf.
+        state.deleted = mergeTombstones(state.deleted, remote.deleted);
       }
       // Rezepte zusammenführen (Cloud + eigene lokale, die es dort noch nicht gibt).
       // Beispiel-Meals werden NICHT in ein bestehendes Konto übernommen – sie sind nur
       // ein einmaliges Willkommens-Angebot für neue Konten. Ausgelagert, weil sowohl der
       // Normalfall (Subcollection) als auch die Alt-Migration (Inline-Array) dieselbe
       // Logik brauchen.
+      // Grabsteine entscheiden hier ueber beide Richtungen (siehe sanitizeTombstones):
+      // ein Meal mit Grabstein kommt weder aus der Cloud noch aus dem lokalen Bestand
+      // wieder herein. Kommt es aus der Cloud, bleibt es in lastPushedRecipes stehen und
+      // wird vom gleich folgenden pushNow()/syncRecipes() dort ausgeraeumt - so heilt sich
+      // auch ein Loeschen, dessen Push seinerzeit nie durchlief.
       function mergeRemoteRecipes(list) {
         const map = {};
-        sanitizeRecipes(list).forEach(r => { if (r && r.id) map[r.id] = r; });
-        state.recipes.forEach(r => { if (r && r.id && !map[r.id] && !isExample(r)) map[r.id] = r; });
+        sanitizeRecipes(list).forEach(r => { if (r && r.id && !isDeleted(r.id)) map[r.id] = r; });
+        state.recipes.forEach(r => { if (r && r.id && !map[r.id] && !isExample(r) && !isDeleted(r.id)) map[r.id] = r; });
         state.recipes = Object.values(map);
         const rp = pruneWeeks(normalizePlans(plansField(remote), state.recipes));
         Object.keys(state.plans).forEach(k => { if (!rp[k]) rp[k] = state.plans[k]; }); // lokale Wochen behalten, die es remote nicht gibt
@@ -3564,6 +3631,15 @@
       } else {
         const cloudRecipes = window.CloudSync.loadRecipes ? await window.CloudSync.loadRecipes(["users", uid]) : [];
         const legacyRecipes = (remote && Array.isArray(remote.recipes)) ? remote.recipes : [];
+        // Auch unabhaengig vom Merge unten: liegt hier noch ein Meal, das laut Grabstein
+        // geloescht ist (Loeschung auf einem anderen Geraet, dieses war offline), muss es
+        // raus, BEVOR pushNow() es wieder in die Cloud traegt. Der Merge-Zweig deckt nur
+        // den Fall ab, dass die Cloud ueberhaupt Rezepte hat.
+        const tombIds = Object.keys(state.deleted || {});
+        if (tombIds.length) {
+          state.recipes = state.recipes.filter(r => r && r.id && !isDeleted(r.id));
+          dropRecipeIds(new Set(tombIds));   // Plan- und Favoritenverweise gleich mitraeumen
+        }
         if (cloudRecipes.length || legacyRecipes.length) mergeRemoteRecipes(legacyRecipes.concat(cloudRecipes));
         // Baseline aus dem geladenen Cloud-Stand vorbefuellen statt auf null zu setzen:
         // so schreibt der folgende pushNow()-Lauf nur, was wirklich neu/geaendert ist
@@ -6684,8 +6760,10 @@
         const favsBefore = (state.favs || []).slice();
         state.recipes = state.recipes.filter(x => x.id !== id);
         dropRecipeIds(new Set([id]));
+        markDeleted([id]);   // haelt das Meal beim naechsten Anmelden draussen (siehe sanitizeTombstones)
         save(); render();
         undoToast("Meal gelöscht", () => {
+          unmarkDeleted([id]);
           state.recipes.push(r);
           state.plans = plansBefore;
           state.plan = state.plans[activeWeekKey()] || state.plan;
@@ -6707,6 +6785,7 @@
       onConfirm: () => {
         state.recipes = state.recipes.filter(r => !exIds.has(r.id));
         dropRecipeIds(exIds);
+        markDeleted(Array.from(exIds));   // sonst kaemen sie beim naechsten Anmelden zurueck
         render(); toast("Beispiele entfernt");
       }
     });
@@ -8870,8 +8949,18 @@
       onConfirm: () => {
         if (authMode === "cloud" && window.CloudAuth && window.CloudAuth.logout) {
           cloudMode = "login";
-          stopCloudSync();
-          window.CloudAuth.logout().catch(() => {});
+          // Einen noch ausstehenden Push (800-ms-Sperre in scheduleCloudPush) vorher
+          // abschliessen: stopCloudSync() wirft ihn sonst per clearTimeout weg, und eine
+          // gerade geloeschte Sache bliebe in der Cloud stehen. Nach 2 s trotzdem weiter,
+          // damit ein schlechtes Netz das Abmelden nicht blockiert - die Grabsteine holen
+          // die Loeschung beim naechsten Anmelden ohnehin nach.
+          Promise.race([
+            pushNow().catch(() => {}),
+            new Promise(res => setTimeout(res, 2000))
+          ]).then(() => {
+            stopCloudSync();
+            window.CloudAuth.logout().catch(() => {});
+          });
           // onAuthStateChanged rendert danach die Anmeldung
         } else {
           profile = null; saveProfile(); renderAuthLocal();
