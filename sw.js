@@ -11,7 +11,7 @@
  * Alle Pfade relativ, weil die App unter .../mealplan/ liegt, nicht auf dem Domain-Root.
  * Die Versionsnummer bei jedem inhaltlichen SW-Wechsel erhoehen -> activate raeumt Altes weg.
  */
-const VERSION = "pm-v4";
+const VERSION = "pm-v5";
 const SHELL_CACHE = "shell-" + VERSION;
 
 // Die Meal-Fotos aus PHOTOS (index.html). Frueher als Base64 in der HTML-Datei - dadurch lud
@@ -20,12 +20,19 @@ const SHELL_CACHE = "shell-" + VERSION;
 // dauerhaft im Cache statt bei jedem Deploy erneut durch die Leitung zu gehen.
 // ACHTUNG: Sie werden Cache-First ausgeliefert. Wird ein Foto ausgetauscht, muss VERSION
 // hoch - sonst sieht ein wiederkehrender Nutzer weiter das alte Bild.
-const PHOTO_ASSETS = [
-  "pasta", "curry", "salad", "porridge", "pizza", "burger", "chicken", "beef",
-  "fish", "soup", "rice", "pancake", "noodle", "egg", "cake", "sandwich",
-  "potato", "drink", "fruit", "neutral", "wrap", "taco", "toast", "sushi",
-  "seafood", "steak", "icecream", "waffle", "coffee", "casserole", "stew", "cheese"
-].map((k) => "./img/" + k + ".jpg");
+// WebP statt JPEG spart nochmal ~110 KB; 27 Bilder konvertiert, 5 bleiben JPEG (dort war
+// JPEG kleiner). Intelligente Auswahl pro Bild - Browser kennt das Format selbst.
+const PHOTO_ASSETS = [];
+// WebP (27 Bilder)
+const WEBP_PHOTOS = [
+  "pasta", "curry", "burger", "chicken", "beef", "fish", "soup", "rice",
+  "pancake", "noodle", "egg", "cake", "potato", "drink", "fruit", "wrap",
+  "taco", "toast", "sushi", "seafood", "steak", "icecream", "waffle", "coffee", "casserole", "stew", "cheese"
+];
+WEBP_PHOTOS.forEach((k) => PHOTO_ASSETS.push("./img/" + k + ".webp"));
+// JPEG (5 Bilder - dort kleiner als WebP)
+const JPEG_PHOTOS = ["neutral", "pizza", "porridge", "salad", "sandwich"];
+JPEG_PHOTOS.forEach((k) => PHOTO_ASSETS.push("./img/" + k + ".jpg"));
 
 // Kern-Assets, die die App-Huelle offline tragen. index.html liegt zusaetzlich im Cache,
 // damit eine Navigation offline etwas zum Ausliefern hat.
