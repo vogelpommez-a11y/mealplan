@@ -417,6 +417,17 @@
   .btn.icon-gh { position: relative; width: 34px; height: 34px; padding: 0; justify-content: center; }
   .btn.icon-gh::after { content: ""; position: absolute; inset: -5px; }
   .btn.icon-gh svg { width: 17px; height: 17px; }
+  /* Favoriten-Herz: gleiches Groessen-/Hit-Slop-Muster wie .btn.del-ic. Ruhezustand grau,
+     aktiv gefuellt in --accent. Gold ist Pro vorbehalten. Skaliert nur beim Antippen (icon,
+     nicht der ganze Button) - hochfrequente Aktion, daher kurz und ohne Einschwingen. */
+  .btn.fav-ic { position: relative; width: 34px; height: 34px; padding: 0; justify-content: center;
+    color: var(--text-muted); background: transparent; border-color: transparent; }
+  .btn.fav-ic::after { content: ""; position: absolute; inset: -5px; }
+  .btn.fav-ic svg { width: 17px; height: 17px; transition: transform var(--dur-fast) var(--ease-out); }
+  .btn.fav-ic:hover { color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, var(--surface)); border-color: transparent; }
+  .btn.fav-ic.on { color: var(--accent); }
+  .btn.fav-ic.on svg { fill: currentColor; }
+  .btn.fav-ic:active svg { transform: scale(.85); }
   .btn.sm { padding: 6px 11px; font-size: 13px; }
 
   /* ---------- Week grid ---------- */
@@ -837,6 +848,9 @@
     color: var(--text); font: inherit; cursor: pointer; text-align: left;
   }
   .cathead:hover { border-bottom-color: var(--border-strong); }
+  /* Waehrend der Suche ist die Kopfzeile nur Beschriftung, kein Knopf - siehe paintRecipeGroups(). */
+  .cathead.static { cursor: default; padding-left: 25px; }
+  .cathead.static:hover { border-bottom-color: var(--border); }
   .cathead .caret { width: 15px; height: 15px; flex: none; color: var(--text-muted); transition: transform var(--dur-fast); }
   .cathead .caret.open { transform: rotate(90deg); }
   .cathead .cname { font-size: 14.5px; font-weight: 650; letter-spacing: .01em; display: inline-flex; align-items: center; gap: 7px; }
@@ -846,6 +860,15 @@
     background: var(--surface-2); border: 1px solid var(--border);
     padding: 1px 8px; border-radius: 999px;
   }
+  /* Suchfeld im Meals-Reiter, eigene Zeile unter der .section-head (die ist flex-wrap und
+     streckt auf 720px .btn per flex:1 - ein drittes Element wuerde mitgestreckt). */
+  .recipe-search { position: relative; margin: -6px 0 18px; }
+  .recipe-search svg { position: absolute; left: 11px; top: 50%; transform: translateY(-50%);
+    width: 16px; height: 16px; color: var(--text-muted); pointer-events: none; }
+  /* Attributselektor, nicht nur "input": input[type="search"] (Zeile ~1113) hat dieselbe
+     Spezifitaet und steht spaeter - dessen Kurzform "padding: 9px 11px" loeschte sonst das
+     padding-left und die Lupe laege auf dem Platzhaltertext. */
+  .recipe-search input[type="search"] { padding-left: 34px; }
   .recipes { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
   .rcard {
     position: relative;
@@ -1016,18 +1039,21 @@
   .rcard h3 { font-family: var(--font-display); font-size: 18px; font-weight: 600; margin: 0; flex: 1; line-height: 1.25; word-break: break-word; }
   .chip { font-size: 11px; font-weight: 650; letter-spacing: .03em; text-transform: uppercase; padding: 3px 9px; border-radius: 999px; white-space: nowrap; }
   .chip.cat-fr { color: var(--fr); background: color-mix(in srgb, var(--fr) 14%, var(--surface)); }
-  .chip.cat-mi { color: var(--mi); background: color-mix(in srgb, var(--mi) 14%, var(--surface)); }
-  .chip.cat-ab { color: var(--ab); background: color-mix(in srgb, var(--ab) 14%, var(--surface)); }
+  .chip.cat-ha { color: var(--mi); background: color-mix(in srgb, var(--mi) 14%, var(--surface)); }
   .chip.cat-x { color: var(--accent-strong); background: color-mix(in srgb, var(--accent) 14%, var(--surface)); }
   .chip.example { color: var(--fr); background: color-mix(in srgb, var(--fr) 15%, var(--surface)); border: 1px solid color-mix(in srgb, var(--fr) 32%, transparent); }
   .rcard .meta { display: flex; gap: 14px; flex-wrap: wrap; color: var(--text-muted); font-size: 12.5px; }
   .rcard .meta span { display: inline-flex; align-items: center; gap: 5px; }
   .rcard .meta svg { width: 14px; height: 14px; color: var(--accent); opacity: 1; }
   .rcard .ingredients { font-size: 13px; color: var(--text-muted); border-top: 1px dashed var(--border); padding-top: 10px; line-height: 1.5; }
-  .rcard .actions { display: flex; align-items: center; gap: 10px; margin-top: auto; padding-top: 4px; }
-  /* Teilen+Loeschen als Icon-Paar rechts gruppiert, Ansehen+Bearbeiten links - sonst
-     klemmen bei vier Buttons drei links und nur einer isoliert rechts (siehe .del-ic). */
-  .rcard .actions .btn.icon-gh { margin-left: auto; }
+  /* flex-wrap: fuenf Knoepfe (mit dem Herz) passen auf schmalen Handys nicht mehr in eine
+     Zeile - sie brechen um, statt die Karte zu sprengen. */
+  .rcard .actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: auto; padding-top: 4px; }
+  /* Teilen+Loeschen+Herz als EIN Block rechts, Ansehen+Bearbeiten links. Der Block haelt
+     die Icons beim Umbruch zusammen und bleibt per margin-left:auto auch in der zweiten
+     Zeile rechts - einzeln umbrechende Icons landeten sonst links (Herz gehoert nach
+     unten rechts). */
+  .rcard .actions .act-icons { display: flex; align-items: center; gap: 10px; margin-left: auto; }
   .rcard .actions .btn.sm { gap: 6px; }
   .rcard .actions .btn.sm svg { width: 15px; height: 15px; }
 
@@ -1117,6 +1143,8 @@
   .pitem img.pthumb { width: 38px; height: 28px; border-radius: 5px; object-fit: cover; flex: none; }
   .pitem .pn { font-size: 14px; font-weight: 550; flex: 1; }
   .pitem .pc { font-size: 11.5px; color: var(--text-muted); }
+  .pitem .pfav { display: inline-flex; flex: none; color: var(--accent); }
+  .pitem .pfav svg { width: 13px; height: 13px; fill: currentColor; }
   .pitem.suggest { border-color: color-mix(in srgb, var(--accent) 40%, transparent); background: color-mix(in srgb, var(--accent) 6%, transparent); }
   .pitem.offcat .pn, .pitem.offcat .pc { color: var(--text-muted); }
   .pitem.offcat img.pthumb { opacity: .55; }
@@ -2485,15 +2513,22 @@
     return Math.round(lv.netMet * (+weightKg || 0) * (min / 60));
   }
 
-  const CATEGORIES = ["Frühstück", "Mittagessen", "Abendessen", "Snack", "Dessert", "Beilage", "Getränk"];
-  const CAT_CLASS = { "Frühstück": "cat-fr", "Mittagessen": "cat-mi", "Abendessen": "cat-ab" };
-  const CAT_TO_MEAL = { "Frühstück": "fr", "Mittagessen": "mi", "Abendessen": "ab" };
+  const CATEGORIES = ["Frühstück", "Hauptgericht", "Snack", "Dessert", "Beilage", "Getränk"];
+  const CAT_CLASS = { "Frühstück": "cat-fr", "Hauptgericht": "cat-ha" };
+  // Ein Hauptgericht passt in Mittag UND Abend -> Werte sind Listen, nicht ein Slot.
+  const CAT_TO_MEAL = { "Frühstück": ["fr"], "Hauptgericht": ["mi", "ab"] };
+  // Einmal-Migration: "Mittagessen"/"Abendessen" sind zu "Hauptgericht" verschmolzen.
+  // Laeuft ueber sanitizeRecipe() und greift damit an JEDEM Eingang.
+  const CAT_LEGACY = { "Mittagessen": "Hauptgericht", "Abendessen": "Hauptgericht" };
+  function migrateCat(c) { return CAT_LEGACY[c] || c; }
   // Snack/Dessert/Beilage passen in jeden Slot; alles ohne bekannte Kategorie ebenfalls,
   // damit geteilte oder ältere Meals nie unplanbar werden.
   function catFitsMeal(cat, mealKey) {
     const bound = CAT_TO_MEAL[cat];
-    return !bound || bound === mealKey;
+    return !bound || bound.indexOf(mealKey) !== -1;
   }
+  // Vorschlagsrang im Picker: passt die Kategorie GENAU zu diesem Slot (nicht nur "erlaubt")?
+  function catSuggestsMeal(cat, mealKey) { return (CAT_TO_MEAL[cat] || []).indexOf(mealKey) !== -1; }
 
   // Beispiel-Meals mit Fitness-/Abnehm-Fokus (viel Protein, realistische Portionen fuers
   // Meal-Prep) statt generischer Alltagsgerichte - passend zum Zielpublikum der App.
@@ -2508,7 +2543,7 @@
         "1 TL Chiasamen", "Prise Zimt"
       ],
       steps: "Haferflocken mit Milch aufkochen und 3–4 Min. bei milder Hitze quellen lassen. Vom Herd nehmen, Whey-Protein unterrühren. In eine Schale füllen, mit Beeren, Chiasamen und Zimt toppen." },
-    { name: "Hähnchen mit Pute und Reis", category: "Mittagessen", portions: 2, time: 30,
+    { name: "Hähnchen mit Pute und Reis", category: "Hauptgericht", portions: 2, time: 30,
       nutrition: { kcal: 620, carbs: 55, protein: 55, fat: 16 },
       ingredients: [
         { name: "Hähnchenbrust", grams: 200 },
@@ -2528,7 +2563,7 @@
         "Eiswürfel"
       ],
       steps: "Milch, Whey-Protein, Banane und ein paar Eiswürfel in den Mixer geben und cremig mixen." },
-    { name: "Rindersteak mit Ofenkartoffeln", category: "Abendessen", portions: 1, time: 35,
+    { name: "Rindersteak mit Ofenkartoffeln", category: "Hauptgericht", portions: 1, time: 35,
       nutrition: { kcal: 650, carbs: 62, protein: 56, fat: 20 },
       ingredients: [
         { name: "Rindersteak (Rumpsteak)", grams: 200 },
@@ -2784,6 +2819,14 @@
     return own;
   }
 
+  // Favoriten sind persoenlich (Konto-Dokument, nie Gruppe). Deduplizieren UND sortieren:
+  // dataJSON() vergleicht JSON-Strings; eine andere Reihenfolge auf zwei Geraeten laege sonst
+  // dauerhaft quer -> jeder Snapshot galte als Aenderung (Endlos-Push).
+  function sanitizeFavs(v) {
+    return Array.isArray(v) ? Array.from(new Set(v.filter(x => typeof x === "string" && x))).sort() : [];
+  }
+  function isFav(id) { return (state.favs || []).indexOf(id) !== -1; }
+
   function load() {
     let data = null;
     try { data = JSON.parse(localStorage.getItem(STORE_KEY)); } catch (e) { data = null; }
@@ -2791,7 +2834,7 @@
     if (!data || !Array.isArray(data.recipes)) {
       const recipes = SEED.map(r => Object.assign({ id: uid() }, r));
       const plans = {}; plans[curKey] = makeEmptyPlan();
-      return { recipes, plans, plan: plans[curKey], viewWeek: "cur", viewYear: new Date().getFullYear(), tab: "home", goal: null, shares: [], onboarded: false, weights: [], weightGoals: {}, weekStats: {}, profileImage: null, weightConsent: noConsent(), shopPersons: 1, groupId: "", inviteCodes: [] };
+      return { recipes, plans, plan: plans[curKey], viewWeek: "cur", viewYear: new Date().getFullYear(), tab: "home", goal: null, shares: [], onboarded: false, weights: [], weightGoals: {}, weekStats: {}, profileImage: null, weightConsent: noConsent(), shopPersons: 1, groupId: "", inviteCodes: [], favs: [] };
     }
     const recipes = sanitizeRecipes(data.recipes);
     const plans = {};
@@ -2804,7 +2847,7 @@
     // und braucht dafuer state (Ziel, Rezepte). Das laeuft noch nicht — state = load() ist gerade
     // erst am Entstehen. boot() ruft pruneWeeks(state.plans) direkt nach dem State-Aufbau nach.
     if (!plans[curKey]) plans[curKey] = makeEmptyPlan();
-    return { recipes, plans, plan: plans[curKey], viewWeek: "cur", viewYear: new Date().getFullYear(), tab: data.tab === "recipes" ? "recipes" : "home", goal: sanitizeGoal(data.goal), shares: Array.isArray(data.shares) ? data.shares : [], onboarded: data.onboarded === true, weights: sanitizeWeights(data.weights), weightGoals: sanitizeWeightGoals(data.weightGoals), weekStats: sanitizeWeekStats(data.weekStats), profileImage: typeof data.profileImage === "string" ? data.profileImage : null, weightConsent: sanitizeConsent(data.weightConsent), shopPersons: sanitizeShopPersons(data.shopPersons), groupId: typeof data.groupId === "string" ? data.groupId : "", inviteCodes: Array.isArray(data.inviteCodes) ? data.inviteCodes : [] };
+    return { recipes, plans, plan: plans[curKey], viewWeek: "cur", viewYear: new Date().getFullYear(), tab: data.tab === "recipes" ? "recipes" : "home", goal: sanitizeGoal(data.goal), shares: Array.isArray(data.shares) ? data.shares : [], onboarded: data.onboarded === true, weights: sanitizeWeights(data.weights), weightGoals: sanitizeWeightGoals(data.weightGoals), weekStats: sanitizeWeekStats(data.weekStats), profileImage: typeof data.profileImage === "string" ? data.profileImage : null, weightConsent: sanitizeConsent(data.weightConsent), shopPersons: sanitizeShopPersons(data.shopPersons), groupId: typeof data.groupId === "string" ? data.groupId : "", inviteCodes: Array.isArray(data.inviteCodes) ? data.inviteCodes : [], favs: sanitizeFavs(data.favs) };
   }
 
   // Schlaegt das lokale Speichern fehl (Speicher voll, privater Modus), darf das NICHT
@@ -2821,7 +2864,7 @@
       const recipesForLS = idbOK
         ? state.recipes.map(r => { const c = Object.assign({}, r); delete c.image; return c; })
         : state.recipes;
-      localStorage.setItem(STORE_KEY, JSON.stringify({ recipes: recipesForLS, plans: state.plans, tab: state.tab, goal: state.goal || null, shares: state.shares || [], onboarded: state.onboarded === true, weights: state.weights || [], weightGoals: state.weightGoals || {}, weekStats: state.weekStats || {}, profileImage: idbOK ? null : (state.profileImage || null), weightConsent: state.weightConsent || noConsent(), shopPersons: shopPersons(), groupId: state.groupId || "", inviteCodes: state.inviteCodes || [] }));
+      localStorage.setItem(STORE_KEY, JSON.stringify({ recipes: recipesForLS, plans: state.plans, tab: state.tab, goal: state.goal || null, shares: state.shares || [], onboarded: state.onboarded === true, weights: state.weights || [], weightGoals: state.weightGoals || {}, weekStats: state.weekStats || {}, profileImage: idbOK ? null : (state.profileImage || null), weightConsent: state.weightConsent || noConsent(), shopPersons: shopPersons(), groupId: state.groupId || "", inviteCodes: state.inviteCodes || [], favs: state.favs || [] }));
       storageFullWarned = false;
     } catch (e) {
       if (!storageFullWarned) {
@@ -3015,7 +3058,7 @@
   // traegt. Bliebe das Feld drin, laege state.plans (= Gruppenplan) dauerhaft quer zu
   // data.plans (= alter Kontostand) - jeder eingehende Snapshot galte als Aenderung,
   // Endlos-Toast und Endlos-Push. Exakt die Falle, die oben schon fuer "recipes" steht.
-  function dataJSON(d) { return JSON.stringify({ plans: syncGid ? null : plansField(d), goal: (d && d.goal) || null, shares: (d && d.shares) || [], onboarded: !!(d && d.onboarded), weights: (d && d.weights) || [], weightGoals: (d && d.weightGoals) || {}, profileImage: (d && d.profileImage) || null, weightConsent: (d && d.weightConsent) || noConsent(), shopPersons: sanitizeShopPersons(d && d.shopPersons), inviteCodes: (d && d.inviteCodes) || [] }); }
+  function dataJSON(d) { return JSON.stringify({ plans: syncGid ? null : plansField(d), goal: (d && d.goal) || null, shares: (d && d.shares) || [], onboarded: !!(d && d.onboarded), weights: (d && d.weights) || [], weightGoals: (d && d.weightGoals) || {}, profileImage: (d && d.profileImage) || null, weightConsent: (d && d.weightConsent) || noConsent(), shopPersons: sanitizeShopPersons(d && d.shopPersons), inviteCodes: (d && d.inviteCodes) || [], favs: sanitizeFavs(d && d.favs) }); }
 
   function scheduleCloudPush() {
     if (!syncUid) return;
@@ -3141,7 +3184,7 @@
     if (!syncUid || !window.CloudSync) return;
     await syncRecipes();
     await pushGroupPlan();
-    const d = { tab: state.tab, goal: state.goal || null, shares: state.shares || [], onboarded: state.onboarded === true, weights: state.weights || [], weightGoals: state.weightGoals || {}, profileImage: state.profileImage || null, weightConsent: state.weightConsent || noConsent(), shopPersons: shopPersons(), groupId: syncGid || "", inviteCodes: state.inviteCodes || [] };
+    const d = { tab: state.tab, goal: state.goal || null, shares: state.shares || [], onboarded: state.onboarded === true, weights: state.weights || [], weightGoals: state.weightGoals || {}, profileImage: state.profileImage || null, weightConsent: state.weightConsent || noConsent(), shopPersons: shopPersons(), groupId: syncGid || "", inviteCodes: state.inviteCodes || [], favs: sanitizeFavs(state.favs) };
     // In einer Gruppe wandert der Wochenplan nach groups/{gid}/plans - dann NICHT auch noch
     // ins Kontodokument schreiben. Dank merge:true bleibt das dortige "plans"-Feld als
     // Stand von vor dem Beitritt liegen; beim Verlassen wird der Gruppenplan bewusst
@@ -3199,6 +3242,7 @@
     state.weightConsent = mergeConsent(data.weightConsent, state.weightConsent); // juengste Entscheidung gewinnt
     if (data.profileImage !== undefined) state.profileImage = typeof data.profileImage === "string" ? data.profileImage : null;
     if (data.shopPersons !== undefined) state.shopPersons = sanitizeShopPersons(data.shopPersons);
+    if (data.favs !== undefined) state.favs = sanitizeFavs(data.favs); // Cloud gewinnt, kein Union (siehe sanitizeFavs)
     if (data.onboarded) state.onboarded = true;         // nur in eine Richtung, siehe startCloudSync
     setViewWeek(state.viewWeek);
     lastPushedJSON = j;
@@ -3474,6 +3518,7 @@
         // Cloud gewinnt: die Personenzahl ist eine Kontoeinstellung, kein Geraetezustand -
         // sonst ueberschriebe ein frisch angemeldetes zweites Geraet sie mit seiner 1.
         if (remote.shopPersons !== undefined) state.shopPersons = sanitizeShopPersons(remote.shopPersons);
+        if (remote.favs !== undefined) state.favs = sanitizeFavs(remote.favs); // Cloud gewinnt, kein Union
       }
       // Rezepte zusammenführen (Cloud + eigene lokale, die es dort noch nicht gibt).
       // Beispiel-Meals werden NICHT in ein bestehendes Konto übernommen – sie sind nur
@@ -3682,6 +3727,7 @@
     if (!r || typeof r !== "object") return null;
     const out = Object.assign({}, r);
     out.image = safeImage(r.image);
+    if (out.category) out.category = migrateCat(out.category);
     if (Array.isArray(r.ingredients)) out.ingredients = r.ingredients.map(sanitizeIng).filter(Boolean);
     return out;
   }
@@ -3696,8 +3742,9 @@
     bread:    '<path d="M3.5 9.5c0-2.4 2-4 4.5-4h8c2.5 0 4.5 1.6 4.5 4 0 1.5-1 2.5-2.5 2.5v6.5H6V12c-1.5 0-2.5-1-2.5-2.5Z"/>',
     cake:     '<path d="M4.5 20.5v-7a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2v7"/><path d="M2.5 20.5h19"/><path d="M4.5 15.5c1.4 0 1.4 1.5 2.9 1.5s1.4-1.5 2.9-1.5 1.4 1.5 2.9 1.5 1.4-1.5 2.9-1.5 1.4 1.5 2.9 1.5"/><path d="M12 11.5V8.5"/><circle cx="12" cy="7" r="1.4"/>',
     fruit:    '<path d="M12 7.8c-1-1.6-3-2.2-4.7-1.1C4.8 8.2 4 11.2 5 14.6c.9 3 2.6 5.4 4.6 5.4 1 0 1.4-.5 2.4-.5s1.4.5 2.4.5c2 0 3.7-2.4 4.6-5.4 1-3.4.2-6.4-2.3-7.9-1.7-1.1-3.7-.5-4.7 1.1Z"/><path d="M12 7.8V4.6c0-1 1-2 2.5-2"/>',
+    heart:    '<path d="M20.8 6.6a5 5 0 0 0-7.1 0L12 8.3l-1.7-1.7a5 5 0 1 0-7.1 7.1l8.8 8.8 8.8-8.8a5 5 0 0 0 0-7.1Z"/>',
   };
-  const CAT_ICON = { "Frühstück": "bread", "Mittagessen": "utensils", "Abendessen": "utensils", "Snack": "fruit", "Dessert": "cake", "Beilage": "salad" };
+  const CAT_ICON = { "Frühstück": "bread", "Hauptgericht": "utensils", "Snack": "fruit", "Dessert": "cake", "Beilage": "salad" };
   function iconSvg(key, cls) {
     const d = ICONS[key] || ICONS.pot;
     return `<svg class="${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
@@ -3848,7 +3895,7 @@
     [["apfel","banane","beere","erdbeer","himbeer","obst","frucht","melone","birne","orange","traube","kirsche","mango","ananas","pfirsich"], "fruit"],
   ];
   // Zweite Chance, wenn kein Stichwort greift: passendes Foto je Kategorie.
-  // Mittag- und Abendessen fehlen bewusst - die koennen alles sein, dort passt das neutrale Bild.
+  // Hauptgericht fehlt bewusst - das kann alles sein, dort passt das neutrale Bild.
   const CAT_PHOTO = { "Frühstück": "porridge", "Snack": "fruit", "Dessert": "cake", "Beilage": "salad", "Getränk": "drink" };
   // Liefert IMMER ein Foto: eigenes Bild > Stichwort-Treffer > Kategorie > neutrales Bild.
   function photoFor(r) {
@@ -5476,6 +5523,8 @@
   // Vorbelegung laeuft nur einmal: sonst wuerfe jeder renderRecipes()-Aufruf (z. B. nach
   // dem Aufklappen einer Kategorie) die eigene Auswahl des Nutzers wieder um.
   let collapsedCatsSeeded = false;
+  // Bewusst nicht gespeichert (wie collapsedCats): beim Neuladen ist die Liste wieder voll.
+  let recipeQuery = "";
 
   // "von Anna" auf der Karte - nur in einer Gruppe, nur bei fremden Meals, nur der Vorname.
   //
@@ -5490,6 +5539,13 @@
     return `<span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>${esc(who)}</span>`;
   }
 
+  // Kollidiert mit keiner echten Kategorie - Schluessel der Favoriten-Gruppe in der Map.
+  const FAV_KEY = "__favs";
+
+  // Baut nur Kopfzeile + (bei Meals) Suchfeld + leeren Container und haengt den
+  // input-Listener an. Ein voller render() ueber view.innerHTML zerstoert bei jedem
+  // Tastendruck Fokus und Cursor im Suchfeld - deshalb schreibt nur paintRecipeGroups()
+  // danach in #r-groups, genau wie paint(q) im Planer-Picker nur nach #p-list schreibt.
   function renderRecipes() {
     let html = `
       <div class="section-head">
@@ -5501,76 +5557,130 @@
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
           Neues Meal
         </button>` : ""}
-      </div>`;
+      </div>
+      ${state.recipes.length > 0 ? `<div class="recipe-search">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+        <input type="search" id="r-search" placeholder="Meal suchen …" autocomplete="off" value="${esc(recipeQuery)}" aria-label="Meals durchsuchen">
+      </div>` : ""}
+      <div id="r-groups"></div>`;
+    view.innerHTML = html;
+    const searchEl = view.querySelector("#r-search");
+    if (searchEl) searchEl.addEventListener("input", () => { recipeQuery = searchEl.value; paintRecipeGroups(); });
+    paintRecipeGroups();
+  }
+
+  // Schreibt ausschliesslich nach #r-groups - Kopfzeile und Suchfeld bleiben unberuehrt,
+  // damit ein Tastendruck im Suchfeld weder Fokus noch Cursorposition verliert.
+  function paintRecipeGroups() {
+    const container = view.querySelector("#r-groups");
+    if (!container) return;
 
     if (state.recipes.length === 0) {
-      html += `<div class="empty">
+      container.innerHTML = `<div class="empty">
         <svg class="em-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4v16a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1V7l-4-3H5a1 1 0 0 0-1 1Z"/><path d="M8 9h8M8 13h8M8 17h5"/></svg>
         <h3>${canEdit() ? "Noch keine Meals" : "Hier ist noch nichts"}</h3>
         <p>${canEdit() ? "Lege dein erstes Meal an – danach kannst du es im Wochenplan auf die Tage verteilen." : "Sobald jemand aus eurer Gruppe ein Meal anlegt, siehst du es hier."}</p>
         ${canEdit() ? `<button class="btn primary" data-action="new-recipe">Erstes Meal anlegen</button>` : ""}
       </div>`;
-    } else {
-      const groups = new Map(CATEGORIES.map(c => [c, []]));
-      state.recipes.forEach(r => {
-        const c = groups.has(r.category) ? r.category : "Sonstige";
-        if (!groups.has(c)) groups.set(c, []);
-        groups.get(c).push(r);
-      });
+      return;
+    }
 
-      // Erste Kategorie mit Inhalt bleibt offen, alle anderen starten eingeklappt -
-      // bei vielen Meals in mehreren Kategorien war "alles auf einmal offen" beim ersten
-      // Blick auf den Reiter eine sehr lange Liste.
-      if (!collapsedCatsSeeded) {
-        collapsedCatsSeeded = true;
-        let firstSeen = false;
-        for (const [cat, items] of groups) {
-          if (items.length === 0) continue;
-          if (firstSeen) collapsedCats.add(cat); else firstSeen = true;
-        }
-      }
+    const q = recipeQuery.toLowerCase().trim();
+    let pool = state.recipes;
+    if (q) pool = pool.filter(r => r.name.toLowerCase().includes(q) || (r.category || "").toLowerCase().includes(q));
 
+    // Favoriten stehen oben UND bleiben in ihrer Kategorie: wer ein Meal dort sucht, soll es
+    // dort auch finden - sonst werden die Kategorien loechrig, sobald jemand viel favorisiert.
+    // Der doppelte Eintrag erklaert sich durch das rote Herz. Dass zwei Karten dieselbe
+    // data-rid tragen, ist unkritisch - Foto-Drop und Strg+V treffen ohnehin dasselbe Meal.
+    const groups = new Map();
+    const favItems = pool.filter(r => isFav(r.id));
+    if (favItems.length) groups.set(FAV_KEY, favItems); // immer als erster Map-Eintrag
+    CATEGORIES.forEach(c => groups.set(c, []));
+    pool.forEach(r => {
+      const c = groups.has(r.category) && r.category !== FAV_KEY ? r.category : "Sonstige";
+      if (!groups.has(c)) groups.set(c, []);
+      groups.get(c).push(r);
+    });
+
+    // Erste Kategorie mit Inhalt bleibt offen, alle anderen starten eingeklappt - bei vielen
+    // Meals in mehreren Kategorien war "alles auf einmal offen" beim ersten Blick eine sehr
+    // lange Liste. Laeuft nur bei leerer Suche, sonst schriebe die erste Suche die
+    // Klapp-Vorbelegung auf dem gefilterten Bestand fest. Favoriten zaehlen hier nicht mit,
+    // sonst waere die Favoriten-Gruppe die "erste Kategorie mit Inhalt" und alle echten
+    // Kategorien starteten eingeklappt.
+    if (!q && !collapsedCatsSeeded) {
+      collapsedCatsSeeded = true;
+      let firstSeen = false;
       for (const [cat, items] of groups) {
-        if (items.length === 0) continue;
-        items.sort((a, b) => a.name.localeCompare(b.name, "de"));
-        const open = !collapsedCats.has(cat);
-        html += `<section class="catgroup">
-          <button class="cathead" data-action="toggle-cat" data-cat="${esc(cat)}" aria-expanded="${open}">
-            <svg class="caret${open ? " open" : ""}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
-            <span class="cname">${iconSvg(CAT_ICON[cat] || "pot", "cicon")}${esc(cat)}</span>
-            <span class="ccount">${items.length}</span>
-          </button>`;
-        if (!open) { html += `</section>`; continue; }
-        html += `<div class="recipes">`;
-        items.forEach(r => {
-        const ing = (r.ingredients || []);
-        const ingPreview = ing.length ? esc(ing.slice(0, 4).map(ingLabel).join(" · ")) + (ing.length > 4 ? " …" : "") : "Keine Zutaten hinterlegt";
-        html += `<article class="rcard" data-rid="${r.id}">
-          ${cardImageHtml(r)}
-          ${canEdit() ? `<button class="imgadd" data-action="photo" data-id="${r.id}" title="Eigenes Foto für dieses Meal wählen" aria-label="Eigenes Foto für dieses Meal wählen">+</button>` : ""}
-          <div class="rbody">
-          <div class="top">
-            <h3>${esc(r.name)}</h3>
-            ${isExample(r) ? `<span class="chip example" title="Mitgeliefertes Beispiel-Meal">Beispiel</span>` : ""}
-          </div>
-          <div class="meta">
-            ${recipeNut(r).kcal ? `<span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3c1 3 4 4.4 4 8a4 4 0 0 1-8 0c0-1.3.4-2.1 1-3 .3 1 .8 1.6 1.5 1.9C10 8 10.4 5.4 12 3Z"/></svg>${nfmt(recipeNut(r).kcal)} kcal</span>` : ""}
-            ${recipeAuthorHtml(r)}
-          </div>
-          <div class="ingredients">${ingPreview}</div>
-          <div class="actions">
-            <button class="btn ghost sm" data-action="view" data-id="${r.id}">${ACT_ICONS.view}Ansehen</button>
-            ${canEdit() ? `<button class="btn ghost sm" data-action="edit" data-id="${r.id}">${ACT_ICONS.edit}Bearbeiten</button>` : ""}
-            <button class="btn ghost icon-gh" data-action="share-recipe" data-id="${r.id}" title="Meal teilen" aria-label="Meal teilen">${TOOL_ICONS.share}</button>
-            ${canEdit() ? `<button class="btn del-ic" data-action="delete" data-id="${r.id}" title="Meal löschen" aria-label="Meal löschen">${ACT_ICONS.del}</button>` : ""}
-          </div>
-          </div>
-        </article>`;
-        });
-        html += `</div></section>`;
+        if (cat === FAV_KEY || items.length === 0) continue;
+        if (firstSeen) collapsedCats.add(cat); else firstSeen = true;
       }
     }
-    view.innerHTML = html;
+
+    let html = "";
+    let anyRendered = false;
+    for (const [cat, items] of groups) {
+      if (items.length === 0) continue;
+      anyRendered = true;
+      items.sort((a, b) => a.name.localeCompare(b.name, "de"));
+      const isFavGroup = cat === FAV_KEY;
+      const label = isFavGroup ? "Favoriten" : cat;
+      const icon = isFavGroup ? "heart" : (CAT_ICON[cat] || "pot");
+      // Bei aktiver Suche zaehlt collapsedCats nicht - sonst laege ein Treffer in einer
+      // eingeklappten Kategorie, die Zaehlung zeigte "1", die Karte waere unsichtbar.
+      const open = !!q || !collapsedCats.has(cat);
+      // Waehrend der Suche ist ohnehin alles offen - die Kopfzeile deshalb NICHT als Knopf
+      // ausgeben: ein Klick wuerde zwar collapsedCats umlegen, aber sichtbar passierte
+      // nichts (open bleibt true). Ein toter Klick liest sich wie ein Fehler. Ohne Caret
+      // ist auch optisch klar, dass hier gerade nichts zu klappen ist.
+      html += `<section class="catgroup">`;
+      html += q
+        ? `<div class="cathead static">
+          <span class="cname">${iconSvg(icon, "cicon")}${esc(label)}</span>
+          <span class="ccount">${items.length}</span>
+        </div>`
+        : `<button class="cathead" data-action="toggle-cat" data-cat="${esc(cat)}" aria-expanded="${open}">
+          <svg class="caret${open ? " open" : ""}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+          <span class="cname">${iconSvg(icon, "cicon")}${esc(label)}</span>
+          <span class="ccount">${items.length}</span>
+        </button>`;
+      if (!open) { html += `</section>`; continue; }
+      html += `<div class="recipes">`;
+      items.forEach(r => {
+      const ing = (r.ingredients || []);
+      const ingPreview = ing.length ? esc(ing.slice(0, 4).map(ingLabel).join(" · ")) + (ing.length > 4 ? " …" : "") : "Keine Zutaten hinterlegt";
+      html += `<article class="rcard" data-rid="${r.id}">
+        ${cardImageHtml(r)}
+        ${canEdit() ? `<button class="imgadd" data-action="photo" data-id="${r.id}" title="Eigenes Foto für dieses Meal wählen" aria-label="Eigenes Foto für dieses Meal wählen">+</button>` : ""}
+        <div class="rbody">
+        <div class="top">
+          <h3>${esc(r.name)}</h3>
+          ${isExample(r) ? `<span class="chip example" title="Mitgeliefertes Beispiel-Meal">Beispiel</span>` : ""}
+        </div>
+        <div class="meta">
+          ${recipeNut(r).kcal ? `<span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3c1 3 4 4.4 4 8a4 4 0 0 1-8 0c0-1.3.4-2.1 1-3 .3 1 .8 1.6 1.5 1.9C10 8 10.4 5.4 12 3Z"/></svg>${nfmt(recipeNut(r).kcal)} kcal</span>` : ""}
+          ${recipeAuthorHtml(r)}
+        </div>
+        <div class="ingredients">${ingPreview}</div>
+        <div class="actions">
+          <button class="btn ghost sm" data-action="view" data-id="${r.id}">${ACT_ICONS.view}Ansehen</button>
+          ${canEdit() ? `<button class="btn ghost sm" data-action="edit" data-id="${r.id}">${ACT_ICONS.edit}Bearbeiten</button>` : ""}
+          <span class="act-icons">
+            <button class="btn ghost icon-gh" data-action="share-recipe" data-id="${r.id}" title="Meal teilen" aria-label="Meal teilen">${TOOL_ICONS.share}</button>
+            ${canEdit() ? `<button class="btn del-ic" data-action="delete" data-id="${r.id}" title="Meal löschen" aria-label="Meal löschen">${ACT_ICONS.del}</button>` : ""}
+            <button class="btn fav-ic${isFav(r.id) ? " on" : ""}" data-action="toggle-fav" data-id="${r.id}"
+                    aria-pressed="${isFav(r.id)}"
+                    title="${isFav(r.id) ? "Aus Favoriten entfernen" : "Zu Favoriten hinzufügen"}"
+                    aria-label="${isFav(r.id) ? "Aus Favoriten entfernen" : "Zu Favoriten hinzufügen"}">${iconSvg("heart", "")}</button>
+          </span>
+        </div>
+        </div>
+      </article>`;
+      });
+      html += `</div></section>`;
+    }
+    container.innerHTML = anyRendered ? html : `<p style="color:var(--text-muted);margin:0">Kein Meal gefunden.</p>`;
   }
 
   // ---------- Modal ----------
@@ -6280,9 +6390,12 @@
       if (query) list = list.filter(r => r.name.toLowerCase().includes(query) || (r.category || "").toLowerCase().includes(query));
       const hidden = list.filter(r => !catFitsMeal(r.category, meal)).length;
       if (!showAll) list = list.filter(r => catFitsMeal(r.category, meal));
-      // suggest matching category first
+      // Favoriten zuerst, dann die zum Slot passende Kategorie. sort() ist stabil, die
+      // Namenssortierung von oben bleibt damit innerhalb beider Gruppen erhalten.
       list.sort((a, b) => {
-        const sa = a.category === mealCat ? 0 : 1, sb = b.category === mealCat ? 0 : 1;
+        const fa = isFav(a.id) ? 0 : 1, fb = isFav(b.id) ? 0 : 1;
+        if (fa !== fb) return fa - fb;
+        const sa = catSuggestsMeal(a.category, meal) ? 0 : 1, sb = catSuggestsMeal(b.category, meal) ? 0 : 1;
         return sa - sb;
       });
       const more = hidden > 0
@@ -6295,11 +6408,12 @@
         listEl.innerHTML = `<p style="color:var(--text-muted);padding:8px 4px;margin:0">Kein passendes Meal gefunden.</p>${more}`;
       } else {
         listEl.innerHTML = list.map(r => {
-          const suggest = r.category === mealCat ? " suggest" : "";
+          const suggest = catSuggestsMeal(r.category, meal) ? " suggest" : "";
           const off = catFitsMeal(r.category, meal) ? "" : " offcat";
           return `<button class="pitem${suggest}${off}" data-assign="${r.id}">
             ${thumbHtml(r, "pthumb")}
             <span class="pn">${esc(r.name)}</span>
+            ${isFav(r.id) ? `<span class="pfav" aria-hidden="true">${iconSvg("heart", "")}</span>` : ""}
             <span class="pc">${esc(r.category || "")}</span>
           </button>`;
         }).join("") + more;
@@ -6551,6 +6665,8 @@
         if (p[d.key] && p[d.key][m.key]) p[d.key][m.key] = asIdList(p[d.key][m.key]).filter(x => !idSet.has(x));
       }));
     });
+    // Favoriten mitraeumen: ein Herz auf ein geloeschtes Meal waere ein Geisterverweis.
+    if (Array.isArray(state.favs)) state.favs = state.favs.filter(x => !idSet.has(x));
   }
   function deleteRecipe(id) {
     const r = getRecipe(id); if (!r) return;
@@ -6562,6 +6678,7 @@
         // dropRecipeIds raeumt in ALLEN gespeicherten Wochen auf (nicht nur der aktiven) -
         // fuers Rueckgaengig-Machen deshalb alle Wochen klonen, nicht nur state.plan.
         const plansBefore = JSON.parse(JSON.stringify(state.plans));
+        const favsBefore = (state.favs || []).slice();
         state.recipes = state.recipes.filter(x => x.id !== id);
         dropRecipeIds(new Set([id]));
         save(); render();
@@ -6569,6 +6686,7 @@
           state.recipes.push(r);
           state.plans = plansBefore;
           state.plan = state.plans[activeWeekKey()] || state.plan;
+          state.favs = favsBefore;
           save(); render();
         });
       }
@@ -6653,7 +6771,7 @@
       <h4>2. Hosting der Website (GitHub Pages)</h4>
       <p>Diese Website wird bei GitHub Pages gehostet, einem Dienst der GitHub, Inc., 88 Colin P. Kelly Jr. Street, San Francisco, CA 94107, USA. Beim Aufruf der Seite verarbeitet GitHub technisch notwendige Zugriffsdaten (z. B. deine IP-Adresse), um die Seite auszuliefern und deren Sicherheit zu gewährleisten. Rechtsgrundlage ist unser berechtigtes Interesse an einer sicheren und effizienten Bereitstellung (Art. 6 Abs. 1 lit. f DSGVO). Dabei kann eine Übermittlung in die USA erfolgen. Weitere Infos: <a href="https://docs.github.com/de/site-policy/privacy-policies/github-general-privacy-statement" target="_blank" rel="noopener">GitHub Privacy Statement</a>.</p>
       <h4>3. Welche Daten wir verarbeiten</h4>
-      <p>Bei der Registrierung: <strong>Name und E-Mail-Adresse</strong>. Bei Nutzung der App: die von dir angelegten <strong>Wochenpläne, Meals/Rezepte und ggf. Fotos</strong> sowie ein optionales <strong>Profilbild</strong> (als Kreis-Avatar zugeschnitten, in deinem Nutzerkonto gespeichert, nicht Teil von Teilen-Links) sowie – im Rahmen der Einführungsfragen nach der Registrierung, die zur Nutzung der App erforderlich sind – <strong>Geschlecht, Alter, Größe, Gewicht, Alltagsbewegung und Ziel</strong> sowie optional deine <strong>Trainingstage</strong> (Wochentag, Intensität und Dauer) und deinen <strong>Körperfettanteil</strong> (als grobe Stufe; Details zu beidem siehe Ziffer 3a). Erstellst du Teilen-Links, merkt sich dein Konto zusätzlich deren <strong>Kennungen</strong> (keine Klardaten, siehe Ziffer 8), damit sie beim Löschen deines Kontos zugeordnet und mitentfernt werden können. Nutzt du „Gemeinsam planen", speichert dein Konto außerdem die <strong>Kennung deiner Gruppe</strong> sowie die Kennungen der von dir erstellten <strong>Einladungslinks</strong> – aus demselben Grund (siehe Ziffer 8a); an einem in einer Gruppe angelegten Meal wird zusätzlich deine <strong>Nutzerkennung</strong> vermerkt, damit sichtbar ist, wer es angelegt hat. Stellst du in der Einkaufsliste eine <strong>Personenanzahl</strong> ein, wird auch diese gespeichert. Stimmst du der Speicherung deines <strong>Gewichtsverlaufs</strong> ausdrücklich zu, speichern wir je Eintrag Monat und Gewicht sowie ein optionales <strong>Jahres-Zielgewicht</strong> (Details und Widerruf siehe Ziffer 3b). Diese Daten speichern wir, damit du dich anmelden und deine Planung geräteübergreifend nutzen kannst.</p>
+      <p>Bei der Registrierung: <strong>Name und E-Mail-Adresse</strong>. Bei Nutzung der App: die von dir angelegten <strong>Wochenpläne, Meals/Rezepte und ggf. Fotos</strong> sowie ein optionales <strong>Profilbild</strong> (als Kreis-Avatar zugeschnitten, in deinem Nutzerkonto gespeichert, nicht Teil von Teilen-Links) sowie – im Rahmen der Einführungsfragen nach der Registrierung, die zur Nutzung der App erforderlich sind – <strong>Geschlecht, Alter, Größe, Gewicht, Alltagsbewegung und Ziel</strong> sowie optional deine <strong>Trainingstage</strong> (Wochentag, Intensität und Dauer) und deinen <strong>Körperfettanteil</strong> (als grobe Stufe; Details zu beidem siehe Ziffer 3a). Erstellst du Teilen-Links, merkt sich dein Konto zusätzlich deren <strong>Kennungen</strong> (keine Klardaten, siehe Ziffer 8), damit sie beim Löschen deines Kontos zugeordnet und mitentfernt werden können. Nutzt du „Gemeinsam planen", speichert dein Konto außerdem die <strong>Kennung deiner Gruppe</strong> sowie die Kennungen der von dir erstellten <strong>Einladungslinks</strong> – aus demselben Grund (siehe Ziffer 8a); an einem in einer Gruppe angelegten Meal wird zusätzlich deine <strong>Nutzerkennung</strong> vermerkt, damit sichtbar ist, wer es angelegt hat. Stellst du in der Einkaufsliste eine <strong>Personenanzahl</strong> ein, wird auch diese gespeichert. Markierst du Meals als <strong>Favorit</strong>, wird diese Auswahl ebenfalls in deinem Konto gespeichert – nur für dich, auch in einer Gruppe. Stimmst du der Speicherung deines <strong>Gewichtsverlaufs</strong> ausdrücklich zu, speichern wir je Eintrag Monat und Gewicht sowie ein optionales <strong>Jahres-Zielgewicht</strong> (Details und Widerruf siehe Ziffer 3b). Diese Daten speichern wir, damit du dich anmelden und deine Planung geräteübergreifend nutzen kannst.</p>
       <h4>3a. Ziel-Berechnung (Einführungsfragen)</h4>
       <p>Zur Nutzung der App gibst du bei den Einführungsfragen nach der Registrierung <strong>Geschlecht, Alter, Größe und Gewicht</strong> sowie deine Alltagsbewegung und dein Ziel an – ohne diese Angaben lässt sich kein Kalorien- und Makroziel berechnen und die App steht dir nicht zur Verfügung. Optional legst du zusätzlich deine <strong>Trainingstage</strong> fest – also an welchen Wochentagen du trainierst, mit welcher Intensität und wie lange; diese Angabe kannst du auch weglassen. Ebenfalls optional wählst du eine grobe Stufe für deinen <strong>Körperfettanteil</strong> – gibst du sie an, berechnet die App deinen Grundumsatz nach der Katch-McArdle-Formel über die fettfreie Masse statt nach Mifflin-St-Jeor; wählst du „Weiß ich nicht", bleibt es bei Mifflin-St-Jeor. Daraus berechnet die App direkt in deinem Browser deinen Tagesbedarf, deine Makronährstoffe und deinen BMI; an Trainingstagen zusätzlich den geschätzten Mehrbedarf durch die jeweilige Einheit. Übernimmst du das Ergebnis als dein Ziel, werden diese Angaben wie deine übrigen Plandaten lokal und – bei Cloud-Nutzung – in deinem Nutzerkonto (Cloud Firestore, siehe Ziffer 5) gespeichert, um sie geräteübergreifend verfügbar zu halten. Du kannst dein Ziel jederzeit über den Knopf „Ziel neu berechnen" im Wochenplan neu berechnen; die vorherigen Werte sind dann durch die neuen ersetzt. Rechtsgrundlage ist wie unter Ziffer 4 die Erfüllung des Nutzungsvertrags (Art. 6 Abs. 1 lit. b DSGVO). Diese Angaben werden <strong>nicht</strong> in Teilen-Links aufgenommen (siehe Ziffer 8).</p>
       <h4>3b. Gewichtsverlauf („Ziele &lt;Jahr&gt;")</h4>
@@ -6852,6 +6970,15 @@
       const c = t.dataset.cat;
       if (collapsedCats.has(c)) collapsedCats.delete(c); else collapsedCats.add(c);
       render();
+    }
+    else if (a === "toggle-fav") {
+      // Favoriten sind persoenlich (Konto-Dokument) - auch Nur-Ansehen-Mitglieder
+      // einer Gruppe duerfen favorisieren, daher bewusst nicht in WRITE_ACTIONS.
+      const id = t.dataset.id;
+      if (!state.favs) state.favs = [];
+      state.favs = isFav(id) ? state.favs.filter(x => x !== id) : sanitizeFavs(state.favs.concat(id));
+      save();               // persistiert + scheduleCloudPush()
+      paintRecipeGroups();  // nur die Liste neu zeichnen, sonst faellt der Fokus aus dem Suchfeld
     }
     else if (a === "toggle-day-goals") {
       const d = t.dataset.day;
@@ -9817,7 +9944,7 @@
       idMap[ir.id] = nid;
       // image bewusst durch safeImage(): der Snapshot stammt von einer fremden Person,
       // und nur hier kaeme ein manipulierter Wert ungeprueft in den eigenen Bestand.
-      state.recipes.push({ id: nid, name: ir.name, category: ir.category || "Gericht", nutrition: (ir.nutrition && typeof ir.nutrition === "object") ? ir.nutrition : null, ingredients: Array.isArray(ir.ingredients) ? ir.ingredients.map(sanitizeIng).filter(Boolean) : [], steps: ir.steps || "", image: safeImage(ir.image) });
+      state.recipes.push({ id: nid, name: ir.name, category: migrateCat(ir.category || "Gericht"), nutrition: (ir.nutrition && typeof ir.nutrition === "object") ? ir.nutrition : null, ingredients: Array.isArray(ir.ingredients) ? ir.ingredients.map(sanitizeIng).filter(Boolean) : [], steps: ir.steps || "", image: safeImage(ir.image) });
       added++;
     });
     if (takePlan && data.plan) {
