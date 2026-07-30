@@ -2837,8 +2837,11 @@
   // Eintrag reist im Kontodokument mit und heilt beide Richtungen: er haelt lokale Leichen
   // aus dem Merge heraus UND loescht in der Cloud nach, was ein abgebrochener Push (Tab zu,
   // Abmelden innerhalb der 800-ms-Sperre, offline) dort stehen liess.
-  const TOMB_TTL = 90 * 24 * 3600 * 1000;   // danach ist jedes Geraet laengst nachgezogen
   function sanitizeTombstones(v) {
+    // TTL bewusst INNERHALB der Funktion: load() laeuft weiter oben (let state = load()) und
+    // ruft von dort hierher - eine const auf Modulebene waere zu dem Zeitpunkt noch in der
+    // TDZ und riss die ganze App mit ("Cannot access 'TOMB_TTL' before initialization").
+    const TOMB_TTL = 90 * 24 * 3600 * 1000;   // danach ist jedes Geraet laengst nachgezogen
     const out = {};
     if (!v || typeof v !== "object") return out;
     const now = Date.now(), min = now - TOMB_TTL;
