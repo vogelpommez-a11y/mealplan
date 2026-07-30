@@ -5634,7 +5634,10 @@
       // ausgeben: ein Klick wuerde zwar collapsedCats umlegen, aber sichtbar passierte
       // nichts (open bleibt true). Ein toter Klick liest sich wie ein Fehler. Ohne Caret
       // ist auch optisch klar, dass hier gerade nichts zu klappen ist.
-      html += `<section class="catgroup">`;
+      // favgroup als eigene Klasse: der Scroll-Ausgleich in toggle-fav braucht einen Anker,
+      // der NICHT die Favoriten-Gruppe ist (die entsteht und verschwindet ja gerade). Ueber
+      // data-cat ginge das nicht - bei aktiver Suche ist die Kopfzeile ein div ohne Attribut.
+      html += `<section class="catgroup${isFavGroup ? " favgroup" : ""}">`;
       html += q
         ? `<div class="cathead static">
           <span class="cname">${iconSvg(icon, "cicon")}${esc(label)}</span>
@@ -6975,10 +6978,55 @@
       // Favoriten sind persoenlich (Konto-Dokument) - auch Nur-Ansehen-Mitglieder
       // einer Gruppe duerfen favorisieren, daher bewusst nicht in WRITE_ACTIONS.
       const id = t.dataset.id;
+      // Die Favoriten-Gruppe entsteht bzw. verschwindet OBERHALB der geklickten Karte - ohne
+      // Ausgleich rutscht die ganze Ansicht weg. scrollY absolut zu konservieren (wie render()
+      // es tut) reicht dafuer nicht: der Inhalt wandert ja tatsaechlich. Deshalb die Verschiebung
+      // eines Ankers messen und die Differenz aufs Scrolling addieren.
+      //
+      // Anker ist bewusst die LETZTE Karte mit dieser rid, nicht die angeklickte: Ein Favorit
+      // steht zweimal im DOM (oben in der Gruppe, unten in seiner Kategorie), die Favoriten-Gruppe
+      // ist immer die erste. "Letzte" trifft damit vor UND nach dem Repaint dieselbe Instanz -
+      // die angeklickte zu nehmen waere falsch, sobald jemand das Herz oben in der Gruppe drueckt.
+      //
+      // Zweiter Anker als Rueckfall: Steht die Karte nach dem Repaint NIRGENDWO mehr, greift
+      // der erste nicht. Das ist kein Randfall, sondern Alltag - nach jedem Neuladen ist nur
+      // die erste Kategorie offen (collapsedCats ist bewusst fluechtig), die Favoriten-Gruppe
+      // dagegen immer. Entfernt man dort den letzten Favoriten, verschwindet die Gruppe UND
+      // die Kategorie-Karte ist eingeklappt. Dann dient die erste echte Kategorie-Gruppe als
+      // Anker - sie liegt immer unter der Favoriten-Gruppe und ueberlebt den Repaint.
+      const cardTop = list => (list.length ? list[list.length - 1].getBoundingClientRect().top : null);
+      const groupTop = () => {
+        const g = view.querySelector("#r-groups .catgroup:not(.favgroup)");
+        return g ? g.getBoundingClientRect().top : null;
+      };
+      const before = cardTop(view.querySelectorAll(`.rcard[data-rid="${id}"]`));
+      const beforeGroup = groupTop();
+      const hadFocus = t === document.activeElement;
+
       if (!state.favs) state.favs = [];
       state.favs = isFav(id) ? state.favs.filter(x => x !== id) : sanitizeFavs(state.favs.concat(id));
       save();               // persistiert + scheduleCloudPush()
       paintRecipeGroups();  // nur die Liste neu zeichnen, sonst faellt der Fokus aus dem Suchfeld
+
+      const post = view.querySelectorAll(`.rcard[data-rid="${id}"]`);
+      const anchor = post.length ? post[post.length - 1] : null;
+      const shift = anchor && before !== null
+        ? anchor.getBoundingClientRect().top - before
+        : (beforeGroup !== null && groupTop() !== null ? groupTop() - beforeGroup : 0);
+      // scrollX mitnehmen statt hart 0 - hier gibt es heute keinen Querlauf, aber ein
+      // stillschweigendes Zuruecksetzen waere eine Falle fuer spaetere breite Inhalte.
+      if (shift) window.scrollTo(window.scrollX, window.scrollY + shift);
+
+      // Der geklickte Knopf ist durch innerHTML ersetzt - ohne das hier faellt der Fokus auf
+      // <body> und man tabbt nach jedem Herz wieder von vorn. preventScroll, damit das
+      // Einfangen nicht die gerade gesetzte Scrollposition wieder verschiebt.
+      if (hadFocus) {
+        const btn = anchor && anchor.querySelector('[data-action="toggle-fav"]');
+        // Ist die Karte weg (siehe oben), auf die naechste Kopfzeile ausweichen - irgendwo
+        // in der Liste weitertabben zu koennen ist besser als der Sprung an den Seitenanfang.
+        const back = btn || view.querySelector("#r-groups .cathead[data-action]") || view.querySelector("#r-search");
+        if (back) back.focus({ preventScroll: true });
+      }
     }
     else if (a === "toggle-day-goals") {
       const d = t.dataset.day;
