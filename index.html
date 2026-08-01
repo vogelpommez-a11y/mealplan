@@ -114,7 +114,8 @@
        daher nicht als neutrale Eigenschaft lesbar. Blau ist der einzige Ton, der sich
        von beidem absetzt. Achtung: Rot und Blau haben zueinander nur 1,07:1 Kontrast —
        fuer Farbenblinde sind sie ununterscheidbar. Die Markierung traegt deshalb NIE
-       allein ueber die Farbe, sondern immer zusaetzlich Hantel-Icon + Text. */
+       allein ueber die Farbe - die Traeger unterscheiden sich nach Breite: Karte Rand +
+       Hantel-Icon + Wort "Training", Tagesleiste Pillenfarbe + Hantel-Icon + aria-label. */
     --train: #2563EB;
     --train-strong: #1D4ED8;
     /* Schrift auf blauer Vollflaeche. Eigener Token, weil sich Blau zwischen den
@@ -479,27 +480,20 @@
     box-shadow: 0 2px 8px color-mix(in srgb, var(--accent) 38%, transparent);
   }
   .day-head .dnum { font-size: 12px; color: var(--text-muted); font-variant-numeric: tabular-nums; }
-  /* Ueber dem Tagesziel: Zeichen UND Text, nie nur Farbe. Steht vor dem Tages-Chip,
-     damit es beim Ueberfliegen der Wochenspalten sofort auffaellt. */
-  .day-head .dover {
-    margin-left: auto; display: inline-flex; align-items: center; gap: 3px;
-    font-size: 10px; font-weight: 700; letter-spacing: .03em;
-    white-space: nowrap; color: var(--accent); padding: 3px 8px; border-radius: 999px;
-    background: color-mix(in srgb, var(--accent) 12%, transparent);
-    border: 1px solid color-mix(in srgb, var(--accent) 38%, transparent);
-  }
-  .day-head .dover svg { width: 11px; height: 11px; flex: none; }
   .day.over > .day-head { background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 20%, var(--surface)), var(--surface)); }
 
   /* ---- Trainingstag ----
      Rot und Blau sind fast gleich hell (1,07:1) und fuer Farbenblinde nicht zu trennen.
-     Die Markierung besteht deshalb aus drei Trägern: Rand, Hantel-Icon UND dem Wort
-     „Training". Wer nur einen davon entfernt, nimmt der Markierung ihre Zugaenglichkeit. */
+     Die Markierung besteht deshalb aus drei Traegern, die je nach Breite wechseln: hier
+     auf der Karte Rand, Hantel-Icon UND dem Wort „Training"; in der mobilen Tagesleiste
+     Pillenfarbe, Hantel-Icon und das aria-label. Wer auf der Karte nur einen davon
+     entfernt, nimmt der Markierung ihre Zugaenglichkeit. */
   .day.training { border-color: color-mix(in srgb, var(--train) 55%, var(--border)); }
   .day.training::before { background: linear-gradient(90deg, var(--train), var(--train-strong)); }
   /* Kopfzeile zieht mit — sonst steht ein blauer Rand ueber rosa Verlauf. Das :not(.over)
      ist bewusst und nicht durch Reihenfolge ersetzbar: ueberschreitet der Tag sein Ziel,
-     muss die Warnung rot bleiben, egal ob trainiert wird. */
+     muss die Warnung rot bleiben, egal ob trainiert wird. Die Kopfzeile gibt es nur noch
+     am Rechner - mobil ist sie ausgeblendet, hier gilt die Regel also nur dort noch. */
   .day.training:not(.over) > .day-head {
     background: linear-gradient(180deg, color-mix(in srgb, var(--train) 12%, var(--surface)), var(--surface));
   }
@@ -1643,37 +1637,92 @@
 
   @media (max-width: 680px) {
     .daybar {
-      display: flex; gap: 4px;
+      display: flex; gap: 2px;
       position: sticky; top: var(--head-h, 70px); z-index: 20;
-      margin: 0 0 10px; padding: 6px 0;
-      /* Deckend und BEWUSST ohne backdrop-filter: die Leiste klebt genau ueber dem
-         Streifen, der beim Scrollen in Bewegung ist. Ein Weichzeichner muesste den
+      margin: 0 0 10px; padding: 4px;
+      /* Segmented Control wie .week-switch darueber: Flaeche auf dem Track, Pille
+         darauf. Deckend und BEWUSST ohne backdrop-filter: die Leiste klebt genau ueber
+         dem Streifen, der beim Scrollen in Bewegung ist. Ein Weichzeichner muesste den
          Hintergrund dann in jedem Bild neu rechnen – auf dem Handy die haeufigste
-         Ursache fuer ruckelndes Scrollen. Der Kopf darueber hat bereits einen;
-         ein zweiter, gestapelter kostet doppelt und bringt hier nichts, weil
-         darunter ohnehin nur --bg liegt. */
-      background: var(--bg);
+         Ursache fuer ruckelndes Scrollen. */
+      background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius);
       box-shadow: 0 6px 12px -8px rgba(0, 0, 0, .45);
     }
+    /* Gleitende Flaeche des aktiven Tages - 1:1 an scrollLeft gekoppelt, siehe
+       initCarousel()/syncIndicator(). Keine eigene Transition: der Wert ist eine reine
+       Funktion der Scrollposition, der native Sanftlauf des Inhalts liefert die Kurve
+       gleich mit (auch fuer prefers-reduced-motion, siehe Kommentar dort). */
+    .db-ind {
+      position: absolute; left: 4px; top: 4px; bottom: 4px; z-index: 0;
+      width: 0; border-radius: var(--radius-sm);
+      background: linear-gradient(135deg, var(--accent), var(--accent-strong));
+      box-shadow: 0 2px 8px color-mix(in srgb, var(--accent) 34%, transparent);
+      will-change: transform; pointer-events: none;
+    }
+    /* Trainings-Blau als eigene Schicht: Verlaeufe lassen sich nicht zuverlaessig
+       interpolieren, und die Transition MUSS auf dem Pseudo liegen - go() setzt beim
+       Mehrtages-Sprung inline die Kurzform "transition: transform ..." auf .db-ind und
+       wuerde jede dort notierte Farbtransition mit ueberschreiben. */
+    .db-ind::after {
+      content: ""; position: absolute; inset: 0; border-radius: inherit;
+      background: linear-gradient(135deg, var(--train), var(--train-strong));
+      opacity: 0; transition: opacity var(--dur-fast) var(--ease-out);
+    }
+    .daybar.is-train .db-ind::after { opacity: 1; }
+    /* Schatten springt hart um - box-shadow ist Paint, und .db-ind liegt wegen
+       will-change auf eigener Schicht. Bei 34% Alpha faellt der Sprung nicht auf,
+       weil die Flaeche darueber gleichzeitig ueberblendet. */
+    .daybar.is-train .db-ind { box-shadow: 0 2px 8px color-mix(in srgb, var(--train) 34%, transparent); }
     .db-b {
-      flex: 1 1 0; min-width: 0; min-height: 44px;
+      position: relative; z-index: 1; flex: 1 1 0; min-width: 0; min-height: 44px;
       display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
       font: inherit; font-family: var(--font-display); font-size: 13px; font-weight: 600;
       letter-spacing: .04em; text-transform: uppercase; cursor: pointer;
-      color: var(--text-muted); background: var(--surface-2);
-      border: 1px solid var(--border); border-radius: var(--radius-sm);
-      transition: color var(--dur-fast), background var(--dur-fast), border-color var(--dur-fast);
+      color: var(--text-muted); background: transparent;
+      border: 1px solid transparent; border-radius: var(--radius-sm);
+      touch-action: manipulation; -webkit-tap-highlight-color: transparent;
+      /* var(--ease-out) zusaetzlich zur Kurzform: Label und Pille sollen im Gleichschritt
+         kippen, sonst gibt es Frames mit weisser Schrift auf halb blauer Flaeche (kurz
+         die 2,54:1-Situation, die --train-contrast eigentlich verhindert). transform
+         darf hier unter keinen Umstaenden rein - es haengt 1:1 an scrollLeft. */
+      transition: color var(--dur-fast) var(--ease-out), opacity var(--dur-fast);
     }
-    /* „Heute" ist im Streifen bewusst nur ein Punkt: die Aussage steht ohnehin als
-       Wort im Kopf der Tageskarte, hier ist sie Wiederholung zur Orientierung. */
+    /* Press-State bewusst opacity statt scale: die Pille liegt darunter und skaliert
+       nicht mit, ein schrumpfendes Label ueber einer stehenden Pille saehe falsch aus. */
+    .db-b:active { opacity: .62; }
+    /* „Heute" ist im Streifen bewusst nur ein Punkt: ohne Kopfzeile ist er mobil der
+       einzige SICHTBARE „heute"-Traeger, das Wort steckt nur noch im aria-label. */
     .db-b .db-dot { width: 4px; height: 4px; border-radius: 50%; background: currentColor; opacity: 0; }
-    .db-b.is-today { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 45%, var(--border)); }
+    .db-b.is-today { color: var(--accent); }
     .db-b.is-today .db-dot { opacity: 1; }
-    .db-b.active {
-      color: var(--accent-contrast); border-color: transparent;
-      background: linear-gradient(135deg, var(--accent), var(--accent-strong));
-      box-shadow: 0 2px 8px color-mix(in srgb, var(--accent) 34%, transparent);
+    /* Muss NACH .is-today stehen, damit die aktive Farbe gewinnt, wenn heute zugleich
+       der aktive Tag ist. Die Flaeche liegt jetzt auf .db-ind, hier nur noch die Farbe. */
+    .db-b.active { color: var(--accent-contrast); }
+    /* Nach .db-b.active: sonst gewinnt dort #FFFFFF und im Dark-Theme steht Weiss auf
+       --train #60A5FA = 2,54:1, durchgefallen. --train-contrast ist gegen beide
+       Verlaufsenden (--train/--train-strong), Light UND Dark, gegen 4.5:1 gerechnet.
+       BEWUSST an .daybar.is-train gehaengt und NICHT an .db-b.is-train: die Pillenfarbe
+       haengt an genau dieser Klasse (setActive setzt sie). Zwei Bedingungen fuer eine
+       Wahrheit koennen auseinanderlaufen - und der Fehlerfall waere hier dunkler Text
+       auf ROTER Pille, also unlesbar. So teilen sich Flaeche und Schrift eine Quelle,
+       und faellt die Klasse aus, bleibt es weiss auf rot: harmlos. */
+    .daybar.is-train .db-b.active { color: var(--train-contrast); }
+
+    .db-mk { display: flex; align-items: center; gap: 3px; height: 8px; }
+    /* width:0 statt display:none, weil display nicht uebergangsfaehig ist: mit none
+       koennte die Einblendung gar nicht laufen, das Icon wuerde hart aufpoppen. Die
+       Breite springt trotzdem (sie ist bewusst NICHT in der Transition - eine
+       Breiten-Animation waere ein Layout pro Bild, genau waehrend gewischt wird); der
+       Punkt rutscht dadurch knapp 7px, was neben dem gleichzeitigen Farbwechsel nicht
+       auffaellt. Kein stroke-width setzen (gleiche Regel wie bei .day-head .dtrain svg). */
+    .db-mk svg {
+      width: 0; height: 11px; opacity: 0; overflow: hidden;
+      transition: opacity var(--dur-fast) var(--ease-out);
     }
+    /* Reicht .active: das SVG steht ohnehin nur in Trainingstag-Knoepfen im Markup.
+       Faellt die JS-Klasse auf der Leiste aus, erscheint das Icon trotzdem - dann fehlt
+       nur das Blau, die Information selbst bleibt stehen. */
+    .db-b.active .db-mk svg { width: 13px; opacity: 1; }
 
     .week {
       display: flex; gap: 12px;
@@ -1711,6 +1760,10 @@
     .week > .day.today:hover { border-color: color-mix(in srgb, var(--accent) 55%, var(--border)); }
     .week > .day.training:hover { border-color: color-mix(in srgb, var(--train) 55%, var(--border)); }
     .week > .day { transition: none; }
+    .week > .day > .day-head { display: none; }   /* eng gefasst, nicht global .day-head */
+    /* Ohne Kopfzeile stossen die Mahlzeiten direkt an den 4-px-Streifen (bei .today 5 px).
+       Die alte Kopfzeile hatte 15px oben - hier 14px, damit derselbe Luftraum bleibt. */
+    .week > .day > .slots { padding-top: 14px; }
 
     /* Ziele der Woche: gleiches Muster mit zwei Karten (Heute / Diese Woche). */
     .wgbar { display: flex; gap: 6px; margin: 0 0 10px; }
@@ -3858,8 +3911,6 @@
   // Bloecke plus Stange bleiben klein eindeutig als Hantel lesbar.
   // Wer das Icon gegen ein Kontur-Icon tauscht, muss es bei 13 px gegenpruefen.
   const ICON_DUMBBELL = '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="2" y="7.5" width="5" height="9" rx="1.6" fill="currentColor"/><rect x="17" y="7.5" width="5" height="9" rx="1.6" fill="currentColor"/><path d="M7 12h10" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg>';
-  // Warnzeichen fuers kompakte Ueber-Ziel-Badge im Tageskopf - der volle Satz steht im title.
-  const ICON_WARN = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/></svg>';
   // Flagge fuers "Grundziel" in der Ring-Kennzahlenliste (goalRingHtml).
   const ICON_FLAG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 21V4"/><path d="M5 4h13l-3 4.5L18 13H5"/></svg>';
 
@@ -4064,6 +4115,13 @@
   // Reiter des letzten Durchlaufs. Ein Reiterwechsel soll oben beginnen, jeder andere
   // Neuaufbau (Meal eingeplant, entfernt, Woche gewechselt) soll die Position halten.
   let lastRenderTab = null;
+  // Anker-Regel des Wochenplans (siehe Plan "flüssiger Tages- und Wochenwechsel"): ein
+  // Sprungziel im Tages-Karussell wird NUR beim Tabwechsel auf den Wochenplan und beim
+  // Wochenwechsel gesetzt - jeder andere render() (Meal einplanen, Cloud-Snapshot) haelt
+  // die Position. Ohne diese Entkopplung ueberstimmte keepWeekX unten jeden Sprung.
+  let pendingDayTarget = null;   // Index oder "today" - naechstes Sprungziel, von renderPlan() einmalig konsumiert
+  let pendingWeekDir = 0;        // 1 = naechste Woche, -1 = aktuelle Woche - Richtung fuer den Uebergang
+  let weekJumpDone = false;      // schaltet keepWeekX unten fuer genau diesen Durchlauf ab
 
   function render() {
     // Solange die ersten Schritte laufen, gehoert <main> ihnen. render() kommt aus mehreren
@@ -4099,7 +4157,7 @@
       document.getElementById("recipe-count").textContent = state.recipes.length;
       document.querySelectorAll(".tab").forEach(t => t.setAttribute("aria-selected", String(t.dataset.tab === state.tab)));
       if (state.tab === "recipes") renderRecipes();
-      else if (state.tab === "plan") renderPlan();
+      else if (state.tab === "plan") renderPlan(sameTab);
       else renderHome();
     } finally {
       recipeIndex = null;
@@ -4114,7 +4172,12 @@
     // Erst jetzt zuruecksetzen – der neue Inhalt steht, die Seite ist wieder hoch genug.
     // Ohne Sanftlauf: das hier ist Wiederherstellen, keine Bewegung, die jemand sehen soll.
     const newWeek = view.querySelector(".week"), newWg = view.querySelector(".wg-cols");
-    if (keepWeekX && newWeek) newWeek.scrollLeft = keepWeekX;
+    // weekJumpDone: renderPlan() ist gerade selbst schon auf ein Ziel gesprungen (Anker-
+    // Regel oben) - dieser Wiederherstellungs-Schreibvorgang darf den Sprung nicht
+    // ueberstimmen. Direkt danach zuruecksetzen, sonst bliebe die Sperre fuer den
+    // naechsten, ganz normalen Durchlauf (Meal einplanen) stehen.
+    if (keepWeekX && newWeek && !weekJumpDone) newWeek.scrollLeft = keepWeekX;
+    weekJumpDone = false;
     if (keepWgX && newWg) newWg.scrollLeft = keepWgX;
     window.scrollTo(0, keepY);
     save();
@@ -4786,14 +4849,9 @@
   // goalMacrosHtml() wickelt stattdessen jedes Makro einzeln (flex-wrap) und schrumpft
   // dadurch von selbst auf ein Makro pro Zeile, sobald der Platz fuer drei nicht reicht.
   function dayGoalsHtml(s, t, dayKey) {
-    const over = goalState(s.kcal, t.kcal) === "over";
     const open = expandedDayGoals.has(dayKey);
-    // Ist der Tag ueber dem Ziel, sagt das schon das .dover-Badge im Kartenkopf mit der
-    // exakten Zahl - die Restzeile im Balken wuerde denselben Wert ein zweites Mal
-    // direkt darunter zeigen. Unter dem Ziel gibt es kein Badge, dort bleibt "noch X kcal"
-    // die einzige Stelle, die das sagt.
     return `<div class="day-goals">
-        ${goalBarHtml({ label: "Kalorien", ist: s.kcal, ziel: t.kcal, unit: "kcal", rest: over ? false : "attention", unitInline: true })}
+        ${goalBarHtml({ label: "Kalorien", ist: s.kcal, ziel: t.kcal, unit: "kcal", rest: "attention", unitInline: true })}
         <button type="button" class="day-goals-toggle" data-action="toggle-day-goals" data-day="${dayKey}" aria-expanded="${open}">
           <span>Makros</span>
           <svg class="caret${open ? " open" : ""}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
@@ -4856,7 +4914,7 @@
   // KOMPLETTE Inhalt der zweiten Spalte samt eigener Ueberschrift (nicht nur Makros) -
   // bleibt die Spalte leer ("") faellt sie ganz weg. `grundzielLbl` heisst "Grundbedarf"
   // (Heute wie Woche) - NICHT "Tagesziel"/"Wochenziel": genau dieses Wort bezeichnet im
-  // Tageskopf-Badge (.dover) den VOLLEN Wert MIT Trainingszuschlag. Dieselbe Bezeichnung
+  // Fussbilanz der Tageskarte (goalBarHtml) den VOLLEN Wert MIT Trainingszuschlag. Dieselbe Bezeichnung
   // fuer zwei unterschiedliche Zahlen (mit/ohne Training) haette an Trainingstagen dazu
   // gefuehrt, dass "Tagesziel: 2.200" gelesen wird, obwohl das tatsaechliche Budget an dem
   // Tag 2.200 + Trainingszuschlag ist - "Grundbedarf" macht das "ohne Training" explizit.
@@ -5073,6 +5131,20 @@
   }
   window.addEventListener("resize", () => fits.forEach(f => f()));
 
+  // Bewegungswerte einmal aus den CSS-Tokens gelesen (Karussell-Sprung und
+  // Wochenwechsel-Uebergang unten) - keine zweite Quelle fuer Dauern/Kurven neben den
+  // Custom Properties in :root. Die Werte stehen im <style> im <head> und sind damit
+  // laengst im CSSOM, wenn dieses Script laeuft.
+  const MOTION = (() => {
+    const cs = getComputedStyle(document.documentElement);
+    return {
+      fast: cs.getPropertyValue("--dur-fast").trim() || "160ms",
+      base: cs.getPropertyValue("--dur-base").trim() || "200ms",
+      slow: cs.getPropertyValue("--dur-slow").trim() || "300ms",
+      ease: cs.getPropertyValue("--ease-out").trim() || "cubic-bezier(.23, 1, .32, 1)",
+    };
+  })();
+
   // Bindet einen waagerecht schnappenden Streifen an die Knopfleiste darueber. Die
   // Kopplung laeuft ueber scrollLeft und NICHT ueber scrollIntoView: letzteres
   // verschiebt die Seite auch senkrecht, man wuerde beim Tagwechsel also
@@ -5086,7 +5158,11 @@
   function initCarousel(scroller, bar, panelList, onChange, opts) {
     if (!scroller || !bar) return null;
     const panels = panelList || Array.prototype.slice.call(scroller.children);
-    const btns = Array.prototype.slice.call(bar.children);
+    // Gleitende Pille des Segmented Control (Schritt 3) - nur in der .daybar vorhanden,
+    // die .wgbar (Home, "Ziele der Woche") bekommt keine, siehe CSS-Kommentar dort. Aus
+    // bar.children ausgeklammert, sonst zaehlte sie als achter "Tagesknopf" mit.
+    const ind = bar.querySelector(".db-ind");
+    const btns = Array.prototype.slice.call(bar.children).filter(el => el !== ind);
     if (!panels.length || !btns.length) return null;
 
     let activeIdx = -1;
@@ -5096,19 +5172,59 @@
         b.classList.toggle("active", on);
         if (on) b.setAttribute("aria-current", "true"); else b.removeAttribute("aria-current");
       });
+      // Bleibt generisch: die .wgbar (Home, "Ziele der Woche") hat keine .is-train-Knoepfe,
+      // dort ist der Ausdruck immer false und die Zeile folgenlos.
+      bar.classList.toggle("is-train", !!(btns[idx] && btns[idx].classList.contains("is-train")));
       if (idx !== activeIdx) { activeIdx = idx; if (onChange) onChange(idx); }
+    }
+
+    // Gecachte Messwerte statt bei jedem Scroll-Bild neu zu lesen - genau das erzwang
+    // vorher pro Bild ein Layout (offsetLeft/offsetWidth/offsetHeight von bis zu 7
+    // Karten). measure() liest einmal in einem Batch, alles Weitere greift nur noch
+    // lesend auf die Arrays zu. renderPlan() baut die Leiste bei jedem render() neu -
+    // deshalb keine einmalige Init, sondern hier am Ende jedes initCarousel()-Aufrufs.
+    let lefts = [], widths = [], heights = [], maxScroll = 0, step = 0, lastH = -1, clientW = 0;
+    function measure() {
+      const base = panels[0].offsetLeft;
+      lefts = panels.map(p => p.offsetLeft - base);
+      widths = panels.map(p => p.offsetWidth);
+      heights = panels.map(p => p.offsetHeight);
+      // clientWidth/scrollWidth gehoeren mit in den Batch: sie einzeln im Scroll-Pfad zu
+      // lesen erzwingt genau das Layout wieder, das die Arrays hier vermeiden sollen.
+      clientW = scroller.clientWidth;
+      maxScroll = scroller.scrollWidth - clientW;
+      // Fuer die Pille bewusst getBoundingClientRect statt offsetWidth/offsetLeft:
+      // letztere runden auf ganze Pixel. Sieben Knoepfe auf 390 px sind je 52,86 px
+      // breit - gerundet 53 stuende die Pille am Sonntag rund einen Pixel ueber den
+      // Rand hinaus. Gemessen, nicht gerechnet, bleibt es aber trotzdem.
+      if (btns.length) {
+        const r0 = btns[0].getBoundingClientRect();
+        step = btns.length > 1 ? btns[1].getBoundingClientRect().left - r0.left : 0;
+        if (ind) ind.style.width = r0.width + "px";
+      }
     }
 
     // Aktiv ist die Karte, deren linke Kante zuletzt vor der Mitte des Fensters lag –
     // das trifft auch waehrend eines halb gewischten Uebergangs das Richtige.
     function currentIndex() {
-      const mid = scroller.scrollLeft + scroller.clientWidth / 2;
+      const mid = scroller.scrollLeft + clientW / 2;
       let idx = 0;
-      panels.forEach((p, i) => { if (p.offsetLeft - panels[0].offsetLeft <= mid) idx = i; });
+      lefts.forEach((l, i) => { if (l <= mid) idx = i; });
       return idx;
     }
 
-    function markActive() { setActive(currentIndex()); }
+    // Early-Return: die 7 Knoepfe werden nur noch bei echtem Wechsel angefasst, nicht
+    // bei jedem Scroll-Bild - setActive() macht einen Style-Recalc mit aktiven
+    // Transitions, das war der teuerste Posten im rAF-Pfad.
+    function markActive() { const idx = currentIndex(); if (idx !== activeIdx) setActive(idx); }
+
+    // Pille des Segmented Control 1:1 an scrollLeft gekoppelt - reine Funktion ohne
+    // eigene Transition, siehe Schritt 3.
+    function syncIndicator() {
+      if (!ind) return;
+      const p = maxScroll ? scroller.scrollLeft / maxScroll * (panels.length - 1) : 0;
+      ind.style.transform = "translate3d(" + (p * step) + "px,0,0)";
+    }
 
     // Der Streifen ist von sich aus so hoch wie die hoechste Karte. Mit
     // align-items: flex-start behaelt zwar jede Karte ihre eigene Hoehe, der
@@ -5118,7 +5234,11 @@
     // Karten, sonst wuerde die hereinkommende hoehere Karte unterwegs abgeschnitten.
     function fitHeight() {
       // Am Rechner ist .week ein Raster und scrollt nicht – dort nichts anfassen.
-      if (scroller.scrollWidth <= scroller.clientWidth + 10) { scroller.style.height = ""; return; }
+      // Gegen den gemessenen Wert, nicht gegen frisch gelesene Layout-Eigenschaften.
+      if (maxScroll <= 10) {
+        if (scroller.style.height) { scroller.style.height = ""; lastH = -1; }
+        return;
+      }
       let h = 0;
       // fixedHeight: Karten, die als gleich hoch gedacht sind (Heute/Woche-Ziele),
       // aber durch bedingten Inhalt (Trainings-Badge, "Neu berechnen"-Knopf) leicht
@@ -5127,64 +5247,117 @@
       // stehen. Der Wochenplan (.week) bleibt bewusst variabel: dort ist die
       // unterschiedliche Hoehe pro Tag gewollt (siehe Kommentar bei .week weiter oben).
       if (opts && opts.fixedHeight) {
-        panels.forEach(p => { h = Math.max(h, p.offsetHeight); });
+        heights.forEach(x => { h = Math.max(h, x); });
       } else {
-        const left = scroller.scrollLeft, right = left + scroller.clientWidth;
-        panels.forEach(p => {
-          const a = p.offsetLeft - panels[0].offsetLeft;
-          if (a + p.offsetWidth > left + 1 && a < right - 1) h = Math.max(h, p.offsetHeight);
+        const left = scroller.scrollLeft, right = left + clientW;
+        lefts.forEach((a, i) => {
+          if (a + widths[i] > left + 1 && a < right - 1) h = Math.max(h, heights[i]);
         });
       }
-      if (h) scroller.style.height = h + "px";
+      // Schreibfaul: scroller.style.height nur bei echter Aenderung anfassen - sonst
+      // Write->Read->Layout in jedem Scroll-Bild, genau waehrend der Streifen bewegt.
+      if (h && h !== lastH) { lastH = h; scroller.style.height = h + "px"; }
     }
-    fits.push(fitHeight);
+    fits.push(() => { measure(); fitHeight(); }); // Orientierungswechsel: erst neu messen, dann passen
 
     // Karten koennen nach dem Aufbau wachsen: waehlt man im Rechner ein Ziel, klappt
     // das Tempo-Feld auf; setzt man Trainingstage, kommen Zeilen dazu. Ohne Nachmessen
     // behaelt der Streifen seine alte Hoehe und schneidet das Neue mit overflow:hidden
-    // ab – der untere Teil der Karte war dann nicht mehr erreichbar. Ein Beobachter auf
-    // den Karten faengt jede Ursache ab, statt jede einzelne Stelle von Hand nachzuziehen.
+    // ab – der untere Teil der Karte war dann nicht mehr erreichbar. Aktualisiert nur
+    // den betroffenen Cache-Eintrag statt komplett neu zu messen - eine gewachsene
+    // Karte aendert nicht die Positionen der anderen.
     if (window.ResizeObserver) {
-      const ro = new ResizeObserver(() => fitHeight());
+      const ro = new ResizeObserver(entries => {
+        entries.forEach(en => { const i = panels.indexOf(en.target); if (i >= 0) heights[i] = en.target.offsetHeight; });
+        fitHeight();
+      });
       panels.forEach(p => ro.observe(p));
       carouselObservers.push(ro);
     }
 
     let ticking = false;
     scroller.addEventListener("scroll", () => {
+      // Synchron, nicht im rAF-Block: iOS-Safari drosselt requestAnimationFrame waehrend
+      // Momentum-Scroll, das scroll-Ereignis kommt aber weiter. Ein einzelner
+      // Transform-Write ist billig genug fuer jedes Bild.
+      syncIndicator();
       if (ticking) return;
       ticking = true;
       requestAnimationFrame(() => { ticking = false; markActive(); fitHeight(); });
     }, { passive: true });
 
-    function go(i) {
+    // quiet: nur die Position setzen, ohne die schmueckende Sprung-Bewegung unten.
+    // renderPlan() nutzt das beim Betreten des Reiters und beim Wochenwechsel: dort ist
+    // der Tag kein Wechsel, den jemand ausgeloest hat, sondern der Startzustand. Ohne
+    // das liefe beim Wochenwechsel ausserdem der Streifen-Uebergang gleichzeitig mit
+    // Pillenfahrt und Karten-Ankommen - drei Bewegungen fuer einen Klick.
+    function go(i, quiet) {
       const p = panels[i];
       if (!p) return;
       // Markierung sofort umsetzen, nicht erst wenn das Scroll-Ereignis kommt: beim
       // Sanftlauf dauert das mehrere hundert Millisekunden, und ein Knopf, der nach
       // dem Tippen noch tot aussieht, wird ein zweites Mal getippt.
-      const from = currentIndex();
+      const from = activeIdx;
       setActive(i);
       // Der Sanftlauf animiert stur ueber die gesamte Strecke – von Montag auf Samstag
       // hiesse das, durch alle Zwischentage zu rauschen. Das ist keine Bewegung, die
       // etwas erklaert, sondern nur Wartezeit. Deshalb: nur zum Nachbartag sanft
       // gleiten (dort zeigt die Bewegung, in welche Richtung es ging), sonst direkt
       // setzen. Bei mehr als einer Karte Abstand springt es also sofort.
-      const neighbour = Math.abs(i - from) <= 1;
+      const dist = Math.abs(i - from);
+      const neighbour = dist <= 1;
       scroller.scrollTo({
-        left: p.offsetLeft - panels[0].offsetLeft,
+        left: lefts[i],
         behavior: (neighbour && !reducedMotion()) ? "smooth" : "auto",
       });
       // Beim Direktsprung steht die neue Position schon – dann die Hoehe sofort
       // mitziehen, statt einen Frame lang die alte stehen zu lassen. Beim Sanftlauf
       // rechnet das Scroll-Ereignis unterwegs ohnehin laufend nach.
       fitHeight();
+
+      // Mehrtages-Sprung (Schritt 4): kein Sanftlauf durch die Zwischentage (siehe
+      // oben), die Richtung erzaehlt stattdessen die Pille mit einer einmaligen
+      // Transition, die angekommene Karte kommt kurz mit einem WAAPI-Ankommen an.
+      if (dist > 1 && !quiet && !reducedMotion()) {
+        if (ind && step) {
+          const dur = dist <= 2 ? MOTION.base : MOTION.slow;
+          ind.style.transition = "transform " + dur + " " + MOTION.ease;
+          ind.style.transform = "translate3d(" + (i * step) + "px,0,0)";
+          // Inline-Style danach wieder loesen, sonst bremst die Transition beim
+          // naechsten Wisch das 1:1-Tracking im scroll-Listener.
+          const clearTrans = () => { ind.style.transition = ""; ind.removeEventListener("transitionend", clearTrans); };
+          ind.addEventListener("transitionend", clearTrans);
+        }
+        if (p.animate) {
+          const dir = i > from ? 1 : -1; // 8px bleiben innerhalb des 12px-Gaps, kein Nachbar blitzt auf
+          p.animate(
+            [{ opacity: .55, transform: "translateX(" + (dir * 8) + "px)" }, { opacity: 1, transform: "translateX(0)" }],
+            { duration: parseFloat(MOTION.base) || 200, easing: MOTION.ease }
+          );
+        }
+      }
+
+      // iOS-Absicherung: scrollTo({behavior:"smooth"}) kann bei scroll-snap-type: x
+      // mandatory zwischen zwei Snap-Punkten enden. scrollend ist Progressive
+      // Enhancement (Safari hat es erst seit 2023), sonst greift ein Timeout - beides
+      // prueft danach, ob wirklich am Zielpunkt gelandet wurde, und setzt sonst hart nach.
+      // activeIdx-Pruefung ist Pflicht, nicht Feinschliff: hat der Nutzer nach dem
+      // Tippen sofort weitergewischt, steht laengst ein anderer Tag - eine
+      // Nachkorrektur risse ihn dann gegen seinen eigenen Wisch zurueck.
+      const settle = () => {
+        if (activeIdx !== i) return;
+        if (Math.abs(scroller.scrollLeft - lefts[i]) > 2) scroller.scrollLeft = lefts[i];
+      };
+      if ("onscrollend" in scroller) scroller.addEventListener("scrollend", settle, { once: true });
+      else setTimeout(settle, 400);
     }
 
     btns.forEach((b, i) => b.addEventListener("click", () => go(i)));
 
+    measure();
     markActive();
     fitHeight();
+    syncIndicator();
     return { go: go, fit: fitHeight, index: currentIndex };
   }
 
@@ -5521,7 +5694,11 @@
   // SVG seine alte Pixelbreite und stuende zu schmal oder abgeschnitten da.
   window.addEventListener("resize", () => { if (view.querySelector(".wch-plot")) initWeightChart(); });
 
-  function renderPlan() {
+  // sameTab: von render() durchgereicht - der dortige sameTab-Wert gilt VOR der
+  // Zuweisung von lastRenderTab, genau der Zeitpunkt, der hier fuer die Anker-Regel
+  // zaehlt ("kommt man gerade von einem anderen Tab?"). lastRenderTab selbst waere an
+  // dieser Stelle schon auf "plan" gesetzt und wuerde einen Tabwechsel nicht mehr sehen.
+  function renderPlan(sameTab) {
     let html = `<div class="section-head plan-head">
         <div class="title">
           <h2>Dein Wochenplan</h2>
@@ -5544,31 +5721,32 @@
     // Karussells. Kein role="tablist" – es sind keine Reiter, sondern Sprungmarken
     // in einen Streifen, der auch gewischt werden kann. Die Kurzform steht sichtbar,
     // der volle Wochentag im aria-label; sonst laese eine Sprachausgabe nur „Mo“.
-    html += `<nav class="daybar" aria-label="Zum Wochentag springen">`;
+    html += `<nav class="daybar" aria-label="Zum Wochentag springen"><span class="db-ind" aria-hidden="true"></span>`;
     DAYS.forEach(d => {
       const isToday = d.key === todayKey;
-      html += `<button type="button" class="db-b${isToday ? " is-today" : ""}" aria-label="${esc(d.label)}${isToday ? " (heute)" : ""}"><span>${d.short}</span><span class="db-dot" aria-hidden="true"></span></button>`;
+      // Gleicher Ausdruck wie unten in der Tageskarten-Schleife: ohne gesetztes Ziel
+      // gibt es keine Trainingstage, dann bleibt der Reiter wie bisher.
+      const isTrain = !!state.goal && isTrainingDay(d.key);
+      html += `<button type="button" class="db-b${isToday ? " is-today" : ""}${isTrain ? " is-train" : ""}"
+         aria-label="${esc(d.label)}${isTrain ? ", Trainingstag " + esc(trainLevel(goalTraining()[d.key].level).label) : ""}${isToday ? " (heute)" : ""}">
+         <span>${d.short}</span>
+         <span class="db-mk">${isTrain ? ICON_DUMBBELL : ""}<span class="db-dot" aria-hidden="true"></span></span>
+       </button>`;
     });
     html += `</nav><div class="week">`;
 
     DAYS.forEach(d => {
       const isToday = d.key === todayKey;
-      // Warnzeichen direkt in der Kopfzeile: sonst sieht man erst beim Scrollen zur
-      // Fussbilanz, welcher Tag den Korridor sprengt. Beim Ueberfliegen der Woche ist
-      // aber genau das die Frage — welchen Tag muss ich nachjustieren?
+      // dOver faerbt nur noch die Kopfzeile am Rechner (.day.over) - der Klartext
+      // "120 kcal drüber" steht seit dem Badge-Wegfall wieder in der Fussbilanz
+      // (goalBarHtml/dayGoalsHtml), das Badge selbst gibt es nicht mehr.
       const dTarget = goalTargetsForDay(d.key);
       const dSum = dayNut(d.key);
       const dOver = dTarget && hasNut(dSum) && goalState(dSum.kcal, dTarget.kcal) === "over";
       // Die Trainings-Markierung haengt am gespeicherten Ziel: ohne Ziel gibt es auch
       // keine Tagestypen, dann bleibt die Karte wie bisher.
       const isTrain = !!state.goal && isTrainingDay(d.key);
-      // Kompakt als Icon+Zahl statt Volltext ("120 kcal drüber") - der ausgeschriebene
-      // Satz steht im title, wie beim Trainings-Badge daneben. Zwei ausgeschriebene
-      // Badges plus Tagesname sprengten auf schmalen Karten sonst die Kopfzeile.
-      const dOverBadge = dOver
-        ? `<span class="dover" title="${esc(nfmt(dSum.kcal - dTarget.kcal) + " kcal über dem Tagesziel")}">${ICON_WARN}${nfmt(dSum.kcal - dTarget.kcal)}</span>`
-        : "";
-      html += `<section class="day${isToday ? " today" : ""}${dOver ? " over" : ""}${isTrain ? " training" : ""}"><div class="day-head"><span class="dname">${d.label}</span>${isTrain ? trainBadgeHtml(d.key) : ""}${dOverBadge}<span class="dtag">${isToday ? "Heute" : d.short}</span></div><div class="slots">`;
+      html += `<section class="day${isToday ? " today" : ""}${dOver ? " over" : ""}${isTrain ? " training" : ""}" role="group" aria-label="${esc(d.label)}${isToday ? ", heute" : ""}"><div class="day-head"><span class="dname">${d.label}</span>${isTrain ? trainBadgeHtml(d.key) : ""}<span class="dtag">${isToday ? "Heute" : d.short}</span></div><div class="slots">`;
       MEALS.forEach(m => {
         const ids = state.plan[d.key][m.key];
         html += `<div class="slot" data-meal="${m.key}" data-slot="${d.key}:${m.key}">
@@ -5600,11 +5778,41 @@
     syncStickyOffsets();
     resetCarousels(); // die Streifen des vorigen Durchlaufs sind gerade weggeworfen worden
     const planCarousel = initCarousel(view.querySelector(".week"), view.querySelector(".daybar"));
-    // Ohne diesen Sprung stuende beim Reiterwechsel auf dem Handy immer Montag da,
-    // egal welcher Wochentag gerade ist – "next" hat kein "heute", dort bleibt Montag.
-    if (planCarousel && todayKey) {
-      const todayIdx = DAYS.findIndex(d => d.key === todayKey);
-      if (todayIdx > 0) planCarousel.go(todayIdx);
+
+    // Anker-Regel: "Aktuelle Woche" zeigt immer heute, "Nächste Woche" immer Montag -
+    // beim Betreten des Tabs UND bei jedem Wochenwechsel, nie durch Zufall (siehe
+    // Plan-Kontext). pendingDayTarget kommt vom week-Handler (Wochenwechsel) und wird
+    // hier einmalig verbraucht; ohne gesetztes Ziel greift beim Tabwechsel "heute".
+    let target = pendingDayTarget; pendingDayTarget = null;
+    if (target == null && !sameTab) target = "today"; // Tabwechsel auf den Plan
+    if (target === "today") target = todayKey ? DAYS.findIndex(d => d.key === todayKey) : 0;
+    // "jump" ist bewusst nicht an "target > 0" gekoppelt: auch ein Sprung NACH Montag
+    // (Index 0, z. B. "Nächste Woche") ist ein Sprung im Sinn der Anker-Regel - sonst
+    // wuerde render() den alten Scroll-Rest der vorigen Woche gleich wieder darueber
+    // schreiben (weekJumpDone bliebe faelschlich false).
+    const jump = target != null;
+    if (jump) {
+      weekJumpDone = true;
+      if (planCarousel && target > 0) planCarousel.go(target, true); // quiet: Startzustand, keine Sprung-Bewegung
+    }
+
+    // Wochenwechsel-Uebergang (Schritt 5): Richtung kommt ausschliesslich aus
+    // pendingWeekDir, einmalig konsumiert - render() laeuft auch bei jedem Meal-Einplanen
+    // und jedem Cloud-Snapshot, dort darf nichts blitzen.
+    const weekDir = pendingWeekDir; pendingWeekDir = 0;
+    if (weekDir) {
+      const weekEl = view.querySelector(".week");
+      if (weekEl && weekEl.animate) {
+        const reduced = reducedMotion();
+        // Enter-only: der innerHTML-Austausch IST der Exit, eine Ausblendung davor waere
+        // nur kuenstliche Latenz. Reduced Motion behaelt die Ueberblendung, verliert aber
+        // die Richtung (kein transform) - der globale !important-Block wuerde eine reine
+        // CSS-animation sonst komplett kappen, WAAPI erlaubt genau diese Abstufung.
+        const kf = reduced
+          ? [{ opacity: 0 }, { opacity: 1 }]
+          : [{ opacity: 0, transform: "translateX(" + (weekDir * 16) + "px)" }, { opacity: 1, transform: "translateX(0)" }];
+        weekEl.animate(kf, { duration: parseFloat(reduced ? MOTION.fast : MOTION.base) || 200, easing: MOTION.ease });
+      }
     }
   }
 
@@ -7137,7 +7345,22 @@
       undoToast("Entfernt", () => { state.plan[d][m].splice(idx, 0, removedId); save(); render(); });
     }
     else if (a === "shopping") openShopping();
-    else if (a === "week") { if ((t.dataset.week === "next") !== (state.viewWeek === "next")) { setViewWeek(t.dataset.week); render(); } }
+    else if (a === "week") {
+      if ((t.dataset.week === "next") !== (state.viewWeek === "next")) {
+        // Anker-Regel + Uebergangsrichtung fuer renderPlan() (Schritt 2/5): "next" setzt
+        // auf Montag, "cur" auf heute; die Pfeilrichtung erzaehlt, woher man kommt.
+        pendingWeekDir = t.dataset.week === "next" ? 1 : -1;
+        pendingDayTarget = t.dataset.week === "next" ? 0 : "today";
+        setViewWeek(t.dataset.week);
+        render();
+        // innerHTML zerstoert den gedrueckten Knopf, render() faengt den Fokus auf der
+        // Haupt-Tableiste ab - das katapultiert aus dem Wochenumschalter heraus.
+        // preventScroll ist Pflicht, sonst reisst der Fokus .week an eine andere
+        // Position und torpediert den gerade gesetzten Sprung.
+        const active = view.querySelector(".ws-btn.active");
+        if (active) active.focus({ preventScroll: true });
+      }
+    }
     else if (a === "wyear") { if (String(state.viewYear) !== t.dataset.year) { state.viewYear = +t.dataset.year; render(); } }
     else if (a === "weigh") openWeighForm();
     else if (a === "weight-goal") openWeightGoalForm();
