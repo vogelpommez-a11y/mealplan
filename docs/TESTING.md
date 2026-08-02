@@ -108,6 +108,13 @@ Beispiele:
 * Tabellen
 * Plausibilitätsprüfungen
 * Datenumwandlungen
+* `qrSvg()` gegen das echte `vendor/zxing.min.js` (Skript-Tag lädt es lokal nach): prüft, dass
+  ein `SVGSVGElement` mit quadratischen Maßen und mehreren Modul-Elementen entsteht.
+* Einladungscode-Extraktion (`/[?&]g=([A-Za-z0-9_-]+)/`) gegen eine gültige URL, eine URL mit
+  weiteren Parametern, eine fremde URL ohne `g=` und Klartext.
+* Gruppen-Plan-Merge beim Aktivieren (`finalizeGroupActivation()`): mit gestubbtem `CloudGroup`
+  prüfen, dass ein in der Gruppe bereits belegter Slot **nicht** überschrieben wird, ein dort
+  noch leerer Slot aber nachgetragen wird.
 
 ### Externe APIs
 

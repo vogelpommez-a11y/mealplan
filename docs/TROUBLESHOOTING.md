@@ -414,7 +414,37 @@ Wenn eine Einblendung gewünscht ist: `width: 0` (bzw. `height: 0`) plus `opacit
 `opacity` transitionieren. Die Breite springt dabei weiterhin — sie zu animieren wäre ein Layout
 pro Bild und damit teurer als der Effekt wert ist.
 
-## 27. Grundregel bei Fehlern
+## 27. Gruppen-Wartezustand: Zeitfenster zwischen Beitritt und Aktivierung
+
+Zwischen `prepareGroup()` und der Aktivierung (`finalizeGroupActivation()`) ändert der Owner
+weiter in seinem **eigenen** Konto, nicht in der Gruppe (`state.groupId` bleibt leer). Das kann
+kurzzeitig verwirren, wenn man erwartet, dass ab „Person einladen" schon alles synchron läuft.
+
+Beim Nachtragen des Wochenplans werden nur Slots geschrieben, die in der Gruppe noch **leer**
+sind (`have[slot]` geprüft in `finalizeGroupActivation()`). Ein Slot, den die beigetretene Person
+in der Zwischenzeit selbst gefüllt hat, wird nicht überschrieben. Wer das beim Testen prüft: die
+beigetretene Person muss dafür planen, *bevor* die Aktivierung durchläuft (schmales Zeitfenster,
+im Zwei-Konten-Test ggf. den Owner künstlich offline halten).
+
+## 28. QR-Code im Dark Theme
+
+`qrSvg()` liefert ein SVG ohne eigenen Hintergrund (nur schwarze Module). Ohne einen fest hellen
+Träger ist der Code im Dark Theme auf dunklem Grund unlesbar für Scanner. Deshalb hat `.grp-qr`
+einen fest weißen Hintergrund (`#fff`), unabhängig vom Theme — **nicht** `var(--surface)`
+verwenden, das ist im Dark Theme dunkel.
+
+## 29. `window.CloudGroup` hat kein `loadRecipes`
+
+Historischer Fehler in `dissolveGroup()`: der Code rief `window.CloudGroup.loadRecipes(...)` auf
+— diese Methode existiert nur auf `window.CloudSync`, nicht auf `CloudGroup` (siehe
+`### window.CloudGroup` in `ARCHITECTURES.md`). Der Aufruf warf eine `TypeError`, die vom
+umgebenden `try/catch` verschluckt wurde: „Gruppe auflösen" räumte dadurch nie wirklich die
+Firestore-Daten auf, sondern lief still in den lokalen `leaveGroup()`-Fallback. Behoben beim
+Herauslösen der gemeinsamen Aufräumlogik in `dissolveGroupFirestore()`. Bei ähnlichen
+`CloudGroup`/`CloudSync`-Aufrufen immer gegen die tatsächliche Methodenliste des jeweiligen
+Objekts prüfen, nicht nur gegen den Namen.
+
+## 30. Grundregel bei Fehlern
 
 Nicht einfach den sichtbaren Fehler flicken.
 

@@ -2092,6 +2092,14 @@
   .grp-note { margin: 12px 0 0; font-size: 12.5px; color: var(--text-muted); }
   .grp-note summary { cursor: pointer; font-weight: 600; color: var(--text); }
   .grp-note p { margin: 8px 0 0; line-height: 1.55; }
+  /* Wartezustand: Statuszeile ueber dem QR, waehrend eine Einladung offen ist. */
+  .grp-wait { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; font-size: 14px; font-weight: 600; }
+  .grp-wait .avatar { width: 34px; height: 34px; font-size: 13px; }
+  /* QR-Traeger: IMMER hell, unabhaengig vom Theme - ein QR-Code auf dunklem Grund liest
+     kein Scanner zuverlaessig, und --surface ist im Dark Theme dunkel. */
+  .grp-qr { width: 200px; max-width: 100%; aspect-ratio: 1 / 1; margin: 0 auto 14px; padding: 12px; box-sizing: border-box; background: #fff; border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; }
+  .grp-qr svg { width: 100%; height: 100%; display: block; }
+  .grp-qr:empty { display: none; }
 
   @media (max-width: 560px) {
     /* Zwei Kacheln nebeneinander werden hier zu schmal fuer die Beschriftung. */
@@ -2404,6 +2412,10 @@
         },
         // updateDoc statt setDoc(merge): scheitert laut, wenn die Gruppe nicht mehr da ist.
         setSettings: function (gid, settings) { return updateDoc(groupDoc(gid), { settings: settings }); },
+        setName: function (gid, name) { return updateDoc(groupDoc(gid), { name: name }); },
+        // Beendet den Wartezustand (status:"pending" -> "active"), rein informativ - die
+        // massgebliche Wahrheit fuer den Owner ist users/{uid}.pendingGroupId.
+        activate: function (gid) { return updateDoc(groupDoc(gid), { status: "active" }); },
         remove: function (gid) { return deleteDoc(groupDoc(gid)); },
         // Vollstaendiges Aufloesen: Gruppendokument + ALLE Mitglieder + ALLE Wochenplaene +
         // ALLE Meals in einem Batch. Firestore loescht Unterkollektionen NIE automatisch mit dem
@@ -2949,7 +2961,7 @@
     if (!data || !Array.isArray(data.recipes)) {
       const recipes = SEED.map(r => Object.assign({ id: uid() }, r));
       const plans = {}; plans[curKey] = makeEmptyPlan();
-      return { recipes, plans, plan: plans[curKey], viewWeek: "cur", viewYear: new Date().getFullYear(), tab: "home", goal: null, shares: [], onboarded: false, weights: [], weightGoals: {}, weekStats: {}, profileImage: null, weightConsent: noConsent(), shopPersons: 1, groupId: "", inviteCodes: [], favs: [], deleted: {} };
+      return { recipes, plans, plan: plans[curKey], viewWeek: "cur", viewYear: new Date().getFullYear(), tab: "home", goal: null, shares: [], onboarded: false, weights: [], weightGoals: {}, weekStats: {}, profileImage: null, weightConsent: noConsent(), shopPersons: 1, groupId: "", pendingGroupId: "", pendingInviteUrl: "", inviteCodes: [], favs: [], deleted: {} };
     }
     const recipes = sanitizeRecipes(data.recipes);
     const plans = {};
@@ -2962,7 +2974,7 @@
     // und braucht dafuer state (Ziel, Rezepte). Das laeuft noch nicht — state = load() ist gerade
     // erst am Entstehen. boot() ruft pruneWeeks(state.plans) direkt nach dem State-Aufbau nach.
     if (!plans[curKey]) plans[curKey] = makeEmptyPlan();
-    return { recipes, plans, plan: plans[curKey], viewWeek: "cur", viewYear: new Date().getFullYear(), tab: data.tab === "recipes" ? "recipes" : "home", goal: sanitizeGoal(data.goal), shares: Array.isArray(data.shares) ? data.shares : [], onboarded: data.onboarded === true, weights: sanitizeWeights(data.weights), weightGoals: sanitizeWeightGoals(data.weightGoals), weekStats: sanitizeWeekStats(data.weekStats), profileImage: typeof data.profileImage === "string" ? data.profileImage : null, weightConsent: sanitizeConsent(data.weightConsent), shopPersons: sanitizeShopPersons(data.shopPersons), groupId: typeof data.groupId === "string" ? data.groupId : "", inviteCodes: Array.isArray(data.inviteCodes) ? data.inviteCodes : [], favs: sanitizeFavs(data.favs), deleted: sanitizeTombstones(data.deleted) };
+    return { recipes, plans, plan: plans[curKey], viewWeek: "cur", viewYear: new Date().getFullYear(), tab: data.tab === "recipes" ? "recipes" : "home", goal: sanitizeGoal(data.goal), shares: Array.isArray(data.shares) ? data.shares : [], onboarded: data.onboarded === true, weights: sanitizeWeights(data.weights), weightGoals: sanitizeWeightGoals(data.weightGoals), weekStats: sanitizeWeekStats(data.weekStats), profileImage: typeof data.profileImage === "string" ? data.profileImage : null, weightConsent: sanitizeConsent(data.weightConsent), shopPersons: sanitizeShopPersons(data.shopPersons), groupId: typeof data.groupId === "string" ? data.groupId : "", pendingGroupId: typeof data.pendingGroupId === "string" ? data.pendingGroupId : "", pendingInviteUrl: typeof data.pendingInviteUrl === "string" ? data.pendingInviteUrl : "", inviteCodes: Array.isArray(data.inviteCodes) ? data.inviteCodes : [], favs: sanitizeFavs(data.favs), deleted: sanitizeTombstones(data.deleted) };
   }
 
   // Schlaegt das lokale Speichern fehl (Speicher voll, privater Modus), darf das NICHT
@@ -2979,7 +2991,7 @@
       const recipesForLS = idbOK
         ? state.recipes.map(r => { const c = Object.assign({}, r); delete c.image; return c; })
         : state.recipes;
-      localStorage.setItem(STORE_KEY, JSON.stringify({ recipes: recipesForLS, plans: state.plans, tab: state.tab, goal: state.goal || null, shares: state.shares || [], onboarded: state.onboarded === true, weights: state.weights || [], weightGoals: state.weightGoals || {}, weekStats: state.weekStats || {}, profileImage: idbOK ? null : (state.profileImage || null), weightConsent: state.weightConsent || noConsent(), shopPersons: shopPersons(), groupId: state.groupId || "", inviteCodes: state.inviteCodes || [], favs: state.favs || [], deleted: sanitizeTombstones(state.deleted) }));
+      localStorage.setItem(STORE_KEY, JSON.stringify({ recipes: recipesForLS, plans: state.plans, tab: state.tab, goal: state.goal || null, shares: state.shares || [], onboarded: state.onboarded === true, weights: state.weights || [], weightGoals: state.weightGoals || {}, weekStats: state.weekStats || {}, profileImage: idbOK ? null : (state.profileImage || null), weightConsent: state.weightConsent || noConsent(), shopPersons: shopPersons(), groupId: state.groupId || "", pendingGroupId: state.pendingGroupId || "", pendingInviteUrl: state.pendingInviteUrl || "", inviteCodes: state.inviteCodes || [], favs: state.favs || [], deleted: sanitizeTombstones(state.deleted) }));
       storageFullWarned = false;
     } catch (e) {
       if (!storageFullWarned) {
@@ -3087,6 +3099,10 @@
   // Kalorienzielen sieht denselben Plan gegen sein jeweils eigenes Ziel.
   let syncGid = null, groupInfo = null, groupMembers = [], myRole = null,
       lastPushedSlots = null, syncUnsubGroup = null, syncUnsubMembers = null, syncUnsubGroupPlans = null;
+  // Waehrend eine Gruppe vorbereitet, aber noch niemand beigetreten ist (state.pendingGroupId):
+  // ein schlanker Mitglieder-Listener, unabhaengig vom eigentlichen Gruppen-Sync oben, der ja
+  // erst mit dem Beitritt beginnt (siehe watchPendingGroup()).
+  let syncUnsubPending = null;
   // Steht der Gruppen-Dialog offen, frischt er sich auf, wenn jemand beitritt oder Rechte
   // wechseln. Ganz oben deklariert, weil closeModal() weiter unten darauf zugreift - eine
   // Deklaration erst bei openGroupModal() waere fuer closeModal() eine temporale Todeszone.
@@ -3684,6 +3700,25 @@
       // Gehoert das Konto zu einer Gruppe? Dann kommen Plan UND Meals von dort, und der
       // Zusammenfuehr-Block darunter entfaellt komplett. Persoenlich bleiben Ziel,
       // Gewichte, Profilbild und die Freigabe-Kennungen - die stehen weiter im Konto.
+      // Wartezustand: pruefen, ob inzwischen ein zweites Mitglied da ist. Erst HIER, vor der
+      // wantGid-Ermittlung - gelingt die Aktivierung, liest der Rest dieses Ablaufs remote.groupId
+      // ganz normal ueber enterGroupSync() ein, ohne switchGroup() rekursiv aus diesem laufenden
+      // Aufruf heraus anzustossen (das wuerde stopCloudSync() mitten in diesem Durchlauf ausloesen).
+      let pgid = (remote && typeof remote.pendingGroupId === "string" && remote.pendingGroupId) ? remote.pendingGroupId : "";
+      if (pgid && window.CloudGroup) {
+        try {
+          const pendingMembers = await window.CloudGroup.fetchMembers(pgid);
+          if (pendingMembers.length > 1) {
+            await finalizeGroupActivation(pgid);
+            remote.groupId = pgid; remote.pendingGroupId = ""; pgid = "";
+          } else {
+            watchPendingGroup(pgid);
+          }
+        } catch (e) { /* offline o.ae. - der naechste Start versucht es erneut */ }
+      }
+      state.pendingGroupId = pgid;
+      state.pendingInviteUrl = pgid ? ((remote && remote.pendingInviteUrl) || "") : "";
+
       const wantGid = (remote && typeof remote.groupId === "string" && remote.groupId) ? remote.groupId : null;
       const inGroup = wantGid ? await enterGroupSync(wantGid) : false;
       // Als Mitglied entfernt worden, waehrend dieses Geraet offline war: das Feld lokal
@@ -3735,6 +3770,7 @@
   function stopCloudSync() {
     if (syncUnsub) { try { syncUnsub(); } catch (e) {} syncUnsub = null; }
     if (syncUnsubRecipes) { try { syncUnsubRecipes(); } catch (e) {} syncUnsubRecipes = null; }
+    unwatchPending();    // Wartezustand-Listener haengt sonst weiter, obwohl niemand mehr angemeldet ist
     leaveGroupState();   // Gruppen-Listener haengen sonst weiter und schreiben in den alten Zustand
     clearTimeout(pushTimer);
     syncUid = null; lastPushedJSON = null; lastPushedRecipes = null; recipesSyncFailed = false;
@@ -4508,6 +4544,19 @@
     return zxLoad;
   }
   const BARCODE_FORMATS = ["ean_13", "ean_8", "upc_a", "upc_e", "code_128"];
+  // Eigene Liste fuer den Einladungs-Scanner - BARCODE_FORMATS bewusst NICHT um "qr_code"
+  // erweitern, sonst wuerde der Zutaten-Scanner ploetzlich auch QR-Codes annehmen.
+  const QR_FORMATS = ["qr_code"];
+  // QR-Code fuer die Einladung zeichnen. Laeuft ueber dieselbe lokale ZXing-Bibliothek wie
+  // der Scanner (vendor/zxing.min.js) - keine zweite Abhaengigkeit, kein CDN.
+  async function qrSvg(text, size) {
+    await loadZXing();
+    const writer = new window.ZXing.BrowserQRCodeSvgWriter();
+    const svg = writer.write(text, size, size);
+    svg.setAttribute("role", "img");
+    svg.setAttribute("aria-label", "QR-Code für die Einladung");
+    return svg;
+  }
   async function detectBarcode(file) {
     if (window.BarcodeDetector) {
       try {
@@ -4566,20 +4615,29 @@
   // Aufloesung: { code } bei Treffer, { photo:true } bei Ausweichen aufs Foto,
   // { cancelled:true } bei Abbruch.
   let liveScanStop = null;
-  function scanBarcodeLive() {
+  // opts: { formats, title, hint, photoFallback } - alle optional. Standardmaessig unveraendert
+  // (Zutaten-Barcode). Der Einladungs-Scan (scanInvite()) uebergibt QR_FORMATS, einen eigenen
+  // Titel/Hinweis und blendet den Foto-Ausweg aus (ein QR laesst sich nicht sinnvoll aus einem
+  // Einzelfoto nachtraeglich lesen wie ein Barcode).
+  function scanBarcodeLive(opts) {
+    opts = opts || {};
+    const formats = opts.formats || BARCODE_FORMATS;
+    const title = opts.title || "Barcode scannen";
+    const readyHint = opts.hint || "Halte den Barcode in den Rahmen …";
+    const showPhoto = opts.photoFallback !== false;
     return new Promise(resolve => {
       let stream = null, reader = null, timer = 0, done = false;
-      const node = el(`<div class="scanwrap" role="dialog" aria-modal="true" aria-label="Barcode scannen">
+      const node = el(`<div class="scanwrap" role="dialog" aria-modal="true" aria-label="${esc(title)}">
         <div class="scanbox">
           <div class="scanhead">
-            <h3>Barcode scannen</h3>
+            <h3>${esc(title)}</h3>
             <button type="button" class="btn ghost sm" data-x aria-label="Scanner schließen">✕</button>
           </div>
           <div class="scanvid"><video playsinline muted autoplay></video><div class="scanframe"></div></div>
           <p class="scanhint" role="status">Kamera wird gestartet …</p>
-          <div class="scanfoot">
+          ${showPhoto ? `<div class="scanfoot">
             <button type="button" class="btn ghost" data-photo>Stattdessen Foto aufnehmen</button>
-          </div>
+          </div>` : ""}
         </div>
       </div>`);
       const video = node.querySelector("video");
@@ -4614,7 +4672,8 @@
       }
 
       node.querySelector("[data-x]").addEventListener("click", () => finish({ cancelled: true }));
-      node.querySelector("[data-photo]").addEventListener("click", () => finish({ photo: true }));
+      const photoBtn = node.querySelector("[data-photo]");
+      if (photoBtn) photoBtn.addEventListener("click", () => finish({ photo: true }));
       document.body.appendChild(node);
       liveScanStop = () => finish({ cancelled: true });
       document.addEventListener("keydown", onKey, true);
@@ -4625,8 +4684,9 @@
       (async () => {
         // getUserMedia gibt es nur im sicheren Kontext: HTTPS oder localhost. Ueber eine
         // http://-Adresse im WLAN (Handy-Test gegen den PC) blockiert der Browser die Kamera.
+        const photoHint = showPhoto ? " Nimm stattdessen ein Foto auf." : "";
         if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-          fail("Die Kamera braucht eine sichere Verbindung (HTTPS). Nimm stattdessen ein Foto auf.");
+          fail("Die Kamera braucht eine sichere Verbindung (HTTPS)." + photoHint);
           return;
         }
         try {
@@ -4637,10 +4697,10 @@
         } catch (e) {
           const n = e && e.name;
           fail(n === "NotAllowedError" || n === "SecurityError"
-              ? "Kamerazugriff wurde abgelehnt. Erlaube ihn in den Browser-Einstellungen – oder nimm ein Foto auf."
+              ? "Kamerazugriff wurde abgelehnt. Erlaube ihn in den Browser-Einstellungen." + photoHint
             : n === "NotFoundError" || n === "OverconstrainedError"
-              ? "Keine passende Kamera gefunden. Nimm stattdessen ein Foto auf."
-              : "Die Kamera lässt sich nicht starten. Nimm stattdessen ein Foto auf.");
+              ? "Keine passende Kamera gefunden." + photoHint
+              : "Die Kamera lässt sich nicht starten." + photoHint);
           return;
         }
         // Abbruch waehrend der Berechtigungsabfrage: cleanup lief mit stream===null,
@@ -4655,13 +4715,13 @@
         const playing = video.play();
         if (playing && playing.catch) playing.catch(() => {});
         if (done) return;
-        hint.textContent = "Halte den Barcode in den Rahmen …";
+        hint.textContent = readyHint;
 
         // Schneller Weg: native API (Chrome/Edge, Android). Auf dem iPhone gibt es sie
         // nicht — auch nicht in Chrome, das dort WebKit nutzt. Dann uebernimmt ZXing.
         if (window.BarcodeDetector) {
           try {
-            const det = new window.BarcodeDetector({ formats: BARCODE_FORMATS });
+            const det = new window.BarcodeDetector({ formats: formats });
             const tick = async () => {
               if (done) return;
               try {
@@ -4676,7 +4736,7 @@
           } catch (e) { /* Formate nicht unterstuetzt — faellt auf ZXing durch */ }
         }
         try { await loadZXing(); }
-        catch (e) { fail("Der Scanner konnte nicht geladen werden (offline?). Nimm stattdessen ein Foto auf."); return; }
+        catch (e) { fail("Der Scanner konnte nicht geladen werden (offline?)." + photoHint); return; }
         if (done) return;
         reader = new window.ZXing.BrowserMultiFormatReader();
         // Callback feuert pro Frame; ohne Treffer kommt eine NotFoundException, die hier
@@ -7117,19 +7177,19 @@
          Anders als beim Teilen-Link (Ziffer 8) ist das keine Kopie: Änderungen sind für alle Mitglieder sofort
          sichtbar. Für alle Mitglieder der Gruppe sichtbar sind dein <strong>angezeigter Name</strong>, dein
          optionales <strong>Profilbild</strong> (als kleines Abbild), deine <strong>Meals samt Fotos</strong>, der
-         gemeinsame <strong>Wochenplan</strong> und die Angabe, <strong>wer welches Meal angelegt hat</strong>
-         (gespeichert wird dafür nur deine Nutzerkennung, nicht dein Name).</p>
+         gemeinsame <strong>Wochenplan</strong>, ein optionaler <strong>Gruppenname</strong> und die Angabe,
+         <strong>wer welches Meal angelegt hat</strong> (gespeichert wird dafür nur deine Nutzerkennung, nicht dein
+         Name).</p>
       <p><strong>Nicht</strong> geteilt werden dein Kalorien- und Makroziel, deine Angaben aus den Einführungsfragen
          (Ziffer 3a), dein Gewichtsverlauf (Ziffer 3b) und deine <strong>E-Mail-Adresse</strong>. Jedes Mitglied
          sieht denselben Plan gegen sein jeweils eigenes Ziel.</p>
       <p>Eingeladen wird über einen <strong>Einladungslink</strong>. Für ihn gilt dasselbe wie für den Teilen-Link:
          80&nbsp;Bit Zufall, nicht erratbar, ein Auflisten ist technisch unterbunden. Ein Unterschied ist aber
-         wesentlich – wer den Einladungslink öffnet und sich anmeldet, wird <strong>Mitglied</strong> und erhält je
-         nach vergebenem Recht auch <strong>Schreibzugriff</strong> auf den gemeinsamen Plan und die gemeinsamen
-         Meals. Beim Erstellen legst du fest, ob die eingeladene Person <strong>mitplanen</strong> oder nur
-         <strong>mitlesen</strong> darf; die Inhaberin oder der Inhaber der Gruppe kann Rechte später ändern,
-         Mitglieder entfernen und den Einladungslink zurückziehen. Der Beitritt erfolgt nie automatisch – die App
-         fragt dich vorher.</p>
+         wesentlich – wer den Einladungslink öffnet und sich anmeldet, wird <strong>Mitglied</strong> und erhält
+         zunächst das Recht zum <strong>Mitplanen</strong>; die Inhaberin oder der Inhaber der Gruppe kann das
+         jederzeit auf <strong>Nur ansehen</strong> ändern, Mitglieder entfernen und den Einladungslink
+         zurückziehen. Der Beitritt erfolgt nie automatisch – die App fragt dich vorher. Bis zum ersten Beitritt
+         planst du unverändert für dich; erst danach ist der Plan wirklich gemeinsam.</p>
       <h4>9. Verschlüsselung</h4>
       <p>Die Übertragung der Daten erfolgt verschlüsselt über HTTPS (SSL/TLS).</p>
       <h4>10. Speicherdauer &amp; Löschung</h4>
@@ -7588,6 +7648,21 @@
     // Flag kann noch aus der Cloud nachkommen. Lokal gibt es niemanden, auf den zu warten waere.
     if (authMode === "local") maybeStartOnboarding();
   }
+  // Einladung per Kamera scannen statt Link. Nutzt denselben Live-Scanner wie der
+  // Zutaten-Barcode, aber auf QR beschraenkt (QR_FORMATS) und ohne Foto-Ausweg - ein QR
+  // laesst sich nicht sinnvoll aus einem nachtraeglichen Einzelfoto lesen.
+  async function scanInvite() {
+    const r = await scanBarcodeLive({
+      formats: QR_FORMATS, title: "Einladung scannen",
+      hint: "Halte den QR-Code in den Rahmen …", photoFallback: false
+    });
+    if (!r || r.cancelled) return;
+    const m = (r.code || "").match(/[?&]g=([A-Za-z0-9_-]+)/);
+    if (!m) { toast("Das ist keine Einladung zu Paddy's Mealplan."); return; }
+    closeModal();
+    openInviteModal(m[1]);
+  }
+
   // Einladung aus einem ?g=-Link. Fragt IMMER nach, statt still beizutreten: der Beitritt
   // macht die eigenen Meals fuer andere sichtbar - das darf nicht ungefragt passieren,
   // nur weil jemand auf einen Link getippt hat.
@@ -9325,46 +9400,113 @@
     }
   }
 
-  async function createGroup() {
-    if (!syncUid || !window.CloudGroup) { toast("Dafür brauchst du dein Cloud-Konto."); return; }
+  // Gruppe vorbereiten, aber noch nicht scharf schalten: der Owner bleibt in seinen eigenen
+  // Daten (state.groupId bleibt leer), bis wirklich jemand beitritt (siehe watchPendingGroup()/
+  // activateGroup() unten). Wer nur mal auf "Person einladen" klickt und es dabei belaesst,
+  // sitzt so nicht dauerhaft in einer Einpersonen-Gruppe.
+  async function prepareGroup() {
+    if (!syncUid || !window.CloudGroup) { toast("Dafür brauchst du dein Cloud-Konto."); return null; }
     const gid = shareId();
     try {
       await window.CloudGroup.create(gid, {
-        name: "", owner: syncUid, createdAt: Date.now(),
+        name: "", owner: syncUid, createdAt: Date.now(), status: "pending",
         settings: { shopForAll: true, changeHints: true }
       });
       await window.CloudGroup.putMember(gid, syncUid, {
         name: profile.name || "", avatar: await smallAvatar(state.profileImage),
         role: "owner", joinedAt: Date.now()
       });
-      // Erst die Meals, dann umschalten: enterGroupSync ersetzt state.recipes durch den
-      // Gruppenbestand - waeren die eigenen noch nicht oben, waeren sie danach weg.
+      // Schon jetzt hochladen, nicht erst bei der Aktivierung: wer beitritt, soll sofort
+      // einen gefuellten Plan sehen statt auf den naechsten Login des Owners zu warten.
       await copyOwnRecipesToGroup(gid);
-      // Der eigene Wochenplan wandert ebenfalls mit, sonst startet die Gruppe leer,
-      // obwohl gerade noch eine geplante Woche zu sehen war.
       for (const wk of Object.keys(state.plans || {})) {
         const flat = flattenWeek(state.plans[wk]);
         if (Object.keys(flat).length) await window.CloudGroup.savePlanWeek(gid, wk, Object.assign(flat, { by: syncUid, at: Date.now() }));
       }
-      // Erst die Cloud, dann der lokale Stand: Scheitert der Schreibvorgang, darf hier kein
-      // groupId zurueckbleiben, das nur dieses Geraet kennt - der naechste save() haette es
-      // ins localStorage geschrieben, waehrend das Konto in der Cloud gar keine Gruppe hat.
-      await window.CloudSync.save(syncUid, { groupId: gid });
-      state.groupId = gid;
-      await switchGroup(gid);
-      toast("Gruppe steht – jetzt jemanden einladen");
-      openGroupModal();
+      const url = await createInviteLink("edit", gid);
+      await window.CloudSync.save(syncUid, { pendingGroupId: gid, pendingInviteUrl: url });
+      state.pendingGroupId = gid;
+      state.pendingInviteUrl = url;
+      save();
+      watchPendingGroup(gid);
+      return url;
     } catch (e) {
-      state.groupId = "";
-      toast("Die Gruppe konnte nicht angelegt werden. Versuch es gleich noch einmal.");
+      try { await dissolveGroupFirestore(gid); } catch (e2) {}
+      state.pendingGroupId = ""; state.pendingInviteUrl = ""; save();
+      toast("Die Gruppe konnte nicht vorbereitet werden. Versuch es gleich noch einmal.");
+      return null;
     }
+  }
+
+  // Nachtrag der Aenderungen seit prepareGroup(): neue/geloeschte Meals, Wochenplan-Slots,
+  // die der Owner in der Zwischenzeit angelegt hat. Ruft bewusst NICHT switchGroup() auf -
+  // der Aufrufer entscheidet, ob ein kompletter Sync-Neustart noetig ist (activateGroup(): ja;
+  // der Aktivierungspfad in startCloudSync() nimmt den neuen Stand ohnehin im selben Durchlauf mit).
+  async function finalizeGroupActivation(gid) {
+    await copyOwnRecipesToGroup(gid);
+    const deletedIds = Object.keys(state.deleted || {});
+    if (deletedIds.length) await window.CloudSync.saveRecipesBatch(["groups", gid], [], deletedIds);
+    // Nur Slots nachtragen, die in der Gruppe noch LEER sind - sonst ueberschriebe der
+    // Owner-Push die Slots, die der Beitretende in der Zwischenzeit selbst gefuellt hat.
+    const existing = await window.CloudGroup.loadPlans(gid);
+    const have = {};
+    existing.forEach(w => { have[w.week] = w.fields || {}; });
+    for (const wk of Object.keys(state.plans || {})) {
+      const flat = flattenWeek(state.plans[wk]);
+      const already = have[wk] || {};
+      const missing = {};
+      Object.keys(flat).forEach(slot => { if (!already[slot]) missing[slot] = flat[slot]; });
+      if (Object.keys(missing).length) await window.CloudGroup.savePlanWeek(gid, wk, Object.assign(missing, { by: syncUid, at: Date.now() }));
+    }
+    try { await window.CloudGroup.activate(gid); } catch (e) {}
+    await window.CloudSync.save(syncUid, { groupId: gid, pendingGroupId: "", pendingInviteUrl: "" });
+  }
+
+  // Live-Listener fuer den Wartezustand: sobald ein zweites Mitglied auftaucht, aktivieren.
+  // Getrennt von den Gruppen-Listenern in enterGroupSync() - die laufen erst NACH dem Beitritt.
+  function watchPendingGroup(gid) {
+    unwatchPending();
+    if (!window.CloudGroup) return;
+    syncUnsubPending = window.CloudGroup.watchMembers(gid, members => {
+      if (members.length > 1) { unwatchPending(); activateGroup(gid, members); }
+    });
+  }
+  function unwatchPending() {
+    if (syncUnsubPending) { try { syncUnsubPending(); } catch (e) {} syncUnsubPending = null; }
+  }
+
+  // Live-Aktivierung (jemand tritt bei, waehrend der Owner online ist). Der Start-Pfad in
+  // startCloudSync() deckt den Fall ab, dass der Owner offline war.
+  async function activateGroup(gid, members) {
+    try {
+      await finalizeGroupActivation(gid);
+      state.pendingGroupId = ""; state.pendingInviteUrl = ""; save();
+      const joiner = (members || []).filter(m => m.uid !== syncUid)[0];
+      await switchGroup(gid);
+      if (joiner && joiner.name) toast(firstName(joiner.name) + " ist dabei – ihr plant jetzt gemeinsam");
+    } catch (e) {
+      toast("Der Beitritt konnte nicht übernommen werden – versucht es gleich noch einmal.");
+    }
+  }
+
+  // Wartezustand vollstaendig zuruecknehmen: die vorbereitete Gruppe wird komplett aufgeloest,
+  // danach ist der Zustand exakt wie vor "Person einladen" - keine Karteileiche in Firestore.
+  async function withdrawPendingInvite() {
+    const gid = state.pendingGroupId;
+    if (!gid) return;
+    unwatchPending();
+    try { await dissolveGroupFirestore(gid); } catch (e) {}
+    state.pendingGroupId = ""; state.pendingInviteUrl = ""; save();
+    try { await window.CloudSync.save(syncUid, { pendingGroupId: "", pendingInviteUrl: "" }); } catch (e) {}
+    toast("Einladung zurückgezogen");
   }
 
   // Einladungslink erzeugen. Der Code ist der Zugang (80 Bit, wie die Teilen-Links) -
   // deshalb ist er in Firestore ausdruecklich nicht auflistbar.
-  async function createInviteLink(role) {
+  async function createInviteLink(role, gid) {
+    gid = gid || syncGid;
     const code = shareId();
-    await window.CloudGroup.createInvite(code, { gid: syncGid, role: role, by: syncUid, createdAt: Date.now() });
+    await window.CloudGroup.createInvite(code, { gid: gid, role: role, by: syncUid, createdAt: Date.now() });
     // Code im eigenen Konto merken - genau wie die Teilen-Links (state.shares). Ohne das
     // liesse er sich spaeter nicht mehr zurueckziehen und bliebe beim Loeschen des Kontos
     // als offene Tuer in die Gruppe zurueck.
@@ -9388,7 +9530,7 @@
       // ihre eigenen Meals bleiben deshalb im eigenen Konto liegen, statt hier an einer
       // abgelehnten Schreiboperation haengen zu bleiben.
       if (role !== "view") await copyOwnRecipesToGroup(inv.gid);
-      // Cloud zuerst, siehe Begruendung in createGroup().
+      // Cloud zuerst, siehe Begruendung in prepareGroup().
       await window.CloudSync.save(syncUid, { groupId: inv.gid });
       state.groupId = inv.gid;
       await switchGroup(inv.gid);
@@ -9399,38 +9541,47 @@
     }
   }
 
-  // Gruppe vollstaendig aufloesen (nur der Inhaber, ueber "Auflösen"). Erst der Batch aus
-  // CloudGroup.dissolve (Gruppendokument + ALLE Mitglieder + ALLE Plaene + ALLE Meals in einem
-  // Rutsch - Firestore loescht Unterkollektionen sonst nie mit), danach dieselbe lokale
+  // Aufloesen einer Gruppe in Firestore: Gruppendokument + ALLE Mitglieder + ALLE Plaene +
+  // ALLE Meals in einem Batch (CloudGroup.dissolve - Firestore loescht Unterkollektionen
+  // sonst nie mit dem Elterndokument mit), danach die eigenen Einladungscodes fuer GENAU
+  // diese Gruppe. Reine Firestore-Arbeit ohne lokalen Zustand - wird sowohl beim regulaeren
+  // Aufloesen einer aktiven Gruppe (dissolveGroup()) als auch beim Zuruecknehmen/Fehlschlagen
+  // einer noch unbeigetretenen, vorbereiteten Gruppe gebraucht (withdrawPendingInvite(),
+  // prepareGroup()).
+  async function dissolveGroupFirestore(gid) {
+    const [members, plans, recipes] = await Promise.all([
+      window.CloudGroup.fetchMembers(gid),
+      window.CloudGroup.loadPlans(gid),
+      window.CloudSync.loadRecipes(["groups", gid])
+    ]);
+    await window.CloudGroup.dissolve(gid, members.map(m => m.uid), plans.map(p => p.week), recipes.map(r => r.id));
+    // invites/{code} ist bewusst nicht auflistbar (siehe firestore.rules) - deshalb ueber
+    // state.inviteCodes gehen, dieselbe Liste, die auch beim Konto-Loeschen benutzt wird
+    // (deleteAccountFlow), und nur die Codes entfernen, die wirklich zu dieser Gruppe
+    // gehoeren (die Liste koennte theoretisch Codes einer laengst verlassenen frueheren
+    // Gruppe enthalten).
+    const ownCodes = [];
+    for (const code of (state.inviteCodes || [])) {
+      try {
+        const inv = await window.CloudGroup.fetchInvite(code);
+        if (inv && inv.gid === gid) ownCodes.push(code);
+      } catch (e) {}
+    }
+    for (const code of ownCodes) {
+      try { await window.CloudGroup.deleteInvite(code); } catch (e) {}
+    }
+    if (ownCodes.length) state.inviteCodes = (state.inviteCodes || []).filter(c => ownCodes.indexOf(c) === -1);
+  }
+
+  // Gruppe vollstaendig aufloesen (nur der Inhaber, ueber "Auflösen"), danach dieselbe lokale
   // Aufraeumarbeit wie beim einfachen Verlassen. Der eigene Mitglieder-Eintrag ist durch den
-  // Batch schon weg; removeMember() darin (in leaveGroup()) ist dann ein folgenloser
-  // Zweitversuch auf ein bereits geloeschtes Dokument.
+  // Batch in dissolveGroupFirestore() schon weg; removeMember() darin (in leaveGroup()) ist
+  // dann ein folgenloser Zweitversuch auf ein bereits geloeschtes Dokument.
   async function dissolveGroup() {
     if (!syncGid || !syncUid) return;
     const gid = syncGid;
     try {
-      const [members, plans, recipes] = await Promise.all([
-        window.CloudGroup.fetchMembers(gid),
-        window.CloudGroup.loadPlans(gid),
-        window.CloudGroup.loadRecipes(["groups", gid])
-      ]);
-      await window.CloudGroup.dissolve(gid, members.map(m => m.uid), plans.map(p => p.week), recipes.map(r => r.id));
-      // Eigene Einladungscodes fuer GENAU diese Gruppe zusaetzlich loeschen. invites/{code} ist
-      // bewusst nicht auflistbar (siehe firestore.rules) - deshalb ueber state.inviteCodes gehen,
-      // dieselbe Liste, die auch beim Konto-Loeschen benutzt wird (deleteAccountFlow), und nur
-      // die Codes entfernen, die wirklich zu dieser Gruppe gehoeren (die Liste koennte theoretisch
-      // Codes einer laengst verlassenen frueheren Gruppe enthalten).
-      const ownCodes = [];
-      for (const code of (state.inviteCodes || [])) {
-        try {
-          const inv = await window.CloudGroup.fetchInvite(code);
-          if (inv && inv.gid === gid) ownCodes.push(code);
-        } catch (e) {}
-      }
-      for (const code of ownCodes) {
-        try { await window.CloudGroup.deleteInvite(code); } catch (e) {}
-      }
-      if (ownCodes.length) state.inviteCodes = (state.inviteCodes || []).filter(c => ownCodes.indexOf(c) === -1);
+      await dissolveGroupFirestore(gid);
     } catch (e) {
       // Batch schlug fehl (z. B. offline) - lieber lokal trotzdem aufraeumen, statt den Nutzer
       // in einer Gruppe festzuhalten, die er gerade aufloesen wollte. Auf dem Server bleibt sie
@@ -9465,6 +9616,17 @@
     toast("Du planst wieder für dich – deine Meals sind mitgekommen");
   }
 
+  // QR-Code fuer eine Einladungs-URL in einen (bereits im DOM stehenden) Container laden.
+  // Bewusst als eigener Schritt NACH dem synchronen paint(): qrSvg() laedt bei Bedarf erst
+  // ZXing nach (vendor/zxing.min.js) - das darf das Zeichnen des restlichen Modals nicht
+  // blockieren. Schlaegt es fehl (offline), verschwindet der Platz einfach wieder; die
+  // Link-Zeile bleibt in jedem Fall stehen.
+  function loadInviteQr(box, url) {
+    if (!box || !url) return;
+    qrSvg(url, 200).then(svg => { if (box.isConnected) box.appendChild(svg); })
+      .catch(() => { if (box.isConnected) box.remove(); });
+  }
+
   function openGroupModal() {
     if (authMode !== "cloud") {
       confirmModal({
@@ -9475,7 +9637,7 @@
       });
       return;
     }
-    let createdUrl = null;
+    let createdUrl = null;   // Einladung fuer eine bereits AKTIVE Gruppe (weiteres Mitglied)
     const node = el(`<div class="modal" role="dialog" aria-modal="true" aria-label="Gemeinsam planen">
       <div class="modal-head"><div style="flex:1"><div class="kicker">Gemeinsam planen</div><h3 style="margin-top:2px" id="grp-title"></h3></div><button class="btn ghost sm" data-close>✕</button></div>
       <div class="modal-body"><div id="grp-body"></div></div>
@@ -9484,10 +9646,25 @@
     const body = node.querySelector("#grp-body");
     const title = node.querySelector("#grp-title");
 
+    // Drei Zustaende: A - noch nichts vorbereitet, B - Einladung offen (Wartezustand), noch
+    // niemand beigetreten, C - Gruppe aktiv. syncGid ist erst ab C gesetzt (siehe Wartezustand-
+    // Konzept in prepareGroup()/activateGroup()).
     function paint() {
-      title.textContent = syncGid ? "Eure Gruppe" : "Zu zweit planen";
-      body.innerHTML = syncGid ? groupHtml() : startHtml();
-      wire();
+      if (syncGid) {
+        title.textContent = (groupInfo && groupInfo.name) || "Eure Gruppe";
+        body.innerHTML = groupHtml();
+        wire();
+        if (createdUrl) loadInviteQr(body.querySelector("#grp-qr2"), createdUrl);
+      } else if (state.pendingGroupId) {
+        title.textContent = "Einladung offen";
+        body.innerHTML = waitHtml();
+        wire();
+        loadInviteQr(body.querySelector("#grp-qr"), state.pendingInviteUrl);
+      } else {
+        title.textContent = "Zu zweit planen";
+        body.innerHTML = startHtml();
+        wire();
+      }
     }
 
     // Zwei Schalter, mehr braucht eine Gruppe aus zwei Leuten nicht. Sie stehen direkt
@@ -9507,16 +9684,38 @@
         + row("changeHints", "Hinweis bei Änderungen", "", "An", "Aus");
     }
 
+    // Zustand A: noch keine Einladung vorbereitet. Kein Rollen-Umschalter mehr vorab -
+    // Default ist "Mitplanen", aenderbar spaeter direkt am Mitglied (Zustand C).
     function startHtml() {
       return `
         <p class="share-hint">Plant euren Wochenplan gemeinsam – einer trägt ein, beide sehen es sofort. Kalorienziel und Gewicht bleiben privat.</p>
-        <button class="btn primary" id="grp-create" style="width:100%">Gruppe starten</button>
+        <button class="btn primary" id="grp-invite-start" style="width:100%">Person einladen</button>
+        <button class="btn ghost" id="grp-scan-start" style="width:100%;margin-top:8px">Einladung scannen</button>
         <details class="grp-note">
           <summary>Was teile ich damit?</summary>
           <p>Alle Mitglieder sehen deinen Namen, dein Profilbild, deine Meals samt Fotos und den Wochenplan – und wer welches Meal angelegt hat. <b>Nicht</b> geteilt werden dein Kalorien- und Makroziel, deine Angaben aus den Einführungsfragen, dein Gewichtsverlauf und deine E-Mail-Adresse.</p>
         </details>`;
     }
 
+    // Zustand B: Einladung offen, noch niemand beigetreten. Der Owner plant unveraendert
+    // weiter (deshalb kein Hinweis auf Einstellungen hier - die betreffen die Gruppe, die es
+    // technisch schon gibt, aber noch nicht "seine" ist).
+    function waitHtml() {
+      return `
+        <div class="grp-wait" role="status">
+          ${memberAvatarHtml({ name: (profile && profile.name) || "", avatar: state.profileImage })}
+          <span>Warten auf Beitritt …</span>
+        </div>
+        <div class="grp-qr" id="grp-qr" aria-hidden="true"></div>
+        <div class="link-row">
+          <input type="text" class="share-link" id="grp-link" readonly value="${esc(state.pendingInviteUrl || "")}">
+          <button class="btn primary" id="grp-copy">${canShare() ? "Senden" : "Kopieren"}</button>
+        </div>
+        <p class="share-mini">Du planst normal weiter – die Gruppe startet, sobald jemand beitritt.</p>
+        <button class="btn ghost sm" id="grp-revoke" style="margin-top:8px">Einladung zurückziehen</button>`;
+    }
+
+    // Zustand C: Gruppe aktiv.
     function groupHtml() {
       const owner = groupRole() === "owner";
       const rows = groupMembers.map(m => {
@@ -9546,29 +9745,30 @@
           ${kick}${pick}
         </div>`;
       }).join("");
+      // Kein Rollen-Umschalter mehr vor dem Link: Default ist "Mitplanen", so wie beim
+      // ersten Einladen auch - aendern kann der Inhaber die Rolle jederzeit oben am Mitglied.
       const inviteBlock = owner ? (createdUrl ? `
         <span class="share-sub">Einladungslink</span>
+        <div class="grp-qr" id="grp-qr2" aria-hidden="true"></div>
         <div class="link-row">
           <input type="text" class="share-link" id="grp-link" readonly value="${esc(createdUrl)}">
           <button class="btn primary" id="grp-copy">${canShare() ? "Senden" : "Kopieren"}</button>
         </div>
         <p class="share-mini">Wer den Link öffnet und sich anmeldet, ist dabei. Zurückziehen kannst du ihn unten.</p>
         <button class="btn ghost sm" id="grp-revoke" style="margin-top:8px">Link zurückziehen</button>`
-      : `
-        <div class="setpick" style="margin-bottom:10px">
-          <b>Was darf die eingeladene Person?</b>
-          <div class="seg" id="grp-role" role="group" aria-label="Rechte für die Einladung">
-            <button type="button" data-r="edit" class="${inviteRole === "view" ? "" : "on"}">Mitplanen</button>
-            <button type="button" data-r="view" class="${inviteRole === "view" ? "on" : ""}">Nur ansehen</button>
-          </div>
+      : `<button class="btn primary" id="grp-invite" style="width:100%">Person einladen</button>`) : "";
+      const settingsBlock = owner ? `
+        <span class="share-sub" style="margin-top:16px;display:block">Einstellungen</span>
+        <div class="setpick">
+          <b style="display:block;margin-bottom:8px">Gruppenname</b>
+          <input type="text" id="grp-name" maxlength="40" placeholder="z. B. Team Küche" value="${esc((groupInfo && groupInfo.name) || "")}">
         </div>
-        <button class="btn primary" id="grp-invite" style="width:100%">Einladungslink erstellen</button>`) : "";
-      return `<div class="grp-list">${rows}</div>${inviteBlock}${owner ? settingsHtml() : ""}
+        ${settingsHtml()}` : "";
+      return `<div class="grp-list">${rows}</div>${inviteBlock}${settingsBlock}
         <hr style="border:0;border-top:1px solid var(--border);margin:16px 0 12px">
         <button class="btn ghost sm" id="grp-leave">${owner ? "Gruppe auflösen" : "Gruppe verlassen"}</button>`;
     }
 
-    let inviteRole = null;   // null = noch nichts gewaehlt -> "Mitplanen"
     function wire() {
       // Einstellungs-Schalter. Sofort speichern statt "Sichern"-Knopf: eine Einstellung
       // ist kein Formular, und die Firestore-Regel prueft die Rolle ohnehin serverseitig.
@@ -9585,36 +9785,59 @@
         } catch (e) { toast("Die Einstellung konnte nicht gespeichert werden."); paint(); }
       })));
 
-      const create = body.querySelector("#grp-create");
-      if (create) create.addEventListener("click", async () => {
-        create.disabled = true; create.textContent = "Wird angelegt …";
-        await createGroup();
+      const nameInput = body.querySelector("#grp-name");
+      if (nameInput) nameInput.addEventListener("change", async () => {
+        const val = nameInput.value.trim().slice(0, 40);
+        nameInput.value = val;
+        try {
+          await window.CloudGroup.setName(syncGid, val);
+          groupInfo = Object.assign({}, groupInfo, { name: val });
+          title.textContent = val || "Eure Gruppe";
+        } catch (e) { toast("Der Name konnte nicht gespeichert werden."); }
       });
 
-      const roleSeg = body.querySelector("#grp-role");
-      if (roleSeg) roleSeg.querySelectorAll("[data-r]").forEach(b => b.addEventListener("click", () => {
-        inviteRole = b.dataset.r;
-        roleSeg.querySelectorAll("[data-r]").forEach(x => x.classList.toggle("on", x === b));
-      }));
+      // Zustand A: "Person einladen" bereitet die Gruppe vor (Wartezustand) und springt
+      // direkt zu Zustand B - der Nutzer muss dafuer nichts auswaehlen.
+      const inviteStart = body.querySelector("#grp-invite-start");
+      if (inviteStart) inviteStart.addEventListener("click", async () => {
+        inviteStart.disabled = true; inviteStart.textContent = "Wird vorbereitet …";
+        const url = await prepareGroup();
+        if (url) paint();
+        else { inviteStart.disabled = false; inviteStart.textContent = "Person einladen"; }
+      });
+      const scanStart = body.querySelector("#grp-scan-start");
+      if (scanStart) scanStart.addEventListener("click", () => scanInvite());
 
+      // Zustand B: Einladung zurueckziehen loest die vorbereitete Gruppe komplett auf.
+      const withdraw = body.querySelector("#grp-revoke");
+      if (withdraw && !syncGid) withdraw.addEventListener("click", async () => {
+        withdraw.disabled = true;
+        await withdrawPendingInvite();
+        paint();
+      });
+
+      // Zustand C, Inhaber ohne offene Zweit-Einladung: "Person einladen" fuer ein
+      // weiteres Mitglied - dieselbe Rolle "Mitplanen" wie beim ersten Einladen.
       const inv = body.querySelector("#grp-invite");
       if (inv) inv.addEventListener("click", async () => {
         inv.disabled = true; inv.textContent = "Wird erstellt …";
-        try { createdUrl = await createInviteLink(inviteRole || "edit"); paint(); }
-        catch (e) { inv.disabled = false; inv.textContent = "Einladungslink erstellen"; toast("Der Link konnte nicht erstellt werden."); }
+        try { createdUrl = await createInviteLink("edit"); paint(); }
+        catch (e) { inv.disabled = false; inv.textContent = "Person einladen"; toast("Der Link konnte nicht erstellt werden."); }
       });
 
       const copy = body.querySelector("#grp-copy");
       if (copy) copy.addEventListener("click", () => {
-        const text = "Plan mit mir zusammen bei Paddy's Mealplan: " + createdUrl;
+        const url = syncGid ? createdUrl : state.pendingInviteUrl;
+        const text = "Plan mit mir zusammen bei Paddy's Mealplan: " + url;
         // Auf dem Handy den Systemdialog nehmen - er trifft WhatsApp direkt, statt den
         // Link nur in die Zwischenablage zu legen.
         if (canShare()) navigator.share({ title: "Gemeinsam planen", text: text }).catch(() => {});
-        else copyToClipboard(createdUrl, "Link kopiert");
+        else copyToClipboard(url, "Link kopiert");
       });
 
+      // Zustand C, Link zurueckziehen (Zweit-Einladung, NICHT der Wartezustand - siehe oben).
       const rev = body.querySelector("#grp-revoke");
-      if (rev) rev.addEventListener("click", async () => {
+      if (rev && syncGid) rev.addEventListener("click", async () => {
         const code = (createdUrl || "").split("?g=")[1];
         try { if (code) await window.CloudGroup.deleteInvite(code); } catch (e) {}
         if (code) { state.inviteCodes = (state.inviteCodes || []).filter(c => c !== code); save(); }

@@ -116,6 +116,8 @@ mit:
 * `recipes/{rid}`
 * `invites/{code}`
 
+Das Gruppendokument selbst trägt `status: "pending" | "active"` (rein informativ, siehe Wartezustand unten) sowie `name` (per `setName`) und `settings`.
+
 ## Brücke zwischen Firebase und App
 
 Die beiden Scripts teilen sich grundsätzlich keine direkte Implementierung.
@@ -220,6 +222,17 @@ Die Gruppe wird über:
 `groupId`
 
 im eigenen `users/{uid}`-Dokument gefunden.
+
+### Wartezustand (zweistufiger Start)
+
+Eine Gruppe wird nicht mehr sofort scharf geschaltet. `prepareGroup()` legt `groups/{gid}` an (`status: "pending"`), lädt eigene Meals/Wochenpläne vorab hoch und erzeugt direkt den Einladungslink. Dabei bleibt `state.groupId` leer — `users/{uid}.pendingGroupId` trägt die vorbereitete Gruppen-ID, `users/{uid}.pendingInviteUrl` den Einladungslink. Der Owner plant bis zum Beitritt unverändert in seinen eigenen Daten weiter; `startCloudSync()` läuft dadurch im Einzelkonto-Zweig, ohne Sonderbehandlung.
+
+Aktivierung (`finalizeGroupActivation()`) läuft auf zwei Wegen:
+
+* **Live:** ein schlanker `CloudGroup.watchMembers()`-Listener (`watchPendingGroup()`), solange `pendingGroupId` gesetzt ist. Sobald `members.length > 1`, trägt sie neue/gelöschte Meals und noch leere Wochenplan-Slots nach (belegte Slots der beigetretenen Person werden nicht überschrieben), setzt `status: "active"` und `users/{uid}.groupId`, danach `switchGroup()`.
+* **Beim Start:** `startCloudSync()` prüft `remote.pendingGroupId` einmalig über `fetchMembers()`, *bevor* `wantGid` ermittelt wird — gelingt die Aktivierung, wird `remote.groupId` im selben Durchlauf gesetzt und über `enterGroupSync()` normal eingelesen (kein rekursiver `switchGroup()`-Aufruf aus einem laufenden `startCloudSync()` heraus). Deckt ab, dass der Owner offline war, als jemand beitrat.
+
+„Einladung zurückziehen“ im Wartezustand (`withdrawPendingInvite()`) löst die vorbereitete Gruppe vollständig auf (`dissolveGroupFirestore()`, auch von `dissolveGroup()` für aktive Gruppen genutzt) und leert `pendingGroupId`/`pendingInviteUrl` — danach ist der Zustand identisch zu vor dem Einladen.
 
 ## Gruppen-Wochenplan
 

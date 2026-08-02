@@ -276,6 +276,27 @@ Deshalb war der Wegfall des Überschreitungs-Zeichens kein reines Streichen — 
 der Fußbilanz, die vorher wegen des Zeichens unterdrückt war, wurde im selben Schritt wieder
 eingeschaltet.
 
+## Bewusste Produktentscheidungen: Gemeinsam planen
+
+### Erst einladen, dann entscheiden
+
+„Person einladen" fragt vorab nichts mehr ab. Früher stand vor dem Einladungslink ein
+Rollen-Umschalter („Was darf die eingeladene Person?") — eine Option, bevor überhaupt ein Nutzen
+sichtbar war. Jetzt gilt ein sinnvoller Default (Rolle „Mitplanen", Einkauf für alle rechnen an,
+Hinweis bei Änderungen an), und wer ihn ändern will, tut das später direkt am Mitglied bzw. in
+den Gruppen-Einstellungen — wenn der Bedarf tatsächlich da ist, nicht vorher spekulativ.
+
+Passt zum UX-Grundsatz „wenige statt viele Optionen": eine Entscheidung, die man nicht treffen
+muss, ist besser als eine gut vorbereitete.
+
+### Die Gruppe startet erst mit dem Beitritt
+
+Ein Klick auf „Person einladen" legt technisch schon eine Gruppe an, aber der Owner bleibt bis
+zum tatsächlichen Beitritt in seinen eigenen Daten (Wartezustand, siehe `ARCHITECTURES.md`,
+Abschnitt „Gruppenmodus"). Wer nur mal ausprobiert, ob das Feature etwas für ihn ist, landet so
+nicht ungefragt dauerhaft in einer Einpersonen-Gruppe. Erst wenn wirklich geplant wird, ist es
+auch wirklich „gemeinsam".
+
 ## Was bewusst nicht passieren soll
 
 Keine Features hinzufügen, nur weil sie:
