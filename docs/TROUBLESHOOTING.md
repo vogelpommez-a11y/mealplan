@@ -444,7 +444,44 @@ Herauslösen der gemeinsamen Aufräumlogik in `dissolveGroupFirestore()`. Bei ä
 `CloudGroup`/`CloudSync`-Aufrufen immer gegen die tatsächliche Methodenliste des jeweiligen
 Objekts prüfen, nicht nur gegen den Namen.
 
-## 30. Grundregel bei Fehlern
+## 30. ZXing-SVG-QR-Code braucht ein eigenes `viewBox`
+
+`BrowserQRCodeSvgWriter.write()` setzt am erzeugten `<svg>` nur `width`/`height` in absoluten
+Nutzereinheiten, kein `viewBox`. Wird das SVG danach per CSS auf eine andere Größe skaliert
+(`width: 100%; height: 100%` in einem kleineren Container), skaliert nur die Zeichenfläche — die
+Modul-Koordinaten bleiben bei den ursprünglichen Werten stehen und werden **abgeschnitten**, nicht
+verkleinert. Sichtbar wurde das erst im Ausschneide-Prüfstand (Modul-Kante bei x=172 von 200, aber
+Container 150 px): ohne `viewBox` fehlten in einem schmaleren `.grp-qr`-Container echte
+Modulspalten, der Code wäre für einen Scanner unlesbar geworden. Fix: nach `writer.write()` sofort
+`svg.setAttribute("viewBox", "0 0 " + size + " " + size)`.
+
+## 31. Zwei-Konten-Race im Gruppen-Wartezustand
+
+Beim ersten Entwurf des Wartezustands (siehe „Wartezustand“ in `ARCHITECTURES.md`) fielen bei
+einer zweiten, unabhängigen Prüfung (Opus-Review desselben Diffs) mehrere Randfälle auf, die beim
+ersten Umsetzen übersehen wurden — alle rund um „zwei Gruppen-Zeiger gleichzeitig“ oder „ein
+verwaister Zeiger nach einem Fehler mitten im Ablauf“:
+
+* Konto löschen, während eine Einladung offen ist, aber noch niemand beigetreten (`syncGid` ist
+  in diesem Zustand noch leer, die bestehende Owner-Sperre griff nicht).
+* Einer fremden Gruppe beitreten, während die eigene Einladung noch offen ist (führte dazu, dass
+  bei einem späteren Beitritt über die alte Einladung der inzwischen fremde Meal-Bestand in die
+  falsche Gruppe kopiert worden wäre).
+* `enterGroupSync()` scheitert direkt nach einer gerade erst geglückten Aktivierung — ohne
+  Wiederherstellung des Wartezustands wären `groupId` und `pendingGroupId` beide leer gewesen,
+  obwohl die Gruppe für den Beitretenden längst aktiv war.
+* Ein fehlgeschlagener `fetchMembers()`-Aufruf oder eine fehlgeschlagene Aktivierung ließ den
+  Live-Listener (`watchPendingGroup()`) unangehängt zurück — die Aktivierung war dann für den Rest
+  der Sitzung tot, bis zum nächsten Neustart.
+
+**Lehre für ähnliche zweistufige Abläufe:** Jeden Fehlerpfad einzeln durchspielen, nicht nur den
+Erfolgspfad — insbesondere „was, wenn Schritt N gerade dann scheitert, wenn Schritt N-1 schon
+committet war". Ein zweites, unabhängiges Review (anderes Modell, kein Kontext aus der
+Umsetzung) hat hier mehr gefunden als der ursprüngliche Ausschneide-Prüfstand, weil dieser nur den
+Erfolgspfad und offensichtliche Fehlerfälle testete, nicht die Kombination aus zwei parallel
+laufenden Abläufen.
+
+## 32. Grundregel bei Fehlern
 
 Nicht einfach den sichtbaren Fehler flicken.
 

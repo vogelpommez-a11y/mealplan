@@ -3103,6 +3103,11 @@
   // ein schlanker Mitglieder-Listener, unabhaengig vom eigentlichen Gruppen-Sync oben, der ja
   // erst mit dem Beitritt beginnt (siehe watchPendingGroup()).
   let syncUnsubPending = null;
+  // Unterdrueckt genau einmal den generischen Verbindungs-Toast in startCloudSync() ("Mit eurer
+  // Gruppe verbunden") - gesetzt von activateGroup(), wenn direkt danach der spezifischere Toast
+  // ("<Name> ist dabei") kommt. Wird der dortige Toast-Aufruf je umgebaut, muss dieses Flag
+  // mitgezogen werden - es gehoert zu genau dieser einen toast()-Zeile in startCloudSync().
+  let suppressConnectToast = false;
   // Steht der Gruppen-Dialog offen, frischt er sich auf, wenn jemand beitritt oder Rechte
   // wechseln. Ganz oben deklariert, weil closeModal() weiter unten darauf zugreift - eine
   // Deklaration erst bei openGroupModal() waere fuer closeModal() eine temporale Todeszone.
@@ -3705,16 +3710,23 @@
       // ganz normal ueber enterGroupSync() ein, ohne switchGroup() rekursiv aus diesem laufenden
       // Aufruf heraus anzustossen (das wuerde stopCloudSync() mitten in diesem Durchlauf ausloesen).
       let pgid = (remote && typeof remote.pendingGroupId === "string" && remote.pendingGroupId) ? remote.pendingGroupId : "";
+      let activatedNow = false;
       if (pgid && window.CloudGroup) {
         try {
           const pendingMembers = await window.CloudGroup.fetchMembers(pgid);
           if (pendingMembers.length > 1) {
             await finalizeGroupActivation(pgid);
-            remote.groupId = pgid; remote.pendingGroupId = ""; pgid = "";
+            remote.groupId = pgid; remote.pendingGroupId = ""; activatedNow = true; pgid = "";
           } else {
             watchPendingGroup(pgid);
           }
-        } catch (e) { /* offline o.ae. - der naechste Start versucht es erneut */ }
+        } catch (e) {
+          // fetchMembers oder die Aktivierung selbst ist gescheitert (offline o.ae.) - trotzdem
+          // einen Live-Listener anhaengen. Ohne ihn waere die Aktivierung fuer den Rest dieser
+          // Sitzung tot, auch wenn die Verbindung Sekunden spaeter wieder steht - erst ein
+          // Neustart wuerde es dann erneut versuchen.
+          watchPendingGroup(pgid);
+        }
       }
       state.pendingGroupId = pgid;
       state.pendingInviteUrl = pgid ? ((remote && remote.pendingInviteUrl) || "") : "";
@@ -3724,6 +3736,15 @@
       // Als Mitglied entfernt worden, waehrend dieses Geraet offline war: das Feld lokal
       // raeumen, sonst versucht es der naechste Start wieder.
       if (wantGid && !inGroup) state.groupId = "";
+      // Aktivierung ist eben erst geglueckt, aber der direkt anschliessende enterGroupSync()
+      // ist gescheitert (z. B. Netz weg genau in diesem Moment): lieber den Wartezustand
+      // wiederherstellen, als sowohl groupId als auch pendingGroupId zu verlieren - sonst waere
+      // die (fuer den Beitretenden laengst aktive!) Gruppe fuer den Owner nicht mehr auffindbar.
+      if (activatedNow && !inGroup) {
+        state.pendingGroupId = wantGid;
+        try { await window.CloudSync.save(syncUid, { pendingGroupId: wantGid }); } catch (e) {}
+        watchPendingGroup(wantGid);
+      }
 
       if (inGroup) {
         if (remote.goal) state.goal = sanitizeGoal(remote.goal);
@@ -3757,7 +3778,9 @@
       lastRemoteToast = Date.now();
       syncUnsub = window.CloudSync.watch(uid, onRemote);
       setSyncStatus("synced");
-      toast(syncGid ? "Mit eurer Gruppe verbunden" : "Mit deiner Cloud verbunden");
+      // siehe Deklaration von suppressConnectToast weiter oben
+      if (suppressConnectToast) suppressConnectToast = false;
+      else toast(syncGid ? "Mit eurer Gruppe verbunden" : "Mit deiner Cloud verbunden");
       // Erst JETZT ueber die ersten Schritte entscheiden: enterApp() laeuft schon, waehrend
       // dieser Aufruf noch unterwegs ist. Wer den Ablauf dort startete, bekaeme ihn bei jedem
       // Login auf einem neuen Geraet kurz zu sehen, bevor das Flag aus der Cloud eintrifft.
@@ -4553,6 +4576,11 @@
     await loadZXing();
     const writer = new window.ZXing.BrowserQRCodeSvgWriter();
     const svg = writer.write(text, size, size);
+    // BrowserQRCodeSvgWriter setzt nur width/height, kein viewBox - die Module bleiben in
+    // absoluten Nutzereinheiten. Ohne viewBox skaliert das CSS (width/height: 100%) die
+    // Zeichenflaeche zwar, aber die Module selbst wandern nicht mit - kleinere Container
+    // schneiden dann echte Modulspalten ab, statt den Code zu verkleinern.
+    svg.setAttribute("viewBox", "0 0 " + size + " " + size);
     svg.setAttribute("role", "img");
     svg.setAttribute("aria-label", "QR-Code für die Einladung");
     return svg;
@@ -7680,13 +7708,20 @@
     window.CloudGroup.fetchInvite(code).then(inv => {
       if (!inv || !inv.gid) { toast("Diese Einladung gilt nicht mehr."); return; }
       if (syncGid === inv.gid) { toast("Du bist schon dabei."); return; }
+      // Eigene, noch offene Einladung (Wartezustand): der Owner darf nicht seinen eigenen
+      // Link/QR "beitreten" - das waere ein Rollenwechsel auf sich selbst und wird von der
+      // Firestore-Regel ohnehin abgelehnt, hier aber mit einer verstaendlichen Meldung statt
+      // einem generischen Fehler.
+      if (state.pendingGroupId === inv.gid) { toast("Das ist deine eigene Einladung."); return; }
       const viewOnly = inv.role === "view";
       const switching = !!syncGid;
+      const switchingPending = !switching && !!state.pendingGroupId && state.pendingGroupId !== inv.gid;
       const node = el(`<div class="modal" role="dialog" aria-modal="true" aria-label="Einladung">
         <div class="modal-head"><div style="flex:1"><div class="kicker">Einladung erhalten</div><h3 style="margin-top:2px">Gemeinsam planen</h3></div><button class="btn ghost sm" data-close>✕</button></div>
         <div class="modal-body">
           <p style="margin:0 0 4px">Du bist eingeladen, einen Wochenplan gemeinsam zu nutzen – ${viewOnly ? "zum <b>Ansehen</b>" : "mit dem Recht, <b>mitzuplanen</b>"}.</p>
           ${switching ? `<p class="share-mini warn">Du bist schon in einer Gruppe. Trittst du bei, verlässt du die alte.</p>` : ""}
+          ${switchingPending ? `<p class="share-mini warn">Du hast noch eine eigene Einladung offen. Trittst du bei, wird sie zurückgezogen.</p>` : ""}
           <details class="grp-note">
             <summary>Was teile ich damit?</summary>
             <p>Die Mitglieder sehen deinen Namen, dein Profilbild, ${viewOnly ? "den gemeinsamen Wochenplan" : "deine Meals samt Fotos und den Wochenplan"} – und wer welches Meal angelegt hat. <b>Nicht</b> geteilt werden dein Kalorien- und Makroziel, deine Angaben aus den Einführungsfragen, dein Gewichtsverlauf und deine E-Mail-Adresse.</p>
@@ -9301,6 +9336,19 @@
       });
       return;
     }
+    // Dieselbe Zusage gilt schon fuer eine erst VORBEREITETE Gruppe (Wartezustand): syncGid
+    // ist dort noch leer, aber in Firestore steht bereits groups/{gid} mit dem eigenen
+    // Mitgliedseintrag - ohne diesen Zweig bliebe sie beim Loeschen als Karteileiche zurueck,
+    // niemand koennte sie je wieder aufloesen.
+    if (state.pendingGroupId) {
+      confirmModal({
+        title: "Erst die Einladung zurückziehen",
+        text: "Du hast gerade eine Einladung zu „Gemeinsam planen“ offen. Zieh sie zuerst zurück – danach kannst du dein Konto löschen.",
+        okLabel: "Zur Einladung",
+        onConfirm: () => openGroupModal()
+      });
+      return;
+    }
     const user = (window.CloudAuth && window.CloudAuth.current) ? window.CloudAuth.current() : null;
     const pid = user && user.providerData[0] ? user.providerData[0].providerId : null;
     const isPw = pid === "password";
@@ -9482,9 +9530,15 @@
       await finalizeGroupActivation(gid);
       state.pendingGroupId = ""; state.pendingInviteUrl = ""; save();
       const joiner = (members || []).filter(m => m.uid !== syncUid)[0];
+      // Der eigene Erfolgs-Toast ersetzt den generischen aus startCloudSync() ("Mit eurer
+      // Gruppe verbunden") - sonst saehe man zwei Meldungen fuer dasselbe Ereignis.
+      if (joiner && joiner.name) suppressConnectToast = true;
       await switchGroup(gid);
       if (joiner && joiner.name) toast(firstName(joiner.name) + " ist dabei – ihr plant jetzt gemeinsam");
     } catch (e) {
+      // Trotz Fehlschlag erneut lauschen: sonst waere die Aktivierung fuer den Rest der
+      // Sitzung tot, obwohl das zweite Mitglied laengst da ist.
+      watchPendingGroup(gid);
       toast("Der Beitritt konnte nicht übernommen werden – versucht es gleich noch einmal.");
     }
   }
@@ -9521,6 +9575,9 @@
       const inv = await window.CloudGroup.fetchInvite(code);
       if (!inv || !inv.gid) { toast("Diese Einladung gilt nicht mehr."); return; }
       if (syncGid === inv.gid) { toast("Du bist schon dabei."); return; }
+      // Derselbe Guard wie in openInviteModal() (dort ausfuehrlich kommentiert) - hier
+      // zusaetzlich noetig, weil joinGroup() auch direkt aufgerufen werden kann.
+      if (state.pendingGroupId === inv.gid) { toast("Das ist deine eigene Einladung."); return; }
       const role = inv.role === "view" ? "view" : "edit";
       await window.CloudGroup.putMember(inv.gid, syncUid, {
         name: profile.name || "", avatar: await smallAvatar(state.profileImage),
@@ -9532,6 +9589,15 @@
       if (role !== "view") await copyOwnRecipesToGroup(inv.gid);
       // Cloud zuerst, siehe Begruendung in prepareGroup().
       await window.CloudSync.save(syncUid, { groupId: inv.gid });
+      // Eine eigene, noch offene Einladung fuer eine ANDERE Gruppe erst JETZT zuruecknehmen -
+      // NACHDEM der Beitritt zur neuen Gruppe oben nachweislich geglueckt ist. Vorher wuerde
+      // ein Netzfehler zwischen dem Zuruecknehmen und dem Beitritt beide Gruppen kosten: die
+      // alte waere schon aufgeloest, die neue noch nicht abgeschlossen. Scheitert das
+      // Zuruecknehmen selbst, ist das nicht fatal - der Beitritt zur neuen Gruppe steht schon,
+      // die alte bliebe hoechstens als spaeter manuell aufraeumbare Karteileiche stehen.
+      if (state.pendingGroupId && state.pendingGroupId !== inv.gid) {
+        try { await withdrawPendingInvite(); } catch (e) {}
+      }
       state.groupId = inv.gid;
       await switchGroup(inv.gid);
       toast("Ihr plant jetzt gemeinsam");
@@ -9706,7 +9772,7 @@
           ${memberAvatarHtml({ name: (profile && profile.name) || "", avatar: state.profileImage })}
           <span>Warten auf Beitritt …</span>
         </div>
-        <div class="grp-qr" id="grp-qr" aria-hidden="true"></div>
+        <div class="grp-qr" id="grp-qr"></div>
         <div class="link-row">
           <input type="text" class="share-link" id="grp-link" readonly value="${esc(state.pendingInviteUrl || "")}">
           <button class="btn primary" id="grp-copy">${canShare() ? "Senden" : "Kopieren"}</button>
@@ -9749,7 +9815,7 @@
       // ersten Einladen auch - aendern kann der Inhaber die Rolle jederzeit oben am Mitglied.
       const inviteBlock = owner ? (createdUrl ? `
         <span class="share-sub">Einladungslink</span>
-        <div class="grp-qr" id="grp-qr2" aria-hidden="true"></div>
+        <div class="grp-qr" id="grp-qr2"></div>
         <div class="link-row">
           <input type="text" class="share-link" id="grp-link" readonly value="${esc(createdUrl)}">
           <button class="btn primary" id="grp-copy">${canShare() ? "Senden" : "Kopieren"}</button>
