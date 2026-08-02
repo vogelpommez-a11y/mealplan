@@ -414,7 +414,7 @@
   .btn.del-ic:hover { color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, var(--surface)); border-color: transparent; }
   .btn svg { width: 16px; height: 16px; }
   /* Icon-Button ohne Text, gleiches hitSlop-Muster wie .btn.del-ic, aber neutral statt
-     rot beim Hover - "Woche teilen"/"Woche leeren" sind keine Loeschaktionen. */
+     rot beim Hover - "Meal teilen"/"Woche leeren" sind keine Loeschaktionen. */
   .btn.icon-gh { position: relative; width: 34px; height: 34px; padding: 0; justify-content: center; }
   .btn.icon-gh::after { content: ""; position: absolute; inset: -5px; }
   .btn.icon-gh svg { width: 17px; height: 17px; }
@@ -1587,8 +1587,8 @@
     .section-head { margin-bottom: 18px; }
     .section-head h2 { font-size: 22px; }
     .section-head .btn { flex: 1; justify-content: center; }
-    /* Die Icon-Knoepfe (Woche teilen/leeren) bleiben quadratisch neben den Tabs -
-       ohne diese Ausnahme wuerden sie durch die Regel darueber in die Breite gezogen. */
+    /* Der Icon-Knopf (Woche leeren) bleibt quadratisch neben den Tabs -
+       ohne diese Ausnahme wuerde er durch die Regel darueber in die Breite gezogen. */
     .plan-tools .icon-gh { flex: none; }
     .week { gap: 12px; }
     .recipes { gap: 12px; }
@@ -5708,7 +5708,6 @@
             <button class="ws-btn${state.viewWeek === "next" ? "" : " active"}" data-action="week" data-week="cur" role="tab" aria-selected="${state.viewWeek === "next" ? "false" : "true"}">Aktuelle Woche</button>
             <button class="ws-btn${state.viewWeek === "next" ? " active" : ""}" data-action="week" data-week="next" role="tab" aria-selected="${state.viewWeek === "next" ? "true" : "false"}">Nächste Woche</button>
           </div>
-          <button class="btn ghost icon-gh" data-action="share" title="Woche teilen" aria-label="Woche teilen">${TOOL_ICONS.share}</button>
           ${canEdit() ? `<button class="btn ghost icon-gh" data-action="clear-week" title="Woche leeren" aria-label="Woche leeren">${TOOL_ICONS.clear}</button>` : ""}
         </div>
       </div>`;
@@ -7105,15 +7104,14 @@
          (Art. 6 Abs. 1 lit. f DSGVO). Nutzt du den Barcode-Scan nicht, findet keiner dieser
          Abrufe statt.</p>
       <h4>8. Teilen-Funktion</h4>
-      <p>Wenn du einen Teilen-Link erstellst, wird eine Kopie deines Wochenplans oder eines einzelnen Meals
-         (die eingeplanten bzw. das einzelne Meal inkl. eines eigenen Fotos, falls vorhanden, dein angezeigter Name
-         und der Zeitpunkt) in der Cloud gespeichert. Sie ist ausschließlich über den Link abrufbar
-         und nur für angemeldete Nutzer. Die Kennung im Link wird mit 80&nbsp;Bit Zufall erzeugt und ist praktisch
-         nicht erratbar; ein Auflisten oder Durchsuchen der geteilten Inhalte ist technisch unterbunden. Der Link ist
-         damit der einzige Zugang – <strong>teile ihn nur mit Personen, die den Inhalt sehen dürfen</strong>, denn wer
-         ihn hat, kann ihn öffnen. Ein Teilen-Link ist eine <strong>Momentaufnahme</strong>: Wer ihn öffnet, erhält
-         eine Kopie und kann deinen Plan nicht verändern. Das gemeinsame Planen in einer Gruppe funktioniert anders –
-         siehe Ziffer 8a.</p>
+      <p>Wenn du einen Teilen-Link für ein einzelnes Meal erstellst, wird eine Kopie dieses Meals (inkl. eines
+         eigenen Fotos, falls vorhanden, dein angezeigter Name und der Zeitpunkt) in der Cloud gespeichert. Sie ist
+         ausschließlich über den Link abrufbar und nur für angemeldete Nutzer. Die Kennung im Link wird mit
+         80&nbsp;Bit Zufall erzeugt und ist praktisch nicht erratbar; ein Auflisten oder Durchsuchen der geteilten
+         Inhalte ist technisch unterbunden. Der Link ist damit der einzige Zugang – <strong>teile ihn nur mit
+         Personen, die den Inhalt sehen dürfen</strong>, denn wer ihn hat, kann ihn öffnen. Ein Teilen-Link ist eine
+         <strong>Momentaufnahme</strong>: Wer ihn öffnet, erhält eine Kopie und kann dein Meal nicht verändern. Das
+         gemeinsame Planen eines Wochenplans in einer Gruppe funktioniert anders – siehe Ziffer 8a.</p>
       <h4>8a. Gemeinsam planen (Gruppen)</h4>
       <p>Mit „Gemeinsam planen" könnt ihr – etwa als Paar oder WG – <strong>denselben</strong> Wochenplan nutzen.
          Anders als beim Teilen-Link (Ziffer 8) ist das keine Kopie: Änderungen sind für alle Mitglieder sofort
@@ -7137,8 +7135,7 @@
       <h4>10. Speicherdauer &amp; Löschung</h4>
       <p>Wir speichern deine Daten, solange dein Konto besteht. Über „Konto löschen" im Profilmenü kannst du dein
          Konto und deine Daten <strong>jederzeit selbst und sofort</strong> unwiderruflich löschen; alternativ kannst
-         du die Löschung auch per E-Mail an uns verlangen. Das schließt alle Teilen-Links (Wochenpläne und einzelne
-         Meals) ein, die deinem
+         du die Löschung auch per E-Mail an uns verlangen. Das schließt alle Teilen-Links für einzelne Meals ein, die deinem
          Konto zugeordnet und diesem Gerät bzw. deinem synchronisierten Konto zum Löschzeitpunkt bekannt sind – sie
          werden automatisch mitentfernt; schlägt das für einen einzelnen Link fehl, bricht die Löschung ab, statt
          einen Rest zurückzulassen, und du kannst sie erneut anstoßen. Bis zur Löschung bleiben geteilte Inhalte
@@ -7369,7 +7366,6 @@
     else if (a === "weight-manage") openWeighForm(true);
     else if (a === "clear-week") clearWeek();
     else if (a === "recalc-goal") startOnboarding({ first: false });
-    else if (a === "share") openShare();
     else if (a === "profile-menu") toggleProfileMenu();
     else if (a === "impressum") openImpressum();
     else if (a === "datenschutz") openDatenschutz();
@@ -9237,7 +9233,7 @@
     const node = el(`<div class="modal" role="dialog" aria-modal="true" aria-label="Konto löschen">
       <div class="modal-head"><h3>Konto endgültig löschen?</h3><button class="btn ghost sm" data-close>✕</button></div>
       <div class="modal-body">
-        <p style="margin:0 0 12px">Dein Konto, dein Wochenplan, deine Meals und dein gespeichertes Ziel werden unwiderruflich gelöscht${n ? ` – ebenso ${n} geteilte${n === 1 ? "r" : ""} Wochenplan-Link${n === 1 ? "" : "e"}` : ""}. Das kann nicht rückgängig gemacht werden.</p>
+        <p style="margin:0 0 12px">Dein Konto, dein Wochenplan, deine Meals und dein gespeichertes Ziel werden unwiderruflich gelöscht${n ? ` – ebenso ${n} geteilte${n === 1 ? "r" : ""} Meal-Link${n === 1 ? "" : "e"}` : ""}. Das kann nicht rückgängig gemacht werden.</p>
         ${isPw
           ? `<div class="field"><label for="del-pw">Passwort zur Bestätigung</label><input type="password" id="del-pw" autocomplete="current-password" placeholder="Dein Passwort"></div>`
           : `<p class="share-hint" style="margin:0">Zur Bestätigung öffnet sich gleich noch einmal das Anmeldefenster.</p>`}
@@ -9666,15 +9662,6 @@
     groupModalRepaint = paint;
   }
 
-  function sharePayload() {
-    // Nur die Meals mitschicken, die im Wochenplan eingeplant sind (keine Beispiele/ungenutzten).
-    const ids = planRecipeIds();
-    const recipes = state.recipes.filter(r => ids.has(r.id));
-    // uid mitschreiben: nur so laesst sich ein geteilter Snapshot spaeter dem Konto
-    // zuordnen und auf Verlangen loeschen (Art. 17 DSGVO). Die Firestore-Regel
-    // erlaubt Loeschen ausschliesslich dem Urheber.
-    return { app: "wochenkueche", v: 1, uid: syncUid || "", by: profile ? profile.name : "", when: Date.now(), plan: state.plan, recipes: recipes };
-  }
   function shareMealPayload(recipeId) {
     const r = getRecipe(recipeId);
     if (!r) return null;
@@ -9695,15 +9682,6 @@
   function copyToClipboard(text, okMsg) {
     if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(() => toast(okMsg || "Kopiert")).catch(() => toast("Kopieren hat nicht geklappt"));
     else { try { const ta = document.createElement("textarea"); ta.value = text; ta.style.position = "fixed"; ta.style.opacity = "0"; document.body.appendChild(ta); ta.select(); document.execCommand("copy"); ta.remove(); toast(okMsg || "Kopiert"); } catch (e) { toast("Kopieren hat nicht geklappt"); } }
-  }
-  function planText() {
-    return DAYS.map(d => {
-      const parts = MEALS.map(m => {
-        const names = state.plan[d.key][m.key].map(rid => { const r = getRecipe(rid); return r ? r.name : null; }).filter(Boolean);
-        return names.length ? m.label + ": " + names.join(", ") : null;
-      }).filter(Boolean);
-      return d.label + ": " + (parts.length ? parts.join(", ") : "–");
-    }).join("\n");
   }
   function buildPrintable() {
     const rows = DAYS.map(d => {
@@ -9917,48 +9895,6 @@
     return logoPdfAsset;
   }
 
-  function planPdfString() {
-    const L = 56, R = 539;
-    const dateStr = new Date().toLocaleDateString("de-DE", { day: "numeric", month: "long", year: "numeric" });
-    const name = profile ? profile.name : "";
-    const logo = logoPdfAsset;
-    let cs = pdfBrandHeader(L, R, "Wochenplan", (name ? name + "   ·   " : "") + dateStr, logo);
-    cs += "BT\n";
-    let y = 700;
-    DAYS.forEach(d => {
-      cs += "0 0 0 rg /F2 13 Tf 1 0 0 1 " + L + " " + y + " Tm (" + pdfEsc(d.label) + ") Tj\n";
-      MEALS.forEach((m, i) => {
-        const names = state.plan[d.key][m.key].map(rid => { const r = getRecipe(rid); return r ? r.name : null; }).filter(Boolean);
-        const yy = y - 17 - i * 15;
-        cs += "/F1 11 Tf 1 0 0 1 74 " + yy + " Tm (" + pdfEsc(m.label + ":") + ") Tj\n";
-        cs += (names.length ? "0 0 0" : "0.66 0.66 0.66") + " rg /F1 11 Tf 1 0 0 1 172 " + yy + " Tm (" + pdfEsc(names.length ? trunc(names.join(", "), 52) : "–") + ") Tj\n0 0 0 rg\n";
-      });
-      y -= 74;
-    });
-    cs += "0.6 0.6 0.6 rg /F1 9 Tf 1 0 0 1 " + L + " 44 Tm (" + pdfEsc("Erstellt mit Paddy’s Mealplan") + ") Tj\nET\n";
-
-    const objs = [];
-    objs.push("<< /Type /Catalog /Pages 2 0 R >>");
-    objs.push("<< /Type /Pages /Kids [3 0 R] /Count 1 >>");
-    const xobjRes = logo ? " /XObject << /Im0 8 0 R >>" : "";
-    objs.push("<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 5 0 R /F2 6 0 R /F3 7 0 R >>" + xobjRes + " >> /Contents 4 0 R >>");
-    objs.push("<< /Length " + cs.length + " >>\nstream\n" + cs + "endstream");
-    objs.push("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>");
-    objs.push("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>");
-    objs.push("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Oblique /Encoding /WinAnsiEncoding >>");
-    if (logo) {
-      objs.push("<< /Type /XObject /Subtype /Image /Width " + logo.w + " /Height " + logo.h + " /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /FlateDecode /SMask 9 0 R /Length " + logo.rgbLen + " >>\nstream\n" + logo.rgbStream + "\nendstream");
-      objs.push("<< /Type /XObject /Subtype /Image /Width " + logo.w + " /Height " + logo.h + " /ColorSpace /DeviceGray /BitsPerComponent 8 /Filter /FlateDecode /Length " + logo.alphaLen + " >>\nstream\n" + logo.alphaStream + "\nendstream");
-    }
-    let pdf = "%PDF-1.4\n";
-    const offsets = [];
-    objs.forEach((o, i) => { offsets.push(pdf.length); pdf += (i + 1) + " 0 obj\n" + o + "\nendobj\n"; });
-    const xref = pdf.length;
-    pdf += "xref\n0 " + (objs.length + 1) + "\n0000000000 65535 f \n";
-    offsets.forEach(off => { pdf += String(off).padStart(10, "0") + " 00000 n \n"; });
-    pdf += "trailer\n<< /Size " + (objs.length + 1) + " /Root 1 0 R >>\nstartxref\n" + xref + "\n%%EOF";
-    return pdf;
-  }
   // PDF-String -> Bytes. Ein JS-Zeichen ist hier genau ein Byte (siehe pdfEsc/Bild-Streams).
   function pdfBytes(pdf) {
     const bytes = new Uint8Array(pdf.length);
@@ -9970,18 +9906,6 @@
     const a = document.createElement("a"); a.href = url; a.download = filename; document.body.appendChild(a); a.click(); a.remove();
     setTimeout(() => URL.revokeObjectURL(url), 1500);
   }
-  function planPdfName() {
-    const who = (profile ? profile.name : "plan").replace(/[^\wäöüßÄÖÜ-]+/g, "_");
-    return "wochenplan-" + who + ".pdf";
-  }
-  async function downloadPdf() {
-    try {
-      await prepareLogoForPdf();
-      saveBlob(new Blob([pdfBytes(planPdfString())], { type: "application/pdf" }), planPdfName());
-      toast("PDF gespeichert");
-    } catch (e) { toast("PDF konnte nicht erstellt werden"); }
-  }
-
   // ----- Teilen ueber den nativen Dialog des Geraets (Web Share API) -----
   // Auf dem Handy der kuerzeste Weg: ein Tippen, dann waehlt der Nutzer WhatsApp, Signal,
   // Mail o. Ä. - kein Umweg ueber Zwischenablage oder mailto (das bei vollen Wochenplaenen
@@ -10009,19 +9933,10 @@
     }
     return false;
   }
-  async function sharePlanPdf() {
-    try {
-      await prepareLogoForPdf();
-      const ok = await shareFileOrText(pdfBytes(planPdfString()), planPdfName(), emailSubject(), emailBody());
-      if (ok) toast("Wochenplan geteilt");
-    } catch (e) { toast("Teilen hat nicht geklappt"); }
-  }
-
   // ----- Einkaufsliste als PDF (Paket B3) -----
-  // Anders als der Wochenplan (immer 7 Tage, eine feste Seite) ist die Einkaufsliste beliebig
-  // lang - deshalb mehrseitig statt der festen Ein-Seiten-Struktur von planPdfString(). Baut
-  // je Seite einen eigenen Content-Stream und haengt sie am Ende zu einem gemeinsamen PDF
-  // zusammen, gleiche Bausteine (pdfEsc/trunc/WinAnsi-Fonts) wie beim Wochenplan-PDF.
+  // Die Einkaufsliste ist beliebig lang - deshalb mehrseitig statt einer festen Ein-Seiten-
+  // Struktur. Baut je Seite einen eigenen Content-Stream und haengt sie am Ende zu einem
+  // gemeinsamen PDF zusammen (gleiche Bausteine wie pdfEsc/trunc/WinAnsi-Fonts).
   // Reine Layout-Planung ohne Kopf-Text (planShopPages): verteilt Gruppen/Zutaten auf
   // Seiten, renderShopPage baut daraus die eigentlichen Content-Streams. Getrennt vom
   // Rendern, weil die Gesamtseitenzahl (fuer "Seite X von Y" im Kopf jeder Seite) erst nach
@@ -10137,121 +10052,7 @@
     } catch (e) { toast("Teilen hat nicht geklappt"); }
   }
 
-  function emailSubject() { return "Mein Wochenplan" + (profile ? " von " + profile.name : ""); }
-  function emailBody() { return "Hallo,\n\nhier ist mein Wochenplan:\n\n" + planText() + "\n\n(Die PDF hänge ich an.)\n\nViele Grüße" + (profile ? "\n" + profile.name : ""); }
-  function emailText(to) { return (to ? "An: " + to + "\n" : "") + "Betreff: " + emailSubject() + "\n\n" + emailBody(); }
-  // Windows/Outlook nehmen eine mailto-URL nur bis ~2048 Zeichen an; darueber oeffnet das
-  // Mail-Programm gar nicht oder schneidet den Text still ab. Ein voller Wochenplan mit
-  // mehreren Meals je Slot kommt gemessen auf ~2600 Zeichen. Statt es darauf ankommen zu
-  // lassen, kuerzen wir den Body dann selbst auf einen Verweis auf die PDF - lieber eine
-  // kurze Mail, die aufgeht, als eine lange, die abbricht.
-  const MAILTO_MAX = 1800;
-  function buildMailto(to) {
-    const base = "mailto:" + (to || "") + "?subject=" + encodeURIComponent(emailSubject()) + "&body=";
-    const full = base + encodeURIComponent(emailBody());
-    if (full.length <= MAILTO_MAX) return full;
-    const short = "Hallo,\n\nmeinen Wochenplan hänge ich als PDF an.\n\nViele Grüße" + (profile ? "\n" + profile.name : "");
-    return base + encodeURIComponent(short);
-  }
   window.addEventListener("beforeprint", () => { const pa = document.getElementById("print-area"); if (pa) pa.innerHTML = buildPrintable(); });
-
-  function openShare() {
-    let mode = "link";
-    let createdUrl = null;
-    const node = el(`<div class="modal" role="dialog" aria-modal="true" aria-label="Teilen">
-      <div class="modal-head"><div style="flex:1"><div class="kicker">Gemeinsam planen</div><h3 style="margin-top:2px">Woche teilen</h3></div><button class="btn ghost sm" data-close>✕</button></div>
-      <div class="modal-body">
-        <div class="segbar" role="tablist">
-          <button role="tab" data-seg="link" aria-selected="true">Teilen-Link</button>
-          <button role="tab" data-seg="pdf" aria-selected="false">${canShare() ? "PDF" : "PDF &amp; E-Mail"}</button>
-        </div>
-        <div id="seg-body"></div>
-      </div>
-    </div>`);
-    node.querySelectorAll("[data-close]").forEach(b => b.addEventListener("click", closeModal));
-    const segBody = node.querySelector("#seg-body");
-    const segBtns = node.querySelectorAll("[data-seg]");
-    function paint() {
-      segBtns.forEach(b => b.setAttribute("aria-selected", String(b.dataset.seg === mode)));
-      if (mode === "link") {
-        const cloudOk = window.CloudShare && window.CloudShare.enabled;
-        if (!cloudOk) {
-          segBody.innerHTML = `<p class="share-hint">Der Teilen-Link funktioniert nur, wenn du in deinem <b>Cloud-Konto</b> angemeldet bist. Nutze so lange den PDF-Export.</p>`;
-        } else if (createdUrl) {
-          segBody.innerHTML = `
-            <p class="share-hint">Fertig! Schick diesen Link an Familie oder Freunde – wer ihn öffnet, übernimmt deinen Wochenplan als <b>Kopie</b>. <em>Momentaufnahme, keine Live-Synchronisierung.</em></p>
-            <span class="share-sub">Dein Teilen-Link</span>
-            <div class="link-row">
-              <input type="text" class="share-link" id="sl" readonly value="${esc(createdUrl)}">
-              <button class="btn primary" id="sl-copy">Link kopieren</button>
-            </div>
-            <p class="share-mini">Der Empfänger meldet sich einmal kostenlos an (E-Mail oder Google) und kann den Plan dann übernehmen.</p>
-            <div class="share-actions"><button class="btn" id="sl-new">Neuen Link erstellen</button></div>`;
-          segBody.querySelector("#sl-copy").addEventListener("click", () => { segBody.querySelector("#sl").select(); copyToClipboard(createdUrl, "Link kopiert"); });
-          segBody.querySelector("#sl-new").addEventListener("click", () => { createdUrl = null; paint(); });
-        } else {
-          segBody.innerHTML = `
-            <p class="share-hint">Erzeuge einen kurzen Link zu deinem aktuellen Wochenplan (inkl. Meals). Wer ihn öffnet, übernimmt eine <b>Kopie</b>. <em>Momentaufnahme, keine Live-Synchronisierung.</em></p>
-            <button class="btn primary" id="mk-link" style="width:100%;justify-content:center">Teilen-Link erstellen</button>
-            <p class="share-mini" id="mk-note"></p>`;
-          const btn = segBody.querySelector("#mk-link");
-          const note = segBody.querySelector("#mk-note");
-          btn.addEventListener("click", () => {
-            const payload = sharePayload();
-            if (!payload.recipes.length) { note.className = "share-mini warn"; note.textContent = "Dein Wochenplan ist noch leer – plane erst Meals auf die Tage ein, dann kannst du ihn teilen."; return; }
-            if (JSON.stringify(payload).length > 900000) { note.className = "share-mini warn"; note.textContent = "Dein Plan ist mit den eigenen Fotos zu groß zum Teilen (über 0,9 MB). Nutze den PDF-Export."; return; }
-            btn.disabled = true; btn.textContent = "Erstelle Link …"; note.className = "share-mini"; note.textContent = "";
-            const id = shareId();
-            window.CloudShare.publish(id, payload).then(() => {
-              // ID merken, damit "Konto löschen" den Snapshot spaeter wiederfindet.
-              if (!(state.shares || []).includes(id)) { state.shares = (state.shares || []).concat(id); save(); }
-              createdUrl = location.origin + location.pathname + "?s=" + id; paint();
-            })
-              .catch(() => { btn.disabled = false; btn.textContent = "Teilen-Link erstellen"; note.className = "share-mini warn"; note.textContent = "Link konnte nicht erstellt werden. Bist du online und angemeldet?"; });
-          });
-        }
-      } else if (mode === "pdf") {
-        // Kann das Geraet nativ teilen (Handy), fuehrt genau ein Knopf zum Ziel: die PDF
-        // haengt am Teilen-Dialog, kein Zwischenschritt ueber Zwischenablage/mailto noetig.
-        // Ohne Web Share (Desktop/aeltere Browser) bleibt der komplette alte Weg erhalten,
-        // sonst gaebe es dort gar keine Moeglichkeit mehr, an PDF oder Text zu kommen -
-        // "Mail-App oeffnen" war ohnehin der unzuverlaessigste Knopf (mailto reisst bei
-        // vollen Wochenplaenen die ~2000-Zeichen-Grenze von Windows/Outlook, siehe buildMailto).
-        const shareOk = canShare();
-        segBody.innerHTML = shareOk ? `
-          <p class="share-hint">Erzeuge aus deiner Woche ein <b>PDF</b> und teile es direkt – so gelangt dein fertiger Plan auch zu Leuten ohne Konto.</p>
-          <button class="btn primary" id="share-btn" style="width:100%;justify-content:center">Wochenplan teilen</button>
-          <p class="share-mini">Öffnet die Teilen-Auswahl deines Geräts – die PDF hängt direkt dran.</p>`
-          : `
-          <p class="share-hint">Erzeuge aus deiner Woche ein <b>PDF</b> und verschick es per E-Mail – so teilst du deinen fertigen Plan.</p>
-          <button class="btn primary" id="pdf-btn" style="width:100%;justify-content:center">Wochenplan als PDF speichern</button>
-          <p class="share-mini">Lädt eine PDF-Datei mit deinem kompletten Wochenplan herunter.</p>
-          <span class="share-sub" style="display:block;margin-top:18px">Per E-Mail senden</span>
-          <div class="field"><input type="email" class="share-link" id="mail-to" placeholder="empfaenger@beispiel.de (optional)"></div>
-          <div class="share-actions">
-            <button class="btn primary" id="mail-copy">E-Mail-Text kopieren</button>
-            <a class="btn" id="mail-open" href="#" target="_blank" rel="noopener">Mail-App öffnen</a>
-          </div>
-          <p class="share-mini">Am zuverlässigsten: <b>Text kopieren</b> und in deine Mail einfügen. Die zuvor gespeicherte PDF hängst du in der Mail an. „Mail-App öffnen“ startet dein Mail-Programm in einem neuen Tab (klappt je nach Umgebung nicht immer).</p>`;
-        const shareBtn = segBody.querySelector("#share-btn");
-        if (shareBtn) shareBtn.addEventListener("click", sharePlanPdf);
-        const pdfBtn = segBody.querySelector("#pdf-btn");
-        if (pdfBtn) pdfBtn.addEventListener("click", downloadPdf);
-        const mailTo = segBody.querySelector("#mail-to");
-        const mailOpen = segBody.querySelector("#mail-open");
-        if (mailOpen) {
-          const updateMailHref = () => { mailOpen.href = buildMailto(mailTo.value.trim()); };
-          mailTo.addEventListener("input", updateMailHref);
-          updateMailHref();
-        }
-        const mailCopy = segBody.querySelector("#mail-copy");
-        if (mailCopy) mailCopy.addEventListener("click", () => copyToClipboard(emailText(mailTo.value.trim()), "E-Mail-Text kopiert"));
-      }
-    }
-    segBtns.forEach(b => b.addEventListener("click", () => { mode = b.dataset.seg; paint(); }));
-    paint();
-    openModal(node);
-  }
 
   function openShareRecipe(recipeId) {
     const r = getRecipe(recipeId);

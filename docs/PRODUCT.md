@@ -127,13 +127,13 @@ Gut:
 
 * `Meal anlegen`
 * `Plan speichern`
-* `Woche teilen`
+* `Meal teilen`
 
 Schlecht:
 
 * `Neues Meal wird angelegt`
 * `Plan wurde gespeichert`
-* `Woche kann geteilt werden`
+* `Meal kann geteilt werden`
 
 ### Fehlermeldungen
 
