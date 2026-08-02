@@ -128,6 +128,32 @@ Beispiele:
   zugewiesenes, ein nur der anderen Person zugewiesenes) — die Summe darf nur die ersten
   beiden enthalten. Ein Test, der nur das alte String-Format prüft, findet diese Klasse Fehler
   nicht (siehe `docs/TROUBLESHOOTING.md` Ziffer 33).
+* **Konvergenz zweier Geräte** — der wichtigste Sync-Test, den man ohne Firebase führen kann.
+  Die Kette `onRemote()` → Merge → `save()` → Push nachstellen: zwei „Geräte" mit
+  unterschiedlichem Anfangsstand, die abwechselnd den empfangenen Stand zusammenführen und
+  zurückschreiben. Kriterium ist nicht das Ergebnis, sondern ob die Kette **zur Ruhe kommt**:
+  Läuft sie nach einer festen Rundenzahl (z. B. 40) noch, schaukeln sich die Geräte im
+  Echtbetrieb endlos auf. Immer **beide** Fassungen laufen lassen — die alte muss oszillieren,
+  die neue nach ein bis zwei Runden still sein. Ohne diese Gegenprobe beweist ein „konvergiert"
+  nichts, weil auch ein kaputter Prüfstand still ist (siehe `docs/TROUBLESHOOTING.md` Ziffer 34).
+* **Badge-Kürzel** (`memberIni`/`memberBadgeIni`/`memberBadgeHtml`) mit einem
+  `groupMembers`-Stub: gleiche Anfangsbuchstaben mit und ohne Nachnamen, Kleinschreibung,
+  einbuchstabige Namen, Emoji im Namen (darf nicht halbiert werden), unbekannte UID.
+* **Farbvergabe** (`memberColorSlot`) statistisch statt an einem Beispiel prüfen: einige hundert
+  simulierte Gruppen mit 2–6 Mitgliedern und realistischen 28-stelligen UIDs durchrechnen und
+  zählen, in wie vielen mindestens zwei dieselbe Farbe bekommen. Ein Einzelbeispiel beweist hier
+  nichts — die alte Fassung war in 65 % der Gruppen betroffen und sah an jedem einzelnen
+  handverlesenen Beispiel trotzdem gut aus. Randfälle mitnehmen: leere Gruppe, fremde UID, und
+  **sieben** Mitglieder (mehr Personen als Farben — die Schleife darf dort nicht hängen).
+
+### Layout messen statt schätzen
+
+Wo eine Änderung die Breite eines Elements verändert (hier: zweistellige Badge-Kürzel), reicht
+ein Screenshot nicht — man sieht einen Überstand von wenigen Pixeln leicht nicht. Stattdessen
+im Prüfstand mit `getBoundingClientRect()` gegen den Rand des Elternelements messen und den Wert
+ausgeben. Gegenprobe: Die Messung muss zwischen den Fällen **unterschiedliche** Werte liefern —
+lauter identische Zahlen heißen, dass gar nicht gemessen wurde. So fiel auf, dass zwei breite
+Badges plus „+N" 5 px links aus der Karte liefen.
 
 ### Externe APIs
 
@@ -267,6 +293,14 @@ Bei Cloud-/Gruppenänderungen testen:
 Besonders auf Endlosschleifen achten:
 
 `render → push → snapshot → render → push`
+
+**Zwei Geräte im Leerlauf sind der schärfste Test dafür.** Beide angemeldet, beide auf dem
+Wochenplan, und dann bewusst **nichts** tun. Es darf weder wiederholt neu gezeichnet werden noch
+im Minutentakt „Von anderem Gerät aktualisiert" erscheinen. Diese Schleife entsteht nicht durch
+falsche Daten, sondern durch **zwei gültige Zeichenketten für dieselbe Menge** — jede neue
+Merge-Funktion deshalb gegen die Frage prüfen: liefert `merge(a, b)` dieselbe Zeichenkette wie
+`merge(b, a)`? Ohne echte zweite Anmeldung lässt sich das im Prüfstand nachstellen (siehe
+Abschnitt 4, „Konvergenz zweier Geräte"). Historischer Fall: `docs/TROUBLESHOOTING.md` Ziffer 34.
 
 ## 8. Datenschutz-/Security-Regression
 

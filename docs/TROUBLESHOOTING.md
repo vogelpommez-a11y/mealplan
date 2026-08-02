@@ -521,7 +521,49 @@ zählt: `dayNutOf()` läuft gegen das persönliche Ziel und muss nach `syncUid` 
 zugewiesene/geteilte Gerichte zählen mit), während `buildPrintable()` eine personen-neutrale
 Übersicht ist und nur `entryId()` braucht, keine Filterung.
 
-## 34. Grundregel bei Fehlern
+## 34. Zusammengeführte Listen müssen sortiert sein, sonst schaukeln sich zwei Geräte auf
+
+**Symptom:** Sobald zwei Geräte gleichzeitig angemeldet sind, „zuckt" der Bildschirm — auch
+wenn auf beiden Geräten niemand etwas ändert. Am auffälligsten beim Zeigen auf eine
+Wochentag-Karte, weil `render()` `<main>` komplett neu aufbaut und der `:hover`-Zustand samt
+`transform: translateY(-3px)` dabei für einen Moment verlorengeht.
+
+**Ursache:** `onRemote()` vergleicht lokalen und entfernten Stand als **Zeichenkette**
+(`dataJSON()`). Anschließend werden Listen **zusammengeführt** statt ersetzt, damit nichts
+verlorengeht, das nur auf einem Gerät bekannt ist. Wenn diese Zusammenführung die Reihenfolge
+der Einfügung übernimmt, bildet jedes Gerät aus **derselben Menge eine andere Reihenfolge**:
+
+```text
+Gerät A: unionIds(["x"], ["y","x"]) -> ["x","y"]
+Gerät B: unionIds(["y"], ["x"])     -> ["y","x"]
+```
+
+Beide halten den Stand des anderen für eine Änderung, schreiben zurück, rendern — und das
+endlos, alle ~800 ms (Debounce von `scheduleCloudPush`). Der Fehler liegt nicht im Vergleich,
+sondern darin, dass für dieselbe Menge zwei gültige Zeichenketten existieren.
+
+**Betroffen waren** `unionIds()` (`state.shares`, `state.inviteCodes`) und
+`sanitizeWeightGoals()` (per `Object.assign` gemergt, das die Schlüsselreihenfolge des ersten
+Objekts übernimmt). `sanitizeTombstones()` und `sanitizeFavs()` sortierten bereits — der
+Kommentar dort beschrieb die Falle sogar schon, sie war nur nicht überall geschlossen.
+
+**Regel:** Alles, was per Merge in `dataJSON()` landet, muss **kanonisch** sein — Listen
+sortiert, Objektschlüssel sortiert. Prüffrage bei jeder neuen Merge-Funktion: *Liefert
+`merge(a, b)` dieselbe Zeichenkette wie `merge(b, a)`?* Wenn nein, entsteht genau dieser
+Ping-Pong. Das gilt auch für `normalizePlans()` (Wochenschlüssel).
+
+**Zusätzliches Sicherheitsnetz:** `onRemote()` rendert nur noch, wenn sich der Stand durch die
+Zusammenführung tatsächlich geändert hat (`dataJSON(state) === before` → kein `render()`).
+`save()` läuft trotzdem, denn der eigene Mehrstand muss weiterhin hoch. Der Vergleich vor der
+Zusammenführung schlägt schon an, wenn das eingehende Dokument nur *anders* ist — daraus kann
+trotzdem derselbe Stand entstehen.
+
+**Nachweis im Prüfstand:** Die Kette lässt sich ohne Firebase nachstellen — zwei „Geräte",
+die abwechselnd den empfangenen Stand vereinigen und zurückschreiben. Mit der unsortierten
+Fassung kommt sie nach 40 Runden nicht zur Ruhe, mit der sortierten nach Runde 2. Siehe
+`docs/TESTING.md`.
+
+## 35. Grundregel bei Fehlern
 
 Nicht einfach den sichtbaren Fehler flicken.
 

@@ -472,10 +472,18 @@
     content: ""; position: absolute; top: 0; left: 0; right: 0; height: 4px; z-index: 1;
     background: linear-gradient(90deg, var(--accent), var(--accent-strong));
   }
-  .day:hover {
-    transform: translateY(-3px);
-    border-color: color-mix(in srgb, var(--accent) 42%, var(--border));
-    box-shadow: 0 12px 30px color-mix(in srgb, var(--accent) 20%, transparent);
+  /* Nur bei echter Maus. Ein Touchscreen kennt kein Hover, setzt den Zustand beim Tippen
+     oder Wischen aber trotzdem - die Karte bliebe dann angehoben stehen. Fuer den mobilen
+     Karussell-Streifen faengt das weiter unten eine eigene Regel ab, die aber an der
+     Breite haengt (max-width: 680px): auf einem Tablet oder Touch-Notebook griff sie nie.
+     Am Eingabegeraet statt an der Breite gefragt, gilt es fuer jede Groesse - dasselbe
+     Vorgehen wie bei coarsePointer() im Skript. */
+  @media (hover: hover) and (pointer: fine) {
+    .day:hover {
+      transform: translateY(-3px);
+      border-color: color-mix(in srgb, var(--accent) 42%, var(--border));
+      box-shadow: 0 12px 30px color-mix(in srgb, var(--accent) 20%, transparent);
+    }
   }
   .day.today { border-color: color-mix(in srgb, var(--accent) 55%, var(--border)); box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 40%, transparent), var(--shadow); }
   .day.today::before { height: 5px; }
@@ -516,9 +524,11 @@
   .day.training:not(.over) > .day-head {
     background: linear-gradient(180deg, color-mix(in srgb, var(--train) 12%, var(--surface)), var(--surface));
   }
-  .day.training:hover {
-    border-color: color-mix(in srgb, var(--train) 70%, var(--border));
-    box-shadow: 0 12px 30px color-mix(in srgb, var(--train) 20%, transparent);
+  @media (hover: hover) and (pointer: fine) {   /* Eingabegeraet statt Breite, siehe .day:hover */
+    .day.training:hover {
+      border-color: color-mix(in srgb, var(--train) 70%, var(--border));
+      box-shadow: 0 12px 30px color-mix(in srgb, var(--train) 20%, transparent);
+    }
   }
   /* Faellt „heute" auf einen Trainingstag, wird auch der Ring blau — sonst stossen roter
      Ring und blauer Rand aneinander. Dass es heute ist, traegt weiter der rote Chip. */
@@ -843,14 +853,21 @@
   .slot .filled:active { cursor: grabbing; }
   .slot .filled img.r-thumb { width: 28px; height: 28px; border-radius: 6px; object-fit: cover; flex: none; margin-top: 1px; }
   .r-thumb-wrap { position: relative; flex: none; display: flex; }
+  /* Die Badges liegen als Reihe unten rechts auf der Miniatur, das erste ganz rechts
+     (row-reverse), die weiteren ueberlappen es nach links. Als Reihe statt je Position
+     einzeln absolut gesetzt: teilen sich zwei Mitglieder den Anfangsbuchstaben, wird ihr
+     Kuerzel zweistellig und damit breiter - feste right-Werte je nth-child haetten die
+     folgenden Badges dann verdeckt. */
+  .r-badges { position: absolute; right: -4px; bottom: -3px; display: flex; flex-direction: row-reverse; }
   .r-badge {
-    position: absolute; right: -4px; bottom: -3px; width: 14px; height: 14px; border-radius: 50%;
+    width: 14px; height: 14px; border-radius: 50%;
     background: var(--member-c, var(--accent)); color: var(--accent-contrast); font-size: 8.5px; font-weight: 700;
     display: grid; place-items: center; border: 1.5px solid var(--surface); line-height: 1;
   }
-  .r-badge:first-child { right: -4px; }
-  .r-badge:nth-child(2) { right: 8px; }
-  .r-badge.r-badge-more { right: 20px; width: auto; min-width: 14px; padding: 0 2px; font-size: 7.5px; }
+  .r-badge + .r-badge { margin-right: -6px; }
+  .r-badge.wide, .r-badge.r-badge-more { width: auto; min-width: 14px; padding: 0 2px; border-radius: 999px; }
+  .r-badge.wide { font-size: 7.5px; letter-spacing: -.02em; }
+  .r-badge.r-badge-more { font-size: 7.5px; }
   .slot .filled .r-name { font-size: 13.5px; font-weight: 550; line-height: 1.3; flex: 1; word-break: break-word; }
   .slot .filled .r-meta { font-size: 11.5px; color: var(--text-muted); margin-top: 1px; }
   .slot .filled .x, .slot .filled .pencil {
@@ -2908,7 +2925,11 @@
   function sanitizeWeightGoals(g) {
     const out = {};
     if (!g || typeof g !== "object") return out;
-    Object.keys(g).forEach(y => {
+    // Sortiert aufbauen, gleiche Begruendung wie bei sanitizeTombstones/unionIds: onRemote()
+    // fuehrt die Zielgewichte per Object.assign zusammen, und das uebernimmt die Reihenfolge
+    // des ersten Objekts. Ohne Sortierung entstuenden auf zwei Geraeten zwei Reihenfolgen
+    // derselben Jahre - und damit ein endloser Schreib-Wechsel zwischen beiden.
+    Object.keys(g).sort().forEach(y => {
       if (!/^\d{4}$/.test(y)) return;
       const kg = Math.round((parseFloat(g[y]) || 0) * 10) / 10;
       if (kg >= KG_MIN && kg <= KG_MAX) out[y] = kg;
@@ -3140,7 +3161,15 @@
 
   // Vereinigung zweier ID-Listen (Teilen-Links) ohne Duplikate – wird beim Zusammenfuehren
   // von lokalem und Cloud-Stand gebraucht, damit kein Link "verschwindet".
-  function unionIds(a, b) { return Array.from(new Set([].concat(a || [], b || []))); }
+  // Sortiert zurueckgeben, nicht in Einfuegereihenfolge - dieselbe Falle wie bei
+  // sanitizeTombstones, nur an einer Stelle, an der sie lange unbemerkt blieb: onRemote()
+  // vergleicht lokalen und entfernten Stand als Zeichenkette. Zwei GLEICHZEITIG verbundene
+  // Geraete bilden aus derselben Menge zwei verschiedene Reihenfolgen ([x,y] hier, [y,x]
+  // dort), weil jedes seine eigene Liste voranstellt. Jedes hielte die des anderen fuer
+  // eine Aenderung, schriebe zurueck, und beide renderten im Wechsel endlos - sichtbar als
+  // Zucken des Bildschirms, solange zwei Geraete offen sind. Sortiert ist die Vereinigung
+  // auf beiden Seiten dieselbe Zeichenkette, der Austausch endet nach einer Runde.
+  function unionIds(a, b) { return Array.from(new Set([].concat(a || [], b || []))).sort(); }
 
   // ---------- Cloud-Sync (Firestore) ----------
   let syncUid = null, syncUnsub = null, syncUnsubRecipes = null, pushTimer = null,
@@ -3192,7 +3221,9 @@
   }
   function normalizePlans(rawPlans, recipes) {
     const out = {};
-    if (rawPlans && typeof rawPlans === "object") Object.keys(rawPlans).forEach(k => { out[k] = normalizePlan(rawPlans[k], recipes); });
+    // Wochenschluessel sortiert uebernehmen - siehe unionIds: ausserhalb der Gruppe reist
+    // das ganze Wochen-Dictionary im Kontodokument mit und wird als Zeichenkette verglichen.
+    if (rawPlans && typeof rawPlans === "object") Object.keys(rawPlans).sort().forEach(k => { out[k] = normalizePlan(rawPlans[k], recipes); });
     return out;
   }
   // Liefert das Wochen-Dictionary eines Datensatzes; toleriert das alte Einzelplan-Format.
@@ -3424,8 +3455,8 @@
     // stehen und bricht hier ab - switchGroup() baut den Sync komplett neu auf.
     const remoteGid = typeof data.groupId === "string" && data.groupId ? data.groupId : null;
     if (remoteGid !== syncGid) { switchGroup(remoteGid); return; }
-    const j = dataJSON(data);
-    if (j === dataJSON(state) || j === lastPushedJSON) return; // nichts Neues
+    const j = dataJSON(data), before = dataJSON(state);
+    if (j === before || j === lastPushedJSON) return; // nichts Neues
     // state.recipes wird hier NICHT mehr ersetzt - Rezepte kommen ausschliesslich ueber
     // onRecipesRemote() (eigener Listener auf die recipes-Subcollection).
     // In einer Gruppe kommt der Plan aus groups/{gid}/plans (onGroupPlansRemote) - das
@@ -3448,7 +3479,15 @@
     if (data.onboarded) state.onboarded = true;         // nur in eine Richtung, siehe startCloudSync
     setViewWeek(state.viewWeek);
     lastPushedJSON = j;
-    save(); render(); renderProfileChip();
+    save();
+    // Der Vergleich oben schlaegt schon an, wenn das eingehende Dokument nur ANDERS ist.
+    // Die Zusammenfuehrung darunter kann daraus trotzdem exakt denselben Stand ergeben -
+    // dieses Geraet wusste bereits alles, was ankam. Dann gibt es nichts neu zu zeichnen:
+    // render() baut <main> komplett neu auf, und genau das sah man als Zucken, solange zwei
+    // Geraete gleichzeitig offen waren. save() laeuft trotzdem, denn der eigene Mehrstand
+    // (den die Gegenseite noch nicht hat) muss weiterhin hoch.
+    if (dataJSON(state) === before) { setSyncStatus("synced"); return; }
+    render(); renderProfileChip();
     setSyncStatus("synced");
     // Nicht bei jedem eingehenden Schreibvorgang melden: wer auf einem Geraet plant,
     // erzeugt alle 800 ms (Debounce von scheduleCloudPush) einen Push — auf dem zweiten
@@ -7919,30 +7958,81 @@
   // Die anderen Mitglieder der Gruppe, links neben dem eigenen Avatar. Ab vier Personen
   // wird abgekuerzt - mehr Kreise als das passen im Kopf neben die Reiter nicht, und die
   // vollstaendige Liste steht ohnehin einen Klick entfernt im Gruppen-Dialog.
-  // Farbring-Slot eines Mitglieds: deterministisch aus einem simplen Hash der UID selbst,
-  // NICHT aus dem Index in groupMembers - der kommt aus getDocs() ohne orderBy und
-  // verschiebt sich zuverlaessig, sobald jemand die Gruppe verlaesst. Ein Hash aus der UID
-  // bleibt stabil, unabhaengig von Ladereihenfolge oder Mitgliederschwund.
-  function memberColorSlot(uid) {
+  // Farbring-Slot eines Mitglieds: Ausgangspunkt ist ein simpler Hash der UID selbst,
+  // NICHT der Index in groupMembers - der kommt aus getDocs() ohne orderBy und
+  // verschiebt sich zuverlaessig, sobald jemand die Gruppe verlaesst.
+  function memberColorHash(uid) {
     let h = 0;
     const s = String(uid || "");
     for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0;
     return (Math.abs(h) % 6) + 1;
   }
+  // Der reine Hash reicht nicht: bei sechs Farben und schon zwei Personen liegt die
+  // Wahrscheinlichkeit, dass beide DIESELBE Farbe ziehen, bei rund einem Sechstel. Dann
+  // waeren zwei Mitglieder, deren Kuerzel sich ebenfalls gleicht ("Anna"/"Anne" -> beide
+  // "AN"), auf der Karte gar nicht mehr auseinanderzuhalten. Kollisionen werden deshalb
+  // aufgeloest: der naechste freie Slot zaehlt. Durchlaufen wird dabei die nach UID
+  // SORTIERTE Mitgliederliste - so kommt jedes Geraet unabhaengig von der Ladereihenfolge
+  // zum selben Ergebnis (dieselbe Ueberlegung wie bei unionIds).
+  // Bewusst in Kauf genommen: verlaesst jemand die Gruppe, kann die Farbe eines anderen
+  // Mitglieds umspringen. Das passiert selten und bewusst - eine dauerhafte Doppelfarbe
+  // waere der schlechtere Tausch.
+  function memberColorSlot(uid) {
+    const uids = groupMembers.map(m => m.uid).sort();
+    // Ab sieben Personen gibt es zwangslaeufig Doppelungen - dann bleibt es beim Hash,
+    // sonst suchte die Schleife unten nach einem freien Slot, den es nicht gibt.
+    if (uids.length > 6 || uids.indexOf(uid) === -1) return memberColorHash(uid);
+    const belegt = {};
+    for (let i = 0; i < uids.length; i++) {
+      let s = memberColorHash(uids[i]);
+      while (belegt[s]) s = (s % 6) + 1;
+      belegt[s] = true;
+      if (uids[i] === uid) return s;
+    }
+    return memberColorHash(uid);
+  }
   // Badge auf der Meal-Karte: Initiale + Farbring, eines pro zugewiesener Person. Nur
   // fuer "eigene"/"andere" Karten (uids !== null) - "gemeinsam" bekommt keine Badges.
   // Maximal 2 Kreise (die Miniatur ist nur 28x28px) - der Rest sammelt sich in "+N".
+  // Bei zweistelligen Kuerzeln passt nur einer, siehe memberBadgeHtml().
   const BADGE_MAX = 2;
+  // Kuerzel eines Mitglieds fuer den Badge: n Zeichen, bei n > 1 aus Vor- UND Nachname
+  // ("Anna Meier" -> "AM"), und wenn es keinen Nachnamen gibt aus dem Vornamen allein
+  // ("Anna" -> "AN"). Array.from statt [0]/[1]: ein Emoji im Namen besteht aus zwei
+  // Code-Einheiten und laege halbiert als Ersatzzeichen im Kreis.
+  function memberIni(name, n) {
+    const parts = String(name || "?").trim().split(/\s+/);
+    const first = Array.from(parts[0] || "?");
+    const out = [first[0] || "?"];
+    if (n > 1) out.push(parts.length > 1 ? Array.from(parts[1])[0] : first[1]);
+    return out.filter(Boolean).join("").toUpperCase();
+  }
+  // Ein Buchstabe reicht nur, solange er in der Gruppe eindeutig ist. Bei "Anna" und
+  // "Alex" stuende sonst auf beiden Karten dasselbe "A" - und der Farbring allein traegt
+  // die Unterscheidung nicht: er ist aria-hidden und faellt bei Farbfehlsichtigkeit aus.
+  // Dann bekommen BEIDE das zweistellige Kuerzel; nur eines zu verlaengern saehe aus, als
+  // waeren es zwei verschiedene Arten von Badge.
+  function memberBadgeIni(uid, mem) {
+    const one = memberIni(mem ? mem.name : "?", 1);
+    const clash = groupMembers.some(o => o.uid !== uid && memberIni(o.name, 1) === one);
+    return clash ? memberIni(mem ? mem.name : "?", 2) : one;
+  }
   function memberBadgeHtml(uids) {
     if (!uids || !uids.length) return "";
-    const shown = uids.slice(0, BADGE_MAX).map(uid => {
-      const mem = memberByUid(uid);
-      const ini = initials(mem ? mem.name : "?").slice(0, 1);
-      return `<span class="r-badge" style="--member-c:var(--member-${memberColorSlot(uid)})" aria-hidden="true">${esc(ini)}</span>`;
+    const kuerzel = uids.map(uid => memberBadgeIni(uid, memberByUid(uid)));
+    // Zweistellige Kuerzel sind breiter. Zwei davon passen noch (gemessen: 34 px), zwei davon
+    // PLUS "+N" liefen dagegen 5 px links aus der Karte heraus. Nur in dem Fall auf EIN gut
+    // lesbares Kuerzel zurueckgehen - wer mitisst, steht ohnehin vollstaendig im title der
+    // Karte, die Kreise sind aria-hidden und nur eine schnelle Wiedererkennung.
+    const breit = kuerzel.slice(0, BADGE_MAX).some(k => Array.from(k).length > 1);
+    const max = breit && uids.length > BADGE_MAX ? 1 : BADGE_MAX;
+    const shown = uids.slice(0, max).map((uid, i) => {
+      const wide = Array.from(kuerzel[i]).length > 1;
+      return `<span class="r-badge${wide ? " wide" : ""}" style="--member-c:var(--member-${memberColorSlot(uid)})">${esc(kuerzel[i])}</span>`;
     }).join("");
-    const rest = uids.length - BADGE_MAX;
-    const more = rest > 0 ? `<span class="r-badge r-badge-more" aria-hidden="true">+${rest}</span>` : "";
-    return shown + more;
+    const rest = uids.length - max;
+    const more = rest > 0 ? `<span class="r-badge r-badge-more">+${rest}</span>` : "";
+    return `<span class="r-badges" aria-hidden="true">${shown}${more}</span>`;
   }
 
   const SLOT_OTHERS_MAX = 2;
@@ -10592,7 +10682,10 @@
           btn.disabled = true; btn.textContent = "Erstelle Link …"; note.className = "share-mini"; note.textContent = "";
           const id = shareId();
           window.CloudShare.publish(id, payload).then(() => {
-            if (!(state.shares || []).includes(id)) { state.shares = (state.shares || []).concat(id); save(); }
+            // unionIds statt concat: haelt die Liste sortiert. Angehaengt entstuende hier eine
+            // Reihenfolge, die kein anderes Geraet reproduziert - und damit ein ueberfluessiger
+            // Abgleich-Zyklus mit dem zweiten Geraet (siehe TROUBLESHOOTING Ziffer 34).
+            if (!(state.shares || []).includes(id)) { state.shares = unionIds(state.shares, [id]); save(); }
             createdUrl = location.origin + location.pathname + "?s=" + id; paint();
           }).catch(() => { btn.disabled = false; btn.textContent = "Meal-Link erstellen"; note.className = "share-mini warn"; note.textContent = "Link konnte nicht erstellt werden. Bist du online und angemeldet?"; });
         });

@@ -300,11 +300,31 @@ Endsumme: `sharedQty * per + assignedQty`. Bewusste Entscheidung: "für alle"-Ei
 sich exakt wie vor diesem Feature (unbeeinflusst vom Rezept-`portions`-Feld), nur abweichend
 zugewiesene Gerichte werden zusätzlich skaliert.
 
-Farbring/Initiale (`--member-1` bis `--member-6`, zyklisch über einen UID-Hash in
-`memberColorSlot()` — bewusst **nicht** über den Index in `groupMembers`, der aus `getDocs()`
-ohne `orderBy` kommt und sich beim Austritt eines Mitglieds verschiebt) nur bei "eigenen"/
-"anderen" Karten, nie bei "gemeinsam". Maximal 2 Badges pro Karte, der Rest sammelt sich in
-einem "+N"-Badge (`BADGE_MAX`).
+Farbring/Initiale (`--member-1` bis `--member-6`) nur bei "eigenen"/"anderen" Karten, nie bei
+"gemeinsam". Maximal 2 Badges pro Karte, der Rest sammelt sich in einem "+N"-Badge
+(`BADGE_MAX`).
+
+**Farbvergabe (`memberColorSlot()`) ist kollisionsfrei, nicht nur gehasht.** Ausgangspunkt
+bleibt ein UID-Hash (`memberColorHash()`) — bewusst **nicht** der Index in `groupMembers`, der
+aus `getDocs()` ohne `orderBy` kommt. Der reine Hash allein reichte aber nicht: bei sechs Farben
+hatten **65 % aller Gruppen mit 2–6 Mitgliedern** mindestens eine Doppelfarbe (gemessen über
+2000 simulierte Gruppen). Deshalb wird die nach UID **sortierte** Mitgliederliste durchlaufen und
+bei Belegung der nächste freie Slot genommen — sortiert, damit jedes Gerät unabhängig von der
+Ladereihenfolge dasselbe Ergebnis berechnet. Ab sieben Mitgliedern sind Doppelungen unvermeidbar,
+dann greift wieder der reine Hash (sonst suchte die Schleife einen freien Slot, den es nicht
+gibt). Bewusst in Kauf genommen: Verlässt jemand die Gruppe, kann die Farbe eines anderen
+Mitglieds umspringen — seltener und akzeptabler als eine dauerhafte Doppelfarbe.
+
+**Das Kürzel im Badge ist so lang, wie es zur Unterscheidung sein muss.** `memberBadgeIni()`
+zeigt normalerweise einen Buchstaben; trägt ein **anderes** aktuelles Gruppenmitglied denselben
+Anfangsbuchstaben, bekommen **beide** ein zweistelliges Kürzel (`memberIni(name, 2)`: Vor- +
+Nachname-Initiale, ohne Nachnamen die ersten zwei Buchstaben des Vornamens — "Anna"/"Alex" →
+"AN"/"AL"). Der Farbring allein trägt die Unterscheidung nicht: er ist `aria-hidden` und fällt
+bei Farbfehlsichtigkeit aus. Zweistellige Kürzel sind breiter — zwei davon passen noch (34 px),
+zwei davon **plus** "+N" liefen 5 px links aus der Karte heraus. Nur in dem Fall geht
+`memberBadgeHtml()` auf **einen** Kreis plus "+N" zurück. Die Badges liegen als Flex-Reihe
+(`.r-badges`, `row-reverse`, Überlappung per negativem `margin-right`) statt einzeln absolut
+positioniert: feste `right`-Werte je `nth-child` setzten eine feste Badge-Breite voraus.
 
 **`dayNutOf()` filtert nach Person, nicht nur nach Sichtbarkeit.** Die Tages-/Wochen-
 Nährwertsumme läuft gegen das **persönliche** `state.goal` — ein nur der anderen Person
