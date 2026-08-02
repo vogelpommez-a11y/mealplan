@@ -82,6 +82,16 @@
     --fr: #A96E12;   /* Frühstück */
     --mi: #2E7D6B;   /* Mittagessen */
     --ab: #6E5A9E;   /* Abendessen */
+
+    /* Farbring/Initiale bei individuell zugewiesenen Gerichten (Gemeinsam planen).
+       Zyklische Zuordnung nach Mitglieds-Index, siehe memberColorSlot(). Bewusst von
+       --accent/--ok/--fr/--mi/--ab unterschieden. */
+    --member-1: #2454C7;
+    --member-2: #C2255C;
+    --member-3: #C2560C;
+    --member-4: #0C7A8C;
+    --member-5: #5B3DC2;
+    --member-6: #6B7A12;
     /* Makro-Farben (Paket D1): bisher an 13 Stellen als Hex-Wert dupliziert, seit D1
        zentral hier. Sie standen zunaechst in EINEM Theme-neutralen Block, weil Hell und
        Dunkel denselben Wert trugen — das ging nicht mehr auf: Auf hellem --surface kam
@@ -170,6 +180,13 @@
       --mi: #58B49E;
       --ab: #AC93E0;
 
+      --member-1: #3B6FE0;
+      --member-2: #E0417E;
+      --member-3: #E06A1E;
+      --member-4: #1C93A6;
+      --member-5: #7C5CE0;
+      --member-6: #8C9A1E;
+
       /* Dunkel: die urspruenglichen Makro-Werte, hier unveraendert (7-8,6:1 auf --surface) */
       --carb: #E9A03B;
       --prot: #C74B78;
@@ -191,6 +208,7 @@
     --glass-edge: rgba(255, 255, 255, .72); --glass-shadow: 0 8px 28px rgba(20, 24, 31, .16);
     --accent: #DC2626; --accent-strong: #B01218; --accent-contrast: #FFFFFF; --accent-solid: #DC2626; --danger: var(--accent); --ok: #1E9E57;
     --fr: #A96E12; --mi: #2E7D6B; --ab: #6E5A9E;
+    --member-1: #2454C7; --member-2: #C2255C; --member-3: #C2560C; --member-4: #0C7A8C; --member-5: #5B3DC2; --member-6: #6B7A12;
     --carb: #A26A11; --prot: #C74B78; --fat: #1C7EB3;
     --train: #2563EB; --train-strong: #1D4ED8; --train-contrast: #FFFFFF;
     --shadow: 0 1px 2px rgba(20,24,31,.06), 0 8px 24px rgba(20,24,31,.08);
@@ -204,6 +222,7 @@
     --glass-edge: rgba(255, 255, 255, .10); --glass-shadow: 0 8px 30px rgba(0, 0, 0, .55);
     --accent: #FF3040; --accent-strong: #FF5A66; --accent-contrast: #FFFFFF; --accent-solid: #E02234; --danger: var(--accent); --ok: #3DDC84;
     --fr: #E0A94A; --mi: #58B49E; --ab: #AC93E0;
+    --member-1: #3B6FE0; --member-2: #E0417E; --member-3: #E06A1E; --member-4: #1C93A6; --member-5: #7C5CE0; --member-6: #8C9A1E;
     --carb: #E9A03B; --prot: #C74B78; --fat: #4AA8E0;
     --train: #60A5FA; --train-strong: #93C5FD; --train-contrast: #0C1220;
     --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.35);
@@ -816,20 +835,45 @@
   .slot .add.more { font-size: 12px; padding: 5px 10px; opacity: .8; }
   .slot .filled + .filled, .slot .filled + .add, .slot .add + .filled { margin-top: 4px; }
   .slot .filled {
-    display: flex; align-items: flex-start; gap: 8px;
+    display: flex; align-items: flex-start; gap: 8px; position: relative;
     background: color-mix(in srgb, var(--slot-c) 9%, var(--surface));
     border: 1px solid color-mix(in srgb, var(--slot-c) 24%, var(--surface));
     border-radius: var(--radius-sm); padding: 8px 8px 8px 10px; cursor: grab;
   }
   .slot .filled:active { cursor: grabbing; }
   .slot .filled img.r-thumb { width: 28px; height: 28px; border-radius: 6px; object-fit: cover; flex: none; margin-top: 1px; }
+  .r-thumb-wrap { position: relative; flex: none; display: flex; }
+  .r-badge {
+    position: absolute; right: -4px; bottom: -3px; width: 14px; height: 14px; border-radius: 50%;
+    background: var(--member-c, var(--accent)); color: var(--accent-contrast); font-size: 8.5px; font-weight: 700;
+    display: grid; place-items: center; border: 1.5px solid var(--surface); line-height: 1;
+  }
+  .r-badge:first-child { right: -4px; }
+  .r-badge:nth-child(2) { right: 8px; }
+  .r-badge.r-badge-more { right: 20px; width: auto; min-width: 14px; padding: 0 2px; font-size: 7.5px; }
   .slot .filled .r-name { font-size: 13.5px; font-weight: 550; line-height: 1.3; flex: 1; word-break: break-word; }
   .slot .filled .r-meta { font-size: 11.5px; color: var(--text-muted); margin-top: 1px; }
-  .slot .filled .x {
-    flex: none; border: 0; background: transparent; color: var(--text-muted); cursor: pointer;
-    width: 22px; height: 22px; border-radius: 6px; display: grid; place-items: center; font-size: 15px; line-height: 1;
+  .slot .filled .x, .slot .filled .pencil {
+    position: relative; flex: none; border: 0; background: transparent; color: var(--text-muted); cursor: pointer;
+    width: 22px; height: 22px; border-radius: 6px; display: grid; place-items: center; line-height: 1;
   }
+  /* hitSlop wie .toast-undo::after: vergroessert die Trefferflaeche, ohne die sichtbare
+     Knopfgroesse zu aendern. Inset auf 4px begrenzt (statt der ueblichen 10px), weil Stift
+     und Entfernen-Knopf mit nur 8px Abstand nebeneinander stehen - ein groesserer Wert
+     wuerde beide Trefferflaechen ueberlappen und Fehltreffer zwischen den zwei Aktionen
+     wahrscheinlicher machen statt sie zu vermeiden. */
+  .slot .filled .x::after, .slot .filled .pencil::after { content: ""; position: absolute; inset: -4px; }
+  .slot .filled .x { font-size: 15px; }
+  .slot .filled .pencil { font-size: 13px; }
   .slot .filled .x:hover { background: color-mix(in srgb, var(--danger) 14%, transparent); color: var(--danger); }
+  .slot .filled .pencil:hover { background: color-mix(in srgb, var(--accent) 14%, transparent); color: var(--accent); }
+  /* .assign-chip ist ein .menu button (Basis-Layout/Groesse von dort, siehe .menu button
+     weiter unten) - hier nur die Mehrfachauswahl-Markierung ergaenzen. */
+  .menu .assign-chip.on { background: color-mix(in srgb, var(--accent) 12%, transparent); font-weight: 600; }
+  .menu .assign-chip .avatar { width: 22px; height: 22px; font-size: 10px; }
+  /* Kein Mitgliederlimit im Code (siehe Gruppen-Dokumentation) - bei einer groesseren
+     Gruppe darf das Chip-Popover nicht ueber den Viewport hinauswachsen. */
+  .assign-menu { max-height: 50vh; overflow-y: auto; }
   .slot.dragover { background: color-mix(in srgb, var(--accent) 12%, transparent); outline: 2px dashed var(--accent); outline-offset: -2px; }
   .slot.nodrop { opacity: .4; cursor: not-allowed; }
   .filled.dragging { opacity: .4; }
@@ -2675,6 +2719,18 @@
   // Ein Slot ist eine Liste von Rezept-IDs. Alte Pläne speicherten eine
   // einzelne ID (oder null) – asIdList normalisiert beide Formen.
   function asIdList(v) { return Array.isArray(v) ? v.slice() : (v ? [v] : []); }
+  // Ein Slot-Eintrag ist entweder ein blanker String (Rezept-ID, "fuer alle") oder ein
+  // Objekt {id, uids}, wenn nur eine Teilmenge der Gruppe das Gericht isst.
+  function entryId(e) { return typeof e === "string" ? e : (e && e.id); }
+  function entryUids(e) { return typeof e === "string" ? null : (e && e.uids) || null; } // null = fuer alle
+  function entryIsShared(e) { return typeof e === "string" || !e || !e.uids; }
+  function makeEntry(id, uids) {
+    // Mengenabdeckung pruefen, nicht nur die Laenge: eine veraltete UID (Mitglied hat die
+    // Gruppe inzwischen verlassen) darf einen Eintrag nicht faelschlich zu "fuer alle" machen.
+    if (!uids || !groupMembers.length || groupMembers.every(mem => uids.indexOf(mem.uid) !== -1)) return id;
+    return { id: id, uids: uids.slice() };
+  }
+  function slotIsShared(day, meal) { return state.plan[day][meal].every(entryIsShared); }
 
   // ---------- Wochen (aktuelle + naechste, an ISO-Kalenderwochen gebunden) ----------
   // Plaene liegen unter state.plans["YYYY-Www"]. "Aktuell" ist die ISO-Woche von heute,
@@ -3130,7 +3186,7 @@
     const ids = new Set((recipes || []).map(r => r.id));
     if (rawPlan) DAYS.forEach(d => MEALS.forEach(m => {
       const raw = rawPlan[d.key] && rawPlan[d.key][m.key];
-      plan[d.key][m.key] = asIdList(raw).filter(id => ids.has(id));
+      plan[d.key][m.key] = asIdList(raw).filter(e => ids.has(entryId(e)));
     }));
     return plan;
   }
@@ -3162,7 +3218,13 @@
     if (!fields) return plan;
     DAYS.forEach(d => MEALS.forEach(m => {
       const ids = fields[d.key + "_" + m.key];
-      if (Array.isArray(ids)) plan[d.key][m.key] = ids.filter(x => typeof x === "string");
+      if (!Array.isArray(ids)) return;
+      // uids kommt von einem ANDEREN Geraet - Elemente auf Strings begrenzen und die Laenge
+      // deckeln, sonst koennte ein fehlerhaftes oder manipuliertes Dokument beliebig viele
+      // Badges pro Karte bzw. eine aufgeblaehte Einkaufsliste erzeugen (siehe entryUids()).
+      plan[d.key][m.key] = ids
+        .filter(x => typeof x === "string" || (x && typeof x.id === "string" && Array.isArray(x.uids)))
+        .map(x => typeof x === "string" ? x : { id: x.id, uids: x.uids.filter(u => typeof u === "string").slice(0, 24) });
     }));
     return plan;
   }
@@ -4259,9 +4321,16 @@
   let dayNutCache = null;
   // Von state.plan entkoppelt, damit "heute" in weekGoalHtml auch in der
   // Naechste-Woche-Ansicht gegen den Plan der AKTUELLEN Woche rechnen kann.
+  // Zaehlt nur Gerichte, die tatsaechlich MICH betreffen (geteilt oder mir explizit
+  // zugewiesen) - die Summe laeuft gegen das PERSOENLICHE state.goal, ein nur der anderen
+  // Person zugewiesenes Gericht darf mein Kalorien-/Makroziel nicht belasten.
   function dayNutOf(plan, dayKey) {
     let s = { kcal: 0, carbs: 0, protein: 0, fat: 0 };
-    MEALS.forEach(m => { plan[dayKey][m.key].forEach(rid => { const r = getRecipe(rid); if (r) s = addNut(s, recipeNut(r)); }); });
+    MEALS.forEach(m => { plan[dayKey][m.key].forEach(entry => {
+      const uids = entryUids(entry);
+      if (uids && uids.indexOf(syncUid) === -1) return;
+      const r = getRecipe(entryId(entry)); if (r) s = addNut(s, recipeNut(r));
+    }); });
     return s;
   }
   function dayNut(dayKey) {
@@ -4924,6 +4993,9 @@
   // Neuladen sind alle Tageskarten wieder eingeklappt (gleiches Muster wie collapsedCats
   // bei den Meal-Kategorien).
   const expandedDayGoals = new Set();
+  // Welche Slots ihre kollabierten "andere"-Zuweisungskarten aufgeklappt haben. Bewusst
+  // nicht gespeichert: beim naechsten render() wieder eingeklappt (gleiches Muster wie oben).
+  const expandedOthers = new Set();
 
   // Kalorien breit in einer Zeile – die Makros stehen dahinter, standardmaessig
   // eingeklappt. Sieben Tage x 4 Balken (Kalorien + 3 Makros) gleichzeitig sichtbar
@@ -5838,18 +5910,46 @@
         const ids = state.plan[d.key][m.key];
         html += `<div class="slot" data-meal="${m.key}" data-slot="${d.key}:${m.key}">
           <div class="mlabel">${m.label}</div>`;
-        let shown = 0;
-        ids.forEach((rid, idx) => {
-          const r = getRecipe(rid);
+        const drag = canEdit();
+        const showPencil = drag && groupMembers.length >= 2;
+        // Original-Index bleibt jeder Karte fest zugeordnet (data-slot-src), unabhaengig
+        // von der Anzeige-Reihenfolge unten.
+        const cards = [];
+        ids.forEach((entry, idx) => {
+          const r = getRecipe(entryId(entry));
           if (!r) return;
-          shown++;
-          const drag = canEdit();
-          html += `<div class="filled"${drag ? ` draggable="true"` : ""} data-action="view" data-id="${r.id}" data-slot-src="${d.key}:${m.key}:${idx}" title="${esc(r.name)}${drag ? " – ziehen zum Verschieben" : ""}">
-              ${thumbHtml(r, "r-thumb")}
+          const uids = entryUids(entry);
+          // 0 = gemeinsam, 1 = eigene (ich bin dabei), 2 = andere
+          const grp = uids === null ? 0 : (uids.indexOf(syncUid) !== -1 ? 1 : 2);
+          cards.push({ r, idx, uids, grp });
+        });
+        const shown = cards.length;
+        // stabil sortieren: gemeinsam -> eigene -> andere, innerhalb jeder Gruppe Original-Reihenfolge
+        const ordered = cards.map((c, i) => ({ c, i })).sort((a, b) => (a.c.grp - b.c.grp) || (a.i - b.i)).map(x => x.c);
+        const otherTotal = ordered.filter(c => c.grp === 2).length;
+        const slotKey = d.key + ":" + m.key;
+        const collapsed = otherTotal > SLOT_OTHERS_MAX && !expandedOthers.has(slotKey);
+        const otherVisible = collapsed ? SLOT_OTHERS_MAX : otherTotal;
+        let otherSeen = 0;
+        ordered.forEach(c => {
+          const { r, idx, uids, grp } = c;
+          if (grp === 2) {
+            otherSeen++;
+            if (otherSeen > otherVisible) return; // steckt in der "+N weitere"-Karte
+          }
+          const badge = grp !== 0 ? memberBadgeHtml(uids) : "";
+          // Badges sind aria-hidden (rein dekorativ) - wer das Gericht isst, muss deshalb
+          // im Titel stehen, sonst bleibt die Zuweisung fuer Screenreader unsichtbar.
+          const assignNote = uids ? " – nur für " + uids.map(u => (memberByUid(u) ? firstName(memberByUid(u).name) : null) || "Jemanden").join(", ") : "";
+          html += `<div class="filled"${drag ? ` draggable="true"` : ""} data-action="view" data-id="${r.id}" data-slot-src="${d.key}:${m.key}:${idx}" title="${esc(r.name)}${esc(assignNote)}${drag ? " – ziehen zum Verschieben" : ""}">
+              <span class="r-thumb-wrap">${thumbHtml(r, "r-thumb")}${badge}</span>
               <div><div class="r-name">${esc(r.name)}</div>${recipeNut(r).kcal ? `<div class="r-meta">${nfmt(recipeNut(r).kcal)} kcal</div>` : ""}</div>
+              ${showPencil ? `<button class="pencil" data-action="assign" data-slot-src="${d.key}:${m.key}:${idx}" aria-label="Zuweisung ändern" title="Zuweisung ändern">✎</button>` : ""}
               ${drag ? `<button class="x" data-action="unassign" data-slot-src="${d.key}:${m.key}:${idx}" aria-label="Entfernen" title="Entfernen">✕</button>` : ""}
             </div>`;
         });
+        if (collapsed) html += `<button class="add more" data-action="toggle-others" data-slot="${slotKey}">+${otherTotal - otherVisible} weitere</button>`;
+        else if (otherTotal > SLOT_OTHERS_MAX) html += `<button class="add more" data-action="toggle-others" data-slot="${slotKey}">Weniger anzeigen</button>`;
         if (canEdit()) html += `<button class="add${shown ? " more" : ""}" data-action="pick" data-day="${d.key}" data-meal="${m.key}">+ ${shown ? "Noch ein Meal" : "Meal wählen"}</button>`;
         html += `</div>`;
       });
@@ -6809,7 +6909,8 @@
       const toggle = listEl.querySelector("[data-toggle-all]");
       if (toggle) toggle.addEventListener("click", () => { showAll = !showAll; paint(searchEl.value); });
       listEl.querySelectorAll("[data-assign]").forEach(b => b.addEventListener("click", () => {
-        state.plan[day][meal].push(b.dataset.assign);
+        const id = b.dataset.assign;
+        state.plan[day][meal].push(slotIsShared(day, meal) ? id : makeEntry(id, [syncUid]));
         closeModal(); render(); toast("Zum Plan hinzugefügt");
       }));
     }
@@ -6878,14 +6979,20 @@
     // Zusammenfassen: gleiche Zutat + gleiche Einheit werden addiert (7 × 400 ml Milch
     // -> "2,8 L Milch"). Zutaten ohne Menge (Freitext wie "Salz, Pfeffer") haben nichts
     // zu addieren und werden wie bisher gezaehlt.
-    const map = new Map(); // key -> {label, count, qty, unit, name}
-    relevantDays.forEach(d => MEALS.forEach(m => state.plan[d.key][m.key].forEach(rid => {
-      const r = getRecipe(rid);
+    // sharedQty: Menge aus "fuer alle"-Gerichten, skaliert erst unten mit dem globalen
+    // per-Faktor. assignedQty: Menge aus individuell zugewiesenen Gerichten, bereits pro
+    // Gericht auf die tatsaechliche Personenzahl skaliert - der globale Faktor darf sie
+    // nicht nochmal treffen.
+    const map = new Map(); // key -> {label, count, sharedQty, assignedQty, unit, name}
+    relevantDays.forEach(d => MEALS.forEach(m => state.plan[d.key][m.key].forEach(entry => {
+      const r = getRecipe(entryId(entry));
       if (!r || !r.ingredients) return;
+      const uids = entryUids(entry);
+      const factor = uids ? (uids.length / (r.portions || 1)) : 1; // "fuer alle": unskaliert, per-Faktor greift unten
       r.ingredients.forEach(i => {
         const o = ingObj(i);
         const name = String(o.name || "").trim();
-        const qty = nutNum(o.grams);
+        const qty = nutNum(o.grams) * factor;
         const unit = ingUnit(o);
         // Ohne Menge zaehlt der ganze Text (Altbestand), sonst Name+Einheit als Schluessel
         const norm = qty
@@ -6893,19 +7000,22 @@
           : ingLabel(i).toLowerCase().trim();
         if (!norm || (!qty && !name)) return;
         const hit = map.get(norm);
-        if (hit) { hit.count++; if (qty) hit.qty += qty; }
-        else map.set(norm, { norm: norm, name: name, qty: qty, unit: unit, count: 1 });
+        if (hit) { hit.count++; if (qty) { if (uids) hit.assignedQty += qty; else hit.sharedQty += qty; } }
+        else map.set(norm, { norm: norm, name: name, sharedQty: qty && !uids ? qty : 0, assignedQty: qty && uids ? qty : 0, unit: unit, count: 1 });
       });
     })));
     // Hochrechnen auf die Personenzahl - vor der Label-Bildung, damit qtyLabel unten anhand
     // der ENDgueltigen Summe ueber g/kg bzw. ml/L entscheidet. Zutaten ohne Menge (Freitext
     // wie "Salz, Pfeffer") bleiben unangetastet: ihr "×count" heisst "in N Meals der Woche",
-    // nicht "N Stueck" - mal 2 genommen waere es schlicht falsch.
-    if (per > 1) map.forEach(it => { if (it.qty) it.qty *= per; });
+    // nicht "N Stueck" - mal 2 genommen waere es schlicht falsch. Der Faktor trifft nur den
+    // "fuer alle"-Anteil - der individuell zugewiesene Anteil ist bereits fertig skaliert.
     // it.norm bleibt bewusst unberuehrt (Name + Einheit, ohne Menge): daran haengt der
     // abgehakte Zustand in SHOP_DONE_KEY - er soll eine geaenderte Personenzahl ueberleben.
     // Anzeige-Label erst am Ende bilden — die Summe entscheidet ueber g/kg bzw. ml/L
-    map.forEach(it => { it.label = it.qty ? qtyLabel(it.qty, it.unit) + " " + it.name : it.name; });
+    map.forEach(it => {
+      it.qty = it.sharedQty * per + it.assignedQty;
+      it.label = it.qty ? qtyLabel(it.qty, it.unit) + " " + it.name : it.name;
+    });
     // nach Zutatennamen sortieren, nicht nach Label — sonst ordnet die Menge die Liste
     const items = Array.from(map.values()).sort((a, b) => (a.name || a.label).localeCompare(b.name || b.label, "de"));
     // nach Warengruppe gruppieren; Reihenfolge = SHOP_CATS, "Sonstiges" ganz am Ende
@@ -7162,7 +7272,7 @@
       <h4>2. Hosting der Website (GitHub Pages)</h4>
       <p>Diese Website wird bei GitHub Pages gehostet, einem Dienst der GitHub, Inc., 88 Colin P. Kelly Jr. Street, San Francisco, CA 94107, USA. Beim Aufruf der Seite verarbeitet GitHub technisch notwendige Zugriffsdaten (z. B. deine IP-Adresse), um die Seite auszuliefern und deren Sicherheit zu gewährleisten. Rechtsgrundlage ist unser berechtigtes Interesse an einer sicheren und effizienten Bereitstellung (Art. 6 Abs. 1 lit. f DSGVO). Dabei kann eine Übermittlung in die USA erfolgen. Weitere Infos: <a href="https://docs.github.com/de/site-policy/privacy-policies/github-general-privacy-statement" target="_blank" rel="noopener">GitHub Privacy Statement</a>.</p>
       <h4>3. Welche Daten wir verarbeiten</h4>
-      <p>Bei der Registrierung: <strong>Name und E-Mail-Adresse</strong>. Bei Nutzung der App: die von dir angelegten <strong>Wochenpläne, Meals/Rezepte und ggf. Fotos</strong> sowie ein optionales <strong>Profilbild</strong> (als Kreis-Avatar zugeschnitten, in deinem Nutzerkonto gespeichert, nicht Teil von Teilen-Links) sowie – im Rahmen der Einführungsfragen nach der Registrierung, die zur Nutzung der App erforderlich sind – <strong>Geschlecht, Alter, Größe, Gewicht, Alltagsbewegung und Ziel</strong> sowie optional deine <strong>Trainingstage</strong> (Wochentag, Intensität und Dauer) und deinen <strong>Körperfettanteil</strong> (als grobe Stufe; Details zu beidem siehe Ziffer 3a). Erstellst du Teilen-Links, merkt sich dein Konto zusätzlich deren <strong>Kennungen</strong> (keine Klardaten, siehe Ziffer 8), damit sie beim Löschen deines Kontos zugeordnet und mitentfernt werden können. Nutzt du „Gemeinsam planen", speichert dein Konto außerdem die <strong>Kennung deiner Gruppe</strong> sowie die Kennungen der von dir erstellten <strong>Einladungslinks</strong> – aus demselben Grund (siehe Ziffer 8a); an einem in einer Gruppe angelegten Meal wird zusätzlich deine <strong>Nutzerkennung</strong> vermerkt, damit sichtbar ist, wer es angelegt hat. Stellst du in der Einkaufsliste eine <strong>Personenanzahl</strong> ein, wird auch diese gespeichert. Markierst du Meals als <strong>Favorit</strong>, wird diese Auswahl ebenfalls in deinem Konto gespeichert – nur für dich, auch in einer Gruppe. Stimmst du der Speicherung deines <strong>Gewichtsverlaufs</strong> ausdrücklich zu, speichern wir je Eintrag Monat und Gewicht sowie ein optionales <strong>Jahres-Zielgewicht</strong> (Details und Widerruf siehe Ziffer 3b). Diese Daten speichern wir, damit du dich anmelden und deine Planung geräteübergreifend nutzen kannst.</p>
+      <p>Bei der Registrierung: <strong>Name und E-Mail-Adresse</strong>. Bei Nutzung der App: die von dir angelegten <strong>Wochenpläne, Meals/Rezepte und ggf. Fotos</strong> sowie ein optionales <strong>Profilbild</strong> (als Kreis-Avatar zugeschnitten, in deinem Nutzerkonto gespeichert, nicht Teil von Teilen-Links) sowie – im Rahmen der Einführungsfragen nach der Registrierung, die zur Nutzung der App erforderlich sind – <strong>Geschlecht, Alter, Größe, Gewicht, Alltagsbewegung und Ziel</strong> sowie optional deine <strong>Trainingstage</strong> (Wochentag, Intensität und Dauer) und deinen <strong>Körperfettanteil</strong> (als grobe Stufe; Details zu beidem siehe Ziffer 3a). Erstellst du Teilen-Links, merkt sich dein Konto zusätzlich deren <strong>Kennungen</strong> (keine Klardaten, siehe Ziffer 8), damit sie beim Löschen deines Kontos zugeordnet und mitentfernt werden können. Nutzt du „Gemeinsam planen", speichert dein Konto außerdem die <strong>Kennung deiner Gruppe</strong> sowie die Kennungen der von dir erstellten <strong>Einladungslinks</strong> – aus demselben Grund (siehe Ziffer 8a); an einem in einer Gruppe angelegten Meal wird zusätzlich deine <strong>Nutzerkennung</strong> vermerkt, damit sichtbar ist, wer es angelegt hat. Weist du ein geplantes Gericht nur einem Teil der Gruppe zu (statt „für alle"), wird für dieses Gericht zusätzlich vermerkt, welche Mitglieder es per <strong>Nutzerkennung</strong> essen – sichtbar für die ganze Gruppe als kleines Farb-Badge auf der Meal-Karte. Stellst du in der Einkaufsliste eine <strong>Personenanzahl</strong> ein, wird auch diese gespeichert. Markierst du Meals als <strong>Favorit</strong>, wird diese Auswahl ebenfalls in deinem Konto gespeichert – nur für dich, auch in einer Gruppe. Stimmst du der Speicherung deines <strong>Gewichtsverlaufs</strong> ausdrücklich zu, speichern wir je Eintrag Monat und Gewicht sowie ein optionales <strong>Jahres-Zielgewicht</strong> (Details und Widerruf siehe Ziffer 3b). Diese Daten speichern wir, damit du dich anmelden und deine Planung geräteübergreifend nutzen kannst.</p>
       <h4>3a. Ziel-Berechnung (Einführungsfragen)</h4>
       <p>Zur Nutzung der App gibst du bei den Einführungsfragen nach der Registrierung <strong>Geschlecht, Alter, Größe und Gewicht</strong> sowie deine Alltagsbewegung und dein Ziel an – ohne diese Angaben lässt sich kein Kalorien- und Makroziel berechnen und die App steht dir nicht zur Verfügung. Optional legst du zusätzlich deine <strong>Trainingstage</strong> fest – also an welchen Wochentagen du trainierst, mit welcher Intensität und wie lange; diese Angabe kannst du auch weglassen. Ebenfalls optional wählst du eine grobe Stufe für deinen <strong>Körperfettanteil</strong> – gibst du sie an, berechnet die App deinen Grundumsatz nach der Katch-McArdle-Formel über die fettfreie Masse statt nach Mifflin-St-Jeor; wählst du „Weiß ich nicht", bleibt es bei Mifflin-St-Jeor. Daraus berechnet die App direkt in deinem Browser deinen Tagesbedarf, deine Makronährstoffe und deinen BMI; an Trainingstagen zusätzlich den geschätzten Mehrbedarf durch die jeweilige Einheit. Übernimmst du das Ergebnis als dein Ziel, werden diese Angaben wie deine übrigen Plandaten lokal und – bei Cloud-Nutzung – in deinem Nutzerkonto (Cloud Firestore, siehe Ziffer 5) gespeichert, um sie geräteübergreifend verfügbar zu halten. Du kannst dein Ziel jederzeit über den Knopf „Ziel neu berechnen" im Wochenplan neu berechnen; die vorherigen Werte sind dann durch die neuen ersetzt. Rechtsgrundlage ist wie unter Ziffer 4 die Erfüllung des Nutzungsvertrags (Art. 6 Abs. 1 lit. b DSGVO). Diese Angaben werden <strong>nicht</strong> in Teilen-Links aufgenommen (siehe Ziffer 8).</p>
       <h4>3b. Gewichtsverlauf („Ziele &lt;Jahr&gt;")</h4>
@@ -7207,7 +7317,9 @@
          optionales <strong>Profilbild</strong> (als kleines Abbild), deine <strong>Meals samt Fotos</strong>, der
          gemeinsame <strong>Wochenplan</strong>, ein optionaler <strong>Gruppenname</strong> und die Angabe,
          <strong>wer welches Meal angelegt hat</strong> (gespeichert wird dafür nur deine Nutzerkennung, nicht dein
-         Name).</p>
+         Name). Weist du ein geplantes Gericht nur einem Teil der Gruppe zu, statt es wie im Regelfall für alle
+         gelten zu lassen, ist auch diese <strong>Zuweisung</strong> (per Nutzerkennung) für die ganze Gruppe
+         sichtbar.</p>
       <p><strong>Nicht</strong> geteilt werden dein Kalorien- und Makroziel, deine Angaben aus den Einführungsfragen
          (Ziffer 3a), dein Gewichtsverlauf (Ziffer 3b) und deine <strong>E-Mail-Adresse</strong>. Jedes Mitglied
          sieht denselben Plan gegen sein jeweils eigenes Ziel.</p>
@@ -7335,7 +7447,7 @@
   // Zweig die Sperre versehentlich umgehen.
   // Verbindlich ist trotzdem allein die Firestore-Regel: Was hier passiert, ist Komfort
   // und mit den Entwicklerwerkzeugen umgehbar.
-  const WRITE_ACTIONS = ["new-recipe", "edit", "delete", "photo", "pick", "unassign", "clear-week", "clear-examples"];
+  const WRITE_ACTIONS = ["new-recipe", "edit", "delete", "photo", "pick", "unassign", "assign", "clear-week", "clear-examples"];
   function blockedByRole() {
     if (canEdit()) return false;
     toast("Du kannst diesen Plan ansehen – zum Mitplanen bitten die Inhaberin oder den Inhaber um Rechte.");
@@ -7419,7 +7531,13 @@
       if (expandedDayGoals.has(d)) expandedDayGoals.delete(d); else expandedDayGoals.add(d);
       render();
     }
+    else if (a === "toggle-others") {
+      const s = t.dataset.slot;
+      if (expandedOthers.has(s)) expandedOthers.delete(s); else expandedOthers.add(s);
+      render();
+    }
     else if (a === "pick") openPicker(t.dataset.day, t.dataset.meal);
+    else if (a === "assign") { e.stopPropagation(); openAssignMenu(t); }
     else if (a === "unassign") {
       e.stopPropagation();
       const [d, m, i] = t.dataset.slotSrc.split(":");
@@ -7481,7 +7599,7 @@
   function draggedCat() {
     if (!dragSrc) return null;
     const [d, m, i] = dragSrc.split(":");
-    const r = getRecipe((state.plan[d] && state.plan[d][m] || [])[Number(i)]);
+    const r = getRecipe(entryId((state.plan[d] && state.plan[d][m] || [])[Number(i)]));
     return r ? r.category : null;
   }
   function dropAllowed(slot) {
@@ -7801,6 +7919,33 @@
   // Die anderen Mitglieder der Gruppe, links neben dem eigenen Avatar. Ab vier Personen
   // wird abgekuerzt - mehr Kreise als das passen im Kopf neben die Reiter nicht, und die
   // vollstaendige Liste steht ohnehin einen Klick entfernt im Gruppen-Dialog.
+  // Farbring-Slot eines Mitglieds: deterministisch aus einem simplen Hash der UID selbst,
+  // NICHT aus dem Index in groupMembers - der kommt aus getDocs() ohne orderBy und
+  // verschiebt sich zuverlaessig, sobald jemand die Gruppe verlaesst. Ein Hash aus der UID
+  // bleibt stabil, unabhaengig von Ladereihenfolge oder Mitgliederschwund.
+  function memberColorSlot(uid) {
+    let h = 0;
+    const s = String(uid || "");
+    for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0;
+    return (Math.abs(h) % 6) + 1;
+  }
+  // Badge auf der Meal-Karte: Initiale + Farbring, eines pro zugewiesener Person. Nur
+  // fuer "eigene"/"andere" Karten (uids !== null) - "gemeinsam" bekommt keine Badges.
+  // Maximal 2 Kreise (die Miniatur ist nur 28x28px) - der Rest sammelt sich in "+N".
+  const BADGE_MAX = 2;
+  function memberBadgeHtml(uids) {
+    if (!uids || !uids.length) return "";
+    const shown = uids.slice(0, BADGE_MAX).map(uid => {
+      const mem = memberByUid(uid);
+      const ini = initials(mem ? mem.name : "?").slice(0, 1);
+      return `<span class="r-badge" style="--member-c:var(--member-${memberColorSlot(uid)})" aria-hidden="true">${esc(ini)}</span>`;
+    }).join("");
+    const rest = uids.length - BADGE_MAX;
+    const more = rest > 0 ? `<span class="r-badge r-badge-more" aria-hidden="true">+${rest}</span>` : "";
+    return shown + more;
+  }
+
+  const SLOT_OTHERS_MAX = 2;
   const MSTACK_MAX = 3;
   function memberStackHtml() {
     if (!syncGid || !groupMembers.length) return "";
@@ -7910,6 +8055,70 @@
     menu.querySelector("[data-mi='goal']").addEventListener("click", () => { close(false); openWeightGoalForm(); });
     const outBtn = menu.querySelector("[data-mi='consent-out']");
     if (outBtn) outBtn.addEventListener("click", () => { close(false); weightConsentRevokeModal(); });
+  }
+
+  // Zuweisung eines geplanten Gerichts aendern (Stift-Symbol auf der Meal-Karte).
+  // Bei genau zwei Mitgliedern reicht ein Klick-Zyklus, ab drei ein Chip-Popover mit
+  // Mehrfachauswahl. Orphan-Schutz: wuerde eine Abwahl die letzte Person entfernen,
+  // wird stattdessen der ganze Eintrag geloescht (derselbe Pfad wie "unassign").
+  function openAssignMenu(btn) {
+    const [d, m, i] = btn.dataset.slotSrc.split(":");
+    const idx = Number(i);
+    const entry = state.plan[d][m][idx];
+    if (!entry) return;
+    const id = entryId(entry);
+
+    function apply(uids) {
+      if (uids && uids.length === 0) {
+        const removed = state.plan[d][m][idx];
+        state.plan[d][m].splice(idx, 1);
+        save(); render();
+        undoToast("Entfernt", () => { state.plan[d][m].splice(idx, 0, removed); save(); render(); });
+        return;
+      }
+      state.plan[d][m][idx] = makeEntry(id, uids);
+      save(); render();
+    }
+
+    if (groupMembers.length === 2) {
+      const curUids = entryUids(entry);
+      const other = groupMembers.find(x => x.uid !== syncUid);
+      let next;
+      if (curUids === null) next = [syncUid];
+      else if (curUids.indexOf(syncUid) !== -1 && curUids.length === 1) next = other ? [other.uid] : null;
+      else next = null; // zurueck zu "fuer alle"
+      apply(next);
+      return;
+    }
+
+    const open = document.querySelector(".assign-menu");
+    if (open) closeMenuNode(open);
+    const curUids = entryUids(entry) || groupMembers.map(x => x.uid);
+    const menu = el(`<div class="menu assign-menu" role="menu">
+      ${groupMembers.map(mem => `<button class="assign-chip${curUids.indexOf(mem.uid) !== -1 ? " on" : ""}" data-uid="${esc(mem.uid)}" role="menuitem">${memberAvatarHtml(mem, true)}<span>${esc(firstName(mem.name) || "Jemand")}</span></button>`).join("")}
+    </div>`);
+    // An <body> haengen statt an die Karte: .day hat overflow:hidden (fuer die mobilen
+    // Karussell-Streifen) und wuerde ein absolut positioniertes Popover abschneiden.
+    // Deshalb Position wie ein Portal aus dem Klick-Ziel berechnen, nicht per CSS erben.
+    document.body.appendChild(menu);
+    const r = btn.getBoundingClientRect();
+    menu.style.position = "fixed";
+    menu.style.top = (r.bottom + 8) + "px";
+    menu.style.right = "auto";
+    const mw = menu.offsetWidth || 180;
+    menu.style.left = Math.max(8, Math.min(r.right - mw, window.innerWidth - mw - 8)) + "px";
+    const close = attachMenuDismiss(menu, btn);
+    // Fixed-Popover folgt der Seite beim Scrollen nicht mit - lieber sauber schliessen
+    // als schwebend an falscher Stelle stehen zu bleiben. close() ist idempotent (mehrfacher
+    // Aufruf harmlos), { once: true } entfernt den Listener nach dem ersten Scroll von selbst.
+    window.addEventListener("scroll", () => close(false), { capture: true, once: true });
+    menu.querySelectorAll("[data-uid]").forEach(chip => chip.addEventListener("click", () => {
+      const uid = chip.dataset.uid;
+      const nowUids = entryUids(state.plan[d][m][idx]) || groupMembers.map(x => x.uid);
+      const nextUids = nowUids.indexOf(uid) !== -1 ? nowUids.filter(x => x !== uid) : nowUids.concat(uid);
+      close(false);
+      apply(nextUids);
+    }));
   }
 
   // Einwilligung erteilen (Art. 9 Abs. 2 lit. a DSGVO): eigener kurzer Dialog statt einer
@@ -9975,7 +10184,7 @@
   function buildPrintable() {
     const rows = DAYS.map(d => {
       const cells = MEALS.map(m => {
-        const names = state.plan[d.key][m.key].map(rid => { const r = getRecipe(rid); return r ? esc(r.name) : null; }).filter(Boolean);
+        const names = state.plan[d.key][m.key].map(entry => { const r = getRecipe(entryId(entry)); return r ? esc(r.name) : null; }).filter(Boolean);
         return `<td>${names.length ? names.join("<br>") : "<span class='pt-empty'>–</span>"}</td>`;
       }).join("");
       return `<tr><th>${esc(d.label)}</th>${cells}</tr>`;

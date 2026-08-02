@@ -297,6 +297,15 @@ Abschnitt „Gruppenmodus"). Wer nur mal ausprobiert, ob das Feature etwas für 
 nicht ungefragt dauerhaft in einer Einpersonen-Gruppe. Erst wenn wirklich geplant wird, ist es
 auch wirklich „gemeinsam".
 
+### Gerichte müssen nicht für alle gleich sein
+
+Der Wochenplan war bisher zwangsläufig für die ganze Gruppe identisch, obwohl jede Person schon
+ein eigenes Kalorien-/Makroziel hat. In der Praxis isst man nicht jeden Tag exakt dasselbe — will
+aber trotzdem eine einzige, gemeinsame Einkaufsliste. Einzelne Gerichte lassen sich deshalb per
+Stift-Symbol optional nur einer Teilmenge der Gruppe zuweisen, die Einkaufsliste skaliert pro
+Gericht nach tatsächlicher Personenzahl. Der Regelfall ("für alle") bleibt dabei ohne jeden
+zusätzlichen Klick — Zuweisung ist eine Ausnahme, keine Pflichtentscheidung beim Einplanen.
+
 ## Was bewusst nicht passieren soll
 
 Keine Features hinzufügen, nur weil sie:

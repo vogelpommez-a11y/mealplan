@@ -260,6 +260,61 @@ und eine Baseline über:
 
 Ziel ist, dass parallele Änderungen nur denselben Slot kollidieren lassen und nicht den gesamten Wochenplan überschreiben.
 
+## Gerichte-Zuweisung (Gemeinsam planen)
+
+Ein Slot-Eintrag in `state.plan[day][meal]` ist entweder:
+
+* ein blanker String (Rezept-ID) — "für alle" Gruppenmitglieder, unverändertes Bestandsformat
+* ein Objekt `{ id, uids }` — nur die genannten Mitglieder essen dieses Gericht
+
+Keine Migration nötig: Bestandsdaten (reine String-Arrays) sind bereits gültig, und
+`flattenWeek()`/`pushGroupPlan()` kopieren beide Formen typneutral durch.
+
+Helper (neben `asIdList()`):
+
+* `entryId(e)` / `entryUids(e)` (`null` = für alle) / `entryIsShared(e)`
+* `makeEntry(id, uids)` — vereinfacht automatisch zurück zu einem blanken String, wenn `uids`
+  **jedes aktuelle** Gruppenmitglied abdeckt (Mengenabdeckung per `groupMembers.every(...)`,
+  nicht nur `uids.length`, sonst würde eine veraltete UID eines ausgeschiedenen Mitglieds einen
+  Eintrag fälschlich zu "für alle" kollabieren lassen)
+* `slotIsShared(day, meal)` — prüft, ob ein ganzer Slot noch ausschließlich geteilte Einträge hat
+
+`unflattenWeek()` sanitisiert empfangene `{id,uids}`-Objekte: `uids`-Elemente müssen Strings
+sein, auf 24 Einträge gedeckelt (das Dokument kommt von einem anderen Gerät und wird nicht
+vertraut). `normalizePlan()` filtert weiterhin über `entryId(e)` gegen bekannte Rezept-IDs.
+
+Zuweisen-UI (Stift-Symbol, nur ab `groupMembers.length >= 2`): bei genau zwei Mitgliedern ein
+Klick-Zyklus ("für alle" → "nur ich" → "nur die andere Person" → "für alle"), ab drei ein
+Chip-Popover mit Mehrfachauswahl. Das Popover hängt sich an `document.body` (nicht an die Karte),
+weil `.day` `overflow: hidden` für die mobilen Karussell-Streifen trägt und ein daran verankertes
+Popover abschneiden würde.
+
+Orphan-Schutz: Würde eine Abwahl `uids.length === 0` ergeben, wird stattdessen der komplette
+Eintrag entfernt (derselbe Pfad wie `unassign`, inklusive Undo-Toast) — ein Gericht ohne
+zugewiesene Person darf nie im Datenmodell existieren.
+
+Die Einkaufsliste (`buildShoppingList()`) trennt pro Zutat `sharedQty` (aus "für alle"-Gerichten,
+skaliert erst mit dem globalen `per`-Personenfaktor) von `assignedQty` (aus individuell
+zugewiesenen Gerichten, bereits pro Gericht auf `uids.length / (r.portions || 1)` skaliert).
+Endsumme: `sharedQty * per + assignedQty`. Bewusste Entscheidung: "für alle"-Einträge verhalten
+sich exakt wie vor diesem Feature (unbeeinflusst vom Rezept-`portions`-Feld), nur abweichend
+zugewiesene Gerichte werden zusätzlich skaliert.
+
+Farbring/Initiale (`--member-1` bis `--member-6`, zyklisch über einen UID-Hash in
+`memberColorSlot()` — bewusst **nicht** über den Index in `groupMembers`, der aus `getDocs()`
+ohne `orderBy` kommt und sich beim Austritt eines Mitglieds verschiebt) nur bei "eigenen"/
+"anderen" Karten, nie bei "gemeinsam". Maximal 2 Badges pro Karte, der Rest sammelt sich in
+einem "+N"-Badge (`BADGE_MAX`).
+
+**`dayNutOf()` filtert nach Person, nicht nur nach Sichtbarkeit.** Die Tages-/Wochen-
+Nährwertsumme läuft gegen das **persönliche** `state.goal` — ein nur der anderen Person
+zugewiesenes Gericht darf das eigene Kalorien-/Makroziel nicht belasten. Deshalb zählt
+`dayNutOf()` einen `{id,uids}`-Eintrag nur, wenn `uids` entweder leer/`null` ("für alle") ist
+oder die eigene `syncUid` enthält. Andere Konsumstellen von `state.plan`-Einträgen (z. B.
+`buildPrintable()` für den Strg+P-Ausdruck) sind dagegen personen-neutrale Übersichten über den
+ganzen Haushalt und brauchen nur `entryId(entry)` statt der rohen ID — dort zählt Sichtbarkeit,
+nicht Zurechnung.
+
 ## Wichtige Gruppen-Sync-Regeln
 
 Wenn `syncGid` gesetzt ist:

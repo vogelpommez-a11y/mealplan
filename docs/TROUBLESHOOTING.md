@@ -481,7 +481,47 @@ Umsetzung) hat hier mehr gefunden als der ursprüngliche Ausschneide-Prüfstand,
 Erfolgspfad und offensichtliche Fehlerfälle testete, nicht die Kombination aus zwei parallel
 laufenden Abläufen.
 
-## 32. Grundregel bei Fehlern
+## 32. Popover in `.day` wird von `overflow: hidden` abgeschnitten
+
+`.day` trägt `overflow: hidden` für die mobilen Karussell-Streifen (`initCarousel()`,
+`scroll-snap-type`). Ein absolut positioniertes Popover, das an eine Karte **innerhalb** von
+`.day` angehängt wird (z. B. an eine `.filled`-Meal-Karte im Wochenplan), wird dadurch am
+Kartenrand abgeschnitten, sobald es über die Kartenhöhe hinausragt — bei der
+Gerichte-Zuweisung fiel das erst bei einer zweiten, unabhängigen Prüfung auf (Opus-Review,
+kein Kontext aus der Umsetzung), nicht beim ersten Ausschneide-Prüfstand, weil der nur die
+Positions-*Berechnung* isoliert testete, nicht das tatsächliche Clipping durch einen Ahnen.
+
+**Lösung:** Popover als Portal an `document.body` hängen (`position: fixed`, Koordinaten aus
+`getBoundingClientRect()` des Auslösers berechnen), nicht an einen Nachfahren von `.day`. Siehe
+`openAssignMenu()` (index.html) für das Muster inklusive Schliessen bei Scroll.
+
+**Lehre:** Bei jedem neuen Popover/Menü prüfen, ob ein Ahnen-Element `overflow: hidden` oder
+`overflow: auto` trägt — nicht nur, ob die Positionsrechnung selbst stimmt.
+
+## 33. `state.plan`-Einträge nie direkt an `getRecipe()` übergeben
+
+Seit der Gerichte-Zuweisung ist ein Slot-Eintrag in `state.plan[day][meal]` entweder ein
+blanker String (Rezept-ID) oder ein Objekt `{id, uids}`. `getRecipe()` erwartet einen String —
+ein direkt durchgereichtes Objekt liefert `null`, und die betroffene Karte fällt **kommentarlos**
+aus jeder Berechnung heraus, statt einen Fehler zu werfen.
+
+Bei der ersten Umsetzung wurden `normalizePlan()`, `unflattenWeek()`, `buildShoppingList()` und
+`draggedCat()` korrekt umgestellt, aber `dayNutOf()` (Tages-/Wochen-Nährwertsumme gegen
+`state.goal`) und `buildPrintable()` (Strg+P-Ausdruck) übersehen — beide fielen erst bei einer
+zweiten, unabhängigen Prüfung auf (kvp-Agent). Symptom war nicht ein Absturz, sondern eine
+**stillschweigend zu niedrige** Kalorien-/Makrosumme bzw. eine leere Zelle im Ausdruck, obwohl
+ein Gericht sichtbar eingeplant war — genau die Art Fehler, die ein Ausschneide-Prüfstand ohne
+gezielten Testfall mit einem `{id,uids}`-Eintrag nicht findet.
+
+**Lehre:** Jede Stelle, die `state.plan[day][meal]` iteriert, muss `entryId(entry)` statt der
+rohen ID an `getRecipe()` übergeben. Bei einer neuen Konsumstelle immer gezielt mit einem
+`{id,uids}`-Testeintrag prüfen, nicht nur mit dem alten String-Format — sonst besteht der Test
+grün, obwohl der neue Fall nie durchlaufen wurde. Zusätzlich unterscheiden, **wofür** die Stelle
+zählt: `dayNutOf()` läuft gegen das persönliche Ziel und muss nach `syncUid` filtern (nur
+zugewiesene/geteilte Gerichte zählen mit), während `buildPrintable()` eine personen-neutrale
+Übersicht ist und nur `entryId()` braucht, keine Filterung.
+
+## 34. Grundregel bei Fehlern
 
 Nicht einfach den sichtbaren Fehler flicken.
 

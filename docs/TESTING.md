@@ -115,6 +115,19 @@ Beispiele:
 * Gruppen-Plan-Merge beim Aktivieren (`finalizeGroupActivation()`): mit gestubbtem `CloudGroup`
   prüfen, dass ein in der Gruppe bereits belegter Slot **nicht** überschrieben wird, ein dort
   noch leerer Slot aber nachgetragen wird.
+* Gerichte-Zuweisung (`entryId`/`entryUids`/`entryIsShared`/`makeEntry`/`slotIsShared`) sowie der
+  Aggregations-Kern von `buildShoppingList()` (Trennung `sharedQty`/`assignedQty`) lassen sich mit
+  Mock-`state.plan`/`groupMembers`/Rezepten (inkl. `portions`) isoliert ohne DOM durchrechnen.
+  Wichtiger Regressionsfall: `makeEntry` muss **Mengenabdeckung** prüfen (`groupMembers.every(...)`),
+  nicht nur `uids.length` — sonst kollabiert eine veraltete UID eines ausgeschiedenen Mitglieds
+  einen Eintrag fälschlich zu „für alle". Ebenso `unflattenWeek()` gegen ein simuliertes
+  Fremd-Dokument mit kaputten `{id,uids}`-Objekten (fehlendes `id`, `uids` kein Array,
+  Nicht-String-Elemente, überlange Arrays) — muss sanitisieren, nicht crashen oder blind
+  übernehmen.
+* `dayNutOf()` gezielt mit einem gemischten Tag testen (ein geteiltes Gericht, ein mir
+  zugewiesenes, ein nur der anderen Person zugewiesenes) — die Summe darf nur die ersten
+  beiden enthalten. Ein Test, der nur das alte String-Format prüft, findet diese Klasse Fehler
+  nicht (siehe `docs/TROUBLESHOOTING.md` Ziffer 33).
 
 ### Externe APIs
 
