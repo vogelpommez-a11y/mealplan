@@ -2554,7 +2554,35 @@
 (function () {
   "use strict";
 
-  const STORE_KEY = "wochenkueche_v1";
+  // ---------- Testumgebung von den echten Daten trennen ----------
+  // localStorage haengt an der Origin, die Cloud nicht: http://localhost:8000 und
+  // https://www.paddysmealplan.de sind zwei getrennte Speicher, melden sich aber an
+  // DEMSELBEN Firebase-Projekt mit derselben UID an. Der lokale Teststand schrieb dadurch in
+  // die echte Cloud - und weil mergeRemoteRecipes() ein nur lokal vorhandenes Meal als "neu,
+  // noch nicht hochgeladen" wertet, tauchten dort laengst geloeschte Meals immer wieder auf.
+  // Eigener Schluesselraum fuer die Testumgebung loest das an der Wurzel.
+  //
+  // Die Erkennung geht bewusst NICHT nur ueber den Hostnamen: Capacitor laeuft selbst unter
+  // "localhost" (Android: https://localhost, iOS: capacitor://localhost). Ein Hostname-Test
+  // allein wuerde die spaetere App-Store-Fassung als Testumgebung einstufen und ihr die Daten
+  // des Nutzers unter dem Fuss wegziehen. Deshalb zusaetzlich am Protokoll festmachen -
+  // Testumgebung ist nur unverschluesseltes http:// oder eine lokale Datei - plus
+  // window.Capacitor als Sicherheitsgurt.
+  function isTestOrigin() {
+    try {
+      if (window.Capacitor) return false;                     // native App, niemals Testumgebung
+      const p = location.protocol, h = location.hostname;
+      if (p === "file:") return true;                         // Smoke-Test/Pruefstand ueber file:///
+      if (p !== "http:") return false;                        // https:, capacitor:, ionic: -> echt
+      return h === "localhost" || h === "127.0.0.1" || h === "[::1]" || h === "::1";
+    } catch (e) { return false; }                             // im Zweifel die echten Daten
+  }
+  // Suffix nur in der Testumgebung. Auf der Live-Domain bleiben alle Schluessel Zeichen fuer
+  // Zeichen unveraendert - bestehende Daten und alte Sharing-Links duerfen nicht brechen
+  // (siehe Namensdualitaet in CLAUDE.md).
+  function localKey(k) { return isTestOrigin() ? k + "__test" : k; }
+
+  const STORE_KEY = localKey("wochenkueche_v1");
   // Ganz oben, weil sanitizeIng() (Zutaten-Einheiten) schon von load() gebraucht wird,
   // das selbst frueh im Script laeuft (state = load()). Eine const weiter unten im
   // Script waere zu diesem Zeitpunkt noch nicht initialisiert (Temporal Dead Zone) -
@@ -3094,7 +3122,8 @@
   function idbOpen() {
     if (idbP) return idbP;
     idbP = new Promise((res, rej) => {
-      let req; try { req = indexedDB.open("mealplan-media", 1); } catch (e) { rej(e); return; }
+      // Auch die Bilder trennen - sonst zeigt der Teststand die Fotos der echten Meals.
+      let req; try { req = indexedDB.open(localKey("mealplan-media"), 1); } catch (e) { rej(e); return; }
       req.onupgradeneeded = () => { const db = req.result; if (!db.objectStoreNames.contains("images")) db.createObjectStore("images"); };
       req.onsuccess = () => res(req.result);
       req.onerror = () => rej(req.error);
@@ -7019,7 +7048,7 @@
     }
     return SHOP_OTHER;
   }
-  const SHOP_DONE_KEY = "wochenkueche_shop_v1";
+  const SHOP_DONE_KEY = localKey("wochenkueche_shop_v1");
   function loadShopDone() { try { return new Set(JSON.parse(localStorage.getItem(SHOP_DONE_KEY) || "[]")); } catch (e) { return new Set(); } }
   function saveShopDone(set) { try { localStorage.setItem(SHOP_DONE_KEY, JSON.stringify(Array.from(set))); } catch (e) {} }
 
@@ -7766,8 +7795,8 @@
   });
 
   // ---------- Profil (lokal) & Teilen ----------
-  const PROFILE_KEY = "wochenkueche_profile_v1";
-  const LAST_KEY = "wochenkueche_lastprofile_v1";
+  const PROFILE_KEY = localKey("wochenkueche_profile_v1");
+  const LAST_KEY = localKey("wochenkueche_lastprofile_v1");
   function jget(key, fb) { try { const v = JSON.parse(localStorage.getItem(key)); return v == null ? fb : v; } catch (e) { return fb; } }
   let profile = jget(PROFILE_KEY, null);
   function saveProfile() { try { if (profile) localStorage.setItem(PROFILE_KEY, JSON.stringify(profile)); else localStorage.removeItem(PROFILE_KEY); } catch (e) {} }
@@ -9091,6 +9120,9 @@
   // Bewusst nur lokal und NICHT im Cloud-State: Das Geraet entscheidet, nicht das
   // Konto — Handy dunkel und Laptop hell soll unabhaengig bleiben. Deshalb eigener
   // localStorage-Key statt eines Feldes in state.
+  // Bewusst OHNE localKey(): das Theme ist eine reine Anzeigeeinstellung, keine Nutzerdaten -
+  // beim Testen will man dieselbe Ansicht wie live. Ausserdem liest das fruehe Anti-Flimmer-
+  // Script im <head> denselben Schluessel, noch bevor localKey() existiert.
   const THEME_KEY = "wochenkueche_theme_v1";
   function getTheme() {
     try { const t = localStorage.getItem(THEME_KEY); return (t === "light" || t === "dark") ? t : "system"; }

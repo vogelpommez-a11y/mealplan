@@ -179,6 +179,40 @@ Lokale Persistenz:
 * `load()`
 * `save()`
 
+### Getrennter Schlüsselraum für die Testumgebung
+
+`localStorage` hängt an der Origin, die Cloud nicht: `http://localhost:8000` und
+`https://www.paddysmealplan.de` sind zwei getrennte lokale Speicher, melden sich aber am
+**selben** Firebase-Projekt mit derselben UID an. Ein lokaler Teststand schrieb dadurch in die
+echte Cloud — und weil `mergeRemoteRecipes()` ein nur lokal vorhandenes Meal als „neu, noch
+nicht hochgeladen" wertet, tauchten dort längst gelöschte Meals wieder auf.
+
+Deshalb bekommen alle lokalen Schlüssel in der Testumgebung das Suffix `__test`, vergeben über
+`localKey()`:
+
+* `STORE_KEY`
+* `PROFILE_KEY`
+* `LAST_KEY`
+* `SHOP_DONE_KEY`
+* IndexedDB-Datenbank `mealplan-media`
+
+Nicht betroffen ist `THEME_KEY` — eine reine Anzeigeeinstellung, die beim Testen absichtlich
+mit der Live-Ansicht übereinstimmt; außerdem liest das Anti-Flimmer-Script im `<head>` denselben
+Schlüssel, bevor `localKey()` überhaupt existiert.
+
+**`isTestOrigin()` prüft bewusst nicht nur den Hostnamen.** Capacitor läuft selbst unter
+`localhost` (Android `https://localhost`, iOS `capacitor://localhost`). Ein reiner Hostname-Test
+würde die spätere App-Store-Fassung als Testumgebung einstufen und ihr die Daten des Nutzers
+entziehen. Testumgebung ist daher nur `file:` oder `http:` **in Verbindung mit** einem lokalen
+Hostnamen, zusätzlich abgesichert über `window.Capacitor`.
+
+Auf der Live-Domain bleiben alle Schlüssel zeichengleich — bestehende Daten und alte
+Sharing-Links dürfen nicht brechen (siehe Namensdualität).
+
+Bekannte Grenze: Ein Zugriff über die LAN-IP (`http://192.168.x.y`) gilt **nicht** als
+Testumgebung. `test-server.ps1` bindet ohnehin nur an `localhost`, der Fall kann mit dem
+mitgelieferten Server nicht auftreten.
+
 ## Cloud-Synchronisation
 
 Im Cloud-Modus schreibt `save()` den State über:

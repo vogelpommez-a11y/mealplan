@@ -598,7 +598,39 @@ ausschneiden und gegen vier Szenarien fahren. Gegen den alten Stand (`git show H
 gegengeprobt: dort leert Szenario „Firestore wirft" die `groupId` und pusht sie als `""`, und
 Szenario „fetch → null" ruft `removeMember` genau einmal auf. Siehe `docs/TESTING.md`.
 
-## 36. Grundregel bei Fehlern
+## 36. Der lokale Teststand schreibt in die echte Cloud
+
+**Symptom:** In der Cloud tauchen immer wieder Meals auf, die längst — teils mehrfach —
+gelöscht wurden.
+
+**Ursache (behoben):** `localStorage` ist an die Origin gebunden, die Firebase-Anbindung nicht.
+`http://localhost:8000` hat einen eigenen lokalen Speicher, meldet sich aber am **selben**
+Firebase-Projekt mit derselben UID an. Der dortige, veraltete Bestand galt in
+`mergeRemoteRecipes()` als „lokal vorhanden, remote nicht → also neu, noch nicht hochgeladen"
+und wurde beim nächsten `save()` in die echte Cloud gepusht.
+
+Die Grabsteine (`state.deleted`) fangen das nicht in jedem Fall ab:
+
+* `markDeleted()` steigt im Gruppenmodus bewusst sofort aus (`if (syncGid) return;`) — dort
+  ersetzt `enterGroupSync()` den Bestand ohnehin, ein persönlicher Grabstein würde nach einem
+  Austritt nur das gleichnamige eigene Meal mitreißen.
+* Grabsteine greifen über die **ID**. Ein Speicher, der einmal frisch mit `SEED` gestartet ist,
+  hat neue `uid()`s; sobald ein solches Meal bearbeitet wurde, greift auch `isExample()` nicht
+  mehr (das vergleicht Name **und** `steps`).
+
+**Behoben** über einen eigenen Schlüsselraum für die Testumgebung (`localKey()`, Suffix
+`__test`) — siehe `docs/ARCHITECTURES.md`.
+
+**Falle bei der Erkennung:** Nicht am Hostnamen allein festmachen. Capacitor läuft selbst unter
+`localhost` (Android `https://localhost`, iOS `capacitor://localhost`). Ein reiner
+Hostname-Test hätte die App-Store-Fassung als Testumgebung eingestuft und jedem Nutzer beim
+Update die Daten entzogen. Prüfstand deckt alle zehn Umgebungen ab, Capacitor in drei Varianten.
+
+**Wenn der Fehler schon passiert ist:** Der alte Speicher unter dem unsuffixierten Schlüssel
+bleibt auf `localhost` liegen und ist ab jetzt wirkungslos. Wer ihn loswerden will, öffnet auf
+`localhost` die Entwicklerwerkzeuge und ruft `localStorage.clear()`.
+
+## 37. Grundregel bei Fehlern
 
 Nicht einfach den sichtbaren Fehler flicken.
 
