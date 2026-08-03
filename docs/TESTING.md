@@ -306,6 +306,34 @@ Bei UI-Änderungen mindestens prüfen:
 
 Inputs müssen auf mobilen Geräten 16 px behalten, damit iOS nicht automatisch zoomt.
 
+### Messfalle: Zeilenumbruch nicht über `top` zählen
+
+Ob eine Flex-Zeile umbricht, lässt sich **nicht** dadurch feststellen, dass man die
+verschiedenen `getBoundingClientRect().top` der Kinder zählt. Bei `align-items: center`
+— dem Normalfall in diesem Projekt — haben unterschiedlich hohe Kinder in *derselben*
+Zeile verschiedene `top`-Werte. Der Test meldet dann überall Umbruch, auch auf 1920 px,
+und der Fehler fällt nicht auf, weil das Ergebnis plausibel aussieht.
+
+Stattdessen die Höhe der Zeile gegen das höchste Kind prüfen:
+
+```js
+var rowH = row.getBoundingClientRect().height;
+var zeilen = rowH > hoechstes + 1 ? Math.round(rowH / hoechstes) : 1;
+```
+
+Das ist derselbe Fehlertyp wie `focus()` vor einer Scroll-Messung: Der Prüfstand läuft
+durch und liefert Zahlen, misst aber etwas anderes als gemeint. **Deshalb gehört zu jeder
+Layout-Messung eine Gegenprobe gegen den alten Stand** — liefern alt und neu identische
+Werte, misst der Test nicht das, was die Änderung betrifft.
+
+### Trefferflächen mitmessen, wenn Abstände sich ändern
+
+Wird an `gap` oder Knopfgrößen einer Reihe geschraubt, im selben Durchlauf die
+Trefferflächen prüfen (`getComputedStyle(el, "::after")` für den hitSlop, Abstand
+benachbarter Flächen ≥ 0). Beispiel: Der `gap: 10px` in `.rcard .actions` sieht nach
+Spielraum aus, ist aber die Untergrenze — `.fav-ic` hat `::after { inset: -5px }`, die
+Flächen liegen bereits exakt bei 0,0 px aneinander. Siehe TROUBLESHOOTING §38.
+
 ## 6. Mehrstufige Abläufe
 
 Bei Wizard-/Carousel-Änderungen prüfen:

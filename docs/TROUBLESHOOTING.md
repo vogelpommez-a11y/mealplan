@@ -657,7 +657,48 @@ planen.
 Stand lässt dort vier Überbleibsel zurück (Einkaufsliste, Meal-Foto, Profilbild, Baseline), der
 neue keines.
 
-## 38. Grundregel bei Fehlern
+## 38. hitSlop bei benachbarten Knöpfen: die Enge gilt nur in einer Achse
+
+**Symptom:** Das ✕ und der Stift an einer eingeplanten Meal-Karte (`.slot .filled`) waren auf
+dem Handy schwer zu treffen — besonders in der Gruppe, wo beide nebeneinander stehen.
+
+**Ursache:** Sichtbar 22×22 px, hitSlop `inset: -4px` → nur **30×30 px** Trefferfläche. Apple
+HIG und WCAG 2.5.5 verlangen 44 px. Der Slop war bewusst so klein, weil die beiden Knöpfe nur
+8 px Abstand haben — im Prüfstand nachgemessen berührten sich ihre Flächen bei 0,0 px, mehr
+wäre also tatsächlich Überlappung gewesen.
+
+**Regel:** Erst rechnen, was die Fläche *braucht*, dann den Abstand danach richten — nicht
+umgekehrt. 28 px sichtbar + 8 px Slop je Seite = 44 px, zwei benachbarte Knöpfe brauchen
+also **16 px zwischen sich**. Die Karte gab nur 8 px her, deshalb bekommt der Stift den
+Zuschlag:
+
+```css
+.slot .filled .x::after, .slot .filled .pencil::after { inset: -8px; }  /* beide 44x44 */
+.slot .filled .pencil { margin-right: 8px; }                           /* 8 + 8 = 16px Luecke */
+```
+
+**Der naheliegende Irrweg:** den Slop einfach kleiner machen, bis er „gerade so passt"
+(`inset: -8px -3px`). Das ergibt 39×44 px und 34×44 px — beide unter 44 px in der Breite,
+also weiterhin zu klein, nur weniger auffällig. Die Enge ist ein Abstandsproblem, kein
+Slop-Problem. Der Zuschlag kostet 8 px Textbreite, und das auch nur im Gruppenmodus: den
+Stift gibt es nur bei `showPencil = drag && groupMembers.length >= 2`, ohne Gruppe steht
+das ✕ ohnehin allein.
+
+**0 px Abstand ist kein Fehler.** Zwei 44×44-Flächen, die exakt aneinandergrenzen, sind
+korrekt — dasselbe Maß wie im Symbolblock der Meal-Karten (`.act-icons`, `gap: 10px` bei
+`.fav-ic::after { inset: -5px }`). Erst ein *negativer* Abstand ist eine Überlappung. Wer
+im Prüfstand auf `> 0` statt `>= 0` testet, meldet sich den Normalfall als Fehler.
+
+**Zweite Falle in derselben Regelgruppe:** `:active` muss **nach** `:hover` stehen. Beide haben
+dieselbe Spezifität, also gewinnt die spätere Regel — und ein Touchscreen lässt den
+Hover-Zustand nach dem Tippen hängen. Steht `:active` davor, sieht man den Press-State nie.
+
+**Nachweis im Prüfstand:** CSS und Karten-Markup aus `index.html` ausgeschnitten, Trefferfläche
+über `getComputedStyle(el, "::after")` gemessen und die vier Ecken mit `elementFromPoint`
+wirklich angetippt — Ergebnis 44×44 px für ✕ und Stift, Abstand 0,000 px. Gegenprobe gegen die
+alten Werte liefert 30×30 px; ohne sie würde der Test nicht beweisen, dass er überhaupt misst.
+
+## 39. Grundregel bei Fehlern
 
 Nicht einfach den sichtbaren Fehler flicken.
 
