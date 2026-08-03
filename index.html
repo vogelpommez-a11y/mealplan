@@ -9674,8 +9674,20 @@
 
   // Alles, was dieses Geraet ueber den Nutzer lokal gespeichert hat, entfernen –
   // gemeinsame Endstrecke fuer beide Loesch-Wege (Cloud-Konto und lokales Profil).
-  function wipeLocalData() {
-    [STORE_KEY, PROFILE_KEY, LAST_KEY].forEach(k => { try { localStorage.removeItem(k); } catch (e) {} });
+  // Die Meal-Fotos und das Profilbild liegen seit Paket A3 NICHT mehr im localStorage, sondern
+  // in IndexedDB - sie ueberlebten das Loeschen deshalb stillschweigend. Besonders heikel war
+  // das Profilbild: hydrateImages() zieht map.__profile__ nach dem Neustart wieder in den State
+  // ("if (!state.profileImage && map.__profile__)"), ein direkt danach neu registriertes Konto
+  // haette es also erneut in die Cloud geschrieben. Die Meal-Fotos blieben zwar unverknuepft
+  // (ihre IDs sind mit dem State weg), aber eben auf dem Geraet liegen.
+  //
+  // store.clear() statt indexedDB.deleteDatabase(): eine gewoehnliche Transaktion, die nie
+  // blockiert. deleteDatabase wartet dagegen auf das Schliessen JEDER offenen Verbindung -
+  // idbOpen() haelt genau so eine - und bliebe sonst still in onblocked haengen.
+  async function wipeLocalData() {
+    [STORE_KEY, PROFILE_KEY, LAST_KEY, SHOP_DONE_KEY].forEach(k => { try { localStorage.removeItem(k); } catch (e) {} });
+    imgSaved = new Map();   // Baseline mitleeren, sonst gilt ein spaeter gleich benanntes Bild als schon gespeichert
+    try { await idbRW(store => store.clear()); } catch (e) {}
   }
 
   // Konto vollstaendig loeschen (Cloud-Konten, Art. 17 DSGVO / Datenschutz Ziffer 10).
@@ -9749,10 +9761,12 @@
         });
         closeModal();
         stopCloudSync();
-        wipeLocalData();
+        // await: die Bilder-Loeschung in IndexedDB laeuft asynchron, der Reload unten darf ihr
+        // nicht dazwischenfahren.
+        await wipeLocalData();
         toast("Konto und Daten wurden gelöscht");
-        // Neu laden statt nur weiterzurendern: wipeLocalData() leert nur den
-        // localStorage, nicht das im Speicher gehaltene state-Objekt (Rezepte, Plan,
+        // Neu laden statt nur weiterzurendern: wipeLocalData() leert die lokalen Speicher,
+        // nicht das im Speicher gehaltene state-Objekt (Rezepte, Plan,
         // Ziel) - ohne Reload wuerde ein direkt danach neu registriertes Konto genau
         // diese stehengebliebenen Daten wieder hochsynchronisieren, als waeren sie neu.
         setTimeout(() => location.reload(), 900);
@@ -9763,7 +9777,7 @@
           // ein erneuter Versuch nach dem Wieder-Anmelden schliesst die Loeschung ab.
           closeModal();
           stopCloudSync();
-          wipeLocalData();
+          await wipeLocalData();
           try { window.CloudAuth.logout(); } catch (er) {}
           toast("Deine Daten wurden gelöscht. Bitte melde dich einmal neu an und wiederhole „Konto löschen“, um auch den Zugang zu entfernen.");
           setTimeout(() => location.reload(), 900);
@@ -9783,8 +9797,8 @@
       title: "Alle Daten löschen?",
       text: "Dein Profil, dein Wochenplan, deine Meals und dein gespeichertes Ziel auf diesem Gerät werden unwiderruflich gelöscht. Das kann nicht rückgängig gemacht werden.",
       okLabel: "Alle Daten löschen",
-      onConfirm: () => {
-        wipeLocalData();
+      onConfirm: async () => {
+        await wipeLocalData();
         profile = null;
         toast("Alle Daten wurden gelöscht");
         setTimeout(() => location.reload(), 900); // kurz sichtbar, dann sauberer Neustart

@@ -104,6 +104,25 @@ Dabei auf **Aufrufe** prüfen, nicht auf bloße Wortvorkommen: `assert "removeMe
 schlägt auch bei einem Kommentar an, der das Wort erklärt — `assert "CloudGroup.removeMember"
 not in code` trifft den Aufruf.
 
+### `--virtual-time-budget` wartet nicht auf IndexedDB
+
+Wird IndexedDB (oder etwas anderes außerhalb der JS-Ereignisschleife) geprüft, liefert der
+sonst übliche Aufruf **stillschweigend nichts**: `--virtual-time-budget` lässt die virtuelle
+Uhr ablaufen und `--dump-dom` feuert, während die IDB-Rückrufe noch in Echtzeit unterwegs sind.
+Kein Fehler, kein Log, leeres `<pre>` — das sieht aus wie ein Absturz, ist aber nur das Timing.
+
+Lösung: Die Testseite meldet ihr Ergebnis aktiv zurück, statt auf den DOM-Dump zu warten.
+
+```javascript
+navigator.sendBeacon("/result", out.join("\n"));
+```
+
+Dazu ein kleiner Python-Server, der Dateien ausliefert und `POST /result` in eine Datei
+schreibt (`result_server.py` im Scratchpad-Muster). Edge dann **ohne**
+`--virtual-time-budget` und ohne `--dump-dom` starten, danach beenden.
+
+`file:///` scheidet für IndexedDB ohnehin aus — über HTTP laden.
+
 ### Ablauf-Trace statt Raten
 
 Bricht ein Prüfstand mittendrin ab, ist meist ein Stub vergessen worden. Statt zu raten, jeden

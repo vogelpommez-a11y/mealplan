@@ -630,7 +630,34 @@ Update die Daten entzogen. Prüfstand deckt alle zehn Umgebungen ab, Capacitor i
 bleibt auf `localhost` liegen und ist ab jetzt wirkungslos. Wer ihn loswerden will, öffnet auf
 `localhost` die Entwicklerwerkzeuge und ruft `localStorage.clear()`.
 
-## 37. Grundregel bei Fehlern
+## 37. Löschen muss beide Speicher treffen, nicht nur `localStorage`
+
+**Symptom:** Nach „Konto löschen" bzw. „Alle Daten löschen" bleiben Meal-Fotos, das Profilbild
+und die abgehakten Einkaufsposten auf dem Gerät liegen. Besonders auffällig: Registriert man
+sich direkt danach neu, ist das **alte Profilbild wieder da** — und wandert erneut in die Cloud.
+
+**Ursache (behoben):** `wipeLocalData()` entfernte nur `STORE_KEY`, `PROFILE_KEY` und
+`LAST_KEY`. Seit Paket A3 liegen die Bilder aber in **IndexedDB**, nicht mehr im
+localStorage-JSON. `hydrateImages()` zieht beim Start `map.__profile__` zurück in den State
+(`if (!state.profileImage && map.__profile__)`) — das Bild überlebte die Löschung also nicht nur
+passiv, es kam aktiv zurück.
+
+**Regel:** Bei jeder Änderung daran, *wo* Daten liegen, gehört `wipeLocalData()` mitgeprüft.
+Der Speicherort einer Information und ihre Löschung sind ein Paar. Ziffer 10 der
+Datenschutzerklärung sagt wörtlich „sämtliche auf diesem Gerät gespeicherten Daten sofort
+entfernen" — jeder neue Speicherort ist damit automatisch eine rechtliche Zusage.
+
+**Falle beim Löschen der IndexedDB:** `store.clear()` verwenden, **nicht**
+`indexedDB.deleteDatabase()`. Letzteres wartet auf das Schließen jeder offenen Verbindung —
+`idbOpen()` hält eine — und bleibt sonst still in `onblocked` hängen, ohne Fehler.
+`wipeLocalData()` ist deshalb `async`, und alle Aufrufer `await`en es, bevor sie den Reload
+planen.
+
+**Nachweis im Prüfstand:** Gegen eine echte IndexedDB, gegengeprobt gegen `git HEAD` — der alte
+Stand lässt dort vier Überbleibsel zurück (Einkaufsliste, Meal-Foto, Profilbild, Baseline), der
+neue keines.
+
+## 38. Grundregel bei Fehlern
 
 Nicht einfach den sichtbaren Fehler flicken.
 

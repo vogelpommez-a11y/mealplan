@@ -209,6 +209,29 @@ Hostnamen, zusätzlich abgesichert über `window.Capacitor`.
 Auf der Live-Domain bleiben alle Schlüssel zeichengleich — bestehende Daten und alte
 Sharing-Links dürfen nicht brechen (siehe Namensdualität).
 
+### `wipeLocalData()` deckt beide Speicher ab
+
+Seit die Meal-Fotos und das Profilbild in IndexedDB liegen (Paket A3) und nicht mehr im
+`localStorage`-JSON, reicht das Entfernen der localStorage-Schlüssel nicht mehr aus.
+`wipeLocalData()` ist deshalb `async` und räumt:
+
+* `STORE_KEY`, `PROFILE_KEY`, `LAST_KEY`, `SHOP_DONE_KEY`
+* den ObjectStore `images` der IndexedDB
+* die Baseline `imgSaved`
+
+Ohne den IndexedDB-Teil holte `hydrateImages()` nach dem Neustart `map.__profile__` wieder in
+den State (`if (!state.profileImage && map.__profile__)`) — ein direkt danach neu registriertes
+Konto hätte das Profilbild erneut in die Cloud geschrieben.
+
+`store.clear()` statt `indexedDB.deleteDatabase()`: eine gewöhnliche Transaktion, die nie
+blockiert. `deleteDatabase()` wartet auf das Schließen **jeder** offenen Verbindung — `idbOpen()`
+hält genau so eine — und bliebe still in `onblocked` hängen.
+
+Alle drei Aufrufer (`await wipeLocalData()`) warten das ab, bevor sie den Reload planen.
+
+Das ist keine Kosmetik: Ziffer 10 der Datenschutzerklärung sagt wörtlich „sämtliche auf diesem
+Gerät gespeicherten Daten sofort entfernen".
+
 Bekannte Grenze: Ein Zugriff über die LAN-IP (`http://192.168.x.y`) gilt **nicht** als
 Testumgebung. `test-server.ps1` bindet ohnehin nur an `localhost`, der Fall kann mit dem
 mitgelieferten Server nicht auftreten.
