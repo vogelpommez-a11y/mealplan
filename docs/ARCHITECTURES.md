@@ -240,6 +240,18 @@ Drei Randfälle werden bewusst behandelt, statt einen zweiten, verwaisten Gruppe
 * **Beitritt zu einer fremden Gruppe trotz eigener offener Einladung:** `joinGroup()` zieht eine eigene, andere `pendingGroupId` über `withdrawPendingInvite()` zurück — bewusst erst *nachdem* der Beitritt zur neuen Gruppe bereits geglückt ist (`putMember`/`copyOwnRecipesToGroup`/`CloudSync.save` liefen durch), nicht davor. Andernfalls würde ein Netzfehler zwischen Zurückziehen und Beitritt beide Gruppen kosten. Ohne das Zurückziehen würde ein späterer Beitritt über die alte Einladung `finalizeGroupActivation()` mit dem inzwischen fremden `state.recipes`-Bestand befüllen.
 * **Eigene Einladung scannen/öffnen:** `openInviteModal()`/`joinGroup()` prüfen zusätzlich `state.pendingGroupId === inv.gid` — sonst würde die Firestore-Regel den Rollenwechsel auf sich selbst zwar verhindern, der Nutzer sähe aber nur einen generischen Fehler.
 
+### Drei Zustände statt true/false: `enterGroupSync()`
+
+`enterGroupSync()` liefert `"ok"`, `"gone"` oder `"error"`. Die Unterscheidung ist keine Kosmetik, sondern die Grenze zwischen „wir sind nachweislich draußen" und „wir wissen es gerade nicht":
+
+* `"ok"` — drin, alle Listener hängen.
+* `"gone"` — Gruppendokument existiert nicht mehr, oder man steht nicht in der Mitgliederliste. **Nur hier** darf `startCloudSync()` `state.groupId` leeren.
+* `"error"` — der Zugriff ist gescheitert (Netz, noch nicht veröffentlichte Regeln, Rate-Limit) oder `CloudGroup` ist gar nicht verfügbar. Über die Mitgliedschaft sagt das nichts aus, der Zeiger bleibt stehen, der nächste Start versucht es erneut.
+
+Bei `"error"` setzt `startCloudSync()` zusätzlich `groupSyncFailed = true`. Dieses Flag hält `pushNow()` davon ab, die Felder `groupId` und `plans` überhaupt in das Kontodokument zu schreiben — dank `merge: true` bleibt der vorhandene Cloud-Stand dann unangetastet. Ohne das Flag würde der Fehlerzustand (`syncGid === null`) als `groupId: ""` hochgeschrieben und die Gruppe für **alle** Geräte des Kontos unauffindbar machen. Das reguläre Verlassen ist davon nicht betroffen: `leaveGroup()` schreibt sein `groupId: ""` selbst und explizit.
+
+Der `"gone"`-Zweig räumt bewusst **nicht** mehr per `removeMember()` auf. `CloudGroup.fetch()` liefert `null` für jedes Leseergebnis ohne Dokument — aus einem Lesevorgang darf keine Löschung folgen.
+
 Scheitert `enterGroupSync()` in `startCloudSync()` direkt nach einer gerade erst geglückten Start-Aktivierung (z. B. Netzabbruch im selben Moment), wird `pendingGroupId` wiederhergestellt statt beide Zeiger zu verlieren — sonst wäre die (für den Beitretenden längst aktive) Gruppe für den Owner nicht mehr auffindbar. Scheitert die Aktivierung selbst (live oder beim Start), wird `watchPendingGroup()` erneut angehängt statt die Sitzung dauerhaft ohne Listener zu lassen.
 
 ## Gruppen-Wochenplan
@@ -351,6 +363,8 @@ gegenseitig Snapshot-Vergleiche auslösen und Endlosschleifen erzeugen.
 Leere Slots werden aus der Baseline entfernt.
 
 Nicht als `"[]"` speichern.
+
+Ein Fehlerzustand darf nie zu einem Schreibvorgang werden. `syncGid === null` bedeutet nicht „nicht in einer Gruppe", sondern kann auch „Gruppen-Start gescheitert" heißen — deshalb schreibt `pushNow()` `groupId`/`plans` nur, wenn `groupSyncFailed` false ist. Gleiche Bauart wie `recipesSyncFailed` bei den Meals.
 
 ## Rollen
 

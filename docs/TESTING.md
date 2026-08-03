@@ -83,6 +83,35 @@ Sondern:
 
 So wird tatsächlich der aktuelle Produktionscode getestet.
 
+### Gegenprobe gegen den alten Stand
+
+Ein Prüfstand, der nur den neuen Code grün zeigt, beweist nichts — er könnte am eigentlichen
+Verhalten vorbeimessen. Bei Fehlerbehebungen deshalb denselben Prüfstand ein zweites Mal gegen
+die Fassung vor der Änderung fahren:
+
+```powershell
+git show HEAD:index.html > "<scratchpad>\index_alt.html"
+```
+
+Das Build-Skript nur auf die andere Quelldatei zeigen lassen. Der alte Stand **muss** durchfallen.
+Tut er es nicht, prüft der Test nicht das, was er zu prüfen vorgibt.
+
+### Zusicherungen im Build-Skript
+
+Das Ausschneiden per Regex/Klammernzählung kann stillschweigend den falschen Bereich erwischen.
+Deshalb im Build-Skript mit `assert` festhalten, was im ausgeschnittenen Text stehen muss.
+Dabei auf **Aufrufe** prüfen, nicht auf bloße Wortvorkommen: `assert "removeMember" not in code`
+schlägt auch bei einem Kommentar an, der das Wort erklärt — `assert "CloudGroup.removeMember"
+not in code` trifft den Aufruf.
+
+### Ablauf-Trace statt Raten
+
+Bricht ein Prüfstand mittendrin ab, ist meist ein Stub vergessen worden. Statt zu raten, jeden
+Stub seinen Namen protokollieren lassen und den Trace mit ausgeben — der letzte Eintrag zeigt,
+welche Zeile im Produktionscode als Nächstes drankam. Zusätzlich `window.onerror` und
+`unhandledrejection` in die Seite hängen, sonst verschluckt ein `catch` im Produktionscode den
+Fehler und der Prüfstand liefert wortlos nichts.
+
 ## 3. Ergebnisfortschritt
 
 Tests sollen nach jedem relevanten Schritt ein Ergebnis ausgeben.

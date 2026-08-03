@@ -563,7 +563,42 @@ die abwechselnd den empfangenen Stand vereinigen und zurückschreiben. Mit der u
 Fassung kommt sie nach 40 Runden nicht zur Ruhe, mit der sortierten nach Runde 2. Siehe
 `docs/TESTING.md`.
 
-## 35. Grundregel bei Fehlern
+## 35. Ein gescheiterter Lesevorgang darf nie zu einem Schreibvorgang werden
+
+**Symptom:** Gruppe gestern eingerichtet und die Einladung verschickt, heute ist sie spurlos
+weg — auf allen Geräten, auch nach Neustart.
+
+**Ursache (behoben):** `enterGroupSync()` lieferte nur `true`/`false`. Vier grundverschiedene
+Lagen fielen auf dasselbe `false` zusammen: „Gruppe aufgelöst", „ich wurde entfernt",
+„Firestore-Zugriff gerade gescheitert" und „`CloudGroup` nicht verfügbar". `startCloudSync()`
+leerte daraufhin `state.groupId`, und `pushNow()` schrieb dieses leere Feld anschließend als
+`groupId: ""` ins Kontodokument. Ein einziger misslungener Aufruf beim Start — Funkloch,
+frisch veröffentlichte Regeln, Rate-Limit — löschte damit die Gruppenzugehörigkeit dauerhaft
+und für alle Geräte des Kontos.
+
+Zusätzlich rief der `!info`-Zweig `removeMember(gid, syncUid)` auf, um „aufzuräumen".
+`CloudGroup.fetch()` liefert `null` aber für jedes Leseergebnis ohne Dokument, nicht nur für
+eine wirklich gelöschte Gruppe. Das Gerät warf sich also bei einer nur kurz nicht lesbaren
+Gruppe selbst aus der Mitgliederliste — in einer Zweiergruppe stand die andere Person danach
+allein da.
+
+**Regel für künftige Änderungen:**
+
+* Ein Rückgabewert, der „weg" und „gerade nicht erreichbar" nicht unterscheidet, ist bei
+  Sync-Code ein Fehler. Drei Zustände (`"ok"`/`"gone"`/`"error"`) statt eines Booleschen.
+* Aus einem fehlgeschlagenen oder leeren **Lesevorgang** darf niemals eine **Löschung**
+  folgen.
+* Solange ein Client den Gruppenzustand nicht kennt, darf er die Gruppenfelder nicht in die
+  Cloud schreiben (`groupSyncFailed`). Bei `merge: true` bleibt ein weggelassenes Feld stehen —
+  das ist die sichere Variante, nicht ein Feld mit leerem Wert.
+
+**Nachweis im Prüfstand:** `enterGroupSync()`, `pushNow()` und der Entscheidungsblock aus
+`startCloudSync()` lassen sich mit gestubbtem `CloudGroup`/`CloudSync` ohne Firebase
+ausschneiden und gegen vier Szenarien fahren. Gegen den alten Stand (`git show HEAD:index.html`)
+gegengeprobt: dort leert Szenario „Firestore wirft" die `groupId` und pusht sie als `""`, und
+Szenario „fetch → null" ruft `removeMember` genau einmal auf. Siehe `docs/TESTING.md`.
+
+## 36. Grundregel bei Fehlern
 
 Nicht einfach den sichtbaren Fehler flicken.
 
