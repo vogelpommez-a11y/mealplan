@@ -575,6 +575,44 @@ einplanen, entfernen oder ein Cloud-Snapshot → Position bleibt, keine Bewegung
 auf `"plan"` gesetzt ist, bevor `renderPlan()` läuft — ein Reiterwechsel wäre daraus nicht mehr
 erkennbar.
 
+### Schiebe-Schema für gleichrangige Ansichtswechsel
+
+Alle Wechsel zwischen gleichrangigen Ansichten (Wochentage, Home „Heute/Diese Woche",
+„Aktuelle/Nächste Woche", untere Tab-Leiste) folgen derselben Bewegungssprache: Segmented
+Control mit gleitender Pille plus gerichteter Enter-Bewegung des Inhalts. Drei Bausteine, je
+nach DOM-Lebensdauer der Leiste:
+
+* **`initCarousel()` / `.db-ind`** — für `.daybar` und `.wgbar`. Die Pille ist eine reine
+  Funktion von `scrollLeft` (siehe oben), keine eigene Transition nötig.
+* **`slideIn(el, dir)`** — gemeinsamer Enter-Helfer (WAAPI) für gerichtete Inhaltswechsel.
+  Enter-only: der `innerHTML`-Austausch IST der Exit, eine Ausblendung davor wäre nur
+  künstliche Latenz. `dir` ist das Vorzeichen der Richtung; `reducedMotion()` behält die
+  Überblendung, verliert aber die Richtung (kein `transform`). Zwei Aufrufer: `renderPlan()`
+  bei `pendingWeekDir` (`.week`) und `render()` bei echtem Tab-Wechsel (`view`, Richtung aus
+  der Index-Differenz von `TAB_ORDER`).
+* **`syncWeekSwitchPill(container, dir)`** — eigene WAAPI-Pille für `.week-switch` (`.ws-ind`).
+  `.week-switch` wird bei **jedem** `render()` über `view.innerHTML` neu gebaut, eine
+  CSS-`transition` griffe deshalb nie (die neu gebaute Pille stünde sofort am Ziel) — siehe
+  `docs/TROUBLESHOOTING.md`. Position und Breite kommen aus `getBoundingClientRect()` der
+  aktiven Schaltfläche, **nicht** aus einer 50 %-Rechnung: „Aktuelle Woche" und „Nächste Woche"
+  sind unterschiedlich breit. Bei gesetztem `dir` läuft die Pille zusätzlich per `animate()` von
+  der Gegenposition heran, mit denselben `MOTION.base`/`MOTION.ease`-Werten wie die
+  `.week`-Slide. Geteilt mit dem Jahres-Umschalter im Rückblick (`.week-switch`/`.ws-btn`),
+  der aber **kein** `.ws-ind` im Markup hat und deshalb bei der harten Umschaltung bleibt
+  (`.week-switch:has(.ws-ind)` grenzt die Pillen-Optik im CSS auf den Wochen-Fall ein).
+* **`.tab-ind`** — CSS-`transition` für die untere Tab-Leiste. Günstiger Sonderfall: `.tabs`
+  liegt außerhalb von `view.innerHTML` im statischen Markup und überlebt jeden Neuaufbau, eine
+  echte `transition: transform` funktioniert deshalb. Nur im 680-px-Breakpoint sichtbar, wo
+  `.tabs` ein Grid mit drei gleich breiten Spalten ist (`translateX(i * 100%)` reicht). Am
+  Rechner sind die Tab-Knöpfe unterschiedlich breit (Meal-Zähler ändert die Breite) — dort
+  bleibt `[aria-selected="true"]` die einzige Fläche. Position wird in `render()` gesetzt,
+  **nach** der Scroll-Wiederherstellung, sonst animiert die View während ihre Position noch
+  springt.
+
+Bewusst kein echtes Wischen bei Woche und Tabs: das bräuchte alle Ansichten gleichzeitig im DOM
+(ein horizontaler Scroller im horizontalen Scroller), auf Touch gewinnt immer der innere
+Scroller, und `overscroll-behavior-x: contain` unterbindet die Weitergabe zusätzlich absichtlich.
+
 ## Architekturprinzip
 
 Bei mehreren möglichen Lösungen gewinnt grundsätzlich die Lösung mit:

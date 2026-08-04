@@ -698,7 +698,40 @@ Hover-Zustand nach dem Tippen hängen. Steht `:active` davor, sieht man den Pres
 wirklich angetippt — Ergebnis 44×44 px für ✕ und Stift, Abstand 0,000 px. Gegenprobe gegen die
 alten Werte liefert 30×30 px; ohne sie würde der Test nicht beweisen, dass er überhaupt misst.
 
-## 39. Grundregel bei Fehlern
+## 39. CSS-`transition` greift nicht an Elementen aus `view.innerHTML`
+
+**Symptom:** Eine gleitende Pille sollte für `.week-switch` (Aktuelle/Nächste Woche) dieselbe
+einfache CSS-`transition` wie `.tab-ind` bekommen — bewegte sich aber nie, sie stand immer
+sofort am Ziel.
+
+**Ursache:** `renderPlan()` baut `.week-switch` bei **jedem** `render()` über
+`view.innerHTML = html` komplett neu auf. Die neu geschriebene Pille bekommt ihre
+Zielposition direkt als Startzustand — es gibt keinen "vorher" für den Browser, von dem aus
+eine `transition` interpolieren könnte. Eine CSS-`transition` kann nur Zustandswechsel an
+**demselben, im DOM verbleibenden** Element animieren.
+
+**Regel:** Vor einer Pillen-/Übergangs-Transition prüfen, ob das Element den Neuaufbau
+überlebt:
+
+* **Überlebt `innerHTML`-Austausch nicht** (`.week-switch`, `.week`, `.wg-cols`) → WAAPI
+  (`element.animate(...)`) mit Werten aus `getBoundingClientRect()`, siehe
+  `syncWeekSwitchPill()` und `slideIn()` in `docs/ARCHITECTURES.md`.
+* **Steht außerhalb von `view.innerHTML` im statischen Markup** (`.tabs`) → eine echte
+  CSS-`transition` funktioniert, siehe `.tab-ind`.
+* **Pille ist 1:1 an `scrollLeft` gekoppelt** (`.daybar`/`.wgbar`, `.db-ind`) → braucht gar
+  keine eigene Transition, der native Sanftlauf des Scrollens liefert die Kurve mit.
+
+**Nachweis im Prüfstand:** `syncWeekSwitchPill()` isoliert ausgeschnitten und gegen zwei
+unterschiedlich breite Schaltflächen ("Aktuelle Woche"/"Nächste Woche") getestet — beide
+Läufe (unterschiedliche Schriftmetrik je nach Umgebung) bestätigten übereinstimmend, dass
+die beiden Knöpfe **spürbar unterschiedlich breit** sind (Differenz jeweils mehrere Pixel),
+ein 50 %-Ansatz hätte also erkennbar danebengelegen. Zweiter Fund im selben Prüfstand:
+`ind.style.left` rechnet gegen die *Padding*-Box von `.week-switch` (Containing Block eines
+absolut positionierten Kindes), `getBoundingClientRect()` aber gegen die *Border*-Box — ohne
+Abzug von `container.clientLeft` stand die Pille um genau die Randbreite (1 px) zu weit
+rechts, am rechten Rand sichtbar asymmetrisch neben der 3-px-Polsterung.
+
+## 40. Grundregel bei Fehlern
 
 Nicht einfach den sichtbaren Fehler flicken.
 

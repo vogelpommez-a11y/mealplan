@@ -516,7 +516,22 @@ Sichtbar ist ausschließlich die durchgängige Progress-Bar.
 
 ---
 
-# 11. Keine Toolchain erfinden
+# 11. Schiebe-Schema für Ansichtswechsel
+
+**Jeder Wechsel zwischen gleichrangigen Ansichten folgt dem Schema der mobilen Tagesleiste** (`.daybar`/`.db-ind`, `initCarousel()`):
+
+* Segmented Control mit gleitender Pille statt harter Umschaltung.
+* gerichtete Enter-Bewegung beim Inhaltswechsel.
+* `MOTION`-Tokens (`--dur-fast`/`--dur-base`/`--dur-slow`/`--ease-out`) als einzige Quelle für Dauer und Kurve.
+* `reducedMotion()` immer berücksichtigt — Überblendung bleibt, Richtung entfällt.
+
+Wischen (echtes `scroll-snap`) nur dort, wo es keinen verschachtelten horizontalen Scroller erzeugt. Bei Woche und Tabs bewusst kein Wischen: alle Ansichten gleichzeitig im DOM würde einen horizontalen Scroller im horizontalen Scroller ergeben, auf Touch gewinnt immer der innere, und `overscroll-behavior-x: contain` unterbindet die Weitergabe zusätzlich absichtlich. Bei den Tabs käme auf iOS die Zurück-Wischgeste am linken Rand dazu. Dort wird nur die Optik und Bewegungssprache angeglichen, nicht die Geste.
+
+`initCarousel()` ist die gemeinsame Quelle für die scroll-gekoppelte Pille (`.db-ind`, in `.daybar` und `.wgbar`). `slideIn(el, dir)` ist der gemeinsame Enter-Helfer für gerichtete Inhaltswechsel (Wochenwechsel, Tab-Wechsel). `.week-switch` braucht eine eigene WAAPI-Pille (`syncWeekSwitchPill()`), weil ihr Markup bei jedem `render()` per `view.innerHTML` neu gebaut wird — eine CSS-`transition` würde dort nie greifen, siehe `docs/TROUBLESHOOTING.md`.
+
+---
+
+# 12. Keine Toolchain erfinden
 
 Es gibt aktuell:
 
@@ -541,7 +556,7 @@ Die ausführliche technische Beschreibung steht in:
 
 ---
 
-# 12. Lesen und Bearbeiten von `index.html`
+# 13. Lesen und Bearbeiten von `index.html`
 
 `index.html` ist sehr groß und enthält Base64-Fotos.
 
@@ -569,7 +584,7 @@ Den tatsächlichen Code aus `index.html` ausschneiden.
 
 ---
 
-# 13. Testen und Verifikation
+# 14. Testen und Verifikation
 
 Es gibt aktuell keine klassische JS-Testtoolchain.
 
@@ -605,7 +620,7 @@ Deshalb `#view` auf tatsächlichen Inhalt prüfen.
 
 ---
 
-# 14. Ausschneide-Prüfstand
+# 15. Ausschneide-Prüfstand
 
 Der Ausschneide-Prüfstand ist die zentrale Methode für Funktionen hinter Login, Modals oder komplexem State.
 
@@ -648,7 +663,7 @@ Details:
 
 ---
 
-# 15. Dokumentationspflicht nach Änderungen
+# 16. Dokumentationspflicht nach Änderungen
 
 Nach einer Änderung nicht nur den Code betrachten.
 
@@ -684,7 +699,7 @@ Wenn ja:
 
 ---
 
-# 16. Firebase und Cloud-Sync
+# 17. Firebase und Cloud-Sync
 
 Die App muss auch ohne Firebase funktionieren.
 
@@ -715,7 +730,7 @@ Bekannte Fallen:
 
 ---
 
-# 17. Security-Regeln
+# 18. Security-Regeln
 
 UI-Sperren sind **keine Sicherheitsgrenze**.
 
@@ -738,7 +753,7 @@ Bei Aussagen über den Live-Regelstand immer berücksichtigen, dass dieser lokal
 
 ---
 
-# 18. Firebase-Konfiguration
+# 19. Firebase-Konfiguration
 
 Die Firebase-Web-Konfiguration in `index.html` ist kein Secret.
 
@@ -756,7 +771,7 @@ Sicherheit entsteht durch:
 
 ---
 
-# 19. Daten und Datenschutz
+# 20. Daten und Datenschutz
 
 Ein Meal speichert bei `by` ausschließlich die UID.
 
@@ -792,7 +807,7 @@ Rechtstexte gegen tatsächliche Implementierung prüfen.
 
 ---
 
-# 20. Namensdualität
+# 21. Namensdualität
 
 Sichtbar heißt die App:
 
@@ -828,7 +843,7 @@ Eine Umbenennung kann gespeicherte Daten und alte Links brechen.
 
 ---
 
-# 21. Bilder und Lizenzen
+# 22. Bilder und Lizenzen
 
 `photoFor(r)` verwendet die bestehende Priorität:
 
@@ -861,7 +876,7 @@ Beispielsweise:
 
 ---
 
-# 22. Rechtstexte
+# 23. Rechtstexte
 
 Impressum und Datenschutzerklärung befinden sich in `index.html`.
 
@@ -885,7 +900,7 @@ Der Agent `anwalt` ersetzt keine Rechtsberatung.
 
 ---
 
-# 23. Prüf-Agenten
+# 24. Prüf-Agenten
 
 Unter:
 
@@ -958,7 +973,7 @@ Dann:
 
 ---
 
-# 24. ROADMAP.html
+# 25. ROADMAP.html
 
 Im Projektordner liegt:
 
@@ -996,7 +1011,7 @@ Sie bleibt in `.gitignore`.
 
 ---
 
-# 25. Mobile
+# 26. Mobile
 
 Mobile Darstellung ist Bestandteil jeder UI-Änderung.
 
@@ -1015,7 +1030,7 @@ Nicht nur Desktop testen.
 
 ---
 
-# 26. Lokaler Server
+# 27. Lokaler Server
 
 Für lokale Tests steht zur Verfügung:
 
@@ -1031,7 +1046,7 @@ http://localhost:8000/
 
 ---
 
-# 27. Deployment
+# 28. Deployment
 
 Deployment erfolgt durch Push auf `main`.
 
@@ -1074,7 +1089,7 @@ $env:GIT_TERMINAL_PROMPT=0
 
 ---
 
-# 28. Bekannte technische Fallen
+# 29. Bekannte technische Fallen
 
 Die vollständige Liste steht in:
 
@@ -1099,7 +1114,7 @@ Dort insbesondere nachsehen bei Änderungen an:
 
 ---
 
-# 29. Arbeitsablauf bei jeder Änderung
+# 30. Arbeitsablauf bei jeder Änderung
 
 ## Vor der Änderung
 
@@ -1144,7 +1159,7 @@ Dort insbesondere nachsehen bei Änderungen an:
 
 ---
 
-# 30. Minimalprinzip
+# 31. Minimalprinzip
 
 **Ändere nur, was für die Aufgabe notwendig ist.**
 
@@ -1169,7 +1184,7 @@ Wenn das Problem die Sicherheit, Datenintegrität oder korrekte Umsetzung der ak
 
 ---
 
-# 31. Definition of Done
+# 32. Definition of Done
 
 Eine Aufgabe ist erst abgeschlossen, wenn:
 
@@ -1190,7 +1205,7 @@ Eine Aufgabe ist erst abgeschlossen, wenn:
 
 ---
 
-# 32. Prioritäten bei Zielkonflikten
+# 33. Prioritäten bei Zielkonflikten
 
 Wenn mehrere Regeln miteinander kollidieren, gilt grundsätzlich diese Reihenfolge:
 
@@ -1207,7 +1222,7 @@ Keine Regel darf als Begründung für eine Sicherheitsverletzung oder Datenbesch
 
 ---
 
-# 33. Wichtigste Grundregel
+# 34. Wichtigste Grundregel
 
 **Nicht nur Code schreiben. Das Projekt als Ganzes konsistent halten.**
 

@@ -292,6 +292,10 @@
   }
   .tab:hover { color: var(--text); }
   .tab[aria-selected="true"] { background: var(--surface); color: var(--accent-strong); box-shadow: var(--shadow); }
+  /* Nur mobil sichtbar (siehe 680px-Breakpoint) - am Rechner ist .tabs ein flex mit
+     unterschiedlich breiten Knoepfen (Meal-Zaehler aendert die Breite), dort bleibt die
+     bestehende Flaeche auf [aria-selected="true"]. */
+  .tab-ind { display: none; }
   .tab .count { font-size: 11.5px; background: color-mix(in srgb, var(--accent) 16%, var(--surface)); color: var(--accent-strong); border-radius: 999px; padding: 1px 7px; font-variant-numeric: tabular-nums; }
   .tab .ts { display: none; } /* Kurzform der Beschriftung, nur im unteren Balken */
   /* Handy: aus der Reiterleiste im Kopf wird eine feste Leiste am unteren Rand, wie in
@@ -321,7 +325,7 @@
     .tab {
       flex: none; flex-direction: column; gap: 3px; padding: 6px 2px 5px;
       font-size: 10.5px; font-weight: 600; line-height: 1.1; min-height: 46px;
-      justify-content: center; position: relative; border-radius: 999px; white-space: nowrap;
+      justify-content: center; position: relative; z-index: 1; border-radius: 999px; white-space: nowrap;
       /* Voller Textkontrast statt --text-muted: hinter dem Glas kann jederzeit ein Meal-Foto
          liegen, und flaues Grau darauf kippt unter 4.5:1. Welcher Reiter aktiv ist, traegt
          die gefuellte Pille — nicht ein Helligkeitsunterschied. */
@@ -332,14 +336,34 @@
     .tab svg { width: 20px; height: 20px; }
     .tab .tl { display: none; }
     .tab .ts { display: inline; }
+    /* Gleitende Pille (Schiebe-Schema): .tabs liegt ausserhalb von view.innerHTML und
+       ueberlebt jeden Neuaufbau, deshalb reicht hier eine echte CSS-transition (anders als
+       .week-switch, siehe Kommentar bei syncWeekSwitchPill()). Nur hier sichtbar: die drei
+       Spalten sind im Grid gleich breit (repeat(3, 1fr)), translateX(i * 100%) reicht also -
+       am Rechner sind die Tab-Knoepfe unterschiedlich breit (Meal-Zaehler), dort bleibt
+       [aria-selected="true"] auf der Flaeche. */
+    .tab-ind {
+      display: block; position: absolute; z-index: 0;
+      top: 5px; bottom: 5px; left: 6px;
+      width: calc((100% - 12px) / 3);
+      border-radius: 999px;
+      background: var(--surface);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, .12);
+      transition: transform var(--dur-base) var(--ease-out);
+      pointer-events: none;
+    }
     /* Die aktive Pille ist DECKEND, nicht getoent. Getoent auf Glas gerechnet: liegt hinter
        der Kapsel eine helle Bildstelle (weisser Teller), faellt Akzentrot darauf auf ~1.8:1.
        Deckend steht die Beschriftung auf definiertem Grund — 6:1 dunkel, 8:1 hell — und die
-       Pille hebt sich zugleich klarer von der Glasflaeche ab. */
+       Pille hebt sich zugleich klarer von der Glasflaeche ab. Flaeche und Schatten liegen
+       jetzt auf .tab-ind, hier nur noch die Schriftfarbe. */
     .tab[aria-selected="true"] {
-      background: var(--surface);
+      /* background/box-shadow ausdruecklich leeren: die Basisregel (Z. 294) setzt beides
+         ohne Media-Query, dieselbe Selektor-Spezifitaet gewinnt sonst pro Eigenschaft und
+         die alte deckende Flaeche bliebe ueber der Pille liegen (z-index:1 vs. .tab-ind
+         z-index:0) - sichtbar eine zweite, unbewegte weisse Flaeche hinter der Pille. */
+      background: none; box-shadow: none;
       color: var(--accent-strong);
-      box-shadow: 0 1px 3px rgba(0, 0, 0, .12);
     }
     /* Zaehler als Eckmarke am Symbol — neben dem Text ist in 66 px kein Platz.
        3px statt 1px: in der gerundeten Kapsel sitzt er sonst auf der Oberkante. */
@@ -454,10 +478,20 @@
   /* Wochenplan-Kopf: Titel oben, Werkzeugleiste eine Zeile darunter */
   .plan-head { flex-direction: column; align-items: stretch; gap: 16px; }
   .plan-tools { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-  .week-switch { display: inline-flex; background: var(--surface-2); border: 1px solid var(--border); border-radius: 999px; padding: 3px; gap: 2px; }
-  .ws-btn { font: inherit; font-size: 13px; font-weight: 600; letter-spacing: .01em; cursor: pointer; border: 0; background: transparent; color: var(--text-muted); padding: 7px 15px; border-radius: 999px; white-space: nowrap; transition: color var(--dur-fast), background var(--dur-fast), box-shadow var(--dur-fast); }
+  .week-switch { display: inline-flex; position: relative; background: var(--surface-2); border: 1px solid var(--border); border-radius: 999px; padding: 3px; gap: 2px; }
+  .ws-btn { position: relative; z-index: 1; font: inherit; font-size: 13px; font-weight: 600; letter-spacing: .01em; cursor: pointer; border: 0; background: transparent; color: var(--text-muted); padding: 7px 15px; border-radius: 999px; white-space: nowrap; transition: color var(--dur-fast), background var(--dur-fast), box-shadow var(--dur-fast); }
   .ws-btn:hover { color: var(--text); }
   .ws-btn.active { color: var(--accent-contrast); background: linear-gradient(135deg, var(--accent), var(--accent-strong)); box-shadow: 0 2px 8px color-mix(in srgb, var(--accent) 34%, transparent); }
+  /* Gleitende Pille (Schiebe-Schema) NUR dort, wo das Markup sie mitliefert (.ws-ind) -
+     der Jahres-Umschalter im Rueckblick teilt sich .week-switch/.ws-btn, hat aber
+     beliebig viele Knoepfe und bleibt bewusst bei der harten Umschaltung oben. */
+  .week-switch:has(.ws-ind) .ws-btn.active { background: none; box-shadow: none; }
+  .ws-ind {
+    position: absolute; top: 3px; bottom: 3px; left: 0; z-index: 0;
+    width: 0; border-radius: 999px; pointer-events: none;
+    background: linear-gradient(135deg, var(--accent), var(--accent-strong));
+    box-shadow: 0 2px 8px color-mix(in srgb, var(--accent) 34%, transparent);
+  }
   .shop-cta { display: flex; align-items: center; justify-content: center; gap: 11px; width: 100%; margin: 22px 0 2px; padding: 16px; font: inherit; font-family: var(--font-display); font-size: 17px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; cursor: pointer; color: var(--accent-contrast); background: linear-gradient(135deg, var(--accent), var(--accent-strong)); border: 0; border-radius: var(--radius); box-shadow: 0 6px 20px color-mix(in srgb, var(--accent) 26%, transparent); transition: transform var(--dur-fast) ease, box-shadow var(--dur-fast) ease; }
   .shop-cta:hover { transform: translateY(-2px); box-shadow: 0 12px 28px color-mix(in srgb, var(--accent) 32%, transparent); }
   .shop-cta svg { width: 22px; height: 22px; }
@@ -1851,20 +1885,27 @@
        Die alte Kopfzeile hatte 15px oben - hier 14px, damit derselbe Luftraum bleibt. */
     .week > .day > .slots { padding-top: 14px; }
 
-    /* Ziele der Woche: gleiches Muster mit zwei Karten (Heute / Diese Woche). */
-    .wgbar { display: flex; gap: 6px; margin: 0 0 10px; }
+    /* Ziele der Woche: gleiches Muster mit zwei Karten (Heute / Diese Woche) UND derselben
+       gleitenden Pille wie .daybar (.db-ind, hier per initCarousel() ebenfalls gebunden) -
+       deshalb dieselbe Geometrie: position:relative + padding auf der Leiste, Flaeche und
+       Rahmen wie .daybar statt eigener Optik. */
+    .wgbar {
+      display: flex; gap: 2px; position: relative; margin: 0 0 10px; padding: 4px;
+      background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius);
+    }
     .wg-b {
+      position: relative; z-index: 1;
       flex: 1 1 0; min-width: 0; min-height: 44px; padding: 0 10px;
       font: inherit; font-size: 12.5px; font-weight: 700; letter-spacing: .02em;
       cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-      color: var(--text-muted); background: var(--surface-2);
-      border: 1px solid var(--border); border-radius: var(--radius-sm);
-      transition: color var(--dur-fast), background var(--dur-fast), border-color var(--dur-fast);
+      color: var(--text-muted); background: transparent;
+      border: 1px solid transparent; border-radius: var(--radius-sm);
+      transition: color var(--dur-fast), opacity var(--dur-fast);
     }
-    .wg-b.active {
-      color: var(--accent-contrast); border-color: transparent;
-      background: linear-gradient(135deg, var(--accent), var(--accent-strong));
-    }
+    /* Press-State wie .db-b: opacity statt scale, die Pille darunter skaliert nicht mit. */
+    .wg-b:active { opacity: .62; }
+    /* Nur noch die Schriftfarbe - die Flaeche liegt jetzt auf .db-ind darunter. */
+    .wg-b.active { color: var(--accent-contrast); }
     .wg-cols {
       flex-direction: row; gap: 12px;
       overflow-x: auto; overflow-y: hidden;
@@ -2221,6 +2262,7 @@
       </div>
       <div class="navrow">
         <div class="tabs" role="tablist" aria-label="Ansicht wählen">
+          <span class="tab-ind" aria-hidden="true"></span>
           <button class="tab" role="tab" id="tab-home" data-action="tab" data-tab="home" aria-selected="true">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8"/><path d="M5 10v10a1 1 0 0 0 1 1h3v-6h6v6h3a1 1 0 0 0 1-1V10"/></svg>
             <span class="tl">Home</span><span class="ts">Home</span>
@@ -2628,6 +2670,8 @@
     { key: "mi", label: "Mittagessen" },
     { key: "ab", label: "Abendessen"  },
   ];
+  // Reihenfolge der unteren Tab-Leiste, fuer die Richtung des Schiebe-Uebergangs (render()).
+  const TAB_ORDER = ["home", "plan", "recipes"];
   // Plausible Gewichtsgrenzen, gleiche Werte wie im Rechner (missingCalc). Stehen aus
   // demselben Grund hier oben wie ACTIVITY darunter: sanitizeWeights() braucht sie und
   // laeuft schon in `let state = load()`. Weiter unten deklariert waren sie dort in der
@@ -4387,6 +4431,7 @@
     // eines Meals landete man deshalb wieder ganz oben. Waagerecht gilt dasselbe fuer
     // die Handy-Karussells: sonst springt man von Donnerstag zurueck auf Montag.
     const sameTab = lastRenderTab === state.tab;
+    const prevTab = lastRenderTab;
     lastRenderTab = state.tab;
     const keepY = sameTab ? window.scrollY : 0;
     const weekEl = view.querySelector(".week"), wgEl = view.querySelector(".wg-cols");
@@ -4423,6 +4468,19 @@
     weekJumpDone = false;
     if (keepWgX && newWg) newWg.scrollLeft = keepWgX;
     window.scrollTo(0, keepY);
+    // Gleitende Pille der unteren Tab-Leiste (Schiebe-Schema): .tabs liegt ausserhalb von
+    // view.innerHTML und ueberlebt den Neuaufbau, deshalb reicht hier eine CSS-transition
+    // (siehe .tab-ind im 680px-Breakpoint) statt WAAPI wie bei .week-switch.
+    const tabIdx = TAB_ORDER.indexOf(state.tab);
+    const tabInd = document.querySelector(".tab-ind");
+    if (tabInd && tabIdx >= 0) tabInd.style.transform = "translateX(" + (tabIdx * 100) + "%)";
+    // Gerichteter Inhaltswechsel nur bei echtem Tabwechsel (nicht bei jedem Cloud-Snapshot
+    // oder eingeplanten Meal, die auch bei sameTab neu rendern) und NACH der Scroll-
+    // Wiederherstellung oben - sonst animiert die View, waehrend ihre Position noch springt.
+    if (!sameTab && prevTab != null) {
+      const prevIdx = TAB_ORDER.indexOf(prevTab);
+      if (prevIdx >= 0 && tabIdx >= 0) slideIn(view, Math.sign(tabIdx - prevIdx));
+    }
     save();
   }
 
@@ -5341,6 +5399,7 @@
     // Kinder der Leiste als Sprungziele und die des Streifens als Karten - ein Knopf in
     // einem der beiden waere ein dritter, toter Slide-Schalter.
     return `<div class="wgbar" role="group" aria-label="Zielansicht wählen">
+        <span class="db-ind" aria-hidden="true"></span>
         <button type="button" class="wg-b">Heute</button>
         <button type="button" class="wg-b">${weekLbl}</button>
       </div>
@@ -5440,9 +5499,9 @@
   function initCarousel(scroller, bar, panelList, onChange, opts) {
     if (!scroller || !bar) return null;
     const panels = panelList || Array.prototype.slice.call(scroller.children);
-    // Gleitende Pille des Segmented Control (Schritt 3) - nur in der .daybar vorhanden,
-    // die .wgbar (Home, "Ziele der Woche") bekommt keine, siehe CSS-Kommentar dort. Aus
-    // bar.children ausgeklammert, sonst zaehlte sie als achter "Tagesknopf" mit.
+    // Gleitende Pille des Segmented Control (Schritt 3) - in .daybar UND .wgbar vorhanden
+    // (gleiches Schema fuer beide Handy-Karussells, siehe CSS). Aus bar.children
+    // ausgeklammert, sonst zaehlte sie als zusaetzlicher Knopf mit.
     const ind = bar.querySelector(".db-ind");
     const btns = Array.prototype.slice.call(bar.children).filter(el => el !== ind);
     if (!panels.length || !btns.length) return null;
@@ -5645,6 +5704,56 @@
 
   function reducedMotion() {
     return !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+  }
+
+  // Gemeinsamer Enter-Uebergang fuer gleichrangige Ansichtswechsel (Schiebe-Schema, siehe
+  // CLAUDE.md): Wochenwechsel und Tab-Wechsel nutzen dieselbe Bewegung statt eigener Kopien.
+  // Enter-only: der innerHTML-Austausch IST der Exit, eine Ausblendung davor waere nur
+  // kuenstliche Latenz. Reduced Motion behaelt die Ueberblendung, verliert aber die Richtung
+  // (kein transform) - der globale !important-Block wuerde eine reine CSS-animation sonst
+  // komplett kappen, WAAPI erlaubt genau diese Abstufung. dir: Vorzeichen der Bewegungsrichtung
+  // (positiv = von rechts, negativ = von links); 0/falsy faellt auf reine Ueberblendung zurueck.
+  function slideIn(el, dir) {
+    if (!el || !el.animate) return null;
+    const reduced = reducedMotion();
+    const kf = (reduced || !dir)
+      ? [{ opacity: 0 }, { opacity: 1 }]
+      : [{ opacity: 0, transform: "translateX(" + (dir * 16) + "px)" }, { opacity: 1, transform: "translateX(0)" }];
+    return el.animate(kf, { duration: parseFloat(reduced ? MOTION.fast : MOTION.base) || 200, easing: MOTION.ease });
+  }
+
+  // Gleitende Pille fuer .week-switch (Schiebe-Schema, Schritt "Aktuelle/Naechste Woche"):
+  // anders als bei .db-ind/.tab-ind kann hier keine CSS-transition greifen, weil
+  // view.innerHTML die ganze Leiste bei jedem render() neu baut - die neu gebaute Pille
+  // stuende sofort am Ziel. Deshalb WAAPI, mit per getBoundingClientRect GEMESSENEN
+  // (nicht gerechneten) Positionen: "Aktuelle Woche" und "Naechste Woche" sind
+  // unterschiedlich breit, ein 50%-Ansatz saesse daneben. dir: Bewegungsrichtung wie bei
+  // slideIn() - nur gesetzt bei echtem Wochenwechsel, sonst springt die Pille lautlos.
+  function syncWeekSwitchPill(container, dir) {
+    if (!container) return;
+    const ind = container.querySelector(".ws-ind");
+    const active = container.querySelector(".ws-btn.active");
+    if (!ind || !active) return;
+    const cRect = container.getBoundingClientRect();
+    // ind.style.left rechnet gegen die PADDING-Box von .week-switch (Containing Block eines
+    // absolut positionierten Kindes), getBoundingClientRect() aber gegen die BORDER-Box -
+    // ohne den Abzug staende die Pille um genau die Randbreite (1px) zu weit rechts.
+    const bLeft = container.clientLeft;
+    const aRect = active.getBoundingClientRect();
+    const left = aRect.left - cRect.left - bLeft, width = aRect.width;
+    if (dir && !reducedMotion() && ind.animate) {
+      const other = Array.prototype.slice.call(container.querySelectorAll(".ws-btn")).find(b => b !== active);
+      if (other) {
+        const oRect = other.getBoundingClientRect();
+        ind.style.left = left + "px"; ind.style.width = width + "px";
+        ind.animate(
+          [{ left: (oRect.left - cRect.left - bLeft) + "px", width: oRect.width + "px" }, { left: left + "px", width: width + "px" }],
+          { duration: parseFloat(MOTION.base) || 200, easing: MOTION.ease }
+        );
+        return;
+      }
+    }
+    ind.style.left = left + "px"; ind.style.width = width + "px";
   }
 
   // Die Tagesleiste klebt unter dem Seitenkopf. Dessen Hoehe haengt an Schriftgroesse
@@ -5987,6 +6096,7 @@
         </div>
         <div class="plan-tools">
           <div class="week-switch" role="tablist" aria-label="Woche wählen">
+            <span class="ws-ind" aria-hidden="true"></span>
             <button class="ws-btn${state.viewWeek === "next" ? "" : " active"}" data-action="week" data-week="cur" role="tab" aria-selected="${state.viewWeek === "next" ? "false" : "true"}">Aktuelle Woche</button>
             <button class="ws-btn${state.viewWeek === "next" ? " active" : ""}" data-action="week" data-week="next" role="tab" aria-selected="${state.viewWeek === "next" ? "true" : "false"}">Nächste Woche</button>
           </div>
@@ -6109,20 +6219,8 @@
     // pendingWeekDir, einmalig konsumiert - render() laeuft auch bei jedem Meal-Einplanen
     // und jedem Cloud-Snapshot, dort darf nichts blitzen.
     const weekDir = pendingWeekDir; pendingWeekDir = 0;
-    if (weekDir) {
-      const weekEl = view.querySelector(".week");
-      if (weekEl && weekEl.animate) {
-        const reduced = reducedMotion();
-        // Enter-only: der innerHTML-Austausch IST der Exit, eine Ausblendung davor waere
-        // nur kuenstliche Latenz. Reduced Motion behaelt die Ueberblendung, verliert aber
-        // die Richtung (kein transform) - der globale !important-Block wuerde eine reine
-        // CSS-animation sonst komplett kappen, WAAPI erlaubt genau diese Abstufung.
-        const kf = reduced
-          ? [{ opacity: 0 }, { opacity: 1 }]
-          : [{ opacity: 0, transform: "translateX(" + (weekDir * 16) + "px)" }, { opacity: 1, transform: "translateX(0)" }];
-        weekEl.animate(kf, { duration: parseFloat(reduced ? MOTION.fast : MOTION.base) || 200, easing: MOTION.ease });
-      }
-    }
+    if (weekDir) slideIn(view.querySelector(".week"), weekDir);
+    syncWeekSwitchPill(view.querySelector(".week-switch"), weekDir);
   }
 
   // Bewusst nicht gespeichert: beim Neuladen gilt wieder die Standardvorbelegung unten.
