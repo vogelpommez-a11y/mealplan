@@ -321,6 +321,41 @@ Besser: das CSS unverändert lassen und stattdessen ein schmales Fenster verwend
 
 Beide Zahlen lassen sich mit dem Proxy-Trick und einem Aufrufzähler direkt belegen.
 
+### Echte Wischgesten messen (CDP-Prüfstand)
+
+Wisch- und Snap-Verhalten lässt sich nicht mit `scrollTo()` prüfen — ein programmatischer Lauf
+nimmt einen anderen Weg durch den Browser als ein Finger. Für den Wochenplan-Streifen gibt es
+deshalb einen eigenen Prüfstand:
+
+1. Edge headless mit `--remote-debugging-port` und `--user-data-dir` starten.
+2. Über einen minimalen WebSocket-Client (Python-Standardbibliothek, kein npm) am
+   DevTools-Protokoll anmelden.
+3. `Emulation.setDeviceMetricsOverride` (390 × 844, `mobile: true`) und
+   `Emulation.setTouchEmulationEnabled` setzen — sonst greift die Handy-Abfrage nicht.
+4. Die Geste mit `Input.dispatchTouchEvent` fahren: ein `touchStart`, viele `touchMove`
+   über ~300 ms, ein `touchEnd`.
+5. Danach `scrollLeft` gegen die Snap-Punkte prüfen.
+
+Fallen dabei:
+
+* **`Input.synthesizeScrollGesture` mit `gestureSourceType: "touch"` bewegt headless nichts.**
+  Es kommt kein einziges `scroll`-Ereignis an. `"mouse"` funktioniert, ist aber ein Rad-Scroll
+  und damit fast augenblicklich — für Snap-Fragen zu grob. Nur `Input.dispatchTouchEvent`
+  liefert eine brauchbare Geste.
+* **`Page.screencastFrame` muss quittiert werden** (`Page.screencastFrameAck`), sonst liefert
+  Chrome genau ein Bild und schweigt danach.
+* **Ein bestehender Fund braucht immer die Gegenprobe am alten Stand.** `git show HEAD:index.html`
+  als zweite Datei ausliefern und denselben Test dagegen fahren — sonst ist nicht belegt, dass
+  die Änderung überhaupt etwas bewirkt hat.
+* **Der Browser der Chrome-Erweiterung taugt dafür nicht**: sein Tab läuft verborgen
+  (`document.hidden === true`), `requestAnimationFrame` tickt dort nicht, Sanftläufe und
+  Screenshots laufen ins Leere.
+* **Nie gegen den echten `localhost`-Port testen, an dem die App schon angemeldet ist.**
+  Ein zweiter Port ist eine eigene Origin mit eigenem `localStorage` und ohne Firebase-Sitzung;
+  zusätzlich in der Testkopie den `apiKey` auf `DEIN_…` setzen, dann fällt die App auf den
+  lokalen Login zurück und schreibt garantiert nichts in die Cloud (siehe
+  `docs/TROUBLESHOOTING.md`, Punkt 36).
+
 ## 5. UI-Testregeln
 
 Bei UI-Änderungen mindestens prüfen:

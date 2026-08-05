@@ -783,7 +783,40 @@ Wachstum von `state.recipes` (und damit der Firestore-Gruppendokumente) — ein 
 desselben Produkts sucht zuerst per `state.recipes.find(r => r.barcode === code)` nach einem
 bestehenden Eintrag und plant nur diesen ein, statt ein Duplikat anzulegen.
 
-## 42. Grundregel bei Fehlern
+## 42. Wochenplan bleibt beim Zurückwischen zwischen zwei Tagen stehen
+
+**Symptom:** Auf dem Handy wischt man vom Folgetag zurück auf heute — und der Streifen bleibt
+halb auf beiden Tageskarten stehen, statt einzurasten. In der Gegenrichtung (heute → morgen)
+fällt es nicht auf.
+
+**Ursache:** `fitHeight()` in `initCarousel()` schreibt `scroller.style.height` **während** der
+Wisch noch läuft. Beim Zurückwischen ist die hereinkommende Karte in aller Regel höher als die
+verlassene (heute ist der vollere Tag), der Streifen wächst also schon beim ersten Millimeter der
+Geste. Ein Größenwechsel des Snap-Behälters lässt den Browser sein Snap-Ziel neu bestimmen und
+kann den laufenden Wisch dabei verlieren. Vorwärts passiert derselbe Schreibvorgang erst in den
+letzten Pixeln, deshalb die Richtungs-Asymmetrie. Auf iOS kommt hinzu, dass `requestAnimationFrame`
+im Momentum-Scroll gedrosselt wird — die Höhenänderung schlägt dort gebündelt genau beim
+Einrasten auf.
+
+**Lösung:** `settleNative()` in `initCarousel()` — dieselbe Nachkorrektur, die `go()` mit
+`settle()` seit jeher für den programmatischen Sanftlauf hat, jetzt auch für den Finger-Wisch.
+Ausgelöst über `scrollend`, mit einem 220-ms-Timeout als Rückfall für Browser ohne `scrollend`.
+Solange ein Finger auf dem Streifen liegt (`e.touches.length`), wird **nicht** korrigiert — dort
+ist „zwischen zwei Tagen" der gewollte Zustand. Zielpunkt ist `lefts[currentIndex()]`, also genau
+der Tag, den die Tagesleiste ohnehin hervorhebt. Hart gesetzt statt sanft: ein zweiter Sanftlauf
+könnte auf demselben Weg wieder zwischen zwei Punkten enden.
+
+**Nachweis (Prüfstand):** Headless Edge mit `--remote-debugging-port`, echte Wischgeste per CDP
+`Input.dispatchTouchEvent`. Der Snap-Verlust wird nachgestellt, indem `scroll-snap-type` für die
+Dauer der Geste auf `none` gesetzt wird. Alter Stand blieb 145 px neben dem Snap-Punkt stehen,
+neuer Stand korrigiert auf 0 px — Normalbetrieb (beide Richtungen, Mehrtages-Sprung über die
+Tagesleiste) in beiden Fassungen unverändert korrekt. Siehe `docs/TESTING.md`.
+
+**Lehre:** Die Größe eines `scroll-snap`-Behälters nie sorglos während einer laufenden Geste
+ändern. Wo es sich nicht vermeiden lässt, gehört eine Nachkorrektur auf den nächsten Snap-Punkt
+dazu — für **jeden** Auslöser, nicht nur für den programmatischen.
+
+## 43. Grundregel bei Fehlern
 
 Nicht einfach den sichtbaren Fehler flicken.
 

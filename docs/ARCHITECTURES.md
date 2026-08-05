@@ -587,6 +587,17 @@ erzwungenes Layout pro Bild, genau während gewischt wurde.
 jedes `initCarousel()`-Aufrufs, nicht in einer einmaligen Initialisierung. `resetCarousels()`
 trennt vorher die alten `ResizeObserver`.
 
+Zwei Nachkorrekturen sorgen dafür, dass der Streifen nie zwischen zwei Tagen liegen bleibt —
+`fitHeight()` ändert die Höhe des Snap-Behälters mitten im Lauf, und der Browser kann sein
+Snap-Ziel dabei verlieren:
+
+* `settle()` in `go()` — für den programmatischen Sanftlauf (Tippen auf die Tagesleiste).
+* `settleNative()` — für den Finger-Wisch, ausgelöst über `scrollend` (Rückfall: 220-ms-Timeout).
+  Solange ein Finger auf dem Streifen liegt, wird nicht korrigiert.
+
+Beide setzen hart auf `lefts[…]`, beide zielen auf den Tag, den die Tagesleiste ohnehin anzeigt.
+Siehe `docs/TROUBLESHOOTING.md`, Punkt 42.
+
 ### Tagesleiste als Segmented Control
 
 Die Fläche liegt auf der Leiste, die Knöpfe sind transparent, und eine Pille (`.db-ind`) gleitet

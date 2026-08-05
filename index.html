@@ -5667,12 +5667,40 @@
       carouselObservers.push(ro);
     }
 
+    // Ein Finger-Wisch hatte - anders als go() - keine Absicherung, wenn er zwischen zwei
+    // Snap-Punkten liegen blieb: der Plan stand dann haelftig auf zwei Tagen. Ausloeser ist
+    // fitHeight(), das die Hoehe des Scrollers mitten im Lauf schreibt. Beim Zurueckwischen
+    // (morgen -> heute) ist die hereinkommende Karte in der Regel hoeher als die verlassene
+    // - heute ist der vollere Tag -, der Streifen waechst also schon beim ersten Millimeter
+    // der Geste. Ein Groessenwechsel des Snap-Behaelters laesst den Browser sein Snap-Ziel
+    // neu bestimmen und kann den laufenden Wisch dabei verlieren; vorwaerts faellt es nicht
+    // auf, weil die Hoehe dort erst am Ende schrumpft. go() faengt genau diesen Fall seit
+    // jeher mit settle() ab - hier dieselbe Nachkorrektur fuer den nativen Wisch.
+    let settleTimer = 0, touching = false;
+    ["touchstart", "touchend", "touchcancel"].forEach(t => {
+      scroller.addEventListener(t, e => { touching = !!(e.touches && e.touches.length); }, { passive: true });
+    });
+    function settleNative() {
+      // Solange der Finger liegt, ist "zwischen zwei Tagen" der gewollte Zustand.
+      if (touching) { armSettle(); return; }
+      const i = currentIndex();
+      if (lefts[i] == null) return;
+      if (Math.abs(scroller.scrollLeft - lefts[i]) > 2) scroller.scrollLeft = lefts[i];
+    }
+    // Hart setzen statt sanft: ein zweiter Lauf koennte auf demselben Weg wieder zwischen
+    // zwei Punkten enden. Der Zielindex ist derselbe, den die Tagesleiste ohnehin schon
+    // hervorhebt (currentIndex()) - korrigiert wird also auf den angezeigten Tag.
+    function armSettle() { clearTimeout(settleTimer); settleTimer = setTimeout(settleNative, 220); }
+    const hasScrollEnd = "onscrollend" in scroller;
+    if (hasScrollEnd) scroller.addEventListener("scrollend", settleNative, { passive: true });
+
     let ticking = false;
     scroller.addEventListener("scroll", () => {
       // Synchron, nicht im rAF-Block: iOS-Safari drosselt requestAnimationFrame waehrend
       // Momentum-Scroll, das scroll-Ereignis kommt aber weiter. Ein einzelner
       // Transform-Write ist billig genug fuer jedes Bild.
       syncIndicator();
+      if (!hasScrollEnd) armSettle();   // Rueckfall fuer Safari ohne scrollend
       if (ticking) return;
       ticking = true;
       requestAnimationFrame(() => { ticking = false; markActive(); fitHeight(); });
