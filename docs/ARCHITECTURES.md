@@ -103,6 +103,12 @@ Daten liegen unter:
 
 `shared/{id}`
 
+### Meal teilen
+
+Standardweg ist `shareRecipeNow(recipeId)`: ein Tipp, danach direkt das native Share-Sheet (`shareLink()`, analog `shareShopPdf()`/`shareFileOrText()`). Voraussetzung sind eine echte Cloud-Anmeldung (`CloudShare.enabled && authMode === "cloud"` — `enabled` allein sagt nur, dass Firebase konfiguriert ist) und `canShare()` (Gerät hat `navigator.share`); sonst öffnet weiterhin das Modal `openShareRecipe()` mit „Meal-Link erstellen" und Zwischenablage.
+
+`CloudShare.publish()` läuft bewusst ohne `await` parallel zu `shareLink()`, siehe `docs/TROUBLESHOOTING.md` Ziffer 40. `state.shares` wird erst ergänzt, wenn `publish()` erfolgreich war — unabhängig davon, ob der Nutzer das Share-Sheet danach abbricht oder durchführt.
+
 ### `window.CloudGroup`
 
 Verantwortlich für:

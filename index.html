@@ -7057,7 +7057,7 @@
     // Beim Nur-Ansehen stehen die beiden Knoepfe gar nicht erst da (siehe oben).
     const editBtn = node.querySelector("[data-edit]");
     if (editBtn) editBtn.addEventListener("click", () => { closeModal(); openRecipeForm(r.id); });
-    node.querySelector("[data-share]").addEventListener("click", () => { closeModal(); openShareRecipe(r.id); });
+    node.querySelector("[data-share]").addEventListener("click", () => { closeModal(); shareRecipeNow(r.id); });
     const delBtn = node.querySelector("[data-del]");
     if (delBtn) delBtn.addEventListener("click", () => { closeModal(); deleteRecipe(r.id); });
     openModal(node);
@@ -7685,7 +7685,7 @@
     else if (a === "edit") openRecipeForm(t.dataset.id);
     else if (a === "view") openRecipeDetail(t.dataset.id);
     else if (a === "delete") deleteRecipe(t.dataset.id);
-    else if (a === "share-recipe") openShareRecipe(t.dataset.id);
+    else if (a === "share-recipe") shareRecipeNow(t.dataset.id);
     else if (a === "clear-examples") clearExamples();
     else if (a === "toggle-cat") {
       const c = t.dataset.cat;
@@ -10719,6 +10719,13 @@
     }
     return false;
   }
+  // Teilt einen Link. Bewusst mit url: statt nur text: - Android/iOS erkennen den Typ
+  // text/plain und zeigen dann die volle Direct-Share-Zeile mit Kontakten, genau wie
+  // bei der Einkaufsliste. Rueckgabe: true = geteilt, false = abgebrochen/nicht moeglich.
+  async function shareLink(title, text, url) {
+    try { await navigator.share({ title: title, text: text, url: url }); return true; }
+    catch (e) { if (e && e.name === "AbortError") return false; throw e; }
+  }
   // ----- Einkaufsliste als PDF (Paket B3) -----
   // Die Einkaufsliste ist beliebig lang - deshalb mehrseitig statt einer festen Ein-Seiten-
   // Struktur. Baut je Seite einen eigenen Content-Stream und haengt sie am Ende zu einem
@@ -10839,6 +10846,34 @@
   }
 
   window.addEventListener("beforeprint", () => { const pa = document.getElementById("print-area"); if (pa) pa.innerHTML = buildPrintable(); });
+
+  // Neuer Standardweg zum Teilen eines Meals: ein Tipp statt Modal -> Link erstellen -> kopieren.
+  // Faellt auf openShareRecipe() zurueck, wenn das Geraet kein natives Share-Sheet hat, kein
+  // Cloud-Konto besteht oder das Foto zu gross fuer den Payload ist - das Modal bleibt dafuer
+  // vollstaendig erhalten.
+  function shareRecipeNow(recipeId) {
+    const r = getRecipe(recipeId);
+    if (!r) return;
+    const payload = shareMealPayload(recipeId);
+    if (!payload || JSON.stringify(payload).length > 400000) { openShareRecipe(recipeId); return; }
+    // CloudShare.enabled sagt nur, dass Firebase konfiguriert ist - nicht, dass diese Person
+    // gerade per Cloud angemeldet ist (siehe loadSharedById() Zeile 8084). Ein lokales Profil
+    // hat keine Firebase-Authentifizierung, publish() wuerde an den Firestore-Regeln scheitern
+    // und der verschickte Link waere tot.
+    const cloudOk = window.CloudShare && window.CloudShare.enabled && authMode === "cloud";
+    if (!cloudOk || !canShare()) { openShareRecipe(recipeId); return; }
+    // shareId() ist synchron, deshalb steht die URL sofort fest: publish() und das Share-Sheet
+    // koennen parallel laufen, ohne die Nutzer-Aktivierung durch ein await zu verbrauchen
+    // (siehe docs/TROUBLESHOOTING.md). state.shares wird erst nach erfolgreichem publish()
+    // ergaenzt - sonst wuerden gescheiterte oder abgebrochene Uploads mitgezaehlt, obwohl nie
+    // ein shared/{id}-Dokument entstanden ist.
+    const id = shareId();
+    const url = location.origin + location.pathname + "?s=" + id;
+    window.CloudShare.publish(id, payload).then(() => {
+      if (!(state.shares || []).includes(id)) { state.shares = unionIds(state.shares, [id]); save(); }
+    }).catch(() => { toast("Der Link ist noch nicht gespeichert – teile ihn noch einmal, sobald du online bist."); });
+    shareLink(r.name, "Mein Meal für dich: " + r.name, url).catch(() => { toast("Teilen hat nicht geklappt"); });
+  }
 
   function openShareRecipe(recipeId) {
     const r = getRecipe(recipeId);

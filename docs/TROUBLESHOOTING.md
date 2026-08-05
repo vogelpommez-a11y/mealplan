@@ -731,7 +731,19 @@ absolut positionierten Kindes), `getBoundingClientRect()` aber gegen die *Border
 Abzug von `container.clientLeft` stand die Pille um genau die Randbreite (1 px) zu weit
 rechts, am rechten Rand sichtbar asymmetrisch neben der 3-px-Polsterung.
 
-## 40. Grundregel bei Fehlern
+## 40. `navigator.share()` verliert die Nutzer-Aktivierung nach einem `await`
+
+`navigator.share()` verlangt eine gültige Nutzer-Aktivierung (der Klick selbst). Wird vor dem Aufruf zuerst ein Netzwerk-Roundtrip abgewartet (z. B. `await CloudShare.publish(...)`), ist die Aktivierung auf iOS Safari verbraucht — `share()` wirft dann `NotAllowedError`, obwohl der Nutzer gerade erst getippt hat.
+
+`shareRecipeNow()` (10854) umgeht das: `shareId()` ist synchron, die Link-URL steht also sofort fest. `CloudShare.publish()` wird ohne `await` gestartet, direkt danach folgt `shareLink()` — beide laufen parallel, kein `await` liegt zwischen Klick und `navigator.share()`.
+
+**Der Preis dafür:** Der Link kann beim Empfänger ankommen, bevor (oder ohne dass) `publish()` gelingt — das Teilen-Sheet öffnet sich unabhängig vom Ausgang des Uploads. Ein Fehlschlag zeigt einen Toast, der aber erst nach/hinter dem bereits geöffneten Sheet erscheint und den bereits verschickten Link nicht mehr zurückholen kann. Deshalb wird `state.shares` erst **nach erfolgreichem** `publish()` ergänzt (nicht sofort beim Start) — sonst würden gescheiterte oder abgebrochene Uploads mitgezählt, obwohl nie ein `shared/{id}`-Dokument entstanden ist.
+
+Zusätzlich prüft `shareRecipeNow()` `authMode === "cloud"`, nicht nur `CloudShare.enabled` — Letzteres sagt nur, dass Firebase konfiguriert ist, nicht, dass diese Person gerade per Cloud angemeldet ist (dieselbe Weiche wie bei `loadSharedById()`, 8082). Ohne diese Prüfung würde ein lokales Profil `publish()` starten, das an `allow create: if request.auth != null` scheitert, während der Link bereits verschickt wurde.
+
+Gilt für jeden künftigen Share-Flow, der Cloud-Daten UND das native Share-Sheet in derselben Aktion braucht.
+
+## 41. Grundregel bei Fehlern
 
 Nicht einfach den sichtbaren Fehler flicken.
 

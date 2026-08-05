@@ -194,6 +194,18 @@ Beispiele:
   handverlesenen Beispiel trotzdem gut aus. Randfälle mitnehmen: leere Gruppe, fremde UID, und
   **sieben** Mitglieder (mehr Personen als Farben — die Schleife darf dort nicht hängen).
 
+* **`shareRecipeNow()`** mit gestubbtem `navigator.share`, `CloudShare.publish` und `shareId`
+  ausschneiden und über ein Aufruf-Log prüfen: `navigator.share()` wird aufgerufen, bevor das
+  `publish()`-Promise resolved (Nachweis, dass `await` die Nutzer-Aktivierung nicht verbraucht,
+  siehe `docs/TROUBLESHOOTING.md` Ziffer 40) · `state.shares` enthält die ID, wenn `publish()`
+  gelingt — auch wenn der Nutzer das Share-Sheet danach abbricht (`AbortError`) · ein
+  `publish`-Reject erzeugt einen Toast statt eines unbehandelten Promise und lässt `state.shares`
+  frei von der ID (kein Firestore-Dokument entstanden) · ohne `canShare()`, ohne Cloud-Konto, bei
+  `authMode !== "cloud"` (lokales Profil, `CloudShare.enabled` allein reicht nicht) oder bei
+  Payload > 400 KB öffnet sich `openShareRecipe()`. Ein gestubbtes `navigator.share` belegt nur
+  die Aufruf-Reihenfolge, nicht dass iOS Safari die Aktivierung tatsächlich akzeptiert — das
+  bleibt ein offener Handy-Test (siehe `ROADMAP.html`).
+
 ### Layout messen statt schätzen
 
 Wo eine Änderung die Breite eines Elements verändert (hier: zweistellige Badge-Kürzel), reicht
