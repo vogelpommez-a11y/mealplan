@@ -906,25 +906,30 @@
   .slot .filled .r-meta { font-size: 11.5px; color: var(--text-muted); margin-top: 1px; }
   .slot .filled .x, .slot .filled .pencil {
     position: relative; flex: none; border: 0; background: transparent; color: var(--text-muted); cursor: pointer;
-    width: 28px; height: 28px; border-radius: var(--radius-sm); display: grid; place-items: center; line-height: 1;
+    width: 32px; height: 32px; border-radius: var(--radius-sm); display: grid; place-items: center; line-height: 1;
     touch-action: manipulation; -webkit-tap-highlight-color: transparent;
   }
   /* hitSlop wie .toast-undo::after: vergroessert die Trefferflaeche, ohne die sichtbare
      Knopfgroesse zu aendern. Die Enge gilt NUR waagerecht zwischen Stift und X (8px
      Abstand) - senkrecht ist der Platz frei, und rechts vom X liegt nur noch der
      Kartenrand. Deshalb nicht ein einzelner kleiner Wert fuer alles, sondern je Seite
-     so viel wie moeglich: 28 + 8 + 8 = 44px hoch, die von Apple HIG und WCAG 2.5.5
-     geforderte Mindestgroesse. */
+     so viel wie moeglich: 32 + 8 + 8 = 48px hoch, ueber der von Apple HIG und WCAG 2.5.5
+     geforderten Mindestgroesse von 44px. */
   .slot .filled .x::after, .slot .filled .pencil::after { content: ""; position: absolute; inset: -8px; }
-  /* Steht der Stift daneben (nur im Gruppenmodus, ab zwei Mitgliedern), reichen die 8px
-     Abstand der Karte nicht fuer zwei volle Flaechen: 28 + 8 + 8 = 44px wollen JE Knopf
-     8px nach aussen, zwei benachbarte brauchen also 16px zwischen sich. Genau die gibt
-     dieser Zuschlag - danach liegen beide 44x44px-Flaechen exakt aneinander (0px), ohne
-     sich zu ueberlappen. Kostet 8px Textbreite, aber nur im Gruppenmodus; die
-     Alternative waere ein dauerhaft zu schmales Ziel fuer eine der beiden Aktionen. */
+  /* Steht der Stift (jetzt Personen-Icon) daneben (nur im Gruppenmodus, ab zwei
+     Mitgliedern), reichen die 8px Abstand der Karte nicht fuer zwei volle Flaechen: jeder
+     Knopf will 8px hitSlop nach aussen, zwei benachbarte brauchen also 16px sichtbaren
+     Abstand zwischen sich - 8px liefert bereits der Flex-gap der Karte (.slot .filled),
+     die fehlenden 8px kommen von diesem Zuschlag. Rechnung ist bewusst UNABHAENGIG von
+     der Knopfgroesse (28px -> 32px, siehe oben): der hitSlop ist ein fester Wert, kein
+     Anteil der Knopfgroesse - deshalb musste dieser Wert bei der Groessenaenderung NICHT
+     neu hergeleitet werden (Gegenprobe gemacht). Nach wie vor: beide 44x44px+-Flaechen
+     liegen exakt aneinander, ohne sich zu ueberlappen. Kostet 8px Textbreite, aber nur im
+     Gruppenmodus; die Alternative waere ein dauerhaft zu schmales Ziel fuer eine der
+     beiden Aktionen. */
   .slot .filled .pencil { margin-right: 8px; }
-  .slot .filled .x { font-size: 17px; }
-  .slot .filled .pencil { font-size: 15px; }
+  .slot .filled .x { font-size: 19px; }
+  .slot .filled .pencil svg { width: 18px; height: 18px; }
   .slot .filled .x:hover { background: color-mix(in srgb, var(--danger) 14%, transparent); color: var(--danger); }
   .slot .filled .pencil:hover { background: color-mix(in srgb, var(--accent) 14%, transparent); color: var(--accent); }
   /* Touch kennt kein Hover: ohne Press-State bliebe der einzige Hinweis, dass getroffen
@@ -1242,7 +1247,8 @@
   .imgbtns label.btn { cursor: pointer; }
 
   /* Picker list */
-  .picker-search { margin-bottom: 12px; }
+  .picker-search { display: flex; gap: 8px; margin-bottom: 12px; }
+  .picker-search input { flex: 1; min-width: 0; }
   .plist { display: flex; flex-direction: column; gap: 4px; max-height: 46vh; overflow-y: auto; margin: 0 -4px; padding: 0 4px; }
   .pitem { display: flex; align-items: center; gap: 11px; text-align: left; width: 100%; font: inherit; cursor: pointer;
     background: transparent; border: 1px solid transparent; border-radius: var(--radius-sm); padding: 9px 11px; color: var(--text); }
@@ -4065,6 +4071,11 @@
     if (recipeIndex) return recipeIndex.get(id) || null;
     return state.recipes.find(r => r.id === id) || null;
   }
+  // Die Meals-Bibliothek OHNE die per Barcode-Schnellzugriff still angelegten Produkte
+  // (quick: true). Zaehler, Suchfeld, Leerzustand und Liste im Reiter "Meals" muessen
+  // dieselbe Menge sehen - sonst steht dort "12 Meals" ueber zehn Karten, oder der
+  // Leerzustand fehlt, obwohl die Liste leer aussieht.
+  function libraryRecipes() { return state.recipes.filter(r => r.quick !== true); }
   function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;" }[c])); }
 
   // ---------- Zahleneingabe: Rad am Handy, Tastatur am Rechner ----------
@@ -4200,6 +4211,9 @@
   const ICON_DUMBBELL = '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="2" y="7.5" width="5" height="9" rx="1.6" fill="currentColor"/><rect x="17" y="7.5" width="5" height="9" rx="1.6" fill="currentColor"/><path d="M7 12h10" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg>';
   // Flagge fuers "Grundziel" in der Ring-Kennzahlenliste (goalRingHtml).
   const ICON_FLAG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 21V4"/><path d="M5 4h13l-3 4.5L18 13H5"/></svg>';
+  // Zwei-Personen-Icon fuer den "Zuweisung aendern"-Knopf einer geplanten Karte (ersetzt
+  // den Stift, der wie "bearbeiten" liest, obwohl die Aktion "wer isst mit" bedeutet).
+  const ICON_PEOPLE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8.5" cy="8" r="3"/><path d="M2.5 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><path d="M15.3 6.3a3 3 0 0 1 0 5.7"/><path d="M17 14.4c2.3.6 4 2.8 4 5.6"/></svg>';
 
   // ---------- Gerichtsfotos (eingebettet, nach Namen zugeordnet) ----------
   //
@@ -4442,7 +4456,7 @@
     recipeIndex = new Map(state.recipes.map(r => [r.id, r]));
     dayNutCache = {};
     try {
-      document.getElementById("recipe-count").textContent = state.recipes.length;
+      document.getElementById("recipe-count").textContent = libraryRecipes().length;
       document.querySelectorAll(".tab").forEach(t => t.setAttribute("aria-selected", String(t.dataset.tab === state.tab)));
       if (state.tab === "recipes") renderRecipes();
       else if (state.tab === "plan") renderPlan(sameTab);
@@ -4816,6 +4830,9 @@
     return zxLoad;
   }
   const BARCODE_FORMATS = ["ean_13", "ean_8", "upc_a", "upc_e", "code_128"];
+  // Barcode-Icon, geteilt zwischen Zutatenzeile (applyBarcode) und Plan-Schnellzugriff
+  // (quickAddByBarcode) - ein Icon fuer denselben Scan-Einstieg statt zwei Kopien.
+  const BARCODE_SVG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round"><path stroke-width="2.4" d="M4 5v14"/><path stroke-width="1.4" d="M7.5 5v14"/><path stroke-width="2.4" d="M10.5 5v14"/><path stroke-width="1.4" d="M13.5 5v14"/><path stroke-width="1.4" d="M16.5 5v14"/><path stroke-width="2.4" d="M19.5 5v14"/></svg>`;
   // Eigene Liste fuer den Einladungs-Scanner - BARCODE_FORMATS bewusst NICHT um "qr_code"
   // erweitern, sonst wuerde der Zutaten-Scanner ploetzlich auch QR-Codes annehmen.
   const QR_FORMATS = ["qr_code"];
@@ -4869,9 +4886,43 @@
     }
     return null;
   }
+  // Wertet OFF's serving_size/quantity-Feld aus ("65 g", "1 Stück (65 g)", "6 x 65 g").
+  // grams ist das erkannte Gewicht der Bezugsgroesse - bei "1 Stück (65 g)" das eines
+  // einzelnen Stuecks, bei "6 x 65 g" ebenfalls eines einzelnen Stuecks (count traegt die
+  // Anzahl), bei reinem "500 g" das der ganzen Packung. count ist NUR gesetzt, wenn eine
+  // Stueckzahl im Text stand - erst dann darf ein Aufrufer die Einheit auf "Stück"
+  // umschalten. Ohne jede erkennbare Zahl+Einheit liefert die Funktion null.
+  function offServingSize(p) {
+    // serving_size (echte Portionsangabe) hat Vorrang vor quantity (Packungsgroesse);
+    // serving sagt dem Aufrufer, welche der beiden Quellen gewonnen hat - eine
+    // Packungsgroesse ist KEINE Portion (siehe quickAddByBarcode).
+    // Komma global ersetzen: OFF-Texte tragen oft mehr als eine Zahl ("1,5 l (1,58 kg)").
+    const serv = String((p && p.serving_size) || "").trim();
+    const raw = (serv || String((p && p.quantity) || "")).replace(/,/g, ".").trim();
+    if (!raw) return null;
+    // "x" und das Mal-Zeichen "×" kommen bei OFF beide vor ("6 x 65 g", "6 × 65 g").
+    const multi = raw.match(/(\d+(?:\.\d+)?)\s*[x×]\s*(\d+(?:\.\d+)?)\s*(g|ml)\b/i);
+    if (multi) {
+      const count = parseFloat(multi[1]), grams = parseFloat(multi[2]);
+      if (count > 0 && grams > 0) return { grams, count, serving: !!serv };
+    }
+    const piece = raw.match(/(\d+(?:\.\d+)?)\s*(?:stück|stk|riegel|scheiben?|packung|beutel)\.?\D*?(\d+(?:\.\d+)?)\s*(g|ml)/i);
+    if (piece) {
+      const count = parseFloat(piece[1]), grams = parseFloat(piece[2]);
+      if (count > 0 && grams > 0) return { grams, count, serving: !!serv };
+    }
+    const plain = raw.match(/(\d+(?:\.\d+)?)\s*(g|ml|l|kg)\b/i);
+    if (plain) {
+      let grams = parseFloat(plain[1]);
+      const unit = plain[2].toLowerCase();
+      if (unit === "l" || unit === "kg") grams *= 1000;
+      if (grams > 0) return { grams, count: null, serving: !!serv };
+    }
+    return null;
+  }
   async function fetchOffNutrition(code) {
     const url = "https://world.openfoodfacts.org/api/v2/product/" + encodeURIComponent(code) +
-      ".json?fields=product_name,product_name_de,generic_name,generic_name_de,nutriments,status";
+      ".json?fields=product_name,product_name_de,generic_name,generic_name_de,nutriments,status,serving_size,quantity";
     const res = await fetch(url);
     if (!res.ok) throw new Error("off-http-" + res.status);
     const data = await res.json();
@@ -4881,7 +4932,7 @@
     const kcal = num(n["energy-kcal_100g"]), carbs = num(n.carbohydrates_100g),
           protein = num(n.proteins_100g), fat = num(n.fat_100g);
     if (kcal == null && carbs == null && protein == null && fat == null) return null;
-    return { name: offName(data.product), kcal, carbs, protein, fat };
+    return { name: offName(data.product), kcal, carbs, protein, fat, servingSize: offServingSize(data.product) };
   }
 
   // Live-Scanner: Kamerabild statt Einzelfoto — man haelt den Barcode in den Rahmen,
@@ -6176,7 +6227,7 @@
           html += `<div class="filled"${drag ? ` draggable="true"` : ""} data-action="view" data-id="${r.id}" data-slot-src="${d.key}:${m.key}:${idx}" title="${esc(r.name)}${esc(assignNote)}${drag ? " – ziehen zum Verschieben" : ""}">
               <span class="r-thumb-wrap">${thumbHtml(r, "r-thumb")}${badge}</span>
               <div><div class="r-name">${esc(r.name)}</div>${recipeNut(r).kcal ? `<div class="r-meta">${nfmt(recipeNut(r).kcal)} kcal</div>` : ""}</div>
-              ${showPencil ? `<button class="pencil" data-action="assign" data-slot-src="${d.key}:${m.key}:${idx}" aria-label="Zuweisung ändern" title="Zuweisung ändern">✎</button>` : ""}
+              ${showPencil ? `<button class="pencil" data-action="assign" data-slot-src="${d.key}:${m.key}:${idx}" aria-label="Zuweisung ändern" title="Zuweisung ändern">${ICON_PEOPLE}</button>` : ""}
               ${drag ? `<button class="x" data-action="unassign" data-slot-src="${d.key}:${m.key}:${idx}" aria-label="Entfernen" title="Entfernen">✕</button>` : ""}
             </div>`;
         });
@@ -6263,7 +6314,7 @@
           Neues Meal
         </button>` : ""}
       </div>
-      ${state.recipes.length > 0 ? `<div class="recipe-search">
+      ${libraryRecipes().length > 0 ? `<div class="recipe-search">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
         <input type="search" id="r-search" placeholder="Meal suchen …" autocomplete="off" value="${esc(recipeQuery)}" aria-label="Meals durchsuchen">
       </div>` : ""}
@@ -6280,7 +6331,8 @@
     const container = view.querySelector("#r-groups");
     if (!container) return;
 
-    if (state.recipes.length === 0) {
+    const library = libraryRecipes();
+    if (library.length === 0) {
       container.innerHTML = `<div class="empty">
         <svg class="em-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4v16a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1V7l-4-3H5a1 1 0 0 0-1 1Z"/><path d="M8 9h8M8 13h8M8 17h5"/></svg>
         <h3>${canEdit() ? "Noch keine Meals" : "Hier ist noch nichts"}</h3>
@@ -6291,7 +6343,10 @@
     }
 
     const q = recipeQuery.toLowerCase().trim();
-    let pool = state.recipes;
+    // Barcode-Schnellzugriff-Meals (quick: true) sind eine bewusste Ausnahme: sie stehen
+    // nicht in der Bibliothek (libraryRecipes), bleiben aber ueber Plan/Einkaufsliste/PDF
+    // normal erreichbar (siehe quickAddByBarcode).
+    let pool = library;
     if (q) pool = pool.filter(r => r.name.toLowerCase().includes(q) || (r.category || "").toLowerCase().includes(q));
 
     // Favoriten stehen oben UND bleiben in ihrer Kategorie: wer ein Meal dort sucht, soll es
@@ -6618,15 +6673,22 @@
   }
 
   // ---------- Recipe form ----------
-  function openRecipeForm(id) {
+  // prefill: nur bei neuem Meal (id == null) genutzt - fuellt Name/Kategorie/Barcode und
+  // optional eine Zutaten-Zeile (ingredients, Naehrwerte je 100 g) vor, wenn
+  // quickAddByBarcode() OFF-Daten nicht sicher genug fuer die stille Uebernahme findet
+  // (z. B. keine auswertbare Portionsgroesse). Der Nutzer bestaetigt einmal kurz,
+  // statt dass ein Fehlwert bei den Kalorien landet. prefill.assignTo (day/meal) plant
+  // das Meal nach dem Speichern direkt im urspruenglichen Slot ein.
+  function openRecipeForm(id, prefill) {
     const r = id ? getRecipe(id) : null;
-    const opts = CATEGORIES.map(c => `<option value="${c}" ${r && r.category === c ? "selected" : ""}>${c}</option>`).join("");
+    const pre = !id && prefill ? prefill : null;
+    const opts = CATEGORIES.map(c => `<option value="${c}" ${(r && r.category === c) || (pre && pre.category === c) ? "selected" : ""}>${c}</option>`).join("");
     const node = el(`<div class="modal detail" role="dialog" aria-modal="true" aria-label="${r ? "Meal bearbeiten" : "Neues Meal"}">
       <div class="modal-head"><h3>${r ? "Meal bearbeiten" : "Neues Meal"}</h3><button class="btn ghost sm" data-close>✕</button></div>
       <div class="modal-body">
         <div class="field">
           <label for="f-name">Name des Meals</label>
-          <input type="text" id="f-name" placeholder="z. B. Ofengemüse mit Feta" value="${r ? esc(r.name) : ""}" maxlength="80">
+          <input type="text" id="f-name" placeholder="z. B. Ofengemüse mit Feta" value="${r ? esc(r.name) : (pre ? esc(pre.name || "") : "")}" maxlength="80">
         </div>
         <div class="field"><label for="f-cat">Kategorie</label><select id="f-cat">${opts}</select></div>
         <div class="field">
@@ -6669,7 +6731,6 @@
     const barcodeInput = node.querySelector("#f-ing-barcode");
     let barcodeRow = null;
     let acSeq = 0; // laufende Nummer fuer die Listbox-IDs (aria-activedescendant)
-    const barcodeSvg = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round"><path stroke-width="2.4" d="M4 5v14"/><path stroke-width="1.4" d="M7.5 5v14"/><path stroke-width="2.4" d="M10.5 5v14"/><path stroke-width="1.4" d="M13.5 5v14"/><path stroke-width="1.4" d="M16.5 5v14"/><path stroke-width="2.4" d="M19.5 5v14"/></svg>`;
     function nutVal(v) { return v != null ? esc(v) : ""; }
     function addIngRow(o) {
       o = o || {};
@@ -6682,7 +6743,7 @@
               <input type="text" class="ing-name" placeholder="Zutat, z. B. Reis" maxlength="60" autocomplete="off" value="${esc(o.name || "")}">
               <ul class="ing-ac" role="listbox" hidden></ul>
             </span>
-            <button type="button" class="ing-barcode" title="Barcode mit der Kamera scannen – füllt Name und Nährwerte automatisch">${barcodeSvg}<span>Scannen</span></button>
+            <button type="button" class="ing-barcode" title="Barcode mit der Kamera scannen – füllt Name und Nährwerte automatisch">${BARCODE_SVG}<span>Scannen</span></button>
           </span>
           <span class="ing-gwrap">
             <input type="number" class="ing-g" min="0" max="99999" step="1" placeholder="200" value="${nutVal(o.grams)}" aria-label="Menge">
@@ -6908,7 +6969,10 @@
       node.querySelector("#" + fid).addEventListener("input", () => { macroOverridden = true; updateMacroSum(); });
     });
     node.querySelector("#f-nut-reset").addEventListener("click", () => { macroOverridden = false; updateMacroSum(); });
-    (r && r.ingredients && r.ingredients.length ? r.ingredients : [null]).forEach(i => addIngRow(i == null ? null : ingObj(i)));
+    // Zutaten des bestehenden Meals, sonst die Vorbefuellung aus dem Barcode-Schnellzugriff
+    // (Naehrwerte je 100 g ohne Menge), sonst eine leere Zeile.
+    const preIngs = pre && pre.ingredients && pre.ingredients.length ? pre.ingredients : null;
+    (r && r.ingredients && r.ingredients.length ? r.ingredients : (preIngs || [null])).forEach(i => addIngRow(i == null ? null : ingObj(i)));
     updateMacroSum();
     node.querySelector("#f-ing-add").addEventListener("click", () => { addIngRow().querySelector(".ing-name").focus(); });
     // Kategorie -> Getraenk gewechselt: noch unberuehrte Zutatenzeilen (kein Name, keine
@@ -6923,7 +6987,8 @@
     });
     // Barcode -> Open Food Facts -> Zeile fuellen. Gemeinsamer Weg fuer beide Zugaenge
     // (Live-Kamera und Einzelfoto). Der Scan ersetzt die Zeile vollstaendig: Einheit
-    // (OFF normiert alles auf 100 g), alle vier Naehrwerte UND den Namen. Den Namen
+    // (g, oder bei erkannter Stueckzahl "Stück" - siehe offServingSize), alle vier
+    // Naehrwerte UND den Namen. Den Namen
     // auszunehmen waere inkonsequent — er ist die Identitaet des gescannten Produkts,
     // keine persoenliche Notiz. Liefert der Treffer keinen Namen, bleibt der bisherige
     // stehen, statt ihn gegen nichts zu tauschen. Die Rueckmeldung nennt das erkannte
@@ -6943,12 +7008,19 @@
         // werden. Wuerden die Naehrwerte VOR dem change-Event gesetzt, liefe die
         // EL/TL-Umrechnung auf den frisch gesetzten (schon korrekten Pro-100g-)Werten und
         // wuerde sie verfaelschen.
-        row.querySelector(".ing-u").value = "g";
+        // Stueckerkennung ueber offServingSize(): nur bei erkannter Stueckzahl (z. B.
+        // "1 Stück (65 g)") auf "Stück" umschalten und die Naehrwerte von je-100g auf
+        // je-Stück umrechnen - bei reinen Gewichtsangaben ("500 g") bleibt es bei "g",
+        // sonst wuerde aus einer Mehltuete "1 Stück Mehl".
+        const ss = p.servingSize;
+        const perPiece = ss && ss.count ? ss.grams / 100 : null;
+        row.querySelector(".ing-u").value = perPiece ? "st" : "g";
         row.querySelector(".ing-u").dispatchEvent(new Event("change"));
-        if (p.kcal != null) row.querySelector(".ing-kcal").value = Math.round(p.kcal);
-        if (p.carbs != null) row.querySelector(".ing-carbs").value = p.carbs;
-        if (p.protein != null) row.querySelector(".ing-prot").value = p.protein;
-        if (p.fat != null) row.querySelector(".ing-fat").value = p.fat;
+        if (p.kcal != null) row.querySelector(".ing-kcal").value = perPiece ? Math.round(p.kcal * perPiece) : Math.round(p.kcal);
+        if (p.carbs != null) row.querySelector(".ing-carbs").value = perPiece ? Math.round(p.carbs * perPiece * 10) / 10 : p.carbs;
+        if (p.protein != null) row.querySelector(".ing-prot").value = perPiece ? Math.round(p.protein * perPiece * 10) / 10 : p.protein;
+        if (p.fat != null) row.querySelector(".ing-fat").value = perPiece ? Math.round(p.fat * perPiece * 10) / 10 : p.fat;
+        if (perPiece) row.querySelector(".ing-g").value = 1;
         // Paket B7 (Fund beim Durchsehen): .value setzen loest kein "input"-Event aus (das
         // tut nur echte Tastatureingabe) - die zugeklappte Kurzfassung der Zeile (paintNut,
         // reagiert auf "input") zeigte nach einem Barcode-Scan deshalb weiterhin "–", obwohl
@@ -7017,11 +7089,31 @@
         ingredients,
         steps: node.querySelector("#f-steps").value.trim(),
       };
+      // Barcode-Herkunft bleibt erhalten, wenn quickAddByBarcode() unsicher war und deshalb
+      // hierher vorausgefuellt hat - der naechste Scan desselben Produkts erkennt es dann
+      // trotzdem wieder (Dedupe in quickAddByBarcode). "quick" (aus der Meals-Liste
+      // ausgeblendet) wird hier bewusst NICHT gesetzt: der Nutzer legt das Meal gerade
+      // aktiv ueber das normale Formular an.
+      if (pre && pre.barcode) data.barcode = pre.barcode;
       // In einer Gruppe merkt sich ein neues Meal, WER es angelegt hat - nur die uid,
       // nie den Namen (siehe recipeAuthorHtml). Beim Bearbeiten bleibt der Urheber stehen:
       // wer ein fremdes Meal anpasst, wird dadurch nicht zum Autor.
       if (r) { Object.assign(r, data); toast("Meal gespeichert"); }
-      else { state.recipes.push(Object.assign({ id: uid() }, data, syncGid ? { by: syncUid } : null)); toast("Meal angelegt"); }
+      else {
+        const nr = Object.assign({ id: uid() }, data, syncGid ? { by: syncUid } : null);
+        state.recipes.push(nr);
+        // Kommt die Vorbefuellung aus dem Barcode-Schnellzugriff (quickAddByBarcode() war
+        // sich nicht sicher genug fuer die stille Uebernahme), war das Ziel ein Plan-Slot -
+        // nach der Bestaetigung dort direkt einplanen, statt den Nutzer zurueck zum Picker
+        // zu schicken.
+        if (pre && pre.assignTo) {
+          const { day, meal } = pre.assignTo;
+          state.plan[day][meal].push(slotIsShared(day, meal) ? nr.id : makeEntry(nr.id, [syncUid]));
+          toast("Meal angelegt und eingeplant");
+        } else {
+          toast("Meal angelegt");
+        }
+      }
       closeModal(); render();
     });
     openModal(node);
@@ -7070,22 +7162,27 @@
     if (state.recipes.length === 0) {
       const node = el(`<div class="modal" role="dialog" aria-modal="true">
         <div class="modal-head"><h3>Noch keine Meals</h3><button class="btn ghost sm" data-close>✕</button></div>
-        <div class="modal-body"><p style="margin:0;color:var(--text-muted)">Du hast noch keine Meals angelegt. Wechsle in den Reiter <strong>Meals</strong> und leg zuerst ein Meal an.</p></div>
-        <div class="modal-foot"><button class="btn ghost" data-close>Abbrechen</button><button class="btn primary" data-go>Zu den Meals</button></div>
+        <div class="modal-body"><p style="margin:0;color:var(--text-muted)">Du hast noch keine Meals angelegt. Wechsle in den Reiter <strong>Meals</strong> und leg zuerst ein Meal an, oder scanne ein Fertigprodukt.</p></div>
+        <div class="modal-foot"><button class="btn ghost" data-close>Abbrechen</button><button class="btn ghost" data-barcode>${BARCODE_SVG}<span>Barcode</span></button><button class="btn primary" data-go>Zu den Meals</button></div>
       </div>`);
       node.querySelectorAll("[data-close]").forEach(b => b.addEventListener("click", closeModal));
       node.querySelector("[data-go]").addEventListener("click", () => { closeModal(); state.tab = "recipes"; render(); openRecipeForm(null); });
+      node.querySelector("[data-barcode]").addEventListener("click", () => { closeModal(); quickAddByBarcode(day, meal); });
       openModal(node);
       return;
     }
     const node = el(`<div class="modal" role="dialog" aria-modal="true" aria-label="Meal wählen">
       <div class="modal-head"><div style="flex:1"><div class="kicker">${esc(dLabel)} · ${esc(mLabel)}</div><h3 style="margin-top:2px">Meal wählen</h3></div><button class="btn ghost sm" data-close>✕</button></div>
       <div class="modal-body">
-        <div class="picker-search"><input type="text" id="p-search" placeholder="Meal suchen …" autocomplete="off"></div>
+        <div class="picker-search">
+          <input type="text" id="p-search" placeholder="Meal suchen …" autocomplete="off">
+          <button type="button" class="btn ghost sm" id="p-barcode" aria-label="Barcode scannen – Fertigprodukt direkt einplanen" title="Barcode scannen – Fertigprodukt direkt einplanen">${BARCODE_SVG}<span>Barcode</span></button>
+        </div>
         <div class="plist" id="p-list"></div>
       </div>
     </div>`);
     node.querySelectorAll("[data-close]").forEach(b => b.addEventListener("click", closeModal));
+    node.querySelector("#p-barcode").addEventListener("click", () => { closeModal(); quickAddByBarcode(day, meal); });
 
     const listEl = node.querySelector("#p-list");
     const searchEl = node.querySelector("#p-search");
@@ -7137,6 +7234,101 @@
     searchEl.addEventListener("input", () => paint(searchEl.value));
     paint("");
     openModal(node);
+  }
+
+  // Live-Kamera zuerst, Foto-Ausweg als eigener, kurzlebiger File-Input - anders als in
+  // openRecipeForm() gibt es hier kein dauerhaftes Formular-DOM, an das sich ein Input
+  // haengen liesse. Liefert den erkannten Code oder null (Abbruch/Fehler - Meldung dann
+  // bereits per toast() gezeigt).
+  async function scanBarcodeCode() {
+    const r = await scanBarcodeLive();
+    if (!r || r.cancelled) return null;
+    if (r.code) return r.code;
+    if (!r.photo) return null;
+    const file = await new Promise(resolve => {
+      const input = el(`<input type="file" accept="image/*" capture="environment" class="visually-hidden">`);
+      document.body.appendChild(input);
+      let done = false;
+      // Bricht der Nutzer den Datei-Dialog ohne Auswahl ab, feuert nicht in jedem Browser
+      // ein "change" (bzw. "cancel") - ohne den Fensterfokus-Rueckfall bliebe der Input
+      // sonst als verwaister Knoten im DOM stehen.
+      function finish(f) { if (done) return; done = true; input.remove(); resolve(f); }
+      input.addEventListener("change", () => finish((input.files && input.files[0]) || null), { once: true });
+      input.addEventListener("cancel", () => finish(null), { once: true });
+      window.addEventListener("focus", () => setTimeout(() => finish(null), 300), { once: true });
+      input.click();
+    });
+    if (!file) return null;
+    toast("Lese Barcode …");
+    try {
+      const code = await detectBarcode(file);
+      if (!code) { toast("Kein Barcode erkannt – bitte näher heran oder manuell eintragen"); return null; }
+      return code;
+    } catch (e) {
+      toast("Erkennung nicht möglich (offline?) – bitte manuell eintragen");
+      return null;
+    }
+  }
+  // Barcode-Schnellzugriff: ein Fertigprodukt direkt aus dem Wochenplan heraus einplanen,
+  // ohne das Meal-Formular zu sehen. Legt bei vollstaendigen OFF-Daten ein minimales,
+  // eigenes Meal an (barcode/quick-Feld, siehe paintRecipeGroups) - Dedupe ueber barcode
+  // verhindert, dass derselbe Scan bei jedem Mal ein neues state.recipes-Dokument erzeugt.
+  // Fehlt eine auswertbare Packungsgroesse oder sind Name/Naehrwerte unvollstaendig, oeffnet
+  // stattdessen das normale Formular vorausgefuellt - kein stiller Fehlwert bei den Kalorien.
+  async function quickAddByBarcode(day, meal) {
+    const code = await scanBarcodeCode();
+    if (!code) return;
+    const existing = state.recipes.find(r => r.barcode === code);
+    if (existing) {
+      state.plan[day][meal].push(slotIsShared(day, meal) ? existing.id : makeEntry(existing.id, [syncUid]));
+      render();
+      toast("Zum Plan hinzugefügt");
+      return;
+    }
+    toast("Suche Produkt …");
+    let p;
+    try { p = await fetchOffNutrition(code); }
+    catch (e) { toast("Suche nicht möglich (offline?) – bitte manuell eintragen"); return; }
+    if (!p) { toast("Produkt nicht gefunden – bitte manuell eintragen"); return; }
+
+    const ss = p.servingSize;
+    // Portionsgroesse fuer das stille Anlegen. Eine erkannte Stueckzahl meint IMMER ein
+    // einzelnes Stueck - auch bei "6 x 65 g" ist der Riegel die Portion, nicht die ganze
+    // Schachtel. Sonst zaehlt nur eine echte serving_size: reines quantity ("500 g" Nudeln,
+    // "1 l" Milch) ist die Packungsgroesse und keine Portion - daraus stillschweigend ein
+    // Meal zu bauen waere geraten, und Kalorienkorrektheit ist das Kernversprechen.
+    const portion = ss && ss.grams > 0 && (ss.count || ss.serving) ? ss.grams : null;
+    const complete = p.name && portion && p.kcal != null && p.carbs != null && p.protein != null && p.fat != null;
+    if (!complete) {
+      toast("Ein paar Angaben fehlen – bitte kurz prüfen");
+      // Die gefundenen Naehrwerte gehen nicht verloren: sie ziehen als vorbefuellte
+      // Zutaten-Zeile (je 100 g) mit ins Formular. Sobald der Nutzer die Menge eintraegt,
+      // rechnet updateMacroSum() die Meal-Naehrwerte selbst aus - genau der eine Wert,
+      // den OFF nicht verlaesslich liefert, kommt vom Menschen.
+      const hasNut = p.kcal != null || p.carbs != null || p.protein != null || p.fat != null;
+      const ings = hasNut ? [{ name: p.name || "Produkt", kcal: p.kcal, carbs: p.carbs, protein: p.protein, fat: p.fat }] : null;
+      openRecipeForm(null, { name: p.name || "", category: "Snack", barcode: code, assignTo: { day, meal }, ingredients: ings });
+      return;
+    }
+    const f = portion / 100;
+    const recipe = Object.assign({ id: uid() }, {
+      name: p.name,
+      category: "Snack",
+      nutrition: {
+        kcal: Math.round(p.kcal * f),
+        carbs: Math.round(p.carbs * f * 10) / 10,
+        protein: Math.round(p.protein * f * 10) / 10,
+        fat: Math.round(p.fat * f * 10) / 10,
+      },
+      ingredients: [],
+      steps: "",
+      barcode: code,
+      quick: true,
+    }, syncGid ? { by: syncUid } : null);
+    state.recipes.push(recipe);
+    state.plan[day][meal].push(slotIsShared(day, meal) ? recipe.id : makeEntry(recipe.id, [syncUid]));
+    render();
+    toast("„" + p.name + "“ zum Plan hinzugefügt");
   }
 
   // ---------- Shopping list ----------
@@ -7506,7 +7698,8 @@
       <h4>7. Speicherung im Browser</h4>
       <p>Zur Anmeldung und für den Offline-Betrieb speichert die App technisch notwendige Daten lokal in deinem Browser (localStorage/IndexedDB). Dafür ist keine Einwilligung erforderlich; ein Tracking findet nicht statt (Google Analytics ist deaktiviert).</p>
       <h4>7a. Barcode-Scan (Produktsuche)</h4>
-      <p>Beim Anlegen von Zutaten kannst du einen Barcode scannen. Dafür fragt die App den Zugriff
+      <p>Beim Anlegen von Zutaten sowie beim direkten Einplanen eines Fertigprodukts aus dem
+         Wochenplan kannst du einen Barcode scannen. Dafür fragt die App den Zugriff
          auf die <strong>Kamera</strong> deines Geräts an und zeigt das Kamerabild live an, bis ein
          Barcode erkannt oder der Scanner geschlossen wird; alternativ kannst du ein Einzelfoto
          aufnehmen. Das <strong>Kamerabild wird weder gespeichert noch übertragen</strong> und die

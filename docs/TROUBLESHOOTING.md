@@ -672,6 +672,11 @@ umgekehrt. 28 px sichtbar + 8 px Slop je Seite = 44 px, zwei benachbarte Knöpfe
 also **16 px zwischen sich**. Die Karte gab nur 8 px her, deshalb bekommt der Stift den
 Zuschlag:
 
+> **Stand heute:** sichtbar sind 32 px (das Personen-Icon löste den Stift ab), die
+> Trefferfläche ist dadurch 48×48 px. Der Zuschlag `margin-right: 8px` blieb dabei
+> unverändert richtig: die 16 px ergeben sich aus **hitSlop × 2**, nicht aus der
+> Knopfbreite — die Knopfgröße kürzt sich aus der Rechnung heraus.
+
 ```css
 .slot .filled .x::after, .slot .filled .pencil::after { inset: -8px; }  /* beide 44x44 */
 .slot .filled .pencil { margin-right: 8px; }                           /* 8 + 8 = 16px Luecke */
@@ -695,8 +700,9 @@ Hover-Zustand nach dem Tippen hängen. Steht `:active` davor, sieht man den Pres
 
 **Nachweis im Prüfstand:** CSS und Karten-Markup aus `index.html` ausgeschnitten, Trefferfläche
 über `getComputedStyle(el, "::after")` gemessen und die vier Ecken mit `elementFromPoint`
-wirklich angetippt — Ergebnis 44×44 px für ✕ und Stift, Abstand 0,000 px. Gegenprobe gegen die
-alten Werte liefert 30×30 px; ohne sie würde der Test nicht beweisen, dass er überhaupt misst.
+wirklich angetippt — Ergebnis 44×44 px für ✕ und Stift (heute 48×48 px, siehe oben), Abstand
+0,000 px. Gegenprobe gegen die alten Werte liefert 30×30 px; ohne sie würde der Test nicht
+beweisen, dass er überhaupt misst.
 
 ## 39. CSS-`transition` greift nicht an Elementen aus `view.innerHTML`
 
@@ -743,7 +749,41 @@ Zusätzlich prüft `shareRecipeNow()` `authMode === "cloud"`, nicht nur `CloudSh
 
 Gilt für jeden künftigen Share-Flow, der Cloud-Daten UND das native Share-Sheet in derselben Aktion braucht.
 
-## 41. Grundregel bei Fehlern
+## 41. Open Food Facts liefert `serving_size` nicht zuverlässig
+
+**Symptom:** `quickAddByBarcode()` (Barcode-Schnellzugriff aus dem Wochenplan) könnte bei
+manchen Produkten falsche oder fehlende Nährwerte errechnen, wenn man `serving_size`/`quantity`
+blind vertraut.
+
+**Ursache:** OFF ist eine offene, von Nutzern gepflegte Datenbank. `serving_size` fehlt bei
+vielen Produkten komplett, und wenn es gesetzt ist, sind die Formate uneinheitlich ("65 g",
+"1 Stück (65 g)", "6 x 65 g", aber auch Tippfehler oder leere Strings).
+
+**Lösung:** `offServingSize(p)` liefert `null`, sobald sich weder eine Stückzahl noch ein reines
+Gewicht/Volumen aus dem Text lesen lässt. `quickAddByBarcode()` verlangt zusätzlich Name UND alle
+vier Nährwerte — fehlt irgendetwas davon, wird **nicht geraten**: Statt eines stillen Fehlwerts
+öffnet sich `openRecipeForm(null, prefill)` vorausgefüllt, der Nutzer bestätigt einmal kurz. Ein
+zusätzlicher Klick ist hier bewusst der sicherere Weg (siehe `docs/PRODUCT.md`, „Bewusste
+Produktentscheidung: Barcode-Schnellzugriff").
+
+**Die eigentliche Falle dabei: `quantity` ist keine Portion.** `offServingSize()` fällt auf
+`quantity` zurück, wenn `serving_size` fehlt — für `applyBarcode()` ist das harmlos (dort dient
+der Wert nur der Stückerkennung), für das stille Anlegen wäre es falsch: „500 g" Nudeln oder
+„1 l" Milch würden ein Meal mit 1750 bzw. 640 kcal erzeugen, ohne dass der Nutzer je eine Menge
+bestätigt hat. Deshalb trägt das Ergebnis ein `serving`-Flag (Wert stammt aus `serving_size`)
+und `quickAddByBarcode()` legt nur bei `count || serving` still an. Aus demselben Grund gilt bei
+Mehrfachpackungen („6 x 65 g") **ein** Stück als Portion, nicht die ganze Schachtel.
+
+**Und die Werte fallen dabei nicht unter den Tisch:** Der Formular-Fallback bekommt die
+OFF-Nährwerte als vorbefüllte Zutaten-Zeile (je 100 g, ohne Menge) mit. Der Nutzer trägt nur die
+Menge ein, `updateMacroSum()` rechnet den Rest — sonst würde der sichere Weg zur Strafarbeit.
+
+**Verwandt:** Das `barcode`-Feld auf dem entstehenden Recipe ist auch der Schutz vor unnötigem
+Wachstum von `state.recipes` (und damit der Firestore-Gruppendokumente) — ein zweiter Scan
+desselben Produkts sucht zuerst per `state.recipes.find(r => r.barcode === code)` nach einem
+bestehenden Eintrag und plant nur diesen ein, statt ein Duplikat anzulegen.
+
+## 42. Grundregel bei Fehlern
 
 Nicht einfach den sichtbaren Fehler flicken.
 

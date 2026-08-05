@@ -358,7 +358,7 @@ Helper (neben `asIdList()`):
 sein, auf 24 Einträge gedeckelt (das Dokument kommt von einem anderen Gerät und wird nicht
 vertraut). `normalizePlan()` filtert weiterhin über `entryId(e)` gegen bekannte Rezept-IDs.
 
-Zuweisen-UI (Stift-Symbol, nur ab `groupMembers.length >= 2`): bei genau zwei Mitgliedern ein
+Zuweisen-UI (Personen-Symbol, nur ab `groupMembers.length >= 2`): bei genau zwei Mitgliedern ein
 Klick-Zyklus ("für alle" → "nur ich" → "nur die andere Person" → "für alle"), ab drei ein
 Chip-Popover mit Mehrfachauswahl. Das Popover hängt sich an `document.body` (nicht an die Karte),
 weil `.day` `overflow: hidden` für die mobilen Karussell-Streifen trägt und ein daran verankertes
@@ -466,6 +466,48 @@ Grund:
 * weniger redundante personenbezogene Daten
 * einfachere Löschung
 * keine n-fache Nachpflege von Meal-Dokumenten
+
+### Barcode-Schnellzugriff: `barcode` und `quick`
+
+Ein per Barcode-Scan eingeplantes Fertigprodukt (`quickAddByBarcode()`) ist ein ganz normaler
+Eintrag in `state.recipes` — kein eigener Datentyp, siehe „Bewusste Produktentscheidung:
+Barcode-Schnellzugriff" in `docs/PRODUCT.md`. Zwei zusätzliche, optionale Felder:
+
+* `barcode`: die gescannte EAN. Dient der **Dedupe**: vor dem Neuanlegen sucht
+  `quickAddByBarcode()` per `state.recipes.find(r => r.barcode === code)` nach einem
+  bestehenden Eintrag und plant bei Treffer direkt dessen ID ein, statt ein Duplikat zu
+  erzeugen. Auch beim Fallback über `openRecipeForm(null, prefill)` (unsichere OFF-Daten)
+  bleibt `barcode` erhalten, damit ein späterer erneuter Scan denselben Eintrag findet.
+* `quick: true`: blendet den Eintrag im Reiter „Meals" aus. Maßgeblich ist dafür
+  `libraryRecipes()` (`state.recipes` ohne `quick`) — genutzt von `paintRecipeGroups()`,
+  vom Zähler `#recipe-count` und von der Sichtbarkeit des Suchfelds, damit Zähler, Leerzustand
+  und Liste dieselbe Menge beschreiben. Der Meal-Picker im Wochenplan zeigt weiterhin **alle**
+  Meals: ein einmal gescanntes Produkt soll sich ohne zweiten Scan erneut einplanen lassen.
+  Wird **nur** beim stillen Anlegen mit vollständigen OFF-Daten gesetzt —
+  bestätigt der Nutzer stattdessen über das normale Formular, bleibt der Eintrag sichtbar, weil
+  er ihn aktiv über den Standardweg angelegt hat.
+
+Beide Felder sind additiv: `sanitizeRecipe()` kopiert unbekannte Felder unverändert durch
+(`Object.assign({}, r)`), Plan, Einkaufsliste, PDF-Export und Ziel-Ringe kennen ausschließlich
+`getRecipe(id)` und bleiben dadurch unverändert funktionsfähig.
+
+`offServingSize(p)` (neben `fetchOffNutrition()`) wertet OFF's `serving_size`/`quantity`-Feld
+aus und liefert `{grams, count, serving}` oder `null`:
+
+* `grams`: das Gewicht **einer** Einheit — bei „1 Stück (65 g)" und „6 x 65 g" das eines
+  einzelnen Stücks, bei reinem „500 g" das der ganzen Packung.
+* `count`: nur bei erkannter Stückzahl gesetzt, sonst `null`.
+* `serving`: `true`, wenn der Wert aus `serving_size` (echte Portionsangabe) stammt, `false`
+  bei `quantity` (Packungsgröße). `serving_size` hat Vorrang.
+
+Genutzt an zwei Stellen: `applyBarcode()` (Zutatenzeile im Meal-Formular) schaltet bei erkannter
+Stückzahl die Einheit auf „Stück" und rechnet die vier Nährwerte auf je-Stück um;
+`quickAddByBarcode()` rechnet auf **eine Portion** hoch (`ss.grams`, gegen 100 g) und akzeptiert
+dafür nur `count || serving` — eine reine Packungsgröße („500 g" Nudeln, „1 l" Milch) ist keine
+Portion und führt stattdessen in den Formular-Fallback, siehe `docs/TROUBLESHOOTING.md` Ziffer 41.
+Dieser Fallback (`openRecipeForm(null, prefill)`) nimmt die gefundenen Nährwerte als vorbefüllte
+Zutaten-Zeile (je 100 g, ohne Menge) mit — `updateMacroSum()` summiert die Meal-Nährwerte, sobald
+der Nutzer die Menge einträgt.
 
 ## Firebase Security
 

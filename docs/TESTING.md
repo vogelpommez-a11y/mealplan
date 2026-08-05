@@ -206,6 +206,25 @@ Beispiele:
   die Aufruf-Reihenfolge, nicht dass iOS Safari die Aktivierung tatsächlich akzeptiert — das
   bleibt ein offener Handy-Test (siehe `ROADMAP.html`).
 
+* **`offServingSize()`** (OFF-Packungsgröße) rein als Textparser ausgeschnitten und gegen eine
+  Fallliste durchrechnen: reines Gewicht/Volumen ("65 g", "500 g", "1 L", "1 kg") liefert
+  `{grams, count: null}`, erkannte Stückzahl ("1 Stück (65 g)", "6 x 65 g", "6x65g", "6 × 65 g",
+  "2 Scheiben (30g)", "4 Riegel à 40 g") liefert `{grams, count}` mit `grams` = **ein** Stück,
+  leerer/fehlender Text, fehlende Einheit ("1 Portion") und "0 g" liefern `null`. Wichtigster
+  Regressionsfall: reines Gewicht darf **nie** `count` setzen, sonst schaltet `applyBarcode()`
+  eine Mehltüte fälschlich auf „Stück" um. Zweiter Regressionsfall: `serving` muss `false` sein,
+  wenn der Wert aus `quantity` kam — sonst legt `quickAddByBarcode()` eine ganze Packung als
+  Portion an (siehe `docs/TROUBLESHOOTING.md` Ziffer 41). Kommas als Dezimaltrennzeichen
+  ("32,5 g", "1,5 l (1,58 kg)" — mehr als eines im selben Text) gehören in die Fallliste.
+* **`quickAddByBarcode()`** (Barcode-Schnellzugriff aus dem Wochenplan) mit gestubbtem
+  `scanBarcodeLive()`/`fetchOffNutrition()`: vollständige OFF-Daten (Name, alle vier Nährwerte,
+  auswertbare `serving_size`) → Meal wird still angelegt (`quick: true`) und direkt eingeplant ·
+  nur `quantity` ohne Stückzahl ("500 g"), fehlende `serving_size` oder unvollständige Nährwerte →
+  `openRecipeForm(null, prefill)` öffnet sich vorausgefüllt (inkl. Zutaten-Zeile mit den
+  OFF-Nährwerten je 100 g, ohne Menge) statt zu raten · zweiter Scan desselben Barcodes → kein zweiter
+  `state.recipes`-Eintrag, die bestehende ID wird eingeplant (Dedupe über `r.barcode === code`) ·
+  OFF-Fetch wirft (offline) → Toast statt unbehandeltem Promise, kein Halbzustand im Plan.
+
 ### Layout messen statt schätzen
 
 Wo eine Änderung die Breite eines Elements verändert (hier: zweistellige Badge-Kürzel), reicht

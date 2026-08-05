@@ -302,9 +302,39 @@ auch wirklich „gemeinsam".
 Der Wochenplan war bisher zwangsläufig für die ganze Gruppe identisch, obwohl jede Person schon
 ein eigenes Kalorien-/Makroziel hat. In der Praxis isst man nicht jeden Tag exakt dasselbe — will
 aber trotzdem eine einzige, gemeinsame Einkaufsliste. Einzelne Gerichte lassen sich deshalb per
-Stift-Symbol optional nur einer Teilmenge der Gruppe zuweisen, die Einkaufsliste skaliert pro
+Personen-Symbol optional nur einer Teilmenge der Gruppe zuweisen, die Einkaufsliste skaliert pro
 Gericht nach tatsächlicher Personenzahl. Der Regelfall ("für alle") bleibt dabei ohne jeden
 zusätzlichen Klick — Zuweisung ist eine Ausnahme, keine Pflichtentscheidung beim Einplanen.
+Das Symbol war ursprünglich ein Stift, der wie "bearbeiten" statt "wer isst mit" liest — inzwischen
+ein Personen-Icon, das die tatsächliche Aktion zeigt.
+
+## Bewusste Produktentscheidung: Barcode-Schnellzugriff
+
+Fertigprodukte (Tiefkühlpizza, Riegel, Joghurt) verdienen keine Rezept-Pflege — trotzdem musste
+bisher jedes über das volle Meal-Formular angelegt werden. Der Barcode-Scan (bereits als
+Zutaten-Hilfsmittel vorhanden) ist deshalb ein zweiter, schnellerer Weg geworden: direkt aus dem
+Wochenplan heraus scannen, Open Food Facts liefert Name und Nährwerte, das Produkt landet ohne
+Formular im gewählten Tag/Slot.
+
+**Verworfene Alternative: eigenes "Produkt"-Konzept.** Ein paralleler Datentyp neben Meals hätte
+entweder bei jedem Sync verworfen werden müssen (`normalizePlan()` kennt nur `state.recipes`) oder
+an allen ca. 6 Stellen nachgezogen werden müssen, die heute `getRecipe()` aufrufen (Kalorien,
+Einkaufsliste, PDF, Ziel-Ringe). Ein Scan erzeugt deshalb einen ganz normalen Recipe-Eintrag —
+nur mit `barcode` (Wiedererkennung, verhindert Duplikate beim erneuten Scan desselben Produkts)
+und `quick: true` (blendet ihn aus der Meals-Bibliothek aus, der Nutzer wollte diesen Eintrag dort
+nicht sehen). Sync, Einkaufsliste, Ziel-Ringe, Sharing bleiben dadurch unverändert funktionsfähig.
+
+**Entscheidung: kein Foto von Open Food Facts.** OFF-Bilder direkt zu verlinken oder zu
+übernehmen wäre ein Lizenzrisiko (siehe Abschnitt „Bilder und Lizenzen" in `CLAUDE.md`) — die
+bestehende Fallback-Kette in `photoFor()` (Stichwort → Kategorie → neutral) greift für
+Barcode-Meals automatisch, ganz ohne Codeänderung.
+
+**Unsicherer Fall geht nicht in einen Fehlwert.** Liefert Open Food Facts keine auswertbare
+**Portionsgröße** (eine bloße Packungsgröße wie „500 g" zählt nicht — sonst stünde eine ganze
+Tüte Nudeln als ein Meal im Plan) oder fehlen Name/Nährwerte, wird nicht geraten — der Scan
+öffnet stattdessen das normale Formular vorausgefüllt, samt der gefundenen Nährwerte als
+Zutaten-Zeile; einzutragen bleibt nur die Menge. Kalorienkorrektheit ist das Kernversprechen der
+App; ein zusätzlicher Bestätigungsklick in diesem Randfall wiegt das auf.
 
 ## Was bewusst nicht passieren soll
 
