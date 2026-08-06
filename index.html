@@ -2958,6 +2958,9 @@
   // (2) laeuft still, ohne Hinweis an den Nutzer: die App hat noch keinen Nutzerkreis,
   // dessen alte Einstufung man erklaeren muesste. Die Zuordnung selbst muss aber bleiben —
   // ein Schluessel wie "mod" haette in der neuen Skala sonst gar keinen gueltigen Faktor.
+  // Bewusst KEINE sortierte Rueckgabe (anders als sanitizeWeightGoals/sanitizeTombstones):
+  // dataJSON() vergleicht ueber canonJSON, das sortiert Objektschluessel schon beim Vergleich
+  // selbst - die Reihenfolge hier ist fuer den Sync egal.
   function sanitizeGoal(g) {
     if (!g || typeof g !== "object") return null;
     const out = Object.assign({}, g);
@@ -3061,9 +3064,15 @@
   // Personenanzahl der Einkaufsliste. Obergrenze 12 ist kein Geschmack, sondern ein Riegel:
   // die Zahl multipliziert jede Menge, ein verrutschter Wert liesse die Liste sinnlos werden.
   function sanitizeShopPersons(v) { const n = Math.round(nutNum(v)); return n >= 1 && n <= 12 ? n : 1; }
-  // Einzige Quelle der Personenzahl - save(), dataJSON() und die Einkaufsliste fragen alle
-  // hier. Laeuft sehr frueh (save() kann vor dem ersten render() feuern), deshalb defensiv
-  // gegen ein state, das das Feld noch nicht traegt.
+  // Quelle der Personenzahl FUER DIE ANZEIGE/Einkaufsliste - save() und pushNow() (dataJSON
+  // laeuft ueber pushNow()) fragen bewusst NICHT hier, sondern lesen sanitizeShopPersons
+  // (state.shopPersons) direkt: shopPersons() ist ein abgeleiteter Anzeigewert (haengt an
+  // groupMembers.length/"shopForAll"), keine Kontoeinstellung. Wuerde er in die Cloud/nach
+  // localStorage geschrieben, ueberschriebe er eine bewusst auf 1 gesetzte Zahl dauerhaft -
+  // und weil er sich je nach Gruppenzustand bei jedem Geraet anders berechnet, waere das
+  // zugleich wieder eine Endlos-Schreib-Quelle (siehe dataJSON()-Kommentar).
+  // Laeuft sehr frueh (kann vor dem ersten render() feuern), deshalb defensiv gegen ein
+  // state, das das Feld noch nicht traegt.
   // Steht "Einkauf für alle rechnen" in der Gruppe, gibt die Mitgliederzahl den Takt vor -
   // sonst kauft man fuer eine Person ein und kocht fuer zwei. Eine von Hand gesetzte Zahl
   // gewinnt trotzdem: Besuch, Meal-Prep oder ein Mitglied, das nicht mitisst.
@@ -3113,11 +3122,15 @@
     });
     return out;
   }
-  // Union, juengerer Zeitpunkt gewinnt - wie mergeWeights/unionIds nebenan.
+  // Union, juengerer Zeitpunkt gewinnt - wie mergeWeights/unionIds nebenan. Rueckgabe durch
+  // sanitizeTombstones gewickelt: sonst haengt Object.assign-artiges Zusammenfuehren neue
+  // (nur-remote) IDs in Einfuegereihenfolge hinten an statt sortiert - dieselbe Falle wie bei
+  // sanitizeWeightGoals im onRemote()-Merge, nur hier schon in der Funktion selbst.
+  // sanitizeTombstones ist zugleich TTL-idempotent, ein zweiter Durchlauf aendert nichts mehr.
   function mergeTombstones(a, b) {
     const out = sanitizeTombstones(a), other = sanitizeTombstones(b);
     Object.keys(other).forEach(id => { if (!out[id] || other[id] > out[id]) out[id] = other[id]; });
-    return out;
+    return sanitizeTombstones(out);
   }
   function isDeleted(id) { return !!(state.deleted && state.deleted[id]); }
   // In der Gruppe ist die Gruppe die Wahrheit: enterGroupSync ERSETZT den Bestand, es gibt
@@ -3171,7 +3184,10 @@
       const recipesForLS = idbOK
         ? state.recipes.map(r => { const c = Object.assign({}, r); delete c.image; return c; })
         : state.recipes;
-      localStorage.setItem(STORE_KEY, JSON.stringify({ recipes: recipesForLS, plans: state.plans, tab: state.tab, goal: state.goal || null, shares: state.shares || [], onboarded: state.onboarded === true, weights: state.weights || [], weightGoals: state.weightGoals || {}, weekStats: state.weekStats || {}, profileImage: idbOK ? null : (state.profileImage || null), weightConsent: state.weightConsent || noConsent(), shopPersons: shopPersons(), groupId: state.groupId || "", pendingGroupId: state.pendingGroupId || "", pendingInviteUrl: state.pendingInviteUrl || "", inviteCodes: state.inviteCodes || [], favs: state.favs || [], deleted: sanitizeTombstones(state.deleted) }));
+      // shopPersons(): dieselbe Regel wie in pushNow() - berechnet lesen, aber NIE roh schreiben. Sonst
+      // kaeme der berechnete Wert beim naechsten load() aus localStorage zurueck und ueberschriebe
+      // eine bewusst auf 1 gesetzte Personenzahl dauerhaft.
+      localStorage.setItem(STORE_KEY, JSON.stringify({ recipes: recipesForLS, plans: state.plans, tab: state.tab, goal: state.goal || null, shares: state.shares || [], onboarded: state.onboarded === true, weights: state.weights || [], weightGoals: state.weightGoals || {}, weekStats: state.weekStats || {}, profileImage: idbOK ? null : (state.profileImage || null), weightConsent: state.weightConsent || noConsent(), shopPersons: sanitizeShopPersons(state.shopPersons), groupId: state.groupId || "", pendingGroupId: state.pendingGroupId || "", pendingInviteUrl: state.pendingInviteUrl || "", inviteCodes: state.inviteCodes || [], favs: state.favs || [], deleted: sanitizeTombstones(state.deleted) }));
       storageFullWarned = false;
     } catch (e) {
       if (!storageFullWarned) {
@@ -3293,6 +3309,15 @@
   // Gruppenfelder im Kontodokument nicht anfassen - siehe pushNow(). Gleiche Bauart wie
   // recipesSyncFailed oben: ein Fehlerzustand darf nie zu einem Schreibvorgang werden.
   let groupSyncFailed = false;
+  // Zweites Sicherheitsnetz zu groupSyncFailed: nach einem gescheiterten enterGroupSync()
+  // bleibt syncGid null, waehrend das Kontodokument die Gruppe weiter nennt (pushNow schreibt
+  // groupId ja gerade NICHT zurueck, siehe groupKnown). Ohne dieses Flag sieht onRemote() bei
+  // JEDEM weiteren Snapshot remoteGid !== syncGid und stoesst switchGroup() erneut an - das
+  // setzt groupSyncFailed ueber stopCloudSync() zurueck und der naechste Snapshot faengt von
+  // vorn an: Dauerschleife. lastGroupAttempt merkt sich, FUER WELCHE Gruppe der letzte Versuch
+  // schon gescheitert ist - wechselt die Gruppe wirklich (andere remoteGid), greift das Netz
+  // nicht und der Versuch laeuft regulaer erneut an.
+  let lastGroupAttempt = null;
   // Erst nach einem VOLLSTAENDIG durchlaufenen startCloudSync() weiss dieser Client, ob und in
   // welcher Gruppe er ist. groupSyncFailed allein reicht dafuer nicht: es wird erst mitten im
   // try-Block gesetzt: bricht der Start vorher ab (haeufigster Fall: CloudSync.load() scheitert
@@ -3406,7 +3431,33 @@
   // traegt. Bliebe das Feld drin, laege state.plans (= Gruppenplan) dauerhaft quer zu
   // data.plans (= alter Kontostand) - jeder eingehende Snapshot galte als Aenderung,
   // Endlos-Toast und Endlos-Push. Exakt die Falle, die oben schon fuer "recipes" steht.
-  function dataJSON(d) { return JSON.stringify({ plans: syncGid ? null : plansField(d), goal: (d && d.goal) || null, shares: (d && d.shares) || [], onboarded: !!(d && d.onboarded), weights: (d && d.weights) || [], weightGoals: (d && d.weightGoals) || {}, profileImage: (d && d.profileImage) || null, weightConsent: (d && d.weightConsent) || noConsent(), shopPersons: sanitizeShopPersons(d && d.shopPersons), inviteCodes: (d && d.inviteCodes) || [], favs: sanitizeFavs(d && d.favs), deleted: sanitizeTombstones(d && d.deleted) }); }
+  // Dasselbe gilt, wenn enterGroupSync() gescheitert ist (groupSyncFailed): pushNow()
+  // schreibt state.plans dann ebenfalls nicht (siehe dort, "groupKnown"), waere "plans"
+  // hier trotzdem drin, liefe der Vergleich in genau dieselbe Endlosschleife wie beim
+  // regulaeren Gruppenfall - nur ausgeloest durch einen Fehlerzustand statt durch einen
+  // echten Beitritt.
+  //
+  // Zweite Quelle derselben Fehlerklasse (Ziffer 34 in docs/TROUBLESHOOTING.md, Teil 2):
+  // Firestore liefert Map-Schluessel bei jedem Snapshot SORTIERT zurueck, waehrend lokal
+  // gebaute Objekte in Code-Reihenfolge entstehen (z. B. sanitizeConsent -> {given, at},
+  // Firestore -> {at, given}). JSON.stringify ist reihenfolgeabhaengig - ohne canonJSON
+  // waere der ganze Vergleich hier strukturell nie stabil, ganz unabhaengig vom Merge:
+  // jedes Geraet schriebe nach jedem empfangenen Snapshot zurueck. canonValue/canonJSON
+  // sind bewusst function-Deklarationen (Hoisting, gleiche Begruendung wie bei
+  // sanitizeTombstones) und duerfen NUR zum Vergleichen verwendet werden, nie zum
+  // Schreiben - eine kanonisierte Kopie in die Cloud zu schreiben waere selbst wieder eine
+  // dritte, neue Reihenfolge und loeste das Problem nicht, es verschoebe es nur.
+  function canonValue(v) {
+    if (Array.isArray(v)) return v.map(canonValue);
+    if (v && typeof v === "object") {
+      const out = {};
+      Object.keys(v).sort().forEach(k => { out[k] = canonValue(v[k]); });
+      return out;
+    }
+    return v;
+  }
+  function canonJSON(v) { return JSON.stringify(canonValue(v)); }
+  function dataJSON(d) { return canonJSON({ plans: (syncGid || groupSyncFailed) ? null : plansField(d), goal: (d && d.goal) || null, shares: (d && d.shares) || [], onboarded: !!(d && d.onboarded), weights: (d && d.weights) || [], weightGoals: (d && d.weightGoals) || {}, profileImage: (d && d.profileImage) || null, weightConsent: (d && d.weightConsent) || noConsent(), shopPersons: sanitizeShopPersons(d && d.shopPersons), inviteCodes: (d && d.inviteCodes) || [], favs: sanitizeFavs(d && d.favs), deleted: sanitizeTombstones(d && d.deleted) }); }
 
   function scheduleCloudPush() {
     if (!syncUid) return;
@@ -3427,22 +3478,28 @@
   // dafuer angefasst werden, sie rufen weiterhin nur render()/save() wie bisher.
   async function syncRecipes() {
     if (!syncUid || !window.CloudSync || !window.CloudSync.saveRecipesBatch) return;
-    const cur = new Map(state.recipes.map(r => [r.id, JSON.stringify(r)]));
+    // canonJSON statt JSON.stringify: Firestore liefert Map-Schluessel sortiert zurueck (siehe
+    // dataJSON()-Kommentar), ein lokal gebautes Rezept (z. B. hydrateImages() haengt r.image
+    // als letzten Schluessel an) laege sonst dauerhaft quer zu seiner eigenen Cloud-Form -
+    // Endlos-Puts ohne Toast (onRecipesRemote hat keinen). Geschrieben wird trotzdem das
+    // Original-Objekt `r`, nie die kanonische Vergleichs-Zeichenkette (siehe Regel bei dataJSON).
+    const cur = new Map(state.recipes.map(r => [r.id, canonJSON(r)]));
     const prev = lastPushedRecipes || new Map();
     const puts = [], delIds = [];
     cur.forEach((json, id) => {
       if (prev.get(id) === json) return;
       if (json.length > CLOUD_DOC_MAX) {
-        toast(`Das Foto bei „${JSON.parse(json).name}" ist zu groß für die Cloud – wähle ein kleineres Bild.`);
+        const r = state.recipes.find(x => x.id === id);
+        toast(`Das Foto bei „${r && r.name}" ist zu groß für die Cloud – wähle ein kleineres Bild.`);
         return; // dieses eine Rezept bleibt lokal, bis das Foto verkleinert wird
       }
-      puts.push(JSON.parse(json));
+      puts.push(state.recipes.find(x => x.id === id));
     });
     prev.forEach((_, id) => { if (!cur.has(id)) delIds.push(id); });
     if (!puts.length && !delIds.length) { if (!lastPushedRecipes) lastPushedRecipes = cur; return; }
     try {
       await window.CloudSync.saveRecipesBatch(recipeBase(), puts, delIds);
-      puts.forEach(r => prev.set(r.id, JSON.stringify(r)));
+      puts.forEach(r => prev.set(r.id, canonJSON(r)));
       delIds.forEach(id => prev.delete(id));
       lastPushedRecipes = prev; // dieselbe Map weiterfuehren, nie komplett ersetzen -
       // sonst koennte ein waehrend des await hereingekommener Remote-Change (onRecipesRemote
@@ -3474,16 +3531,21 @@
     const prev = lastPushedSlots || new Map();
     const weeks = Object.keys(state.plans || {});
     const patches = {};   // weekKey -> Feld-Patch
-    const mark = (wk, field, json) => {
-      (patches[wk] || (patches[wk] = {}))[field] = JSON.parse(json);
+    // Direkt aus flat[field] schreiben statt ueber die Vergleichs-Zeichenkette - siehe Regel
+    // bei dataJSON(): canonJSON dient NUR dem Vergleich, nie dem Schreiben.
+    const mark = (wk, field, value) => {
+      (patches[wk] || (patches[wk] = {}))[field] = value;
     };
     const seen = new Set();
     weeks.forEach(wk => {
       const flat = flattenWeek(state.plans[wk]);
       Object.keys(flat).forEach(field => {
-        const key = wk + "." + field, json = JSON.stringify(flat[field]);
+        // canonJSON statt JSON.stringify: ein Slot-Eintrag ist heute zufaellig alphabetisch
+        // ({id, uids}), ein kuenftiges drittes Feld risse die Falle sonst lautlos wieder auf
+        // (siehe Plan-Kommentar zu Ursache A).
+        const key = wk + "." + field, json = canonJSON(flat[field]);
         seen.add(key);
-        if (prev.get(key) !== json) mark(wk, field, json);
+        if (prev.get(key) !== json) mark(wk, field, flat[field]);
       });
     });
     // Was frueher belegt war und jetzt fehlt: aktiv leeren (siehe Kommentar oben).
@@ -3496,7 +3558,7 @@
       const dot = key.indexOf(".");
       const wk = key.slice(0, dot), field = key.slice(dot + 1);
       if (weeks.indexOf(wk) === -1) { deadWeeks.add(wk); return; }
-      mark(wk, field, "[]");
+      mark(wk, field, []);
     });
     for (const wk of deadWeeks) {
       try {
@@ -3516,9 +3578,9 @@
         // flattenWeek" und schriebe dieselbe Leerung endlos weiter - bei jedem render().
         // Die Baseline bleibt so deckungsgleich mit dem, was flattenWeek() liefert.
         Object.keys(patches[wk]).forEach(field => {
-          const json = JSON.stringify(patches[wk][field]);
-          if (json === "[]") prev.delete(wk + "." + field);
-          else prev.set(wk + "." + field, json);
+          const value = patches[wk][field];
+          if (Array.isArray(value) && !value.length) prev.delete(wk + "." + field);
+          else prev.set(wk + "." + field, canonJSON(value));
         });
       }
       lastPushedSlots = prev;   // dieselbe Map weiterfuehren, nie ersetzen (wie bei lastPushedRecipes)
@@ -3532,7 +3594,12 @@
     if (!syncUid || !window.CloudSync) return;
     await syncRecipes();
     await pushGroupPlan();
-    const d = { tab: state.tab, goal: state.goal || null, shares: state.shares || [], onboarded: state.onboarded === true, weights: state.weights || [], weightGoals: state.weightGoals || {}, profileImage: state.profileImage || null, weightConsent: state.weightConsent || noConsent(), shopPersons: shopPersons(), inviteCodes: state.inviteCodes || [], favs: sanitizeFavs(state.favs), deleted: sanitizeTombstones(state.deleted) };
+    // shopPersons(): berechnet lesen, aber NIE roh schreiben - shopPersons() haengt in der
+    // Gruppe an groupMembers.length/"shopForAll" und ist damit ein abgeleiteter Anzeigewert,
+    // keine Kontoeinstellung. sanitizeShopPersons(state.shopPersons) schreibt die tatsaechlich
+    // vom Nutzer gesetzte Zahl (Default 1) - sonst ueberschriebe der berechnete Wert eine
+    // bewusst gesetzte 1 dauerhaft in der Cloud (siehe dataJSON()/shopPersons()-Kommentare).
+    const d = { tab: state.tab, goal: state.goal || null, shares: state.shares || [], onboarded: state.onboarded === true, weights: state.weights || [], weightGoals: state.weightGoals || {}, profileImage: state.profileImage || null, weightConsent: state.weightConsent || noConsent(), shopPersons: sanitizeShopPersons(state.shopPersons), inviteCodes: state.inviteCodes || [], favs: sanitizeFavs(state.favs), deleted: sanitizeTombstones(state.deleted) };
     // groupId NUR schreiben, wenn dieser Client den Gruppenzustand wirklich kennt. syncGid null
     // heisst nicht "keine Gruppe", sondern nur "gerade keine Gruppen-Session" - ein "groupId: ''"
     // wuerde die Gruppe dann fuer ALLE Geraete des Kontos ausloeschen. Dank merge:true bleibt der
@@ -3595,7 +3662,17 @@
     // Nur den Gruppenwechsel ueberspringen, nicht den ganzen Snapshot - Ziel, Gewichte und
     // Profilbild darunter sollen weiterhin ankommen.
     const staleEmptyGid = !remoteGid && syncGid;
-    if (remoteGid !== syncGid && !staleEmptyGid) { switchGroup(remoteGid); return; }
+    // Zweites Sicherheitsnetz (lastGroupAttempt, siehe Deklaration oben): nach einem gerade
+    // gescheiterten Versuch fuer GENAU diese remoteGid nicht sofort erneut switchGroup()
+    // anstossen - stopCloudSync() setzt groupSyncFailed dabei zurueck, und ohne dieses Flag
+    // zoege jeder weitere Snapshot denselben gescheiterten Versuch wieder auf (Dauerschleife).
+    // Kein Dead-Lock: wechselt die Gruppe wirklich (andere remoteGid), greift das Netz nicht.
+    // lastGroupAttempt wird bewusst NICHT hier gesetzt, sondern an den vier Stellen, die
+    // groupSyncFailed setzen: switchGroup() ruft als Erstes stopCloudSync(), und startCloudSync()
+    // gleich darauf noch einmal - beide raeumen das Flag. Ein hier gesetzter Wert waere zum
+    // Zeitpunkt des Scheiterns laengst wieder null und das Netz damit wirkungslos.
+    const retryingFailedAttempt = groupSyncFailed && remoteGid === lastGroupAttempt;
+    if (remoteGid !== syncGid && !staleEmptyGid && !retryingFailedAttempt) { switchGroup(remoteGid); return; }
     const j = dataJSON(data), before = dataJSON(state);
     if (j === before || j === lastPushedJSON) return; // nichts Neues
     // state.recipes wird hier NICHT mehr ersetzt - Rezepte kommen ausschliesslich ueber
@@ -3608,7 +3685,13 @@
     state.shares = unionIds(state.shares, data.shares); // nie einen Link verlieren, der nur lokal bekannt ist
     state.inviteCodes = unionIds(state.inviteCodes, data.inviteCodes); // desgleichen fuer Einladungscodes
     state.weights = mergeWeights(data.weights, state.weights); // desgleichen fuer Wiegungen
-    state.weightGoals = Object.assign({}, sanitizeWeightGoals(state.weightGoals), sanitizeWeightGoals(data.weightGoals));
+    // Aussen sanitizen (sortiert): sonst haengt Object.assign ein nur-remote bekanntes Jahr in
+    // Einfuegereihenfolge HINTEN an statt einsortiert - derselbe Fehler wie bei mergeTombstones
+    // ohne die abschliessende Sortierung. Die inneren Aufrufe bleiben trotzdem stehen: sie
+    // filtern ungueltige Jahre/Gewichte VOR dem Merge weg. Nur aussen zu sanitizen liesse einen
+    // ungueltigen Remote-Wert ein gueltiges lokales Ziel ueberschreiben, das anschliessend
+    // herausgefiltert wuerde - das Ziel waere weg. sanitizeWeightGoals ist idempotent.
+    state.weightGoals = sanitizeWeightGoals(Object.assign({}, sanitizeWeightGoals(state.weightGoals), sanitizeWeightGoals(data.weightGoals)));
     state.weightConsent = mergeConsent(data.weightConsent, state.weightConsent); // juengste Entscheidung gewinnt
     if (data.profileImage !== undefined) state.profileImage = typeof data.profileImage === "string" ? data.profileImage : null;
     if (data.shopPersons !== undefined) state.shopPersons = sanitizeShopPersons(data.shopPersons);
@@ -3660,7 +3743,9 @@
       } else {
         const incoming = sanitizeRecipe(Object.assign({}, c.data, { id: c.id }));
         if (!incoming) return;
-        const json = JSON.stringify(incoming);
+        // canonJSON statt JSON.stringify - siehe syncRecipes(): sonst haelt der Vergleich ein
+        // inhaltlich identisches, nur anders sortiertes Rezept dauerhaft fuer "geaendert".
+        const json = canonJSON(incoming);
         // Traegt die ID einen Grabstein, ist das ein Nachzuegler: ein anderes Geraet hat das
         // Meal noch einmal geschrieben, bevor es die Loeschung gesehen hat. Nicht aufnehmen,
         // aber in die Baseline schreiben - dadurch faellt es beim naechsten syncRecipes()
@@ -3669,7 +3754,7 @@
         if (!syncGid && isDeleted(c.id)) { if (lastPushedRecipes) lastPushedRecipes.set(c.id, json); return; }
         const idx = state.recipes.findIndex(r => r.id === c.id);
         if (idx === -1) { state.recipes.push(incoming); changed = true; }
-        else if (JSON.stringify(state.recipes[idx]) !== json) { state.recipes[idx] = incoming; changed = true; }
+        else if (canonJSON(state.recipes[idx]) !== json) { state.recipes[idx] = incoming; changed = true; }
         if (lastPushedRecipes) lastPushedRecipes.set(c.id, json);
       }
     });
@@ -3693,11 +3778,13 @@
         return;
       }
       const incoming = normalizePlan(unflattenWeek(c.fields), state.recipes);
-      if (JSON.stringify(state.plans[c.week]) !== JSON.stringify(incoming)) {
+      // canonJSON statt JSON.stringify: ein Slot-Eintrag ist heute zufaellig alphabetisch
+      // ({id, uids}), ein kuenftiges drittes Feld risse die Falle sonst lautlos wieder auf.
+      if (canonJSON(state.plans[c.week]) !== canonJSON(incoming)) {
         // Welcher Tag hat sich geaendert? Nur fuer die Meldung, deshalb bewusst grob.
         DAYS.forEach(d => {
-          const before = state.plans[c.week] ? JSON.stringify(state.plans[c.week][d.key]) : null;
-          if (before !== JSON.stringify(incoming[d.key]) && touchedDays.indexOf(d.label) === -1) touchedDays.push(d.label);
+          const before = state.plans[c.week] ? canonJSON(state.plans[c.week][d.key]) : null;
+          if (before !== canonJSON(incoming[d.key]) && touchedDays.indexOf(d.label) === -1) touchedDays.push(d.label);
         });
         state.plans[c.week] = incoming;
         changed = true;
@@ -3706,7 +3793,7 @@
       if (lastPushedSlots) {
         const flat = flattenWeek(incoming);
         Array.from(lastPushedSlots.keys()).forEach(k => { if (k.indexOf(c.week + ".") === 0) lastPushedSlots.delete(k); });
-        Object.keys(flat).forEach(f => lastPushedSlots.set(c.week + "." + f, JSON.stringify(flat[f])));
+        Object.keys(flat).forEach(f => lastPushedSlots.set(c.week + "." + f, canonJSON(flat[f])));
       }
     });
     if (!changed) return;
@@ -3847,7 +3934,10 @@
       // lesbar. Die eigenen Meals sind beim Beitritt in die Gruppe kopiert worden.
       const gRecipes = sanitizeRecipes(await window.CloudSync.loadRecipes(["groups", gid]));
       state.recipes = gRecipes;
-      lastPushedRecipes = new Map(gRecipes.map(r => [r.id, JSON.stringify(r)]));
+      // canonJSON, nicht JSON.stringify: syncRecipes() vergleicht gleich darauf kanonisch gegen
+      // diese Baseline. Wird sie roh geseedet, weicht der erste Vergleich fast immer ab und die
+      // App schriebe direkt nach dem Gruppenbeitritt alle Rezepte einmal komplett neu hoch.
+      lastPushedRecipes = new Map(gRecipes.map(r => [r.id, canonJSON(r)]));
 
       // Wochenplan der Gruppe uebernehmen (ebenfalls ersetzen, gleiche Begruendung).
       const weeks = await window.CloudGroup.loadPlans(gid);
@@ -3857,7 +3947,7 @@
         const plan = normalizePlan(unflattenWeek(w.fields), state.recipes);
         plans[w.week] = plan;
         const flat = flattenWeek(plan);
-        Object.keys(flat).forEach(f => slots.set(w.week + "." + f, JSON.stringify(flat[f])));
+        Object.keys(flat).forEach(f => slots.set(w.week + "." + f, canonJSON(flat[f])));   // kanonisch seeden, siehe lastPushedRecipes oben
       });
       state.plans = pruneWeeks(plans);
       // Baseline aus dem geladenen Stand vorbefuellen statt leer lassen - sonst schriebe
@@ -4011,6 +4101,12 @@
       // und groupSyncFailed haelt pushNow() davon ab, das Feld in der Cloud zu ueberschreiben:
       // sonst kostet eine einzige schlechte Verbindung beim Start die ganze Gruppe.
       groupSyncFailed = groupResult === "error";
+      // Vierter Ort, an dem groupSyncFailed gesetzt wird - und der haeufigste: enterGroupSync()
+      // faengt seine Fehler selbst ab und LIEFERT "error" zurueck, statt zu werfen. Der catch
+      // unten sieht diesen Fall also nie. Ohne lastGroupAttempt hier zoege jeder folgende
+      // onRemote()-Snapshot switchGroup() erneut auf (siehe dort, "retryingFailedAttempt") -
+      // genau die Dauerschleife, die das Netz verhindern soll.
+      if (groupSyncFailed) lastGroupAttempt = wantGid || null;
       if (wantGid && groupResult === "gone") state.groupId = "";
       // Aktivierung ist eben erst geglueckt, aber der direkt anschliessende enterGroupSync()
       // ist gescheitert (z. B. Netz weg genau in diesem Moment): lieber den Wartezustand
@@ -4043,7 +4139,7 @@
         // so schreibt der folgende pushNow()-Lauf nur, was wirklich neu/geaendert ist
         // (Migration UND Normalfall gleichermassen abgedeckt), statt bei JEDEM Login alle
         // Rezepte erneut zu schreiben.
-        lastPushedRecipes = new Map(cloudRecipes.map(r => [r.id, JSON.stringify(r)]));
+        lastPushedRecipes = new Map(cloudRecipes.map(r => [r.id, canonJSON(r)]));   // kanonisch seeden, siehe enterGroupSync()
         syncUnsubRecipes = window.CloudSync.watchRecipes ? window.CloudSync.watchRecipes(["users", uid], onRecipesRemote) : null;
       }
       lastPushedJSON = null;
@@ -4071,6 +4167,7 @@
       // weiter), also muss der Gruppenzeiger ausdruecklich gesperrt bleiben - sonst traegt der
       // naechste beliebige save() ein groupId:"" in die Cloud.
       groupSyncFailed = true;
+      lastGroupAttempt = state.groupId || null;   // fuer WELCHE Gruppe der Versuch scheiterte (onRemote)
       setSyncStatus("offline"); /* offline: App läuft lokal weiter, Sync greift beim nächsten Mal */
       maybeStartOnboarding();   // ohne Cloud entscheidet der lokale Stand
     }
@@ -4082,6 +4179,7 @@
     leaveGroupState();   // Gruppen-Listener haengen sonst weiter und schreiben in den alten Zustand
     clearTimeout(pushTimer);
     syncUid = null; lastPushedJSON = null; lastPushedRecipes = null; recipesSyncFailed = false; groupSyncFailed = false; syncHandshakeOk = false;
+    lastGroupAttempt = null;   // Sicherheitsnetz aus onRemote() gehoert zu genau dieser Sync-Session
     setSyncStatus("off");
   }
 
@@ -4439,8 +4537,13 @@
     // Kategorie-Ueberschrift gruppiert - die Angabe war doppelt.
     return `<div class="rimg has-photo">${badges}<img class="rphoto" src="${photoFor(r)}" alt="${esc(r.name)}" loading="lazy"></div>`;
   }
-  function thumbHtml(r, cls) {
-    return `<img class="${cls}" src="${photoFor(r)}" alt="" loading="lazy">`;
+  // eager: NUR der Plan-Slot uebergibt true (siehe renderPlan()) - dort sind es hoechstens
+  // 21 winzige Thumbnails, alle sofort im Blickfeld. loading="lazy" verschiebt dort selbst
+  // ein laengst dekodiertes Bild um mindestens einen Frame, sichtbar als Aufblitzen bei jedem
+  // Neuaufbau (siehe pendingWeekX-Kommentar bei render()). Meal-Raster (cardImageHtml) und
+  // die Picker-Liste bleiben bei lazy - dort koennen deutlich mehr Bilder auf einmal stehen.
+  function thumbHtml(r, cls, eager) {
+    return `<img class="${cls}" src="${photoFor(r)}" alt=""${eager ? ` decoding="sync"` : ` loading="lazy"`}>`;
   }
   // read a file and downscale to <=640px JPEG data URL (keeps localStorage small)
   function readAndDownscale(file, cb) {
@@ -4473,7 +4576,17 @@
   // die Position. Ohne diese Entkopplung ueberstimmte keepWeekX unten jeden Sprung.
   let pendingDayTarget = null;   // Index oder "today" - naechstes Sprungziel, von renderPlan() einmalig konsumiert
   let pendingWeekDir = 0;        // 1 = naechste Woche, -1 = aktuelle Woche - Richtung fuer den Uebergang
-  let weekJumpDone = false;      // schaltet keepWeekX unten fuer genau diesen Durchlauf ab
+  // Waagerechte Scrollposition der Tagesleiste, von render() VOR dem Neuaufbau gemerkt und
+  // von renderPlan() DIREKT nach view.innerHTML wiederhergestellt - noch vor resetCarousels()/
+  // initCarousel(). Fruehere Fassung schrieb die Position erst NACH initCarousel() zurueck:
+  // markActive/fitHeight/syncIndicator dort massen dann kurz den Montag-Zwischenzustand
+  // (scrollLeft 0 direkt nach view.innerHTML), was als Zucken/Ueberblendung sichtbar wurde,
+  // und die noch falsche Streifenhoehe verfaelschte zusaetzlich window.scrollTo(0, keepY) in
+  // render(). Mit pendingWeekX sehen alle Messungen sofort die richtige Position - kein
+  // weekJumpDone mehr noetig, weil render() das Feld ".week" gar nicht mehr selbst schreibt
+  // (die Anker-Regel wirkt weiterhin: planCarousel.go(target, true) laeuft in renderPlan()
+  // NACH der Wiederherstellung und ueberschreibt die Position bewusst erneut).
+  let pendingWeekX = 0;
 
   function render() {
     // Solange die ersten Schritte laufen, gehoert <main> ihnen. render() kommt aus mehreren
@@ -4500,7 +4613,11 @@
     lastRenderTab = state.tab;
     const keepY = sameTab ? window.scrollY : 0;
     const weekEl = view.querySelector(".week"), wgEl = view.querySelector(".wg-cols");
-    const keepWeekX = sameTab && weekEl ? weekEl.scrollLeft : 0;
+    // pendingWeekX statt einer lokalen Konstante: renderPlan() muss die Position noch VOR
+    // resetCarousels()/initCarousel() zuruecksetzen (siehe Deklaration oben), also VOR dem
+    // Punkt, an dem render() selbst wieder zu Wort kaeme. Deshalb hier nur merken, nicht mehr
+    // selbst schreiben.
+    pendingWeekX = sameTab && weekEl ? weekEl.scrollLeft : 0;
     const keepWgX = sameTab && wgEl ? wgEl.scrollLeft : 0;
     // Caches nur fuer die Dauer dieses Durchlaufs aufspannen; finally stellt sicher,
     // dass sie auch bei einem Fehler nicht als veraltete Kopie zurueckbleiben.
@@ -4524,13 +4641,9 @@
     }
     // Erst jetzt zuruecksetzen – der neue Inhalt steht, die Seite ist wieder hoch genug.
     // Ohne Sanftlauf: das hier ist Wiederherstellen, keine Bewegung, die jemand sehen soll.
-    const newWeek = view.querySelector(".week"), newWg = view.querySelector(".wg-cols");
-    // weekJumpDone: renderPlan() ist gerade selbst schon auf ein Ziel gesprungen (Anker-
-    // Regel oben) - dieser Wiederherstellungs-Schreibvorgang darf den Sprung nicht
-    // ueberstimmen. Direkt danach zuruecksetzen, sonst bliebe die Sperre fuer den
-    // naechsten, ganz normalen Durchlauf (Meal einplanen) stehen.
-    if (keepWeekX && newWeek && !weekJumpDone) newWeek.scrollLeft = keepWeekX;
-    weekJumpDone = false;
+    // ".week" faehrt hier NICHT mehr mit - renderPlan() hat die Position schon direkt nach
+    // view.innerHTML gesetzt (siehe pendingWeekX oben), lange bevor initCarousel() misst.
+    const newWg = view.querySelector(".wg-cols");
     if (keepWgX && newWg) newWg.scrollLeft = keepWgX;
     window.scrollTo(0, keepY);
     // Gleitende Pille der unteren Tab-Leiste (Schiebe-Schema): .tabs liegt ausserhalb von
@@ -6304,7 +6417,7 @@
           // im Titel stehen, sonst bleibt die Zuweisung fuer Screenreader unsichtbar.
           const assignNote = uids ? " – nur für " + uids.map(u => (memberByUid(u) ? firstName(memberByUid(u).name) : null) || "Jemanden").join(", ") : "";
           html += `<div class="filled"${drag ? ` draggable="true"` : ""} data-action="view" data-id="${r.id}" data-slot-src="${d.key}:${m.key}:${idx}" title="${esc(r.name)}${esc(assignNote)}${drag ? " – ziehen zum Verschieben" : ""}">
-              <span class="r-thumb-wrap">${thumbHtml(r, "r-thumb")}${badge}</span>
+              <span class="r-thumb-wrap">${thumbHtml(r, "r-thumb", true)}${badge}</span>
               <div><div class="r-name">${esc(r.name)}</div>${recipeNut(r).kcal ? `<div class="r-meta">${nfmt(recipeNut(r).kcal)} kcal</div>` : ""}</div>
               ${showPencil ? `<button class="pencil" data-action="assign" data-slot-src="${d.key}:${m.key}:${idx}" aria-label="Zuweisung ändern" title="Zuweisung ändern">${ICON_PEOPLE}</button>` : ""}
               ${drag ? `<button class="x" data-action="unassign" data-slot-src="${d.key}:${m.key}:${idx}" aria-label="Entfernen" title="Entfernen">✕</button>` : ""}
@@ -6324,9 +6437,15 @@
         Einkaufsliste der Woche
       </button>`;
     view.innerHTML = html;
+    // Waagerechte Position SOFORT wiederherstellen - noch vor resetCarousels()/initCarousel(),
+    // damit deren Messungen (markActive/fitHeight/syncIndicator) nie den Montag-Zwischenstand
+    // (scrollLeft 0, direkt nach view.innerHTML) sehen. Siehe pendingWeekX-Deklaration bei render().
+    const weekStrip = view.querySelector(".week");
+    if (pendingWeekX && weekStrip) weekStrip.scrollLeft = pendingWeekX;
+    pendingWeekX = 0;
     syncStickyOffsets();
     resetCarousels(); // die Streifen des vorigen Durchlaufs sind gerade weggeworfen worden
-    const planCarousel = initCarousel(view.querySelector(".week"), view.querySelector(".daybar"));
+    const planCarousel = initCarousel(weekStrip, view.querySelector(".daybar"));
 
     // Anker-Regel: "Aktuelle Woche" zeigt immer heute, "Nächste Woche" immer Montag -
     // beim Betreten des Tabs UND bei jedem Wochenwechsel, nie durch Zufall (siehe
@@ -6336,14 +6455,12 @@
     if (target == null && !sameTab) target = "today"; // Tabwechsel auf den Plan
     if (target === "today") target = todayKey ? DAYS.findIndex(d => d.key === todayKey) : 0;
     // "jump" ist bewusst nicht an "target > 0" gekoppelt: auch ein Sprung NACH Montag
-    // (Index 0, z. B. "Nächste Woche") ist ein Sprung im Sinn der Anker-Regel - sonst
-    // wuerde render() den alten Scroll-Rest der vorigen Woche gleich wieder darueber
-    // schreiben (weekJumpDone bliebe faelschlich false).
+    // (Index 0, z. B. "Nächste Woche") ist ein Sprung im Sinn der Anker-Regel. Kein
+    // weekJumpDone mehr noetig (siehe pendingWeekX-Deklaration bei render()): render()
+    // schreibt ".week" gar nicht mehr selbst, planCarousel.go() unten ueberschreibt die
+    // gerade erst wiederhergestellte Position bewusst noch einmal mit dem Sprungziel.
     const jump = target != null;
-    if (jump) {
-      weekJumpDone = true;
-      if (planCarousel && target > 0) planCarousel.go(target, true); // quiet: Startzustand, keine Sprung-Bewegung
-    }
+    if (jump && planCarousel && target > 0) planCarousel.go(target, true); // quiet: Startzustand, keine Sprung-Bewegung
 
     // Wochenwechsel-Uebergang (Schritt 5): Richtung kommt ausschliesslich aus
     // pendingWeekDir, einmalig konsumiert - render() laeuft auch bei jedem Meal-Einplanen
@@ -10321,6 +10438,7 @@
       // Gruppe steht. Ohne diese Sperre loeschte der naechste Push sie sofort wieder. Der Zeiger
       // bleibt gesperrt, bis ein vollstaendiger startCloudSync() den Zustand geklaert hat.
       groupSyncFailed = true;
+      lastGroupAttempt = gid || null;   // siehe onRemote(): sonst zieht jeder Snapshot den Versuch neu auf
       toast("Der Beitritt konnte nicht übernommen werden – versucht es gleich noch einmal.");
     } finally {
       groupTransition = false;
@@ -10360,8 +10478,13 @@
     const prevGid = state.groupId;
     groupTransition = true;
     clearTimeout(pushTimer);
+    // Ausserhalb von try deklariert (nicht const IM try): der catch-Block braucht inv.gid fuer
+    // lastGroupAttempt - ein try{} und sein catch{} sind eigene Bloecke, eine dort deklarierte
+    // const waere im catch schlicht nicht sichtbar (ReferenceError), unabhaengig davon, ob sie
+    // vorher erfolgreich zugewiesen wurde.
+    let inv = null;
     try {
-      const inv = await window.CloudGroup.fetchInvite(code);
+      inv = await window.CloudGroup.fetchInvite(code);
       if (!inv || !inv.gid) { toast("Diese Einladung gilt nicht mehr."); return; }
       if (syncGid === inv.gid) { toast("Du bist schon dabei."); return; }
       // Derselbe Guard wie in openInviteModal() (dort ausfuehrlich kommentiert) - hier
@@ -10398,6 +10521,11 @@
       // hier nicht, also darf kein Push den Zeiger anfassen, bis der naechste Start ihn klaert.
       state.groupId = prevGid;
       groupSyncFailed = true;
+      // Der Versuch galt inv.gid, nicht prevGid: steht der Cloud-Write schon, meldet der naechste
+      // Snapshot genau diese Gruppe - und ohne das Flag liefe switchGroup() endlos erneut an.
+      // inv kann hier noch null sein (fetchInvite() selbst ist gescheitert, bevor inv zugewiesen
+      // wurde) - dann bleibt lastGroupAttempt null, statt beim Lesen von inv.gid erneut zu werfen.
+      lastGroupAttempt = (inv && inv.gid) || null;
       toast("Der Beitritt hat nicht geklappt. Bitte den Link noch einmal öffnen.");
     } finally {
       groupTransition = false;

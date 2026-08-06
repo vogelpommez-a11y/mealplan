@@ -563,6 +563,10 @@ die abwechselnd den empfangenen Stand vereinigen und zurückschreiben. Mit der u
 Fassung kommt sie nach 40 Runden nicht zur Ruhe, mit der sortierten nach Runde 2. Siehe
 `docs/TESTING.md`.
 
+**Fortsetzung:** Diese Ziffer schloss nur die Merge-*Reihenfolge* (Einfüge-Reihenfolge beim
+Zusammenführen von Listen/Objekten). Die zweite Hälfte derselben Fehlerklasse — Firestore gibt
+Objektschlüssel bei jedem Snapshot **sortiert** zurück, unabhängig vom Merge — steht in Ziffer 44.
+
 ## 35. Ein gescheiterter Lesevorgang darf nie zu einem Schreibvorgang werden
 
 **Symptom:** Gruppe gestern eingerichtet und die Einladung verschickt, heute ist sie spurlos
@@ -881,3 +885,76 @@ Zuerst prüfen:
 7. Lässt sich der betroffene Teil isoliert testen?
 
 Erst danach die eigentliche Ursache beheben.
+
+## 44. Firestore sortiert Map-Schlüssel — Fortsetzung von Ziffer 34
+
+**Symptom:** Wie in Ziffer 34 — Dauer-Zucken bei zwei gleichzeitig angemeldeten Geräten, auch
+ohne dass jemand etwas ändert. Diesmal aber selbst dann noch, wenn alle Merge-Funktionen aus
+Ziffer 34 bereits sortiert zurückgeben. Zusätzliches Symptom im Rezeptpfad: **Meal-Bilder
+blitzen**, ohne dass ein Toast erscheint.
+
+**Ursache:** Ziffer 34 schloss nur die Merge-*Reihenfolge*. Offen blieb die andere Quelle zweier
+gültiger Zeichenketten für denselben Inhalt: **Firestore gibt Map-Schlüssel bei jedem Snapshot
+sortiert zurück**, lokal gebaute Objekte tragen dagegen die Reihenfolge, in der der Code sie
+zusammensetzt (`sanitizeConsent()` → `{given, at}`, Firestore → `{at, given}`). `JSON.stringify`
+ist reihenfolgeabhängig — der ganze Sync verglich strukturell Äpfel mit Birnen, unabhängig davon,
+ob die Merge-Funktionen selbst schon korrekt waren.
+
+**Neue Prüffrage bei jeder Sync-Vergleichsstelle:** *Vergleiche ich zwei Objekte, von denen eines
+schon einmal in Firestore war?* Wenn ja, reicht `JSON.stringify` nicht.
+
+**Lösung:** `canonValue()`/`canonJSON()` — sortieren Objektschlüssel rekursiv, Arrays bleiben
+unangetastet. Einzige Serialisierung für **alle** Sync-Vergleiche (`dataJSON()`, `syncRecipes()`,
+`onRecipesRemote()`, `pushGroupPlan()`/`onGroupPlansRemote()`). Details und die vollständige
+Liste der Vergleichsstellen: `docs/ARCHITECTURES.md`, Abschnitt „Cloud-Synchronisation".
+
+**Zwei Teilbefunde, die für sich genommen schon reichten, den Sync dauerhaft zu stören:**
+
+* **Berechnete Werte gehören nie in einen Push.** `shopPersons()` ist ein abgeleiteter
+  Anzeigewert (hängt an `groupMembers.length`/`"shopForAll"`), keine Kontoeinstellung. `pushNow()`
+  schrieb ihn trotzdem roh in die Cloud — dadurch überschrieb er in der Gruppe eine bewusst auf 1
+  gesetzte Zahl dauerhaft, und weil er sich pro Gerät je nach Gruppenzustand unterschiedlich
+  berechnet, war er selbst wieder eine Endlos-Schreib-Quelle, ganz ohne Reihenfolge-Problem.
+* **„Kein Toast" beweist nicht „kein Render".** `onRecipesRemote()` ist der einzige
+  Render-Auslöser im Sync **ohne** eigenen Toast (anders als `onRemote()`, das „Von anderem Gerät
+  aktualisiert" meldet). `hydrateImages()` hängt `r.image` als **letzten** Schlüssel an — danach
+  liegt jedes Foto-Meal dauerhaft quer zu seiner Cloud-Form, `onRecipesRemote()` hält es für
+  geändert, rendert neu, ohne dass irgendein Toast das anzeigt. Wer bei Bilder-Zucken zuerst nach
+  einer fehlenden Meldung sucht, findet nichts — die Abwesenheit des Tosts ist hier gerade das
+  Symptom, nicht der Hinweis auf die Ursache.
+
+**Nachweis im Prüfstand:** Zwei Ausschneide-Prüfstände (Hauptdokument + Rezeptpfad), Details in
+`docs/TESTING.md`. Gegen den alten Stand (`git show HEAD:index.html`) gegengeprobt: dort
+oszilliert das Hauptdokument alle 40 Runden mit konstant zwei Schreibvorgängen pro Runde (der
+„Dauer-Schreibverkehr" aus der Reihenfolge-Lücke, unabhängig vom sichtbaren Rendern), und der
+Rezeptpfad zeigt bei erneut angewendetem `hydrateImages()`-Effekt (simuliert einen wiederholten
+`render()`-Zyklus) fortlaufend Puts und Renders. Mit `canonJSON` ist beides ab der jeweils
+nächsten Runde still.
+
+### Rückfall am 06.08.2026: das dazugehörige Sicherheitsnetz griff nie
+
+Der Fix brachte ein zweites Sicherheitsnetz mit (`lastGroupAttempt`, verhindert, dass ein
+gescheiterter Gruppen-Beitrittsversuch bei jedem weiteren Snapshot erneut `switchGroup()`
+auslöst — siehe `docs/ARCHITECTURES.md`, Abschnitt „Sicherheitsnetz gegen wiederholtes
+switchGroup()"). Die erste Fassung setzte das Flag in `onRemote()`, direkt bevor `switchGroup()`
+aufgerufen wurde. Das sah beim Code-Lesen richtig aus und war es nicht: `switchGroup()` ruft als
+Erstes `stopCloudSync()` auf, und `stopCloudSync()` setzt genau dieses Flag wieder zurück — noch
+bevor der eigentliche Fehlschlag (im `catch`-Block von `startCloudSync()`/`activateGroup()`/
+`joinGroup()`) überhaupt eintritt. Der in `onRemote()` gesetzte Wert war zum Zeitpunkt des
+Scheiterns also längst wieder `null`, das Netz strukturell wirkungslos — ein Prüfstand, der nur
+den Normalablauf fährt (immer erfolgreicher Handshake), deckt das nicht auf, weil er den
+Fehlerpfad nie durchläuft.
+
+**Lehre, die über diesen einen Fall hinausgeht:** Ein Flag, das ein Aufräumpfad zurücksetzt, darf
+nicht **vor** diesem Aufräumpfad gesetzt werden. Bei jedem neuen Sicherheitsnetz prüfen, in
+welcher Reihenfolge die beteiligten Funktionen tatsächlich laufen — nicht nur, ob das Flag
+irgendwo gesetzt wird. Die korrigierte Fassung setzt `lastGroupAttempt` deshalb an den drei
+Stellen, die `groupSyncFailed = true` setzen (den `catch`-Blöcken selbst), nicht am Aufrufer.
+
+**Nachweis im Prüfstand:** Eigener dritter Prüfstand, der `onRemote()`/`switchGroup()`/
+`stopCloudSync()` echt ausschneidet und nur `startCloudSync()` realistisch stubbt (Stub spiegelt
+exakt den `catch`-Block: `syncUid` bleibt gesetzt, `groupSyncFailed = true`, `lastGroupAttempt`
+zeigt auf die gescheiterte Gruppe). Mehrere Snapshots mit derselben `remoteGid` nach einem
+gescheiterten Versuch lösen `switchGroup()` genau einmal aus, ein echter Gruppenwechsel (andere
+`remoteGid`) erneut. Gegenprobe gegen den alten Stand: dort läuft `switchGroup()` bei jedem
+Snapshot erneut an. Details in `docs/TESTING.md`.

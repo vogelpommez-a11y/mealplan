@@ -258,6 +258,43 @@ Zur Vermeidung von Endlosschleifen werden insbesondere berücksichtigt:
 * JSON-Vergleich
 * `tab` wird nicht als Cloud-Änderung behandelt
 
+### `canonJSON` — die einzige Serialisierung für Sync-Vergleiche
+
+Firestore liefert Map-Schlüssel bei jedem Snapshot **sortiert** zurück, lokal gebaute Objekte
+entstehen dagegen in Code-Reihenfolge. `JSON.stringify` ist reihenfolgeabhängig — ohne eine
+kanonische Form vergleicht der Sync strukturell nie stabil, unabhängig von der Merge-Reihenfolge
+aus Ziffer 34 in `docs/TROUBLESHOOTING.md` (dort war es Einfüge- statt Objektschlüssel-Reihenfolge,
+hier ist es dieselbe Fehlerklasse an der Wurzel: zwei gültige Zeichenketten für denselben Inhalt).
+
+`canonValue(v)`/`canonJSON(v)` sind die gemeinsame Antwort: Arrays bleiben unangetastet (Reihenfolge
+ist dort inhaltlich, siehe `unionIds()`/`sanitizeTombstones()`), Objektschlüssel werden rekursiv
+sortiert. **Regel: `canonJSON` vergleicht nur, es schreibt nie.** Eine kanonisierte Kopie in die
+Cloud zu schreiben wäre selbst wieder eine dritte, neue Reihenfolge und verschöbe das Problem nur.
+
+Alle Vergleichsstellen im Sync laufen darüber:
+
+* `dataJSON()` (Kontodokument, `onRemote()`/`pushNow()`)
+* `syncRecipes()` (Rezept-Subcollection, Baseline `lastPushedRecipes`)
+* `onRecipesRemote()` (eingehende Rezept-Änderungen)
+* `pushGroupPlan()`/`onGroupPlansRemote()` (Gruppen-Wochenplan-Slots, Baseline `lastPushedSlots`)
+
+Jede Schreibstelle liest den **Rohwert**, nie den Vergleichsstring zurück (`puts.push(r)` statt
+`JSON.parse(canonJSON(r))`, `mark(wk, field, flat[field])` statt `JSON.parse(json)`) — sonst
+verlöre ein Schreibvorgang die eigentliche Absicht der Sortierung nur zum Vergleich.
+
+Zwei Werte gehören **nie roh** in einen Push, auch wenn sie inhaltlich stimmen:
+
+* **Berechnete Werte.** `shopPersons()` hängt an `groupMembers.length`/`"shopForAll"` und ist ein
+  abgeleiteter Anzeigewert, keine Kontoeinstellung. `pushNow()`/`save()` schreiben stattdessen
+  `sanitizeShopPersons(state.shopPersons)` — sonst überschriebe der berechnete Wert eine bewusst
+  auf 1 gesetzte Zahl dauerhaft, und weil er sich je nach Gruppenzustand pro Gerät unterschiedlich
+  berechnet, wäre er zugleich selbst wieder eine Endlos-Schreib-Quelle.
+* **Merge-Ergebnisse ohne abschließende Sortierung.** `state.weightGoals = sanitizeWeightGoals(
+  Object.assign({}, sanitizeWeightGoals(a), sanitizeWeightGoals(b)))` — sowohl innen als auch
+  außen sanitizen: nur außen ließe einen ungültigen Remote-Wert ein gültiges lokales Zielgewicht
+  überschreiben, das danach beim äußeren Sanitize-Durchlauf herausgefiltert würde — das Ziel wäre
+  verloren, nicht nur unsortiert. `mergeTombstones()` sortiert ebenfalls seine eigene Rückgabe.
+
 ## Gruppenmodus
 
 Wenn `syncGid` gesetzt ist, stammen:
@@ -334,6 +371,23 @@ Aus derselben Logik behandeln die Listener leere Ergebnisse als *ungeklärt*, ni
 `wantGid` in `startCloudSync()` ist `remote.groupId || state.groupId`. Hat ein Fehlerpfad den Cloud-Zeiger geleert, während `groups/{gid}` und die Mitgliedschaft weiterbestehen, holt der nächste Start die Gruppe zurück und `pushNow()` trägt den Zeiger wieder ein. Der reguläre Austritt auf einem anderen Gerät bleibt korrekt: dort ist der eigene Mitglieder-Eintrag gelöscht, `enterGroupSync()` liefert `"gone"`, der Zeiger wird geräumt.
 
 Scheitert `enterGroupSync()` in `startCloudSync()` direkt nach einer gerade erst geglückten Start-Aktivierung (z. B. Netzabbruch im selben Moment), wird `pendingGroupId` wiederhergestellt statt beide Zeiger zu verlieren — sonst wäre die (für den Beitretenden längst aktive) Gruppe für den Owner nicht mehr auffindbar. Scheitert die Aktivierung selbst (live oder beim Start), wird `watchPendingGroup()` erneut angehängt statt die Sitzung dauerhaft ohne Listener zu lassen.
+
+### Sicherheitsnetz gegen wiederholtes `switchGroup()`: `lastGroupAttempt`
+
+`onRemote()` löst bei jedem Snapshot mit `remoteGid !== syncGid` `switchGroup()` aus — das ist der reguläre Weg, auf dem ein Beitritt/Austritt auf einem anderen Gerät ankommt. Scheitert der dadurch angestoßene `enterGroupSync()` (liefert `"error"`), bleibt `syncGid` `null`, während das Kontodokument die Gruppe weiter nennt (`pushNow()` schreibt `groupId` bei `groupSyncFailed` ja gerade **nicht** zurück, siehe `groupKnown`). Jeder weitere Snapshot sähe also wieder `remoteGid !== syncGid` und stieße `switchGroup()` erneut an — und `switchGroup()` ruft als Erstes `stopCloudSync()`, das `groupSyncFailed` zurücksetzt. Ohne ein zusätzliches Gedächtnis läuft der gescheiterte Versuch damit bei **jedem** Snapshot neu an.
+
+`lastGroupAttempt` merkt sich, für welche `remoteGid` der letzte Versuch bereits gescheitert ist. `onRemote()` prüft `groupSyncFailed && remoteGid === lastGroupAttempt` (`retryingFailedAttempt`) und überspringt `switchGroup()` in diesem Fall — der restliche Snapshot (Ziel, Gewichte, Profilbild) wird trotzdem verarbeitet, genau wie beim verwandten `staleEmptyGid`-Fall nebenan. Wechselt die Gruppe wirklich (andere `remoteGid`), greift das Netz nicht, kein Dead-Lock.
+
+**Wichtig, weil hier ein erster Anlauf falsch lag:** `lastGroupAttempt` darf **nicht** in `onRemote()` gesetzt werden, wenn `switchGroup()` angestoßen wird. `switchGroup()` ruft `stopCloudSync()` **vor** `startCloudSync()` auf, und `stopCloudSync()` räumt `lastGroupAttempt` (wie `groupSyncFailed`) wieder auf — ein in `onRemote()` gesetzter Wert wäre zum Zeitpunkt des eigentlichen Scheiterns längst wieder `null`, das Sicherheitsnetz wirkungslos. Gesetzt wird `lastGroupAttempt` deshalb **an den vier Stellen, die `groupSyncFailed` setzen** — dort, wo der Versuch tatsächlich scheitert, nach dem Aufräumpfad:
+
+* `startCloudSync()`, **im `try`** nach `enterGroupSync()`: `if (groupSyncFailed) lastGroupAttempt = wantGid || null`. Der häufigste Fall und kein `catch` — `enterGroupSync()` fängt seine Fehler selbst ab und gibt `"error"` **zurück** (Netz weg, Regeln nicht veröffentlicht, leerer Mitglieder-Snapshot), wirft also nie.
+* `startCloudSync()`, `catch`-Block: `lastGroupAttempt = state.groupId || null` (greift nur bei geworfenen Exceptions weiter oben, z. B. `CloudSync.load()`)
+* `activateGroup()`, `catch`-Block: `lastGroupAttempt = gid || null`
+* `joinGroup()`, `catch`-Block: `lastGroupAttempt = (inv && inv.gid) || null` (bewusst `inv.gid`, nicht `prevGid` — der gescheiterte Versuch galt der neuen Gruppe, nicht der alten). `inv` ist dort mit `let` **vor** dem `try` deklariert und die Null-Prüfung ist Pflicht: `try{}`/`catch{}` sind eigene Blöcke, ein `const inv` innerhalb des `try` wäre im `catch` gar nicht sichtbar, und scheitert schon `fetchInvite()` selbst, ist `inv` noch `null`.
+
+**Lehre:** Ein Flag, das ein Aufräumpfad zurücksetzt, darf nicht vor diesem Aufräumpfad gesetzt werden — sonst ist die Reihenfolge „setzen, dann aufräumen" statt „aufräumen, dann setzen", und das Netz greift nie. `stopCloudSync()` räumt `lastGroupAttempt` weiterhin auf; das ist korrekt, weil alle vier Stellen, die es setzen, zeitlich **nach** dem zugehörigen `stopCloudSync()`-Aufruf laufen.
+
+**Zweite Lehre, aus derselben Nacht:** Der erste Anlauf deckte nur die drei `catch`-Blöcke ab und übersah den vierten und häufigsten Ort — `groupSyncFailed = groupResult === "error"` mitten im `try` von `startCloudSync()`. `enterGroupSync()` fängt seine Fehler nämlich selbst ab und **liefert** `"error"` zurück, statt zu werfen; ein `catch` sieht diesen Fall nie. Wer ein Fehler-Flag absichert, muss `grep`en, wo es überall gesetzt wird — nicht annehmen, Fehler kämen ausschließlich als Exception. Gefunden haben das `kvp` und `website-security` unabhängig voneinander.
 
 ## Gruppen-Wochenplan
 
@@ -430,9 +484,15 @@ nicht Zurechnung.
 
 ## Wichtige Gruppen-Sync-Regeln
 
-Wenn `syncGid` gesetzt ist:
+Wenn `syncGid` gesetzt ist **oder `groupSyncFailed` gesetzt ist**:
 
-`dataJSON` darf `plans` nicht enthalten.
+`dataJSON` darf `plans` nicht enthalten (`plans: (syncGid || groupSyncFailed) ? null : plansField(d)`).
+
+Der zweite Fall ist ebenso wichtig wie der erste: `pushNow()` schreibt `state.plans` bei
+`groupSyncFailed` ebenfalls nicht (siehe `groupKnown`). Bliebe `plans` in `dataJSON` trotzdem
+drin, läge `state.plans` (möglicherweise der persönliche Stand von vor einem gescheiterten
+Beitrittsversuch) dauerhaft quer zu `data.plans` — derselbe Endlos-Vergleich wie im regulären
+Gruppenfall, nur ausgelöst durch einen Fehlerzustand statt durch eine echte Mitgliedschaft.
 
 Sonst können:
 
@@ -583,6 +643,14 @@ Alte Daten und Teilen-Links müssen kompatibel bleiben.
 
 Neue Bilder nur mit belegter freier Lizenz.
 
+### `thumbHtml(r, cls, eager)`
+
+`eager` lässt `loading="lazy"` weg und setzt `decoding="sync"`. **Nur** der Plan-Slot in
+`renderPlan()` übergibt `true` — dort stehen höchstens 21 winzige Thumbnails, alle sofort im
+Blickfeld; `loading="lazy"` verschiebt selbst ein längst dekodiertes Bild um mindestens einen
+Frame, sichtbar als Aufblitzen bei jedem `render()`. Meal-Raster (`cardImageHtml`) und die
+Picker-Liste bleiben bei `lazy` — dort können deutlich mehr Bilder gleichzeitig im DOM stehen.
+
 ## Wochenplan auf dem Handy
 
 Am Rechner ist `.week` ein Raster und die Tagesleiste `.daybar` steht auf `display: none`. Unter
@@ -642,8 +710,8 @@ Hantel-Icon und `aria-label`.
 > gesetzt. Jeder andere `render()` hält die Position.
 
 Umgesetzt über drei Modul-Variablen: `pendingDayTarget` (Index oder `"today"`), `pendingWeekDir`
-(Richtung des Übergangs) und `weekJumpDone` (schaltet die Scroll-Wiederherstellung `keepWeekX` in
-`render()` für genau einen Durchlauf ab). `renderPlan(sameTab)` verbraucht die Werte einmalig.
+(Richtung des Übergangs) und `pendingWeekX` (die zu haltende waagerechte Scrollposition).
+`renderPlan(sameTab)` verbraucht die Werte einmalig.
 
 Praktisch: Reiterwechsel → heute. Aktuelle → nächste Woche → Montag. Zurück → heute. Meal
 einplanen, entfernen oder ein Cloud-Snapshot → Position bleibt, keine Bewegung.
@@ -651,6 +719,27 @@ einplanen, entfernen oder ein Cloud-Snapshot → Position bleibt, keine Bewegung
 `sameTab` wird von `render()` **als Parameter durchgereicht**, weil `lastRenderTab` dort schon
 auf `"plan"` gesetzt ist, bevor `renderPlan()` läuft — ein Reiterwechsel wäre daraus nicht mehr
 erkennbar.
+
+**Reihenfolge der Scroll-Wiederherstellung (Flacker-Schutz).** `render()` liest `.week`s
+`scrollLeft` **vor** `view.innerHTML` in `pendingWeekX`, schreibt es aber nicht mehr selbst
+zurück. `renderPlan()` setzt `weekStrip.scrollLeft = pendingWeekX` **direkt nach**
+`view.innerHTML`, noch **vor** `resetCarousels()`/`initCarousel()`. Grund: `initCarousel()` misst
+Position und Höhe (`markActive`/`fitHeight`/`syncIndicator`) sofort beim Aufbau — lag die
+Wiederherstellung wie früher erst in `render()` **nach** `renderPlan()`, sahen diese Messungen
+kurz den „Montag/Position 0"-Zwischenstand direkt nach `view.innerHTML`, und die CSS-Transitions
+von `.db-b`/`.db-ind::after` machten die anschließende Korrektur als Zucken sichtbar. Die
+zwischenzeitlich falsche Streifenhöhe verfälschte zusätzlich `window.scrollTo(0, keepY)` in
+`render()`. Mit `pendingWeekX` sehen alle Messungen sofort die richtige Position.
+
+`weekJumpDone` (früherer Sperr-Flag, der die `render()`-eigene `.week`-Wiederherstellung für
+einen Sprung-Durchlauf abschaltete) entfällt ersatzlos: `render()` schreibt `.week` gar nicht
+mehr selbst, es gibt nichts mehr zu sperren. Die Anker-Regel wirkt trotzdem weiter — springt
+`renderPlan()` selbst (Reiterwechsel/Wochenwechsel), läuft `planCarousel.go(target, true)`
+**nach** der `pendingWeekX`-Wiederherstellung und überschreibt die Position bewusst noch einmal
+mit dem Sprungziel.
+
+`.wg-cols` (Meal-Raster) ist von dieser Umstellung nicht betroffen — dort bleibt die
+Wiederherstellung wie bisher in `render()`, nach dem jeweiligen `render*()`-Aufruf.
 
 ### Schiebe-Schema für gleichrangige Ansichtswechsel
 

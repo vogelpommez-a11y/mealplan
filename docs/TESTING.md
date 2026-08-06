@@ -184,6 +184,23 @@ Beispiele:
   Echtbetrieb endlos auf. Immer **beide** Fassungen laufen lassen — die alte muss oszillieren,
   die neue nach ein bis zwei Runden still sein. Ohne diese Gegenprobe beweist ein „konvergiert"
   nichts, weil auch ein kaputter Prüfstand still ist (siehe `docs/TROUBLESHOOTING.md` Ziffer 34).
+  **Firestore-Roundtrip-Stub:** Ein einfaches `doc = Object.assign({}, doc, payload)` (bildet
+  `merge: true` nach) reicht nicht aus, um die zweite Hälfte derselben Fehlerklasse zu treffen
+  (Ziffer 44) — Firestore liefert Objektschlüssel bei jedem Snapshot **sortiert** zurück, lokal
+  gebaute Objekte nicht. Die Auslieferung an den Prüfstand muss deshalb durch `sortKeysDeep(...)`
+  laufen: Objektschlüssel rekursiv sortieren, Arrays unangetastet lassen. Ohne diesen Schritt
+  bleibt der Prüfstand blind für jede Reihenfolge-Differenz, die erst durch einen echten
+  Firestore-Umweg entsteht — ein Bug, der auf zwei echten Geräten sofort zuckt, im Prüfstand aber
+  grün bleibt. **`makeDevice()`-Bauart:** den ausgeschnittenen Funktionsblock wörtlich in
+  `function makeDevice() { … }` setzen und mehrfach instanziieren — jedes „Gerät" behält seine
+  eigenen Modulvariablen (`syncGid`, `lastPushedJSON`, `groupSyncFailed`, …), ohne dass der
+  Produktionscode angefasst wird. Konstanten (`DAYS`, `MEALS`, `ACTIVITY`, `KG_MIN`/`KG_MAX`, …)
+  dürfen außerhalb geteilt werden, sie unterscheiden sich nie zwischen Geräten.
+  **Regel „kein berechneter Wert im Push":** jede Zusicherung, die einen Push-Payload prüft, muss
+  mindestens ein Szenario mit einem *berechneten* Feld (Beispiel: `shopPersons()` in der Gruppe)
+  gegen den *rohen* State-Wert abgleichen — sonst deckt der Test genau die Asymmetrie nicht auf,
+  die `dataJSON()`/`pushNow()` unbrauchbar macht, obwohl der reine Reihenfolge-Vergleich längst
+  grün ist.
 * **Badge-Kürzel** (`memberIni`/`memberBadgeIni`/`memberBadgeHtml`) mit einem
   `groupMembers`-Stub: gleiche Anfangsbuchstaben mit und ohne Nachnamen, Kleinschreibung,
   einbuchstabige Namen, Emoji im Namen (darf nicht halbiert werden), unbekannte UID.
@@ -471,6 +488,35 @@ Stubs für `onGroupRemote`/`onGroupPlansRemote`/`onRecipesRemote` nicht vergesse
 wirft `enterGroupSync()` in seinen eigenen `catch` und liefert `"error"` — das sieht wie ein
 echter Befund aus, ist aber ein Prüfstandsfehler. Im Zweifel gegenprüfen, ob die Funktion in
 `index.html` existiert.
+
+### Testlücke: ein Prüfstand, der nur den Normalablauf fährt, beweist nichts über Fehlerpfade
+
+Historischer Fall (`docs/TROUBLESHOOTING.md` Ziffer 44, Rückfall vom 06.08.2026): Ein
+Sicherheitsnetz gegen wiederholtes `switchGroup()` sah beim Code-Lesen korrekt aus und wurde von
+einem Prüfstand bestätigt, der nur die Konvergenz zweier gesund verbundener Geräte prüfte — der
+Fehler steckte aber ausschließlich im **Fehlerpfad** (gescheiterter Gruppen-Handshake), den dieser
+Prüfstand nie durchlief. Ein Flag, das ein Aufräumpfad (`stopCloudSync()`) zurücksetzt, wurde
+*vor* diesem Aufräumpfad gesetzt (in `onRemote()`, direkt vor dem `switchGroup()`-Aufruf, der
+`stopCloudSync()` als Erstes ausführt) — dadurch strukturell wirkungslos.
+
+**Regel:** Für jedes Sicherheitsnetz, das einen Fehlerzustand betrifft (`groupSyncFailed`,
+`recipesSyncFailed`, `lastGroupAttempt`, …), gehört ein eigenes Prüfstand-Szenario, das den
+Fehlerzustand tatsächlich **herbeiführt** — nicht nur eines, das seine Auswirkung im Normalfall
+prüft. Konkret beim Gruppen-Handshake: `switchGroup()`/`stopCloudSync()`/`leaveGroupState()`/
+`unwatchPending()` echt ausschneiden (sie sind klein und ohne Firebase-Abhängigkeit), nur
+`startCloudSync()` stubben — aber **realistisch**, d. h. der Stub muss denselben `catch`-Block
+nachbilden, der in Produktion den Fehlerzustand setzt (`syncUid` bleibt gesetzt, `groupSyncFailed
+= true`, `lastGroupAttempt` zeigt auf die gescheiterte Gruppe). Ein Stub, der `startCloudSync()`
+einfach leer lässt oder immer erfolgreich simuliert, reproduziert exakt die Lücke, die den Fehler
+durchgelassen hat. Pflicht-Zusicherungen für dieses Szenario:
+
+1. Mehrere Snapshots mit **derselben** `remoteGid` nach einem gescheiterten Versuch → das
+   überwachte Aufräumverhalten (hier: `switchGroup()`) läuft **genau einmal**, nicht pro Snapshot.
+2. Gegenprobe gegen `git show HEAD:index.html`: dort **muss** das Verhalten bei jedem Snapshot
+   erneut auslösen. Tut es das nicht, misst das Szenario am Fehler vorbei.
+3. Gegenprobe „kein Dead-Lock": ein Snapshot mit einer **anderen** `remoteGid` (echter
+   Gruppenwechsel) muss das Verhalten erneut auslösen — sonst wurde das Netz gegen einen
+   legitimen Wechsel gebaut, nicht nur gegen die Wiederholung.
 
 ## 8. Datenschutz-/Security-Regression
 
