@@ -598,6 +598,56 @@ ausschneiden und gegen vier Szenarien fahren. Gegen den alten Stand (`git show H
 gegengeprobt: dort leert Szenario „Firestore wirft" die `groupId` und pusht sie als `""`, und
 Szenario „fetch → null" ruft `removeMember` genau einmal auf. Siehe `docs/TESTING.md`.
 
+### Rückfall am 06.08.2026: derselbe Bug an vier weiteren Stellen
+
+Dasselbe Symptom trat erneut auf — eine gemeinsam eingerichtete Gruppe war bei **beiden**
+Konten weg. `groupSyncFailed` war nie das Problem, sondern seine Reichweite: das Flag wird
+**mitten im `try`-Block** von `startCloudSync()` gesetzt. Alles, was daran vorbeiläuft, war
+ungeschützt. Vier Pfade schrieben weiterhin `groupId: ""`:
+
+1. **`startCloudSync()` bricht vor Zeile ~4000 ab** (meist `CloudSync.load()` beim Kaltstart
+   ohne Netz). `syncUid` ist da schon gesetzt, `groupSyncFailed` noch `false` — der nächste
+   beliebige `save()` löschte die Gruppe. Hauptursache.
+2. **Debounce-Race während `activateGroup()`/`joinGroup()`.** Zwischen dem Cloud-Write
+   (`{ groupId: gid }`) und `switchGroup()` ist `syncGid` noch `null`; ein in dieses Fenster
+   fallender Push nahm den Beitritt sofort wieder zurück. Danach war die Gruppe für den Owner
+   weder aktiv noch wartend — `pendingGroupId` ist zu dem Zeitpunkt bereits geleert.
+3. **Leerer Mitglieder-Snapshot galt als Rauswurf.** `getDocs()` *wirft offline nicht*, sondern
+   liefert das leere Cache-Ergebnis; `onSnapshot` ruft dabei auch nicht den Error-Callback auf.
+   `onMembersRemote([])` löste „Du bist nicht mehr Teil der Gruppe" aus, `enterGroupSync()`
+   lieferte `"gone"`.
+4. **`joinGroup()`-`catch` setzte pauschal `state.groupId = ""`** — auch wenn der Cloud-Write
+   längst durch war und erst ein späterer Schritt scheiterte.
+
+**Behoben durch** zwei zusätzliche Sperren neben `groupSyncFailed`, die `pushNow()` über
+`groupKnown` auswertet:
+
+* `syncHandshakeOk` — erst `true`, wenn `startCloudSync()` den Gruppenzustand vollständig
+  geklärt hat (unmittelbar vor dem Baseline-Push). Der `catch` setzt zusätzlich
+  `groupSyncFailed = true` als doppelten Boden.
+* `groupTransition` — für die Dauer von `activateGroup()`/`joinGroup()`, dazu ein
+  `clearTimeout(pushTimer)` beim Eintritt, statt auf günstiges Timing zu hoffen.
+
+Dazu: leere Mitgliederlisten werden in `onMembersRemote()` und `enterGroupSync()` als
+*ungeklärt* behandelt (`return` bzw. `"error"`), `watchMembers()` meldet echte Lesefehler als
+`null` statt als leere Liste, `onRemote()` deutet ein leeres `groupId`-Feld bei laufender
+Gruppen-Session nicht mehr als Austritt, und `joinGroup()` stellt im `catch` den vorherigen
+Zeiger wieder her.
+
+**Selbstheilung:** `wantGid` in `startCloudSync()` fällt auf `state.groupId` zurück, wenn die
+Cloud kein `groupId` hat. Hat ein alter Fehlerpfad den Cloud-Zeiger geleert, holt der nächste
+Start die Gruppe zurück, solange `groups/{gid}` und die Mitgliedschaft existieren.
+`enterGroupSync()` bleibt die Instanz, die `"gone"` von `"error"` unterscheidet — der reguläre
+Austritt auf einem anderen Gerät räumt weiterhin korrekt.
+
+**Regel, die daraus folgt:** Ein Schutzflag muss den **gesamten** Zeitraum abdecken, in dem der
+geschützte Zustand ungeklärt ist — nicht nur den Abschnitt, in dem es gesetzt wird. Bei jedem
+neuen `await` in `startCloudSync()`, `activateGroup()` oder `joinGroup()` prüfen: *Was schriebe
+ein `pushNow()`, der genau hier hineinfeuert?*
+
+**Nachweis:** acht Szenarien im Ausschneide-Prüfstand, gegen `git show HEAD:index.html`
+gegengeprobt (alter Stand: 13 Fehler, neuer Stand: 0). Siehe `docs/TESTING.md`.
+
 ## 36. Der lokale Teststand schreibt in die echte Cloud
 
 **Symptom:** In der Cloud tauchen immer wieder Meals auf, die längst — teils mehrfach —

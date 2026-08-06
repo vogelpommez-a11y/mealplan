@@ -308,12 +308,30 @@ Drei Randfälle werden bewusst behandelt, statt einen zweiten, verwaisten Gruppe
 `enterGroupSync()` liefert `"ok"`, `"gone"` oder `"error"`. Die Unterscheidung ist keine Kosmetik, sondern die Grenze zwischen „wir sind nachweislich draußen" und „wir wissen es gerade nicht":
 
 * `"ok"` — drin, alle Listener hängen.
-* `"gone"` — Gruppendokument existiert nicht mehr, oder man steht nicht in der Mitgliederliste. **Nur hier** darf `startCloudSync()` `state.groupId` leeren.
+* `"gone"` — Gruppendokument existiert nicht mehr, oder man steht nicht in der Mitgliederliste. **Nur hier** darf `startCloudSync()` `state.groupId` leeren. Eine **leere** Mitgliederliste zählt ausdrücklich nicht dazu: `getDocs()` wirft offline nicht, sondern liefert das leere Cache-Ergebnis — das ergibt `"error"`.
 * `"error"` — der Zugriff ist gescheitert (Netz, noch nicht veröffentlichte Regeln, Rate-Limit) oder `CloudGroup` ist gar nicht verfügbar. Über die Mitgliedschaft sagt das nichts aus, der Zeiger bleibt stehen, der nächste Start versucht es erneut.
 
 Bei `"error"` setzt `startCloudSync()` zusätzlich `groupSyncFailed = true`. Dieses Flag hält `pushNow()` davon ab, die Felder `groupId` und `plans` überhaupt in das Kontodokument zu schreiben — dank `merge: true` bleibt der vorhandene Cloud-Stand dann unangetastet. Ohne das Flag würde der Fehlerzustand (`syncGid === null`) als `groupId: ""` hochgeschrieben und die Gruppe für **alle** Geräte des Kontos unauffindbar machen. Das reguläre Verlassen ist davon nicht betroffen: `leaveGroup()` schreibt sein `groupId: ""` selbst und explizit.
 
 Der `"gone"`-Zweig räumt bewusst **nicht** mehr per `removeMember()` auf. `CloudGroup.fetch()` liefert `null` für jedes Leseergebnis ohne Dokument — aus einem Lesevorgang darf keine Löschung folgen.
+
+### Drei Sperren, nicht eine: wann `pushNow()` den `groupId`-Zeiger anfassen darf
+
+`groupSyncFailed` allein reichte nicht, weil es erst *mitten* im `try` von `startCloudSync()` gesetzt wird. `pushNow()` bündelt deshalb drei Bedingungen in `groupKnown`:
+
+| Sperre | gesetzt in | schützt vor |
+|---|---|---|
+| `syncHandshakeOk` | `startCloudSync()`, unmittelbar vor dem Baseline-Push; zurückgesetzt in `stopCloudSync()` | Abbruch **vor** dem Gruppen-Handshake. `syncUid` ist dann schon gesetzt, die App pusht also weiter — ohne diese Sperre schriebe der nächste `save()` `groupId: ""`. |
+| `groupSyncFailed` | bei `enterGroupSync() === "error"`, im `catch` von `startCloudSync()`, `activateGroup()` und `joinGroup()` | ungeklärte Mitgliedschaft nach einem gescheiterten Zugriff |
+| `groupTransition` | für die Dauer von `activateGroup()`/`joinGroup()`, `finally` räumt auf | Debounce-Push im Fenster zwischen Cloud-Write und `switchGroup()`, in dem `syncGid` der Cloud absichtlich nachhinkt. Beide Funktionen rufen beim Eintritt zusätzlich `clearTimeout(pushTimer)`. |
+
+Ist `groupKnown` false, fehlen `groupId` **und** `plans` im geschriebenen Objekt — dank `merge: true` bleibt der Cloud-Stand unangetastet. Das reguläre Verlassen ist davon nicht betroffen: `leaveGroup()` schreibt sein `groupId: ""` selbst und explizit.
+
+Aus derselben Logik behandeln die Listener leere Ergebnisse als *ungeklärt*, nicht als Austritt: `watchMembers()` meldet Lesefehler als `null` statt als leere Liste, `onMembersRemote()` steigt bei leerer Liste aus (eine bestehende Gruppe hat immer ≥ 1 Mitglied; das echte Auflösen kommt über `onGroupRemote()`), und `onRemote()` löst bei leerem `remoteGid` **kein** `switchGroup(null)` mehr aus, solange eine Gruppen-Session läuft.
+
+### Selbstheilung des Zeigers
+
+`wantGid` in `startCloudSync()` ist `remote.groupId || state.groupId`. Hat ein Fehlerpfad den Cloud-Zeiger geleert, während `groups/{gid}` und die Mitgliedschaft weiterbestehen, holt der nächste Start die Gruppe zurück und `pushNow()` trägt den Zeiger wieder ein. Der reguläre Austritt auf einem anderen Gerät bleibt korrekt: dort ist der eigene Mitglieder-Eintrag gelöscht, `enterGroupSync()` liefert `"gone"`, der Zeiger wird geräumt.
 
 Scheitert `enterGroupSync()` in `startCloudSync()` direkt nach einer gerade erst geglückten Start-Aktivierung (z. B. Netzabbruch im selben Moment), wird `pendingGroupId` wiederhergestellt statt beide Zeiger zu verlieren — sonst wäre die (für den Beitretenden längst aktive) Gruppe für den Owner nicht mehr auffindbar. Scheitert die Aktivierung selbst (live oder beim Start), wird `watchPendingGroup()` erneut angehängt statt die Sitzung dauerhaft ohne Listener zu lassen.
 
@@ -427,7 +445,7 @@ Leere Slots werden aus der Baseline entfernt.
 
 Nicht als `"[]"` speichern.
 
-Ein Fehlerzustand darf nie zu einem Schreibvorgang werden. `syncGid === null` bedeutet nicht „nicht in einer Gruppe", sondern kann auch „Gruppen-Start gescheitert" heißen — deshalb schreibt `pushNow()` `groupId`/`plans` nur, wenn `groupSyncFailed` false ist. Gleiche Bauart wie `recipesSyncFailed` bei den Meals.
+Ein Fehlerzustand darf nie zu einem Schreibvorgang werden. `syncGid === null` bedeutet nicht „nicht in einer Gruppe", sondern kann auch „Gruppen-Start gescheitert", „Start nie fertig geworden" oder „Beitritt läuft gerade" heißen — deshalb schreibt `pushNow()` `groupId`/`plans` nur bei `groupKnown` (`syncHandshakeOk && !groupSyncFailed && !groupTransition`, siehe Gruppenmodus). Gleiche Bauart wie `recipesSyncFailed` bei den Meals. Ein Schutzflag muss den gesamten Zeitraum abdecken, in dem der Zustand ungeklärt ist — nicht nur den Abschnitt, in dem es gesetzt wird.
 
 ## Rollen
 

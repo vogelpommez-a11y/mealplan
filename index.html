@@ -2578,7 +2578,7 @@
         watchMembers: function (gid, cb) {
           return onSnapshot(collection(db, "groups", gid, "members"), function (snap) {
             cb(snap.docs.map(function (d) { return Object.assign({ uid: d.id }, d.data()); }));
-          }, function () {});
+          }, function () { cb(null); });   // Lesefehler als null melden, NICHT als leere Liste - sonst laese der Aufrufer daraus einen Rauswurf
         },
         putMember: function (gid, uid, data) { return setDoc(doc(db, "groups", gid, "members", uid), data, { merge: true }); },
         setRole: function (gid, uid, role) { return updateDoc(doc(db, "groups", gid, "members", uid), { role: role }); },
@@ -3293,6 +3293,16 @@
   // Gruppenfelder im Kontodokument nicht anfassen - siehe pushNow(). Gleiche Bauart wie
   // recipesSyncFailed oben: ein Fehlerzustand darf nie zu einem Schreibvorgang werden.
   let groupSyncFailed = false;
+  // Erst nach einem VOLLSTAENDIG durchlaufenen startCloudSync() weiss dieser Client, ob und in
+  // welcher Gruppe er ist. groupSyncFailed allein reicht dafuer nicht: es wird erst mitten im
+  // try-Block gesetzt: bricht der Start vorher ab (haeufigster Fall: CloudSync.load() scheitert
+  // beim Kaltstart ohne Netz), bleibt es false, syncUid ist aber schon gesetzt - der naechste
+  // save() schriebe dann groupId:"" und loeschte die Gruppe fuer ALLE Geraete des Kontos.
+  let syncHandshakeOk = false;
+  // Ein Beitritt/eine Aktivierung laeuft gerade: syncGid ist dabei bewusst noch null, waehrend
+  // die Cloud-groupId schon geschrieben wird (finalizeGroupActivation/joinGroup). Ein in dieses
+  // Fenster fallender Debounce-Push wuerde sie sofort wieder mit "" ueberschreiben.
+  let groupTransition = false;
   // Waehrend eine Gruppe vorbereitet, aber noch niemand beigetreten ist (state.pendingGroupId):
   // ein schlanker Mitglieder-Listener, unabhaengig vom eigentlichen Gruppen-Sync oben, der ja
   // erst mit dem Beitritt beginnt (siehe watchPendingGroup()).
@@ -3523,19 +3533,25 @@
     await syncRecipes();
     await pushGroupPlan();
     const d = { tab: state.tab, goal: state.goal || null, shares: state.shares || [], onboarded: state.onboarded === true, weights: state.weights || [], weightGoals: state.weightGoals || {}, profileImage: state.profileImage || null, weightConsent: state.weightConsent || noConsent(), shopPersons: shopPersons(), inviteCodes: state.inviteCodes || [], favs: sanitizeFavs(state.favs), deleted: sanitizeTombstones(state.deleted) };
-    // groupId NUR schreiben, wenn dieser Client den Gruppenzustand wirklich kennt. Nach einem
-    // gescheiterten enterGroupSync() ist syncGid null, obwohl die Mitgliedschaft bestehen kann -
-    // ein "groupId: ''" wuerde die Gruppe dann fuer ALLE Geraete des Kontos ausloeschen. Dank
-    // merge:true bleibt der vorhandene Cloud-Wert unangetastet, wenn das Feld hier fehlt.
-    // Das regulaere Verlassen schreibt sein groupId:"" ohnehin selbst (leaveGroup()).
-    if (!groupSyncFailed) d.groupId = syncGid || "";
+    // groupId NUR schreiben, wenn dieser Client den Gruppenzustand wirklich kennt. syncGid null
+    // heisst nicht "keine Gruppe", sondern nur "gerade keine Gruppen-Session" - ein "groupId: ''"
+    // wuerde die Gruppe dann fuer ALLE Geraete des Kontos ausloeschen. Dank merge:true bleibt der
+    // vorhandene Cloud-Wert unangetastet, wenn das Feld hier fehlt. Das regulaere Verlassen
+    // schreibt sein groupId:"" ohnehin selbst (leaveGroup()).
+    // Drei Faelle, in denen der Zeiger tabu ist:
+    //   !syncHandshakeOk  - startCloudSync() ist nie fertig geworden (Netz weg beim Start)
+    //   groupSyncFailed   - enterGroupSync() -> "error", Mitgliedschaft ungeklaert
+    //   groupTransition   - Beitritt/Aktivierung laeuft, syncGid hinkt der Cloud absichtlich nach
+    const groupKnown = syncHandshakeOk && !groupSyncFailed && !groupTransition;
+    if (groupKnown) d.groupId = syncGid || "";
     // In einer Gruppe wandert der Wochenplan nach groups/{gid}/plans - dann NICHT auch noch
     // ins Kontodokument schreiben. Dank merge:true bleibt das dortige "plans"-Feld als
     // Stand von vor dem Beitritt liegen; beim Verlassen wird der Gruppenplan bewusst
     // hineinkopiert (leaveGroup), statt ihn hier fortlaufend zu ueberschreiben.
-    // Bei groupSyncFailed ebenfalls nicht: state.plans ist dann der persoenliche Stand von vor
-    // dem Beitritt und wuerde den Kontoplan mit veralteten Daten ueberschreiben.
-    if (!syncGid && !groupSyncFailed) d.plans = state.plans;
+    // In den drei Faellen oben ebenfalls nicht: state.plans ist dann moeglicherweise der
+    // persoenliche Stand von vor dem Beitritt und wuerde den Kontoplan mit veralteten Daten
+    // ueberschreiben.
+    if (groupKnown && !syncGid) d.plans = state.plans;
     const j = dataJSON(d);
     if (j === lastPushedJSON) return;
     if (j.length > CLOUD_DOC_MAX) {
@@ -3571,7 +3587,15 @@
     // an dem beide Geraete sich darueber verstaendigen. Muss vor dem Vergleich unten
     // stehen und bricht hier ab - switchGroup() baut den Sync komplett neu auf.
     const remoteGid = typeof data.groupId === "string" && data.groupId ? data.groupId : null;
-    if (remoteGid !== syncGid) { switchGroup(remoteGid); return; }
+    // Ein LEERES Feld bei laufender Gruppen-Session ist kein Austritt. Genau so sieht der Stand
+    // aus, den ein Geraet mit abgebrochenem Start hinterlassen hat - frueher zog dieses Geraet
+    // hier nach und die Gruppe war auf allen Geraeten des Kontos weg. Der echte Austritt/Rauswurf
+    // kommt ueber onMembersRemote() (eigener Mitglieder-Eintrag verschwunden), das Aufloesen
+    // ueber onGroupRemote(). Der naechste Push traegt syncGid ohnehin wieder ein.
+    // Nur den Gruppenwechsel ueberspringen, nicht den ganzen Snapshot - Ziel, Gewichte und
+    // Profilbild darunter sollen weiterhin ankommen.
+    const staleEmptyGid = !remoteGid && syncGid;
+    if (remoteGid !== syncGid && !staleEmptyGid) { switchGroup(remoteGid); return; }
     const j = dataJSON(data), before = dataJSON(state);
     if (j === before || j === lastPushedJSON) return; // nichts Neues
     // state.recipes wird hier NICHT mehr ersetzt - Rezepte kommen ausschliesslich ueber
@@ -3702,7 +3726,13 @@
 
   // Mitgliederliste: treibt den Avatar-Stack im Kopf und die eigene Rolle.
   function onMembersRemote(list) {
-    groupMembers = Array.isArray(list) ? list : [];
+    // Leere Liste ist KEIN Rauswurf: onSnapshot liefert offline das leere Ergebnis aus dem
+    // (nur fluechtigen) Cache, ohne den Error-Callback zu benutzen - und watchMembers meldet
+    // einen echten Lesefehler seit dem Gruppenverlust-Fix als null. Eine bestehende Gruppe hat
+    // immer mindestens ein Mitglied; ist sie wirklich aufgeloest, kommt das ueber onGroupRemote().
+    // Vorher warf ein einziger solcher Snapshot den Nutzer aus seiner Gruppe.
+    if (!Array.isArray(list) || !list.length) return;
+    groupMembers = list;
     const me = memberByUid(syncUid);
     const roleBefore = myRole;
     if (!me) {
@@ -3798,6 +3828,11 @@
       // raeumt dissolveGroupFirestore() ohnehin im Batch mit auf.
       if (!info) return "gone";
       const members = await window.CloudGroup.fetchMembers(gid);
+      // Gleiche Vorsicht wie bei fetch() oben, nur subtiler: getDocs() WIRFT offline nicht,
+      // sondern liefert das leere Cache-Ergebnis. Eine leere Mitgliederliste ist deshalb kein
+      // Beweis fuer einen Rauswurf, sondern ein ungeklaertes Leseergebnis -> "error", der Zeiger
+      // bleibt stehen, der naechste Start versucht es erneut.
+      if (!members.length) return "error";
       const me = members.filter(m => m.uid === syncUid)[0];
       if (!me) return "gone";                       // entfernt worden
       syncGid = gid;
@@ -3961,7 +3996,14 @@
       state.pendingGroupId = pgid;
       state.pendingInviteUrl = pgid ? ((remote && remote.pendingInviteUrl) || "") : "";
 
-      const wantGid = (remote && typeof remote.groupId === "string" && remote.groupId) ? remote.groupId : null;
+      // Der lokale Zeiger ist die zweite Quelle: hat ein frueherer Fehlerpfad die Cloud-groupId
+      // geleert, waere die Gruppe sonst dauerhaft unauffindbar, obwohl sie in Firestore samt
+      // Mitgliedschaft weiterbesteht. enterGroupSync() entscheidet, was daraus wird - "ok" laesst
+      // pushNow() den Zeiger unten wieder eintragen, "gone" raeumt ihn. Der regulaere Austritt auf
+      // einem anderen Geraet bleibt damit korrekt: dort ist der eigene Mitglieder-Eintrag geloescht,
+      // enterGroupSync() liefert "gone".
+      const remoteGid = (remote && typeof remote.groupId === "string" && remote.groupId) ? remote.groupId : null;
+      const wantGid = remoteGid || state.groupId || null;
       const groupResult = wantGid ? await enterGroupSync(wantGid) : "gone";
       const inGroup = groupResult === "ok";
       // Nur bei "gone" den Zeiger raeumen - da ist nachgewiesen, dass die Gruppe weg ist oder
@@ -4005,6 +4047,10 @@
         syncUnsubRecipes = window.CloudSync.watchRecipes ? window.CloudSync.watchRecipes(["users", uid], onRecipesRemote) : null;
       }
       lastPushedJSON = null;
+      // Ab hier ist der Gruppenzustand geklaert (ok/gone/error sind alle durchlaufen) - erst
+      // jetzt darf pushNow() den groupId-Zeiger ueberhaupt anfassen. Muss vor dem Baseline-Push
+      // stehen, sonst schriebe genau der das Feld nie mit.
+      syncHandshakeOk = true;
       await pushNow();                            // zusammengeführten Stand als Baseline hochschreiben
       // Sperrfrist gleich mitstarten: direkt nach dem Verbinden sagt schon „Mit deiner
       // Cloud verbunden", dass Daten hereingekommen sind — ein zweiter Hinweis darauf
@@ -4020,6 +4066,11 @@
       // Login auf einem neuen Geraet kurz zu sehen, bevor das Flag aus der Cloud eintrifft.
       maybeStartOnboarding();
     } catch (e) {
+      // Doppelter Boden zu syncHandshakeOk: der Start ist irgendwo mittendrin abgebrochen, die
+      // Mitgliedschaft ist damit ungeklaert. syncUid bleibt gesetzt (die App synct persoenlich
+      // weiter), also muss der Gruppenzeiger ausdruecklich gesperrt bleiben - sonst traegt der
+      // naechste beliebige save() ein groupId:"" in die Cloud.
+      groupSyncFailed = true;
       setSyncStatus("offline"); /* offline: App läuft lokal weiter, Sync greift beim nächsten Mal */
       maybeStartOnboarding();   // ohne Cloud entscheidet der lokale Stand
     }
@@ -4030,7 +4081,7 @@
     unwatchPending();    // Wartezustand-Listener haengt sonst weiter, obwohl niemand mehr angemeldet ist
     leaveGroupState();   // Gruppen-Listener haengen sonst weiter und schreiben in den alten Zustand
     clearTimeout(pushTimer);
-    syncUid = null; lastPushedJSON = null; lastPushedRecipes = null; recipesSyncFailed = false; groupSyncFailed = false;
+    syncUid = null; lastPushedJSON = null; lastPushedRecipes = null; recipesSyncFailed = false; groupSyncFailed = false; syncHandshakeOk = false;
     setSyncStatus("off");
   }
 
@@ -10236,7 +10287,7 @@
     unwatchPending();
     if (!window.CloudGroup) return;
     syncUnsubPending = window.CloudGroup.watchMembers(gid, members => {
-      if (members.length > 1) { unwatchPending(); activateGroup(gid, members); }
+      if (Array.isArray(members) && members.length > 1) { unwatchPending(); activateGroup(gid, members); }
     });
   }
   function unwatchPending() {
@@ -10246,6 +10297,12 @@
   // Live-Aktivierung (jemand tritt bei, waehrend der Owner online ist). Der Start-Pfad in
   // startCloudSync() deckt den Fall ab, dass der Owner offline war.
   async function activateGroup(gid, members) {
+    // Ab hier bis switchGroup() ist syncGid noch null, waehrend finalizeGroupActivation() die
+    // Cloud-groupId schon setzt. Ein in dieses Fenster fallender Push wuerde sie mit "" wieder
+    // ausloeschen - und weil pendingGroupId dann ebenfalls leer ist, waere die Gruppe fuer den
+    // Owner weder aktiv noch wartend, obwohl der Beitretende laengst drin ist.
+    groupTransition = true;
+    clearTimeout(pushTimer);   // bereits geplanten Push zuruecknehmen, statt auf sein Timing zu hoffen
     try {
       await finalizeGroupActivation(gid);
       state.pendingGroupId = ""; state.pendingInviteUrl = ""; save();
@@ -10259,7 +10316,14 @@
       // Trotz Fehlschlag erneut lauschen: sonst waere die Aktivierung fuer den Rest der
       // Sitzung tot, obwohl das zweite Mitglied laengst da ist.
       watchPendingGroup(gid);
+      // Die Cloud-groupId kann hier bereits gesetzt sein (finalizeGroupActivation schreibt sie
+      // als letzten Schritt), waehrend switchGroup() nie lief - syncGid ist also null, obwohl die
+      // Gruppe steht. Ohne diese Sperre loeschte der naechste Push sie sofort wieder. Der Zeiger
+      // bleibt gesperrt, bis ein vollstaendiger startCloudSync() den Zustand geklaert hat.
+      groupSyncFailed = true;
       toast("Der Beitritt konnte nicht übernommen werden – versucht es gleich noch einmal.");
+    } finally {
+      groupTransition = false;
     }
   }
 
@@ -10291,6 +10355,11 @@
 
   async function joinGroup(code) {
     if (!syncUid || !window.CloudGroup) return;
+    // Wie in activateGroup(): zwischen dem Cloud-Write unten und switchGroup() ist syncGid noch
+    // null. Ein Debounce-Push in dieses Fenster naehme den Beitritt sofort wieder zurueck.
+    const prevGid = state.groupId;
+    groupTransition = true;
+    clearTimeout(pushTimer);
     try {
       const inv = await window.CloudGroup.fetchInvite(code);
       if (!inv || !inv.gid) { toast("Diese Einladung gilt nicht mehr."); return; }
@@ -10322,8 +10391,16 @@
       await switchGroup(inv.gid);
       toast("Ihr plant jetzt gemeinsam");
     } catch (e) {
-      state.groupId = "";
+      // Nur zuruecknehmen, was dieser Aufruf angerichtet hat: der Zeiger kehrt auf seinen Stand
+      // von vorher zurueck. Frueher stand hier pauschal "" - das kostete auch dann die
+      // Mitgliedschaft, wenn der Cloud-Write oben laengst durch war und erst ein spaeterer
+      // Schritt scheiterte. Zusaetzlich sperren: welcher Schritt gescheitert ist, wissen wir
+      // hier nicht, also darf kein Push den Zeiger anfassen, bis der naechste Start ihn klaert.
+      state.groupId = prevGid;
+      groupSyncFailed = true;
       toast("Der Beitritt hat nicht geklappt. Bitte den Link noch einmal öffnen.");
+    } finally {
+      groupTransition = false;
     }
   }
 

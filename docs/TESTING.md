@@ -444,6 +444,34 @@ Merge-Funktion deshalb gegen die Frage prüfen: liefert `merge(a, b)` dieselbe Z
 `merge(b, a)`? Ohne echte zweite Anmeldung lässt sich das im Prüfstand nachstellen (siehe
 Abschnitt 4, „Konvergenz zweier Geräte"). Historischer Fall: `docs/TROUBLESHOOTING.md` Ziffer 34.
 
+### Pflichtprüfung: Was schriebe ein Push, der genau hier hineinfeuert?
+
+Der Gruppenzeiger `groupId` ist zweimal verloren gegangen (`docs/TROUBLESHOOTING.md` Ziffer 35),
+beim zweiten Mal an vier Stellen gleichzeitig. Deshalb bei **jeder** Änderung an
+`startCloudSync()`, `activateGroup()`, `joinGroup()` oder `pushNow()` diese Szenarien fahren —
+nicht nur den Gutfall:
+
+1. **`CloudSync.load()` wirft** (Kaltstart ohne Netz) → anschließender `pushNow()` darf **kein**
+   `groupId`-Feld schreiben. Das ist der Fall, der die Gruppe zweimal gekostet hat.
+2. **`fetchMembers()` liefert `[]`** → `enterGroupSync()` muss `"error"` liefern, nicht `"gone"`.
+   `getDocs()` wirft offline nicht, sondern gibt das leere Cache-Ergebnis zurück.
+3. **`onMembersRemote([])`** → kein Rauswurf. Gegenprobe mit einer Liste *ohne die eigene UID*:
+   dort muss der Rauswurf weiterhin greifen, sonst prüft der Test nur das Aussteigen.
+4. **Push mitten in `finalizeGroupActivation()`** (Stub, der nach dem Cloud-Write ein `pushNow()`
+   einschiebt) → die Cloud muss `groupId: gid` behalten.
+5. **Selbstheilung**: Cloud-`groupId` leer, `state.groupId` gesetzt, Gruppe im Stub vorhanden →
+   Session steht wieder, Zeiger landet zurück in der Cloud.
+6. **Regression regulärer Austritt**: Cloud leer, lokal gesetzt, eigene UID **nicht** in der
+   Mitgliederliste → `"gone"`, Zeiger geräumt. Ohne diesen Fall macht Szenario 5 das Verlassen kaputt.
+
+Ein Prüfstand, der die Funktionen zeilengenau über ihre **Signatur** statt über Zeilennummern
+ausschneidet, lässt sich unverändert gegen `git show HEAD:index.html` bauen — das ist hier die
+einzige belastbare Gegenprobe. Beim Gruppenverlust-Fix: alter Stand 13 Fehler, neuer Stand 0.
+Stubs für `onGroupRemote`/`onGroupPlansRemote`/`onRecipesRemote` nicht vergessen; fehlen sie,
+wirft `enterGroupSync()` in seinen eigenen `catch` und liefert `"error"` — das sieht wie ein
+echter Befund aus, ist aber ein Prüfstandsfehler. Im Zweifel gegenprüfen, ob die Funktion in
+`index.html` existiert.
+
 ## 8. Datenschutz-/Security-Regression
 
 Bei Änderungen an Cloud-Daten prüfen:
