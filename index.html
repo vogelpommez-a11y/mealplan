@@ -11403,6 +11403,31 @@
 })();
 </script>
 <script>
+  // TEMP-DEBUG: sichtbares Log-Fenster fuer den Zwei-Geraete-Zucken, nur zur Diagnose.
+  // Faengt console.log-Zeilen ab, die mit "[ZUCKEN]" beginnen, und zeigt sie direkt auf dem
+  // Bildschirm - noetig, weil auf dem iPhone kein Mac fuer den Safari-Web-Inspektor da ist.
+  // Nach der Diagnose komplett entfernen, zusammen mit den console.log-Aufrufen selbst.
+  (function () {
+    const panel = document.createElement("div");
+    panel.style.cssText = "position:fixed;left:0;right:0;bottom:0;max-height:40vh;overflow-y:auto;" +
+      "background:rgba(0,0,0,.85);color:#0f0;font:10px/1.4 monospace;padding:6px;z-index:999999;" +
+      "white-space:pre-wrap;pointer-events:none;";
+    document.addEventListener("DOMContentLoaded", function () { document.body.appendChild(panel); });
+    const origLog = console.log;
+    console.log = function () {
+      origLog.apply(console, arguments);
+      if (typeof arguments[0] === "string" && arguments[0].indexOf("[ZUCKEN]") === 0) {
+        const line = document.createElement("div");
+        const t = new Date().toLocaleTimeString("de-DE");
+        line.textContent = t + " " + Array.prototype.slice.call(arguments).join(" ");
+        panel.appendChild(line);
+        while (panel.childNodes.length > 60) panel.removeChild(panel.firstChild);
+        panel.scrollTop = panel.scrollHeight;
+      }
+    };
+  })();
+</script>
+<script>
   /* Service Worker registrieren — rein additiv: die App muss ohne ihn voll funktionieren
      (Graceful Fallback, wie beim blockierten Firebase-CDN). Relativer Pfad + Scope, weil die
      Seite unter .../mealplan/ liegt, nicht auf dem Domain-Root. Erst nach 'load', um den
