@@ -344,6 +344,51 @@ Tüte Nudeln als ein Meal im Plan) oder fehlen Name/Nährwerte, wird nicht gerat
 Zutaten-Zeile; einzutragen bleibt nur die Menge. Kalorienkorrektheit ist das Kernversprechen der
 App; ein zusätzlicher Bestätigungsklick in diesem Randfall wiegt das auf.
 
+## Bewusste Produktentscheidung: Meal-Ansicht und Editor sind eins
+
+Ein Meal hatte früher drei getrennte Oberflächen: die Karte in der Liste, ein Ansehen-Modal und
+ein Bearbeiten-Modal. Wer etwas ändern wollte, tippte mindestens zweimal — Karte → Ansehen →
+Bearbeiten — und landete in einem langen Formular, das mit der eben gesehenen Ansicht optisch
+nichts zu tun hatte. Dieselben Daten, drei Darstellungen.
+
+Das widersprach dem eigenen Grundsatz aus der UX-Philosophie: „Wenn zwei technische Umsetzungen
+für den Nutzer gleichwertig sind, gewinnt diejenige mit weniger notwendigen Interaktionen."
+
+**Umsetzung.** Die Karte ist eine ruhige Vorschau (Foto, Name, Kalorien + Makros als farbige
+Kurzform). Ein Tipp lässt sie zu einer großen Ansicht wachsen — dieselbe Fläche zeigt Ansehen und
+Bearbeiten, es gibt keine dritte, separate Formularseite mehr wie früher.
+
+**Autosave statt Speichern-Knopf.** Ein Speichern-Knopf zwingt zu der Frage „Habe ich schon
+gespeichert?" — bei einer einzigen Oberfläche ohne getrennten Bearbeiten-Modus ist das keine
+sinnvolle Frage mehr. Änderungen greifen beim Verlassen eines Felds, ein neues Meal existiert
+zunächst nur als Entwurf und zieht erst mit dem ersten eingetragenen Namen in die
+Meal-Bibliothek ein — ein Fehltipp beim Öffnen hinterlässt keine „Unbenannt"-Leiche, die noch
+dazu in die Cloud synchronisiert würde.
+
+**Zutaten: Ruhezustand statt Dauerformular.** Acht Zutaten als acht offene Formularkarten
+untereinander (Textfeld, Zahlenfeld, Einheiten-Auswahl, aufklappbare Nährwerte) sind zum reinen
+Nachschauen zu laut. Die Liste zeigt deshalb im Ruhezustand nur Menge, Name, Kalorien und Makros
+je Zutat; ein Tipp auf die Zeile öffnet genau diese eine zum Bearbeiten. Wer nur planen will,
+sieht eine ruhige Liste; wer ändern will, ist einen Tipp entfernt.
+
+**Makros: dieselbe Kachelform wie im Ansehen-Modus.** Ein kurzlebiger Zwischenstand hatte die vier
+Eingabefelder für Kalorien/KH/P/F hinter einer antippbaren Kurzzeile versteckt (Vorbild Zutaten-
+liste). In der Abnahme zeigte sich: Makros sind kein Nebendetail wie eine einzelne Zutat, sondern
+die Zahl, für die die App überhaupt gebaut ist — sie sollen beim Öffnen sofort sichtbar sein, ohne
+Extra-Tipp. Die vier Felder stehen deshalb dauerhaft in derselben Kachelform (`.nutfacts`) wie im
+Ansehen-Modus; der einzige Unterschied ist, dass man im Bearbeiten-Modus hineinschreiben kann.
+Wiedererkennung entsteht so nicht durch An-/Zuklappen, sondern dadurch, dass Ansehen und
+Bearbeiten optisch gleich aussehen.
+
+**Jedes Meal öffnet zuerst zum Ansehen.** Autosave ohne Speichern-Knopf hat einen Preis: Wer ein
+Meal nur nachschlagen will („was esse ich Dienstag?", „was war da nochmal drin?"), ist sonst einen
+Fingertipp von einer ungewollten Änderung entfernt — in einer Gruppe landet ein Vertipper sofort
+auf dem anderen Gerät, und für einzelne Felder gibt es kein Rückgängig. Ein Tipp auf ein Meal —
+im Wochenplan wie im Meals-Reiter, einheitlich — öffnet die Ansicht deshalb lesend, mit einem
+„Bearbeiten"-Knopf im Kopf, einen Tipp entfernt. Nur ein neues Meal und der Barcode-Schnellzugriff
+starten direkt im Bearbeiten-Modus, weil dort noch nichts anzusehen ist bzw. sofort ergänzt werden
+soll.
+
 ## Was bewusst nicht passieren soll
 
 Keine Features hinzufügen, nur weil sie:

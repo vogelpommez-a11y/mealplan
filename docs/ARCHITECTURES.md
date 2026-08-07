@@ -807,6 +807,138 @@ Bewusst kein echtes Wischen bei Woche und Tabs: das bräuchte alle Ansichten gle
 (ein horizontaler Scroller im horizontalen Scroller), auf Touch gewinnt immer der innere
 Scroller, und `overscroll-behavior-x: contain` unterbindet die Weitergabe zusätzlich absichtlich.
 
+## Meal-Ansicht: eine Oberfläche statt zweier (`openMealSheet`)
+
+Ein Meal hatte früher drei getrennte Oberflächen: die Karte in der Liste, ein Ansehen-Modal
+(`openRecipeDetail`) und ein Bearbeiten-Modal (`openRecipeForm`). `openMealSheet(id, prefill,
+originEl)` ersetzt beide Modals durch eine einzige Ansicht, die aus der Karte (bzw. einem
+Wochenplan-Slot) per FLIP-Animation wächst, direkt bearbeitbar ist und automatisch speichert.
+Details und der ursprüngliche Plan stehen in `plans/MealAnsicht.MD` (Umbau abgeschlossen,
+Schritte 1–5).
+
+**Zwei Zweige, ein Einstiegs-Modus.** `openMealSheet(id, prefill, originEl, startInEdit)`:
+`canEdit()` entscheidet weiter allein über die **Berechtigung** (Rolle `view` bekommt immer den
+Nur-Lese-Zweig, ohne Eingabefelder, Autosave, Foto- oder Löschfunktion, Teilen bleibt erlaubt).
+Ein bestehendes Meal öffnet seit der Abnahme Phase 2 (08.08.2026) **immer zuerst lesend** —
+sowohl der Wochenplan-Slot (`.filled`) als auch die Karte im Meals-Reiter (`.rcard-open`).
+Nachschlagen ("was esse ich Dienstag?", "was war da nochmal drin?") soll nirgends versehentlich
+in eine Bearbeitung münden, in einer Gruppe sonst sofort aufs andere Gerät. `startInEdit` (bewusst
+positiv formuliert statt der vorherigen doppelten Verneinung `forceReadOnly`) setzt nur der
+„Bearbeiten"-Knopf im Kopf: ein Klick ruft `openMealSheet(id, null, null, true)` erneut auf und
+tauscht den Knoten **ohne FLIP** aus — die Ansicht steht schon an ihrem Platz. Zwei Ausnahmen
+öffnen weiterhin direkt bearbeitbar, weil `isNew` in der Funktion selbst schon Vorrang vor
+`startInEdit` hat: ein neues Meal (`new-recipe`, es gibt nichts anzusehen) und der Barcode-Weg
+(`quickAddByBarcode` übergibt ein `prefill`, ist also ebenfalls `isNew`).
+
+Beide Zweige teilen sich `mealStatsHtml(r)` (das `.nutfacts`-Kachelraster) für die große
+Nur-Lese-Ansicht. Die Karte und der Ruhezustand der Makro-Zeile im Bearbeiten-Zweig nutzen einen
+zweiten, bewusst *nicht* identischen Helfer, `cardStatsHtml(r)` — dieselben Zahlen aus
+`recipeNut(r)`/`hasNut(r)`, aber als schlanke einzeilige Kurzform (kcal + farbige `KH/P/F`-Kürzel)
+ohne Kacheln, Rahmen oder Textlabels. „Gemeinsames Bauteil" heißt hier gleiche
+Zahlen/Farben/Reihenfolge, nicht identisches Markup — eine Karten-Liste mit vier Kacheln pro Meal
+wurde als zu unruhig verworfen. Auf der Karte steht die Statistik-Zeile (`.cstats`) mit
+`justify-content: space-between`: kcal links, die Makrogruppe rechtsbündig als ein
+zusammenhängendes, nicht umbrechendes Element (`white-space: nowrap` auf `.cs-macros`) — bei
+sehr schmalen Karten rutscht die ganze Gruppe als Block nach unten, statt KH/P/F einzeln
+umzubrechen.
+
+**`macroLineHtml(n)` — ein Helfer für die Makro-Kompaktzeile.** Kalorien und Makros folgen app-weit
+derselben Regel (`CLAUDE.md`, Abschnitt „Makros und Nährwerte"): Kürzel `KH`/`P`/`F`, Reihenfolge
+`kcal → KH → P → F`, kein `g` in der Kompaktform, Farbe ausschließlich über `--prot`/`--carb`/
+`--fat` per `t-*`-Klasse. Statt das an jeder Stelle einzeln nachzubauen, liefert `macroLineHtml(n,
+fmt)` (neben `nfmt()`) ausschließlich den KH/P/F-Teil als fertige `<span>`-Gruppe; kcal rendert
+jeder Aufrufer weiter selbst, weil jede Stelle ihr eigenes Kcal-Markup hat (fette Zahl, `<small>`,
+eigenes `<span class="u">` …). Fehlende Felder (`null`/`undefined`) fallen weg, statt als `0` zu
+erscheinen — wichtig für `.ing-brief`, wo einzelne Zutaten-Nährwertfelder noch leer sein können.
+Der optionale zweite Parameter `fmt` erlaubt eine abweichende Rundung (`.ing-brief` zeigt eine
+Nachkommastelle statt ganzzahlig zu runden). Aufrufer: `cardStatsHtml()`, `paintIngView()`/
+`roIngRowHtml()` (`.ing-view-macros`), `paintNut()` in `addIngRow()` (`.ing-brief`, dort als eigene
+Gruppe `.ing-brief-macros`, damit die drei Werte beim Umbruch zusammenbleiben) und `dayNutHtml()`
+(`.day-nut .macros`, Wochenplan-Tagesbilanz).
+
+**Drei erlaubte Formen, eine Regel.** 1) **Kompaktzeile** über `macroLineHtml()` — Meal-Karte,
+Zutaten-Anzeigezeile, Tagesbilanz. 2) **Kachelform** (`.nutfacts`, `mealStatsHtml()`) — Nur-Lese-
+Zweig UND Bearbeiten-Zweig der Meal-Ansicht (dort als `.nutfacts.nutfacts-edit` mit Eingabefeldern
+statt Text, siehe unten), behält Einheit und Textlabel in beiden Modi gleich. 3) **Balkenform**
+(`.wg-macros`, `goalBarHtml()`/`goalMacrosHtml()`) — ausschließlich für
+Fortschritt gegen ein Ziel, bleibt bei ausgeschriebenen Namen (`Kohlenhydrate`/`Proteine`/`Fett`):
+frühere Kürzel scheiterten hier an schmalen Desktop-Tageskarten (~232 px), Wert und Kürzel standen
+in zwei Zeilen übereinander. Die Reihenfolge zieht trotzdem mit (`goalMacrosHtml()` rendert die
+Balken in KH→P→F). Eine vierte Form wird nicht erfunden.
+
+**Makro-Zeile: dauerhaft vier Kacheln.** Ein kurzlebiger Ruhezustand (antippbare Kurzzeile
+`#ms-nut-view`, `paintNutView()`, Umschaltung über `.ms-nut.editing`) wurde in der Abnahme Phase 2
+(08.08.2026) wieder zurückgebaut — Ansichtsmodus und Bearbeiten-Modus sollen an dieser Stelle
+gleich aussehen, der einzige Unterschied ist Text vs. Eingabefeld. Der Bearbeiten-Zweig zeigt
+`#ms-nut` seitdem dauerhaft als `.nutfacts.nutfacts-edit`-Kachelraster, dieselbe Optik wie
+`mealStatsHtml()` im Nur-Lese-Zweig (Farbpunkte/Reihenfolge kommen über dieselben
+`.nutfacts .nf.t-kcal`/`.t-carb`/`.t-prot`/`.t-fat`-Regeln), nur dass `.v` statt Text ein
+`<input>` enthält. Die vier Felder `#f-kcal`/`#f-carbs`/`#f-protein`/`#f-fat` sind unverändert:
+`macroOverridden`, `updateMacroSum()` und der Autosave über die Event-Delegation blieben
+unangetastet, nur der abschließende `paintNutView()`-Aufruf entfiel. Überschrift „Makros gesamt“
+(`.nut-total > h4`) ohne Rahmen oder Erklärtext bleibt bestehen.
+
+**Autosave statt Speichern-Knopf.** `input` mutiert nur lokal (`mutateLocal()`), `change`/
+`focusout` committen (`commitNow()` → `save()`), zusätzlich ein 1500-ms-Leerlauf-Timer
+(`scheduleCommit()`) als Netz. Ein neues Meal existiert zunächst nur als Entwurf im Speicher;
+erst sobald ein Name eingetragen ist, zieht der Entwurf in `state.recipes` ein
+(`draftPushed`-Flag, genau einmal).
+
+**`openSheetId` — Sperre gegen den Remote-Merge.** `onRecipesRemote()` (die Firestore-
+Subcollection-Callback) **ersetzt** ein geändertes Rezept-Objekt, statt es zu mutieren. Hielte
+`openMealSheet()` eine Referenz auf das alte Objekt, schriebe jeder weitere Tastendruck in ein
+abgehängtes Waisenobjekt. Deshalb zwei Regeln:
+
+1. **Nie eine Referenz halten.** Einziger Zugriffsweg ist `const rec = () => (recId ?
+   getRecipe(recId) : draft);` — jeder Zugriff holt frisch aus `state.recipes`.
+2. **Modulweites `openSheetId`** wird beim Öffnen auf die ID des gerade bearbeiteten Meals
+   gesetzt. `onRecipesRemote()` überspringt im „modified"-Zweig jeden Change mit `c.id ===
+   openSheetId`, **ohne** die Baseline (`lastPushedRecipes`) mitzupflegen — der lokale Stand
+   gilt beim nächsten `syncRecipes()` dadurch weiter als geändert und wird gepusht: lokal
+   gewinnt, das andere Gerät zieht nach, sobald die Ansicht schließt.
+
+**`openSheetRemovedCb` — Gegenprobe für den „removed"-Zweig.** Die `openSheetId`-Sperre deckt
+nur ab, dass ein *geändertes* Objekt das offene Meal nicht ersetzt. Löscht ein **anderes** Gerät
+genau das offene Meal, verschwindet es im „removed"-Zweig von `onRecipesRemote()` trotzdem aus
+`state.recipes` — `mutateLocal()` guardet zwar gegen den Absturz (`rec()` liefert dann
+`undefined`, `mutateLocal()` kehrt früh zurück), aber ohne weitere Maßnahme bliebe die Ansicht
+lautlos offen und jede weitere Eingabe ginge ins Leere. `openMealSheet()` trägt deshalb eine
+Aufräumfunktion in die modulweite Variable `openSheetRemovedCb` ein (gleiches Muster wie
+`photoDoneCb`), sobald ein echtes Dokument existiert (beim Öffnen eines bestehenden Meals, oder
+sobald ein neuer Entwurf zum ersten Mal gespeichert wird). Trifft im „removed"-Zweig
+`c.id === openSheetId`, ruft `onRecipesRemote()` diese Funktion auf: sie schließt die Ansicht
+(ohne FLIP-Exit — das Ursprungselement ist gerade aus dem Raster verschwunden) und zeigt einen
+freundlichen Toast. Keine stille Wiederauferstehung des Meals gegen die Löschung des anderen
+Geräts.
+
+**`closeModal()` / `modalCloseHook`.** `closeModal()` prüft zuerst `modalCloseHook`: ist er
+gesetzt, ruft er ihn (und leert ihn) statt des Standard-Schließens. `openMealSheet()` nutzt das,
+um beim Schließen ohne Namen abzubrechen (Fokus + Toast statt Verwerfen) und um die FLIP-Exit-
+Animation zu spielen, bevor `modalRoot` geleert wird. Escape, Backdrop-Klick, das ✕ im Kopf und
+„Fertig" im Fuß laufen alle über `closeModal()` — der Hook greift dadurch überall gleich, ohne
+dass jeder Aufrufer ihn einzeln kennen müsste. `openModal(node, opts)` erlaubt zusätzlich ein
+eigenes Fokusziel (`opts.focus`) statt der Standardsuche.
+
+**FLIP als Motion-Baustein neben `slideIn`.** `flipIn(el, from, to)`/`flipOut(el, from, to)`
+(neben `slideIn`, siehe oben) lassen die Ansicht sichtbar aus der angetippten Karte bzw. dem
+Wochenplan-Slot wachsen/schrumpfen. Nur `transform` wird animiert (nie `width`/`height`), zwei
+WAAPI-Animationen im selben Tick: der Container fährt von `translate(dx,dy) scale(s)` auf `none`,
+der Inhalt blendet erst ab ~38 % ein. Öffnen misst das Ursprungsrect **beim Klick** (nicht erst
+beim Animieren); Schließen sucht das Zielelement **neu** (`findMealOrigin()`), nie den beim
+Öffnen gemerkten Knoten — Name, Kategorie oder Sichtfeld können sich geändert haben. Fehlt das
+Ziel, fällt es auf reines Ausblenden zurück. `reducedMotion()` schaltet auf `.modal.flip-anim`
+(Animation/Transition per CSS deaktiviert) und nur Überblendung, kein Transform — siehe
+`docs/TROUBLESHOOTING.md`.
+
+**Zutatenliste: Ruhezustand und Bearbeiten-Zustand.** `addIngRow()` erzeugt pro Zutat zwei
+Blöcke im selben DOM-Knoten: `.ing-view` (ruhig, eine Zeile mit Menge/Name/kcal/Makros) und das
+unveränderte Formular (`.ing-top`/`.ing-nut`). `.ing-row.editing` entscheidet per CSS, welcher
+Block sichtbar ist — das Formular-DOM bleibt für jede Zeile immer im Dokument, `rowData()`/
+`collectIngs()` lesen unverändert über `.value`. `.ing-view-name` ist ein Stretched-Link-Knopf
+(`all: unset`, `::after { inset: 0 }`), der die Zeile öffnet; `.ing-view-del` sitzt mit höherem
+`z-index` darüber. Ein „Fertig"-Knopf am Ende des aufgeklappten Bereichs ruft `closeIngRow(row)`
+als sichtbaren vierten Schließweg neben Enter, Fokusverlust und dem Öffnen einer anderen Zeile.
+
 ## Architekturprinzip
 
 Bei mehreren möglichen Lösungen gewinnt grundsätzlich die Lösung mit:
