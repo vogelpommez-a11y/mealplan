@@ -472,6 +472,19 @@
   .btn.fav-ic.on { color: var(--accent); }
   .btn.fav-ic.on svg { fill: currentColor; }
   .btn.fav-ic:active svg { transform: scale(.85); }
+  /* Herz auf dem Meal-Foto (Meal-Karte, ersetzt das frueher dort sitzende Foto-"+"): liegt
+     auf einem Bild statt einer Flaeche und braucht deshalb eigenen Kontrast, sonst
+     verschwindet es auf hellen Fotos - gleiche dunkle Kreisflaeche wie die Icon-Knoepfe im
+     Meal-Ansicht-Kopf (.mealsheet .modal-head .icon-gh.on-photo). Position oben rechts,
+     Groesse und 44px-Trefferflaeche (::after, TROUBLESHOOTING #38) bleiben von .btn.fav-ic
+     unveraendert. */
+  .fav-ic.on-photo {
+    position: absolute; top: 10px; right: 10px; z-index: 3;
+    color: #fff; background: color-mix(in srgb, #0a0c07 50%, transparent);
+    box-shadow: 0 2px 8px rgba(0,0,0,.35);
+  }
+  .fav-ic.on-photo:hover { color: #fff; background: color-mix(in srgb, #0a0c07 68%, transparent); }
+  .fav-ic.on-photo.on { color: var(--accent); }
   .btn.sm { padding: 6px 11px; font-size: 13px; }
 
   /* ---------- Week grid ---------- */
@@ -587,10 +600,7 @@
   .day-nut { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 12px; padding: 9px 14px 12px; border-top: 1px dashed var(--border); background: color-mix(in srgb, var(--surface-2) 55%, var(--surface)); }
   .day-nut .kcal { font-weight: 700; font-size: 13px; color: var(--accent); font-variant-numeric: tabular-nums; }
   .day-nut .kcal small { font-weight: 600; color: var(--text-muted); }
-  .day-nut .macros { display: flex; gap: 9px; margin-left: auto; font-size: 11.5px; color: var(--text-muted); font-variant-numeric: tabular-nums; }
-  .day-nut .macros b { font-weight: 650; color: var(--text); }
-  .day-nut .m::before { content: ""; display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 4px; vertical-align: baseline; background: var(--mc, var(--accent)); }
-  .m.carb { --mc: var(--carb); } .m.prot { --mc: var(--prot); } .m.fat { --mc: var(--fat); }
+  .day-nut .macros { display: flex; gap: 9px; margin-left: auto; font-size: 12px; color: var(--text-muted); font-variant-numeric: tabular-nums; }
 
   /* Wochen-Gesamtübersicht: kein eigener Rahmen mehr - Heute/Woche stehen mit ihrer
      eigenen Kartenoptik (.wg-col) direkt auf der Seite, ohne umschliessende zweite Karte
@@ -783,8 +793,8 @@
   /* Ankerpunkt fuer .menu (position:absolute; right:0) - ohne ihn haengt das Menue an
      der ganzen Karte und rutscht an deren rechten Rand. */
   .wch-menu { position: relative; flex: none; }
-  /* Gleiche Optik wie das Foto-Plus auf den Meal-Karten (.rcard .imgadd), nur groesser
-     und im Fluss statt absolut: 36px sichtbar, Trefferflaeche per ::after auf 44px. */
+  /* Gleiches Gradient-Rund-Button-Muster wie .avatar-edit-btn (Profilbild aendern), nur
+     groesser und im Fluss statt absolut: 36px sichtbar, Trefferflaeche per ::after auf 44px. */
   .wch-add {
     position: relative; width: 36px; height: 36px; border: 0; border-radius: 50%; cursor: pointer;
     display: grid; place-items: center; font-size: 23px; line-height: 1; padding: 0;
@@ -862,7 +872,33 @@
   .nutfacts .nf .k { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--text-muted); margin-top: 2px; }
   .nutfacts .nf .k::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--tc, var(--accent)); }
   .nutfacts .nf.t-kcal { --tc: var(--accent); } .nutfacts .nf.t-carb { --tc: var(--carb); } .nutfacts .nf.t-prot { --tc: var(--prot); } .nutfacts .nf.t-fat { --tc: var(--fat); }
-  @media (max-width: 560px) { .nutfacts { grid-template-columns: repeat(2, 1fr); } }
+  /* Kalorien etwas breiter - wegen des LABELS, nicht wegen der Zahl: "Kcal" ist mit Farbpunkt
+     deutlich breiter als "KH"/"P"/"F". Die Zahl braucht den Platz nicht (gemessen: "9999"
+     sind 31px bei 89px Feld). Bewusst KEINE 2-Spalten-Regel unter 560px - die vier Kacheln
+     stehen immer in einer Reihe (Nutzerentscheidung 08.08.2026). Den Platz dafuer gibt der
+     Innenabstand her, NICHT die Schriftgroesse: 16px in Eingabefeldern sind Pflicht, sonst
+     zoomt iOS beim Antippen hinein (CLAUDE.md §26). */
+  .nutfacts { grid-template-columns: 1.3fr 1fr 1fr 1fr; }
+  @media (max-width: 560px) {
+    .nutfacts { gap: 6px; }
+    .nutfacts .nf { padding: 8px 6px; }
+    .nutfacts .nf .k { gap: 4px; font-size: 10.5px; }
+    .nutfacts .nf .k::before { width: 7px; height: 7px; }
+  }
+
+  /* ---------- Makro-Kompaktzeile (macroLineHtml) ----------
+     Ein Farbsignal in der ganzen App: der Punkt traegt die Farbe, der Text bleibt in der
+     Farbe seiner Umgebung. Gleiches Muster wie .nutfacts .k oben - dadurch sprechen
+     Kompaktzeile und Kacheln dieselbe Sprache und unterscheiden sich nur in der Groesse.
+     Der Abstand liegt auf .mv + .mv statt auf einem Container-gap: die vier Aufrufer
+     (Karte, Zutatenzeile, Tagesbilanz, .ing-brief) sind unterschiedlich aufgebaut, teils
+     ohne flex. */
+  .mv { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
+  .mv + .mv { margin-left: 10px; }
+  .mv::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--tc, var(--accent)); flex: none; }
+  .mv.t-carb { --tc: var(--carb); }
+  .mv.t-prot { --tc: var(--prot); }
+  .mv.t-fat { --tc: var(--fat); }
 
   .slot { position: relative; border-radius: var(--radius-sm); padding: 8px 10px 9px 12px; transition: background var(--dur-fast); }
   .slot::before { content:""; position:absolute; left:5px; top:10px; bottom:10px; width:3px; border-radius:3px; background: var(--slot-c); opacity:.9; }
@@ -997,14 +1033,6 @@
      Ruhezustand unsichtbar, nur waehrend des Ziehens ein Rahmen als Rueckmeldung.
      Mobil fehlt echtes OS-Datei-Drag ohnehin, daher keine eigene Handhabung noetig. */
   .rcard.dragover-file { outline: 2px dashed var(--accent); outline-offset: -2px; background: color-mix(in srgb, var(--accent) 8%, var(--surface)); }
-  .rcard .imgadd {
-    position: absolute; top: 12px; right: 10px; z-index: 3;
-    width: 28px; height: 28px; border: 0; border-radius: 50%; cursor: pointer;
-    display: grid; place-items: center; font-size: 19px; line-height: 1; padding: 0;
-    color: var(--accent-contrast); background: linear-gradient(135deg, var(--accent), var(--accent-strong));
-    box-shadow: 0 2px 8px rgba(0,0,0,.35); transition: transform var(--dur-fast) ease;
-  }
-  .rcard .imgadd:hover { transform: scale(1.12); }
 
   /* Zutaten-Zeilen im Meal-Formular */
   /* Akzentbalken oben wie bei den Meal-Karten (.rcard::before) — grenzt die einzelnen
@@ -1083,21 +1111,20 @@
   /* Feststehendes Label in der Kopfzeile (inkl. Bezugsgroesse .ing-per als Kind) -
      bricht nicht um, die Makro-Kurzfassung daneben bekommt den ganzen restlichen Platz. */
   .ing-ntitle { flex: none; font-size: 10px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; color: var(--text-muted); white-space: nowrap; }
-  /* Bezugsgroesse steht als Inline-Zusatz hinter "Makros" in der Kopfzeile, gleiches
-     Muster wie "Makros · je Portion" in der Meal-Detailansicht - normale Schrift statt
-     der Versalien von .ing-ntitle, damit sie als Nebeninfo lesbar bleibt. */
+  /* Bezugsgroesse steht als Inline-Zusatz hinter "Makros" in der Kopfzeile - normale
+     Schrift statt der Versalien von .ing-ntitle, damit sie als Nebeninfo lesbar bleibt. */
   .ing-per { font-size: 11px; font-weight: 400; color: var(--text-muted); text-transform: none; letter-spacing: 0; }
   .ing-brief { display: flex; align-items: center; flex-wrap: wrap; justify-content: flex-end; text-align: right; gap: 10px; margin-left: auto; font-size: 11.5px; color: var(--text-muted); font-variant-numeric: tabular-nums; min-width: 0; }
   /* Aufgeklappt stehen dieselben Werte schon unten in den Feldern - die Kurzfassung
      in der Kopfzeile waere doppelt, deshalb nur zugeklappt sichtbar. */
   .ing-nut[open] .ing-brief { display: none; }
   .ing-brief .t-kcal { --tc: var(--accent); }
-  .ing-brief .t-carb { --tc: var(--carb); }
-  .ing-brief .t-prot { --tc: var(--prot); }
-  .ing-brief .t-fat  { --tc: var(--fat); }
+  /* Die drei Makros stehen als EINE Gruppe (.ing-brief-macros, macroLineHtml()). Die Farbe
+     traegt dort der Punkt (.mv::before), nicht der Text - dasselbe Signal wie bei .ing-lbl
+     unten und in den .nutfacts-Kacheln. */
   .ing-vals { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; padding-bottom: 3px; }
   .ing-nut label { display: flex; flex-direction: column; gap: 4px; font-size: 10px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--text-muted); text-align: center; }
-  /* Farbpunkt vor dem Feldnamen, gleiches Muster wie .nutfacts .k / .macro .ml (nur der
+  /* Farbpunkt vor dem Feldnamen, gleiches Muster wie .nutfacts .k und .mv (nur der
      Punkt traegt Farbe, der Text bleibt --text-muted) - so uebernimmt sich die bekannte
      Kontrastschwaeche von Amber/Blau auf hellem Grund nicht in ein neues Textelement. */
   .ing-lbl { display: inline-flex; align-items: center; justify-content: center; gap: 5px; }
@@ -1107,32 +1134,164 @@
   .ing-vals label.t-prot { --tc: var(--prot); }
   .ing-vals label.t-fat  { --tc: var(--fat); }
   .ing-nut input { width: 100%; padding: 7px 4px; text-align: center; }
-  #f-ing-add { margin-top: 2px; }
-  #f-ing-add[hidden] { display: none; }
-  /* Makro-Summe: das Ergebnis der Zutaten, keine weitere Eingabezeile. Roter Rahmen und
-     kraeftigere Schrift grenzen sie von den optisch gleichen Zutatenkarten darueber ab. */
-  .nut-total {
-    border: 1.5px solid var(--accent); border-radius: var(--radius);
-    background: color-mix(in srgb, var(--accent) 6%, var(--surface-2));
-    padding: 14px 14px 12px;
+  /* #f-ing-add ist der alte "+ Weitere Zutat"-Knopf aus dem fruehren openRecipeForm -
+     updateMacroSum() schaltet weiterhin sein hidden-Attribut (Funktion unveraendert
+     uebernommen, siehe openMealSheet()), der Knopf selbst bleibt aber dauerhaft
+     unsichtbar: der sichtbare Einstieg der neuen Ansicht ist #ms-ing-add. */
+  #f-ing-add { display: none !important; }
+
+  /* ---------- Zutaten-Ruhezustand (openMealSheet, Vorbild Fotos/Ansicht.jpeg) ----------
+     .ing-row traegt im Bearbeiten-Zustand (.editing) unveraendert die Formular-Optik von
+     oben (Karte mit Akzentbalken); im Ruhezustand wird nur .ing-view gezeigt, als schlichte
+     Liste mit duennen Trennlinien statt Kacheln. */
+  .ing-row:not(.editing) { background: none; border: 0; padding: 0; margin-bottom: 0; }
+  .ing-row:not(.editing)::before { display: none; }
+  /* Die Zeile traegt tabindex="-1" und wird beim Aufklappen programmatisch fokussiert
+     (siehe Klick-Handler in addIngRow). Das ist ein reiner Fokus-Anker, kein Bedienelement -
+     deshalb kein Fokusring. */
+  .ing-row:focus { outline: none; }
+  .ing-row.editing .ing-view { display: none; }
+  .ing-row:not(.editing) .ing-top, .ing-row:not(.editing) .ing-nut, .ing-row:not(.editing) .ing-done-row { display: none; }
+  .ing-view {
+    display: grid; grid-template-columns: 58px 1fr auto 34px; column-gap: 12px;
+    align-items: start; padding: 11px 2px; border-bottom: 1px solid var(--border);
+    position: relative;
   }
-  .nut-total > label {
-    font-family: var(--font-display); font-size: 16px; font-weight: 700;
-    letter-spacing: .04em; text-transform: uppercase; color: var(--text);
+  .ing-view.ro { grid-template-columns: 58px 1fr auto; }
+  /* Seit der Stift weg ist, deutet sonst nichts an, dass die Zeile aufklappt. Der Rahmen liegt
+     etwas ausserhalb des Innenabstands, damit die Flaeche die ganze Zeile umfasst und nicht
+     nur den Text. hover NUR in @media (hover: hover): auf Touch bliebe der Zustand sonst nach
+     dem Antippen kleben. Fuer Touch traegt der :active-Press-State die Rueckmeldung - dort
+     lernt man beim ersten Antippen, dass die Zeile reagiert. */
+  @media (hover: hover) {
+    .ing-view:not(.ro):hover { background: color-mix(in srgb, var(--accent) 5%, transparent); }
   }
-  .nut-total > label .hint { font-family: var(--font-body); text-transform: none; letter-spacing: 0; }
-  .nut-total input { font-weight: 700; font-size: 15px; font-variant-numeric: tabular-nums; }
-  .nut-total #f-kcal { color: var(--accent); }
-  /* Gleiche Farbpunkte UND Kurzbeschriftung wie bei den Zutaten-Naehrwerten (.ing-lbl,
-     .ing-nut label): Kcal/KH/P/F statt ausgeschriebener Woerter, damit "Makros gesamt"
-     nicht anders beschriftet ist als die Zutatenzeilen darueber. Nur der Punkt traegt
-     Farbe, der Text bleibt ueber .hint gedaempft (Kontrastschwaeche von Amber/Blau auf
-     hellem Grund bleibt so aussen vor). */
-  .nut-total .field .ing-lbl { font-size: 10px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; }
-  .nut-total .t-kcal { --tc: var(--accent); }
-  .nut-total .t-carb { --tc: var(--carb); }
-  .nut-total .t-prot { --tc: var(--prot); }
-  .nut-total .t-fat  { --tc: var(--fat); }
+  .ing-view:not(.ro):active { background: color-mix(in srgb, var(--accent) 9%, transparent); }
+  /* Kein border-radius: die Trennlinie ist der border-bottom derselben Zeile, die wuerde an
+     den Enden mitrunden. Die Liste bleibt dadurch eine Liste, kein Stapel Kacheln. */
+  .ing-view:not(.ro) { transition: background var(--dur-fast) var(--ease-out); }
+  .ing-view-qty { grid-column: 1; grid-row: 1; font-variant-numeric: tabular-nums; color: var(--text-muted); font-size: 13px; padding-top: 2px; }
+  /* Stretched-Link-Muster (Nachtrag Abnahme Phase 1, gleiches Vorbild wie .rcard-open in
+     Schritt 3): der Stift ist weg, der Name uebernimmt seine Aufgabe UND macht die Zeile
+     per ::after als Tastaturziel fokussierbar - .ing-view ist ein <div> ohne eigenen Fokus. */
+  /* KEIN position:relative hier - sonst bezieht sich das ::after unten auf den Namen selbst
+     und nur der Text waere klickbar (bei "Reis" ein winziges Ziel, der Rest der Zeile tot).
+     Der Bezugspunkt muss .ing-view sein, genau wie .rcard-open sich auf .rcard bezieht. */
+  .ing-view-name { all: unset; grid-column: 2; grid-row: 1; font-weight: 600; align-self: center; }
+  /* Nur die bearbeitbare Zeile ist ein Knopf - die Nur-Lese-Zeile (.ro) nutzt dasselbe
+     Markup als reinen <span>, ohne Zeigerkurs oder unsichtbare Klickflaeche. */
+  .ing-view:not(.ro) .ing-view-name { cursor: pointer; }
+  .ing-view:not(.ro) .ing-view-name::after { content: ""; position: absolute; inset: 0; }
+  .ing-view:not(.ro) .ing-view-name:focus-visible { outline: none; }
+  .ing-view:not(.ro) .ing-view-name:focus-visible::after { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: var(--radius-sm); }
+  .ing-view-kcal { grid-column: 3; grid-row: 1; text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; padding-top: 2px; }
+  .ing-view-macros {
+    grid-column: 2 / span 2; grid-row: 2; text-align: right; margin-top: 2px;
+    font-size: 11.5px; color: var(--text-muted); font-variant-numeric: tabular-nums;
+  }
+  .ing-view-del {
+    grid-column: 4; grid-row: 1 / span 2; align-self: start; position: relative; z-index: 2;
+    width: 34px; height: 34px; border: 0; background: none; color: var(--text-muted);
+    cursor: pointer; border-radius: 9px; display: grid; place-items: center; font-size: 15px;
+  }
+  /* 44px Trefferflaeche, TROUBLESHOOTING #38. Wieder symmetrisch (Nachtrag Abnahme Phase 1)
+     - ohne den Stift als Nachbarn braucht das ✕ keine einseitige Enge mehr. z-index haelt
+     es ueber dem ::after der Anzeigezeile, das sonst die ganze Zeile ueberdeckt. */
+  .ing-view-del::after { content: ""; position: absolute; inset: -5px; }
+  .ing-view-del:hover { color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, transparent); }
+  .ms-ing-add { width: 100%; justify-content: center; margin-top: 10px; }
+  .ms-empty-ings { color: var(--text-muted); font-size: 13.5px; padding: 10px 2px 0; margin: 0; }
+  /* "Fertig" am Ende der aufgeklappten Zeile (Nachtrag Abnahme Phase 1) - bewusst NICHT
+     neben dem ✕ im .ing-top: Bestaetigen und Loeschen duerfen nicht nebeneinander liegen. */
+  .ing-done-row { display: flex; justify-content: flex-end; margin-top: 4px; }
+  @media (max-width: 560px) {
+    .ing-view-macros { grid-column: 1 / span 3; text-align: left; }
+  }
+
+  /* ---------- Meal-Ansicht (openMealSheet) ---------- */
+  .mealsheet { position: relative; }
+  .mealsheet .modal-head {
+    position: absolute; top: 0; left: 0; right: 0; z-index: 3;
+    border: 0; background: none; padding: 12px; justify-content: flex-end;
+  }
+  .mealsheet .modal-head .icon-gh.on-photo {
+    color: #fff; border-radius: 50%;
+    background: color-mix(in srgb, #0a0c07 50%, transparent);
+    box-shadow: 0 2px 8px rgba(0,0,0,.35);
+  }
+  .mealsheet .modal-head .icon-gh.on-photo:hover { color: #fff; background: color-mix(in srgb, #0a0c07 68%, transparent); }
+  /* "Bearbeiten" im Kopf des Nur-Lese-Zweigs (Nachtrag Abnahme Phase 2) - nur sichtbar,
+     wenn canEdit() wahr ist; jedes bestehende Meal oeffnet inzwischen zuerst lesend, egal
+     aus welchem Reiter. margin-right:auto schiebt sie an den linken Rand, Teilen/Schliessen
+     bleiben rechts. */
+  .mealsheet .modal-head .ms-edit-btn { margin-right: auto; }
+  .ms-photo { position: relative; }
+  .ms-photo img { width: 100%; height: 220px; object-fit: cover; display: block; }
+  .ms-photobar { position: absolute; right: 10px; bottom: 10px; display: flex; gap: 8px; }
+  .ms-photobtn {
+    font-family: var(--font-body); padding: 7px 13px; border-radius: 999px; border: 0; cursor: pointer;
+    font-size: 12.5px; font-weight: 600; color: #fff;
+    background: color-mix(in srgb, #0a0c07 55%, transparent); box-shadow: 0 2px 8px rgba(0,0,0,.35);
+  }
+  .ms-photobtn:hover { background: color-mix(in srgb, #0a0c07 72%, transparent); }
+  .ms-photobtn[hidden] { display: none; }
+  .ms-head { display: flex; align-items: center; gap: 10px; margin: 14px 0; }
+  .ms-title { font-family: var(--font-display); font-size: 21px; font-weight: 700; margin: 0; flex: 1; min-width: 0; }
+  .ms-name {
+    flex: 1; min-width: 0; font: inherit; font-family: var(--font-display); font-size: 21px;
+    font-weight: 700; color: var(--text); border: 1px solid transparent; background: transparent;
+    padding: 6px 8px; border-radius: var(--radius-sm);
+  }
+  .ms-name:hover { border-color: var(--border-strong); background: var(--bg); }
+  .ms-name:focus { outline: none; border-color: var(--accent); background: var(--bg); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent); }
+  .ms-cat { flex: none; width: auto; font-size: 16px; padding: 7px 8px; }
+  .ms-ings h4 { font-size: 12.5px; text-transform: uppercase; letter-spacing: .05em; color: var(--text-muted); margin: 22px 0 4px; }
+  /* Fusszeile der Meal-Ansicht (Nachtrag Abnahme Phase 1): "Meal loeschen"/"Verwerfen" und
+     "Fertig" stehen jetzt zusammen im modal-foot statt getrennt im Body. space-between statt
+     eines festen 8px-gap gibt der destruktiven Aktion spuerbaren Abstand zur bestaetigenden -
+     kein Fehlklick zwischen beiden. ms-danger bleibt transparent (kein .btn-Standardsurface),
+     damit sie als ghost neben dem gefuellten "Fertig" leichter wirkt, nicht schwerer. */
+  .mealsheet .modal-foot { justify-content: space-between; gap: 16px; }
+  .ms-danger { background: transparent; }
+  /* Makro-Ueberschrift: Abschnittsform wie "Zutaten" (.ms-ings h4) statt eigener
+     Hervorhebung mit rotem Rahmen - die Gliederung leisten die Ueberschriften, kein Block
+     sticht mehr ohne Grund heraus (Nachtrag Abnahme Phase 1). */
+  .nut-total > h4 {
+    display: flex; align-items: center; flex-wrap: wrap; gap: 8px;
+    font-size: 12.5px; text-transform: uppercase; letter-spacing: .05em;
+    color: var(--text-muted); margin: 22px 0 4px;
+  }
+  .nut-total > h4 .hint { font-family: var(--font-body); text-transform: none; letter-spacing: 0; font-weight: 400; font-size: 12px; }
+  .ms-nut { margin-bottom: 15px; }
+  .ms-nut .nut-total { margin-bottom: 0; }
+  /* Makro-Kacheln im Bearbeiten-Zweig (Nachtrag Abnahme Phase 2, 08.08.2026, loest den
+     antippbaren Ruhezustand samt eigenem "Fertig"-Knopf wieder ab): dieselbe .nutfacts-
+     Kachel wie im Nur-Lese-Zweig (mealStatsHtml) - Farbpunkte/Reihenfolge kommen bereits
+     ueber .nutfacts .nf.t-kcal/.t-carb/.t-prot/.t-fat (siehe oben), hier nur der Umbau von
+     Text zu Eingabefeld. Die 16px stehen hier BEWUSST direkt in der Regel und nicht in einer
+     Breiten-Media-Query: die allgemeine iOS-Zoom-Regel greift nur bis 560px, im Querformat und
+     auf Tablets waere der Zoom sonst zurueck (CLAUDE.md §26). */
+  .nutfacts-edit .v { display: flex; align-items: baseline; gap: 3px; }
+  /* Eingabe-Affordanz wie .ms-name: unauffaellig bis zur Beruehrung (kein Dauer-Rahmen, der
+     die ruhige Kachel-Optik stoert), aber mit Hover-/Fokusrahmen erkennbar als Eingabefeld,
+     nicht als reiner Text. */
+  .nutfacts-edit .v input {
+    all: unset; box-sizing: border-box; width: 4.5ch; flex: none;
+    font-weight: 700; font-size: 16px; font-variant-numeric: tabular-nums; color: var(--text);
+    border: 1px solid transparent; border-radius: var(--radius-sm); padding: 1px 3px; margin: -1px -3px;
+    transition: border-color var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out);
+    -moz-appearance: textfield;
+  }
+  /* Ohne Spinner-Pfeile unterdrueckt (gleiches Muster wie .onb-num): Chromium reserviert
+     sonst intern Breite fuer sie und schneidet bei 4,5ch dreistellige Werte wie "520" ab. */
+  .nutfacts-edit .v input::-webkit-outer-spin-button,
+  .nutfacts-edit .v input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+  .nutfacts-edit .v input:hover { border-color: var(--border-strong); }
+  .nutfacts-edit .v input::placeholder { color: var(--text-muted); font-weight: 400; }
+  .nutfacts-edit .v input:focus-visible {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent);
+  }
   .rimg { position: relative; height: 116px; display: grid; place-items: center; overflow: hidden; }
   .rimg::after { content: ""; position: absolute; inset: 0; background: radial-gradient(130px 66px at 78% 16%, rgba(255,255,255,.30), transparent); pointer-events: none; }
   .rimg.has-photo::after { display: none; }
@@ -1150,6 +1309,15 @@
   .rbody { padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; flex: 1; }
   .rcard .top { display: flex; align-items: flex-start; gap: 10px; }
   .rcard h3 { font-family: var(--font-display); font-size: 18px; font-weight: 600; margin: 0; flex: 1; line-height: 1.25; word-break: break-word; }
+  /* Stretched-Link-Muster (plans/MealAnsicht.MD Schritt 3): der Titel oeffnet die ganze
+     Karte, ohne dass ein <button> um die ganze Karte liegen muss ("kein Button im Button").
+     all:unset gibt Schrift/Farbe an das umgebende <h3> zurueck (beides vererbte
+     Eigenschaften) - nur display faellt auf inline zurueck, was hier passt. .rcard ist
+     bereits position:relative, das ::after braucht keinen eigenen Anker. */
+  .rcard-open { all: unset; cursor: pointer; }
+  .rcard-open::after { content: ""; position: absolute; inset: 0; z-index: 1; border-radius: var(--radius); }
+  .rcard-open:focus-visible { outline: none; }
+  .rcard-open:focus-visible::after { outline: 2px solid var(--accent); outline-offset: 2px; }
   .chip { font-size: 11px; font-weight: 650; letter-spacing: .03em; text-transform: uppercase; padding: 3px 9px; border-radius: 999px; white-space: nowrap; }
   .chip.cat-fr { color: var(--fr); background: color-mix(in srgb, var(--fr) 14%, var(--surface)); }
   .chip.cat-ha { color: var(--mi); background: color-mix(in srgb, var(--mi) 14%, var(--surface)); }
@@ -1158,17 +1326,22 @@
   .rcard .meta { display: flex; gap: 14px; flex-wrap: wrap; color: var(--text-muted); font-size: 12.5px; }
   .rcard .meta span { display: inline-flex; align-items: center; gap: 5px; }
   .rcard .meta svg { width: 14px; height: 14px; color: var(--accent); opacity: 1; }
-  .rcard .ingredients { font-size: 13px; color: var(--text-muted); border-top: 1px dashed var(--border); padding-top: 10px; line-height: 1.5; }
-  /* flex-wrap: fuenf Knoepfe (mit dem Herz) passen auf schmalen Handys nicht mehr in eine
-     Zeile - sie brechen um, statt die Karte zu sprengen. */
-  .rcard .actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: auto; padding-top: 4px; }
-  /* Teilen+Loeschen+Herz als EIN Block rechts, Ansehen+Bearbeiten links. Der Block haelt
-     die Icons beim Umbruch zusammen und bleibt per margin-left:auto auch in der zweiten
-     Zeile rechts - einzeln umbrechende Icons landeten sonst links (Herz gehoert nach
-     unten rechts). */
-  .rcard .actions .act-icons { display: flex; align-items: center; gap: 10px; margin-left: auto; }
-  .rcard .actions .btn.sm { gap: 6px; }
-  .rcard .actions .btn.sm svg { width: 15px; height: 15px; }
+  /* Statistik-Zeile der Karte (cardStatsHtml) - margin-top:auto haelt sie unten, damit
+     unterschiedlich hohe Karten trotzdem auf gleicher Grundlinie enden. .meta (Person-Icon
+     aus recipeAuthorHtml, siehe oben) steht rechts darunter statt in derselben Zeile wie
+     die Kartenstatistik. */
+  .rcard .rstats { display: flex; flex-direction: column; gap: 6px; margin-top: auto; padding-top: 4px; }
+  .rcard .rstats .meta { justify-content: flex-end; }
+  .rcard .rstats .ms-empty-ings { padding: 0; margin: 0; }
+  /* Kartenstatistik (cardStatsHtml, Nachtrag Abnahme Phase 1) - eine ruhige Zeile statt
+     .nutfacts-Kacheln: kcal traegt das Gewicht, die drei Makros folgen als schmale farbige
+     Kuerzel. Keine eigene 560px-Regel noetig - flex-wrap faengt sehr schmale Karten auf. */
+  .cstats { display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: 4px 10px; font-variant-numeric: tabular-nums; }
+  .cstats .cs-kcal { font-weight: 700; font-size: 15px; color: var(--text); flex: none; }
+  .cstats .cs-kcal .u { font-weight: 500; font-size: 11px; color: var(--text-muted); }
+  /* Zusammenhalten statt einzeln umbrechen (Nachtrag Abnahme Phase 1) - bei sehr schmalen
+     Karten soll die Makrogruppe als Ganzes nach unten rutschen, nicht KH/P/F einzeln. */
+  .cstats .cs-macros { font-size: 12.5px; color: var(--text-muted); white-space: nowrap; }
 
   /* ---------- Empty state ---------- */
   .empty { text-align: center; padding: 60px 24px; border: 1.5px dashed var(--border-strong); border-radius: var(--radius); color: var(--text-muted); background: var(--surface); }
@@ -1187,6 +1360,13 @@
   }
   @starting-style { .modal { opacity: 0; transform: translateY(8px) scale(.99); } }
   @keyframes pop { from { opacity: 0; transform: translateY(8px) scale(.99);} to { opacity: 1; transform: none; } }
+  /* Meal-Ansicht per FLIP geoeffnet (openMealSheet, plans/MealAnsicht.MD Schritt 4): die
+     eigene pop-Animation/-Transition wuerde sonst gegen die WAAPI-Transformation aus
+     flipIn() kaempfen. Bewusst ohne !important - unter prefers-reduced-motion greift
+     weiterhin der globale, wichtigere Block weiter unten (reiner Fade statt Transform),
+     dorthin kommt diese Klasse aber ohnehin nie: flipFrom ist unter reducedMotion() immer
+     null, siehe openMealSheet(). */
+  .modal.flip-anim { animation: none; transition: none; }
   /* Live-Barcode-Scanner. Eigene Ebene ueber dem Modal-Overlay (60), aber unter dem
      Toast (90) - der Scanner wird AUS dem Meal-Formular geoeffnet, das darunter offen
      bleiben muss. Deshalb bewusst nicht ueber openModal(), das modalRoot leert.
@@ -1268,11 +1448,9 @@
     font-size: 12px; color: var(--text-muted);
   }
 
-  /* Detail / shopping */
-  .detail .dbanner { height: 150px; border-radius: 12px; display: grid; place-items: center; position: relative; margin-bottom: 16px; overflow: hidden; }
-  .detail .dbanner::after { content: ""; position: absolute; inset: 0; background: radial-gradient(180px 90px at 80% 14%, rgba(255,255,255,.30), transparent); }
-  .detail .dbanner.has-photo::after { display: none; }
-  .detail dl { margin: 0; }
+  /* Detail / shopping. .dbanner/dl gehoerten zum fruehreren openRecipeDetail (siehe
+     plans/MealAnsicht.MD) und sind mit .ms-photo/.nutfacts in openMealSheet() entfallen;
+     .dsec/ul/.steps leben in dessen Nur-Lese-Zweig weiter (Makro-Ueberschrift, Zubereitung). */
   .detail .dsec { margin-top: 14px; }
   .detail .dsec h4 { font-size: 12.5px; text-transform: uppercase; letter-spacing: .05em; color: var(--text-muted); margin: 0 0 6px; }
   .detail ul { margin: 0; padding-left: 18px; line-height: 1.6; }
@@ -1411,8 +1589,8 @@
   @keyframes syncpulse { 0%, 100% { opacity: 1; } 50% { opacity: .3; } }
 
   /* Profilbild-Vorschau im "Profil bearbeiten"-Formular - gleiche Gradient/Initialen-
-     Optik wie der Header-Avatar, nur groesser. Rund-Button zum Aendern nach Vorbild
-     .rcard .imgadd (gleiche Masse/Farbe), hier relativ zum Vorschau-Kreis positioniert. */
+     Optik wie der Header-Avatar, nur groesser. Rund-Button zum Aendern in derselben
+     Gradient-Optik wie .wch-add, hier relativ zum Vorschau-Kreis positioniert. */
   .avatar-edit-row { display: flex; align-items: center; gap: 16px; margin-bottom: 18px; }
   .avatar-edit { position: relative; width: 76px; height: 76px; border-radius: 50%; flex: none; display: grid; place-items: center; font-size: 24px; font-weight: 700; color: var(--accent-contrast); background: linear-gradient(150deg, var(--accent), var(--accent-strong)); }
   .avatar-edit img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; display: block; }
@@ -1422,8 +1600,8 @@
     color: var(--accent-contrast); background: linear-gradient(135deg, var(--accent), var(--accent-strong));
     box-shadow: 0 2px 8px rgba(0,0,0,.35); transition: transform var(--dur-fast) ease;
   }
-  /* Sichtbar bleibt 28px wie beim Meal-Foto-Button (.rcard .imgadd) - die Trefferflaeche
-     wird per Pseudo-Element auf 44x44 erweitert, gleiches hitSlop-Muster wie .btn.icon-gh. */
+  /* Sichtbar bleiben 28px - die Trefferflaeche wird per Pseudo-Element auf 44x44 erweitert,
+     gleiches hitSlop-Muster wie .btn.icon-gh (TROUBLESHOOTING #38). */
   .avatar-edit-btn::after { content: ""; position: absolute; inset: -8px; }
   .avatar-edit-btn:hover { transform: scale(1.12); }
   .avatar-edit-btn svg { width: 14px; height: 14px; }
@@ -1662,17 +1840,6 @@
   @media (max-width: 720px) {
     .head-inner { gap: 10px 12px; padding: 11px 0; }
     .brand h1 { font-size: 19px; }
-    /* Aktionszeile der Meal-Karte in EINER Zeile. Gemessen brauchte sie 340px (Ansehen 93,
-       Bearbeiten 106, Symbolblock 122) - bei 360px Geraetebreite stehen der Karte innen aber
-       nur 318px zur Verfuegung, also brach sie um. Die Symbole IN den beiden Textknoepfen
-       kosten je 21px (15px Symbol + 6px Abstand), zusammen genau die fehlenden 42px.
-       Sie sind hier der richtige Verzicht: der Text steht direkt daneben und traegt die
-       Bedeutung allein. Im rechten Block (Teilen/Loeschen/Herz) waere dasselbe falsch -
-       dort IST das Symbol die Beschriftung.
-       Der gap bleibt bei 10px: .fav-ic hat ::after { inset: -5px }, bei 8px Abstand
-       ueberlappten sich die Trefferflaechen um 2px (siehe TROUBLESHOOTING §38).
-       flex-wrap auf .actions bleibt als Sicherheitsnetz fuer sehr schmale Altgeraete (320px). */
-    .rcard .actions .btn.sm svg { display: none; }
   }
   /* Nur das schmale Band zwischen Handy-Balken (bis 680) und voller Breite: hier bleibt
      die Leiste im Kopf und darf scrollen. Bewusst mit min-width abgegrenzt — ohne das
@@ -1692,12 +1859,6 @@
        Zahlen und weniger Abstand halten sie in einer Zeile, statt sie umbrechen zu lassen. */
     .wch-stats { gap: 12px; }
     .wch-s b { font-size: 18px; }
-    /* Ausnahme: die vier Makro-Werte sind kurze Zahlen. Einspaltig waere die Summe
-       viermal so hoch wie noetig, vierspaltig brechen die Beschriftungen um und die
-       Felder stehen versetzt. Deshalb 2x2: aussen eine Spalte, innen zwei. */
-    .nut-total > .row2 { grid-template-columns: 1fr; gap: 10px; }
-    .nut-total .row2 .row2 { grid-template-columns: 1fr 1fr; gap: 10px; }
-    .nut-total .field > label.hint { font-size: 10.5px; }
     /* Ohne diese Regel wickelt .wg-macros Protein+Kohlenhydrate in eine Zeile und
        Fett allein in die naechste (flex-wrap trifft bei ~340-400px Breite genau diesen
        ungleichen Schnitt) - auf dem Handy sieht das schief aus. Erzwingt stattdessen
@@ -1739,11 +1900,13 @@
        einer mehr Platz hat und einzeilig bleibt (z. B. im 2x2-Raster unten), faellt er
        sonst auf 39px - gemessen bei 320-414px. */
     .modal-foot .btn { flex: 1; justify-content: center; min-height: 44px; }
-    /* Die Meal-Detailansicht hat vier Fuss-Buttons: mit reinem "flex:1" passen drei
-       schmale (Bearbeiten/Teilen/Loeschen) noch in eine Zeile, nur "Schliessen" faellt
-       allein und ueber die volle Breite gestreckt in die naechste - wirkt schief.
-       Feste 50%-Basis erzwingt ein sauberes 2x2-Raster unabhaengig von der Textlaenge. */
-    .modal.detail .modal-foot .btn { flex: 1 1 calc(50% - 4px); }
+    /* Meal-Ansicht: nur noch zwei Fuss-Buttons (Nachtrag Abnahme Phase 1). "Fertig" darf
+       die Zeile dominieren (flex:1 aus der allgemeinen Regel oben bleibt bestehen),
+       "Meal loeschen"/"Verwerfen" bleibt bewusst inhaltsbreit statt gleich schwer - sonst
+       waeren beide Aktionen optisch gleichrangig. nowrap haelt beide auf einer Zeile,
+       statt dass "Meal loeschen" bei wenig Platz in eine eigene Zeile faellt. */
+    .mealsheet .modal-foot { flex-wrap: nowrap; }
+    .mealsheet .modal-foot .ms-danger { flex: 0 1 auto; }
     .foot-inner { flex-direction: column; gap: 8px; text-align: center; }
     /* iOS zoomt Eingabefelder < 16px beim Fokus – das verhindern wir */
     input[type="text"], input[type="number"], input[type="email"], input[type="password"], input[type="search"], select, textarea { font-size: 16px; }
@@ -3779,6 +3942,19 @@
   // statt es komplett zu ersetzen, und haelt lastPushedRecipes synchron mit - sonst
   // wuerde der naechste eigene pushNow()-Zyklus denselben, gerade erst empfangenen
   // Stand fuer unveraendert halten oder ihn faelschlich erneut schreiben (Ping-Pong).
+  // Waehrend openMealSheet() dieses Meal offen haelt, siehe plans/MealAnsicht.MD: das
+  // Objekt wird lokal live editiert, ein Remote-Update wuerde es sonst durch eine neue
+  // Instanz ERSETZEN (kein Merge) - jeder weitere Tastendruck schriebe dann lautlos in ein
+  // abgehaengtes Waisenobjekt. openSheetId setzt den Remote-Merge fuer GENAU dieses eine
+  // Meal aus, solange die Ansicht offen ist.
+  let openSheetId = null;
+  // Gegenprobe zur openSheetId-Sperre: die deckt nur den "modified"-Zweig ab. Loescht ein
+  // ANDERES Geraet genau das offene Meal ("removed"-Zweig), verschwindet es unten trotzdem
+  // aus state.recipes - mutateLocal() in openMealSheet() guardet zwar gegen den Absturz
+  // (rec() liefert dann undefined), aber die Ansicht bliebe sonst lautlos offen und jede
+  // weitere Eingabe ginge ins Leere. openMealSheet() traegt hier eine Aufraeumfunktion ein,
+  // solange die Ansicht fuer GENAU dieses Meal offen ist (gleiches Muster wie photoDoneCb).
+  let openSheetRemovedCb = null;
   function onRecipesRemote(changes) {
     let changed = false;
     changes.forEach(c => {
@@ -3790,8 +3966,16 @@
           changed = true;
         }
         if (lastPushedRecipes) lastPushedRecipes.delete(c.id);
+        // Keine stille Wiederauferstehung gegen die Loeschung des anderen Geraets: die
+        // Ansicht schliesst sich selbst, mit einem Toast statt eines abgebrochenen Autosaves.
+        if (c.id === openSheetId && openSheetRemovedCb) { const cb = openSheetRemovedCb; openSheetRemovedCb = null; cb(); }
       } else {
         const incoming = sanitizeRecipe(Object.assign({}, c.data, { id: c.id }));
+        // Baseline bewusst NICHT mitgepflegt (kein lastPushedRecipes.set weiter unten,
+        // return VOR dieser Zeile): dadurch gilt unser lokaler Stand beim naechsten
+        // syncRecipes() weiter als "geaendert" und wird gepusht - lokal gewinnt, das
+        // andere Geraet zieht nach, sobald die Ansicht schliesst.
+        if (c.id === openSheetId) return;
         if (!incoming) return;
         // canonJSON statt JSON.stringify - siehe syncRecipes(): sonst haelt der Vergleich ein
         // inhaltlich identisches, nur anders sortiertes Rezept dauerhaft fuer "geaendert".
@@ -4400,9 +4584,10 @@
     const d = ICONS[key] || ICONS.pot;
     return `<svg class="${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
   }
-  // Aktions-Icons fuer Meal-Karte und Detail-Ansicht (Ansehen / Bearbeiten / Loeschen)
+  // Aktions-Icons, u. a. fuer Profilbild-Aendern und Mitglied-entfernen. "view" (Ansehen)
+  // entfiel mit openRecipeDetail/openRecipeForm (siehe plans/MealAnsicht.MD) - edit/del
+  // bleiben, andere Aufrufer brauchen sie weiterhin.
   const ACT_ICONS = {
-    view: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>',
     edit: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>',
     del:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2"/><path d="M6 6v14a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V6"/><path d="M10 11v6M14 11v6"/></svg>',
   };
@@ -4763,6 +4948,27 @@
   function hasNut(s) { return !!(s.kcal || s.carbs || s.protein || s.fat); }
   function nfmt(n) { return Math.round(n).toLocaleString("de-DE"); }
 
+  // Gemeinsamer Helfer fuer die Makro-Kompaktzeile (CLAUDE.md, Abschnitt "Makros und
+  // Nährwerte"): Kuerzel KH/P/F, Reihenfolge KH->P->F, kein "g". kcal rendert jeder
+  // Aufrufer selbst - jede Stelle hat ihr eigenes Kcal-Markup (Karte, Zutatenzeile,
+  // Tagesbilanz, aufgeklapptes Makrofeld unterscheiden sich dort bewusst nicht im
+  // Vokabular, nur in der Umgebung). Fehlende Felder (null/undefined) werden ausgelassen
+  // statt als "0" zu erscheinen - noetig fuer .ing-brief, wo einzelne Felder leer sein
+  // koennen. `fmt` erlaubt eine Nachkommastelle statt zu runden (ebenfalls .ing-brief).
+  // Farbe traegt der Punkt (.mv::before), nicht der Text - dasselbe Signal wie in den
+  // .nutfacts-Kacheln. Vorher war es hier umgekehrt (eingefaerbter Text, kein Punkt), wodurch
+  // Kompaktzeile und Kacheln wie zwei fremde Bauteile wirkten. Nebeneffekt: eingefaerbter
+  // Text bei 11,5 px ist beim Kontrast immer grenzwertig, ein Punkt daneben nicht - die
+  // Farbe ist damit nicht mehr alleiniger Bedeutungstraeger (siehe Kommentar bei den Tokens).
+  function macroLineHtml(n, fmt) {
+    fmt = fmt || (v => Math.round(v).toLocaleString("de-DE"));
+    const parts = [];
+    if (n.carbs != null) parts.push(`<span class="mv t-carb">${fmt(n.carbs)} KH</span>`);
+    if (n.protein != null) parts.push(`<span class="mv t-prot">${fmt(n.protein)} P</span>`);
+    if (n.fat != null) parts.push(`<span class="mv t-fat">${fmt(n.fat)} F</span>`);
+    return parts.join("");
+  }
+
   // ---------- Strukturierte Zutaten ----------
   // Eine Zutat ist entweder ein String (Altbestand, reiner Freitext) oder ein Objekt
   // { name, grams, unit, kcal, carbs, protein, fat }. `grams` ist die eingesetzte Menge
@@ -4777,7 +4983,7 @@
   function unitShort(u) { return ({ st: "Stück", el: "EL", tl: "TL" })[u] || u; }
   // Bezugsgroesse der Naehrwertfelder — bei Stueck/EL/TL gibt es keine 100er-Basis,
   // der Naehrwert gilt direkt je Einheit. Steht als Zusatz in der Kopfzeile neben
-  // "Makros" (Muster wie bei der Meal-Detailansicht "Makros · je Portion").
+  // "Makros" (aehnliches Muster wie die Ueberschrift "Makros gesamt" in der Meal-Ansicht).
   function ingPerLabel(u) {
     if (u === "st") return "· je Stück";
     if (u === "el" || u === "tl") return "· je " + unitShort(u);
@@ -5485,11 +5691,7 @@
     if (t) return dayGoalsHtml(s, t, dayKey);
     return `<div class="day-nut">
         <span class="kcal">${nfmt(s.kcal)} <small>kcal</small></span>
-        <span class="macros">
-          <span class="m carb"><b>${nfmt(s.carbs)}</b>&nbsp;g KH</span>
-          <span class="m prot"><b>${nfmt(s.protein)}</b>&nbsp;g Eiw.</span>
-          <span class="m fat"><b>${nfmt(s.fat)}</b>&nbsp;g Fett</span>
-        </span>
+        <span class="macros">${macroLineHtml(s)}</span>
       </div>`;
   }
 
@@ -5574,10 +5776,13 @@
   // Kohlenhydrate und Fett sind ein Budget — daher unterschiedliche Bewertung.
   // Hier stehen die Makros ausgeschrieben — anders als in den schmalen Tageskarten
   // des Plans (dayGoalsHtml), wo nur Kuerzel hineinpassen.
+  // Reihenfolge KH->P->F (CLAUDE.md, "Makros und Nährwerte") - die ausgeschriebenen Namen
+  // bleiben (siehe Kommentar bei dayGoalsHtml: Kuerzel scheiterten hier an schmalen
+  // Desktop-Karten), nur die Anordnung zieht mit der App-weiten Regel mit.
   function goalMacrosHtml(s, t) {
     return `<div class="wg-macros">
-        ${goalBarHtml({ label: "Proteine", ist: s.protein, ziel: t.protein, unit: "g", cls: "t-prot", dir: "min", rest: "attention", unitInline: true })}
         ${goalBarHtml({ label: "Kohlenhydrate", ist: s.carbs, ziel: t.carbs, unit: "g", cls: "t-carb", rest: "attention", unitInline: true })}
+        ${goalBarHtml({ label: "Proteine", ist: s.protein, ziel: t.protein, unit: "g", cls: "t-prot", dir: "min", rest: "attention", unitInline: true })}
         ${goalBarHtml({ label: "Fett", ist: s.fat, ziel: t.fat, unit: "g", cls: "t-fat", rest: "attention", unitInline: true })}
       </div>`;
   }
@@ -5720,16 +5925,35 @@
   // Wochentag von heute – geteilt von der Uebersicht und der „Heute“-Markierung im Plan.
   function todayDayKey() { return ["sun", "mon", "tue", "wed", "thu", "fri", "sat"][new Date().getDay()]; }
 
-  function nutFactsHtml(r) {
+  // Gemeinsames Bauteil von Karte (paintRecipeGroups) und Ansicht (openMealSheet,
+  // Nur-Lese-Zweig) - siehe plans/MealAnsicht.MD Schritt 3: der Nutzer soll beim
+  // Aufklappen genau das weiterwachsen sehen, was er angetippt hat. Liefert bewusst NUR
+  // das nutfacts-Raster ohne Ueberschrift - die Ansicht setzt "Makros gesamt" selbst
+  // davor, die Karte braucht keine Ueberschrift.
+  function mealStatsHtml(r) {
     const n = recipeNut(r);
     if (!hasNut(n)) return "";
-    return `<div class="dsec"><h4>Makros <span style="text-transform:none;letter-spacing:0;font-weight:400">· je Portion</span></h4>
-        <div class="nutfacts">
+    return `<div class="nutfacts">
           <div class="nf t-kcal"><div class="v">${nfmt(n.kcal)}<span class="u">kcal</span></div><div class="k">Kcal</div></div>
           <div class="nf t-carb"><div class="v">${nfmt(n.carbs)}<span class="u">g</span></div><div class="k">KH</div></div>
           <div class="nf t-prot"><div class="v">${nfmt(n.protein)}<span class="u">g</span></div><div class="k">P</div></div>
           <div class="nf t-fat"><div class="v">${nfmt(n.fat)}<span class="u">g</span></div><div class="k">F</div></div>
-        </div></div>`;
+        </div>`;
+  }
+  // Schlanke Kartenzeile (Nachtrag aus der Abnahme von Phase 1, 07.08.2026): mealStatsHtml()
+  // als Kartenbauteil zeigte vier umrandete Kacheln - bei zehn Karten vierzig Kaesten, unter
+  // 560px klappt das Raster auf 2x2 und macht jede Karte zwei Kachelzeilen hoch. Zweiter
+  // Helfer statt Wiederverwendung: speist aus DENSELBEN recipeNut(r)/hasNut(), "gemeinsames
+  // Bauteil" bleibt also inhaltlich (gleiche Zahlen, gleiche Farben, gleiche Reihenfolge)
+  // erhalten, nur nicht als identisches Markup - kcal prominent, Makros als farbige
+  // Kuerzel ohne Kacheln/Rahmen/Textlabels, eine ruhige Zeile statt eines Kachel-Rasters.
+  function cardStatsHtml(r) {
+    const n = recipeNut(r);
+    if (!hasNut(n)) return "";
+    return `<div class="cstats">
+          <span class="cs-kcal">${nfmt(n.kcal)} <span class="u">kcal</span></span>
+          <span class="cs-macros">${macroLineHtml(n)}</span>
+        </div>`;
   }
 
   // ---------- Handy-Karussell (Wochenplan, Wochenziele, Rechner) ----------
@@ -6027,6 +6251,48 @@
     return el.animate(kf, { duration: parseFloat(reduced ? MOTION.fast : MOTION.base) || 200, easing: MOTION.ease });
   }
 
+  // FLIP zwischen Meal-Karte/Wochenplan-Slot und der grossen Meal-Ansicht (openMealSheet,
+  // plans/MealAnsicht.MD Schritt 4). Nur transform animieren, NIE width/height - pro Frame
+  // ein Reflow mit einem 640px-Base64-Bild darin waere zu teuer. from/to: DOMRect-artige
+  // Objekte (mind. left/top/width/height) wie getBoundingClientRect() sie liefert - from ist
+  // immer die KLEINE Karte/der Slot, to immer das grosse Overlay, in beiden Richtungen.
+  // Gleichmaessige Skalierung ueber die Breite (ein ungleichmaessiges sx/sy staucht den Text
+  // sichtbar), Verschiebung ueber die MITTELPUNKTE, damit der Standard-transform-origin
+  // (50% 50%) stimmt.
+  function flipDelta(from, to) {
+    const s = from.width / to.width;
+    const dx = (from.left + from.width / 2) - (to.left + to.width / 2);
+    const dy = (from.top + from.height / 2) - (to.top + to.height / 2);
+    return { dx, dy, s };
+  }
+  // Oeffnen: startet skaliert/verschoben auf der Karte, waechst auf transform:none.
+  function flipIn(el, from, to) {
+    if (!el || !el.animate || !from || !to || reducedMotion()) return null;
+    const { dx, dy, s } = flipDelta(from, to);
+    el.style.willChange = "transform";
+    const anim = el.animate([
+      { transform: `translate(${dx}px, ${dy}px) scale(${s})` },
+      { transform: "none" },
+    ], { duration: parseFloat(MOTION.slow) || 300, easing: MOTION.ease });
+    const clear = () => { el.style.willChange = ""; };
+    anim.finished.then(clear, clear);
+    return anim;
+  }
+  // Schliessen: umgekehrt, und kuerzer als das Oeffnen (MOTION.base statt .slow) - Exits
+  // sollen kuerzer sein als Entries.
+  function flipOut(el, from, to) {
+    if (!el || !el.animate || !from || !to || reducedMotion()) return null;
+    const { dx, dy, s } = flipDelta(from, to);
+    el.style.willChange = "transform";
+    const anim = el.animate([
+      { transform: "none" },
+      { transform: `translate(${dx}px, ${dy}px) scale(${s})` },
+    ], { duration: parseFloat(MOTION.base) || 200, easing: MOTION.ease });
+    const clear = () => { el.style.willChange = ""; };
+    anim.finished.then(clear, clear);
+    return anim;
+  }
+
   // Gleitende Pille fuer .week-switch (Schiebe-Schema, Schritt "Aktuelle/Naechste Woche"):
   // anders als bei .db-ind/.tab-ind kann hier keine CSS-transition greifen, weil
   // view.innerHTML die ganze Leiste bei jedem render() neu baut - die neu gebaute Pille
@@ -6277,8 +6543,8 @@
         + `<div class="wch-tip" aria-live="polite">${rows.length > 1 ? "" : monthLabel(last.m) + " · " + kgfmt(last.kg) + " kg"}</div>`;
     }
 
-    // Eine Aktion oben rechts statt zweier Knoepfe unten: dasselbe rote Plus wie auf den
-    // Meal-Karten (.imgadd), dahinter das Menue mit "Gewicht eintragen" / "Ziel aendern".
+    // Eine Aktion oben rechts statt zweier Knoepfe unten: dasselbe rote Gradient-Plus wie
+    // .avatar-edit-btn (.wch-add), dahinter das Menue mit "Gewicht eintragen" / "Ziel aendern".
     return `<div class="wg-col wch">
         <div class="wch-head">
           <div>
@@ -6669,32 +6935,26 @@
       if (!open) { html += `</section>`; continue; }
       html += `<div class="recipes">`;
       items.forEach(r => {
-      const ing = (r.ingredients || []);
-      const ingPreview = ing.length ? esc(ing.slice(0, 4).map(ingLabel).join(" · ")) + (ing.length > 4 ? " …" : "") : "Keine Zutaten hinterlegt";
+      // Stretched-Link-Muster (plans/MealAnsicht.MD Schritt 3): .rcard-open ist ein
+      // vollstaendig zurueckgesetzter Knopf, dessen ::after die ganze Karte ueberspannt
+      // (CSS). Das Herz liegt als Geschwister DARUEBER (hoeherer z-index) und bleibt damit
+      // eigenstaendig klickbar - "kein Button im Button". Tab-Reihenfolge: Titel -> Herz.
+      const statsInner = cardStatsHtml(r);
+      const authorHtml = recipeAuthorHtml(r);
       html += `<article class="rcard" data-rid="${r.id}">
         ${cardImageHtml(r)}
-        ${canEdit() ? `<button class="imgadd" data-action="photo" data-id="${r.id}" title="Eigenes Foto für dieses Meal wählen" aria-label="Eigenes Foto für dieses Meal wählen">+</button>` : ""}
+        <button type="button" class="btn fav-ic on-photo${isFav(r.id) ? " on" : ""}" data-action="toggle-fav" data-id="${r.id}"
+                aria-pressed="${isFav(r.id)}"
+                title="${isFav(r.id) ? "Aus Favoriten entfernen" : "Zu Favoriten hinzufügen"}"
+                aria-label="${isFav(r.id) ? "Aus Favoriten entfernen" : "Zu Favoriten hinzufügen"}">${iconSvg("heart", "")}</button>
         <div class="rbody">
         <div class="top">
-          <h3>${esc(r.name)}</h3>
+          <h3><button type="button" class="rcard-open" data-action="view" data-id="${r.id}">${esc(r.name)}</button></h3>
           ${isExample(r) ? `<span class="chip example" title="Mitgeliefertes Beispiel-Meal">Beispiel</span>` : ""}
         </div>
-        <div class="meta">
-          ${recipeNut(r).kcal ? `<span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3c1 3 4 4.4 4 8a4 4 0 0 1-8 0c0-1.3.4-2.1 1-3 .3 1 .8 1.6 1.5 1.9C10 8 10.4 5.4 12 3Z"/></svg>${nfmt(recipeNut(r).kcal)} kcal</span>` : ""}
-          ${recipeAuthorHtml(r)}
-        </div>
-        <div class="ingredients">${ingPreview}</div>
-        <div class="actions">
-          <button class="btn ghost sm" data-action="view" data-id="${r.id}">${ACT_ICONS.view}Ansehen</button>
-          ${canEdit() ? `<button class="btn ghost sm" data-action="edit" data-id="${r.id}">${ACT_ICONS.edit}Bearbeiten</button>` : ""}
-          <span class="act-icons">
-            <button class="btn ghost icon-gh" data-action="share-recipe" data-id="${r.id}" title="Meal teilen" aria-label="Meal teilen">${TOOL_ICONS.share}</button>
-            ${canEdit() ? `<button class="btn del-ic" data-action="delete" data-id="${r.id}" title="Meal löschen" aria-label="Meal löschen">${ACT_ICONS.del}</button>` : ""}
-            <button class="btn fav-ic${isFav(r.id) ? " on" : ""}" data-action="toggle-fav" data-id="${r.id}"
-                    aria-pressed="${isFav(r.id)}"
-                    title="${isFav(r.id) ? "Aus Favoriten entfernen" : "Zu Favoriten hinzufügen"}"
-                    aria-label="${isFav(r.id) ? "Aus Favoriten entfernen" : "Zu Favoriten hinzufügen"}">${iconSvg("heart", "")}</button>
-          </span>
+        <div class="rstats">
+          ${statsInner || `<p class="ms-empty-ings">Noch keine Nährwerte</p>`}
+          ${authorHtml ? `<span class="meta">${authorHtml}</span>` : ""}
         </div>
         </div>
       </article>`;
@@ -6708,7 +6968,14 @@
   const modalRoot = document.getElementById("modal-root");
   const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
   let lastFocused = null;   // Element, das den Dialog geoeffnet hat
+  // Haengt sich VOR das eigentliche Schliessen: openMealSheet() nutzt den Hook, um beim
+  // Verlassen ohne Namen den Schliessvorgang abzubrechen (Fokus + Toast statt Verwerfen)
+  // bzw. spaeter (Schritt 4) die FLIP-Exit-Animation zu spielen, bevor modalRoot geleert
+  // wird. Escape, Backdrop-Klick, ✕ und "Fertig" laufen alle ueber closeModal() - der Hook
+  // greift dadurch ueberall gleich, ohne dass jeder Aufrufer ihn einzeln kennen muesste.
+  let modalCloseHook = null;
   function closeModal() {
+    if (modalCloseHook) { const hook = modalCloseHook; modalCloseHook = null; hook(); return; }
     // Sicherheitsnetz: schliesst irgendetwas das Formular, waehrend der Live-Scanner
     // laeuft, darf die Kamera nicht weiterlaufen.
     if (liveScanStop) liveScanStop();
@@ -6733,7 +7000,11 @@
     if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
     else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
   }
-  function openModal(node) {
+  // opts.focus: optionales Fokusziel-Element, ersetzt die Standardsuche (erstes
+  // input/textarea/select/button) - z. B. fuer openMealSheet(), das lieber gar keinen
+  // Feldfokus setzt (Autosave beim allerersten Tipp waere verfrueht) oder gezielt das
+  // Namensfeld eines neuen Entwurfs fokussieren will.
+  function openModal(node, opts) {
     hoveredCardId = null;   // Maus steht ab jetzt ueber dem Overlay, nicht mehr auf einer Karte
     lastFocused = document.activeElement;
     const overlay = document.createElement("div");
@@ -6743,7 +7014,7 @@
     modalRoot.innerHTML = "";
     modalRoot.appendChild(overlay);
     document.addEventListener("keydown", modalKeys);
-    const focusEl = node.querySelector("input, textarea, select, button");
+    const focusEl = (opts && "focus" in opts) ? opts.focus : node.querySelector("input, textarea, select, button");
     if (focusEl) setTimeout(() => focusEl.focus(), 30);
   }
   function el(html) { const t = document.createElement("template"); t.innerHTML = html.trim(); return t.content.firstElementChild; }
@@ -6930,71 +7201,460 @@
     openModal(node);
   }
 
-  // ---------- Recipe form ----------
+  // Sucht die aktuell im DOM stehende Karte/den Wochenplan-Slot zu einer Meal-ID - fuer den
+  // FLIP-Exit UND die Fokus-Rueckgabe (plans/MealAnsicht.MD Schritt 4) IMMER neu aufgerufen,
+  // nie den beim Oeffnen gemessenen Knoten behalten: Name, Kategorie oder Gruppenzustand
+  // koennen sich waehrend der offenen Ansicht geaendert haben, und paintRecipeGroups()
+  // ersetzt die Karte bei jedem Autosave-Commit. Bei Favoriten steht dieselbe rid zweimal im
+  // DOM (Favoriten-Gruppe + eigene Kategorie) - letzte Instanz treffen, gleiches Muster wie
+  // toggle-fav().
+  function findMealOrigin(id) {
+    if (!id) return null;
+    const cards = view.querySelectorAll('.rcard[data-rid="' + id + '"]');
+    if (cards.length) return cards[cards.length - 1];
+    return view.querySelector('.filled[data-id="' + id + '"]');
+  }
+
+  // ---------- Meal-Ansicht (Karte -> grosse Ansicht, ersetzt das fruehere Ansehen/
+  // Bearbeiten-Modalpaar openRecipeDetail/openRecipeForm) ----------
   // prefill: nur bei neuem Meal (id == null) genutzt - fuellt Name/Kategorie/Barcode und
   // optional eine Zutaten-Zeile (ingredients, Naehrwerte je 100 g) vor, wenn
   // quickAddByBarcode() OFF-Daten nicht sicher genug fuer die stille Uebernahme findet
-  // (z. B. keine auswertbare Portionsgroesse). Der Nutzer bestaetigt einmal kurz,
-  // statt dass ein Fehlwert bei den Kalorien landet. prefill.assignTo (day/meal) plant
-  // das Meal nach dem Speichern direkt im urspruenglichen Slot ein.
-  function openRecipeForm(id, prefill) {
-    const r = id ? getRecipe(id) : null;
-    const pre = !id && prefill ? prefill : null;
-    const opts = CATEGORIES.map(c => `<option value="${c}" ${(r && r.category === c) || (pre && pre.category === c) ? "selected" : ""}>${c}</option>`).join("");
-    const node = el(`<div class="modal detail" role="dialog" aria-modal="true" aria-label="${r ? "Meal bearbeiten" : "Neues Meal"}">
-      <div class="modal-head"><h3>${r ? "Meal bearbeiten" : "Neues Meal"}</h3><button class="btn ghost sm" data-close>✕</button></div>
+  // (z. B. keine auswertbare Portionsgroesse). prefill.assignTo (day/meal) plant das Meal
+  // nach dem ersten Speichern direkt im urspruenglichen Slot ein. originEl: das angeklickte
+  // Element (schon von der Klick-Delegation gemessen, siehe "view"-Fall weiter unten) - Basis
+  // fuer die FLIP-Oeffnung (Schritt 4). Ohne originEl (Knopf "Neues Meal", Barcode-
+  // Schnellzugriff, Picker-Leerzustand) bleibt es bei der alten Modal-Pop-Animation.
+  //
+  // Autosave statt Speichern-Knopf, siehe plans/MealAnsicht.MD: Referenz nie halten (rec()
+  // holt bei jedem Zugriff frisch aus getRecipe()/draft), openSheetId setzt den
+  // Remote-Merge fuer dieses eine Meal aus, waehrend die Ansicht offen ist.
+  //
+  // startInEdit (Nachtrag Abnahme Phase 2, 08.08.2026): ein bestehendes Meal oeffnet IMMER
+  // zuerst lesend, egal ob aus dem Wochenplan-Slot oder der Meal-Karte (.rcard-open) im
+  // Meals-Reiter - "was esse ich Dienstag?" soll kein versehentliches Bearbeiten ausloesen,
+  // und beide Einstiege sollen sich gleich verhalten. Bearbeiten ist ueberall nur einen Tipp
+  // auf den "Bearbeiten"-Knopf entfernt. Einzige Ausnahmen, die DIREKT im Bearbeiten-Zweig
+  // starten: ein neues Meal (isNew, es gibt noch nichts anzusehen) und der Barcode-Weg
+  // (quickAddByBarcode uebergibt ein prefill, ist also ebenfalls isNew). startInEdit ist
+  // deshalb bewusst positiv formuliert (statt einer doppelten Verneinung wie zuvor
+  // forceReadOnly) und wird nur vom "Bearbeiten"-Knopf selbst gesetzt. canEdit() bleibt
+  // allein zustaendig fuer die BERECHTIGUNG (Rolle "view" bekommt nie einen Bearbeiten-
+  // Knopf), startInEdit nur fuer den EINSTIEGS-Modus bei vorhandener Berechtigung.
+  function openMealSheet(id, prefill, originEl, startInEdit) {
+    const canEditNow = canEdit();
+    const isNew = !id;
+    const readOnly = !canEditNow || (!isNew && !startInEdit);
+    if (isNew && !canEditNow) return; // sollte ueber WRITE_ACTIONS ohnehin nie passieren
+
+    // FLIP-Rect JETZT messen (nicht erst beim tatsaechlichen Animieren) - originEl ist exakt
+    // das Element, auf das geklickt wurde, eine erneute Suche waere bei Favoriten falsch
+    // (Karte kann zweimal im DOM stehen). reducedMotion() faellt komplett auf den normalen
+    // .modal-Fade zurueck: keine Transforms, siehe .modal.flip-anim (CSS) und
+    // TROUBLESHOOTING #39.
+    const flipFrom = (originEl && !reducedMotion()) ? originEl.getBoundingClientRect() : null;
+    const useFlipExit = !!flipFrom; // Exit nur, wenn beim Oeffnen tatsaechlich geflippt wurde
+
+    // Spielt den Eintritt NACH openModal() (das Ziel-Rect existiert erst, wenn der Knoten im
+    // DOM steht). Zwei WAAPI-Animationen im selben Tick: der Container waechst per flipIn(),
+    // der Inhalt blendet erst ab ~38% ein - der wachsende Kasten liest sich zuerst als Karte.
+    function playEnter(node) {
+      if (!flipFrom) return;
+      const toRect = node.getBoundingClientRect();
+      const anim = flipIn(node, flipFrom, toRect);
+      if (!anim) return;
+      const dur = parseFloat(MOTION.slow) || 300;
+      Array.prototype.forEach.call(node.children, k => k.animate(
+        [{ opacity: 0 }, { opacity: 0, offset: .38 }, { opacity: 1 }],
+        { duration: dur, easing: MOTION.ease }
+      ));
+      const overlayEl = node.parentElement;
+      if (overlayEl) overlayEl.animate([{ opacity: 0 }, { opacity: 1 }], { duration: parseFloat(MOTION.base) || 200, easing: MOTION.ease });
+    }
+    // Schliesst mit umgekehrter FLIP-Bewegung; Ziel wird HIER neu gesucht (findMealOrigin,
+    // nie den beim Oeffnen gemessenen Knoten). Fehlt das Ziel (Karte ausserhalb des
+    // Sichtfelds, gefiltert, gescrollt): schlichtes Ausblenden mit MOTION.fast statt FLIP ins
+    // Leere. `finish` erledigt die eigentliche Aufraeumarbeit (closeModal()).
+    function closeWithFlip(node, closeId, finish) {
+      const target = findMealOrigin(closeId);
+      const overlayEl = node.parentElement;
+      if (!target) {
+        const a = node.animate([{ opacity: 1 }, { opacity: 0 }], { duration: parseFloat(MOTION.fast) || 160, easing: MOTION.ease });
+        if (overlayEl) overlayEl.animate([{ opacity: 1 }, { opacity: 0 }], { duration: parseFloat(MOTION.fast) || 160, easing: MOTION.ease });
+        a.finished.then(finish, finish);
+        return;
+      }
+      const toRect = node.getBoundingClientRect();
+      const fromRect = target.getBoundingClientRect();
+      const anim = flipOut(node, fromRect, toRect);
+      if (!anim) { finish(); return; }
+      if (overlayEl) overlayEl.animate([{ opacity: 1 }, { opacity: 0 }], { duration: parseFloat(MOTION.base) || 200, easing: MOTION.ease });
+      anim.finished.then(finish, finish);
+    }
+    // Fokus zurueckgeben: die urspruenglich geoeffnete Karte kann durch einen Repaint
+    // (Umbenennen, Favorit, Foto) ersetzt worden sein - lastFocused zeigt dann auf einen
+    // entfernten Knoten, closeModal()s Standard-Restore (document.contains) greift ins Leere.
+    // Deshalb die aktuelle Karte/den Slot NEU suchen und als Fokusziel VOR dem eigentlichen
+    // closeModal() setzen - dessen vorhandene Restore-Logik uebernimmt den Rest. Rueckfall
+    // auf das Suchfeld, wenn auch das nicht existiert (Ansicht ueber dem Wochenplan).
+    function restoreFocusTarget(closeId) {
+      const origin = findMealOrigin(closeId);
+      const btn = origin && origin.matches(".rcard") ? origin.querySelector(".rcard-open") : origin;
+      if (btn) { lastFocused = btn; return; }
+      const s = view.querySelector("#r-search");
+      if (s) lastFocused = s;
+    }
+
+    // ---------- Nur-Lese-Zweig: keine Eingabefelder, kein Autosave, kein Loeschen ----------
+    // Zwei Wege hierher: Rolle "view" (kein canEditNow, kein Bearbeiten-Knopf) und jedes
+    // bestehende Meal beim ersten Oeffnen ohne startInEdit, egal ob Wochenplan-Slot oder
+    // Meal-Karte (canEdit()=true, MIT Bearbeiten-Knopf - Nachtrag Abnahme Phase 2).
+    // openSheetId/openSheetRemovedCb bleiben hier unangetastet: es wird lokal nichts
+    // editiert, ein Remote-Update darf ganz normal durchschlagen.
+    if (readOnly) {
+      const r = getRecipe(id);
+      if (!r) return;
+      const cls = CAT_CLASS[r.category] || "cat-x";
+      const statsInner = mealStatsHtml(r);
+      const statsHtml = statsInner
+        ? `<div class="dsec"><h4>Makros gesamt</h4>${statsInner}</div>`
+        : `<p class="ms-empty-ings">Noch keine Nährwerte</p>`;
+      const ingHtml = (r.ingredients && r.ingredients.length)
+        ? `<div class="ing-list">${r.ingredients.map(i => roIngRowHtml(i)).join("")}</div>`
+        : `<p class="ms-empty-ings">Noch keine Zutaten</p>`;
+      const node = el(`<div class="modal detail mealsheet${flipFrom ? " flip-anim" : ""}" role="dialog" aria-modal="true" aria-label="${esc(r.name)}">
+        <div class="modal-head">
+          ${canEditNow ? `<button type="button" class="ms-photobtn ms-edit-btn" data-edit>Bearbeiten</button>` : ""}
+          <button type="button" class="btn ghost icon-gh on-photo" data-share title="Meal teilen" aria-label="Meal teilen">${TOOL_ICONS.share}</button>
+          <button type="button" class="btn ghost icon-gh on-photo" data-close aria-label="Schließen">✕</button>
+        </div>
+        <div class="ms-photo has-photo"><img src="${photoFor(r)}" alt="${esc(r.name)}"></div>
+        <div class="modal-body">
+          <div class="ms-head"><h3 class="ms-title">${esc(r.name)}</h3><span class="chip ${cls}">${esc(r.category || "Gericht")}</span></div>
+          ${statsHtml}
+          <div class="ms-ings"><h4>Zutaten</h4>${ingHtml}</div>
+          ${r.steps ? `<div class="dsec"><h4>Zubereitung</h4><div class="steps">${esc(r.steps)}</div></div>` : ""}
+        </div>
+        <div class="modal-foot"><button class="btn primary" data-close>Schließen</button></div>
+      </div>`);
+      function finishClose() { restoreFocusTarget(id); closeModal(); }
+      modalCloseHook = () => {
+        modalCloseHook = null;
+        if (useFlipExit) closeWithFlip(node, id, finishClose); else finishClose();
+      };
+      node.querySelectorAll("[data-close]").forEach(b => b.addEventListener("click", closeModal));
+      node.querySelector("[data-share]").addEventListener("click", () => { closeModal(); shareRecipeNow(r.id); });
+      // "Bearbeiten" (nur bei canEditNow gerendert): tauscht den Knoten OHNE FLIP gegen den
+      // Bearbeiten-Zweig aus (originEl bewusst null) - die Ansicht ist schon offen und an
+      // ihrem Platz, siehe plans/MealAnsicht.MD Nachtrag. openModal() im rekursiven Aufruf
+      // ersetzt modalRoot.innerHTML vollstaendig, ein vorheriges closeModal() ist unnoetig.
+      const editBtn = node.querySelector("[data-edit]");
+      if (editBtn) editBtn.addEventListener("click", () => {
+        modalCloseHook = null;
+        openMealSheet(id, null, null, true);
+      });
+      openModal(node);
+      playEnter(node);
+      return;
+    }
+
+    // ---------- Bearbeiten-Zweig ----------
+    let recId = id || null;
+    let draftPushed = false; // wird true, sobald ein neuer Entwurf erstmals einen Namen traegt und in state.recipes einzieht
+    const pre = (isNew && prefill) ? prefill : null;
+    const draft = isNew ? {
+      id: uid(), name: (pre && pre.name) || "", category: (pre && pre.category) || "",
+      nutrition: null, ingredients: [], steps: "",
+    } : null;
+    // Einzige erlaubte Zugriffsart auf das Meal-Objekt (siehe plans/MealAnsicht.MD,
+    // "Referenz nie halten"): onRecipesRemote() ERSETZT das Objekt bei jedem Remote-Update,
+    // eine gehaltene Referenz wuerde dann in ein abgehaengtes Waisenobjekt schreiben.
+    const rec = () => (recId ? getRecipe(recId) : draft);
+    if (!isNew && !rec()) return; // Meal existiert nicht (mehr)
+    if (recId) openSheetId = recId;
+
+    const initial = rec();
+    const opts = CATEGORIES.map(c => `<option value="${c}" ${initial.category === c ? "selected" : ""}>${c}</option>`).join("");
+    const isOwnPhoto = !!initial.image;
+    const node = el(`<div class="modal detail mealsheet${flipFrom ? " flip-anim" : ""}" role="dialog" aria-modal="true" aria-label="${isNew ? "Neues Meal" : "Meal bearbeiten"}">
+      <div class="modal-head">
+        <button type="button" class="btn ghost icon-gh on-photo" data-share title="Meal teilen" aria-label="Meal teilen">${TOOL_ICONS.share}</button>
+        <button type="button" class="btn ghost icon-gh on-photo" data-close aria-label="Schließen">✕</button>
+      </div>
+      <div class="ms-photo has-photo">
+        <img src="${photoFor(initial)}" alt="${esc(initial.name || "")}">
+        <div class="ms-photobar">
+          <button type="button" class="ms-photobtn" data-photo-remove${isOwnPhoto ? "" : " hidden"}>Foto entfernen</button>
+          <button type="button" class="ms-photobtn" data-photo>${isOwnPhoto ? "Foto ändern" : "Foto wählen"}</button>
+        </div>
+      </div>
       <div class="modal-body">
-        <div class="field">
-          <label for="f-name">Name des Meals</label>
-          <input type="text" id="f-name" placeholder="z. B. Ofengemüse mit Feta" value="${r ? esc(r.name) : (pre ? esc(pre.name || "") : "")}" maxlength="80">
+        <div class="ms-head">
+          <input type="text" id="f-name" class="ms-name" placeholder="Name des Meals" value="${esc(initial.name || "")}" maxlength="80">
+          <select id="f-cat" class="ms-cat">${opts}</select>
         </div>
-        <div class="field"><label for="f-cat">Kategorie</label><select id="f-cat">${opts}</select></div>
-        <div class="field">
-          <label>Zutaten <span class="hint">– Namen tippen und aus der Vorschlagsliste wählen; bei Markenprodukten den Barcode scannen</span></label>
-          <div id="f-ings"></div>
-          <button type="button" class="btn sm" id="f-ing-add" hidden>+ Weitere Zutat</button>
-          <input type="file" id="f-ing-barcode" accept="image/*" capture="environment" class="visually-hidden">
-        </div>
-        <!-- Steht bewusst UNTER den Zutaten: es ist deren Ergebnis, nicht noch eine
-             Eingabe. Der Rahmen grenzt die Summe von den gleich aussehenden
-             Zutatenzeilen ab. -->
-        <div class="field nut-total">
-          <label>Makros gesamt <span class="hint" id="f-nut-hint">– mit Zutaten-Nährwerten automatisch summiert</span> <button type="button" id="f-nut-reset" class="btn ghost sm" hidden>Automatisch übernehmen</button></label>
-          <div class="row2" style="gap:12px">
-            <div class="row2" style="gap:12px">
-              <div class="field"><label for="f-kcal"><span class="ing-lbl hint t-kcal">Kcal</span></label><input type="number" id="f-kcal" min="0" max="99999" step="1" value="${r && r.nutrition && r.nutrition.kcal != null ? esc(r.nutrition.kcal) : ""}" placeholder="520"></div>
-              <div class="field"><label for="f-carbs"><span class="ing-lbl hint t-carb">KH</span></label><input type="number" id="f-carbs" min="0" max="9999" step="0.1" value="${r && r.nutrition && r.nutrition.carbs != null ? esc(r.nutrition.carbs) : ""}" placeholder="60"></div>
-            </div>
-            <div class="row2" style="gap:12px">
-              <div class="field"><label for="f-protein"><span class="ing-lbl hint t-prot">P</span></label><input type="number" id="f-protein" min="0" max="9999" step="0.1" value="${r && r.nutrition && r.nutrition.protein != null ? esc(r.nutrition.protein) : ""}" placeholder="30"></div>
-              <div class="field"><label for="f-fat"><span class="ing-lbl hint t-fat">F</span></label><input type="number" id="f-fat" min="0" max="9999" step="0.1" value="${r && r.nutrition && r.nutrition.fat != null ? esc(r.nutrition.fat) : ""}" placeholder="18"></div>
-            </div>
+        <!-- Makro-Kacheln (Nachtrag Abnahme Phase 2, 08.08.2026): dieselbe .nutfacts-Optik
+             wie im Nur-Lese-Zweig (mealStatsHtml) und auf der Karte, nur mit Eingabefeldern
+             statt Text - kein eigener Ruhezustand mehr, siehe openMealSheet()-Kommentar. -->
+        <div class="ms-nut" id="ms-nut">
+          <div class="nut-total"><h4>Makros gesamt <span class="hint" id="f-nut-hint" hidden></span> <button type="button" id="f-nut-reset" class="btn ghost sm" hidden>Automatisch übernehmen</button></h4></div>
+          <div class="nutfacts nutfacts-edit">
+            <div class="nf t-kcal"><div class="v"><input type="number" inputmode="numeric" id="f-kcal" min="0" max="99999" step="1" value="${initial.nutrition && initial.nutrition.kcal != null ? esc(initial.nutrition.kcal) : ""}" placeholder="520"><span class="u">kcal</span></div><label class="k" for="f-kcal">Kcal</label></div>
+            <div class="nf t-carb"><div class="v"><input type="number" inputmode="decimal" id="f-carbs" min="0" max="9999" step="0.1" value="${initial.nutrition && initial.nutrition.carbs != null ? esc(initial.nutrition.carbs) : ""}" placeholder="60"><span class="u">g</span></div><label class="k" for="f-carbs">KH</label></div>
+            <div class="nf t-prot"><div class="v"><input type="number" inputmode="decimal" id="f-protein" min="0" max="9999" step="0.1" value="${initial.nutrition && initial.nutrition.protein != null ? esc(initial.nutrition.protein) : ""}" placeholder="30"><span class="u">g</span></div><label class="k" for="f-protein">P</label></div>
+            <div class="nf t-fat"><div class="v"><input type="number" inputmode="decimal" id="f-fat" min="0" max="9999" step="0.1" value="${initial.nutrition && initial.nutrition.fat != null ? esc(initial.nutrition.fat) : ""}" placeholder="18"><span class="u">g</span></div><label class="k" for="f-fat">F</label></div>
           </div>
+        </div>
+        <div class="ms-ings">
+          <h4>Zutaten</h4>
+          <div id="f-ings"></div>
+          <p class="ms-empty-ings" id="ms-ing-empty" hidden>Noch keine Zutaten</p>
+          <!-- #f-ing-add ist der alte, versteckte "+ Weitere Zutat"-Knopf: updateMacroSum()
+               (unveraendert uebernommen) schaltet weiterhin dessen hidden-Attribut, das
+               Element bleibt aber dauerhaft unsichtbar (siehe CSS) - #ms-ing-add ist der
+               sichtbare Einstieg der neuen Ansicht. -->
+          <button type="button" class="btn sm" id="f-ing-add" hidden>+ Weitere Zutat</button>
+          <button type="button" class="btn ghost ms-ing-add" id="ms-ing-add">+ Zutat hinzufügen</button>
+          <input type="file" id="f-ing-barcode" accept="image/*" capture="environment" class="visually-hidden">
         </div>
         <div class="field">
           <label for="f-steps">Zubereitung <span class="hint">– optional</span></label>
-          <textarea id="f-steps" placeholder="Beschreibe die Schritte …">${r && r.steps ? esc(r.steps) : ""}</textarea>
+          <textarea id="f-steps" placeholder="Beschreibe die Schritte …">${esc(initial.steps || "")}</textarea>
         </div>
       </div>
+      <!-- Fusszeile vereinheitlicht (Nachtrag Abnahme Phase 1): beide Knoepfe in einer
+           Zeile, gleiche Bauform (Hoehe/Radius/Schrift), nur die Gewichtung unterscheidet
+           sich - ms-danger bleibt ghost mit --accent-Text, Fertig bleibt primary. -->
       <div class="modal-foot">
-        <button class="btn ghost" data-close>Abbrechen</button>
-        <button class="btn primary" data-save>${r ? "Speichern" : "Meal anlegen"}</button>
+        <button type="button" class="btn danger ms-danger" data-del>${isNew ? "Verwerfen" : "Meal löschen"}</button>
+        <button class="btn primary" data-close>Fertig</button>
       </div>
     </div>`);
 
+    // --- Autosave: input mutiert nur lokal, change/blur committen, 1500ms Leerlauf-Timer als Netz ---
+    let idleTimer = null;
+    function mutateLocal() {
+      const target = rec();
+      if (!target) return;
+      target.name = node.querySelector("#f-name").value;
+      target.category = node.querySelector("#f-cat").value;
+      target.ingredients = collectIngs();
+      const kcal = nutParse(node.querySelector("#f-kcal").value);
+      const carbs = nutParse(node.querySelector("#f-carbs").value);
+      const protein = nutParse(node.querySelector("#f-protein").value);
+      const fat = nutParse(node.querySelector("#f-fat").value);
+      const hasAnyNut = kcal != null || carbs != null || protein != null || fat != null;
+      target.nutrition = hasAnyNut ? { kcal, carbs, protein, fat } : null;
+      target.steps = node.querySelector("#f-steps").value;
+    }
+    function commitNow() {
+      clearTimeout(idleTimer);
+      mutateLocal();
+      const name = node.querySelector("#f-name").value.trim();
+      if (!name) return; // kein Speichern ohne Namen - siehe attemptClose() fuer die Sperre beim Schliessen
+      if (isNew && !draftPushed) {
+        draftPushed = true;
+        draft.name = name;
+        if (syncGid) draft.by = syncUid;
+        if (pre && pre.barcode) draft.barcode = pre.barcode;
+        state.recipes.push(draft);
+        recId = draft.id;
+        openSheetId = recId;
+        openSheetRemovedCb = handleRemoteRemoval; // ab jetzt existiert ein echtes Dokument, das ein anderes Geraet loeschen koennte
+        if (delBtn) delBtn.textContent = "Meal löschen";
+        if (pre && pre.assignTo) {
+          const { day, meal } = pre.assignTo;
+          state.plan[day][meal].push(slotIsShared(day, meal) ? draft.id : makeEntry(draft.id, [syncUid]));
+          pre.assignTo = null;
+          toast("Meal angelegt und eingeplant");
+        } else {
+          toast("Meal angelegt");
+        }
+      }
+      save();
+      // Steht die Ansicht ueber der Meals-Liste, dort neu zeichnen (Teil-Repaint statt
+      // render(), sonst faellt der Eingabefokus aus dem gerade offenen Feld). Steht sie ueber
+      // dem Wochenplan, gibt es #r-groups nicht - dort genuegt render() NACH dem Schliessen
+      // (kein Eingabefokus mehr im Weg), siehe attemptClose()/[data-close].
+      if (view.querySelector("#r-groups")) paintRecipeGroups();
+    }
+    function scheduleCommit() {
+      mutateLocal();
+      clearTimeout(idleTimer);
+      idleTimer = setTimeout(commitNow, 1500);
+    }
+    // Delegation auf node statt pro Feld: "change"/"focusout" bubblen (anders als "blur")
+    // und treffen dadurch automatisch auch jede spaeter per addIngRow() erzeugte
+    // Zutatenzeile, ohne addIngRow() selbst anzufassen.
+    node.addEventListener("input", e => { if (e.target.matches("input, textarea, select")) scheduleCommit(); });
+    node.addEventListener("change", e => { if (e.target.matches("input, textarea, select")) commitNow(); });
+    node.addEventListener("focusout", e => { if (e.target.matches("input, textarea, select")) commitNow(); });
+
+    // --- Schliessen: ueber closeModal() -> modalCloseHook (Escape/Backdrop/✕/Fertig laufen
+    // alle darueber, siehe closeModal()) ---
+    function draftHasContent() {
+      if (node.querySelector("#f-steps").value.trim()) return true;
+      if (collectIngs().length) return true;
+      return ["f-kcal", "f-carbs", "f-protein", "f-fat"].some(fid => node.querySelector("#" + fid).value.trim());
+    }
+    function attemptClose() {
+      if (openIngRowEl) closeIngRow(openIngRowEl); // offene Zutatenzeile zuerst zurueckschreiben
+      const name = node.querySelector("#f-name").value.trim();
+      if (!name) {
+        if (isNew && !draftPushed && !draftHasContent()) {
+          // leerer Entwurf: still verwerfen, nie in state.recipes gestanden
+        } else {
+          const nameInp = node.querySelector("#f-name");
+          nameInp.focus(); nameInp.style.borderColor = "var(--danger)";
+          toast("Bitte gib einen Namen ein");
+          return; // Schliessen bleibt aus
+        }
+      } else {
+        commitNow();
+      }
+      openSheetId = null;
+      openSheetRemovedCb = null;
+      modalCloseHook = null;
+      // FLIP-Exit (Schritt 4): nur, wenn beim Oeffnen tatsaechlich geflippt wurde (useFlipExit).
+      // recId statt id: ein frisch gespeicherter Entwurf (draftPushed) hat inzwischen eine
+      // echte ID, unter der die Karte im Raster steht. Fokus geht erst NACH der Animation
+      // zurueck (finishClose), sonst haette ein Screenreader schon "angekommen" gemeldet,
+      // waehrend die Karte optisch noch waechst/schrumpft.
+      function finishClose() { restoreFocusTarget(recId); closeModal(); }
+      if (useFlipExit) closeWithFlip(node, recId, finishClose); else finishClose();
+    }
+    modalCloseHook = attemptClose;
     node.querySelectorAll("[data-close]").forEach(b => b.addEventListener("click", closeModal));
 
+    // --- Gegenprobe: ein ANDERES Geraet loescht genau dieses Meal, waehrend die Ansicht
+    // hier offen ist (siehe onRecipesRemote(), "removed"-Zweig). Keine stille
+    // Wiederauferstehung gegen die fremde Loeschung - die Ansicht schliesst sich selbst,
+    // mit einem Toast statt eines Autosaves ins Leere. modalCloseHook wird VOR closeModal()
+    // geleert, sonst riefe closeModal() erneut attemptClose() (das versucht zu speichern,
+    // obwohl rec() schon undefined ist). Kein FLIP-Exit: das Ursprungselement ist gerade
+    // aus dem Raster verschwunden.
+    function handleRemoteRemoval() {
+      modalCloseHook = null;
+      closeModal();
+      toast("Dieses Meal wurde auf einem anderen Gerät gelöscht");
+    }
+    if (recId) openSheetRemovedCb = handleRemoteRemoval;
+
+    // --- Teilen / Loeschen: Ansicht zuerst schliessen, dann die eigentliche Aktion (siehe
+    // plans/MealAnsicht.MD und TROUBLESHOOTING #40 - kein await vor navigator.share) ---
+    node.querySelector("[data-share]").addEventListener("click", () => {
+      if (!recId) { toast("Bitte zuerst einen Namen eingeben"); return; }
+      const shareId = recId;
+      openSheetId = null; openSheetRemovedCb = null; modalCloseHook = null; closeModal();
+      shareRecipeNow(shareId);
+    });
+    const delBtn = node.querySelector("[data-del]");
+    delBtn.addEventListener("click", () => {
+      const delId = recId;
+      openSheetId = null; openSheetRemovedCb = null; modalCloseHook = null; closeModal();
+      if (delId) deleteRecipe(delId); // Entwurf ohne recId war nie in state.recipes - nichts zu loeschen
+    });
+
+    // --- Foto: waehlen/aendern/entfernen, aktualisiert nur die offene Ansicht (photoDoneCb) ---
+    const photoImg = node.querySelector(".ms-photo img");
+    const photoBtn = node.querySelector("[data-photo]");
+    const photoRemoveBtn = node.querySelector("[data-photo-remove]");
+    photoBtn.addEventListener("click", () => {
+      photoDoneCb = dataUrl => {
+        const target = rec();
+        if (!target) return;
+        target.image = dataUrl;
+        commitNow();
+        photoImg.src = photoFor(target);
+        photoBtn.textContent = "Foto ändern";
+        photoRemoveBtn.hidden = false;
+        toast("Foto übernommen");
+      };
+      photoInput.click();
+    });
+    photoRemoveBtn.addEventListener("click", () => {
+      const target = rec();
+      if (!target) return;
+      target.image = null;
+      commitNow();
+      photoImg.src = photoFor(target);
+      photoBtn.textContent = "Foto wählen";
+      photoRemoveBtn.hidden = true;
+    });
+
     // --- Zutaten-Zeilen (Name, Menge, Naehrwerte pro 100 g, Barcode-Scan) ---
+    // addIngRow/rowData/collectIngs/paintNut/updateMacroSum/syncUnit/convertNutValues/
+    // applyBarcode und die Autocomplete sind UNVERAENDERT aus dem fruehren openRecipeForm
+    // uebernommen (siehe plans/MealAnsicht.MD) - sie lesen weiterhin ueber .value aus dem
+    // DOM, unabhaengig davon, ob die Zeile gerade sichtbar ist. Neu ist ausschliesslich:
+    // die zusaetzliche .ing-view-Anzeigezeile im Markup, paintIngView()/openIngEdit()/
+    // closeIngRow() fuer den Ruhezustand/Bearbeiten-Wechsel, und je eine zusaetzliche
+    // Zeile an drei Stellen (.ing-del-Klick, "+ Zutat hinzufuegen", Zeilen-Fokusverlust).
     const ingsWrap = node.querySelector("#f-ings");
     const barcodeInput = node.querySelector("#f-ing-barcode");
     let barcodeRow = null;
     let acSeq = 0; // laufende Nummer fuer die Listbox-IDs (aria-activedescendant)
+    let openIngRowEl = null; // immer nur eine Zeile gleichzeitig im Bearbeiten-Zustand
     function nutVal(v) { return v != null ? esc(v) : ""; }
+    function updateEmptyIngNote() {
+      node.querySelector("#ms-ing-empty").hidden = ingsWrap.children.length > 0;
+    }
+    // Zeichnet die Ruhezustand-Anzeige einer Zeile aus rowData() - denselben Werten, die
+    // auch collectIngs() sieht. qtyLabel()/ingContrib() sind die vorhandenen Helfer (4800/
+    // 4792), hier bewusst wiederverwendet statt neu gebaut.
+    function paintIngView(row) {
+      const d = rowData(row);
+      const o = (d && typeof d === "object") ? d : (d ? { name: d } : null);
+      if (!o) return;
+      const v = row.querySelector(".ing-view");
+      v.querySelector(".ing-view-qty").textContent = nutNum(o.grams) ? qtyLabel(nutNum(o.grams), ingUnit(o)) : "";
+      v.querySelector(".ing-view-name").textContent = o.name;
+      const kcalEl = v.querySelector(".ing-view-kcal"), macEl = v.querySelector(".ing-view-macros");
+      if (ingHasNut(o) && nutNum(o.grams)) {
+        const c = ingContrib(o);
+        kcalEl.textContent = nfmt(c.kcal) + " kcal";
+        macEl.innerHTML = macroLineHtml(c);
+        kcalEl.hidden = false; macEl.hidden = false;
+      } else {
+        kcalEl.hidden = true; macEl.hidden = true;
+      }
+    }
+    // Schreibt eine offene Zeile in den Ruhezustand zurueck. Ohne Namen war es eine leere,
+    // gerade erst per "+ Zutat hinzufuegen" angelegte Zeile - die verschwindet wieder,
+    // statt als leere Karte stehen zu bleiben.
+    function closeIngRow(row) {
+      if (!row.classList.contains("editing")) return;
+      if (!rowData(row)) {
+        row.remove();
+        if (openIngRowEl === row) openIngRowEl = null;
+        updateEmptyIngNote();
+        commitNow();
+        return;
+      }
+      row.classList.remove("editing");
+      paintIngView(row);
+      if (openIngRowEl === row) openIngRowEl = null;
+    }
+    function openIngEdit(row, focusName) {
+      if (openIngRowEl && openIngRowEl !== row) closeIngRow(openIngRowEl);
+      row.classList.add("editing");
+      openIngRowEl = row;
+      if (focusName) row.querySelector(".ing-name").focus();
+    }
     function addIngRow(o) {
       o = o || {};
       if (o.unit == null && node.querySelector("#f-cat").value === "Getränk") o.unit = "ml";
       const u = ingUnit(o);
-      const row = el(`<div class="ing-row">
+      // tabindex="-1": macht die Zeile programmatisch fokussierbar. Gebraucht beim Aufklappen
+      // per Klick - siehe den Klick-Handler auf .ing-view-name weiter unten. Nicht entfernen.
+      const row = el(`<div class="ing-row" tabindex="-1">
+        <div class="ing-view">
+          <span class="ing-view-qty"></span>
+          <button type="button" class="ing-view-name"></button>
+          <span class="ing-view-kcal" hidden></span>
+          <span class="ing-view-macros" hidden></span>
+          <button type="button" class="ing-view-del" title="Zutat entfernen" aria-label="Zutat entfernen">✕</button>
+        </div>
         <div class="ing-top">
           <span class="ing-nrow">
             <span class="ing-nwrap">
@@ -7027,8 +7687,44 @@
             <label class="t-fat"><span class="ing-lbl">F</span><input type="number" class="ing-fat" min="0" max="999" step="0.1" value="${nutVal(o.fat)}"></label>
           </div>
         </details>
+        <div class="ing-done-row">
+          <button type="button" class="btn ghost sm ing-done">Fertig</button>
+        </div>
       </div>`);
-      row.querySelector(".ing-del").addEventListener("click", () => { row.remove(); updateMacroSum(); });
+      // Stretched-Link-Muster (Nachtrag Abnahme Phase 1, wie .rcard-open in Schritt 3):
+      // .ing-view-name oeffnet die Zeile, .ing-view selbst hat keinen eigenen Klick-Handler
+      // mehr - der Stift entfaellt, der Name uebernimmt seine Aufgabe.
+      // Der Fokus MUSS hier in der Zeile landen, sonst klappt sie sofort wieder zu:
+      // Der geklickte Knopf liegt in .ing-view, und openIngEdit() blendet .ing-view aus
+      // (.ing-row.editing .ing-view { display:none }). Ein ausgeblendetes Element verliert
+      // den Fokus an <body> -> der focusout-Handler unten sieht activeElement ausserhalb der
+      // Zeile und ruft closeIngRow(). Oeffnen und Schliessen passierten im selben Tick.
+      // Bewusst die Zeile selbst statt .ing-name: auf dem Handy wuerde ein fokussiertes
+      // Textfeld die Tastatur aufziehen und die Naehrwertfelder verdecken, obwohl der Nutzer
+      // vielleicht nur die Menge aendern will.
+      row.querySelector(".ing-view-name").addEventListener("click", () => {
+        openIngEdit(row);
+        row.focus({ preventScroll: true });
+      });
+      // Sichtbarer Schliessweg (Nachtrag Abnahme Phase 1) neben den drei unsichtbaren
+      // (Enter, Fokusverlust, andere Zeile oeffnen) - closeIngRow() schreibt die Zeile in
+      // den Ruhezustand zurueck, siehe dort.
+      row.querySelector(".ing-done").addEventListener("click", () => closeIngRow(row));
+      // Entfernen gibt es an zwei Stellen: im Formular (.ing-del) und direkt in der
+      // Anzeigezeile (.ing-view-del) - dieselbe Funktion, damit beide Wege nicht
+      // auseinanderlaufen koennen.
+      function removeRow() {
+        row.remove();
+        updateMacroSum();
+        updateEmptyIngNote();
+        if (openIngRowEl === row) openIngRowEl = null;
+        commitNow();
+      }
+      row.querySelector(".ing-del").addEventListener("click", removeRow);
+      // .ing-view-del ist ein Geschwister von .ing-view-name, nicht dessen Kind (Nachtrag
+      // Abnahme Phase 1) - ein Klick bubbelt also nicht mehr in dessen Oeffnen-Handler,
+      // stopPropagation() ist damit nicht mehr noetig.
+      row.querySelector(".ing-view-del").addEventListener("click", removeRow);
       row.querySelector(".ing-barcode").addEventListener("click", () => { startBarcodeFlow(row); });
       // Kurzfassung fuer die zugeklappte Zeile. Die vier Felder bleiben im DOM und
       // werden nur ausgeblendet - rowData() liest sie unveraendert ueber .value.
@@ -7040,13 +7736,13 @@
         const k = g(".ing-kcal"), kh = g(".ing-carbs"), p = g(".ing-prot"), fa = g(".ing-fat");
         const t = [];
         if (k != null) t.push(`<span class="ing-lbl t-kcal">${nfmt(k)} kcal</span>`);
-        if (kh != null) t.push(`<span class="ing-lbl t-carb">${nz(kh)} KH</span>`);
-        if (p != null) t.push(`<span class="ing-lbl t-prot">${nz(p)} P</span>`);
-        if (fa != null) t.push(`<span class="ing-lbl t-fat">${nz(fa)} F</span>`);
+        const macroLine = macroLineHtml({ carbs: kh, protein: p, fat: fa }, nz);
+        if (macroLine) t.push(`<span class="ing-brief-macros">${macroLine}</span>`);
         // "–" statt eines Aufforderungstexts: Der Pfeil rechts zeigt bereits, dass sich
         // die Zeile oeffnen laesst, und "eintragen" war nicht zu unterscheiden von einem
         // Zustand ("leer"). Gleiches Zeichen wie beim leeren Auswahlrad im Onboarding.
-        // k/kh/p/fa sind Zahlen aus nfmt()/nz() (kein Nutzertext) - innerHTML ist hier sicher.
+        // k/kh/p/fa sind Zahlen aus nfmt()/nz()/macroLineHtml() (kein Nutzertext) -
+        // innerHTML ist hier sicher.
         row.querySelector(".ing-brief").innerHTML = t.length ? t.join("") : "–";
       }
       row.querySelectorAll("input").forEach(inp => inp.addEventListener("input", () => { updateMacroSum(); paintNut(); }));
@@ -7174,7 +7870,22 @@
         if (li) acPick(Array.prototype.indexOf.call(acBox.children, li));
       });
 
+      // Zeile verlassen (Ruhezustand-Wechsel, neu): Enter schliesst, ausser eine offene
+      // Vorschlagsliste hat gerade Vorrang (siehe acPick() oben). Fokusverlust aus der
+      // ganzen Zeile heraus (nicht nur aus einem Feld ins naechste) schliesst ebenfalls.
+      row.addEventListener("keydown", e => {
+        if (e.key !== "Enter") return;
+        if (e.target.classList.contains("ing-name") && acOpen) return;
+        e.preventDefault();
+        closeIngRow(row);
+      });
+      row.addEventListener("focusout", () => {
+        if (!row.classList.contains("editing")) return;
+        setTimeout(() => { if (!row.contains(document.activeElement)) closeIngRow(row); }, 0);
+      });
+
       ingsWrap.appendChild(row);
+      updateEmptyIngNote();
       return row;
     }
     function rowData(row) {
@@ -7214,25 +7925,40 @@
         node.querySelector("#f-protein").value = Math.round(s.protein * 10) / 10;
         node.querySelector("#f-fat").value = Math.round(s.fat * 10) / 10;
       }
+      // Erklaertext gestrichen (CLAUDE.md §7) - "Summe aus Zutaten" und "automatisch
+      // summiert" sagen nur, was die Zahlen ohnehin zeigen. "manuell angepasst" bleibt:
+      // das begruendet, warum daneben "Automatisch uebernehmen" erscheint.
       const hint = node.querySelector("#f-nut-hint");
       const resetBtn = node.querySelector("#f-nut-reset");
-      if (auto && macroOverridden) { hint.textContent = "– manuell angepasst"; resetBtn.hidden = false; }
-      else if (auto) { hint.textContent = "– Summe aus deinen Zutaten (automatisch)"; resetBtn.hidden = true; }
-      else { hint.textContent = "– mit Zutaten-Nährwerten automatisch summiert"; resetBtn.hidden = true; }
+      const overridden = auto && macroOverridden;
+      hint.textContent = overridden ? "– manuell angepasst" : "";
+      hint.hidden = !overridden;
+      resetBtn.hidden = !overridden;
       // "+ Weitere Zutat" erst zeigen, wenn die erste Zutat einen Namen hat - sonst wirkt
-      // das Formular ueberladen, bevor ueberhaupt etwas eingetragen wurde.
+      // das Formular ueberladen, bevor ueberhaupt etwas eingetragen wurde. (Der Knopf
+      // selbst bleibt dauerhaft unsichtbar, siehe Markup-Kommentar bei #f-ing-add.)
       node.querySelector("#f-ing-add").hidden = ![...ingsWrap.querySelectorAll(".ing-name")].some(inp => inp.value.trim());
     }
     ["f-kcal", "f-carbs", "f-protein", "f-fat"].forEach(fid => {
       node.querySelector("#" + fid).addEventListener("input", () => { macroOverridden = true; updateMacroSum(); });
     });
-    node.querySelector("#f-nut-reset").addEventListener("click", () => { macroOverridden = false; updateMacroSum(); });
-    // Zutaten des bestehenden Meals, sonst die Vorbefuellung aus dem Barcode-Schnellzugriff
-    // (Naehrwerte je 100 g ohne Menge), sonst eine leere Zeile.
-    const preIngs = pre && pre.ingredients && pre.ingredients.length ? pre.ingredients : null;
-    (r && r.ingredients && r.ingredients.length ? r.ingredients : (preIngs || [null])).forEach(i => addIngRow(i == null ? null : ingObj(i)));
+    node.querySelector("#f-nut-reset").addEventListener("click", () => { macroOverridden = false; updateMacroSum(); commitNow(); });
+    // Zutaten des bestehenden Meals (Ruhezustand), sonst die Vorbefuellung aus dem
+    // Barcode-Schnellzugriff (Naehrwerte je 100 g ohne Menge - startet im
+    // Bearbeiten-Zustand, weil die Menge noch fehlt). Ohne Zutaten bleibt die Liste leer,
+    // "Noch keine Zutaten" steht dann ueber dem Knopf (updateEmptyIngNote).
+    const startIngs = (initial.ingredients && initial.ingredients.length) ? initial.ingredients
+      : (isNew && pre && pre.ingredients && pre.ingredients.length ? pre.ingredients : []);
+    startIngs.forEach(i => {
+      const o = ingObj(i);
+      const row = addIngRow(o);
+      if (o.name && nutNum(o.grams)) paintIngView(row); else openIngEdit(row);
+    });
     updateMacroSum();
-    node.querySelector("#f-ing-add").addEventListener("click", () => { addIngRow().querySelector(".ing-name").focus(); });
+    node.querySelector("#ms-ing-add").addEventListener("click", () => {
+      const row = addIngRow();
+      openIngEdit(row, true);
+    });
     // Kategorie -> Getraenk gewechselt: noch unberuehrte Zutatenzeilen (kein Name, keine
     // Menge, Einheit noch auf dem "g"-Default) auf ml umstellen. Bereits befuellte Zeilen
     // bleiben unangetastet, damit keine bewusst gewaehlte Einheit ueberschrieben wird.
@@ -7327,92 +8053,31 @@
       await applyBarcode(row, code);
     });
 
-    node.querySelector("[data-save]").addEventListener("click", () => {
-      const name = node.querySelector("#f-name").value.trim();
-      if (!name) { node.querySelector("#f-name").focus(); node.querySelector("#f-name").style.borderColor = "var(--danger)"; toast("Bitte gib einen Namen ein"); return; }
-      const ingredients = collectIngs();
-      const nutrition = {
-        kcal: nutParse(node.querySelector("#f-kcal").value),
-        carbs: nutParse(node.querySelector("#f-carbs").value),
-        protein: nutParse(node.querySelector("#f-protein").value),
-        fat: nutParse(node.querySelector("#f-fat").value),
-      };
-      const hasAnyNut = nutrition.kcal != null || nutrition.carbs != null || nutrition.protein != null || nutrition.fat != null;
-      // Portionen/Minuten sind bewusst entfallen (ein Meal = eine Portion); das Meal-Bild
-      // wird nicht mehr hier, sondern ueber das "+" auf der Meal-Karte gepflegt.
-      const data = {
-        name,
-        category: node.querySelector("#f-cat").value,
-        nutrition: hasAnyNut ? nutrition : null,
-        ingredients,
-        steps: node.querySelector("#f-steps").value.trim(),
-      };
-      // Barcode-Herkunft bleibt erhalten, wenn quickAddByBarcode() unsicher war und deshalb
-      // hierher vorausgefuellt hat - der naechste Scan desselben Produkts erkennt es dann
-      // trotzdem wieder (Dedupe in quickAddByBarcode). "quick" (aus der Meals-Liste
-      // ausgeblendet) wird hier bewusst NICHT gesetzt: der Nutzer legt das Meal gerade
-      // aktiv ueber das normale Formular an.
-      if (pre && pre.barcode) data.barcode = pre.barcode;
-      // In einer Gruppe merkt sich ein neues Meal, WER es angelegt hat - nur die uid,
-      // nie den Namen (siehe recipeAuthorHtml). Beim Bearbeiten bleibt der Urheber stehen:
-      // wer ein fremdes Meal anpasst, wird dadurch nicht zum Autor.
-      if (r) { Object.assign(r, data); toast("Meal gespeichert"); }
-      else {
-        const nr = Object.assign({ id: uid() }, data, syncGid ? { by: syncUid } : null);
-        state.recipes.push(nr);
-        // Kommt die Vorbefuellung aus dem Barcode-Schnellzugriff (quickAddByBarcode() war
-        // sich nicht sicher genug fuer die stille Uebernahme), war das Ziel ein Plan-Slot -
-        // nach der Bestaetigung dort direkt einplanen, statt den Nutzer zurueck zum Picker
-        // zu schicken.
-        if (pre && pre.assignTo) {
-          const { day, meal } = pre.assignTo;
-          state.plan[day][meal].push(slotIsShared(day, meal) ? nr.id : makeEntry(nr.id, [syncUid]));
-          toast("Meal angelegt und eingeplant");
-        } else {
-          toast("Meal angelegt");
-        }
-      }
-      closeModal(); render();
-    });
-    openModal(node);
+    // Eigenes Fokusziel statt der openModal()-Standardsuche (die faende sonst den
+    // Teilen-Icon-Knopf im .modal-head, das erste fokussierbare Element im Markup).
+    openModal(node, { focus: node.querySelector("#f-name") });
+    playEnter(node);
   }
 
-  // ---------- Recipe detail ----------
-  function openRecipeDetail(id) {
-    const r = getRecipe(id); if (!r) return;
-    const cls = CAT_CLASS[r.category] || "cat-x";
-    const ing = r.ingredients && r.ingredients.length
-      ? `<ul>${r.ingredients.map(i => `<li>${esc(ingLabel(i))}${ingHasNut(i) && nutNum(ingObj(i).grams) ? ` <span style="color:var(--text-muted);font-size:12px">· ${nfmt(ingContrib(i).kcal)} kcal</span>` : ""}</li>`).join("")}</ul>`
-      : `<p style="color:var(--text-muted);margin:0">Keine Zutaten hinterlegt.</p>`;
-    const node = el(`<div class="modal detail" role="dialog" aria-modal="true" aria-label="${esc(r.name)}">
-      <div class="modal-head">
-        <div style="flex:1"><div class="kicker">Meal</div><h3 style="margin-top:2px">${esc(r.name)}</h3></div>
-        <span class="chip ${cls}">${esc(r.category || "Gericht")}</span>
-        <button class="btn ghost sm" data-close>✕</button>
-      </div>
-      <div class="modal-body">
-        <div class="dbanner has-photo"><img class="rphoto" src="${photoFor(r)}" alt="${esc(r.name)}"></div>
-        ${nutFactsHtml(r)}
-        <div class="dsec"><h4>Zutaten</h4>${ing}</div>
-        ${r.steps ? `<div class="dsec"><h4>Zubereitung</h4><div class="steps">${esc(r.steps)}</div></div>` : ""}
-      </div>
-      <div class="modal-foot">
-        ${canEdit() ? `<button class="btn" data-edit>${ACT_ICONS.edit}Bearbeiten</button>` : ""}
-        <button class="btn" data-share>${TOOL_ICONS.share}Teilen</button>
-        ${canEdit() ? `<button class="btn danger" data-del>${ACT_ICONS.del}Löschen</button>` : ""}
-        <button class="btn primary" data-close>Schließen</button>
-      </div>
-    </div>`);
-    node.querySelectorAll("[data-close]").forEach(b => b.addEventListener("click", closeModal));
-    // Beim Nur-Ansehen stehen die beiden Knoepfe gar nicht erst da (siehe oben).
-    const editBtn = node.querySelector("[data-edit]");
-    if (editBtn) editBtn.addEventListener("click", () => { closeModal(); openRecipeForm(r.id); });
-    node.querySelector("[data-share]").addEventListener("click", () => { closeModal(); shareRecipeNow(r.id); });
-    const delBtn = node.querySelector("[data-del]");
-    if (delBtn) delBtn.addEventListener("click", () => { closeModal(); deleteRecipe(r.id); });
-    openModal(node);
+  // Ruhezustand-Zeile im Nur-Lese-Zweig von openMealSheet() - liest direkt aus dem
+  // Zutaten-Objekt (kein Formular-DOM vorhanden), nutzt dieselben Helfer qtyLabel()/
+  // ingContrib() wie paintIngView() im Bearbeiten-Zweig.
+  function roIngRowHtml(i) {
+    const o = ingObj(i);
+    const qty = nutNum(o.grams) ? qtyLabel(nutNum(o.grams), ingUnit(o)) : "";
+    let kcalHtml = "", macHtml = "";
+    if (ingHasNut(o) && nutNum(o.grams)) {
+      const c = ingContrib(o);
+      kcalHtml = `<span class="ing-view-kcal">${nfmt(c.kcal)} kcal</span>`;
+      macHtml = `<span class="ing-view-macros">${macroLineHtml(c)}</span>`;
+    }
+    return `<div class="ing-view ro">
+      <span class="ing-view-qty">${esc(qty)}</span>
+      <span class="ing-view-name">${esc(o.name)}</span>
+      ${kcalHtml}
+      ${macHtml}
+    </div>`;
   }
-
   // ---------- Picker ----------
   function openPicker(day, meal) {
     const dLabel = DAYS.find(d => d.key === day).label;
@@ -7424,7 +8089,7 @@
         <div class="modal-foot"><button class="btn ghost" data-close>Abbrechen</button><button class="btn ghost" data-barcode>${BARCODE_SVG}<span>Barcode</span></button><button class="btn primary" data-go>Zu den Meals</button></div>
       </div>`);
       node.querySelectorAll("[data-close]").forEach(b => b.addEventListener("click", closeModal));
-      node.querySelector("[data-go]").addEventListener("click", () => { closeModal(); state.tab = "recipes"; render(); openRecipeForm(null); });
+      node.querySelector("[data-go]").addEventListener("click", () => { closeModal(); state.tab = "recipes"; render(); openMealSheet(null); });
       node.querySelector("[data-barcode]").addEventListener("click", () => { closeModal(); quickAddByBarcode(day, meal); });
       openModal(node);
       return;
@@ -7495,7 +8160,7 @@
   }
 
   // Live-Kamera zuerst, Foto-Ausweg als eigener, kurzlebiger File-Input - anders als in
-  // openRecipeForm() gibt es hier kein dauerhaftes Formular-DOM, an das sich ein Input
+  // openMealSheet() gibt es hier kein dauerhaftes Formular-DOM, an das sich ein Input
   // haengen liesse. Liefert den erkannten Code oder null (Abbruch/Fehler - Meldung dann
   // bereits per toast() gezeigt).
   async function scanBarcodeCode() {
@@ -7565,7 +8230,7 @@
       // den OFF nicht verlaesslich liefert, kommt vom Menschen.
       const hasNut = p.kcal != null || p.carbs != null || p.protein != null || p.fat != null;
       const ings = hasNut ? [{ name: p.name || "Produkt", kcal: p.kcal, carbs: p.carbs, protein: p.protein, fat: p.fat }] : null;
-      openRecipeForm(null, { name: p.name || "", category: "Snack", barcode: code, assignTo: { day, meal }, ingredients: ings });
+      openMealSheet(null, { name: p.name || "", category: "Snack", barcode: code, assignTo: { day, meal }, ingredients: ings });
       return;
     }
     const f = portion / 100;
@@ -8085,20 +8750,28 @@
   }
 
   // ---------- Event delegation ----------
-  // Meal-Foto ueber das "+" auf der Karte (ein globales, wiederverwendetes file-input)
+  // Meal-Foto in der grossen Ansicht (openMealSheet, "Foto waehlen"/"Foto aendern"): ein
+  // globales, wiederverwendetes file-input. Frueher gab es hier zusaetzlich einen Klickpfad
+  // ueber ein "+" direkt auf der Meal-Karte (photoTargetId, data-action="photo") - der
+  // entfiel mit .imgadd (siehe plans/MealAnsicht.MD Schritt 3, das Herz ersetzt das Plus).
+  // Datei-Drop und Strg+V auf die Karte (weiter unten) haengen NICHT an photoTargetId, sie
+  // lesen ihr Ziel direkt aus .rcard[data-rid] bzw. hoveredCardId - beide bleiben unangetastet.
   const photoInput = document.createElement("input");
   photoInput.type = "file"; photoInput.accept = "image/*"; photoInput.className = "visually-hidden";
   document.body.appendChild(photoInput);
-  let photoTargetId = null;
+  // Gesetzt von openMealSheet(): bekommt die fertige dataUrl statt dass der Handler
+  // render() ruft - die offene Ansicht aktualisiert damit nur ihr eigenes <img>, ohne den
+  // Rest der Seite (und den gerade offenen Dialog) neu aufzubauen.
+  let photoDoneCb = null;
   photoInput.addEventListener("change", () => {
     const f = photoInput.files && photoInput.files[0];
     photoInput.value = "";
-    const r = photoTargetId ? getRecipe(photoTargetId) : null;
-    photoTargetId = null;
-    if (!f || !r) return;
-    if (!canEdit()) return;   // laeuft nicht ueber die Delegation, deshalb hier eigens
+    const cb = photoDoneCb; photoDoneCb = null;
+    if (!cb) return; // photoInput.click() kommt heute ausschliesslich aus openMealSheet()
+    if (!f) return;
+    if (!canEdit()) return;
     if (!/^image\//.test(f.type)) { toast("Bitte ein Bild verwenden"); return; }
-    readAndDownscale(f, dataUrl => { if (dataUrl) { r.image = dataUrl; save(); render(); toast("Foto übernommen"); } else toast("Bild konnte nicht geladen werden"); });
+    readAndDownscale(f, dataUrl => { if (dataUrl) cb(dataUrl); else toast("Bild konnte nicht geladen werden"); });
   });
 
   // Profilbild ueber "Profil bearbeiten" (eigenes file-input, bewusst nicht photoInput
@@ -8121,7 +8794,7 @@
   // Zweig die Sperre versehentlich umgehen.
   // Verbindlich ist trotzdem allein die Firestore-Regel: Was hier passiert, ist Komfort
   // und mit den Entwicklerwerkzeugen umgehbar.
-  const WRITE_ACTIONS = ["new-recipe", "edit", "delete", "photo", "pick", "unassign", "assign", "clear-week", "clear-examples"];
+  const WRITE_ACTIONS = ["new-recipe", "delete", "pick", "unassign", "assign", "clear-week", "clear-examples"];
   function blockedByRole() {
     if (canEdit()) return false;
     toast("Du kannst diesen Plan ansehen – zum Mitplanen bitten die Inhaberin oder den Inhaber um Rechte.");
@@ -8134,10 +8807,17 @@
     const a = t.dataset.action;
     if (WRITE_ACTIONS.indexOf(a) !== -1 && blockedByRole()) return;
     if (a === "tab") { state.tab = t.dataset.tab; render(); }
-    else if (a === "photo") { photoTargetId = t.dataset.id; photoInput.click(); }
-    else if (a === "new-recipe") openRecipeForm(null);
-    else if (a === "edit") openRecipeForm(t.dataset.id);
-    else if (a === "view") openRecipeDetail(t.dataset.id);
+    else if (a === "new-recipe") openMealSheet(null);
+    // originEl fuer die FLIP-Oeffnung (plans/MealAnsicht.MD Schritt 4) - trifft die
+    // Meal-Karte (Klick auf .rcard-open, data-action liegt am inneren Knopf) UND den
+    // Wochenplan-Slot (data-action liegt direkt an .filled) gleichermassen. Beide oeffnen
+    // lesend (Nachtrag Abnahme Phase 2, 08.08.2026, vorher nur der Wochenplan-Slot) - ein
+    // Vertipper beim blossen Nachschlagen soll nicht sofort autosaven, egal aus welchem
+    // Reiter. Bearbeiten ist ueberall nur den "Bearbeiten"-Knopf im Kopf entfernt.
+    else if (a === "view") {
+      const origin = e.target.closest(".rcard, .filled");
+      openMealSheet(t.dataset.id, null, origin);
+    }
     else if (a === "delete") deleteRecipe(t.dataset.id);
     else if (a === "share-recipe") shareRecipeNow(t.dataset.id);
     else if (a === "clear-examples") clearExamples();
