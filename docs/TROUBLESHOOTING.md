@@ -1206,3 +1206,22 @@ Gilt sinngemäß für jede künftige Funktion, die eine dynamische Linkvorschau 
 **Zusätzlich für Autosave-Ansichten:** Eine reine `getRecipe(id)`-Referenz reicht nicht, wenn die Ansicht selbst schreibt — ein `render()`-loser Remote-Merge während des Tippens würde trotzdem die eigene Eingabe überschreiben. `openMealSheet()` setzt deshalb zusätzlich `openSheetId`, das `onRecipesRemote()` veranlasst, Changes für genau dieses eine Meal zu überspringen, solange die Ansicht offen ist (Details in `docs/ARCHITECTURES.md`, „Meal-Ansicht"). Löscht ein anderes Gerät währenddessen genau dieses Meal, greift zusätzlich `openSheetRemovedCb`: die Ansicht schließt sich selbst mit einem Toast, statt lautlos an einem Meal weiterzuschreiben, das nicht mehr existiert.
 
 **`closeModal()` / `modalCloseHook` — bisher nirgends dokumentiert.** `closeModal()` prüft zuerst die modulweite Variable `modalCloseHook`: ist sie gesetzt, ruft `closeModal()` sie auf (und leert sie sofort davor auf `null`) statt des Standard-Schließens (`modalRoot.innerHTML = ""` plus Fokus-Restore). Damit kann eine einzelne Ansicht Escape, Backdrop-Klick, das ✕ im Kopf und einen „Fertig"-Knopf im Fuß gleich behandeln, ohne dass jeder dieser vier Wege einzeln verdrahtet werden müsste — sie rufen alle `closeModal()`, der Hook entscheidet, was wirklich passiert (z. B. erst eine FLIP-Exit-Animation abspielen, oder das Schließen bei einem leeren Namensfeld abbrechen). `modalCloseHook` ist global und wird von jeder Ansicht, die ihn braucht, selbst gesetzt (`openMealSheet()`) und beim eigenen Schließen selbst wieder auf `null` geleert — ein Aufrufer, der ihn setzt, muss ihn auch selbst wieder leeren, `openModal()` tut das nicht automatisch.
+
+## 52. Ein Element ausblenden, das gerade den Fokus hat, löst `focusout` aus — Aufklapp-Zeilen schlossen sich sofort wieder
+
+**Symptom (echter Fehler, gefunden bei der Abnahme am 08.08.2026):** In der Zutatenliste der Meal-Ansicht ließ sich keine Zeile mehr bearbeiten. Ein Klick auf die Zeile tat scheinbar gar nichts — das Formular blitzte nicht einmal sichtbar auf.
+
+**Ursache — eine Kette aus zwei für sich korrekten Mechanismen:**
+
+1. Der Klick trifft `.ing-view-name`, einen echten `<button>`. Der Browser gibt ihm dabei den Fokus.
+2. `openIngEdit(row)` setzt `.editing` auf der Zeile. Das CSS blendet daraufhin `.ing-view` aus (`.ing-row.editing .ing-view { display: none }`) — **also genau den Knopf, auf dem der Fokus gerade liegt**.
+3. Ein Element, das `display: none` wird, verliert den Fokus. Der fällt auf `<body>` zurück und `focusout` steigt an der Zeile auf.
+4. Der `focusout`-Handler der Zeile prüft `row.contains(document.activeElement)` — das ist jetzt `false` — und ruft `closeIngRow(row)`.
+
+Öffnen und Schließen passieren im selben Tick. Im Code ist nichts davon zu sehen: Beide Handler sind einzeln richtig, der Fehler entsteht erst aus ihrem Zusammenspiel über den Umweg CSS.
+
+**Lösung:** Die Zeile trägt `tabindex="-1"` und wird beim Aufklappen programmatisch fokussiert (`row.focus({ preventScroll: true })` direkt nach `openIngEdit()`). Damit bleibt der Fokus innerhalb der Zeile, `row.contains(document.activeElement)` bleibt `true`, der Wächter greift nicht. Bewusst die Zeile selbst und **nicht** `.ing-name`: ein fokussiertes Textfeld zieht auf dem Handy die Tastatur hoch und verdeckt die Nährwertfelder, obwohl der Nutzer vielleicht nur die Menge ändern will.
+
+**Regel für künftige Aufklapp-/Umschalt-Muster:** Wer ein Element ausblendet, das den Fokus tragen könnte, muss den Fokus vorher oder unmittelbar danach aktiv an eine sinnvolle Stelle setzen. Das gilt für jedes Paar aus „Ruhezustand ↔ Bearbeiten-Zustand", das per CSS umschaltet — auch für `.ms-nut`, sollte es je wieder eine Umschaltmechanik bekommen.
+
+**Testhinweis:** Der Fehler ist im Ausschneide-Prüfstand nur sichtbar, wenn man den Fokus vor dem Klick tatsächlich setzt (`btn.focus(); btn.click();`) **und** nach einem Tick misst — der `focusout`-Handler arbeitet mit `setTimeout(…, 0)`. Ein Test, der direkt nach dem Klick prüft, meldet fälschlich „alles gut". Für die Gegenprobe („Fokus nach draußen schließt weiterhin") taugt `document.body.focus()` nicht: `<body>` ist ohne `tabindex` nicht fokussierbar, der Fokus bewegt sich gar nicht und es feuert kein `focusout`. Es braucht ein echtes fokussierbares Element außerhalb der Zeile.
