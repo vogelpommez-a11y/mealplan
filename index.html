@@ -10962,7 +10962,15 @@
   function shareMealPayload(recipeId) {
     const r = getRecipe(recipeId);
     if (!r) return null;
-    return { app: "wochenkueche", v: 1, type: "meal", uid: syncUid || "", by: profile ? profile.name : "", when: Date.now(), recipes: [r] };
+    // og: schlanke Link-Vorschau (Titel + Foto) fuer den Cloudflare Worker (docs/ARCHITECTURES.md).
+    // Bei einem eigenen Foto steckt es bereits unveraendert in recipes[0].image - og.img bleibt
+    // dann bewusst null (Firestore lehnt undefined im Payload ab) statt denselben Base64-String
+    // ein zweites Mal einzubetten, das wuerde den Payload gegen die 400-KB-Grenze verdoppeln.
+    // Der Worker faellt in diesem Fall auf recipes[0].image zurueck. Nur bei einem PHOTOS-Pfad
+    // (kein eigenes Foto) traegt og.img den Wert direkt - photoFor(r) liefert dort ohnehin
+    // nur einen "img/..."-Pfad, keine data:-URL.
+    const ownPhoto = safeImage(r.image);
+    return { app: "wochenkueche", v: 1, type: "meal", uid: syncUid || "", by: profile ? profile.name : "", when: Date.now(), recipes: [r], og: { t: r.name, img: ownPhoto ? null : photoFor(r) } };
   }
   // Der Link ist der einzige Schutz des geteilten Plans, also muss die ID unerratbar sein.
   // Math.random() ist dafuer ungeeignet (nicht kryptografisch) und ein Zeitstempel erst recht.
@@ -11409,10 +11417,8 @@
             <button class="btn primary" id="sl-copy">Link kopieren</button>
           </div>
           <p class="share-mini">Der Empfänger meldet sich einmal kostenlos an und kann das Meal dann übernehmen.</p>
-          <div class="share-actions">${canShare() ? `<button class="btn" id="sl-share">${TOOL_ICONS.share}Teilen</button>` : ""}<button class="btn" id="sl-new">Neuen Link erstellen</button></div>`;
+          <div class="share-actions"><button class="btn" id="sl-new">Neuen Link erstellen</button></div>`;
         body.querySelector("#sl-copy").addEventListener("click", () => { body.querySelector("#sl").select(); copyToClipboard(createdUrl, "Link kopiert"); });
-        const shareBtn = body.querySelector("#sl-share");
-        if (shareBtn) shareBtn.addEventListener("click", () => { shareLink(r.name, "Mein Meal für dich: " + r.name, createdUrl).catch(() => { toast("Teilen hat nicht geklappt"); }); });
         body.querySelector("#sl-new").addEventListener("click", () => { createdUrl = null; paint(); });
       } else {
         body.innerHTML = `

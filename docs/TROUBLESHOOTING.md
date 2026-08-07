@@ -1182,3 +1182,15 @@ schließende Klammer der jeweiligen Funktion muss mitgeprüft werden. Ein Test, 
 `wipeCache()` einen Fehler" prüft, hätte diesen Bug nicht gefunden: der Aufruf wurde nie erreicht,
 es gab nichts, das hätte werfen können. Erst die Kontrolle des tatsächlichen IndexedDB-**Inhalts**
 nach der Löschung deckte es auf.
+
+## 50. Messenger-Crawler führen kein JavaScript aus — statische `og:`-Tags reichen für geteilte Links nicht
+
+**Symptom:** Ein per `shareRecipeNow()`/`openShareRecipe()` verschickter `?s=<id>`-Link zeigte in WhatsApp/Telegram immer dieselbe generische Karte („Paddy's Mealplan – Plan it. Cook it. Lift it.") statt Meal-Name und Meal-Foto, obwohl `index.html` den Link korrekt öffnet.
+
+**Ursache:** `index.html` hat feste `og:`-Tags im `<head>` (Zeile 19–28). GitHub Pages liefert für jeden Pfad dieselbe Datei aus, unabhängig vom `?s=`-Parameter. Der Client könnte den Titel zwar per JS ändern, aber Messenger-Crawler (WhatsApp, Telegram, Facebook, …) führen kein JavaScript aus — sie lesen ausschließlich das erste ausgelieferte HTML.
+
+**Lösung:** `worker/og.js`, eine Cloudflare-Worker-Schicht vor GitHub Pages (siehe `docs/ARCHITECTURES.md`, „Link-Vorschau in Messengern"). Der Worker reicht jede Anfrage unverändert an GitHub Pages weiter und ersetzt bei `?s=<id>` per `HTMLRewriter` nur die `og:`/`twitter:`-Werte im bereits ausgelieferten HTML — kein User-Agent-Sniffing, Crawler und Mensch bekommen dasselbe HTML, die App startet unverändert.
+
+**Falle beim Testen:** Ein normaler `curl`/Browser-Aufruf ohne Crawler-User-Agent zeigt nichts über das Cloaking-Risiko — Facebook/WhatsApp cachen die erste abgerufene Vorschau zudem oft mehrere Stunden. Zum Prüfen den Facebook Sharing Debugger nutzen (erzwingt einen Re-Scrape) oder `curl -A "facebookexternalhit/1.1"`.
+
+Gilt sinngemäß für jede künftige Funktion, die eine dynamische Linkvorschau braucht, solange die App ohne eigenen Server (GitHub Pages, kein SSR) ausgeliefert wird.

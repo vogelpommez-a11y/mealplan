@@ -575,6 +575,19 @@ Bei Änderungen an Cloud-Daten prüfen:
 * Security Rules bleiben restriktiv
 * `get` und `list` nicht versehentlich verwechseln
 * UI-Sperren nicht als Security betrachten
+* bei `worker/og.js`: nur Meal-Titel und -Foto verlassen `shared/{id}` ohne Anmeldung (über den Service-Account-Zugriff), nicht das komplette Dokument — Firestore-Regel `allow get: if request.auth != null` bleibt unverändert
+
+## 8a. Cloudflare-Worker-Test (`worker/og.js`)
+
+Reine Web-API-Hilfsfunktionen des Workers (Firestore-Wert-Umwandlung, Base64, JWT-Kodierung, `SHARE_ID_RE`) lassen sich unverändert im Ausschneide-Prüfstand testen — Cloudflare Workers nutzen dieselben Standard-APIs (`atob`/`btoa`, `TextEncoder`, `crypto.subtle`) wie der Browser, kein `wrangler` nötig für diesen Teil.
+
+Für den Worker selbst (`HTMLRewriter`, Firestore-REST-Zugriff über den Service-Account):
+
+1. `wrangler dev` gegen eine echte Test-Share-ID.
+2. Crawler-Test per User-Agent: `curl -A "facebookexternalhit/1.1" "https://www.paddysmealplan.de/?s=<id>"` → `og:`-Tags im HTML prüfen (siehe `docs/TROUBLESHOOTING.md` Ziffer 50).
+3. Facebook Sharing Debugger + ein echter Link in Telegram/WhatsApp.
+4. Gegenprobe: Seite ohne `?s=` und ein `?g=`-Link müssen unverändert funktionieren.
+5. Worker-Fehlerfall simulieren (falsches Secret) → App muss normal laden, kein Blockieren.
 
 ## 9. Testabschluss
 

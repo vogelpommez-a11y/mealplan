@@ -106,9 +106,24 @@ Daten liegen unter:
 
 ### Meal teilen
 
-Standardweg ist `shareRecipeNow(recipeId)`: ein Tipp, danach direkt das native Share-Sheet (`shareLink()`, analog `shareShopPdf()`/`shareFileOrText()`). Voraussetzung sind eine echte Cloud-Anmeldung (`CloudShare.enabled && authMode === "cloud"` — `enabled` allein sagt nur, dass Firebase konfiguriert ist) und `canShare()` (Gerät hat `navigator.share`); sonst öffnet weiterhin das Modal `openShareRecipe()` mit „Meal-Link erstellen" und Zwischenablage. Im „Link fertig"-Zustand des Modals steht zusätzlich ein Teilen-Knopf, sobald `canShare()` erfüllt ist.
+Standardweg ist `shareRecipeNow(recipeId)`: ein Tipp, danach direkt das native Share-Sheet (`shareLink()`, analog `shareShopPdf()`/`shareFileOrText()`). Voraussetzung sind eine echte Cloud-Anmeldung (`CloudShare.enabled && authMode === "cloud"` — `enabled` allein sagt nur, dass Firebase konfiguriert ist) und `canShare()` (Gerät hat `navigator.share`); sonst öffnet weiterhin das Modal `openShareRecipe()` mit „Meal-Link erstellen" und Zwischenablage. Kein zusätzlicher Teilen-Knopf im Modal: sobald `openShareRecipe()` erfolgreich einen Link erzeugt (`createdUrl`), ist die Cloud-Anmeldung damit belegt — dann hätte `shareRecipeNow()` bei zugleich vorhandenem `canShare()` direkt den nativen Weg genommen und das Modal nie geöffnet. Der Zustand „Link fertig + `canShare()`" ist also unerreichbar (siehe ROADMAP, Opus-Nachprüfung zu Commit `0c9a3cd`).
 
 `CloudShare.publish()` läuft bewusst ohne `await` parallel zu `shareLink()`, siehe `docs/TROUBLESHOOTING.md` Ziffer 40. `state.shares` wird erst ergänzt, wenn `publish()` erfolgreich war — unabhängig davon, ob der Nutzer das Share-Sheet danach abbricht oder durchführt.
+
+### Link-Vorschau in Messengern (Cloudflare Worker, `worker/og.js`)
+
+`shareMealPayload()` schreibt zusätzlich ein schlankes `og`-Feld (`{ t: r.name, img: … }`) nach `shared/{id}`. Bei einem **eigenen Foto** bleibt `og.img` bewusst `null` — der Base64-String steckt bereits in `recipes[0].image` desselben Payloads, ein zweiter Eintrag würde ihn verdoppeln und unnötig gegen die 400-KB-Payload-Grenze drücken (Firestore lehnt `undefined` im Dokument ab, deshalb `null` und kein weggelassenes Feld). Nur ohne eigenes Foto trägt `og.img` direkt den `PHOTOS`-Pfad aus `photoFor(r)` (z. B. `img/pasta.webp`). Der Worker liest bei `og.img === null` stattdessen `recipes[0].image`. `applySharedData()` ignoriert das `og`-Feld beim Import, `firestore.rules` bleibt unverändert (zusätzliche Felder sind bei `create` erlaubt).
+
+**Stand:** `worker/og.js` liegt im Repo, ist aber **noch nicht deployt**. `CNAME` zeigt weiterhin direkt auf `vogelpommez-a11y.github.io`, keine Cloudflare-Nameserver aktiv — geteilte Links zeigen bis zur Infrastruktur-Umstellung weiterhin die generische Karte. Deployt wird ausschließlich über das Cloudflare-Dashboard (Domain bei Cloudflare aufnehmen, Nameserver umstellen, Worker-Route `www.paddysmealplan.de/*`, Service-Account-Secret hinterlegen — siehe `plans/TeilenVereinheitlichen.MD` Teil B3), GitHub Pages bleibt Ursprung und liefert weiterhin dasselbe statische `index.html` aus.
+
+Nach dem Deployment gilt:
+
+* Anfragen mit `?s=<id>` laufen unverändert zu GitHub Pages durch, der Worker ersetzt danach per `HTMLRewriter` nur `og:title`, `og:description`, `og:image`, `og:url` und `twitter:*` im HTML. Kein User-Agent-Sniffing, Crawler und Mensch bekommen dasselbe HTML.
+* `/og/<id>.jpg` liest `shared/{id}` per Firestore-REST-API und liefert `og.img` aus (Base64 dekodiert oder als Pfad an GitHub Pages weitergereicht), Fallback ist `img/neutral.jpg`.
+* Der Worker liest `shared/{id}` über einen **Service-Account** (Rolle nur `Cloud Datastore Viewer`), nicht über die App — die Firestore-Regel `allow get: if request.auth != null` (`firestore.rules` Zeile 62) bleibt unverändert. Der Zugriffs-Token entsteht per JWT-Bearer-Flow (RS256, `crypto.subtle`), der private Schlüssel liegt nur als Worker-Secret (`GCP_SA_PRIVATE_KEY`), nicht im Repo.
+* Jeder Fehler im Worker (Firestore nicht erreichbar, unbekannte ID, abgelaufenes Secret) fällt still auf die unveränderte GitHub-Pages-Antwort zurück — der Worker darf die App nie blockieren.
+
+**Nach dem Deployment** verarbeitet Cloudflare die IP-Adressen aller Besucher der gesamten Seite, nicht nur der `?s=`-Links, und `/og/<id>.jpg` liefert ein Meal-Foto ohne Anmeldung aus. Das berührt die Datenschutzerklärung (Cloudflare als Auftragsverarbeiter, Hinweis auf die anmeldungsfreie Vorschau) — **erst mit dem Deployment aktualisieren, nicht vorher**, sonst beschreibt der Rechtstext einen Zustand, der noch nicht existiert. Vorher (und danach erneut) `anwalt` und `website-security` einsetzen.
 
 ### `window.CloudGroup`
 
