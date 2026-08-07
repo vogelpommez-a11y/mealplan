@@ -388,6 +388,37 @@ Bestehende Werte für:
 
 verwenden.
 
+## Makros und Nährwerte
+
+**Kalorien und Makros werden in der ganzen App gleich benannt, gleich sortiert und in einer der drei festgelegten Formen dargestellt.**
+
+Verbindlich:
+
+* Kürzel: `KH`, `P`, `F`
+* Reihenfolge: `kcal → KH → P → F`
+* In der Kompaktform **kein** `g` — Makros sind immer Gramm, das Kürzel trägt die Bedeutung. Nur die ausführliche Kachelform zeigt die Einheit.
+* Farben ausschließlich über die bestehenden Tokens `--prot`, `--carb`, `--fat` und die `t-*`-Klassen.
+
+Nie wieder einführen:
+
+* `K` für Kohlenhydrate (verwechselbar mit kcal)
+* `Eiw.` oder `Fett` ausgeschrieben in Wertzeilen
+* eine eigene Reihenfolge „weil es hier besser passt"
+
+### Die drei erlaubten Formen
+
+**1. Kompaktzeile** — überall dort, wo Werte nur abgelesen werden: Meal-Karte, Zutaten-Anzeigezeile, Makro-Ruhezustand der Meal-Ansicht, Tagesbilanz im Wochenplan. Läuft über den gemeinsamen Helfer, nicht über neu geschriebenes Markup.
+
+**2. Kachelform** (`.nutfacts`) — wo Platz ist und die Zahl im Mittelpunkt steht, etwa im Nur-Lese-Modus der Meal-Ansicht. Mit Einheit.
+
+**3. Balkenform** (`.wg-macros`) — ausschließlich für Fortschritt gegen ein Ziel, nicht für einen reinen Wert. Die **Reihenfolge** gilt auch hier. Die Beschriftung darf ausgeschrieben bleiben (`Kohlenhydrate`, `Protein`, `Fett`): Dort ist Platz, und die Spaltenbreite ist nachweislich auf das längste Wort ausgelegt (siehe Kommentar bei `.wg-macros .gm`). **Nicht auf Kürzel umstellen** — das bricht das Layout auf schmalen Tageskarten.
+
+Langform und Kürzel derselben Begriffe sind kein Widerspruch. Verboten ist ein **drittes** Vokabular: `K`, `Eiw.` oder frei erfundene Abkürzungen.
+
+Fließtext ist von alldem ausgenommen: In ganzen Sätzen (z. B. der Onboarding-Zusammenfassung) darf und soll ausgeschrieben werden.
+
+Eine vierte Form wird nicht erfunden. Passt ein neuer Ort in keine der drei, ist zuerst zu prüfen, ob er wirklich etwas anderes zeigt.
+
 ## Markencharakter
 
 Die UI soll sportlich und leistungsorientiert wirken.
