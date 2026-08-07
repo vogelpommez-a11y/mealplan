@@ -81,6 +81,7 @@ Verantwortlich für:
 * `load`
 * `save`
 * `watch`
+* `wipeCache` — löscht den Firestore-Offline-Cache (siehe „Firestore-Offline-Cache" unten)
 
 Cloud-Rezeptfunktionen arbeiten mit einem Basispfad, z. B.:
 
@@ -123,6 +124,16 @@ mit:
 * `invites/{code}`
 
 Das Gruppendokument selbst trägt `status: "pending" | "active"` (rein informativ, siehe Wartezustand unten) sowie `name` (per `setName`) und `settings`.
+
+### Firestore-Offline-Cache
+
+`db` wird über `initializeFirestore(app, { localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }) })` initialisiert, nicht mehr über das flüchtige `getFirestore(app)`. Der Cache spiegelt Wochenplan, Meals und Gruppendaten in IndexedDB, damit die App nach einem Kaltstart ohne Netz nutzbar bleibt (Wochenplan im Supermarkt, Einkaufsliste im Keller). Der Multi-Tab-Manager ist Pflicht — ohne ihn schaltet ein zweiter geöffneter Tab die Persistenz für beide Tabs stillschweigend ab.
+
+Die Initialisierung sitzt in einem eigenen `try/catch` mit Fallback auf `getFirestore(app)`: sie steckt mitten im großen `try`-Block, dessen `catch` `cloudauth:disabled` wirft und damit die **gesamte** Cloud-Anmeldung deaktiviert (siehe „Graceful Fallback" oben). Scheitert die Persistenz allein (Privatmodus ohne IndexedDB, exotische WebView), darf das nicht die ganze Cloud kosten — Persistenz ist ein Komfortgewinn, keine Voraussetzung.
+
+**Wichtigste Konsequenz: `fromCache` ist kein Beweis.** Mit dem flüchtigen Cache warf `getDoc`/`getDocs` offline zuverlässig — erkennbar als Fehler. Mit Persistenz liefern beide still den letzten bekannten Stand aus IndexedDB, kenntlich nur über `snap.metadata.fromCache`. `CloudGroup.fetch()` und `fetchMembers()` geben dieses Flag deshalb mit zurück (`{ data, fromCache }` bzw. `{ members, fromCache }`), `watchMembers()` reicht es als zweiten Callback-Parameter durch. `enterGroupSync()` leitet aus einem `fromCache`-Ergebnis **nie** `"gone"` ab, sondern `"error"` — siehe „Drei Zustände statt true/false" unten, ausführlicher Fehlerfall in `docs/TROUBLESHOOTING.md`.
+
+**Löschung:** `CloudSync.wipeCache()` ruft `terminate(db)` gefolgt von `clearIndexedDbPersistence(db)` — Reihenfolge zwingend, `clearIndexedDbPersistence()` verlangt eine beendete Instanz. `wipeLocalData()` ruft das als letzten Schritt auf, nach `localStorage` und der Bild-IndexedDB. Seitdem kann `wipeLocalData()` erstmals fehlschlagen; alle drei Aufrufer (`deleteAccountFlow()` beide Zweige, `deleteLocalDataFlow()`) fangen den Fehler mit einer ehrlichen Meldung ab, statt „gelöscht" zu behaupten und neu zu laden.
 
 ## Brücke zwischen Firebase und App
 
@@ -365,6 +376,8 @@ Der `"gone"`-Zweig räumt bewusst **nicht** mehr per `removeMember()` auf. `Clou
 Ist `groupKnown` false, fehlen `groupId` **und** `plans` im geschriebenen Objekt — dank `merge: true` bleibt der Cloud-Stand unangetastet. Das reguläre Verlassen ist davon nicht betroffen: `leaveGroup()` schreibt sein `groupId: ""` selbst und explizit.
 
 Aus derselben Logik behandeln die Listener leere Ergebnisse als *ungeklärt*, nicht als Austritt: `watchMembers()` meldet Lesefehler als `null` statt als leere Liste, `onMembersRemote()` steigt bei leerer Liste aus (eine bestehende Gruppe hat immer ≥ 1 Mitglied; das echte Auflösen kommt über `onGroupRemote()`), und `onRemote()` löst bei leerem `remoteGid` **kein** `switchGroup(null)` mehr aus, solange eine Gruppen-Session läuft.
+
+Seit dem Firestore-Offline-Cache gilt dieselbe Vorsicht zusätzlich für `fromCache`-Ergebnisse, nicht nur für leere: siehe „Firestore-Offline-Cache" oben und `docs/TROUBLESHOOTING.md` („`fromCache` ist kein Beweis").
 
 ### Selbstheilung des Zeigers
 

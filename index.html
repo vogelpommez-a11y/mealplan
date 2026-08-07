@@ -2324,7 +2324,9 @@
     deleteUser, reauthenticateWithPopup, reauthenticateWithCredential, EmailAuthProvider
   } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
   import {
-    getFirestore, doc, collection, getDoc, getDocs, setDoc, updateDoc, deleteDoc, writeBatch, onSnapshot
+    getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager,
+    terminate, clearIndexedDbPersistence,
+    doc, collection, getDoc, getDocs, setDoc, updateDoc, deleteDoc, writeBatch, onSnapshot
   } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 
   /* ▼▼▼ HIER die Werte aus der Firebase-Konsole eintragen ▼▼▼
@@ -2460,7 +2462,20 @@
       });
 
       // ----- Cloud-Sync (Firestore): pro Nutzer ein Dokument users/{uid} -----
-      const db = getFirestore(app);
+      // Persistenz ist ein Komfortgewinn, keine Voraussetzung. Scheitert sie (Privatmodus ohne
+      // IndexedDB, exotische WebView), darf das nicht die ganze Cloud kosten: der umgebende catch
+      // (wenige Zeilen unten) wirft sonst "cloudauth:disabled" und die App faellt auf den
+      // lokalen Login zurueck. Deshalb eigenes try/catch mit Fallback auf den fluechtigen Cache.
+      // Der Multi-Tab-Manager ist Pflicht: ohne ihn schaltet der zweite Tab die Persistenz
+      // stillschweigend ab. Siehe docs/TROUBLESHOOTING.md ("fromCache ist kein Beweis").
+      let db;
+      try {
+        db = initializeFirestore(app, {
+          localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
+        });
+      } catch (e) {
+        db = getFirestore(app);
+      }
       // Rezepte liegen zweimal in derselben Struktur: unter users/{uid}/recipes fuer das
       // eigene Konto und unter groups/{gid}/recipes fuer eine gemeinsame Gruppe. Deshalb
       // nehmen die Rezept-Funktionen unten einen Basispfad ["users", uid] bzw.
@@ -2538,8 +2553,14 @@
       window.CloudGroup = {
         enabled: true,
         create: function (gid, data) { return setDoc(groupDoc(gid), data); },
+        // Liefert fromCache mit: mit persistentLocalCache WIRFT getDoc offline nicht mehr,
+        // sondern liefert stillschweigend den letzten bekannten Stand. Ein Cache-Treffer ist
+        // damit kein Beweis mehr fuer "existiert nicht" - siehe docs/TROUBLESHOOTING.md
+        // ("fromCache ist kein Beweis").
         fetch: function (gid) {
-          return getDoc(groupDoc(gid)).then(function (s) { return s.exists() ? s.data() : null; });
+          return getDoc(groupDoc(gid)).then(function (s) {
+            return { data: s.exists() ? s.data() : null, fromCache: s.metadata.fromCache };
+          });
         },
         watch: function (gid, cb) {
           return onSnapshot(groupDoc(gid), function (s) { if (s.exists()) cb(s.data(), s.metadata.hasPendingWrites); }, function () {});
@@ -2570,15 +2591,19 @@
         },
 
         // ----- Mitglieder: ein Dokument je Person, damit Rollenrechte pro Dokument gelten -----
+        // fromCache mit zurueckgeben - gleicher Grund wie bei fetch() oben.
         fetchMembers: function (gid) {
           return getDocs(collection(db, "groups", gid, "members")).then(function (snap) {
-            return snap.docs.map(function (d) { return Object.assign({ uid: d.id }, d.data()); });
+            return {
+              members: snap.docs.map(function (d) { return Object.assign({ uid: d.id }, d.data()); }),
+              fromCache: snap.metadata.fromCache
+            };
           });
         },
         watchMembers: function (gid, cb) {
           return onSnapshot(collection(db, "groups", gid, "members"), function (snap) {
-            cb(snap.docs.map(function (d) { return Object.assign({ uid: d.id }, d.data()); }));
-          }, function () { cb(null); });   // Lesefehler als null melden, NICHT als leere Liste - sonst laese der Aufrufer daraus einen Rauswurf
+            cb(snap.docs.map(function (d) { return Object.assign({ uid: d.id }, d.data()); }), snap.metadata.fromCache);
+          }, function () { cb(null, false); });   // Lesefehler als null melden, NICHT als leere Liste - sonst laese der Aufrufer daraus einen Rauswurf
         },
         putMember: function (gid, uid, data) { return setDoc(doc(db, "groups", gid, "members", uid), data, { merge: true }); },
         setRole: function (gid, uid, role) { return updateDoc(doc(db, "groups", gid, "members", uid), { role: role }); },
@@ -2611,7 +2636,15 @@
         fetchInvite: function (code) {
           return getDoc(doc(db, "invites", code)).then(function (s) { return s.exists() ? s.data() : null; });
         },
-        deleteInvite: function (code) { return deleteDoc(doc(db, "invites", code)); }
+        deleteInvite: function (code) { return deleteDoc(doc(db, "invites", code)); },
+        // Loescht den Firestore-Offline-Cache (IndexedDB) - Teil der Loeschzusage aus
+        // Datenschutz Ziffer 10, seit der Cache Inhaltsdaten (Meals, Wochenplan) spiegelt.
+        // Nur unmittelbar vor einem Reload aufrufen: nach terminate() ist die db-Instanz tot.
+        // Reihenfolge ist zwingend - clearIndexedDbPersistence() verlangt eine beendete Instanz.
+        wipeCache: async function () {
+          await terminate(db);
+          await clearIndexedDbPersistence(db);
+        }
       };
 
       onAuthStateChanged(auth, function (user) {
@@ -3812,7 +3845,7 @@
   }
 
   // Mitgliederliste: treibt den Avatar-Stack im Kopf und die eigene Rolle.
-  function onMembersRemote(list) {
+  function onMembersRemote(list, fromCache) {
     // Leere Liste ist KEIN Rauswurf: onSnapshot liefert offline das leere Ergebnis aus dem
     // (nur fluechtigen) Cache, ohne den Error-Callback zu benutzen - und watchMembers meldet
     // einen echten Lesefehler seit dem Gruppenverlust-Fix als null. Eine bestehende Gruppe hat
@@ -3823,6 +3856,10 @@
     const me = memberByUid(syncUid);
     const roleBefore = myRole;
     if (!me) {
+      // fromCache ist kein Beweis: der Cache kann eine Mitgliederliste aus der Zeit VOR dem
+      // eigenen Beitritt ausliefern - nicht leer, aber ohne die eigene UID. Erst ein
+      // serverbestaetigtes Ergebnis darf zum Rauswurf fuehren, siehe enterGroupSync().
+      if (fromCache) return;
       // Aus der Gruppe entfernt worden - nicht stillschweigend weiterlaufen lassen,
       // sonst schriebe man ins Leere und wunderte sich, warum nichts ankommt.
       toast("Du bist nicht mehr Teil der Gruppe.");
@@ -3906,22 +3943,27 @@
     if (!gid) return "gone";
     if (!window.CloudGroup || !window.CloudGroup.enabled) return "error";
     try {
-      const info = await window.CloudGroup.fetch(gid);
-      // Die Gruppe ist weg (aufgeloest). Bewusst OHNE removeMember(): fetch() liefert null
+      const { data: info, fromCache: infoFromCache } = await window.CloudGroup.fetch(gid);
+      // Die Gruppe ist weg (aufgeloest). Bewusst OHNE removeMember(): fetch() liefert data:null
       // sowohl fuer "existiert nicht" als auch fuer jedes Leseergebnis ohne Dokument - aus so
       // einem Lesevorgang darf keine Loeschung folgen. Frueher warf sich das Geraet hier bei
       // einer nur kurz nicht lesbaren Gruppe selbst aus der Mitgliederliste, und in einer
       // Zweiergruppe stand die andere Person danach allein da. Verwaiste Mitgliedseintraege
       // raeumt dissolveGroupFirestore() ohnehin im Batch mit auf.
-      if (!info) return "gone";
-      const members = await window.CloudGroup.fetchMembers(gid);
+      // Mit persistentLocalCache kann "kein Dokument" auch bedeuten, dass der Cache es nie
+      // gesehen hat (noch nicht synchronisiert) - dann ist es "error", nicht "gone".
+      if (!info) return infoFromCache ? "error" : "gone";
+      const { members, fromCache: membersFromCache } = await window.CloudGroup.fetchMembers(gid);
       // Gleiche Vorsicht wie bei fetch() oben, nur subtiler: getDocs() WIRFT offline nicht,
       // sondern liefert das leere Cache-Ergebnis. Eine leere Mitgliederliste ist deshalb kein
       // Beweis fuer einen Rauswurf, sondern ein ungeklaertes Leseergebnis -> "error", der Zeiger
       // bleibt stehen, der naechste Start versucht es erneut.
       if (!members.length) return "error";
       const me = members.filter(m => m.uid === syncUid)[0];
-      if (!me) return "gone";                       // entfernt worden
+      // fromCache ist kein Beweis: der Cache kann eine Mitgliederliste aus der Zeit VOR dem
+      // eigenen Beitritt liefern - nicht leer, aber ohne die eigene UID. Siehe
+      // docs/TROUBLESHOOTING.md ("fromCache ist kein Beweis").
+      if (!me) return membersFromCache ? "error" : "gone";   // entfernt worden
       syncGid = gid;
       state.groupId = gid;    // mit syncGid synchron halten - save() persistiert es lokal
       groupInfo = info;
@@ -4068,8 +4110,11 @@
       let activatedNow = false;
       if (pgid && window.CloudGroup) {
         try {
-          const pendingMembers = await window.CloudGroup.fetchMembers(pgid);
-          if (pendingMembers.length > 1) {
+          const { members: pendingMembers, fromCache: pendingFromCache } = await window.CloudGroup.fetchMembers(pgid);
+          // Ein Cache-Ergebnis darf keine Aktivierung ausloesen - es koennte der Stand VOR dem
+          // Beitritt des zweiten Mitglieds sein. Live-Listener haengt weiter dran, bis ein
+          // serverbestaetigtes Ergebnis kommt.
+          if (pendingMembers.length > 1 && !pendingFromCache) {
             await finalizeGroupActivation(pgid);
             remote.groupId = pgid; remote.pendingGroupId = ""; activatedNow = true; pgid = "";
           } else {
@@ -7892,7 +7937,7 @@
       <h4>6. Anmeldung mit Google</h4>
       <p>Wenn du dich mit „Mit Google anmelden" einloggst, erhält Google die für die Anmeldung nötigen Informationen. Es gelten zusätzlich die Datenschutzbestimmungen von Google.</p>
       <h4>7. Speicherung im Browser</h4>
-      <p>Zur Anmeldung und für den Offline-Betrieb speichert die App technisch notwendige Daten lokal in deinem Browser (localStorage/IndexedDB). Dafür ist keine Einwilligung erforderlich; ein Tracking findet nicht statt (Google Analytics ist deaktiviert).</p>
+      <p>Zur Anmeldung und für den Offline-Betrieb speichert die App technisch notwendige Daten lokal in deinem Browser (localStorage/IndexedDB) – bei einem Cloud-Konto zählt dazu auch ein Zwischenspeicher deines Wochenplans, deiner Meals sowie, falls zutreffend, der Daten eurer gemeinsamen Gruppe (Namen, Profilbilder, gemeinsame Meals) bzw. eines von dir geöffneten Teilen-Links, damit alles ohne Internetverbindung verfügbar bleibt. Dafür ist keine Einwilligung erforderlich; ein Tracking findet nicht statt (Google Analytics ist deaktiviert).</p>
       <h4>7a. Barcode-Scan (Produktsuche)</h4>
       <p>Beim Anlegen von Zutaten sowie beim direkten Einplanen eines Fertigprodukts aus dem
          Wochenplan kannst du einen Barcode scannen. Dafür fragt die App den Zugriff
@@ -10198,10 +10243,16 @@
   // store.clear() statt indexedDB.deleteDatabase(): eine gewoehnliche Transaktion, die nie
   // blockiert. deleteDatabase wartet dagegen auf das Schliessen JEDER offenen Verbindung -
   // idbOpen() haelt genau so eine - und bliebe sonst still in onblocked haengen.
+  // Kann seit dem Firestore-Offline-Cache erstmals fehlschlagen (wipeCache() unten wirft
+  // statt still zu bleiben) - alle Aufrufer brauchen deshalb ein eigenes try/catch, das eine
+  // ehrliche Meldung statt "geloescht" zeigt und NICHT neu laedt.
   async function wipeLocalData() {
     [STORE_KEY, PROFILE_KEY, LAST_KEY, SHOP_DONE_KEY].forEach(k => { try { localStorage.removeItem(k); } catch (e) {} });
     imgSaved = new Map();   // Baseline mitleeren, sonst gilt ein spaeter gleich benanntes Bild als schon gespeichert
     try { await idbRW(store => store.clear()); } catch (e) {}
+    // Zuletzt: nach terminate() ist die Firestore-Instanz tot, die vorigen Schritte muessen
+    // also zuerst durch. Kein leeres catch - der Fehler propagiert bewusst an die Aufrufer.
+    if (window.CloudSync && window.CloudSync.wipeCache) await window.CloudSync.wipeCache();
   }
 
   // Konto vollstaendig loeschen (Cloud-Konten, Art. 17 DSGVO / Datenschutz Ziffer 10).
@@ -10276,14 +10327,19 @@
         closeModal();
         stopCloudSync();
         // await: die Bilder-Loeschung in IndexedDB laeuft asynchron, der Reload unten darf ihr
-        // nicht dazwischenfahren.
-        await wipeLocalData();
-        toast("Konto und Daten wurden gelöscht");
-        // Neu laden statt nur weiterzurendern: wipeLocalData() leert die lokalen Speicher,
-        // nicht das im Speicher gehaltene state-Objekt (Rezepte, Plan,
-        // Ziel) - ohne Reload wuerde ein direkt danach neu registriertes Konto genau
-        // diese stehengebliebenen Daten wieder hochsynchronisieren, als waeren sie neu.
-        setTimeout(() => location.reload(), 900);
+        // nicht dazwischenfahren. wipeLocalData() kann seit dem Firestore-Cache fehlschlagen -
+        // dann ehrlich melden statt "gelöscht" zu behaupten, und NICHT neu laden.
+        try {
+          await wipeLocalData();
+          toast("Konto und Daten wurden gelöscht");
+          // Neu laden statt nur weiterzurendern: wipeLocalData() leert die lokalen Speicher,
+          // nicht das im Speicher gehaltene state-Objekt (Rezepte, Plan,
+          // Ziel) - ohne Reload wuerde ein direkt danach neu registriertes Konto genau
+          // diese stehengebliebenen Daten wieder hochsynchronisieren, als waeren sie neu.
+          setTimeout(() => location.reload(), 900);
+        } catch (wipeErr) {
+          toast("Ein Teil der lokalen Daten ließ sich gerade nicht entfernen. Lade die Seite bitte neu und versuche es noch einmal.");
+        }
       } catch (e) {
         if (e && e.dataAlreadyDeleted) {
           // Firestore-Daten sind schon weg, nur das Loeschen des Login-Zugangs selbst
@@ -10291,10 +10347,14 @@
           // ein erneuter Versuch nach dem Wieder-Anmelden schliesst die Loeschung ab.
           closeModal();
           stopCloudSync();
-          await wipeLocalData();
-          try { window.CloudAuth.logout(); } catch (er) {}
-          toast("Deine Daten wurden gelöscht. Bitte melde dich einmal neu an und wiederhole „Konto löschen“, um auch den Zugang zu entfernen.");
-          setTimeout(() => location.reload(), 900);
+          try {
+            await wipeLocalData();
+            try { window.CloudAuth.logout(); } catch (er) {}
+            toast("Deine Daten wurden gelöscht. Bitte melde dich einmal neu an und wiederhole „Konto löschen“, um auch den Zugang zu entfernen.");
+            setTimeout(() => location.reload(), 900);
+          } catch (wipeErr) {
+            toast("Ein Teil der lokalen Daten ließ sich gerade nicht entfernen. Lade die Seite bitte neu und versuche es noch einmal.");
+          }
           return;
         }
         err.textContent = cloudErrMsg(e);
@@ -10312,10 +10372,14 @@
       text: "Dein Profil, dein Wochenplan, deine Meals und dein gespeichertes Ziel auf diesem Gerät werden unwiderruflich gelöscht. Das kann nicht rückgängig gemacht werden.",
       okLabel: "Alle Daten löschen",
       onConfirm: async () => {
-        await wipeLocalData();
-        profile = null;
-        toast("Alle Daten wurden gelöscht");
-        setTimeout(() => location.reload(), 900); // kurz sichtbar, dann sauberer Neustart
+        try {
+          await wipeLocalData();
+          profile = null;
+          toast("Alle Daten wurden gelöscht");
+          setTimeout(() => location.reload(), 900); // kurz sichtbar, dann sauberer Neustart
+        } catch (wipeErr) {
+          toast("Ein Teil der lokalen Daten ließ sich gerade nicht entfernen. Lade die Seite bitte neu und versuche es noch einmal.");
+        }
       }
     });
   }
@@ -10540,11 +10604,12 @@
   // einer noch unbeigetretenen, vorbereiteten Gruppe gebraucht (withdrawPendingInvite(),
   // prepareGroup()).
   async function dissolveGroupFirestore(gid) {
-    const [members, plans, recipes] = await Promise.all([
+    const [membersRes, plans, recipes] = await Promise.all([
       window.CloudGroup.fetchMembers(gid),
       window.CloudGroup.loadPlans(gid),
       window.CloudSync.loadRecipes(["groups", gid])
     ]);
+    const members = membersRes.members;
     await window.CloudGroup.dissolve(gid, members.map(m => m.uid), plans.map(p => p.week), recipes.map(r => r.id));
     // invites/{code} ist bewusst nicht auflistbar (siehe firestore.rules) - deshalb ueber
     // state.inviteCodes gehen, dieselbe Liste, die auch beim Konto-Loeschen benutzt wird

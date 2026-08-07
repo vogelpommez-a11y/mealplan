@@ -711,6 +711,17 @@ planen.
 Stand lässt dort vier Überbleibsel zurück (Einkaufsliste, Meal-Foto, Profilbild, Baseline), der
 neue keines.
 
+**Dritter Speicherort seit dem Firestore-Offline-Cache:** Der Firestore-Cache (`persistentLocalCache`,
+ebenfalls IndexedDB, aber eine eigene Datenbank neben der Bild-IndexedDB) spiegelt jetzt
+Wochenplan, Meals und Gruppendaten — auch das ist ein Speicherort im Sinne dieser Regel.
+`CloudSync.wipeCache()` räumt ihn über `terminate(db)` gefolgt von `clearIndexedDbPersistence(db)`
+(Reihenfolge zwingend), aufgerufen von `wipeLocalData()` als **letzter** Schritt, nach
+`localStorage` und der Bild-IndexedDB. Anders als die beiden anderen Speicher kann dieser Schritt
+erstmals **fehlschlagen** (`clearIndexedDbPersistence()` scheitert planmäßig bei mehreren offenen
+Tabs) — deshalb kein leeres `catch`, sondern eine ehrliche Meldung an den Aufrufern statt eines
+stillen Rests. Siehe Ziffer 45 („`fromCache` ist kein Beweis") für den zweiten, subtileren Effekt
+desselben Pakets.
+
 ## 38. hitSlop bei benachbarten Knöpfen: die Enge gilt nur in einer Achse
 
 **Symptom:** Das ✕ und der Stift an einer eingeplanten Meal-Karte (`.slot .filled`) waren auf
@@ -958,3 +969,42 @@ zeigt auf die gescheiterte Gruppe). Mehrere Snapshots mit derselben `remoteGid` 
 gescheiterten Versuch lösen `switchGroup()` genau einmal aus, ein echter Gruppenwechsel (andere
 `remoteGid`) erneut. Gegenprobe gegen den alten Stand: dort läuft `switchGroup()` bei jedem
 Snapshot erneut an. Details in `docs/TESTING.md`.
+
+## 45. `fromCache` ist kein Beweis
+
+**Kontext:** Firestore läuft seit dem Offline-Cache-Paket mit `persistentLocalCache` statt dem
+flüchtigen `getFirestore(app)` (`docs/ARCHITECTURES.md`, Abschnitt „Firestore-Offline-Cache").
+
+**Symptom, das ohne die Vorkehrung hier entstünde:** Genau der Gruppenverlust aus Ziffer 35 — nur
+über einen neuen Weg. `enterGroupSync()` schließt aus „Gruppendokument fehlt" bzw. „eigene UID
+nicht in der Mitgliederliste" auf `"gone"` und räumt dann `state.groupId`.
+
+**Ursache:** Mit dem flüchtigen Cache **warf** `getDoc`/`getDocs` offline zuverlässig — laut und
+erkennbar als Fehler. Mit Persistenz liefern beide **still den letzten bekannten Stand** aus
+IndexedDB zurück, kenntlich nur über `snap.metadata.fromCache`. Liefert der Cache eine
+Mitgliederliste aus der Zeit **vor** dem eigenen Beitritt, ist sie nicht leer — der `!members.length`-Guard
+aus Ziffer 35 greift also **nicht** — enthält aber die eigene UID nicht. Ohne Gegenmaßnahme:
+`"gone"` → Zeiger weg → Gruppe wieder verschwunden, diesmal ohne dass überhaupt ein Fehler auftrat.
+
+**Lösung:** `CloudGroup.fetch()`/`fetchMembers()` geben `fromCache` mit zurück (`{ data, fromCache }`
+bzw. `{ members, fromCache }`), `watchMembers()` reicht es als zweiten Callback-Parameter durch.
+`enterGroupSync()` leitet aus einem `fromCache`-Ergebnis **nie** `"gone"` ab, sondern `"error"` —
+derselbe Zustand wie bei einer leeren Mitgliederliste, der Zeiger bleibt stehen, der nächste Start
+entscheidet mit Serverdaten. `onMembersRemote()` überspringt den Rauswurf-Zweig (Toast +
+`switchGroup(null)`) bei `fromCache`. Der Aktivierungspfad in `startCloudSync()` (Wartezustand)
+löst bei `fromCache` ebenfalls keine Aktivierung aus, sondern hängt weiter einen Live-Listener an.
+
+**Löschung, gleicher Anlass:** Der Cache ist ab jetzt ein Speicherort im Sinne von Ziffer 37 —
+siehe dort und die `terminate()`-vor-`clearIndexedDbPersistence()`-Reihenfolge in
+`CloudSync.wipeCache()`.
+
+**Falle beim Umsetzen:** `initializeFirestore` mit `persistentLocalCache` sitzt im selben großen
+`try`-Block wie der übrige Cloud-Aufbau, dessen `catch` `cloudauth:disabled` wirft und die
+**gesamte** Cloud-Anmeldung deaktiviert. Ein eigenes, inneres `try/catch` mit Fallback auf
+`getFirestore(app)` ist deshalb zwingend — sonst kostet ein reiner Persistenzfehler (Privatmodus
+ohne IndexedDB, exotische WebView) die ganze Cloud-Anmeldung, nicht nur den Komfortgewinn.
+
+**Nachweis im Prüfstand:** Zwei zusätzliche Szenarien neben den acht aus Ziffer 35 — `fetchMembers()`
+mit `fromCache:true` und Liste ohne eigene UID (muss `"error"` liefern), jeweils mit Gegenprobe bei
+`fromCache:false` (dort muss weiterhin `"gone"` herauskommen, sonst ist der echte Rauswurf kaputt).
+Details in `docs/TESTING.md`.

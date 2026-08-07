@@ -32,6 +32,14 @@ Jede Funktion sollte mindestens einen dieser Effekte erzeugen:
 
 Die App soll den Nutzer nicht mit zusätzlichen Aufgaben belasten.
 
+## Offline-Nutzbarkeit
+
+Der Wochenplan, die Meals und die Einkaufsliste müssen auch ohne Internetverbindung nutzbar sein
+— Supermarkt, Keller, Küche mit schlechtem WLAN sind der Alltag, für den geplant wird. Das ist
+seit dem Firestore-Offline-Cache (`docs/ARCHITECTURES.md`, Abschnitt „Firestore-Offline-Cache")
+eine Produktzusage, kein bloßer Härtungsschritt. Kein eigener Offline-Hinweis in der UI: der
+Sync-Status bleibt der bestehende farbige Punkt am Avatar.
+
 ## Produktidentität
 
 Paddy's Mealplan:

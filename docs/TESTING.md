@@ -480,6 +480,19 @@ nicht nur den Gutfall:
    Session steht wieder, Zeiger landet zurück in der Cloud.
 6. **Regression regulärer Austritt**: Cloud leer, lokal gesetzt, eigene UID **nicht** in der
    Mitgliederliste → `"gone"`, Zeiger geräumt. Ohne diesen Fall macht Szenario 5 das Verlassen kaputt.
+7. **Regression**: normaler Gruppen-Push schreibt `groupId` weiterhin.
+8. **`onRemote` mit leerem Cloud-Feld** reißt eine laufende Gruppen-Session nicht ab.
+
+Seit dem Firestore-Offline-Cache (`docs/TROUBLESHOOTING.md` Ziffer 45, „`fromCache` ist kein
+Beweis") kommen zwei weitere Pflichtszenarien dazu, **jeweils mit Gegenprobe**:
+
+9. **`fetchMembers()` liefert `{ members, fromCache: true }`** mit einer Liste **ohne** die eigene
+   UID → `enterGroupSync()` muss `"error"` liefern, nicht `"gone"`. Gegenprobe mit derselben Liste
+   und `fromCache: false`: dort muss weiterhin `"gone"` herauskommen — sonst ist der echte
+   Rauswurf kaputt.
+10. **`onMembersRemote()` mit einem `fromCache`-Snapshot ohne eigene UID** → kein
+    `switchGroup(null)`, kein Rauswurf-Toast. Gegenprobe mit `fromCache: false`: Rauswurf muss
+    weiterhin greifen.
 
 Ein Prüfstand, der die Funktionen zeilengenau über ihre **Signatur** statt über Zeilennummern
 ausschneidet, lässt sich unverändert gegen `git show HEAD:index.html` bauen — das ist hier die
@@ -488,6 +501,25 @@ Stubs für `onGroupRemote`/`onGroupPlansRemote`/`onRecipesRemote` nicht vergesse
 wirft `enterGroupSync()` in seinen eigenen `catch` und liefert `"error"` — das sieht wie ein
 echter Befund aus, ist aber ein Prüfstandsfehler. Im Zweifel gegenprüfen, ob die Funktion in
 `index.html` existiert.
+
+### Offline-Testverfahren (Firestore-Cache)
+
+Zusätzlich zum Ausschneide-Prüfstand gehört bei jeder Änderung an der Cache-Initialisierung oder
+an `enterGroupSync()`/`onMembersRemote()` ein manueller Test von Hand, da der Prüfstand `getDoc`/
+`getDocs` nur stubbt, aber keine echte IndexedDB-Persistenz über einen Browser-Neustart hinweg
+prüft:
+
+1. App laden, anmelden, kurz warten bis der erste Sync durchgelaufen ist.
+2. Flugmodus an, Seite **neu laden** (nicht nur navigieren — ein reiner In-Memory-Zustand würde
+   den Cache-Pfad nicht durchlaufen).
+3. Wochenplan, Meals und Einkaufsliste müssen vollständig da sein.
+4. Bei einer Gruppe zusätzlich: die Gruppe darf **nicht** verschwunden sein (Ziffer 45).
+5. Zum Vergleich vorher einmal denselben Ablauf auf dem alten Stand (`getFirestore(app)` ohne
+   Persistenz) fahren — dort ist der Plan nach dem Reload leer, das ist die Nullmessung.
+
+Zusätzlich: `initializeFirestore` künstlich werfen lassen (z. B. per DevTools-Override) →
+die App muss weiterhin mit Cloud-Login starten, **nicht** auf den lokalen Login zurückfallen
+(Fallback-Test, siehe `docs/ARCHITECTURES.md` „Firestore-Offline-Cache").
 
 ### Testlücke: ein Prüfstand, der nur den Normalablauf fährt, beweist nichts über Fehlerpfade
 
