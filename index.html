@@ -11409,8 +11409,10 @@
             <button class="btn primary" id="sl-copy">Link kopieren</button>
           </div>
           <p class="share-mini">Der Empfänger meldet sich einmal kostenlos an und kann das Meal dann übernehmen.</p>
-          <div class="share-actions"><button class="btn" id="sl-new">Neuen Link erstellen</button></div>`;
+          <div class="share-actions">${canShare() ? `<button class="btn" id="sl-share">${TOOL_ICONS.share}Teilen</button>` : ""}<button class="btn" id="sl-new">Neuen Link erstellen</button></div>`;
         body.querySelector("#sl-copy").addEventListener("click", () => { body.querySelector("#sl").select(); copyToClipboard(createdUrl, "Link kopiert"); });
+        const shareBtn = body.querySelector("#sl-share");
+        if (shareBtn) shareBtn.addEventListener("click", () => { shareLink(r.name, "Mein Meal für dich: " + r.name, createdUrl).catch(() => { toast("Teilen hat nicht geklappt"); }); });
         body.querySelector("#sl-new").addEventListener("click", () => { createdUrl = null; paint(); });
       } else {
         body.innerHTML = `
