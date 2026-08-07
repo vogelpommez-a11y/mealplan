@@ -2525,6 +2525,14 @@
               return { type: c.type, id: c.doc.id, data: c.doc.data(), pending: c.doc.metadata.hasPendingWrites };
             }));
           }, function () {});
+        },
+        // Loescht den Firestore-Offline-Cache (IndexedDB) - Teil der Loeschzusage aus
+        // Datenschutz Ziffer 10, seit der Cache Inhaltsdaten (Meals, Wochenplan) spiegelt.
+        // Nur unmittelbar vor einem Reload aufrufen: nach terminate() ist die db-Instanz tot.
+        // Reihenfolge ist zwingend - clearIndexedDbPersistence() verlangt eine beendete Instanz.
+        wipeCache: async function () {
+          await terminate(db);
+          await clearIndexedDbPersistence(db);
         }
       };
 
@@ -2636,15 +2644,7 @@
         fetchInvite: function (code) {
           return getDoc(doc(db, "invites", code)).then(function (s) { return s.exists() ? s.data() : null; });
         },
-        deleteInvite: function (code) { return deleteDoc(doc(db, "invites", code)); },
-        // Loescht den Firestore-Offline-Cache (IndexedDB) - Teil der Loeschzusage aus
-        // Datenschutz Ziffer 10, seit der Cache Inhaltsdaten (Meals, Wochenplan) spiegelt.
-        // Nur unmittelbar vor einem Reload aufrufen: nach terminate() ist die db-Instanz tot.
-        // Reihenfolge ist zwingend - clearIndexedDbPersistence() verlangt eine beendete Instanz.
-        wipeCache: async function () {
-          await terminate(db);
-          await clearIndexedDbPersistence(db);
-        }
+        deleteInvite: function (code) { return deleteDoc(doc(db, "invites", code)); }
       };
 
       onAuthStateChanged(auth, function (user) {

@@ -521,6 +521,21 @@ Zusätzlich: `initializeFirestore` künstlich werfen lassen (z. B. per DevTools-
 die App muss weiterhin mit Cloud-Login starten, **nicht** auf den lokalen Login zurückfallen
 (Fallback-Test, siehe `docs/ARCHITECTURES.md` „Firestore-Offline-Cache").
 
+**Bekannte Einschränkung, beim Testen nicht mit einem neuen Bug verwechseln:** Wird offline etwas
+am Wochenplan geändert und die App lädt neu, *bevor* der Push danach durchgelaufen ist, kann diese
+Änderung verloren gehen — vorbestehendes Verhalten der Wochen-Merge-Logik in `startCloudSync()`,
+nicht durch den Offline-Cache verursacht. Details in `docs/TROUBLESHOOTING.md` Ziffer 46.
+
+**Alle vier manuellen Tests wurden für dieses Paket durchgeführt** (Offline-Reload, Multi-Tab,
+Löschung, Fallback). Dabei drei eigenständige Funde jenseits der ursprünglichen `fromCache`-Logik:
+Ziffer 46 (Wochen-Merge verliert unsynced Änderungen, vorbestehend), Ziffer 47 (Live-Update zwischen
+zwei Tabs blieb im Test aus, nicht abschließend geklärt ob echter Bug oder Testumgebungs-Artefakt),
+Ziffer 48 (`deleteAccountFlow()` kann durch einen fremden/toten `shared/{id}`-Eintrag blockiert
+werden, DSGVO-relevant, nicht behoben) und Ziffer 49 (`wipeCache()` stand am falschen Objekt und lief
+nie — **gefunden und noch im selben Arbeitsschritt behoben**, per direktem IndexedDB-Inhalt vor und
+nach dem Fix verifiziert). Der Löschtest selbst (Kern des Fallback- und Löschverfahrens) bestand nach
+dem Fix. Details zu allen vieren in `docs/TROUBLESHOOTING.md`.
+
 ### Testlücke: ein Prüfstand, der nur den Normalablauf fährt, beweist nichts über Fehlerpfade
 
 Historischer Fall (`docs/TROUBLESHOOTING.md` Ziffer 44, Rückfall vom 06.08.2026): Ein

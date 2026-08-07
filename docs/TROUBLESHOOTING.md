@@ -1008,3 +1008,133 @@ ohne IndexedDB, exotische WebView) die ganze Cloud-Anmeldung, nicht nur den Komf
 mit `fromCache:true` und Liste ohne eigene UID (muss `"error"` liefern), jeweils mit Gegenprobe bei
 `fromCache:false` (dort muss weiterhin `"gone"` herauskommen, sonst ist der echte Rauswurf kaputt).
 Details in `docs/TESTING.md`.
+
+## 46. Ein Reload vor dem erfolgreichen Push kann eine lokale Änderung innerhalb einer bereits
+    bekannten Woche verlieren — vorbestehend, nicht durch den Offline-Cache verursacht
+
+**Symptom:** Im Flugmodus-Test von Hand zu Ziffer 45 (siehe `docs/TESTING.md`, „Offline-Testverfahren"):
+offline Meals zu einem Tag hinzugefügt, WLAN wieder an, App neu geladen — die Meals waren noch da.
+Ein **zweiter** Reload kurz danach zeigte den Tag wieder leer. Per direktem Firestore-REST-Aufruf
+verifiziert (nicht nur über die App-Anzeige): Der Server-Stand kannte die Meals nie, obwohl der Push
+danach als `"synced"` markiert wurde.
+
+**Ursache:** `startCloudSync()` (Zeile ~4057) führt bei einem Konto **ohne** aktive Gruppe den lokalen
+und den geladenen Cloud-Plan pro **Woche**, nicht pro Tag/Slot, zusammen:
+
+```js
+const rp = pruneWeeks(normalizePlans(plansField(remote), state.recipes));
+Object.keys(state.plans).forEach(k => { if (!rp[k]) rp[k] = state.plans[k]; }); // lokale Wochen behalten, die es remote nicht gibt
+state.plans = pruneWeeks(rp);
+```
+
+Nur Wochen, die der Server **gar nicht** kennt, bleiben vom lokalen Stand erhalten. Für eine Woche,
+die auf beiden Seiten existiert, gewinnt bedingungslos die Cloud-Version — auch wenn der lokale Stand
+eine Änderung enthält, die noch nicht erfolgreich gepusht wurde. Trifft ein Reload also genau in dieses
+Fenster (Änderung gemacht, aber `pushNow()` noch nicht durchgelaufen — z. B. weil der vorherige Push
+offline hängen blieb), überschreibt der nächste `startCloudSync()`-Lauf die Änderung mit dem älteren
+Server-Stand, und der anschließende Baseline-Push (`await pushNow()`, direkt nach `syncHandshakeOk = true`)
+schreibt diesen bereinigten Stand zurück — die Änderung ist dann auch auf dem Server weg, nicht nur lokal.
+
+**Wichtig, damit hier niemand denselben Verdacht zweimal prüft:** Das ist **kein** Rückfall durch
+`persistentLocalCache` (Ziffer 45) — die Merge-Zeilen oben sind nicht Teil des Firestore-Cache-Commits
+und verhalten sich unabhängig davon, ob `getDoc` aus dem Cache oder vom Server antwortet. Das Risiko
+besteht grundsätzlich immer dann, wenn zwischen einer lokalen Änderung und ihrem erfolgreichen Push ein
+Reload passiert — mit dem Offline-Cache ist das nur leichter zu erreichen (offline weiterplanen fühlt
+sich jetzt normal an), nicht neu entstanden.
+
+**Bewusst nicht mitgefixt:** Ein slot-genaues Merge (statt Wochen-Ersetzung) für den persönlichen
+Plan wäre ein eigenes, größeres Paket — analog zur bereits vorhandenen slot-genauen Merge-Logik im
+Gruppenmodus (`groups/{gid}/plans`, ein Dokument je Woche mit flachen Feldern, siehe
+`docs/ARCHITECTURES.md`, Abschnitt „Gruppen-Wochenplan"). Nicht ungefragt im Rahmen des
+Offline-Cache-Pakets umgesetzt (CLAUDE.md §31, Minimalprinzip).
+
+## 47. Zweiter Tab bekommt Änderungen des ersten nicht live mit (unbestätigt, nicht root-ursächlich geklärt)
+
+**Symptom im Multi-Tab-Test zu Ziffer 45** (`docs/TESTING.md`, „Offline-Testverfahren"): zwei Tabs
+mit demselben Konto gleichzeitig offen, in Tab 1 ein Meal eingeplant. Der Server hatte die Änderung
+sofort (per direktem Firestore-REST-Aufruf gegengeprüft), ein manueller `CloudSync.load()` in Tab 2
+zeigte sie ebenfalls korrekt — aber die laufende Seite in Tab 2 aktualisierte sich auch nach rund
+60 Sekunden nicht von selbst. Kein Rauswurf, keine Fehlermeldung, `firestore_clients_*` in
+`localStorage` zeigte beide Tabs korrekt als zwei registrierte Clients — nur der Live-Listener
+(`window.CloudSync.watch(uid, onRemote)`) schien in Tab 2 nicht auf die Änderung zu reagieren.
+
+**Möglicher Zusammenhang mit `persistentMultipleTabManager`:** Vor dem Offline-Cache-Paket lief
+jeder Tab mit `getFirestore(app)` unabhängig und direkt gegen den Server — Live-Updates kamen
+unabhängig vom Zustand anderer Tabs an. Der Multi-Tab-Manager bündelt die tatsächliche
+Serververbindung dagegen auf einen primären Tab; die übrigen sollen Änderungen über die gemeinsame
+IndexedDB mitbekommen. Dieser Weg scheint hier nicht (rechtzeitig) zu greifen.
+
+**Ausdrücklich unbestätigt:** Nicht bis zur Ursache instrumentiert. Könnte auch ein Artefakt der
+ferngesteuerten Browser-Testumgebung sein (Chrome drosselt Timer in nicht fokussierten Tabs, was die
+interne Cross-Tab-Benachrichtigung verzögern könnte) statt ein echter App-Fehler. Kein Datenverlust
+in diesem Test — nur die Live-Anzeige blieb stehen, ein manueller Reload zeigte den korrekten Stand.
+
+**Nächster Schritt bei erneutem Auftreten:** Mit zwei echten, sichtbaren Browser-Fenstern (nicht
+ferngesteuert) nachstellen, um Tab-Drosselung als Ursache auszuschließen. Erst danach entscheiden,
+ob ein Fix nötig ist.
+
+## 48. `deleteAccountFlow()` kann durch einen einzigen fremden oder toten `shared/{id}`-Eintrag
+    dauerhaft blockiert werden — DSGVO-relevant
+
+**Symptom im Löschtest zu Ziffer 45** (`docs/TESTING.md`, „Offline-Testverfahren"): „Konto löschen"
+brach mit `Es ist ein Fehler aufgetreten. (permission-denied)` ab, ohne dass ein erneuter Versuch
+half — der Fehler ist strukturell, kein vorübergehendes Netzproblem.
+
+**Ursache:** `deleteAccountFlow()` löscht `state.shares` (die Liste eigener Teilen-Link-Codes) in
+einer Schleife (index.html, `CloudAuth.deleteAccount()`), **ohne** einzelne Fehler abzufangen —
+bewusst so kommentiert, damit ein liegengebliebener Snapshot nicht stillschweigend übersehen wird.
+Diese Annahme bricht, wenn `state.shares` einen Eintrag enthält, der **nicht mehr existiert** (404)
+oder **einer fremden UID gehört** — die Firestore-Regel `allow delete: if resource.data.uid ==
+request.auth.uid` (`firestore.rules`) blockt Letzteres zu Recht als Sicherheitsgrenze, nicht als Bug.
+Auf dem betroffenen Testkonto trugen mehrere der 18 gespeicherten Share-IDs eine fremde UID sowie
+zwei weitere gar keine existierende Cloud sein Dokument mehr — beides per direktem Firestore-REST-
+Aufruf verifiziert, nicht nur vermutet.
+
+**Warum das über einen kaputten Testdatensatz hinausgeht:** `state.shares` wird ausschließlich per
+`unionIds()` zusammengeführt (`onRemote()`) — Einträge werden nie automatisch entfernt, auch nicht,
+wenn der zugehörige `shared/{id}`-Zugriff schon lange fehlschlägt. Wie genau eine fremde UID in
+dieses Konto gelangte, wurde nicht abschließend geklärt (denkbar: Kontowechsel im selben Browser
+ohne vollständige lokale Bereinigung dazwischen). Unabhängig vom genauen Weg bleibt die Lücke: **ein
+einziger nicht löschbarer Eintrag in `shares` blockiert die gesamte Kontolöschung ohne Weg zur
+Selbsthilfe für den Nutzer** — das betrifft die Löschzusage aus Ziffer 10 der Datenschutzerklärung
+und Art. 17 DSGVO.
+
+**Nicht behoben, nur dokumentiert und umgangen:** Für den eigentlichen Löschtest wurden die
+betroffenen Share-IDs direkt in Firestore aus `state.shares` des Testkontos entfernt (Datenreparatur,
+kein Code-Fix) — die Löschung selbst lief danach durch. Ein echter Fix (z. B. `deleteDoc` pro Share
+einzeln in try/catch, fehlgeschlagene Einträge sammeln statt abzubrechen, oder still weiterlaufen und
+nur melden) ist ein eigenständiges Thema, keine Firestorm-Änderung, und wurde bewusst nicht ungefragt
+umgesetzt (CLAUDE.md §31). Vor einem Fix: `anwalt` und `website-security` einbeziehen, da es die
+Löschzusage direkt betrifft.
+
+## 49. `wipeCache()` stand am falschen Objekt und lief dadurch nie (gefunden und behoben)
+
+**Symptom im Löschtest zu Ziffer 45:** Nach vollständig erfolgreicher Kontolöschung (Server-Löschung
+bestätigt, Weiterleitung zur Registrierung) lagen weiterhin alle 26 Dokumente des gelöschten Kontos
+im Firestore-Cache (`remoteDocumentsV14`, per direktem IndexedDB-Zugriff ausgelesen) — das komplette
+`users/{uid}`-Kontodokument und alle Rezept-Unterdokumente. Kein Fehler-Toast, kein Hinweis.
+
+**Ursache:** Beim Umsetzen von TEIL 3B ist `wipeCache` versehentlich in das Objektliteral von
+`window.CloudGroup` gerutscht statt in `window.CloudSync` (beide Objekte enden im Quelltext mit einem
+sehr ähnlichen `deleteInvite`-Eintrag, das war die Verwechslungsstelle). `wipeLocalData()` prüft
+`if (window.CloudSync && window.CloudSync.wipeCache) await window.CloudSync.wipeCache();` —
+`window.CloudSync.wipeCache` war dadurch immer `undefined`, der Guard griff also genauso wie beim
+vorgesehenen Fall „Firebase nicht konfiguriert" und übersprang den Aufruf lautlos. Kein Fehler, keine
+Meldung, einfach ein nie ausgeführter Schritt.
+
+**Verifiziert vor UND nach dem Fix, direkt per IndexedDB-Inhalt (nicht nur Datenbank-Namen, die auch
+nach einem Reload leer neu angelegt werden und nichts beweisen):**
+
+* Vorher: `window.CloudSync.wipeCache` → `undefined`. Isolierter Aufruf war nicht möglich; die
+  26 Alt-Dokumente blieben auch 8 Sekunden nach der Löschung unverändert liegen.
+* Nachher: `window.CloudSync.wipeCache` → Funktion. Isoliert aufgerufen (bewusst ohne anschließenden
+  Reload, um einen Reload-Race als Erklärung auszuschließen) → die gesamte `remoteDocumentsV14`-Store
+  existierte danach nicht mehr (`no-store`, die komplette Datenbank wurde neu angelegt). Kein Race mit
+  dem Reload, rein die falsche Objektzuordnung war die Ursache.
+
+**Lehre:** Bei zwei strukturell ähnlichen Objektliteralen im selben Modul (hier `CloudSync`/
+`CloudGroup`, beide mit `deleteInvite`) reicht „nach dem passenden Text suchen" nicht — die
+schließende Klammer der jeweiligen Funktion muss mitgeprüft werden. Ein Test, der nur „wirft
+`wipeCache()` einen Fehler" prüft, hätte diesen Bug nicht gefunden: der Aufruf wurde nie erreicht,
+es gab nichts, das hätte werfen können. Erst die Kontrolle des tatsächlichen IndexedDB-**Inhalts**
+nach der Löschung deckte es auf.
