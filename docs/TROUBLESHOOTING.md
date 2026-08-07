@@ -1074,7 +1074,7 @@ ferngesteuert) nachstellen, um Tab-Drosselung als Ursache auszuschließen. Erst 
 ob ein Fix nötig ist.
 
 ## 48. `deleteAccountFlow()` kann durch einen einzigen fremden oder toten `shared/{id}`-Eintrag
-    dauerhaft blockiert werden — DSGVO-relevant
+    dauerhaft blockiert werden — DSGVO-relevant (gefunden und behoben)
 
 **Symptom im Löschtest zu Ziffer 45** (`docs/TESTING.md`, „Offline-Testverfahren"): „Konto löschen"
 brach mit `Es ist ein Fehler aufgetreten. (permission-denied)` ab, ohne dass ein erneuter Versuch
@@ -1099,13 +1099,57 @@ einziger nicht löschbarer Eintrag in `shares` blockiert die gesamte Kontolösch
 Selbsthilfe für den Nutzer** — das betrifft die Löschzusage aus Ziffer 10 der Datenschutzerklärung
 und Art. 17 DSGVO.
 
-**Nicht behoben, nur dokumentiert und umgangen:** Für den eigentlichen Löschtest wurden die
-betroffenen Share-IDs direkt in Firestore aus `state.shares` des Testkontos entfernt (Datenreparatur,
-kein Code-Fix) — die Löschung selbst lief danach durch. Ein echter Fix (z. B. `deleteDoc` pro Share
-einzeln in try/catch, fehlgeschlagene Einträge sammeln statt abzubrechen, oder still weiterlaufen und
-nur melden) ist ein eigenständiges Thema, keine Firestorm-Änderung, und wurde bewusst nicht ungefragt
-umgesetzt (CLAUDE.md §31). Vor einem Fix: `anwalt` und `website-security` einbeziehen, da es die
-Löschzusage direkt betrifft.
+**Für den ursprünglichen Löschtest umgangen, nicht behoben:** die betroffenen Share-IDs wurden
+zunächst direkt in Firestore aus `state.shares` des Testkontos entfernt (Datenreparatur, kein
+Code-Fix) — die Löschung lief danach durch.
+
+**Fix (separater Schritt, auf Nutzerwunsch nachgezogen):** `deleteAccount()` prüft jetzt bei drei
+betroffenen Löschvorgängen — `shared/{id}`, `groups/{gid}/members/{uid}`, `invites/{code}` — gezielt
+den Fehlercode. `shared/{id}` (`firestore.rules:70f.`) und `invites/{code}` (`firestore.rules:171f.`)
+referenzieren in ihrer `delete`-Regel tatsächlich `resource.data...`, nicht nur den Pfad — deshalb
+liefert Firestore für ein **bereits nicht mehr existierendes** Dokument denselben
+`"permission-denied"`-Fehler wie für ein fremdes (`resource` ist bei einem nicht existierenden
+Dokument `null`, der Zugriff auf `.data` scheitert). Bei `groups/{gid}/members/{uid}`
+(`firestore.rules:134f.`, `request.auth.uid == uid || isOwner(gid)`) greift dagegen beim
+Selbstlöschen die linke Seite der Oder-Verknüpfung per Kurzschluss immer, unabhängig vom
+Dokumentinhalt — `resource.data` wird praktisch nie ausgewertet; `deleteBestEffort()` dient hier vor
+allem der Konsistenz mit den anderen beiden Stellen, nicht derselben Notwendigkeit (Fund von
+`anwalt`, korrigiert gegenüber einer ersten, zu pauschalen Version dieses Absatzes).
+
+Die neue Hilfsfunktion `deleteBestEffort(ref)` verzeiht **ausschließlich** `"permission-denied"` und
+macht mit dem nächsten Eintrag weiter; jeder andere Fehlercode (Netz, noch nicht veröffentlichte
+Regeln) bricht die Löschung weiterhin ab, damit der Nutzer es erneut versuchen kann — das war die
+ursprüngliche Absicherung und bleibt erhalten. Die `recipeIds`-Schleife und der abschließende
+`deleteDoc(doc(db,"users",uid))` bleiben unverändert bei striktem `deleteDoc()`: ihre Regeln sind
+rein pfadbasiert (kein `resource.data`-Zugriff), das Problem existiert dort strukturell nicht.
+
+**Rechtstext nachgezogen:** Ziffer 10 der Datenschutzerklärung versprach zuvor unbedingt „schlägt das
+für einen einzelnen Link fehl, bricht die Löschung ab" — das traf nach dem Fix nicht mehr zu (Fund
+von `anwalt`). Text ergänzt: ein Link, der sich beim Löschversuch als nicht (mehr) dem Konto
+zugeordnet herausstellt, wird übersprungen; nur ein Fehlschlagen aus einem anderen Grund bricht
+weiterhin ab.
+
+**Bewusst nicht behoben:** *wie* die fremde UID überhaupt in `state.shares` gelangte (vermuteter,
+nicht bestätigter Kontowechsel im selben Browser). `unionIds()` entfernt weiterhin nie einen Eintrag —
+das ist beabsichtigt (kein Share-Link darf durch einen Merge verloren gehen), heißt aber, ein einmal
+hineingeratener Fehleintrag bleibt bis zur Kontolöschung bestehen. Er blockiert die Löschung durch
+diesen Fix nur nicht mehr.
+
+**Nachweis im Prüfstand:** Ausschneide-Prüfstand für `deleteAccount()` (Fake-`deleteDoc()`, die je
+nach Dokument-ID `permission-denied`, einen anderen Fehlercode oder Erfolg liefert), sechs Szenarien,
+alle PASS: Normalfall; je ein verziehener `permission-denied` bei Share/Gruppenmitglied/
+Einladungscode (inkl. Beleg, dass die Schleife beim Share-Fall tatsächlich mit dem nächsten Eintrag
+weitermacht, nicht nur die Gesamtfunktion nicht wirft); ein echter anderer Fehlercode (`unavailable`)
+bricht weiterhin ab; ein `permission-denied` bei einem Rezept bricht ebenfalls ab (Regressionstest,
+nur die drei beabsichtigten Stellen sind tolerant). Gegenprobe gegen `git show HEAD:index.html`
+(Stand vor diesem Fix): dort scheitern genau die drei Verzeihen-Szenarien wie erwartet — der Fix
+verändert also nachweislich etwas.
+
+**Von `anwalt` und `website-security` geprüft** (nach den beiden oben genannten Korrekturen erneut
+freigegeben, siehe Rechtstext- und Kommentar-Anpassung): keine Angriffsfläche durch das gezielte
+Verzeihen von `"permission-denied"`, kein zu weiter Catch-Alles, keine Datenreste, die die
+Löschzusage verletzen — ein übersprungenes fremdes Dokument enthält keine personenbezogenen Daten
+dieses Kontos.
 
 ## 49. `wipeCache()` stand am falschen Objekt und lief dadurch nie (gefunden und behoben)
 

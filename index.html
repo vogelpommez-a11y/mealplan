@@ -2419,18 +2419,32 @@
             await reauthenticateWithPopup(user, new OAuthProvider("apple.com"));
           }
           const uid = user.uid;
-          // Fehler beim Loeschen eines geteilten Plans NICHT verschlucken und weitermachen:
-          // sonst koennte "Konto loeschen" durchlaufen, obwohl ein Snapshot liegen blieb -
-          // und der waere danach fuer immer verwaist (die Regel verlangt einen Auth-User
-          // mit genau dieser uid, den es nach deleteUser() nicht mehr gibt). Lieber
-          // abbrechen und dem Nutzer einen erneuten Versuch ermoeglichen (das Wiederholen
-          // ist unproblematisch: bereits geloeschte Dokumente ueberspringt deleteDoc still).
+          // shared/{id}, groups/{gid}/members/{uid} und invites/{code} pruefen in ihrer
+          // delete-Regel jeweils resource.data (siehe firestore.rules) - anders als bei einer
+          // reinen Pfad-Regel liefert das FUER EIN NICHT MEHR EXISTIERENDES Dokument ebenfalls
+          // "permission-denied" statt eines stillen Erfolgs, weil "resource" dann null ist.
+          // Ein Eintrag, der ausserdem einer fremden UID gehoert (z. B. durch einen frueheren
+          // Datenfehler in state.shares), erzeugt denselben Fehlercode. Ein erneuter Versuch
+          // wuerde in beiden Faellen IMMER wieder genau hier scheitern - anders als bei einem
+          // echten Netz-/Regel-Problem. Deshalb NUR "permission-denied" verzeihen (das Dokument
+          // war fuer dieses Konto ohnehin nie loeschbar), jeden anderen Fehler weiterhin
+          // durchreichen und die Loeschung abbrechen, damit der Nutzer es erneut versuchen kann.
+          async function deleteBestEffort(ref) {
+            try {
+              await deleteDoc(ref);
+            } catch (e) {
+              if (e && e.code === "permission-denied") return;
+              throw e;
+            }
+          }
           const shareIds = (opts && opts.shareIds) || [];
           for (let i = 0; i < shareIds.length; i++) {
-            await deleteDoc(doc(db, "shared", shareIds[i]));
+            await deleteBestEffort(doc(db, "shared", shareIds[i]));
           }
           // Rezepte liegen seit dem Subcollection-Umbau in eigenen Dokumenten - Firestore
           // loescht Subcollections NICHT automatisch mit, wenn das Elternobjekt verschwindet.
+          // Die Regel hier ist rein pfadbasiert (kein resource.data-Zugriff) - ein bereits
+          // geloeschtes Rezept liefert deshalb, anders als oben, weiterhin einen stillen Erfolg.
           const recipeIds = (opts && opts.recipeIds) || [];
           for (let i = 0; i < recipeIds.length; i++) {
             await deleteDoc(doc(db, "users", uid, "recipes", recipeIds[i]));
@@ -2438,16 +2452,19 @@
           // Mitgliedschaft in einer Gruppe: Name und Bild liegen in einem Dokument, das
           // NICHT unter users/{uid} haengt und deshalb sonst zurueckbliebe - in einer
           // fremden Gruppe, fuer immer, ohne dass es danach noch jemand loeschen koennte
-          // (die Regel verlangt genau diese uid). Aus demselben Grund wie oben bei den
-          // geteilten Plaenen: Fehler nicht verschlucken, lieber abbrechen.
+          // (die Regel verlangt genau diese uid). Anders als bei shared/ und invites/ pruefend
+          // die Loeschregel hier NICHT resource.data - der Pfad traegt bereits die eigene uid,
+          // "request.auth.uid == uid" greift per Kurzschluss unabhaengig vom Dokumentinhalt.
+          // deleteBestEffort() ist hier also v. a. Konsistenz mit den anderen beiden Stellen,
+          // nicht dieselbe Notwendigkeit.
           if (opts && opts.groupId) {
-            await deleteDoc(doc(db, "groups", opts.groupId, "members", uid));
+            await deleteBestEffort(doc(db, "groups", opts.groupId, "members", uid));
           }
           // Selbst erzeugte Einladungscodes: sie zeigen auf die Gruppe und traegen die
-          // eigene uid im Feld "by".
+          // eigene uid im Feld "by". Gleiche resource.data-Regel wie oben.
           const inviteCodes = (opts && opts.inviteCodes) || [];
           for (let i = 0; i < inviteCodes.length; i++) {
-            await deleteDoc(doc(db, "invites", inviteCodes[i]));
+            await deleteBestEffort(doc(db, "invites", inviteCodes[i]));
           }
           await deleteDoc(doc(db, "users", uid));
           try {
@@ -7993,8 +8010,9 @@
          Konto und deine Daten <strong>jederzeit selbst und sofort</strong> unwiderruflich löschen; alternativ kannst
          du die Löschung auch per E-Mail an uns verlangen. Das schließt alle Teilen-Links für einzelne Meals ein, die deinem
          Konto zugeordnet und diesem Gerät bzw. deinem synchronisierten Konto zum Löschzeitpunkt bekannt sind – sie
-         werden automatisch mitentfernt; schlägt das für einen einzelnen Link fehl, bricht die Löschung ab, statt
-         einen Rest zurückzulassen, und du kannst sie erneut anstoßen. Bis zur Löschung bleiben geteilte Inhalte
+         werden automatisch mitentfernt; stellt sich beim Löschversuch heraus, dass ein Link ohnehin nicht mehr
+         deinem Konto zugeordnet ist, wird er übersprungen. Schlägt das Entfernen aus einem anderen Grund fehl,
+         bricht die Löschung ab, statt einen Rest zurückzulassen, und du kannst sie erneut anstoßen. Bis zur Löschung bleiben geteilte Inhalte
          abrufbar – auch dann, wenn du den Link nicht mehr weitergibst. Nutzt du die App ohne Cloud-Konto (lokales
          Profil), kannst du ebenso über „Alle Daten löschen" im Profilmenü sämtliche auf diesem Gerät gespeicherten
          Daten sofort entfernen.</p>
