@@ -3645,7 +3645,6 @@
     }
   }
   function onRemote(data, pending) {
-    console.log("[ZUCKEN] onRemote fired, pending=" + pending); // TEMP-DEBUG, vor Commit entfernen
     // KEIN Array.isArray(data.recipes)-Check mehr: das Hauptdokument hat seit dem
     // Subcollection-Umbau nie mehr ein "recipes"-Feld. Wuerde der Check bleiben, wuerde
     // JEDER eingehende Snapshot dauerhaft ignoriert - Plan/Ziel/Gewichte/Profilbild
@@ -3675,7 +3674,6 @@
     const retryingFailedAttempt = groupSyncFailed && remoteGid === lastGroupAttempt;
     if (remoteGid !== syncGid && !staleEmptyGid && !retryingFailedAttempt) { switchGroup(remoteGid); return; }
     const j = dataJSON(data), before = dataJSON(state);
-    console.log("[ZUCKEN] onRemote: j===before " + (j === before) + ", j===lastPushedJSON " + (j === lastPushedJSON)); // TEMP-DEBUG
     if (j === before || j === lastPushedJSON) return; // nichts Neues
     // state.recipes wird hier NICHT mehr ersetzt - Rezepte kommen ausschliesslich ueber
     // onRecipesRemote() (eigener Listener auf die recipes-Subcollection).
@@ -3712,8 +3710,7 @@
     // render() baut <main> komplett neu auf, und genau das sah man als Zucken, solange zwei
     // Geraete gleichzeitig offen waren. save() laeuft trotzdem, denn der eigene Mehrstand
     // (den die Gegenseite noch nicht hat) muss weiterhin hoch.
-    if (dataJSON(state) === before) { console.log("[ZUCKEN] onRemote: merge ergab keine Aenderung, kein render()"); setSyncStatus("synced"); return; } // TEMP-DEBUG
-    console.log("[ZUCKEN] onRemote: render() wird aufgerufen"); // TEMP-DEBUG
+    if (dataJSON(state) === before) { setSyncStatus("synced"); return; }
     render(); renderProfileChip();
     setSyncStatus("synced");
     // Nicht bei jedem eingehenden Schreibvorgang melden: wer auf einem Geraet plant,
@@ -3733,7 +3730,6 @@
   // wuerde der naechste eigene pushNow()-Zyklus denselben, gerade erst empfangenen
   // Stand fuer unveraendert halten oder ihn faelschlich erneut schreiben (Ping-Pong).
   function onRecipesRemote(changes) {
-    console.log("[ZUCKEN] onRecipesRemote fired, changes=" + changes.length + " " + JSON.stringify(changes.map(c => ({ type: c.type, id: c.id, pending: c.pending })))); // TEMP-DEBUG
     let changed = false;
     changes.forEach(c => {
       if (c.pending) return; // eigener Schreibvorgang → ignorieren
@@ -3758,14 +3754,11 @@
         if (!syncGid && isDeleted(c.id)) { if (lastPushedRecipes) lastPushedRecipes.set(c.id, json); return; }
         const idx = state.recipes.findIndex(r => r.id === c.id);
         if (idx === -1) { state.recipes.push(incoming); changed = true; }
-        else if (canonJSON(state.recipes[idx]) !== json) {
-          console.log("[ZUCKEN] onRecipesRemote: Rezept " + c.id + " unterscheidet sich", canonJSON(state.recipes[idx]), json); // TEMP-DEBUG
-          state.recipes[idx] = incoming; changed = true;
-        }
+        else if (canonJSON(state.recipes[idx]) !== json) { state.recipes[idx] = incoming; changed = true; }
         if (lastPushedRecipes) lastPushedRecipes.set(c.id, json);
       }
     });
-    if (changed) { console.log("[ZUCKEN] onRecipesRemote: render() wird aufgerufen"); save(); render(); } // TEMP-DEBUG
+    if (changed) { save(); render(); }
   }
 
   // ---------- Empfaenger fuer die Gruppe ----------
@@ -3774,7 +3767,6 @@
   // pushGroupPlan() den gerade empfangenen Stand fuer eine eigene Aenderung und schriebe
   // ihn zurueck (Ping-Pong zwischen zwei Geraeten).
   function onGroupPlansRemote(changes) {
-    console.log("[ZUCKEN] onGroupPlansRemote fired, changes=" + changes.length + " " + JSON.stringify(changes.map(c => ({ type: c.type, week: c.week, pending: c.pending })))); // TEMP-DEBUG
     let changed = false;
     const touchedDays = [];
     let author = null;
@@ -3789,7 +3781,6 @@
       // canonJSON statt JSON.stringify: ein Slot-Eintrag ist heute zufaellig alphabetisch
       // ({id, uids}), ein kuenftiges drittes Feld risse die Falle sonst lautlos wieder auf.
       if (canonJSON(state.plans[c.week]) !== canonJSON(incoming)) {
-        console.log("[ZUCKEN] onGroupPlansRemote: Woche " + c.week + " unterscheidet sich", canonJSON(state.plans[c.week]), canonJSON(incoming)); // TEMP-DEBUG
         // Welcher Tag hat sich geaendert? Nur fuer die Meldung, deshalb bewusst grob.
         DAYS.forEach(d => {
           const before = state.plans[c.week] ? canonJSON(state.plans[c.week][d.key]) : null;
@@ -3805,8 +3796,7 @@
         Object.keys(flat).forEach(f => lastPushedSlots.set(c.week + "." + f, canonJSON(flat[f])));
       }
     });
-    if (!changed) { console.log("[ZUCKEN] onGroupPlansRemote: keine Aenderung, kein render()"); return; } // TEMP-DEBUG
-    console.log("[ZUCKEN] onGroupPlansRemote: render() wird aufgerufen"); // TEMP-DEBUG
+    if (!changed) return;
     setViewWeek(state.viewWeek);
     save(); render();
     setSyncStatus("synced");
