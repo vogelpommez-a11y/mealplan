@@ -737,3 +737,30 @@ scrollen soll: `scrollWidth === clientWidth` (bzw. `scrollHeight === clientHeigh
 `getComputedStyle(el).touchAction`. `overflow-y: auto` macht die Gegenachse automatisch mit zum
 Scroller, und schon sechs Pixel Überlauf schalten die Wischgeste des Elternteils ab. Die Geste
 selbst ist headless nicht auslösbar — diese beiden Werte sind der belastbare Ersatz.
+
+### Wischgesten sind in diesem Aufbau nicht messbar — drei Anläufe, alle gescheitert
+
+Stand 08.08.2026. Damit niemand ein viertes Mal denselben Weg geht:
+
+| Weg | Ergebnis |
+|---|---|
+| `Input.dispatchTouchEvent`, App im `iframe` | DOM-Ereignisse kommen an (nachgezählt: 1 × `touchstart`, 17 × `touchmove`, 1 × `touchend`), **kein Scrollen** |
+| `Input.synthesizeScrollGesture` im `iframe` | scrollt immer das Top-Dokument, erreicht keinen Scroller im Rahmen |
+| Ohne `iframe`, `setDeviceMetricsOverride`, mit **und** ohne `--disable-gpu` | `scrollLeft` bleibt 0 |
+
+**Der A/B-Prüfstand ist das Werkzeug, das „Prüfstand blind" von „Code kaputt" trennt.** Dieselbe
+Geste zweimal im selben Browser fahren — einmal gegen den ausgelieferten Zustand, einmal gegen
+einen zur Laufzeit per `<style>` korrigierten. Vier mögliche Ausgänge, jeder mit klarer Aussage:
+
+* keiner bewegt sich → Prüfstand blind, der Lauf beweist nichts
+* beide bewegen sich → die vermutete Ursache war es nicht
+* nur der korrigierte → Ursache und Fix belegt
+* nur der ausgelieferte → Analyse verkehrt herum
+
+Ohne diese Gegenüberstellung meldet ein Prüfstand, der gar nichts auslöst, fröhlich „alles
+sauber" — genau so ist ein Fix zweimal ungeprüft ans Gerät gegangen.
+
+**Was stattdessen messbar ist:** die Struktur. Für „kann hier gewischt werden" heißt das:
+`getComputedStyle(el).overflowX/overflowY`, `touchAction` und `scrollWidth === clientWidth` auf
+der Achse, die nicht scrollen soll. Nur `auto`/`scroll` fangen Gesten ab — `hidden` nicht.
+Das ist ein Indiz, kein Beweis; die Abnahme am Gerät bleibt Pflicht.

@@ -311,6 +311,16 @@ Zwei Dinge mussten dafür weichen: die Überschrift „Dein Wochenplan" (die Rei
 „Plan") und der breite Einkaufslisten-Knopf, der mobil ein Icon im Kopf wurde. Ein zweiter fester
 Balken über der Reiterleiste hätte auf einem 667 px hohen Gerät die halbe Meal-Fläche gekostet.
 
+**Zweiter Nachtrag — die feste Höhe ist wieder weg.** Sie kostete das Wischen zwischen den Tagen:
+Ein eigener Scroller in der Tageskarte fängt die Geste ab, und auf Touch gibt er sie nicht mehr
+her. Am Gerät ließ sich der Plan gar nicht mehr durchblättern — ein Funktionsausfall wiegt mehr
+als eine ruhigere Fläche.
+
+Jetzt scrollt die Seite wieder. Der eigentliche Gewinn bleibt trotzdem erhalten: Der Kalorienstand
+steht in einer Leiste unter dem Streifen, die beim Scrollen über der Reiterleiste kleben bleibt.
+Man sieht ihn also weiterhin ohne Scrollen — nur trägt ihn nicht mehr eine feste Fläche, sondern
+ein klebendes Element. Die Lehre daraus steht in `docs/TROUBLESHOOTING.md`, Punkt 58.
+
 **Nachtrag aus der Geräteabnahme:** Die feste Höhe war richtig, aber der Fuß der Karte zu schwer.
 Die Tagesbilanz belegte 125 px, davon 41 px allein für eine Knopfzeile mit dem Wort „Makros". Der
 Aufklapper ist deshalb ein Chevron in der Kalorienzeile geworden. Zusammen mit der Fußzeile, die

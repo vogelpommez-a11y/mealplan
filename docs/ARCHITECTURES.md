@@ -747,39 +747,36 @@ verlassene Karte noch halb im Bild, ein Sprung wäre dort sichtbar.
   Wochenplan nutzt das, weil er seine Höhe vom Sheet bekommt (siehe unten). Damit entfällt der
   Schreibvorgang, der Punkt 42 verursacht hat.
 
-### Wochenplan als Sheet fester Höhe (mobil)
+### Wochenplan mobil: Seiten-Scroll, klebende Bilanz
 
-Im Handy-Zweig (`max-width: 680px`) ist der Plan-Reiter eine Fläche, die den Bildschirm genau
-ausfüllt — `.plan-sheet` als Raster `auto 1fr` (Tagesleiste / Streifen), jede Tageskarte darin
-als Raster `1fr auto` (scrollende Mahlzeiten / feste Tagesbilanz). Gescrollt wird ausschließlich
-in `.slots`, mit `overscroll-behavior-y: contain`.
+Im Handy-Zweig (`max-width: 680px`) scrollt die **Seite**. Die Tageskarte hat bewusst **keinen
+eigenen Scroller** — ein Scroll-Container im Snap-Streifen fängt die Wischgeste ab und gibt sie
+nicht mehr her (`docs/TROUBLESHOOTING.md`, Punkt 58). Wer dort `overflow`, `touch-action` oder
+`overscroll-behavior` ergänzt, schaltet das Wischen zwischen den Tagen ab.
 
-Weil das Sheet den Rest exakt füllt, hat die Seite **keinen Überlauf** — der Plan-Kopf steht
-dadurch fest, ohne ein zusätzliches `position: fixed`.
+Zwischenzeitlich war der Reiter eine Fläche fester Höhe mit innerem Scroller. Das ist
+zurückgebaut; `--sheet-top` und `--foot-h` sind ersatzlos entfallen.
 
-`syncStickyOffsets()` setzt dafür neben `--head-h` und `--tabbar-h` zwei weitere Variablen:
+Was fest bleiben soll, klebt per `position: sticky`:
 
-* `--sheet-top` — die **gemessene** Oberkante (`getBoundingClientRect().top + window.scrollY`).
-  Bewusst gemessen und nicht aus Einzelwerten summiert; warum, steht in
-  `docs/TROUBLESHOOTING.md`, Punkt 57.
-* `--foot-h` — Höhe der Fußzeile, die unter dem Sheet stehen bleibt. Sie wird abgezogen statt
-  ausgeblendet, damit das Impressum erreichbar bleibt.
+* **Tagesleiste** — `.daybar`, `top: var(--head-h)`, unverändert seit jeher.
+* **Tagesbilanz** — `#day-bal`, `bottom: calc(var(--tabbar-h) + 8px + safe-area)`. Sie liegt
+  **außerhalb** von `.week`: Der Streifen ist wegen `overflow-x` auch senkrecht ein
+  Scroll-Kontext, ein `sticky` darin richtete sich an ihm aus statt am Bildschirm. Nur mobil —
+  am Rechner trägt jede der sieben Spalten ihre eigene Bilanz in der Karte.
 
-Am Rechner ist `.plan-sheet` ein wirkungsloser Wrapper (`display: block`, keine Höhe), `.week`
-bleibt ein Raster und `.slots` scrollt nicht.
+`paintDayBalance(dayKey)` füllt die Leiste über dasselbe `dayNutHtml()` wie die Karte (kein
+zweiter Renderpfad) und hängt am **vorhandenen** `onChange`-Rückruf von `initCarousel()`. Bei
+einem leeren Tag liefert `dayNutHtml()` nichts; die Leiste bekommt dann `.is-empty` und
+verschwindet, statt leer stehen zu bleiben.
 
-**`touch-action: pan-y` auf `.slots` ist Bedingung, nicht Feinschliff.** Ohne das schluckt der
-innere Scroller die Wischgeste zum Nachbartag — ausführlich in `docs/TROUBLESHOOTING.md`,
-Punkt 58. Dazu gehört, dass auf der waagerechten Achse nichts überläuft: Der seitliche
-Innenabstand sitzt deshalb an `.slots`, nicht an den Zeilen, damit die vergrößerte Trefferfläche
-des ✕ nicht hinausragt.
+Der Höhensprung beim Wischen (Ziffer 42) wird von **`fixedHeight`** abgefangen: Die Streifenhöhe
+wird einmal auf das Maximum aller Karten gesetzt statt bei jedem Scroll-Bild nachgeführt. Das
+laufende Nachführen war die Ursache.
 
-**Die Fußzeile hängt am Anmeldezustand.** Angemeldet bleibt nur „Impressum · Datenschutz" mit
-halbem Innenabstand stehen (42 px statt 53); der Copyright-Hinweis wandert ins Profilmenü, wo
-auch beide Rechtstexte ein zweites Mal erreichbar sind. Der Selektor
-`.app:not(.authing):not(.onboarding)` schaltet das um — abgemeldet und in den ersten Schritten
-ist die Fußzeile vollständig. `syncStickyOffsets()` misst `.site-foot` weiterhin, `--foot-h`
-folgt der tatsächlichen Höhe ohne Sonderfall.
+Der Makro-Aufklapper löst auf dem Handy **kein** `render()` aus, sondern zeichnet nur die Leiste
+neu — sonst würfe der Neuaufbau von `#view` die Scrollposition der Seite durcheinander.
+Fallunterscheidung am Vorhandensein von `#day-bal`.
 
 **Die Tagesbilanz ist ihr eigener Aufklapper.** `goalBarHtml()` nimmt einen optionalen
 `toggle`-Parameter (`{ day, open }`); nur `dayGoalsHtml()` übergibt ihn, die Balken der
@@ -794,6 +791,10 @@ eines Knopfes bildet sich aus seinem gesamten Inhalt — „Kalorien" wäre dopp
 Wert und Chevron liegen zusammen in `.gm-vwrap`: `.gm-r` ist `space-between` und auf genau zwei
 Kinder ausgelegt. Ein drittes verteilte den Raum auf zwei Lücken, der Wert stand dann 80 px vor
 dem Pfeil in der Mitte.
+
+**Slot-Überschriften** tragen dieselben Symbole wie die Kategorien im Meals-Reiter, über denselben
+Helfer `iconSvg()`. `MEAL_ICON` ist eine eigene Zuordnung und nicht `CAT_ICON` durchgereicht:
+Slots sind keine Kategorien, und „Hauptgericht" fällt auf `mi` **und** `ab`.
 
 In `dayGoalsHtml()` stehen die Makros **vor** der Kalorienzeile, damit der Auslöser beim
 Aufklappen stehen bleibt (Punkt 59).

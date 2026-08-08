@@ -586,10 +586,12 @@ Wischen (echtes `scroll-snap`) nur dort, wo es keinen verschachtelten horizontal
 
 **Ein Scroller entsteht auch ungewollt.** `overflow-y: auto` allein macht ein Element **auf beiden Achsen** zum Scroll-Container — die Spezifikation rechnet die andere Achse von `visible` auf `auto` um. Genau so ist im Wochenplan-Sheet ein waagerechter Scroller in den Snap-Streifen geraten und hat das Wischen zwischen den Tagen vollständig ausgeschaltet; ausgelöst hat es die unsichtbar vergrößerte Trefferfläche eines Knopfes, die 6 px über den Rand ragte.
 
-Deshalb gilt für jeden Scroll-Container innerhalb eines Snap-Streifens:
+**Die Regel lautet deshalb: in einem Snap-Streifen keinen zweiten Scroll-Container anlegen.** Punkt. Der Wochenplan hat das zwei Runden lang mit `touch-action` und `overscroll-behavior` zu retten versucht — beides hat es **schlimmer** gemacht:
 
-* `touch-action` auf die erlaubte Achse setzen (`pan-y` bzw. `pan-x`). Das ist die eigentliche Absicherung — sie wirkt auch dann, wenn später wieder etwas überläuft.
-* Danach `scrollWidth === clientWidth` auf der Achse messen, die **nicht** scrollen soll. Nicht schätzen: 6 px genügen.
+* `touch-action: pan-y` reicht die Geste nicht weiter, es **verbietet** sie. Der Browser bildet die Schnittmenge über die ganze Trefferkette; waagerechtes Panning war damit für alle Vorfahren aus.
+* `overscroll-behavior: contain` unterbindet ausdrücklich das Chaining zum Elternteil.
+
+Lässt sich ein innerer Scroller nicht vermeiden, ist das Einzige, was zählt: `getComputedStyle(el).overflowX/overflowY` und `scrollWidth === clientWidth` auf der Achse, die nicht scrollen soll. Nur `auto`/`scroll` fangen Gesten ab, `hidden` nicht. Und: **Wischgesten sind in diesem Projekt nicht automatisiert prüfbar** (drei Anläufe, siehe `docs/TESTING.md`) — die Abnahme am Gerät ist der einzige Beweis.
 
 Siehe `docs/TROUBLESHOOTING.md`, Punkt 58.
 

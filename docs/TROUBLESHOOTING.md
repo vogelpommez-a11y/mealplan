@@ -1312,7 +1312,14 @@ Reihenliste muss mit **jeder** Kombination aufgehen.
 wegfallen können, `grid-template-rows` gegen die tatsächlich gerenderten Kinder prüfen — nicht
 gegen das Markup im Editor.
 
+*Das Raster in der Tageskarte gibt es nicht mehr (siehe Ziffer 58) — die Lehre gilt unverändert
+für jedes Grid, dessen Kinder per Media Query verschwinden können.*
+
 ## 57. Höhe eines Sheets nie aus einzelnen Variablen summieren
+
+> *Das Sheet selbst ist zurückgebaut (Ziffer 58), `--sheet-top` und `--foot-h` gibt es nicht
+> mehr. Der Eintrag bleibt, weil der Fehler generisch ist: Er trifft jede Höhe, die aus
+> Einzelmaßen zusammengerechnet wird.*
 
 **Symptom:** Der Wochenplan sollte den Rest des Bildschirms füllen:
 `100dvh - --head-h - --planhead-h - --tabbar-h`. Ergebnis: 170 px zu hoch, das Sheet schob sich
@@ -1357,19 +1364,46 @@ Dass `.slots` tatsächlich überlief, lag an einer **Trefferfläche**: Das ✕ a
 Fläche ragte 6 px hinaus (`scrollWidth 338` gegen `clientWidth 332`). Sechs Pixel unsichtbarer
 Überlauf haben eine Kerngeste ausgeschaltet.
 
-**Lösung, ebenfalls zweiteilig:**
+### Der erste Lösungsversuch war falsch — und hat den Ausfall verlängert
 
-* `touch-action: pan-y` auf den inneren Scroller. Das ist der eigentliche Fix: Der Browser weiß
-  damit, dass dort nur senkrecht gescrollt wird, und reicht waagerechte Gesten nach außen. Er
-  wirkt unabhängig davon, ob gerade etwas überläuft.
-* Den Überlauf trotzdem beseitigen: seitlicher Innenabstand an den **Container** statt an die
-  Zeilen, dann liegt die Trefferfläche wieder innen. **Nicht** `overflow-x: hidden` — das hätte
-  das Ziel von 48 px auf 42 px beschnitten, unter die 44-px-Grenze.
+> **Diese beiden Zeilen nie wieder als Lösung eintragen:**
+> ```css
+> touch-action: pan-y;             /* verbietet die Achse, reicht sie NICHT weiter */
+> overscroll-behavior-x: contain;  /* unterbindet das Chaining zum Elternteil */
+> ```
 
-**Prüfregel:** Wer einen Scroll-Container in einen Snap-Streifen legt, setzt `touch-action` mit,
-und misst danach `scrollWidth === clientWidth` auf der Achse, die **nicht** scrollen soll. Der
-Prüfstand kann die Geste nicht auslösen (Ziffer siehe `docs/TESTING.md`) — diese beiden Werte
-kann er.
+Sie standen hier einen Commit lang als Empfehlung. Am Gerät blieb das Wischen tot, und zwar
+schlimmer als vorher — es ging nur noch über der Kalorienzeile, die als eigene Rasterzeile
+außerhalb von `.slots` liegt.
+
+* **`touch-action` ist keine Weitergabe-Anweisung, sondern eine Erlaubnisliste.** Der Browser
+  bildet die Schnittmenge über die gesamte Trefferkette. `pan-y` auf einem Kind schaltet
+  waagerechtes Panning damit für **alle** Vorfahren ab — genau die Geste, die man retten wollte.
+* **`overscroll-behavior: contain`** verhindert ausdrücklich Scroll-Chaining zum Nachbarbereich.
+  Auch das ist das Gegenteil des Gewollten.
+
+### Die tragfähige Lösung: gar keinen zweiten Scroller anlegen
+
+Der innere Scroller ist ersatzlos entfallen — die **Seite** scrollt wieder. Damit gibt es nichts
+mehr, was die Geste abfangen könnte. Vor dem Sheet-Umbau war es so, und dort funktionierte das
+Wischen nachweislich.
+
+Was dabei erhalten bleiben musste, ging auch ohne inneren Scroller:
+
+* Der Höhensprung beim Wischen (Ziffer 42) wird von `fixedHeight` in `initCarousel()` abgefangen —
+  die Höhe wird **einmal** auf das Maximum aller Karten gesetzt statt laufend nachgeführt.
+* Der Kalorienstand bleibt über eine klebende Leiste (`#day-bal`) sichtbar. Die muss
+  **außerhalb** von `.week` liegen: Der Streifen ist wegen `overflow-x` auch senkrecht ein
+  Scroll-Kontext, ein `sticky` darin richtet sich an ihm aus statt am Bildschirm.
+
+`overflow: hidden` ist übrigens unkritisch — `.day` trägt es seit jeher, und damals ging das
+Wischen. Bei `hidden` kann der Nutzer nicht scrollen, der Browser reicht die Geste weiter. Nur
+`auto` und `scroll` fangen sie ab.
+
+**Prüfregel:** In einem Snap-Streifen keinen zweiten Scroll-Container anlegen. Lässt es sich nicht
+vermeiden, ist die einzige belastbare Messung: `getComputedStyle(el).overflowX/Y` und
+`scrollWidth === clientWidth` auf der Achse, die nicht scrollen soll. **Nicht** über `touch-action`
+zu retten versuchen — das war der Umweg, der zwei Runden gekostet hat.
 
 ## 59. Ein Aufklapper, der seinen eigenen Auslöser verschiebt, ist praktisch nicht schließbar
 
