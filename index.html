@@ -2112,9 +2112,80 @@
     .week > .day.training:hover { border-color: color-mix(in srgb, var(--train) 55%, var(--border)); }
     .week > .day { transition: none; }
     .week > .day > .day-head { display: none; }   /* eng gefasst, nicht global .day-head */
-    /* Ohne Kopfzeile stossen die Mahlzeiten direkt an den 4-px-Streifen (bei .today 5 px).
-       Die alte Kopfzeile hatte 15px oben - hier 14px, damit derselbe Luftraum bleibt. */
-    .week > .day > .slots { padding-top: 14px; }
+
+    /* ---------- Listen-Optik statt Kacheln (mobil) ----------
+       Vorbild ist der Zutaten-Ruhezustand der Meal-Ansicht (.ing-view, weiter oben):
+       Abschnittsueberschrift, darunter eine Liste mit duennen Trennlinien. Der Wochenplan
+       spricht damit dieselbe Sprache wie die Meal-Ansicht.
+
+       Warum hier und nicht am Rechner: dort stehen sieben Karten NEBENEINANDER und
+       brauchen ihre Abgrenzung. Auf dem Handy ist immer nur ein Tag zu sehen, und die
+       Tagesleiste darueber zeigt Wochentag, Heute-Punkt und Trainingssymbol bereits -
+       Kartenrahmen und Mahlzeitenfarbe sagten dasselbe ein zweites Mal.
+
+       NICHT angefasst: display:flex und gap:8px auf .filled. Beide sind Teil der
+       Trefferflaechen-Rechnung fuer Stift und X (siehe .slot .filled .x::after weiter
+       oben): der gap liefert 8 der 16px, die zwei benachbarte 44px-Ziele brauchen.
+       Wer hier auf Grid umbaut, muss die Flaechen neu messen. */
+
+    /* Karte: Flaeche, Rahmen, Schatten und der rote Kopfstreifen weg. Die Karte ist
+       mobil kein Objekt mehr, sondern nur noch die Seite, auf der die Liste steht. */
+    .week > .day {
+      background: none; border: 0; border-radius: 0; box-shadow: none;
+    }
+    .week > .day::before { display: none; }        /* 4px-Streifen oben */
+    .week > .day:hover { border-color: transparent; box-shadow: none; }
+    .week > .day.today:hover, .week > .day.training:hover { border-color: transparent; }
+    /* Kein Kopfstreifen mehr, an den die Liste stossen koennte - der Innenabstand
+       richtet sich jetzt nach der Tagesleiste darueber. Waagerecht 0: die Trennlinien
+       sollen die volle Breite nehmen, sonst schweben sie in der Flaeche. */
+    .week > .day > .slots { padding: 4px 0 0; gap: 0; }
+
+    /* Slot: Farbstreifen weg (das Label schreibt die Mahlzeit aus), Einzug zurueck. */
+    .week > .day .slot { padding: 8px 0 4px; }
+    .week > .day .slot::before { display: none; }
+
+    /* Zeile statt Kachel. Die Trennlinie ist der border-bottom der Zeile selbst -
+       deshalb kein border-radius und kein Aussenabstand, sonst wird aus der Liste
+       wieder ein Stapel. Gleiches Vorgehen wie bei .ing-view. */
+    .week > .day .slot .filled {
+      background: none; border: 0; border-radius: 0;
+      border-bottom: 1px solid var(--border);
+      align-items: center; padding: 9px 2px;
+    }
+    .week > .day .slot .filled + .filled { margin-top: 0; }   /* die Linie trennt */
+    /* Der Textblock muss die freie Breite nehmen, sonst schrumpft er auf die Wortbreite
+       und das X klebt am Namen statt am Zeilenende zu stehen. In der Kachel-Optik war
+       das kaschiert, weil der Rahmen die Zeile begrenzte - in einer Liste ohne Rahmen
+       sieht man es sofort. min-width:0 dazu, damit ein langer Meal-Name umbricht statt
+       die Zeile aufzuweiten (Standard fuer Flex-Kinder). Gleiche Rolle wie die 1fr-Spalte
+       in .ing-view. */
+    .week > .day .slot .filled .r-body { flex: 1; min-width: 0; }
+
+    /* Hinzufuegen ebenfalls als Zeile: der gestrichelte Rahmen war die Einladung an eine
+       leere Kachel - in einer Liste uebernimmt das der Text mit seinem vorangestellten +. */
+    /* min-height 44px, nicht nur Innenabstand: der gestrichelte Rahmen liess die Flaeche
+       frueher groesser wirken als sie war - gemessen 37px, unter der Mindestgroesse von
+       Apple HIG und WCAG 2.5.5. Als flache Listenzeile faellt das noch mehr ins Gewicht,
+       weil nichts mehr die Grenze zeigt. flex + center, damit der Text in der groesseren
+       Flaeche mittig sitzt statt oben zu kleben. */
+    .week > .day .slot .add {
+      border: 0; border-bottom: 1px solid var(--border); border-radius: 0;
+      padding: 4px 2px; font-size: 13px;
+      min-height: 44px; display: flex; align-items: center;
+    }
+    .week > .day .slot .filled + .add, .week > .day .slot .add + .filled { margin-top: 0; }
+    /* "+2 weitere"/"Weniger anzeigen" ist ebenfalls ein Knopf und braucht dieselbe
+       Mindestflaeche - kleiner sieht nur die Schrift aus, nicht das Ziel. */
+    .week > .day .slot .add.more { padding: 4px 2px; min-height: 44px; }
+    /* Hover NUR bei echter Maus - auf Touch bliebe der Zustand nach dem Antippen kleben
+       (gleiche Begruendung wie bei .ing-view). Der Press-State unten traegt dort. */
+    .week > .day .slot .add:hover { background: none; border-color: var(--border); color: var(--text); }
+    @media (hover: hover) and (pointer: fine) {
+      .week > .day .slot .add:hover { background: color-mix(in srgb, var(--accent) 5%, transparent); color: var(--text); }
+    }
+    .week > .day .slot .add:active { background: color-mix(in srgb, var(--accent) 9%, transparent); }
+    .week > .day .slot .filled:active { background: color-mix(in srgb, var(--accent) 9%, transparent); }
 
     /* Ziele der Woche: gleiches Muster mit zwei Karten (Heute / Diese Woche) UND derselben
        gleitenden Pille wie .daybar (.db-ind, hier per initCarousel() ebenfalls gebunden) -
@@ -6830,7 +6901,7 @@
           const assignNote = uids ? " – nur für " + uids.map(u => (memberByUid(u) ? firstName(memberByUid(u).name) : null) || "Jemanden").join(", ") : "";
           html += `<div class="filled"${drag ? ` draggable="true"` : ""} data-action="view" data-id="${r.id}" data-slot-src="${d.key}:${m.key}:${idx}" title="${esc(r.name)}${esc(assignNote)}${drag ? " – ziehen zum Verschieben" : ""}">
               <span class="r-thumb-wrap">${thumbHtml(r, "r-thumb", true)}${badge}</span>
-              <div><div class="r-name">${esc(r.name)}</div>${recipeNut(r).kcal ? `<div class="r-meta">${nfmt(recipeNut(r).kcal)} kcal</div>` : ""}</div>
+              <div class="r-body"><div class="r-name">${esc(r.name)}</div>${recipeNut(r).kcal ? `<div class="r-meta">${nfmt(recipeNut(r).kcal)} kcal</div>` : ""}</div>
               ${showPencil ? `<button class="pencil" data-action="assign" data-slot-src="${d.key}:${m.key}:${idx}" aria-label="Zuweisung ändern" title="Zuweisung ändern">${ICON_PEOPLE}</button>` : ""}
               ${drag ? `<button class="x" data-action="unassign" data-slot-src="${d.key}:${m.key}:${idx}" aria-label="Entfernen" title="Entfernen">✕</button>` : ""}
             </div>`;
