@@ -372,16 +372,20 @@ Blick beim Abendessen.
 Die Makros klappen dabei **nach oben** auf. Das ist keine Geschmacksfrage: Die Bilanz ist am
 Kartenfuß verankert, wüchse sie nach unten, schöbe sie ihren eigenen Auslöser weg.
 
-### Rechtliches gehört ins Menü, aber nicht hinter die Anmeldung
+### Rechtliches steht in der Fußzeile — an einer Stelle, nicht an zweien
 
-Impressum und Datenschutz stehen in der laufenden App zusätzlich im Menü oben rechts, zusammen
-mit dem Copyright-Hinweis. Die Fußzeile schrumpft dafür auf die zwei Wörter, die sie tragen muss:
-53 px werden 42 px.
+Impressum und Datenschutz stehen in der laufenden App in einer schmalen Fußzeile, die auf die
+zwei Wörter zusammenschrumpft, die sie tragen muss: 53 px werden 42 px. Der Copyright-Hinweis
+wandert dafür ins Menü oben rechts.
 
-**Ganz weg darf sie nicht.** Der Weg über das Menü beginnt an einem Knopf, der nur „Profilmenü"
-heißt — von außen ist nicht erkennbar, dass dort Pflichtangaben liegen, und § 5 DDG verlangt
-„leicht erkennbar". Eine sichtbare Zeile mit dem Wort *Impressum* nimmt die Frage vom Tisch. Der
-Preis dafür sind 42 px statt 0.
+**Ganz weg darf die Fußzeile nicht.** Der naheliegende Ersatz wären Einträge im Profilmenü — die
+gab es kurz und sie sind wieder raus: Der Weg dorthin beginnt an einem Knopf, der nur „Profilmenü"
+heißt, und von außen ist nicht erkennbar, dass dort Pflichtangaben liegen. § 5 DDG verlangt
+„leicht erkennbar". Eine sichtbare Zeile mit dem Wort *Impressum* nimmt die Frage vom Tisch, und
+sie kostet 42 px statt 0.
+
+**Ein Weg genügt.** Beides parallel anzubieten war ein Zwischenstand, kein Konzept: Dieselben zwei
+Links unten und im Menü sind Rauschen, nicht Sicherheit.
 
 **Abgemeldet bleibt sie vollständig.** Das Menü gibt es erst nach der Anmeldung — wäre die
 Fußzeile dort reduziert, läge der Copyright-Hinweis nirgends. Während der ersten Schritte

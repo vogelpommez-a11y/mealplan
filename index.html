@@ -398,11 +398,13 @@
      Innenabstand halbiert sich - aus 53px werden rund 33px. Im Wochenplan-Sheet fehlte
      jeder dieser Pixel direkt den Mahlzeiten.
 
-     Warum nicht ganz weg: Impressum und Datenschutz stehen zwar auch im Profilmenue
-     (renderProfileMenu), aber der Weg dorthin beginnt an einem Knopf, der nur
-     "Profilmenue" heisst - von aussen ist nicht erkennbar, dass dahinter die
-     Pflichtangaben liegen. §5 DDG verlangt "leicht erkennbar". Eine sichtbare Zeile mit
-     dem Wort "Impressum" kostet 33px und nimmt die Frage vom Tisch.
+     Warum nicht ganz weg: Der naheliegende Ersatz waeren Eintraege im Profilmenue - die
+     gab es kurz, und sie sind wieder raus. Zum einen standen die Rechtstexte damit doppelt
+     da, zum anderen beginnt dieser Weg an einem Knopf, der nur "Profilmenue" heisst; von
+     aussen ist nicht erkennbar, dass dahinter Pflichtangaben liegen. §5 DDG verlangt
+     "leicht erkennbar". Eine sichtbare Zeile mit dem Wort "Impressum" kostet 33px und
+     nimmt die Frage vom Tisch. Im Menue blieb nur der Copyright-Hinweis (.mfoot), der
+     nirgends sonst steht.
 
      Unangetastet bleibt sie, solange NIEMAND angemeldet ist: das Profilmenue gibt es erst
      nach der Anmeldung, das Impressum darf nicht hinter das Auth-Gate wandern
@@ -4970,10 +4972,6 @@
   const ACT_ICONS = {
     edit: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>',
     del:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2"/><path d="M6 6v14a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V6"/><path d="M10 11v6M14 11v6"/></svg>',
-    // Rechtliches im Profilmenue, seit die Fusszeile in der laufenden App weg ist.
-    // Dokument mit Zeilen fuers Impressum, Schild fuer den Datenschutz.
-    legal:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/><path d="M8 13h8M8 17h5"/></svg>',
-    shield: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/><path d="m9 12 2 2 4-4"/></svg>',
   };
   // Werkzeug-Icons der Wochenplan-Leiste (Teilen / Leeren)
   const TOOL_ICONS = {
@@ -10095,12 +10093,6 @@
       <button data-mi="settings" role="menuitem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1.08-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg>Einstellungen</button>
       <button data-mi="group" role="menuitem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>${syncGid ? "Gruppe" : "Gemeinsam planen"}</button>
       <hr>
-      <!-- Rechtliches. Steht hier, seit die Fusszeile in der laufenden App ausgeblendet ist
-           (sie kostete 53px auf jedem Bildschirm). Abgemeldet und waehrend der ersten
-           Schritte bleibt die Fusszeile sichtbar - siehe .site-foot im CSS. -->
-      <button data-mi="impressum" role="menuitem">${ACT_ICONS.legal}Impressum</button>
-      <button data-mi="datenschutz" role="menuitem">${ACT_ICONS.shield}Datenschutz</button>
-      <hr>
       <button data-mi="signout" class="danger" role="menuitem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5M21 12H9"/></svg>Abmelden</button>
       <hr>
       <button data-mi="delete" class="destructive" role="menuitem">${ACT_ICONS.del}${delLabel}</button>
@@ -10111,9 +10103,6 @@
     const close = attachMenuDismiss(menu, wrap.querySelector(".profile-btn"));
     menu.querySelector("[data-mi='settings']").addEventListener("click", () => { close(false); openSettings(); });
     menu.querySelector("[data-mi='group']").addEventListener("click", () => { close(false); openGroupModal(); });
-    // Dieselben Funktionen wie die Fusszeile - kein zweiter Weg zu denselben Texten.
-    menu.querySelector("[data-mi='impressum']").addEventListener("click", () => { close(false); openImpressum(); });
-    menu.querySelector("[data-mi='datenschutz']").addEventListener("click", () => { close(false); openDatenschutz(); });
     menu.querySelector("[data-mi='signout']").addEventListener("click", () => { close(false); signOut(); });
     menu.querySelector("[data-mi='delete']").addEventListener("click", () => { close(false); authMode === "cloud" ? deleteAccountFlow() : deleteLocalDataFlow(); });
   }
