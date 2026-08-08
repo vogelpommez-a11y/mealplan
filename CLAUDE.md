@@ -584,6 +584,15 @@ Sichtbar ist ausschließlich die durchgängige Progress-Bar.
 
 Wischen (echtes `scroll-snap`) nur dort, wo es keinen verschachtelten horizontalen Scroller erzeugt. Bei Woche und Tabs bewusst kein Wischen: alle Ansichten gleichzeitig im DOM würde einen horizontalen Scroller im horizontalen Scroller ergeben, auf Touch gewinnt immer der innere, und `overscroll-behavior-x: contain` unterbindet die Weitergabe zusätzlich absichtlich. Bei den Tabs käme auf iOS die Zurück-Wischgeste am linken Rand dazu. Dort wird nur die Optik und Bewegungssprache angeglichen, nicht die Geste.
 
+**Ein Scroller entsteht auch ungewollt.** `overflow-y: auto` allein macht ein Element **auf beiden Achsen** zum Scroll-Container — die Spezifikation rechnet die andere Achse von `visible` auf `auto` um. Genau so ist im Wochenplan-Sheet ein waagerechter Scroller in den Snap-Streifen geraten und hat das Wischen zwischen den Tagen vollständig ausgeschaltet; ausgelöst hat es die unsichtbar vergrößerte Trefferfläche eines Knopfes, die 6 px über den Rand ragte.
+
+Deshalb gilt für jeden Scroll-Container innerhalb eines Snap-Streifens:
+
+* `touch-action` auf die erlaubte Achse setzen (`pan-y` bzw. `pan-x`). Das ist die eigentliche Absicherung — sie wirkt auch dann, wenn später wieder etwas überläuft.
+* Danach `scrollWidth === clientWidth` auf der Achse messen, die **nicht** scrollen soll. Nicht schätzen: 6 px genügen.
+
+Siehe `docs/TROUBLESHOOTING.md`, Punkt 58.
+
 `initCarousel()` ist die gemeinsame Quelle für die scroll-gekoppelte Pille (`.db-ind`, in `.daybar` und `.wgbar`). `slideIn(el, dir)` ist der gemeinsame Enter-Helfer für gerichtete Inhaltswechsel (Wochenwechsel, Tab-Wechsel). `.week-switch` braucht eine eigene WAAPI-Pille (`syncWeekSwitchPill()`), weil ihr Markup bei jedem `render()` per `view.innerHTML` neu gebaut wird — eine CSS-`transition` würde dort nie greifen, siehe `docs/TROUBLESHOOTING.md`.
 
 ---

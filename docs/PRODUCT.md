@@ -311,6 +311,26 @@ Zwei Dinge mussten dafür weichen: die Überschrift „Dein Wochenplan" (die Rei
 „Plan") und der breite Einkaufslisten-Knopf, der mobil ein Icon im Kopf wurde. Ein zweiter fester
 Balken über der Reiterleiste hätte auf einem 667 px hohen Gerät die halbe Meal-Fläche gekostet.
 
+**Nachtrag aus der Geräteabnahme:** Die feste Höhe war richtig, aber der Fuß der Karte zu schwer.
+Die Tagesbilanz belegte 125 px, davon 41 px allein für eine Knopfzeile mit dem Wort „Makros". Der
+Aufklapper ist deshalb ein Chevron in der Kalorienzeile geworden. Zusammen mit der Fußzeile, die
+ins Menü gewandert ist, sieht man jetzt alle vier Mahlzeiten ohne zu scrollen — vorher endete der
+Blick beim Abendessen.
+
+Die Makros klappen dabei **nach oben** auf. Das ist keine Geschmacksfrage: Die Bilanz ist am
+Kartenfuß verankert, wüchse sie nach unten, schöbe sie ihren eigenen Auslöser weg.
+
+### Rechtliches gehört ins Menü, aber nicht hinter die Anmeldung
+
+Impressum, Datenschutz und der Copyright-Hinweis stehen in der laufenden App im Menü oben rechts.
+Eine dauerhaft sichtbare Fußzeile kostete auf jedem Bildschirm 53 px für etwas, das man selten
+braucht.
+
+**Abgemeldet bleibt die Fußzeile stehen.** Das Menü gibt es erst nach der Anmeldung — wäre sie
+immer weg, läge das Impressum hinter dem Auth-Gate. Während der ersten Schritte bleibt sie
+ebenfalls: Dort ist die Reiterleiste ausgeblendet, und ein Weg weniger wäre genau der falsche
+Moment. Platz zu gewinnen rechtfertigt keinen versperrten Pflichtweg.
+
 ## Bewusste Produktentscheidungen: Gemeinsam planen
 
 ### Erst einladen, dann entscheiden

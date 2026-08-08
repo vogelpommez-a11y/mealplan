@@ -768,6 +768,24 @@ dadurch fest, ohne ein zusätzliches `position: fixed`.
 Am Rechner ist `.plan-sheet` ein wirkungsloser Wrapper (`display: block`, keine Höhe), `.week`
 bleibt ein Raster und `.slots` scrollt nicht.
 
+**`touch-action: pan-y` auf `.slots` ist Bedingung, nicht Feinschliff.** Ohne das schluckt der
+innere Scroller die Wischgeste zum Nachbartag — ausführlich in `docs/TROUBLESHOOTING.md`,
+Punkt 58. Dazu gehört, dass auf der waagerechten Achse nichts überläuft: Der seitliche
+Innenabstand sitzt deshalb an `.slots`, nicht an den Zeilen, damit die vergrößerte Trefferfläche
+des ✕ nicht hinausragt.
+
+**Die Fußzeile hängt am Anmeldezustand.** `.app:not(.authing):not(.onboarding) .site-foot` —
+in der laufenden App stehen Impressum, Datenschutz und © im Profilmenü (`renderProfileMenu()`),
+abgemeldet und während der ersten Schritte bleibt die Fußzeile sichtbar. `syncStickyOffsets()`
+misst `.site-foot` weiterhin; bei `display: none` ist `offsetHeight` gleich 0, `--foot-h` wird
+also von selbst `0px` und die Sheet-Rechnung braucht keinen Sonderfall.
+
+**Die Tagesbilanz ist ihr eigener Aufklapper.** `goalBarHtml()` nimmt einen optionalen
+`toggle`-Parameter (`{ day, open }`) und wird damit zu einem `<button>` mit Chevron. Nur
+`dayGoalsHtml()` übergibt ihn — die Balken der Wochenziele und im Rechner bleiben schlichte
+`<div>`. In `dayGoalsHtml()` stehen die Makros **vor** der Kalorienzeile, damit der Auslöser
+beim Aufklappen stehen bleibt (Punkt 59).
+
 ### Tagesleiste als Segmented Control
 
 Die Fläche liegt auf der Leiste, die Knöpfe sind transparent, und eine Pille (`.db-ind`) gleitet

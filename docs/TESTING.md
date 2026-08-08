@@ -717,3 +717,23 @@ Remote-Commit und lokaler HEAD müssen übereinstimmen.
 **Der Test soll möglichst nahe an der tatsächlichen Produktionsimplementierung bleiben.**
 
 Je weniger manuell kopierter Testcode existiert, desto geringer das Risiko, eine Kopie statt der echten App zu testen.
+
+### Ein Aufklapper wird programmatisch nie richtig geprüft
+
+Ein Test, der `button.click()` aufruft und danach `aria-expanded` liest, bestätigt nur die
+Zustandslogik. Er findet nicht, was am Gerät tatsächlich schiefgeht: dass der Auslöser beim
+Öffnen weggewandert ist und der zweite Tipp ins Leere geht (`docs/TROUBLESHOOTING.md`,
+Punkt 59). Deshalb gehören zwei weitere Messungen dazu:
+
+* Bildschirmposition des Auslösers **vor und nach** dem Öffnen vergleichen — Versatz muss 0 sein,
+  wenn er an einer Kante verankert ist.
+* Auf den **alten** Koordinaten `elementFromPoint()` abfragen und prüfen, ob dort noch der
+  Auslöser liegt. Erst dann ist belegt, dass ein zweiter Tipp an derselben Stelle wieder trifft.
+
+### Nicht-scrollende Achse mitmessen
+
+Bei jedem Scroll-Container innerhalb eines Snap-Streifens auch die Achse prüfen, die *nicht*
+scrollen soll: `scrollWidth === clientWidth` (bzw. `scrollHeight === clientHeight`) und
+`getComputedStyle(el).touchAction`. `overflow-y: auto` macht die Gegenachse automatisch mit zum
+Scroller, und schon sechs Pixel Überlauf schalten die Wischgeste des Elternteils ab. Die Geste
+selbst ist headless nicht auslösbar — diese beiden Werte sind der belastbare Ersatz.

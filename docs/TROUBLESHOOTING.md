@@ -1335,3 +1335,59 @@ die Seite beim Messen gescrollt ist. Deshalb `+ window.scrollY`.
 auszublenden wäre der bequeme Weg — das Impressum muss aber erreichbar bleiben (CLAUDE.md §23).
 Die 64 px Bodenluft von `<main>` entfallen im Plan-Reiter dagegen zu Recht: Sie sind Abstand für
 eine Seite, die gescrollt wird.
+
+## 58. `overflow-y: auto` macht die andere Achse mit zum Scroller — und blockiert die Wischgeste
+
+**Symptom (am Gerät gefunden, 08.08.2026):** Nach dem Sheet-Umbau ließ sich der Wochenplan auf
+dem Handy **gar nicht mehr** zwischen den Tagen wischen. Kein Ruckeln, kein Hängen — die Geste
+kam schlicht nicht an.
+
+**Ursache, zwei Teile:**
+
+1. `.slots` bekam `overflow-y: auto`, damit die Mahlzeiten in der Karte scrollen. Die
+   Spezifikation rechnet die **andere** Achse dabei von `visible` auf `auto` um. Gemessen:
+   `getComputedStyle(slots).overflowX === "auto"`, obwohl im Stylesheet nirgends `overflow-x`
+   steht. Derselbe Mechanismus ist im Kommentar bei `.week` seit jeher beschrieben — nur
+   andersherum, und an der neuen Stelle nicht mitgedacht.
+2. Damit war `.slots` ein waagerechter Scroll-Container **im** waagerechten Snap-Streifen. Auf
+   Touch gewinnt immer der innere (`CLAUDE.md` §11), der Wisch erreichte `.week` nie.
+
+Dass `.slots` tatsächlich überlief, lag an einer **Trefferfläche**: Das ✕ am Zeilenende hat
+`::after { inset: -8px }`, die Zeile hatte nur 2 px seitlichen Innenabstand — die unsichtbare
+Fläche ragte 6 px hinaus (`scrollWidth 338` gegen `clientWidth 332`). Sechs Pixel unsichtbarer
+Überlauf haben eine Kerngeste ausgeschaltet.
+
+**Lösung, ebenfalls zweiteilig:**
+
+* `touch-action: pan-y` auf den inneren Scroller. Das ist der eigentliche Fix: Der Browser weiß
+  damit, dass dort nur senkrecht gescrollt wird, und reicht waagerechte Gesten nach außen. Er
+  wirkt unabhängig davon, ob gerade etwas überläuft.
+* Den Überlauf trotzdem beseitigen: seitlicher Innenabstand an den **Container** statt an die
+  Zeilen, dann liegt die Trefferfläche wieder innen. **Nicht** `overflow-x: hidden` — das hätte
+  das Ziel von 48 px auf 42 px beschnitten, unter die 44-px-Grenze.
+
+**Prüfregel:** Wer einen Scroll-Container in einen Snap-Streifen legt, setzt `touch-action` mit,
+und misst danach `scrollWidth === clientWidth` auf der Achse, die **nicht** scrollen soll. Der
+Prüfstand kann die Geste nicht auslösen (Ziffer siehe `docs/TESTING.md`) — diese beiden Werte
+kann er.
+
+## 59. Ein Aufklapper, der seinen eigenen Auslöser verschiebt, ist praktisch nicht schließbar
+
+**Symptom:** Der Makro-Bereich der Tagesbilanz ließ sich aufklappen, aber nicht wieder zu.
+
+**Nicht die Ursache:** Die Toggle-Logik. `expandedDayGoals` setzt und löscht korrekt, und im
+Prüfstand ging `aria-expanded` sauber von `false` auf `true` und zurück. Ein Test, der nur
+programmatisch klickt, findet diesen Fehler **nie**.
+
+**Die Ursache ist Geometrie.** Die Bilanz sitzt im Sheet fest am Kartenfuß. Klappt etwas darin
+auf, wächst sie nach **oben** — und nimmt alles mit, was darüber liegt, einschließlich ihres
+eigenen Auslösers. Gemessen: Der Knopf sprang von `y=487` auf `y=338`, also 149 px. Wer ein
+zweites Mal an dieselbe Stelle tippt, trifft einen Makrobalken.
+
+**Lösung:** Reihenfolge im Markup umdrehen. Der aufklappende Inhalt steht **vor** der Zeile mit
+dem Auslöser; die bleibt damit unterste Zeile und bewegt sich keinen Pixel (nachgemessen: 0 px).
+
+**Prüfregel:** Bei jedem Aufklapper die Bildschirmposition des Auslösers vor und nach dem Öffnen
+vergleichen. Zusätzlich `elementFromPoint()` auf den alten Koordinaten abfragen — trifft man dort
+noch den Auslöser? Bei einem Element, das an einer Kante verankert ist, ist das keine
+Feinheit, sondern der Unterschied zwischen bedienbar und kaputt.
