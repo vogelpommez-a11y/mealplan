@@ -6090,9 +6090,21 @@
   // Rueckfall auf DAYS[0] machte daraus stillschweigend Montag. Der markierte Knopf ist
   // dagegen genau das, was der Nutzer sieht - eine Quelle, die nicht danebenliegen kann,
   // ohne dass es auffiele.
+  // Rueckgabe: true, wenn die Leiste tatsaechlich sichtbar ist und bemalt wurde. Der
+  // Aufklapp-Handler entscheidet daran, ob ein volles render() noetig ist - siehe dort.
   function paintDayBalance(dayKey) {
     const box = document.getElementById("day-bal");
-    if (!box) return;                       // Rechner, oder anderer Reiter
+    if (!box) return false;                 // anderer Reiter
+    // Zustaendig nur auf dem Handy. Die Leiste steht in JEDEM Durchlauf im Markup und ist
+    // am Rechner bloss per CSS versteckt - eine Pruefung auf ihre blosse Existenz griff
+    // deshalb immer und liess am Rechner die angeklickte Karte unveraendert.
+    //
+    // Gegen die Breite und NICHT gegen getComputedStyle(box).display: die Leiste blendet
+    // sich bei einem leeren Tag selbst aus (.is-empty). Ein Sichtbarkeits-Test haette sie
+    // ab dann dauerhaft blockiert - sie waere nie wieder befuellt worden, weil der
+    // Zustand seine eigene Heilung verhindert. Die 680px sind derselbe Breakpoint, an dem
+    // das CSS sie einblendet; beide muessen zusammen geaendert werden.
+    if (!window.matchMedia("(max-width: 680px)").matches) return false;
     let k = dayKey;
     if (!k) {
       const btns = document.querySelectorAll(".daybar .db-b");
@@ -6102,6 +6114,7 @@
     const html = dayNutHtml(dayNut(k), k);
     box.innerHTML = html;
     box.classList.toggle("is-empty", !html);
+    return true;
   }
 
   function weekNutHtml() {
@@ -6484,17 +6497,6 @@
     // sichtbaren Karten nachfuehren. Beim Wischen zaehlt das Maximum der angerissenen
     // Karten, sonst wuerde die hereinkommende hoehere Karte unterwegs abgeschnitten.
     function fitHeight() {
-      // noFit: Der Streifen bekommt seine Hoehe von aussen (der Wochenplan ist mobil die
-      // 1fr-Zeile eines Sheets fester Hoehe). Hier darf dann NICHTS mehr geschrieben
-      // werden - genau dieses Schreiben mitten in der Wischgeste war die Ursache von
-      // TROUBLESHOOTING Ziffer 42: ein Groessenwechsel des Snap-Behaelters laesst den
-      // Browser sein Snap-Ziel neu bestimmen, und der laufende Wisch blieb zwischen zwei
-      // Tagen stehen. Eine evtl. noch gesetzte Inline-Hoehe wird einmal geraeumt, damit
-      // die CSS-Hoehe wieder greift (etwa nach einem Wechsel der Bildschirmbreite).
-      if (opts && opts.noFit) {
-        if (scroller.style.height) { scroller.style.height = ""; lastH = -1; }
-        return;
-      }
       // Am Rechner ist .week ein Raster und scrollt nicht – dort nichts anfassen.
       // Gegen den gemessenen Wert, nicht gegen frisch gelesene Layout-Eigenschaften.
       if (maxScroll <= 10) {
@@ -6502,12 +6504,13 @@
         return;
       }
       let h = 0;
-      // fixedHeight: Karten, die als gleich hoch gedacht sind (Heute/Woche-Ziele),
-      // aber durch bedingten Inhalt (Trainings-Badge, "Neu berechnen"-Knopf) leicht
-      // abweichen koennen. Ohne festes Mass auf das Maximum ALLER Karten wuerde der
-      // Streifen beim Wischen zwischen beiden Hoehen wackeln, statt einmal fest zu
-      // stehen. Der Wochenplan geht diesen Weg NICHT: er bekommt seine Hoehe vom Sheet
-      // (noFit oben), nicht aus der hoechsten Karte.
+      // fixedHeight: Hoehe EINMAL auf das Maximum ALLER Karten, statt der gerade
+      // sichtbaren zu folgen. Beide Aufrufer brauchen das, aus verschiedenen Gruenden:
+      // die Wochenziele, weil ihre zwei Karten (Heute/Woche) gleich hoch wirken sollen
+      // und durch bedingten Inhalt leicht abweichen; der Wochenplan, weil ein Schreiben
+      // mitten in der Wischgeste den Snap zerstoert (TROUBLESHOOTING Ziffer 42).
+      // Ohne die Option fuehrt der Zweig darunter die Hoehe laufend nach - genau das,
+      // was der Wochenplan nicht vertraegt.
       if (opts && opts.fixedHeight) {
         heights.forEach(x => { h = Math.max(h, x); });
       } else {
@@ -9474,10 +9477,14 @@
       if (expandedDayGoals.has(d)) expandedDayGoals.delete(d); else expandedDayGoals.add(d);
       // Auf dem Handy nur die klebende Leiste neu zeichnen. Ein volles render() baute
       // #view neu auf und ruesste dabei die Scrollposition der Seite durcheinander -
-      // ausgerechnet beim Aufklappen, wo man genau hinsieht. Am Rechner gibt es die Leiste
-      // nicht, dort sitzt die Bilanz in jeder der sieben Karten und braucht den Neuaufbau.
-      if (document.getElementById("day-bal")) paintDayBalance(d);
-      else render();
+      // ausgerechnet beim Aufklappen, wo man genau hinsieht.
+      //
+      // paintDayBalance() meldet selbst, ob es zustaendig war. Zuerst stand hier eine
+      // Pruefung auf document.getElementById("day-bal") - die war falsch: die Leiste steht
+      // in JEDEM Durchlauf im Markup und ist am Rechner nur per CSS versteckt. Der Zweig
+      // griff also immer, und am Rechner wurde stillschweigend die unsichtbare Leiste
+      // bemalt, waehrend die angeklickte Karte unveraendert stehen blieb.
+      if (!paintDayBalance(d)) render();
     }
     else if (a === "toggle-others") {
       const s = t.dataset.slot;
