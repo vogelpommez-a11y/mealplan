@@ -373,8 +373,41 @@
        soll der Inhalt beim Scrollen, dauerhaft verdeckt sein darf er nicht.
        --tabbar-h misst syncStickyOffsets(); der Rueckfall 58px ist die gerechnete Hoehe
        (5 + 46 + 5 Innenmass + 2 Rahmen) und haelt den ersten Bildaufbau ruhig. */
-    .app { padding-bottom: calc(var(--tabbar-h, 58px) + 24px + env(safe-area-inset-bottom, 0px)); }
-    #toast { bottom: calc(var(--tabbar-h, 58px) + 28px + env(safe-area-inset-bottom, 0px)); }
+    .app { padding-bottom: calc(var(--tabbar-h, 58px) + var(--footbar-h, 30px) + 20px + env(safe-area-inset-bottom, 0px)); }
+    #toast { bottom: calc(var(--tabbar-h, 58px) + var(--footbar-h, 30px) + 24px + env(safe-area-inset-bottom, 0px)); }
+
+    /* ---------- Fusszeile fest ueber der Reiterleiste ----------
+       Impressum und Datenschutz stehen jetzt in JEDER Ansicht im Bild, ohne Scrollen.
+       Vorher sass die Fusszeile am Seitenende (margin-top:auto) - bei langem Inhalt also
+       unterhalb des Sichtfensters. §5 DDG verlangt "unmittelbar erreichbar"; ein Weg, den
+       man erst scrollen muss, laesst diese Frage offen. Mit fester Position stellt sie
+       sich nicht mehr.
+
+       Bewusst KEIN zweiter Balken: kein Rahmen, keine Kapsel, keine Flaeche. Stattdessen
+       ein Verlauf, der nach oben in nichts uebergeht - der Inhalt scrollt sichtbar darunter
+       weg, statt an einer harten Kante abgeschnitten zu werden (Scroll-Edge statt Trenner).
+       Deshalb auch kein backdrop-filter: er muesste beim Scrollen in jedem Bild neu rechnen,
+       genau ueber dem Bereich, der sich bewegt - dieselbe Ueberlegung wie bei .daybar.
+
+       z-index 40: unter der Reiterleiste (50), aber ueber der klebenden Tagesbilanz (15). */
+    .site-foot {
+      position: fixed; z-index: 40;
+      left: 0; right: 0;
+      bottom: calc(var(--tabbar-h, 58px) + 10px + env(safe-area-inset-bottom, 0px));
+      border-top: 0; background: none;
+      /* Der Verlauf braucht Weg: bei kurzer Strecke bricht der Text darunter hart ab,
+         statt auszublenden. Deshalb deckend bis knapp ueber die Schriftzeile und erst
+         darueber auf transparent - der Inhalt verliert sich, statt abgeschnitten zu wirken. */
+      background-image: linear-gradient(to top,
+        var(--bg) 0%, var(--bg) 62%,
+        color-mix(in srgb, var(--bg) 72%, transparent) 80%,
+        color-mix(in srgb, var(--bg) 30%, transparent) 92%, transparent 100%);
+      pointer-events: none;   /* der Verlauf faengt sonst Wische ab, die dem Inhalt gelten */
+    }
+    /* Das Innenmass steht weiter unten bei den Footer-Grundregeln - dieser Media-Block
+       laeuft im Stylesheet VOR ihnen, eine Angabe hier wuerde ueberschrieben. */
+    /* Nur die Knoepfe sind wieder bedienbar - der Rest der Flaeche bleibt durchlaessig. */
+    .foot-nav { pointer-events: auto; }
   }
   /* Rueckfall ohne Weichzeichner: halbtransparent OHNE Blur hiesse Text auf Text. Dann
      lieber deckend. Gleiches gilt fuer "Transparenz reduzieren" im Betriebssystem. */
@@ -419,6 +452,13 @@
      Ausnahme, statt sich auf Spezifitaet verlassen zu muessen. */
   .app:not(.authing):not(.onboarding) .foot-copy { display: none; }
   .app:not(.authing):not(.onboarding) .foot-inner { padding: 8px 0; justify-content: center; }
+  /* Fixierte Fusszeile (Handy, siehe .site-foot weiter oben): oben mehr Innenmass, damit
+     der Verlauf Weg hat und der Inhalt darunter ausblendet statt hart abzubrechen. Steht
+     bewusst HIER und nicht im Media-Block oben - der laeuft im Stylesheet vor diesen
+     Grundregeln, und die Zeile darueber ist zusaetzlich spezifischer. */
+  @media (max-width: 720px) {
+    .foot-inner, .app:not(.authing):not(.onboarding) .foot-inner { padding: 22px 0 8px; }
+  }
   .foot-link { font: inherit; font-size: 12.5px; color: var(--text-muted); background: 0; border: 0; padding: 2px 2px; cursor: pointer; }
   .foot-link:hover { color: var(--accent-strong); text-decoration: underline; }
   .foot-sep { color: var(--border-strong); }
@@ -2232,7 +2272,10 @@
     .day-bal {
       display: block;                 /* hebt das globale display:none auf */
       position: sticky; z-index: 15;
-      bottom: calc(var(--tabbar-h, 58px) + 8px + env(safe-area-inset-bottom, 0px));
+      /* Muss ueber der OBERKANTE der fixierten Fusszeile liegen. Deren eigener Abstand zur
+         Reiterleiste (10px) gehoert mit in die Rechnung - ohne ihn ueberlappten sich die
+         beiden um genau diese Differenz (gemessen: 2px). */
+      bottom: calc(var(--tabbar-h, 58px) + 10px + var(--footbar-h, 30px) + 8px + env(safe-area-inset-bottom, 0px));
       margin-top: 10px;
       /* Flaeche, Rahmen, Rundung kommen aus der gemeinsamen Regel weiter oben - hier steht
          nur, was diese Leiste von der Mahlzeiten-Flaeche unterscheidet. */
@@ -6817,6 +6860,12 @@
     const tabs = document.querySelector(".tabs");
     const fixed = tabs && getComputedStyle(tabs).position === "fixed";
     root.style.setProperty("--tabbar-h", fixed ? tabs.offsetHeight + "px" : "0px");
+    // Die Fusszeile steht auf dem Handy fest ueber der Reiterleiste (siehe .site-foot).
+    // Ihre Hoehe braucht jeder, der etwas darueber halten will: das Inset am Seitenende,
+    // der Toast und die klebende Tagesbilanz. Am Rechner steht sie im Fluss - dann 0.
+    const foot = document.querySelector(".site-foot");
+    const footFixed = foot && getComputedStyle(foot).position === "fixed";
+    root.style.setProperty("--footbar-h", footFixed ? foot.offsetHeight + "px" : "0px");
     // --sheet-top und --foot-h gab es hier einmal fuer den Wochenplan als Flaeche fester
     // Hoehe. Die ist zurueckgebaut (siehe .plan-sheet im CSS): der innere Scroller nahm dem
     // Snap-Streifen die Wischgeste ab. Beide Variablen sind damit ersatzlos entfallen -
