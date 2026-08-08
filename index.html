@@ -2174,10 +2174,23 @@
     .week > .day { display: grid; grid-template-rows: 1fr auto; min-height: 0; }
     /* min-height:0 ist hier zwingend, sonst waechst die 1fr-Reihe auf ihren Inhalt statt
        zu scrollen - dieselbe Falle wie in der Meal-Ansicht.
-       overscroll-behavior-y: contain haelt die Wisch-Kette sauber: senkrechtes Ueberziehen
-       am Listenende darf weder die Seite noch den waagerechten Streifen mitnehmen. */
+       overscroll-behavior haelt die Wisch-Kette sauber: Ueberziehen am Listenende darf
+       weder die Seite noch den waagerechten Streifen mitnehmen.
+
+       touch-action: pan-y ist KEIN Feinschliff, sondern die Bedingung dafuer, dass sich der
+       Wochenplan ueberhaupt noch wischen laesst. Ein Element mit overflow-y: auto ist auch
+       waagerecht ein Scroll-Container - die Spezifikation rechnet die zweite Achse von
+       "visible" auf "auto" um, sobald eine gesetzt ist (derselbe Mechanismus wie im
+       Kommentar bei .week weiter oben, nur andersherum). Damit lag hier ein waagerechter
+       Scroller IM waagerechten Snap-Streifen, und auf Touch gewinnt immer der innere
+       (CLAUDE.md §11): der Wisch zum Nachbartag kam nie bei .week an. pan-y sagt dem
+       Browser, dass dieser Container nur senkrecht scrollt, und gibt waagerechte Gesten
+       nach aussen. Wirkt unabhaengig davon, ob gerade etwas ueberlaeuft - deshalb bleibt
+       es auch dann richtig, wenn sich Innenabstaende spaeter aendern. */
     .week > .day > .slots {
       overflow-y: auto; min-height: 0;
+      touch-action: pan-y;
+      overscroll-behavior-x: contain;
       overscroll-behavior-y: contain;
       -webkit-overflow-scrolling: touch;
     }
@@ -2226,9 +2239,18 @@
     .week > .day:hover { border-color: transparent; box-shadow: none; }
     .week > .day.today:hover, .week > .day.training:hover { border-color: transparent; }
     /* Kein Kopfstreifen mehr, an den die Liste stossen koennte - der Innenabstand
-       richtet sich jetzt nach der Tagesleiste darueber. Waagerecht 0: die Trennlinien
-       sollen die volle Breite nehmen, sonst schweben sie in der Flaeche. */
-    .week > .day > .slots { padding: 4px 0 0; gap: 0; }
+       richtet sich jetzt nach der Tagesleiste darueber.
+
+       Die 8px seitlich sind Pflicht, nicht Geschmack: das X am Zeilenende hat eine
+       unsichtbar vergroesserte Trefferflaeche (::after { inset: -8px }, siehe .slot .filled
+       .x weiter oben). Stand die Zeile buendig am Rand, ragte diese Flaeche 6px hinaus und
+       machte .slots waagerecht scrollbar (gemessen: scrollWidth 338 gegen clientWidth 332) -
+       und ein waagerechter Scroller hier drin schluckt die Wischgeste zum Nachbartag.
+       Der Abstand faengt die Flaeche auf, statt sie mit overflow-x: hidden abzuschneiden:
+       Abschneiden liesse das Ziel auf 42px schrumpfen, unter die 44px-Grenze.
+       Die Zeilen darin haben deshalb waagerecht keinen eigenen Abstand mehr - die
+       Trennlinien laufen so weit, wie die Liste reicht. */
+    .week > .day > .slots { padding: 4px 8px 0; gap: 0; }
 
     /* Slot: Farbstreifen weg (das Label schreibt die Mahlzeit aus), Einzug zurueck. */
     .week > .day .slot { padding: 8px 0 4px; }
@@ -2240,7 +2262,7 @@
     .week > .day .slot .filled {
       background: none; border: 0; border-radius: 0;
       border-bottom: 1px solid var(--border);
-      align-items: center; padding: 9px 2px;
+      align-items: center; padding: 9px 0;   /* seitlich 0, der Abstand sitzt an .slots */
     }
     .week > .day .slot .filled + .filled { margin-top: 0; }   /* die Linie trennt */
     /* Der Textblock muss die freie Breite nehmen, sonst schrumpft er auf die Wortbreite
@@ -2260,13 +2282,13 @@
        Flaeche mittig sitzt statt oben zu kleben. */
     .week > .day .slot .add {
       border: 0; border-bottom: 1px solid var(--border); border-radius: 0;
-      padding: 4px 2px; font-size: 13px;
+      padding: 4px 0; font-size: 13px;      /* seitlich 0, der Abstand sitzt an .slots */
       min-height: 44px; display: flex; align-items: center;
     }
     .week > .day .slot .filled + .add, .week > .day .slot .add + .filled { margin-top: 0; }
     /* "+2 weitere"/"Weniger anzeigen" ist ebenfalls ein Knopf und braucht dieselbe
        Mindestflaeche - kleiner sieht nur die Schrift aus, nicht das Ziel. */
-    .week > .day .slot .add.more { padding: 4px 2px; min-height: 44px; }
+    .week > .day .slot .add.more { padding: 4px 0; min-height: 44px; }
     /* Hover NUR bei echter Maus - auf Touch bliebe der Zustand nach dem Antippen kleben
        (gleiche Begruendung wie bei .ing-view). Der Press-State unten traegt dort. */
     .week > .day .slot .add:hover { background: none; border-color: var(--border); color: var(--text); }
