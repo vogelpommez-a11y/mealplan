@@ -491,6 +491,10 @@
   /* Wochenplan-Kopf: Titel oben, Werkzeugleiste eine Zeile darunter */
   .plan-head { flex-direction: column; align-items: stretch; gap: 16px; }
   .plan-tools { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  /* Zweiter Einstieg in die Einkaufsliste, nur auf dem Handy. Am Rechner traegt das der
+     breite Knopf mit Text unter dem Plan (.shop-cta) - dort ist Platz dafuer, und ein
+     zweiter Auffindungsweg fuer dieselbe Aktion waere nur Rauschen. */
+  .shop-ic { display: none; }
   .week-switch { display: inline-flex; position: relative; background: var(--surface-2); border: 1px solid var(--border); border-radius: 999px; padding: 3px; gap: 2px; }
   .ws-btn { position: relative; z-index: 1; font: inherit; font-size: 13px; font-weight: 600; letter-spacing: .01em; cursor: pointer; border: 0; background: transparent; color: var(--text-muted); padding: 7px 15px; border-radius: 999px; white-space: nowrap; transition: color var(--dur-fast), background var(--dur-fast), box-shadow var(--dur-fast); }
   .ws-btn:hover { color: var(--text); }
@@ -2075,6 +2079,64 @@
        nur das Blau, die Information selbst bleibt stehen. */
     .db-b.active .db-mk svg { width: 13px; opacity: 1; }
 
+    /* Ueberschrift weg: die Reiterleiste unten sagt bereits "Plan", und im Sheet ist jede
+       Zeile Hoehe, die den Meals fehlt (CLAUDE.md §7). Der Wochenumschalter bleibt - er
+       ist eine Entscheidung, keine Beschriftung. */
+    .plan-head .title { display: none; }
+    /* "Aktuelle Woche"/"Naechste Woche" auf "Aktuelle"/"Naechste" kuerzen. Gemessen: die
+       Werkzeugzeile braucht mit beiden Icon-Knoepfen 346px, bei 360px Geraetebreite stehen
+       317px zur Verfuegung - sie brach also um und kostete 44px Hoehe, die im Sheet direkt
+       den Meals fehlten (bei 667px Geraet blieben nur noch 127px Scrollflaeche). Selbst bei
+       390px lag die Zeile mit 1px Rest an der Kante. Das Wort "Woche" traegt hier nichts:
+       darunter steht die MO-SO-Leiste, und der Reiter heisst Plan. Voller Text bleibt im
+       aria-label. */
+    .ws-w { display: none; }
+    /* Einkaufsliste wandert in den Kopf. Der breite Knopf am Ende des Reiters wuerde unter
+       dem Sheet liegen und waere nur nach Scrollen erreichbar - und ein zweiter fester
+       Balken ueber der Reiterleiste haette bei 667px Geraetehoehe die Haelfte des Platzes
+       fuer die Meals gekostet. 34px + 5px hitSlop = 44px Trefferflaeche (.btn.icon-gh). */
+    .plan-tools .shop-ic { display: inline-flex; }
+    .shop-cta { display: none; }
+
+    /* ---------- Plan-Reiter als Sheet fester Hoehe ----------
+       Vorbild ist die mobile Meal-Ansicht (.overlay.sheet-overlay): oben fest, Mitte
+       scrollt, unten fest. Hier: Tagesleiste fest, Meals scrollen, Tagesbilanz fest am
+       Kartenfuss.
+
+       Warum ueberhaupt: die sieben Tageskarten sind unterschiedlich hoch, und der Streifen
+       wuchs und schrumpfte beim Wischen mit. Das war nicht nur unruhig, sondern die Ursache
+       von TROUBLESHOOTING Ziffer 42 - fitHeight() schrieb die Hoehe WAEHREND der Geste, und
+       ein Groessenwechsel des Snap-Behaelters laesst den Browser sein Snap-Ziel neu
+       bestimmen. Mit fester Hoehe schreibt dort niemand mehr (siehe noFit in initCarousel).
+
+       Die Hoehe ist der Rest des Bildschirms. Dadurch bekommt die Seite keinen Ueberlauf
+       mehr, und der Plan-Kopf steht fest, ohne dass er position:fixed braucht.
+
+       --sheet-top ist die GEMESSENE Oberkante (syncStickyOffsets). Bewusst nicht aus
+       --head-h + --planhead-h summiert: dazwischen sitzen Abstaende (.section-head
+       margin-bottom, .app padding), die eine Summe uebersieht - der erste Versuch lag
+       damit 170px daneben. Unten dieselbe Ueberlegung, aber dort ist die Rechnung
+       vollstaendig: das .app-padding-bottom ist ausdruecklich als
+       "--tabbar-h + 24px + safe-area" definiert (siehe .app weiter oben).
+
+       vh zuerst, dvh danach: aeltere Engines nehmen die erste Zeile, neuere ueberschreiben
+       sie. Nie vh allein - die Adressleiste macht daraus sonst eine falsche Hoehe. */
+    .plan-sheet {
+      display: grid; grid-template-rows: auto 1fr; min-height: 0;
+      height: calc(100vh  - var(--sheet-top, 200px) - var(--foot-h, 53px) - var(--tabbar-h, 58px) - 24px - env(safe-area-inset-bottom, 0px));
+      height: calc(100dvh - var(--sheet-top, 200px) - var(--foot-h, 53px) - var(--tabbar-h, 58px) - 24px - env(safe-area-inset-bottom, 0px));
+    }
+    /* Die 64px Bodenluft von <main> sind Abstand zur Fusszeile - fuer eine Seite, die
+       gescrollt wird. Das Sheet fuellt den Bildschirm ohnehin bis zur Fusszeile aus, hier
+       waeren sie nur Hoehe, die den Meals fehlt (bei 667px Geraet ein Fuenftel davon).
+       :has() gezielt statt einer Klasse am Reiter: faellt es in einer alten Engine aus,
+       bleibt einfach die alte Bodenluft und die Seite scrollt ein Stueck - kein Bruch. */
+    main:has(.plan-sheet) { padding-bottom: 0; }
+    /* Die Leiste ist jetzt eine Rasterzeile des Sheets und steht schon dadurch fest.
+       position:sticky darf trotzdem stehen bleiben: ohne Ueberlauf hat es keine Wirkung,
+       und es traegt weiterhin den Fall, dass das Sheet doch einmal scrollen sollte. */
+    .plan-sheet > .daybar { margin-bottom: 10px; }
+
     .week {
       display: flex; gap: 12px;
       scroll-snap-type: x mandatory;
@@ -2087,17 +2149,44 @@
          vermutet. Folge: eine klebende Kopfzeile INNERHALB einer Tageskarte kann es
          hier nicht geben, sie richtete sich an .week statt am Bildschirm aus und
          bliebe einfach stehen. Den Wochentag fixiert deshalb die Tagesleiste
-         darueber – die haengt am Bildschirm und klebt zuverlaessig.
-         Geklemmt wird nichts: .week ist so hoch wie die hoechste Karte. */
+         darueber – die haengt jetzt als Rasterzeile ueber dem Streifen.
+         Der Streifen selbst wird NICHT mehr so hoch wie die hoechste Karte: er ist die
+         1fr-Zeile des Sheets und damit fest. Gescrollt wird senkrecht INNERHALB einer
+         Karte (.slots), nicht hier. */
       overflow-x: auto; overflow-y: hidden;
+      min-height: 0;   /* sonst waechst die 1fr-Zeile ueber das Sheet hinaus */
     }
     .week::-webkit-scrollbar { display: none; }
-    /* flex-start statt des voreingestellten stretch: sonst wird JEDE Tageskarte so
-       hoch wie die hoechste der Woche, und ein leerer Tag bekommt unter "Abendessen"
-       die Leerflaeche des vollsten Tages geschenkt. Die passende Hoehe des Streifens
-       setzt fitHeight() nach, sonst bliebe die Luecke nur ausserhalb der Karte. */
-    .week { align-items: flex-start; }
+    /* stretch statt flex-start: jede Karte fuellt jetzt die volle Sheet-Hoehe, damit ihre
+       Tagesbilanz unten steht und nur die Mahlzeiten dazwischen scrollen. Frueher galt
+       hier das Gegenteil (flex-start), weil der Streifen sich an die sichtbare Karte
+       anpasste und ein leerer Tag sonst die Leerflaeche des vollsten geschenkt bekommen
+       haette - mit fester Hoehe stellt sich die Frage nicht mehr. */
+    .week { align-items: stretch; }
     .week > .day { flex: 0 0 100%; scroll-snap-align: start; scroll-snap-stop: always; }
+
+    /* Die Karte ist das Raster des Tages: Mahlzeiten scrollen, Bilanz steht fest.
+       BEWUSST "1fr auto" und nicht "auto 1fr auto": .day-head ist hier display:none
+       (Zeile weiter unten) und wird deshalb GAR NICHT platziert - mit drei Reihen
+       landete .slots im auto und die Bilanz im 1fr, also genau verkehrt herum.
+       Hat ein Tag keine Bilanz (dayNutHtml gibt bei leerem Tag "" zurueck), bleibt die
+       zweite Reihe einfach leer. */
+    .week > .day { display: grid; grid-template-rows: 1fr auto; min-height: 0; }
+    /* min-height:0 ist hier zwingend, sonst waechst die 1fr-Reihe auf ihren Inhalt statt
+       zu scrollen - dieselbe Falle wie in der Meal-Ansicht.
+       overscroll-behavior-y: contain haelt die Wisch-Kette sauber: senkrechtes Ueberziehen
+       am Listenende darf weder die Seite noch den waagerechten Streifen mitnehmen. */
+    .week > .day > .slots {
+      overflow-y: auto; min-height: 0;
+      overscroll-behavior-y: contain;
+      -webkit-overflow-scrolling: touch;
+    }
+    /* Die Bilanz sitzt jetzt fest am Kartenfuss und braucht eine sichtbare Kante zu den
+       scrollenden Meals darueber - sonst schiebt sich beim Scrollen Text bis auf Anschlag
+       an sie heran. */
+    .week > .day > .day-nut, .week > .day > .day-goals {
+      border-top: 1px solid var(--border); padding-top: 10px; margin-top: 2px;
+    }
     /* Auf dem Handy gibt es kein echtes Hover – beim Wischen setzt der Browser den
        Zustand trotzdem auf die beruehrte Karte. Sie bliebe dann angehoben stehen,
        und der weiche Schatten wuerde mitten im Scrollen ueber eine Uebergangszeit
@@ -4752,6 +4841,10 @@
     clear: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6c1 1 1 2.5 0 3.4L13 21"/><path d="M22 21H7"/><path d="m5 11 9 9"/></svg>',
     // Taschenrechner — vom frueheren Kalorienrechner-Reiter uebernommen (Wiedererkennung).
     recalc: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 7h8"/><path d="M8 11h.01M12 11h.01M16 11h.01M8 15h.01M12 15h.01M16 15h.01"/></svg>',
+    // Einkaufswagen. Zwei Ausloeser fuehren zur Einkaufsliste - der breite Knopf unter dem
+    // Plan (Rechner) und der Icon-Knopf im Kopf (Handy). Dasselbe Icon aus einer Quelle,
+    // damit die beiden nicht auseinanderlaufen (gleiche Ueberlegung wie bei BARCODE_SVG).
+    cart: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6h15l-1.5 9h-12z"/><path d="M6 6 5 2H2"/><circle cx="9" cy="20" r="1.4"/><circle cx="18" cy="20" r="1.4"/></svg>',
   };
   // Hantel (Trainingstag). Als EINZIGES Icon der App mit gefuellten Flaechen statt reiner
   // Konturen — und das aus einem geprueften Grund: Bei 13 px, wie es in der Tages-Kopfzeile
@@ -6230,6 +6323,17 @@
     // sichtbaren Karten nachfuehren. Beim Wischen zaehlt das Maximum der angerissenen
     // Karten, sonst wuerde die hereinkommende hoehere Karte unterwegs abgeschnitten.
     function fitHeight() {
+      // noFit: Der Streifen bekommt seine Hoehe von aussen (der Wochenplan ist mobil die
+      // 1fr-Zeile eines Sheets fester Hoehe). Hier darf dann NICHTS mehr geschrieben
+      // werden - genau dieses Schreiben mitten in der Wischgeste war die Ursache von
+      // TROUBLESHOOTING Ziffer 42: ein Groessenwechsel des Snap-Behaelters laesst den
+      // Browser sein Snap-Ziel neu bestimmen, und der laufende Wisch blieb zwischen zwei
+      // Tagen stehen. Eine evtl. noch gesetzte Inline-Hoehe wird einmal geraeumt, damit
+      // die CSS-Hoehe wieder greift (etwa nach einem Wechsel der Bildschirmbreite).
+      if (opts && opts.noFit) {
+        if (scroller.style.height) { scroller.style.height = ""; lastH = -1; }
+        return;
+      }
       // Am Rechner ist .week ein Raster und scrollt nicht – dort nichts anfassen.
       // Gegen den gemessenen Wert, nicht gegen frisch gelesene Layout-Eigenschaften.
       if (maxScroll <= 10) {
@@ -6241,8 +6345,8 @@
       // aber durch bedingten Inhalt (Trainings-Badge, "Neu berechnen"-Knopf) leicht
       // abweichen koennen. Ohne festes Mass auf das Maximum ALLER Karten wuerde der
       // Streifen beim Wischen zwischen beiden Hoehen wackeln, statt einmal fest zu
-      // stehen. Der Wochenplan (.week) bleibt bewusst variabel: dort ist die
-      // unterschiedliche Hoehe pro Tag gewollt (siehe Kommentar bei .week weiter oben).
+      // stehen. Der Wochenplan geht diesen Weg NICHT: er bekommt seine Hoehe vom Sheet
+      // (noFit oben), nicht aus der hoechsten Karte.
       if (opts && opts.fixedHeight) {
         heights.forEach(x => { h = Math.max(h, x); });
       } else {
@@ -6285,12 +6389,26 @@
     ["touchstart", "touchend", "touchcancel"].forEach(t => {
       scroller.addEventListener(t, e => { touching = !!(e.touches && e.touches.length); }, { passive: true });
     });
+    // Senkrechten Stand der verlassenen Panels zurueckdrehen: wer zu einem anderen Tag
+    // wischt, will ihn SEHEN und nicht dort weiterlesen, wo er zuletzt aufgehoert hat.
+    // Bewusst erst NACH dem Einrasten und nur fuer Panels, die gerade nicht dran sind -
+    // waehrend der Geste ist die verlassene Karte noch halb im Bild, ein Sprung dort
+    // waere sichtbar. Panels ohne eigenen Scroller (Rechner, Wochenziele) fasst die
+    // Schleife nicht an, dort ist scrollTop ohnehin 0.
+    function resetInactiveScroll(activeIdx) {
+      panels.forEach((p, i) => {
+        if (i === activeIdx) return;
+        const inner = p.querySelector(".slots");
+        if (inner && inner.scrollTop) inner.scrollTop = 0;
+      });
+    }
     function settleNative() {
       // Solange der Finger liegt, ist "zwischen zwei Tagen" der gewollte Zustand.
       if (touching) { armSettle(); return; }
       const i = currentIndex();
       if (lefts[i] == null) return;
       if (Math.abs(scroller.scrollLeft - lefts[i]) > 2) scroller.scrollLeft = lefts[i];
+      resetInactiveScroll(i);
     }
     // Hart setzen statt sanft: ein zweiter Lauf koennte auf demselben Weg wieder zwischen
     // zwei Punkten enden. Der Zielindex ist derselbe, den die Tagesleiste ohnehin schon
@@ -6372,6 +6490,7 @@
       const settle = () => {
         if (activeIdx !== i) return;
         if (Math.abs(scroller.scrollLeft - lefts[i]) > 2) scroller.scrollLeft = lefts[i];
+        resetInactiveScroll(i);   // wie beim Finger-Wisch, siehe settleNative()
       };
       if ("onscrollend" in scroller) scroller.addEventListener("scrollend", settle, { once: true });
       else setTimeout(settle, 400);
@@ -6495,6 +6614,27 @@
     const tabs = document.querySelector(".tabs");
     const fixed = tabs && getComputedStyle(tabs).position === "fixed";
     root.style.setProperty("--tabbar-h", fixed ? tabs.offsetHeight + "px" : "0px");
+    // Oberkante des Wochenplan-Sheets. Es soll den Rest des Bildschirms genau ausfuellen -
+    // dann bekommt die Seite keinen Ueberlauf, und der Plan-Kopf darueber steht fest, ohne
+    // dass irgendwo ein zweites position:fixed noetig waere.
+    //
+    // GEMESSEN statt aus Variablen summiert: der erste Versuch rechnete
+    // 100dvh - Kopf - Plan-Kopf - Reiterleiste und lag 170px daneben, weil zwischen den
+    // Bausteinen noch Abstaende sitzen (.section-head margin-bottom, .app padding). Jede
+    // kuenftige Abstandsaenderung haette denselben Fehler erneut erzeugt. Die Oberkante
+    // kennt dagegen alles, was darueber liegt, von selbst.
+    //
+    // Dokumentposition (+ scrollY), nicht die Position im Sichtfenster: waere die Seite
+    // beim Messen gescrollt, ergaebe der reine Rect-Wert eine zu kleine Hoehe.
+    const sheet = document.querySelector(".plan-sheet");
+    root.style.setProperty("--sheet-top",
+      sheet ? (sheet.getBoundingClientRect().top + window.scrollY) + "px" : "0px");
+    // Die Fusszeile steht UNTER dem Sheet und muss von dessen Hoehe abgezogen werden -
+    // sonst schoebe sie die Seite in einen Ueberlauf, und der Plan-Kopf waere nicht mehr
+    // fest. Sie auszublenden waere der bequeme Weg, aber das Impressum muss erreichbar
+    // bleiben (CLAUDE.md §23) - also kostet sie ihre 53px ehrlich.
+    const foot = document.querySelector(".site-foot");
+    root.style.setProperty("--foot-h", foot ? foot.offsetHeight + "px" : "0px");
   }
   window.addEventListener("resize", syncStickyOffsets);
 
@@ -6823,9 +6963,19 @@
         <div class="plan-tools">
           <div class="week-switch" role="tablist" aria-label="Woche wählen">
             <span class="ws-ind" aria-hidden="true"></span>
-            <button class="ws-btn${state.viewWeek === "next" ? "" : " active"}" data-action="week" data-week="cur" role="tab" aria-selected="${state.viewWeek === "next" ? "false" : "true"}">Aktuelle Woche</button>
-            <button class="ws-btn${state.viewWeek === "next" ? " active" : ""}" data-action="week" data-week="next" role="tab" aria-selected="${state.viewWeek === "next" ? "true" : "false"}">Nächste Woche</button>
+            <!-- " Woche" steht in einem eigenen Span, weil es auf schmalen Geraeten per CSS
+                 entfaellt (.ws-w). Uebrig bleibt "Aktuelle"/"Naechste" - im Wochenplan mit
+                 der MO-SO-Leiste darunter eindeutig. Das aria-label traegt weiterhin den
+                 vollen Text, damit eine Sprachausgabe nicht nur "Aktuelle" sagt. -->
+            <button class="ws-btn${state.viewWeek === "next" ? "" : " active"}" data-action="week" data-week="cur" role="tab" aria-label="Aktuelle Woche" aria-selected="${state.viewWeek === "next" ? "false" : "true"}">Aktuelle<span class="ws-w"> Woche</span></button>
+            <button class="ws-btn${state.viewWeek === "next" ? " active" : ""}" data-action="week" data-week="next" role="tab" aria-label="Nächste Woche" aria-selected="${state.viewWeek === "next" ? "true" : "false"}">Nächste<span class="ws-w"> Woche</span></button>
           </div>
+          <!-- Zweiter Einstieg in die Einkaufsliste, NUR auf dem Handy sichtbar (CSS).
+               Dort ist das Sheet unten von der Reiterleiste begrenzt; ein zweiter fester
+               Balken darueber haette bei 667px Geraetehoehe die Haelfte des Platzes fuer
+               die Meals gekostet. Gleiche data-action wie der breite Knopf am Ende des
+               Reiters - ein Handler, zwei Ausloeser, kein zweiter Weg im Skript. -->
+          <button class="btn ghost icon-gh shop-ic" data-action="shopping" title="Einkaufsliste der Woche" aria-label="Einkaufsliste der Woche">${TOOL_ICONS.cart}</button>
           ${canEdit() ? `<button class="btn ghost icon-gh" data-action="clear-week" title="Woche leeren" aria-label="Woche leeren">${TOOL_ICONS.clear}</button>` : ""}
         </div>
       </div>`;
@@ -6838,6 +6988,10 @@
     // Karussells. Kein role="tablist" – es sind keine Reiter, sondern Sprungmarken
     // in einen Streifen, der auch gewischt werden kann. Die Kurzform steht sichtbar,
     // der volle Wochentag im aria-label; sonst laese eine Sprachausgabe nur „Mo“.
+    // Tagesleiste und Streifen sitzen zusammen im Sheet: auf dem Handy eine Flaeche fester
+    // Hoehe (Leiste oben fest, Meals darin scrollend), am Rechner ein simpler Wrapper ohne
+    // eigene Wirkung. Siehe .plan-sheet im 680px-Block.
+    html += `<div class="plan-sheet">`;
     html += `<nav class="daybar" aria-label="Zum Wochentag springen"><span class="db-ind" aria-hidden="true"></span>`;
     DAYS.forEach(d => {
       const isToday = d.key === todayKey;
@@ -6914,9 +7068,9 @@
       html += `</div>${dayNutHtml(dayNut(d.key), d.key)}</section>`;
     });
 
-    html += `</div>
+    html += `</div></div>
       <button class="shop-cta" data-action="shopping">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6h15l-1.5 9h-12z"/><path d="M6 6 5 2H2"/><circle cx="9" cy="20" r="1.4"/><circle cx="18" cy="20" r="1.4"/></svg>
+        ${TOOL_ICONS.cart}
         Einkaufsliste der Woche
       </button>`;
     view.innerHTML = html;
@@ -6928,7 +7082,10 @@
     pendingWeekX = 0;
     syncStickyOffsets();
     resetCarousels(); // die Streifen des vorigen Durchlaufs sind gerade weggeworfen worden
-    const planCarousel = initCarousel(weekStrip, view.querySelector(".daybar"));
+    // noFit: die Hoehe des Streifens kommt vom Sheet (.plan-sheet), nicht von der
+    // sichtbaren Karte. Am Rechner aendert das nichts - dort greift ohnehin schon der
+    // maxScroll-Ausstieg in fitHeight().
+    const planCarousel = initCarousel(weekStrip, view.querySelector(".daybar"), null, null, { noFit: true });
 
     // Anker-Regel: "Aktuelle Woche" zeigt immer heute, "Nächste Woche" immer Montag -
     // beim Betreten des Tabs UND bei jedem Wochenwechsel, nie durch Zufall (siehe
