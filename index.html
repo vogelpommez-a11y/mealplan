@@ -900,6 +900,27 @@
   .mv.t-prot { --tc: var(--prot); }
   .mv.t-fat { --tc: var(--fat); }
 
+  /* ---------- Abschnittsueberschrift (.sec-h) ----------
+     Die EINE Abschnittsform der App. Sie stand vorher dreimal wortwoertlich identisch da
+     (.ms-ings h4, .nut-total > h4, .detail .dsec h4) - der Kommentar bei .nut-total sagte
+     sogar ausdruecklich "Abschnittsform wie Zutaten", die Werte waren trotzdem kopiert.
+     Neue Abschnitte bekommen diese Klasse, keine eigenen Werte.
+
+     font-weight gehoert HIERHER und nicht in die Aufrufer: die drei Altstellen sind <h4>
+     und trugen die 700 des Browsers, .mlabel im Wochenplan ist ein <div> und laege sonst
+     bei 400 - dieselbe Klasse saehe an zwei Orten verschieden aus.
+
+     Abstaende bleiben bewusst lokal: 22px oben in der Meal-Ansicht, 0 im Detailbereich,
+     3px unter der Slot-Ueberschrift. Der Abstand haengt am Ort, die Schrift nicht.
+
+     Bewusst NICHT angeglichen: .shop-cat (Einkaufsliste, eigene Display-Schrift und .06em)
+     und .modal-head .kicker (11.5px). Beide liegen knapp daneben, das ist gewollt - wer sie
+     spaeter "aufraeumt", aendert bestehende Ansichten sichtbar. */
+  .sec-h {
+    font-size: 12.5px; font-weight: 700; letter-spacing: .05em;
+    text-transform: uppercase; color: var(--text-muted);
+  }
+
   .slot { position: relative; border-radius: var(--radius-sm); padding: 8px 10px 9px 12px; transition: background var(--dur-fast); }
   .slot::before { content:""; position:absolute; left:5px; top:10px; bottom:10px; width:3px; border-radius:3px; background: var(--slot-c); opacity:.9; }
   .slot[data-meal="fr"] { --slot-c: var(--fr); }
@@ -912,7 +933,11 @@
      zusaetzlich das Richtige, Snacks sind die nachgeordnete Mahlzeit. Kein Alias-Token
      dafuer, der Verweis ist die Aussage. */
   .slot[data-meal="sn"] { --slot-c: var(--border-strong); }
-  .slot .mlabel { font-size: 11px; font-weight: 650; letter-spacing: .04em; text-transform: uppercase; color: var(--slot-c); margin-bottom: 3px; }
+  /* Traegt .sec-h im Markup - dieselbe Abschnittsform wie "Zutaten" in der Meal-Ansicht.
+     Vorher eigene Werte (11px/650/.04em) und in der Slot-Farbe. Die Farbe ist weg, weil
+     das Wort danebensteht: "FRUEHSTUECK" in Amber sagt nichts, was "Fruehstueck" nicht
+     schon sagt. Den Mahlzeitenbezug traegt am Rechner weiter der Streifen links. */
+  .slot .mlabel { margin-bottom: 3px; }
   .slot .add {
     font: inherit; font-size: 13px; width: 100%; text-align: left; cursor: pointer;
     border: 1px dashed var(--border-strong); background: transparent; color: var(--text-muted);
@@ -1252,7 +1277,7 @@
   .ms-name:hover { border-color: var(--border-strong); background: var(--bg); }
   .ms-name:focus { outline: none; border-color: var(--accent); background: var(--bg); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent); }
   .ms-cat { flex: none; width: auto; font-size: 16px; padding: 7px 8px; }
-  .ms-ings h4 { font-size: 12.5px; text-transform: uppercase; letter-spacing: .05em; color: var(--text-muted); margin: 22px 0 4px; }
+  .ms-ings .sec-h { margin: 22px 0 4px; }   /* Schrift kommt aus .sec-h */
   /* Fusszeile der Meal-Ansicht (Nachtrag Abnahme Phase 1): "Meal loeschen"/"Verwerfen" und
      "Fertig" stehen jetzt zusammen im modal-foot statt getrennt im Body. space-between statt
      eines festen 8px-gap gibt der destruktiven Aktion spuerbaren Abstand zur bestaetigenden -
@@ -1287,15 +1312,16 @@
     .overlay.sheet-overlay .ms-photo img { height: 28vh; min-height: 130px; max-height: 200px; }
     .overlay.sheet-overlay .modal-foot { padding-bottom: calc(14px + env(safe-area-inset-bottom)); }
   }
-  /* Makro-Ueberschrift: Abschnittsform wie "Zutaten" (.ms-ings h4) statt eigener
-     Hervorhebung mit rotem Rahmen - die Gliederung leisten die Ueberschriften, kein Block
-     sticht mehr ohne Grund heraus (Nachtrag Abnahme Phase 1). */
-  .nut-total > h4 {
+  /* Makro-Ueberschrift: dieselbe Abschnittsform wie "Zutaten" statt eigener Hervorhebung
+     mit rotem Rahmen - die Gliederung leisten die Ueberschriften, kein Block sticht mehr
+     ohne Grund heraus (Nachtrag Abnahme Phase 1). Die Schrift kommt jetzt aus .sec-h;
+     hier bleibt nur, was diese Ueberschrift von den anderen unterscheidet: sie traegt
+     zusaetzlich einen Hinweis und einen Knopf und muss dafuer eine Reihe sein. */
+  .nut-total > .sec-h {
     display: flex; align-items: center; flex-wrap: wrap; gap: 8px;
-    font-size: 12.5px; text-transform: uppercase; letter-spacing: .05em;
-    color: var(--text-muted); margin: 22px 0 4px;
+    margin: 22px 0 4px;
   }
-  .nut-total > h4 .hint { font-family: var(--font-body); text-transform: none; letter-spacing: 0; font-weight: 400; font-size: 12px; }
+  .nut-total > .sec-h .hint { font-family: var(--font-body); text-transform: none; letter-spacing: 0; font-weight: 400; font-size: 12px; }
   .ms-nut { margin-bottom: 15px; }
   .ms-nut .nut-total { margin-bottom: 0; }
   /* Makro-Kacheln im Bearbeiten-Zweig (Nachtrag Abnahme Phase 2, 08.08.2026, loest den
@@ -1488,7 +1514,7 @@
      plans/MealAnsicht.MD) und sind mit .ms-photo/.nutfacts in openMealSheet() entfallen;
      .dsec/ul/.steps leben in dessen Nur-Lese-Zweig weiter (Makro-Ueberschrift, Zubereitung). */
   .detail .dsec { margin-top: 14px; }
-  .detail .dsec h4 { font-size: 12.5px; text-transform: uppercase; letter-spacing: .05em; color: var(--text-muted); margin: 0 0 6px; }
+  .detail .dsec .sec-h { margin: 0 0 6px; }   /* Schrift kommt aus .sec-h */
   .detail ul { margin: 0; padding-left: 18px; line-height: 1.6; }
   .detail .steps { white-space: pre-wrap; line-height: 1.6; font-size: 14px; }
   .shop-head { display: flex; align-items: center; gap: 13px; }
@@ -6770,7 +6796,7 @@
       MEALS.forEach(m => {
         const ids = state.plan[d.key][m.key];
         html += `<div class="slot" data-meal="${m.key}" data-slot="${d.key}:${m.key}">
-          <div class="mlabel">${m.label}</div>`;
+          <div class="mlabel sec-h">${m.label}</div>`;
         const drag = canEdit();
         const showPencil = drag && groupMembers.length >= 2;
         // Original-Index bleibt jeder Karte fest zugeordnet (data-slot-src), unabhaengig
@@ -7466,7 +7492,7 @@
       const cls = CAT_CLASS[r.category] || "cat-x";
       const statsInner = mealStatsHtml(r);
       const statsHtml = statsInner
-        ? `<div class="dsec"><h4>Makros gesamt</h4>${statsInner}</div>`
+        ? `<div class="dsec"><h4 class="sec-h">Makros gesamt</h4>${statsInner}</div>`
         : `<p class="ms-empty-ings">Noch keine Nährwerte</p>`;
       const ingHtml = (r.ingredients && r.ingredients.length)
         ? `<div class="ing-list">${r.ingredients.map(i => roIngRowHtml(i)).join("")}</div>`
@@ -7481,8 +7507,8 @@
         <div class="modal-body">
           <div class="ms-head"><h3 class="ms-title">${esc(r.name)}</h3><span class="chip ${cls}">${esc(r.category || "Gericht")}</span></div>
           ${statsHtml}
-          <div class="ms-ings"><h4>Zutaten</h4>${ingHtml}</div>
-          ${r.steps ? `<div class="dsec"><h4>Zubereitung</h4><div class="steps">${esc(r.steps)}</div></div>` : ""}
+          <div class="ms-ings"><h4 class="sec-h">Zutaten</h4>${ingHtml}</div>
+          ${r.steps ? `<div class="dsec"><h4 class="sec-h">Zubereitung</h4><div class="steps">${esc(r.steps)}</div></div>` : ""}
         </div>
         <div class="modal-foot"><button class="btn primary" data-close>Schließen</button></div>
       </div>`);
@@ -7546,7 +7572,7 @@
              wie im Nur-Lese-Zweig (mealStatsHtml) und auf der Karte, nur mit Eingabefeldern
              statt Text - kein eigener Ruhezustand mehr, siehe openMealSheet()-Kommentar. -->
         <div class="ms-nut" id="ms-nut">
-          <div class="nut-total"><h4>Makros gesamt <span class="hint" id="f-nut-hint" hidden></span> <button type="button" id="f-nut-reset" class="btn ghost sm" hidden>Automatisch übernehmen</button></h4></div>
+          <div class="nut-total"><h4 class="sec-h">Makros gesamt <span class="hint" id="f-nut-hint" hidden></span> <button type="button" id="f-nut-reset" class="btn ghost sm" hidden>Automatisch übernehmen</button></h4></div>
           <div class="nutfacts nutfacts-edit">
             <div class="nf t-kcal"><div class="v"><input type="number" inputmode="numeric" id="f-kcal" min="0" max="99999" step="1" value="${initial.nutrition && initial.nutrition.kcal != null ? esc(initial.nutrition.kcal) : ""}" placeholder="520"><span class="u">kcal</span></div><label class="k" for="f-kcal">Kcal</label></div>
             <div class="nf t-carb"><div class="v"><input type="number" inputmode="decimal" id="f-carbs" min="0" max="9999" step="0.1" value="${initial.nutrition && initial.nutrition.carbs != null ? esc(initial.nutrition.carbs) : ""}" placeholder="60"><span class="u">g</span></div><label class="k" for="f-carbs">KH</label></div>
@@ -7555,7 +7581,7 @@
           </div>
         </div>
         <div class="ms-ings">
-          <h4>Zutaten</h4>
+          <h4 class="sec-h">Zutaten</h4>
           <div id="f-ings"></div>
           <p class="ms-empty-ings" id="ms-ing-empty" hidden>Noch keine Zutaten</p>
           <!-- #f-ing-add ist der alte, versteckte "+ Weitere Zutat"-Knopf: updateMacroSum()
