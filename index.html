@@ -1988,6 +1988,19 @@
     .head-inner { gap: 10px 12px; padding: 11px 0; }
     .brand h1 { font-size: 19px; }
   }
+  /* Schmale Geraete: die Kopfzeile brach um und wurde dadurch 90px statt 41px hoch - das
+     Profil rutschte unter die Marke. Gemessen bei 360px: Marke und Profil brauchen
+     zusammen mehr, als die Zeile hergibt.
+     Statt umzubrechen darf die Marke jetzt schrumpfen (min-width: 0 ist fuer ein
+     Flex-Kind Pflicht, sonst schrumpft es nie unter seinen Inhalt). Zuerst weicht der
+     Slogan - er ist Zierde, die Marke selbst bleibt vollstaendig. Reicht das nicht,
+     kuerzt der Titel mit Auslassungspunkten, statt eine zweite Zeile zu oeffnen. */
+  @media (max-width: 400px) {
+    .head-inner { flex-wrap: nowrap; }
+    .brand { min-width: 0; }
+    .brand .slogan, .brand p { display: none; }
+    .brand h1 { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  }
   /* Nur das schmale Band zwischen Handy-Balken (bis 680) und voller Breite: hier bleibt
      die Leiste im Kopf und darf scrollen. Bewusst mit min-width abgegrenzt — ohne das
      ueberschriebe dieser Block das Innenmass des unteren Balkens. */

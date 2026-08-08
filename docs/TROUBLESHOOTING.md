@@ -1441,3 +1441,37 @@ halten oder den Übergang sichtbar animieren — aber nie stumm umspringen lasse
 vergleichen. Zusätzlich `elementFromPoint()` auf den alten Koordinaten abfragen — trifft man dort
 noch den Auslöser? Bei einem Element, das an einer Kante verankert ist, ist das keine
 Feinheit, sondern der Unterschied zwischen bedienbar und kaputt.
+
+---
+
+## 60. `flex-wrap: wrap` in der Kopfzeile — ein Umbruch, der die Leiste verdoppelt
+
+Die Kopfzeile (`.head-inner`) trägt `flex-wrap: wrap`. Auf breiten Geräten fällt das nie auf. Bei
+360 px reichte die Zeile nicht mehr für Marke und Profilknopf: Das Profil rutschte unter die Marke
+und die Kopfzeile wuchs von 41 px auf **90 px** — 49 px, die dem Wochenplan fehlten.
+
+Der Umbruch war kein Platzmangel, sondern eine fehlende Erlaubnis zu schrumpfen. **Ein Flex-Kind
+schrumpft ohne `min-width: 0` nie unter die Breite seines Inhalts** — die Vorgabe ist `min-width:
+auto`. Die Marke bestand also auf ihrer vollen Breite, und wenn der Container die nicht hergibt,
+bleibt bei `wrap` nur der Umbruch.
+
+**Behoben** in einem eigenen Block bei `max-width: 400px`:
+
+* `flex-wrap: nowrap` — die Zeile bleibt eine Zeile.
+* `.brand { min-width: 0 }` — die Marke darf schrumpfen.
+* `.brand .slogan { display: none }` — der Slogan weicht zuerst, er ist Zierde.
+* `.brand h1` mit `text-overflow: ellipsis` — greift erst unter ~340 px.
+
+**Falle im Detail:** Der Slogan ist ein `<div class="slogan">`, kein `<p>`. Eine Regel
+`.brand p { display: none }` greift ins Leere und die Höhe bleibt unverändert bei 56 px. Vor dem
+Ausblenden im Markup nachsehen, nicht raten.
+
+**Prüfregel:** Kopfzeilenhöhe bei 320, 360, 390 und 430 px messen. Sie muss überall gleich sein.
+Ein einzelner Ausreißer nach oben ist immer ein Umbruch.
+
+**Messfalle:** Der Prüfstand (`stand.py`) kopiert `index.html` **beim Start** in sein Wurzelver-
+zeichnis, um den `apiKey` zu neutralisieren. Eine Änderung nach dem Start ist unsichtbar, und ein
+zweites `python stand.py` scheitert still am belegten Port — es misst weiter der alte Server. Den
+Prozess auf Port 8181 erst per `netstat -ano` suchen und beenden. Jede Messung mit einer Zusiche-
+rung absichern, die belegt, dass der neue Stand tatsächlich geladen ist (etwa eine Suche nach dem
+neuen Selektor im DOM).
