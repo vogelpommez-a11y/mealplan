@@ -2276,7 +2276,23 @@
        Abschneiden liesse das Ziel auf 42px schrumpfen, unter die 44px-Grenze.
        Die Zeilen darin haben deshalb waagerecht keinen eigenen Abstand mehr - die
        Trennlinien laufen so weit, wie die Liste reicht. */
-    .week > .day > .slots { padding: 4px 8px 0; gap: 0; }
+    /* Die Mahlzeiten stehen in EINEM Fenster - Flaeche, Rahmen und Rundung bewusst
+       identisch zur klebenden Bilanz darunter (.day-bal), damit die beiden als Paar
+       lesbar sind: oben der Plan, unten der Stand. Nicht vier einzelne Fenster: das waere
+       die Kachel-Optik zurueck, die hier zwei Runden zuvor abgeschafft wurde, und mit der
+       Bilanz laegen fuenf Kaesten auf einem Bildschirm.
+       Die Hoehe folgt dem INHALT, nicht dem Streifen: .week ist wegen fixedHeight so hoch
+       wie der vollste Tag, die Karte darin behaelt aber ihre eigene Hoehe
+       (align-items: flex-start). An einem leeren Tag bleibt der Kasten also klein. */
+    .week > .day > .slots {
+      padding: 4px 8px 8px; gap: 0;
+      background: color-mix(in srgb, var(--surface-2) 92%, var(--bg));
+      border: 1px solid var(--border); border-radius: var(--radius);
+    }
+    /* Die letzte Zeile im Fenster braucht keine Trennlinie - sie laege direkt auf dem
+       Rahmen. Trifft beide moeglichen Faelle: die Hinzufuegen-Zeile und, wo es sie nicht
+       gibt (Nur-Lese-Modus), die letzte Meal-Zeile. */
+    .week > .day > .slots > .slot:last-child > :last-child { border-bottom: 0; }
 
     /* Slot: Farbstreifen weg (das Label schreibt die Mahlzeit aus), Einzug zurueck. */
     .week > .day .slot { padding: 8px 0 4px; }
@@ -7171,8 +7187,24 @@
           <div class="mlabel sec-h">${iconSvg(MEAL_ICON[m.key], "mlabel-ic")}${m.label}</div>`;
         const drag = canEdit();
         const showPencil = drag && groupMembers.length >= 2;
-        // Original-Index bleibt jeder Karte fest zugeordnet (data-slot-src), unabhaengig
-        // von der Anzeige-Reihenfolge unten.
+        // Die Karten stehen in der Reihenfolge, in der sie eingeplant wurden - es gibt
+        // KEINE abweichende Anzeige-Sortierung mehr.
+        //
+        // Frueher wurden sie nach Zuweisung gruppiert (gemeinsam -> eigene -> andere),
+        // damit fremde Gerichte gebuendelt am Ende stehen und sich einklappen lassen. Das
+        // hatte einen Preis, der am Geraet auffiel: Weist man ein Gericht jemandem zu,
+        // wechselt es die Gruppe und rutscht im selben Moment an eine andere Stelle - bei
+        // zwei Mitgliedern schaltet das Personen-Icon sogar ohne Zwischenmenue durch, der
+        // Sprung passiert also direkt unter dem Finger. Dieselbe Fehlerklasse wie beim
+        // Makro-Aufklapper (docs/TROUBLESHOOTING.md, Punkt 59): ein Bedienelement, das
+        // sich beim Benutzen wegbewegt, ist kaputt, auch wenn die Logik stimmt.
+        //
+        // Die Gruppierung loeste einen seltenen Fall (ab drei fremden Gerichten in EINEM
+        // Slot), der Sprung traf jede einzelne Zuweisung. Das Einklappen funktioniert auch
+        // ohne sie - siehe otherSeen unten.
+        //
+        // Der Original-Index bleibt jeder Karte ueber data-slot-src fest zugeordnet. Das
+        // ist weiterhin wichtig: Er zeigt in state.plan, nicht auf die Anzeigeposition.
         const cards = [];
         ids.forEach((entry, idx) => {
           const r = getRecipe(entryId(entry));
@@ -7183,18 +7215,19 @@
           cards.push({ r, idx, uids, grp });
         });
         const shown = cards.length;
-        // stabil sortieren: gemeinsam -> eigene -> andere, innerhalb jeder Gruppe Original-Reihenfolge
-        const ordered = cards.map((c, i) => ({ c, i })).sort((a, b) => (a.c.grp - b.c.grp) || (a.i - b.i)).map(x => x.c);
-        const otherTotal = ordered.filter(c => c.grp === 2).length;
+        const otherTotal = cards.filter(c => c.grp === 2).length;
         const slotKey = d.key + ":" + m.key;
         const collapsed = otherTotal > SLOT_OTHERS_MAX && !expandedOthers.has(slotKey);
         const otherVisible = collapsed ? SLOT_OTHERS_MAX : otherTotal;
         let otherSeen = 0;
-        ordered.forEach(c => {
+        cards.forEach(c => {
           const { r, idx, uids, grp } = c;
           if (grp === 2) {
             otherSeen++;
-            if (otherSeen > otherVisible) return; // steckt in der "+N weitere"-Karte
+            // Ab dem (otherVisible + 1)-ten fremden Gericht ausblenden - gezaehlt in
+            // Plan-Reihenfolge, nicht mehr am Listenende gebuendelt. Sichtbar bleiben
+            // also die zuerst eingeplanten, der Rest steckt in "+N weitere".
+            if (otherSeen > otherVisible) return;
           }
           const badge = grp !== 0 ? memberBadgeHtml(uids) : "";
           // Badges sind aria-hidden (rein dekorativ) - wer das Gericht isst, muss deshalb
