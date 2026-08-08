@@ -935,18 +935,22 @@ Ziel, fällt es auf reines Ausblenden zurück. `reducedMotion()` schaltet auf `.
 **Bottom-Sheet — am Handy (Nachtrag Abnahme, 08.08.2026).** Unter `max-width: 560px` gilt FLIP
 nicht: dort ist die Karte fast so breit wie die Ansicht, und weil `flipDelta()` die Skalierung
 allein aus der Breite ableitet, bleibt `s ≈ 1` und die Bewegung praktisch unsichtbar (Ziffer 53
-in `docs/TROUBLESHOOTING.md`). Stattdessen fährt die Ansicht als Bottom-Sheet von unten hoch
-(`translateY(100%) → none`, `MOTION.sheet` = 420 ms) und beim Schließen denselben Weg zurück
-(`MOTION.slow` = 300 ms, Exit kürzer als Entry).
+in `docs/TROUBLESHOOTING.md`). Stattdessen steht die Ansicht sofort an ihrem Platz und gleitet nur ein kurzes Stück herein:
+`translateY(48px) → none` zusammen mit `opacity 0 → 1` (`MOTION.slow`, `MOTION.ease`), beim
+Schließen spiegelbildlich (`MOTION.base`, Exit kürzer als Entry). Der gemeinsame Helfer dafür ist
+`sheetMove(node, keyframes, dur, fill)`.
 
-**Eigene Kurve für lange Strecken.** Beides läuft über `MOTION.easeSheet`
-(`--ease-sheet: cubic-bezier(.32, .72, 0, 1)`) statt über das sonst übliche `--ease-out`. Grund
-(Rückmeldung 08.08.2026): `--ease-out` ist stark vorn gewichtet — gemessen war der Weg nach einem
-Viertel der Zeit zu ~97 % zurückgelegt. Über die 16 px eines Tab-Wechsels liest sich das als
-„sofort da", über die volle Sheet-Höhe als Sprung. Die neue Kurve verteilt die Bewegung
-gleichmäßiger (nach 42 ms erst 27 %, nach 84 ms 66 %) und bremst erst spät aus.
-`--ease-sheet`/`--dur-sheet` sind **keine** allgemeine Alternative zu `--ease-out`: kurze Wege
-brauchen weiterhin die schnelle Kurve, sonst wirkt die Oberfläche träge.
+**Warum der Weg kurz ist (Rückmeldung 08.08.2026).** Zuerst fuhr das Sheet über die volle
+Bildschirmhöhe hoch (681 px). Am Gerät fiel dabei reproduzierbar der eine oder andere Frame aus —
+sichtbar als kurz falsch stehende Fußzeile, umso häufiger, je länger die Zutatenliste war. Das
+Layout war dabei nachweislich stabil (Höhe und Fußposition über die ganze Animation konstant); es
+war die Rasterarbeit pro Bild. `sheetMove()` setzt deshalb zusätzlich `will-change` (wie
+`flipIn()`) und stellt `.modal-body` für die Dauer der Bewegung auf `overflow: hidden`, damit kein
+zweiter Scroll-Layer mitgerastert wird. **Beides muss in jedem Ausgang wieder weg** — bleibt
+`overflow` hängen, lässt sich eine lange Zutatenliste nie wieder scrollen; der `finished`-Handler
+räumt deshalb in beiden Zweigen auf, auch bei abgebrochener Animation. `fill: "forwards"` trägt
+nur der Austritt, sonst blitzt das Sheet zwischen Animationsende und `closeModal()` ein Bild lang
+wieder auf.
 
 Drei Größen steuern die Verzweigung in `openMealSheet()`:
 

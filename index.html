@@ -150,15 +150,6 @@
     --dur-fast: 160ms;
     --dur-base: 200ms;
     --dur-slow: 300ms;
-    /* Eigene Kurve fuer lange Strecken (heute: das Bottom-Sheet der Meal-Ansicht, das ueber
-       die gesamte Bildschirmhoehe faehrt). --ease-out ist stark vorn gewichtet - nach einem
-       Viertel der Zeit ist der Weg praktisch zurueckgelegt. Ueber 16px Tab-Wechsel liest sich
-       das als "sofort da", ueber 680px Sheet-Hoehe als Sprung (Rueckmeldung 08.08.2026).
-       Diese Kurve verteilt die Bewegung gleichmaessiger und bremst erst spaet aus.
-       NICHT als allgemeine Alternative zu --ease-out verwenden: kurze Wege brauchen die
-       schnelle Kurve, sonst wirkt die Oberflaeche traege. */
-    --ease-sheet: cubic-bezier(.32, .72, 0, 1);
-    --dur-sheet: 420ms;
   }
 
   @media (prefers-color-scheme: dark) {
@@ -6031,9 +6022,6 @@
       base: cs.getPropertyValue("--dur-base").trim() || "200ms",
       slow: cs.getPropertyValue("--dur-slow").trim() || "300ms",
       ease: cs.getPropertyValue("--ease-out").trim() || "cubic-bezier(.23, 1, .32, 1)",
-      // Nur fuer lange Strecken, siehe Kommentar bei --ease-sheet im CSS.
-      sheet: cs.getPropertyValue("--dur-sheet").trim() || "420ms",
-      easeSheet: cs.getPropertyValue("--ease-sheet").trim() || "cubic-bezier(.32, .72, 0, 1)",
     };
   })();
 
@@ -7328,23 +7316,52 @@
     // Zwei getrennte Flags dafuer wuerden frueher oder spaeter auseinanderlaufen.
     const useAnimExit = !!flipFrom || (asSheet && withMotion);
 
+    // Gemeinsame Sheet-Bewegung fuer Eintritt und Austritt. Die Strecke ist bewusst KURZ
+    // (SHEET_SLIDE) und wird vom Einblenden begleitet, statt das Sheet ueber die ganze
+    // Bildschirmhoehe zu schieben: Ein Transform ueber 680px zwingt den Browser, in jedem Bild
+    // ein grosses Foto UND einen aktiven Scroll-Container neu zu rastern. Am Geraet fiel dabei
+    // reproduzierbar der eine oder andere Frame aus - sichtbar als kurz falsch stehende
+    // Fusszeile, umso haeufiger, je laenger die Zutatenliste war (Rueckmeldung 08.08.2026,
+    // siehe TROUBLESHOOTING). Das Layout selbst war dabei nachweislich stabil.
+    // Zwei Gegenmittel gehoeren zwingend dazu:
+    //   1. will-change hebt das Sheet vorab auf eine eigene Compositor-Schicht - dasselbe
+    //      Muster wie in flipIn()/flipOut(). Unbedenklich nach TROUBLESHOOTING #25: auf dem
+    //      Sheet laeuft waehrenddessen keine Paint-Transition (.modal.flip-anim schaltet die
+    //      CSS-transition ab), der Overlay-Fade liegt auf einem anderen Element.
+    //   2. Der Body wird fuer die Dauer der Bewegung ruhiggestellt (overflow: hidden), damit
+    //      kein zweiter Scroll-Layer mitgerastert wird.
+    // Beides MUSS wieder weg, egal wie die Animation endet - bleibt overflow haengen, laesst
+    // sich eine lange Zutatenliste nie wieder scrollen. Deshalb der finished-Handler mit
+    // beiden Zweigen (eine abgebrochene Animation rejectet).
+    // fill: nur der Austritt haelt seinen Endzustand ("forwards"), sonst blitzte das Sheet
+    // zwischen Animationsende und dem closeModal() im finished-Handler ein Bild lang wieder
+    // an seinem Platz auf. Der Eintritt endet ohnehin genau im CSS-Normalzustand und braucht
+    // deshalb kein fill - eine gefuellte Animation bliebe nur unnoetig am Element haengen.
+    const SHEET_SLIDE = 48;
+    function sheetMove(node, keyframes, dur, fill) {
+      const body = node.querySelector(".modal-body");
+      node.style.willChange = "transform, opacity";
+      if (body) body.style.overflow = "hidden";
+      const anim = node.animate(keyframes, { duration: dur, easing: MOTION.ease, fill: fill || "none" });
+      const clear = () => {
+        node.style.willChange = "";
+        if (body) body.style.overflow = "";   // leeren, nicht auf auto setzen - die CSS-Regel soll wieder greifen
+      };
+      anim.finished.then(clear, clear);
+      return anim;
+    }
     // Spielt den Eintritt NACH openModal() (das Ziel-Rect existiert erst, wenn der Knoten im
     // DOM steht). Am Rechner zwei WAAPI-Animationen im selben Tick: der Container waechst per
     // flipIn(), der Inhalt blendet erst ab ~38% ein - der wachsende Kasten liest sich zuerst
-    // als Karte. Am Handy faehrt stattdessen das ganze Sheet hoch; die Kinder bleiben dabei
-    // sichtbar, ein zusaetzliches Einblenden waere bei einer Flaeche, die ohnehin erst ins
-    // Bild kommt, nur Unruhe.
+    // als Karte. Am Handy gleitet das Sheet nur ein kurzes Stueck herein und blendet dabei auf.
     function playEnter(node) {
       const overlayEl = node.parentElement;
       const fadeIn = () => { if (overlayEl) overlayEl.animate([{ opacity: 0 }, { opacity: 1 }], { duration: parseFloat(MOTION.base) || 200, easing: MOTION.ease }); };
       if (sheetEnter) {
-        // Eigene Kurve und Dauer (MOTION.easeSheet/MOTION.sheet) statt der sonst ueblichen
-        // ease-out: das Sheet legt die volle Bildschirmhoehe zurueck, und ueber diese Strecke
-        // liest sich die stark vorn gewichtete Standardkurve als Sprung statt als Bewegung.
-        node.animate(
-          [{ transform: "translateY(100%)" }, { transform: "none" }],
-          { duration: parseFloat(MOTION.sheet) || 420, easing: MOTION.easeSheet }
-        );
+        sheetMove(node, [
+          { transform: "translateY(" + SHEET_SLIDE + "px)", opacity: 0 },
+          { transform: "none", opacity: 1 },
+        ], parseFloat(MOTION.slow) || 300);
         fadeIn();
         return;
       }
@@ -7378,10 +7395,13 @@
       // FLIP-Zweig darunter - der sucht sein Ziel ohnehin frisch.
       const nochSheet = !!overlayEl && overlayEl.classList.contains("sheet-overlay") && sheetLayout();
       if (nochSheet) {
-        // Dieselbe ruhige Kurve wie beim Hochfahren, aber kuerzer (MOTION.slow gegen
-        // MOTION.sheet) - Exits bleiben ueberall kuerzer als Entries.
-        const dur = parseFloat(MOTION.slow) || 300;
-        const a = node.animate([{ transform: "none" }, { transform: "translateY(100%)" }], { duration: dur, easing: MOTION.easeSheet });
+        // Spiegelbild des Eintritts, nur kuerzer (MOTION.base gegen MOTION.slow) - Exits
+        // bleiben ueberall kuerzer als Entries.
+        const dur = parseFloat(MOTION.base) || 200;
+        const a = sheetMove(node, [
+          { transform: "none", opacity: 1 },
+          { transform: "translateY(" + SHEET_SLIDE + "px)", opacity: 0 },
+        ], dur, "forwards");
         if (overlayEl) overlayEl.animate([{ opacity: 1 }, { opacity: 0 }], { duration: dur, easing: MOTION.ease });
         a.finished.then(finish, finish);
         return;

@@ -1250,3 +1250,25 @@ Gilt sinngemäß für jede künftige Funktion, die eine dynamische Linkvorschau 
 * Bleibt eine Prüfung auf echte Zeit angewiesen, vorher mit einem Screenshot den Tab in den Vordergrund holen — und danach gegenprüfen, dass `visibilityState` noch `visible` ist.
 
 **Verwandt:** Ziffer 47 und der Grundsatz aus Ziffer 43 — ein Hänger im Prüfstand ist erst dann ein Befund, wenn die Messmethode ausgeschlossen ist.
+
+## 55. Ein Transform über die halbe Bildschirmhöhe ist auf dem Handy zu teuer
+
+**Symptom (Rückmeldung nach ~30 Durchläufen am Gerät, 08.08.2026):** Das Bottom-Sheet der Meal-Ansicht fuhr beim Öffnen über die volle Bildschirmhöhe hoch (681 px, 420 ms). Dabei stand die „Schließen"-Zeile immer wieder für den Bruchteil einer Sekunde an falscher Stelle — nicht bei jedem Durchlauf, aber umso häufiger, je länger die Zutatenliste war.
+
+**Erst ausschließen, was es *nicht* ist.** Der naheliegende Verdacht ist ein Layoutsprung (das Sheet wächst noch, während es fährt). Im Prüfstand widerlegt: Animation anhalten, an mehreren `currentTime`-Punkten Sheet-Höhe und Fußposition messen — beide waren über die gesamte Bewegung konstant (681 px bzw. 608 px unter der Oberkante). Wenn die Geometrie stabil ist und trotzdem etwas zuckt, ist es die **Darstellung**, nicht das Layout.
+
+**Ursache:** Ein Transform verschiebt zwar nur eine Compositor-Schicht — aber nur, wenn das Element auch auf einer eigenen liegt und nicht pro Bild neu gerastert werden muss. Hier kam dreierlei zusammen:
+
+1. **Kein `will-change`.** `flipIn()`/`flipOut()` setzen es, der Sheet-Zweig anfangs nicht. Ohne den Hinweis hebt der Browser das Element nicht vorab auf eine eigene Schicht.
+2. **Ein aktiver Scroll-Container im bewegten Element.** `.modal-body` bleibt `overflow-y: auto` — ein zweiter Layer, der mitgerastert wird. Genau das erklärt die Abhängigkeit von der Länge der Zutatenliste: Ohne Überlänge ist der Container gar nicht scrollbar.
+3. **Ein großes Foto** über die volle Sheet-Breite als Inhalt.
+
+**Lösung — in dieser Reihenfolge:**
+
+* **Den Weg kürzen.** Statt 681 px nur noch 48 px, begleitet von `opacity 0 → 1`. Ein Zehntel der Strecke heißt ein Zehntel der Gelegenheiten, ein Bild zu verlieren, und die Bewegung bleibt trotzdem spürbar. Das ist die eigentliche Abhilfe, die anderen beiden sind Absicherung.
+* `will-change` vor dem Start setzen und im `finished`-Handler wieder leeren (Muster aus `flipIn()`). Nicht dauerhaft stehen lassen, siehe Ziffer 25.
+* Innere Scroll-Container für die Dauer der Bewegung auf `overflow: hidden`.
+
+**Die Falle bei der Lösung:** Beide Aufräumschritte müssen in **jedem** Ausgang laufen, auch wenn die Animation abgebrochen wird (`anim.finished` rejectet dann) — deshalb `then(clear, clear)`. Bleibt `overflow: hidden` inline stehen, ist die Zutatenliste danach dauerhaft nicht mehr scrollbar, und zwar lautlos. Der Prüfstand muss das eigens abfragen: nach dem Öffnen `getComputedStyle(body).overflowY === "auto"` und `el.getAttribute("style")` leer, zusätzlich einmal mit hart abgebrochener Animation (`anim.cancel()`).
+
+**Regel:** Eine Enter-Bewegung verschiebt ein Element um einige Dutzend Pixel und blendet es dabei ein — sie schiebt es nicht über den halben Bildschirm. Große Flächen zu bewegen ist auf dem Handy nur dann unbedenklich, wenn nichts Teures darin liegt.
