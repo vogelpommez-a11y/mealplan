@@ -284,6 +284,30 @@ Deshalb war der Wegfall des Überschreitungs-Zeichens kein reines Streichen — 
 der Fußbilanz, die vorher wegen des Zeichens unterdrückt war, wurde im selben Schritt wieder
 eingeschaltet.
 
+### Der Plan bleibt in der Reihenfolge stehen, in der er gebaut wurde
+
+Die Gerichte eines Slots waren nach Zuweisung gruppiert: gemeinsame zuerst, dann die eigenen,
+dann die der anderen. Das ordnete die Liste sauber — kostete aber bei jeder Zuweisung einen
+Sprung, weil das Gericht seine Gruppe wechselt und sofort woanders steht. Bei zwei Personen
+passiert das direkt unter dem Finger.
+
+Die Gruppierung ist weg. Eine Liste, deren Reihenfolge man durch Antippen ändert, sortiert sich
+unter dem Finger um — das ist verwirrend, egal wie ordentlich das Ergebnis ist. Der Tag steht
+jetzt so da, wie man ihn gebaut hat.
+
+Was dadurch entfällt: Fremde Gerichte stehen nicht mehr gebündelt am Ende. Die Zusammenfassung
+ab dem dritten („+2 weitere") gibt es weiterhin, sie zählt nur in Plan-Reihenfolge.
+
+### Ein Fenster für die Mahlzeiten, eines für den Stand
+
+Auf dem Handy stehen die vier Mahlzeiten in einer gemeinsamen Fläche, die Tagesbilanz in einer
+zweiten darunter. Zwei ruhige Flächen statt vieler Kästen — die Trennlinien gliedern innerhalb
+des Fensters weiter.
+
+Bewusst **ein** Fenster und nicht vier: Ein eigener Rahmen je Mahlzeit wäre die Kachel-Optik
+zurück, die vorher abgeschafft wurde, und zusammen mit der Bilanz lägen fünf Kästen auf einem
+Bildschirm.
+
 ### Snacks sind ein eigener Slot, kein Anhängsel
 
 Ein Riegel am Nachmittag landete vorher behelfsmäßig unter „Abendessen". Die Tagesbilanz stimmte

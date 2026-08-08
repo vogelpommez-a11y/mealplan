@@ -1421,6 +1421,22 @@ zweites Mal an dieselbe Stelle tippt, trifft einen Makrobalken.
 **Lösung:** Reihenfolge im Markup umdrehen. Der aufklappende Inhalt steht **vor** der Zeile mit
 dem Auslöser; die bleibt damit unterste Zeile und bewegt sich keinen Pixel (nachgemessen: 0 px).
 
+**Zweiter Fall derselben Klasse (08.08.2026): eine Umsortierung.** Die Gerichte eines Slots
+wurden nach Zuweisung gruppiert (gemeinsam → eigene → fremde). Weist man eines jemandem zu,
+wechselt es die Gruppe und rutscht im selben Moment an eine andere Stelle. Bei zwei
+Gruppenmitgliedern schaltet das Personen-Icon ohne Zwischenmenü durch — der Sprung passiert
+also direkt unter dem Finger, und beim zweiten Tippen trifft man ein anderes Gericht.
+
+Auch hier war die Logik korrekt: Die Sortierung tat genau, was sie sollte. Der Fehler lag in der
+Abwägung — sie löste einen seltenen Fall (ab drei fremden Gerichten in *einem* Slot bündeln, um
+sie einklappen zu können) und kostete dafür bei **jeder** Zuweisung einen Sprung. Ersatzlos
+entfernt; das Einklappen zählt jetzt in Plan-Reihenfolge und funktioniert unverändert.
+
+**Die verallgemeinerte Regel:** Eine Liste, deren Reihenfolge von einer Eigenschaft abhängt, die
+man per Antippen ändern kann, sortiert sich unter dem Finger um. Das ist fast immer ein
+Bedienfehler, egal wie sinnvoll die Sortierung für sich ist. Entweder die Reihenfolge stabil
+halten oder den Übergang sichtbar animieren — aber nie stumm umspringen lassen.
+
 **Prüfregel:** Bei jedem Aufklapper die Bildschirmposition des Auslösers vor und nach dem Öffnen
 vergleichen. Zusätzlich `elementFromPoint()` auf den alten Koordinaten abfragen — trifft man dort
 noch den Auslöser? Bei einem Element, das an einer Kante verankert ist, ist das keine
