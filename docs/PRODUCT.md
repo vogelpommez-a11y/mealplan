@@ -372,20 +372,22 @@ Blick beim Abendessen.
 Die Makros klappen dabei **nach oben** auf. Das ist keine Geschmacksfrage: Die Bilanz ist am
 Kartenfuß verankert, wüchse sie nach unten, schöbe sie ihren eigenen Auslöser weg.
 
-### Rechtliches steht in der Fußzeile — an einer Stelle, nicht an zweien
+### Rechtliches steht im Menü, nicht in der Fußzeile
 
-Impressum und Datenschutz stehen in der laufenden App in einer schmalen Fußzeile, die auf die
-zwei Wörter zusammenschrumpft, die sie tragen muss: 53 px werden 42 px. Der Copyright-Hinweis
-wandert dafür ins Menü oben rechts.
+Auf dem Handy führen Impressum und Datenschutz über das Ausklappmenü oben rechts — zwei Tipps,
+Profil-Knopf und dann der Eintrag. Für mobile Seiten ist das der übliche Weg: Eine Fußzeile muss
+man erst ans Seitenende scrollen, und genau das gilt als riskant.
 
-**Ganz weg darf die Fußzeile nicht.** Der naheliegende Ersatz wären Einträge im Profilmenü — die
-gab es kurz und sie sind wieder raus: Der Weg dorthin beginnt an einem Knopf, der nur „Profilmenü"
-heißt, und von außen ist nicht erkennbar, dass dort Pflichtangaben liegen. § 5 DDG verlangt
-„leicht erkennbar". Eine sichtbare Zeile mit dem Wort *Impressum* nimmt die Frage vom Tisch, und
-sie kostet 42 px statt 0.
+Zwischenzeitlich stand die Fußzeile fest über der Reiterleiste. Das löste das Scroll-Problem,
+kostete aber dauerhaft Platz und störte im Bild. Der Menüpunkt löst dasselbe besser.
 
-**Ein Weg genügt.** Beides parallel anzubieten war ein Zwischenstand, kein Konzept: Dieselben zwei
-Links unten und im Menü sind Rauschen, nicht Sicherheit.
+**Abgemeldet und in den ersten Schritten bleibt die Fußzeile.** Das Menü gibt es erst nach der
+Anmeldung — wäre sie überall weg, läge das Impressum hinter dem Auth-Gate. Beide Fälle schließen
+sich aus, deshalb steht nichts doppelt da.
+
+Die Schrift im Menü ist mit 13,5 px größer als die 12,5 px der Fußzeile, und die Einträge sind
+44 px hoch. Ein Pflichtweg, den man nicht bequem trifft, wäre keiner.
+
 
 **Abgemeldet bleibt sie vollständig.** Das Menü gibt es erst nach der Anmeldung — wäre die
 Fußzeile dort reduziert, läge der Copyright-Hinweis nirgends. Während der ersten Schritte
