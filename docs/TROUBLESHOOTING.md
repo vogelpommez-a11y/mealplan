@@ -1225,3 +1225,28 @@ Gilt sinngemäß für jede künftige Funktion, die eine dynamische Linkvorschau 
 **Regel für künftige Aufklapp-/Umschalt-Muster:** Wer ein Element ausblendet, das den Fokus tragen könnte, muss den Fokus vorher oder unmittelbar danach aktiv an eine sinnvolle Stelle setzen. Das gilt für jedes Paar aus „Ruhezustand ↔ Bearbeiten-Zustand", das per CSS umschaltet — auch für `.ms-nut`, sollte es je wieder eine Umschaltmechanik bekommen.
 
 **Testhinweis:** Der Fehler ist im Ausschneide-Prüfstand nur sichtbar, wenn man den Fokus vor dem Klick tatsächlich setzt (`btn.focus(); btn.click();`) **und** nach einem Tick misst — der `focusout`-Handler arbeitet mit `setTimeout(…, 0)`. Ein Test, der direkt nach dem Klick prüft, meldet fälschlich „alles gut". Für die Gegenprobe („Fokus nach draußen schließt weiterhin") taugt `document.body.focus()` nicht: `<body>` ist ohne `tabindex` nicht fokussierbar, der Fokus bewegt sich gar nicht und es feuert kein `focusout`. Es braucht ein echtes fokussierbares Element außerhalb der Zeile.
+
+## 53. FLIP wird unsichtbar, wenn Ursprung und Ziel gleich breit sind
+
+**Symptom (Abnahme am 08.08.2026):** Auf dem Handy schien die Meal-Ansicht ohne jede Animation aufzuspringen — im Wochenplan wie im Meals-Reiter. Am Rechner war dieselbe Bewegung deutlich sichtbar. Der naheliegende Verdacht (eine Media Query schaltet die Animation mobil ab) war falsch: der Code lief unverändert, und `reducedMotion()` war nicht im Spiel.
+
+**Ursache:** `flipDelta()` leitet die Skalierung **allein aus der Breite** ab — `s = from.width / to.width`. Das ist Absicht: ein ungleiches `sx`/`sy` staucht den Text sichtbar. Am Rechner steht die Karte in einem Raster (`.recipes`, `minmax(260px, 1fr)`) und ist ~260 px breit, die Ansicht 540 px — `s ≈ 0,5`, ein deutliches Wachsen. Am Handy ist das Raster einspaltig: gemessen bei 360 px Viewport ist die Karte 317 px breit und das Modal 328 px, also `s ≈ 0,97`. Übrig bleibt eine reine Verschiebung um die Differenz der Mittelpunkte — je nach Scrollposition wenige Pixel. Die Animation lief die ganze Zeit, sie war nur nicht zu sehen.
+
+**Lösung:** Unter `max-width: 560px` gar kein FLIP mehr, sondern ein Bottom-Sheet, das hoch- und wieder herunterfährt (siehe `docs/ARCHITECTURES.md`, „Meal-Ansicht"). Die Grenze liegt in `sheetLayout()` bewusst auf demselben Breakpoint wie das CSS und **nicht** auf `pointer: coarse`: über die Darstellung entscheidet die Breite, nicht das Eingabegerät.
+
+**Regel für jede künftige FLIP-Bewegung:** Vorher prüfen, wie weit Ursprungs- und Zielbreite in **allen** Layouts auseinanderliegen. Liegt `from.width / to.width` nahe 1, trägt FLIP dort nicht und es braucht eine andere Bewegung. Das trifft besonders schmale Viewports, in denen ohnehin fast alles die volle Breite hat.
+
+## 54. Im Hintergrund-Tab misst kein Animationstest etwas Verlässliches
+
+**Symptom (beim Prüfen von Ziffer 53):** Im Browser-Prüfstand stand das Sheet nach 600 ms noch mitten in der Bewegung, ein anderes Mal war eine gerade erzeugte Animation schon nicht mehr in `getAnimations()`. Beim Schließen blieb die Ansicht nach 800 ms offen — was wie ein hängender `anim.finished`-Handler aussah, aber keiner war: sobald der Tab sichtbar wurde, lief alles zu Ende.
+
+**Ursache:** Die Chrome-Erweiterung führt JavaScript aus, ohne den Tab zu aktivieren — `document.visibilityState` ist dabei `hidden`. Chrome drosselt in verborgenen Tabs `requestAnimationFrame` und die WAAPI-Zeitachse. Jede Messung, die „nach *n* ms sollte X gelten" prüft, misst dann Zufall: mal steht die Animation still, mal springt sie beim ersten Frame nach einer langen Pause direkt ans Ende.
+
+**Vorgehen stattdessen — zustandsbasiert statt zeitbasiert messen:**
+
+* Die Animation direkt nach dem Auslöser abgreifen (`el.getAnimations()`) und **Keyframes, Dauer und Easing** prüfen. Das belegt, dass die richtige Bewegung angelegt wird, ohne auf Zeit zu warten.
+* Für die Geometrie die Animation anhalten und gezielt anspringen: `a.pause(); a.currentTime = dauer * anteil;` und danach messen. So lässt sich der Verlauf punktgenau belegen (Beispiel: bei `0` steht das Sheet vollständig unter dem Viewport, bei `1` bündig am unteren Rand).
+* Eine `rAF`-Schleife im Prüfstand **immer** mit einem `setTimeout` absichern. Ohne Sicherheitsnetz löst die Promise im verborgenen Tab nie auf und der Werkzeugaufruf läuft in einen 45-Sekunden-CDP-Timeout, der wie ein abgestürzter Renderer aussieht.
+* Bleibt eine Prüfung auf echte Zeit angewiesen, vorher mit einem Screenshot den Tab in den Vordergrund holen — und danach gegenprüfen, dass `visibilityState` noch `visible` ist.
+
+**Verwandt:** Ziffer 47 und der Grundsatz aus Ziffer 43 — ein Hänger im Prüfstand ist erst dann ein Befund, wenn die Messmethode ausgeschlossen ist.

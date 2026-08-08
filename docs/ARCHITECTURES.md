@@ -811,10 +811,10 @@ Scroller, und `overscroll-behavior-x: contain` unterbindet die Weitergabe zusät
 
 Ein Meal hatte früher drei getrennte Oberflächen: die Karte in der Liste, ein Ansehen-Modal
 (`openRecipeDetail`) und ein Bearbeiten-Modal (`openRecipeForm`). `openMealSheet(id, prefill,
-originEl)` ersetzt beide Modals durch eine einzige Ansicht, die aus der Karte (bzw. einem
-Wochenplan-Slot) per FLIP-Animation wächst, direkt bearbeitbar ist und automatisch speichert.
-Details und der ursprüngliche Plan stehen in `plans/MealAnsicht.MD` (Umbau abgeschlossen,
-Schritte 1–5).
+originEl)` ersetzt beide Modals durch eine einzige Ansicht, die am Rechner aus der Karte (bzw.
+einem Wochenplan-Slot) per FLIP-Animation wächst, am Handy als Bottom-Sheet hochfährt, direkt
+bearbeitbar ist und automatisch speichert. Details und der ursprüngliche Plan stehen in
+`plans/MealAnsicht.MD` (Umbau abgeschlossen, Schritte 1–5).
 
 **Zwei Zweige, ein Einstiegs-Modus.** `openMealSheet(id, prefill, originEl, startInEdit)`:
 `canEdit()` entscheidet weiter allein über die **Berechtigung** (Rolle `view` bekommt immer den
@@ -825,7 +825,8 @@ Nachschlagen ("was esse ich Dienstag?", "was war da nochmal drin?") soll nirgend
 in eine Bearbeitung münden, in einer Gruppe sonst sofort aufs andere Gerät. `startInEdit` (bewusst
 positiv formuliert statt der vorherigen doppelten Verneinung `forceReadOnly`) setzt nur der
 „Bearbeiten"-Knopf im Kopf: ein Klick ruft `openMealSheet(id, null, null, true)` erneut auf und
-tauscht den Knoten **ohne FLIP** aus — die Ansicht steht schon an ihrem Platz. Zwei Ausnahmen
+tauscht den Knoten **ohne Eintrittsbewegung** aus (weder FLIP noch Hochfahren) — die Ansicht steht
+schon an ihrem Platz. Zwei Ausnahmen
 öffnen weiterhin direkt bearbeitbar, weil `isNew` in der Funktion selbst schon Vorrang vor
 `startInEdit` hat: ein neues Meal (`new-recipe`, es gibt nichts anzusehen) und der Barcode-Weg
 (`quickAddByBarcode` übergibt ein `prefill`, ist also ebenfalls `isNew`).
@@ -917,18 +918,53 @@ um beim Schließen ohne Namen abzubrechen (Fokus + Toast statt Verwerfen) und um
 Animation zu spielen, bevor `modalRoot` geleert wird. Escape, Backdrop-Klick, das ✕ im Kopf und
 „Fertig" im Fuß laufen alle über `closeModal()` — der Hook greift dadurch überall gleich, ohne
 dass jeder Aufrufer ihn einzeln kennen müsste. `openModal(node, opts)` erlaubt zusätzlich ein
-eigenes Fokusziel (`opts.focus`) statt der Standardsuche.
+eigenes Fokusziel (`opts.focus`) statt der Standardsuche und eine zusätzliche Klasse am Overlay
+(`opts.overlayClass`, heute nur `sheet-overlay`).
 
-**FLIP als Motion-Baustein neben `slideIn`.** `flipIn(el, from, to)`/`flipOut(el, from, to)`
-(neben `slideIn`, siehe oben) lassen die Ansicht sichtbar aus der angetippten Karte bzw. dem
-Wochenplan-Slot wachsen/schrumpfen. Nur `transform` wird animiert (nie `width`/`height`), zwei
-WAAPI-Animationen im selben Tick: der Container fährt von `translate(dx,dy) scale(s)` auf `none`,
-der Inhalt blendet erst ab ~38 % ein. Öffnen misst das Ursprungsrect **beim Klick** (nicht erst
-beim Animieren); Schließen sucht das Zielelement **neu** (`findMealOrigin()`), nie den beim
+**FLIP als Motion-Baustein neben `slideIn` — am Rechner.** `flipIn(el, from, to)`/`flipOut(el,
+from, to)` (neben `slideIn`, siehe oben) lassen die Ansicht sichtbar aus der angetippten Karte
+bzw. dem Wochenplan-Slot wachsen/schrumpfen. Nur `transform` wird animiert (nie `width`/`height`),
+zwei WAAPI-Animationen im selben Tick: der Container fährt von `translate(dx,dy) scale(s)` auf
+`none`, der Inhalt blendet erst ab ~38 % ein. Öffnen misst das Ursprungsrect **beim Klick** (nicht
+erst beim Animieren); Schließen sucht das Zielelement **neu** (`findMealOrigin()`), nie den beim
 Öffnen gemerkten Knoten — Name, Kategorie oder Sichtfeld können sich geändert haben. Fehlt das
 Ziel, fällt es auf reines Ausblenden zurück. `reducedMotion()` schaltet auf `.modal.flip-anim`
 (Animation/Transition per CSS deaktiviert) und nur Überblendung, kein Transform — siehe
 `docs/TROUBLESHOOTING.md`.
+
+**Bottom-Sheet — am Handy (Nachtrag Abnahme, 08.08.2026).** Unter `max-width: 560px` gilt FLIP
+nicht: dort ist die Karte fast so breit wie die Ansicht, und weil `flipDelta()` die Skalierung
+allein aus der Breite ableitet, bleibt `s ≈ 1` und die Bewegung praktisch unsichtbar (Ziffer 53
+in `docs/TROUBLESHOOTING.md`). Stattdessen fährt die Ansicht als Bottom-Sheet von unten hoch
+(`translateY(100%) → none`, `MOTION.slow`) und beim Schließen denselben Weg zurück
+(`MOTION.base`, Exit kürzer als Entry). Drei Größen steuern das in `openMealSheet()`:
+
+* `asSheet` (`sheetLayout()`, dieselbe `max-width: 560px`-Grenze wie das CSS) — das **Layout**.
+  Gilt bewusst auch unter `reducedMotion()`: eine feste Sheet-Größe ist keine Bewegung.
+* `withMotion` (`!reducedMotion()`) — nur die Animationen.
+* `useAnimExit` — spielt dieser Vorgang überhaupt eine eigene WAAPI-Bewegung? Steuert sowohl den
+  Exit als auch die Klasse `.flip-anim` (die die CSS-eigene `pop`-Animation abschaltet), bewusst
+  aus **einer** Variablen: zwei Flags für dieselbe Frage laufen früher oder später auseinander.
+* `sheetEnter` — das Hochfahren spielt nur, wenn **nicht schon** eine `.mealsheet` offen ist. Der
+  „Bearbeiten"-Knopf tauscht den Knoten in-place aus und unterdrückte die Eintrittsbewegung am
+  Rechner allein über `originEl = null`; am Handy hängt sie nicht mehr an `originEl`, ohne diese
+  Prüfung führe das Sheet beim Moduswechsel ein zweites Mal hoch.
+
+Das Layout selbst steckt im CSS-Block `.overlay.sheet-overlay` (bei den `.mealsheet`-Regeln): das
+Sheet ist `92dvh` hoch (mit `vh`-Rückfall), dockt unten an, ist oben abgerundet und ein Raster aus
+drei Reihen — Foto, scrollender Body (`1fr`, `min-height: 0`), feste Fußzeile mit
+`env(safe-area-inset-bottom)`. `.mealsheet .modal-head` ist `position: absolute` und damit kein
+Grid-Item. Dadurch ist die Ansicht **für jedes Meal gleich hoch**, Foto und „Schließen" sind
+immer ohne Scrollen erreichbar. Die Klasse setzt `openModal(node, { overlayClass })` — eine
+Ansicht kann damit ihr Außenlayout wählen, ohne dass es die übrigen Modals trifft; bewusst eine
+echte Klasse statt `:has(.mealsheet)`.
+
+**Gerätedrehung bei offener Ansicht.** Wer das Handy dreht, während die Ansicht offen ist, kann
+die 560-px-Grenze überqueren: das CSS folgt sofort, eine beim Öffnen gemerkte Variable nicht.
+`closeWithMotion()` fragt deshalb **beim Schließen erneut**, ob die Ansicht gerade wirklich als
+Sheet dasteht — Klasse `sheet-overlay` (so geöffnet) **und** `sheetLayout()` (Breite greift noch).
+Fällt einer der beiden Teile weg, übernimmt der FLIP-Zweig, der sein Ziel ohnehin frisch sucht;
+sonst führe ein zentriertes Modal nach unten weg, statt zu seiner Karte zurückzuschrumpfen.
 
 **Zutatenliste: Ruhezustand und Bearbeiten-Zustand.** `addIngRow()` erzeugt pro Zutat zwei
 Blöcke im selben DOM-Knoten: `.ing-view` (ruhig, eine Zeile mit Menge/Name/kcal/Makros) und das

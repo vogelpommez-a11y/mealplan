@@ -409,6 +409,38 @@ durch und liefert Zahlen, misst aber etwas anderes als gemeint. **Deshalb gehör
 Layout-Messung eine Gegenprobe gegen den alten Stand** — liefern alt und neu identische
 Werte, misst der Test nicht das, was die Änderung betrifft.
 
+### Echte Handybreite im Browser: iframe statt Fenstergröße
+
+Ein Chrome-Fenster lässt sich unter Windows nicht schmaler als ~500 px ziehen — ein
+`resize_window(400, 860)` liefert trotzdem `innerWidth: 851`, und jede Media Query unterhalb
+von 560 px bleibt ungetestet. Statt an der Fenstergröße zu drehen, die App in einem `iframe`
+fester Breite laden. Der Rahmen bildet einen echten CSS-Viewport, Media Queries greifen darin
+ganz normal, und weil dieselbe Origin gilt (`localhost:8000`), ist der komplette DOM des
+Rahmens zugänglich — Klicks laufen über die echte Delegation, es wird nichts nachgebaut:
+
+```js
+document.documentElement.innerHTML =
+  '<body style="margin:0"><iframe id="probe" src="/index.html" ' +
+  'style="width:360px;height:740px;border:0"></iframe></body>';
+// danach: const w = document.getElementById("probe").contentWindow, d = w.document;
+// w.matchMedia("(max-width: 560px)").matches === true
+```
+
+Zwei Fallen dabei:
+
+* **Klassische Scrollleisten verkleinern den `fixed`-Bezug.** Im Rahmen sind die Leisten
+  nicht wie auf dem Handy überlagert, sondern nehmen Platz weg: `position: fixed; inset: 0`
+  spannt dann nur 345×725 statt 360×740. Eine Unterkante bei 725 px ist deshalb kein Fehler.
+  Nicht gegen `innerHeight` prüfen, sondern gegen `overlay.clientHeight` — bündig heißt
+  `sheet.getBoundingClientRect().bottom === overlay.clientHeight`.
+* **Der lokale Teststand ist am echten Cloud-Konto angemeldet** (`lastprofile.cloud === true`).
+  Im Rahmen deshalb nur lesen und Ansichten öffnen; keine Meals anlegen oder ändern, sonst
+  landet der Testbestand in der echten Cloud (TROUBLESHOOTING §36 schützt nur `localStorage`,
+  nicht die Firebase-Anbindung).
+
+Zum Messen von Animationen in so einem Rahmen siehe TROUBLESHOOTING §54: im verborgenen Tab
+zustandsbasiert messen (`getAnimations()`, `pause()` + `currentTime`), nie zeitbasiert.
+
 ### Trefferflächen mitmessen, wenn Abstände sich ändern
 
 Wird an `gap` oder Knopfgrößen einer Reihe geschraubt, im selben Durchlauf die

@@ -1253,6 +1253,33 @@
      damit sie als ghost neben dem gefuellten "Fertig" leichter wirkt, nicht schwerer. */
   .mealsheet .modal-foot { justify-content: space-between; gap: 16px; }
   .ms-danger { background: transparent; }
+  /* ---------- Handy: die Meal-Ansicht ist ein Bottom-Sheet fester Hoehe ----------
+     Als normales, inhaltshohes Modal sprang die Groesse von Meal zu Meal: eines ohne
+     Zutaten war ein kurzer Kasten, eines mit acht Zutaten hoeher als der Bildschirm - dann
+     musste man erst zum Foto hoch- und zum "Schliessen" runterscrollen. Auf dem Handy
+     steht das Sheet deshalb immer gleich hoch am unteren Rand, Foto oben und Fusszeile
+     unten fest, gescrollt wird nur in der Mitte.
+     Die Klasse .sheet-overlay setzt openMealSheet() nach openModal() - bewusst eine echte
+     Klasse und nicht :has(.mealsheet), damit alle anderen Modals (Einstellungen, Teilen,
+     Rechtstexte) garantiert unberuehrt bleiben.
+     Zum Raster: .mealsheet .modal-head ist position:absolute (siehe oben) und damit KEIN
+     Grid-Item - die drei Reihen treffen genau .ms-photo, .modal-body und .modal-foot, in
+     beiden Zweigen von openMealSheet(). min-height:0 auf dem Body ist zwingend, sonst
+     waechst die 1fr-Reihe ueber ihren Inhalt hinaus statt zu scrollen. */
+  @media (max-width: 560px) {
+    .overlay.sheet-overlay { padding: 0; place-items: end center; }
+    .overlay.sheet-overlay .mealsheet {
+      max-width: none;
+      height: 92vh; height: 92dvh;   /* vh als Rueckfall fuer Browser ohne dvh */
+      border-radius: 18px 18px 0 0; border-bottom: 0;
+      display: grid; grid-template-rows: auto 1fr auto;
+    }
+    .overlay.sheet-overlay .modal-body { overflow-y: auto; min-height: 0; overscroll-behavior: contain; }
+    /* Flacher als die 220px am Rechner: unter dem festen Fuss soll genug Scrollflaeche
+       fuer lange Zutatenlisten bleiben, das Foto aber weiterhin traegt. */
+    .overlay.sheet-overlay .ms-photo img { height: 28vh; min-height: 130px; max-height: 200px; }
+    .overlay.sheet-overlay .modal-foot { padding-bottom: calc(14px + env(safe-area-inset-bottom)); }
+  }
   /* Makro-Ueberschrift: Abschnittsform wie "Zutaten" (.ms-ings h4) statt eigener
      Hervorhebung mit rotem Rahmen - die Gliederung leisten die Ueberschriften, kein Block
      sticht mehr ohne Grund heraus (Nachtrag Abnahme Phase 1). */
@@ -1360,12 +1387,14 @@
   }
   @starting-style { .modal { opacity: 0; transform: translateY(8px) scale(.99); } }
   @keyframes pop { from { opacity: 0; transform: translateY(8px) scale(.99);} to { opacity: 1; transform: none; } }
-  /* Meal-Ansicht per FLIP geoeffnet (openMealSheet, plans/MealAnsicht.MD Schritt 4): die
-     eigene pop-Animation/-Transition wuerde sonst gegen die WAAPI-Transformation aus
-     flipIn() kaempfen. Bewusst ohne !important - unter prefers-reduced-motion greift
+  /* Meal-Ansicht mit eigener WAAPI-Bewegung geoeffnet (openMealSheet, plans/MealAnsicht.MD
+     Schritt 4): die eigene pop-Animation/-Transition wuerde sonst dagegen kaempfen - gegen
+     flipIn() am Rechner ebenso wie gegen das Hochfahren des Bottom-Sheets am Handy (der
+     Klassenname stammt aus der FLIP-Zeit und gilt fuer beides). Bewusst ohne !important -
+     unter prefers-reduced-motion greift
      weiterhin der globale, wichtigere Block weiter unten (reiner Fade statt Transform),
-     dorthin kommt diese Klasse aber ohnehin nie: flipFrom ist unter reducedMotion() immer
-     null, siehe openMealSheet(). */
+     dorthin kommt diese Klasse aber ohnehin nie: unter reducedMotion() wird sie gar nicht
+     erst gesetzt, siehe openMealSheet(). */
   .modal.flip-anim { animation: none; transition: none; }
   /* Live-Barcode-Scanner. Eigene Ebene ueber dem Modal-Overlay (60), aber unter dem
      Toast (90) - der Scanner wird AUS dem Meal-Formular geoeffnet, das darunter offen
@@ -4483,6 +4512,15 @@
     try { return window.matchMedia("(pointer: coarse)").matches; } catch (e) { return false; }
   }
 
+  // Steht die Meal-Ansicht gerade als Bottom-Sheet am unteren Rand (siehe .sheet-overlay
+  // im CSS)? Hier bewusst der BREAKPOINT und nicht "pointer: coarse" wie eine Zeile darueber:
+  // ueber die Darstellung entscheidet die Bildschirmbreite, und CSS und JS muessen dieselbe
+  // Grenze verwenden - sonst faehrt auf einem breiten Touch-Geraet ein Sheet hoch, das gar
+  // keines ist.
+  function sheetLayout() {
+    try { return window.matchMedia("(max-width: 560px)").matches; } catch (e) { return false; }
+  }
+
   // Liefert je nach Eingabegeraet <input type="number"> ODER <select> — beide mit
   // derselben id. Auslesende Stellen lesen weiterhin nur .value und brauchen nicht
   // zu wissen, was davon gerendert wurde.
@@ -7004,11 +7042,14 @@
   // input/textarea/select/button) - z. B. fuer openMealSheet(), das lieber gar keinen
   // Feldfokus setzt (Autosave beim allerersten Tipp waere verfrueht) oder gezielt das
   // Namensfeld eines neuen Entwurfs fokussieren will.
+  // opts.overlayClass: zusaetzliche Klasse am Overlay - eine Ansicht kann damit ihr eigenes
+  // Aussenlayout waehlen, ohne dass es alle anderen Modals trifft. Heute nur von
+  // openMealSheet() genutzt ("sheet-overlay", das Bottom-Sheet am Handy).
   function openModal(node, opts) {
     hoveredCardId = null;   // Maus steht ab jetzt ueber dem Overlay, nicht mehr auf einer Karte
     lastFocused = document.activeElement;
     const overlay = document.createElement("div");
-    overlay.className = "overlay";
+    overlay.className = "overlay" + ((opts && opts.overlayClass) ? " " + opts.overlayClass : "");
     overlay.addEventListener("mousedown", e => { if (e.target === overlay) closeModal(); });
     overlay.appendChild(node);
     modalRoot.innerHTML = "";
@@ -7247,18 +7288,51 @@
     const readOnly = !canEditNow || (!isNew && !startInEdit);
     if (isNew && !canEditNow) return; // sollte ueber WRITE_ACTIONS ohnehin nie passieren
 
+    // ---------- Bewegung: FLIP am Rechner, Bottom-Sheet am Handy ----------
+    // Am Handy ist FLIP wirkungslos: dort ist die Karte fast so breit wie die Ansicht, und
+    // flipDelta() leitet die Skalierung allein aus der BREITE ab (s = from.width/to.width).
+    // s liegt damit bei ~1,0, uebrig bliebe eine kaum sichtbare Verschiebung - fuer den
+    // Nutzer sah es aus, als gaebe es gar keine Animation (Abnahme 08.08.2026, siehe
+    // TROUBLESHOOTING). Unter 560px faehrt deshalb ein Bottom-Sheet von unten hoch und beim
+    // Schliessen wieder herunter: gleicher Weg hin wie zurueck.
+    // asSheet beschreibt das LAYOUT und gilt deshalb auch unter reducedMotion() - eine feste
+    // Sheet-Groesse ist keine Bewegung. Nur die Animationen haengen an withMotion; ohne sie
+    // bleibt es beim reinen Fade des globalen reduced-motion-Blocks im CSS.
+    const asSheet = sheetLayout();
+    const withMotion = !reducedMotion();
     // FLIP-Rect JETZT messen (nicht erst beim tatsaechlichen Animieren) - originEl ist exakt
     // das Element, auf das geklickt wurde, eine erneute Suche waere bei Favoriten falsch
-    // (Karte kann zweimal im DOM stehen). reducedMotion() faellt komplett auf den normalen
-    // .modal-Fade zurueck: keine Transforms, siehe .modal.flip-anim (CSS) und
-    // TROUBLESHOOTING #39.
-    const flipFrom = (originEl && !reducedMotion()) ? originEl.getBoundingClientRect() : null;
-    const useFlipExit = !!flipFrom; // Exit nur, wenn beim Oeffnen tatsaechlich geflippt wurde
+    // (Karte kann zweimal im DOM stehen). Siehe .modal.flip-anim (CSS) und TROUBLESHOOTING #39.
+    const flipFrom = (originEl && !asSheet && withMotion) ? originEl.getBoundingClientRect() : null;
+    // Der "Bearbeiten"-Knopf tauscht den Knoten in-place gegen den Bearbeiten-Zweig aus
+    // (rekursiver Aufruf weiter unten) und unterdrueckt die Eintrittsbewegung am Rechner
+    // allein ueber originEl = null. Am Handy haengt sie nicht mehr an originEl - ohne diese
+    // Pruefung wuerde das Sheet beim Moduswechsel ein zweites Mal hochfahren, obwohl es
+    // laengst an seinem Platz steht.
+    const sheetEnter = asSheet && withMotion && !modalRoot.querySelector(".mealsheet");
+    // Beantwortet zwei Fragen mit derselben Bedingung, absichtlich in EINER Variablen: Spielt
+    // dieser Vorgang eine eigene WAAPI-Bewegung? Wenn ja, braucht er den Exit (sonst uebernimmt
+    // closeModal() direkt) UND die Klasse .flip-anim, die die CSS-eigene pop-Animation abschaltet.
+    // Zwei getrennte Flags dafuer wuerden frueher oder spaeter auseinanderlaufen.
+    const useAnimExit = !!flipFrom || (asSheet && withMotion);
 
     // Spielt den Eintritt NACH openModal() (das Ziel-Rect existiert erst, wenn der Knoten im
-    // DOM steht). Zwei WAAPI-Animationen im selben Tick: der Container waechst per flipIn(),
-    // der Inhalt blendet erst ab ~38% ein - der wachsende Kasten liest sich zuerst als Karte.
+    // DOM steht). Am Rechner zwei WAAPI-Animationen im selben Tick: der Container waechst per
+    // flipIn(), der Inhalt blendet erst ab ~38% ein - der wachsende Kasten liest sich zuerst
+    // als Karte. Am Handy faehrt stattdessen das ganze Sheet hoch; die Kinder bleiben dabei
+    // sichtbar, ein zusaetzliches Einblenden waere bei einer Flaeche, die ohnehin erst ins
+    // Bild kommt, nur Unruhe.
     function playEnter(node) {
+      const overlayEl = node.parentElement;
+      const fadeIn = () => { if (overlayEl) overlayEl.animate([{ opacity: 0 }, { opacity: 1 }], { duration: parseFloat(MOTION.base) || 200, easing: MOTION.ease }); };
+      if (sheetEnter) {
+        node.animate(
+          [{ transform: "translateY(100%)" }, { transform: "none" }],
+          { duration: parseFloat(MOTION.slow) || 300, easing: MOTION.ease }
+        );
+        fadeIn();
+        return;
+      }
       if (!flipFrom) return;
       const toRect = node.getBoundingClientRect();
       const anim = flipIn(node, flipFrom, toRect);
@@ -7268,16 +7342,34 @@
         [{ opacity: 0 }, { opacity: 0, offset: .38 }, { opacity: 1 }],
         { duration: dur, easing: MOTION.ease }
       ));
-      const overlayEl = node.parentElement;
-      if (overlayEl) overlayEl.animate([{ opacity: 0 }, { opacity: 1 }], { duration: parseFloat(MOTION.base) || 200, easing: MOTION.ease });
+      fadeIn();
     }
-    // Schliesst mit umgekehrter FLIP-Bewegung; Ziel wird HIER neu gesucht (findMealOrigin,
-    // nie den beim Oeffnen gemessenen Knoten). Fehlt das Ziel (Karte ausserhalb des
-    // Sichtfelds, gefiltert, gescrollt): schlichtes Ausblenden mit MOTION.fast statt FLIP ins
-    // Leere. `finish` erledigt die eigentliche Aufraeumarbeit (closeModal()).
-    function closeWithFlip(node, closeId, finish) {
-      const target = findMealOrigin(closeId);
+    // Gegenstueck zu playEnter(). Am Handy faehrt das Sheet denselben Weg zurueck, den es
+    // gekommen ist - und zwar unabhaengig davon, ob der Eintritt gespielt wurde: wer ueber
+    // "Bearbeiten" im Sheet gelandet ist, erwartet beim Schliessen trotzdem die Bewegung
+    // nach unten. Am Rechner die umgekehrte FLIP-Bewegung; das Ziel wird HIER neu gesucht
+    // (findMealOrigin, nie den beim Oeffnen gemessenen Knoten). Fehlt das Ziel (Karte
+    // ausserhalb des Sichtfelds, gefiltert, gescrollt): schlichtes Ausblenden mit MOTION.fast
+    // statt FLIP ins Leere. Exits sind ueberall kuerzer als Entries.
+    // `finish` erledigt die eigentliche Aufraeumarbeit (closeModal()).
+    function closeWithMotion(node, closeId, finish) {
       const overlayEl = node.parentElement;
+      // Nicht das beim Oeffnen gemerkte asSheet verwenden, sondern JETZT pruefen, ob die
+      // Ansicht auch gerade wirklich als Sheet dasteht: Wer das Handy dreht, waehrend die
+      // Ansicht offen ist, wechselt die Media-Query-Seite - das CSS folgt sofort, eine
+      // gemerkte Variable nicht. Es braucht beides, die Klasse (so geoeffnet) UND die noch
+      // greifende Breite; sonst faehrt ein zentriertes Modal nach unten weg, statt zu seiner
+      // Karte zurueckzuschrumpfen. Faellt einer der beiden Teile weg, uebernimmt der
+      // FLIP-Zweig darunter - der sucht sein Ziel ohnehin frisch.
+      const nochSheet = !!overlayEl && overlayEl.classList.contains("sheet-overlay") && sheetLayout();
+      if (nochSheet) {
+        const dur = parseFloat(MOTION.base) || 200;
+        const a = node.animate([{ transform: "none" }, { transform: "translateY(100%)" }], { duration: dur, easing: MOTION.ease });
+        if (overlayEl) overlayEl.animate([{ opacity: 1 }, { opacity: 0 }], { duration: dur, easing: MOTION.ease });
+        a.finished.then(finish, finish);
+        return;
+      }
+      const target = findMealOrigin(closeId);
       if (!target) {
         const a = node.animate([{ opacity: 1 }, { opacity: 0 }], { duration: parseFloat(MOTION.fast) || 160, easing: MOTION.ease });
         if (overlayEl) overlayEl.animate([{ opacity: 1 }, { opacity: 0 }], { duration: parseFloat(MOTION.fast) || 160, easing: MOTION.ease });
@@ -7322,7 +7414,7 @@
       const ingHtml = (r.ingredients && r.ingredients.length)
         ? `<div class="ing-list">${r.ingredients.map(i => roIngRowHtml(i)).join("")}</div>`
         : `<p class="ms-empty-ings">Noch keine Zutaten</p>`;
-      const node = el(`<div class="modal detail mealsheet${flipFrom ? " flip-anim" : ""}" role="dialog" aria-modal="true" aria-label="${esc(r.name)}">
+      const node = el(`<div class="modal detail mealsheet${useAnimExit ? " flip-anim" : ""}" role="dialog" aria-modal="true" aria-label="${esc(r.name)}">
         <div class="modal-head">
           ${canEditNow ? `<button type="button" class="ms-photobtn ms-edit-btn" data-edit>Bearbeiten</button>` : ""}
           <button type="button" class="btn ghost icon-gh on-photo" data-share title="Meal teilen" aria-label="Meal teilen">${TOOL_ICONS.share}</button>
@@ -7340,7 +7432,7 @@
       function finishClose() { restoreFocusTarget(id); closeModal(); }
       modalCloseHook = () => {
         modalCloseHook = null;
-        if (useFlipExit) closeWithFlip(node, id, finishClose); else finishClose();
+        if (useAnimExit) closeWithMotion(node, id, finishClose); else finishClose();
       };
       node.querySelectorAll("[data-close]").forEach(b => b.addEventListener("click", closeModal));
       node.querySelector("[data-share]").addEventListener("click", () => { closeModal(); shareRecipeNow(r.id); });
@@ -7353,7 +7445,7 @@
         modalCloseHook = null;
         openMealSheet(id, null, null, true);
       });
-      openModal(node);
+      openModal(node, { overlayClass: asSheet ? "sheet-overlay" : "" });
       playEnter(node);
       return;
     }
@@ -7376,7 +7468,7 @@
     const initial = rec();
     const opts = CATEGORIES.map(c => `<option value="${c}" ${initial.category === c ? "selected" : ""}>${c}</option>`).join("");
     const isOwnPhoto = !!initial.image;
-    const node = el(`<div class="modal detail mealsheet${flipFrom ? " flip-anim" : ""}" role="dialog" aria-modal="true" aria-label="${isNew ? "Neues Meal" : "Meal bearbeiten"}">
+    const node = el(`<div class="modal detail mealsheet${useAnimExit ? " flip-anim" : ""}" role="dialog" aria-modal="true" aria-label="${isNew ? "Neues Meal" : "Meal bearbeiten"}">
       <div class="modal-head">
         <button type="button" class="btn ghost icon-gh on-photo" data-share title="Meal teilen" aria-label="Meal teilen">${TOOL_ICONS.share}</button>
         <button type="button" class="btn ghost icon-gh on-photo" data-close aria-label="Schließen">✕</button>
@@ -7515,13 +7607,14 @@
       openSheetId = null;
       openSheetRemovedCb = null;
       modalCloseHook = null;
-      // FLIP-Exit (Schritt 4): nur, wenn beim Oeffnen tatsaechlich geflippt wurde (useFlipExit).
+      // Exit-Bewegung (Schritt 4): FLIP zurueck zur Karte bzw. am Handy das Herunterfahren
+      // des Sheets, siehe useAnimExit/closeWithMotion oben.
       // recId statt id: ein frisch gespeicherter Entwurf (draftPushed) hat inzwischen eine
       // echte ID, unter der die Karte im Raster steht. Fokus geht erst NACH der Animation
       // zurueck (finishClose), sonst haette ein Screenreader schon "angekommen" gemeldet,
       // waehrend die Karte optisch noch waechst/schrumpft.
       function finishClose() { restoreFocusTarget(recId); closeModal(); }
-      if (useFlipExit) closeWithFlip(node, recId, finishClose); else finishClose();
+      if (useAnimExit) closeWithMotion(node, recId, finishClose); else finishClose();
     }
     modalCloseHook = attemptClose;
     node.querySelectorAll("[data-close]").forEach(b => b.addEventListener("click", closeModal));
@@ -8055,7 +8148,7 @@
 
     // Eigenes Fokusziel statt der openModal()-Standardsuche (die faende sonst den
     // Teilen-Icon-Knopf im .modal-head, das erste fokussierbare Element im Markup).
-    openModal(node, { focus: node.querySelector("#f-name") });
+    openModal(node, { focus: node.querySelector("#f-name"), overlayClass: asSheet ? "sheet-overlay" : "" });
     playEnter(node);
   }
 
