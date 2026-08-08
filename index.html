@@ -3205,8 +3205,9 @@
   // Laeuft ueber sanitizeRecipe() und greift damit an JEDEM Eingang.
   const CAT_LEGACY = { "Mittagessen": "Hauptgericht", "Abendessen": "Hauptgericht" };
   function migrateCat(c) { return CAT_LEGACY[c] || c; }
-  // Snack/Dessert/Beilage passen in jeden Slot; alles ohne bekannte Kategorie ebenfalls,
-  // damit geteilte oder ältere Meals nie unplanbar werden.
+  // Beilage passt in jeden Slot; alles ohne bekannte Kategorie ebenfalls, damit geteilte
+  // oder aeltere Meals nie unplanbar werden. Snack und Dessert NICHT mehr - die haengen
+  // seit dem vierten Slot in CAT_TO_MEAL an "sn" (siehe dort).
   function catFitsMeal(cat, mealKey) {
     const bound = CAT_TO_MEAL[cat];
     return !bound || bound.indexOf(mealKey) !== -1;
