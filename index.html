@@ -856,17 +856,32 @@
      im Desktop-Raster nur ~232px breit; .wg-macros schrumpft dort von selbst auf ein
      Makro pro Zeile (flex-wrap, siehe dort), statt Namen abzukuerzen. */
   .day-goals { padding: 11px 14px 13px; border-top: 1px dashed var(--border); background: color-mix(in srgb, var(--surface-2) 55%, var(--surface)); }
-  .day-goals .wg-macros { margin-top: 12px; }
-  /* Aufklapp-Knopf fuer die drei Makrobalken - im Ruhezustand zaehlt nur der
-     Kalorien-Balken, die Makros stehen einen Tap entfernt (siehe dayGoalsHtml). */
-  .day-goals-toggle {
-    display: flex; align-items: center; gap: 4px; width: 100%; margin-top: 9px;
-    font: inherit; font-size: 11px; font-weight: 600; color: var(--text-muted);
-    background: none; border: 0; padding: 6px 0; cursor: pointer; min-height: 32px;
+  /* Die Makros stehen UEBER der Kalorienzeile (siehe dayGoalsHtml), der Abstand gehoert
+     deshalb nach unten statt nach oben. */
+  .day-goals .wg-macros { margin-bottom: 12px; }
+
+  /* Aufklapper: die Kalorienzeile selbst. Frueher eine eigene Knopfzeile "Makros ›"
+     darunter - 41px Hoehe fuer ein Wort, im Sheet fester Hoehe zu teuer.
+     .gm ist hier ein <button>, deshalb die Knopf-Voreinstellungen zuruecksetzen; text-align
+     links, sonst zentriert der Browser den Inhalt. */
+  .gm-tap {
+    display: block; width: 100%; text-align: left;
+    font: inherit; color: inherit; background: none; border: 0; padding: 0;
+    cursor: pointer; -webkit-tap-highlight-color: transparent;
   }
-  .day-goals-toggle:hover { color: var(--text); }
-  .day-goals-toggle .caret { width: 13px; height: 13px; flex: none; transition: transform var(--dur-fast); }
-  .day-goals-toggle .caret.open { transform: rotate(90deg); }
+  /* Hover nur mit echter Maus - auf Touch bliebe der Zustand nach dem Antippen kleben. */
+  @media (hover: hover) and (pointer: fine) {
+    .gm-tap:hover .gm-caret { color: var(--text); }
+  }
+  .gm-tap:active { opacity: .68; }
+  .gm-tap:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: var(--radius-sm); }
+  /* Sitzt am Ende der Beschriftungszeile, hinter dem Zahlenwert. flex:none, damit er nicht
+     mitschrumpft, wenn die Zahlen breit werden. */
+  .gm-caret { display: inline-flex; align-items: center; flex: none; color: var(--text-muted); }
+  .gm-caret .caret { width: 13px; height: 13px; transition: transform var(--dur-fast); }
+  /* Zu = nach rechts (es geht noch etwas auf), offen = nach oben: die Makros liegen
+     oberhalb, der Pfeil zeigt dorthin, wo der Inhalt erscheint. */
+  .gm-caret .caret.open { transform: rotate(-90deg); }
 
   /* Nährwerte in der Rezept-Detailansicht */
   .nutfacts { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
@@ -5956,11 +5971,30 @@
       : o.dir === "min"
         ? `noch ${nfmt(rest)} ${o.unit}`
         : `${nfmt(rest)} ${o.unit} übrig`;
-    return `<div class="gm ${o.cls || ""} is-${st}">
-        <div class="gm-r"><span class="gm-n">${o.label}</span><span class="gm-v"><b>${nfmt(o.ist)}</b>&thinsp;/&thinsp;${nfmt(o.ziel)}${o.unitInline && o.unit ? " " + o.unit : ""}</span></div>
+    // toggle: macht die ganze Zeile zum Aufklapper (nur der Wochenplan nutzt das, siehe
+    // dayGoalsHtml). Frueher stand dafuer eine eigene Knopfzeile "Makros ›" darunter - die
+    // kostete 41px, und im Sheet fester Hoehe ist das Flaeche, die den Mahlzeiten fehlt.
+    // Als Parameter und nicht als globale Regel: goalBarHtml() baut auch die Balken der
+    // Wochenziele und im Rechner, dort gibt es nichts aufzuklappen.
+    const tg = o.toggle;
+    const tag = tg ? "button" : "div";
+    // Kein aria-label auf dem Knopf: der Name soll weiterhin aus dem Inhalt kommen
+    // ("Kalorien 2.260 / 2.728 kcal, 468 kcal uebrig"). Ein aria-label wuerde das
+    // ueberschreiben und die Zahlen fuer die Sprachausgabe verschlucken. Was fehlt, ist
+    // nur die Aussage, WAS aufklappt - die traegt das versteckte Wort im Chevron.
+    const attrs = tg
+      ? ` type="button" data-action="toggle-day-goals" data-day="${tg.day}" aria-expanded="${tg.open}"`
+      : "";
+    const chevron = tg
+      ? `<span class="gm-caret"><span class="visually-hidden">Makros</span>
+           <svg class="caret${tg.open ? " open" : ""}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
+         </span>`
+      : "";
+    return `<${tag} class="gm ${o.cls || ""} is-${st}${tg ? " gm-tap" : ""}"${attrs}>
+        <div class="gm-r"><span class="gm-n">${o.label}</span><span class="gm-v"><b>${nfmt(o.ist)}</b>&thinsp;/&thinsp;${nfmt(o.ziel)}${o.unitInline && o.unit ? " " + o.unit : ""}</span>${chevron}</div>
         <div class="gm-bar" role="progressbar" aria-valuenow="${Math.round(o.ist)}" aria-valuemin="0" aria-valuemax="${Math.round(o.ziel)}" aria-label="${esc(o.label)}"><span style="width:${pct}%"></span></div>
         ${showRest ? `<div class="gm-left">${restTxt}</div>` : ""}
-      </div>`;
+      </${tag}>`;
   }
 
   // Welche Tage ihre Makrobalken aufgeklappt haben. Bewusst nicht gespeichert: beim
@@ -5982,15 +6016,22 @@
   // standen in zwei Zeilen uebereinander statt wie hier als Label+Wert PRO Makro.
   // goalMacrosHtml() wickelt stattdessen jedes Makro einzeln (flex-wrap) und schrumpft
   // dadurch von selbst auf ein Makro pro Zeile, sobald der Platz fuer drei nicht reicht.
+  // Die Makros stehen BEWUSST vor der Kalorienzeile, nicht dahinter.
+  //
+  // Im Wochenplan sitzt die Tagesbilanz fest am Kartenfuss. Stand der Aufklapper oben,
+  // wuchs die Bilanz beim Oeffnen nach oben weg und nahm ihren eigenen Ausloeser mit -
+  // gemessen 149px. Wer ein zweites Mal an dieselbe Stelle tippte, traf einen Makrobalken;
+  // praktisch liess sich der Bereich nicht mehr schliessen. Andersherum bleibt die
+  // Kalorienzeile die unterste Zeile und bewegt sich keinen Pixel, egal was darueber
+  // aufklappt.
+  //
+  // Der Ausloeser ist seit demselben Schritt die Kalorienzeile selbst (toggle-Parameter),
+  // nicht mehr eine eigene Knopfzeile darunter - die kostete 41px Hoehe fuer ein Wort.
   function dayGoalsHtml(s, t, dayKey) {
     const open = expandedDayGoals.has(dayKey);
     return `<div class="day-goals">
-        ${goalBarHtml({ label: "Kalorien", ist: s.kcal, ziel: t.kcal, unit: "kcal", rest: "attention", unitInline: true })}
-        <button type="button" class="day-goals-toggle" data-action="toggle-day-goals" data-day="${dayKey}" aria-expanded="${open}">
-          <span>Makros</span>
-          <svg class="caret${open ? " open" : ""}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
-        </button>
         ${open ? goalMacrosHtml(s, t) : ""}
+        ${goalBarHtml({ label: "Kalorien", ist: s.kcal, ziel: t.kcal, unit: "kcal", rest: "attention", unitInline: true, toggle: { day: dayKey, open: open } })}
       </div>`;
   }
 
