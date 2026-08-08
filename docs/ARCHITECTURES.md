@@ -774,17 +774,29 @@ Punkt 58. Dazu gehört, dass auf der waagerechten Achse nichts überläuft: Der 
 Innenabstand sitzt deshalb an `.slots`, nicht an den Zeilen, damit die vergrößerte Trefferfläche
 des ✕ nicht hinausragt.
 
-**Die Fußzeile hängt am Anmeldezustand.** `.app:not(.authing):not(.onboarding) .site-foot` —
-in der laufenden App stehen Impressum, Datenschutz und © im Profilmenü (`renderProfileMenu()`),
-abgemeldet und während der ersten Schritte bleibt die Fußzeile sichtbar. `syncStickyOffsets()`
-misst `.site-foot` weiterhin; bei `display: none` ist `offsetHeight` gleich 0, `--foot-h` wird
-also von selbst `0px` und die Sheet-Rechnung braucht keinen Sonderfall.
+**Die Fußzeile hängt am Anmeldezustand.** Angemeldet bleibt nur „Impressum · Datenschutz" mit
+halbem Innenabstand stehen (42 px statt 53); der Copyright-Hinweis wandert ins Profilmenü, wo
+auch beide Rechtstexte ein zweites Mal erreichbar sind. Der Selektor
+`.app:not(.authing):not(.onboarding)` schaltet das um — abgemeldet und in den ersten Schritten
+ist die Fußzeile vollständig. `syncStickyOffsets()` misst `.site-foot` weiterhin, `--foot-h`
+folgt der tatsächlichen Höhe ohne Sonderfall.
 
 **Die Tagesbilanz ist ihr eigener Aufklapper.** `goalBarHtml()` nimmt einen optionalen
-`toggle`-Parameter (`{ day, open }`) und wird damit zu einem `<button>` mit Chevron. Nur
-`dayGoalsHtml()` übergibt ihn — die Balken der Wochenziele und im Rechner bleiben schlichte
-`<div>`. In `dayGoalsHtml()` stehen die Makros **vor** der Kalorienzeile, damit der Auslöser
-beim Aufklappen stehen bleibt (Punkt 59).
+`toggle`-Parameter (`{ day, open }`); nur `dayGoalsHtml()` übergibt ihn, die Balken der
+Wochenziele und im Rechner bleiben unverändert.
+
+Der Knopf ist dabei **nur der Chevron**, aufgespannt über ein `::after { inset: 0 }` auf `.gm-tap`
+— dasselbe Stretched-Link-Muster wie bei `.ing-view-name` und `.rcard-open`. Die ganze `.gm` zum
+`<button>` zu machen wäre kürzer gewesen, hätte aber zwei Dinge gebrochen: `<button>` erwartet
+Phrasing Content (`.gm` enthält drei `<div>`, darunter eine `role="progressbar"`), und der Name
+eines Knopfes bildet sich aus seinem gesamten Inhalt — „Kalorien" wäre doppelt vorgelesen worden.
+
+Wert und Chevron liegen zusammen in `.gm-vwrap`: `.gm-r` ist `space-between` und auf genau zwei
+Kinder ausgelegt. Ein drittes verteilte den Raum auf zwei Lücken, der Wert stand dann 80 px vor
+dem Pfeil in der Mitte.
+
+In `dayGoalsHtml()` stehen die Makros **vor** der Kalorienzeile, damit der Auslöser beim
+Aufklappen stehen bleibt (Punkt 59).
 
 ### Tagesleiste als Segmented Control
 

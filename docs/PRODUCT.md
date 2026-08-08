@@ -322,14 +322,22 @@ Kartenfuß verankert, wüchse sie nach unten, schöbe sie ihren eigenen Auslöse
 
 ### Rechtliches gehört ins Menü, aber nicht hinter die Anmeldung
 
-Impressum, Datenschutz und der Copyright-Hinweis stehen in der laufenden App im Menü oben rechts.
-Eine dauerhaft sichtbare Fußzeile kostete auf jedem Bildschirm 53 px für etwas, das man selten
-braucht.
+Impressum und Datenschutz stehen in der laufenden App zusätzlich im Menü oben rechts, zusammen
+mit dem Copyright-Hinweis. Die Fußzeile schrumpft dafür auf die zwei Wörter, die sie tragen muss:
+53 px werden 42 px.
 
-**Abgemeldet bleibt die Fußzeile stehen.** Das Menü gibt es erst nach der Anmeldung — wäre sie
-immer weg, läge das Impressum hinter dem Auth-Gate. Während der ersten Schritte bleibt sie
+**Ganz weg darf sie nicht.** Der Weg über das Menü beginnt an einem Knopf, der nur „Profilmenü"
+heißt — von außen ist nicht erkennbar, dass dort Pflichtangaben liegen, und § 5 DDG verlangt
+„leicht erkennbar". Eine sichtbare Zeile mit dem Wort *Impressum* nimmt die Frage vom Tisch. Der
+Preis dafür sind 42 px statt 0.
+
+**Abgemeldet bleibt sie vollständig.** Das Menü gibt es erst nach der Anmeldung — wäre die
+Fußzeile dort reduziert, läge der Copyright-Hinweis nirgends. Während der ersten Schritte
 ebenfalls: Dort ist die Reiterleiste ausgeblendet, und ein Weg weniger wäre genau der falsche
-Moment. Platz zu gewinnen rechtfertigt keinen versperrten Pflichtweg.
+Moment.
+
+Platz zu gewinnen rechtfertigt keinen versperrten Pflichtweg — aber 11 px lassen sich mitnehmen,
+ohne einen zu versperren.
 
 ## Bewusste Produktentscheidungen: Gemeinsam planen
 

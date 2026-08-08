@@ -393,20 +393,30 @@
   main { padding: 28px 0 80px; }
 
   /* ---------- Footer (Rechtliches) ----------
-     In der laufenden App ist die Fusszeile weg - Impressum und Datenschutz stehen dort im
-     Profilmenue oben rechts (renderProfileMenu). Sie kostete auf jedem Bildschirm 53px, und
-     im Wochenplan-Sheet fehlten die direkt den Mahlzeiten.
+     In der laufenden App schrumpft die Fusszeile auf die zwei Woerter, die sie tragen muss:
+     "Impressum · Datenschutz". Der Copyright-Hinweis wandert ins Profilmenue, der
+     Innenabstand halbiert sich - aus 53px werden rund 33px. Im Wochenplan-Sheet fehlte
+     jeder dieser Pixel direkt den Mahlzeiten.
 
-     Sie bleibt aber stehen, solange NIEMAND angemeldet ist: das Profilmenue gibt es erst
-     nach der Anmeldung, und das Impressum darf nicht hinter das Auth-Gate wandern
-     (CLAUDE.md §23). Waehrend der ersten Schritte ebenfalls stehen lassen - dort ist die
-     Reiterleiste ausgeblendet, und ein zweiter Weg weniger waere genau der falsche Moment.
-     Deshalb bewusst zwei Ausnahmen im Selektor und nicht ein schlichtes display:none. */
+     Warum nicht ganz weg: Impressum und Datenschutz stehen zwar auch im Profilmenue
+     (renderProfileMenu), aber der Weg dorthin beginnt an einem Knopf, der nur
+     "Profilmenue" heisst - von aussen ist nicht erkennbar, dass dahinter die
+     Pflichtangaben liegen. §5 DDG verlangt "leicht erkennbar". Eine sichtbare Zeile mit
+     dem Wort "Impressum" kostet 33px und nimmt die Frage vom Tisch.
+
+     Unangetastet bleibt sie, solange NIEMAND angemeldet ist: das Profilmenue gibt es erst
+     nach der Anmeldung, das Impressum darf nicht hinter das Auth-Gate wandern
+     (CLAUDE.md §23). Waehrend der ersten Schritte ebenfalls - dort ist die Reiterleiste
+     ausgeblendet, und ein Weg weniger waere genau der falsche Moment. */
   .site-foot { border-top: 1px solid var(--border); margin-top: auto; background: color-mix(in srgb, var(--surface-2) 40%, var(--bg)); }
-  .app:not(.authing):not(.onboarding) .site-foot { display: none; }
   .foot-inner { display: flex; align-items: center; justify-content: space-between; gap: 12px 18px; padding: 16px 0; flex-wrap: wrap; }
   .foot-copy { font-size: 12.5px; color: var(--text-muted); }
   .foot-nav { display: flex; align-items: center; gap: 8px; }
+  /* Angemeldet: nur noch die Rechtslinks, mittig, halber Innenabstand. Steht bewusst NACH
+     den Grundregeln - so liest sich von oben nach unten erst der Normalfall, dann die
+     Ausnahme, statt sich auf Spezifitaet verlassen zu muessen. */
+  .app:not(.authing):not(.onboarding) .foot-copy { display: none; }
+  .app:not(.authing):not(.onboarding) .foot-inner { padding: 8px 0; justify-content: center; }
   .foot-link { font: inherit; font-size: 12.5px; color: var(--text-muted); background: 0; border: 0; padding: 2px 2px; cursor: pointer; }
   .foot-link:hover { color: var(--accent-strong); text-decoration: underline; }
   .foot-sep { color: var(--border-strong); }
@@ -872,22 +882,29 @@
 
   /* Aufklapper: die Kalorienzeile selbst. Frueher eine eigene Knopfzeile "Makros ›"
      darunter - 41px Hoehe fuer ein Wort, im Sheet fester Hoehe zu teuer.
-     .gm ist hier ein <button>, deshalb die Knopf-Voreinstellungen zuruecksetzen; text-align
-     links, sonst zentriert der Browser den Inhalt. */
-  .gm-tap {
-    display: block; width: 100%; text-align: left;
-    font: inherit; color: inherit; background: none; border: 0; padding: 0;
+
+     position:relative ist der Bezugspunkt fuer das aufgespannte ::after des Chevrons -
+     dadurch wird die ganze Zeile zur Trefferflaeche, obwohl nur der Pfeil ein Knopf ist. */
+  .gm-tap { position: relative; }
+  /* Haelt Wert und Chevron zusammen, damit .gm-r weiterhin nur zwei Kinder hat (sonst
+     verteilt space-between den Raum auf zwei Luecken und der Wert rutscht in die Mitte). */
+  .gm-vwrap { display: flex; align-items: baseline; gap: 6px; }
+  .gm-caret {
+    display: inline-flex; align-items: center; flex: none;
+    font: inherit; color: var(--text-muted); background: none; border: 0; padding: 0;
     cursor: pointer; -webkit-tap-highlight-color: transparent;
   }
+  /* Stretched Link: KEIN position:relative auf dem Knopf selbst - sonst bezoege sich das
+     ::after auf den 13px kleinen Pfeil und nur der waere anklickbar. Bezugspunkt muss
+     .gm-tap sein, genau wie .ing-view-name sich auf .ing-view bezieht. */
+  .gm-caret::after { content: ""; position: absolute; inset: 0; }
+  .gm-caret:focus-visible { outline: none; }
+  .gm-caret:focus-visible::after { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: var(--radius-sm); }
   /* Hover nur mit echter Maus - auf Touch bliebe der Zustand nach dem Antippen kleben. */
   @media (hover: hover) and (pointer: fine) {
-    .gm-tap:hover .gm-caret { color: var(--text); }
+    .gm-caret:hover { color: var(--text); }
   }
-  .gm-tap:active { opacity: .68; }
-  .gm-tap:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: var(--radius-sm); }
-  /* Sitzt am Ende der Beschriftungszeile, hinter dem Zahlenwert. flex:none, damit er nicht
-     mitschrumpft, wenn die Zahlen breit werden. */
-  .gm-caret { display: inline-flex; align-items: center; flex: none; color: var(--text-muted); }
+  .gm-caret:active { opacity: .62; }
   .gm-caret .caret { width: 13px; height: 13px; transition: transform var(--dur-fast); }
   /* Zu = nach rechts (es geht noch etwas auf), offen = nach oben: die Makros liegen
      oberhalb, der Pfeil zeigt dorthin, wo der Inhalt erscheint. */
@@ -5994,24 +6011,28 @@
     // Als Parameter und nicht als globale Regel: goalBarHtml() baut auch die Balken der
     // Wochenziele und im Rechner, dort gibt es nichts aufzuklappen.
     const tg = o.toggle;
-    const tag = tg ? "button" : "div";
-    // Kein aria-label auf dem Knopf: der Name soll weiterhin aus dem Inhalt kommen
-    // ("Kalorien 2.260 / 2.728 kcal, 468 kcal uebrig"). Ein aria-label wuerde das
-    // ueberschreiben und die Zahlen fuer die Sprachausgabe verschlucken. Was fehlt, ist
-    // nur die Aussage, WAS aufklappt - die traegt das versteckte Wort im Chevron.
-    const attrs = tg
-      ? ` type="button" data-action="toggle-day-goals" data-day="${tg.day}" aria-expanded="${tg.open}"`
-      : "";
+    // Der Knopf ist NUR der Chevron; die ganze Zeile wird ueber ein aufgespanntes ::after
+    // zur Trefferflaeche. Dasselbe Stretched-Link-Muster wie bei .ing-view-name und
+    // .rcard-open. Der naheliegende Weg - die ganze .gm als <button> - waere zwar kuerzer
+    // gewesen, haette aber zwei Dinge gebrochen: <button> erwartet Phrasing Content, und
+    // .gm enthaelt drei <div> (darunter eine role="progressbar"). Ausserdem baut sich der
+    // Name eines Knopfes aus seinem GESAMTEN Inhalt - "Kalorien" waere doppelt
+    // vorgelesen worden, einmal aus dem Label und einmal aus dem aria-label der
+    // Fortschrittsleiste. So bleiben die Zahlen normaler Text und der Knopf heisst schlicht
+    // "Makros".
     const chevron = tg
-      ? `<span class="gm-caret"><span class="visually-hidden">Makros</span>
-           <svg class="caret${tg.open ? " open" : ""}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
-         </span>`
+      ? `<button type="button" class="gm-caret" data-action="toggle-day-goals" data-day="${tg.day}" aria-expanded="${tg.open}"><span class="visually-hidden">Makros</span><svg class="caret${tg.open ? " open" : ""}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg></button>`
       : "";
-    return `<${tag} class="gm ${o.cls || ""} is-${st}${tg ? " gm-tap" : ""}"${attrs}>
-        <div class="gm-r"><span class="gm-n">${o.label}</span><span class="gm-v"><b>${nfmt(o.ist)}</b>&thinsp;/&thinsp;${nfmt(o.ziel)}${o.unitInline && o.unit ? " " + o.unit : ""}</span>${chevron}</div>
+    // Wert und Chevron in einer eigenen Huelle: .gm-r ist flex mit space-between und war auf
+    // GENAU zwei Kinder ausgelegt (Label links, Wert rechts). Ein drittes Kind verteilte den
+    // Raum auf zwei Luecken - der Wert stand dann 80px vor dem Pfeil in der Mitte, als
+    // gehoerten sie nicht zusammen. Ohne toggle ist die Huelle leer und aendert nichts.
+    const wert = `<span class="gm-v"><b>${nfmt(o.ist)}</b>&thinsp;/&thinsp;${nfmt(o.ziel)}${o.unitInline && o.unit ? " " + o.unit : ""}</span>`;
+    return `<div class="gm ${o.cls || ""} is-${st}${tg ? " gm-tap" : ""}">
+        <div class="gm-r"><span class="gm-n">${o.label}</span>${tg ? `<span class="gm-vwrap">${wert}${chevron}</span>` : wert}</div>
         <div class="gm-bar" role="progressbar" aria-valuenow="${Math.round(o.ist)}" aria-valuemin="0" aria-valuemax="${Math.round(o.ziel)}" aria-label="${esc(o.label)}"><span style="width:${pct}%"></span></div>
         ${showRest ? `<div class="gm-left">${restTxt}</div>` : ""}
-      </${tag}>`;
+      </div>`;
   }
 
   // Welche Tage ihre Makrobalken aufgeklappt haben. Bewusst nicht gespeichert: beim
