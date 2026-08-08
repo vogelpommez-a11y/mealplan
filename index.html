@@ -905,6 +905,13 @@
   .slot[data-meal="fr"] { --slot-c: var(--fr); }
   .slot[data-meal="mi"] { --slot-c: var(--mi); }
   .slot[data-meal="ab"] { --slot-c: var(--ab); }
+  /* Snacks bewusst OHNE eigenen Farbton. Das Theme hat mit --accent, --ok, --train,
+     den drei Makro- und sechs Mitgliedsfarben keine freie Luecke mehr, die im Wochenplan
+     nicht schon gleichzeitig sichtbar waere - und der Streifen traegt keine Information,
+     die nicht danebenstuende: das Label schreibt die Mahlzeit aus. Neutral sagt hier
+     zusaetzlich das Richtige, Snacks sind die nachgeordnete Mahlzeit. Kein Alias-Token
+     dafuer, der Verweis ist die Aussage. */
+  .slot[data-meal="sn"] { --slot-c: var(--border-strong); }
   .slot .mlabel { font-size: 11px; font-weight: 650; letter-spacing: .04em; text-transform: uppercase; color: var(--slot-c); margin-bottom: 3px; }
   .slot .add {
     font: inherit; font-size: 13px; width: 100%; text-align: left; cursor: pointer;
@@ -2913,10 +2920,16 @@
     { key: "sat", label: "Samstag",    short: "Sa" },
     { key: "sun", label: "Sonntag",    short: "So" },
   ];
+  // Vier Slots je Tag. Fast alles zieht ueber diese Liste mit - makeEmptyPlan(),
+  // normalizePlan(), flattenWeek()/unflattenWeek(), Einkaufsliste, "Woche leeren",
+  // dayNut() und der Druck. Ein fuenfter Slot waere deshalb wieder nur ein Eintrag hier.
+  // Bestandsdaten brauchen keine Migration: normalizePlan() legt fehlende Schluessel
+  // ueber makeEmptyPlan() leer an, flattenWeek() schreibt leere Slots gar nicht erst.
   const MEALS = [
     { key: "fr", label: "Frühstück"  },
     { key: "mi", label: "Mittagessen" },
     { key: "ab", label: "Abendessen"  },
+    { key: "sn", label: "Snacks"      },
   ];
   // Reihenfolge der unteren Tab-Leiste, fuer die Richtung des Schiebe-Uebergangs (render()).
   const TAB_ORDER = ["home", "plan", "recipes"];
@@ -2997,7 +3010,11 @@
   const CATEGORIES = ["Frühstück", "Hauptgericht", "Snack", "Dessert", "Beilage", "Getränk"];
   const CAT_CLASS = { "Frühstück": "cat-fr", "Hauptgericht": "cat-ha" };
   // Ein Hauptgericht passt in Mittag UND Abend -> Werte sind Listen, nicht ein Slot.
-  const CAT_TO_MEAL = { "Frühstück": ["fr"], "Hauptgericht": ["mi", "ab"] };
+  // Snack und Dessert gehoeren seit dem vierten Slot ausschliesslich zu "sn": vorher
+  // passten sie ueberall hin und blaehten damit jede Auswahlliste auf. Das wirkt nur
+  // auf den Picker (catFitsMeal); bereits verplante Snacks in fr/mi/ab bleiben stehen,
+  // normalizePlan() filtert nach Meal-Existenz, nicht nach Kategorie.
+  const CAT_TO_MEAL = { "Frühstück": ["fr"], "Hauptgericht": ["mi", "ab"], "Snack": ["sn"], "Dessert": ["sn"] };
   // Einmal-Migration: "Mittagessen"/"Abendessen" sind zu "Hauptgericht" verschmolzen.
   // Laeuft ueber sanitizeRecipe() und greift damit an JEDEM Eingang.
   const CAT_LEGACY = { "Mittagessen": "Hauptgericht", "Abendessen": "Hauptgericht" };
@@ -3073,9 +3090,12 @@
   // ---------- State ----------
   let state = load();
 
+  // Ueber MEALS statt einer festen Slot-Liste: sonst fehlt ein neu dazugekommener Slot
+  // in JEDEM frisch angelegten Plan, und state.plan[tag][slot] waere undefined - der
+  // erste Zugriff (renderPlan, dayNut, normalizePlan) risse die App mit.
   function makeEmptyPlan() {
     const p = {};
-    DAYS.forEach(d => { p[d.key] = { fr: [], mi: [], ab: [] }; });
+    DAYS.forEach(d => { p[d.key] = {}; MEALS.forEach(m => { p[d.key][m.key] = []; }); });
     return p;
   }
   // Ein Slot ist eine Liste von Rezept-IDs. Alte Pläne speicherten eine
@@ -10184,7 +10204,7 @@
         <h2 class="onb-q">Plan it. Cook it. Lift it.</h2>
         <ul class="onb-list">
           <li><b>Ziel</b> – Kalorien und Makros aus deinen Daten.</li>
-          <li><b>Wochenplan</b> – Frühstück, Mittag, Abend.</li>
+          <li><b>Wochenplan</b> – Frühstück, Mittag, Abend, Snacks.</li>
           <li><b>Einkaufsliste</b> – automatisch aus deinem Plan.</li>
         </ul></div>`;
     }
@@ -11813,7 +11833,7 @@
         <div class="pt-meta">${profile ? esc(profile.name) + "<br>" : ""}${dateStr}</div>
       </div>
       <table class="pt-table">
-        <thead><tr><th></th><th>Frühstück</th><th>Mittagessen</th><th>Abendessen</th></tr></thead>
+        <thead><tr><th></th>${MEALS.map(m => `<th>${esc(m.label)}</th>`).join("")}</tr></thead>
         <tbody>${rows}</tbody>
       </table>
       <div class="pt-foot">Erstellt mit Paddy’s Mealplan</div>
