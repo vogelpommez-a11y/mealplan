@@ -419,6 +419,31 @@ Fließtext ist von alldem ausgenommen: In ganzen Sätzen (z. B. der Onboarding-Z
 
 Eine vierte Form wird nicht erfunden. Passt ein neuer Ort in keine der drei, ist zuerst zu prüfen, ob er wirklich etwas anderes zeigt.
 
+## Abschnittsüberschriften: `.sec-h`
+
+**Es gibt genau eine Abschnittsform in der App.** Sie steht als Klasse `.sec-h` an einer Stelle:
+
+```text
+12.5px · 700 · letter-spacing .05em · uppercase · --text-muted
+```
+
+Ein neuer Abschnitt bekommt `.sec-h`, keine eigenen Werte. Ort-abhängig bleibt nur der Abstand
+(`margin`), nie die Schrift.
+
+Sie war vorher dreimal wortwörtlich kopiert (`.ms-ings h4`, `.nut-total > h4`,
+`.detail .dsec h4`) — der Kommentar an einer der Stellen sagte sogar ausdrücklich, es solle
+dieselbe Form sein. Genau so entstehen Abweichungen.
+
+`font-weight` gehört in die Klasse, nicht in die Aufrufer: Die Altstellen sind `<h4>` und tragen
+die 700 des Browsers, die Slot-Überschrift des Wochenplans ist ein `<div>` und läge sonst bei 400.
+
+Bewusst **nicht** angeglichen und kein Versehen:
+
+* `.shop-cat` (Einkaufsliste) — eigene Display-Schrift, `.06em`
+* `.modal-head .kicker` — 11,5 px
+
+Wer sie „aufräumt", verändert bestehende Ansichten sichtbar.
+
 ## Markencharakter
 
 Die UI soll sportlich und leistungsorientiert wirken.

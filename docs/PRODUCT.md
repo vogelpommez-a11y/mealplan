@@ -284,6 +284,33 @@ Deshalb war der Wegfall des Überschreitungs-Zeichens kein reines Streichen — 
 der Fußbilanz, die vorher wegen des Zeichens unterdrückt war, wurde im selben Schritt wieder
 eingeschaltet.
 
+### Snacks sind ein eigener Slot, kein Anhängsel
+
+Ein Riegel am Nachmittag landete vorher behelfsmäßig unter „Abendessen". Die Tagesbilanz stimmte
+dann zwar, die Planung war aber gelogen — und genau die Planung ist das Produkt.
+
+Snack und Dessert lassen sich seitdem **nur noch** in „Snacks" einplanen. Das ist bewusst eine
+Einschränkung: Sie hält die Auswahlliste jedes Slots kurz, und kurze Listen sind der eigentliche
+Zweck der Kategorien. Wer doch einen Snack zum Frühstück will, kommt über „Alle anzeigen" dorthin
+— der Weg ist einen Tipp länger, nicht versperrt.
+
+Bereits verplante Snacks in anderen Slots bleiben stehen. Eine nachträgliche Umsortierung fremder
+Pläne wäre eine Änderung an Daten, die der Nutzer selbst so angelegt hat.
+
+### Auf dem Handy steht der Plan still
+
+Der Wochenplan ist mobil eine Fläche fester Höhe: Wochenumschalter und Tagesleiste oben, die
+Tagesbilanz unten, und nur die Mahlzeiten dazwischen scrollen.
+
+Das ist eine Produktentscheidung, keine Layoutfrage: Bei einem vollen Tag liegt etwas unter der
+Falz. Dafür beantwortet der Bildschirm ohne Scrollen die beiden Fragen, für die man den Plan
+öffnet — *welcher Tag* und *wie weit bin ich mit meinem Ziel*. Vorher wanderte die Bilanz mit dem
+Inhalt nach unten und war bei vollen Tagen genau dann unsichtbar, wenn sie am meisten zählt.
+
+Zwei Dinge mussten dafür weichen: die Überschrift „Dein Wochenplan" (die Reiterleiste sagt bereits
+„Plan") und der breite Einkaufslisten-Knopf, der mobil ein Icon im Kopf wurde. Ein zweiter fester
+Balken über der Reiterleiste hätte auf einem 667 px hohen Gerät die halbe Meal-Fläche gekostet.
+
 ## Bewusste Produktentscheidungen: Gemeinsam planen
 
 ### Erst einladen, dann entscheiden
@@ -343,6 +370,17 @@ Tüte Nudeln als ein Meal im Plan) oder fehlen Name/Nährwerte, wird nicht gerat
 öffnet stattdessen das normale Formular vorausgefüllt, samt der gefundenen Nährwerte als
 Zutaten-Zeile; einzutragen bleibt nur die Menge. Kalorienkorrektheit ist das Kernversprechen der
 App; ein zusätzlicher Bestätigungsklick in diesem Randfall wiegt das auf.
+
+**Ein gescanntes Produkt ist flüchtig, kein Bestand.** Es gehört zu dem einen Tag, an dem man den
+Riegel isst — nicht in die Bibliothek und auch nicht in die Auswahlliste beim Planen. Aus dem
+Meals-Reiter war es von Anfang an ausgeblendet; die Auswahlliste des Wochenplans las aber lange
+an dieser Regel vorbei und wuchs mit jedem Scan. Beide gehen jetzt über dieselbe Menge.
+
+Damit sich die Produkte nicht still in den Daten stapeln, werden sie beim Start entfernt, sobald
+sie in keiner Woche mehr verplant **und** älter als die Aufbewahrung der Wochen sind. Die
+Altersgrenze ist kein Beiwerk: Ohne sie könnte ein Gerät ein Produkt löschen, das der Partner
+gerade eingeplant hat und das hier noch nicht angekommen ist. Speicherplatz zu sparen darf keine
+fremde Planung beschädigen.
 
 ## Bewusste Produktentscheidung: Meal-Ansicht und Editor sind eins
 

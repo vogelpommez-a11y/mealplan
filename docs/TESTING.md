@@ -367,6 +367,47 @@ Fallen dabei:
 * **Der Browser der Chrome-Erweiterung taugt dafür nicht**: sein Tab läuft verborgen
   (`document.hidden === true`), `requestAnimationFrame` tickt dort nicht, Sanftläufe und
   Screenshots laufen ins Leere.
+
+**Nachtrag 08.08.2026 — im `iframe`-Aufbau ist gar keine Geste messbar.** Beim Sheet-Umbau des
+Wochenplans liefen beide Wege ins Leere, und zwar *lautlos*:
+
+* `Input.dispatchTouchEvent` erzeugte im Rahmen zwar DOM-Ereignisse (nachgezählt: ein
+  `touchstart`, 17 `touchmove`, ein `touchend`), aber **kein Scrollen** — `scrollLeft` blieb 0.
+* `Input.synthesizeScrollGesture` geht durch den Compositor und scrollt deshalb immer das
+  **Top-Dokument**, nie einen Scroller innerhalb eines `iframe`.
+
+Beides zusammen ergab einen Prüfstand, der fröhlich „alles sauber" meldete, ohne dass sich
+irgendetwas bewegt hatte. **Deshalb gehört in jeden Gesten-Test eine Zusicherung, dass sich
+überhaupt etwas verändert hat** — misst der Lauf keine einzige Positionsänderung, muss er
+fehlschlagen, nicht bestehen.
+
+Wo eine Geste nicht durchkommt, ist oft die **Ursache** direkt prüfbar und sogar aussagekräftiger.
+Statt Ziffer 42 über eine Wischgeste nachzustellen, fährt der Test die Zwischenpositionen mit
+`scrollLeft` ab und beobachtet, ob dabei eine Inline-Höhe entsteht — das ist genau der Mechanismus,
+der den Snap zerstörte (alter Stand: 11 von 11 Schritten, neuer: keiner).
+
+### Zwei Fallen, die eine Gegenprobe still entwerten
+
+Beide traten beim selben Umbau auf und ließen alten und neuen Stand identisch aussehen:
+
+* **Der Browser-Cache.** `python -m http.server` liefert `Last-Modified` nur sekundengenau. Wird
+  der Prüfstand für die Gegenprobe zweimal innerhalb derselben Sekunde neu gebaut, antwortet der
+  Server auf das `If-Modified-Since` mit **304** und der Browser zeigt weiter den alten Stand. Im
+  Prüfskript deshalb `Network.enable` + `Network.setCacheDisabled: true` setzen. Zur Sicherheit
+  einen Marker mitprüfen (`grep -c "plan-sheet" stand/index.html`), damit belegt ist, welcher
+  Stand tatsächlich läuft.
+* **`requestAnimationFrame` nicht abgewartet.** `fitHeight()` hängt im `scroll`-Handler in einem
+  `rAF`. Wer `scrollLeft` setzt und sofort liest, misst den Zustand *davor* — der Test meldete
+  für beide Stände „keine Inline-Höhe". Zwischen Setzen und Messen zwei Frames abwarten
+  (`await new Promise(r => rAF(() => rAF(r)))`).
+
+### Überlauf gegen `innerHeight` prüfen, nicht gegen `clientHeight`
+
+Im `iframe`-Prüfstand nehmen die klassischen Scrollleisten je 15 px von `clientWidth`/
+`clientHeight` weg (bei 390 × 844 bleiben 375 × 829). Ein Test auf
+`scrollHeight <= clientHeight` schlägt dadurch **immer** an, auch wenn die Seite gar nicht
+scrollen kann. Gegen `innerHeight` prüfen und im Zweifel `scrollHeight - innerHeight` als
+`maxScrollY` mit ausgeben — auf dem Handy sind Scrollleisten überlagert und kosten keinen Platz.
 * **Nie gegen den echten `localhost`-Port testen, an dem die App schon angemeldet ist.**
   Ein zweiter Port ist eine eigene Origin mit eigenem `localStorage` und ohne Firebase-Sitzung;
   zusätzlich in der Testkopie den `apiKey` auf `DEIN_…` setzen, dann fällt die App auf den
@@ -440,6 +481,34 @@ Zwei Fallen dabei:
 
 Zum Messen von Animationen in so einem Rahmen siehe TROUBLESHOOTING §54: im verborgenen Tab
 zustandsbasiert messen (`getAnimations()`, `pause()` + `currentTime`), nie zeitbasiert.
+
+### Angemeldeter Prüfstand ohne Cloud-Gefahr (Aufbau vom 08.08.2026)
+
+Für alles hinter dem Login braucht es einen Stand mit Daten. Der sichere Aufbau, komplett im
+Scratchpad, ohne eine Datei im Projektordner:
+
+1. `index.html` in den Scratchpad kopieren und dabei den `apiKey` auf `DEIN_API_KEY` setzen. Der
+   Platzhalter-Test der App (`apiKey.indexOf("DEIN_") !== 0`) lässt Firebase dann gar nicht erst
+   starten — die Kopie **kann** nichts in die echte Cloud schreiben. Das Ersetzen mit `assert`
+   absichern und abbrechen, wenn es nicht greift.
+2. Eigener Port (`8181`, nicht der 8000 aus `test-server.ps1`): eigene Origin, eigener
+   `localStorage`, keine bestehende Firebase-Sitzung.
+3. Eine `seed.html` daneben, die `wochenkueche_v1__test` und `wochenkueche_profile_v1__test`
+   schreibt und dann auf `/index.html` weiterleitet. Das `__test`-Suffix ist Pflicht, weil
+   `isTestOrigin()` bei `localhost` greift.
+
+Drei Stolpersteine beim Seed:
+
+* **`plans` nicht mitschreiben.** `load()` prüft `data.plans && typeof === "object"` zuerst — ein
+  leeres Objekt ist truthy, und der Migrationszweig für den Einzelplan (`data.plan`) käme nie
+  dran. Ohne `plans` wandert `plan` in die aktuelle Woche.
+* **Ein Ziel setzen.** Ohne `state.goal` zwingt `maybeStartOnboarding()` in die ersten Schritte,
+  und der Plan-Reiter ist unerreichbar. Mit Ziel zeigt die Tagesbilanz außerdem die Balkenform
+  statt der Textzeile — beide Fälle wollen geprüft werden, also abschaltbar halten.
+* **Auf den Endzustand warten, nicht auf „`#view` hat Inhalt".** Der Cloud-Auth-Zwischenschritt
+  („Verbindung wird hergestellt") füllt `#view` sofort; ein Test, der nur darauf wartet, misst
+  den Ladebildschirm. Auf eine Zielmarke warten (`.week` vorhanden) und den Reiter notfalls über
+  einen echten Klick auf `[data-tab="plan"]` öffnen, damit die normale Delegation läuft.
 
 ### Trefferflächen mitmessen, wenn Abstände sich ändern
 

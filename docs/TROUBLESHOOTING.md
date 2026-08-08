@@ -881,6 +881,20 @@ Tagesleiste) in beiden Fassungen unverändert korrekt. Siehe `docs/TESTING.md`.
 ändern. Wo es sich nicht vermeiden lässt, gehört eine Nachkorrektur auf den nächsten Snap-Punkt
 dazu — für **jeden** Auslöser, nicht nur für den programmatischen.
 
+**Nachtrag 08.08.2026 — die Ursache ist weg, die Nachkorrektur bleibt.** Der Wochenplan ist mobil
+ein Sheet fester Höhe (`.plan-sheet`); der Streifen bekommt seine Höhe vom Raster, nicht mehr von
+der sichtbaren Karte. `initCarousel()` kennt dafür die Option `noFit`, und `fitHeight()` steigt
+damit sofort aus. Gemessen beim Fahren durch die Zwischenpositionen zwischen zwei Tagen:
+
+| | alter Stand | mit Sheet |
+|---|---|---|
+| Inline-Höhe unterwegs | in 11 von 11 Schritten gesetzt | keine |
+| Streifenhöhe | springt 776 → 609 px | konstant 524 px |
+
+`settleNative()` wurde **nicht** entfernt. Es fängt Snap-Verlust auch aus anderen Gründen ab, und
+die oben genannte iOS-Drosselung von `requestAnimationFrame` gibt es weiterhin. Wer hier aufräumen
+will, braucht erst einen Beleg, dass kein anderer Auslöser mehr existiert.
+
 ## 43. Grundregel bei Fehlern
 
 Nicht einfach den sichtbaren Fehler flicken.
@@ -1272,3 +1286,52 @@ Gilt sinngemäß für jede künftige Funktion, die eine dynamische Linkvorschau 
 **Die Falle bei der Lösung:** Beide Aufräumschritte müssen in **jedem** Ausgang laufen, auch wenn die Animation abgebrochen wird (`anim.finished` rejectet dann) — deshalb `then(clear, clear)`. Bleibt `overflow: hidden` inline stehen, ist die Zutatenliste danach dauerhaft nicht mehr scrollbar, und zwar lautlos. Der Prüfstand muss das eigens abfragen: nach dem Öffnen `getComputedStyle(body).overflowY === "auto"` und `el.getAttribute("style")` leer, zusätzlich einmal mit hart abgebrochener Animation (`anim.cancel()`).
 
 **Regel:** Eine Enter-Bewegung verschiebt ein Element um einige Dutzend Pixel und blendet es dabei ein — sie schiebt es nicht über den halben Bildschirm. Große Flächen zu bewegen ist auf dem Handy nur dann unbedenklich, wenn nichts Teures darin liegt.
+
+## 56. Grid-Auto-Platzierung rutscht hoch, wenn eine Reihe `display: none` ist
+
+**Symptom (beim Sheet-Umbau des Wochenplans, 08.08.2026):** Die Tageskarte sollte
+`Kopfzeile / Mahlzeiten (scrollend) / Tagesbilanz` werden — also `grid-template-rows: auto 1fr auto`.
+Damit landete die Bilanz in der scrollenden Reihe und die Mahlzeiten in einer festen: genau
+vertauscht.
+
+**Ursache:** Ein Element mit `display: none` wird **nicht platziert**. `.day > .day-head` ist auf
+dem Handy ausgeblendet, also gibt es nur zwei Kinder. Die Auto-Platzierung setzt `.slots` in
+Reihe 1 (`auto`) und die Bilanz in Reihe 2 (`1fr`). Die dritte Reihe bleibt leer und ist
+unsichtbar — der Fehler sieht deshalb nach einem CSS-Rechenfehler aus, nicht nach einem
+Platzierungsproblem.
+
+**Lösung:** Im Handy-Zweig `grid-template-rows: 1fr auto`, passend zu den tatsächlich platzierten
+Kindern. Alternativ jedem Kind ein explizites `grid-row` geben — dann ist es egal, wer fehlt.
+
+**Verwandt:** Optionale Kinder aus einem Template. `dayNutHtml()` gibt bei einem leeren Tag `""`
+zurück, dann existiert die Bilanz gar nicht. Das ist unkritisch (die zweite Reihe fällt auf 0
+zusammen), aber es heißt: die Anzahl der Kinder ist zur Laufzeit variabel, und eine feste
+Reihenliste muss mit **jeder** Kombination aufgehen.
+
+**Prüfregel:** Wo eine Reihenliste auf Kinder trifft, die per Media Query oder per Template
+wegfallen können, `grid-template-rows` gegen die tatsächlich gerenderten Kinder prüfen — nicht
+gegen das Markup im Editor.
+
+## 57. Höhe eines Sheets nie aus einzelnen Variablen summieren
+
+**Symptom:** Der Wochenplan sollte den Rest des Bildschirms füllen:
+`100dvh - --head-h - --planhead-h - --tabbar-h`. Ergebnis: 170 px zu hoch, das Sheet schob sich
+unter die Reiterleiste.
+
+**Ursache:** Zwischen den Bausteinen liegen Abstände, die in keiner der Variablen stecken — hier
+`main { padding-bottom }`, `.section-head { margin-bottom }` und das Innenabstands-Inset von
+`.app`. Jede Summe dieser Art ist nur so lange richtig, bis jemand einen Abstand ändert.
+
+**Lösung:** Die **Oberkante messen** statt sie zusammenzurechnen. `syncStickyOffsets()` setzt
+`--sheet-top` aus `getBoundingClientRect().top + window.scrollY` — der Wert kennt alles, was
+darüber liegt, von selbst. Nach unten ist die Rechnung dagegen zulässig, weil das Inset von `.app`
+ausdrücklich als `--tabbar-h + 24px + safe-area` definiert ist; die Fußzeile kommt als gemessenes
+`--foot-h` dazu.
+
+**Dokumentposition, nicht Sichtfenster:** `getBoundingClientRect().top` allein wäre falsch, sobald
+die Seite beim Messen gescrollt ist. Deshalb `+ window.scrollY`.
+
+**Nebenbefund:** Die Fußzeile kostet 53 px, die aus dem Sheet abgezogen werden müssen. Sie
+auszublenden wäre der bequeme Weg — das Impressum muss aber erreichbar bleiben (CLAUDE.md §23).
+Die 64 px Bodenluft von `<main>` entfallen im Plan-Reiter dagegen zu Recht: Sie sind Abstand für
+eine Seite, die gescrollt wird.

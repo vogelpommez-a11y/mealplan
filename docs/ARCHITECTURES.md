@@ -435,6 +435,28 @@ und eine Baseline über:
 
 Ziel ist, dass parallele Änderungen nur denselben Slot kollidieren lassen und nicht den gesamten Wochenplan überschreiben.
 
+### Die vier Slots kommen aus `MEALS`
+
+`MEALS` (`fr`, `mi`, `ab`, `sn`) ist die einzige Quelle für die Mahlzeiten eines Tages. Alles
+Nachgelagerte iteriert darüber und zieht bei einer Erweiterung von selbst mit: `makeEmptyPlan()`,
+`normalizePlan()`, `flattenWeek()`/`unflattenWeek()`, Einkaufsliste, „Woche leeren", `dayNut()`
+und der Druck.
+
+**Bestandsdaten brauchen keine Migration.** Ein fehlender Schlüssel wird über `makeEmptyPlan()`
+leer angelegt, und `flattenWeek()` schreibt leere Slots ohnehin nicht in die Cloud. Ein Gerät mit
+älterem Stand kennt `mon_sn` nicht, überliest es beim Lesen und überschreibt es beim Schreiben
+nicht — die Snacks bleiben erhalten, sind dort nur unsichtbar.
+
+**Die eine Stelle, die nicht mitzog:** `makeEmptyPlan()` hatte die drei Slots hart verdrahtet
+(`{ fr: [], mi: [], ab: [] }`). Ohne Korrektur wäre `state.plan[tag].sn` überall `undefined`
+gewesen und der erste Zugriff hätte die App mitgerissen. Wer `MEALS` erweitert, prüft zuerst, ob
+es noch eine solche Liste gibt.
+
+**Kategorie-Bindung:** `CAT_TO_MEAL` bindet `Snack` und `Dessert` ausschließlich an `sn`,
+`Frühstück` an `fr`, `Hauptgericht` an `mi`/`ab`. Das wirkt **nur auf die Auswahlliste**
+(`catFitsMeal()` im Picker, mit „Alle anzeigen" als Auslass) — bereits verplante Einträge bleiben
+unangetastet, `normalizePlan()` filtert nach Meal-Existenz, nicht nach Kategorie.
+
 ## Gerichte-Zuweisung (Gemeinsam planen)
 
 Ein Slot-Eintrag in `state.plan[day][meal]` ist entweder:
@@ -711,6 +733,40 @@ Snap-Ziel dabei verlieren:
 
 Beide setzen hart auf `lefts[…]`, beide zielen auf den Tag, den die Tagesleiste ohnehin anzeigt.
 Siehe `docs/TROUBLESHOOTING.md`, Punkt 42.
+
+`resetInactiveScroll(idx)` dreht dabei den **senkrechten** Stand aller nicht aktiven Panels
+(`.slots`) auf 0 zurück: Wer zu einem anderen Tag wischt, will ihn sehen und nicht dort
+weiterlesen, wo er zuletzt war. Bewusst erst nach dem Einrasten — während der Geste ist die
+verlassene Karte noch halb im Bild, ein Sprung wäre dort sichtbar.
+
+**Optionen:**
+
+* `fixedHeight` — Streifenhöhe auf das Maximum **aller** Karten (Wochenziele: zwei Karten, die
+  gleich hoch wirken sollen).
+* `noFit` — `fitHeight()` steigt sofort aus und räumt eine etwaige Inline-Höhe weg. Der
+  Wochenplan nutzt das, weil er seine Höhe vom Sheet bekommt (siehe unten). Damit entfällt der
+  Schreibvorgang, der Punkt 42 verursacht hat.
+
+### Wochenplan als Sheet fester Höhe (mobil)
+
+Im Handy-Zweig (`max-width: 680px`) ist der Plan-Reiter eine Fläche, die den Bildschirm genau
+ausfüllt — `.plan-sheet` als Raster `auto 1fr` (Tagesleiste / Streifen), jede Tageskarte darin
+als Raster `1fr auto` (scrollende Mahlzeiten / feste Tagesbilanz). Gescrollt wird ausschließlich
+in `.slots`, mit `overscroll-behavior-y: contain`.
+
+Weil das Sheet den Rest exakt füllt, hat die Seite **keinen Überlauf** — der Plan-Kopf steht
+dadurch fest, ohne ein zusätzliches `position: fixed`.
+
+`syncStickyOffsets()` setzt dafür neben `--head-h` und `--tabbar-h` zwei weitere Variablen:
+
+* `--sheet-top` — die **gemessene** Oberkante (`getBoundingClientRect().top + window.scrollY`).
+  Bewusst gemessen und nicht aus Einzelwerten summiert; warum, steht in
+  `docs/TROUBLESHOOTING.md`, Punkt 57.
+* `--foot-h` — Höhe der Fußzeile, die unter dem Sheet stehen bleibt. Sie wird abgezogen statt
+  ausgeblendet, damit das Impressum erreichbar bleibt.
+
+Am Rechner ist `.plan-sheet` ein wirkungsloser Wrapper (`display: block`, keine Höhe), `.week`
+bleibt ein Raster und `.slots` scrollt nicht.
 
 ### Tagesleiste als Segmented Control
 
