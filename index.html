@@ -3332,6 +3332,43 @@
     });
     return plans;
   }
+  // Verwaiste Barcode-Produkte entfernen.
+  //
+  // Ein Barcode-Scan aus dem Wochenplan legt still ein minimales Meal an (quickAddByBarcode),
+  // damit der Plan-Eintrag etwas hat, worauf er zeigen kann - der Plan speichert nur IDs.
+  // Diese Produkte stehen zwar nicht in der Bibliothek (libraryRecipes), sammelten sich aber
+  // trotzdem dauerhaft in den Daten an. Gedacht sind sie fuer den einen Tag, an dem man den
+  // Riegel isst.
+  //
+  // Zwei Bedingungen zusammen, und die zweite ist die wichtige:
+  //
+  // 1. Das Produkt steht in KEINER bekannten Woche. state.plans haelt genau zwei Wochen
+  //    (pruneWeeks: aktuelle + naechste), ist also vollstaendig - es gibt keine dritte, in
+  //    der es noch stecken koennte.
+  // 2. Es ist aelter als diese Aufbewahrung. Das entschaerft das Sync-Timing: beim Start
+  //    laeuft das Aufraeumen, BEVOR der erste Cloud-Schnappschuss da ist. Ohne Altersgrenze
+  //    koennte ein Geraet ein Produkt loeschen, das der Partner (oder das eigene zweite
+  //    Geraet) gerade eben eingeplant hat und das hier noch nicht angekommen ist. Mit ihr
+  //    ist jedes frische Produkt geschuetzt, egal welchen Sync-Stand dieses Geraet sieht.
+  //
+  // Bestandsprodukte ohne "created" sind aelter als diese Aenderung und damit per Definition
+  // aelter als die Grenze.
+  const QUICK_TTL = 21 * 24 * 3600 * 1000;   // > die zwei Wochen, die pruneWeeks haelt
+  function pruneQuickRecipes() {
+    const verplant = new Set();
+    Object.keys(state.plans || {}).forEach(wk => {
+      const pl = state.plans[wk];
+      if (pl) DAYS.forEach(d => MEALS.forEach(m => {
+        asIdList(pl[d.key] && pl[d.key][m.key]).forEach(e => verplant.add(entryId(e)));
+      }));
+    });
+    const grenze = Date.now() - QUICK_TTL;
+    const vorher = state.recipes.length;
+    state.recipes = state.recipes.filter(r =>
+      r.quick !== true || verplant.has(r.id) || !(typeof r.created !== "number" || r.created < grenze));
+    return vorher - state.recipes.length;
+  }
+
   // Kennzahlen einer abgelaufenen Woche fuer den Rueckblick festhalten. Bewusst NUR Summen/
   // Zahlen, keine Meal-Referenzen — winzig, kein Foto-Ballast. Ziel-Treffer = Tag geplant UND
   // Tageskalorien innerhalb +/-10 % des (heutigen) Tagesziels. Ohne Ziel keine Treffer-Quote.
@@ -4705,6 +4742,9 @@
   // (quick: true). Zaehler, Suchfeld, Leerzustand und Liste im Reiter "Meals" muessen
   // dieselbe Menge sehen - sonst steht dort "12 Meals" ueber zehn Karten, oder der
   // Leerzustand fehlt, obwohl die Liste leer aussieht.
+  // Seit dem Sheet-Umbau nutzt auch openPicker() diese Menge: eine Auswahlliste, die mit
+  // jedem gescannten Riegel laenger wird, ist genau das Gegenteil von "Entscheidungen
+  // abnehmen". Ueber Plan, Einkaufsliste und Druck bleiben die Produkte erreichbar.
   function libraryRecipes() { return state.recipes.filter(r => r.quick !== true); }
   function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;" }[c])); }
 
@@ -7180,8 +7220,9 @@
 
     const q = recipeQuery.toLowerCase().trim();
     // Barcode-Schnellzugriff-Meals (quick: true) sind eine bewusste Ausnahme: sie stehen
-    // nicht in der Bibliothek (libraryRecipes), bleiben aber ueber Plan/Einkaufsliste/PDF
-    // normal erreichbar (siehe quickAddByBarcode).
+    // weder hier noch im Picker (beide ueber libraryRecipes), bleiben aber ueber Plan,
+    // Einkaufsliste und Druck normal erreichbar. Verwaiste raeumt pruneQuickRecipes()
+    // spaeter weg - siehe quickAddByBarcode.
     let pool = library;
     if (q) pool = pool.filter(r => r.name.toLowerCase().includes(q) || (r.category || "").toLowerCase().includes(q));
 
@@ -8486,7 +8527,13 @@
   function openPicker(day, meal) {
     const dLabel = DAYS.find(d => d.key === day).label;
     const mLabel = MEALS.find(m => m.key === meal).label;
-    if (state.recipes.length === 0) {
+    // libraryRecipes() statt state.recipes: Barcode-Schnellzugriff-Produkte (quick) sind
+    // fuer EINEN Tag gedacht und gehoeren nicht in eine Auswahlliste, die man beim Planen
+    // durchsieht - sonst waechst sie mit jedem gescannten Riegel. Dieselbe Regel gilt
+    // schon fuer den Meals-Reiter; hier lief der Picker bisher an ihr vorbei.
+    // Auch die Leerpruefung muss mit: haette jemand ausschliesslich gescannte Produkte,
+    // zeigte die Liste sonst nichts an, ohne den "Noch keine Meals"-Weg anzubieten.
+    if (libraryRecipes().length === 0) {
       const node = el(`<div class="modal" role="dialog" aria-modal="true">
         <div class="modal-head"><h3>Noch keine Meals</h3><button class="btn ghost sm" data-close>✕</button></div>
         <div class="modal-body"><p style="margin:0;color:var(--text-muted)">Du hast noch keine Meals angelegt. Wechsle in den Reiter <strong>Meals</strong> und leg zuerst ein Meal an, oder scanne ein Fertigprodukt.</p></div>
@@ -8518,7 +8565,7 @@
 
     function paint(q) {
       const query = (q || "").toLowerCase().trim();
-      let list = state.recipes.slice().sort((a, b) => a.name.localeCompare(b.name, "de"));
+      let list = libraryRecipes().sort((a, b) => a.name.localeCompare(b.name, "de"));
       if (query) list = list.filter(r => r.name.toLowerCase().includes(query) || (r.category || "").toLowerCase().includes(query));
       const hidden = list.filter(r => !catFitsMeal(r.category, meal)).length;
       if (!showAll) list = list.filter(r => catFitsMeal(r.category, meal));
@@ -8651,6 +8698,9 @@
       steps: "",
       barcode: code,
       quick: true,
+      // Anlagezeit fuer das spaetere Aufraeumen (pruneQuickRecipes). Ohne sie liesse sich
+      // ein gerade gescanntes Produkt nicht von einem laengst verwaisten unterscheiden.
+      created: Date.now(),
     }, syncGid ? { by: syncUid } : null);
     state.recipes.push(recipe);
     state.plan[day][meal].push(slotIsShared(day, meal) ? recipe.id : makeEntry(recipe.id, [syncUid]));
@@ -9524,6 +9574,9 @@
     // beschnittene Plaene persistiert sind. state.plan zeigt weiter auf die aktuelle Woche
     // (die wird nie beschnitten).
     pruneWeeks(state.plans);
+    // Direkt nach pruneWeeks: erst dort steht fest, welche Wochen es ueberhaupt noch gibt,
+    // und genau dagegen prueft das Aufraeumen der Barcode-Produkte.
+    pruneQuickRecipes();
     save();
     readSharedFromUrl();
     // Paket A3: Bilder aus IndexedDB in den State ziehen, BEVOR Auth/Sync/Render laufen -
