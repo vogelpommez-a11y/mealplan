@@ -6081,10 +6081,24 @@
   // Leerer Tag: dayNutHtml gibt "" zurueck. Dann bleibt die Leiste nicht leer stehen,
   // sondern verschwindet ganz (.is-empty) - eine leere klebende Flaeche waere schlimmer
   // als keine.
+  // Ohne Argument: der Tag kommt aus der TAGESLEISTE, nicht von einem durchgereichten
+  // Index. Das ist bewusst so.
+  //
+  // Zuerst nahm die Funktion einen Index entgegen, und mehrere Aufrufer reichten ihn
+  // weiter. Nach dem Entfernen eines Meals stand dann die Summe von Montag in der Leiste,
+  // obwohl Dienstag angezeigt war: irgendein Aufrufer kam mit einem leeren Wert und ein
+  // Rueckfall auf DAYS[0] machte daraus stillschweigend Montag. Der markierte Knopf ist
+  // dagegen genau das, was der Nutzer sieht - eine Quelle, die nicht danebenliegen kann,
+  // ohne dass es auffiele.
   function paintDayBalance(dayKey) {
     const box = document.getElementById("day-bal");
     if (!box) return;                       // Rechner, oder anderer Reiter
-    const k = dayKey || (DAYS[0] && DAYS[0].key);
+    let k = dayKey;
+    if (!k) {
+      const btns = document.querySelectorAll(".daybar .db-b");
+      const i = Array.prototype.findIndex.call(btns, b => b.classList.contains("active"));
+      k = (DAYS[i] || DAYS[0]).key;
+    }
     const html = dayNutHtml(dayNut(k), k);
     box.innerHTML = html;
     box.classList.toggle("is-empty", !html);
@@ -7228,7 +7242,10 @@
     // zweiter Beobachter fuer denselben Wechsel dazu.
     const planCarousel = initCarousel(
       weekStrip, view.querySelector(".daybar"), null,
-      idx => paintDayBalance(DAYS[idx] && DAYS[idx].key),
+      // Ohne Argument: paintDayBalance liest den Tag aus der Tagesleiste, die setActive()
+      // unmittelbar davor gesetzt hat. Den Index hier durchzureichen war die Quelle eines
+      // Fehlers (siehe dort).
+      () => paintDayBalance(),
       { fixedHeight: true }
     );
 
@@ -7247,11 +7264,14 @@
     const jump = target != null;
     if (jump && planCarousel && target > 0) planCarousel.go(target, true); // quiet: Startzustand, keine Sprung-Bewegung
 
-    // Erstbefuellung der klebenden Bilanz. onChange feuert nur bei einem WECHSEL, beim
-    // Aufbau also nie - ohne diesen Aufruf bliebe die Leiste bis zum ersten Wisch leer.
-    // Gegen den Sprungindex, nicht gegen die Scrollposition: go() laeuft je nach Abstand
-    // sanft, scrollLeft steht dann noch auf dem alten Wert.
-    paintDayBalance(DAYS[(jump && target > 0) ? target : (planCarousel ? planCarousel.index() : 0)].key);
+    // Die klebende Bilanz braucht hier KEINE Erstbefuellung: initCarousel() startet mit
+    // activeIdx = -1 und ruft am Ende markActive(), onChange feuert also bei jedem Aufbau
+    // von selbst - und go() weiter unten meldet einen Sprung ebenso.
+    //
+    // Ein zusaetzlicher Aufruf an dieser Stelle war sogar schaedlich: Er las den Index
+    // ueber planCarousel.index() ein zweites Mal und ueberschrieb damit das Ergebnis des
+    // Rueckrufs. Nach dem Entfernen eines Meals stand in der Leiste die Summe von Montag,
+    // obwohl Dienstag angezeigt war. Eine Quelle fuer den aktiven Tag, nicht zwei.
 
     // Wochenwechsel-Uebergang (Schritt 5): Richtung kommt ausschliesslich aus
     // pendingWeekDir, einmalig konsumiert - render() laeuft auch bei jedem Meal-Einplanen
