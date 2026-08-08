@@ -150,6 +150,15 @@
     --dur-fast: 160ms;
     --dur-base: 200ms;
     --dur-slow: 300ms;
+    /* Eigene Kurve fuer lange Strecken (heute: das Bottom-Sheet der Meal-Ansicht, das ueber
+       die gesamte Bildschirmhoehe faehrt). --ease-out ist stark vorn gewichtet - nach einem
+       Viertel der Zeit ist der Weg praktisch zurueckgelegt. Ueber 16px Tab-Wechsel liest sich
+       das als "sofort da", ueber 680px Sheet-Hoehe als Sprung (Rueckmeldung 08.08.2026).
+       Diese Kurve verteilt die Bewegung gleichmaessiger und bremst erst spaet aus.
+       NICHT als allgemeine Alternative zu --ease-out verwenden: kurze Wege brauchen die
+       schnelle Kurve, sonst wirkt die Oberflaeche traege. */
+    --ease-sheet: cubic-bezier(.32, .72, 0, 1);
+    --dur-sheet: 420ms;
   }
 
   @media (prefers-color-scheme: dark) {
@@ -6022,6 +6031,9 @@
       base: cs.getPropertyValue("--dur-base").trim() || "200ms",
       slow: cs.getPropertyValue("--dur-slow").trim() || "300ms",
       ease: cs.getPropertyValue("--ease-out").trim() || "cubic-bezier(.23, 1, .32, 1)",
+      // Nur fuer lange Strecken, siehe Kommentar bei --ease-sheet im CSS.
+      sheet: cs.getPropertyValue("--dur-sheet").trim() || "420ms",
+      easeSheet: cs.getPropertyValue("--ease-sheet").trim() || "cubic-bezier(.32, .72, 0, 1)",
     };
   })();
 
@@ -7326,9 +7338,12 @@
       const overlayEl = node.parentElement;
       const fadeIn = () => { if (overlayEl) overlayEl.animate([{ opacity: 0 }, { opacity: 1 }], { duration: parseFloat(MOTION.base) || 200, easing: MOTION.ease }); };
       if (sheetEnter) {
+        // Eigene Kurve und Dauer (MOTION.easeSheet/MOTION.sheet) statt der sonst ueblichen
+        // ease-out: das Sheet legt die volle Bildschirmhoehe zurueck, und ueber diese Strecke
+        // liest sich die stark vorn gewichtete Standardkurve als Sprung statt als Bewegung.
         node.animate(
           [{ transform: "translateY(100%)" }, { transform: "none" }],
-          { duration: parseFloat(MOTION.slow) || 300, easing: MOTION.ease }
+          { duration: parseFloat(MOTION.sheet) || 420, easing: MOTION.easeSheet }
         );
         fadeIn();
         return;
@@ -7363,8 +7378,10 @@
       // FLIP-Zweig darunter - der sucht sein Ziel ohnehin frisch.
       const nochSheet = !!overlayEl && overlayEl.classList.contains("sheet-overlay") && sheetLayout();
       if (nochSheet) {
-        const dur = parseFloat(MOTION.base) || 200;
-        const a = node.animate([{ transform: "none" }, { transform: "translateY(100%)" }], { duration: dur, easing: MOTION.ease });
+        // Dieselbe ruhige Kurve wie beim Hochfahren, aber kuerzer (MOTION.slow gegen
+        // MOTION.sheet) - Exits bleiben ueberall kuerzer als Entries.
+        const dur = parseFloat(MOTION.slow) || 300;
+        const a = node.animate([{ transform: "none" }, { transform: "translateY(100%)" }], { duration: dur, easing: MOTION.easeSheet });
         if (overlayEl) overlayEl.animate([{ opacity: 1 }, { opacity: 0 }], { duration: dur, easing: MOTION.ease });
         a.finished.then(finish, finish);
         return;

@@ -936,8 +936,19 @@ Ziel, fällt es auf reines Ausblenden zurück. `reducedMotion()` schaltet auf `.
 nicht: dort ist die Karte fast so breit wie die Ansicht, und weil `flipDelta()` die Skalierung
 allein aus der Breite ableitet, bleibt `s ≈ 1` und die Bewegung praktisch unsichtbar (Ziffer 53
 in `docs/TROUBLESHOOTING.md`). Stattdessen fährt die Ansicht als Bottom-Sheet von unten hoch
-(`translateY(100%) → none`, `MOTION.slow`) und beim Schließen denselben Weg zurück
-(`MOTION.base`, Exit kürzer als Entry). Drei Größen steuern das in `openMealSheet()`:
+(`translateY(100%) → none`, `MOTION.sheet` = 420 ms) und beim Schließen denselben Weg zurück
+(`MOTION.slow` = 300 ms, Exit kürzer als Entry).
+
+**Eigene Kurve für lange Strecken.** Beides läuft über `MOTION.easeSheet`
+(`--ease-sheet: cubic-bezier(.32, .72, 0, 1)`) statt über das sonst übliche `--ease-out`. Grund
+(Rückmeldung 08.08.2026): `--ease-out` ist stark vorn gewichtet — gemessen war der Weg nach einem
+Viertel der Zeit zu ~97 % zurückgelegt. Über die 16 px eines Tab-Wechsels liest sich das als
+„sofort da", über die volle Sheet-Höhe als Sprung. Die neue Kurve verteilt die Bewegung
+gleichmäßiger (nach 42 ms erst 27 %, nach 84 ms 66 %) und bremst erst spät aus.
+`--ease-sheet`/`--dur-sheet` sind **keine** allgemeine Alternative zu `--ease-out`: kurze Wege
+brauchen weiterhin die schnelle Kurve, sonst wirkt die Oberfläche träge.
+
+Drei Größen steuern die Verzweigung in `openMealSheet()`:
 
 * `asSheet` (`sheetLayout()`, dieselbe `max-width: 560px`-Grenze wie das CSS) — das **Layout**.
   Gilt bewusst auch unter `reducedMotion()`: eine feste Sheet-Größe ist keine Bewegung.

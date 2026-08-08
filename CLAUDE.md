@@ -554,6 +554,7 @@ Sichtbar ist ausschließlich die durchgängige Progress-Bar.
 * Segmented Control mit gleitender Pille statt harter Umschaltung.
 * gerichtete Enter-Bewegung beim Inhaltswechsel.
 * `MOTION`-Tokens (`--dur-fast`/`--dur-base`/`--dur-slow`/`--ease-out`) als einzige Quelle für Dauer und Kurve.
+* Ausnahme für **lange Strecken** (heute nur das Bottom-Sheet der Meal-Ansicht, das über die ganze Bildschirmhöhe fährt): `--dur-sheet`/`--ease-sheet`, ebenfalls über `MOTION` (`MOTION.sheet`/`MOTION.easeSheet`), nie als Literal im JS. `--ease-out` ist stark vorn gewichtet und liest sich über eine Bildschirmhöhe als Sprung. Umgekehrt gilt: `--ease-sheet` **nicht** für kurze Wege verwenden, sonst wirkt die Oberfläche träge.
 * `reducedMotion()` immer berücksichtigt — Überblendung bleibt, Richtung entfällt.
 
 Wischen (echtes `scroll-snap`) nur dort, wo es keinen verschachtelten horizontalen Scroller erzeugt. Bei Woche und Tabs bewusst kein Wischen: alle Ansichten gleichzeitig im DOM würde einen horizontalen Scroller im horizontalen Scroller ergeben, auf Touch gewinnt immer der innere, und `overscroll-behavior-x: contain` unterbindet die Weitergabe zusätzlich absichtlich. Bei den Tabs käme auf iOS die Zurück-Wischgeste am linken Rand dazu. Dort wird nur die Optik und Bewegungssprache angeglichen, nicht die Geste.
