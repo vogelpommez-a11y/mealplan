@@ -373,41 +373,21 @@
        soll der Inhalt beim Scrollen, dauerhaft verdeckt sein darf er nicht.
        --tabbar-h misst syncStickyOffsets(); der Rueckfall 58px ist die gerechnete Hoehe
        (5 + 46 + 5 Innenmass + 2 Rahmen) und haelt den ersten Bildaufbau ruhig. */
-    .app { padding-bottom: calc(var(--tabbar-h, 58px) + var(--footbar-h, 30px) + 20px + env(safe-area-inset-bottom, 0px)); }
-    #toast { bottom: calc(var(--tabbar-h, 58px) + var(--footbar-h, 30px) + 24px + env(safe-area-inset-bottom, 0px)); }
+    .app { padding-bottom: calc(var(--tabbar-h, 58px) + 20px + env(safe-area-inset-bottom, 0px)); }
+    #toast { bottom: calc(var(--tabbar-h, 58px) + 24px + env(safe-area-inset-bottom, 0px)); }
 
-    /* ---------- Fusszeile fest ueber der Reiterleiste ----------
-       Impressum und Datenschutz stehen jetzt in JEDER Ansicht im Bild, ohne Scrollen.
-       Vorher sass die Fusszeile am Seitenende (margin-top:auto) - bei langem Inhalt also
-       unterhalb des Sichtfensters. §5 DDG verlangt "unmittelbar erreichbar"; ein Weg, den
-       man erst scrollen muss, laesst diese Frage offen. Mit fester Position stellt sie
-       sich nicht mehr.
+    /* ---------- Fusszeile: auf dem Handy weg ----------
+       Impressum und Datenschutz stehen dort im Ausklappmenue oben rechts. Fuer mobile
+       Seiten ist ein klarer Menuepunkt der uebliche und empfohlene Weg - eine Fusszeile
+       muesste man erst ans Seitenende scrollen, und genau das gilt als riskant.
 
-       Bewusst KEIN zweiter Balken: kein Rahmen, keine Kapsel, keine Flaeche. Stattdessen
-       ein Verlauf, der nach oben in nichts uebergeht - der Inhalt scrollt sichtbar darunter
-       weg, statt an einer harten Kante abgeschnitten zu werden (Scroll-Edge statt Trenner).
-       Deshalb auch kein backdrop-filter: er muesste beim Scrollen in jedem Bild neu rechnen,
-       genau ueber dem Bereich, der sich bewegt - dieselbe Ueberlegung wie bei .daybar.
+       Zwischenzeitlich stand sie hier fest ueber der Reiterleiste. Das loeste zwar das
+       Scroll-Problem, kostete aber dauerhaft Platz und stoerte im Bild - zurueckgebaut.
 
-       z-index 40: unter der Reiterleiste (50), aber ueber der klebenden Tagesbilanz (15). */
-    .site-foot {
-      position: fixed; z-index: 40;
-      left: 0; right: 0;
-      bottom: calc(var(--tabbar-h, 58px) + 10px + env(safe-area-inset-bottom, 0px));
-      border-top: 0; background: none;
-      /* Der Verlauf braucht Weg: bei kurzer Strecke bricht der Text darunter hart ab,
-         statt auszublenden. Deshalb deckend bis knapp ueber die Schriftzeile und erst
-         darueber auf transparent - der Inhalt verliert sich, statt abgeschnitten zu wirken. */
-      background-image: linear-gradient(to top,
-        var(--bg) 0%, var(--bg) 62%,
-        color-mix(in srgb, var(--bg) 72%, transparent) 80%,
-        color-mix(in srgb, var(--bg) 30%, transparent) 92%, transparent 100%);
-      pointer-events: none;   /* der Verlauf faengt sonst Wische ab, die dem Inhalt gelten */
-    }
-    /* Das Innenmass steht weiter unten bei den Footer-Grundregeln - dieser Media-Block
-       laeuft im Stylesheet VOR ihnen, eine Angabe hier wuerde ueberschrieben. */
-    /* Nur die Knoepfe sind wieder bedienbar - der Rest der Flaeche bleibt durchlaessig. */
-    .foot-nav { pointer-events: auto; }
+       Sie bleibt, solange NIEMAND angemeldet ist: das Menue gibt es erst danach, und das
+       Impressum darf nicht hinter das Auth-Gate wandern (CLAUDE.md §23). Waehrend der
+       ersten Schritte ebenfalls - dort ist die Reiterleiste ausgeblendet. */
+    .app:not(.authing):not(.onboarding) .site-foot { display: none; }
   }
   /* Rueckfall ohne Weichzeichner: halbtransparent OHNE Blur hiesse Text auf Text. Dann
      lieber deckend. Gleiches gilt fuer "Transparenz reduzieren" im Betriebssystem. */
@@ -447,18 +427,6 @@
   .foot-inner { display: flex; align-items: center; justify-content: space-between; gap: 12px 18px; padding: 16px 0; flex-wrap: wrap; }
   .foot-copy { font-size: 12.5px; color: var(--text-muted); }
   .foot-nav { display: flex; align-items: center; gap: 8px; }
-  /* Angemeldet: nur noch die Rechtslinks, mittig, halber Innenabstand. Steht bewusst NACH
-     den Grundregeln - so liest sich von oben nach unten erst der Normalfall, dann die
-     Ausnahme, statt sich auf Spezifitaet verlassen zu muessen. */
-  .app:not(.authing):not(.onboarding) .foot-copy { display: none; }
-  .app:not(.authing):not(.onboarding) .foot-inner { padding: 8px 0; justify-content: center; }
-  /* Fixierte Fusszeile (Handy, siehe .site-foot weiter oben): oben mehr Innenmass, damit
-     der Verlauf Weg hat und der Inhalt darunter ausblendet statt hart abzubrechen. Steht
-     bewusst HIER und nicht im Media-Block oben - der laeuft im Stylesheet vor diesen
-     Grundregeln, und die Zeile darueber ist zusaetzlich spezifischer. */
-  @media (max-width: 720px) {
-    .foot-inner, .app:not(.authing):not(.onboarding) .foot-inner { padding: 22px 0 8px; }
-  }
   .foot-link { font: inherit; font-size: 12.5px; color: var(--text-muted); background: 0; border: 0; padding: 2px 2px; cursor: pointer; }
   .foot-link:hover { color: var(--accent-strong); text-decoration: underline; }
   .foot-sep { color: var(--border-strong); }
@@ -1738,7 +1706,10 @@
   /* Gegenstueck zu .mhead am Menuefuss: traegt den Copyright-Hinweis, der frueher in der
      Fusszeile stand. Bewusst kein Knopf - es gibt nichts anzutippen. */
   .menu .mfoot { padding: 9px 11px 4px; margin-top: 4px; border-top: 1px solid var(--border); font-size: 11.5px; color: var(--text-muted); }
-  .menu button { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; font: inherit; font-size: 13.5px; cursor: pointer; background: transparent; border: 0; border-radius: var(--radius-sm); padding: 9px 11px; color: var(--text); }
+  /* min-height 44px: die Eintraege kamen mit ihrem Innenmass auf 39px, unter der
+     Mindestgroesse von Apple HIG und WCAG 2.5.5. Faellt besonders ins Gewicht, seit das
+     Menue auf dem Handy der Weg zu Impressum und Datenschutz ist. */
+  .menu button { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; font: inherit; font-size: 13.5px; cursor: pointer; background: transparent; border: 0; border-radius: var(--radius-sm); padding: 9px 11px; min-height: 44px; color: var(--text); }
   .menu button:hover { background: var(--surface-2); }
   .menu button svg { width: 16px; height: 16px; color: var(--text-muted); flex: none; }
   /* Abmelden ist nicht destruktiv – es geht nichts verloren, und der Klick fuehrt
@@ -2275,7 +2246,7 @@
       /* Muss ueber der OBERKANTE der fixierten Fusszeile liegen. Deren eigener Abstand zur
          Reiterleiste (10px) gehoert mit in die Rechnung - ohne ihn ueberlappten sich die
          beiden um genau diese Differenz (gemessen: 2px). */
-      bottom: calc(var(--tabbar-h, 58px) + 10px + var(--footbar-h, 30px) + 8px + env(safe-area-inset-bottom, 0px));
+      bottom: calc(var(--tabbar-h, 58px) + 10px + 8px + env(safe-area-inset-bottom, 0px));
       margin-top: 10px;
       /* Flaeche, Rahmen, Rundung kommen aus der gemeinsamen Regel weiter oben - hier steht
          nur, was diese Leiste von der Mahlzeiten-Flaeche unterscheidet. */
@@ -5015,6 +4986,11 @@
   const ACT_ICONS = {
     edit: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>',
     del:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2"/><path d="M6 6v14a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V6"/><path d="M10 11v6M14 11v6"/></svg>',
+    // Rechtliches im Profilmenue. Auf dem Handy ist das der Weg zu Impressum und
+    // Datenschutz - eine Fusszeile muesste man erst ans Seitenende scrollen, ein klarer
+    // Menuepunkt ist fuer mobile Seiten der uebliche und empfohlene Zugang.
+    legal:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/><path d="M8 13h8M8 17h5"/></svg>',
+    shield: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/><path d="m9 12 2 2 4-4"/></svg>',
   };
   // Werkzeug-Icons der Wochenplan-Leiste (Teilen / Leeren)
   const TOOL_ICONS = {
@@ -6860,12 +6836,6 @@
     const tabs = document.querySelector(".tabs");
     const fixed = tabs && getComputedStyle(tabs).position === "fixed";
     root.style.setProperty("--tabbar-h", fixed ? tabs.offsetHeight + "px" : "0px");
-    // Die Fusszeile steht auf dem Handy fest ueber der Reiterleiste (siehe .site-foot).
-    // Ihre Hoehe braucht jeder, der etwas darueber halten will: das Inset am Seitenende,
-    // der Toast und die klebende Tagesbilanz. Am Rechner steht sie im Fluss - dann 0.
-    const foot = document.querySelector(".site-foot");
-    const footFixed = foot && getComputedStyle(foot).position === "fixed";
-    root.style.setProperty("--footbar-h", footFixed ? foot.offsetHeight + "px" : "0px");
     // --sheet-top und --foot-h gab es hier einmal fuer den Wochenplan als Flaeche fester
     // Hoehe. Die ist zurueckgebaut (siehe .plan-sheet im CSS): der innere Scroller nahm dem
     // Snap-Streifen die Wischgeste ab. Beide Variablen sind damit ersatzlos entfallen -
@@ -10142,6 +10112,9 @@
       <button data-mi="settings" role="menuitem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1.08-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg>Einstellungen</button>
       <button data-mi="group" role="menuitem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>${syncGid ? "Gruppe" : "Gemeinsam planen"}</button>
       <hr>
+      <button data-mi="impressum" role="menuitem">${ACT_ICONS.legal}Impressum</button>
+      <button data-mi="datenschutz" role="menuitem">${ACT_ICONS.shield}Datenschutz</button>
+      <hr>
       <button data-mi="signout" class="danger" role="menuitem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5M21 12H9"/></svg>Abmelden</button>
       <hr>
       <button data-mi="delete" class="destructive" role="menuitem">${ACT_ICONS.del}${delLabel}</button>
@@ -10152,6 +10125,10 @@
     const close = attachMenuDismiss(menu, wrap.querySelector(".profile-btn"));
     menu.querySelector("[data-mi='settings']").addEventListener("click", () => { close(false); openSettings(); });
     menu.querySelector("[data-mi='group']").addEventListener("click", () => { close(false); openGroupModal(); });
+    // Dieselben Funktionen wie die Fusszeile (die abgemeldet weiter da ist) - ein Weg,
+    // zwei Ausloeser, kein zweiter Codepfad zu denselben Texten.
+    menu.querySelector("[data-mi='impressum']").addEventListener("click", () => { close(false); openImpressum(); });
+    menu.querySelector("[data-mi='datenschutz']").addEventListener("click", () => { close(false); openDatenschutz(); });
     menu.querySelector("[data-mi='signout']").addEventListener("click", () => { close(false); signOut(); });
     menu.querySelector("[data-mi='delete']").addEventListener("click", () => { close(false); authMode === "cloud" ? deleteAccountFlow() : deleteLocalDataFlow(); });
   }
