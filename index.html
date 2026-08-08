@@ -515,6 +515,10 @@
      breite Knopf mit Text unter dem Plan (.shop-cta) - dort ist Platz dafuer, und ein
      zweiter Auffindungsweg fuer dieselbe Aktion waere nur Rauschen. */
   .shop-ic { display: none; }
+  /* Klebende Tagesbilanz: nur auf dem Handy. Am Rechner steht sie in jeder der sieben
+     Tageskarten - eine achte, gemeinsame Leiste waere dort sinnlos. Gleiches
+     Zwei-Auslöser-Muster wie .shop-cta/.shop-ic darueber. */
+  .day-bal { display: none; }
   .week-switch { display: inline-flex; position: relative; background: var(--surface-2); border: 1px solid var(--border); border-radius: 999px; padding: 3px; gap: 2px; }
   .ws-btn { position: relative; z-index: 1; font: inherit; font-size: 13px; font-weight: 600; letter-spacing: .01em; cursor: pointer; border: 0; background: transparent; color: var(--text-muted); padding: 7px 15px; border-radius: 999px; white-space: nowrap; transition: color var(--dur-fast), background var(--dur-fast), box-shadow var(--dur-fast); }
   .ws-btn:hover { color: var(--text); }
@@ -983,7 +987,11 @@
      Vorher eigene Werte (11px/650/.04em) und in der Slot-Farbe. Die Farbe ist weg, weil
      das Wort danebensteht: "FRUEHSTUECK" in Amber sagt nichts, was "Fruehstueck" nicht
      schon sagt. Den Mahlzeitenbezug traegt am Rechner weiter der Streifen links. */
-  .slot .mlabel { margin-bottom: 3px; }
+  /* inline-flex, damit das Symbol auf einer Linie mit dem Wort sitzt statt auf der
+     Grundlinie zu haengen. Das Symbol ist aria-hidden (iconSvg) - das Wort steht daneben
+     und traegt die Aussage allein. */
+  .slot .mlabel { margin-bottom: 3px; display: inline-flex; align-items: center; gap: 6px; }
+  .slot .mlabel-ic { width: 15px; height: 15px; flex: none; opacity: .85; }
   .slot .add {
     font: inherit; font-size: 13px; width: 100%; text-align: left; cursor: pointer;
     border: 1px dashed var(--border-strong); background: transparent; color: var(--text-muted);
@@ -2143,43 +2151,22 @@
     .plan-tools .shop-ic { display: inline-flex; }
     .shop-cta { display: none; }
 
-    /* ---------- Plan-Reiter als Sheet fester Hoehe ----------
-       Vorbild ist die mobile Meal-Ansicht (.overlay.sheet-overlay): oben fest, Mitte
-       scrollt, unten fest. Hier: Tagesleiste fest, Meals scrollen, Tagesbilanz fest am
-       Kartenfuss.
+    /* ---------- Kein zweiter Scroller im Wischstreifen ----------
+       Der Plan-Reiter war zwischenzeitlich eine Flaeche fester Hoehe, in der die
+       Mahlzeiten einer Karte fuer sich scrollten. Das hat das Wischen zwischen den Tagen
+       ABGESCHALTET: ein Scroll-Container im Snap-Streifen bekommt die Geste zuerst, und auf
+       Touch gibt er sie nicht mehr her (CLAUDE.md §11). Zwei Anlaeufe, das mit
+       touch-action und overscroll-behavior zu retten, haben es schlimmer gemacht - pan-y
+       verbietet die Achse fuer die ganze Trefferkette, contain unterbindet die Weitergabe.
+       Details in docs/TROUBLESHOOTING.md, Punkt 58.
 
-       Warum ueberhaupt: die sieben Tageskarten sind unterschiedlich hoch, und der Streifen
-       wuchs und schrumpfte beim Wischen mit. Das war nicht nur unruhig, sondern die Ursache
-       von TROUBLESHOOTING Ziffer 42 - fitHeight() schrieb die Hoehe WAEHREND der Geste, und
-       ein Groessenwechsel des Snap-Behaelters laesst den Browser sein Snap-Ziel neu
-       bestimmen. Mit fester Hoehe schreibt dort niemand mehr (siehe noFit in initCarousel).
+       Jetzt gibt es hier gar keinen zweiten Scroller mehr: die SEITE scrollt, wie vor dem
+       Umbau. Die Tagesleiste klebt weiter oben (position:sticky an .daybar), und den
+       Kalorienstand haelt eine eigene klebende Leiste unter dem Streifen sichtbar
+       (#day-bal) - die liegt AUSSERHALB von .week und kann deshalb kleben, was einer
+       Zeile innerhalb der Karte verwehrt bleibt (siehe Kommentar bei .week).
 
-       Die Hoehe ist der Rest des Bildschirms. Dadurch bekommt die Seite keinen Ueberlauf
-       mehr, und der Plan-Kopf steht fest, ohne dass er position:fixed braucht.
-
-       --sheet-top ist die GEMESSENE Oberkante (syncStickyOffsets). Bewusst nicht aus
-       --head-h + --planhead-h summiert: dazwischen sitzen Abstaende (.section-head
-       margin-bottom, .app padding), die eine Summe uebersieht - der erste Versuch lag
-       damit 170px daneben. Unten dieselbe Ueberlegung, aber dort ist die Rechnung
-       vollstaendig: das .app-padding-bottom ist ausdruecklich als
-       "--tabbar-h + 24px + safe-area" definiert (siehe .app weiter oben).
-
-       vh zuerst, dvh danach: aeltere Engines nehmen die erste Zeile, neuere ueberschreiben
-       sie. Nie vh allein - die Adressleiste macht daraus sonst eine falsche Hoehe. */
-    .plan-sheet {
-      display: grid; grid-template-rows: auto 1fr; min-height: 0;
-      height: calc(100vh  - var(--sheet-top, 200px) - var(--foot-h, 53px) - var(--tabbar-h, 58px) - 24px - env(safe-area-inset-bottom, 0px));
-      height: calc(100dvh - var(--sheet-top, 200px) - var(--foot-h, 53px) - var(--tabbar-h, 58px) - 24px - env(safe-area-inset-bottom, 0px));
-    }
-    /* Die 64px Bodenluft von <main> sind Abstand zur Fusszeile - fuer eine Seite, die
-       gescrollt wird. Das Sheet fuellt den Bildschirm ohnehin bis zur Fusszeile aus, hier
-       waeren sie nur Hoehe, die den Meals fehlt (bei 667px Geraet ein Fuenftel davon).
-       :has() gezielt statt einer Klasse am Reiter: faellt es in einer alten Engine aus,
-       bleibt einfach die alte Bodenluft und die Seite scrollt ein Stueck - kein Bruch. */
-    main:has(.plan-sheet) { padding-bottom: 0; }
-    /* Die Leiste ist jetzt eine Rasterzeile des Sheets und steht schon dadurch fest.
-       position:sticky darf trotzdem stehen bleiben: ohne Ueberlauf hat es keine Wirkung,
-       und es traegt weiterhin den Fall, dass das Sheet doch einmal scrollen sollte. */
+       .plan-sheet ist damit nur noch eine Klammer ums Markup ohne eigene Wirkung. */
     .plan-sheet > .daybar { margin-bottom: 10px; }
 
     .week {
@@ -2194,57 +2181,51 @@
          vermutet. Folge: eine klebende Kopfzeile INNERHALB einer Tageskarte kann es
          hier nicht geben, sie richtete sich an .week statt am Bildschirm aus und
          bliebe einfach stehen. Den Wochentag fixiert deshalb die Tagesleiste
-         darueber – die haengt jetzt als Rasterzeile ueber dem Streifen.
-         Der Streifen selbst wird NICHT mehr so hoch wie die hoechste Karte: er ist die
-         1fr-Zeile des Sheets und damit fest. Gescrollt wird senkrecht INNERHALB einer
-         Karte (.slots), nicht hier. */
+         darueber – die haengt am Bildschirm und klebt zuverlaessig, und aus demselben
+         Grund steht die Tagesbilanz als #day-bal AUSSERHALB dieses Streifens.
+         Geklemmt wird nichts: .week ist so hoch wie die hoechste Karte (fixedHeight). */
       overflow-x: auto; overflow-y: hidden;
-      min-height: 0;   /* sonst waechst die 1fr-Zeile ueber das Sheet hinaus */
     }
     .week::-webkit-scrollbar { display: none; }
-    /* stretch statt flex-start: jede Karte fuellt jetzt die volle Sheet-Hoehe, damit ihre
-       Tagesbilanz unten steht und nur die Mahlzeiten dazwischen scrollen. Frueher galt
-       hier das Gegenteil (flex-start), weil der Streifen sich an die sichtbare Karte
-       anpasste und ein leerer Tag sonst die Leerflaeche des vollsten geschenkt bekommen
-       haette - mit fester Hoehe stellt sich die Frage nicht mehr. */
-    .week { align-items: stretch; }
+    /* flex-start: jede Karte behaelt ihre eigene Hoehe, ein leerer Tag bekommt unter
+       "Snacks" nicht die Leerflaeche des vollsten geschenkt. Die Hoehe des STREIFENS
+       setzt fitHeight() mit fixedHeight einmalig auf das Maximum aller Karten - einmalig
+       ist hier das Entscheidende: so schreibt niemand mehr waehrend einer laufenden
+       Wischgeste (TROUBLESHOOTING Ziffer 42). */
+    .week { align-items: flex-start; }
     .week > .day { flex: 0 0 100%; scroll-snap-align: start; scroll-snap-stop: always; }
 
-    /* Die Karte ist das Raster des Tages: Mahlzeiten scrollen, Bilanz steht fest.
-       BEWUSST "1fr auto" und nicht "auto 1fr auto": .day-head ist hier display:none
-       (Zeile weiter unten) und wird deshalb GAR NICHT platziert - mit drei Reihen
-       landete .slots im auto und die Bilanz im 1fr, also genau verkehrt herum.
-       Hat ein Tag keine Bilanz (dayNutHtml gibt bei leerem Tag "" zurueck), bleibt die
-       zweite Reihe einfach leer. */
-    .week > .day { display: grid; grid-template-rows: 1fr auto; min-height: 0; }
-    /* min-height:0 ist hier zwingend, sonst waechst die 1fr-Reihe auf ihren Inhalt statt
-       zu scrollen - dieselbe Falle wie in der Meal-Ansicht.
-       overscroll-behavior haelt die Wisch-Kette sauber: Ueberziehen am Listenende darf
-       weder die Seite noch den waagerechten Streifen mitnehmen.
+    /* Die Karte scrollt NICHT fuer sich - das ist der Kern der Sache. Ein Scroll-Container
+       hier drin nimmt dem Snap-Streifen die Wischgeste ab und gibt sie nicht mehr her
+       (docs/TROUBLESHOOTING.md, Punkt 58). Gescrollt wird die Seite.
+       Deshalb steht hier bewusst KEIN overflow, KEIN touch-action und KEIN
+       overscroll-behavior. Wer hier etwas davon ergaenzt, schaltet das Wischen ab. */
 
-       touch-action: pan-y ist KEIN Feinschliff, sondern die Bedingung dafuer, dass sich der
-       Wochenplan ueberhaupt noch wischen laesst. Ein Element mit overflow-y: auto ist auch
-       waagerecht ein Scroll-Container - die Spezifikation rechnet die zweite Achse von
-       "visible" auf "auto" um, sobald eine gesetzt ist (derselbe Mechanismus wie im
-       Kommentar bei .week weiter oben, nur andersherum). Damit lag hier ein waagerechter
-       Scroller IM waagerechten Snap-Streifen, und auf Touch gewinnt immer der innere
-       (CLAUDE.md §11): der Wisch zum Nachbartag kam nie bei .week an. pan-y sagt dem
-       Browser, dass dieser Container nur senkrecht scrollt, und gibt waagerechte Gesten
-       nach aussen. Wirkt unabhaengig davon, ob gerade etwas ueberlaeuft - deshalb bleibt
-       es auch dann richtig, wenn sich Innenabstaende spaeter aendern. */
-    .week > .day > .slots {
-      overflow-y: auto; min-height: 0;
-      touch-action: pan-y;
-      overscroll-behavior-x: contain;
-      overscroll-behavior-y: contain;
-      -webkit-overflow-scrolling: touch;
+    /* Die Bilanz in der Karte ist mobil verdeckt: dort traegt sie die klebende Leiste
+       #day-bal unter dem Streifen. Am Rechner bleibt sie in der Karte, weil dort sieben
+       Spalten nebeneinander stehen und jede ihre eigene Bilanz braucht. */
+    .week > .day > .day-nut, .week > .day > .day-goals { display: none; }
+
+    /* Klebende Tagesbilanz. Sitzt ausserhalb von .week (dort koennte nichts kleben, siehe
+       oben) und haelt den Kalorienstand im Blick, waehrend die Seite scrollt - das war der
+       eigentliche Gewinn der aufgegebenen Sheet-Fassung und bleibt so erhalten.
+       Deckende Flaeche ist Pflicht: darunter laeuft der Meal-Text durch. Kein
+       backdrop-filter - der muesste beim Scrollen in jedem Bild neu rechnen (gleiche
+       Begruendung wie bei .daybar). */
+    .day-bal {
+      display: block;                 /* hebt das globale display:none auf */
+      position: sticky; z-index: 15;
+      bottom: calc(var(--tabbar-h, 58px) + 8px + env(safe-area-inset-bottom, 0px));
+      margin-top: 10px;
+      background: color-mix(in srgb, var(--surface-2) 92%, var(--bg));
+      border: 1px solid var(--border); border-radius: var(--radius);
+      box-shadow: 0 -6px 14px -10px rgba(0, 0, 0, .5);
     }
-    /* Die Bilanz sitzt jetzt fest am Kartenfuss und braucht eine sichtbare Kante zu den
-       scrollenden Meals darueber - sonst schiebt sich beim Scrollen Text bis auf Anschlag
-       an sie heran. */
-    .week > .day > .day-nut, .week > .day > .day-goals {
-      border-top: 1px solid var(--border); padding-top: 10px; margin-top: 2px;
-    }
+    /* Leerer Tag: dayNutHtml liefert nichts. Dann ganz weg statt als leerer Kasten stehen. */
+    .day-bal.is-empty { display: none; }
+    /* Innen traegt schon .day-goals/.day-nut seinen Innenabstand - hier nur den Rahmen
+       auflösen, damit nicht zwei Kanten uebereinanderliegen. */
+    .day-bal > .day-goals { border-top: 0; background: none; }
     /* Auf dem Handy gibt es kein echtes Hover – beim Wischen setzt der Browser den
        Zustand trotzdem auf die beruehrte Karte. Sie bliebe dann angehoben stehen,
        und der weiche Schatten wuerde mitten im Scrollen ueber eine Uebergangszeit
@@ -4932,6 +4913,12 @@
     heart:    '<path d="M20.8 6.6a5 5 0 0 0-7.1 0L12 8.3l-1.7-1.7a5 5 0 1 0-7.1 7.1l8.8 8.8 8.8-8.8a5 5 0 0 0 0-7.1Z"/>',
   };
   const CAT_ICON = { "Frühstück": "bread", "Hauptgericht": "utensils", "Snack": "fruit", "Dessert": "cake", "Beilage": "salad" };
+  // Dieselben Symbole an den Slot-Ueberschriften des Wochenplans, damit Plan und
+  // Meals-Reiter dieselbe Bildsprache sprechen. Bewusst eine EIGENE Zuordnung und nicht
+  // CAT_ICON durchgereicht: Slots sind keine Kategorien. "Hauptgericht" faellt auf zwei
+  // Slots (mi/ab) - beide mit Besteck saehen gleich aus, deshalb bekommt der Abend den
+  // Topf. Frei erfunden wird nichts, alle vier Symbole gibt es bereits in ICONS.
+  const MEAL_ICON = { fr: "bread", mi: "utensils", ab: "pot", sn: "fruit" };
   function iconSvg(key, cls) {
     const d = ICONS[key] || ICONS.pot;
     return `<svg class="${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
@@ -6085,6 +6072,24 @@
       </div>`;
   }
 
+  // Fuellt die klebende Tagesbilanz unter dem Wischstreifen (#day-bal, nur Handy).
+  //
+  // Bewusst ueber dasselbe dayNutHtml() wie die Bilanz in der Karte: ein zweiter Renderpfad
+  // fuer dieselbe Aussage liefe beim naechsten Feature auseinander. Der Unterschied ist
+  // allein der Ort.
+  //
+  // Leerer Tag: dayNutHtml gibt "" zurueck. Dann bleibt die Leiste nicht leer stehen,
+  // sondern verschwindet ganz (.is-empty) - eine leere klebende Flaeche waere schlimmer
+  // als keine.
+  function paintDayBalance(dayKey) {
+    const box = document.getElementById("day-bal");
+    if (!box) return;                       // Rechner, oder anderer Reiter
+    const k = dayKey || (DAYS[0] && DAYS[0].key);
+    const html = dayNutHtml(dayNut(k), k);
+    box.innerHTML = html;
+    box.classList.toggle("is-empty", !html);
+  }
+
   function weekNutHtml() {
     const w = weekNut();
     // Wochenziel = Summe aller sieben Tagesziele. Bewusst summiert statt „Tagesziel x 7“:
@@ -6756,27 +6761,10 @@
     const tabs = document.querySelector(".tabs");
     const fixed = tabs && getComputedStyle(tabs).position === "fixed";
     root.style.setProperty("--tabbar-h", fixed ? tabs.offsetHeight + "px" : "0px");
-    // Oberkante des Wochenplan-Sheets. Es soll den Rest des Bildschirms genau ausfuellen -
-    // dann bekommt die Seite keinen Ueberlauf, und der Plan-Kopf darueber steht fest, ohne
-    // dass irgendwo ein zweites position:fixed noetig waere.
-    //
-    // GEMESSEN statt aus Variablen summiert: der erste Versuch rechnete
-    // 100dvh - Kopf - Plan-Kopf - Reiterleiste und lag 170px daneben, weil zwischen den
-    // Bausteinen noch Abstaende sitzen (.section-head margin-bottom, .app padding). Jede
-    // kuenftige Abstandsaenderung haette denselben Fehler erneut erzeugt. Die Oberkante
-    // kennt dagegen alles, was darueber liegt, von selbst.
-    //
-    // Dokumentposition (+ scrollY), nicht die Position im Sichtfenster: waere die Seite
-    // beim Messen gescrollt, ergaebe der reine Rect-Wert eine zu kleine Hoehe.
-    const sheet = document.querySelector(".plan-sheet");
-    root.style.setProperty("--sheet-top",
-      sheet ? (sheet.getBoundingClientRect().top + window.scrollY) + "px" : "0px");
-    // Die Fusszeile steht UNTER dem Sheet und muss von dessen Hoehe abgezogen werden -
-    // sonst schoebe sie die Seite in einen Ueberlauf, und der Plan-Kopf waere nicht mehr
-    // fest. Sie auszublenden waere der bequeme Weg, aber das Impressum muss erreichbar
-    // bleiben (CLAUDE.md §23) - also kostet sie ihre 53px ehrlich.
-    const foot = document.querySelector(".site-foot");
-    root.style.setProperty("--foot-h", foot ? foot.offsetHeight + "px" : "0px");
+    // --sheet-top und --foot-h gab es hier einmal fuer den Wochenplan als Flaeche fester
+    // Hoehe. Die ist zurueckgebaut (siehe .plan-sheet im CSS): der innere Scroller nahm dem
+    // Snap-Streifen die Wischgeste ab. Beide Variablen sind damit ersatzlos entfallen -
+    // die Seite scrollt wieder normal, und was kleben soll, klebt per position:sticky.
   }
   window.addEventListener("resize", syncStickyOffsets);
 
@@ -7163,7 +7151,7 @@
       MEALS.forEach(m => {
         const ids = state.plan[d.key][m.key];
         html += `<div class="slot" data-meal="${m.key}" data-slot="${d.key}:${m.key}">
-          <div class="mlabel sec-h">${m.label}</div>`;
+          <div class="mlabel sec-h">${iconSvg(MEAL_ICON[m.key], "mlabel-ic")}${m.label}</div>`;
         const drag = canEdit();
         const showPencil = drag && groupMembers.length >= 2;
         // Original-Index bleibt jeder Karte fest zugeordnet (data-slot-src), unabhaengig
@@ -7210,7 +7198,12 @@
       html += `</div>${dayNutHtml(dayNut(d.key), d.key)}</section>`;
     });
 
-    html += `</div></div>
+    // Tagesbilanz des gerade sichtbaren Tages. Steht AUSSERHALB von .week, weil dieser
+    // Streifen wegen overflow-x auch senkrecht ein Scroll-Kontext ist - ein position:sticky
+    // darin richtete sich an ihm aus statt am Bildschirm und bliebe einfach stehen (siehe
+    // Kommentar bei .week). Nur auf dem Handy sichtbar; am Rechner traegt jede der sieben
+    // Spalten ihre eigene Bilanz in der Karte. Gefuellt von paintDayBalance().
+    html += `</div><div class="day-bal" id="day-bal" aria-live="polite"></div></div>
       <button class="shop-cta" data-action="shopping">
         ${TOOL_ICONS.cart}
         Einkaufsliste der Woche
@@ -7224,10 +7217,20 @@
     pendingWeekX = 0;
     syncStickyOffsets();
     resetCarousels(); // die Streifen des vorigen Durchlaufs sind gerade weggeworfen worden
-    // noFit: die Hoehe des Streifens kommt vom Sheet (.plan-sheet), nicht von der
-    // sichtbaren Karte. Am Rechner aendert das nichts - dort greift ohnehin schon der
-    // maxScroll-Ausstieg in fitHeight().
-    const planCarousel = initCarousel(weekStrip, view.querySelector(".daybar"), null, null, { noFit: true });
+    // fixedHeight: der Streifen wird EINMAL so hoch wie die hoechste Karte, statt bei
+    // jedem Scroll-Bild der gerade sichtbaren zu folgen. Genau dieses laufende Schreiben
+    // war die Ursache von TROUBLESHOOTING Ziffer 42 (Snap-Verlust beim Zurueckwischen).
+    // Der Leerraum unter kurzen Tagen, der frueher dagegen sprach, faellt in der
+    // Listen-Optik nicht mehr auf - es gibt keine Kartenrahmen mehr, die ihn einrahmen.
+    //
+    // onChange haelt die klebende Tagesbilanz unter dem Streifen aktuell. Der Rueckruf
+    // existiert seit jeher (der Rechner haengt seinen Fussknopf daran), es kommt also kein
+    // zweiter Beobachter fuer denselben Wechsel dazu.
+    const planCarousel = initCarousel(
+      weekStrip, view.querySelector(".daybar"), null,
+      idx => paintDayBalance(DAYS[idx] && DAYS[idx].key),
+      { fixedHeight: true }
+    );
 
     // Anker-Regel: "Aktuelle Woche" zeigt immer heute, "Nächste Woche" immer Montag -
     // beim Betreten des Tabs UND bei jedem Wochenwechsel, nie durch Zufall (siehe
@@ -7243,6 +7246,12 @@
     // gerade erst wiederhergestellte Position bewusst noch einmal mit dem Sprungziel.
     const jump = target != null;
     if (jump && planCarousel && target > 0) planCarousel.go(target, true); // quiet: Startzustand, keine Sprung-Bewegung
+
+    // Erstbefuellung der klebenden Bilanz. onChange feuert nur bei einem WECHSEL, beim
+    // Aufbau also nie - ohne diesen Aufruf bliebe die Leiste bis zum ersten Wisch leer.
+    // Gegen den Sprungindex, nicht gegen die Scrollposition: go() laeuft je nach Abstand
+    // sanft, scrollLeft steht dann noch auf dem alten Wert.
+    paintDayBalance(DAYS[(jump && target > 0) ? target : (planCarousel ? planCarousel.index() : 0)].key);
 
     // Wochenwechsel-Uebergang (Schritt 5): Richtung kommt ausschliesslich aus
     // pendingWeekDir, einmalig konsumiert - render() laeuft auch bei jedem Meal-Einplanen
@@ -9443,7 +9452,12 @@
     else if (a === "toggle-day-goals") {
       const d = t.dataset.day;
       if (expandedDayGoals.has(d)) expandedDayGoals.delete(d); else expandedDayGoals.add(d);
-      render();
+      // Auf dem Handy nur die klebende Leiste neu zeichnen. Ein volles render() baute
+      // #view neu auf und ruesste dabei die Scrollposition der Seite durcheinander -
+      // ausgerechnet beim Aufklappen, wo man genau hinsieht. Am Rechner gibt es die Leiste
+      // nicht, dort sitzt die Bilanz in jeder der sieben Karten und braucht den Neuaufbau.
+      if (document.getElementById("day-bal")) paintDayBalance(d);
+      else render();
     }
     else if (a === "toggle-others") {
       const s = t.dataset.slot;
