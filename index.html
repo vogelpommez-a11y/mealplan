@@ -2217,8 +2217,8 @@
       position: sticky; z-index: 15;
       bottom: calc(var(--tabbar-h, 58px) + 8px + env(safe-area-inset-bottom, 0px));
       margin-top: 10px;
-      background: color-mix(in srgb, var(--surface-2) 92%, var(--bg));
-      border: 1px solid var(--border); border-radius: var(--radius);
+      /* Flaeche, Rahmen, Rundung kommen aus der gemeinsamen Regel weiter oben - hier steht
+         nur, was diese Leiste von der Mahlzeiten-Flaeche unterscheidet. */
       box-shadow: 0 -6px 14px -10px rgba(0, 0, 0, .5);
     }
     /* Leerer Tag: dayNutHtml liefert nichts. Dann ganz weg statt als leerer Kasten stehen. */
@@ -2284,11 +2284,14 @@
        Die Hoehe folgt dem INHALT, nicht dem Streifen: .week ist wegen fixedHeight so hoch
        wie der vollste Tag, die Karte darin behaelt aber ihre eigene Hoehe
        (align-items: flex-start). An einem leeren Tag bleibt der Kasten also klein. */
-    .week > .day > .slots {
-      padding: 4px 8px 8px; gap: 0;
+    /* Flaeche, Rahmen und Rundung teilen sich die beiden Fenster EINE Regel. Zweimal
+       dieselben Werte hinzuschreiben liefe beim naechsten Anfassen auseinander - genau
+       darum geht es hier aber: die zwei sollen als Paar gelesen werden. */
+    .week > .day > .slots, .day-bal {
       background: color-mix(in srgb, var(--surface-2) 92%, var(--bg));
       border: 1px solid var(--border); border-radius: var(--radius);
     }
+    .week > .day > .slots { padding: 4px 8px 8px; gap: 0; }
     /* Die letzte Zeile im Fenster braucht keine Trennlinie - sie laege direkt auf dem
        Rahmen. Trifft beide moeglichen Faelle: die Hinzufuegen-Zeile und, wo es sie nicht
        gibt (Nur-Lese-Modus), die letzte Meal-Zeile. */
