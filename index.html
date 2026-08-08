@@ -991,7 +991,16 @@
      Grundlinie zu haengen. Das Symbol ist aria-hidden (iconSvg) - das Wort steht daneben
      und traegt die Aussage allein. */
   .slot .mlabel { margin-bottom: 3px; display: inline-flex; align-items: center; gap: 6px; }
-  .slot .mlabel-ic { width: 15px; height: 15px; flex: none; opacity: .85; }
+  /* Das Symbol traegt die Mahlzeitenfarbe - sie kam mit der Listen-Optik aus Text und
+     Streifen heraus und kehrt hier an der kleinsten sinnvollen Stelle zurueck: als
+     Wiedererkennung, ohne die Ueberschrift einzufaerben. --slot-c steht schon je Slot,
+     iconSvg() zeichnet mit currentColor - keine neue Farbquelle noetig.
+     Keine opacity mehr: die Farbe soll tragen, nicht gedaempft werden. */
+  .slot .mlabel-ic { width: 15px; height: 15px; flex: none; color: var(--slot-c); }
+  /* Snacks hat bewusst keinen eigenen Farbton (--slot-c zeigt dort auf --border-strong).
+     Als Rahmenfarbe richtig, als 15px-Symbol auf der Fensterflaeche unsichtbar - im Dark
+     ist das #3A2F30. Deshalb hier ausdruecklich die Textfarbe. */
+  .slot[data-meal="sn"] .mlabel-ic { color: var(--text-muted); }
   .slot .add {
     font: inherit; font-size: 13px; width: 100%; text-align: left; cursor: pointer;
     border: 1px dashed var(--border-strong); background: transparent; color: var(--text-muted);
@@ -1085,6 +1094,12 @@
   .cathead .caret.open { transform: rotate(90deg); }
   .cathead .cname { font-size: 14.5px; font-weight: 650; letter-spacing: .01em; display: inline-flex; align-items: center; gap: 7px; }
   .cathead .cname .cicon { width: 16px; height: 16px; flex: none; color: var(--text-muted); }
+  /* Dieselben Farben wie die Slot-Symbole im Wochenplan, damit Plan und Bibliothek
+     dieselbe Bildsprache sprechen. Dieselben Klassen wie die Kategorie-Chips (CAT_CLASS):
+     mehr kennt das Theme nicht, und mehr soll es auch nicht kennen - Snack, Dessert,
+     Beilage, Getraenk und Favoriten bleiben grau. */
+  .cathead .cname .cicon.cat-fr { color: var(--fr); }
+  .cathead .cname .cicon.cat-ha { color: var(--mi); }
   .cathead .ccount {
     font-size: 11.5px; font-weight: 650; color: var(--text-muted);
     background: var(--surface-2); border: 1px solid var(--border);
@@ -2298,7 +2313,14 @@
     .week > .day > .slots > .slot:last-child > :last-child { border-bottom: 0; }
 
     /* Slot: Farbstreifen weg (das Label schreibt die Mahlzeit aus), Einzug zurueck. */
-    .week > .day .slot { padding: 8px 0 4px; }
+    /* 18px statt 8px ueber jedem Abschnitt. Die Ueberschrift ist nur 1px groesser als der
+       Meal-Name darunter und dazu grau - mit acht Pixeln Luft eroeffnete sie keinen neuen
+       Abschnitt, sie schwamm mit. Raum ist hier das Mittel der Wahl, weil die Schriftform
+       (.sec-h) app-weit gilt und nicht angetastet werden soll.
+       Der erste Slot bleibt eng: er steht direkt unter der Fensterkante, dort waeren
+       18px eine Luecke statt einer Trennung. */
+    .week > .day .slot { padding: 18px 0 4px; }
+    .week > .day .slot:first-child { padding-top: 6px; }
     .week > .day .slot::before { display: none; }
 
     /* Zeile statt Kachel. Die Trennlinie ist der border-bottom der Zeile selbst -
@@ -7434,6 +7456,12 @@
       const isFavGroup = cat === FAV_KEY;
       const label = isFavGroup ? "Favoriten" : cat;
       const icon = isFavGroup ? "heart" : (CAT_ICON[cat] || "pot");
+      // Dieselbe Farbklasse wie die Kategorie-Chips (CAT_CLASS kennt nur Fruehstueck und
+      // Hauptgericht). Damit tragen die Symbole hier dieselben Farben wie im Wochenplan -
+      // Fruehstueck Amber, Hauptgericht/Mittagessen Teal. Alles Weitere bleibt grau: das
+      // Theme hat keine freien Toene mehr, und Farbe nur dort, wo sie schon existiert, ist
+      // dieselbe Regel wie bei den Snacks im Plan.
+      const iconCls = "cicon" + (isFavGroup ? "" : (CAT_CLASS[cat] ? " " + CAT_CLASS[cat] : ""));
       // Bei aktiver Suche zaehlt collapsedCats nicht - sonst laege ein Treffer in einer
       // eingeklappten Kategorie, die Zaehlung zeigte "1", die Karte waere unsichtbar.
       const open = !!q || !collapsedCats.has(cat);
@@ -7447,12 +7475,12 @@
       html += `<section class="catgroup${isFavGroup ? " favgroup" : ""}">`;
       html += q
         ? `<div class="cathead static">
-          <span class="cname">${iconSvg(icon, "cicon")}${esc(label)}</span>
+          <span class="cname">${iconSvg(icon, iconCls)}${esc(label)}</span>
           <span class="ccount">${items.length}</span>
         </div>`
         : `<button class="cathead" data-action="toggle-cat" data-cat="${esc(cat)}" aria-expanded="${open}">
           <svg class="caret${open ? " open" : ""}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
-          <span class="cname">${iconSvg(icon, "cicon")}${esc(label)}</span>
+          <span class="cname">${iconSvg(icon, iconCls)}${esc(label)}</span>
           <span class="ccount">${items.length}</span>
         </button>`;
       if (!open) { html += `</section>`; continue; }

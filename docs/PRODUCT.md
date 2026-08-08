@@ -298,6 +298,24 @@ jetzt so da, wie man ihn gebaut hat.
 Was dadurch entfällt: Fremde Gerichte stehen nicht mehr gebündelt am Ende. Die Zusammenfassung
 ab dem dritten („+2 weitere") gibt es weiterhin, sie zählt nur in Plan-Reihenfolge.
 
+### Die Mahlzeitenfarbe kehrt im Symbol zurück
+
+Mit der Listen-Optik verschwand die Mahlzeitenfarbe aus Überschrift und Streifen — richtig, denn
+eine eingefärbte Überschrift sagt nichts, was das Wort daneben nicht schon sagt. Ohne sie gingen
+die Abschnitte im gemeinsamen Fenster aber unter.
+
+Sie kommt deshalb an der kleinsten sinnvollen Stelle zurück: **im Symbol**. Amber fürs Frühstück,
+Teal fürs Mittagessen, Violett fürs Abendessen. Das ist Wiedererkennung, keine Information — das
+Wort steht ausgeschrieben daneben, das Symbol ist für Screenreader unsichtbar.
+
+Dazu bekommt jeder Abschnitt mehr Luft über sich. Raum statt Schriftgröße: Die Abschnittsform gilt
+app-weit, und die Einheitlichkeit mit „Zutaten" in der Meal-Ansicht war ausdrücklich gewünscht.
+
+**Farbe nur, wo das Theme sie kennt.** Snacks bleiben grau — dieselbe Entscheidung wie beim
+Farbstreifen. Im Meals-Reiter tragen Frühstück und Hauptgericht dieselben zwei Farben wie im Plan,
+Snack, Dessert, Beilage, Getränk und Favoriten bleiben neutral. Vier neue Töne zu erfinden, damit
+jede Kategorie eine hat, würde mit Makro-, Mitglieds- und Trainingsfarben kollidieren.
+
 ### Ein Fenster für die Mahlzeiten, eines für den Stand
 
 Auf dem Handy stehen die vier Mahlzeiten in einer gemeinsamen Fläche, die Tagesbilanz in einer
