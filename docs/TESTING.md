@@ -241,6 +241,20 @@ Beispiele:
   OFF-Nährwerten je 100 g, ohne Menge) statt zu raten · zweiter Scan desselben Barcodes → kein zweiter
   `state.recipes`-Eintrag, die bestehende ID wird eingeplant (Dedupe über `r.barcode === code`) ·
   OFF-Fetch wirft (offline) → Toast statt unbehandeltem Promise, kein Halbzustand im Plan.
+* **`pieceFoods()` / `pieceSearch()` / `quickAddPiece()`** (Schnelleintrag für Stück-Artikel). Der
+  `FOODS`-Block lässt sich sauber zwischen `/*FOODS_START*/` und `/*FOODS_END*/` ausschneiden. Zu
+  prüfen: jeder zählbare Eintrag hat ein Stückgewicht > 0 (Ausnahme: die schon je Stück erfassten
+  wie das Ei) · die Hochrechnung gegen eine **Handrechnung** (Apfel 52 kcal/100 g × 150 g = 78) ·
+  `PIECE_TOP` löst vollständig auf, sonst fällt ein Tippfehler im Namen erst in der UI auf ·
+  `pieceSearch("b")` liefert nichts (dieselbe 2-Zeichen-Grenze wie `foodSearch`) · zweimal
+  `quickAddPiece` mit demselben Lebensmittel → **ein** `state.recipes`-Eintrag (Dedupe über `qf`),
+  zwei Slot-Einträge, Tagesbilanz doppelt, Einkaufsliste **eine** Zeile „2× Banane" in der
+  richtigen Warengruppe · nach dem Leeren des Slots räumt `pruneQuickRecipes()` es weg, ein noch
+  eingeplantes bleibt stehen.
+
+  Messfalle dabei: `buildShoppingList()` zählt in der aktuellen Woche nur **ab heute**
+  (`DAYS.slice(todayIdx)`). Ein fester Wochentag im Test läuft je nach Kalendertag stillschweigend
+  leer — den Tag über `todayDayKey()` wählen.
 
 ### Layout messen statt schätzen
 
@@ -269,6 +283,28 @@ Beispiel Kamera:
 * `stop()` zählen
 
 Nicht versuchen, schreibgeschützte Browser-Objekte direkt zu überschreiben.
+
+#### Kamera-Constraints und Fokus mitmessen
+
+Der Attrappen-Track braucht `getSettings()`, `getCapabilities()` und ein `applyConstraints()`, das
+jeden Aufruf mitschreibt. Damit ist prüfbar, was sonst nur am Gerät sichtbar wäre:
+
+* die angeforderten Constraints (`aspectRatio` als `ideal`, nicht `exact` — siehe
+  `docs/TROUBLESHOOTING.md` Punkt 63),
+* `--scan-ar` auf `.scanvid` gegen `settings.width / settings.height`,
+* `focusMode: "continuous"` wird angefordert, **wenn** die Capability da ist — und **nicht**, wenn
+  sie fehlt (Punkt 64); dazu der Hinweistext, der nichts versprechen darf,
+* `cleanup()`: alle Tracks gestoppt, `resize`-Listener abgemeldet (ein `resize` nach dem Schließen
+  darf keinen Constraint mehr auslösen).
+
+Zwei Fallen im Prüfstand selbst:
+
+* **`loadZXing()` nicht ablehnen lassen, sondern hängen lassen** (`new Promise(function(){})`).
+  Headless Edge hat keinen `BarcodeDetector`, ein abgelehntes `loadZXing()` überschreibt den
+  Hinweistext mit einer Fehlermeldung — der Test misst dann den Fehlerzustand statt der
+  Bereitschaft. Das war zuerst als echter Befund gemeldet und war keiner.
+* Fokus-**Fähigkeit** und Fokus-**Anwendung** müssen getrennte Funktionen sein. Ein
+  `if (applyFocus("single-shot") || …)` als Fähigkeitsprüfung stellt beim Prüfen schon scharf.
 
 ### Layout
 
@@ -485,13 +521,28 @@ document.documentElement.innerHTML =
 // w.matchMedia("(max-width: 560px)").matches === true
 ```
 
-Zwei Fallen dabei:
+Vier Fallen dabei:
 
+* **`about:blank` meldet sofort `readyState: "complete"`.** Vor dem Laden von `/index.html` steht im
+  Rahmen ein leeres Dokument. Ein `await warte(() => w.document.readyState === "complete")` ist
+  also nach null Millisekunden zufrieden, und ein dort gemerktes `const d = w.document` bleibt für
+  immer leer, während die App daneben ganz normal läuft — der Test läuft dann in jeden Timeout,
+  obwohl nichts kaputt ist. Auf ein **Merkmal der App** warten
+  (`f.contentDocument.querySelector(".app")`) und das Dokument erst danach greifen; besser gleich
+  jedes Mal über `f.contentDocument` gehen statt es zu merken.
+* **Die Reiterleiste ist statisches Markup und schon vor dem Login anklickbar.** `enterApp()` setzt
+  `state.tab` hart auf `"home"` — ein früherer Klick auf `[data-tab="plan"]` ist danach wirkungslos.
+  Erst warten, bis `.app` die Klasse `authing` verloren hat, dann klicken. Ohne Cloud fällt `boot()
+  ` außerdem erst nach 6 s auf den lokalen Modus zurück; das Wartefenster muss darüber liegen.
 * **Klassische Scrollleisten verkleinern den `fixed`-Bezug.** Im Rahmen sind die Leisten
   nicht wie auf dem Handy überlagert, sondern nehmen Platz weg: `position: fixed; inset: 0`
   spannt dann nur 345×725 statt 360×740. Eine Unterkante bei 725 px ist deshalb kein Fehler.
   Nicht gegen `innerHeight` prüfen, sondern gegen `overlay.clientHeight` — bündig heißt
   `sheet.getBoundingClientRect().bottom === overlay.clientHeight`.
+* **Eine `querySelectorAll`-Liste überlebt kein `innerHTML`.** Wer Knoten vor einer Aktion greift,
+  die neu zeichnet (jeder `paint()`-Aufruf im Picker, jedes `render()`), misst danach abgehängte
+  Elemente — die melden brav `height: 0`. Das sieht wie ein Layout-Befund aus und ist keiner. Vor
+  jeder Messung frisch abfragen.
 * **Der lokale Teststand ist am echten Cloud-Konto angemeldet** (`lastprofile.cloud === true`).
   Im Rahmen deshalb nur lesen und Ansichten öffnen; keine Meals anlegen oder ändern, sonst
   landet der Testbestand in der echten Cloud (TROUBLESHOOTING §36 schützt nur `localStorage`,

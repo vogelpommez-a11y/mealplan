@@ -1537,8 +1537,21 @@
   .scanhead { display: flex; align-items: center; gap: 12px; color: #F4EFEE; }
   .scanhead h3 { font-family: var(--font-display); font-size: 20px; margin: 0; flex: 1; letter-spacing: .3px; }
   .scanhead .btn { flex: none; }
-  /* Feste 4:3-Buehne: reserviert den Platz, bevor das Video laeuft (kein Springen) */
-  .scanvid { position: relative; width: 100%; aspect-ratio: 4 / 3; background: #000; border-radius: var(--radius); overflow: hidden; border: 1px solid var(--border-strong); }
+  /* Buehne = Format des Kamerabilds. --scan-ar ist Breite/Hoehe als reine Zahl und wird von
+     scanBarcodeLive() aus track.getSettings() gesetzt, sobald der Stream laeuft; der Startwert
+     4:3 reserviert vorher den Platz (kein Springen).
+
+     Vorher stand hier fest 4/3 und unter 560px fest 3/4, WAEHREND die Kamera weiter quer
+     lieferte. Mit object-fit: cover schnitt das hochkant links und rechts so viel weg, dass
+     ein Barcode nicht mehr in den Rahmen passte - man konnte nur quer scannen. Jetzt stimmen
+     Buehne und Bild ueberein, cover ist damit deckungsgleich mit contain und schneidet nichts.
+
+     Die width-Rechnung ist die Hoehenbremse: aspect-ratio zusammen mit einem blossen
+     max-height wuerde bei width: 100% kippen (die Breite ist dann definit und gewinnt) und
+     wieder beschneiden. Ueber die Breite gerechnet bleibt das Verhaeltnis erhalten und die
+     Buehne trotzdem hoechstens 62 svh hoch - noetig, weil ein 9:16-Stream sonst ueber den
+     Bildschirm hinauswaechst und Kopfzeile samt Foto-Ausweg verdraengt. */
+  .scanvid { --scan-ar: 1.3333; position: relative; width: 100%; width: min(100%, calc(62svh * var(--scan-ar))); margin-inline: auto; aspect-ratio: var(--scan-ar); background: #000; border-radius: var(--radius); overflow: hidden; border: 1px solid var(--border-strong); }
   .scanvid video { width: 100%; height: 100%; object-fit: cover; display: block; }
   /* Sucherrahmen: Ecken statt Vollrahmen, damit der Barcode sichtbar bleibt */
   .scanframe { position: absolute; left: 8%; right: 8%; top: 27%; bottom: 27%; pointer-events: none; }
@@ -1549,9 +1562,6 @@
   .scanhint.err { color: var(--accent); font-weight: 600; }
   .scanfoot { display: flex; flex-direction: column; gap: 8px; }
   .scanfoot .btn { width: 100%; justify-content: center; }
-  @media (max-width: 560px) {
-    .scanvid { aspect-ratio: 3 / 4; }
-  }
   .modal-head { display: flex; align-items: center; gap: 12px; padding: 16px 18px; border-bottom: 1px solid var(--border); }
   .modal-head h3 { font-family: var(--font-display); font-size: 19px; margin: 0; flex: 1; }
   .modal-head .kicker { font-size: 11.5px; text-transform: uppercase; letter-spacing: .05em; color: var(--text-muted); }
@@ -1598,11 +1608,29 @@
   .pitem.suggest { border-color: color-mix(in srgb, var(--accent) 40%, transparent); background: color-mix(in srgb, var(--accent) 6%, transparent); }
   .pitem.offcat .pn, .pitem.offcat .pc { color: var(--text-muted); }
   .pitem.offcat img.pthumb { opacity: .55; }
+  /* Press-State wie bei .shop-item und .ing-view: auf Touch gibt es kein Hover, die
+     Rueckmeldung traegt der Antipp-Zustand. Bewusst ein Farbanflug und kein scale() -
+     das ist die Sprache, die die Listenzeilen der App schon sprechen. */
+  .pitem:active { background: color-mix(in srgb, var(--accent) 9%, transparent); }
   .pmore {
     display: flex; align-items: center; justify-content: space-between; gap: 10px;
     margin-top: 8px; padding-top: 9px; border-top: 1px dashed var(--border);
     font-size: 12px; color: var(--text-muted);
   }
+  .pempty { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; margin: 0; padding: 8px 4px; font-size: 13px; color: var(--text-muted); }
+  /* Schnelleintrag (zaehlbare Lebensmittel). Die Ueberschrift traegt .sec-h, hier steht
+     nur der Abstand - Ort-abhaengig ist der Abstand, nie die Schrift (siehe .sec-h). */
+  .pq-h { margin: 15px 4px 5px; }
+  /* Die 38px halten die Namen der Schnellzeilen auf derselben Kante wie die Meal-Zeilen
+     mit Foto (.pthumb) - ohne Platzhalter saehe die Liste zweispaltig aus. */
+  .pitem .pqi { flex: none; width: 38px; height: 28px; display: grid; place-items: center; color: var(--text-muted); }
+  .pitem .pqi svg { width: 19px; height: 19px; }
+  .pitem .pqb { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+  .pitem .pqb .pn { flex: none; }
+  .pitem .pqs { font-size: 11.5px; color: var(--text-muted); }
+  .pitem .pqn { flex: none; display: flex; flex-direction: column; align-items: flex-end; gap: 3px; font-variant-numeric: tabular-nums; }
+  .pitem .pqk { font-size: 13px; font-weight: 600; }
+  .pitem .pqm { font-size: 11px; color: var(--text-muted); }
 
   /* Detail / shopping. .dbanner/dl gehoerten zum fruehreren openRecipeDetail (siehe
      plans/MealAnsicht.MD) und sind mit .ms-photo/.nutfacts in openMealSheet() entfallen;
@@ -5523,12 +5551,18 @@
   // abgeleitete Datenbank und zoege deren Lizenzbedingungen nach sich (z. B. ODbL bei
   // Open Food Facts). Markenprodukte deckt stattdessen der Barcode-Scan ab, der einzelne
   // Produkte live abfragt statt Daten auf Vorrat mitzuliefern.
-  // Format: [Name, kcal, KH, Protein, Fett, Einheit?, Synonyme?] je 100 g bzw. 100 ml,
-  // bei Einheit "st" je Stueck. Fehlende Einheit = "g". Die Synonyme stehen nur im
+  // Format: [Name, kcal, KH, Protein, Fett, Einheit?, Synonyme?, GrammJeStueck?] je 100 g
+  // bzw. 100 ml, bei Einheit "st" je Stueck. Fehlende Einheit = "g". Die Synonyme stehen nur im
   // Suchschluessel, nicht in der Anzeige — sie fangen ab, wonach Leute tatsaechlich
   // suchen ("Huhn" statt "Hähnchenbrustfilet", "Möhren" statt "Karotten") und decken
   // regionale Namen ab. Weil sie hinten angehaengt werden, ranken sie automatisch
   // hinter den echten Namenstreffern.
+  //
+  // Das letzte Feld (GrammJeStueck) traegt doppelt: es macht einen Eintrag fuer den
+  // Schnelleintrag im Wochenplan zaehlbar (siehe pieceFoods) und steht bewusst HIER, direkt
+  // neben den Naehrwerten, auf die es sich bezieht - eine zweite Tabelle "Name -> Gewicht"
+  // waere eine Namensverknuepfung, die bei jedem Umbenennen still bricht. Gemeint ist immer
+  // der verzehrbare Anteil eines mittelgrossen Stuecks (Avocado ohne Kern und Schale).
   /*FOODS_START*/
   const FOODS = [
     // Getreide, Beilagen
@@ -5553,11 +5587,11 @@
     // Brot und Backwaren
     ["Vollkornbrot", 210, 35, 8, 2], ["Mischbrot", 240, 45, 7, 1.2],
     ["Roggenbrot", 220, 42, 6, 1.2], ["Toastbrot", 270, 48, 9, 4],
-    ["Weizenbrötchen", 270, 53, 9, 1.5], ["Vollkornbrötchen", 240, 42, 9, 2],
+    ["Weizenbrötchen", 270, 53, 9, 1.5, "g", "Semmel Schrippe Rundstück", 60], ["Vollkornbrötchen", 240, 42, 9, 2, "g", null, 70],
     ["Pumpernickel", 190, 36, 6, 1.2], ["Baguette", 270, 55, 8, 1],
     ["Tortilla-Wrap, Weizen", 300, 50, 8, 7], ["Fladenbrot / Pita", 275, 55, 9, 1.5],
     ["Sonnenblumenkernbrot", 250, 38, 9, 6], ["Ciabatta", 265, 51, 9, 2],
-    ["Laugenbrezel", 280, 55, 9, 2.5], ["Naan-Brot", 310, 50, 9, 8],
+    ["Laugenbrezel", 280, 55, 9, 2.5, "g", "Brezn Breze", 80], ["Naan-Brot", 310, 50, 9, 8],
     // Fleisch und Wurst
     ["Hähnchenbrustfilet", 105, 0, 23, 1.2, "g", "Huhn Hendl Chicken Geflügel Poulet"],
     ["Hähnchenschenkel, ohne Haut", 145, 0, 19, 7.5, "g", "Huhn Keule Geflügel"],
@@ -5626,9 +5660,9 @@
     ["Erbsenprotein-Pulver", 380, 5, 80, 6],
     // Gemüse
     ["Brokkoli", 34, 3, 3.8, 0.4], ["Blumenkohl", 25, 3, 2.5, 0.3],
-    ["Karotten", 40, 7, 0.9, 0.2, "g", "Möhren Mohrrüben Karotte"], ["Zucchini", 19, 2, 1.6, 0.4],
-    ["Aubergine", 25, 3, 1, 0.2, "g", "Melanzani"], ["Paprika, rot", 37, 6, 1, 0.4, "g", "Paprikaschote"],
-    ["Tomaten", 18, 3, 0.9, 0.2, "g", "Paradeiser Tomate"], ["Kirschtomaten", 20, 3.4, 0.9, 0.2],
+    ["Karotten", 40, 7, 0.9, 0.2, "g", "Möhren Mohrrüben Karotte", 70], ["Zucchini", 19, 2, 1.6, 0.4],
+    ["Aubergine", 25, 3, 1, 0.2, "g", "Melanzani"], ["Paprika, rot", 37, 6, 1, 0.4, "g", "Paprikaschote", 150],
+    ["Tomaten", 18, 3, 0.9, 0.2, "g", "Paradeiser Tomate", 90], ["Kirschtomaten", 20, 3.4, 0.9, 0.2],
     ["Passierte Tomaten", 32, 5, 1.4, 0.2], ["Tomatenmark", 80, 13, 4, 0.5],
     ["Gurke", 12, 1.8, 0.6, 0.1], ["Eisbergsalat", 13, 2, 0.9, 0.2],
     ["Feldsalat", 21, 0.7, 2, 0.4], ["Rucola", 25, 2, 2.6, 0.7],
@@ -5641,7 +5675,7 @@
     ["Kürbis, Hokkaido", 63, 12, 1.7, 0.5], ["Knollensellerie", 30, 2.3, 1.6, 0.3],
     ["Rote Bete", 43, 8, 1.5, 0.2], ["Radieschen", 15, 2, 1, 0.1],
     ["Mais, Dose", 90, 16, 3, 1.2], ["Grüne Bohnen", 32, 5, 2.4, 0.2],
-    ["Spargel", 20, 2, 2, 0.2], ["Avocado", 160, 1, 2, 15],
+    ["Spargel", 20, 2, 2, 0.2], ["Avocado", 160, 1, 2, 15, "g", null, 150],
     ["Oliven, grün", 145, 1, 1, 14], ["Ingwer", 80, 15, 1.8, 0.8],
     ["Chili, frisch", 40, 6, 2, 0.4],
     ["Pak Choi", 13, 1.2, 1.5, 0.2], ["Fenchel", 20, 3, 1.2, 0.2],
@@ -5650,17 +5684,18 @@
     ["Wirsing", 27, 3, 3, 0.4], ["Staudensellerie", 16, 2, 0.7, 0.2, "g", "Selleriestange Stangensellerie"],
     ["Frühlingszwiebel", 32, 4.5, 1.8, 0.2, "g", "Lauchzwiebel"], ["Schalotte", 72, 14, 2.5, 0.1],
     // Obst
-    ["Apfel", 52, 12, 0.3, 0.2], ["Banane", 90, 20, 1.1, 0.3],
-    ["Orange", 47, 9, 0.9, 0.1], ["Birne", 55, 12, 0.4, 0.1],
+    ["Apfel", 52, 12, 0.3, 0.2, "g", null, 150], ["Banane", 90, 20, 1.1, 0.3, "g", null, 120],
+    ["Orange", 47, 9, 0.9, 0.1, "g", null, 150], ["Birne", 55, 12, 0.4, 0.1, "g", null, 150],
+    ["Mandarine", 50, 12, 0.7, 0.2, "g", "Clementine Klementine", 70],
     ["Erdbeeren", 32, 6, 0.7, 0.3], ["Heidelbeeren", 45, 9, 0.7, 0.3],
     ["Himbeeren", 34, 5, 1.2, 0.3], ["Weintrauben", 70, 16, 0.7, 0.2],
-    ["Kiwi", 60, 11, 1, 0.5], ["Ananas", 50, 12, 0.5, 0.1],
+    ["Kiwi", 60, 11, 1, 0.5, "g", null, 75], ["Ananas", 50, 12, 0.5, 0.1],
     ["Mango", 60, 13, 0.8, 0.4], ["Wassermelone", 30, 7, 0.6, 0.2],
-    ["Pfirsich", 39, 8, 0.9, 0.2], ["Zitrone", 30, 3, 1, 0.3],
+    ["Pfirsich", 39, 8, 0.9, 0.2, "g", null, 130], ["Zitrone", 30, 3, 1, 0.3],
     ["Datteln, getrocknet", 280, 65, 2.5, 0.4], ["Rosinen", 300, 70, 3, 0.5],
     ["Aprikosen, getrocknet", 240, 50, 3.5, 0.5], ["Apfelmus, ungesüßt", 45, 10, 0.3, 0.1],
     ["Pflaumen", 46, 10, 0.7, 0.3], ["Kirschen", 63, 14, 1, 0.2],
-    ["Nektarine", 44, 9, 1.1, 0.3], ["Granatapfel", 68, 14, 1.5, 0.5],
+    ["Nektarine", 44, 9, 1.1, 0.3, "g", null, 130], ["Granatapfel", 68, 14, 1.5, 0.5],
     ["Papaya", 43, 8, 0.6, 0.3], ["Feigen, frisch", 65, 14, 0.8, 0.3],
     ["Brombeeren", 35, 5, 1.4, 0.4], ["Johannisbeeren, rot", 35, 6, 1.3, 0.2],
     ["Preiselbeeren", 45, 8, 0.4, 0.3],
@@ -5681,7 +5716,7 @@
     ["Ahornsirup", 260, 65, 0, 0], ["Marmelade", 250, 60, 0.4, 0.1],
     ["Zartbitterschokolade 70 %", 570, 33, 8, 42], ["Vollmilchschokolade", 540, 57, 7, 31],
     ["Nuss-Nougat-Creme", 540, 57, 6, 31], ["Kartoffelchips", 540, 50, 6, 34],
-    ["Salzstangen", 370, 75, 10, 2], ["Reiswaffeln", 385, 82, 8, 3],
+    ["Salzstangen", 370, 75, 10, 2], ["Reiswaffeln", 385, 82, 8, 3, "g", null, 9],
     ["Speiseeis, Vanille", 200, 22, 3.5, 11], ["Proteinpulver, Whey", 380, 5, 78, 6, "g", "Eiweißpulver Shake Molkenprotein"],
     ["Proteinriegel", 350, 30, 33, 10], ["Ketchup", 110, 24, 1.2, 0.1],
     ["Mayonnaise", 700, 2, 1, 75], ["Senf", 90, 5, 5, 5],
@@ -5716,17 +5751,20 @@
     if (!foodIdx) foodIdx = FOODS.map(f => ({
       name: f[0], kcal: f[1], carbs: f[2], protein: f[3], fat: f[4],
       unit: ING_UNITS.indexOf(f[5]) > 0 ? f[5] : "g",
+      stk: nutNum(f[7]),
       key: foodNorm(f[0] + (f[6] ? " " + f[6] : ""))
     }));
     return foodIdx;
   }
   // Rangfolge: Treffer am Wortanfang zuerst, dann am Anfang eines spaeteren Wortes,
   // dann irgendwo mittendrin. Sonst schlaegt "reis" die Preiselbeere vor dem Reis vor.
-  function foodSearch(q, max) {
+  // Die Liste kommt als Parameter, damit Zutatenzeile (foodSearch) und Schnelleintrag
+  // (pieceSearch) dieselbe Rangfolge und dieselbe Normalisierung benutzen.
+  function rankFoods(list, q, max) {
     const n = foodNorm(q).trim();
     if (n.length < 2) return [];
     const a = [], b = [], c = [];
-    foodList().forEach(f => {
+    list.forEach(f => {
       const i = f.key.indexOf(n);
       if (i < 0) return;
       if (i === 0) a.push(f);
@@ -5734,6 +5772,39 @@
       else c.push(f);
     });
     return a.concat(b, c).slice(0, max || 8);
+  }
+  function foodSearch(q, max) { return rankFoods(foodList(), q, max); }
+
+  // ---------- Schnelleintrag: zaehlbare Lebensmittel ----------
+  // Ein Apfel ist kein Meal. Wer eine Banane einplanen will, soll nicht durch das
+  // Meal-Formular muessen - dieselbe Idee wie beim Barcode-Schnellzugriff, nur ohne Kamera.
+  // Zaehlbar heisst hier: ein Stueck ist eine natuerliche Portion. Zwei Quellen, eine Liste:
+  // Eintraege, deren Naehrwerte schon je Stueck gelten (unit "st", z. B. das Ei), und
+  // Eintraege mit hinterlegtem Stueckgewicht - deren 100-g-Werte werden einmal aufs Stueck
+  // hochgerechnet und danach nie wieder umgerechnet.
+  // Bewusst KEINE Scheiben und keine Handvoll: dafuer braeuchte jede Zeile ein eigenes
+  // Mengenwort, und "1 Stueck Brot" waere schlicht falsch.
+  let pieceIdx = null;
+  function pieceFoods() {
+    if (!pieceIdx) pieceIdx = foodList().filter(f => f.unit === "st" || f.stk > 0).map(f => {
+      const g = f.unit === "st" ? 0 : f.stk;   // 0 = schon je Stueck erfasst, kein Gewicht bekannt
+      const k = g ? g / 100 : 1;
+      const r1 = v => Math.round(nutNum(v) * k * 10) / 10;
+      return {
+        name: f.name, key: f.key, grams: g,
+        kcal: Math.round(nutNum(f.kcal) * k), carbs: r1(f.carbs), protein: r1(f.protein), fat: r1(f.fat),
+      };
+    });
+    return pieceIdx;
+  }
+  function pieceSearch(q, max) { return rankFoods(pieceFoods(), q, max); }
+  // Vorschlag ohne Suchbegriff: kurze, feste Auswahl statt der ganzen Liste - sonst laeuft
+  // der Schnellbereich der Meal-Liste im Picker den Rang ab. Namen muessen exakt so in FOODS
+  // stehen; der Pruefstand (docs/TESTING.md) faengt Tippfehler ab, hier wird still uebergangen,
+  // was nicht aufloest.
+  const PIECE_TOP = ["Apfel", "Banane", "Mandarine", "Ei, Größe M", "Kiwi", "Vollkornbrötchen"];
+  function pieceTop() {
+    return PIECE_TOP.map(n => pieceFoods().find(f => f.name === n)).filter(Boolean);
   }
 
   // ---------- Barcode-Scan (Open Food Facts) ----------
@@ -5898,6 +5969,7 @@
       </div>`);
       const video = node.querySelector("video");
       const hint = node.querySelector(".scanhint");
+      const stage = node.querySelector(".scanvid");
 
       function cleanup() {
         if (timer) { clearTimeout(timer); timer = 0; }
@@ -5908,8 +5980,62 @@
         document.removeEventListener("keydown", onKey, true);
         document.removeEventListener("visibilitychange", onHide);
         window.removeEventListener("pagehide", onHide);
+        window.removeEventListener("resize", onResize);
+        if (orientTimer) { clearTimeout(orientTimer); orientTimer = 0; }
         if (node.parentNode) node.remove();
         liveScanStop = null;
+      }
+      // ---- Kamerabild: Buehnenformat und Fokus ----
+      // Hochkant lieferte die Kamera weiter 4:3 quer, waehrend die Buehne per Breakpoint auf
+      // 3:4 stand - object-fit: cover schnitt den Barcode links und rechts ab, scannen ging
+      // nur quer. Deshalb richtet sich die Buehne nach dem TATSAECHLICHEN Stream und nicht
+      // nach der Bildschirmbreite.
+      let orientTimer = 0;
+      function portrait() { return window.innerHeight >= window.innerWidth; }
+      function videoTrack() {
+        const t = stream && stream.getVideoTracks ? stream.getVideoTracks()[0] : null;
+        return t && t.readyState !== "ended" ? t : null;
+      }
+      function syncStage() {
+        const t = videoTrack();
+        const s = t && t.getSettings ? t.getSettings() : null;
+        // Notfalls die Masse des Videoelements: Safari liefert getSettings() nicht immer gefuellt.
+        const w = (s && s.width) || video.videoWidth, h = (s && s.height) || video.videoHeight;
+        if (w > 0 && h > 0) stage.style.setProperty("--scan-ar", String(w / h));
+      }
+      // Ohne das bleibt die Kamera auf dem Fixfokus, den der Browser vorgibt: je naeher man
+      // an den Barcode geht, desto unschaerfer. focusMode kennt derzeit nur Chromium
+      // (Android) - Safari/iOS ignoriert es. Deshalb immer nur "versuchen", nie darauf warten
+      // und niemals einen Fehler daraus machen (siehe docs/TROUBLESHOOTING.md).
+      function focusModes() {
+        const t = videoTrack();
+        if (!t || !t.applyConstraints || !t.getCapabilities) return [];
+        try { return t.getCapabilities().focusMode || []; } catch (e) { return []; }
+      }
+      function applyFocus(mode) {
+        const t = videoTrack();
+        if (!t || focusModes().indexOf(mode) < 0) return false;
+        try { t.applyConstraints({ advanced: [{ focusMode: mode }] }).catch(() => {}); } catch (e) { return false; }
+        return true;
+      }
+      function onResize() {
+        if (orientTimer) clearTimeout(orientTimer);
+        // Entprellt: Drehen feuert resize mehrfach, und die neuen Masse stehen erst danach fest.
+        orientTimer = setTimeout(() => {
+          orientTimer = 0;
+          if (done) return;
+          const t = videoTrack();
+          const s = t && t.getSettings ? t.getSettings() : null;
+          // Nur nachfordern, wenn das Bild jetzt quer zur Haltung liegt. Ein applyConstraints
+          // ohne Not kann den Track kurz neu aushandeln - das laesst das Bild sichtbar zucken.
+          if (t && s && s.width > 0 && s.height > 0 && (s.width > s.height) === portrait()) {
+            try {
+              t.applyConstraints({ advanced: [{ aspectRatio: portrait() ? 3 / 4 : 4 / 3 }] })
+                .then(syncStage).catch(() => {});
+            } catch (e) {}
+          }
+          syncStage();
+        }, 220);
       }
       function finish(res) { if (done) return; done = true; cleanup(); resolve(res); }
       // Escape darf NUR den Scanner schliessen. Ohne capture + stopPropagation wuerde
@@ -5946,8 +6072,19 @@
           return;
         }
         try {
+          // aspectRatio folgt der Haltung des Geraets, damit die Kamera hochkant auch ein
+          // hochkantes Bild liefert. Alles "ideal": eine harte Forderung wuerde auf Kameras
+          // ohne dieses Format mit OverconstrainedError abbrechen, obwohl ein anderes Format
+          // voellig ausreicht - die Buehne richtet sich ohnehin nach dem, was ankommt.
+          // 1920 statt 1280: mehr Pixel je Barcode-Strich, damit ein Code auch aus etwas
+          // mehr Abstand noch lesbar ist - der Ausweg dort, wo sich der Fokus nicht steuern
+          // laesst (iOS, siehe applyFocus).
           stream = await navigator.mediaDevices.getUserMedia({
-            video: { facingMode: { ideal: "environment" }, width: { ideal: 1280 }, height: { ideal: 960 } },
+            video: {
+              facingMode: { ideal: "environment" },
+              width: { ideal: 1920 }, height: { ideal: 1080 },
+              aspectRatio: { ideal: portrait() ? 3 / 4 : 4 / 3 },
+            },
             audio: false
           });
         } catch (e) {
@@ -5972,6 +6109,26 @@
         if (playing && playing.catch) playing.catch(() => {});
         if (done) return;
         hint.textContent = readyHint;
+
+        // Buehne aufs echte Bildformat ziehen - jetzt und sobald die Masse wirklich stehen
+        // (getSettings() ist direkt nach dem Start nicht auf jedem Geraet schon gefuellt).
+        syncStage();
+        video.addEventListener("loadedmetadata", syncStage, { once: true });
+        window.addEventListener("resize", onResize);
+        applyFocus("continuous");
+        // Antippen stellt neu scharf: der Rettungsanker auf Geraeten, die einmal falsch
+        // scharfstellen und dort haengen bleiben. Nur wenn der Fokus ueberhaupt steuerbar ist -
+        // sonst verspraeche der Hinweistext etwas, das nicht passiert.
+        if (focusModes().length) {
+          stage.style.cursor = "pointer";
+          hint.textContent = readyHint + " Antippen stellt scharf.";
+          stage.addEventListener("click", () => {
+            if (done) return;
+            if (!applyFocus("single-shot")) applyFocus("continuous");
+            hint.textContent = "Stelle scharf …";
+            setTimeout(() => { if (!done && !hint.classList.contains("err")) hint.textContent = readyHint; }, 900);
+          });
+        }
 
         // Schneller Weg: native API (Chrome/Edge, Android). Auf dem iPhone gibt es sie
         // nicht — auch nicht in Chrome, das dort WebKit nutzt. Dann uebernimmt ZXing.
@@ -8833,25 +8990,16 @@
     // fuer EINEN Tag gedacht und gehoeren nicht in eine Auswahlliste, die man beim Planen
     // durchsieht - sonst waechst sie mit jedem gescannten Riegel. Dieselbe Regel gilt
     // schon fuer den Meals-Reiter; hier lief der Picker bisher an ihr vorbei.
-    // Auch die Leerpruefung muss mit: haette jemand ausschliesslich gescannte Produkte,
-    // zeigte die Liste sonst nichts an, ohne den "Noch keine Meals"-Weg anzubieten.
-    if (libraryRecipes().length === 0) {
-      const node = el(`<div class="modal" role="dialog" aria-modal="true">
-        <div class="modal-head"><h3>Noch keine Meals</h3><button class="btn ghost sm" data-close>✕</button></div>
-        <div class="modal-body"><p style="margin:0;color:var(--text-muted)">Du hast noch keine Meals angelegt. Wechsle in den Reiter <strong>Meals</strong> und leg zuerst ein Meal an, oder scanne ein Fertigprodukt.</p></div>
-        <div class="modal-foot"><button class="btn ghost" data-close>Abbrechen</button><button class="btn ghost" data-barcode>${BARCODE_SVG}<span>Barcode</span></button><button class="btn primary" data-go>Zu den Meals</button></div>
-      </div>`);
-      node.querySelectorAll("[data-close]").forEach(b => b.addEventListener("click", closeModal));
-      node.querySelector("[data-go]").addEventListener("click", () => { closeModal(); state.tab = "recipes"; render(); openMealSheet(null); });
-      node.querySelector("[data-barcode]").addEventListener("click", () => { closeModal(); quickAddByBarcode(day, meal); });
-      openModal(node);
-      return;
-    }
+    //
+    // Ohne ein einziges Meal gab es hier frueher einen eigenen "Noch keine Meals"-Dialog.
+    // Der ist mit dem Schnelleintrag falsch geworden: eine Banane laesst sich auch ohne
+    // Meal-Bibliothek einplanen. Der Hinweis samt Weg zu den Meals steht jetzt IM Picker,
+    // ueber dem Schnellbereich - eine Ansicht weniger, und der Slot bleibt benutzbar.
     const node = el(`<div class="modal" role="dialog" aria-modal="true" aria-label="Meal wählen">
       <div class="modal-head"><div style="flex:1"><div class="kicker">${esc(dLabel)} · ${esc(mLabel)}</div><h3 style="margin-top:2px">Meal wählen</h3></div><button class="btn ghost sm" data-close>✕</button></div>
       <div class="modal-body">
         <div class="picker-search">
-          <input type="text" id="p-search" placeholder="Meal suchen …" autocomplete="off">
+          <input type="text" id="p-search" placeholder="Meal oder Lebensmittel …" autocomplete="off">
           <button type="button" class="btn ghost sm" id="p-barcode" aria-label="Barcode scannen – Fertigprodukt direkt einplanen" title="Barcode scannen – Fertigprodukt direkt einplanen">${BARCODE_SVG}<span>Barcode</span></button>
         </div>
         <div class="plist" id="p-list"></div>
@@ -8885,10 +9033,22 @@
              <button class="btn ghost sm" data-toggle-all>${showAll ? "Nur passende" : "Alle anzeigen"}</button>
            </div>`
         : "";
-      if (list.length === 0) {
-        listEl.innerHTML = `<p style="color:var(--text-muted);padding:8px 4px;margin:0">Kein passendes Meal gefunden.</p>${more}`;
+      // Schnellbereich: ab zwei Zeichen die Suche, davor eine kurze feste Auswahl.
+      // Dieselbe Rangfolge wie in der Zutatenzeile (rankFoods), damit "ban" sich hier
+      // nicht anders verhaelt als dort.
+      const pieces = query.length >= 2 ? pieceSearch(query, 8) : pieceTop();
+      const libEmpty = libraryRecipes().length === 0;
+
+      let html;
+      if (libEmpty) {
+        // Kein Dead End: der Slot bleibt ueber den Schnellbereich unten benutzbar.
+        html = `<p class="pempty">Noch keine Meals angelegt. <button class="btn ghost sm" data-go>Zu den Meals</button></p>`;
+      } else if (list.length === 0 && pieces.length === 0) {
+        html = `<p class="pempty">Nichts gefunden – probier es kürzer.</p>${more}`;
+      } else if (list.length === 0) {
+        html = `<p class="pempty">Kein passendes Meal gefunden.</p>${more}`;
       } else {
-        listEl.innerHTML = list.map(r => {
+        html = list.map(r => {
           const suggest = catSuggestsMeal(r.category, meal) ? " suggest" : "";
           const off = catFitsMeal(r.category, meal) ? "" : " offcat";
           return `<button class="pitem${suggest}${off}" data-assign="${r.id}">
@@ -8899,12 +9059,39 @@
           </button>`;
         }).join("") + more;
       }
+      if (pieces.length) {
+        // Eine Nachkommastelle behalten: nfmt() rundet auf ganze Zahlen und machte aus
+        // 0,4 g Fett im Apfel eine 0 (gleiche Begruendung wie bei .ing-brief).
+        const nz = v => (Math.round(v * 10) / 10).toLocaleString("de-DE");
+        html += `<div class="sec-h pq-h">Schnell</div>` + pieces.map((f, i) => `
+          <button class="pitem pq" data-piece="${i}">
+            <span class="pqi" aria-hidden="true">${iconSvg("fruit", "")}</span>
+            <span class="pqb">
+              <span class="pn">${esc(f.name)}</span>
+              <span class="pqs">1 Stück${f.grams ? " · " + f.grams + " g" : ""}</span>
+            </span>
+            <span class="pqn">
+              <span class="pqk">${nfmt(f.kcal)} kcal</span>
+              <span class="pqm">${macroLineHtml(f, nz)}</span>
+            </span>
+          </button>`).join("");
+      }
+      listEl.innerHTML = html;
+
       const toggle = listEl.querySelector("[data-toggle-all]");
       if (toggle) toggle.addEventListener("click", () => { showAll = !showAll; paint(searchEl.value); });
+      const go = listEl.querySelector("[data-go]");
+      if (go) go.addEventListener("click", () => { closeModal(); state.tab = "recipes"; render(); openMealSheet(null); });
       listEl.querySelectorAll("[data-assign]").forEach(b => b.addEventListener("click", () => {
         const id = b.dataset.assign;
         state.plan[day][meal].push(slotIsShared(day, meal) ? id : makeEntry(id, [syncUid]));
         closeModal(); render(); toast("Zum Plan hinzugefügt");
+      }));
+      listEl.querySelectorAll("[data-piece]").forEach(b => b.addEventListener("click", () => {
+        const f = pieces[Number(b.dataset.piece)];
+        if (!f) return;
+        quickAddPiece(day, meal, f);
+        closeModal(); render(); toast("„" + f.name + "“ zum Plan hinzugefügt");
       }));
     }
     searchEl.addEventListener("input", () => paint(searchEl.value));
@@ -9008,6 +9195,41 @@
     state.plan[day][meal].push(slotIsShared(day, meal) ? recipe.id : makeEntry(recipe.id, [syncUid]));
     render();
     toast("„" + p.name + "“ zum Plan hinzugefügt");
+  }
+
+  // Schnelleintrag: ein zaehlbares Lebensmittel (pieceFoods) in einen Slot legen. Genau
+  // dasselbe Muster wie quickAddByBarcode, nur ist die Datenquelle lokal und immer
+  // vollstaendig - deshalb gibt es hier keinen Umweg ueber das Formular.
+  //
+  // Warum ein stilles Meal und kein neuer Eintragstyp im Slot: der Slot speichert
+  // ausschliesslich Rezept-IDs (siehe makeEntry/flattenWeek). Ein zweiter Typ haette
+  // Tagesbilanz, Einkaufsliste, PDF, Gruppen-Sync und Undo gleichzeitig anfassen muessen.
+  // Als quick-Meal zaehlt es ueberall ohne Sonderfall mit und wird von pruneQuickRecipes
+  // automatisch aufgeraeumt, sobald es nirgends mehr eingeplant ist.
+  //
+  // Dedupe ueber `qf` (normalisierter Food-Schluessel) - das Gegenstueck zu `barcode`.
+  // Ohne das entstuende bei jedem Tippen ein neues Rezeptdokument, und die Einkaufsliste
+  // zeigte dreimal "1× Banane" statt einmal "3× Banane".
+  function quickAddPiece(day, meal, food) {
+    let recipe = state.recipes.find(r => r.qf === food.key && r.quick === true);
+    if (!recipe) {
+      const nut = { kcal: food.kcal, carbs: food.carbs, protein: food.protein, fat: food.fat };
+      recipe = Object.assign({ id: uid() }, {
+        name: food.name,
+        category: "Snack",
+        portions: 1,
+        nutrition: nut,
+        // Die Zutat traegt die Einkaufsliste: unit "st" + Menge 1 ergibt ueber qtyLabel
+        // "2× Banane", und shopCategory sortiert sie in die richtige Warengruppe.
+        ingredients: [Object.assign({ name: food.name, grams: 1, unit: "st" }, nut)],
+        steps: "",
+        qf: food.key,
+        quick: true,
+        created: Date.now(),
+      }, syncGid ? { by: syncUid } : null);
+      state.recipes.push(recipe);
+    }
+    state.plan[day][meal].push(slotIsShared(day, meal) ? recipe.id : makeEntry(recipe.id, [syncUid]));
   }
 
   // ---------- Shopping list ----------
@@ -9429,8 +9651,9 @@
       <h4>9. Verschlüsselung</h4>
       <p>Die Übertragung der Daten erfolgt verschlüsselt über HTTPS (SSL/TLS).</p>
       <h4>10. Speicherdauer &amp; Löschung</h4>
-      <p>Wir speichern deine Daten, solange dein Konto besteht. Eine Ausnahme: Produkte, die du per
-         Barcode-Scan schnell in den Plan gelegt hast, räumt die App nach etwa drei Wochen von selbst
+      <p>Wir speichern deine Daten, solange dein Konto besteht. Eine Ausnahme: Einträge, die du
+         schnell in den Plan gelegt hast – per Barcode-Scan oder durch Antippen eines zählbaren
+         Lebensmittels (z. B. ein Apfel) –, räumt die App nach etwa drei Wochen von selbst
          weg – aber nur, wenn sie in keiner deiner Wochen mehr eingeplant sind. Über „Konto löschen" im Profilmenü kannst du dein
          Konto und deine Daten <strong>jederzeit selbst und sofort</strong> unwiderruflich löschen; alternativ kannst
          du die Löschung auch per E-Mail an uns verlangen. Das schließt alle Teilen-Links für einzelne Meals ein, die deinem

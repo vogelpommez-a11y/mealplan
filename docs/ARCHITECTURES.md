@@ -609,15 +609,67 @@ Barcode-Schnellzugriff" in `docs/PRODUCT.md`. Zwei zusätzliche, optionale Felde
 * `quick: true`: blendet den Eintrag im Reiter „Meals" aus. Maßgeblich ist dafür
   `libraryRecipes()` (`state.recipes` ohne `quick`) — genutzt von `paintRecipeGroups()`,
   vom Zähler `#recipe-count` und von der Sichtbarkeit des Suchfelds, damit Zähler, Leerzustand
-  und Liste dieselbe Menge beschreiben. Der Meal-Picker im Wochenplan zeigt weiterhin **alle**
-  Meals: ein einmal gescanntes Produkt soll sich ohne zweiten Scan erneut einplanen lassen.
+  und Liste dieselbe Menge beschreiben. Seit dem Sheet-Umbau nutzt **auch `openPicker()`** diese
+  Menge — eine Auswahlliste, die mit jedem gescannten Riegel länger wird, ist das Gegenteil von
+  „Entscheidungen abnehmen"; über Plan, Einkaufsliste und Druck bleiben die Produkte erreichbar.
   Wird **nur** beim stillen Anlegen mit vollständigen OFF-Daten gesetzt —
   bestätigt der Nutzer stattdessen über das normale Formular, bleibt der Eintrag sichtbar, weil
   er ihn aktiv über den Standardweg angelegt hat.
 
-Beide Felder sind additiv: `sanitizeRecipe()` kopiert unbekannte Felder unverändert durch
+Diese Felder sind additiv: `sanitizeRecipe()` kopiert unbekannte Felder unverändert durch
 (`Object.assign({}, r)`), Plan, Einkaufsliste, PDF-Export und Ziel-Ringe kennen ausschließlich
 `getRecipe(id)` und bleiben dadurch unverändert funktionsfähig.
+
+### Schnelleintrag für Stück-Artikel: `qf`
+
+Ein Apfel oder eine Banane soll ohne Meal-Formular in einen Slot kommen. `quickAddPiece(day,
+meal, food)` benutzt dafür **exakt dasselbe Muster** wie `quickAddByBarcode()` — ein stilles
+`quick: true`-Meal, nur ist die Datenquelle lokal (`pieceFoods()`) statt Open Food Facts und
+damit immer vollständig; einen Formular-Fallback braucht es hier nicht.
+
+* Drittes optionales Feld **`qf`**: der normalisierte Food-Schlüssel (`foodNorm(Name + Synonyme)`)
+  als Dedupe-Anker — das Gegenstück zu `barcode`. Ohne ihn entstünde bei jedem Antippen ein neues
+  Rezeptdokument, und die Einkaufsliste zeigte dreimal „1× Banane" statt einmal „3× Banane".
+* Das Meal trägt `portions: 1`, seine `nutrition` gilt **je Stück**, und seine einzige Zutat ist
+  `{name, grams: 1, unit: "st", …Nährwerte}`. Genau daran hängt die Einkaufsliste:
+  `buildShoppingList()` aggregiert über `name|unit`, `qtyLabel()` macht „2× Banane",
+  `shopCategory()` sortiert in die Warengruppe. Nichts davon ist ein Sonderfall.
+* Aufgeräumt wird es vom bestehenden `pruneQuickRecipes()` (21 Tage TTL, nur wenn nirgends mehr
+  eingeplant) — **kein zweiter Aufräumpfad.**
+* Das Dedupe wirkt **lokal**, nicht über Geräte hinweg: legen zwei Geräte einer Gruppe offline
+  dieselbe Banane an, entstehen zwei Rezepte mit gleichem `qf`, und die Einkaufsliste zeigt zwei
+  Zeilen „1× Banane" statt einer mit „2×". Genau dasselbe gilt seit immer für `barcode` und ist
+  bewusst nicht gelöst: eine geräteübergreifende Zusammenführung müsste fremde Plan-Einträge
+  umschreiben, und das darf ein Aufräumschritt nicht. Nach 21 Tagen räumt sich der Rest von selbst.
+
+Mengen werden nicht im Eintrag gezählt: zwei Bananen sind zwei Einträge im Slot. `unassign`
+arbeitet index-basiert (`data-slot-src="tag:slot:index"`), doppelte IDs in einem Slot sind
+deshalb unproblematisch, und die Einkaufsliste fasst sie ohnehin zusammen.
+
+### Zutaten-Datenbank `FOODS`
+
+Handgepflegte Rundwerte für generische Lebensmittel, bewusst kein Auszug aus einer fremden
+Datenbank (Lizenz, siehe Kommentar im Code). Format:
+
+```text
+[Name, kcal, KH, Protein, Fett, Einheit?, Synonyme?, GrammJeStueck?]
+```
+
+Werte je 100 g/100 ml, bei `Einheit: "st"` je Stück; fehlende Einheit = `"g"`. Synonyme stehen nur
+im Suchschlüssel, nie in der Anzeige. Das achte Feld ist das **Stückgewicht** (verzehrbarer Anteil
+eines mittelgroßen Stücks) und steht absichtlich direkt neben den Nährwerten, auf die es sich
+bezieht — eine zweite Tabelle „Name → Gewicht" wäre eine Namensverknüpfung, die bei jedem
+Umbenennen still bricht.
+
+Darauf setzen drei Helfer auf:
+
+* `foodList()` — lazy Index mit `{name, kcal, carbs, protein, fat, unit, stk, key}`.
+* `rankFoods(list, q, max)` — die gemeinsame Rangfolge (Wortanfang → Wortanfang später →
+  mittendrin, ab 2 Zeichen). `foodSearch()` (Zutatenzeile) und `pieceSearch()` (Schnelleintrag)
+  sind nur zwei Aufrufer davon; beide verhalten sich deshalb identisch.
+* `pieceFoods()` — die zählbaren Einträge: entweder schon je Stück erfasst (`unit === "st"`, z. B.
+  das Ei) oder mit Stückgewicht. Deren 100-g-Werte werden **einmal** aufs Stück hochgerechnet.
+  `PIECE_TOP`/`pieceTop()` ist die kurze feste Auswahl, die der Picker ohne Suchbegriff zeigt.
 
 `offServingSize(p)` (neben `fetchOffNutrition()`) wertet OFF's `serving_size`/`quantity`-Feld
 aus und liefert `{grams, count, serving}` oder `null`:
@@ -636,6 +688,30 @@ Portion und führt stattdessen in den Formular-Fallback, siehe `docs/TROUBLESHOO
 Dieser Fallback (`openRecipeForm(null, prefill)`) nimmt die gefundenen Nährwerte als vorbefüllte
 Zutaten-Zeile (je 100 g, ohne Menge) mit — `updateMacroSum()` summiert die Meal-Nährwerte, sobald
 der Nutzer die Menge einträgt.
+
+### Live-Kamera: Bühnenformat und Fokus (`scanBarcodeLive()`)
+
+Die einzige Live-Kamera-Stelle der App. Drei Dinge hängen zusammen und dürfen nur gemeinsam
+geändert werden:
+
+1. **Angeforderte Constraints.** `facingMode: {ideal: "environment"}`, `width/height` ideal
+   1920×1080 und `aspectRatio: {ideal: hochkant ? 3/4 : 4/3}` — die Haltung des Geräts entscheidet.
+   Alles bewusst `ideal`: eine harte Forderung bräche mit `OverconstrainedError` auf Kameras, die
+   das Format nicht können, obwohl ein anderes völlig ausreicht.
+2. **Die Bühne folgt dem echten Stream, nicht dem Breakpoint.** `.scanvid` trägt
+   `--scan-ar` (Breite/Höhe als reine Zahl); `syncStage()` setzt sie aus
+   `track.getSettings()` (Rückfall: `video.videoWidth/Height`, weil Safari `getSettings()` nicht
+   immer gefüllt liefert). Ein entprellter `resize`-Listener zieht sie beim Drehen nach und fordert
+   `aspectRatio` **nur dann** neu an, wenn Bild und Haltung wirklich quer zueinander liegen —
+   ein `applyConstraints()` ohne Not lässt das Bild sichtbar zucken.
+3. **Fokus.** `focusModes()` liest `track.getCapabilities().focusMode`, `applyFocus(mode)` setzt
+   ihn über `applyConstraints({advanced: [{focusMode}]})`. Beim Start `continuous`; ein Tipp aufs
+   Bild fordert `single-shot` nach. Beides nur, wenn die Capability da ist — sonst bleibt auch der
+   Hinweistext stumm und verspricht nichts. Alles in `try/catch` und ohne `await`: die API kennt
+   derzeit nur Chromium.
+
+`cleanup()` bleibt die einzige Abbaustelle und meldet auch den `resize`-Listener und den
+Entprell-Timer ab.
 
 ## Firebase Security
 

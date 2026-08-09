@@ -508,6 +508,35 @@ Altersgrenze ist kein Beiwerk: Ohne sie könnte ein Gerät ein Produkt löschen,
 gerade eingeplant hat und das hier noch nicht angekommen ist. Speicherplatz zu sparen darf keine
 fremde Planung beschädigen.
 
+## Bewusste Produktentscheidung: Schnelleintrag für Stück-Artikel
+
+Ein Apfel ist kein Meal. Wer eine Banane zum Frühstück einplanen will, hat vorher ein Meal
+angelegt — Name, Kategorie, Nährwerte — für 105 kcal. Das ist genau die Entscheidungslast, die die
+App abnehmen soll. Der Schnelleintrag ist deshalb der dritte Weg in einen Slot, neben Meal wählen
+und Barcode scannen: tippen, antippen, drin.
+
+**Er sitzt im bestehenden Suchfeld**, nicht in einer eigenen Ansicht. Wer „ban" eintippt, sieht
+seine Meals und darunter den Abschnitt „Schnell". Ein zweiter Knopf am Slot hätte den Nutzer
+gezwungen, vorher zu wissen, in welcher der beiden Listen sein Ziel steckt.
+
+**Nur echte Stück-Artikel.** Apfel, Banane, Ei, Brötchen, Mandarine — Dinge, bei denen „ein Stück"
+eine natürliche Portion ist. Keine Scheiben, keine Handvoll: „1 Stück Brot" ist schlicht falsch,
+und jedes eigene Mengenwort wäre eine neue Sonderregel in einer Liste, die vom Ablesen lebt.
+
+**Ein Tipp = ein Stück.** Zwei Bananen sind zwei Antipper und zwei Karten im Slot. Ein
+Mengen-Regler hätte jede Zeile um zwei Knöpfe und einen Bestätigungsschritt verlängert — für den
+Regelfall (ein Stück) wäre das teurer geworden, und die Einkaufsliste fasst „2× Banane" von selbst
+zusammen.
+
+**Verworfen: ein eigener Eintragstyp im Slot.** Dieselbe Begründung wie beim Barcode-Schnellzugriff
+— Tagesbilanz, Einkaufsliste, PDF, Gruppen-Sync und Undo kennen nur Rezept-IDs. Der Schnelleintrag
+legt darum ein stilles Meal an, das aus der Bibliothek ausgeblendet bleibt und automatisch
+verschwindet, sobald es nirgends mehr eingeplant ist.
+
+**Ohne ein einziges Meal ist der Slot jetzt trotzdem benutzbar.** Der frühere Sonderdialog „Noch
+keine Meals" war eine Sackgasse mit einem Ausweg; der Hinweis samt Weg zu den Meals steht jetzt im
+Picker selbst, über dem Schnellbereich.
+
 ## Bewusste Produktentscheidung: Meal-Ansicht und Editor sind eins
 
 Ein Meal hatte früher drei getrennte Oberflächen: die Karte in der Liste, ein Ansehen-Modal und

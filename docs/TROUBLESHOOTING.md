@@ -1534,3 +1534,62 @@ Trefferfläche macht.
 **Auffällig wurde es nur durch Messen**, nicht durch Hinsehen: Die Breite eines Knopfes im
 Prüfstand ausgeben (`getBoundingClientRect().width`) und gegen die erwartete Form prüfen — bei
 sichtbarem Text darf sie nicht der Icon-Breite entsprechen.
+
+## 63. Kamera-Bühne ≠ Kamera-Bild: warum der Barcode-Scanner nur quer funktionierte
+
+Der Scanner war hochkant praktisch unbenutzbar — man musste das Handy quer drehen, damit ein
+Barcode überhaupt in den Rahmen passte. Der Grund steckte in zwei Zeilen, die einzeln beide
+plausibel aussahen:
+
+* `getUserMedia` forderte `1280×960` — ein **Querformat**.
+* Das CSS nagelte die Bühne unter 560 px per Media Query auf `aspect-ratio: 3/4` — ein
+  **Hochformat**.
+
+Mit `object-fit: cover` füllt das Video die Bühne und schneidet den Rest weg. Bei 4:3-Bild in
+3:4-Rahmen fällt links und rechts jeweils rund ein Drittel der Bildbreite weg — genau die Achse,
+auf der ein Barcode lang ist.
+
+**Die Regel: die Bühne richtet sich nach dem tatsächlichen Stream, nie nach der Bildschirmbreite.**
+`track.getSettings()` liefert `width`/`height`; daraus wird eine CSS-Variable (`--scan-ar`,
+Breite/Höhe als reine Zahl) gesetzt. Sind Bühne und Bild gleich, ist `cover` deckungsgleich mit
+`contain` und schneidet nichts. Zusätzlich wird `aspectRatio` passend zur Haltung angefordert —
+aber nur als `ideal`, siehe unten.
+
+Drei Fallen dabei:
+
+* **`aspect-ratio` plus `max-height` kippt das Verhältnis.** Steht daneben `width: 100%`, ist die
+  Breite definit und gewinnt; die Höhe wird gekappt und das Seitenverhältnis ist wieder falsch —
+  es schneidet erneut. Richtig ist die Höhenbremse über die **Breite**:
+  `width: min(100%, calc(62svh * var(--scan-ar)))`.
+* **`applyConstraints()` ohne Not lässt das Bild zucken**, weil der Track kurz neu ausgehandelt
+  wird. Deshalb beim Drehen nur dann nachfordern, wenn Bild und Haltung wirklich quer zueinander
+  liegen — die reine Bühnenkorrektur behebt den Beschnitt ohnehin schon.
+* **Constraints hart zu fordern bricht die Kamera.** `aspectRatio: {exact: …}` oder eine feste
+  Auflösung liefern auf Geräten, die das Format nicht können, einen `OverconstrainedError` — also
+  gar kein Bild, obwohl ein anderes Format völlig ausgereicht hätte. Alles `ideal`.
+
+## 64. `focusMode` gibt es nur in Chromium — der Nahfokus ist kein Bug, der sich überall fixen lässt
+
+Der zweite Scanner-Befund: je näher man an den Barcode ging, desto unschärfer wurde er. Ursache
+ist ein Fixfokus — es gab in der ganzen Datei kein `applyConstraints()`, also blieb die Kamera auf
+dem, was der Browser vorgab.
+
+Der Hebel ist `track.applyConstraints({ advanced: [{ focusMode: "continuous" }] })`, plus
+`single-shot` beim Antippen des Bildes als Rettungsanker, wenn eine Kamera einmal falsch
+scharfstellt und dort hängen bleibt.
+
+**Aber: MediaStreamTrack `focusMode` ist derzeit Chromium-only (Android).** Safari/iOS kennt es
+nicht. Daraus folgen drei Regeln:
+
+* **Vorher `getCapabilities().focusMode` prüfen**, nicht blind anwenden. Ein `applyConstraints()`
+  mit unbekanntem Feld ist nicht garantiert harmlos.
+* **Nie `await`, immer `try/catch` samt `.catch()`.** Der Scanner darf an einer Kamera-Feinheit
+  nicht hängen bleiben — dieselbe Lektion wie bei `video.play()` (Punkt 18).
+* **Nichts versprechen, was das Gerät nicht kann.** Der Hinweis „Antippen stellt neu scharf"
+  erscheint nur, wenn die Capability wirklich da ist. Auf iOS bleibt der Fokus Sache des Systems;
+  dort hilft stattdessen die höhere angeforderte Auflösung (1920), weil der Code dann auch aus
+  etwas mehr Abstand noch genug Pixel je Strich hat.
+
+Automatisiert prüfbar ist das nur mit gemockter Kamera (siehe `docs/TESTING.md`): dass der
+Constraint **mit** Capability angefordert wird und **ohne** sie nicht. Ob es am Gerät wirklich
+scharf stellt, beweist nur das Gerät.
