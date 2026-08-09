@@ -1549,9 +1549,15 @@
      Die width-Rechnung ist die Hoehenbremse: aspect-ratio zusammen mit einem blossen
      max-height wuerde bei width: 100% kippen (die Breite ist dann definit und gewinnt) und
      wieder beschneiden. Ueber die Breite gerechnet bleibt das Verhaeltnis erhalten und die
-     Buehne trotzdem hoechstens 62 svh hoch - noetig, weil ein 9:16-Stream sonst ueber den
-     Bildschirm hinauswaechst und Kopfzeile samt Foto-Ausweg verdraengt. */
-  .scanvid { --scan-ar: 1.3333; position: relative; width: 100%; width: min(100%, calc(62svh * var(--scan-ar))); margin-inline: auto; aspect-ratio: var(--scan-ar); background: #000; border-radius: var(--radius); overflow: hidden; border: 1px solid var(--border-strong); }
+     Buehne trotzdem nicht hoeher als der Platz, der nach Kopfzeile, Hinweis und Foto-Ausweg
+     uebrig ist.
+
+     --scan-h ist genau dieser Platz und wird von syncStage() gemessen, nicht geschaetzt. Der
+     Startwert 62svh gilt nur, bis die Messung steht. Vorher stand hier fest 62svh, und das war
+     an beiden Enden falsch: im Hochformat blieb die Buehne 64px schmaler als moeglich (die
+     Grenze griff, obwohl Platz war), im Querformat ragte der Kasten 1px aus dem Bildschirm und
+     der Foto-Knopf war abgeschnitten - der Wert kannte die Hoehe der Bedienelemente nicht. */
+  .scanvid { --scan-ar: 1.3333; --scan-h: 62svh; position: relative; width: 100%; width: min(100%, calc(var(--scan-h) * var(--scan-ar))); margin-inline: auto; aspect-ratio: var(--scan-ar); background: #000; border-radius: var(--radius); overflow: hidden; border: 1px solid var(--border-strong); }
   .scanvid video { width: 100%; height: 100%; object-fit: cover; display: block; }
   /* Sucherrahmen: Ecken statt Vollrahmen, damit der Barcode sichtbar bleibt */
   .scanframe { position: absolute; left: 8%; right: 8%; top: 27%; bottom: 27%; pointer-events: none; }
@@ -1562,6 +1568,25 @@
   .scanhint.err { color: var(--accent); font-weight: 600; }
   .scanfoot { display: flex; flex-direction: column; gap: 8px; }
   .scanfoot .btn { width: 100%; justify-content: center; }
+  /* Gedrehtes Handy: Bild NEBEN die Bedienelemente statt darunter.
+     Eine Hochformat-Sperre gibt es im Web auf dem iPhone nicht (Safari setzt weder
+     "orientation" aus dem Manifest um noch screen.orientation.lock), und den ganzen Sucher
+     gegenzudrehen wuerde das Kamerabild kippen - iOS dreht den Stream naemlich schon selbst
+     mit. Also wird das Querformat nicht bekaempft, sondern benutzt: uebereinander bleiben im
+     Querformat nur ~240px Bildhoehe uebrig, nebeneinander sind es ~358 - mehr als die doppelte
+     Bildflaeche fuer denselben Barcode. Der Aufbau (Kopf, Bild, Hinweis, Fuss) bleibt dabei
+     derselbe, nur die Anordnung wechselt. */
+  @media (orientation: landscape) and (max-height: 560px) {
+    .scanbox {
+      max-width: none; height: 100%; display: grid; align-items: center;
+      grid-template-columns: auto minmax(150px, 240px); grid-template-rows: auto 1fr auto;
+      gap: 10px 16px;
+    }
+    .scanvid { grid-column: 1; grid-row: 1 / -1; width: auto; height: 100%; max-width: 100%; }
+    .scanhead { grid-column: 2; grid-row: 1; }
+    .scanhint { grid-column: 2; grid-row: 2; align-self: center; }
+    .scanfoot { grid-column: 2; grid-row: 3; }
+  }
   .modal-head { display: flex; align-items: center; gap: 12px; padding: 16px 18px; border-bottom: 1px solid var(--border); }
   .modal-head h3 { font-family: var(--font-display); font-size: 19px; margin: 0; flex: 1; }
   .modal-head .kicker { font-size: 11.5px; text-transform: uppercase; letter-spacing: .05em; color: var(--text-muted); }
@@ -5996,12 +6021,26 @@
         const t = stream && stream.getVideoTracks ? stream.getVideoTracks()[0] : null;
         return t && t.readyState !== "ended" ? t : null;
       }
+      const box = node.querySelector(".scanbox");
       function syncStage() {
         const t = videoTrack();
         const s = t && t.getSettings ? t.getSettings() : null;
         // Notfalls die Masse des Videoelements: Safari liefert getSettings() nicht immer gefuellt.
         const w = (s && s.width) || video.videoWidth, h = (s && s.height) || video.videoHeight;
         if (w > 0 && h > 0) stage.style.setProperty("--scan-ar", String(w / h));
+        // Freie Hoehe fuer die Buehne messen statt schaetzen: alles abziehen, was der Kasten
+        // sonst braucht (Kopfzeile, Hinweis, Foto-Ausweg, Abstaende) plus das Innenpolster der
+        // Ebene. clientHeight der Ebene, nicht window.innerHeight - im Pruefstand-Rahmen nehmen
+        // klassische Scrollleisten Platz weg (siehe docs/TESTING.md).
+        let rest = 0;
+        Array.prototype.forEach.call(box.children, c => {
+          if (c !== stage) rest += c.getBoundingClientRect().height;
+        });
+        const cs = getComputedStyle(box);
+        const gap = parseFloat(cs.rowGap) || 0;
+        const frei = node.clientHeight - 32 - rest - gap * (box.children.length - 1);
+        // Untergrenze, damit ein Messfehler die Buehne nie verschwinden laesst.
+        stage.style.setProperty("--scan-h", Math.max(180, Math.round(frei)) + "px");
       }
       // Ohne das bleibt die Kamera auf dem Fixfokus, den der Browser vorgibt: je naeher man
       // an den Barcode geht, desto unschaerfer. focusMode kennt derzeit nur Chromium
@@ -6122,6 +6161,7 @@
         if (focusModes().length) {
           stage.style.cursor = "pointer";
           hint.textContent = readyHint + " Antippen stellt scharf.";
+          syncStage();   // der laengere Hinweis kann umbrechen und nimmt der Buehne dann Hoehe
           stage.addEventListener("click", () => {
             if (done) return;
             if (!applyFocus("single-shot")) applyFocus("continuous");

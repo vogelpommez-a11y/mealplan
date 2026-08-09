@@ -704,6 +704,15 @@ geändert werden:
    immer gefüllt liefert). Ein entprellter `resize`-Listener zieht sie beim Drehen nach und fordert
    `aspectRatio` **nur dann** neu an, wenn Bild und Haltung wirklich quer zueinander liegen —
    ein `applyConstraints()` ohne Not lässt das Bild sichtbar zucken.
+   `syncStage()` setzt außerdem `--scan-h`: die **gemessene** freie Höhe (Ebene minus Kopfzeile,
+   Hinweis, Fuß, Abstände, Polster). Daraus rechnet das CSS die Breite
+   (`min(100%, calc(var(--scan-h) * var(--scan-ar)))`) — so bleibt das Seitenverhältnis erhalten,
+   ohne dass die Bühne den Kasten aus dem Bildschirm schiebt. Ein fester Anteil der Bildschirmhöhe
+   war hier messbar falsch, siehe `docs/TROUBLESHOOTING.md` Punkt 63.
+   Im Querformat auf niedrigen Bildschirmen (`orientation: landscape` und `max-height: 560px`)
+   wechselt `.scanbox` per Grid von der Spalte auf **Bild links, Bedienelemente rechts** — gleiche
+   Elemente, gleiche Reihenfolge, rund doppelte Bildfläche. Eine Hochformat-Sperre ist im Web auf
+   iOS nicht möglich und eine Gegenrotation würde das Bild kippen (Punkt 65).
 3. **Fokus.** `focusModes()` liest `track.getCapabilities().focusMode`, `applyFocus(mode)` setzt
    ihn über `applyConstraints({advanced: [{focusMode}]})`. Beim Start `continuous`; ein Tipp aufs
    Bild fordert `single-shot` nach. Beides nur, wenn die Capability da ist — sonst bleibt auch der

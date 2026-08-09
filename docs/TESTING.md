@@ -297,7 +297,25 @@ jeden Aufruf mitschreibt. Damit ist prüfbar, was sonst nur am Gerät sichtbar w
 * `cleanup()`: alle Tracks gestoppt, `resize`-Listener abgemeldet (ein `resize` nach dem Schließen
   darf keinen Constraint mehr auslösen).
 
-Zwei Fallen im Prüfstand selbst:
+#### Scanner-Geometrie in beiden Geräte-Haltungen messen
+
+Hoch- und Querformat je in einem `iframe` fester Größe (390×844 und 844×390), Kamera-Attrappe mit
+passenden Stream-Maßen (iOS dreht den Stream mit, also im Querformat 1920×1080 und im Hochformat
+1080×1920). Geprüft wird: `--scan-ar`, die Bühnengröße, **ob der Kasten in den Bildschirm passt**
+(`box.bottom <= viewport.height`) und ob die Reihenfolge der Kinder gleich bleibt. Genau so kamen
+die zwei Defekte der festen `62svh`-Grenze heraus (64 px verschenkte Breite im Hochformat,
+abgeschnittener Foto-Knopf im Querformat) — durch Hinsehen wäre keiner aufgefallen.
+
+Drei Fallen im Prüfstand selbst:
+
+* **Ein offen gelassener Scanner hängt den Browser auf.** Die Decode-Schleife ist eine
+  `setTimeout`-Kette, und `--virtual-time-budget` springt von Timer zu Timer — die Schleife läuft
+  endlos schnell, das Budget läuft nie ab. Beim Messen deshalb `window.BarcodeDetector` auf
+  `undefined` setzen und `loadZXing()` hängen lassen; beim Ablauf-Prüfen den Scanner jedes Mal
+  schließen. Siehe `docs/TROUBLESHOOTING.md` Punkt 66. Den Browserstart zusätzlich mit
+  `WaitForExit(<ms>)` begrenzen und danach hart beenden.
+* **Zwei `iframe`s gleichzeitig** gegen `python -m http.server` (einfädig) sind ein Hänger-Risiko —
+  nacheinander messen.
 
 * **`loadZXing()` nicht ablehnen lassen, sondern hängen lassen** (`new Promise(function(){})`).
   Headless Edge hat keinen `BarcodeDetector`, ein abgelehntes `loadZXing()` überschreibt den

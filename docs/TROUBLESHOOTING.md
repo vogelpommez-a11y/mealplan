@@ -1560,7 +1560,15 @@ Drei Fallen dabei:
 * **`aspect-ratio` plus `max-height` kippt das Verhältnis.** Steht daneben `width: 100%`, ist die
   Breite definit und gewinnt; die Höhe wird gekappt und das Seitenverhältnis ist wieder falsch —
   es schneidet erneut. Richtig ist die Höhenbremse über die **Breite**:
-  `width: min(100%, calc(62svh * var(--scan-ar)))`.
+  `width: min(100%, calc(var(--scan-h) * var(--scan-ar)))`.
+* **Und diese Höhe muss gemessen werden, nicht geschätzt.** Erst stand dort ein fester Wert
+  (`62svh`), und der war an beiden Enden falsch: im Hochformat blieb die Bühne 64 px schmaler als
+  möglich, obwohl Platz war, und im Querformat ragte der Kasten 1 px aus dem Bildschirm — der
+  Foto-Knopf war abgeschnitten. Ein fester Anteil der Bildschirmhöhe kennt die Höhe von
+  Kopfzeile, Hinweis und Fuß nicht, und der Hinweis wächst sogar zur Laufzeit (der Fokus-Zusatz
+  kann umbrechen). `syncStage()` zieht deshalb die Höhe aller Geschwister plus Abstände von
+  `.scanwrap.clientHeight` ab und schreibt das Ergebnis nach `--scan-h` — erneut bei jedem
+  `resize` und nach jeder Textänderung.
 * **`applyConstraints()` ohne Not lässt das Bild zucken**, weil der Track kurz neu ausgehandelt
   wird. Deshalb beim Drehen nur dann nachfordern, wenn Bild und Haltung wirklich quer zueinander
   liegen — die reine Bühnenkorrektur behebt den Beschnitt ohnehin schon.
@@ -1593,3 +1601,50 @@ nicht. Daraus folgen drei Regeln:
 Automatisiert prüfbar ist das nur mit gemockter Kamera (siehe `docs/TESTING.md`): dass der
 Constraint **mit** Capability angefordert wird und **ohne** sie nicht. Ob es am Gerät wirklich
 scharf stellt, beweist nur das Gerät.
+
+## 65. Hochformat lässt sich im Web auf dem iPhone nicht erzwingen — das Querformat muss taugen
+
+Der Wunsch „beim Drehen soll sich das Scanner-Fenster nicht mitdrehen" ist im Safari nicht
+erfüllbar, und zwar aus drei Gründen gleichzeitig:
+
+* `screen.orientation.lock()` implementiert WebKit nicht. Auf iOS nutzen **alle** Browser WebKit,
+  Chrome dort also auch.
+* `"orientation": "portrait"` steht bereits in `manifest.webmanifest` — iOS setzt es nicht um,
+  auch nicht als installierte Web-App.
+* Die naheliegende Bastellösung, den ganzen Sucher per `transform: rotate(90deg)` gegenzudrehen,
+  **kippt das Kamerabild**: iOS dreht den Stream schon selbst mit dem Gerät, das Bild steht also
+  bereits richtig. Eine Gegenrotation macht aus einem korrekten Bild ein schiefes. UI am Gehäuse
+  festnageln **und** Bild aufrecht halten geht nicht — genau deshalb zeigen native, auf Hochformat
+  gesperrte Scanner ihr Vorschaubild quer, wenn man das Handy dreht.
+
+**Die Konsequenz: das Querformat nicht bekämpfen, sondern brauchbar machen.** Übereinander
+(Kopf → Bild → Hinweis → Fuß) bleiben auf einem 844×390-Bildschirm nur ~240 px Bildhöhe übrig.
+Nebeneinander — Bild links, Bedienelemente rechts, per Grid in
+`@media (orientation: landscape) and (max-height: 560px)` — sind es ~358 px, also rund die
+doppelte Bildfläche für denselben Barcode. Reihenfolge und Elemente bleiben dieselben, nur die
+Anordnung wechselt.
+
+Eine echte Sperre gibt es nur in der geplanten Store-App über Capacitor
+(`@capacitor/screen-orientation`). Das ist der richtige Ort dafür, nicht das Web.
+
+## 66. Ein offener Scanner + `--virtual-time-budget` = hängender Prüfstand
+
+Wer den Scanner im Prüfstand **offen lässt**, um ihn zu messen, bringt Edge headless zum Stehen:
+Die Erkennung läuft als `setTimeout(tick, 160)`-Kette, und virtuelle Zeit springt von Timer zu
+Timer. Die Schleife wird damit endlos schnell, das Zeitbudget läuft nie ab, es kommt kein
+`--dump-dom`. Sichtbar war nur ein Prozess, der 120 s nichts tat, plus 16 zurückbleibende
+`msedge.exe`.
+
+Zwei Gegenmittel, je nach Zweck:
+
+* **Messen mit offenem Scanner:** die native API vorher abschalten
+  (`Object.defineProperty(window, "BarcodeDetector", { value: undefined })`) und `loadZXing()`
+  hängen lassen. Dann tickt nichts, und die Geometrie steht trotzdem.
+* **Ablauf prüfen:** den Scanner am Ende jedes Prüfschritts wirklich schließen (Escape), so wie
+  es der Kamera-Prüfstand tut — dort trat das Problem deshalb nie auf.
+
+Zusätzlich: den Browser im Prüfskript mit `WaitForExit(<ms>)` begrenzen und danach hart beenden.
+Ohne Grenze schluckt ein einziger solcher Hänger das ganze Zeitfenster.
+
+Und: **zwei `iframe`s gleichzeitig gegen `python -m http.server`** sind ebenfalls ein Hänger-Risiko —
+der Server ist einfädig. Rahmen nacheinander messen, nicht parallel.
