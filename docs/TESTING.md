@@ -304,6 +304,24 @@ mobile Ansicht.
 `--force-device-scale-factor=3` ändert den CSS-Viewport **nicht**, liefert aber einen
 dreifach aufgelösten Screenshot — nützlich, um kleine Icons zu beurteilen.
 
+**Wichtige Einschränkung: `--window-size` wirkt nicht immer.** Mit `--headless=new` und
+`--dump-dom` wurde die Flagge in einem Durchlauf komplett ignoriert — `clientWidth` blieb bei
+477 px, egal ob 320, 360 oder 390 übergeben wurde. Die Regel „mitloggen" ist damit nicht
+Kür, sondern das Einzige, was die Messung überhaupt einordnet: Ohne sie hätte der ganze
+Durchlauf Desktop-Regeln geprüft und als mobile Ansicht protokolliert.
+
+**Der verlässliche Weg für schmale Breiten ist der iframe** (weiter unten ausführlich). Er
+funktioniert auch ohne laufenden Server über `file://`, dann braucht Edge zusätzlich
+`--allow-file-access-from-files`, damit die Rahmenseite den DOM des Rahmens lesen darf:
+
+```text
+--headless=new --allow-file-access-from-files --dump-dom  file:///…/frame.html?w=390
+```
+
+Der Rahmen liefert dann exakt die gewünschte CSS-Breite. Trotzdem die tatsächliche Breite
+zurückmelden lassen (`soll=390 ist=390`) — bei sichtbarer Scrollleiste fehlen sonst 15 px und
+ein Test „bei 681 px" läuft in Wahrheit bei 666 px, also noch im mobilen Zweig.
+
 ### Media-Queries nicht „flachklopfen"
 
 Der Reflex, für einen Test die Hülle `@media (max-width: 680px) { … }` per Python zu entfernen,
@@ -737,6 +755,59 @@ scrollen soll: `scrollWidth === clientWidth` (bzw. `scrollHeight === clientHeigh
 `getComputedStyle(el).touchAction`. `overflow-y: auto` macht die Gegenachse automatisch mit zum
 Scroller, und schon sechs Pixel Überlauf schalten die Wischgeste des Elternteils ab. Die Geste
 selbst ist headless nicht auslösbar — diese beiden Werte sind der belastbare Ersatz.
+
+### Erst prüfen, ob überhaupt Daten da sind — dann messen
+
+Ein Prüfstand, der die echte App mit vorbefülltem `localStorage` startet, kann einen **leeren**
+Zustand messen und trotzdem lauter gute Werte melden. Beim Umbau des Wochenplans (09.08.2026)
+lief genau das: Die Tagesschlüssel im Testplan hießen `mo`/`di`/`mi`, in der App heißen sie
+`mon`/`tue`/`wed` (`const DAYS`). `normalizePlan()` filtert unbekannte Schlüssel still weg — der
+Plan war komplett leer, der Test meldete „kein waagerechter Überlauf" für sieben leere Tage und
+sah bestanden aus. Aufgefallen ist es erst, als die Einkaufsliste „0 Positionen" zeigte.
+
+**Deshalb: jeder Prüfstand beginnt mit einer Gegenprobe, die laut wird.**
+
+```js
+var filled = document.querySelectorAll('.week > .day .slot .filled');
+out.push('FILLED n=' + filled.length + (filled.length ? '' : '  <-- PLAN LEER, Messung wertlos'));
+```
+
+Dasselbe gilt für die Einkaufsliste: Sie rechnet **ab heute**. Fällt der Testtag auf einen späten
+Wochentag, ist die Liste leer, obwohl der Plan gefüllt ist — im Testplan deshalb auch die Tage bis
+Sonntag belegen.
+
+Weitere Stolpersteine beim Vorbefüllen (alle gemessen, nicht vermutet):
+
+* `load()` setzt `state.tab` nur auf `home` oder `recipes`. Der Wochenplan ist ein **dritter** Tab
+  und lässt sich nur über einen echten Klick auf `#tab-plan` betreten — was ohnehin besser ist, weil
+  dann der reguläre Pfad `render() → renderPlan() → initCarousel()` läuft.
+* Ohne `state.goal` zwingt `maybeStartOnboarding()` in die ersten Schritte, und der Plan wird nie
+  gerendert. Das Ziel-Objekt muss mit (Felder wie die Rückgabe von `computeGoal()`).
+* Das alte Einzelplan-Format `data.plan` ist praktisch: `load()` migriert es selbst in die
+  aktuelle Woche, man muss den ISO-Wochenschlüssel also nicht nachbauen.
+
+### Auf Bedingungen warten, nicht auf Zeit
+
+`--virtual-time-budget` beschleunigt Timer. Ein `setTimeout(…, 1800)` im Prüfstand feuert dadurch
+unter Umständen, **bevor** die App fertig gerendert hat — der Test misst einen halbfertigen DOM.
+Das äußert sich als sporadischer Fehlschlag: derselbe Aufruf lieferte in einem Lauf 23 Zeilen, im
+nächsten null.
+
+Nicht mit längeren Wartezeiten reparieren, sondern auf die Bedingung pollen:
+
+```js
+function waitFor(cond, done, tries) {
+  tries = tries || 0;
+  if (cond() || tries > 300) { done(tries > 300); return; }
+  setTimeout(function () { waitFor(cond, done, tries + 1); }, 50);
+}
+waitFor(function () {
+  return document.querySelectorAll('.week > .day .slot .filled').length > 0;
+}, messen);
+```
+
+Den Timeout-Fall dabei **ausgeben**, nicht verschlucken — sonst ist man wieder bei stillen
+Fehlmessungen.
 
 ### Wischgesten sind in diesem Aufbau nicht messbar — drei Anläufe, alle gescheitert
 

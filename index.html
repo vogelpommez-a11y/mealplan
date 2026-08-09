@@ -521,13 +521,29 @@
   /* Wochenplan-Kopf: Titel oben, Werkzeugleiste eine Zeile darunter */
   .plan-head { flex-direction: column; align-items: stretch; gap: 16px; }
   .plan-tools { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-  /* Zweiter Einstieg in die Einkaufsliste, nur auf dem Handy. Am Rechner traegt das der
-     breite Knopf mit Text unter dem Plan (.shop-cta) - dort ist Platz dafuer, und ein
-     zweiter Auffindungsweg fuer dieselbe Aktion waere nur Rauschen. */
-  .shop-ic { display: none; }
+  /* Einstieg in die Einkaufsliste - EIN Knopf, auf beiden Geraeten an derselben Stelle
+     in der Werkzeugleiste. Vorher waren es zwei: ein breiter Gradient-Knopf unter dem Plan
+     am Rechner und dieses Symbol im Kopf auf dem Handy. Dieselbe Aktion an zwei Orten in
+     zwei Formen - man sucht sie am Rechner unten, findet sie auf dem Handy oben.
+
+     Er traegt .icon-gh (34px quadratisch + hitSlop), weil er ab 680px genau das ist. Am
+     Rechner ist Platz fuer das Wort, also wird die Breite hier freigegeben - gleiches
+     Vorgehen wie bei .ws-w im Wochenumschalter daneben, nur andersherum aufgeschrieben:
+     dort entfaellt mobil ein Wort, hier eine Breite.
+
+     Ghost und nicht gefuellt: die Wochen-Pille daneben traegt schon den Akzent-Gradienten,
+     zwei Akzentflaechen in einer Leiste konkurrieren. Das Symbol allein setzt das Signal.
+
+     Der Selektor MUSS .btn.icon-gh mitnehmen: dessen width:34px steht mit zwei Klassen da,
+     ein blosses .shop-ic verliert dagegen und der Knopf bliebe quadratisch mit
+     ueberlaufendem Text (gemessen). */
+  .btn.icon-gh.shop-ic { width: auto; padding: 0 12px; gap: 8px; font-size: 13px; font-weight: 600; }
+  .shop-ic svg { color: var(--accent); }
   /* Klebende Tagesbilanz: nur auf dem Handy. Am Rechner steht sie in jeder der sieben
-     Tageskarten - eine achte, gemeinsame Leiste waere dort sinnlos. Gleiches
-     Zwei-Auslöser-Muster wie .shop-cta/.shop-ic darueber. */
+     Tageskarten - eine achte, gemeinsame Leiste waere dort sinnlos. Hier ist das
+     Nur-auf-einem-Geraet richtig, weil dieselbe INFORMATION am Rechner schon woanders
+     steht. Beim Einkaufsknopf darueber lag der Fall anders: dort war es dieselbe AKTION,
+     nur an zwei Orten - deshalb ist sie dort auf einen Ausloeser zusammengefuehrt. */
   .day-bal { display: none; }
   .week-switch { display: inline-flex; position: relative; background: var(--surface-2); border: 1px solid var(--border); border-radius: 999px; padding: 3px; gap: 2px; }
   .ws-btn { position: relative; z-index: 1; font: inherit; font-size: 13px; font-weight: 600; letter-spacing: .01em; cursor: pointer; border: 0; background: transparent; color: var(--text-muted); padding: 7px 15px; border-radius: 999px; white-space: nowrap; transition: color var(--dur-fast), background var(--dur-fast), box-shadow var(--dur-fast); }
@@ -543,9 +559,6 @@
     background: linear-gradient(135deg, var(--accent), var(--accent-strong));
     box-shadow: 0 2px 8px color-mix(in srgb, var(--accent) 34%, transparent);
   }
-  .shop-cta { display: flex; align-items: center; justify-content: center; gap: 11px; width: 100%; margin: 22px 0 2px; padding: 16px; font: inherit; font-family: var(--font-display); font-size: 17px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; cursor: pointer; color: var(--accent-contrast); background: linear-gradient(135deg, var(--accent), var(--accent-strong)); border: 0; border-radius: var(--radius); box-shadow: 0 6px 20px color-mix(in srgb, var(--accent) 26%, transparent); transition: transform var(--dur-fast) ease, box-shadow var(--dur-fast) ease; }
-  .shop-cta:hover { transform: translateY(-2px); box-shadow: 0 12px 28px color-mix(in srgb, var(--accent) 32%, transparent); }
-  .shop-cta svg { width: 22px; height: 22px; }
   .week { display: grid; grid-template-columns: repeat(auto-fill, minmax(232px, 1fr)); gap: 16px; }
   .day {
     position: relative;
@@ -996,16 +1009,18 @@
   /* Traegt .sec-h im Markup - dieselbe Abschnittsform wie "Zutaten" in der Meal-Ansicht.
      Vorher eigene Werte (11px/650/.04em) und in der Slot-Farbe. Die Farbe ist weg, weil
      das Wort danebensteht: "FRUEHSTUECK" in Amber sagt nichts, was "Fruehstueck" nicht
-     schon sagt. Den Mahlzeitenbezug traegt am Rechner weiter der Streifen links. */
+     schon sagt. Den Mahlzeitenbezug traegt der Streifen links - auf beiden Geraeten,
+     mobil im Fensterrand statt im Textfluss (siehe 680px-Block). */
   /* inline-flex, damit das Symbol auf einer Linie mit dem Wort sitzt statt auf der
      Grundlinie zu haengen. Das Symbol ist aria-hidden (iconSvg) - das Wort steht daneben
      und traegt die Aussage allein. */
   .slot .mlabel { margin-bottom: 3px; display: inline-flex; align-items: center; gap: 6px; }
-  /* Das Symbol traegt die Mahlzeitenfarbe - sie kam mit der Listen-Optik aus Text und
-     Streifen heraus und kehrt hier an der kleinsten sinnvollen Stelle zurueck: als
-     Wiedererkennung, ohne die Ueberschrift einzufaerben. --slot-c steht schon je Slot,
-     iconSvg() zeichnet mit currentColor - keine neue Farbquelle noetig.
-     Keine opacity mehr: die Farbe soll tragen, nicht gedaempft werden. */
+  /* Das Symbol traegt die Mahlzeitenfarbe ebenfalls - als Wiedererkennung auf Wortebene,
+     ohne die Ueberschrift selbst einzufaerben. Es kam auf, als die Listen-Optik mobil den
+     Streifen genommen hatte; der Streifen ist inzwischen zurueck, das Symbol bleibt: die
+     beiden stoeren sich nicht, das eine faerbt den Rand, das andere die Zeile.
+     --slot-c steht schon je Slot, iconSvg() zeichnet mit currentColor - keine neue
+     Farbquelle noetig. Keine opacity: die Farbe soll tragen, nicht gedaempft werden. */
   .slot .mlabel-ic { width: 15px; height: 15px; flex: none; color: var(--slot-c); }
   /* Snacks hat bewusst keinen eigenen Farbton (--slot-c zeigt dort auf --border-strong).
      Als Rahmenfarbe richtig, als 15px-Symbol auf der Fensterflaeche unsichtbar - im Dark
@@ -1598,10 +1613,13 @@
   .detail .steps { white-space: pre-wrap; line-height: 1.6; font-size: 14px; }
   .shop-head { display: flex; align-items: center; gap: 13px; }
   .shop-head .cart { flex: none; width: 42px; height: 42px; border-radius: 12px; display: grid; place-items: center; color: var(--accent-contrast); background: linear-gradient(150deg, var(--accent), var(--accent-strong)); box-shadow: var(--shadow); }
-  /* Personenanzahl: eine Zeile im Stil der .shop-item-Reihen darunter, damit sie als Teil
-     der Liste liest und nicht als fremdes Bedienfeld. 44px-Knoepfe sind Pflicht (Touch),
-     ergeben hier zufaellig genau die Hoehe einer .shop-item-Zeile - passt also auch optisch. */
-  .shop-persons { display: flex; align-items: center; justify-content: space-between; gap: 10px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 11px; padding: 4px 4px 4px 14px; margin-bottom: 13px; }
+  /* Personenanzahl: Flaeche, Rahmen und Rundung bewusst identisch zum Listenfenster
+     darunter, damit die beiden als Paar lesen - oben die Einstellung, unten das Ergebnis.
+     Gleiches Vorgehen wie bei .slots/.day-bal im Wochenplan. Vorher war sie im Stil einer
+     einzelnen .shop-item-Kachel gehalten; seit die Zeilen darunter randlose Listenzeilen
+     sind, gibt es diese Kachelform nicht mehr, an die sie sich haette anlehnen koennen.
+     44px-Knoepfe sind Pflicht (Touch) und geben der Zeile ihre Hoehe. */
+  .shop-persons { display: flex; align-items: center; justify-content: space-between; gap: 10px; background: color-mix(in srgb, var(--surface-2) 92%, var(--bg)); border: 1px solid var(--border); border-radius: var(--radius); padding: 4px 4px 4px 14px; margin-bottom: 13px; }
   .shop-persons .lbl { font-size: 14.5px; }
   .shop-persons .step { display: flex; align-items: center; flex: none; }
   .shop-persons .pnum { min-width: 96px; text-align: center; font-size: 14.5px; font-weight: 650; font-variant-numeric: tabular-nums; }
@@ -1625,10 +1643,41 @@
   .shop-progress .ptext { font-size: 12.5px; color: var(--text-muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
   .shop-progress .toggle-all { font: inherit; font-size: 12.5px; font-weight: 550; color: var(--accent-strong); background: none; border: 0; cursor: pointer; padding: 3px 7px; border-radius: 6px; white-space: nowrap; }
   .shop-progress .toggle-all:hover { background: color-mix(in srgb, var(--accent) 12%, transparent); }
-  .shop-list { display: flex; flex-direction: column; gap: 7px; max-height: 46vh; overflow-y: auto; margin: 0 -6px; padding: 2px 6px; }
-  .shop-item { display: flex; align-items: center; gap: 13px; padding: 11px 13px; border-radius: 11px; background: var(--surface-2); border: 1px solid var(--border); cursor: pointer; transition: border-color var(--dur-fast), background var(--dur-fast); }
-  .shop-item:hover { border-color: var(--border-strong); }
-  .shop-item:has(.shop-check:checked) { background: color-mix(in srgb, var(--accent) 6%, var(--surface)); border-color: color-mix(in srgb, var(--accent) 24%, var(--border)); }
+  /* ---------- Listen-Optik statt Kacheln ----------
+     Dieselbe Form wie der Zutaten-Ruhezustand der Meal-Ansicht (.ing-view) und die
+     Mahlzeiten im Wochenplan auf dem Handy: ein Fenster, darin Abschnitte mit
+     Ueberschrift, darin randlose Zeilen mit duennen Trennlinien.
+
+     Hier gilt das auf BEIDEN Geraeten, anders als im Wochenplan. Dort standen am Rechner
+     sieben Tage nebeneinander und brauchten ihre Abgrenzung - diese Liste steht in einem
+     Modal und ist auf jedem Bildschirm einspaltig untereinander. Es gab also nie einen
+     Grund fuer die Kachelform, sie war nur nie angefasst worden.
+
+     EIN Fenster um die ganze Liste, nicht eins pro Kategorie: das waere die Kachel-Optik
+     zurueck, nur groesser (gleiche Ueberlegung wie bei .slots im Wochenplan).
+     max-height/overflow bleiben - der Rahmen steht dann fest und der Inhalt scrollt darin. */
+  .shop-list {
+    display: flex; flex-direction: column; gap: 0; max-height: 46vh; overflow-y: auto;
+    padding: 4px 12px 8px;
+    background: color-mix(in srgb, var(--surface-2) 92%, var(--bg));
+    border: 1px solid var(--border); border-radius: var(--radius);
+  }
+  /* Zeile statt Kachel: die Trennlinie ist der border-bottom der Zeile selbst, deshalb
+     kein Radius und seitlich kein eigener Abstand - der sitzt an .shop-list, damit die
+     Linien so weit laufen wie die Liste. 23px-Box + 2x11px ergeben 45px Trefferflaeche. */
+  .shop-item { display: flex; align-items: center; gap: 13px; padding: 11px 0; border-bottom: 1px solid var(--border); background: none; cursor: pointer; transition: background var(--dur-fast); }
+  /* Hover NUR bei echter Maus - auf Touch bliebe der Zustand nach dem Antippen kleben.
+     Wortgleich zu den Slots im Wochenplan (680px-Block), die dieselbe Zeilenform haben.
+     .ing-view loest dasselbe Problem mit nur (hover: hover), ohne (pointer: fine) - das
+     ist die aeltere Stelle und bleibt hier unangetastet; die Mehrheit im Projekt und die
+     direkten Nachbarn dieser Liste fragen das Zeigegeraet mit ab. */
+  @media (hover: hover) and (pointer: fine) {
+    .shop-item:hover { background: color-mix(in srgb, var(--accent) 5%, transparent); }
+  }
+  .shop-item:active { background: color-mix(in srgb, var(--accent) 9%, transparent); }
+  /* Abgehakt traegt sich ohne Flaechentoenung: durchgestrichenes graues Label, die in
+     --accent gefuellte Box und die gedaempfte Mengen-Pille sagen es dreifach. Eine Toenung
+     ueber die volle Zeilenbreite las sich ohne Rahmen als Auswahlbalken statt als erledigt. */
   .shop-check { position: absolute; opacity: 0; width: 1px; height: 1px; }
   .shop-item .box { flex: none; width: 23px; height: 23px; border-radius: 7px; border: 2px solid var(--border-strong); display: grid; place-items: center; color: #fff; transition: background var(--dur-fast), border-color var(--dur-fast); }
   .shop-item .box svg { width: 13px; height: 13px; opacity: 0; transform: scale(.5); transition: opacity var(--dur-fast), transform var(--dur-fast); }
@@ -1642,11 +1691,24 @@
   .shop-empty { text-align: center; padding: 20px 10px 4px; color: var(--text-muted); }
   .shop-empty .ic { width: 46px; height: 46px; margin: 0 auto 12px; color: var(--accent); opacity: .85; }
   .shop-empty p { margin: 0 auto; max-width: 34ch; line-height: 1.5; }
-  .shop-group { display: flex; flex-direction: column; gap: 7px; }
-  .shop-group:not(:first-child) { margin-top: 10px; }
-  .shop-cat { display: flex; align-items: center; gap: 8px; margin: 0 2px 1px; font-family: var(--font-display); font-size: 12.5px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-muted); }
+  .shop-group { display: flex; flex-direction: column; gap: 0; }
+  /* 18px Luft ueber jedem Abschnitt, wie im Wochenplan: die Ueberschrift ist nur wenig
+     groesser als die Zeilen darunter und dazu grau - mit weniger Raum eroeffnet sie keinen
+     neuen Abschnitt, sie schwimmt mit. Der erste bleibt eng, er steht an der Fensterkante. */
+  .shop-group:not(:first-child) { margin-top: 18px; }
+  /* Die letzte Zeile braucht keine Trennlinie - sie laege direkt auf dem Rahmen. */
+  .shop-group:last-child .shop-item:last-child { border-bottom: 0; }
+  /* Schrift und Farbe bewusst NICHT auf .sec-h angeglichen (siehe Kommentar dort);
+     ortsabhaengig ist nur der Abstand. Der Einzug von 2px seitlich faellt weg: er hielt
+     die Ueberschrift frueher auf einer Linie mit dem Text IN den Kacheln, die ihren
+     eigenen Innenabstand hatten. Die Zeilen darunter sind jetzt randlos und beginnen am
+     Fensterrand - mit 2px staende die Ueberschrift als einzige eingerueckt. Dafuer 3px
+     statt 1px darunter, weil keine Kachelkante mehr den Abstand zur ersten Zeile macht. */
+  .shop-cat { display: flex; align-items: center; gap: 8px; margin: 0 0 3px; font-family: var(--font-display); font-size: 12.5px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-muted); }
   .shop-cat-ic { font-size: 15px; line-height: 1; }
-  .shop-cat-n { margin-left: auto; font-family: var(--font-body); font-size: 11px; font-weight: 650; letter-spacing: 0; color: var(--text-muted); background: var(--surface-2); border: 1px solid var(--border); border-radius: 999px; padding: 1px 8px; }
+  /* Ohne Rahmen und mit --surface: die Pille sass vorher auf der helleren Modalflaeche,
+     auf der Fensterflaeche waeren --surface-2 plus --border fast dasselbe Grau in Grau. */
+  .shop-cat-n { margin-left: auto; font-family: var(--font-body); font-size: 11px; font-weight: 650; letter-spacing: 0; color: var(--text-muted); background: var(--surface); border-radius: 999px; padding: 1px 8px; }
 
   /* Toast */
   #toast { position: fixed; left: 50%; bottom: 26px; transform: translateX(-50%) translateY(20px); z-index: 90;
@@ -2185,12 +2247,13 @@
        darunter steht die MO-SO-Leiste, und der Reiter heisst Plan. Voller Text bleibt im
        aria-label. */
     .ws-w { display: none; }
-    /* Einkaufsliste wandert in den Kopf. Der breite Knopf am Ende des Reiters wuerde unter
-       dem Sheet liegen und waere nur nach Scrollen erreichbar - und ein zweiter fester
-       Balken ueber der Reiterleiste haette bei 667px Geraetehoehe die Haelfte des Platzes
-       fuer die Meals gekostet. 34px + 5px hitSlop = 44px Trefferflaeche (.btn.icon-gh). */
-    .plan-tools .shop-ic { display: inline-flex; }
-    .shop-cta { display: none; }
+    /* Einkaufsknopf auf das Symbol zurueck - dieselbe Rechnung wie beim Wochenumschalter
+       darueber: die Werkzeugzeile ist bei 360px Geraetebreite bis auf wenige Pixel voll,
+       ein Wort mehr bricht sie um und kostet 44px, die den Meals fehlen. Das Symbol steht
+       neben dem Wochenumschalter und dem Muelleimer; der volle Text bleibt im aria-label.
+       Damit greift wieder .btn.icon-gh: 34px + 5px hitSlop = 44px Trefferflaeche. */
+    .btn.icon-gh.shop-ic { width: 34px; padding: 0; }
+    .sh-w { display: none; }
 
     /* ---------- Kein zweiter Scroller im Wischstreifen ----------
        Der Plan-Reiter war zwischenzeitlich eine Flaeche fester Hoehe, in der die
@@ -2341,7 +2404,7 @@
        gibt (Nur-Lese-Modus), die letzte Meal-Zeile. */
     .week > .day > .slots > .slot:last-child > :last-child { border-bottom: 0; }
 
-    /* Slot: Farbstreifen weg (das Label schreibt die Mahlzeit aus), Einzug zurueck. */
+    /* Slot: Einzug zurueck, der Streifen wandert in den Fensterrand (Regel unten). */
     /* 18px statt 8px ueber jedem Abschnitt. Die Ueberschrift ist nur 1px groesser als der
        Meal-Name darunter und dazu grau - mit acht Pixeln Luft eroeffnete sie keinen neuen
        Abschnitt, sie schwamm mit. Raum ist hier das Mittel der Wahl, weil die Schriftform
@@ -2350,7 +2413,22 @@
        18px eine Luecke statt einer Trennung. */
     .week > .day .slot { padding: 18px 0 4px; }
     .week > .day .slot:first-child { padding-top: 6px; }
-    .week > .day .slot::before { display: none; }
+    /* Der Farbstreifen bleibt - er sagt dasselbe wie am Rechner und soll es auf beiden
+       Geraeten sagen. Er sitzt aber im 8px-Innenabstand von .slots, NICHT im Textfluss:
+       negatives left statt eines Einzugs an der Zeile. Sonst muessten die Zeilen einruecken
+       und die Trennlinien liefen nicht mehr durch (siehe Kommentar bei .slots oben).
+       -6px laesst 3px Luft zum Text und 2px zum Rahmen, etwa das Verhaeltnis, das der
+       Streifen am Rechner in seinen 12px Innenabstand hat.
+
+       Nach links gerichtetes Overflow erzeugt bei LTR keinen Scrollbereich, und der
+       Streifen bleibt ohnehin in der Padding-Box von .slots - ein waagerechter Scroller
+       hier drin wuerde die Wischgeste zum Nachbartag schlucken (gemessen, siehe
+       TROUBLESHOOTING). Wer die Werte anfasst, misst scrollWidth gegen clientWidth nach.
+
+       Senkrecht folgt er dem Innenabstand des Slots: ab der Ueberschrift (18px, beim
+       ersten Slot 6px) bis kurz vor die naechste. */
+    .week > .day .slot::before { left: -6px; top: 18px; bottom: 4px; }
+    .week > .day .slot:first-child::before { top: 6px; }
 
     /* Zeile statt Kachel. Die Trennlinie ist der border-bottom der Zeile selbst -
        deshalb kein border-radius und kein Aussenabstand, sonst wird aus der Liste
@@ -7188,12 +7266,12 @@
             <button class="ws-btn${state.viewWeek === "next" ? "" : " active"}" data-action="week" data-week="cur" role="tab" aria-label="Aktuelle Woche" aria-selected="${state.viewWeek === "next" ? "false" : "true"}">Aktuelle<span class="ws-w"> Woche</span></button>
             <button class="ws-btn${state.viewWeek === "next" ? " active" : ""}" data-action="week" data-week="next" role="tab" aria-label="Nächste Woche" aria-selected="${state.viewWeek === "next" ? "true" : "false"}">Nächste<span class="ws-w"> Woche</span></button>
           </div>
-          <!-- Zweiter Einstieg in die Einkaufsliste, NUR auf dem Handy sichtbar (CSS).
-               Dort ist das Sheet unten von der Reiterleiste begrenzt; ein zweiter fester
-               Balken darueber haette bei 667px Geraetehoehe die Haelfte des Platzes fuer
-               die Meals gekostet. Gleiche data-action wie der breite Knopf am Ende des
-               Reiters - ein Handler, zwei Ausloeser, kein zweiter Weg im Skript. -->
-          <button class="btn ghost icon-gh shop-ic" data-action="shopping" title="Einkaufsliste der Woche" aria-label="Einkaufsliste der Woche">${TOOL_ICONS.cart}</button>
+          <!-- Einstieg in die Einkaufsliste. "Einkaufsliste" steht in einem eigenen Span,
+               weil es auf schmalen Geraeten per CSS entfaellt (.sh-w) - genau wie " Woche"
+               beim Umschalter darueber. Uebrig bleibt das Wagen-Symbol neben dem
+               Muelleimer. Das aria-label traegt in BEIDEN Faellen den vollen Text: sichtbar
+               steht am Rechner nur "Einkaufsliste", gemeint ist die der gezeigten Woche. -->
+          <button class="btn ghost icon-gh shop-ic" data-action="shopping" title="Einkaufsliste der Woche" aria-label="Einkaufsliste der Woche">${TOOL_ICONS.cart}<span class="sh-w">Einkaufsliste</span></button>
           ${canEdit() ? `<button class="btn ghost icon-gh" data-action="clear-week" title="Woche leeren" aria-label="Woche leeren">${TOOL_ICONS.clear}</button>` : ""}
         </div>
       </div>`;
@@ -7308,11 +7386,7 @@
     // darin richtete sich an ihm aus statt am Bildschirm und bliebe einfach stehen (siehe
     // Kommentar bei .week). Nur auf dem Handy sichtbar; am Rechner traegt jede der sieben
     // Spalten ihre eigene Bilanz in der Karte. Gefuellt von paintDayBalance().
-    html += `</div><div class="day-bal" id="day-bal" aria-live="polite"></div></div>
-      <button class="shop-cta" data-action="shopping">
-        ${TOOL_ICONS.cart}
-        Einkaufsliste der Woche
-      </button>`;
+    html += `</div><div class="day-bal" id="day-bal" aria-live="polite"></div></div>`;
     view.innerHTML = html;
     // Waagerechte Position SOFORT wiederherstellen - noch vor resetCarousels()/initCarousel(),
     // damit deren Messungen (markActive/fitHeight/syncIndicator) nie den Montag-Zwischenstand

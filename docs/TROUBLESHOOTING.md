@@ -1475,3 +1475,62 @@ zweites `python stand.py` scheitert still am belegten Port — es misst weiter d
 Prozess auf Port 8181 erst per `netstat -ano` suchen und beenden. Jede Messung mit einer Zusiche-
 rung absichern, die belegt, dass der neue Stand tatsächlich geladen ist (etwa eine Suche nach dem
 neuen Selektor im DOM).
+
+## 61. Ein Farbstreifen im Fensterrand — warum das kein zweiter Scroller wird
+
+**Stand 09.08.2026.** Der Farbstreifen der Mahlzeiten (`.slot::before`) war auf dem Handy
+abgeschaltet und ist mit der Vereinheitlichung zurückgekehrt. Er sitzt dort **nicht** im Textfluss,
+sondern per `left: -6px` im 8-px-Innenabstand von `.slots`.
+
+Das sieht auf den ersten Blick nach genau dem Fehler aus, der in Punkt 58 beschrieben ist: Dort hat
+die unsichtbar vergrößerte Trefferfläche eines Knopfes 6 px über den Rand geragt, `.slots` dadurch
+waagerecht scrollbar gemacht (`scrollWidth 338` gegen `clientWidth 332`) und die Wischgeste zum
+Nachbartag vollständig geschluckt.
+
+**Warum es hier trotzdem trägt — zwei Gründe, die zusammen gelten müssen:**
+
+1. Der Streifen bleibt innerhalb der **Padding-Box** von `.slots`. Der Innenabstand ist 8 px, der
+   Streifen belegt davon 3 px ab Position −6. Er ragt also nicht über das Element hinaus.
+2. Nach **links** gerichteter Überlauf erzeugt bei Leserichtung links-nach-rechts ohnehin keinen
+   Scrollbereich — der Browser schneidet ihn ab, statt scrollbar zu werden. Nach rechts wäre
+   dieselbe Konstruktion sehr wohl gefährlich.
+
+**Gemessen** (Prüfstand, 390 px, voller Plan mit 23 Zeilen, beide Themes): `scrollWidth −
+clientWidth = 0` auf allen sieben Tagen, `overflow` bleibt `visible/visible`. Der vollste Tag war
+660 px hoch.
+
+**Wer die Werte anfasst, misst nach.** Ein `left: -10px` läge außerhalb des Innenabstands, und ein
+Streifen rechts statt links wäre selbst bei gleichem Abstand ein Scroller. Die Messung steht im
+Prüfstand, sie kostet nichts:
+
+```js
+var s = document.querySelector('.week > .day > .slots');
+console.log(s.scrollWidth - s.clientWidth, getComputedStyle(s).overflowX);
+```
+
+## 62. `.btn.icon-gh` schlägt eine einzelne Klasse — der Knopf bleibt quadratisch
+
+**Stand 09.08.2026.** Der Einkaufsknopf sollte am Rechner Symbol **und** Text tragen und erst ab
+680 px auf das reine Symbol schrumpfen. Die Regel dafür lautete zunächst:
+
+```css
+.shop-ic { width: auto; padding: 0 12px; }
+```
+
+Sie hat nicht gegriffen. `.btn.icon-gh { width: 34px }` steht mit **zwei** Klassen da (Spezifität
+0-2-0), `.shop-ic` nur mit einer (0-1-0) — der Knopf blieb 34 px breit, der Text lief heraus.
+
+**Richtig ist der Selektor mit denselben Klassen plus der eigenen:**
+
+```css
+.btn.icon-gh.shop-ic { width: auto; padding: 0 12px; gap: 8px; }
+```
+
+Das gilt für jeden Knopf, der `icon-gh` trägt und trotzdem Text bekommen soll. `icon-gh` einfach
+wegzulassen wäre die falsche Abkürzung: An der Klasse hängt das hitSlop-Muster
+(`::after { inset: -5px }`, siehe Punkt 38), das auf dem Handy aus 34 px die geforderten 44 px
+Trefferfläche macht.
+
+**Auffällig wurde es nur durch Messen**, nicht durch Hinsehen: Die Breite eines Knopfes im
+Prüfstand ausgeben (`getBoundingClientRect().width`) und gegen die erwartete Form prüfen — bei
+sichtbarem Text darf sie nicht der Icon-Breite entsprechen.

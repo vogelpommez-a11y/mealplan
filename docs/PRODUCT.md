@@ -311,6 +311,15 @@ Wort steht ausgeschrieben daneben, das Symbol ist für Screenreader unsichtbar.
 Dazu bekommt jeder Abschnitt mehr Luft über sich. Raum statt Schriftgröße: Die Abschnittsform gilt
 app-weit, und die Einheitlichkeit mit „Zutaten" in der Meal-Ansicht war ausdrücklich gewünscht.
 
+**Nachtrag — der Streifen ist auch zurück.** Das Symbol allein hat die Farbcodierung zwar gerettet,
+aber sie blieb schwächer als am Rechner: Dort trägt jeder Slot zusätzlich einen Farbstreifen links.
+Wer zwischen den Geräten wechselt, sah dieselbe Woche zweimal unterschiedlich stark gegliedert.
+
+Der Streifen sitzt mobil im Innenabstand des gemeinsamen Fensters, nicht im Textfluss — die Zeilen
+bleiben bündig und die Trennlinien laufen weiter durch. Streifen und Symbol stören sich nicht: das
+eine färbt den Rand, das andere die Zeile. Die Kachelform kommt damit ausdrücklich **nicht**
+zurück; es kehrt nur die Farbe zurück, nicht der Rahmen.
+
 **Farbe nur, wo das Theme sie kennt.** Snacks bleiben grau — dieselbe Entscheidung wie beim
 Farbstreifen. Im Meals-Reiter tragen Frühstück und Hauptgericht dieselben zwei Farben wie im Plan,
 Snack, Dessert, Beilage, Getränk und Favoriten bleiben neutral. Vier neue Töne zu erfinden, damit
@@ -325,6 +334,26 @@ des Fensters weiter.
 Bewusst **ein** Fenster und nicht vier: Ein eigener Rahmen je Mahlzeit wäre die Kachel-Optik
 zurück, die vorher abgeschafft wurde, und zusammen mit der Bilanz lägen fünf Kästen auf einem
 Bildschirm.
+
+### Die Einkaufsliste spricht dieselbe Sprache — auf beiden Geräten
+
+Die Einkaufsliste war lange die letzte Ansicht, die ihre Positionen als Kachelstapel zeigte:
+jede Zutat ein eigener Rahmen, dazwischen Luft. Wochenplan und Zutatenliste waren da längst
+Listen mit dünnen Trennlinien. Auf dem Handy sprach die App damit zwei Sprachen.
+
+Sie ist jetzt ebenfalls eine Liste in einem Fenster, mit derselben Gliederung wie der Wochenplan:
+Abschnittsüberschrift, darunter Zeilen mit Trennlinien. **Anders als beim Wochenplan gilt das auf
+beiden Geräten** — die Liste steht in einem Modal und ist auf jedem Bildschirm einspaltig
+untereinander. Das Argument für Kacheln am Rechner (sieben Tage nebeneinander brauchen
+Abgrenzung) hat hier nie gegolten; die Kachelform war nur nie angefasst worden.
+
+Abgehakte Positionen tragen sich ohne eingefärbte Fläche: durchgestrichener grauer Text, gefülltes
+Häkchen, gedämpfte Menge. Eine Tönung über die volle Zeilenbreite läse sich ohne Rahmen als
+Auswahlbalken statt als „erledigt".
+
+Die Personenzeile darüber behält ihre Fläche, teilt sich aber Rundung und Ton mit dem Listenfenster
+— oben die Einstellung, unten das Ergebnis, als Paar lesbar. Dasselbe Mittel wie bei Plan und
+Tagesbilanz im Wochenplan.
 
 ### Snacks sind ein eigener Slot, kein Anhängsel
 
@@ -352,6 +381,17 @@ Inhalt nach unten und war bei vollen Tagen genau dann unsichtbar, wenn sie am me
 Zwei Dinge mussten dafür weichen: die Überschrift „Dein Wochenplan" (die Reiterleiste sagt bereits
 „Plan") und der breite Einkaufslisten-Knopf, der mobil ein Icon im Kopf wurde. Ein zweiter fester
 Balken über der Reiterleiste hätte auf einem 667 px hohen Gerät die halbe Meal-Fläche gekostet.
+
+**Nachtrag — der Einkaufsknopf steht jetzt auf beiden Geräten oben.** Er war eine Zeit lang zwei
+Knöpfe: am Rechner der breite Gradient-Knopf unter dem Plan, auf dem Handy das Symbol im Kopf.
+Dieselbe Aktion an zwei Orten in zwei Formen — wer zwischen Rechner und Handy wechselt, sucht sie
+jedes Mal woanders. Jetzt sitzt sie immer in der Werkzeugleiste neben dem Wochenumschalter; am
+Rechner mit dem Wort „Einkaufsliste", ab 680 px nur noch als Symbol. Das ist dasselbe Muster, das
+der Wochenumschalter daneben schon fährt (` Woche` entfällt auf schmalen Geräten).
+
+Der Verzicht auf den großen Gradient-Knopf ist bewusst: Die Einkaufsliste ist wichtig, aber sie ist
+kein Aufruf zum Handeln, den man dem Nutzer anbieten muss — sie ist ein Werkzeug, das man sucht,
+wenn man einkaufen geht. Werkzeuge gehören in die Werkzeugleiste.
 
 **Zweiter Nachtrag — die feste Höhe ist wieder weg.** Sie kostete das Wischen zwischen den Tagen:
 Ein eigener Scroller in der Tageskarte fängt die Geste ab, und auf Touch gibt er sie nicht mehr
