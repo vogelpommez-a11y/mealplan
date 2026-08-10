@@ -56,6 +56,41 @@ Folgende Elemente sind architektonisch relevant:
 
 `<meta charset>` und `<meta name="viewport">` dürfen nicht entfernt werden.
 
+## Fehlermelder `window.noteError` (Aufgabe A7)
+
+Steht als Erstes im **ersten** `<script>`-Block, noch vor dem Theme-Code, und ist damit in allen
+späteren Blöcken verfügbar — auch im Firebase-Modul.
+
+```js
+noteError("group:dissolve", e);   // Kennung "bereich:aktion", dann der Fehler
+noteError.dump();                 // die letzten 50 Fälle, für die DevTools
+```
+
+Vorher standen an 34 Stellen leere `catch (e) {}`. Was das kostet, steht in
+`docs/TROUBLESHOOTING.md` §29: ein verschluckter `TypeError` ließ „Gruppe auflösen" monatelang
+nie wirklich aufräumen, ohne dass irgendwo etwas auffiel.
+
+**Eigenschaften, die keine Details sind:**
+
+* **Gedrosselt** — pro Kennung höchstens 3 Meldungen, insgesamt 50 im Ringpuffer. Ohne das
+  würden Sync-Listener und Schleifen (`getTracks().forEach(t => t.stop())`) den Puffer fluten
+  und wertlos machen.
+* **Kein Versand.** Ein Telemetrie-Dienst wäre ein Empfänger personenbezogener Daten und müsste
+  in die Datenschutzerklärung. Kommt Store-Telemetrie (Plan D), ist **diese Funktion die eine
+  Stelle** dafür — dann aber mit Rechtstext-Prüfung.
+* **Kein `localStorage`.** Fehlermeldungen können Nutzerinhalte tragen; im Speicher gehalten
+  sind sie mit dem Tab weg.
+* **Wirft nie selbst**, auch nicht bei `noteError()` ohne Argumente oder einem zirkulären Objekt.
+* Heißt bewusst **nicht** `reportError`: `window.reportError` ist eine echte Plattform-API.
+
+**Warum die Position kritisch ist:** Ein leerer `catch` war unzerstörbar. Ein `catch` mit
+`noteError()` darin ist es nicht mehr — fehlte die Funktion, legte jede der 38 Stellen einen
+`ReferenceError` nach und bewirkte das Gegenteil. Der Melder darf deshalb nie hinter etwas
+rutschen, das vorher scheitern kann, und nichts nachladen.
+
+**Eine Stelle bleibt bewusst leer:** `navigator.share(...).catch(() => {})`. Bricht der Nutzer
+das Teilen-Blatt ab, kommt ein `AbortError` — Normalbetrieb, kein Fehler.
+
 ## Zwei-Script-Architektur
 
 ### Firebase-Modul

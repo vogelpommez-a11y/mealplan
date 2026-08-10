@@ -49,3 +49,9 @@ Marketing/
 
 # Instagram-Vorlagen (Reels/Story/Beitrag): gleiche Begruendung wie Marketing/.
 Instagram/
+
+# Arbeitsplaene. Sie beschreiben offene Schwaechen und die Reihenfolge, in der sie behoben
+# werden - dieselbe Begruendung wie bei ROADMAP.html. Bisher waren sie nur untracked; ein
+# einziges "git add ." haette sie oeffentlich gemacht, und aus der Historie bekommt man sie
+# nicht mehr heraus (Fund von website-security).
+plans/

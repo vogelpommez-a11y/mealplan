@@ -51,6 +51,12 @@ sagt aber nicht, wo der Fehler steckt. Genau diese Situation ist zweimal eingetr
 * Geprüft wird mit der **V8-Engine von Edge** — derselben, die die App später ausführt. Ein
   Python-JS-Parser wie `esprima` kennt neuere Syntax (`?.`, `??`, `#private`) oft nicht und
   meldet Fehler, die keine sind.
+* **Nicht jeder `<script>`-Block ist Code.** Der JSON-LD-Block im Kopf
+  (`type="application/ld+json"`, Aufgabe A5) ist ein Datenblock; als JavaScript geparst
+  scheitert er zwangsläufig am ersten `:`. Das Skript entscheidet deshalb nach `type`: Alles
+  außerhalb der JS-Typen geht **nicht** durch V8. JSON-LD wird stattdessen mit `json.loads`
+  geprüft — ein Tippfehler dort bricht die Such­maschinen-Auswertung, sonst nichts, und fällt
+  daher an keiner anderen Stelle auf. Andere Nicht-JS-Typen werden mit Hinweis übersprungen.
 
 ### Zwei Fallen, die beim Bau aufgetreten sind
 
@@ -96,6 +102,7 @@ Komma, jeweils an bekannter Zeile:
 | fehlende Klammer | 6000 | 6000 |
 | fehlendes Komma (`foo(1 2)`) | 4000 | etwa 3960 |
 | kaputte Funktionssignatur | 7000 | etwa 7000 |
+| fehlendes Komma im JSON-LD | 50 | 51, JSON-LD-Block |
 
 ## 1. Smoke-Test
 
@@ -234,6 +241,16 @@ Beispiele:
   ein `SVGSVGElement` mit quadratischen Maßen und mehreren Modul-Elementen entsteht.
 * Einladungscode-Extraktion (`/[?&]g=([A-Za-z0-9_-]+)/`) gegen eine gültige URL, eine URL mit
   weiteren Parametern, eine fremde URL ohne `g=` und Klartext.
+* **Der Fehlermelder `window.noteError`** (A7). Er hat keine Abhängigkeiten und lässt sich
+  deshalb direkt aus dem **ersten** `<script>`-Block schneiden — alles bis zum Kommentar
+  `/* Erscheinungsbild vor dem ersten Paint`. Neun Prüfungen, alle grün:
+  Existenz samt `dump()`; Drosselung auf 3 pro Kennung (und zwar die **ersten** drei, nicht die
+  letzten); getrennte Zählung je Kennung; Ringpuffer bei 50 gedeckelt; wirft nie selbst —
+  auch nicht bei `noteError()` ohne Argumente, mit `null`, mit einem zirkulären Objekt oder mit
+  einer Kennung, deren `toString()` selbst wirft; `dump()` liefert eine Kopie statt eines
+  lebenden Verweises; Einträge tragen Zeit, Kennung und Meldung.
+  Die letzten drei Punkte sind der Kern: Ein Melder, der im Fehlerpfad selbst wirft, ist
+  schlimmer als gar keiner (`docs/TROUBLESHOOTING.md` §71).
 * Gruppen-Plan-Merge beim Aktivieren (`finalizeGroupActivation()`): mit gestubbtem `CloudGroup`
   prüfen, dass ein in der Gruppe bereits belegter Slot **nicht** überschrieben wird, ein dort
   noch leerer Slot aber nachgetragen wird.

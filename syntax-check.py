@@ -21,6 +21,11 @@ Syntax bleibt dabei unveraendert echte Modulsyntax. Der Rumpf laeuft in diesem F
 scheitert aber sofort an undefinierten Namen; das ist ein Laufzeitfehler und wird ignoriert.
 Gewertet wird ausschliesslich SyntaxError.
 
+Nicht jeder <script>-Block ist Code: JSON-LD (type="application/ld+json") wuerde als JavaScript
+geparst immer scheitern. Solche Datenbloecke gehen nicht durch V8 — JSON-LD wird stattdessen mit
+json.loads geprueft (ein Tippfehler dort bricht die Suchmaschinen-Auswertung, sonst nichts, und
+faellt daher nirgends sonst auf), alle anderen Nicht-JS-Typen werden ausgelassen.
+
 Aufruf:
     python syntax-check.py                 # prueft index.html
     python syntax-check.py pfad/zur.html   # prueft eine andere Datei
@@ -54,12 +59,29 @@ def find_edge():
     return None
 
 
+TYPE_RE = re.compile(r'type\s*=\s*(?:"([^"]*)"|\'([^\']*)\'|([^\s>]+))', re.IGNORECASE)
+
+# Nur diese type-Werte sind fuer den Browser ausfuehrbares JavaScript. Alles andere ist ein
+# Datenblock (bei uns JSON-LD) und wuerde als JS geparst einen Fehler melden, der keiner ist.
+JS_TYPES = {"", "module", "text/javascript", "application/javascript",
+            "text/ecmascript", "application/ecmascript"}
+
+
+def script_type(attrs):
+    m = TYPE_RE.search(attrs)
+    if not m:
+        return ""
+    return (m.group(1) or m.group(2) or m.group(3) or "").strip().lower()
+
+
 def extract_blocks(html):
-    """Alle <script>-Bloecke mit Startzeile und Modul-Kennzeichen einsammeln.
+    """Alle <script>-Bloecke einsammeln, getrennt nach JavaScript und Datenblock.
 
     Bloecke mit src-Attribut haben keinen Inline-Code und werden uebersprungen.
+    Rueckgabe: (js_bloecke, daten_bloecke). Datenbloecke sind JSON-LD & Co. — sie gehen
+    nicht durch V8, sondern werden je nach Typ als JSON geprueft oder ausgelassen.
     """
-    blocks = []
+    blocks, data = [], []
     for m in SCRIPT_RE.finditer(html):
         attrs, code = m.group(1), m.group(2)
         if re.search(r"\bsrc\s*=", attrs, re.IGNORECASE):
@@ -68,9 +90,33 @@ def extract_blocks(html):
             continue
         # Zeilennummer des ersten Zeichens des Rumpfs in der Originaldatei (1-basiert).
         start_line = html.count("\n", 0, m.start(2)) + 1
-        is_module = bool(re.search(r'type\s*=\s*["\']?module', attrs, re.IGNORECASE))
-        blocks.append({"code": code, "line": start_line, "module": is_module})
-    return blocks
+        t = script_type(attrs)
+        if t not in JS_TYPES:
+            data.append({"code": code, "line": start_line, "type": t})
+            continue
+        blocks.append({"code": code, "line": start_line, "module": t == "module"})
+    return blocks, data
+
+
+def check_data_blocks(data, path):
+    """Datenbloecke pruefen. JSON-LD muss gueltiges JSON sein — ein Tippfehler dort bricht
+    zwar die App nicht, aber die Suchmaschinen-Auswertung, und faellt sonst nirgends auf."""
+    bad = 0
+    for b in data:
+        span = "Zeile %d-%d" % (b["line"], b["line"] + b["code"].count("\n"))
+        if b["type"] != "application/ld+json":
+            print("  UEBERSPRUNGEN  %s-Block (%s) — kein JavaScript" % (b["type"], span))
+            continue
+        try:
+            json.loads(b["code"])
+            print("  OK      JSON-LD (%s)" % span)
+        except ValueError as e:
+            bad += 1
+            print("  FEHLER  JSON-LD (%s)" % span)
+            print("          %s" % e)
+            print("          -> %s:%d" % (os.path.basename(path),
+                                          b["line"] + getattr(e, "lineno", 1) - 1))
+    return bad
 
 
 HARNESS_JS = r"""
@@ -214,7 +260,7 @@ def run_check(path):
     with open(path, "r", encoding="utf-8") as f:
         html = f.read()
 
-    blocks = extract_blocks(html)
+    blocks, data = extract_blocks(html)
     if not blocks:
         print("FEHLER: keine Inline-<script>-Bloecke in " + path + " gefunden.", file=sys.stderr)
         return 2
@@ -223,9 +269,9 @@ def run_check(path):
     try:
         # Der Code geht als externe Datei in den Harness, damit ein "</script>" im Quelltext
         # die Pruefseite nicht zerlegt.
-        data = [{"code": b["code"], "module": b["module"]} for b in blocks]
+        payload = [{"code": b["code"], "module": b["module"]} for b in blocks]
         with open(os.path.join(tmp, "blocks.js"), "w", encoding="utf-8") as f:
-            f.write("var BLOCKS = " + json.dumps(data) + ";\n")
+            f.write("var BLOCKS = " + json.dumps(payload) + ";\n")
         with open(os.path.join(tmp, "harness.js"), "w", encoding="utf-8") as f:
             f.write(HARNESS_JS)
         with open(os.path.join(tmp, "check.html"), "w", encoding="utf-8") as f:
@@ -254,7 +300,7 @@ def run_check(path):
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
 
-    bad = 0
+    bad = check_data_blocks(data, path)
     for r in sorted(results, key=lambda x: x["i"]):
         b = blocks[r["i"]]
         kind = "module" if b["module"] else "classic"
@@ -279,7 +325,7 @@ def run_check(path):
     if bad:
         print("\n%d Syntaxfehler. Nicht pushen." % bad)
         return 1
-    print("\nAlle %d Bloecke sind syntaktisch sauber." % len(results))
+    print("\nAlle %d Bloecke sind syntaktisch sauber." % (len(results) + len(data)))
     return 0
 
 

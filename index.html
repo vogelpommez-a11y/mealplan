@@ -13,20 +13,91 @@
 <meta name="apple-mobile-web-app-title" content="Mealplan">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="description" content="Paddy's Mealplan: Wochen-Essensplaner mit Kalorienziel, Makros und Training. Du planst deine Woche, die App rechnet mit – die Einkaufsliste schreibt sich von selbst.">
-<!-- Open Graph/Twitter: og:image nutzt bewusst icon-512.png als Zwischenloesung (quadratisch,
-     kein eigens gestaltetes 1200x630-Vorschaubild vorhanden) - eine data:-URL funktioniert hier
-     nicht, Vorschaukarten brauchen eine ladbare Bild-URL. -->
+<!-- Kanonische Adresse: Die App haengt Zustand an die URL (?s=… geteiltes Meal, ?g=… Gruppen-
+     Einladung). Ohne canonical indexiert Google jede dieser Varianten als eigene Seite, obwohl
+     alle dasselbe Dokument ausliefern. Bewusst fest auf die Wurzel — es gibt nur eine Seite. -->
+<link rel="canonical" href="https://www.paddysmealplan.de/">
+<!-- Open Graph/Twitter. og:image ist ein eigens gestaltetes 1200x630-Bild. Die Quelle liegt in
+     Marketing/og-image-source.html (mit Edge headless gerendert) und damit bewusst ausserhalb
+     des Repos - Marketing/ ist gitignored. Erst dieses Bild traegt summary_large_image; mit
+     dem quadratischen icon-512.png blieb nur die Briefmarke.
+     Eine data:-URL funktioniert hier nicht, Vorschaukarten brauchen eine ladbare URL. -->
 <meta property="og:type" content="website">
+<meta property="og:site_name" content="Paddy's Mealplan">
 <meta property="og:url" content="https://www.paddysmealplan.de/">
 <meta property="og:title" content="Paddy's Mealplan – Plan it. Cook it. Lift it.">
 <meta property="og:description" content="Wochen-Essensplaner mit Kalorienziel, Makros und Training. Du planst deine Woche, die App rechnet mit – die Einkaufsliste schreibt sich von selbst.">
-<meta property="og:image" content="https://www.paddysmealplan.de/icon-512.png">
+<meta property="og:image" content="https://www.paddysmealplan.de/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Paddy's Mealplan – Plan it. Cook it. Lift it. Wochenplan, Makros, Einkaufsliste.">
 <meta property="og:locale" content="de_DE">
-<meta name="twitter:card" content="summary">
+<meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Paddy's Mealplan – Plan it. Cook it. Lift it.">
 <meta name="twitter:description" content="Wochen-Essensplaner mit Kalorienziel, Makros und Training. Du planst deine Woche, die App rechnet mit – die Einkaufsliste schreibt sich von selbst.">
-<meta name="twitter:image" content="https://www.paddysmealplan.de/icon-512.png">
+<meta name="twitter:image" content="https://www.paddysmealplan.de/og-image.png">
+<meta name="twitter:image:alt" content="Paddy's Mealplan – Plan it. Cook it. Lift it. Wochenplan, Makros, Einkaufsliste.">
+<!-- Strukturierte Daten. Bewusst nur belegbare Angaben: kein aggregateRating (es gibt keine
+     Bewertungen), keine Anschrift und keine E-Mail (steht im Impressum, gehoert nicht zusaetzlich
+     maschinenlesbar ins Markup). "price": "0" beschreibt den heutigen Stand — sobald Pro kommt
+     (Plan D1), muss offers hier nachgezogen werden, sonst ist das Snippet falsch. -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "Paddy's Mealplan",
+  "url": "https://www.paddysmealplan.de/",
+  "applicationCategory": "HealthApplication",
+  "operatingSystem": "Web",
+  "inLanguage": "de-DE",
+  "image": "https://www.paddysmealplan.de/og-image.png",
+  "description": "Wochen-Essensplaner mit Kalorienziel, Makros und Training. Du planst deine Woche, die App rechnet mit – die Einkaufsliste schreibt sich von selbst.",
+  "author": { "@type": "Person", "name": "Patrick Fleischmann" },
+  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "EUR" }
+}
+</script>
 <script>
+  /* Sammelpunkt fuer geschluckte Fehler. Steht ganz oben und in DIESEM Block, weil er in
+     allen spaeteren Bloecken zur Verfuegung stehen muss - auch im Firebase-Modul.
+     Vorher standen an 34 Stellen leere catch-Bloecke. Was das kostet, steht in
+     docs/TROUBLESHOOTING.md §29: ein verschluckter TypeError liess "Gruppe aufloesen"
+     monatelang nie wirklich aufraeumen, ohne dass irgendwo etwas auffiel.
+     NICHT "reportError" genannt: window.reportError ist eine echte Plattform-API
+     (reicht einen Fehler an die globalen Handler weiter). Sie zu ueberschreiben waere
+     ein stiller Nebeneffekt an einer Stelle, an der es um genau das Gegenteil geht.
+     Bewusste Grenzen:
+     * Kein Versand irgendwohin. Ein Telemetrie-Dienst waere ein Empfaenger personen-
+       bezogener Daten und muesste in die Datenschutzerklaerung (CLAUDE.md §20/§23).
+       Wenn Store-Telemetrie kommt (Plan D), ist DIESE Funktion die eine Stelle dafuer.
+     * Kein localStorage. Fehlermeldungen koennen Nutzerinhalte tragen; im Speicher
+       gehalten sind sie mit dem Schliessen des Tabs weg.
+     * Wirft nie selbst. Ein Melder, der den Fehlerpfad zerlegt, waere schlimmer als keiner.
+     Und der Grund, warum er GANZ oben steht: Ein leerer catch war unzerstoerbar, ein catch mit
+     noteError() darin nicht mehr - fehlte die Funktion, wuerde jeder der 38 Blocks mit einem
+     ReferenceError nachlegen, also genau das Gegenteil bewirken. Der Melder darf deshalb nie
+     hinter etwas rutschen, das vorher scheitern kann, und nichts nachladen. */
+  window.noteError = (function () {
+    var seen = Object.create(null);   // Kennung -> wie oft schon gesehen
+    var log = [];
+    var MAX_PER_TAG = 3;              // gedrosselt: Sync-Listener und Schleifen wuerden fluten
+    var MAX_LOG = 50;
+    function note(tag, err) {
+      try {
+        var n = (seen[tag] = (seen[tag] || 0) + 1);
+        if (n > MAX_PER_TAG) return;
+        var msg = String((err && err.message) || err || "?");
+        log.push({ t: new Date().toISOString(), tag: String(tag), msg: msg });
+        if (log.length > MAX_LOG) log.shift();
+        if (window.console && console.warn) {
+          console.warn("[Mealplan] " + tag + ": " + msg
+            + (n === MAX_PER_TAG ? "  (weitere zu \"" + tag + "\" werden unterdrueckt)" : ""));
+        }
+      } catch (ignored) {}
+    }
+    note.dump = function () { return log.slice(); };   // Abruf in den DevTools
+    return note;
+  })();
+
   /* Erscheinungsbild vor dem ersten Paint setzen — sonst blitzt beim Laden kurz das
      falsche Theme auf. Ohne gespeicherte Wahl bleibt das Attribut weg, dann greift
      wie bisher prefers-color-scheme. Laeuft absichtlich vor allem anderen. */
@@ -37,7 +108,7 @@
       var m = document.querySelector('meta[name="theme-color"][media]');
       if (m) m.setAttribute("media", t === "dark" ? "all" : "not all");
     }
-  } catch (e) {}
+  } catch (e) { noteError("theme:restore", e); }
 </script>
 <title>Paddy’s Mealplan</title>
 <style>
@@ -3005,7 +3076,7 @@
       Object.assign(window.CloudAuth, {
         registerEmail: async function (name, email, pw) {
           const cred = await createUserWithEmailAndPassword(auth, email, pw);
-          if (name) { try { await updateProfile(cred.user, { displayName: name }); } catch (e) {} }
+          if (name) { try { await updateProfile(cred.user, { displayName: name }); } catch (e) { window.noteError("auth:setDisplayName", e); } }
           await sendEmailVerification(cred.user);
           return cred.user;
         },
@@ -3979,7 +4050,7 @@
     if (!puts.length && !dels.length) return Promise.resolve();
     return idbRW(store => { puts.forEach(([k, v]) => store.put(v, k)); dels.forEach(k => store.delete(k)); })
       .then(() => { puts.forEach(([k, v]) => imgSaved.set(k, imgSig(v))); dels.forEach(k => imgSaved.delete(k)); })
-      .catch(() => {});
+      .catch((e) => noteError("images:idbWrite", e));
   }
   // Beim Start: Bilder aus IDB in den State ziehen (Karten zeigen bis dahin den photoFor-Fallback,
   // der immer ein Bild liefert), Alt-Konten mit Inline-Bildern im localStorage einmalig nach IDB
@@ -4005,7 +4076,7 @@
     imgSaved = new Map(Object.keys(map).map(k => [k, imgSig(map[k])]));
     // Migration Alt->Neu: Inline-Bilder (in state, aber nicht in IDB) ERST nach IDB schreiben,
     // DANN das localStorage-JSON schlank speichern (Reihenfolge gegen Datenverlust).
-    try { await persistImagesNow(); } catch (e) {}
+    try { await persistImagesNow(); } catch (e) { noteError("images:persist", e); }
     save();
   }
 
@@ -4737,9 +4808,9 @@
   // Nur den lokalen Gruppenzustand abbauen (Listener + Variablen), ohne die Cloud
   // anzufassen. Getrennt von leaveGroup(), das die Mitgliedschaft wirklich beendet.
   function leaveGroupState() {
-    if (syncUnsubGroup) { try { syncUnsubGroup(); } catch (e) {} syncUnsubGroup = null; }
-    if (syncUnsubMembers) { try { syncUnsubMembers(); } catch (e) {} syncUnsubMembers = null; }
-    if (syncUnsubGroupPlans) { try { syncUnsubGroupPlans(); } catch (e) {} syncUnsubGroupPlans = null; }
+    if (syncUnsubGroup) { try { syncUnsubGroup(); } catch (e) { noteError("sync:unsubGroup", e); } syncUnsubGroup = null; }
+    if (syncUnsubMembers) { try { syncUnsubMembers(); } catch (e) { noteError("sync:unsubMembers", e); } syncUnsubMembers = null; }
+    if (syncUnsubGroupPlans) { try { syncUnsubGroupPlans(); } catch (e) { noteError("sync:unsubGroupPlans", e); } syncUnsubGroupPlans = null; }
     syncGid = null; groupInfo = null; groupMembers = []; myRole = null; lastPushedSlots = null;
   }
 
@@ -4877,7 +4948,7 @@
       // die (fuer den Beitretenden laengst aktive!) Gruppe fuer den Owner nicht mehr auffindbar.
       if (activatedNow && !inGroup) {
         state.pendingGroupId = wantGid;
-        try { await window.CloudSync.save(syncUid, { pendingGroupId: wantGid }); } catch (e) {}
+        try { await window.CloudSync.save(syncUid, { pendingGroupId: wantGid }); } catch (e) { noteError("sync:savePendingGroupId", e); }
         watchPendingGroup(wantGid);
       }
 
@@ -4936,8 +5007,8 @@
     }
   }
   function stopCloudSync() {
-    if (syncUnsub) { try { syncUnsub(); } catch (e) {} syncUnsub = null; }
-    if (syncUnsubRecipes) { try { syncUnsubRecipes(); } catch (e) {} syncUnsubRecipes = null; }
+    if (syncUnsub) { try { syncUnsub(); } catch (e) { noteError("sync:unsubState", e); } syncUnsub = null; }
+    if (syncUnsubRecipes) { try { syncUnsubRecipes(); } catch (e) { noteError("sync:unsubRecipes", e); } syncUnsubRecipes = null; }
     unwatchPending();    // Wartezustand-Listener haengt sonst weiter, obwohl niemand mehr angemeldet ist
     leaveGroupState();   // Gruppen-Listener haengen sonst weiter und schreiben in den alten Zustand
     clearTimeout(pushTimer);
@@ -5993,10 +6064,10 @@
 
       function cleanup() {
         if (timer) { clearTimeout(timer); timer = 0; }
-        if (reader) { try { reader.reset(); } catch (e) {} reader = null; }
+        if (reader) { try { reader.reset(); } catch (e) { noteError("scan:readerReset", e); } reader = null; }
         // Eigene Stream-Referenz, weil ZXings stopStreams() nur die Video-Tracks beendet
-        if (stream) { stream.getTracks().forEach(t => { try { t.stop(); } catch (e) {} }); stream = null; }
-        try { video.pause(); video.srcObject = null; } catch (e) {}
+        if (stream) { stream.getTracks().forEach(t => { try { t.stop(); } catch (e) { noteError("scan:trackStop", e); } }); stream = null; }
+        try { video.pause(); video.srcObject = null; } catch (e) { noteError("scan:videoRelease", e); }
         document.removeEventListener("keydown", onKey, true);
         document.removeEventListener("visibilitychange", onHide);
         window.removeEventListener("pagehide", onHide);
@@ -6049,7 +6120,7 @@
       function applyFocus(mode) {
         const t = videoTrack();
         if (!t || focusModes().indexOf(mode) < 0) return false;
-        try { t.applyConstraints({ advanced: [{ focusMode: mode }] }).catch(() => {}); } catch (e) { return false; }
+        try { t.applyConstraints({ advanced: [{ focusMode: mode }] }).catch((e) => noteError("scan:focusMode", e)); } catch (e) { noteError("scan:focusMode", e); return false; }
         return true;
       }
       function onResize() {
@@ -6065,8 +6136,8 @@
           if (t && s && s.width > 0 && s.height > 0 && (s.width > s.height) === portrait()) {
             try {
               t.applyConstraints({ advanced: [{ aspectRatio: portrait() ? 3 / 4 : 4 / 3 }] })
-                .then(syncStage).catch(() => {});
-            } catch (e) {}
+                .then(syncStage).catch((e) => noteError("scan:applyConstraints", e));
+            } catch (e) { noteError("scan:applyConstraints", e); }
           }
           syncStage();
         }, 220);
@@ -6132,7 +6203,7 @@
         }
         // Abbruch waehrend der Berechtigungsabfrage: cleanup lief mit stream===null,
         // die Kamera wuerde sonst unbemerkt weiterlaufen.
-        if (done) { stream.getTracks().forEach(t => { try { t.stop(); } catch (e) {} }); stream = null; return; }
+        if (done) { stream.getTracks().forEach(t => { try { t.stop(); } catch (e) { noteError("scan:trackStop", e); } }); stream = null; return; }
 
         video.srcObject = stream;
         // play() bewusst NICHT abwarten: das Promise loest auf manchen Geraeten nie auf,
@@ -6140,7 +6211,7 @@
         // vertraegt ein noch nicht bereites Video — sie versucht es im naechsten
         // Durchlauf einfach erneut. (playsinline + muted decken die Autoplay-Regeln ab.)
         const playing = video.play();
-        if (playing && playing.catch) playing.catch(() => {});
+        if (playing && playing.catch) playing.catch((e) => noteError("scan:videoPlay", e));
         if (done) return;
         hint.textContent = readyHint;
 
@@ -7815,7 +7886,7 @@
     document.removeEventListener("keydown", modalKeys);
     // Fokus dorthin zurueckgeben, wo er herkam - sonst landet er beim Schliessen am
     // Seitenanfang und Tastaturnutzer verlieren ihre Position.
-    if (lastFocused && document.contains(lastFocused)) { try { lastFocused.focus(); } catch (e) {} }
+    if (lastFocused && document.contains(lastFocused)) { try { lastFocused.focus(); } catch (e) { noteError("modal:restoreFocus", e); } }
     lastFocused = null;
   }
   // Escape schliesst; Tab bleibt im Dialog gefangen (sonst wandert der Fokus hinter
@@ -9285,7 +9356,7 @@
   }
   const SHOP_DONE_KEY = localKey("wochenkueche_shop_v1");
   function loadShopDone() { try { return new Set(JSON.parse(localStorage.getItem(SHOP_DONE_KEY) || "[]")); } catch (e) { return new Set(); } }
-  function saveShopDone(set) { try { localStorage.setItem(SHOP_DONE_KEY, JSON.stringify(Array.from(set))); } catch (e) {} }
+  function saveShopDone(set) { try { localStorage.setItem(SHOP_DONE_KEY, JSON.stringify(Array.from(set))); } catch (e) { noteError("store:saveShopDone", e); } }
 
   // Einkaufsliste als Klartext (Warengruppe als Ueberschrift, Zutaten mit Punkt). Eine Quelle
   // fuer "Als Text kopieren" und fuers Teilen ueber den nativen Dialog - sonst laufen die
@@ -9952,7 +10023,7 @@
     dragSrc = f.dataset.slotSrc;
     f.classList.add("dragging");
     e.dataTransfer.effectAllowed = "move";
-    try { e.dataTransfer.setData("text/plain", dragSrc); } catch (err) {}
+    try { e.dataTransfer.setData("text/plain", dragSrc); } catch (err) { noteError("plan:dragSetData", err); }
   });
   view.addEventListener("dragend", e => {
     const f = e.target.closest(".filled"); if (f) f.classList.remove("dragging");
@@ -10066,8 +10137,8 @@
   const LAST_KEY = localKey("wochenkueche_lastprofile_v1");
   function jget(key, fb) { try { const v = JSON.parse(localStorage.getItem(key)); return v == null ? fb : v; } catch (e) { return fb; } }
   let profile = jget(PROFILE_KEY, null);
-  function saveProfile() { try { if (profile) localStorage.setItem(PROFILE_KEY, JSON.stringify(profile)); else localStorage.removeItem(PROFILE_KEY); } catch (e) {} }
-  function rememberLast() { try { localStorage.setItem(LAST_KEY, JSON.stringify(profile)); } catch (e) {} }
+  function saveProfile() { try { if (profile) localStorage.setItem(PROFILE_KEY, JSON.stringify(profile)); else localStorage.removeItem(PROFILE_KEY); } catch (e) { noteError("store:saveProfile", e); } }
+  function rememberLast() { try { localStorage.setItem(LAST_KEY, JSON.stringify(profile)); } catch (e) { noteError("store:rememberLast", e); } }
   function initials(name) { return (name || "?").trim().split(/\s+/).slice(0, 2).map(w => w[0] ? w[0].toUpperCase() : "").join("") || "?"; }
   function validEmail(e) { return /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e); }
 
@@ -10095,7 +10166,7 @@
       if (!m) return;
       pendingShare = m[1];
       history.replaceState(null, "", location.pathname);
-    } catch (e) {}
+    } catch (e) { noteError("link:readParams", e); }
   }
   let authMode = "local";
   let cloudSignalled = false;
@@ -11418,7 +11489,7 @@
     try {
       if (mode === "system") localStorage.removeItem(THEME_KEY);
       else localStorage.setItem(THEME_KEY, mode);
-    } catch (e) {}
+    } catch (e) { noteError("theme:save", e); }
   }
 
   // ---------- Einstellungen ----------
@@ -11718,7 +11789,7 @@
     });
     view.querySelector("#v-back").addEventListener("click", () => {
       clearInterval(verifyPollTimer);
-      try { window.CloudAuth.logout(); } catch (e) {}
+      try { window.CloudAuth.logout(); } catch (e) { noteError("auth:logout", e); }
       cloudMode = "login";
     });
     // Paket B4: automatisch pruefen statt nur auf Knopfdruck zu warten - alle 5 s im
@@ -11936,11 +12007,11 @@
           // damit ein schlechtes Netz das Abmelden nicht blockiert - die Grabsteine holen
           // die Loeschung beim naechsten Anmelden ohnehin nach.
           Promise.race([
-            pushNow().catch(() => {}),
+            pushNow().catch((e) => noteError("sync:finalPushBeforeSignOut", e)),
             new Promise(res => setTimeout(res, 2000))
           ]).then(() => {
             stopCloudSync();
-            window.CloudAuth.logout().catch(() => {});
+            window.CloudAuth.logout().catch((e) => noteError("auth:logoutOnSignOut", e));
           });
           // onAuthStateChanged rendert danach die Anmeldung
         } else {
@@ -11966,9 +12037,9 @@
   // statt still zu bleiben) - alle Aufrufer brauchen deshalb ein eigenes try/catch, das eine
   // ehrliche Meldung statt "geloescht" zeigt und NICHT neu laedt.
   async function wipeLocalData() {
-    [STORE_KEY, PROFILE_KEY, LAST_KEY, SHOP_DONE_KEY].forEach(k => { try { localStorage.removeItem(k); } catch (e) {} });
+    [STORE_KEY, PROFILE_KEY, LAST_KEY, SHOP_DONE_KEY].forEach(k => { try { localStorage.removeItem(k); } catch (e) { noteError("store:wipeLocal", e); } });
     imgSaved = new Map();   // Baseline mitleeren, sonst gilt ein spaeter gleich benanntes Bild als schon gespeichert
-    try { await idbRW(store => store.clear()); } catch (e) {}
+    try { await idbRW(store => store.clear()); } catch (e) { noteError("store:wipeImages", e); }
     // Zuletzt: nach terminate() ist die Firestore-Instanz tot, die vorigen Schritte muessen
     // also zuerst durch. Kein leeres catch - der Fehler propagiert bewusst an die Aufrufer.
     if (window.CloudSync && window.CloudSync.wipeCache) await window.CloudSync.wipeCache();
@@ -12068,7 +12139,7 @@
           stopCloudSync();
           try {
             await wipeLocalData();
-            try { window.CloudAuth.logout(); } catch (er) {}
+            try { window.CloudAuth.logout(); } catch (er) { noteError("auth:logoutAfterDelete", er); }
             toast("Deine Daten wurden gelöscht. Bitte melde dich einmal neu an und wiederhole „Konto löschen“, um auch den Zugang zu entfernen.");
             setTimeout(() => location.reload(), 900);
           } catch (wipeErr) {
@@ -12177,7 +12248,7 @@
       Object.keys(flat).forEach(slot => { if (!already[slot]) missing[slot] = flat[slot]; });
       if (Object.keys(missing).length) await window.CloudGroup.savePlanWeek(gid, wk, Object.assign(missing, { by: syncUid, at: Date.now() }));
     }
-    try { await window.CloudGroup.activate(gid); } catch (e) {}
+    try { await window.CloudGroup.activate(gid); } catch (e) { noteError("group:activate", e); }
     await window.CloudSync.save(syncUid, { groupId: gid, pendingGroupId: "", pendingInviteUrl: "" });
   }
 
@@ -12191,7 +12262,7 @@
     });
   }
   function unwatchPending() {
-    if (syncUnsubPending) { try { syncUnsubPending(); } catch (e) {} syncUnsubPending = null; }
+    if (syncUnsubPending) { try { syncUnsubPending(); } catch (e) { noteError("sync:unsubPending", e); } syncUnsubPending = null; }
   }
 
   // Live-Aktivierung (jemand tritt bei, waehrend der Owner online ist). Der Start-Pfad in
@@ -12234,9 +12305,9 @@
     const gid = state.pendingGroupId;
     if (!gid) return;
     unwatchPending();
-    try { await dissolveGroupFirestore(gid); } catch (e) {}
+    try { await dissolveGroupFirestore(gid); } catch (e) { noteError("group:dissolve", e); }
     state.pendingGroupId = ""; state.pendingInviteUrl = ""; save();
-    try { await window.CloudSync.save(syncUid, { pendingGroupId: "", pendingInviteUrl: "" }); } catch (e) {}
+    try { await window.CloudSync.save(syncUid, { pendingGroupId: "", pendingInviteUrl: "" }); } catch (e) { noteError("sync:clearPendingInvite", e); }
     toast("Einladung zurückgezogen");
   }
 
@@ -12291,7 +12362,7 @@
       // Zuruecknehmen selbst, ist das nicht fatal - der Beitritt zur neuen Gruppe steht schon,
       // die alte bliebe hoechstens als spaeter manuell aufraeumbare Karteileiche stehen.
       if (state.pendingGroupId && state.pendingGroupId !== inv.gid) {
-        try { await withdrawPendingInvite(); } catch (e) {}
+        try { await withdrawPendingInvite(); } catch (e) { noteError("group:withdrawInvite", e); }
       }
       state.groupId = inv.gid;
       await switchGroup(inv.gid);
@@ -12340,10 +12411,10 @@
       try {
         const inv = await window.CloudGroup.fetchInvite(code);
         if (inv && inv.gid === gid) ownCodes.push(code);
-      } catch (e) {}
+      } catch (e) { noteError("group:fetchInvite", e); }
     }
     for (const code of ownCodes) {
-      try { await window.CloudGroup.deleteInvite(code); } catch (e) {}
+      try { await window.CloudGroup.deleteInvite(code); } catch (e) { noteError("group:deleteInvite", e); }
     }
     if (ownCodes.length) state.inviteCodes = (state.inviteCodes || []).filter(c => ownCodes.indexOf(c) === -1);
   }
@@ -12386,7 +12457,7 @@
       // Konto schreibt - dort liegen sie ja noch nicht.
       lastPushedRecipes = new Map();
       lastPushedJSON = null;
-    } catch (e) {}
+    } catch (e) { noteError("group:leaveSaveOwn", e); }
     await switchGroup(null);
     toast("Du planst wieder für dich – deine Meals sind mitgekommen");
   }
@@ -12606,6 +12677,9 @@
         const text = "Plan mit mir zusammen bei Paddy's Mealplan: " + url;
         // Auf dem Handy den Systemdialog nehmen - er trifft WhatsApp direkt, statt den
         // Link nur in die Zwischenablage zu legen.
+        // Hier bleibt der catch bewusst leer: Bricht der Nutzer das Teilen-Blatt ab, wirft
+        // navigator.share einen AbortError. Das ist Normalbetrieb, kein Fehler - eine
+        // Meldung darueber wuerde den Melder mit Rauschen fuellen.
         if (canShare()) navigator.share({ title: "Gemeinsam planen", text: text }).catch(() => {});
         else copyToClipboard(url, "Link kopiert");
       });
@@ -12614,7 +12688,7 @@
       const rev = body.querySelector("#grp-revoke");
       if (rev && syncGid) rev.addEventListener("click", async () => {
         const code = (createdUrl || "").split("?g=")[1];
-        try { if (code) await window.CloudGroup.deleteInvite(code); } catch (e) {}
+        try { if (code) await window.CloudGroup.deleteInvite(code); } catch (e) { noteError("group:deleteInviteOnDeleteAccount", e); }
         if (code) { state.inviteCodes = (state.inviteCodes || []).filter(c => c !== code); save(); }
         createdUrl = null; paint(); toast("Link zurückgezogen");
       });

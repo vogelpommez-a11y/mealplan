@@ -1699,3 +1699,79 @@ seine Fotos offline.
 **Unverändert gilt:** Alles wird Cache-First ausgeliefert. Wird ein Foto **oder das Logo**
 ausgetauscht, muss `VERSION` in `sw.js` hoch — sonst sieht ein wiederkehrender Nutzer weiter die
 alte Datei. Steht jetzt auf `pm-v6`.
+
+## 69. Ein JSON-LD-Block ist kein JavaScript — der Syntax-Check lief prompt darauf auf
+
+Mit Aufgabe A5 kam ein `<script type="application/ld+json">` in den Kopf von `index.html`.
+`python syntax-check.py` meldete sofort:
+
+```text
+FEHLER  Block 1 (classic, Zeile 43-57)
+        Unexpected token ':'
+```
+
+Das war kein Befund, sondern die Bauart des Prüfstands: Er sammelte **jeden** `<script>`-Block
+ein und schickte ihn durch `new Function()`. Ein JSON-Objekt scheitert dort zwangsläufig am
+ersten `:` — für V8 ist `{ "@context": …}` ein Block mit einem String-Literal, dem ein
+Doppelpunkt folgt.
+
+Ein dauerhaft roter Prüfstand ist schlimmer als gar keiner: Man gewöhnt sich an den einen
+bekannten Fehler und übersieht den nächsten. `extract_blocks()` entscheidet deshalb jetzt nach
+dem `type`-Attribut. Nur die JS-Typen (`""`, `module`, `text/javascript`,
+`application/javascript`, …) gehen durch V8. JSON-LD wird mit `json.loads` geprüft und mit
+Zeilennummer gemeldet, alles andere übersprungen.
+
+**Der JSON-Check ist kein Trostpreis, sondern der einzige Prüfer, den dieser Block hat.** Ein
+Tippfehler im JSON-LD bricht weder Layout noch App — er fällt ausschließlich in der
+Suchmaschinen-Auswertung auf, also nirgends, wo man hinsieht.
+
+**Bei künftigen Nicht-JS-Blöcken** (`importmap`, `speculationrules`, Templates) greift dieselbe
+Weiche automatisch: Sie werden mit Hinweis übersprungen, nicht fälschlich als Fehler gemeldet.
+
+## 70. Vorschaubilder werden bei WhatsApp, Facebook und Co. **serverseitig** zwischengespeichert
+
+Seit A4 ist `og:image` das eigens gestaltete `og-image.png` (1200×630), und `twitter:card` steht
+auf `summary_large_image`.
+
+Das Bild liegt im Repo, weil es unter der Domain abrufbar sein muss. **Seine Quelle liegt es
+nicht:** `Marketing/og-image-source.html` ist gitignored wie alle Marketing-Assets. Wer das Bild
+neu rendern will, braucht die lokale Datei; der Aufruf steht als Kommentar in ihr drin.
+
+Der Service Worker hat damit nichts zu tun — Crawler haben keinen. Die Falle liegt woanders:
+**Die Plattformen cachen die Vorschau auf ihren eigenen Servern**, teils wochenlang. Wer das
+Bild austauscht und den Link erneut teilt, sieht mit hoher Wahrscheinlichkeit weiter das alte.
+
+Erwartungsgemäß ist das **kein Bug**. Wenn die neue Vorschau tatsächlich sofort gebraucht wird:
+
+* Facebook/WhatsApp: Sharing Debugger, „Scrape Again"
+* LinkedIn: Post Inspector
+* Notfalls unter neuem Dateinamen ausliefern (`og-image-2.png`) — das umgeht jeden Fremdcache.
+
+Das Bild wird **absichtlich nicht** in `SHELL_ASSETS` aufgenommen: Die App fordert es nie an,
+es wäre reiner Ballast im Precache (siehe Punkt 68).
+
+## 71. Leere `catch`-Blöcke sind jetzt gefüllt — und dabei zwei Fallen aufgetaucht
+
+Aufgabe A7 hat 34 leere `catch (e) {}` und 5 leere `.catch(() => {})` auf den zentralen Melder
+`window.noteError(kennung, fehler)` umgestellt (siehe `docs/ARCHITECTURES.md`).
+
+**Falle 1: Ein leerer `catch` ist unzerstörbar, ein gefüllter nicht.**
+Steht im `catch` ein Aufruf, kann dieser Aufruf selbst scheitern. Wäre `noteError` aus
+irgendeinem Grund nicht da, legte jede der 38 Stellen einen `ReferenceError` nach — die Änderung
+hätte also exakt das Gegenteil ihres Zwecks bewirkt. Deshalb steht der Melder als **Erstes im
+ersten Script-Block**, hat keine Abhängigkeiten und lädt nichts nach. Wer ihn verschiebt oder
+hinter eine Bedingung setzt, baut diese Falle wieder ein.
+
+**Falle 2: `reportError` ist ein belegter Name.**
+Der Plan nannte den Hook `reportError()`. `window.reportError` ist aber eine echte Plattform-API,
+die einen Fehler an die globalen Handler weiterreicht. Sie zu überschreiben wäre ein stiller
+Nebeneffekt an genau der Stelle, an der es um das Gegenteil geht. Der Hook heißt `noteError`.
+
+**Was der Melder ausdrücklich nicht tut:** verschicken oder persistieren. Beides würde die
+Datenschutzerklärung berühren (`CLAUDE.md` §20/§23). Er hält 50 Fälle im Speicher und schreibt
+gedrosselt nach `console.warn`. Der eigentliche Nutzen entsteht erst mit Store-Telemetrie in
+Phase D — dann ist er die eine Stelle, an der sie andockt, statt 38 Stellen.
+
+**Drosselung ist kein Komfort, sondern Voraussetzung:** Ohne sie hätte
+`stream.getTracks().forEach(t => { try { t.stop(); } catch … })` bei jedem Scanner-Ende geloggt
+und der Ringpuffer wäre nur noch mit Rauschen gefüllt. Pro Kennung ist bei 3 Meldungen Schluss.
