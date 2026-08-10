@@ -26,9 +26,83 @@ Besonders wichtig:
 
 Nicht automatisch den Test als defekt betrachten.
 
+## 0. Syntax-Check (läuft zuerst, vor allem anderen)
+
+```powershell
+python syntax-check.py
+```
+
+Rund **1 Sekunde**. Prüft jeden `<script>`-Block in `index.html`, **ohne ihn auszuführen**.
+Rückgabe `0` = sauber, `1` = Syntaxfehler, `2` = die Prüfung selbst ist fehlgeschlagen.
+
+**Nach jeder Änderung an JavaScript ausführen, bevor der Smoke-Test überhaupt sinnvoll ist.**
+Ein Syntaxfehler beendet das gesamte App-Script — der Smoke-Test zeigt dann ein leeres `#view`,
+sagt aber nicht, wo der Fehler steckt. Genau diese Situation ist zweimal eingetreten
+(`docs/TROUBLESHOOTING.md`, Punkte 5 und 6).
+
+### Wie er arbeitet
+
+* **Klassische Blöcke** gehen durch `new Function(code)`. Das parst vollständig, führt den Rumpf
+  aber nie aus: kein DOM-Zugriff, kein `localStorage`, kein Firebase, keine Nebenwirkungen.
+* **Der Modul-Block** (`type="module"`) kann so nicht geprüft werden — `import` wäre innerhalb
+  einer Funktion selbst ein Syntaxfehler. Er läuft deshalb über eine Blob-URL mit dynamischem
+  `import()`, wobei die Import-Quellen auf ein leeres `data:`-Modul umgebogen werden. Damit
+  braucht die Prüfung kein Netz, und die Syntax bleibt echte Modulsyntax.
+* Geprüft wird mit der **V8-Engine von Edge** — derselben, die die App später ausführt. Ein
+  Python-JS-Parser wie `esprima` kennt neuere Syntax (`?.`, `??`, `#private`) oft nicht und
+  meldet Fehler, die keine sind.
+
+### Zwei Fallen, die beim Bau aufgetreten sind
+
+**V8 meldet Modul-Linking-Fehler ebenfalls als `SyntaxError`.** Beim ersten Lauf schlug der
+Modul-Block mit „does not provide an export named 'EmailAuthProvider'" fehl — ein Fehlalarm des
+Prüfstands, kein Befund. Solche Fehler entstehen erst **nach** dem Parsen und sind damit der
+Beweis für sauberen Code. Sie werden deshalb ausgefiltert.
+
+**V8 nennt bei einem Parse-Fehler keine Position.** `e.stack` ist blank (`"SyntaxError:
+Unexpected number"`) — sowohl bei `new Function` als auch bei dynamischem `import()`. Die
+Zeilennummer wird deshalb **eingegrenzt statt ausgelesen**: Ein abgeschnittenes Stück Code meldet
+„Unexpected end of input", solange der Schnitt vor dem Fehler liegt. Gesucht ist per binärer Suche
+der erste Schnitt, der **dieselbe Meldung** liefert wie der vollständige Code (rund 14 Versuche
+für 10.000 Zeilen).
+
+Nur auf „irgendeinen harten Fehler" zu prüfen reicht **nicht**: Ein Schnitt mitten durch einen
+String oder ein Template-Literal erzeugt ebenfalls einen harten Fehler und stoppt die Suche zu
+früh — im Versuch 250 Zeilen vor der echten Stelle.
+
+### Die Genauigkeitsangabe ernst nehmen
+
+Das Skript unterscheidet zwei Fälle und sagt, welcher vorliegt:
+
+```text
+-> index.html:5000                                  bewiesen
+-> etwa index.html:3960 (eingegrenzt, nicht bewiesen)   Näherung
+```
+
+„Bewiesen" heißt: Entfernt man genau diese eine Zeile, ist der Fehler weg. Bei „etwa" liegt die
+Stelle in der Nähe — gemessen zwischen 0 und 40 Zeilen daneben. Beides zusammen mit der
+Fehlermeldung reicht zum Auffinden.
+
+### Gegenprobe (bei Änderungen am Skript zu wiederholen)
+
+Ein Prüfstand, der nichts findet, beweist nichts. Der Check wurde gegen vier präparierte Kopien
+von `index.html` gefahren — fehlender Wert, unterminierter String, fehlende Klammer, fehlendes
+Komma, jeweils an bekannter Zeile:
+
+| Fehler | eingebaut in | gemeldet |
+|---|---|---|
+| fehlender Wert (`const x = ;`) | 5000 | 5000, bewiesen |
+| unterminierter String | 9000 | 9000 |
+| fehlende Klammer | 6000 | 6000 |
+| fehlendes Komma (`foo(1 2)`) | 4000 | etwa 3960 |
+| kaputte Funktionssignatur | 7000 | etwa 7000 |
+
 ## 1. Smoke-Test
 
 Der Smoke-Test rendert `index.html` headless mit Microsoft Edge.
+
+**Erst nach bestandenem Syntax-Check ausführen** (Abschnitt 0) — sonst prüft man neun Sekunden
+lang, ob ein Fehler vorliegt, den eine Sekunde präzise benannt hätte.
 
 Beispiel:
 
@@ -781,6 +855,8 @@ Für den Worker selbst (`HTMLRewriter`, Firestore-REST-Zugriff über den Service
 
 Vor Commit:
 
+0. `python syntax-check.py` (Abschnitt 0) — kostet eine Sekunde und ist die einzige Prüfung,
+   die bei jeder JS-Änderung ohne Ausnahme läuft
 1. relevante Funktion isoliert testen
 2. Smoke-Test ausführen
 3. UI bei relevanten Änderungen prüfen

@@ -662,6 +662,22 @@ Vollständige Teststrategie:
 
 → `docs/TESTING.md`
 
+## Syntax-Check zuerst
+
+**Nach jeder Änderung an JavaScript:**
+
+```powershell
+python syntax-check.py
+```
+
+Rund eine Sekunde. Prüft jeden `<script>`-Block mit der V8-Engine von Edge, **ohne ihn
+auszuführen**, und nennt Fehlermeldung und Zeile.
+
+Ein Syntaxfehler beendet das gesamte App-Script — der Smoke-Test zeigt dann nur ein leeres
+`#view`, ohne die Ursache zu benennen. Deshalb läuft der Syntax-Check **vor** dem Smoke-Test.
+
+Details und die Gegenprobe: `docs/TESTING.md`, Abschnitt 0.
+
 ## Smoke-Test
 
 Microsoft Edge headless verwenden.
@@ -1210,7 +1226,7 @@ Dort insbesondere nachsehen bei Änderungen an:
 ## Nach der Änderung
 
 1. Funktion testen.
-2. Smoke-Test ausführen, wenn JavaScript geändert wurde.
+2. `python syntax-check.py` ausführen, wenn JavaScript geändert wurde — danach den Smoke-Test.
 3. Isolierten Ausschneide-Test durchführen, wenn die Funktion dies erfordert.
 4. Bei UI-Änderungen mobile prüfen.
 5. Bei UI-Änderungen Light und Dark prüfen.

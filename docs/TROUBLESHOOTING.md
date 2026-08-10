@@ -76,10 +76,16 @@ Typisches Symptom:
 
 Lösung:
 
+* **zuerst `python syntax-check.py`** — benennt Fehlermeldung und Zeile in rund einer Sekunde,
+  statt sie im leeren `#view` zu suchen (siehe `docs/TESTING.md`, Abschnitt 0)
 * `--dump-dom` verwenden
 * `#view` prüfen
 * JavaScript-Konsole/Fehlerursache untersuchen
 * nicht nur HTTP-Status betrachten
+
+**Seit dem 10.08.2026 ist dieser Fall vermeidbar.** Der Syntax-Check prüft jeden `<script>`-Block
+mit derselben V8-Engine, die die App ausführt, ohne ihn auszuführen. Er läuft vor dem Smoke-Test
+und vor jedem Push. Dieser Punkt und Punkt 6 wären damit beide sofort gefunden worden.
 
 ## 6. Strict Mode und Oktal-Escapes
 
@@ -1648,3 +1654,48 @@ Ohne Grenze schluckt ein einziger solcher Hänger das ganze Zeitfenster.
 
 Und: **zwei `iframe`s gleichzeitig gegen `python -m http.server`** sind ebenfalls ein Hänger-Risiko —
 der Server ist einfädig. Rahmen nacheinander messen, nicht parallel.
+
+## 67. Das Logo im PDF hängt jetzt am Netzpfad, nicht mehr am CSS
+
+Das App-Logo lag bis zum 10.08.2026 als 60-KB-Base64 in `--logoL` — mitten im render-blocking
+`<style>`-Block. Jeder Seitenaufruf musste diese 60 KB parsen, bevor das erste Pixel erschien,
+auch wer das Logo nie zu Gesicht bekam. Es liegt jetzt als `img/logo.png` (45 KB) daneben.
+
+**Die Falle dabei:** `prepareLogoForPdf()` las die Bytes über
+`getComputedStyle(document.documentElement).getPropertyValue("--logoL")` und dekodierte das
+Base64 selbst. Ein reiner Austausch der CSS-Zeile hätte das Logo im Einkaufslisten-PDF still
+durch die Vektor-Marke ersetzt — ohne Fehlermeldung, weil der Pfad bei Misserfolg bewusst
+`logoPdfAsset = null` setzt und auf `pdfMarkOps` zurückfällt.
+
+Die Funktion holt die Bytes deshalb jetzt per `fetch("img/logo.png", { cache: "force-cache" })`.
+
+**Bekannte Einschränkung:** Unter `file://` ist `fetch` auf lokale Dateien blockiert. Ein
+Prüfstand, der die PDF-Erzeugung über `file:///…` fährt, bekommt deshalb die Vektor-Marke statt
+des Logos — das ist kein Fehler, sondern der dokumentierte Rückfall. **PDF-Tests müssen über
+HTTP laufen** (`python -m http.server` oder `test-server.ps1`). Vorher funktionierte auch
+`file://`, weil `getComputedStyle` keinen Netzzugriff braucht.
+
+Produktion (HTTPS) und Capacitor (`https://localhost` bzw. `capacitor://localhost`) sind nicht
+betroffen; dort greift zusätzlich der Service-Worker-Cache.
+
+## 68. Der Service Worker lud 1 MB vor, das kaum jemand brauchte
+
+`SHELL_ASSETS` enthielt bis zum 10.08.2026 alle 32 Meal-Fotos (~724 KB) **und**
+`vendor/zxing.min.js` (~332 KB). Beides wurde bei der Installation geladen, bevor der Nutzer
+irgendetwas davon anfasste.
+
+ZXing war dabei doppelt teuer: Auf Android/Chrome läuft der Barcode-Scanner über das native
+`BarcodeDetector`-API (`loadZXing()` in `index.html`), die Datei wird dort **nie** angefasst.
+332 KB für einen iOS-Sonderfall vorab zu laden ist Verschwendung.
+
+Beide gehen jetzt über den normalen Cache-First-Zweig des `fetch`-Handlers und liegen nach dem
+ersten Gebrauch genauso dauerhaft im Cache — nur eben erst dann. Ersparnis bei der Installation:
+**927 KB** (2203 → 1276 KB).
+
+**Bewusst in Kauf genommen:** Wer die App zum allerersten Mal ohne Netz startet, bevor er je ein
+Meal-Foto gesehen hat, bekommt die Rückfall-Kacheln. Wer sie einmal online geöffnet hat, hat
+seine Fotos offline.
+
+**Unverändert gilt:** Alles wird Cache-First ausgeliefert. Wird ein Foto **oder das Logo**
+ausgetauscht, muss `VERSION` in `sw.js` hoch — sonst sieht ein wiederkehrender Nutzer weiter die
+alte Datei. Steht jetzt auf `pm-v6`.

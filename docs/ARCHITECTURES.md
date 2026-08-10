@@ -786,6 +786,32 @@ Blickfeld; `loading="lazy"` verschiebt selbst ein längst dekodiertes Bild um mi
 Frame, sichtbar als Aufblitzen bei jedem `render()`. Meal-Raster (`cardImageHtml`) und die
 Picker-Liste bleiben bei `lazy` — dort können deutlich mehr Bilder gleichzeitig im DOM stehen.
 
+### Das Logo ist eine Datei, kein Base64
+
+`--logoL` verweist auf `img/logo.png` (220×220 RGBA, 45 KB). Bis zum 10.08.2026 stand das Bild
+als 60-KB-Base64 direkt in der CSS-Variablen — also im render-blocking `<style>`-Block, den jeder
+Aufruf vollständig parsen muss, bevor das erste Pixel erscheint. Der CSS-Block ist dadurch von
+264 KB auf 204 KB gefallen, `index.html` von 933 KB auf 860 KB.
+
+`--logoD` und `--logo` bleiben unverändert davor geschaltet; die Light-/Dark-Mechanik ist nicht
+berührt (beide Themes nutzen dieselbe Datei).
+
+**`prepareLogoForPdf()` hängt daran.** Die Funktion braucht die rohen PNG-Bytes, um daraus
+RGB- und Alpha-Streams für den PDF-Writer zu bauen, und las sie früher per `getComputedStyle`
+aus `--logoL`. Sie holt sie jetzt per `fetch("img/logo.png", { cache: "force-cache" })`. Wer den
+Pfad des Logos ändert, muss **beide** Stellen anfassen. Details und die `file://`-Einschränkung:
+`docs/TROUBLESHOOTING.md`, Punkt 67.
+
+### Was der Service Worker vorlädt
+
+`SHELL_ASSETS` in `sw.js` enthält nur noch die Hülle: `index.html`, Manifest, das Logo und die
+vier Icons. Die 32 Meal-Fotos und `vendor/zxing.min.js` sind seit dem 10.08.2026 **nicht** mehr
+im Precache — sie kommen über den Cache-First-Zweig des `fetch`-Handlers nach und liegen danach
+genauso dauerhaft im Cache. Das spart 927 KB bei der Installation.
+
+Alles wird Cache-First ausgeliefert: Wird ein Foto oder das Logo ausgetauscht, muss `VERSION`
+hoch (aktuell `pm-v6`). Siehe `docs/TROUBLESHOOTING.md`, Punkt 68.
+
 ## Wochenplan auf dem Handy
 
 Am Rechner ist `.week` ein Raster und die Tagesleiste `.daybar` steht auf `display: none`. Unter
