@@ -1521,7 +1521,8 @@
   /* ---------- Merkmale eines Meals (B6) ----------
      Mehrfachauswahl mit aria-pressed, gleiche Bauform wie .tdays im Rechner. Bewusst
      nicht .seg: das ist eine Einfachauswahl (genau ein .on) und wuerde hier falsche
-     Erwartungen wecken. Der Aufwand darunter IST eine Einfachauswahl und nutzt .seg. */
+     Erwartungen wecken. (Ein .seg fuer den "Aufwand" stand hier einen Tag lang darunter -
+     das Feld ist am 13.08.2026 entfallen, weil es niemand auswertete.) */
   .ms-meta .sec-h { margin: 22px 0 8px; }
   .mtags { display: flex; flex-wrap: wrap; gap: 6px; }
   .mtags button {
@@ -1536,8 +1537,6 @@
     background: linear-gradient(135deg, var(--accent), var(--accent-strong));
     box-shadow: 0 2px 8px color-mix(in srgb, var(--accent) 32%, transparent);
   }
-  .ms-meta .seg { margin-top: 10px; }
-  .ms-meta .seg button { min-height: 40px; }
   /* Nur-Lese-Zweig: dieselben Merkmale, aber als ruhige Marken ohne Knopf-Optik -
      hier ist nichts umschaltbar, also darf auch nichts wie ein Schalter aussehen. */
   .mflags { display: flex; flex-wrap: wrap; gap: 6px; margin: 12px 0 0; }
@@ -3701,7 +3700,7 @@
   // Vorschlagsrang im Picker: passt die Kategorie GENAU zu diesem Slot (nicht nur "erlaubt")?
   function catSuggestsMeal(cat, mealKey) { return (CAT_TO_MEAL[cat] || []).indexOf(mealKey) !== -1; }
 
-  // ---------- Merkmale eines Meals (Tags, Meal-Prep, Aufwand) ----------
+  // ---------- Merkmale eines Meals (Tags, Meal-Prep) ----------
   // Bewusst eine FESTE Liste statt freier Tags: nur so kann der Filter (Meals-Reiter) und
   // spaeter der Auto-Planer damit rechnen. Freitext-Tags waeren pro Nutzer verschieden
   // geschrieben ("lowcarb"/"Low Carb"/"low-carb") und damit fuer beides unbrauchbar.
@@ -3717,17 +3716,18 @@
   ];
   const RECIPE_TAG_KEYS = RECIPE_TAGS.map(t => t.key);
   function tagLabel(k) { const t = RECIPE_TAGS.find(x => x.key === k); return t ? t.label : k; }
-  // Aufwand statt "Schwierigkeit": in der Kueche entscheidet die Zielgruppe nach Aufwand,
-  // nicht nach Koennen. Gespeichert wird die Zahl 1..3, damit spaeter danach sortiert
-  // werden kann.
-  const DIFFICULTIES = [{ v: 1, label: "Einfach" }, { v: 2, label: "Mittel" }, { v: 3, label: "Aufwendig" }];
-  function difficultyLabel(v) { const d = DIFFICULTIES.find(x => x.v === v); return d ? d.label : ""; }
+  // Ein drittes Merkmal `difficulty` (Aufwand, 1..3) gab es einen Tag lang und ist am
+  // 13.08.2026 wieder entfernt worden: Es wurde gesetzt und angezeigt, aber von nichts
+  // ausgewertet - weder vom Filter noch vom geplanten Auto-Planer. Ein Feld ohne Abnehmer
+  // ist Pflegeaufwand ohne Gegenwert. `tags` und `mealPrep` bleiben, weil beide einen haben
+  // (Filter heute, Auto-Planer in D2).
+  // Alt-Werte werden in sanitizeRecipe() aktiv entfernt, nicht bloss ignoriert.
 
   // Beispiel-Meals mit Fitness-/Abnehm-Fokus (viel Protein, realistische Portionen fuers
   // Meal-Prep) statt generischer Alltagsgerichte - passend zum Zielpublikum der App.
   const SEED = [
     { name: "Protein-Porridge mit Beeren", category: "Frühstück", portions: 1, time: 10,
-      tags: ["highprotein", "vegetarisch"], mealPrep: true, difficulty: 1,
+      tags: ["highprotein", "vegetarisch"], mealPrep: true,
       nutrition: { kcal: 530, carbs: 64, protein: 43, fat: 11 },
       ingredients: [
         { name: "Haferflocken", grams: 60 },
@@ -3738,7 +3738,7 @@
       ],
       steps: "Haferflocken mit Milch aufkochen und 3–4 Min. bei milder Hitze quellen lassen. Vom Herd nehmen, Whey-Protein unterrühren. In eine Schale füllen, mit Beeren, Chiasamen und Zimt toppen." },
     { name: "Hähnchen mit Pute und Reis", category: "Hauptgericht", portions: 2, time: 30,
-      tags: ["highprotein", "laktosefrei"], mealPrep: true, difficulty: 1,
+      tags: ["highprotein", "laktosefrei"], mealPrep: true,
       nutrition: { kcal: 620, carbs: 55, protein: 55, fat: 16 },
       ingredients: [
         { name: "Hähnchenbrust", grams: 200 },
@@ -3750,7 +3750,7 @@
       ],
       steps: "Reis nach Packungsangabe kochen. Hähnchen- und Putenbrust würfeln, würzen und in Olivenöl scharf anbraten. Paprika und Zucchini kurz mitbraten, mit Sojasauce ablöschen. Alles auf dem Reis anrichten." },
     { name: "Eiweißshake mit Whey und Milch", category: "Snack", portions: 1, time: 5,
-      tags: ["highprotein", "vegetarisch", "glutenfrei"], mealPrep: false, difficulty: 1,
+      tags: ["highprotein", "vegetarisch", "glutenfrei"], mealPrep: false,
       nutrition: { kcal: 350, carbs: 39, protein: 35, fat: 6 },
       ingredients: [
         { name: "Milch", grams: 300, unit: "ml" },
@@ -3760,7 +3760,7 @@
       ],
       steps: "Milch, Whey-Protein, Banane und ein paar Eiswürfel in den Mixer geben und cremig mixen." },
     { name: "Rindersteak mit Ofenkartoffeln", category: "Hauptgericht", portions: 1, time: 35,
-      tags: ["highprotein", "glutenfrei", "laktosefrei"], mealPrep: false, difficulty: 2,
+      tags: ["highprotein", "glutenfrei", "laktosefrei"], mealPrep: false,
       nutrition: { kcal: 650, carbs: 62, protein: 56, fat: 20 },
       ingredients: [
         { name: "Rindersteak (Rumpsteak)", grams: 200 },
@@ -5490,8 +5490,10 @@
     const tags = sanitizeTags(r.tags);
     if (tags) out.tags = tags; else delete out.tags;
     if ("mealPrep" in r) out.mealPrep = r.mealPrep === true;
-    const d = +r.difficulty;
-    if (d === 1 || d === 2 || d === 3) out.difficulty = d; else delete out.difficulty;
+    // Aufwand (entfernt am 13.08.2026): aktiv loeschen, nicht nur nicht mehr setzen.
+    // Object.assign() kopiert das Feld sonst aus Altdaten und aus geteilten Meals einfach
+    // weiter mit - es haenge dann fuer immer im Datenmodell, ohne dass es je jemand liest.
+    delete out.difficulty;
     return out;
   }
   function sanitizeRecipes(list) { return Array.isArray(list) ? list.map(sanitizeRecipe).filter(Boolean) : []; }
@@ -7098,18 +7100,15 @@
     const parts = [];
     if (r.mealPrep) parts.push(`<span class="on">Meal-Prep</span>`);
     (r.tags || []).forEach(k => parts.push(`<span>${esc(tagLabel(k))}</span>`));
-    if (r.difficulty) parts.push(`<span>${esc(difficultyLabel(r.difficulty))}</span>`);
     return parts.length ? `<div class="mflags">${parts.join("")}</div>` : "";
   }
   function mealMetaEditHtml(r) {
     const tags = r.tags || [];
     const chips = [`<button type="button" data-flag="mealPrep" aria-pressed="${r.mealPrep ? "true" : "false"}">Meal-Prep</button>`]
       .concat(RECIPE_TAGS.map(t => `<button type="button" data-tag="${t.key}" aria-pressed="${tags.indexOf(t.key) !== -1 ? "true" : "false"}">${esc(t.label)}</button>`));
-    const seg = DIFFICULTIES.map(d => `<button type="button" data-diff="${d.v}" class="${r.difficulty === d.v ? "on" : ""}">${esc(d.label)}</button>`).join("");
     return `<div class="ms-meta">
           <h4 class="sec-h">Merkmale</h4>
           <div class="mtags" id="f-tags">${chips.join("")}</div>
-          <div class="seg" id="f-diff" role="group" aria-label="Aufwand">${seg}</div>
         </div>`;
   }
 
@@ -9039,8 +9038,6 @@
         .filter(b => b.getAttribute("aria-pressed") === "true").map(b => b.dataset.tag);
       if (tags.length) target.tags = tags; else delete target.tags;
       target.mealPrep = node.querySelector("#f-tags [data-flag='mealPrep']").getAttribute("aria-pressed") === "true";
-      const dsel = node.querySelector("#f-diff button.on");
-      if (dsel) target.difficulty = +dsel.dataset.diff; else delete target.difficulty;
     }
     function commitNow() {
       clearTimeout(idleTimer);
@@ -9084,21 +9081,11 @@
     // Merkmale sind Knoepfe, keine Formularfelder - sie loesen weder "input" noch "change"
     // aus und brauchen deshalb einen eigenen Klickweg. Sofort committen statt zu warten:
     // ein Tipp ist eine abgeschlossene Entscheidung, anders als ein halb getippter Name.
-    // Aufwand ist Einfachauswahl (.seg), ein zweiter Tipp auf dieselbe Stufe hebt sie
-    // wieder auf - sonst waere eine versehentlich gesetzte Stufe nicht mehr loeschbar.
     node.addEventListener("click", e => {
       const chip = e.target.closest("#f-tags button");
-      if (chip) {
-        chip.setAttribute("aria-pressed", chip.getAttribute("aria-pressed") === "true" ? "false" : "true");
-        commitNow(); return;
-      }
-      const diff = e.target.closest("#f-diff button");
-      if (diff) {
-        const was = diff.classList.contains("on");
-        node.querySelectorAll("#f-diff button").forEach(b => b.classList.remove("on"));
-        if (!was) diff.classList.add("on");
-        commitNow();
-      }
+      if (!chip) return;
+      chip.setAttribute("aria-pressed", chip.getAttribute("aria-pressed") === "true" ? "false" : "true");
+      commitNow();
     });
     node.addEventListener("input", e => { if (e.target.matches("input, textarea, select")) scheduleCommit(); });
     node.addEventListener("change", e => { if (e.target.matches("input, textarea, select")) commitNow(); });

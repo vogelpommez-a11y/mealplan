@@ -832,9 +832,9 @@ Der Rückblick selbst (`rueckblickHtml()`) normiert jeden Balken auf **sein eige
 Wochenziel und kann das ±10-%-Band deshalb als feste Fläche zeichnen. Siehe
 `docs/TROUBLESHOOTING.md` Punkt 72 für den Zustand davor.
 
-### Merkmale eines Meals: `tags[]`, `mealPrep`, `difficulty`
+### Merkmale eines Meals: `tags[]` und `mealPrep`
 
-Drei optionale Felder, seit 13.08.2026. Sie sind die Grundlage für den Meal-Filter, die
+Zwei optionale Felder, seit 13.08.2026. Sie sind die Grundlage für den Meal-Filter, die
 kuratierte Bibliothek und den späteren Auto-Wochenplaner — ohne sie ist keines davon baubar.
 
 * **`tags`**: Array aus **festen Schlüsseln** — `highprotein`, `lowcarb`, `vegetarisch`,
@@ -843,8 +843,16 @@ kuratierte Bibliothek und den späteren Auto-Wochenplaner — ohne sie ist keine
   Planer könnten damit rechnen. Die **Schlüssel** stecken in Nutzerdaten und geteilten Meals und
   dürfen sich nie ändern; die Beschriftungen dürfen es.
 * **`mealPrep`**: Boolean, „lässt sich vorkochen".
-* **`difficulty`**: `1 | 2 | 3` (Einfach / Mittel / Aufwendig). Zahl statt Text, damit später
-  danach sortiert werden kann.
+
+**Ein drittes Feld `difficulty` (Aufwand, 1–3) gab es einen Tag lang** und ist am 13.08.2026
+wieder entfernt worden: Es wurde gesetzt und angezeigt, aber von nichts ausgewertet — weder vom
+Filter noch vom geplanten Auto-Planer. Ein Feld ohne Abnehmer ist Pflegeaufwand ohne Gegenwert
+(es muss sanitisiert, synchronisiert, dokumentiert und in jedem Prüfstand mitgedacht werden).
+`sanitizeRecipe()` **löscht** einen Alt-Wert aktiv, statt ihn nur nicht mehr zu setzen — sonst
+kopierte `Object.assign()` ihn aus Altdaten und geteilten Meals dauerhaft weiter.
+
+Die Faustregel daraus: Ein Datenfeld wird angelegt, wenn ein konkretes Feature es liest — nicht,
+weil es später einmal nützlich sein könnte.
 
 `sanitizeTags()` lässt ausschließlich bekannte Schlüssel durch, entfernt Duplikate und stellt
 die **feste Reihenfolge aus `RECIPE_TAG_KEYS`** her. Letzteres ist kein Schönheitsdetail: Ein

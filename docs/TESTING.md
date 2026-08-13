@@ -253,7 +253,11 @@ Beispiele:
   schlimmer als gar keiner (`docs/TROUBLESHOOTING.md` §71).
 * **Meal-Merkmale (B6)**: `sanitizeRecipe()`/`sanitizeTags()` samt `mealFlagsHtml()` und
   `mealMetaEditHtml()` lassen sich mit echtem `esc()` und gestubbtem `sanitizeIng()` schneiden.
-  Zwanzig Prüfungen, alle grün. Die drei, die wirklich zählen: **unbekannte Tag-Schlüssel und
+  19 Prüfungen, alle grün. Seit dem Ausbau des Felds `difficulty` (13.08.2026) prüfen drei davon
+  die **Gegenrichtung**: Ein Alt-Wert muss aus dem Objekt **verschwinden**, nicht nur unbenutzt
+  bleiben — `Object.assign()` in `sanitizeRecipe()` kopiert sonst jedes unbekannte Feld aus
+  Altdaten und geteilten Meals ewig weiter. Dazu: kein `f-diff`-Umschalter mehr im
+  Eingabe-Markup, keine Aufwand-Marke mehr in der Anzeige. Die drei, die wirklich zählen: **unbekannte Tag-Schlüssel und
   Duplikate fliegen raus**, die **Reihenfolge ist stabil** (eine umsortierte Liste wäre ein
   Dauer-Diff gegen `canonJSON()` und damit ein Endlos-Schreibzyklus in `syncRecipes()`), und ein
   **Bestands-Meal ohne Merkmale bekommt keine neuen Felder** — sonst schriebe allein das Laden

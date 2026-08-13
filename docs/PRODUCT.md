@@ -281,18 +281,22 @@ Langfristig relevante Metadaten:
 
 Die Datenstruktur soll spätere intelligente Filterung und Automatisierung ermöglichen.
 
-### Umgesetzt seit 13.08.2026: Tags, Meal-Prep, Aufwand
+### Umgesetzt seit 13.08.2026: Tags und Meal-Prep
 
-Drei dieser Metadaten stehen im Datenmodell: `tags[]`, `mealPrep`, `difficulty`
+Zwei dieser Metadaten stehen im Datenmodell: `tags[]` und `mealPrep`
 (siehe `docs/ARCHITECTURES.md`). Bewusst **feste Tag-Schlüssel statt Freitext** — nur damit
 können Filter, kuratierte Bibliothek und der spätere Auto-Planer rechnen. Freitext-Tags
 schreibt jeder anders, und ein Filter, der „Low Carb" nicht findet, ist schlimmer als keiner.
 
-`difficulty` heißt in der Oberfläche **Aufwand** (Einfach / Mittel / Aufwendig): In der Küche
-entscheidet die Zielgruppe nach Aufwand, nicht nach Können. Die Marke bewertet den Nutzer
-nicht (siehe Markenstimme) — „Schwierigkeit" täte genau das.
+**Ein „Aufwand"-Feld (Einfach / Mittel / Aufwendig) gab es einen Tag lang und ist wieder
+entfernt worden.** Es war gut gemeint und sogar sauber benannt — in der Küche entscheidet man
+nach Aufwand, nicht nach Können —, aber **nichts wertete es aus**: nicht der Filter, nicht der
+geplante Auto-Planer. Genau das ist der Fall, den der Produktfilter oben abfangen soll: Ein
+Merkmal, das nur erfasst und angezeigt wird, kostet jeden Nutzer eine Entscheidung im Editor
+und bringt ihm nichts zurück.
 
-Noch offen sind Ziel-Eignung und Preis. Beide erst, wenn ein Feature sie tatsächlich braucht.
+Die Regel für alles Weitere aus dieser Liste (Ziel-Eignung, Preis, …): **Ein Feld entsteht,
+wenn ein konkretes Feature es liest** — nicht, weil es später einmal nützlich sein könnte.
 
 ### Der Meal-Filter zeigt nur, was es zu filtern gibt
 
