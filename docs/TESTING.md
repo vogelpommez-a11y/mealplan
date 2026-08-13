@@ -327,15 +327,15 @@ Laufzeitfehler, erst dann die eigentlichen Prüfungen lesen.
   Trendlinie reagiert gedämpfter als die Rohkurve** — gemessen am Sprung des letzten Punktes,
   nachdem eine Ausreißer-Wiegung eingesetzt wurde. Ohne diesen Vergleich prüft man nur, *dass*
   eine zweite Linie existiert, nicht dass sie glättet.
-* **Portionsfaktor (B5)**: `makeEntry`/`entryPortion`/`unflattenWeek`/`dayNutOf` isoliert.
-  20 Prüfungen, alle grün. Der Regressionsfall, der beim Bauen tatsächlich aufgefallen ist:
-  `unflattenWeek()` verlangte ein `uids`-Array und hätte ein `{id, p}` von einem anderen Gerät
-  **lautlos verworfen** — das Gericht wäre dort aus dem Plan verschwunden. Ebenso geprüft: ein
-  Objekt ohne `uids` und ohne Faktor wird auf die String-Form zurückgeführt (sonst Dauer-Diff
-  im Gruppendokument), und ein fremd zugewiesenes Gericht zählt auch mit Faktor **nicht** in
-  die eigene Tagesbilanz.
-  *Am Gerät zu zweit noch offen*: das Sync-Szenario nach `CLAUDE.md` §30 — ein Gerät setzt den
-  Faktor, das andere muss ihn sehen, ohne den Eintrag zu verlieren.
+* **Rücknahme des Portionsfaktors (B5, ausgebaut am 13.08.2026)**: Beim Entfernen eines
+  Datenfelds ist der Prüfstand wichtiger als beim Einbauen — das Feld kann auf **anderen
+  Geräten noch liegen**. 10 Prüfungen auf `unflattenWeek()`/`dayNutOf()`/`makeEntry()`, alle
+  grün. Der entscheidende Fall: Ein eingehendes `{id, p}` darf **nicht verschwinden**, sondern
+  fällt auf die String-Form zurück (`p` wird verworfen) — ein Filter, der wieder ein
+  `uids`-Array verlangt hätte, hätte das Gericht dort aus dem Plan gelöscht
+  (`docs/TROUBLESHOOTING.md` §73). Zusätzlich geprüft: `{id, uids, p}` behält die Zuweisung,
+  im Ergebnis steckt **nirgends** mehr ein `"p"`, und die Tagesbilanz zählt wieder volle
+  Portionen.
 * **Meal-Filter (B7)**: `recipeFilterHtml()` und `recipeMatchesFilters()` brauchen nur einen
   Stub für `libraryRecipes()`. 17 Prüfungen, alle grün. Wichtig sind die Randfälle, nicht das
   Filtern selbst: unter sechs Meals **und** bei einem Bestand ganz ohne Merkmale entsteht keine

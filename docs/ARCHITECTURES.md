@@ -687,29 +687,26 @@ weil `syncGoalWeight()` mit `computeGoal()` neu rechnet. Bei gesetzter Marke zie
 Ein Durchlauf des Rechners hebt die Marke automatisch auf — `computeGoal()` baut ein frisches
 Objekt ohne `manual`.
 
-### Slot-Einträge: dritte Form `{id, p}` (Portionsfaktor)
+### Slot-Einträge: zwei Formen
 
-Ein Eintrag im Wochenplan ist seit B5 eines von drei Dingen:
+Ein Eintrag im Wochenplan ist eines von zwei Dingen:
 
 | Form | Bedeutung |
 |---|---|
-| `"rid"` | für alle, volle Portion — der Normalfall, bewusst weiterhin ein blanker String |
+| `"rid"` | für alle — der Normalfall, bewusst ein blanker String |
 | `{id, uids}` | nur für bestimmte Gruppenmitglieder |
-| `{id, p}` / `{id, uids, p}` | mit Portionsfaktor aus `PORTION_STEPS` (0,5 / 1 / 1,5 / 2) |
 
-`entryPortion(e)` liefert immer einen der vier erlaubten Werte, `makeEntry(id, uids, p)` baut
-die kleinstmögliche Form (`p === 1` erzeugt kein Feld). Die feste Leiter ist kein Detail: eine
-freie Kommazahl wäre über `canonJSON()` ein Dauer-Diff (`0.30000000000000004`).
+**Zurückgenommen (13.08.2026): der Portionsfaktor `{id, p}`.** Er war einen Tag lang als B5
+eingebaut (½ / 1 / 1½ / 2 am Slot) und ist auf Ansage wieder entfernt worden: Der Knopf saß am
+selben Vorschaubild wie die Zuweisung und beantwortete eine sehr ähnliche Frage („wie viel
+davon, für wen"), ohne dass beide zusammen gedacht waren. Zwei gleich große Bedienelemente
+nebeneinander, die Verwandtes tun, sind schlechter als eines.
 
-Der Faktor wirkt an drei Stellen — und muss dort auch wirken, sonst ist er Dekoration:
-`dayNutOf()` (Tagesbilanz), `buildShoppingList()` (Einkaufsmengen) und `buildPrintable()`
-(Ausdruck). Die kcal-Zeile auf der Slot-Karte zeigt ebenfalls den skalierten Wert.
-
-**Falle beim Sync:** `unflattenWeek()` verlangte früher ein `uids`-Array und hätte ein
-`{id, p}` von einem anderen Gerät lautlos verworfen — das Gericht wäre dort aus dem Plan
-verschwunden. Der Filter lässt jetzt beide Objektformen zu und führt ein Objekt ohne `uids`
-und ohne Faktor auf die String-Form zurück (sonst schriebe das Gerät es sofort anders zurück,
-als es ankam).
+**`unflattenWeek()` lässt Objekte ohne `uids` weiterhin ausdrücklich zu** und führt sie auf die
+String-Form zurück. Das ist kein toter Code: Auf einem anderen Gerät kann noch ein
+`{id, p}` liegen, und ein Filter, der ein `uids`-Array verlangt, würde ihn lautlos verwerfen —
+das Gericht wäre dort aus dem Plan verschwunden (`docs/TROUBLESHOOTING.md` §73). `p` fällt beim
+Einlesen weg; damit räumt sich der kurze Zwischenstand von selbst auf.
 
 ### Einstieg: welcher Bildschirm wann (D1b)
 

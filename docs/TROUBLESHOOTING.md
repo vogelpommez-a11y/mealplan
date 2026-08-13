@@ -1836,9 +1836,21 @@ die String-Form. Wird es nicht auf sie zurückgeführt, schreibt das Gerät den 
 zurück, als er angekommen ist — ein Dauer-Diff im Gruppendokument, genau die Klasse Fehler, vor
 der schon der `canonJSON()`-Kommentar in `syncRecipes()` warnt.
 
-Aus demselben Grund sind die Portionsstufen eine **feste Leiter** (0,5 / 1 / 1,5 / 2) und kein
+Aus demselben Grund waren die Portionsstufen eine **feste Leiter** (0,5 / 1 / 1,5 / 2) und kein
 freier Zahlenwert: `0.1 + 0.2` ist in Gleitkomma `0.30000000000000004`, und dieser Wert würde
 sich bei jedem Vergleich von seiner eigenen Cloud-Form unterscheiden.
+
+**Nachtrag vom selben Tag: Der Portionsfaktor ist wieder ausgebaut** (Produktentscheidung, siehe
+`docs/PRODUCT.md`). Die Lehre bleibt vollständig gültig — und sie gilt beim **Entfernen** genauso
+wie beim Einbauen, nur ist die Falle dort noch leichter zu übersehen:
+
+* Der Eingangsfilter darf **nicht** auf die alte, strengere Fassung zurückgesetzt werden. Auf
+  einem anderen Gerät kann noch ein `{id, p}` liegen; ein Filter, der wieder ein `uids`-Array
+  verlangt, löscht das Gericht dort aus dem Plan. `unflattenWeek()` lässt Objekte ohne `uids`
+  deshalb weiterhin zu und führt sie auf die String-Form zurück — dabei fällt `p` weg, und der
+  Zwischenstand räumt sich von selbst auf.
+* Ein Prüfstand für ein Feld, das es nicht mehr gibt, ist trotzdem sinnvoll: Er prüft nicht das
+  Feature, sondern dass **nichts verschwindet**.
 
 ## 74. Von Hand gesetzte Kalorienziele wurden von der nächsten Wiegung überschrieben
 

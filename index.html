@@ -1194,26 +1194,6 @@
   .r-badge.wide, .r-badge.r-badge-more { width: auto; min-width: 14px; padding: 0 2px; border-radius: 999px; }
   .r-badge.wide { font-size: 7.5px; letter-spacing: -.02em; }
   .r-badge.r-badge-more { font-size: 7.5px; }
-  /* Portionsgroesse (B5) sitzt AM BILD, nicht in der Knopfreihe rechts: dort stehen im
-     Gruppenmodus schon Personen-Icon und X, ein dritter Knopf haette den Namen auf
-     schmalen Karten zusammengedrueckt. Unten links am Vorschaubild ist Platz, der sonst
-     ungenutzt bleibt (das Zuweisungs-Badge sitzt unten rechts).
-     24px sichtbar erfuellen WCAG 2.5.8 AA, der ::after-Zuschlag bringt die Trefferflaeche
-     auf 36px - dieselbe Bauweise wie bei .x/.pencil. */
-  .slot .filled .portion {
-    position: absolute; left: -4px; bottom: -4px; z-index: 2;
-    min-width: 24px; height: 24px; padding: 0 5px; border-radius: 999px;
-    font: inherit; font-size: 10.5px; font-weight: 700; line-height: 1; cursor: pointer;
-    display: grid; place-items: center; font-variant-numeric: tabular-nums;
-    border: 1.5px solid var(--surface); background: var(--surface-2); color: var(--text-muted);
-    touch-action: manipulation; -webkit-tap-highlight-color: transparent;
-    transition: background var(--dur-fast), color var(--dur-fast);
-  }
-  .slot .filled .portion::after { content: ""; position: absolute; inset: -6px; }
-  /* Abweichende Portion traegt Farbe, die Standardportion bleibt still - sonst zoege eine
-     "1×"-Marke an jeder Karte Aufmerksamkeit auf einen Normalzustand. */
-  .slot .filled .portion.on { background: linear-gradient(135deg, var(--accent), var(--accent-strong)); color: var(--accent-contrast); }
-  .slot .filled .portion:hover, .slot .filled .portion:active { background: var(--accent); color: var(--accent-contrast); }
   .slot .filled .r-name { font-size: 13.5px; font-weight: 550; line-height: 1.3; flex: 1; word-break: break-word; }
   .slot .filled .r-meta { font-size: 11.5px; color: var(--text-muted); margin-top: 1px; }
   .slot .filled .x, .slot .filled .pencil {
@@ -3819,25 +3799,18 @@
   function entryId(e) { return typeof e === "string" ? e : (e && e.id); }
   function entryUids(e) { return typeof e === "string" ? null : (e && e.uids) || null; } // null = fuer alle
   function entryIsShared(e) { return typeof e === "string" || !e || !e.uids; }
-  // Portionsfaktor eines Eintrags (B5). 1 = wie im Meal hinterlegt. Erlaubt sind die vier
-  // Stufen aus PORTION_STEPS - Meal-Prep rechnet in halben und doppelten Portionen, nicht
-  // in beliebigen Kommazahlen, und eine feste Leiter haelt zugleich den Sync-Vergleich
-  // stabil (0.30000000000000004 waere ein Dauer-Diff).
-  const PORTION_STEPS = [0.5, 1, 1.5, 2];
-  function entryPortion(e) {
-    const p = (e && typeof e === "object") ? +e.p : 1;
-    return PORTION_STEPS.indexOf(p) !== -1 ? p : 1;
-  }
-  function portionLabel(p) { return p === 0.5 ? "½" : (p === 1.5 ? "1½" : String(p)); }
-  function makeEntry(id, uids, p) {
-    const port = PORTION_STEPS.indexOf(+p) !== -1 ? +p : 1;
+  // Ein Portionsfaktor je Slot-Eintrag ({id, p}) war kurzzeitig eingebaut (B5) und ist am
+  // 13.08.2026 wieder entfernt worden: Der Knopf sass am selben Vorschaubild wie die
+  // Zuweisung und beantwortete eine sehr aehnliche Frage ("wie viel davon, fuer wen"), ohne
+  // dass beide zusammen gedacht waren. Zwei Bedienelemente derselben Groesse nebeneinander,
+  // die verwandte Dinge tun, sind schlechter als eines. Eingehende Alt-Eintraege mit `p`
+  // laufen weiterhin durch unflattenWeek() und werden dort auf die String-Form
+  // zurueckgefuehrt - siehe dort.
+  function makeEntry(id, uids) {
     // Mengenabdeckung pruefen, nicht nur die Laenge: eine veraltete UID (Mitglied hat die
     // Gruppe inzwischen verlassen) darf einen Eintrag nicht faelschlich zu "fuer alle" machen.
-    const forAll = !uids || !groupMembers.length || groupMembers.every(mem => uids.indexOf(mem.uid) !== -1);
-    // Die kurze String-Form bleibt der Normalfall: Ein ganzer Wochenplan aus Objekten waere
-    // im Gruppendokument spuerbar groesser, und die Faelle mit Faktor sind die Ausnahme.
-    if (forAll) return port === 1 ? id : { id: id, p: port };
-    return port === 1 ? { id: id, uids: uids.slice() } : { id: id, uids: uids.slice(), p: port };
+    if (!uids || !groupMembers.length || groupMembers.every(mem => uids.indexOf(mem.uid) !== -1)) return id;
+    return { id: id, uids: uids.slice() };
   }
   function slotIsShared(day, meal) { return state.plan[day][meal].every(entryIsShared); }
 
@@ -4506,23 +4479,19 @@
       // uids kommt von einem ANDEREN Geraet - Elemente auf Strings begrenzen und die Laenge
       // deckeln, sonst koennte ein fehlerhaftes oder manipuliertes Dokument beliebig viele
       // Badges pro Karte bzw. eine aufgeblaehte Einkaufsliste erzeugen (siehe entryUids()).
-      // Seit B5 gibt es eine dritte gueltige Form: {id, p} ohne uids ("fuer alle", aber mit
-      // Portionsfaktor). Der Filter verlangte frueher ein uids-Array und haette solche
-      // Eintraege von einem anderen Geraet lautlos verworfen - das Gericht waere dort aus
-      // dem Plan verschwunden.
+      // Objekte OHNE uids bleiben ausdruecklich zugelassen, obwohl es die Form {id, p} aus
+      // B5 nicht mehr gibt: Auf einem anderen Geraet kann noch ein alter Eintrag liegen, und
+      // ein Filter, der ein uids-Array verlangt, wuerde ihn lautlos verwerfen - das Gericht
+      // waere dort aus dem Plan verschwunden (docs/TROUBLESHOOTING.md §73). Ein solcher
+      // Eintrag wird hier auf die String-Form zurueckgefuehrt, `p` faellt dabei weg.
+      // Das ist zugleich die Aufraeumung: Ein Objekt ohne uids ist inhaltlich die
+      // String-Form, und wer es unveraendert zurueckschriebe, erzeugte ein Dauer-Diff.
       plan[d.key][m.key] = ids
         .filter(x => typeof x === "string" || (x && typeof x.id === "string" && (Array.isArray(x.uids) || x.uids === undefined)))
         .map(x => {
           if (typeof x === "string") return x;
           const uids = Array.isArray(x.uids) ? x.uids.filter(u => typeof u === "string").slice(0, 24) : null;
-          const p = PORTION_STEPS.indexOf(+x.p) !== -1 ? +x.p : 1;
-          const out = { id: x.id };
-          if (uids) out.uids = uids;
-          if (p !== 1) out.p = p;
-          // Ein Objekt ohne uids UND ohne Faktor ist inhaltlich die String-Form. Auf sie
-          // zurueckfuehren, sonst schriebe dieses Geraet das Feld gleich wieder anders
-          // zurueck als es ankam - ein Dauer-Diff im Gruppendokument.
-          return (!uids && p === 1) ? x.id : out;
+          return uids ? { id: x.id, uids: uids } : x.id;
         });
     }));
     return plan;
@@ -5909,13 +5878,7 @@
     MEALS.forEach(m => { plan[dayKey][m.key].forEach(entry => {
       const uids = entryUids(entry);
       if (uids && uids.indexOf(syncUid) === -1) return;
-      const r = getRecipe(entryId(entry));
-      if (!r) return;
-      // Portionsfaktor (B5): eine halbe Portion zaehlt halb. Ohne diese Zeile waere der
-      // Faktor reine Dekoration - die Tagesbilanz ist der Ort, an dem er wirken muss.
-      const p = entryPortion(entry);
-      const n = recipeNut(r);
-      s = addNut(s, p === 1 ? n : { kcal: n.kcal * p, carbs: n.carbs * p, protein: n.protein * p, fat: n.fat * p });
+      const r = getRecipe(entryId(entry)); if (r) s = addNut(s, recipeNut(r));
     }); });
     return s;
   }
@@ -8091,7 +8054,7 @@
           const uids = entryUids(entry);
           // 0 = gemeinsam, 1 = eigene (ich bin dabei), 2 = andere
           const grp = uids === null ? 0 : (uids.indexOf(syncUid) !== -1 ? 1 : 2);
-          cards.push({ r, idx, uids, grp, port: entryPortion(entry) });
+          cards.push({ r, idx, uids, grp });
         });
         const shown = cards.length;
         const otherTotal = cards.filter(c => c.grp === 2).length;
@@ -8100,7 +8063,7 @@
         const otherVisible = collapsed ? SLOT_OTHERS_MAX : otherTotal;
         let otherSeen = 0;
         cards.forEach(c => {
-          const { r, idx, uids, grp, port } = c;
+          const { r, idx, uids, grp } = c;
           if (grp === 2) {
             otherSeen++;
             // Ab dem (otherVisible + 1)-ten fremden Gericht ausblenden - gezaehlt in
@@ -8112,14 +8075,9 @@
           // Badges sind aria-hidden (rein dekorativ) - wer das Gericht isst, muss deshalb
           // im Titel stehen, sonst bleibt die Zuweisung fuer Screenreader unsichtbar.
           const assignNote = uids ? " – nur für " + uids.map(u => (memberByUid(u) ? firstName(memberByUid(u).name) : null) || "Jemanden").join(", ") : "";
-          // Portionsfaktor (B5): sichtbar nur, wenn er von 1 abweicht - eine "1×"-Marke an
-          // jedem Gericht waere Rauschen. Die kcal-Zeile zeigt den SKALIERTEN Wert, sonst
-          // stuende auf der Karte etwas anderes als in der Tagesbilanz darunter.
-          const portNote = port !== 1 ? " – " + portionLabel(port) + " Portion" : "";
-          const kcalRaw = recipeNut(r).kcal;
-          html += `<div class="filled"${drag ? ` draggable="true"` : ""} data-action="view" data-id="${r.id}" data-slot-src="${d.key}:${m.key}:${idx}" title="${esc(r.name)}${esc(assignNote)}${esc(portNote)}${drag ? " – ziehen zum Verschieben" : ""}">
-              <span class="r-thumb-wrap">${thumbHtml(r, "r-thumb", true)}${badge}${drag ? `<button class="portion${port !== 1 ? " on" : ""}" data-action="portion" data-slot-src="${d.key}:${m.key}:${idx}" aria-label="Portionsgröße ändern, aktuell ${esc(portionLabel(port))} Portion" title="Portionsgröße ändern">${esc(portionLabel(port))}×</button>` : ""}</span>
-              <div class="r-body"><div class="r-name">${esc(r.name)}</div>${kcalRaw ? `<div class="r-meta">${nfmt(kcalRaw * port)} kcal</div>` : ""}</div>
+          html += `<div class="filled"${drag ? ` draggable="true"` : ""} data-action="view" data-id="${r.id}" data-slot-src="${d.key}:${m.key}:${idx}" title="${esc(r.name)}${esc(assignNote)}${drag ? " – ziehen zum Verschieben" : ""}">
+              <span class="r-thumb-wrap">${thumbHtml(r, "r-thumb", true)}${badge}</span>
+              <div class="r-body"><div class="r-name">${esc(r.name)}</div>${recipeNut(r).kcal ? `<div class="r-meta">${nfmt(recipeNut(r).kcal)} kcal</div>` : ""}</div>
               ${showPencil ? `<button class="pencil" data-action="assign" data-slot-src="${d.key}:${m.key}:${idx}" aria-label="Zuweisung ändern" title="Zuweisung ändern">${ICON_PEOPLE}</button>` : ""}
               ${drag ? `<button class="x" data-action="unassign" data-slot-src="${d.key}:${m.key}:${idx}" aria-label="Entfernen" title="Entfernen">✕</button>` : ""}
             </div>`;
@@ -10049,9 +10007,7 @@
       const r = getRecipe(entryId(entry));
       if (!r || !r.ingredients) return;
       const uids = entryUids(entry);
-      // Portionsfaktor (B5) multipliziert auf beide Wege: Wer eine doppelte Portion
-      // einplant, braucht auch die doppelte Menge im Einkaufswagen.
-      const factor = (uids ? (uids.length / (r.portions || 1)) : 1) * entryPortion(entry);
+      const factor = uids ? (uids.length / (r.portions || 1)) : 1; // "fuer alle": unskaliert, per-Faktor greift unten
       r.ingredients.forEach(i => {
         const o = ingObj(i);
         const name = String(o.name || "").trim();
@@ -10112,7 +10068,7 @@
   // Dafuer wird derselbe Wochenbestand nach GERICHT gruppiert statt nach Tag.
   //
   // Zwei Zahlen je Gericht, und die zweite ist die eigentlich nuetzliche:
-  //   Portionen  = Summe aus Portionsfaktor (B5) x Essern je Eintrag
+  //   Portionen  = ein Eintrag je Esser (Zuweisung) bzw. je Person (Einkaufsliste-Einstellung)
   //   Durchgaenge = Portionen / portions des Rezepts, aufgerundet - so oft muss der Topf auf
   //                 den Herd. Ohne `portions` (nicht gepflegt) entfaellt die Angabe, statt
   //                 eine Eins zu erfinden.
@@ -10129,7 +10085,7 @@
       const uids = entryUids(entry);
       const esser = uids ? uids.length : persons;
       const hit = map.get(r.id) || { r: r, portions: 0, days: new Set() };
-      hit.portions += entryPortion(entry) * esser;
+      hit.portions += esser;
       hit.days.add(d.key);
       map.set(r.id, hit);
     })));
@@ -10624,7 +10580,7 @@
   // (togglePlanMenu) und ruft clearWeek() direkt auf. Das Menue selbst wird nur bei
   // canEdit() gerendert - dieselbe Lage wie bei den data-del-/data-share-Knoepfen im
   // Meal-Sheet.
-  const WRITE_ACTIONS = ["new-recipe", "pick", "unassign", "assign", "portion", "clear-examples"];
+  const WRITE_ACTIONS = ["new-recipe", "pick", "unassign", "assign", "clear-examples"];
   function blockedByRole() {
     if (canEdit()) return false;
     toast("Du kannst diesen Plan ansehen – zum Mitplanen bitten die Inhaberin oder den Inhaber um Rechte.");
@@ -10737,20 +10693,6 @@
       state.plan[d][m].splice(idx, 1);
       save(); render();
       undoToast("Entfernt", () => { state.plan[d][m].splice(idx, 0, removedId); save(); render(); });
-    }
-    // Portionsgroesse (B5): durchschalten statt Menue. Vier Stufen, ein Tipp je Schritt -
-    // dasselbe Muster wie die Zuweisung bei genau zwei Mitgliedern (openAssignMenu). Ein
-    // Menue fuer vier Werte waere hier zwei Taps statt einem, und die Marke am Knopf zeigt
-    // den Zustand ohnehin an.
-    else if (a === "portion") {
-      e.stopPropagation();
-      const [d, m, i] = t.dataset.slotSrc.split(":");
-      const idx = Number(i);
-      const entry = state.plan[d][m][idx];
-      if (!entry) return;
-      const next = PORTION_STEPS[(PORTION_STEPS.indexOf(entryPortion(entry)) + 1) % PORTION_STEPS.length];
-      state.plan[d][m][idx] = makeEntry(entryId(entry), entryUids(entry), next);
-      save(); render();
     }
     else if (a === "shopping") openShopping();
     else if (a === "week") {
@@ -11371,9 +11313,7 @@
         undoToast("Entfernt", () => { state.plan[d][m].splice(idx, 0, removed); save(); render(); });
         return;
       }
-      // Portionsfaktor mitnehmen (B5): eine geaenderte Zuweisung darf die halbe Portion
-      // nicht stillschweigend auf eine ganze zuruecksetzen.
-      state.plan[d][m][idx] = makeEntry(id, uids, entryPortion(entry));
+      state.plan[d][m][idx] = makeEntry(id, uids);
       save(); render();
     }
 
@@ -13618,14 +13558,7 @@
   function buildPrintable() {
     const rows = DAYS.map(d => {
       const cells = MEALS.map(m => {
-        // Portionsfaktor mitdrucken (B5) - ein Ausdruck, auf dem "½" fehlt, fuehrt beim
-        // Vorkochen zur falschen Menge.
-        const names = state.plan[d.key][m.key].map(entry => {
-          const r = getRecipe(entryId(entry));
-          if (!r) return null;
-          const p = entryPortion(entry);
-          return esc(r.name) + (p !== 1 ? " (" + portionLabel(p) + "×)" : "");
-        }).filter(Boolean);
+        const names = state.plan[d.key][m.key].map(entry => { const r = getRecipe(entryId(entry)); return r ? esc(r.name) : null; }).filter(Boolean);
         return `<td>${names.length ? names.join("<br>") : "<span class='pt-empty'>–</span>"}</td>`;
       }).join("");
       return `<tr><th>${esc(d.label)}</th>${cells}</tr>`;

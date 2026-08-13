@@ -349,9 +349,13 @@ wie viele Taps kostet es sie?
 * **Das Ziel lässt sich direkt anpassen.** „100 kcal weniger" führte vorher durch den kompletten
   Rechner samt Alter, Größe und Trainingstagen. Der Rechner bleibt daneben — er ist der Weg,
   wenn sich die *Grundlagen* ändern, nicht die Feinjustierung.
-* **Portionen sind planbar** (½, 1, 1½, 2 am Slot). Meal-Prep rechnet in Portionen, nicht in
-  Gerichten. Der Faktor wirkt auf Tagesbilanz, Einkaufsliste und Ausdruck — ein Faktor, der nur
-  angezeigt wird, wäre eine Lüge.
+* **Zurückgenommen: der Portionsfaktor am Slot** (½ / 1 / 1½ / 2, war einen Tag lang drin).
+  Er saß als eigener Knopf am selben Vorschaubild wie die Zuweisung und beantwortete eine sehr
+  ähnliche Frage — „wie viel davon" neben „für wen" —, ohne dass beide zusammen gedacht waren.
+  Zwei gleich große Bedienelemente nebeneinander, die Verwandtes tun, kosten mehr Aufmerksamkeit
+  als sie einbringen. Die Menge steuert weiterhin die Zuweisung (wer isst mit) und die
+  Personenzahl der Einkaufsliste. Käme das Thema zurück, dann als **eine** Entscheidung
+  zusammen mit der Zuweisung, nicht als zweiter Knopf daneben.
 * **„Woche leeren" steht nicht mehr neben der Einkaufsliste.** Eine destruktive Aktion mit
   derselben Prominenz wie das meistgenutzte Werkzeug ist ein Fehlerangebot; die Rückfrage
   allein ist keine Entschuldigung dafür.
@@ -368,7 +372,7 @@ Beim Meal-Prep fehlte die dritte Frage: **„was koche ich am Sonntag, und wie v
 nach **Gericht** statt nach Tag. Je Gericht zwei Zahlen, und die zweite ist die eigentlich
 nützliche:
 
-* **Portionen** — Summe aus Portionsfaktor × Essern
+* **Portionen** — ein Eintrag je Esser (bei Zuweisung) bzw. je eingestellter Person
 * **Durchgänge** — `Portionen / portions` des Rezepts, aufgerundet: so oft muss der Topf auf
   den Herd. Ohne gepflegtes `portions` entfällt die Angabe, statt eine Eins zu erfinden.
 
