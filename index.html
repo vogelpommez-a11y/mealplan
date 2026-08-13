@@ -1946,6 +1946,29 @@
      auf der Fensterflaeche waeren --surface-2 plus --border fast dasselbe Grau in Grau. */
   .shop-cat-n { margin-left: auto; font-family: var(--font-body); font-size: 11px; font-weight: 650; letter-spacing: 0; color: var(--text-muted); background: var(--surface); border-radius: 999px; padding: 1px 8px; }
 
+  /* ---------- Vorkochen (C3) ----------
+     Bewusst dieselbe Zeilenbauweise wie die Slot-Karte im Wochenplan (Bild links, Text
+     mittig, Zahl rechts) statt eines dritten Listenmusters - es sind dieselben Meals, nur
+     nach Gericht gebuendelt. Die Portionszahl steht rechts und traegt die Display-Schrift:
+     sie ist die Zahl, nach der man am Sonntag den Topf waehlt. */
+  .bc-list { display: flex; flex-direction: column; gap: 8px; }
+  .bc-item { display: flex; align-items: center; gap: 12px; padding: 10px; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-sm); }
+  .bc-thumb { width: 48px; height: 48px; flex: none; border-radius: var(--radius-sm); object-fit: cover; }
+  .bc-body { flex: 1; min-width: 0; }
+  .bc-name { font-size: 14.5px; font-weight: 600; line-height: 1.3; word-break: break-word; }
+  .bc-days { font-size: 11.5px; color: var(--text-muted); margin-top: 2px; letter-spacing: .02em; }
+  /* Bewusst NICHT in --accent: Rot ist in dieser App der Akzent fuer Aktionen und den
+     aktiven Zustand. Drei rote Zeilen untereinander konkurrieren mit der Portionszahl
+     rechts, die hier die eigentliche Hauptzahl ist (im Rendering gegengeprueft). */
+  .bc-runs { font-size: 11.5px; color: var(--text); margin-top: 2px; font-weight: 600; }
+  .bc-qty { flex: none; text-align: right; }
+  .bc-qty b { display: block; font-family: var(--font-display); font-size: 20px; font-weight: 700; line-height: 1; color: var(--text); font-variant-numeric: tabular-nums; }
+  .bc-qty small { font-size: 10.5px; color: var(--text-muted); }
+  @media (max-width: 560px) {
+    .bc-thumb { width: 40px; height: 40px; }
+    .bc-item { gap: 10px; }
+  }
+
   /* Toast */
   #toast { position: fixed; left: 50%; bottom: 26px; transform: translateX(-50%) translateY(20px); z-index: 90;
     background: var(--text); color: var(--bg); padding: 10px 18px; border-radius: 999px; font-size: 14px; font-weight: 550;
@@ -9910,12 +9933,7 @@
   // jeder sie selbst durchreichen muss.
   function buildShoppingList(persons) {
     const per = sanitizeShopPersons(persons === undefined ? shopPersons() : persons);
-    // In der aktuellen Woche zaehlen nur heute und die kommenden Tage - fuer bereits
-    // vergangene Tage wird nicht mehr eingekauft, ihre Zutaten sollen die Summe also
-    // nicht mehr aufblaehen. In der naechsten Woche gibt es aus heutiger Sicht kein
-    // "vergangen", dort zaehlt die ganze Woche wie bisher.
-    const todayIdx = DAYS.findIndex(d => d.key === todayDayKey());
-    const relevantDays = state.viewWeek === "next" ? DAYS : DAYS.slice(todayIdx);
+    const { todayIdx, relevantDays } = planDaysAhead();
     // Zusammenfassen: gleiche Zutat + gleiche Einheit werden addiert (7 × 400 ml Milch
     // -> "2,8 L Milch"). Zutaten ohne Menge (Freitext wie "Salz, Pfeffer") haben nichts
     // zu addieren und werden wie bisher gezaehlt.
@@ -9970,6 +9988,94 @@
   // "2 Personen" / "1 Person" - eine Stelle, damit Knopf-Beschriftung und Vorlesetext
   // nicht auseinanderlaufen koennen.
   function personsLabel(n) { return n + (n === 1 ? " Person" : " Personen"); }
+
+  // Welche Tage der gezeigten Woche zaehlen noch? In der aktuellen Woche nur heute und die
+  // kommenden - fuer vergangene Tage wird nicht mehr eingekauft und nicht mehr vorgekocht,
+  // ihre Mengen sollen die Summe nicht aufblaehen. In der naechsten Woche gibt es aus
+  // heutiger Sicht kein "vergangen", dort zaehlt die ganze Woche.
+  //
+  // Gemeinsame Quelle fuer Einkaufsliste UND Vorkochliste (Befund aus dem pushcheck zu C3):
+  // Beide Ansichten MUESSEN dieselbe Woche beschreiben - sonst kauft man fuer einen Tag ein,
+  // den die Vorkochliste nicht mehr kennt. Als zwei Kopien derselben zwei Zeilen waere genau
+  // das eine Frage der Zeit.
+  function planDaysAhead() {
+    const todayIdx = DAYS.findIndex(d => d.key === todayDayKey());
+    return { todayIdx: todayIdx, relevantDays: state.viewWeek === "next" ? DAYS : DAYS.slice(todayIdx) };
+  }
+
+  // ---------- Vorkochen (C3) ----------
+  // Die Einkaufsliste beantwortet "was muss ich kaufen?", der Wochenplan "was esse ich wann?".
+  // Beim Meal-Prep fehlt die dritte Frage: "was koche ich am Sonntag, und wie viel davon?"
+  // Dafuer wird derselbe Wochenbestand nach GERICHT gruppiert statt nach Tag.
+  //
+  // Zwei Zahlen je Gericht, und die zweite ist die eigentlich nuetzliche:
+  //   Portionen  = Summe aus Portionsfaktor (B5) x Essern je Eintrag
+  //   Durchgaenge = Portionen / portions des Rezepts, aufgerundet - so oft muss der Topf auf
+  //                 den Herd. Ohne `portions` (nicht gepflegt) entfaellt die Angabe, statt
+  //                 eine Eins zu erfinden.
+  // Zeitraum wie bei der Einkaufsliste: in der aktuellen Woche ab heute, in der naechsten die
+  // ganze Woche. Beide Ansichten muessen dieselbe Woche beschreiben, sonst kauft man fuer
+  // Montag ein, was man laut Vorkochliste gar nicht mehr kocht.
+  function buildBatchList() {
+    const { todayIdx, relevantDays } = planDaysAhead();
+    const persons = shopPersons();
+    const map = new Map();   // rid -> { r, portions, days:Set }
+    relevantDays.forEach(d => MEALS.forEach(m => state.plan[d.key][m.key].forEach(entry => {
+      const r = getRecipe(entryId(entry));
+      if (!r) return;
+      const uids = entryUids(entry);
+      const esser = uids ? uids.length : persons;
+      const hit = map.get(r.id) || { r: r, portions: 0, days: new Set() };
+      hit.portions += entryPortion(entry) * esser;
+      hit.days.add(d.key);
+      map.set(r.id, hit);
+    })));
+    const items = Array.from(map.values()).map(it => {
+      const proLauf = nutNum(it.r.portions);
+      return {
+        r: it.r,
+        portions: Math.round(it.portions * 10) / 10,
+        days: DAYS.filter(d => it.days.has(d.key)),
+        runs: proLauf > 0 ? Math.ceil(it.portions / proLauf) : null,
+        perRun: proLauf > 0 ? proLauf : null
+      };
+    });
+    // Das Groesste zuerst - danach richtet sich, womit man am Sonntag anfaengt.
+    items.sort((a, b) => b.portions - a.portions || a.r.name.localeCompare(b.r.name, "de"));
+    const total = items.reduce((s, it) => s + it.portions, 0);
+    return { items: items, total: Math.round(total * 10) / 10, todayIdx: todayIdx };
+  }
+  function openBatchCooking() {
+    const { items, total, todayIdx } = buildBatchList();
+    const body = items.length
+      ? `<div class="bc-list">${items.map(it => `
+          <div class="bc-item">
+            ${thumbHtml(it.r, "bc-thumb", true)}
+            <div class="bc-body">
+              <div class="bc-name">${esc(it.r.name)}</div>
+              <div class="bc-days">${it.days.map(d => esc(d.short)).join(" · ")}</div>
+              ${it.runs ? `<div class="bc-runs">${it.runs}× kochen à ${nfmt(it.perRun)} Portion${it.perRun === 1 ? "" : "en"}</div>` : ""}
+            </div>
+            <div class="bc-qty"><b>${nfmt(it.portions)}</b><small>Portion${it.portions === 1 ? "" : "en"}</small></div>
+          </div>`).join("")}</div>`
+      : `<div class="shop-empty">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9.5h16v6a4.5 4.5 0 0 1-4.5 4.5h-7A4.5 4.5 0 0 1 4 15.5v-6Z"/><path d="M2.5 9.5h19"/><path d="M12 6.5V4.5"/></svg>
+          <p>Noch nichts eingeplant – plane erst ein paar Meals, dann steht hier, was du vorkochen kannst.</p>
+        </div>`;
+    const node = el(`<div class="modal" role="dialog" aria-modal="true" aria-label="Vorkochen">
+      <div class="modal-head">
+        <div class="shop-head" style="flex:1">
+          <div class="cart" aria-hidden="true">${iconSvg("pot", "")}</div>
+          <div><div class="kicker">${items.length} Gericht${items.length === 1 ? "" : "e"} · ${nfmt(total)} Portion${total === 1 ? "" : "en"} · ${state.viewWeek !== "next" && todayIdx > 0 ? "ab heute" : "diese Woche"}</div><h3 style="margin:2px 0 0">Vorkochen</h3></div>
+        </div>
+        <button class="btn ghost sm" data-close aria-label="Schließen">✕</button>
+      </div>
+      <div class="modal-body">${body}</div>
+      <div class="modal-foot"><button class="btn primary" data-close>Schließen</button></div>
+    </div>`);
+    node.querySelectorAll("[data-close]").forEach(b => b.addEventListener("click", closeModal));
+    openModal(node);
+  }
 
   function openShopping() {
     // cur wird beim Aendern der Personenzahl neu berechnet; items/todayIdx bleiben dabei
@@ -11067,10 +11173,13 @@
     const open = wrap.querySelector(".menu");
     if (open) { closeMenuNode(open); return; }
     const menu = el(`<div class="menu" role="menu">
+      <button data-mi="batch" role="menuitem">${iconSvg("pot", "")}Vorkochen</button>
+      <hr>
       <button data-mi="clear" class="destructive" role="menuitem">${TOOL_ICONS.clear}Woche leeren</button>
     </div>`);
     wrap.appendChild(menu);
     const close = attachMenuDismiss(menu, btn);
+    menu.querySelector("[data-mi='batch']").addEventListener("click", () => { close(false); openBatchCooking(); });
     menu.querySelector("[data-mi='clear']").addEventListener("click", () => { close(false); clearWeek(); });
   }
 
@@ -11582,11 +11691,19 @@
 
   // Beendet den Ablauf. Das Flag wird IMMER gesetzt, auch beim Ueberspringen – sonst
   // stuende der Ablauf beim naechsten Start wieder da, obwohl er abgelehnt wurde.
-  function finishOnboarding(msg) {
+  // toPlan (C2): Beim Erstkontakt endet der Ablauf im WOCHENPLAN, nicht auf Home. Der
+  // Abschlussknopf heisst dort seit jeher "Zum Wochenplan" - er landete aber auf der
+  // Startseite, und die zeigt einem frisch angelegten Konto vor allem leere Ringe. Der
+  // Wochenplan ist der Ort, an dem etwas zu tun ist: An jedem Slot steht "+ Meal wählen",
+  // und die vier Beispiel-Meals liegen schon bereit. pendingDayTarget setzt dabei den
+  // heutigen Tag (mobil), statt auf Montag zu starten.
+  // Wer nur sein Ziel neu berechnet, kennt die App - der geht wie bisher zurueck auf Home.
+  function finishOnboarding(msg, toPlan) {
     onb = null;
     state.onboarded = true;
     appEl.classList.remove("onboarding");
-    state.tab = "home";
+    if (toPlan) { setViewWeek("cur"); pendingDayTarget = "today"; state.tab = "plan"; }
+    else state.tab = "home";
     save();
     render();
     syncStickyOffsets();
@@ -11677,7 +11794,7 @@
     const steps = onbSteps();
     const next = onb.i + delta;
     if (next < 0) return;
-    if (next >= steps.length) { finishOnboarding(onb.first ? "Viel Erfolg!" : null); return; }
+    if (next >= steps.length) { finishOnboarding(onb.first ? "Viel Erfolg!" : null, onb.first); return; }
     onb.i = next;
     renderOnboardStep();
   }

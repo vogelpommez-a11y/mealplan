@@ -261,6 +261,30 @@ Beispiele:
   *Falle beim Prüfstand selbst:* Ein XSS-Testwert mit `</script>` im String beendet den
   `<script>`-Block der Testdatei. Das Ergebnis war ein leeres `<pre>`, das wie ein stiller
   Testfehler aussah. Solche Nutzlasten mit `<img src=x onerror=…>` bauen oder maskieren.
+* **Vorkochen (C3)**: `buildBatchList()` braucht nur Stubs für `getRecipe`, `shopPersons` und
+  `todayDayKey` — dazu `planDaysAhead()`, die gemeinsame Zeitraum-Quelle. 17 Prüfungen, alle grün — Bündelung, Sortierung, Portionsfaktor, aufgerundete
+  Kochdurchgänge, Zuweisung statt Personenzahl, leerer Plan. Zwei Fälle, die man leicht
+  vergisst: **ein Rezept ohne `portions`** darf keine erfundene Durchgangszahl bekommen, und
+  der **Zeitraum muss dem der Einkaufsliste entsprechen** (aktuelle Woche ab heute) — sonst
+  beschreiben zwei Ansichten dieselbe Woche verschieden. Nach dem Zusammenführen des Zeitraums
+  in `planDaysAhead()` wurde **`buildShoppingList()` gegengeprüft** (8 Prüfungen: ab heute,
+  nächste Woche ganz, Sonntag, Personenzahl, Portionsfaktor) — ein geteilter Helfer ist erst
+  dann eine Verbesserung, wenn der ältere Aufrufer sich nachweislich nicht verändert hat.
+
+### `syntax-check.py` läuft auch auf Prüfständen
+
+`python syntax-check.py <datei.html>` prüft jede HTML-Datei, nicht nur `index.html`. Das spart
+beim Prüfstandsbau echte Zeit: Ein leeres `<pre>` sieht wie ein stiller Testfehler aus, hat aber
+meist eine banale Ursache. Zwei davon sind hier aufgetreten:
+
+* **`Identifier 'ingLabel' has already been declared`** — der Stub deklarierte etwas, das im
+  ausgeschnittenen Code schon stand. Ein `SyntaxError` bricht den ganzen Block ab, ein
+  `try/catch` fängt ihn **nicht** (er entsteht beim Parsen, nicht beim Laufen).
+* **`qtyLabel is not defined`** — umgekehrter Fall: gebraucht, aber außerhalb des Ausschnitts.
+  Den findet man nur mit `try/catch` um die IIFE.
+
+Reihenfolge deshalb: erst `syntax-check.py` auf den Prüfstand, dann `try/catch` für
+Laufzeitfehler, erst dann die eigentlichen Prüfungen lesen.
 * **Gewichtsverlauf in Wochen (B2)**: `sanitizeWeights()`, `mergeWeights()` und
   `weightChartSvg()` mit einem winzigen Stub-State. 21 Prüfungen, alle grün. Neben den
   Schlüssel-Randfällen (KW 0/54, Fremdformate) sind die beiden wichtigen: **beide Altformate

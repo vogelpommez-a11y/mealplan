@@ -323,6 +323,41 @@ wie viele Taps kostet es sie?
 Bewusst **keine** freie Portionszahl: vier Stufen decken den Alltag ab, ein Zahlenfeld wäre
 mehr Eingabe für weniger Klarheit.
 
+## Bewusste Produktentscheidung: Vorkochen ist eine eigene Ansicht
+
+Der Wochenplan beantwortet „was esse ich wann?", die Einkaufsliste „was muss ich kaufen?".
+Beim Meal-Prep fehlte die dritte Frage: **„was koche ich am Sonntag, und wie viel davon?"**
+
+„Vorkochen" (seit 13.08.2026, im Überlaufmenü des Wochenplans) bündelt denselben Wochenbestand
+nach **Gericht** statt nach Tag. Je Gericht zwei Zahlen, und die zweite ist die eigentlich
+nützliche:
+
+* **Portionen** — Summe aus Portionsfaktor × Essern
+* **Durchgänge** — `Portionen / portions` des Rezepts, aufgerundet: so oft muss der Topf auf
+  den Herd. Ohne gepflegtes `portions` entfällt die Angabe, statt eine Eins zu erfinden.
+
+Sortiert nach Portionen absteigend — danach richtet sich, womit man anfängt.
+
+**Derselbe Zeitraum wie die Einkaufsliste** (aktuelle Woche ab heute, nächste Woche ganz).
+Beide Ansichten müssen dieselbe Woche beschreiben, sonst kauft man für einen Tag ein, den die
+Vorkochliste nicht mehr kennt.
+
+Bewusst **keine** eigene Kochreihenfolge, keine Zeitplanung, keine Ofen-Belegung. Das wäre eine
+Küchen-App; hier geht es um die Frage, was in welcher Menge auf die Liste kommt.
+
+## Bewusste Produktentscheidung: Der Wizard endet im Wochenplan
+
+Der Abschlussknopf der ersten Schritte heißt „Zum Wochenplan" — er landete bis 13.08.2026
+trotzdem auf **Home**, und Home zeigt einem frisch angelegten Konto vor allem leere Ringe. Der
+Wochenplan ist der Ort, an dem etwas zu tun ist: An jedem Slot steht „+ Meal wählen", und die
+vier Beispiel-Meals liegen bereit. Mobil startet er am heutigen Tag.
+
+Wer nur sein Ziel neu berechnet, kennt die App und geht wie bisher zurück auf Home.
+
+Bewusst **kein** automatisch aufspringender Meal-Picker: Nach mehreren Schritten Formular
+gleich das nächste Fenster zu öffnen, nimmt dem Nutzer die erste eigene Entscheidung ab, statt
+ihm Arbeit abzunehmen.
+
 ## Bewusste Produktentscheidung: Der Rückblick misst gegen das Ziel
 
 Der Rückblick zeigt **geplante** Kalorien, nicht gegessene — das ist die Planer-Identität und

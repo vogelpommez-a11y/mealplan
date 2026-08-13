@@ -711,6 +711,23 @@ verschwunden. Der Filter lässt jetzt beide Objektformen zu und führt ein Objek
 und ohne Faktor auf die String-Form zurück (sonst schriebe das Gerät es sofort anders zurück,
 als es ankam).
 
+### Vorkochen: `buildBatchList()`
+
+Dritte Auswertung desselben Wochenbestands, neben `buildShoppingList()` (Zutaten) und dem
+Wochenplan selbst (Tage). Gruppiert nach Rezept-ID:
+
+```
+{ r, portions, days[], runs, perRun }
+```
+
+* `portions` = Σ `entryPortion(entry) × Esser`, wobei Esser = `uids.length` bzw. `shopPersons()`
+* `runs` = `Math.ceil(portions / r.portions)`, nur wenn `portions` am Rezept gepflegt ist
+* Zeitraum identisch zu `buildShoppingList()`: aktuelle Woche ab heute, nächste Woche ganz
+
+Kein eigener State, kein neues Datenfeld — reine Ableitung. Die Ansicht (`openBatchCooking()`)
+ist ein Modal ohne Bedienzustand, der Einstieg liegt im Überlaufmenü des Wochenplans
+(`togglePlanMenu()`).
+
 ### Wochenarchiv `state.weekStats`
 
 `pruneWeeks()` hält nur die aktuelle und die nächste Woche. Bevor eine vergangene Woche
