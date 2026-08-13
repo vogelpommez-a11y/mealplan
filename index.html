@@ -386,7 +386,7 @@
       position: fixed; z-index: 50;
       left: 12px; right: 12px;
       bottom: calc(10px + env(safe-area-inset-bottom, 0px));
-      display: grid; grid-template-columns: repeat(3, 1fr); gap: 0;
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 0;
       border: 1px solid var(--glass-edge); border-radius: 999px;
       background: var(--glass-bg);
       -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(180%);
@@ -413,11 +413,14 @@
        .week-switch, siehe Kommentar bei syncWeekSwitchPill()). Nur hier sichtbar: die drei
        Spalten sind im Grid gleich breit (repeat(3, 1fr)), translateX(i * 100%) reicht also -
        am Rechner sind die Tab-Knoepfe unterschiedlich breit (Meal-Zaehler), dort bleibt
-       [aria-selected="true"] auf der Flaeche. */
+       [aria-selected="true"] auf der Flaeche.
+       Seit dem vierten Reiter ("Fortschritt", B8) sind es vier Spalten: Breite /4 und
+       repeat(4, 1fr) gehoeren zusammen. translateX(i * 100%) bleibt unveraendert richtig -
+       die 100 % beziehen sich auf die Breite der PILLE, nicht auf die der Leiste. */
     .tab-ind {
       display: block; position: absolute; z-index: 0;
       top: 5px; bottom: 5px; left: 6px;
-      width: calc((100% - 12px) / 3);
+      width: calc((100% - 12px) / 4);
       border-radius: 999px;
       background: var(--surface);
       box-shadow: 0 1px 3px rgba(0, 0, 0, .12);
@@ -593,6 +596,10 @@
   /* Wochenplan-Kopf: Titel oben, Werkzeugleiste eine Zeile darunter */
   .plan-head { flex-direction: column; align-items: stretch; gap: 16px; }
   .plan-tools { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  /* Ankerpunkt fuer das Ueberlaufmenue (.menu ist position:absolute; right:0) - ohne ihn
+     haengt es an der ganzen Kopfzeile und rutscht an deren rechten Rand. Gleiches Muster
+     wie .wch-menu bei der Gewichtskarte. */
+  .plan-menu { position: relative; flex: none; }
   /* Einstieg in die Einkaufsliste - EIN Knopf, auf beiden Geraeten an derselben Stelle
      in der Werkzeugleiste. Vorher waren es zwei: ein breiter Gradient-Knopf unter dem Plan
      am Rechner und dieses Symbol im Kopf auf dem Handy. Dieselbe Aktion an zwei Orten in
@@ -829,7 +836,11 @@
      der Heute-Karte und machte deren Kopf rund 17px hoeher als den der Wochenkarte; auf dem
      Handy sprang "Kalorien" samt Ring beim Wischen um genau diesen Betrag. Am Rechner
      rechtsbuendig und dezent, auf dem Handy volle Breite (siehe Handy-Abfrage). */
-  .wg-actions { display: flex; justify-content: flex-end; margin-top: 10px; }
+  /* gap seit B4 noetig: hier stehen jetzt ZWEI Knoepfe ("Anpassen" und "Neu berechnen").
+     Ohne ihn klebten sie aneinander - bei zwei Ghost-Knöpfen ohne Fläche sähe das aus wie
+     ein einziger. flex-wrap, damit sie auf sehr schmalen Geräten untereinander rutschen
+     statt ihren Text zu quetschen. */
+  .wg-actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; margin-top: 10px; }
   .wg-recalc svg { width: 15px; height: 15px; }
   /* Hinweis in der rechten Spalte, wo im Leerzustand sonst Makrobalken bzw. Fortschrittsbalken
      saessen (dayRight/weekRight in weekGoalHtml). */
@@ -839,9 +850,33 @@
   .rueck-streak { display: flex; align-items: center; gap: 8px; margin: 8px 0 2px; font-size: 14px; color: var(--text); }
   .rueck-streak b { font-family: var(--font-display); font-size: 17px; color: var(--accent); font-variant-numeric: tabular-nums; }
   .rueck-fl { width: 18px; height: 18px; flex: none; color: var(--accent); }
-  .rueck-bars { display: flex; align-items: flex-end; gap: 5px; height: 60px; margin: 14px 0 0; }
-  .rueck-bar { flex: 1 1 0; min-width: 0; display: flex; align-items: flex-end; height: 100%; }
-  .rueck-bar i { display: block; width: 100%; border-radius: 4px 4px 2px 2px; background: linear-gradient(180deg, var(--accent), var(--accent-strong)); }
+  .rueck-note { font-size: 11.5px; color: var(--text-muted); margin: 6px 0 0; line-height: 1.45; }
+  /* Der Balken misst gegen das ZIEL der jeweiligen Woche, nicht gegen Min/Max der Reihe:
+     100 % Balkenhoehe entspraeche dem Ziel, gezeichnet wird bis 140 %. Genau deshalb kann
+     das Zielband eine feste waagerechte Flaeche sein, obwohl jede Woche ihr eigenes,
+     eingefrorenes Ziel hat (siehe archiveWeek, B10). Frueher zeigte dieselbe Grafik reine
+     Streuung und sah dabei wie Zielerreichung aus. */
+  .rueck-plot { position: relative; height: 74px; margin: 14px 0 0; }
+  .rueck-band {
+    position: absolute; left: 0; right: 0; bottom: 64.3%; height: 14.3%;
+    background: color-mix(in srgb, var(--accent) 11%, transparent);
+    border-top: 1px dashed color-mix(in srgb, var(--accent) 45%, transparent);
+    border-bottom: 1px dashed color-mix(in srgb, var(--accent) 25%, transparent);
+    border-radius: 2px; pointer-events: none;
+  }
+  .rueck-bandlbl { position: absolute; right: 0; bottom: 79%; font-size: 10px; letter-spacing: .04em; color: var(--text-muted); pointer-events: none; }
+  .rueck-bars { position: absolute; inset: 0; display: flex; align-items: flex-end; gap: 5px; }
+  .rueck-bar {
+    flex: 1 1 0; min-width: 0; display: flex; align-items: flex-end; height: 100%;
+    padding: 0; border: 0; background: transparent; cursor: pointer; border-radius: 4px;
+  }
+  .rueck-bar:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  /* Ausserhalb des Ziels bewusst gedaempft statt rot: die Marke bewertet nicht (CLAUDE.md §6). */
+  .rueck-bar i { display: block; width: 100%; border-radius: 4px 4px 2px 2px; background: var(--border-strong); transition: background var(--dur-fast); }
+  .rueck-bar.hit i { background: linear-gradient(180deg, var(--accent), var(--accent-strong)); }
+  .rueck-kws { display: flex; gap: 5px; margin-top: 5px; }
+  .rueck-kws span { flex: 1 1 0; min-width: 0; text-align: center; font-size: 10px; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+  .rueck-tip { min-height: 16px; margin: 8px 0 0; font-size: 12px; color: var(--text-muted); }
   .rueck-foot { display: flex; gap: 22px; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); }
   .rueck-s { display: flex; flex-direction: column; gap: 2px; }
   .rueck-s small { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: .05em; }
@@ -915,7 +950,17 @@
   .wch-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
   /* Ankerpunkt fuer .menu (position:absolute; right:0) - ohne ihn haengt das Menue an
      der ganzen Karte und rutscht an deren rechten Rand. */
-  .wch-menu { position: relative; flex: none; }
+  .wch-menu { position: relative; flex: none; display: flex; align-items: center; gap: 4px; }
+  /* Ueberlaufmenue neben dem Plus (B1): Jahresziel und Widerruf sind seltene Aktionen und
+     standen bis 13.08.2026 im selben Menue wie das woechentliche Wiegen - das kostete
+     jedes Mal zwei zusaetzliche Taps fuer die haeufigste Handlung der Zielgruppe. */
+  .wch-more {
+    width: 36px; height: 36px; border: 1px solid var(--border); border-radius: 50%;
+    background: var(--surface-2); color: var(--text-muted); cursor: pointer; padding: 0;
+    display: grid; place-items: center; font-size: 18px; line-height: 1;
+    transition: color var(--dur-fast), border-color var(--dur-fast);
+  }
+  .wch-more:hover { color: var(--text); border-color: var(--border-strong); }
   /* Gleiches Gradient-Rund-Button-Muster wie .avatar-edit-btn (Profilbild aendern), nur
      groesser und im Fluss statt absolut: 36px sichtbar, Trefferflaeche per ::after auf 44px. */
   .wch-add {
@@ -945,6 +990,11 @@
   .wch-ax { fill: var(--text-muted); font-size: 10px; text-anchor: middle; font-family: var(--font-body); }
   .wch-line { fill: none; stroke: var(--accent); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
   .wch-goal { stroke: var(--text-muted); stroke-width: 2; stroke-dasharray: 5 5; stroke-linecap: round; }
+  /* Gleitender 4-Wochen-Schnitt (B2): die Messkurve tritt dafuer zurueck (duenner,
+     halbdeckend), der Trend fuehrt. Die Rohwerte bleiben sichtbar - eine App, die nur
+     den geglaetteten Wert zeigt, versteckt, woraus er entsteht. */
+  .wch-avg { fill: none; stroke: var(--accent-strong); stroke-width: 2.5; stroke-linejoin: round; stroke-linecap: round; }
+  .wch-svg:has(.wch-avg) .wch-line { stroke-width: 1.5; opacity: .45; }
   /* Hohl statt gefuellt: unterscheidet den Zielpunkt im Dezember auf einen Blick von
      den gefuellten Messpunkten und beendet die Linie sichtbar, statt sie auslaufen
      zu lassen. */
@@ -960,6 +1010,8 @@
   .wch-leg span { display: inline-flex; align-items: center; gap: 6px; }
   .wch-leg i { width: 16px; height: 0; border-top: 2px solid var(--accent); border-radius: 2px; }
   .wch-leg i.k-goal { border-top-style: dashed; border-color: var(--text-muted); }
+  .wch-leg i.k-avg { border-top-width: 3px; border-color: var(--accent-strong); }
+  .wch-leg i.k-line { opacity: .5; }
   .wch-tip { margin-top: 8px; font-size: 12px; color: var(--text-muted); font-variant-numeric: tabular-nums; min-height: 17px; }
   .wch-empty { margin: 6px 0 0; font-size: 13.5px; color: var(--text-muted); }
   /* Kennzahlenreihe als Fuss der Karte: Trennlinie setzt sie vom Diagramm ab. */
@@ -1130,6 +1182,26 @@
   .r-badge.wide, .r-badge.r-badge-more { width: auto; min-width: 14px; padding: 0 2px; border-radius: 999px; }
   .r-badge.wide { font-size: 7.5px; letter-spacing: -.02em; }
   .r-badge.r-badge-more { font-size: 7.5px; }
+  /* Portionsgroesse (B5) sitzt AM BILD, nicht in der Knopfreihe rechts: dort stehen im
+     Gruppenmodus schon Personen-Icon und X, ein dritter Knopf haette den Namen auf
+     schmalen Karten zusammengedrueckt. Unten links am Vorschaubild ist Platz, der sonst
+     ungenutzt bleibt (das Zuweisungs-Badge sitzt unten rechts).
+     24px sichtbar erfuellen WCAG 2.5.8 AA, der ::after-Zuschlag bringt die Trefferflaeche
+     auf 36px - dieselbe Bauweise wie bei .x/.pencil. */
+  .slot .filled .portion {
+    position: absolute; left: -4px; bottom: -4px; z-index: 2;
+    min-width: 24px; height: 24px; padding: 0 5px; border-radius: 999px;
+    font: inherit; font-size: 10.5px; font-weight: 700; line-height: 1; cursor: pointer;
+    display: grid; place-items: center; font-variant-numeric: tabular-nums;
+    border: 1.5px solid var(--surface); background: var(--surface-2); color: var(--text-muted);
+    touch-action: manipulation; -webkit-tap-highlight-color: transparent;
+    transition: background var(--dur-fast), color var(--dur-fast);
+  }
+  .slot .filled .portion::after { content: ""; position: absolute; inset: -6px; }
+  /* Abweichende Portion traegt Farbe, die Standardportion bleibt still - sonst zoege eine
+     "1×"-Marke an jeder Karte Aufmerksamkeit auf einen Normalzustand. */
+  .slot .filled .portion.on { background: linear-gradient(135deg, var(--accent), var(--accent-strong)); color: var(--accent-contrast); }
+  .slot .filled .portion:hover, .slot .filled .portion:active { background: var(--accent); color: var(--accent-contrast); }
   .slot .filled .r-name { font-size: 13.5px; font-weight: 550; line-height: 1.3; flex: 1; word-break: break-word; }
   .slot .filled .r-meta { font-size: 11.5px; color: var(--text-muted); margin-top: 1px; }
   .slot .filled .x, .slot .filled .pencil {
@@ -1205,6 +1277,16 @@
   /* Suchfeld im Meals-Reiter, eigene Zeile unter der .section-head (die ist flex-wrap und
      streckt auf 720px .btn per flex:1 - ein drittes Element wuerde mitgestreckt). */
   .recipe-search { position: relative; margin: -6px 0 18px; }
+  /* Filter-Chips im Meals-Reiter (B7). Gleiche Bauform wie die Merkmale im Meal-Sheet
+     (.mtags) - es ist dieselbe Auswahl, nur einmal setzend und einmal filternd.
+     Die Reihe BRICHT UM und scrollt nicht waagerecht. Der erste Entwurf hatte
+     `overflow-x: auto`, und die Messung hat zweierlei gezeigt: Die Regel griff gar nicht
+     (`.mtags` steht weiter unten im Stylesheet und gewinnt bei gleicher Spezifitaet mit
+     `flex-wrap: wrap`) - und sie war auch inhaltlich falsch. Ein waagerechter Scroller
+     ueber der Meal-Liste ist genau die Gestenfalle aus CLAUDE.md §11, und er versteckt
+     Filter am rechten Rand. In der Praxis ist die Reihe meist einzeilig: gezeigt wird nur,
+     was im Bestand vorkommt. */
+  .rfilters { margin: -8px 0 16px; }
   .recipe-search svg { position: absolute; left: 11px; top: 50%; transform: translateY(-50%);
     width: 16px; height: 16px; color: var(--text-muted); pointer-events: none; }
   /* Attributselektor, nicht nur "input": input[type="search"] (Zeile ~1113) hat dieselbe
@@ -1444,6 +1526,35 @@
   .ms-name:focus { outline: none; border-color: var(--accent); background: var(--bg); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent); }
   .ms-cat { flex: none; width: auto; font-size: 16px; padding: 7px 8px; }
   .ms-ings .sec-h { margin: 22px 0 4px; }   /* Schrift kommt aus .sec-h */
+  /* ---------- Merkmale eines Meals (B6) ----------
+     Mehrfachauswahl mit aria-pressed, gleiche Bauform wie .tdays im Rechner. Bewusst
+     nicht .seg: das ist eine Einfachauswahl (genau ein .on) und wuerde hier falsche
+     Erwartungen wecken. Der Aufwand darunter IST eine Einfachauswahl und nutzt .seg. */
+  .ms-meta .sec-h { margin: 22px 0 8px; }
+  .mtags { display: flex; flex-wrap: wrap; gap: 6px; }
+  .mtags button {
+    font: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer;
+    border: 1px solid var(--border); background: var(--surface-2); color: var(--text-muted);
+    padding: 9px 13px; min-height: 40px; border-radius: 999px;
+    transition: color var(--dur-fast), background var(--dur-fast), border-color var(--dur-fast), box-shadow var(--dur-fast);
+  }
+  .mtags button:hover { color: var(--text); border-color: var(--border-strong); }
+  .mtags button[aria-pressed="true"] {
+    color: var(--accent-contrast); border-color: transparent;
+    background: linear-gradient(135deg, var(--accent), var(--accent-strong));
+    box-shadow: 0 2px 8px color-mix(in srgb, var(--accent) 32%, transparent);
+  }
+  .ms-meta .seg { margin-top: 10px; }
+  .ms-meta .seg button { min-height: 40px; }
+  /* Nur-Lese-Zweig: dieselben Merkmale, aber als ruhige Marken ohne Knopf-Optik -
+     hier ist nichts umschaltbar, also darf auch nichts wie ein Schalter aussehen. */
+  .mflags { display: flex; flex-wrap: wrap; gap: 6px; margin: 12px 0 0; }
+  .mflags span {
+    font-size: 11.5px; font-weight: 600; letter-spacing: .02em; padding: 5px 10px;
+    border-radius: 999px; color: var(--text-muted); background: var(--surface-2);
+    border: 1px solid var(--border); white-space: nowrap;
+  }
+  .mflags span.on { color: var(--accent-strong); background: color-mix(in srgb, var(--accent) 12%, var(--surface)); border-color: color-mix(in srgb, var(--accent) 30%, transparent); }
   /* Fusszeile der Meal-Ansicht (Nachtrag Abnahme Phase 1): "Meal loeschen"/"Verwerfen" und
      "Fertig" stehen jetzt zusammen im modal-foot statt getrennt im Body. space-between statt
      eines festen 8px-gap gibt der destruktiven Aktion spuerbaren Abstand zur bestaetigenden -
@@ -2987,6 +3098,10 @@
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4v16a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1V7l-4-3H5a1 1 0 0 0-1 1Z"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>
             <span class="tl">Meals</span><span class="ts">Meals</span> <span class="count" id="recipe-count">0</span>
           </button>
+          <button class="tab" role="tab" id="tab-progress" data-action="tab" data-tab="progress" aria-selected="false">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m7 14 3.5-4 3 3L20 7"/></svg>
+            <span class="tl">Fortschritt</span><span class="ts">Fortschritt</span>
+          </button>
         </div>
       </div>
       <div id="profile-slot"></div>
@@ -3439,7 +3554,7 @@
     { key: "sn", label: "Snacks"      },
   ];
   // Reihenfolge der unteren Tab-Leiste, fuer die Richtung des Schiebe-Uebergangs (render()).
-  const TAB_ORDER = ["home", "plan", "recipes"];
+  const TAB_ORDER = ["home", "plan", "recipes", "progress"];
   // Plausible Gewichtsgrenzen, gleiche Werte wie im Rechner (missingCalc). Stehen aus
   // demselben Grund hier oben wie ACTIVITY darunter: sanitizeWeights() braucht sie und
   // laeuft schon in `let state = load()`. Weiter unten deklariert waren sie dort in der
@@ -3536,10 +3651,33 @@
   // Vorschlagsrang im Picker: passt die Kategorie GENAU zu diesem Slot (nicht nur "erlaubt")?
   function catSuggestsMeal(cat, mealKey) { return (CAT_TO_MEAL[cat] || []).indexOf(mealKey) !== -1; }
 
+  // ---------- Merkmale eines Meals (Tags, Meal-Prep, Aufwand) ----------
+  // Bewusst eine FESTE Liste statt freier Tags: nur so kann der Filter (Meals-Reiter) und
+  // spaeter der Auto-Planer damit rechnen. Freitext-Tags waeren pro Nutzer verschieden
+  // geschrieben ("lowcarb"/"Low Carb"/"low-carb") und damit fuer beides unbrauchbar.
+  // Der Schluessel ist das, was gespeichert wird - Beschriftungen duerfen sich aendern,
+  // Schluessel nie (sie stecken dann in Nutzerdaten und geteilten Meals).
+  const RECIPE_TAGS = [
+    { key: "highprotein", label: "High Protein" },
+    { key: "lowcarb",     label: "Low Carb" },
+    { key: "vegetarisch", label: "Vegetarisch" },
+    { key: "vegan",       label: "Vegan" },
+    { key: "glutenfrei",  label: "Glutenfrei" },
+    { key: "laktosefrei", label: "Laktosefrei" },
+  ];
+  const RECIPE_TAG_KEYS = RECIPE_TAGS.map(t => t.key);
+  function tagLabel(k) { const t = RECIPE_TAGS.find(x => x.key === k); return t ? t.label : k; }
+  // Aufwand statt "Schwierigkeit": in der Kueche entscheidet die Zielgruppe nach Aufwand,
+  // nicht nach Koennen. Gespeichert wird die Zahl 1..3, damit spaeter danach sortiert
+  // werden kann.
+  const DIFFICULTIES = [{ v: 1, label: "Einfach" }, { v: 2, label: "Mittel" }, { v: 3, label: "Aufwendig" }];
+  function difficultyLabel(v) { const d = DIFFICULTIES.find(x => x.v === v); return d ? d.label : ""; }
+
   // Beispiel-Meals mit Fitness-/Abnehm-Fokus (viel Protein, realistische Portionen fuers
   // Meal-Prep) statt generischer Alltagsgerichte - passend zum Zielpublikum der App.
   const SEED = [
     { name: "Protein-Porridge mit Beeren", category: "Frühstück", portions: 1, time: 10,
+      tags: ["highprotein", "vegetarisch"], mealPrep: true, difficulty: 1,
       nutrition: { kcal: 530, carbs: 64, protein: 43, fat: 11 },
       ingredients: [
         { name: "Haferflocken", grams: 60 },
@@ -3550,6 +3688,7 @@
       ],
       steps: "Haferflocken mit Milch aufkochen und 3–4 Min. bei milder Hitze quellen lassen. Vom Herd nehmen, Whey-Protein unterrühren. In eine Schale füllen, mit Beeren, Chiasamen und Zimt toppen." },
     { name: "Hähnchen mit Pute und Reis", category: "Hauptgericht", portions: 2, time: 30,
+      tags: ["highprotein", "laktosefrei"], mealPrep: true, difficulty: 1,
       nutrition: { kcal: 620, carbs: 55, protein: 55, fat: 16 },
       ingredients: [
         { name: "Hähnchenbrust", grams: 200 },
@@ -3561,6 +3700,7 @@
       ],
       steps: "Reis nach Packungsangabe kochen. Hähnchen- und Putenbrust würfeln, würzen und in Olivenöl scharf anbraten. Paprika und Zucchini kurz mitbraten, mit Sojasauce ablöschen. Alles auf dem Reis anrichten." },
     { name: "Eiweißshake mit Whey und Milch", category: "Snack", portions: 1, time: 5,
+      tags: ["highprotein", "vegetarisch", "glutenfrei"], mealPrep: false, difficulty: 1,
       nutrition: { kcal: 350, carbs: 39, protein: 35, fat: 6 },
       ingredients: [
         { name: "Milch", grams: 300, unit: "ml" },
@@ -3570,6 +3710,7 @@
       ],
       steps: "Milch, Whey-Protein, Banane und ein paar Eiswürfel in den Mixer geben und cremig mixen." },
     { name: "Rindersteak mit Ofenkartoffeln", category: "Hauptgericht", portions: 1, time: 35,
+      tags: ["highprotein", "glutenfrei", "laktosefrei"], mealPrep: false, difficulty: 2,
       nutrition: { kcal: 650, carbs: 62, protein: 56, fat: 20 },
       ingredients: [
         { name: "Rindersteak (Rumpsteak)", grams: 200 },
@@ -3608,11 +3749,25 @@
   function entryId(e) { return typeof e === "string" ? e : (e && e.id); }
   function entryUids(e) { return typeof e === "string" ? null : (e && e.uids) || null; } // null = fuer alle
   function entryIsShared(e) { return typeof e === "string" || !e || !e.uids; }
-  function makeEntry(id, uids) {
+  // Portionsfaktor eines Eintrags (B5). 1 = wie im Meal hinterlegt. Erlaubt sind die vier
+  // Stufen aus PORTION_STEPS - Meal-Prep rechnet in halben und doppelten Portionen, nicht
+  // in beliebigen Kommazahlen, und eine feste Leiter haelt zugleich den Sync-Vergleich
+  // stabil (0.30000000000000004 waere ein Dauer-Diff).
+  const PORTION_STEPS = [0.5, 1, 1.5, 2];
+  function entryPortion(e) {
+    const p = (e && typeof e === "object") ? +e.p : 1;
+    return PORTION_STEPS.indexOf(p) !== -1 ? p : 1;
+  }
+  function portionLabel(p) { return p === 0.5 ? "½" : (p === 1.5 ? "1½" : String(p)); }
+  function makeEntry(id, uids, p) {
+    const port = PORTION_STEPS.indexOf(+p) !== -1 ? +p : 1;
     // Mengenabdeckung pruefen, nicht nur die Laenge: eine veraltete UID (Mitglied hat die
     // Gruppe inzwischen verlassen) darf einen Eintrag nicht faelschlich zu "fuer alle" machen.
-    if (!uids || !groupMembers.length || groupMembers.every(mem => uids.indexOf(mem.uid) !== -1)) return id;
-    return { id: id, uids: uids.slice() };
+    const forAll = !uids || !groupMembers.length || groupMembers.every(mem => uids.indexOf(mem.uid) !== -1);
+    // Die kurze String-Form bleibt der Normalfall: Ein ganzer Wochenplan aus Objekten waere
+    // im Gruppendokument spuerbar groesser, und die Faelle mit Faktor sind die Ausnahme.
+    if (forAll) return port === 1 ? id : { id: id, p: port };
+    return port === 1 ? { id: id, uids: uids.slice() } : { id: id, uids: uids.slice(), p: port };
   }
   function slotIsShared(day, meal) { return state.plan[day][meal].every(entryIsShared); }
 
@@ -3688,19 +3843,26 @@
   // Kennzahlen einer abgelaufenen Woche fuer den Rueckblick festhalten. Bewusst NUR Summen/
   // Zahlen, keine Meal-Referenzen — winzig, kein Foto-Ballast. Ziel-Treffer = Tag geplant UND
   // Tageskalorien innerhalb +/-10 % des (heutigen) Tagesziels. Ohne Ziel keine Treffer-Quote.
+  // B10: Zusaetzlich wird das damals gueltige Tagesziel MITGESPEICHERT (`target`, Schnitt ueber
+  // die geplanten Tage — Trainingstage haben ein hoeheres Ziel als Ruhetage). Ohne das misst
+  // der Rueckblick jede vergangene Woche gegen das HEUTIGE Ziel: Wer sein Defizit aendert,
+  // aendert damit rueckwirkend die Bedeutung seiner gesamten Historie.
   function archiveWeek(wk, pl) {
     if (!pl || !state.goal) return;
-    let sum = 0, days = 0, hit = 0;
+    let sum = 0, days = 0, hit = 0, tsum = 0, tdays = 0;
     DAYS.forEach(d => {
       const n = dayNutOf(pl, d.key);
       if (!hasNut(n)) return;
       days++; sum += n.kcal;
       const t = goalTargetsForDay(d.key);
+      if (t && t.kcal) { tsum += t.kcal; tdays++; }
       if (t && t.kcal && Math.abs(n.kcal - t.kcal) <= t.kcal * 0.1) hit++;
     });
     if (!days) return;                          // leere Woche hat keinen Rueckblick-Wert
     if (!state.weekStats) state.weekStats = {};
-    state.weekStats[wk] = { kcal: Math.round(sum / days), days: days, hit: hit };
+    const rec = { kcal: Math.round(sum / days), days: days, hit: hit };
+    if (tdays) rec.target = Math.round(tsum / tdays);
+    state.weekStats[wk] = rec;
   }
   // Archiv saeubern: nur gueltige "YYYY-Www"-Eintraege, geklemmte Werte, hoechstens die letzten
   // 26 Wochen (halbes Jahr) — das Archiv soll nicht endlos wachsen.
@@ -3713,6 +3875,12 @@
       const days = Math.max(0, Math.min(7, Math.round(Number(s.days) || 0)));
       if (!days) return;
       out[k] = { kcal: Math.max(0, Math.round(Number(s.kcal) || 0)), days: days, hit: Math.max(0, Math.min(days, Math.round(Number(s.hit) || 0))) };
+      // Eingefrorenes Tagesziel (B10). Nur uebernehmen, wenn es plausibel ist — sonst lieber
+      // gar keins: der Rueckblick faellt dann auf das heutige Ziel zurueck, statt einen
+      // kaputten Wert als Messlatte zu zeichnen. Woche ohne `target` = vor dieser Aenderung
+      // archiviert, das ist ein Normalfall und keine Fehlerlage.
+      const tgt = Math.round(Number(s.target) || 0);
+      if (tgt >= 500 && tgt <= 20000) out[k].target = tgt;
     });
     const trimmed = {};
     Object.keys(out).sort().slice(-26).forEach(k => { trimmed[k] = out[k]; });
@@ -3779,23 +3947,47 @@
   // ---------- Gewichtsverlauf ----------
   // KG_MIN/KG_MAX stehen weiter oben bei den Stammdaten — siehe Begruendung dort.
   //
-  // Ein Eintrag je MONAT, nicht je Tag. Ueber ein Jahr betrachtet sagt der Tag nichts:
+  // Ein Eintrag je WOCHE, nicht je Tag (bis 13.08.2026: je Monat, siehe B2 unten).
   // Tagesschwankungen (Wasser, Mahlzeiten) liegen in derselben Groessenordnung wie die
-  // echte Veraenderung eines Monats. Monatsgenau macht die Eingabe kuerzer und das
-  // Diagramm ehrlicher.
+  // echte Veraenderung einer Woche - taggenau waere also kein Gewinn an Genauigkeit,
+  // sondern nur mehr Rauschen bei mehr Aufwand.
   //
-  // Monat IMMER lokal bilden, nie ueber toISOString(): das rechnet nach UTC um und
-  // kippt in unserer Zeitzone am Monatsersten kurz nach Mitternacht in den Vormonat.
-  function monthKey(dt) {
-    const d = dt || new Date();
-    return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0");
-  }
+  // validMonthKey lebt nur noch fuer die Alt-Erkennung in sanitizeWeights(): "2026-07" ist
+  // das Format, das bis zu diesem Datum gespeichert wurde. monthKey()/monthIdx() sind mit
+  // demselben Schritt entfallen - sie hatten keinen Aufrufer mehr.
   function validMonthKey(s) {
     if (typeof s !== "string" || !/^\d{4}-\d{2}$/.test(s)) return false;
     const m = +s.slice(5, 7);
     return m >= 1 && m <= 12;
   }
-  function monthIdx(s) { return +s.slice(5, 7) - 1; }
+
+  // ---------- B2: Der Verlauf rechnet in WOCHEN, nicht mehr in Monaten ----------
+  // Monatsgenau war fuer Trainierende zu grob: Wer woechentlich wiegt, sieht einen Trend
+  // sonst erst nach Monaten - und genau der Trend ist der Zweck. Tagesgenau bleibt trotzdem
+  // falsch (Wasser und Mahlzeiten schwanken staerker als der Fortschritt einer Woche); die
+  // Woche ist die Aufloesung, in der die Zielgruppe ohnehin denkt.
+  //
+  // Der Schluessel bleibt im Feld `m` und ist jetzt ein ISO-Wochenschluessel ("2026-W33") -
+  // dasselbe Format wie state.plans und state.weekStats. Das Feld NICHT umbenannt: es steckt
+  // in gespeicherten Daten und in der Cloud (siehe CLAUDE.md, Namensdualitaet).
+  function weightKeyNow(dt) { return isoWeekKey(dt || new Date()); }
+  function validWeightKey(s) {
+    if (typeof s !== "string" || !/^\d{4}-W\d{2}$/.test(s)) return false;
+    const w = +s.slice(6, 8);
+    return w >= 1 && w <= 53;
+  }
+  function weekNumOf(s) { return +s.slice(6, 8); }
+  // Montag einer ISO-Woche - fuer die Beschriftung ("KW 33 · 10.08.") und die Wochenliste
+  // im Formular. Ueber den 4. Januar, der per ISO-Definition immer in KW 1 liegt.
+  function weekMonday(key) {
+    const y = +key.slice(0, 4), w = weekNumOf(key);
+    const jan4 = new Date(y, 0, 4);
+    const mon1 = new Date(jan4);
+    mon1.setDate(jan4.getDate() - ((jan4.getDay() || 7) - 1));
+    const d = new Date(mon1);
+    d.setDate(mon1.getDate() + (w - 1) * 7);
+    return d;
+  }
 
   // Bewusst `function` und keine const-Arrow: laeuft aus load() heraus, also bevor die
   // meisten Konstanten deklariert sind (gleiche TDZ-Falle wie bei sanitizeTraining).
@@ -3806,12 +3998,19 @@
     const map = {};
     w.forEach(e => {
       if (!e || typeof e !== "object") return;
-      // Migration: die erste Fassung speicherte taggenau unter `d` ("2026-07-22").
-      // Auf den Monat eindampfen statt wegzuwerfen - innerhalb eines Monats gewinnt
-      // der zuletzt einsortierte Wert.
+      // Zwei Altformate, beide werden umgerechnet statt weggeworfen - eine Messung ist
+      // ein Gesundheitsdatum, das der Nutzer selbst eingetragen hat:
+      //   1. taggenau unter `d` ("2026-07-22") - erste Fassung
+      //   2. monatsgenau unter `m` ("2026-07") - bis 13.08.2026 (B2)
+      // Der Monat landet auf der Woche, die seinen 15. enthaelt: die Monatsmitte ist die
+      // ehrlichste Naeherung, wenn der Tag nicht mehr bekannt ist.
       let m = e.m;
-      if (!m && typeof e.d === "string" && e.d.length >= 7) m = e.d.slice(0, 7);
-      if (!validMonthKey(m)) return;
+      if (typeof e.d === "string" && /^\d{4}-\d{2}-\d{2}$/.test(e.d)) {
+        m = weightKeyNow(new Date(+e.d.slice(0, 4), +e.d.slice(5, 7) - 1, +e.d.slice(8, 10)));
+      } else if (validMonthKey(m)) {
+        m = weightKeyNow(new Date(+m.slice(0, 4), +m.slice(5, 7) - 1, 15));
+      }
+      if (!validWeightKey(m)) return;
       const kg = Math.round((parseFloat(e.kg) || 0) * 10) / 10;
       if (!(kg >= KG_MIN && kg <= KG_MAX)) return;
       map[m] = { m: m, kg: kg };
@@ -4198,9 +4397,24 @@
       // uids kommt von einem ANDEREN Geraet - Elemente auf Strings begrenzen und die Laenge
       // deckeln, sonst koennte ein fehlerhaftes oder manipuliertes Dokument beliebig viele
       // Badges pro Karte bzw. eine aufgeblaehte Einkaufsliste erzeugen (siehe entryUids()).
+      // Seit B5 gibt es eine dritte gueltige Form: {id, p} ohne uids ("fuer alle", aber mit
+      // Portionsfaktor). Der Filter verlangte frueher ein uids-Array und haette solche
+      // Eintraege von einem anderen Geraet lautlos verworfen - das Gericht waere dort aus
+      // dem Plan verschwunden.
       plan[d.key][m.key] = ids
-        .filter(x => typeof x === "string" || (x && typeof x.id === "string" && Array.isArray(x.uids)))
-        .map(x => typeof x === "string" ? x : { id: x.id, uids: x.uids.filter(u => typeof u === "string").slice(0, 24) });
+        .filter(x => typeof x === "string" || (x && typeof x.id === "string" && (Array.isArray(x.uids) || x.uids === undefined)))
+        .map(x => {
+          if (typeof x === "string") return x;
+          const uids = Array.isArray(x.uids) ? x.uids.filter(u => typeof u === "string").slice(0, 24) : null;
+          const p = PORTION_STEPS.indexOf(+x.p) !== -1 ? +x.p : 1;
+          const out = { id: x.id };
+          if (uids) out.uids = uids;
+          if (p !== 1) out.p = p;
+          // Ein Objekt ohne uids UND ohne Faktor ist inhaltlich die String-Form. Auf sie
+          // zurueckfuehren, sonst schriebe dieses Geraet das Feld gleich wieder anders
+          // zurueck als es ankam - ein Dauer-Diff im Gruppendokument.
+          return (!uids && p === 1) ? x.id : out;
+        });
     }));
     return plan;
   }
@@ -5157,6 +5371,17 @@
   function safeImage(v) {
     return (typeof v === "string" && /^data:image\/(jpeg|jpg|png|gif|webp);base64,[A-Za-z0-9+/]+=*$/.test(v)) ? v : null;
   }
+  // Merkmale aus fremder Quelle: NUR bekannte Schluessel, jeder hoechstens einmal, feste
+  // Reihenfolge. Ein geteiltes Meal koennte sonst beliebige Zeichenketten mitbringen, die
+  // spaeter ungeprueft in Filter-Beschriftungen und Chips landen. Die feste Reihenfolge
+  // haelt zugleich canonJSON stabil (siehe syncRecipes) - eine umsortierte Liste waere
+  // sonst ein Dauer-Diff gegen die Cloud.
+  function sanitizeTags(v) {
+    if (!Array.isArray(v)) return null;
+    const set = new Set(v.filter(x => typeof x === "string"));
+    const out = RECIPE_TAG_KEYS.filter(k => set.has(k));
+    return out.length ? out : null;
+  }
   // Ein komplettes Rezept aus fremder Quelle auf unbedenkliche Werte bringen.
   function sanitizeRecipe(r) {
     if (!r || typeof r !== "object") return null;
@@ -5164,6 +5389,14 @@
     out.image = safeImage(r.image);
     if (out.category) out.category = migrateCat(out.category);
     if (Array.isArray(r.ingredients)) out.ingredients = r.ingredients.map(sanitizeIng).filter(Boolean);
+    // Merkmale (B6). Nicht gesetzte Felder bleiben ungesetzt statt auf einen Standardwert
+    // zu fallen - so bekommt kein einziges Bestands-Meal allein durchs Laden ein neues
+    // Feld und damit einen ueberfluessigen Cloud-Schreibvorgang.
+    const tags = sanitizeTags(r.tags);
+    if (tags) out.tags = tags; else delete out.tags;
+    if ("mealPrep" in r) out.mealPrep = r.mealPrep === true;
+    const d = +r.difficulty;
+    if (d === 1 || d === 2 || d === 3) out.difficulty = d; else delete out.difficulty;
     return out;
   }
   function sanitizeRecipes(list) { return Array.isArray(list) ? list.map(sanitizeRecipe).filter(Boolean) : []; }
@@ -5490,6 +5723,7 @@
       document.querySelectorAll(".tab").forEach(t => t.setAttribute("aria-selected", String(t.dataset.tab === state.tab)));
       if (state.tab === "recipes") renderRecipes();
       else if (state.tab === "plan") renderPlan(sameTab);
+      else if (state.tab === "progress") renderProgress();
       else renderHome();
     } finally {
       recipeIndex = null;
@@ -5549,7 +5783,13 @@
     MEALS.forEach(m => { plan[dayKey][m.key].forEach(entry => {
       const uids = entryUids(entry);
       if (uids && uids.indexOf(syncUid) === -1) return;
-      const r = getRecipe(entryId(entry)); if (r) s = addNut(s, recipeNut(r));
+      const r = getRecipe(entryId(entry));
+      if (!r) return;
+      // Portionsfaktor (B5): eine halbe Portion zaehlt halb. Ohne diese Zeile waere der
+      // Faktor reine Dekoration - die Tagesbilanz ist der Ort, an dem er wirken muss.
+      const p = entryPortion(entry);
+      const n = recipeNut(r);
+      s = addNut(s, p === 1 ? n : { kcal: n.kcal * p, carbs: n.carbs * p, protein: n.protein * p, fat: n.fat * p });
     }); });
     return s;
   }
@@ -6691,7 +6931,11 @@
     // Wochenkarte gar nicht mehr zu sehen, weil er mit weggewischt wurde. Vormals in der
     // Wochenplan-Werkzeugleiste, dort konzeptionell falsch einsortiert (neben Teilen/Leeren
     // DIESER Woche).
-    const recalcLink = `<button type="button" class="btn ghost sm wg-recalc" data-action="recalc-goal" title="Ziele neu berechnen" aria-label="Ziele neu berechnen">${TOOL_ICONS.recalc}<span>Ziele neu berechnen</span></button>`;
+    // Zwei Wege nebeneinander (B4): "Anpassen" korrigiert die Zahlen direkt, "Neu berechnen"
+    // fuehrt durch den Rechner. Der Direktweg steht zuerst, weil er der haeufigere ist -
+    // die Grundlagen (Alter, Groesse, Aktivitaet) aendern sich selten, das Defizit oft.
+    const recalcLink = `<button type="button" class="btn ghost sm wg-recalc" data-action="tune-goal" title="Ziel anpassen" aria-label="Ziel anpassen">${ACT_ICONS.edit}<span>Anpassen</span></button>`
+      + `<button type="button" class="btn ghost sm wg-recalc" data-action="recalc-goal" title="Ziele neu berechnen" aria-label="Ziele neu berechnen">${TOOL_ICONS.recalc}<span>Neu berechnen</span></button>`;
     // Auf dem Handy liegen die beiden Leisten nebeneinander und werden gewischt
     // (siehe CSS) – die Knopfleiste sagt, welche gerade zu sehen ist. Am Rechner
     // ist sie ausgeblendet, dort stehen beide untereinander wie bisher.
@@ -6758,6 +7002,28 @@
           <div class="nf t-fat"><div class="v">${nfmt(n.fat)}<span class="u">g</span></div><div class="k">F</div></div>
         </div>`;
   }
+  // ---------- Merkmale: Anzeige (Nur-Lese-Zweig) und Eingabe (Bearbeiten-Zweig) ----------
+  // Zeigt nur, was gesetzt ist: ein Meal ohne Merkmale bekommt keine leere Zeile.
+  // "Meal-Prep" steht vorn, weil es fuer die Zielgruppe die wichtigste Aussage ist.
+  function mealFlagsHtml(r) {
+    const parts = [];
+    if (r.mealPrep) parts.push(`<span class="on">Meal-Prep</span>`);
+    (r.tags || []).forEach(k => parts.push(`<span>${esc(tagLabel(k))}</span>`));
+    if (r.difficulty) parts.push(`<span>${esc(difficultyLabel(r.difficulty))}</span>`);
+    return parts.length ? `<div class="mflags">${parts.join("")}</div>` : "";
+  }
+  function mealMetaEditHtml(r) {
+    const tags = r.tags || [];
+    const chips = [`<button type="button" data-flag="mealPrep" aria-pressed="${r.mealPrep ? "true" : "false"}">Meal-Prep</button>`]
+      .concat(RECIPE_TAGS.map(t => `<button type="button" data-tag="${t.key}" aria-pressed="${tags.indexOf(t.key) !== -1 ? "true" : "false"}">${esc(t.label)}</button>`));
+    const seg = DIFFICULTIES.map(d => `<button type="button" data-diff="${d.v}" class="${r.difficulty === d.v ? "on" : ""}">${esc(d.label)}</button>`).join("");
+    return `<div class="ms-meta">
+          <h4 class="sec-h">Merkmale</h4>
+          <div class="mtags" id="f-tags">${chips.join("")}</div>
+          <div class="seg" id="f-diff" role="group" aria-label="Aufwand">${seg}</div>
+        </div>`;
+  }
+
   // Schlanke Kartenzeile (Nachtrag aus der Abnahme von Phase 1, 07.08.2026): mealStatsHtml()
   // als Kartenbauteil zeigte vier umrandete Kacheln - bei zehn Karten vierzig Kaesten, unter
   // 560px klappt das Raster auf 2x2 und macht jede Karte zwei Kachelzeilen hoch. Zweiter
@@ -7182,7 +7448,10 @@
   window.addEventListener("resize", syncStickyOffsets);
 
   // ---------- „Ziele <Jahr>": Gewichtsverlauf als Jahresdiagramm ----------
-  const MON_SHORT = ["J", "F", "M", "A", "M", "J", "J", "A", "S", "O", "N", "D"];
+  // MON_SHORT (Einzelbuchstaben) ist mit der Wochenachse entfallen: "J F M A M J J A S O N D"
+  // hat zweimal J und zweimal M. Solange alle zwoelf Marken standen, war das gerade noch
+  // aufloesbar - bei jeder zweiten Marke auf schmalen Geraeten (B2) nicht mehr. Dort stehen
+  // jetzt dieselben Drei-Buchstaben-Kuerzel wie am Rechner, nur seltener.
   const MON_LONG = ["Januar", "Februar", "März", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember"];
   function kgfmt(n) { return (Math.round(n * 10) / 10).toLocaleString("de-DE", { minimumFractionDigits: 1, maximumFractionDigits: 1 }); }
   // Naechstgroessere "runde" Schrittweite (1, 2, 2,5, 5, 10 und Zehnerpotenzen davon).
@@ -7191,7 +7460,12 @@
     const p = Math.pow(10, Math.floor(Math.log10(raw))), n = raw / p;
     return (n <= 1 ? 1 : n <= 2 ? 2 : n <= 2.5 ? 2.5 : n <= 5 ? 5 : 10) * p;
   }
-  function monthLabel(m) { return MON_LONG[monthIdx(m)] + " " + m.slice(0, 4); }
+  // Beschriftung einer Wiegung (B2): "KW 33 · 10.08." - die Kalenderwoche allein ist im
+  // Alltag schwer einzuordnen, das Datum des Montags verankert sie.
+  function weekLabel(k) {
+    const d = weekMonday(k);
+    return "KW " + weekNumOf(k) + " · " + String(d.getDate()).padStart(2, "0") + "." + String(d.getMonth() + 1).padStart(2, "0") + ".";
+  }
   // Jahre, die eine Ansicht verdienen: alles mit Messung oder Ziel, plus das laufende Jahr.
   function weightYears() {
     const ys = {};
@@ -7224,9 +7498,10 @@
     // Veraenderungen von ein, zwei Kilo waeren nicht mehr abzulesen.
     const g = Object.assign({ W: W, H: Math.max(190, Math.min(300, Math.round(W * 0.42))) }, WCH);
     const plotW = g.W - g.PL - g.PR, plotH = g.H - g.PT - g.PB;
-    // Monatsindex 0..11 auf die Breite verteilt - keine Datumsarithmetik mehr noetig,
-    // seit ein Eintrag fuer einen ganzen Monat steht.
-    const px = i => g.PL + (i / 11) * plotW;
+    // Wochennummer 1..52 auf die Breite verteilt (B2). Die Achse steht weiterhin FEST auf
+    // das ganze Jahr und dehnt sich nicht nach den Daten - das ist der Grund, warum auch
+    // wenige Messungen hier ehrlich aussehen: die Skala kann nicht ueber das Tempo luegen.
+    const px = w => g.PL + ((w - 1) / 51) * plotW;
 
     let lo = Infinity, hi = -Infinity;
     rows.forEach(r => { lo = Math.min(lo, r.kg); hi = Math.max(hi, r.kg); });
@@ -7252,13 +7527,18 @@
       grid += `<line class="wch-grid" x1="${g.PL}" y1="${y.toFixed(1)}" x2="${g.W - g.PR}" y2="${y.toFixed(1)}"/>`
             + `<text class="wch-ay" x="${g.PL - 7}" y="${(y + 3.5).toFixed(1)}">${kgfmt(kg)}</text>`;
     }
-    // Monatsachse: zwoelf Marken, genau unter den moeglichen Messpunkten. Ausgeschrieben,
-    // sobald Platz ist - "J F M A M J J A S O N D" hat zweimal J und zweimal M und ist
-    // damit mehrdeutig.
+    // Wochenachse: 52 Marken waeren Kaugummi, deshalb Monatsnamen an der Woche, in die
+    // der Monatserste faellt. Die Bezugsgroesse ist die Woche, die LESBARKEIT bleibt
+    // monatlich - man liest "Mär" und weiss, wo man ist, ohne Kalenderwochen im Kopf zu
+    // haben. Auf schmalen Geraeten jeder zweite Monat, sonst ueberlappen die Marken.
     const wide = g.W >= 460;
     let months = "";
     for (let m = 0; m < 12; m++) {
-      months += `<text class="wch-ax" x="${px(m).toFixed(1)}" y="${g.H - 10}">${wide ? MON_LONG[m].slice(0, 3) : MON_SHORT[m]}</text>`;
+      if (!wide && m % 2) continue;
+      const w = weekNumOf(weightKeyNow(new Date(+year, m, 1)));
+      // Der 1. Januar liegt oft noch in KW 52/53 des Vorjahres - dann ans linke Ende.
+      const wx = (m === 0 && w > 50) ? 1 : w;
+      months += `<text class="wch-ax" x="${px(wx).toFixed(1)}" y="${g.H - 10}">${MON_LONG[m].slice(0, 3)}</text>`;
     }
 
     // Ziellinie: vom ersten bekannten Stand des Jahres zum Wunschgewicht im Dezember.
@@ -7268,31 +7548,50 @@
     // und sah aus, als ginge sie ins Unendliche weiter, statt im Dezember anzukommen.
     let zielEl = "";
     if (ziel != null && rows.length) {
-      const zx = px(11), zy = py(ziel);
-      zielEl = `<line class="wch-goal" x1="${px(monthIdx(rows[0].m)).toFixed(1)}" y1="${py(rows[0].kg).toFixed(1)}"
+      const zx = px(52), zy = py(ziel);
+      zielEl = `<line class="wch-goal" x1="${px(weekNumOf(rows[0].m)).toFixed(1)}" y1="${py(rows[0].kg).toFixed(1)}"
           x2="${zx.toFixed(1)}" y2="${zy.toFixed(1)}"/>
         <circle class="wch-goal-dot" cx="${zx.toFixed(1)}" cy="${zy.toFixed(1)}" r="4.5"/>`;
     }
 
-    const pts = rows.map(r => `${px(monthIdx(r.m)).toFixed(1)},${py(r.kg).toFixed(1)}`).join(" ");
+    const pts = rows.map(r => `${px(weekNumOf(r.m)).toFixed(1)},${py(r.kg).toFixed(1)}`).join(" ");
     const line = rows.length > 1 ? `<polyline class="wch-line" points="${pts}"/>` : "";
+    // Gleitender Durchschnitt ueber vier Wochen (B2). Erst er macht wochengenaues Wiegen
+    // brauchbar: eine einzelne Wiegung schwankt um mehr, als eine Woche Fortschritt
+    // ausmacht - die Rohkurve zeigt dann Zacken, die nichts bedeuten. Gerechnet ueber die
+    // letzten vier VORHANDENEN Messungen, nicht ueber vier Kalenderwochen: bei einer Luecke
+    // waere der Schnitt sonst leer, obwohl es Werte gibt. Ab vier Messungen, darunter
+    // gaebe es nichts zu glaetten.
+    let avgLine = "";
+    if (rows.length >= 4) {
+      const ap = rows.map((r, i) => {
+        const win = rows.slice(Math.max(0, i - 3), i + 1);
+        const avg = win.reduce((a, x) => a + x.kg, 0) / win.length;
+        return `${px(weekNumOf(r.m)).toFixed(1)},${py(avg).toFixed(1)}`;
+      }).join(" ");
+      avgLine = `<polyline class="wch-avg" points="${ap}"/>`;
+    }
     // Zwei Kreise je Messung: der sichtbare kleine und ein unsichtbarer grosser als
     // Trefferflaeche - ein 4-px-Punkt ist mit dem Finger nicht zu treffen. Der Radius
     // waechst mit dem Monatsabstand (eine SVG-Einheit = ein Bildschirmpunkt), bleibt
     // aber bei 18 gedeckelt: auf breiten Schirmen braucht es keine 60-px-Flaechen, auf
     // schmalen duerfen sich die Flaechen leicht ueberlappen - getroffen wird ohnehin
     // der oberste Punkt, und zu klein waere hier das groessere Uebel.
+    // Trefferflaeche: Der Wochenabstand ist rund ein Fuenftel des frueheren Monatsabstands,
+    // eine daran gekoppelte Flaeche waere unbrauchbar klein. Deshalb weiterhin mindestens
+    // 11 px - Punkte duerfen sich ueberlappen, getroffen wird der oberste, und zu klein
+    // waere hier das groessere Uebel.
     const hitR = Math.max(11, Math.min(18, plotW / 11 / 2)).toFixed(1);
     const dots = rows.map(r =>
-      `<g class="wch-pt" tabindex="0" role="img" data-m="${r.m}" aria-label="${esc(monthLabel(r.m))}: ${kgfmt(r.kg)} Kilogramm">
-         <title>${esc(monthLabel(r.m))}: ${kgfmt(r.kg)} kg</title>
-         <circle class="wch-hit" cx="${px(monthIdx(r.m)).toFixed(1)}" cy="${py(r.kg).toFixed(1)}" r="${hitR}"/>
-         <circle class="wch-dot" cx="${px(monthIdx(r.m)).toFixed(1)}" cy="${py(r.kg).toFixed(1)}" r="4"/>
+      `<g class="wch-pt" tabindex="0" role="img" data-m="${r.m}" aria-label="${esc(weekLabel(r.m))}: ${kgfmt(r.kg)} Kilogramm">
+         <title>${esc(weekLabel(r.m))}: ${kgfmt(r.kg)} kg</title>
+         <circle class="wch-hit" cx="${px(weekNumOf(r.m)).toFixed(1)}" cy="${py(r.kg).toFixed(1)}" r="${hitR}"/>
+         <circle class="wch-dot" cx="${px(weekNumOf(r.m)).toFixed(1)}" cy="${py(r.kg).toFixed(1)}" r="4"/>
        </g>`).join("");
 
     return `<svg class="wch-svg" viewBox="0 0 ${g.W} ${g.H}" width="${g.W}" height="${g.H}"
         role="img" aria-label="Gewichtsverlauf ${year}, ${rows.length} Messung${rows.length === 1 ? "" : "en"}">
-        ${grid}${months}${zielEl}${line}${dots}
+        ${grid}${months}${zielEl}${line}${avgLine}${dots}
       </svg>`;
   }
 
@@ -7330,10 +7629,8 @@
 
     // Kennzahlen statt Fliesstext: Start, aktueller Stand, Ziel. Die Veraenderung traegt
     // ihr Vorzeichen sichtbar, damit "-2,4 kg" nicht als Zunahme gelesen wird.
-    // Der abkuerzende Punkt gehoert nur an echte Abkuerzungen: "Jan." ja, "Mai" nein -
-    // dreibuchstabige Monatsnamen (Mai) sind schon vollstaendig.
-    const fromMon = first ? MON_LONG[monthIdx(first.m)] : "";
-    const fromLbl = fromMon.length > 3 ? fromMon.slice(0, 3) + "." : fromMon;
+    // Bezugspunkt ist seit B2 eine Kalenderwoche, nicht mehr ein Monat: "Seit KW 12".
+    const fromLbl = first ? "KW " + weekNumOf(first.m) : "";
     // Gruen heisst „naeher am Ziel", NICHT „weniger". Die Richtung kommt deshalb aus dem
     // Jahresziel (liegt es ueber dem Startgewicht, ist eine Zunahme der Fortschritt),
     // ersatzweise aus dem Ziel des Rechners. Ohne beides bleibt Abnehmen die Annahme.
@@ -7371,18 +7668,22 @@
         // Legende ist Pflicht, sobald zwei Serien im Bild sind.
         // Nur "Ziel", nicht "Ziel 75,0 kg": die Zahl steht schon in der Kennzahlenreihe
         // darueber - zweimal dieselbe Zahl im selben Bild ist Fuellung, keine Information.
-        + (ziel != null && rows.length ? `<div class="wch-leg">
-            <span><i class="k-line"></i>Gemessen</span><span><i class="k-goal"></i>Ziel</span>
+        // Ab vier Messungen kommt der 4-Wochen-Schnitt als eigene Serie dazu (B2) - dann
+        // braucht es die Legende auch ohne Jahresziel.
+        + ((ziel != null || rows.length >= 4) ? `<div class="wch-leg">
+            <span><i class="k-line"></i>Gemessen</span>${rows.length >= 4 ? `<span><i class="k-avg"></i>Ø 4 Wochen</span>` : ""}${ziel != null ? `<span><i class="k-goal"></i>Ziel</span>` : ""}
           </div>` : "")
         // Ausgabefeld fuer den angetippten Punkt - ohne Bedienhinweis. Dass ein Punkt
         // antippbar ist, zeigt er selbst; ein Satz daneben waere genau die Erklaerung,
         // die die Textmenge-Vorgabe untersagt. Bei nur einer Messung steht hier der Wert,
         // weil es dort nichts zu vergleichen gibt.
-        + `<div class="wch-tip" aria-live="polite">${rows.length > 1 ? "" : monthLabel(last.m) + " · " + kgfmt(last.kg) + " kg"}</div>`;
+        + `<div class="wch-tip" aria-live="polite">${rows.length > 1 ? "" : weekLabel(last.m) + " · " + kgfmt(last.kg) + " kg"}</div>`;
     }
 
-    // Eine Aktion oben rechts statt zweier Knoepfe unten: dasselbe rote Gradient-Plus wie
-    // .avatar-edit-btn (.wch-add), dahinter das Menue mit "Gewicht eintragen" / "Ziel aendern".
+    // B1: Das Plus traegt jetzt die haeufigste Handlung direkt - ein Tipp, und das
+    // Eingabefeld steht offen. Wiegen ist fuer die Zielgruppe woechentliche Routine und lag
+    // vorher hinter einem Menue (vier Taps ab Kaltstart). Jahresziel und Widerruf sind
+    // seltene Aktionen und wandern ins Ueberlaufmenue daneben.
     return `<div class="wg-col wch">
         <div class="wch-head">
           <div>
@@ -7390,7 +7691,8 @@
             <h3 class="wg-h">Gewicht</h3>
           </div>
           <div class="wch-menu">
-            <button class="wch-add" data-action="weight-menu" aria-haspopup="menu" aria-expanded="false" aria-label="Gewicht eintragen oder Ziel ändern">+</button>
+            <button class="wch-more" data-action="weight-menu" aria-haspopup="menu" aria-expanded="false" aria-label="Weitere Gewichts-Einstellungen">⋯</button>
+            <button class="wch-add" data-action="weigh" aria-label="Gewicht eintragen">+</button>
           </div>
         </div>
         ${yearBar}
@@ -7402,12 +7704,28 @@
   // Startreiter: Begruessungs-Hero + Kalorien-Uebersicht (Heute/Woche-Ringe), beide vormals
   // oben im Wochenplan. Dort war es voll, bevor man ueberhaupt beim Tagesraster war - jetzt
   // eigene Landingpage, der Wochenplan startet direkt mit "Dein Wochenplan".
+  // Seit B8 beantwortet jeder Reiter genau eine Frage. Home: "wie steht meine Woche?" -
+  // Hero und Wochenziele. Rueckblick und Gewicht sind in den Reiter "Fortschritt" gezogen;
+  // sie beantworten "wie lief es bisher?" und hatten auf einer Startseite, die vier Themen
+  // gleichzeitig zeigte, den UX-Grundsatz "ein Screen, ein Problem" gebrochen.
   function renderHome() {
-    view.innerHTML = `${appHeroHtml()}${weekNutHtml()}${rueckblickHtml()}${weightHtml()}`;
+    view.innerHTML = `${appHeroHtml()}${weekNutHtml()}`;
     resetCarousels();
     initCarousel(view.querySelector(".wg-cols"), view.querySelector(".wgbar"), null, null, { fixedHeight: true });
     animateProgressCount();
+  }
+
+  // Vierter Reiter: "wie lief es bisher?" - Rueckblick auf die vergangenen Wochen und der
+  // Gewichtsverlauf. Beide Bausteine sind unveraendert die aus renderHome(); umgezogen ist
+  // ihr Ort, nicht ihre Funktion.
+  function renderProgress() {
+    // Kein eigener Leerzustand noetig: weightHtml() liefert immer eine Karte - ohne
+    // Einwilligung die Einladung dazu (weightConsentHtml), ohne Messung den leeren Zustand
+    // mit Handlung. Der Reiter ist also nie eine leere Flaeche.
+    view.innerHTML = `${rueckblickHtml()}${weightHtml()}`;
+    resetCarousels();
     initWeightChart();
+    initRueckblick();
   }
 
   // Kurzform eines Wochenschluessels fuers Label: "2026-W29" -> "KW 29".
@@ -7416,33 +7734,61 @@
   // durchschnittlichen Tageskalorien der letzten Wochen + Ziel-Treffer-Quote. Quelle ist das
   // schlanke Archiv state.weekStats (abgelaufene Wochen, siehe archiveWeek). Ohne Ziel oder ohne
   // jede Historie/ Streak faellt der Block ganz weg (kein leerer Kasten fuer neue Nutzer).
+  // Mittleres Tagesziel nach dem HEUTIGEN Stand — Rueckfall fuer Wochen, die vor B10
+  // archiviert wurden und deshalb kein eingefrorenes `target` tragen.
+  function avgDailyTargetToday() {
+    let sum = 0, n = 0;
+    DAYS.forEach(d => { const t = goalTargetsForDay(d.key); if (t && t.kcal) { sum += t.kcal; n++; } });
+    return n ? Math.round(sum / n) : 0;
+  }
+  // Eine Woche zaehlt fuer den Streak erst ab so vielen geplanten Tagen. Vorher genuegte
+  // EINE Mahlzeit — ein Streak, den man nicht verlieren kann, motiviert niemanden.
+  const STREAK_MIN_DAYS = 5;
   function rueckblickHtml() {
     if (!state.goal) return "";
     const stats = state.weekStats || {};
     const keys = Object.keys(stats).sort();
-    // Streak: aufeinanderfolgende Wochen rueckwaerts mit geplanten Tagen; die aktuelle zaehlt
-    // mit, sobald sie schon geplant ist.
+    // Streak: aufeinanderfolgende Wochen rueckwaerts, die den Anspruch erfuellen; die
+    // aktuelle zaehlt mit, sobald sie ihn ebenfalls erfuellt.
     const curKey = weekKeyFor("cur");
     const curPlan = state.plans[curKey];
-    const curPlanned = !!(curPlan && DAYS.some(d => hasNut(dayNutOf(curPlan, d.key))));
+    const curDays = curPlan ? DAYS.filter(d => hasNut(dayNutOf(curPlan, d.key))).length : 0;
     let streak = 0; const dcur = new Date(); dcur.setDate(dcur.getDate() - 7);
-    while (true) { const wk = isoWeekKey(dcur); if (stats[wk] && stats[wk].days > 0) { streak++; dcur.setDate(dcur.getDate() - 7); } else break; }
-    if (curPlanned) streak++;
+    while (true) { const wk = isoWeekKey(dcur); if (stats[wk] && stats[wk].days >= STREAK_MIN_DAYS) { streak++; dcur.setDate(dcur.getDate() - 7); } else break; }
+    if (curDays >= STREAK_MIN_DAYS) streak++;
     if (!keys.length && !streak) return "";
     const shownKeys = keys.slice(-8);
     let chart = "";
     if (shownKeys.length) {
-      const vals = shownKeys.map(k => stats[k].kcal);
-      const max = Math.max.apply(null, vals), min = Math.min.apply(null, vals), span = (max - min) || 1;
+      const fallback = avgDailyTargetToday();
       const bars = shownKeys.map(k => {
         const s = stats[k];
-        const h = 22 + Math.round((s.kcal - min) / span * 78);   // 22..100 %, damit auch das Minimum sichtbar bleibt
-        return `<span class="rueck-bar" title="${weekKwLabel(k)}: Ø ${nfmt(s.kcal)} kcal, ${s.hit}/${s.days} Tage im Ziel"><i style="height:${h}%"></i></span>`;
+        const target = s.target || fallback;
+        // Verhaeltnis zum Ziel; gezeichnet wird bis 140 %, alles darueber laeuft an die
+        // Decke (der genaue Wert steht in der Tippzeile). Ohne bekanntes Ziel bliebe nur
+        // Streuung uebrig - dann lieber ein halber Balken ohne Aussage als eine falsche.
+        const ratio = target ? s.kcal / target : 0.7;
+        const h = Math.max(4, Math.min(100, Math.round(ratio / 1.4 * 100)));
+        const hit = target && Math.abs(s.kcal - target) <= target * 0.1;
+        const label = `${weekKwLabel(k)} · Ø ${nfmt(s.kcal)} kcal${target ? " · Ziel " + nfmt(target) : ""} · ${s.hit} von ${s.days} Tagen im Ziel`;
+        return `<button type="button" class="rueck-bar${hit ? " hit" : ""}" data-tip="${esc(label)}" aria-label="${esc(label)}"><i style="height:${h}%"></i></button>`;
       }).join("");
+      const kws = shownKeys.map(k => `<span>${esc(weekKwLabel(k).replace("KW ", ""))}</span>`).join("");
       const totDays = shownKeys.reduce((a, k) => a + stats[k].days, 0);
       const totHit = shownKeys.reduce((a, k) => a + stats[k].hit, 0);
+      const vals = shownKeys.map(k => stats[k].kcal);
       const avgKcal = Math.round(vals.reduce((a, v) => a + v, 0) / vals.length);
-      chart = `<div class="rueck-bars" aria-hidden="true">${bars}</div>
+      const lastKey = shownKeys[shownKeys.length - 1];
+      const lastS = stats[lastKey];
+      const lastTarget = lastS.target || fallback;
+      const firstTip = `${weekKwLabel(lastKey)} · Ø ${nfmt(lastS.kcal)} kcal${lastTarget ? " · Ziel " + nfmt(lastTarget) : ""} · ${lastS.hit} von ${lastS.days} Tagen im Ziel`;
+      chart = `<div class="rueck-plot">
+          <div class="rueck-band"></div>
+          <div class="rueck-bandlbl">Ziel ±10 %</div>
+          <div class="rueck-bars" role="group" aria-label="Wochen im Rückblick">${bars}</div>
+        </div>
+        <div class="rueck-kws" aria-hidden="true">${kws}</div>
+        <p class="rueck-tip" aria-live="polite">${esc(firstTip)}</p>
         <div class="rueck-foot">
           <div class="rueck-s"><small>&#216; pro Tag</small><b>${nfmt(avgKcal)}<span>kcal</span></b></div>
           <div class="rueck-s"><small>Ziel getroffen</small><b>${totHit}<span>/${totDays} Tage</span></b></div>
@@ -7452,11 +7798,32 @@
     const streakLine = streak
       ? `<div class="rueck-streak">${flame}<span><b>${streak}</b> Woche${streak === 1 ? "" : "n"} in Folge geplant</span></div>`
       : "";
+    // Die Klartextzeile ist kein Schmuck: ohne sie liest man die Grafik als Verlauf des
+    // tatsaechlich Gegessenen. Sie zeigt GEPLANTE Kalorien - das ist Absicht (Planer, kein
+    // Tracker), steht aber nirgends sonst.
     return `<section class="rueck">
         <div class="wg-lbl">Rückblick</div>
+        <p class="rueck-note">Ø geplante Kalorien je Tag, gegen dein Ziel.</p>
         ${streakLine}
         ${chart}
       </section>`;
+  }
+  // Werte per Tipp statt nur im title-Attribut: auf dem Handy gibt es kein Hover, dort war
+  // die Grafik bisher vollstaendig unbeschriftet. Klick UND Fokus, damit die Tastatur
+  // denselben Weg hat (gleiches Muster wie initWeightChart).
+  function initRueckblick() {
+    const tip = view.querySelector(".rueck-tip");
+    if (!tip) return;
+    view.querySelectorAll(".rueck-bar").forEach(b => {
+      const show = () => { tip.textContent = b.dataset.tip || ""; };
+      b.addEventListener("click", show);
+      b.addEventListener("focus", show);
+      // Hover ergaenzt (Befund aus dem Pruefdurchgang): Am Rechner erwartet man Werte beim
+      // Darueberfahren. Ohne diese Zeile schwieg die Grafik dort, weil mit dem title-
+      // Attribut auch der einzige Hover-Weg entfallen war. Gleiches Muster wie
+      // initWeightChart() - dort steht mouseenter seit jeher neben click und focus.
+      b.addEventListener("mouseenter", show);
+    });
   }
 
   // Zeichnet das Diagramm in der gemessenen Breite und haengt die Bedienung dran.
@@ -7477,7 +7844,7 @@
     host.querySelectorAll(".wch-pt").forEach(pt => {
       const show = () => {
         const row = rows.filter(e => e.m === pt.dataset.m)[0];
-        if (row && tip) tip.textContent = monthLabel(row.m) + " · " + kgfmt(row.kg) + " kg";
+        if (row && tip) tip.textContent = weekLabel(row.m) + " · " + kgfmt(row.kg) + " kg";
         host.querySelectorAll(".wch-pt").forEach(o => o.classList.toggle("is-on", o === pt));
       };
       pt.addEventListener("click", show);
@@ -7519,7 +7886,13 @@
                Muelleimer. Das aria-label traegt in BEIDEN Faellen den vollen Text: sichtbar
                steht am Rechner nur "Einkaufsliste", gemeint ist die der gezeigten Woche. -->
           <button class="btn ghost icon-gh shop-ic" data-action="shopping" title="Einkaufsliste der Woche" aria-label="Einkaufsliste der Woche">${TOOL_ICONS.cart}<span class="sh-w">Einkaufsliste</span></button>
-          ${canEdit() ? `<button class="btn ghost icon-gh" data-action="clear-week" title="Woche leeren" aria-label="Woche leeren">${TOOL_ICONS.clear}</button>` : ""}
+          <!-- B3: "Woche leeren" stand hier bis 13.08.2026 gleichrangig neben der
+               Einkaufsliste - eine destruktive Aktion mit derselben Prominenz wie das
+               meistgenutzte Werkzeug, direkt daneben. Jetzt im Ueberlaufmenue; die
+               Rueckfrage im confirmModal bleibt zusaetzlich bestehen. -->
+          ${canEdit() ? `<div class="plan-menu">
+            <button class="btn ghost icon-gh" data-action="plan-menu" aria-haspopup="menu" aria-expanded="false" title="Weitere Aktionen" aria-label="Weitere Aktionen">⋯</button>
+          </div>` : ""}
         </div>
       </div>`;
 
@@ -7592,7 +7965,7 @@
           const uids = entryUids(entry);
           // 0 = gemeinsam, 1 = eigene (ich bin dabei), 2 = andere
           const grp = uids === null ? 0 : (uids.indexOf(syncUid) !== -1 ? 1 : 2);
-          cards.push({ r, idx, uids, grp });
+          cards.push({ r, idx, uids, grp, port: entryPortion(entry) });
         });
         const shown = cards.length;
         const otherTotal = cards.filter(c => c.grp === 2).length;
@@ -7601,7 +7974,7 @@
         const otherVisible = collapsed ? SLOT_OTHERS_MAX : otherTotal;
         let otherSeen = 0;
         cards.forEach(c => {
-          const { r, idx, uids, grp } = c;
+          const { r, idx, uids, grp, port } = c;
           if (grp === 2) {
             otherSeen++;
             // Ab dem (otherVisible + 1)-ten fremden Gericht ausblenden - gezaehlt in
@@ -7613,9 +7986,14 @@
           // Badges sind aria-hidden (rein dekorativ) - wer das Gericht isst, muss deshalb
           // im Titel stehen, sonst bleibt die Zuweisung fuer Screenreader unsichtbar.
           const assignNote = uids ? " – nur für " + uids.map(u => (memberByUid(u) ? firstName(memberByUid(u).name) : null) || "Jemanden").join(", ") : "";
-          html += `<div class="filled"${drag ? ` draggable="true"` : ""} data-action="view" data-id="${r.id}" data-slot-src="${d.key}:${m.key}:${idx}" title="${esc(r.name)}${esc(assignNote)}${drag ? " – ziehen zum Verschieben" : ""}">
-              <span class="r-thumb-wrap">${thumbHtml(r, "r-thumb", true)}${badge}</span>
-              <div class="r-body"><div class="r-name">${esc(r.name)}</div>${recipeNut(r).kcal ? `<div class="r-meta">${nfmt(recipeNut(r).kcal)} kcal</div>` : ""}</div>
+          // Portionsfaktor (B5): sichtbar nur, wenn er von 1 abweicht - eine "1×"-Marke an
+          // jedem Gericht waere Rauschen. Die kcal-Zeile zeigt den SKALIERTEN Wert, sonst
+          // stuende auf der Karte etwas anderes als in der Tagesbilanz darunter.
+          const portNote = port !== 1 ? " – " + portionLabel(port) + " Portion" : "";
+          const kcalRaw = recipeNut(r).kcal;
+          html += `<div class="filled"${drag ? ` draggable="true"` : ""} data-action="view" data-id="${r.id}" data-slot-src="${d.key}:${m.key}:${idx}" title="${esc(r.name)}${esc(assignNote)}${esc(portNote)}${drag ? " – ziehen zum Verschieben" : ""}">
+              <span class="r-thumb-wrap">${thumbHtml(r, "r-thumb", true)}${badge}${drag ? `<button class="portion${port !== 1 ? " on" : ""}" data-action="portion" data-slot-src="${d.key}:${m.key}:${idx}" aria-label="Portionsgröße ändern, aktuell ${esc(portionLabel(port))} Portion" title="Portionsgröße ändern">${esc(portionLabel(port))}×</button>` : ""}</span>
+              <div class="r-body"><div class="r-name">${esc(r.name)}</div>${kcalRaw ? `<div class="r-meta">${nfmt(kcalRaw * port)} kcal</div>` : ""}</div>
               ${showPencil ? `<button class="pencil" data-action="assign" data-slot-src="${d.key}:${m.key}:${idx}" aria-label="Zuweisung ändern" title="Zuweisung ändern">${ICON_PEOPLE}</button>` : ""}
               ${drag ? `<button class="x" data-action="unassign" data-slot-src="${d.key}:${m.key}:${idx}" aria-label="Entfernen" title="Entfernen">✕</button>` : ""}
             </div>`;
@@ -7700,6 +8078,10 @@
   let collapsedCatsSeeded = false;
   // Bewusst nicht gespeichert (wie collapsedCats): beim Neuladen ist die Liste wieder voll.
   let recipeQuery = "";
+  // Aktive Merkmals-Filter (B7), UND-verknuepft. Wie recipeQuery bewusst nicht gespeichert:
+  // ein Filter, den man beim naechsten Start nicht mehr auf dem Schirm hat, erklaert eine
+  // halb leere Liste nicht - er laesst sie kaputt aussehen.
+  let recipeFilters = new Set();
 
   // "von Anna" auf der Karte - nur in einer Gruppe, nur bei fremden Meals, nur der Vorname.
   //
@@ -7737,11 +8119,52 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
         <input type="search" id="r-search" placeholder="Meal suchen …" autocomplete="off" value="${esc(recipeQuery)}" aria-label="Meals durchsuchen">
       </div>` : ""}
+      ${recipeFilterHtml()}
       <div id="r-groups"></div>`;
     view.innerHTML = html;
     const searchEl = view.querySelector("#r-search");
     if (searchEl) searchEl.addEventListener("input", () => { recipeQuery = searchEl.value; paintRecipeGroups(); });
+    // Filter-Chips liegen ausserhalb von #r-groups und werden deshalb NICHT neu gebaut -
+    // umgeschaltet wird direkt am Knopf. Ein Neuaufbau der Reihe waere hier sogar schaedlich:
+    // die Reihe ist waagerecht scrollbar, ein Neuaufbau setzte die Scrollposition zurueck.
+    view.querySelectorAll("#r-filters button").forEach(b => b.addEventListener("click", () => {
+      const key = b.dataset.f;
+      if (recipeFilters.has(key)) recipeFilters.delete(key); else recipeFilters.add(key);
+      b.setAttribute("aria-pressed", recipeFilters.has(key) ? "true" : "false");
+      paintRecipeGroups();
+    }));
     paintRecipeGroups();
+  }
+
+  // Filter-Chips (B7). Gezeigt wird nur, was im Bestand tatsaechlich vorkommt: eine Reihe
+  // aus acht Merkmalen, von denen sieben nie zutreffen, ist keine Hilfe, sondern Ballast.
+  // Bei weniger als sechs Meals gibt es gar keine Reihe - dort ist die Liste ueberschaubar
+  // und das Suchfeld genuegt.
+  function recipeFilterHtml() {
+    const library = libraryRecipes();
+    if (library.length < 6) { recipeFilters.clear(); return ""; }
+    const chips = [];
+    if (library.some(r => r.mealPrep)) chips.push({ k: "mealPrep", label: "Meal-Prep" });
+    RECIPE_TAGS.forEach(t => {
+      if (library.some(r => (r.tags || []).indexOf(t.key) !== -1)) chips.push({ k: "tag:" + t.key, label: t.label });
+    });
+    if (!chips.length) { recipeFilters.clear(); return ""; }
+    // Ein Filter, dessen Chip gerade weggefallen ist (letztes passendes Meal geloescht),
+    // wuerde sonst unsichtbar weiterfiltern.
+    const valid = new Set(chips.map(c => c.k));
+    recipeFilters.forEach(k => { if (!valid.has(k)) recipeFilters.delete(k); });
+    return `<div class="mtags rfilters" id="r-filters" role="group" aria-label="Meals filtern">${
+      chips.map(c => `<button type="button" data-f="${esc(c.k)}" aria-pressed="${recipeFilters.has(c.k) ? "true" : "false"}">${esc(c.label)}</button>`).join("")
+    }</div>`;
+  }
+  // UND-Verknuepfung: jeder gesetzte Filter muss zutreffen. Oder-Logik waere bei
+  // "Vegan + Meal-Prep" das Gegenteil dessen, was jemand erwartet, der beides antippt.
+  function recipeMatchesFilters(r) {
+    for (const k of recipeFilters) {
+      if (k === "mealPrep") { if (!r.mealPrep) return false; continue; }
+      if (k.slice(0, 4) === "tag:" && (r.tags || []).indexOf(k.slice(4)) === -1) return false;
+    }
+    return true;
   }
 
   // Schreibt ausschliesslich nach #r-groups - Kopfzeile und Suchfeld bleiben unberuehrt,
@@ -7768,6 +8191,7 @@
     // spaeter weg - siehe quickAddByBarcode.
     let pool = library;
     if (q) pool = pool.filter(r => r.name.toLowerCase().includes(q) || (r.category || "").toLowerCase().includes(q));
+    if (recipeFilters.size) pool = pool.filter(recipeMatchesFilters);
 
     // Favoriten stehen oben UND bleiben in ihrer Kategorie: wer ein Meal dort sucht, soll es
     // dort auch finden - sonst werden die Kategorien loechrig, sobald jemand viel favorisiert.
@@ -7789,7 +8213,11 @@
     // Klapp-Vorbelegung auf dem gefilterten Bestand fest. Favoriten zaehlen hier nicht mit,
     // sonst waere die Favoriten-Gruppe die "erste Kategorie mit Inhalt" und alle echten
     // Kategorien starteten eingeklappt.
-    if (!q && !collapsedCatsSeeded) {
+    // Filtern verhaelt sich wie Suchen: alles offen, Kopfzeilen ohne Klappknopf. Sonst laege
+    // ein Treffer in einer eingeklappten Kategorie und die Zaehlung zeigte "1" auf eine
+    // Flaeche, in der nichts zu sehen ist.
+    const filtering = !!q || recipeFilters.size > 0;
+    if (!filtering && !collapsedCatsSeeded) {
       collapsedCatsSeeded = true;
       let firstSeen = false;
       for (const [cat, items] of groups) {
@@ -7815,7 +8243,7 @@
       const iconCls = "cicon" + (isFavGroup ? "" : (CAT_CLASS[cat] ? " " + CAT_CLASS[cat] : ""));
       // Bei aktiver Suche zaehlt collapsedCats nicht - sonst laege ein Treffer in einer
       // eingeklappten Kategorie, die Zaehlung zeigte "1", die Karte waere unsichtbar.
-      const open = !!q || !collapsedCats.has(cat);
+      const open = filtering || !collapsedCats.has(cat);
       // Waehrend der Suche ist ohnehin alles offen - die Kopfzeile deshalb NICHT als Knopf
       // ausgeben: ein Klick wuerde zwar collapsedCats umlegen, aber sichtbar passierte
       // nichts (open bleibt true). Ein toter Klick liest sich wie ein Fehler. Ohne Caret
@@ -7824,7 +8252,7 @@
       // der NICHT die Favoriten-Gruppe ist (die entsteht und verschwindet ja gerade). Ueber
       // data-cat ginge das nicht - bei aktiver Suche ist die Kopfzeile ein div ohne Attribut.
       html += `<section class="catgroup${isFavGroup ? " favgroup" : ""}">`;
-      html += q
+      html += filtering
         ? `<div class="cathead static">
           <span class="cname">${iconSvg(icon, iconCls)}${esc(label)}</span>
           <span class="ccount">${items.length}</span>
@@ -7939,16 +8367,17 @@
   }
 
   // ---------- Wiegen ----------
-  // Ein Formular fuer beides: diesen Monat wiegen und frühere Monate nachtragen. Bewusst
-  // zwei Auswahlfelder und kein <input type="month">: das kennt Safari auf dem iPhone
-  // nicht und faellt dort auf ein nacktes Textfeld zurueck - ausgerechnet auf dem Geraet,
-  // auf dem die App laufen soll.
+  // Ein Formular fuer beides: diese Woche wiegen und frühere Wochen nachtragen (B2 - vorher
+  // Monate). Bewusst zwei Auswahlfelder und kein <input type="week">: das kennt Safari auf
+  // dem iPhone nicht und faellt dort auf ein nacktes Textfeld zurueck - ausgerechnet auf
+  // dem Geraet, auf dem die App laufen soll.
   // manageOnly (Art. 9 DSGVO): ohne Einwilligung darf kein NEUER Eintrag entstehen, das
   // Recht auf Loeschung bestehender Eintraege bleibt aber unabhaengig davon bestehen -
   // deshalb Eingabefelder und "Speichern" ausblenden, die Liste mit den Loeschen-Knoepfen
   // bleibt unveraendert. Siehe weightConsentHtml() fuer den Aufrufweg ohne Einwilligung.
   function openWeighForm(manageOnly) {
-    const nowY = new Date().getFullYear(), nowM = new Date().getMonth();
+    const nowY = new Date().getFullYear();
+    const nowKey = weightKeyNow();
     const last = latestWeight();
     // Vorbelegt ist das Jahr, das gerade im Diagramm steht - nicht stur das laufende.
     // Wer ueber den Jahreswechsel auf „Ziele 2025" schaut und dort etwas nachtragen
@@ -7966,7 +8395,7 @@
       <div class="modal-body">
         ${manageOnly ? "" : `<div class="field"><label for="w-kg">Gewicht</label>${numField({ id: "w-kg", min: KG_MIN, max: KG_MAX, step: 0.1, unit: "kg", placeholder: "kg", value: last ? String(last.kg) : "" })}</div>
         <div class="row2">
-          <div class="field"><label for="w-m">Monat</label><select id="w-m"></select></div>
+          <div class="field"><label for="w-m">Woche</label><select id="w-m"></select></div>
           <div class="field"><label for="w-y">Jahr</label><select id="w-y">
             ${years.map(y => `<option value="${y}"${y === startY ? " selected" : ""}>${y}</option>`).join("")}
           </select></div>
@@ -7978,26 +8407,34 @@
     node.querySelectorAll("[data-close]").forEach(b => b.addEventListener("click", closeModal));
 
     const mEl = node.querySelector("#w-m"), yEl = node.querySelector("#w-y");
-    // Im laufenden Jahr enden die Monate beim aktuellen: ein Gewicht fuer den naechsten
-    // Monat kann niemand gemessen haben.
-    function fillMonths() {
+    // Im laufenden Jahr endet die Liste bei der aktuellen Woche: ein Gewicht fuer die
+    // naechste Woche kann niemand gemessen haben. Jede Woche traegt ihr Montagsdatum -
+    // "KW 33" allein ordnet im Alltag kaum jemand ein.
+    function fillWeeks() {
       if (!mEl || !yEl) return;
       const sel = mEl.value;
-      const maxM = +yEl.value === nowY ? nowM : 11;
-      mEl.innerHTML = MON_LONG.slice(0, maxM + 1)
-        .map((n, i) => `<option value="${String(i + 1).padStart(2, "0")}">${n}</option>`).join("");
-      mEl.value = (sel && +sel <= maxM + 1) ? sel : String(maxM + 1).padStart(2, "0");
+      const y = +yEl.value;
+      // 53 nur, wenn es die Woche in diesem Jahr wirklich gibt (der 28.12. liegt per
+      // ISO-Definition immer in der letzten Woche des Jahres).
+      const maxW = y === nowY ? weekNumOf(nowKey) : weekNumOf(weightKeyNow(new Date(y, 11, 28)));
+      let out = "";
+      for (let w = maxW; w >= 1; w--) {
+        const key = y + "-W" + String(w).padStart(2, "0");
+        out += `<option value="${String(w).padStart(2, "0")}">${esc(weekLabel(key))}</option>`;
+      }
+      mEl.innerHTML = out;
+      mEl.value = (sel && +sel <= maxW) ? sel : String(maxW).padStart(2, "0");
     }
-    fillMonths();
-    if (yEl) yEl.addEventListener("change", fillMonths);
+    fillWeeks();
+    if (yEl) yEl.addEventListener("change", fillWeeks);
 
     const listEl = node.querySelector("#w-list");
     function paintList() {
       const rows = (state.weights || []).slice().reverse();
       listEl.innerHTML = rows.length
         ? `<h4 style="margin:18px 0 2px;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--text-muted)">Verlauf</h4>`
-          + rows.map(r => `<div class="wl-row"><span class="wl-d">${esc(monthLabel(r.m))}</span><span class="wl-k">${kgfmt(r.kg)} kg</span>
-              <button class="btn ghost sm" data-del="${r.m}" aria-label="Eintrag ${esc(monthLabel(r.m))} löschen">✕</button></div>`).join("")
+          + rows.map(r => `<div class="wl-row"><span class="wl-d">${esc(weekLabel(r.m))}</span><span class="wl-k">${kgfmt(r.kg)} kg</span>
+              <button class="btn ghost sm" data-del="${r.m}" aria-label="Eintrag ${esc(weekLabel(r.m))} löschen">✕</button></div>`).join("")
         : `<p class="wl-empty">Noch keine Messung.</p>`;
       listEl.querySelectorAll("[data-del]").forEach(b => b.addEventListener("click", () => {
         const m = b.dataset.del;
@@ -8031,8 +8468,10 @@
       // nutParse akzeptiert Komma wie Punkt - auf deutschen Tastaturen wird das Komma getippt.
       const kg = nutParse(kgEl.value);
       if (!(kg >= KG_MIN && kg <= KG_MAX)) { kgEl.focus(); kgEl.style.borderColor = "var(--danger)"; toast("Bitte ein Gewicht zwischen " + KG_MIN + " und " + KG_MAX + " kg eintragen"); return; }
-      const m = yEl.value + "-" + mEl.value;
-      if (!validMonthKey(m) || m > monthKey()) { toast("Bitte einen Monat bis heute wählen"); return; }
+      const m = yEl.value + "-W" + mEl.value;
+      // Zeichenkettenvergleich reicht: "2026-W07" < "2026-W33" stimmt, weil die Wochenzahl
+      // zweistellig aufgefuellt ist - dieselbe Eigenschaft, auf der schon state.plans beruht.
+      if (!validWeightKey(m) || m > nowKey) { toast("Bitte eine Woche bis heute wählen"); return; }
       const neu = !(state.weights || []).some(e => e.m === m);
       const oldKcal = state.goal ? state.goal.kcal : null;
       setWeight(m, kg);
@@ -8044,7 +8483,7 @@
       if (oldKcal != null && newKcal != null && oldKcal !== newKcal) {
         goalAdjustModal(`Neues Gewicht: ${kgfmt(kg)} kg`, oldKcal, newKcal, "Dein Körpergewicht hat sich verändert und dein Energiebedarf wurde neu berechnet.");
       } else {
-        toast(m === monthKey() ? "Gewicht gespeichert" : (neu ? "Nachgetragen: " : "Geändert: ") + monthLabel(m));
+        toast(m === nowKey ? "Gewicht gespeichert" : (neu ? "Nachgetragen: " : "Geändert: ") + weekLabel(m));
       }
     });
     openModal(node);
@@ -8102,6 +8541,73 @@
       if (!state.weightGoals) state.weightGoals = {};
       state.weightGoals[year] = Math.round(kg * 10) / 10;
       save(); closeModal(); render(); toast("Ziel für " + year + " gespeichert");
+    });
+    openModal(node);
+  }
+
+  // ---------- Ziel von Hand justieren (B4) ----------
+  // Wer sein Defizit um 100 kcal korrigieren will, musste bis 13.08.2026 durch den
+  // kompletten Rechner (Alter, Groesse, Aktivitaet, Trainingstage). Fuer eine Zielgruppe,
+  // die genau das regelmaessig tut, ist das der falsche Weg. Der Rechner bleibt daneben
+  // stehen - er ist weiterhin der Weg, wenn sich die Grundlagen aendern.
+  //
+  // Gespeichert werden dieselben vier Felder, die goalTargets() ohnehin liest. Zusaetzlich
+  // `manual: true`: Ohne diese Marke haette die naechste Wiegung die Handanpassung still
+  // ueberschrieben (syncGoalWeight rechnet mit computeGoal neu). Ein "Ziele neu berechnen"
+  // im Rechner setzt die Marke automatisch zurueck - computeGoal baut ein frisches Objekt.
+  function openGoalTuneForm() {
+    const g = state.goal;
+    if (!g) { startOnboarding({ first: false }); return; }
+    const f = (id, label, val, unit, max) =>
+      `<div class="field"><label for="${id}">${label}</label>${numField({ id: id, min: 0, max: max, step: 1, unit: unit, placeholder: "0", value: val != null ? String(val) : "" })}</div>`;
+    const node = el(`<div class="modal" role="dialog" aria-modal="true" aria-label="Ziel anpassen">
+      <div class="modal-head"><h3>Ziel anpassen</h3><button class="btn ghost sm" data-close aria-label="Schließen">✕</button></div>
+      <div class="modal-body">
+        <p class="hint" style="margin:0 0 14px">Gilt für Ruhetage. Trainingstage bekommen ihren Aufschlag weiterhin oben drauf.</p>
+        <div class="onb-grid">
+          ${f("gt-kcal", "Kalorien", nutNum(g.kcal), "kcal", 20000)}
+          ${f("gt-carbs", "Kohlenhydrate", nutNum(g.carbs), "g", 2000)}
+          ${f("gt-protein", "Protein", nutNum(g.protein), "g", 2000)}
+          ${f("gt-fat", "Fett", nutNum(g.fat), "g", 2000)}
+        </div>
+        <p class="hint" id="gt-sum" aria-live="polite" style="margin:12px 0 0"></p>
+      </div>
+      <div class="modal-foot">
+        <button class="btn ghost" data-close>Abbrechen</button>
+        <button class="btn primary" id="gt-ok">Speichern</button>
+      </div>
+    </div>`);
+    const val = id => nutParse(node.querySelector("#" + id).value);
+    // Kein Zwang zur Deckungsgleichheit, nur eine Rueckmeldung: Makros und Kalorien
+    // duerfen auseinanderliegen (viele rechnen bewusst mit Puffer). Erst ab 3 % Abweichung
+    // gemeldet, sonst blinkt der Hinweis bei jedem Rundungsschritt.
+    function updateSum() {
+      const kcal = val("gt-kcal"), c = val("gt-carbs"), p = val("gt-protein"), fat = val("gt-fat");
+      const sum = (c || 0) * 4 + (p || 0) * 4 + (fat || 0) * 9;
+      const el2 = node.querySelector("#gt-sum");
+      el2.textContent = (kcal && sum && Math.abs(sum - kcal) > kcal * 0.03)
+        ? `Deine Makros ergeben ${nfmt(sum)} kcal.` : "";
+    }
+    node.addEventListener("input", updateSum);
+    updateSum();
+    node.querySelectorAll("[data-close]").forEach(b => b.addEventListener("click", closeModal));
+    node.querySelector("#gt-ok").addEventListener("click", () => {
+      const kcal = val("gt-kcal");
+      const inp = node.querySelector("#gt-kcal");
+      if (!(kcal >= 500 && kcal <= 20000)) {
+        inp.focus(); inp.style.borderColor = "var(--danger)";
+        toast("Bitte ein Kalorienziel zwischen 500 und 20.000 eintragen");
+        return;
+      }
+      state.goal = Object.assign({}, state.goal, {
+        kcal: Math.round(kcal),
+        carbs: Math.round(val("gt-carbs") || 0),
+        protein: Math.round(val("gt-protein") || 0),
+        fat: Math.round(val("gt-fat") || 0),
+        manual: true,
+        updatedAt: Date.now()
+      });
+      save(); closeModal(); render(); toast("Ziel angepasst");
     });
     openModal(node);
   }
@@ -8324,6 +8830,7 @@
         <div class="ms-photo has-photo"><img src="${photoFor(r)}" alt="${esc(r.name)}"></div>
         <div class="modal-body">
           <div class="ms-head"><h3 class="ms-title">${esc(r.name)}</h3><span class="chip ${cls}">${esc(r.category || "Gericht")}</span></div>
+          ${mealFlagsHtml(r)}
           ${statsHtml}
           <div class="ms-ings"><h4 class="sec-h">Zutaten</h4>${ingHtml}</div>
           ${r.steps ? `<div class="dsec"><h4 class="sec-h">Zubereitung</h4><div class="steps">${esc(r.steps)}</div></div>` : ""}
@@ -8414,6 +8921,7 @@
           <label for="f-steps">Zubereitung <span class="hint">– optional</span></label>
           <textarea id="f-steps" placeholder="Beschreibe die Schritte …">${esc(initial.steps || "")}</textarea>
         </div>
+        ${mealMetaEditHtml(initial)}
       </div>
       <!-- Fusszeile vereinheitlicht (Nachtrag Abnahme Phase 1): beide Knoepfe in einer
            Zeile, gleiche Bauform (Hoehe/Radius/Schrift), nur die Gewichtung unterscheidet
@@ -8439,6 +8947,16 @@
       const hasAnyNut = kcal != null || carbs != null || protein != null || fat != null;
       target.nutrition = hasAnyNut ? { kcal, carbs, protein, fat } : null;
       target.steps = node.querySelector("#f-steps").value;
+      // Merkmale (B6) aus den Schaltern lesen. Reihenfolge kommt aus RECIPE_TAG_KEYS und
+      // damit aus der DOM-Reihenfolge - siehe sanitizeTags(): eine wechselnde Reihenfolge
+      // waere ein Dauer-Diff gegen die Cloud. Leere Werte werden geloescht statt auf null
+      // gesetzt, damit ein Meal ohne Merkmale genauso aussieht wie vorher.
+      const tags = Array.from(node.querySelectorAll("#f-tags [data-tag]"))
+        .filter(b => b.getAttribute("aria-pressed") === "true").map(b => b.dataset.tag);
+      if (tags.length) target.tags = tags; else delete target.tags;
+      target.mealPrep = node.querySelector("#f-tags [data-flag='mealPrep']").getAttribute("aria-pressed") === "true";
+      const dsel = node.querySelector("#f-diff button.on");
+      if (dsel) target.difficulty = +dsel.dataset.diff; else delete target.difficulty;
     }
     function commitNow() {
       clearTimeout(idleTimer);
@@ -8479,6 +8997,25 @@
     // Delegation auf node statt pro Feld: "change"/"focusout" bubblen (anders als "blur")
     // und treffen dadurch automatisch auch jede spaeter per addIngRow() erzeugte
     // Zutatenzeile, ohne addIngRow() selbst anzufassen.
+    // Merkmale sind Knoepfe, keine Formularfelder - sie loesen weder "input" noch "change"
+    // aus und brauchen deshalb einen eigenen Klickweg. Sofort committen statt zu warten:
+    // ein Tipp ist eine abgeschlossene Entscheidung, anders als ein halb getippter Name.
+    // Aufwand ist Einfachauswahl (.seg), ein zweiter Tipp auf dieselbe Stufe hebt sie
+    // wieder auf - sonst waere eine versehentlich gesetzte Stufe nicht mehr loeschbar.
+    node.addEventListener("click", e => {
+      const chip = e.target.closest("#f-tags button");
+      if (chip) {
+        chip.setAttribute("aria-pressed", chip.getAttribute("aria-pressed") === "true" ? "false" : "true");
+        commitNow(); return;
+      }
+      const diff = e.target.closest("#f-diff button");
+      if (diff) {
+        const was = diff.classList.contains("on");
+        node.querySelectorAll("#f-diff button").forEach(b => b.classList.remove("on"));
+        if (!was) diff.classList.add("on");
+        commitNow();
+      }
+    });
     node.addEventListener("input", e => { if (e.target.matches("input, textarea, select")) scheduleCommit(); });
     node.addEventListener("change", e => { if (e.target.matches("input, textarea, select")) commitNow(); });
     node.addEventListener("focusout", e => { if (e.target.matches("input, textarea, select")) commitNow(); });
@@ -9391,7 +9928,9 @@
       const r = getRecipe(entryId(entry));
       if (!r || !r.ingredients) return;
       const uids = entryUids(entry);
-      const factor = uids ? (uids.length / (r.portions || 1)) : 1; // "fuer alle": unskaliert, per-Faktor greift unten
+      // Portionsfaktor (B5) multipliziert auf beide Wege: Wer eine doppelte Portion
+      // einplant, braucht auch die doppelte Menge im Einkaufswagen.
+      const factor = (uids ? (uids.length / (r.portions || 1)) : 1) * entryPortion(entry);
       r.ingredients.forEach(i => {
         const o = ingObj(i);
         const name = String(o.name || "").trim();
@@ -9679,7 +10218,7 @@
       <h4>3a. Ziel-Berechnung (Einführungsfragen)</h4>
       <p>Zur Nutzung der App gibst du bei den Einführungsfragen nach der Registrierung <strong>Geschlecht, Alter, Größe und Gewicht</strong> sowie deine Alltagsbewegung und dein Ziel an – ohne diese Angaben lässt sich kein Kalorien- und Makroziel berechnen und die App steht dir nicht zur Verfügung. Optional legst du zusätzlich deine <strong>Trainingstage</strong> fest – also an welchen Wochentagen du trainierst, mit welcher Intensität und wie lange; diese Angabe kannst du auch weglassen. Ebenfalls optional wählst du eine grobe Stufe für deinen <strong>Körperfettanteil</strong> – gibst du sie an, berechnet die App deinen Grundumsatz nach der Katch-McArdle-Formel über die fettfreie Masse statt nach Mifflin-St-Jeor; wählst du „Weiß ich nicht", bleibt es bei Mifflin-St-Jeor. Daraus berechnet die App direkt in deinem Browser deinen Tagesbedarf, deine Makronährstoffe und deinen BMI; an Trainingstagen zusätzlich den geschätzten Mehrbedarf durch die jeweilige Einheit. Übernimmst du das Ergebnis als dein Ziel, werden diese Angaben wie deine übrigen Plandaten lokal und – bei Cloud-Nutzung – in deinem Nutzerkonto (Cloud Firestore, siehe Ziffer 5) gespeichert, um sie geräteübergreifend verfügbar zu halten. Du kannst dein Ziel jederzeit über den Knopf „Ziel neu berechnen" im Wochenplan neu berechnen; die vorherigen Werte sind dann durch die neuen ersetzt. Rechtsgrundlage ist wie unter Ziffer 4 die Erfüllung des Nutzungsvertrags (Art. 6 Abs. 1 lit. b DSGVO). Diese Angaben werden <strong>nicht</strong> in Teilen-Links aufgenommen (siehe Ziffer 8).</p>
       <h4>3b. Gewichtsverlauf („Ziele &lt;Jahr&gt;")</h4>
-      <p>Dein Gewichtsverlauf ist ein <strong>Gesundheitsdatum</strong> (Art. 9 DSGVO) und wird deshalb nur mit deiner ausdrücklichen, jederzeit widerrufbaren <strong>Einwilligung</strong> gespeichert (Art. 9 Abs. 2 lit. a DSGVO). Ohne diese Einwilligung zeigt dir die App unter „Ziele &lt;Jahr&gt;" lediglich einen Knopf zum Aktivieren – auch ein bei den Einführungsfragen oder beim Neuberechnen deines Ziels angegebenes Gewicht wird dann <strong>nicht</strong> automatisch als Verlauf gespeichert, sondern nur einmalig für die Berechnung deines Kalorien- und Makroziels verwendet (Ziffer 3a). Stimmst du zu, besteht ein Eintrag aus <strong>Monat und Gewicht</strong> – taggenaue Angaben werden nicht erhoben; zusätzlich kannst du ein <strong>Zielgewicht je Kalenderjahr</strong> festlegen. Ein Eintrag entsteht dann, wenn du im Bereich „Ziele" eine Wiegung einträgst – auch nachträglich für zurückliegende Monate –, und automatisch, wenn du bei den Einführungsfragen oder beim Neuberechnen deines Ziels dein Gewicht angibst und dieses vom zuletzt erfassten Wert abweicht. Die jeweils jüngste Wiegung aktualisiert zusätzlich das bei der Ziel-Berechnung hinterlegte Gewicht, damit dein Kalorien- und Makroziel zu deinem aktuellen Gewicht passt. Speicherung: lokal auf deinem Gerät und – bei Cloud-Nutzung – in deinem Nutzerkonto. Deine Einwilligung kannst du jederzeit über das Menü der Karte widerrufen; bereits gespeicherte Einträge bleiben dabei bestehen, es kommen nur keine neuen automatischen Einträge mehr hinzu. Einzelne Einträge kannst du jederzeit im Wiegen-Dialog löschen, den gesamten Verlauf mit deinem Konto (Ziffer 10). Diese Angaben werden <strong>nicht</strong> in Teilen-Links aufgenommen (siehe Ziffer 8).</p>
+      <p>Dein Gewichtsverlauf ist ein <strong>Gesundheitsdatum</strong> (Art. 9 DSGVO) und wird deshalb nur mit deiner ausdrücklichen, jederzeit widerrufbaren <strong>Einwilligung</strong> gespeichert (Art. 9 Abs. 2 lit. a DSGVO). Ohne diese Einwilligung zeigt dir die App unter „Ziele &lt;Jahr&gt;" lediglich einen Knopf zum Aktivieren – auch ein bei den Einführungsfragen oder beim Neuberechnen deines Ziels angegebenes Gewicht wird dann <strong>nicht</strong> automatisch als Verlauf gespeichert, sondern nur einmalig für die Berechnung deines Kalorien- und Makroziels verwendet (Ziffer 3a). Stimmst du zu, besteht ein Eintrag aus <strong>Kalenderwoche und Gewicht</strong> – taggenaue Angaben werden nicht erhoben; zusätzlich kannst du ein <strong>Zielgewicht je Kalenderjahr</strong> festlegen. Ein Eintrag entsteht dann, wenn du im Bereich „Ziele" eine Wiegung einträgst – auch nachträglich für zurückliegende Wochen –, und automatisch, wenn du bei den Einführungsfragen oder beim Neuberechnen deines Ziels dein Gewicht angibst und dieses vom zuletzt erfassten Wert abweicht. Die jeweils jüngste Wiegung aktualisiert zusätzlich das bei der Ziel-Berechnung hinterlegte Gewicht, damit dein Kalorien- und Makroziel zu deinem aktuellen Gewicht passt. Speicherung: lokal auf deinem Gerät und – bei Cloud-Nutzung – in deinem Nutzerkonto. Deine Einwilligung kannst du jederzeit über das Menü der Karte widerrufen; bereits gespeicherte Einträge bleiben dabei bestehen, es kommen nur keine neuen automatischen Einträge mehr hinzu. Einzelne Einträge kannst du jederzeit im Wiegen-Dialog löschen, den gesamten Verlauf mit deinem Konto (Ziffer 10). Diese Angaben werden <strong>nicht</strong> in Teilen-Links aufgenommen (siehe Ziffer 8).</p>
       <h4>4. Zweck &amp; Rechtsgrundlage</h4>
       <p>Wir verarbeiten die Daten zur Bereitstellung deines Nutzerkontos und der Planer-Funktionen (Art. 6 Abs. 1 lit. b DSGVO – Nutzungsvertrag). Die Bestätigungs-E-Mail dient der Sicherstellung, dass die Adresse dir gehört.</p>
       <h4>5. Cloud-Dienste (Google Firebase)</h4>
@@ -9870,7 +10409,11 @@
   // "delete" und "share-recipe" standen hier mit, obwohl es die Aktionen nicht mehr gibt:
   // Meal loeschen und teilen laufen ueber die data-del-/data-share-Knoepfe im Meal-Sheet,
   // und dorthin kommt eine Nur-Lese-Rolle gar nicht erst (canEdit() in openMealSheet).
-  const WRITE_ACTIONS = ["new-recipe", "pick", "unassign", "assign", "clear-week", "clear-examples"];
+  // "clear-week" ist seit B3 keine data-action mehr: der Eintrag steht im Ueberlaufmenue
+  // (togglePlanMenu) und ruft clearWeek() direkt auf. Das Menue selbst wird nur bei
+  // canEdit() gerendert - dieselbe Lage wie bei den data-del-/data-share-Knoepfen im
+  // Meal-Sheet.
+  const WRITE_ACTIONS = ["new-recipe", "pick", "unassign", "assign", "portion", "clear-examples"];
   function blockedByRole() {
     if (canEdit()) return false;
     toast("Du kannst diesen Plan ansehen – zum Mitplanen bitten die Inhaberin oder den Inhaber um Rechte.");
@@ -9984,6 +10527,20 @@
       save(); render();
       undoToast("Entfernt", () => { state.plan[d][m].splice(idx, 0, removedId); save(); render(); });
     }
+    // Portionsgroesse (B5): durchschalten statt Menue. Vier Stufen, ein Tipp je Schritt -
+    // dasselbe Muster wie die Zuweisung bei genau zwei Mitgliedern (openAssignMenu). Ein
+    // Menue fuer vier Werte waere hier zwei Taps statt einem, und die Marke am Knopf zeigt
+    // den Zustand ohnehin an.
+    else if (a === "portion") {
+      e.stopPropagation();
+      const [d, m, i] = t.dataset.slotSrc.split(":");
+      const idx = Number(i);
+      const entry = state.plan[d][m][idx];
+      if (!entry) return;
+      const next = PORTION_STEPS[(PORTION_STEPS.indexOf(entryPortion(entry)) + 1) % PORTION_STEPS.length];
+      state.plan[d][m][idx] = makeEntry(entryId(entry), entryUids(entry), next);
+      save(); render();
+    }
     else if (a === "shopping") openShopping();
     else if (a === "week") {
       if ((t.dataset.week === "next") !== (state.viewWeek === "next")) {
@@ -10002,10 +10559,12 @@
       }
     }
     else if (a === "wyear") { if (String(state.viewYear) !== t.dataset.year) { state.viewYear = +t.dataset.year; render(); } }
+    else if (a === "weigh") openWeighForm();
     else if (a === "weight-menu") toggleWeightMenu(t);
     else if (a === "weight-consent-in") weightConsentModal();
     else if (a === "weight-manage") openWeighForm(true);
-    else if (a === "clear-week") clearWeek();
+    else if (a === "plan-menu") togglePlanMenu(t);
+    else if (a === "tune-goal") openGoalTuneForm();
     else if (a === "recalc-goal") startOnboarding({ first: false });
     else if (a === "profile-menu") toggleProfileMenu();
     else if (a === "impressum") openImpressum();
@@ -10500,6 +11059,21 @@
 
   function closeMenuNode(node) { if (node.__close) node.__close(false); else node.remove(); }
 
+  // Ueberlaufmenue der Wochenplan-Werkzeugleiste (B3). Bewusst dasselbe Muster wie das
+  // Gewichts-Menue - kein zweiter Weg fuer dieselbe Sache.
+  function togglePlanMenu(btn) {
+    const wrap = btn.closest(".plan-menu");
+    if (!wrap) return;
+    const open = wrap.querySelector(".menu");
+    if (open) { closeMenuNode(open); return; }
+    const menu = el(`<div class="menu" role="menu">
+      <button data-mi="clear" class="destructive" role="menuitem">${TOOL_ICONS.clear}Woche leeren</button>
+    </div>`);
+    wrap.appendChild(menu);
+    const close = attachMenuDismiss(menu, btn);
+    menu.querySelector("[data-mi='clear']").addEventListener("click", () => { close(false); clearWeek(); });
+  }
+
   function toggleProfileMenu() {
     const open = document.querySelector(".profile .menu");
     if (open) { closeMenuNode(open); return; }
@@ -10532,8 +11106,8 @@
     menu.querySelector("[data-mi='delete']").addEventListener("click", () => { close(false); authMode === "cloud" ? deleteAccountFlow() : deleteLocalDataFlow(); });
   }
 
-  // Menue hinter dem roten Plus der Gewichtskarte. Beide Eintraege oeffnen die Dialoge,
-  // die frueher an den Knoepfen "Wiegen" / "Ziel aendern" unter der Karte hingen.
+  // Ueberlaufmenue der Gewichtskarte (B1). "Gewicht eintragen" steht NICHT mehr hier -
+  // es haengt direkt am Plus daneben. Uebrig bleiben die seltenen Aktionen.
   function toggleWeightMenu(btn) {
     const wrap = btn.closest(".wch-menu");
     if (!wrap) return;
@@ -10541,14 +11115,12 @@
     if (open) { closeMenuNode(open); return; }
     const hatZiel = (state.weightGoals || {})[activeYear()] != null;
     const menu = el(`<div class="menu" role="menu">
-      <button data-mi="weigh" role="menuitem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="M7 21h10"/><path d="M12 3v18"/><path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2"/></svg>Gewicht eintragen</button>
       <button data-mi="goal" role="menuitem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.5"/></svg>${hatZiel ? "Ziel ändern" : "Jahresziel setzen"}</button>
       <hr>
       <button data-mi="consent-out" class="destructive" role="menuitem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5M21 12H9"/></svg>Einwilligung widerrufen</button>
     </div>`);
     wrap.appendChild(menu);
     const close = attachMenuDismiss(menu, btn);
-    menu.querySelector("[data-mi='weigh']").addEventListener("click", () => { close(false); openWeighForm(); });
     menu.querySelector("[data-mi='goal']").addEventListener("click", () => { close(false); openWeightGoalForm(); });
     const outBtn = menu.querySelector("[data-mi='consent-out']");
     if (outBtn) outBtn.addEventListener("click", () => { close(false); weightConsentRevokeModal(); });
@@ -10573,7 +11145,9 @@
         undoToast("Entfernt", () => { state.plan[d][m].splice(idx, 0, removed); save(); render(); });
         return;
       }
-      state.plan[d][m][idx] = makeEntry(id, uids);
+      // Portionsfaktor mitnehmen (B5): eine geaenderte Zuweisung darf die halbe Portion
+      // nicht stillschweigend auf eine ganze zuruecksetzen.
+      state.plan[d][m][idx] = makeEntry(id, uids, entryPortion(entry));
       save(); render();
     }
 
@@ -10746,7 +11320,7 @@
   function paceKeys(mode) { return paceOptions(mode).map(o => o[0]); }
 
   // ---------- Wiegen: speichern, loeschen, ans Ziel koppeln ----------
-  // Ein Monat, ein Wert - erneutes Wiegen im selben Monat ersetzt den Eintrag.
+  // Eine Woche, ein Wert - erneutes Wiegen in derselben Woche ersetzt den Eintrag (B2).
   function setWeight(m, kg) {
     const list = (state.weights || []).filter(e => e.m !== m);
     list.push({ m: m, kg: Math.round(kg * 10) / 10 });
@@ -10768,6 +11342,10 @@
   function syncGoalWeight() {
     const last = latestWeight();
     if (!state.goal || !last || state.goal.weight === last.kg) return;
+    // Von Hand justierte Ziele (B4) NICHT neu rechnen - das waere genau die stille
+    // Ueberschreibung, gegen die die Handanpassung gemacht ist. Das Gewicht selbst zieht
+    // trotzdem mit: daran haengt der Trainingstag-Aufschlag (dayTrainKcal).
+    if (state.goal.manual) { state.goal = Object.assign({}, state.goal, { weight: last.kg }); return; }
     state.goal = computeGoal(Object.assign({}, state.goal, { weight: last.kg }));
   }
   // Die Gegenrichtung zu syncGoalWeight: Das Gewicht wird auch im Rechner und in den
@@ -10784,11 +11362,12 @@
     const last = latestWeight();
     if (!last) {
       // Durch sanitizeWeights schicken statt direkt zuzuweisen: updatedAt kommt aus
-      // gespeicherten Daten und koennte beschaedigt sein - ein "NaN-NaN" als Monat
+      // gespeicherten Daten und koennte beschaedigt sein - ein "NaN-NaN" als Schluessel
       // wuerde sonst bis ins Diagramm durchlaufen.
-      state.weights = sanitizeWeights([{ m: monthKey(new Date(state.goal.updatedAt || Date.now())), kg: kg }]);
+      const t = new Date(state.goal.updatedAt || Date.now());
+      state.weights = sanitizeWeights([{ m: weightKeyNow(isNaN(t.getTime()) ? new Date() : t), kg: kg }]);
     } else if (last.kg !== kg) {
-      setWeight(monthKey(), kg);
+      setWeight(weightKeyNow(), kg);
     }
   }
 
@@ -12766,7 +13345,14 @@
   function buildPrintable() {
     const rows = DAYS.map(d => {
       const cells = MEALS.map(m => {
-        const names = state.plan[d.key][m.key].map(entry => { const r = getRecipe(entryId(entry)); return r ? esc(r.name) : null; }).filter(Boolean);
+        // Portionsfaktor mitdrucken (B5) - ein Ausdruck, auf dem "½" fehlt, fuehrt beim
+        // Vorkochen zur falschen Menge.
+        const names = state.plan[d.key][m.key].map(entry => {
+          const r = getRecipe(entryId(entry));
+          if (!r) return null;
+          const p = entryPortion(entry);
+          return esc(r.name) + (p !== 1 ? " (" + portionLabel(p) + "×)" : "");
+        }).filter(Boolean);
         return `<td>${names.length ? names.join("<br>") : "<span class='pt-empty'>–</span>"}</td>`;
       }).join("");
       return `<tr><th>${esc(d.label)}</th>${cells}</tr>`;

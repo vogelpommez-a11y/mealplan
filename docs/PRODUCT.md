@@ -245,6 +245,101 @@ Langfristig relevante Metadaten:
 
 Die Datenstruktur soll spätere intelligente Filterung und Automatisierung ermöglichen.
 
+### Umgesetzt seit 13.08.2026: Tags, Meal-Prep, Aufwand
+
+Drei dieser Metadaten stehen im Datenmodell: `tags[]`, `mealPrep`, `difficulty`
+(siehe `docs/ARCHITECTURES.md`). Bewusst **feste Tag-Schlüssel statt Freitext** — nur damit
+können Filter, kuratierte Bibliothek und der spätere Auto-Planer rechnen. Freitext-Tags
+schreibt jeder anders, und ein Filter, der „Low Carb" nicht findet, ist schlimmer als keiner.
+
+`difficulty` heißt in der Oberfläche **Aufwand** (Einfach / Mittel / Aufwendig): In der Küche
+entscheidet die Zielgruppe nach Aufwand, nicht nach Können. Die Marke bewertet den Nutzer
+nicht (siehe Markenstimme) — „Schwierigkeit" täte genau das.
+
+Noch offen sind Ziel-Eignung und Preis. Beide erst, wenn ein Feature sie tatsächlich braucht.
+
+### Der Meal-Filter zeigt nur, was es zu filtern gibt
+
+Die Chip-Reihe im Meals-Reiter (seit 13.08.2026) blendet jedes Merkmal aus, das im eigenen
+Bestand nicht vorkommt, und verschwindet unter sechs Meals ganz. Ein Filter mit acht Knöpfen,
+von denen sieben ins Leere führen, ist kein Werkzeug, sondern Ballast — und genau der
+Erstkontakt, den ein neuer Nutzer nicht braucht.
+
+Mehrfachauswahl ist **UND**-verknüpft: Wer „Vegan" und „Meal-Prep" antippt, will beides.
+
+Die Reihe **bricht um**, sie scrollt nicht waagerecht. Ein Scroller versteckt Filter am rechten
+Rand und ist über einer Liste zugleich eine Gestenfalle (`CLAUDE.md` §11). Im schlimmsten Fall
+(alle sieben Merkmale im Bestand) sind es auf 360 px drei Zeilen — im Alltag meist eine.
+
+Bewusst **kein** Filter nach Zeit: Die Zubereitungszeit (`time`) steht nur in den mitgelieferten
+Beispiel-Meals, im Editor gibt es kein Feld dafür. Ein Filter auf ein Feld, das niemand pflegt,
+findet zuverlässig nichts. Kommt das Feld, kommt der Filter.
+
+## Bewusste Produktentscheidung: Vier Reiter, vier Fragen
+
+Seit 13.08.2026 gibt es einen vierten Reiter **Fortschritt**. Danach beantwortet jeder Reiter
+genau eine Frage:
+
+| Reiter | Frage |
+|---|---|
+| Home | Wie steht meine Woche? |
+| Wochenplan | Was esse ich wann? |
+| Meals | Was koche ich? |
+| Fortschritt | Wie lief es bisher? |
+
+Vorher trug Home vier Themen gleichzeitig (Hero, Wochenziele, Rückblick, Gewicht) und verstieß
+damit gegen den eigenen UX-Grundsatz „jeder Screen löst möglichst genau ein Problem". Rückblick
+und Gewichtskarte sind unverändert umgezogen — der Ort hat sich geändert, nicht die Funktion.
+
+Die Navigationsmechanik bleibt, wie sie war: gleitende Pille, gerichteter Inhaltswechsel,
+untere Kapsel auf dem Handy. Der vierte Reiter ist eine Spalte mehr, kein neues Prinzip.
+
+**Gewicht eintragen kostet jetzt zwei Taps statt vier.** Das Plus auf der Gewichtskarte öffnet
+direkt das Eingabefeld; Jahresziel und Einwilligungs-Widerruf stehen im Überlaufmenü daneben.
+Für „Fitness & Meal-Prep" ist Wiegen wöchentliche Routine — sie gehört nicht hinter ein Menü,
+in dem sie sich mit zwei seltenen Aktionen die Prominenz teilt.
+
+## Bewusste Produktentscheidungen für Fitness & Meal-Prep (13.08.2026)
+
+Vier Eingriffe, die alle aus derselben Frage kommen: Was tut die Zielgruppe **regelmäßig**, und
+wie viele Taps kostet es sie?
+
+* **Wiegen ist wöchentlich, nicht monatlich.** Ein Trend, der erst nach Monaten sichtbar wird,
+  hilft niemandem, der sein Defizit steuert. Taggenau bleibt trotzdem falsch: Wasser und
+  Mahlzeiten schwanken stärker als der Fortschritt einer Woche. Deshalb zusätzlich der
+  gleitende Durchschnitt über vier Messungen — er ist die Linie, die man liest, die Rohwerte
+  bleiben daneben sichtbar. Eine App, die nur den geglätteten Wert zeigt, versteckt, woraus er
+  entsteht.
+* **Das Ziel lässt sich direkt anpassen.** „100 kcal weniger" führte vorher durch den kompletten
+  Rechner samt Alter, Größe und Trainingstagen. Der Rechner bleibt daneben — er ist der Weg,
+  wenn sich die *Grundlagen* ändern, nicht die Feinjustierung.
+* **Portionen sind planbar** (½, 1, 1½, 2 am Slot). Meal-Prep rechnet in Portionen, nicht in
+  Gerichten. Der Faktor wirkt auf Tagesbilanz, Einkaufsliste und Ausdruck — ein Faktor, der nur
+  angezeigt wird, wäre eine Lüge.
+* **„Woche leeren" steht nicht mehr neben der Einkaufsliste.** Eine destruktive Aktion mit
+  derselben Prominenz wie das meistgenutzte Werkzeug ist ein Fehlerangebot; die Rückfrage
+  allein ist keine Entschuldigung dafür.
+
+Bewusst **keine** freie Portionszahl: vier Stufen decken den Alltag ab, ein Zahlenfeld wäre
+mehr Eingabe für weniger Klarheit.
+
+## Bewusste Produktentscheidung: Der Rückblick misst gegen das Ziel
+
+Der Rückblick zeigt **geplante** Kalorien, nicht gegessene — das ist die Planer-Identität und
+steht seit 13.08.2026 auch als Klartextzeile in der Sektion. Vorher stand es nirgends, und
+genau deshalb las man die Grafik als Ernährungsverlauf.
+
+Zwei Regeln, die daraus folgen:
+
+* **Bezugsgröße ist immer das Ziel**, nie die Streuung der Nachbarwochen. Eine Grafik, die
+  Zielerreichung suggeriert, muss auch Zielerreichung zeigen.
+* **Ein Streak muss verlierbar sein.** Er zählt eine Woche erst ab 5 von 7 geplanten Tagen.
+  Vorher genügte eine einzige Mahlzeit; eine Serie ohne Anspruch motiviert niemanden und ist
+  damit kein Produktnutzen, sondern Dekoration.
+
+Was der Rückblick weiterhin **nicht** tut: bewerten. Wochen außerhalb des Ziels sind gedämpft
+gezeichnet, nicht rot.
+
 ## Bewusste Produktentscheidungen: Wochenplan
 
 ### Der angezeigte Tag folgt einer Anker-Regel

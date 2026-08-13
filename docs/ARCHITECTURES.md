@@ -630,6 +630,145 @@ Grund:
 * einfachere Löschung
 * keine n-fache Nachpflege von Meal-Dokumenten
 
+### Reiter und ihre Renderer
+
+`render()` verzweigt über `state.tab` auf genau einen Renderer; `TAB_ORDER` gibt zugleich die
+Reihenfolge in der Leiste und die Richtung des Schiebe-Übergangs vor:
+
+```
+TAB_ORDER = ["home", "plan", "recipes", "progress"]
+```
+
+* `renderHome()` — `appHeroHtml()` + `weekNutHtml()`
+* `renderPlan(sameTab)`
+* `renderRecipes()`
+* `renderProgress()` — `rueckblickHtml()` + `weightHtml()` (seit 13.08.2026, B8)
+
+`renderProgress()` braucht kein `initCarousel()` (kein `.wg-cols`), aber `initWeightChart()`
+und `initRueckblick()` — beide messen bzw. binden erst nach dem Einsetzen des Markups.
+
+Ein neuer Reiter berührt immer vier Stellen: Markup-Knopf, `TAB_ORDER`, die Verzweigung in
+`render()` und die Spaltenzahl der mobilen Kapsel (siehe `.tab-ind` weiter unten).
+
+### Gewichtsverlauf: eine Wiegung je **Woche**
+
+`state.weights` ist eine aufsteigend sortierte Liste `{ m, kg }`. Seit 13.08.2026 (B2) ist `m`
+ein **ISO-Wochenschlüssel** (`"2026-W33"`) — dasselbe Format wie `state.plans` und
+`state.weekStats`. Monatsgenau war für Trainierende zu grob; taggenau wäre kein Gewinn, weil
+Tagesschwankungen größer sind als der Fortschritt einer Woche.
+
+Das Feld heißt weiterhin `m` — es steckt in gespeicherten Daten und in der Cloud
+(Namensdualität, `CLAUDE.md` §21).
+
+`sanitizeWeights()` rechnet **beide Altformate** um, statt sie zu verwerfen:
+
+* taggenau (`d: "2026-07-22"`, erste Fassung) → Woche dieses Tages
+* monatsgenau (`m: "2026-07"`) → Woche, die den **15.** enthält (Monatsmitte als ehrlichste
+  Näherung, wenn der Tag nicht mehr bekannt ist)
+
+Hilfsfunktionen: `weightKeyNow(dt)`, `validWeightKey(s)`, `weekNumOf(s)`, `weekMonday(key)`
+(über den 4. Januar, der per ISO immer in KW 1 liegt) und `weekLabel(key)` → `"KW 33 · 10.08."`.
+
+Das Diagramm verteilt die Wochennummer 1–52 über die feste Jahresbreite und zeichnet ab vier
+Messungen zusätzlich den **gleitenden Durchschnitt über vier Messungen** (`.wch-avg`); die
+Rohkurve tritt dann optisch zurück. Gerechnet wird über die letzten vier *vorhandenen* Werte,
+nicht über vier Kalenderwochen — bei einer Lücke wäre der Schnitt sonst leer.
+
+`syncGoalWeight()` zieht das Kalorienziel weiterhin an der jüngsten Messung nach — **außer**
+bei `state.goal.manual` (siehe unten).
+
+### Ziel von Hand justieren: `state.goal.manual`
+
+`openGoalTuneForm()` (B4) schreibt `kcal`, `carbs`, `protein`, `fat` direkt und setzt
+`manual: true`. Ohne diese Marke hätte die nächste Wiegung die Anpassung still überschrieben,
+weil `syncGoalWeight()` mit `computeGoal()` neu rechnet. Bei gesetzter Marke zieht nur noch das
+`weight`-Feld mit (daran hängt der Trainingstag-Aufschlag `dayTrainKcal()`).
+
+Ein Durchlauf des Rechners hebt die Marke automatisch auf — `computeGoal()` baut ein frisches
+Objekt ohne `manual`.
+
+### Slot-Einträge: dritte Form `{id, p}` (Portionsfaktor)
+
+Ein Eintrag im Wochenplan ist seit B5 eines von drei Dingen:
+
+| Form | Bedeutung |
+|---|---|
+| `"rid"` | für alle, volle Portion — der Normalfall, bewusst weiterhin ein blanker String |
+| `{id, uids}` | nur für bestimmte Gruppenmitglieder |
+| `{id, p}` / `{id, uids, p}` | mit Portionsfaktor aus `PORTION_STEPS` (0,5 / 1 / 1,5 / 2) |
+
+`entryPortion(e)` liefert immer einen der vier erlaubten Werte, `makeEntry(id, uids, p)` baut
+die kleinstmögliche Form (`p === 1` erzeugt kein Feld). Die feste Leiter ist kein Detail: eine
+freie Kommazahl wäre über `canonJSON()` ein Dauer-Diff (`0.30000000000000004`).
+
+Der Faktor wirkt an drei Stellen — und muss dort auch wirken, sonst ist er Dekoration:
+`dayNutOf()` (Tagesbilanz), `buildShoppingList()` (Einkaufsmengen) und `buildPrintable()`
+(Ausdruck). Die kcal-Zeile auf der Slot-Karte zeigt ebenfalls den skalierten Wert.
+
+**Falle beim Sync:** `unflattenWeek()` verlangte früher ein `uids`-Array und hätte ein
+`{id, p}` von einem anderen Gerät lautlos verworfen — das Gericht wäre dort aus dem Plan
+verschwunden. Der Filter lässt jetzt beide Objektformen zu und führt ein Objekt ohne `uids`
+und ohne Faktor auf die String-Form zurück (sonst schriebe das Gerät es sofort anders zurück,
+als es ankam).
+
+### Wochenarchiv `state.weekStats`
+
+`pruneWeeks()` hält nur die aktuelle und die nächste Woche. Bevor eine vergangene Woche
+verworfen wird, sichert `archiveWeek()` ihre Kennzahlen — bewusst **nur Zahlen**, keine
+Meal-Referenzen und keine Fotos:
+
+```
+weekStats["2026-W29"] = { kcal, days, hit, target }
+```
+
+* `kcal` — Ø geplante Tageskalorien über die geplanten Tage
+* `days` — Anzahl geplanter Tage (1–7)
+* `hit` — Tage innerhalb ±10 % des Tagesziels
+* `target` — **das damals gültige** mittlere Tagesziel (seit 13.08.2026, B10)
+
+`target` ist der Kern: Ohne es misst der Rückblick jede vergangene Woche gegen das heutige
+Ziel, und eine Zieländerung schreibt die Bedeutung der gesamten Historie um. Trainings- und
+Ruhetage haben unterschiedliche Ziele, deshalb der Schnitt über die geplanten Tage.
+
+`sanitizeWeekStats()` klemmt alle Werte, hält höchstens 26 Wochen und übernimmt `target` nur
+im plausiblen Bereich (500–20 000 kcal). Wochen ohne `target` sind vor B10 archiviert; der
+Rückblick fällt dort auf das heutige Ziel zurück (`avgDailyTargetToday()`). Eine Migration
+gibt es nicht — der alte Zielstand ist nicht rekonstruierbar.
+
+Der Rückblick selbst (`rueckblickHtml()`) normiert jeden Balken auf **sein eigenes**
+Wochenziel und kann das ±10-%-Band deshalb als feste Fläche zeichnen. Siehe
+`docs/TROUBLESHOOTING.md` Punkt 72 für den Zustand davor.
+
+### Merkmale eines Meals: `tags[]`, `mealPrep`, `difficulty`
+
+Drei optionale Felder, seit 13.08.2026. Sie sind die Grundlage für den Meal-Filter, die
+kuratierte Bibliothek und den späteren Auto-Wochenplaner — ohne sie ist keines davon baubar.
+
+* **`tags`**: Array aus **festen Schlüsseln** — `highprotein`, `lowcarb`, `vegetarisch`,
+  `vegan`, `glutenfrei`, `laktosefrei` (Quelle: `RECIPE_TAGS`). Bewusst **keine Freitext-Tags**:
+  die schriebe jeder Nutzer anders (`lowcarb`/`Low Carb`/`low-carb`) und weder Filter noch
+  Planer könnten damit rechnen. Die **Schlüssel** stecken in Nutzerdaten und geteilten Meals und
+  dürfen sich nie ändern; die Beschriftungen dürfen es.
+* **`mealPrep`**: Boolean, „lässt sich vorkochen".
+* **`difficulty`**: `1 | 2 | 3` (Einfach / Mittel / Aufwendig). Zahl statt Text, damit später
+  danach sortiert werden kann.
+
+`sanitizeTags()` lässt ausschließlich bekannte Schlüssel durch, entfernt Duplikate und stellt
+die **feste Reihenfolge aus `RECIPE_TAG_KEYS`** her. Letzteres ist kein Schönheitsdetail: Ein
+umsortiertes Array wäre gegenüber `canonJSON()` ein dauerhafter Diff und damit ein
+Endlos-Schreibzyklus in `syncRecipes()`.
+
+**Nicht gesetzte Felder bleiben ungesetzt** (`delete` statt Standardwert). Sonst bekäme jedes
+Bestands-Meal allein durchs Laden ein neues Feld — und damit einen überflüssigen
+Cloud-Schreibvorgang je Rezept.
+
+Am Sync ändert sich nichts: `syncRecipes()` schreibt das ganze Rezept-Objekt, die Felder wandern
+automatisch mit; dasselbe gilt für das Teilen per Link (`shareMealPayload()` überträgt `r`
+vollständig, der Import läuft durch `sanitizeRecipe()`). Auch die Firestore-Regeln bleiben
+unverändert — `users/{uid}/recipes/{id}` prüft den Besitzer, nicht einzelne Felder.
+
+Eine Migration gibt es bewusst nicht: Meals ohne Merkmale sind schlicht Meals ohne Merkmale.
+
 ### Barcode-Schnellzugriff: `barcode` und `quick`
 
 Ein per Barcode-Scan eingeplantes Fertigprodukt (`quickAddByBarcode()`) ist ein ganz normaler
@@ -1030,7 +1169,11 @@ nach DOM-Lebensdauer der Leiste:
 * **`.tab-ind`** — CSS-`transition` für die untere Tab-Leiste. Günstiger Sonderfall: `.tabs`
   liegt außerhalb von `view.innerHTML` im statischen Markup und überlebt jeden Neuaufbau, eine
   echte `transition: transform` funktioniert deshalb. Nur im 680-px-Breakpoint sichtbar, wo
-  `.tabs` ein Grid mit drei gleich breiten Spalten ist (`translateX(i * 100%)` reicht). Am
+  `.tabs` ein Grid mit **vier** gleich breiten Spalten ist (seit dem Reiter „Fortschritt",
+  13.08.2026). `grid-template-columns: repeat(4, 1fr)` und `width: calc((100% - 12px) / 4)`
+  gehören zusammen — wer eine Spalte ergänzt und die Pillenbreite vergisst, bekommt eine
+  Pille, die neben ihrem Reiter steht. `translateX(i * 100%)` bleibt unverändert richtig: die
+  100 % beziehen sich auf die Breite der **Pille**, nicht auf die der Leiste. Am
   Rechner sind die Tab-Knöpfe unterschiedlich breit (Meal-Zähler ändert die Breite) — dort
   bleibt `[aria-selected="true"]` die einzige Fläche. Position wird in `render()` gesetzt,
   **nach** der Scroll-Wiederherstellung, sonst animiert die View während ihre Position noch

@@ -1775,3 +1775,107 @@ Phase D — dann ist er die eine Stelle, an der sie andockt, statt 38 Stellen.
 **Drosselung ist kein Komfort, sondern Voraussetzung:** Ohne sie hätte
 `stream.getTracks().forEach(t => { try { t.stop(); } catch … })` bei jedem Scanner-Ende geloggt
 und der Ringpuffer wäre nur noch mit Rauschen gefüllt. Pro Kennung ist bei 3 Meldungen Schluss.
+
+---
+
+## 72. Der Rückblick zeigte Streuung und sah dabei wie Zielerreichung aus
+
+Die Balkenhöhe wurde gegen **Min/Max der letzten acht Wochen** gerechnet
+(`h = 22 + (s.kcal - min) / span * 78`). Damit bekam eine 1900-kcal-Woche einen hohen Balken,
+wenn alle anderen bei 1850 lagen — und einen niedrigen, sobald eine 2400er-Woche dabei war.
+Dieselbe Woche, dieselbe Leistung, zwei völlig verschiedene Bilder. Die Grafik sah aus wie
+Zielerreichung, zeigte aber reine Streuung.
+
+**Die Falle ist die Bezugsgröße, nicht die Formel.** Eine relative Skala ist für einen Trend
+richtig; für eine Aussage „habe ich mein Ziel getroffen?" braucht es das Ziel als Bezug.
+
+Seit 13.08.2026 ist die Balkenhöhe das Verhältnis `kcal / Ziel der jeweiligen Woche`,
+gezeichnet bis 140 %; das ±10-%-Zielband liegt als feste Fläche dahinter. Weil jede Woche
+gegen **ihr eigenes** Ziel normiert wird, bleibt das Band trotz wechselnder Ziele eine
+waagerechte Linie.
+
+Drei Folgefehler steckten in derselben Sektion:
+
+* **Der Streak ließ sich nicht verlieren.** `stats[wk].days > 0` — eine einzige geplante
+  Mahlzeit machte eine Woche zur „geplanten Woche". Jetzt `>= STREAK_MIN_DAYS` (5 von 7).
+* **Die Werte standen ausschließlich im `title`-Attribut**, und die Balken trugen
+  `aria-hidden="true"`. Auf dem Handy gibt es kein Hover: dort war die Grafik damit vollständig
+  unbeschriftet und für Screenreader gar nicht vorhanden. Jetzt sind die Balken Knöpfe mit
+  `aria-label`, KW-Beschriftung darunter und einer Tippzeile (`aria-live="polite"`) — dasselbe
+  Muster wie im Gewichtsdiagramm.
+* **„Ziel getroffen" maß gegen das HEUTIGE Ziel.** Wer sein Defizit änderte, änderte damit
+  rückwirkend die Bedeutung seiner gesamten Historie. `archiveWeek()` friert das damals gültige
+  Tagesziel jetzt als `target` mit ein (B10).
+
+Wochen, die vor dieser Änderung archiviert wurden, haben kein `target` und fallen auf das
+heutige Ziel zurück. Das ist Absicht und kein Migrationsfall — der alte Zustand ist nicht
+rekonstruierbar, und ein erfundener Wert wäre schlechter als ein bekannter Rückfall.
+
+---
+
+## 73. Ein neues Feld im Slot-Eintrag wäre am Sync fast unbemerkt verschwunden
+
+`unflattenWeek()` filterte eingehende Slot-Einträge so:
+
+```js
+.filter(x => typeof x === "string" || (x && typeof x.id === "string" && Array.isArray(x.uids)))
+```
+
+Das war für zwei Formen richtig (`"rid"` und `{id, uids}`). Mit dem Portionsfaktor (B5) kam
+eine dritte dazu: `{id, p}` — für alle, aber mit halber oder doppelter Portion. Sie hat kein
+`uids`-Array. Ein solcher Eintrag von einem anderen Gerät wäre also **stillschweigend
+weggefiltert** worden: Das Gericht verschwindet dort aus dem Plan, ohne Fehler, ohne Toast, und
+beim nächsten Push schreibt dieses Gerät den Verlust zurück.
+
+**Die Regel, die daraus folgt:** Wer eine Eintragsform ergänzt, muss immer beide Richtungen
+anfassen — das Schreiben *und* den Eingangsfilter. Der Filter ist die Stelle, an der fremde
+Daten ankommen, und er ist per Konstruktion schweigsam.
+
+Zweiter Punkt an derselben Stelle: Ein Objekt ohne `uids` **und** ohne Faktor ist inhaltlich
+die String-Form. Wird es nicht auf sie zurückgeführt, schreibt das Gerät den Eintrag anders
+zurück, als er angekommen ist — ein Dauer-Diff im Gruppendokument, genau die Klasse Fehler, vor
+der schon der `canonJSON()`-Kommentar in `syncRecipes()` warnt.
+
+Aus demselben Grund sind die Portionsstufen eine **feste Leiter** (0,5 / 1 / 1,5 / 2) und kein
+freier Zahlenwert: `0.1 + 0.2` ist in Gleitkomma `0.30000000000000004`, und dieser Wert würde
+sich bei jedem Vergleich von seiner eigenen Cloud-Form unterscheiden.
+
+## 74. Von Hand gesetzte Kalorienziele wurden von der nächsten Wiegung überschrieben
+
+`syncGoalWeight()` rechnet das Ziel bei jeder neuen Wiegung mit `computeGoal()` neu — richtig,
+solange das Ziel aus dem Rechner stammt. Mit der Direkt-Justierung (B4) hätte dieselbe Zeile
+die Handanpassung beim nächsten Wiegen kommentarlos wieder eingesammelt.
+
+Deshalb trägt ein von Hand gesetztes Ziel `manual: true`. Bei gesetzter Marke zieht nur noch
+`weight` mit (daran hängt `dayTrainKcal()`), die Werte bleiben stehen. Ein Durchlauf des
+Rechners hebt die Marke automatisch auf, weil `computeGoal()` ein frisches Objekt baut.
+
+**Allgemein:** Jede Funktion, die abgeleitete Werte neu berechnet, braucht eine Antwort auf die
+Frage „und wenn der Nutzer sie selbst gesetzt hat?". Ohne diese Antwort gewinnt immer die
+Automatik — und zwar unsichtbar.
+
+---
+
+## 75. Eine CSS-Regel, die nie griff — und die es auch nicht sollte
+
+Die Filter-Chips im Meals-Reiter (B7) bekamen zunächst eine eigene Klasse mit
+`flex-wrap: nowrap; overflow-x: auto`, damit die Reihe waagerecht läuft statt umzubrechen.
+Sie hat **nie gewirkt**: `.rfilters` steht im Stylesheet bei den Meals-Regeln, `.mtags` (mit
+`flex-wrap: wrap`) rund 200 Zeilen weiter unten bei der Meal-Ansicht. **Gleiche Spezifität —
+die spätere Regel gewinnt.** Im Browser sah alles richtig aus, weil das Ergebnis (Umbruch)
+zufällig brauchbar war.
+
+Aufgefallen ist es erst durch die Messung: `scrollWidth === clientWidth` bei sieben Chips auf
+358 px — bei einem echten waagerechten Scroller hätte `scrollWidth` deutlich größer sein
+müssen. **Ein Screenshot hätte den Fehler nicht gezeigt.**
+
+Zwei Lehren, die beide zählen:
+
+* **Eine Klasse, die eine andere überschreiben soll, muss dahinter stehen** — oder spezifischer
+  sein. Bei zwei Klassen auf demselben Element (`class="mtags rfilters"`) entscheidet
+  ausschließlich die Reihenfolge im Stylesheet, nicht die Reihenfolge im `class`-Attribut. Das
+  ist ein häufiger Irrtum.
+* **Die Regel war zusätzlich inhaltlich falsch.** Ein waagerechter Scroller über der Meal-Liste
+  ist die Gestenfalle aus `CLAUDE.md` §11, und er versteckt Filter am rechten Rand. Der Umbruch
+  ist die richtige Lösung; jetzt steht er ausdrücklich da, statt sich aus einer nicht greifenden
+  Regel zu ergeben.

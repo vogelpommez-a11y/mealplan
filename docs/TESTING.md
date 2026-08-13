@@ -251,6 +251,45 @@ Beispiele:
   lebenden Verweises; Einträge tragen Zeit, Kennung und Meldung.
   Die letzten drei Punkte sind der Kern: Ein Melder, der im Fehlerpfad selbst wirft, ist
   schlimmer als gar keiner (`docs/TROUBLESHOOTING.md` §71).
+* **Meal-Merkmale (B6)**: `sanitizeRecipe()`/`sanitizeTags()` samt `mealFlagsHtml()` und
+  `mealMetaEditHtml()` lassen sich mit echtem `esc()` und gestubbtem `sanitizeIng()` schneiden.
+  Zwanzig Prüfungen, alle grün. Die drei, die wirklich zählen: **unbekannte Tag-Schlüssel und
+  Duplikate fliegen raus**, die **Reihenfolge ist stabil** (eine umsortierte Liste wäre ein
+  Dauer-Diff gegen `canonJSON()` und damit ein Endlos-Schreibzyklus in `syncRecipes()`), und ein
+  **Bestands-Meal ohne Merkmale bekommt keine neuen Felder** — sonst schriebe allein das Laden
+  jedes Rezept einmal in die Cloud.
+  *Falle beim Prüfstand selbst:* Ein XSS-Testwert mit `</script>` im String beendet den
+  `<script>`-Block der Testdatei. Das Ergebnis war ein leeres `<pre>`, das wie ein stiller
+  Testfehler aussah. Solche Nutzlasten mit `<img src=x onerror=…>` bauen oder maskieren.
+* **Gewichtsverlauf in Wochen (B2)**: `sanitizeWeights()`, `mergeWeights()` und
+  `weightChartSvg()` mit einem winzigen Stub-State. 21 Prüfungen, alle grün. Neben den
+  Schlüssel-Randfällen (KW 0/54, Fremdformate) sind die beiden wichtigen: **beide Altformate
+  werden umgerechnet statt verworfen** (Tag → Woche, Monat → Woche des 15.), und **die
+  Trendlinie reagiert gedämpfter als die Rohkurve** — gemessen am Sprung des letzten Punktes,
+  nachdem eine Ausreißer-Wiegung eingesetzt wurde. Ohne diesen Vergleich prüft man nur, *dass*
+  eine zweite Linie existiert, nicht dass sie glättet.
+* **Portionsfaktor (B5)**: `makeEntry`/`entryPortion`/`unflattenWeek`/`dayNutOf` isoliert.
+  20 Prüfungen, alle grün. Der Regressionsfall, der beim Bauen tatsächlich aufgefallen ist:
+  `unflattenWeek()` verlangte ein `uids`-Array und hätte ein `{id, p}` von einem anderen Gerät
+  **lautlos verworfen** — das Gericht wäre dort aus dem Plan verschwunden. Ebenso geprüft: ein
+  Objekt ohne `uids` und ohne Faktor wird auf die String-Form zurückgeführt (sonst Dauer-Diff
+  im Gruppendokument), und ein fremd zugewiesenes Gericht zählt auch mit Faktor **nicht** in
+  die eigene Tagesbilanz.
+  *Am Gerät zu zweit noch offen*: das Sync-Szenario nach `CLAUDE.md` §30 — ein Gerät setzt den
+  Faktor, das andere muss ihn sehen, ohne den Eintrag zu verlieren.
+* **Meal-Filter (B7)**: `recipeFilterHtml()` und `recipeMatchesFilters()` brauchen nur einen
+  Stub für `libraryRecipes()`. 17 Prüfungen, alle grün. Wichtig sind die Randfälle, nicht das
+  Filtern selbst: unter sechs Meals **und** bei einem Bestand ganz ohne Merkmale entsteht keine
+  Reihe, und in beiden Fällen werden aktive Filter geleert — ein Filter, dessen Chip nicht mehr
+  sichtbar ist, würde sonst unsichtbar weiterfiltern und die Liste grundlos halb leer zeigen.
+* **Rückblick (B9/B10)**: `archiveWeek()`, `sanitizeWeekStats()` und `rueckblickHtml()` lassen
+  sich mit einem winzigen Stub-State (DAYS, `dayNutOf`, `goalTargetsForDay`, `nfmt`) schneiden;
+  geprüft wird am erzeugten Markup. 23 Prüfungen, alle grün. Der entscheidende Regressionstest
+  ist **derselbe Balken in zwei Reihen**: Eine Woche mit 2000 kcal bei Ziel 2000 muss ihre Höhe
+  behalten, egal ob die Nachbarwoche bei 2000 oder bei 2800 liegt. Genau das war vorher nicht so
+  (`docs/TROUBLESHOOTING.md` §72). Dazu: Ziel = 71 % der Skala, 140 % läuft an die Decke,
+  gleiche Zielerreichung bei verschiedenen Zielen ergibt gleiche Höhe, Rückfall aufs heutige
+  Ziel bei Wochen ohne `target`, und der Streak bricht bei 4 von 7 Tagen.
 * Gruppen-Plan-Merge beim Aktivieren (`finalizeGroupActivation()`): mit gestubbtem `CloudGroup`
   prüfen, dass ein in der Gruppe bereits belegter Slot **nicht** überschrieben wird, ein dort
   noch leerer Slot aber nachgetragen wird.
@@ -656,6 +695,24 @@ Vier Fallen dabei:
   Im Rahmen deshalb nur lesen und Ansichten öffnen; keine Meals anlegen oder ändern, sonst
   landet der Testbestand in der echten Cloud (TROUBLESHOOTING §36 schützt nur `localStorage`,
   nicht die Firebase-Anbindung).
+
+**Headless-Variante derselben Falle** (Edge, `--headless=new`, 13.08.2026 gemessen):
+`--window-size` wirkt auf den CSS-Viewport, aber **nur nach oben** — `--window-size=700,900`
+ergibt `innerWidth: 700`, `--window-size=390,844` ebenso wie `360` ergibt immer `504`. Wer
+darunter messen will, stellt das zu prüfende Bauteil in einen Container fester Breite
+(`.frame { width: 360px }`) statt am Fenster zu drehen; Grid und Flex rechnen in der
+Containerbreite, genau das soll gemessen werden. **Aber:** Media Queries hängen weiter am
+Viewport. Bei 504 px greift `max-width: 680px` — die 560er- und 400er-Zustände nicht. Ohne
+Gegenprobe misst man sonst die Desktop-Variante und hält sie für die mobile. Die Gegenprobe ist
+billig: `matchMedia("(max-width:680px)").matches` und `getComputedStyle(el).display` mit
+ausgeben. Genau daran ist der erste Anlauf der Tab-Kapsel-Messung aufgefallen — die Zahlen
+sahen richtig aus, stammten aber aus dem Desktop-Zustand.
+
+**Vier Reiter in der mobilen Kapsel** wurden so gemessen (echtes Markup + beide `<style>`-Blöcke
+aus `index.html`, drei Rahmen zu 360/400/560 px, Light und Dark): vier gleich breite Spalten,
+Pille deckt den vierten Reiter (Position und Breite auf ±8 px), kein Reiter läuft aus der
+Leiste, die Beschriftung „Fortschritt" passt bei 360 px (49 px Text auf 80 px Spalte), Reiter
+bleiben 46 px hoch. Der Screenshot gehört dazu — die Zahlen sagen nichts über Kontrast.
 
 Zum Messen von Animationen in so einem Rahmen siehe TROUBLESHOOTING §54: im verborgenen Tab
 zustandsbasiert messen (`getAnimations()`, `pause()` + `currentTime`), nie zeitbasiert.
