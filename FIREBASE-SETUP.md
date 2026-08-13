@@ -144,6 +144,37 @@ Bestätigt ist das hier nicht. Wer es belastbar braucht, liest im Original nach:
 
 ---
 
+## Pro-Berechtigung eintragen (D1)
+
+Der Pro-Status steht **nicht** im Nutzerdokument, sondern in einer eigenen Sammlung, die die App
+nur **lesen** darf. Sonst wäre er mit den Entwicklerwerkzeugen in zwei Sekunden gesetzt.
+
+Solange es keine Bezahlabwicklung gibt, wird eine Berechtigung von Hand eingetragen:
+
+1. Firebase-Konsole → **Firestore Database** → **Daten**.
+2. Die eigene UID heraussuchen: **Authentication → Users**, Spalte „Nutzer-UID".
+3. Sammlung **`entitlements`** anlegen (falls noch nicht da), darin ein Dokument mit **genau
+   dieser UID als Dokument-ID**.
+4. Felder:
+
+| Feld | Typ | Wert |
+|---|---|---|
+| `pro` | boolean | `true` |
+| `source` | string | `manual` |
+| `until` | timestamp | Ablauf – oder **Feld weglassen** für unbefristet |
+
+Die App merkt die Änderung sofort (`onSnapshot`), ein Neuladen ist nicht nötig. Im Profilmenü
+steht dann „Pro" neben dem Namen.
+
+**Regeln nicht vergessen:** Der Block `match /entitlements/{uid}` aus `firestore.rules` muss in
+der Konsole veröffentlicht sein, sonst verweigert Firestore das Lesen (die App behandelt das
+stillschweigend als „kein Pro").
+
+Wichtig: `allow write: if false` sperrt **nur Clients** aus. Das Admin SDK und die Konsole
+umgehen die Regeln grundsätzlich — von dort lässt sich weiterhin schreiben.
+
+---
+
 ## Optional: „Mit Apple anmelden" später aktivieren
 
 Der Apple-Button ist im Code schon vorhanden, aber ausgeschaltet. Voraussetzung ist ein

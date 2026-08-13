@@ -149,6 +149,14 @@
        destruktiv sind im Theme dasselbe Rot wie ueberall sonst, kein zweites Signal. */
     --danger: var(--accent);
     --ok: #1E9E57;   /* Sync ok / verbunden */
+    /* Gold ist AUSSCHLIESSLICH fuer Pro reserviert (D1) und kommt in der normalen UI nicht
+       vor - dort traegt es im Light-Theme ohnehin nicht als Flaeche. Zwei Werte, weil
+       dieselbe Goldtoenung als Schrift auf hellem und auf dunklem Grund nicht funktioniert:
+       --gold ist der Farbton (Rand, getoente Flaeche), --gold-ink die Schriftfarbe. */
+    --gold: #C9A227;
+    /* Gemessen, nicht geschaetzt: #8A6B1F kam auf der getoenten Flaeche nur auf 4,38:1 und
+       lag damit unter AA (4,5). Dieser Ton erreicht 5,17:1 (Dark: 7,93:1). */
+    --gold-ink: #7A5D18;   /* auf hellem Grund */
 
     --fr: #A96E12;   /* Frühstück */
     --mi: #2E7D6B;   /* Mittagessen */
@@ -247,6 +255,8 @@
 
       --danger: var(--accent);
       --ok: #3DDC84;
+      --gold: #C9A227;
+      --gold-ink: #E8C86A;   /* auf dunklem Grund - derselbe Ton waere hier zu dunkel */
 
       --fr: #E0A94A;
       --mi: #58B49E;
@@ -279,6 +289,7 @@
     --glass-bg-strong: color-mix(in srgb, var(--surface) 82%, transparent);
     --glass-edge: rgba(255, 255, 255, .72); --glass-shadow: 0 8px 28px rgba(20, 24, 31, .16);
     --accent: #DC2626; --accent-strong: #B01218; --accent-contrast: #FFFFFF; --accent-solid: #DC2626; --danger: var(--accent); --ok: #1E9E57;
+    --gold: #C9A227; --gold-ink: #7A5D18;
     --fr: #A96E12; --mi: #2E7D6B; --ab: #6E5A9E;
     --member-1: #2454C7; --member-2: #C2255C; --member-3: #C2560C; --member-4: #0C7A8C; --member-5: #5B3DC2; --member-6: #6B7A12;
     --carb: #A26A11; --prot: #C74B78; --fat: #1C7EB3;
@@ -293,6 +304,7 @@
     --glass-bg-strong: color-mix(in srgb, var(--surface) 80%, transparent);
     --glass-edge: rgba(255, 255, 255, .10); --glass-shadow: 0 8px 30px rgba(0, 0, 0, .55);
     --accent: #FF3040; --accent-strong: #FF5A66; --accent-contrast: #FFFFFF; --accent-solid: #E02234; --danger: var(--accent); --ok: #3DDC84;
+    --gold: #C9A227; --gold-ink: #E8C86A;
     --fr: #E0A94A; --mi: #58B49E; --ab: #AC93E0;
     --member-1: #3B6FE0; --member-2: #E0417E; --member-3: #E06A1E; --member-4: #1C93A6; --member-5: #7C5CE0; --member-6: #8C9A1E;
     --carb: #E9A03B; --prot: #C74B78; --fat: #4AA8E0;
@@ -2023,6 +2035,17 @@
   .menu { position: absolute; right: 0; top: calc(100% + 8px); z-index: 40; min-width: 216px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: 0 18px 50px rgba(0,0,0,.28); padding: 6px; animation: pop .14s ease-out; }
   .menu .mhead { padding: 8px 11px 11px; border-bottom: 1px solid var(--border); margin-bottom: 6px; }
   .menu .mhead .mn { font-weight: 650; font-size: 14px; }
+  /* Pro-Marke (D1). Gold ist in diesem Projekt fuer Premium reserviert und traegt im
+     Light-Theme nicht als Flaeche - deshalb Gold nur als Schrift und Rand auf ruhigem
+     Grund, nicht als gefuellte Pille. Bis es etwas zu kaufen gibt, sieht diese Marke
+     ohnehin nur, wer serverseitig eine Berechtigung eingetragen bekommen hat. */
+  .pro-badge {
+    display: inline-block; vertical-align: 1px; margin-left: 6px;
+    font-size: 10.5px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase;
+    padding: 1px 7px; border-radius: 999px;
+    color: var(--gold-ink); background: color-mix(in srgb, var(--gold) 22%, var(--surface));
+    border: 1px solid color-mix(in srgb, var(--gold) 55%, transparent);
+  }
   .menu .mhead .me { font-size: 12px; color: var(--text-muted); word-break: break-all; }
   /* Gegenstueck zu .mhead am Menuefuss: traegt den Copyright-Hinweis, der frueher in der
      Fusszeile stand. Bewusst kein Knopf - es gibt nichts anzutippen. */
@@ -3310,6 +3333,16 @@
           for (let i = 0; i < inviteCodes.length; i++) {
             await deleteBestEffort(doc(db, "invites", inviteCodes[i]));
           }
+          // Pro-Berechtigung (D1). Sie haengt NICHT unter users/{uid} und bliebe sonst als
+          // verwaistes Dokument mit Personenbezug stehen - Art. 17 DSGVO verlangt aber, dass
+          // ALLE zuordenbaren Daten verschwinden. Deshalb darf der Client dieses eine Dokument
+          // loeschen (nur loeschen, nicht anlegen oder aendern - siehe firestore.rules).
+          // Das ist sicherheitstechnisch unbedenklich: Loeschen kann nur zum eigenen Nachteil
+          // ausfallen, und ein Store-Webhook wuerde es beim naechsten Ereignis neu schreiben.
+          // deleteBestEffort, weil die Regel bei fehlendem Dokument bzw. abweichender Rechtelage
+          // "permission-denied" liefert - eine fehlende Berechtigung (der Normalfall!) darf die
+          // Kontoloeschung nicht blockieren (dieselbe Falle wie in TROUBLESHOOTING §48).
+          await deleteBestEffort(doc(db, "entitlements", uid));
           await deleteDoc(doc(db, "users", uid));
           try {
             await deleteUser(user);
@@ -3344,6 +3377,20 @@
       // Funktionspaare, die auseinanderlaufen koennten.
       function recipesCol(base) { return collection(db, base[0], base[1], "recipes"); }
       function recipeDoc(base, id) { return doc(db, base[0], base[1], "recipes", id); }
+
+      // ----- Pro-Berechtigung (D1): eigenes Dokument entitlements/{uid}, NUR lesbar -----
+      // Bewusst nicht im Kontodokument: das darf der Nutzer selbst schreiben (siehe
+      // firestore.rules). Ein Feld dort waere mit den Entwicklerwerkzeugen sofort auf true
+      // zu setzen. Hier kommt der Status ausschliesslich vom Server.
+      // Fehler werden verschluckt und als "kein Pro" behandelt - fehlt das Dokument (der
+      // Normalfall) oder verweigert die Regel den Zugriff, ist die Antwort dieselbe.
+      window.CloudEntitlement = {
+        watch: function (uid, cb) {
+          return onSnapshot(doc(db, "entitlements", uid),
+            function (snap) { cb(snap.exists() ? snap.data() : null); },
+            function (e) { window.noteError("entitlement:watch", e); cb(null); });
+        }
+      };
 
       window.CloudSync = {
         enabled: true,
@@ -4317,6 +4364,45 @@
   // ---------- Cloud-Sync (Firestore) ----------
   let syncUid = null, syncUnsub = null, syncUnsubRecipes = null, pushTimer = null,
       lastPushedJSON = null, lastPushedRecipes = null, recipesSyncFailed = false;
+
+  // ---------- Pro-Berechtigung (D1) ----------
+  // Der Status ist eine reine LAUFZEIT-Variable und liegt bewusst nicht in `state`:
+  //  1. `state` wird als Ganzes in die Cloud geschrieben (dataJSON) - ein Feld darin waere
+  //     vom Client schreibbar und damit keine Grenze, sondern eine Anzeige.
+  //  2. `state` liegt im localStorage; ein "pro": true darin ueberlebte jeden Neustart,
+  //     auch nach Ablauf des Abos.
+  // Quelle ist ausschliesslich entitlements/{uid} (nur lesbar, siehe firestore.rules).
+  // Ohne Cloud-Konto gibt es kein Pro - das ist kein Mangel, sondern die Pro-Grenze: Gratis
+  // laeuft vollstaendig lokal und dort uneingeschraenkt (siehe docs/PRODUCT.md, "Premium").
+  let entitlementUnsub = null;
+  let proInfo = null;   // { pro, source, until } oder null
+  // Fremde Daten, auch wenn sie vom eigenen Server kommen: erst pruefen, dann glauben.
+  // `until` ist optional - fehlt es, gilt die Berechtigung unbefristet (Testkonten,
+  // lebenslange Kaeufe). Ein abgelaufenes Datum zaehlt als kein Pro.
+  function sanitizeEntitlement(d) {
+    if (!d || typeof d !== "object" || d.pro !== true) return null;
+    let until = null;
+    // Auf VORHANDENSEIN pruefen, nicht auf Wahrheitswert. `if (d.until)` sah richtig aus und
+    // war eine Luecke: NaN und 0 sind falsy, das Feld waere uebersprungen worden - und ein
+    // kaputtes Ablaufdatum haette damit ein UNBEFRISTETES Pro ergeben. Genau die falsche
+    // Richtung. Aufgefallen im Pruefstand, nicht beim Lesen.
+    if ("until" in d && d.until !== null && d.until !== undefined) {
+      // Firestore liefert einen Timestamp mit toMillis(), ein JSON-Import eine Zahl.
+      const ms = typeof d.until === "number" ? d.until
+        : (d.until && typeof d.until.toMillis === "function" ? d.until.toMillis() : NaN);
+      if (!isFinite(ms)) return null;
+      until = ms;
+    }
+    const src = ["manual", "apple", "google"].indexOf(d.source) !== -1 ? d.source : "manual";
+    return { pro: true, source: src, until: until };
+  }
+  // Der EINE Check. Jede spaetere Sperre fragt hier - nie direkt proInfo ab, damit die
+  // Ablaufpruefung nicht an einer Stelle vergessen wird.
+  function isPro() {
+    if (!proInfo || proInfo.pro !== true) return false;
+    if (proInfo.until != null && proInfo.until <= Date.now()) return false;
+    return true;
+  }
   // Sperrfrist fuer die „von aussen geaendert"-Meldung (siehe onRemote).
   const REMOTE_TOAST_GAP = 60000;
   let lastRemoteToast = 0;
@@ -5068,6 +5154,19 @@
     stopCloudSync();
     syncUid = uid;
     setSyncStatus("connecting");
+    // Pro-Berechtigung (D1) mitlaufen lassen. Eigener Listener statt eines Feldes im
+    // Kontodokument - siehe isPro(). Laeuft VOR dem await unten los: er haengt an nichts,
+    // was der Merge erst herstellen muesste, und ein spaeter Start hiesse, dass die erste
+    // Zeichnung nach dem Login den Status noch nicht kennt.
+    if (window.CloudEntitlement) {
+      entitlementUnsub = window.CloudEntitlement.watch(uid, function (d) {
+        const vorher = isPro();
+        proInfo = sanitizeEntitlement(d);
+        // Nur zeichnen, wenn sich der Status tatsaechlich geaendert hat: der Listener
+        // feuert auch bei jedem Server-Echo, und render() mitten im Tippen kostet den Fokus.
+        if (isPro() !== vorher) { renderProfileChip(); render(); }
+      });
+    }
     await imagesReady;   // Paket A3: lokale Bilder muessen im State sein, bevor der Merge/pushNow
                          // laeuft - sonst schriebe der Baseline-Push bildlose Rezepte in die Cloud.
     try {
@@ -5246,6 +5345,10 @@
   function stopCloudSync() {
     if (syncUnsub) { try { syncUnsub(); } catch (e) { noteError("sync:unsubState", e); } syncUnsub = null; }
     if (syncUnsubRecipes) { try { syncUnsubRecipes(); } catch (e) { noteError("sync:unsubRecipes", e); } syncUnsubRecipes = null; }
+    // Berechtigung mit abmelden UND zuruecksetzen (D1): Bliebe proInfo stehen, behielte das
+    // naechste, fremde Konto auf demselben Geraet den Pro-Status des vorigen.
+    if (entitlementUnsub) { try { entitlementUnsub(); } catch (e) { noteError("sync:unsubEntitlement", e); } entitlementUnsub = null; }
+    proInfo = null;
     unwatchPending();    // Wartezustand-Listener haengt sonst weiter, obwohl niemand mehr angemeldet ist
     leaveGroupState();   // Gruppen-Listener haengen sonst weiter und schreiben in den alten Zustand
     clearTimeout(pushTimer);
@@ -10320,7 +10423,7 @@
       <h4>2. Hosting der Website (GitHub Pages)</h4>
       <p>Diese Website wird bei GitHub Pages gehostet, einem Dienst der GitHub, Inc., 88 Colin P. Kelly Jr. Street, San Francisco, CA 94107, USA. Beim Aufruf der Seite verarbeitet GitHub technisch notwendige Zugriffsdaten (z. B. deine IP-Adresse), um die Seite auszuliefern und deren Sicherheit zu gewährleisten. Rechtsgrundlage ist unser berechtigtes Interesse an einer sicheren und effizienten Bereitstellung (Art. 6 Abs. 1 lit. f DSGVO). Dabei kann eine Übermittlung in die USA erfolgen. Weitere Infos: <a href="https://docs.github.com/de/site-policy/privacy-policies/github-general-privacy-statement" target="_blank" rel="noopener">GitHub Privacy Statement</a>.</p>
       <h4>3. Welche Daten wir verarbeiten</h4>
-      <p>Bei der Registrierung: <strong>Name und E-Mail-Adresse</strong>. Bei Nutzung der App: die von dir angelegten <strong>Wochenpläne, Meals/Rezepte und ggf. Fotos</strong> sowie ein optionales <strong>Profilbild</strong> (als Kreis-Avatar zugeschnitten, in deinem Nutzerkonto gespeichert, nicht Teil von Teilen-Links) sowie – im Rahmen der Einführungsfragen nach der Registrierung, die zur Nutzung der App erforderlich sind – <strong>Geschlecht, Alter, Größe, Gewicht, Alltagsbewegung und Ziel</strong> sowie optional deine <strong>Trainingstage</strong> (Wochentag, Intensität und Dauer) und deinen <strong>Körperfettanteil</strong> (als grobe Stufe; Details zu beidem siehe Ziffer 3a). Erstellst du Teilen-Links, merkt sich dein Konto zusätzlich deren <strong>Kennungen</strong> (keine Klardaten, siehe Ziffer 8), damit sie beim Löschen deines Kontos zugeordnet und mitentfernt werden können. Nutzt du „Gemeinsam planen", speichert dein Konto außerdem die <strong>Kennung deiner Gruppe</strong> sowie die Kennungen der von dir erstellten <strong>Einladungslinks</strong> – aus demselben Grund (siehe Ziffer 8a); an einem in einer Gruppe angelegten Meal wird zusätzlich deine <strong>Nutzerkennung</strong> vermerkt, damit sichtbar ist, wer es angelegt hat. Weist du ein geplantes Gericht nur einem Teil der Gruppe zu (statt „für alle"), wird für dieses Gericht zusätzlich vermerkt, welche Mitglieder es per <strong>Nutzerkennung</strong> essen – sichtbar für die ganze Gruppe als kleines Farb-Badge auf der Meal-Karte. Stellst du in der Einkaufsliste eine <strong>Personenanzahl</strong> ein, wird auch diese gespeichert. Markierst du Meals als <strong>Favorit</strong>, wird diese Auswahl ebenfalls in deinem Konto gespeichert – nur für dich, auch in einer Gruppe. Stimmst du der Speicherung deines <strong>Gewichtsverlaufs</strong> ausdrücklich zu, speichern wir je Eintrag Monat und Gewicht sowie ein optionales <strong>Jahres-Zielgewicht</strong> (Details und Widerruf siehe Ziffer 3b). Diese Daten speichern wir, damit du dich anmelden und deine Planung geräteübergreifend nutzen kannst.</p>
+      <p>Bei der Registrierung: <strong>Name und E-Mail-Adresse</strong>. Bei Nutzung der App: die von dir angelegten <strong>Wochenpläne, Meals/Rezepte und ggf. Fotos</strong> sowie ein optionales <strong>Profilbild</strong> (als Kreis-Avatar zugeschnitten, in deinem Nutzerkonto gespeichert, nicht Teil von Teilen-Links) sowie – im Rahmen der Einführungsfragen nach der Registrierung, die zur Nutzung der App erforderlich sind – <strong>Geschlecht, Alter, Größe, Gewicht, Alltagsbewegung und Ziel</strong> sowie optional deine <strong>Trainingstage</strong> (Wochentag, Intensität und Dauer) und deinen <strong>Körperfettanteil</strong> (als grobe Stufe; Details zu beidem siehe Ziffer 3a). Erstellst du Teilen-Links, merkt sich dein Konto zusätzlich deren <strong>Kennungen</strong> (keine Klardaten, siehe Ziffer 8), damit sie beim Löschen deines Kontos zugeordnet und mitentfernt werden können. Nutzt du „Gemeinsam planen", speichert dein Konto außerdem die <strong>Kennung deiner Gruppe</strong> sowie die Kennungen der von dir erstellten <strong>Einladungslinks</strong> – aus demselben Grund (siehe Ziffer 8a); an einem in einer Gruppe angelegten Meal wird zusätzlich deine <strong>Nutzerkennung</strong> vermerkt, damit sichtbar ist, wer es angelegt hat. Weist du ein geplantes Gericht nur einem Teil der Gruppe zu (statt „für alle"), wird für dieses Gericht zusätzlich vermerkt, welche Mitglieder es per <strong>Nutzerkennung</strong> essen – sichtbar für die ganze Gruppe als kleines Farb-Badge auf der Meal-Karte. Stellst du in der Einkaufsliste eine <strong>Personenanzahl</strong> ein, wird auch diese gespeichert. Markierst du Meals als <strong>Favorit</strong>, wird diese Auswahl ebenfalls in deinem Konto gespeichert – nur für dich, auch in einer Gruppe. Stimmst du der Speicherung deines <strong>Gewichtsverlaufs</strong> ausdrücklich zu, speichern wir je Eintrag Kalenderwoche und Gewicht sowie ein optionales <strong>Jahres-Zielgewicht</strong> (Details und Widerruf siehe Ziffer 3b). Ist für dein Konto die kostenpflichtige <strong>Pro-Stufe</strong> freigeschaltet, speichern wir dazu ein eigenes Dokument mit dem <strong>Pro-Status</strong>, der <strong>Herkunft der Freischaltung</strong> (manuell, Apple oder Google) und gegebenenfalls einem <strong>Ablaufdatum</strong>. Dieses Dokument kann die App nur lesen, nicht ändern – gesetzt wird es ausschließlich von uns bzw. künftig vom Bezahlvorgang des jeweiligen App-Stores. Es wird mit deinem Konto gelöscht (Ziffer 10). Eine Bezahlfunktion gibt es derzeit nicht. Diese Daten speichern wir, damit du dich anmelden und deine Planung geräteübergreifend nutzen kannst.</p>
       <h4>3a. Ziel-Berechnung (Einführungsfragen)</h4>
       <p>Zur Nutzung der App gibst du bei den Einführungsfragen nach der Registrierung <strong>Geschlecht, Alter, Größe und Gewicht</strong> sowie deine Alltagsbewegung und dein Ziel an – ohne diese Angaben lässt sich kein Kalorien- und Makroziel berechnen und die App steht dir nicht zur Verfügung. Optional legst du zusätzlich deine <strong>Trainingstage</strong> fest – also an welchen Wochentagen du trainierst, mit welcher Intensität und wie lange; diese Angabe kannst du auch weglassen. Ebenfalls optional wählst du eine grobe Stufe für deinen <strong>Körperfettanteil</strong> – gibst du sie an, berechnet die App deinen Grundumsatz nach der Katch-McArdle-Formel über die fettfreie Masse statt nach Mifflin-St-Jeor; wählst du „Weiß ich nicht", bleibt es bei Mifflin-St-Jeor. Daraus berechnet die App direkt in deinem Browser deinen Tagesbedarf, deine Makronährstoffe und deinen BMI; an Trainingstagen zusätzlich den geschätzten Mehrbedarf durch die jeweilige Einheit. Übernimmst du das Ergebnis als dein Ziel, werden diese Angaben wie deine übrigen Plandaten lokal und – bei Cloud-Nutzung – in deinem Nutzerkonto (Cloud Firestore, siehe Ziffer 5) gespeichert, um sie geräteübergreifend verfügbar zu halten. Du kannst dein Ziel jederzeit über den Knopf „Ziel neu berechnen" im Wochenplan neu berechnen; die vorherigen Werte sind dann durch die neuen ersetzt. Rechtsgrundlage ist wie unter Ziffer 4 die Erfüllung des Nutzungsvertrags (Art. 6 Abs. 1 lit. b DSGVO). Diese Angaben werden <strong>nicht</strong> in Teilen-Links aufgenommen (siehe Ziffer 8).</p>
       <h4>3b. Gewichtsverlauf („Ziele &lt;Jahr&gt;")</h4>
@@ -10391,7 +10494,8 @@
          Lebensmittels (z. B. ein Apfel) –, räumt die App nach etwa drei Wochen von selbst
          weg – aber nur, wenn sie in keiner deiner Wochen mehr eingeplant sind. Über „Konto löschen" im Profilmenü kannst du dein
          Konto und deine Daten <strong>jederzeit selbst und sofort</strong> unwiderruflich löschen; alternativ kannst
-         du die Löschung auch per E-Mail an uns verlangen. Das schließt alle Teilen-Links für einzelne Meals ein, die deinem
+         du die Löschung auch per E-Mail an uns verlangen. Das schließt deinen <strong>Pro-Status</strong> (siehe Ziffer 3) ein, der zusammen mit dem Konto entfernt wird,
+         sowie alle Teilen-Links für einzelne Meals, die deinem
          Konto zugeordnet und diesem Gerät bzw. deinem synchronisierten Konto zum Löschzeitpunkt bekannt sind – sie
          werden automatisch mitentfernt; stellt sich beim Löschversuch heraus, dass ein Link ohnehin nicht mehr
          deinem Konto zugeordnet ist, wird er übersprungen. Schlägt das Entfernen aus einem anderen Grund fehl,
@@ -11190,7 +11294,7 @@
     if (!wrap) return;
     const delLabel = authMode === "cloud" ? "Konto löschen" : "Alle Daten löschen";
     const menu = el(`<div class="menu" role="menu">
-      <div class="mhead"><div class="mn">${esc(profile.name)}</div><div class="me">${esc(profile.email)}</div></div>
+      <div class="mhead"><div class="mn">${esc(profile.name)}${isPro() ? ` <span class="pro-badge">Pro</span>` : ""}</div><div class="me">${esc(profile.email)}</div></div>
       <button data-mi="settings" role="menuitem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1.08-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg>Einstellungen</button>
       <button data-mi="group" role="menuitem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>${syncGid ? "Gruppe" : "Gemeinsam planen"}</button>
       <hr>

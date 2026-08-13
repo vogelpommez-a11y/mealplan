@@ -200,6 +200,28 @@ Beispiele:
 
 Premium soll **mehr leisten**, nicht künstlich weniger freischalten.
 
+### Die Pro-Grenze (festgelegt 10.08.2026, Grundlage seit 13.08.2026 im Code)
+
+**Gratis läuft vollständig lokal — und dort uneingeschränkt.** Wochenplan, Einkaufsliste,
+Barcode, Ziele, Gewicht, Vorkochen, Meal-Teilen per Link: alles ohne Konto, ohne Sperre,
+ohne Zähler.
+
+**Pro bringt das, was tatsächlich Server kostet oder echte Automatik ist:** Cloud-Sync und
+Mehrgeräte-Nutzung, gemeinsam planen, den Auto-Wochenplaner, die erweiterte Bibliothek,
+adaptive Kalorienanpassung.
+
+Die Begründung nach außen ist damit ehrlich: laufende Kosten und Zusatznutzen — nichts, was
+vorher ging, wird weggenommen.
+
+Der **Gruppenmodus** wird Pro-Funktion. Er bleibt technisch unverändert, wird aber nicht als
+Haupt-Verkaufsargument beworben: vom Kostenfaktor zum Kaufgrund, ohne dass eine Zeile seines
+Codes wegfällt.
+
+Technisch ist der Status **serverseitig** verankert (`entitlements/{uid}`, für den Client nur
+lesbar) — eine UI-Sperre wäre keine Grenze, sondern eine Anzeige. Siehe
+`docs/ARCHITECTURES.md`. Gesperrt ist bislang **nichts**: erst muss der lokale Modus der
+Regelfall werden (D1b), sonst stünde eine Grenze vor einem Weg, den es noch nicht gibt.
+
 ## Langfristige Vision
 
 Entwicklung:

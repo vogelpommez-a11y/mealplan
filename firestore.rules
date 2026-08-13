@@ -41,6 +41,48 @@ service cloud.firestore {
       allow read, write: if request.auth != null && request.auth.uid == uid;
     }
 
+    // ---- Pro-Berechtigung (D1) ----
+    //
+    // Der Pro-Status steht BEWUSST NICHT in users/{uid}. Dieses Dokument darf die Nutzerin
+    // selbst schreiben — ein Feld "pro" darin wäre mit den Entwicklerwerkzeugen in zwei
+    // Sekunden auf true gesetzt, und die Sperre wäre eine reine Anzeige (CLAUDE.md §18:
+    // UI-Sperren sind keine Sicherheitsgrenze).
+    //
+    // Deshalb ein eigenes Dokument, das der Client nur LESEN darf. Geschrieben wird es
+    // ausschließlich serverseitig — vom Admin SDK bzw. später vom Webhook der
+    // Store-Abrechnung (App Store / Google Play). "allow write: if false" gilt nicht für
+    // das Admin SDK: das umgeht die Regeln grundsätzlich.
+    //
+    // Felder: { pro: bool, source: "manual"|"apple"|"google", until: timestamp|null }
+    //
+    // "get" statt "read": Niemand soll die Sammlung auflisten können — sie ist eine Liste
+    // aller zahlenden Konten (gleiche Falle wie bei shared/, siehe unten).
+    // Löschen ist die eine Ausnahme: Art. 17 DSGVO verlangt, dass beim Löschen des Kontos
+    // ALLE zuordenbaren Daten verschwinden, und dieses Dokument hängt nicht unter users/{uid}.
+    // Ein Client, der nur löschen darf, kann sich damit ausschließlich selbst schaden — er
+    // kann sich kein Pro geben. Anlegen und Ändern bleiben dem Server vorbehalten.
+    match /entitlements/{uid} {
+      allow get: if request.auth != null && request.auth.uid == uid;
+      allow delete: if request.auth != null && request.auth.uid == uid;
+      allow list, create, update: if false;
+    }
+
+    // NOCH NICHT SCHARF: Sobald Cloud-Sync und Gruppen Pro-Funktionen werden (D2b), kommt
+    // die serverseitige Durchsetzung über diesen Helfer in die users/- und groups/-Regeln:
+    //
+    //   function hasPro() {
+    //     return request.auth != null
+    //       && exists(/databases/$(database)/documents/entitlements/$(request.auth.uid))
+    //       && get(/databases/$(database)/documents/entitlements/$(request.auth.uid)).data.pro == true;
+    //   }
+    //
+    // Er steht hier als Kommentar und nicht als Code, weil ein Veröffentlichen in diesem
+    // Zustand JEDEN bestehenden Zugang sofort aussperren würde — auch den des Inhabers, der
+    // noch kein entitlements-Dokument hat. Reihenfolge laut Plan: erst D1b (lokaler Modus
+    // wird der Regelfall), dann D2b (Sperrpunkte), und erst dann diese Regel.
+    // Zu bedenken ist dabei der Lesezugriff: Ein Konto ohne Pro muss seine Daten weiterhin
+    // LESEN und EXPORTIEREN können (Art. 15/20 DSGVO) — gesperrt wird das Schreiben.
+
     // ---- Rezepte: eigenes Dokument je Meal, damit Fotos nicht mehr gegen die
     // 1-MiB-Grenze des Hauptdokuments laufen. Regeln vererben sich in Firestore
     // NICHT automatisch auf Subcollections - deshalb ein eigener Block, gleiche

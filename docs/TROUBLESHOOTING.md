@@ -1879,3 +1879,30 @@ Zwei Lehren, die beide zählen:
   ist die Gestenfalle aus `CLAUDE.md` §11, und er versteckt Filter am rechten Rand. Der Umbruch
   ist die richtige Lösung; jetzt steht er ausdrücklich da, statt sich aus einer nicht greifenden
   Regel zu ergeben.
+
+---
+
+## 76. `if (wert)` statt `if ("feld" in objekt)` — die Lücke zeigte in die falsche Richtung
+
+Die Prüfung der Pro-Berechtigung (D1) las das optionale Ablaufdatum so:
+
+```js
+let until = null;
+if (d.until) { … if (!isFinite(ms)) return null; until = ms; }
+```
+
+Sieht richtig aus: „ist ein Ablaufdatum da, prüfe es". Tatsächlich sind `NaN`, `0` und `""`
+**falsy** — bei einem kaputten `until` wurde der ganze Block übersprungen, `until` blieb `null`,
+und `null` bedeutet in diesem Datenmodell **unbefristet gültig**. Ein beschädigter Wert hätte
+also aus einem abgelaufenen Abo ein ewiges gemacht.
+
+**Die Regel:** Bei optionalen Feldern entscheidet das **Vorhandensein**, nicht der Wahrheitswert
+— `"until" in d && d.until !== null`. Und im Zweifel muss der Fehlerfall in die **restriktive**
+Richtung fallen: kein Pro, nicht unbegrenztes Pro.
+
+Gefunden hat das der Prüfstand, nicht das Lesen: Der Testfall `{ pro: true, until: NaN }` stand
+in der Liste, weil „kaputte Werte" dort immer mit hineingehören. Beim Durchlesen wäre die Zeile
+durchgegangen — sie liest sich vollkommen plausibel.
+
+Verwandt, gleiche Denkfalle: `sanitizeRecipe()` prüft `"mealPrep" in r` statt `if (r.mealPrep)`,
+weil sonst ein ausdrückliches `false` nicht von „gar nicht gesetzt" zu unterscheiden wäre.

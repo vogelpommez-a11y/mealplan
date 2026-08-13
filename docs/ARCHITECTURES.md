@@ -711,6 +711,63 @@ verschwunden. Der Filter lässt jetzt beide Objektformen zu und führt ein Objek
 und ohne Faktor auf die String-Form zurück (sonst schriebe das Gerät es sofort anders zurück,
 als es ankam).
 
+### Pro-Berechtigung: `entitlements/{uid}` und `isPro()` (D1)
+
+Der Pro-Status liegt in einer **eigenen Firestore-Sammlung**, die der Client nur lesen darf:
+
+```
+entitlements/{uid} = { pro: true, source: "manual"|"apple"|"google", until: timestamp|null }
+```
+
+**Warum nicht in `users/{uid}` oder in `state`:** Beides darf der Client schreiben. Ein Feld
+`pro` im Kontodokument wäre mit den Entwicklerwerkzeugen sofort auf `true` gesetzt, und die
+Firestore-Regel (`request.auth.uid == uid`) würde es anstandslos annehmen — die „Grenze" wäre
+eine Anzeige. `state` liegt zusätzlich im localStorage und würde einen abgelaufenen Status über
+jeden Neustart retten.
+
+Der Status ist deshalb eine **Laufzeitvariable** (`proInfo`), gesetzt ausschließlich vom
+`onSnapshot`-Listener in `startCloudSync()` und in `stopCloudSync()` wieder auf `null`. Ohne
+Zurücksetzen erbte das nächste Konto auf demselben Gerät den Pro-Status des vorigen.
+
+`isPro()` ist der **einzige** erlaubte Check. Er prüft bei jedem Aufruf auch den Ablauf — eine
+App, die über Mitternacht offen bleibt, verliert Pro sonst nie. Spätere Sperrpunkte (D2b) fragen
+`isPro()`, niemals `proInfo` direkt.
+
+`sanitizeEntitlement()` behandelt das Dokument wie jede fremde Quelle: nur ein echtes `true`
+zählt (kein `"true"`, keine `1`), unbekannte `source`-Werte fallen auf `"manual"`, und ein
+**unbrauchbares `until` ergibt kein Pro** statt eines unbefristeten (siehe
+`docs/TROUBLESHOOTING.md` §76).
+
+Kein Feature ist bisher gesperrt — D1 legt nur die Grenze und den Lesepfad an. Sichtbar ist der
+Status als „Pro"-Marke im Profilmenü. Die serverseitige Durchsetzung für Cloud-Sync und Gruppen
+steht als vorbereiteter, **noch nicht aktiver** Helfer in `firestore.rules`; sie scharf zu
+schalten, bevor D1b (lokaler Modus als Regelfall) steht, würde jeden bestehenden Zugang
+aussperren.
+
+**Löschung (Art. 17 DSGVO):** `deleteAccount()` entfernt `entitlements/{uid}` mit, bevor das
+Kontodokument fällt. Dafür erlaubt die Regel dem Client genau eine Schreibart: `delete`.
+`create` und `update` bleiben gesperrt — löschen kann sich der Nutzer nur selbst zum Nachteil
+gereichen, und ein Store-Webhook würde das Dokument beim nächsten Ereignis neu schreiben. Ohne
+diese Ausnahme bliebe ein verwaistes Dokument mit Personenbezug stehen, das niemand mehr
+entfernen kann. Gelöscht wird über `deleteBestEffort()`: Der Normalfall ist, dass es das
+Dokument gar nicht gibt — eine fehlende Berechtigung darf die Kontolöschung nicht blockieren
+(dieselbe Falle wie in `docs/TROUBLESHOOTING.md` §48).
+
+**Farbe:** Für Pro gibt es zwei Tokens, `--gold` (Fläche und Rand) und `--gold-ink` (Schrift,
+je Theme ein eigener Wert). Gold kommt in der normalen UI **nicht** vor — es ist für Premium
+reserviert und trägt im Light-Theme nicht als Fläche. Beide Werte sind gemessen, nicht
+geschätzt (siehe `docs/TESTING.md`).
+
+**Fehlerfall ist „kein Pro".** Der `onSnapshot`-Fehlerpfad setzt den Status auf `null`, statt
+den letzten bekannten zu behalten. Das ist bewusst restriktiv (fail closed): Eine Berechtigung,
+die bei Netz- oder Regelfehlern weiterläuft, ist keine Grenze. Der Preis ist, dass ein zahlender
+Zugang bei einem Ausfall kurz auf Gratis fällt — sobald mit D2b tatsächlich gesperrt wird, ist
+das erneut abzuwägen (`CLAUDE.md` §33: Sicherheit vor Komfort).
+
+**Offen, bewusst unverändert:** Das JSON-LD im `<head>` nennt `"price": "0"`. Das bleibt richtig,
+solange es nichts zu kaufen gibt — nachzuziehen ist es erst mit der Bezahlabwicklung (D7/Store),
+nicht mit D1.
+
 ### Vorkochen: `buildBatchList()`
 
 Dritte Auswertung desselben Wochenbestands, neben `buildShoppingList()` (Zutaten) und dem

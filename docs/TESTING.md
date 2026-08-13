@@ -261,6 +261,16 @@ Beispiele:
   *Falle beim Prüfstand selbst:* Ein XSS-Testwert mit `</script>` im String beendet den
   `<script>`-Block der Testdatei. Das Ergebnis war ein leeres `<pre>`, das wie ein stiller
   Testfehler aussah. Solche Nutzlasten mit `<img src=x onerror=…>` bauen oder maskieren.
+* **Pro-Berechtigung (D1)**: `sanitizeEntitlement()`/`isPro()` lassen sich ohne jede Abhängigkeit
+  schneiden. 16 Prüfungen, alle grün — und **eine echte Lücke gefunden**: `until: NaN` ergab
+  unbefristetes Pro (§76). Pflichtfälle für diesen Prüfstand: nur ein echtes `true` zählt
+  (kein `"true"`, keine `1`), Ablauf als Zahl **und** als Firestore-Timestamp (`toMillis()`),
+  kaputtes Ablaufdatum → **kein** Pro, unbekannte `source` → `"manual"`, und der Ablauf muss
+  **zur Laufzeit** greifen (Testfall: kurzer Ablauf, aktive Warteschleife, danach erneut
+  `isPro()` — eine App, die über Mitternacht offen bleibt, darf Pro nicht behalten).
+  Nicht automatisiert prüfbar ist die eigentliche Sicherheitsgrenze: dass `entitlements/{uid}`
+  vom Client **nicht schreibbar** ist. Das hängt am veröffentlichten Regelstand in der
+  Firebase-Konsole (`CLAUDE.md` §18) und ist nur dort nachweisbar.
 * **Vorkochen (C3)**: `buildBatchList()` braucht nur Stubs für `getRecipe`, `shopPersons` und
   `todayDayKey` — dazu `planDaysAhead()`, die gemeinsame Zeitraum-Quelle. 17 Prüfungen, alle grün — Bündelung, Sortierung, Portionsfaktor, aufgerundete
   Kochdurchgänge, Zuweisung statt Personenzahl, leerer Plan. Zwei Fälle, die man leicht
@@ -270,6 +280,24 @@ Beispiele:
   in `planDaysAhead()` wurde **`buildShoppingList()` gegengeprüft** (8 Prüfungen: ab heute,
   nächste Woche ganz, Sonntag, Personenzahl, Portionsfaktor) — ein geteilter Helfer ist erst
   dann eine Verbesserung, wenn der ältere Aufrufer sich nachweislich nicht verändert hat.
+
+### Kontrast messen, nicht schätzen — und `color-mix` über ein Canvas-Pixel auflösen
+
+Farbwerte lassen sich im Prüfstand berechnen (WCAG-Formel auf der relativen Luminanz), aber
+zwei Fallen machen die Zahlen sonst wertlos:
+
+* **`data-theme` wirkt nur am Wurzelelement.** Die Theme-Blöcke sind `:root[data-theme="dark"]`
+  — an einem `<div data-theme="dark">` passiert nichts. Der erste Anlauf maß Light und Dark
+  in einem Dokument und lieferte zweimal exakt dieselben Zahlen. **Identische Werte für beide
+  Themes sind das Warnsignal**, nicht das Ergebnis. Je Theme eine eigene Datei.
+* **`getComputedStyle()` liefert für `color-mix()` ein `color(srgb 0.78 0.63 0.15)`** — Werte
+  von 0 bis 1. Ein Regex, der Zahlen einsammelt, liest daraus 0–255 und macht aus Hellgold
+  fast Schwarz (gemeldet wurden 20:1 zwischen zwei hellen Flächen). Zuverlässig ist der Umweg
+  über ein 1×1-Canvas: `ctx.fillStyle = farbe; fillRect; getImageData` gibt echte RGBA-Bytes
+  für **jede** CSS-Farbe. Halbdurchlässige Werte danach selbst auf den Hintergrund rechnen.
+
+So gemessen für die Pro-Marke (D1): Schrift auf der Marke **5,17:1** in Light und **7,93:1** in
+Dark. Der erste Entwurf lag bei 4,38:1 und damit unter AA — sichtbar war das nicht, nur messbar.
 
 ### `syntax-check.py` läuft auch auf Prüfständen
 
