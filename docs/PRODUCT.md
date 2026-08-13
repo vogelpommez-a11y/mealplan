@@ -217,6 +217,20 @@ Der **Gruppenmodus** wird Pro-Funktion. Er bleibt technisch unverändert, wird a
 Haupt-Verkaufsargument beworben: vom Kostenfaktor zum Kaufgrund, ohne dass eine Zeile seines
 Codes wegfällt.
 
+**Der Einstieg führt seit 13.08.2026 (D1b) in den lokalen Modus.** Wer die App zum ersten Mal
+öffnet, sieht „Ohne Konto loslegen" als Hauptweg und „Mit Konto anmelden" daneben. Vorher stand
+dort „Konto erstellen" — eine Anmeldemaske vor einer App, die ohne Konto vollständig
+funktioniert. Ohne diesen Schritt trägt die Pro-Grenze nicht: Ein Konto kann erst dann ein
+Aufstieg sein, wenn es keine Eintrittskarte mehr ist.
+
+Zwei Folgen, die dazugehören:
+
+* **Wer schon lokal arbeitet, sieht nie wieder eine Anmeldemaske.** Bisher landete auch jemand
+  mit fertigem lokalem Profil vor der Cloud-Anmeldung, sobald Firebase erreichbar war.
+* **Die E-Mail-Adresse im lokalen Profil ist optional.** Sie verlässt das Gerät nie und wird für
+  nichts gebraucht — sie zwingend abzufragen war das Gegenteil von Datenminimierung und eine
+  Hürde vor dem ersten Meal.
+
 Technisch ist der Status **serverseitig** verankert (`entitlements/{uid}`, für den Client nur
 lesbar) — eine UI-Sperre wäre keine Grenze, sondern eine Anzeige. Siehe
 `docs/ARCHITECTURES.md`. Gesperrt ist bislang **nichts**: erst muss der lokale Modus der

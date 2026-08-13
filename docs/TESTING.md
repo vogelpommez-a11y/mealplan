@@ -261,6 +261,13 @@ Beispiele:
   *Falle beim Prüfstand selbst:* Ein XSS-Testwert mit `</script>` im String beendet den
   `<script>`-Block der Testdatei. Das Ergebnis war ein leeres `<pre>`, das wie ein stiller
   Testfehler aussah. Solche Nutzlasten mit `<img src=x onerror=…>` bauen oder maskieren.
+* **Einstiegspfad (D1b)**: Der Verzweigungsblock aus `handleCloudUser()` samt
+  `enterLocalMode()` lässt sich schneiden; die fünf Bildschirme sind Attrappen, die nur ihren
+  Namen notieren. 12 Prüfungen, alle grün. Wichtig sind die drei Lagen ohne angemeldeten
+  Cloud-Nutzer: **kein Profil → die Wahl**, **lokales Profil → direkt in die App**,
+  **Cloud-Profil → Anmeldemaske**. Dazu die Gegenprobe, dass ein zweiter `enterLocalMode()`
+  wirkungslos bleibt (`cloudSignalled`) — sonst überschriebe ein spät eintreffendes
+  Cloud-Signal den bereits gezeigten lokalen Weg.
 * **Pro-Berechtigung (D1)**: `sanitizeEntitlement()`/`isPro()` lassen sich ohne jede Abhängigkeit
   schneiden. 16 Prüfungen, alle grün — und **eine echte Lücke gefunden**: `until: NaN` ergab
   unbefristetes Pro (§76). Pflichtfälle für diesen Prüfstand: nur ein echtes `true` zählt

@@ -711,6 +711,28 @@ verschwunden. Der Filter lässt jetzt beide Objektformen zu und führt ein Objek
 und ohne Faktor auf die String-Form zurück (sonst schriebe das Gerät es sofort anders zurück,
 als es ankam).
 
+### Einstieg: welcher Bildschirm wann (D1b)
+
+`handleCloudUser(user)` entscheidet, was nach dem Start zu sehen ist:
+
+| Lage | Bildschirm |
+|---|---|
+| Cloud-Nutzer, E-Mail bestätigt | App + `startCloudSync()` |
+| Cloud-Nutzer, unbestätigt | Warteseite |
+| niemand angemeldet, **kein** Profil | `renderAuthChoice()` — die Wahl, lokal als Standard |
+| niemand angemeldet, **lokales** Profil | direkt in die App |
+| niemand angemeldet, **Cloud-Profil** | Anmeldemaske (die Daten liegen in der Cloud) |
+
+Vor D1b stand in den letzten drei Zeilen immer die Cloud-Anmeldung. Damit sah auch jemand mit
+fertigem lokalem Profil eine Anmeldemaske, obwohl seine Daten auf dem Gerät liegen.
+
+`enterLocalMode()` (Firebase nicht erreichbar, Timeout nach 6 s, Platzhalter-Config) überspringt
+die Wahl bewusst: Ohne Cloud gibt es nichts zu wählen, der zweite Knopf wäre eine tote
+Alternative.
+
+`authMode` bleibt die einzige Quelle dafür, ob gerade Cloud-Funktionen möglich sind — daran
+hängen Teilen-Links, Gruppen und der Sync-Punkt in der Kopfzeile.
+
 ### Pro-Berechtigung: `entitlements/{uid}` und `isPro()` (D1)
 
 Der Pro-Status liegt in einer **eigenen Firestore-Sammlung**, die der Client nur lesen darf:
