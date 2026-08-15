@@ -1,16 +1,23 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Meal-Bilder ueber die Adobe Firefly Services API erzeugen.
+Meal-Bilder fuer die kuratierte Bibliothek erzeugen (OpenAI Images API).
 
-Warum Firefly und nicht ein anderer Anbieter: Firefly ist auf ausschliesslich lizenziertem
-Material trainiert und bietet als einziger eine vertragliche Freistellung bei
-Urheberrechtsanspruechen. Bei einem Produkt mit Impressum und zwei Store-Einreichungen ist
-das den Aufpreis wert (~0,02 $/Bild, Stand August 2026).
+WARUM NICHT ADOBE FIREFLY, obwohl es als einziger Anbieter eine vertragliche Freistellung
+bei Urheberrechtsanspruechen bietet: Die Firefly Services API ist am 15.08.2026 in der Adobe
+Developer Console geprueft worden - JEDER Firefly-Eintrag ist dort gesperrt, mit der
+Begruendung "License required. Your organization does not have a license to access this API".
+Sie laeuft ausschliesslich ueber Unternehmenslizenzen mit Vertriebsvertrag. Fuer rund 115
+Bilder im Jahr steht das in keinem Verhaeltnis.
+
+Das Restrisiko ohne Freistellung ist hier gering: Es geht um "Teller mit Essen von oben" -
+keine Marken, keine Personen, keine ikonischen Kompositionen, deren Nachbildung jemand
+einklagen wuerde.
 
 Rechtlich zu wissen:
   * KI-Bilder haben in der EU keinen Urheberrechtsschutz (kein menschlicher Schoepfer).
-    Massgeblich sind allein die Nutzungsbedingungen des Anbieters.
+    Massgeblich sind allein die Nutzungsbedingungen des Anbieters - bei OpenAI ist die
+    kommerzielle Nutzung erlaubt.
   * Eine Kennzeichnungspflicht besteht NICHT: Der EU AI Act (Art. 50 Abs. 4, in Kraft seit
     02.08.2026) verlangt Offenlegung nur bei Deep Fakes - also Inhalten, die realen Personen,
     Orten oder Ereignissen aehneln. Ein generiertes Steak ist keiner.
@@ -20,8 +27,7 @@ Keine neuen Abhaengigkeiten (CLAUDE.md §12): nur die Standardbibliothek und Pil
 ohnehin installiert ist. Absichtlich kein `requests`.
 
 Zugangsdaten in .env im Projektwurzelverzeichnis (dort bereits gitignored):
-    FIREFLY_CLIENT_ID=...
-    FIREFLY_CLIENT_SECRET=...
+    OPENAI_API_KEY=sk-...
 
 Aufrufe:
     python tools/meal-bilder.py --probe                      # ein einziges Bild, Kostentest
@@ -33,9 +39,9 @@ Aufrufe:
 import argparse
 import json
 import os
+import re
 import sys
 import urllib.request
-import urllib.parse
 import urllib.error
 from io import BytesIO
 from pathlib import Path
@@ -53,13 +59,11 @@ STIL = ("top-down flat lay food photography, natural daylight from the left, "
 
 # Ebenfalls eingefroren: Ein anderes Modell erzeugt einen anderen Look. Nur bewusst wechseln
 # - und dann alle Bilder neu.
-MODELL = "firefly_v3"
-API_GENERATE = "https://firefly-api.adobe.io/v3/images/generate"
-API_TOKEN = "https://ims-na1.adobelogin.com/ims/token/v3"
-SCOPE = "openid,AdobeID,firefly_api,ff_apis"
+MODELL = "gpt-image-2"
+API_GENERATE = "https://api.openai.com/v1/images/generations"
 
-# 1408x1024 ist das 4:3-nahe Format aus den erlaubten Groessen - passt zu den Meal-Karten.
-BREITE, HOEHE = 1408, 1024
+# Querformat passt zu den Meal-Karten. Muss eine der vom Modell erlaubten Groessen sein.
+GROESSE = "1536x1024"
 # Auf diese Breite wird fuers Repo verkleinert. 100 Bilder x ~70 KB bleiben so ertraeglich.
 ZIEL_BREITE = 800
 
@@ -67,11 +71,17 @@ ZIEL_BREITE = 800
 MAX_BILDER = 60
 
 CREDIT_VORLAGE = {
-    "urheber": "KI-generiert (Adobe Firefly, %s)" % MODELL,
-    "lizenz": "Adobe Firefly Nutzungsbedingungen (kommerzielle Nutzung erlaubt)",
-    "lizenzUrl": "https://www.adobe.com/legal/licenses-terms/adobe-gen-ai-user-guidelines.html",
-    "quelle": "generiert mit Adobe Firefly Services API"
+    "urheber": "KI-generiert (OpenAI, %s)" % MODELL,
+    "lizenz": "OpenAI Terms of Use (kommerzielle Nutzung erlaubt)",
+    "lizenzUrl": "https://openai.com/policies/terms-of-use",
+    "quelle": "generiert mit der OpenAI Images API"
 }
+
+# Herkunftsnachweis. Je Bild werden Prompt, Modell und Datum protokolliert - das ist der
+# Beleg dafuer, WIE ein Bild entstanden ist. Er schuetzt vor keinem Anspruch, aber er
+# belegt im Streitfall, dass nichts von fremden Seiten uebernommen wurde. Die Datei liegt
+# neben den Bildern und wird mit eingecheckt (sie enthaelt keine Geheimnisse).
+PROTOKOLL = "bilder-protokoll.json"
 
 
 def lade_env():
@@ -84,23 +94,7 @@ def lade_env():
                 continue
             k, v = zeile.split("=", 1)
             os.environ.setdefault(k.strip(), v.strip().strip('"\''))
-    cid = os.environ.get("FIREFLY_CLIENT_ID")
-    secret = os.environ.get("FIREFLY_CLIENT_SECRET")
-    return cid, secret
-
-
-def hole_token(cid, secret):
-    """Zugriffstoken von Adobe IMS. 24 h gueltig - fuer einen Lauf genuegt eines."""
-    daten = urllib.parse.urlencode({
-        "grant_type": "client_credentials",
-        "client_id": cid,
-        "client_secret": secret,
-        "scope": SCOPE
-    }).encode()
-    req = urllib.request.Request(API_TOKEN, data=daten, method="POST")
-    req.add_header("Content-Type", "application/x-www-form-urlencoded")
-    with urllib.request.urlopen(req, timeout=30) as a:
-        return json.loads(a.read())["access_token"]
+    return os.environ.get("OPENAI_API_KEY")
 
 
 def prompt_fuer(name, zutaten=None):
@@ -116,28 +110,37 @@ def prompt_fuer(name, zutaten=None):
     return ", ".join(teile)
 
 
-def generiere(token, cid, prompt, anzahl):
-    """Liefert die URLs der erzeugten Bilder."""
+def generiere(key, prompt, anzahl):
+    """Liefert die Rohdaten der erzeugten Bilder.
+
+    Die API antwortet je nach Modell mit b64_json ODER mit einer URL - beides wird
+    behandelt, damit ein Modellwechsel das Skript nicht stillschweigend zerlegt.
+    """
     koerper = json.dumps({
+        "model": MODELL,
         "prompt": prompt,
-        "numVariations": anzahl,
-        "size": {"width": BREITE, "height": HOEHE}
+        "n": anzahl,
+        "size": GROESSE
     }).encode()
     req = urllib.request.Request(API_GENERATE, data=koerper, method="POST")
     req.add_header("Content-Type", "application/json")
-    req.add_header("Accept", "application/json")
-    req.add_header("x-api-key", cid)
-    req.add_header("Authorization", "Bearer " + token)
-    with urllib.request.urlopen(req, timeout=120) as a:
+    req.add_header("Authorization", "Bearer " + key)
+    with urllib.request.urlopen(req, timeout=180) as a:
         antwort = json.loads(a.read())
-    return [o["image"]["url"] for o in antwort.get("outputs", [])]
+    roh = []
+    for eintrag in antwort.get("data", []):
+        if eintrag.get("b64_json"):
+            import base64
+            roh.append(base64.b64decode(eintrag["b64_json"]))
+        elif eintrag.get("url"):
+            with urllib.request.urlopen(eintrag["url"], timeout=120) as b:
+                roh.append(b.read())
+    return roh
 
 
-def speichere_webp(url, ziel):
-    """Herunterladen und als WebP verkleinern - Ladezeit ist in dieser App ein Produktwert."""
+def speichere_webp(roh, ziel):
+    """Als WebP verkleinern - Ladezeit ist in dieser App ein Produktwert."""
     from PIL import Image
-    with urllib.request.urlopen(url, timeout=120) as a:
-        roh = a.read()
     bild = Image.open(BytesIO(roh)).convert("RGB")
     if bild.width > ZIEL_BREITE:
         h = round(bild.height * ZIEL_BREITE / bild.width)
@@ -148,13 +151,18 @@ def speichere_webp(url, ziel):
 
 
 def slug(name):
+    """Dateiname aus dem Gerichtnamen.
+
+    Mehrere Sonderzeichen hintereinander ergeben EINEN Bindestrich - "Bowl (vegan), scharf"
+    wurde sonst zu "bowl-vegan--scharf". Aufgefallen im Pruefstand, nicht beim Lesen.
+    """
     tausch = {"ä": "ae", "ö": "oe", "ü": "ue", "ß": "ss", "Ä": "ae", "Ö": "oe", "Ü": "ue"}
     s = "".join(tausch.get(z, z) for z in name).lower()
-    return "".join(z if z.isalnum() else "-" for z in s).strip("-").replace("--", "-")
+    return re.sub(r"[^a-z0-9]+", "-", s).strip("-")
 
 
 def main():
-    p = argparse.ArgumentParser(description="Meal-Bilder ueber Adobe Firefly erzeugen")
+    p = argparse.ArgumentParser(description="Meal-Bilder ueber die OpenAI Images API erzeugen")
     p.add_argument("--meals", nargs="+", help="Gerichtnamen")
     p.add_argument("--datei", help="Textdatei, ein Gerichtname je Zeile")
     p.add_argument("--varianten", type=int, default=2,
@@ -185,39 +193,49 @@ def main():
         print("\n%d Bilder waeren das (%d Gerichte x %d Varianten)." % (gesamt, len(namen), args.varianten))
         return 0
 
-    cid, secret = lade_env()
-    if not cid or not secret:
-        print("Es fehlen die Zugangsdaten. Lege im Projektwurzelverzeichnis eine .env an")
+    api_key = lade_env()
+    if not api_key:
+        print("Es fehlt der Zugangsschluessel. Lege im Projektwurzelverzeichnis eine .env an")
         print("(die ist bereits gitignored) mit:")
-        print("    FIREFLY_CLIENT_ID=...")
-        print("    FIREFLY_CLIENT_SECRET=...")
-        print("Beides steht in der Adobe Developer Console unter deinem Firefly-Projekt")
-        print("(Berechtigungsart: OAuth Server-to-Server).")
+        print("    OPENAI_API_KEY=sk-...")
+        print("Den Schluessel gibt es unter https://platform.openai.com/api-keys;")
+        print("dort muss ausserdem Guthaben aufgeladen sein.")
         return 1
 
-    print("Hole Zugriffstoken ...")
-    try:
-        token = hole_token(cid, secret)
-    except urllib.error.HTTPError as e:
-        print("Token abgelehnt (%s). Stimmen Client-ID und Secret?" % e.code)
-        print(e.read().decode("utf-8", "replace")[:400])
-        return 1
-
+    from datetime import datetime, timezone
     ziel_ordner = WURZEL / args.out
+    protokoll_pfad = ziel_ordner / PROTOKOLL
+    protokoll = {}
+    if protokoll_pfad.exists():
+        protokoll = json.loads(protokoll_pfad.read_text(encoding="utf-8"))
     credits = {}
     for name in namen:
         key = slug(name)
+        prompt = prompt_fuer(name)
         print("\n%s" % name)
         try:
-            urls = generiere(token, cid, prompt_fuer(name), args.varianten)
+            bilder = generiere(api_key, prompt, args.varianten)
         except urllib.error.HTTPError as e:
             print("  FEHLER %s: %s" % (e.code, e.read().decode("utf-8", "replace")[:300]))
             continue
-        for i, u in enumerate(urls, 1):
-            ziel = ziel_ordner / ("%s%s.webp" % (key, "" if len(urls) == 1 else "-%d" % i))
-            groesse = speichere_webp(u, ziel)
+        for i, roh in enumerate(bilder, 1):
+            datei = "%s%s.webp" % (key, "" if len(bilder) == 1 else "-%d" % i)
+            ziel = ziel_ordner / datei
+            groesse = speichere_webp(roh, ziel)
             print("  %s  (%.0f KB)" % (ziel.relative_to(WURZEL), groesse / 1024))
+            # Herkunftsnachweis: WAS wurde WOMIT und WANN erzeugt.
+            protokoll[datei] = {
+                "gericht": name, "prompt": prompt, "modell": MODELL,
+                "groesse": GROESSE, "erzeugt": datetime.now(timezone.utc).isoformat(timespec="seconds")
+            }
         credits[key] = dict(CREDIT_VORLAGE, titel=name)
+
+    if protokoll:
+        protokoll_pfad.parent.mkdir(parents=True, exist_ok=True)
+        protokoll_pfad.write_text(json.dumps(protokoll, ensure_ascii=False, indent=2), encoding="utf-8")
+        print("\nHerkunftsnachweis: %s (%d Eintraege)" % (protokoll_pfad.relative_to(WURZEL), len(protokoll)))
+        print("SICHTPRUEFUNG NICHT VERGESSEN: Bilder mit Text, Logos oder Marken aussortieren -")
+        print("das ist der realistischste rechtliche Fallstrick, nicht das Motiv selbst.")
 
     if credits:
         print("\n--- Fuer PHOTO_CREDITS in index.html (PHOTOS muss dieselben Schluessel haben) ---")
