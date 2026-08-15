@@ -6,7 +6,13 @@ rules_version = '2';
 // Firebase-Konsole unter Firestore Database -> Regeln eingefügt und VERÖFFENTLICHT wird.
 // Sie liegt hier im Repo, damit nachvollziehbar ist, was gelten soll.
 //
-// Stand: 2026-08-15
+// Stand: 2026-08-15 — DIESE FASSUNG IST SEIT DEM 15.08.2026 VEROEFFENTLICHT UND WIRKSAM.
+// (Im Regel-Editor gegengeprueft. Repo-Stand und Konsole sind damit identisch.)
+//
+// Bewusst in Kauf genommen: Zum Zeitpunkt der Veroeffentlichung gab es acht Gruppen, aber
+// nur EIN entitlements-Dokument. Die uebrigen sieben Gruppen koennen seitdem nicht mehr
+// gemeinsam planen (lesen ja, schreiben nein). Das ist kein Fehler, sondern die Pro-Grenze -
+// Entscheidung des Inhabers in Kenntnis der Folge.
 //
 // ACHTUNG, VOR DEM VEROEFFENTLICHEN LESEN (D2b):
 // Diese Fassung macht das GRUENDEN einer Gruppe und das Einladen zu Pro-Funktionen.
