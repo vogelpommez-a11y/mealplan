@@ -1298,6 +1298,17 @@
      padding-left und die Lupe laege auf dem Platzhaltertext. */
   .recipe-search input[type="search"] { padding-left: 34px; }
   .recipes { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
+  /* Rezeptbuch: dieselbe Karte wie die eigenen Meals, nur mit einem Fuss statt der
+     Bearbeiten-Aktionen. Bewusst keine eigene Kartenoptik - es ist derselbe Gegenstand,
+     nur noch nicht der eigene. */
+  .cb-hint { margin: 0 0 14px; color: var(--text-muted); font-size: 13px; }
+  .cb-foot { margin-top: 10px; }
+  .cb-foot .btn { width: 100%; }
+  /* "In deinen Meals" ist eine Feststellung, kein Knopf - deshalb ohne Rahmen und in der
+     gedaempften Schrift. Gleiche Hoehe wie der Knopf daneben, damit die Karten in einer
+     Reihe nicht unterschiedlich hoch werden. */
+  .cb-drin { display: flex; align-items: center; justify-content: center; gap: 6px; min-height: 34px;
+             color: var(--text-muted); font-size: 13px; font-weight: 600; }
   .rcard {
     position: relative;
     background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
@@ -3857,6 +3868,107 @@
       steps: "Kartoffeln würfeln, mit Olivenöl und Rosmarin vermengen und im Ofen bei 200 °C ca. 25 Min. rösten. Steak salzen, pfeffern und in einer heißen Pfanne von jeder Seite 2–3 Min. braten, kurz ruhen lassen. Brokkoli dämpfen und alles zusammen anrichten." },
   ];
 
+  // ---------- Rezeptbuch ----------
+  // Ein KATALOG, kein Bestand: Diese Meals liegen nicht in state.recipes, sondern werden
+  // im Meals-Reiter unter "Rezeptbuch" gezeigt und per Tipp uebernommen. Erst dabei
+  // entsteht eine Kopie im eigenen Konto.
+  //
+  // Warum nicht wie SEED direkt in die Sammlung: 30 fremde Meals im eigenen Bestand
+  // erdruecken die eigenen, kosten bei jedem Konto denselben Cloud-Speicher, und ein
+  // Veganer schleppt zwei Drittel mit, die er nie kocht. Der Katalog kostet nichts, bis
+  // jemand zugreift.
+  //
+  // `id` ist der dauerhafte Schluessel: Er landet beim Uebernehmen als `lib` an der Kopie
+  // (siehe adoptFromCookbook) und verbindet sie mit dem Original - so laesst sich spaeter
+  // eine korrigierte Fassung zuordnen. Er darf sich NIE aendern, auch wenn der Name sich
+  // aendert. Zugleich der Dateiname des Bildes in img/library/.
+  //
+  // Mit Pro waechst genau diese Ansicht auf die grosse Bibliothek, die monatlich wechselt -
+  // deshalb dieselbe Struktur und derselbe Uebernahme-Weg (siehe plans/Auto_Wochenplaner_D2.MD).
+  const COOKBOOK = [
+    { id: "overnight-oats-soja-beeren", name: "Overnight Oats mit Sojajoghurt und Beeren",
+      category: "Frühstück", time: 5, tags: ["vegan", "vegetarisch", "highprotein", "laktosefrei"], mealPrep: true,
+      nutrition: { kcal: 420, carbs: 52, protein: 22, fat: 12 },
+      ingredients: [
+        { name: "Haferflocken", grams: 60 },
+        { name: "Sojajoghurt", grams: 200 },
+        { name: "Heidelbeeren", grams: 80 },
+        { name: "Erdnussmus", grams: 15 },
+        "Zimt"
+      ],
+      steps: "Haferflocken mit Sojajoghurt verrühren und über Nacht in den Kühlschrank stellen. Am Morgen Beeren und Erdnussmus daraufgeben, mit Zimt bestreuen." },
+
+    { id: "rührei-avocadobrot", name: "Rührei mit Avocado auf Vollkornbrot",
+      category: "Frühstück", time: 10, tags: ["vegetarisch", "highprotein"], mealPrep: false,
+      nutrition: { kcal: 480, carbs: 32, protein: 26, fat: 27 },
+      ingredients: [
+        { name: "Eier", grams: 3, unit: "st" },
+        { name: "Vollkornbrot", grams: 80 },
+        { name: "Avocado", grams: 70 },
+        "Schnittlauch, Salz, Pfeffer"
+      ],
+      steps: "Eier verquirlen, salzen und bei mittlerer Hitze langsam stocken lassen – so bleiben sie cremig. Brot toasten, Avocado darauf zerdrücken, Rührei daraufgeben und mit Schnittlauch bestreuen." },
+
+    { id: "rotes-linsen-dal", name: "Rotes Linsen-Dal mit Reis",
+      category: "Hauptgericht", time: 25, tags: ["vegan", "vegetarisch", "glutenfrei", "laktosefrei", "highprotein"], mealPrep: true,
+      nutrition: { kcal: 590, carbs: 88, protein: 24, fat: 14 },
+      ingredients: [
+        { name: "Rote Linsen", grams: 100 },
+        { name: "Basmatireis", grams: 70 },
+        { name: "Kokosmilch", grams: 100, unit: "ml" },
+        { name: "Passierte Tomaten", grams: 150 },
+        { name: "Zwiebel", grams: 1, unit: "st" },
+        "Ingwer, Knoblauch, Kurkuma, Kreuzkümmel, Salz"
+      ],
+      steps: "Zwiebel, Ingwer und Knoblauch anschwitzen, Gewürze kurz mitrösten. Linsen, Tomaten und Kokosmilch zugeben und 15–20 Min. köcheln, bis die Linsen zerfallen. Reis separat garen und dazu servieren." },
+
+    { id: "haehnchen-bowl-brokkoli", name: "Hähnchen-Bowl mit Brokkoli und Reis",
+      category: "Hauptgericht", time: 30, tags: ["highprotein", "glutenfrei", "laktosefrei"], mealPrep: true,
+      nutrition: { kcal: 610, carbs: 66, protein: 52, fat: 12 },
+      ingredients: [
+        { name: "Hähnchenbrust", grams: 180 },
+        { name: "Basmatireis", grams: 80 },
+        { name: "Brokkoli", grams: 200 },
+        { name: "Karotte", grams: 1, unit: "st" },
+        "1 EL Sesamöl, Sojasauce, Paprikapulver"
+      ],
+      steps: "Reis garen. Hähnchen würfeln, würzen und scharf anbraten. Brokkoli und Karotte 4–5 Min. dämpfen, damit sie bissfest bleiben. Alles in einer Schüssel anrichten und mit Sojasauce abschmecken." },
+
+    { id: "ofen-feta-kichererbsen", name: "Ofen-Feta mit Kichererbsen und Tomaten",
+      category: "Hauptgericht", time: 30, tags: ["vegetarisch", "glutenfrei"], mealPrep: true,
+      nutrition: { kcal: 560, carbs: 42, protein: 27, fat: 30 },
+      ingredients: [
+        { name: "Feta", grams: 100 },
+        { name: "Kichererbsen (Dose, abgetropft)", grams: 200 },
+        { name: "Kirschtomaten", grams: 200 },
+        { name: "Zwiebel", grams: 1, unit: "st" },
+        "1 EL Olivenöl, Oregano, Salz, Pfeffer"
+      ],
+      steps: "Kichererbsen, Tomaten und Zwiebel mit Öl und Oregano in eine Auflaufform geben, den Feta in die Mitte setzen. Bei 200 °C etwa 25 Min. backen, dann alles grob verrühren." },
+
+    { id: "tofu-gemuesepfanne", name: "Tofu-Gemüsepfanne mit Reisnudeln",
+      category: "Hauptgericht", time: 20, tags: ["vegan", "vegetarisch", "glutenfrei", "laktosefrei", "highprotein"], mealPrep: true,
+      nutrition: { kcal: 540, carbs: 62, protein: 30, fat: 18 },
+      ingredients: [
+        { name: "Räuchertofu", grams: 180 },
+        { name: "Reisnudeln", grams: 70 },
+        { name: "Paprika", grams: 1, unit: "st" },
+        { name: "Zuckerschoten", grams: 100 },
+        "1 EL Sesamöl, Sojasauce (glutenfrei), Ingwer"
+      ],
+      steps: "Reisnudeln nach Packungsangabe einweichen. Tofu würfeln und in Sesamöl knusprig braten, Gemüse zugeben und 3–4 Min. mitbraten. Nudeln unterheben und mit Sojasauce und Ingwer abschmecken." },
+
+    { id: "skyr-beeren-nuesse", name: "Skyr mit Beeren und Walnüssen",
+      category: "Snack", time: 3, tags: ["vegetarisch", "highprotein", "glutenfrei"], mealPrep: false,
+      nutrition: { kcal: 260, carbs: 18, protein: 24, fat: 11 },
+      ingredients: [
+        { name: "Skyr", grams: 200 },
+        { name: "Himbeeren", grams: 80 },
+        { name: "Walnüsse", grams: 15 }
+      ],
+      steps: "Skyr in eine Schüssel geben, Beeren und grob gehackte Walnüsse darüberstreuen." },
+  ];
+
   // Erkennt die mitgelieferten Beispiel-Meals: gleicher Name UND unveränderte Zubereitung.
   // Sobald der Nutzer ein Beispiel bearbeitet, gilt es als sein eigenes (kein Badge mehr).
   function isExample(r) {
@@ -5476,6 +5588,31 @@
   // jedem gescannten Riegel laenger wird, ist genau das Gegenteil von "Entscheidungen
   // abnehmen". Ueber Plan, Einkaufsliste und Druck bleiben die Produkte erreichbar.
   function libraryRecipes() { return state.recipes.filter(r => r.quick !== true); }
+
+  // ---------- Rezeptbuch: was zeigen, was ist schon uebernommen ----------
+  // Gezeigt wird nur, was zum Ernaehrungsprofil passt - das ist der erste sichtbare Nutzen
+  // des Profils (vorher wirkte es nur im Hintergrund). Wer "Alles" gewaehlt hat, sieht alles.
+  function cookbookVisible() { return COOKBOOK.filter(r => fitsDiet(r)); }
+  // Schon uebernommen? Ueber `lib` und nicht ueber den Namen: Wer die Kopie umbenennt oder
+  // anpasst, soll sie nicht ein zweites Mal angeboten bekommen.
+  function isAdopted(id) { return state.recipes.some(r => r && r.lib === id); }
+  // Uebernehmen = KOPIE ins eigene Konto. Das Original bleibt im Katalog stehen; die Kopie
+  // gehoert dem Nutzer und darf frei bearbeitet werden. `lib` bleibt daran haengen, damit
+  // spaeter eine korrigierte Fassung zugeordnet werden kann - und damit die Karte zeigen
+  // kann, woher das Meal stammt.
+  function adoptFromCookbook(id) {
+    const vorlage = COOKBOOK.find(r => r.id === id);
+    if (!vorlage || isAdopted(id)) return;
+    // Die Katalog-`id` NICHT als Rezept-id uebernehmen: state.recipes braucht eigene,
+    // eindeutige Schluessel (uid()), sonst kollidieren zwei Konten in derselben Gruppe.
+    const kopie = sanitizeRecipe(Object.assign({}, vorlage, { id: uid(), lib: vorlage.id }));
+    state.recipes.push(kopie);
+    save(); render();
+    undoToast(`„${vorlage.name}" ist in deinen Meals`, () => {
+      state.recipes = state.recipes.filter(r => r.id !== kopie.id);
+      save(); render();
+    });
+  }
   function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;" }[c])); }
 
   // ---------- Zahleneingabe: Rad am Handy, Tastatur am Rechner ----------
@@ -8295,6 +8432,10 @@
   let collapsedCatsSeeded = false;
   // Bewusst nicht gespeichert (wie collapsedCats): beim Neuladen ist die Liste wieder voll.
   let recipeQuery = "";
+  // Welche Ansicht im Meals-Reiter: der eigene Bestand oder das Rezeptbuch. Wie recipeQuery
+  // bewusst NICHT gespeichert - wer die App startet, will seine eigenen Meals sehen, nicht
+  // den Katalog, in dem er zuletzt gestoebert hat.
+  let recipeTab = "meine";
   // Aktive Merkmals-Filter (B7), UND-verknuepft. Wie recipeQuery bewusst nicht gespeichert:
   // ein Filter, den man beim naechsten Start nicht mehr auf dem Schirm hat, erklaert eine
   // halb leere Liste nicht - er laesst sie kaputt aussehen.
@@ -8321,24 +8462,55 @@
   // Tastendruck Fokus und Cursor im Suchfeld - deshalb schreibt nur paintRecipeGroups()
   // danach in #r-groups, genau wie paint(q) im Planer-Picker nur nach #p-list schreibt.
   function renderRecipes() {
+    // Zwei Ansichten im selben Reiter: der eigene Bestand und der Katalog. Bewusst KEIN
+    // fuenfter Reiter - "entdecken" ist der Schritt vor "verwalten", nicht daneben, und ein
+    // uebernommenes Rezept landet ohnehin hier (Befund des ux-reviewers, 15.08.2026).
+    // Der Umschalter nutzt dieselbe gleitende Pille wie der Wochenwechsel (CLAUDE.md §11)
+    // und denselben Helfer - .week-switch/.ws-btn/.ws-ind samt syncWeekSwitchPill().
+    const imBuch = recipeTab === "buch";
+    const buch = cookbookVisible();
     let html = `
       <div class="section-head">
         <div class="title">
-          <h2>Meine Meals</h2>
+          <div class="week-switch" role="tablist" aria-label="Ansicht wählen">
+            <span class="ws-ind" aria-hidden="true"></span>
+            <button class="ws-btn${imBuch ? "" : " active"}" data-rtab="meine" role="tab" aria-selected="${imBuch ? "false" : "true"}">Meine Meals</button>
+            <button class="ws-btn${imBuch ? " active" : ""}" data-rtab="buch" role="tab" aria-selected="${imBuch ? "true" : "false"}">Rezeptbuch</button>
+          </div>
         </div>
-        ${canEdit() && state.recipes.some(isExample) ? `<button class="btn ghost sm" data-action="clear-examples">Beispiele entfernen</button>` : ""}
+        ${imBuch ? "" : `${canEdit() && state.recipes.some(isExample) ? `<button class="btn ghost sm" data-action="clear-examples">Beispiele entfernen</button>` : ""}
         ${canEdit() ? `<button class="btn primary" data-action="new-recipe">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
           Neues Meal
-        </button>` : ""}
+        </button>` : ""}`}
       </div>
+      ${imBuch ? cookbookHtml(buch) : `
       ${libraryRecipes().length > 0 ? `<div class="recipe-search">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
         <input type="search" id="r-search" placeholder="Meal suchen …" autocomplete="off" value="${esc(recipeQuery)}" aria-label="Meals durchsuchen">
       </div>` : ""}
       ${recipeFilterHtml()}
-      <div id="r-groups"></div>`;
+      <div id="r-groups"></div>`}`;
     view.innerHTML = html;
+    // Umschalter: Die Pille gleitet, der Inhalt kommt gerichtet herein (CLAUDE.md §11).
+    // syncWeekSwitchPill() muss NACH dem Einhaengen laufen - vorher hat der Knopf keine
+    // Geometrie und die Pille saesse auf Breite 0.
+    const rswitch = view.querySelector(".week-switch");
+    syncWeekSwitchPill(rswitch);
+    view.querySelectorAll("[data-rtab]").forEach(b => b.addEventListener("click", () => {
+      const ziel = b.dataset.rtab;
+      if (ziel === recipeTab) return;
+      const vor = recipeTab === "meine";      // von links nach rechts?
+      recipeTab = ziel;
+      render();
+      slideIn(view.querySelector("#r-groups") || view.querySelector(".cookbook"), vor ? 1 : -1);
+      syncWeekSwitchPill(view.querySelector(".week-switch"), vor ? 1 : -1);
+    }));
+    if (imBuch) {
+      view.querySelectorAll("[data-adopt]").forEach(b =>
+        b.addEventListener("click", () => adoptFromCookbook(b.dataset.adopt)));
+      return;
+    }
     const searchEl = view.querySelector("#r-search");
     if (searchEl) searchEl.addEventListener("input", () => { recipeQuery = searchEl.value; paintRecipeGroups(); });
     // Filter-Chips liegen ausserhalb von #r-groups und werden deshalb NICHT neu gebaut -
@@ -8352,6 +8524,43 @@
     }));
     paintRecipeGroups();
   }
+
+  // Rezeptbuch-Ansicht. Bewusst dieselbe Kartenform wie die eigenen Meals (.rcard) statt
+  // einer eigenen Optik: Es ist derselbe Gegenstand, nur noch nicht der eigene. Unterschied
+  // ist allein der Knopf unten - "Übernehmen" statt der Bearbeiten-Aktionen.
+  function cookbookHtml(liste) {
+    const g = state.goal || {};
+    const gefiltert = (g.diet && g.diet !== "alles") || (g.avoid && g.avoid.length);
+    if (!liste.length) {
+      return `<div class="empty">
+        <svg class="em-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4v16a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1V7l-4-3H5a1 1 0 0 0-1 1Z"/><path d="M8 9h8M8 13h8"/></svg>
+        <h3>Hier ist noch nichts für dich dabei</h3>
+        <p>Für deine Auswahl haben wir gerade keine passenden Meals. Wir bauen das Rezeptbuch weiter aus.</p>
+      </div>`;
+    }
+    const karten = liste.map(r => {
+      const drin = isAdopted(r.id);
+      return `<article class="rcard">
+        ${cardImageHtml(r)}
+        <div class="rbody">
+          <div class="top"><h3>${esc(r.name)}</h3></div>
+          <div class="rstats">${cardStatsHtml(r)}</div>
+          <div class="cb-foot">
+            ${drin
+              ? `<span class="cb-drin">In deinen Meals</span>`
+              : `<button class="btn primary sm" data-adopt="${esc(r.id)}">Übernehmen</button>`}
+          </div>
+        </div>
+      </article>`;
+    }).join("");
+    // Der Hinweis steht nur da, wenn tatsaechlich gefiltert wird - sonst waere er eine
+    // Erklaerung fuer etwas, das gar nicht passiert (CLAUDE.md §7).
+    return `<div class="cookbook">
+      ${gefiltert ? `<p class="cb-hint">Passend zu deiner Auswahl${g.diet && g.diet !== "alles" ? ` (${esc(dietLabel(g.diet))})` : ""}. Ändern kannst du sie über „Ziele neu berechnen".</p>` : ""}
+      <div class="recipes">${karten}</div>
+    </div>`;
+  }
+  function dietLabel(k) { const d = DIETS.find(x => x.key === k); return d ? d.label : k; }
 
   // Filter-Chips (B7). Gezeigt wird nur, was im Bestand tatsaechlich vorkommt: eine Reihe
   // aus acht Merkmalen, von denen sieben nie zutreffen, ist keine Hilfe, sondern Ballast.

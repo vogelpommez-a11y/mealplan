@@ -267,6 +267,29 @@ er ist ab jetzt nicht mehr nur das stärkste, sondern das entscheidende Pro-Feat
 nachträglich nicht in ein Verkaufsargument umdeuten. Der Preis dafür wäre nicht Umsatz, sondern
 Vertrauen.
 
+## Rezeptbuch (15.08.2026)
+
+Im Meals-Reiter gibt es zwei Ansichten: **Meine Meals** und **Rezeptbuch** — ein kuratierter
+Katalog, aus dem man mit einem Tipp übernimmt. Was man übernimmt, ist eine **Kopie**: Sie
+gehört danach dem Nutzer und darf frei bearbeitet werden.
+
+**Der Katalog ist nach dem Ernährungsprofil gefiltert.** Wer vegan gewählt hat, sieht vegane
+Meals. Das ist der erste sichtbare Nutzen des Profils.
+
+**Im eigenen Bestand wird dagegen nicht gefiltert** — die Meals dort hat der Nutzer selbst
+angelegt, sie zu verstecken wäre Bevormundung. Vorschläge filtern, Eigenes nie.
+
+**Mit Pro wächst dieselbe Ansicht** von 30 auf über 100 Rezepte, die monatlich wechseln. Das
+ist der Kern des Pro-Versprechens: nicht ein anderer Ort, sondern **mehr vom selben, laufend
+neu**. Ein Gratis-Nutzer lernt den Mechanismus an 30 Rezepten kennen und versteht ohne
+Erklärtext, was Pro bringt.
+
+**Kein eigener Reiter, und das war eine Korrektur.** Der erste Entwurf sah einen Rezeptbuch-
+Reiter anstelle von „Fortschritt" vor. Der `ux-reviewer` hat zwei Einwände gebracht, die beide
+trugen: Die vier Reiter sind Tätigkeiten (orientieren, planen, verwalten) — „entdecken"
+gehört **vor** das Verwalten, nicht daneben. Und die Gewichtskarte zurück auf Home zu holen
+hätte genau den überladenen Zustand wiederhergestellt, den B8 zwei Tage zuvor aufgelöst hatte.
+
 ## Ernährungsprofil (15.08.2026)
 
 Die Einführung fragt seit dem 15.08.2026 nach der **Ernährungsform** (Alles / Vegetarisch /

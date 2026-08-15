@@ -298,6 +298,18 @@ Beispiele:
   Die **Gegenprobe** lief noch an der ursprünglichen Fassung: `canCloudWrite()` künstlich auf
   `true` gesetzt, vier Prüfungen wurden rot. Das ist der Beweis, dass der Prüfstand misst und
   nicht nur läuft (`docs/TESTING.md`, „Messfallen").
+* **Rezeptbuch (15.08.2026)**: `COOKBOOK`, `cookbookVisible()`, `isAdopted()`,
+  `adoptFromCookbook()` samt `sanitizeRecipe()` geschnitten. 28 Prüfungen, alle grün.
+  Drei Gruppen, und die erste ist die, die bei wachsendem Katalog Bestand haben muss:
+  **Struktur des Katalogs** — alle IDs eindeutig, alle mit Nährwerten, Kategorie und Zutaten,
+  und **jedes vegane Meal trägt auch `vegetarisch`** (sonst findet es der Filter im
+  Meals-Reiter nicht, auch wenn `dietOk()` es durchließe). Bei 30 oder 100 Einträgen fällt so
+  ein Fehler sonst niemandem auf.
+  **Profilfilter** — vegan zeigt nur veganes, vegetarisch schließt veganes ein, Form und
+  Einschränkung wirken zusammen.
+  **Übernahme** — eigene `id` statt der Katalog-`id` (sonst kollidieren zwei Konten in einer
+  Gruppe), `lib` als Herkunft, Rückgängig, und die Gegenprobe, dass **Umbenennen der Kopie
+  nicht auf den Katalog abfärbt** (Kopie, keine Referenz).
 * **Bild-Werkzeug (`tools/test-meal-bilder.py`, 15.08.2026)**: Kein Ausschneide-Prüfstand,
   sondern ein eigener Test für `tools/meal-bilder.py` — er lädt das Skript als Modul und
   kommt **ohne einen einzigen API-Aufruf** aus. 33 Prüfungen, alle grün.

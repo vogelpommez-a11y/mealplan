@@ -892,6 +892,45 @@ kopierte `Object.assign()` ihn aus Altdaten und geteilten Meals dauerhaft weiter
 Die Faustregel daraus: Ein Datenfeld wird angelegt, wenn ein konkretes Feature es liest — nicht,
 weil es später einmal nützlich sein könnte.
 
+### Rezeptbuch: `COOKBOOK` als Katalog (15.08.2026)
+
+Ein **Katalog, kein Bestand.** Die kuratierten Meals liegen in der Konstanten `COOKBOOK` und
+**nicht** in `state.recipes`. Gezeigt werden sie im Meals-Reiter unter „Rezeptbuch"; erst beim
+Übernehmen entsteht eine Kopie im eigenen Konto.
+
+**Warum nicht wie `SEED` direkt in die Sammlung:** 30 fremde Meals im eigenen Bestand
+erdrücken die eigenen, kosten bei jedem Konto denselben Cloud-Speicher, und ein Veganer
+schleppt zwei Drittel mit, die er nie kocht. Der Katalog kostet nichts, bis jemand zugreift.
+
+```
+COOKBOOK[i].id   → dauerhafter Schlüssel, zugleich Dateiname in img/library/
+state.recipes[i].lib = "<COOKBOOK id>"   → Herkunft der Kopie
+```
+
+`lib` ist **die Bibliotheks-ID, kein Boolean.** Damit lässt sich später eine korrigierte
+Fassung zuordnen („In der Bibliothek gibt es eine neuere Version") — mit einem Ja/Nein-Feld
+wüsste hinterher niemand mehr, welches Rezept gemeint war. Die Katalog-`id` wird beim
+Übernehmen **nicht** als Rezept-`id` verwendet: `state.recipes` braucht eigene Schlüssel
+(`uid()`), sonst kollidieren zwei Konten in derselben Gruppe.
+
+`isAdopted()` prüft über `lib`, nicht über den Namen — wer die Kopie umbenennt, soll sie nicht
+ein zweites Mal angeboten bekommen.
+
+**Der Katalog ist nach dem Ernährungsprofil gefiltert** (`cookbookVisible()` → `fitsDiet()`).
+Das ist der erste sichtbare Nutzen des Profils; im Meals-Reiter selbst wird bewusst **nicht**
+gefiltert (siehe `docs/PRODUCT.md`).
+
+**Warum kein eigener Reiter:** Der `ux-reviewer` hat den Entwurf am 15.08.2026 geprüft und
+zwei tragende Einwände gebracht. Erstens sind die vier Reiter Tätigkeiten — orientieren,
+planen, verwalten — und „entdecken" ist der Schritt **vor** dem Verwalten, nicht daneben; ein
+übernommenes Rezept landet ohnehin in den eigenen Meals. Zweitens hätte der ursprüngliche Plan
+(Fortschritt-Reiter opfern, Gewicht zurück auf Home) genau den Zustand wiederhergestellt, den
+B8 zwei Tage zuvor aufgelöst hatte. Der Umschalter nutzt deshalb dieselbe gleitende Pille wie
+der Wochenwechsel (`.week-switch`/`.ws-ind`, `syncWeekSwitchPill()`, `CLAUDE.md` §11).
+
+Mit Pro wächst genau diese Ansicht auf die große Bibliothek, die monatlich wechselt — deshalb
+dieselbe Struktur und derselbe Übernahme-Weg.
+
 ### Ernährungsprofil: `state.goal.diet` und `state.goal.avoid` (15.08.2026)
 
 ```
