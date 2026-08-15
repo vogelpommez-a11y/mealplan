@@ -282,20 +282,22 @@ Beispiele:
   Nicht automatisiert prüfbar ist die eigentliche Sicherheitsgrenze: dass `entitlements/{uid}`
   vom Client **nicht schreibbar** ist. Das hängt am veröffentlichten Regelstand in der
   Firebase-Konsole (`CLAUDE.md` §18) und ist nur dort nachweisbar.
-* **Pro-Sperrpunkte (D2b)**: `sanitizeEntitlement()`, `isPro()`, `canCloudWrite()`,
-  `entitlementGate()`, `syncStatusInfo()`/`setSyncStatus()`, `syncRecipes()` und `pushNow()`
-  werden geschnitten; die Cloud-Objekte sind Zähl-Attrappen. 21 Prüfungen, alle grün.
-  Die drei Fälle, um die es wirklich geht: **ohne Pro und ohne Gruppe** wird gar nichts
-  geschrieben und der Status ist `locked`; **ohne Pro, aber in einer Gruppe** bleibt das
-  Kontodokument ungeschrieben, während Gruppen-Meals und Gruppenplan ganz normal laufen (der
-  Inhaber zahlt); **mit Pro** läuft alles wie vorher.
+* **Pro-Grenze (D2b)**: `sanitizeEntitlement()`, `isPro()`, `syncStatusInfo()`/`setSyncStatus()`,
+  `syncRecipes()` und `pushNow()` werden geschnitten; die Cloud-Objekte sind Zähl-Attrappen.
+  21 Prüfungen, alle grün.
+  Der Prüfstand belegt seit dem 15.08.2026 vor allem eine **Nicht**-Eigenschaft: dass der Sync
+  die Berechtigung an keiner Stelle abfragt. „Ohne Pro wird trotzdem geschrieben" ist ein
+  vollwertiger Testfall — die Sperre war einen Tag lang da und ist bewusst wieder verschwunden;
+  ein Prüfstand, der nur die Berechtigung selbst prüft, hätte ihre Rückkehr nicht bemerkt.
+  Dazu die Fälle aus §76 (kaputtes `until`, `"true"` als Zeichenkette, Firestore-Timestamp).
   **Falle beim Bauen des Prüfstands:** Der Schnitt „von der Signatur bis zur ersten Zeile `  }`"
   verschluckt bei einer **Einzeiler-Funktion** (`canCloudWrite()`) den kompletten Folgecode bis
   zur nächsten schließenden Klammer. Das Ergebnis ist ein Parse-Fehler im einzigen `<script>` —
   und damit läuft **auch `window.onerror` nicht**, die Seite bleibt einfach leer. Endet die
   Signaturzeile selbst auf `}`, ist sie die ganze Funktion.
-  Die **Gegenprobe** (`canCloudWrite()` künstlich auf `true`) muss vier der Prüfungen rot
-  färben — ohne sie misst der Prüfstand nichts (`docs/TESTING.md`, „Messfallen").
+  Die **Gegenprobe** lief noch an der ursprünglichen Fassung: `canCloudWrite()` künstlich auf
+  `true` gesetzt, vier Prüfungen wurden rot. Das ist der Beweis, dass der Prüfstand misst und
+  nicht nur läuft (`docs/TESTING.md`, „Messfallen").
 * **Vorkochen (C3)**: `buildBatchList()` braucht nur Stubs für `getRecipe`, `shopPersons` und
   `todayDayKey` — dazu `planDaysAhead()`, die gemeinsame Zeitraum-Quelle. 17 Prüfungen, alle grün — Bündelung, Sortierung, Portionsfaktor, aufgerundete
   Kochdurchgänge, Zuweisung statt Personenzahl, leerer Plan. Zwei Fälle, die man leicht

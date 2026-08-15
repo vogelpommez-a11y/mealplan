@@ -206,9 +206,9 @@ Premium soll **mehr leisten**, nicht künstlich weniger freischalten.
 Barcode, Ziele, Gewicht, Vorkochen, Meal-Teilen per Link: alles ohne Konto, ohne Sperre,
 ohne Zähler.
 
-**Pro bringt das, was tatsächlich Server kostet oder echte Automatik ist:** Cloud-Sync und
-Mehrgeräte-Nutzung, gemeinsam planen, den Auto-Wochenplaner, die erweiterte Bibliothek,
-adaptive Kalorienanpassung.
+**Pro bringt das, was tatsächlich Server kostet oder echte Automatik ist:** gemeinsam planen,
+den Auto-Wochenplaner, die erweiterte Bibliothek, adaptive Kalorienanpassung. (Cloud-Sync stand
+hier ursprünglich mit in der Liste — siehe die Korrektur weiter unten.)
 
 Die Begründung nach außen ist damit ehrlich: laufende Kosten und Zusatznutzen — nichts, was
 vorher ging, wird weggenommen.
@@ -235,28 +235,37 @@ Technisch ist der Status **serverseitig** verankert (`entitlements/{uid}`, für 
 lesbar) — eine UI-Sperre wäre keine Grenze, sondern eine Anzeige. Siehe
 `docs/ARCHITECTURES.md`.
 
-### Was seit D2b (15.08.2026) tatsächlich gesperrt ist
+### Cloud-Sync ist keine Pro-Funktion (korrigiert am 15.08.2026)
 
-**Pro:** Cloud-Sync des eigenen Kontos (Wochenplan, Ziel, Gewichte, Profilbild, eigene Meals)
-und das **Gründen** einer Gruppe samt Einladen.
+**Die Liste weiter oben nennt Cloud-Sync als Pro-Funktion. Das gilt nicht mehr.** D2b hatte den
+Sync einen Tag lang hinter Pro gelegt; die Entscheidung wurde am selben Tag zurückgenommen.
 
-**Nicht Pro:** alles Lokale, und ausdrücklich das **Beitreten** zu einer Gruppe samt
-Mitplanen darin.
+Der Grund ist eine Erwartung, gegen die kein Preismodell ankommt: **Wer sich anmeldet, will seine
+Meals auf dem zweiten Gerät sehen.** Das ist die Grunderwartung an ein Konto, kein Zusatznutzen —
+Yazio und Lifesum synchronisieren gratis. Eine App, die dafür Geld verlangt, wirkt nicht premium,
+sondern knausrig. Und die Serverkosten dafür sind bei Firestore erst in ganz anderen
+Größenordnungen spürbar; das Argument „laufende Kosten" trug hier also nicht einmal sachlich.
 
-Diese zweite Zeile ist eine bewusste Entscheidung und keine Nachlässigkeit: **In einer Gruppe
-zahlt der Inhaber, nicht das Mitglied.** Wäre Sync für jeden Beteiligten Pro-pflichtig, hieße
-„gemeinsam planen", dass beide zahlen — und jede Einladung wäre eine Verkaufsaufforderung an
-den Partner. Das passt nicht zu „Paar oder WG". Verworfen wurden „beide brauchen Pro" (sperrt
-Dritte aus) und „Gruppe bleibt ganz gratis" (dann trägt die Grenze kaum).
+**Was Pro trägt:**
 
-**Lesen wird nie gesperrt.** Ein Konto ohne Pro kann seinen Cloud-Stand weiterhin abrufen und
-über „Cloud-Daten herunterladen" im Profilmenü als Datei mitnehmen (Art. 15/20 DSGVO). Gesperrt ist
-ausschließlich das Schreiben; Löschen bleibt ebenfalls offen (Art. 17).
+| | ohne Pro |
+|---|---|
+| Alles Lokale | frei |
+| Cloud-Sync, Mehrgeräte-Nutzung | **frei** |
+| **Gruppe gründen, einladen** | **Pro** |
+| Gruppe beitreten, darin mitplanen | frei |
 
-**Ohne Pro wird der Cloud-Stand auch nicht mehr hereingezogen** — nicht nur nicht geschrieben.
-Sonst überschriebe der eingefrorene Cloud-Stand bei jedem Start die inzwischen lokal gemachte
-Arbeit, ohne dass sie je zurückwandern könnte. Die Anzeige heißt dann **„Nur auf diesem Gerät"**
-und ist bewusst kein Fehlerzustand: nichts ist kaputt, die Daten liegen sicher.
+**In einer Gruppe zahlt der Inhaber, nicht das Mitglied.** Wäre die Gruppe für jeden Beteiligten
+Pro-pflichtig, hieße „gemeinsam planen", dass beide zahlen — und jede Einladung wäre eine
+Verkaufsaufforderung an den Partner. Das passt nicht zu „Paar oder WG". Verworfen wurden „beide
+brauchen Pro" (sperrt Dritte aus) und „Gruppe bleibt ganz gratis" (dann trägt die Grenze nichts).
+
+Damit steht die Pro-Stufe vorerst auf einem Bein. Das zweite ist der **Auto-Wochenplaner** (D2) —
+er ist ab jetzt nicht mehr nur das stärkste, sondern das entscheidende Pro-Feature.
+
+**Die Lehre, die bleibt:** Eine Funktion, die Nutzer als Teil des Kontos verstehen, lässt sich
+nachträglich nicht in ein Verkaufsargument umdeuten. Der Preis dafür wäre nicht Umsatz, sondern
+Vertrauen.
 
 ## Langfristige Vision
 

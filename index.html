@@ -4376,27 +4376,13 @@
     if (proInfo.until != null && proInfo.until <= Date.now()) return false;
     return true;
   }
-  // D2b: Der EINE Torwaechter fuer Schreibvorgaenge im EIGENEN Cloud-Konto
-  // (users/{uid} samt Rezept-Unterkollektion). Bewusst eine eigene Funktion und nicht
-  // isPro() an den Aufrufstellen: Gruppen-Schreibvorgaenge haengen an einer ANDEREN
-  // Bedingung (der Inhaber der Gruppe braucht Pro, das Mitglied nicht - siehe
-  // docs/PRODUCT.md, "Premium"), und die beiden Fragen duerfen nicht zu einer verschmelzen.
-  // Lesen ist hier nie gesperrt: Art. 15/20 DSGVO, siehe firestore.rules.
-  function canCloudWrite() { return isPro(); }
-  // Erster Snapshot der Berechtigung. Bis er da ist, liefert isPro() false - faellt der
-  // Baseline-Push in genau dieses Fenster, verweigerte sich der Sync einem ZAHLENDEN
-  // Konto und lastPushedJSON stuende danach falsch. startCloudSync() wartet deshalb
-  // darauf, mit Zeitgrenze: bleibt die Antwort aus (Regel nicht veroeffentlicht, Netz
-  // weg), gilt "kein Pro" - das ist die sichere Richtung, sie sperrt nur Schreibvorgaenge.
-  let entitlementSettle = null;
-  function entitlementGate() {
-    let done = false, resolve;
-    const p = new Promise(r => { resolve = r; });
-    const finish = () => { if (!done) { done = true; resolve(); } };
-    setTimeout(finish, 4000);
-    entitlementSettle = finish;
-    return p;
-  }
+  // Cloud-Sync ist AUSDRUECKLICH KEINE Pro-Funktion (Entscheidung vom 15.08.2026, siehe
+  // docs/PRODUCT.md). Wer sich anmeldet, erwartet seine Meals auf dem zweiten Geraet -
+  // das ist die Grunderwartung an ein Konto, kein Zusatznutzen. D2b hatte den Sync
+  // kurzzeitig hinter Pro gelegt und wurde noch am selben Tag zurueckgenommen.
+  // Pro traegt stattdessen "Gemeinsam planen" (Gruppe gruenden und einladen; BEITRETEN
+  // bleibt frei, weil in der Gruppe der Inhaber zahlt) und spaeter der Auto-Wochenplaner.
+  // Die Sperrpunkte dafuer stehen an den Gruppen-Funktionen, nicht am Sync.
   // Sperrfrist fuer die „von aussen geaendert"-Meldung (siehe onRemote).
   const REMOTE_TOAST_GAP = 60000;
   let lastRemoteToast = 0;
@@ -4592,10 +4578,6 @@
   // dafuer angefasst werden, sie rufen weiterhin nur render()/save() wie bisher.
   async function syncRecipes() {
     if (!syncUid || !window.CloudSync || !window.CloudSync.saveRecipesBatch) return;
-    // D2b: Ohne Pro bleiben die EIGENEN Meals auf dem Geraet. In einer Gruppe zeigt
-    // recipeBase() auf groups/{gid}/recipes - dort gilt die Berechtigung des Inhabers,
-    // nicht die eigene, und das Mitglied darf ganz normal mitschreiben.
-    if (!syncGid && !canCloudWrite()) return;
     // canonJSON statt JSON.stringify: Firestore liefert Map-Schluessel sortiert zurueck (siehe
     // dataJSON()-Kommentar), ein lokal gebautes Rezept (z. B. hydrateImages() haengt r.image
     // als letzten Schluessel an) laege sonst dauerhaft quer zu seiner eigenen Cloud-Form -
@@ -4710,18 +4692,6 @@
 
   async function pushNow() {
     if (!syncUid || !window.CloudSync) return;
-    // D2b: Ohne Pro wird das eigene Kontodokument nicht mehr geschrieben. Der gemeinsame
-    // Wochenplan schon - er gehoert der Gruppe, und dort zahlt der Inhaber. Die wenigen
-    // direkten Schreibvorgaenge auf den Gruppen-ZEIGER (groupId/pendingGroupId/
-    // pendingInviteUrl in joinGroup(), leaveGroup(), prepareGroup()) laufen bewusst NICHT
-    // ueber pushNow(), sondern als eigene CloudSync.save()-Aufrufe - genau diese Felder
-    // laesst auch die Firestore-Regel ohne Pro noch zu, sonst koennte ein Gratis-Konto
-    // einer Gruppe weder beitreten noch sie verlassen.
-    if (!canCloudWrite()) {
-      if (syncGid) { await syncRecipes(); await pushGroupPlan(); }
-      else setSyncStatus("locked");
-      return;
-    }
     await syncRecipes();
     await pushGroupPlan();
     // shopPersons(): berechnet lesen, aber NIE roh schreiben - shopPersons() haengt in der
@@ -4803,12 +4773,6 @@
     // Zeitpunkt des Scheiterns laengst wieder null und das Netz damit wirkungslos.
     const retryingFailedAttempt = groupSyncFailed && remoteGid === lastGroupAttempt;
     if (remoteGid !== syncGid && !staleEmptyGid && !retryingFailedAttempt) { switchGroup(remoteGid); return; }
-    // D2b: Der Listener bleibt bewusst haengen, auch ohne Pro - der Gruppenwechsel oben ist
-    // der einzige Weg, auf dem ein zweites Geraet einen Beitritt mitteilt, und Lesen ist nie
-    // gesperrt. Uebernommen wird darunter aber nichts mehr: ohne Schreibrecht ist der
-    // Cloud-Stand eingefroren und wuerde beim naechsten Snapshot die neuere lokale Arbeit
-    // ueberschreiben, ohne dass sie je zurueckwandern koennte.
-    if (!canCloudWrite()) return;
     const j = dataJSON(data), before = dataJSON(state);
     if (j === before || j === lastPushedJSON) return; // nichts Neues
     // state.recipes wird hier NICHT mehr ersetzt - Rezepte kommen ausschliesslich ueber
@@ -5170,48 +5134,17 @@
     // Kontodokument - siehe isPro(). Laeuft VOR dem await unten los: er haengt an nichts,
     // was der Merge erst herstellen muesste, und ein spaeter Start hiesse, dass die erste
     // Zeichnung nach dem Login den Status noch nicht kennt.
-    let proReady = Promise.resolve();
     if (window.CloudEntitlement) {
-      proReady = entitlementGate();
       entitlementUnsub = window.CloudEntitlement.watch(uid, function (d) {
         const vorher = isPro();
         proInfo = sanitizeEntitlement(d);
-        if (entitlementSettle) entitlementSettle();
         // Nur zeichnen, wenn sich der Status tatsaechlich geaendert hat: der Listener
         // feuert auch bei jedem Server-Echo, und render() mitten im Tippen kostet den Fokus.
-        if (isPro() !== vorher) {
-          renderProfileChip(); render();
-          // D2b: Kommt die Berechtigung erst NACH dem Start herein (frisch gekauft, oder
-          // der erste Snapshot lief in die Zeitgrenze oben), holt dieser Push den
-          // uebersprungenen Stand nach. Andersherum - Pro laeuft mitten in der Sitzung ab -
-          // faellt die Anzeige auf "Nur auf diesem Gerät" zurueck, ohne etwas zu loeschen.
-          // Bewusst nur ein Push und KEIN Sync-Neustart (switchGroup): stopCloudSync() setzt
-          // proInfo auf null, der neu registrierte Listener saehe beim ersten Snapshot wieder
-          // false->true und startete erneut neu - eine Endlosschleife. Der Rezept-Listener
-          // fehlt deshalb bis zum naechsten App-Start; die Meals werden trotzdem geschrieben,
-          // es kommen nur Fremdaenderungen erst danach an. Der Fall ist selten (Kauf mitten
-          // in der Sitzung) und die harmlosere der beiden Unsauberkeiten.
-          if (syncUid && !syncGid) { if (canCloudWrite()) scheduleCloudPush(); else setSyncStatus("locked"); }
-        }
+        if (isPro() !== vorher) { renderProfileChip(); render(); }
       });
     }
-    // Vor dem ersten Schreibvorgang muss feststehen, ob dieses Konto Pro hat - siehe
-    // entitlementGate(). Das Warten kostet im Normalfall wenige hundert Millisekunden,
-    // laeuft parallel zu imagesReady und ist nach oben durch die Zeitgrenze gedeckelt.
-    await proReady;
     await imagesReady;   // Paket A3: lokale Bilder muessen im State sein, bevor der Merge/pushNow
                          // laeuft - sonst schriebe der Baseline-Push bildlose Rezepte in die Cloud.
-    // D2b: Trennt die beiden Datenwelten dieses Ablaufs. Der GRUPPEN-Teil laeuft immer -
-    // ohne ihn kaeme ein Gratis-Mitglied nicht mehr an den gemeinsamen Plan, obwohl der
-    // Inhaber dafuer zahlt. Der PERSOENLICHE Teil (Ziel, Gewichte, Profilbild, eigene
-    // Meals) haengt an der eigenen Berechtigung.
-    //
-    // Warum das Uebernehmen mitgesperrt wird und nicht nur das Schreiben: Ohne Pro ist der
-    // Cloud-Stand ab jetzt eingefroren. Wuerde er weiter hereingezogen, ueberschriebe er
-    // bei jedem Start die inzwischen lokal gemachte Arbeit - und der Weg zurueck ist
-    // versperrt. Einmal Lesen bleibt trotzdem moeglich: "Cloud-Daten herunterladen" im Profilmenue
-    // (Art. 15/20 DSGVO, siehe downloadCloudData()).
-    const personalCloud = canCloudWrite();
     try {
       const remote = await window.CloudSync.load(uid);
       // Vor dem Rezept-Merge und ausserhalb davon: ein Konto ohne Rezepte laeuft am Block
@@ -5221,7 +5154,7 @@
       if (remote && remote.onboarded) state.onboarded = true;
       // Aus demselben Grund hier oben und nicht im Block darunter: wer sich wiegt, aber
       // (noch) keine Meals angelegt hat, verloere seinen Verlauf sonst beim Anmelden.
-      if (remote && personalCloud) {
+      if (remote) {
         state.weights = mergeWeights(remote.weights, state.weights);
         state.weightGoals = Object.assign({}, sanitizeWeightGoals(state.weightGoals), sanitizeWeightGoals(remote.weightGoals));
         state.weightConsent = mergeConsent(remote.weightConsent, state.weightConsent);
@@ -5332,18 +5265,9 @@
       }
 
       if (inGroup) {
-        // Ziel und Freigaben stehen im Kontodokument, nicht in der Gruppe - deshalb haengen
-        // sie auch hier an der eigenen Berechtigung, obwohl der Gruppenteil weiterlaeuft.
-        if (personalCloud) {
-          if (remote.goal) state.goal = sanitizeGoal(remote.goal);
-          state.shares = unionIds(state.shares, remote.shares);
-        }
+        if (remote.goal) state.goal = sanitizeGoal(remote.goal);
+        state.shares = unionIds(state.shares, remote.shares);
         save(); render();
-      } else if (!personalCloud) {
-        // Ohne Pro und ohne Gruppe gibt es nichts zu synchronisieren: der lokale Stand ist
-        // die Wahrheit und bleibt unangetastet. Kein Rezept-Listener, keine Baseline - der
-        // Push unten faellt in pushNow() ohnehin auf "locked".
-        render();
       } else {
         const cloudRecipes = window.CloudSync.loadRecipes ? await window.CloudSync.loadRecipes(["users", uid]) : [];
         const legacyRecipes = (remote && Array.isArray(remote.recipes)) ? remote.recipes : [];
@@ -5374,15 +5298,11 @@
       // Cloud verbunden", dass Daten hereingekommen sind — ein zweiter Hinweis darauf
       // waere in derselben Sekunde nur Laerm.
       lastRemoteToast = Date.now();
-      // Listener auch ohne Pro: er ist der einzige Weg, auf dem ein Beitritt von einem
-      // anderen Geraet ankommt (siehe onRemote, das darunter nichts mehr uebernimmt).
       syncUnsub = window.CloudSync.watch(uid, onRemote);
-      setSyncStatus(personalCloud || syncGid ? "synced" : "locked");
+      setSyncStatus("synced");
       // siehe Deklaration von suppressConnectToast weiter oben
       if (suppressConnectToast) suppressConnectToast = false;
-      else if (syncGid) toast("Mit eurer Gruppe verbunden");
-      else if (personalCloud) toast("Mit deiner Cloud verbunden");
-      else toast("Angemeldet – deine Daten liegen sicher auf diesem Gerät");
+      else toast(syncGid ? "Mit eurer Gruppe verbunden" : "Mit deiner Cloud verbunden");
       // Erst JETZT ueber die ersten Schritte entscheiden: enterApp() laeuft schon, waehrend
       // dieser Aufruf noch unterwegs ist. Wer den Ablauf dort startete, bekaeme ihn bei jedem
       // Login auf einem neuen Geraet kurz zu sehen, bevor das Flag aus der Cloud eintrifft.
@@ -5413,9 +5333,7 @@
     setSyncStatus("off");
   }
 
-  // Sync-Status für die Anzeige: "off" | "connecting" | "synced" | "saving" | "offline" | "toobig" | "locked"
-  // "locked" ist kein Fehler, sondern der Normalzustand ohne Pro (D2b) - deshalb "off"
-  // und nicht "err": nichts ist kaputt, die Daten liegen sicher auf dem Gerät.
+  // Sync-Status für die Anzeige: "off" | "connecting" | "synced" | "saving" | "offline" | "toobig"
   let syncStatus = "off";
   function syncStatusInfo() {
     return ({
@@ -5424,7 +5342,6 @@
       saving:     { cls: "busy", label: "Wird gespeichert …" },
       offline:    { cls: "err",  label: "Offline – lokal gespeichert" },
       toobig:     { cls: "err",  label: "Zu viele Fotos für die Cloud" },
-      locked:     { cls: "off",  label: "Nur auf diesem Gerät" },
       off:        { cls: "off",  label: "Nicht verbunden" }
     })[syncStatus] || { cls: "off", label: "Nicht verbunden" };
   }
@@ -10458,7 +10375,6 @@
       <h4>3. Welche Daten wir verarbeiten</h4>
       <p><strong>Zwei Betriebsarten – und nur eine davon verarbeitet Daten bei uns.</strong> Du kannst die App <strong>ohne Konto</strong> nutzen: Dann bleiben deine Plan- und Profildaten ausschließlich auf deinem Gerät (Browser-Speicher), sie werden <strong>weder an uns noch an Firebase übertragen</strong>, und wir haben keinen Zugriff darauf. Unabhängig davon lädt dein Browser beim Aufruf der Seite die Software für die Cloud-Funktionen von Google-Servern nach und übermittelt dabei deine <strong>IP-Adresse</strong> – das passiert auch ohne Konto und ist in Ziffer 5 beschrieben. Wir fragen dabei nur einen frei wählbaren <strong>Namen</strong> ab; eine E-Mail-Adresse ist optional und verlässt das Gerät ebenfalls nicht. Der folgende Abschnitt beschreibt die zweite Betriebsart: die Nutzung <strong>mit Konto</strong> (Cloud-Synchronisierung), für die du dich aktiv entscheidest. Löschst du die Websitedaten deines Browsers, sind lokal gespeicherte Angaben unwiederbringlich weg – im Betrieb ohne Konto haben wir keine Kopie davon.</p>
       <p>Bei der Registrierung: <strong>Name und E-Mail-Adresse</strong>. Bei Nutzung der App: die von dir angelegten <strong>Wochenpläne, Meals/Rezepte und ggf. Fotos</strong> sowie ein optionales <strong>Profilbild</strong> (als Kreis-Avatar zugeschnitten, in deinem Nutzerkonto gespeichert, nicht Teil von Teilen-Links) sowie – im Rahmen der Einführungsfragen zu Beginn, die zur Nutzung der App erforderlich sind – <strong>Geschlecht, Alter, Größe, Gewicht, Alltagsbewegung und Ziel</strong> sowie optional deine <strong>Trainingstage</strong> (Wochentag, Intensität und Dauer) und deinen <strong>Körperfettanteil</strong> (als grobe Stufe; Details zu beidem siehe Ziffer 3a). Erstellst du Teilen-Links, merkt sich dein Konto zusätzlich deren <strong>Kennungen</strong> (keine Klardaten, siehe Ziffer 8), damit sie beim Löschen deines Kontos zugeordnet und mitentfernt werden können. Nutzt du „Gemeinsam planen", speichert dein Konto außerdem die <strong>Kennung deiner Gruppe</strong> sowie die Kennungen der von dir erstellten <strong>Einladungslinks</strong> – aus demselben Grund (siehe Ziffer 8a); an einem in einer Gruppe angelegten Meal wird zusätzlich deine <strong>Nutzerkennung</strong> vermerkt, damit sichtbar ist, wer es angelegt hat. Weist du ein geplantes Gericht nur einem Teil der Gruppe zu (statt „für alle"), wird für dieses Gericht zusätzlich vermerkt, welche Mitglieder es per <strong>Nutzerkennung</strong> essen – sichtbar für die ganze Gruppe als kleines Farb-Badge auf der Meal-Karte. Stellst du in der Einkaufsliste eine <strong>Personenanzahl</strong> ein, wird auch diese gespeichert. Markierst du Meals als <strong>Favorit</strong>, wird diese Auswahl ebenfalls in deinem Konto gespeichert – nur für dich, auch in einer Gruppe. Stimmst du der Speicherung deines <strong>Gewichtsverlaufs</strong> ausdrücklich zu, speichern wir je Eintrag Kalenderwoche und Gewicht sowie ein optionales <strong>Jahres-Zielgewicht</strong> (Details und Widerruf siehe Ziffer 3b). Ist für dein Konto die kostenpflichtige <strong>Pro-Stufe</strong> freigeschaltet, speichern wir dazu ein eigenes Dokument mit dem <strong>Pro-Status</strong>, der <strong>Herkunft der Freischaltung</strong> (manuell, Apple oder Google) und gegebenenfalls einem <strong>Ablaufdatum</strong>. Dieses Dokument kann die App nur lesen, nicht ändern – gesetzt wird es ausschließlich von uns bzw. künftig vom Bezahlvorgang des jeweiligen App-Stores. Es wird mit deinem Konto gelöscht (Ziffer 10). Eine Bezahlfunktion gibt es derzeit nicht. Diese Daten speichern wir, damit du dich anmelden und deine Planung geräteübergreifend nutzen kannst.</p>
-      <p><strong>Was ohne Pro-Stufe gespeichert wird.</strong> Die geräteübergreifende Synchronisierung gehört zur Pro-Stufe. Hat dein Konto sie nicht, verarbeiten wir <strong>keine neuen Inhaltsdaten</strong> von dir: Wochenplan, Meals, Ziel, Gewichtsverlauf und Profilbild bleiben dann auf deinem Gerät, die App zeigt dafür „Nur auf diesem Gerät" an. In deinem Konto liegen weiterhin dein <strong>Name</strong> und deine <strong>E-Mail-Adresse</strong> aus der Registrierung sowie ein bereits vorhandener Datenbestand aus der Zeit davor. <strong>Diesen kannst du jederzeit abrufen und mitnehmen</strong> – über „Cloud-Daten herunterladen" im Profilmenü als Datei (Art. 15 und 20 DSGVO) – und jederzeit zusammen mit deinem Konto löschen (Ziffer 10). Planst du in einer <strong>Gruppe</strong> mit (Ziffer 8a), werden die gemeinsamen Daten dort unabhängig davon weiter verarbeitet; dafür genügt die Pro-Stufe der Person, die die Gruppe gegründet hat.</p>
       <h4>3a. Ziel-Berechnung (Einführungsfragen)</h4>
       <p>Zur Nutzung der App gibst du bei den Einführungsfragen zu Beginn <strong>Geschlecht, Alter, Größe und Gewicht</strong> sowie deine Alltagsbewegung und dein Ziel an – ohne diese Angaben lässt sich kein Kalorien- und Makroziel berechnen und die App steht dir nicht zur Verfügung. Optional legst du zusätzlich deine <strong>Trainingstage</strong> fest – also an welchen Wochentagen du trainierst, mit welcher Intensität und wie lange; diese Angabe kannst du auch weglassen. Ebenfalls optional wählst du eine grobe Stufe für deinen <strong>Körperfettanteil</strong> – gibst du sie an, berechnet die App deinen Grundumsatz nach der Katch-McArdle-Formel über die fettfreie Masse statt nach Mifflin-St-Jeor; wählst du „Weiß ich nicht", bleibt es bei Mifflin-St-Jeor. Daraus berechnet die App direkt in deinem Browser deinen Tagesbedarf, deine Makronährstoffe und deinen BMI; an Trainingstagen zusätzlich den geschätzten Mehrbedarf durch die jeweilige Einheit. Übernimmst du das Ergebnis als dein Ziel, werden diese Angaben wie deine übrigen Plandaten lokal und – bei Cloud-Nutzung – in deinem Nutzerkonto (Cloud Firestore, siehe Ziffer 5) gespeichert, um sie geräteübergreifend verfügbar zu halten. Du kannst dein Ziel jederzeit über den Knopf „Ziel neu berechnen" im Wochenplan neu berechnen; die vorherigen Werte sind dann durch die neuen ersetzt. Rechtsgrundlage ist wie unter Ziffer 4 die Erfüllung des Nutzungsvertrags (Art. 6 Abs. 1 lit. b DSGVO). Diese Angaben werden <strong>nicht</strong> in Teilen-Links aufgenommen (siehe Ziffer 8).</p>
       <h4>3b. Gewichtsverlauf („Ziele &lt;Jahr&gt;")</h4>
@@ -10537,8 +10453,7 @@
          bricht die Löschung ab, statt einen Rest zurückzulassen, und du kannst sie erneut anstoßen. Bis zur Löschung bleiben geteilte Inhalte
          abrufbar – auch dann, wenn du den Link nicht mehr weitergibst. Nutzt du die App ohne Cloud-Konto (lokales
          Profil), kannst du ebenso über „Alle Daten löschen" im Profilmenü sämtliche auf diesem Gerät gespeicherten
-         Daten sofort entfernen. Beides steht dir <strong>unabhängig von der Pro-Stufe</strong> zur Verfügung; ebenso
-         der Abruf deiner gespeicherten Daten über „Cloud-Daten herunterladen" im Profilmenü (Ziffer 3).</p>
+         Daten sofort entfernen.</p>
       <p>Bist du <strong>Mitglied einer Gruppe</strong> (Ziffer 8a), werden beim Löschen deines Kontos zusätzlich
          dein Mitglieder-Eintrag (Name und Bild) sowie die von dir erstellten Einladungslinks mitentfernt. Bist du
          <strong>Inhaber</strong> einer Gruppe, musst du sie vorher auflösen – die App weist dich darauf hin, damit
@@ -10550,7 +10465,7 @@
          Der Personenbezug entfällt dabei, weil zu einem Meal nur deine Nutzerkennung gespeichert ist, die mit
          deinem Mitglieder-Eintrag verschwindet.</p>
       <h4>11. Deine Rechte</h4>
-      <p>Du hast das Recht auf Auskunft, Berichtigung, Löschung, Einschränkung der Verarbeitung, Datenübertragbarkeit und Widerspruch. Soweit eine Verarbeitung auf deiner Einwilligung beruht, kannst du diese jederzeit mit Wirkung für die Zukunft widerrufen. Zudem hast du ein Beschwerderecht bei einer Datenschutz-Aufsichtsbehörde – für uns zuständig ist das Bayerische Landesamt für Datenschutzaufsicht (BayLDA), Promenade 18, 91522 Ansbach.</p>
+      <p>Du hast das Recht auf Auskunft, Berichtigung, Löschung, Einschränkung der Verarbeitung, Datenübertragbarkeit und Widerspruch – wende dich dafür an die in Ziffer 1 genannte Adresse; Löschen und Widerruf gehen zusätzlich direkt in der App (Ziffern 3b und 10). Soweit eine Verarbeitung auf deiner Einwilligung beruht, kannst du diese jederzeit mit Wirkung für die Zukunft widerrufen. Zudem hast du ein Beschwerderecht bei einer Datenschutz-Aufsichtsbehörde – für uns zuständig ist das Bayerische Landesamt für Datenschutzaufsicht (BayLDA), Promenade 18, 91522 Ansbach.</p>
       <h4>12. Automatisierte Entscheidungsfindung</h4>
       <p>Eine automatisierte Entscheidungsfindung oder ein Profiling im Sinne des Art. 22 DSGVO findet nicht statt.</p>`);
   }
@@ -11327,16 +11242,10 @@
     const wrap = document.querySelector(".profile");
     if (!wrap) return;
     const delLabel = authMode === "cloud" ? "Konto löschen" : "Alle Daten löschen";
-    // D2b: Nur ohne Pro sichtbar. Mit Pro sind die Cloud-Daten ohnehin die Daten in der App -
-    // ein Knopf dafuer waere dort eine Zeile ohne Zweck (docs/PRODUCT.md, Textmenge).
-    const cloudDownloadItem = (authMode === "cloud" && !isPro())
-      ? `<button data-mi="cloud-dl" role="menuitem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5M12 15V3"/></svg>Cloud-Daten herunterladen</button>`
-      : "";
     const menu = el(`<div class="menu" role="menu">
       <div class="mhead"><div class="mn">${esc(profile.name)}${isPro() ? ` <span class="pro-badge">Pro</span>` : ""}</div>${profile.email ? `<div class="me">${esc(profile.email)}</div>` : ""}</div>
       <button data-mi="settings" role="menuitem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1.08-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg>Einstellungen</button>
       <button data-mi="group" role="menuitem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>${syncGid ? "Gruppe" : "Gemeinsam planen"}</button>
-      ${cloudDownloadItem}
       <hr>
       <button data-mi="impressum" role="menuitem">${ACT_ICONS.legal}Impressum</button>
       <button data-mi="datenschutz" role="menuitem">${ACT_ICONS.shield}Datenschutz</button>
@@ -11351,8 +11260,6 @@
     const close = attachMenuDismiss(menu, wrap.querySelector(".profile-btn"));
     menu.querySelector("[data-mi='settings']").addEventListener("click", () => { close(false); openSettings(); });
     menu.querySelector("[data-mi='group']").addEventListener("click", () => { close(false); openGroupModal(); });
-    const dlBtn = menu.querySelector("[data-mi='cloud-dl']");
-    if (dlBtn) dlBtn.addEventListener("click", () => { close(false); downloadCloudData(); });
     // Dieselben Funktionen wie die Fusszeile (die abgemeldet weiter da ist) - ein Weg,
     // zwei Ausloeser, kein zweiter Codepfad zu denselben Texten.
     menu.querySelector("[data-mi='impressum']").addEventListener("click", () => { close(false); openImpressum(); });
@@ -13033,25 +12940,6 @@
     openModal(node);
   }
 
-  // D2b, Art. 15/20 DSGVO: Ohne Pro wird der Cloud-Stand nicht mehr in die App uebernommen
-  // (siehe startCloudSync). Erreichbar bleiben muss er trotzdem - Lesen ist in den
-  // Firestore-Regeln ausdruecklich nie gesperrt. Bewusst eine Datei statt einer Uebernahme
-  // in den lokalen Stand: das Zusammenfuehren waere Sync durch die Hintertuer, und ohne
-  // Rueckweg in die Cloud liesse sich nicht mehr sagen, welcher der beiden Staende gilt.
-  async function downloadCloudData() {
-    if (!syncUid || !window.CloudSync) { toast("Dafür brauchst du dein Cloud-Konto."); return; }
-    try {
-      const konto = await window.CloudSync.load(syncUid);
-      const meals = window.CloudSync.loadRecipes ? await window.CloudSync.loadRecipes(["users", syncUid]) : [];
-      const paket = { app: "wochenkueche", exportiertAm: new Date().toISOString(), konto: konto || null, meals: meals };
-      saveBlob(new Blob([JSON.stringify(paket, null, 2)], { type: "application/json" }), "paddys-mealplan-clouddaten.json");
-      toast("Deine Cloud-Daten sind gespeichert");
-    } catch (e) {
-      noteError("cloud:download", e);
-      toast("Die Cloud-Daten ließen sich gerade nicht laden – versuch es gleich noch einmal.");
-    }
-  }
-
   // Lokales Profil (kein Cloud-Konto): Daten liegen ausschliesslich auf diesem Geraet,
   // daher genuegt das Leeren des lokalen Speichers.
   function deleteLocalDataFlow() {
@@ -13358,14 +13246,7 @@
     state.plans = keepPlans;
     setViewWeek(state.viewWeek);
     try {
-      // D2b: Ohne Pro darf nur der Gruppen-ZEIGER geschrieben werden - genau diese Felder
-      // laesst die Firestore-Regel offen, damit ein Gratis-Mitglied die Gruppe ueberhaupt
-      // verlassen kann. Der Plan wandert dann nicht ins Kontodokument, sondern bleibt (wie
-      // alles andere ohne Pro) lokal. Wuerde er trotzdem mitgeschickt, scheiterte der ganze
-      // Schreibvorgang und die Cloud-groupId bliebe stehen - der naechste Start zoege das
-      // Konto zurueck in eine Gruppe, die es gerade verlassen hat.
-      const raus = canCloudWrite() ? { groupId: "", plans: keepPlans } : { groupId: "" };
-      await window.CloudSync.save(syncUid, raus);
+      await window.CloudSync.save(syncUid, { groupId: "", plans: keepPlans });
       // Baseline leeren, damit der naechste Zyklus alle Meals als "neu" ins eigene
       // Konto schreibt - dort liegen sie ja noch nicht.
       lastPushedRecipes = new Map();

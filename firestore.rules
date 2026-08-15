@@ -9,16 +9,18 @@ rules_version = '2';
 // Stand: 2026-08-15
 //
 // ACHTUNG, VOR DEM VEROEFFENTLICHEN LESEN (D2b):
-// Diese Fassung schaltet die Pro-Grenze SCHARF. Sie nimmt bestehenden Konten das
-// Schreiben in die Cloud weg, sobald sie veroeffentlicht ist. Vorher zwingend:
+// Diese Fassung macht das GRUENDEN einer Gruppe und das Einladen zu Pro-Funktionen.
+// Cloud-Sync ist ausdruecklich NICHT betroffen und bleibt fuer jedes Konto offen; ebenso
+// das BEITRETEN zu einer Gruppe, weil dort der Inhaber zahlt (docs/PRODUCT.md, "Premium").
+//
+// Vorher zwingend:
 //   1. Den entitlements-Block (D1) muss es in der Konsole bereits geben - sonst liest
-//      die App dauerhaft "kein Pro" und JEDES Konto steht sofort ohne Sync da.
-//   2. Die betroffenen Konten informieren (in der Firebase-Konsole unter
-//      Authentication -> Users nachsehen, wer zuletzt aktiv war).
-//   3. Wer Pro behalten soll, braucht vorher ein entitlements/{uid}-Dokument
-//      (Anleitung: FIREBASE-SETUP.md).
-// Lesen und Loeschen bleiben in JEDEM Fall offen - Art. 15, 17 und 20 DSGVO. Gesperrt
-// wird ausschliesslich das Schreiben.
+//      die App dauerhaft "kein Pro" und niemand kann mehr eine Gruppe gruenden.
+//   2. Wer heute schon eine Gruppe hat, braucht ein entitlements/{uid}-Dokument, sonst
+//      kann er ihr keine weitere Person mehr hinzufuegen (Anleitung: FIREBASE-SETUP.md).
+//      Bestehende Gruppen laufen unabhaengig davon weiter - Lesen und Schreiben im
+//      gemeinsamen Plan pruefen die Berechtigung des Inhabers, nicht die der Mitglieder.
+// Lesen und Loeschen bleiben in JEDEM Fall offen - Art. 15, 17 und 20 DSGVO.
 
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -49,8 +51,8 @@ service cloud.firestore {
 
     // ---- Pro-Grenze (D2b) ----
     //
-    // Cloud-Sync und das GRUENDEN einer Gruppe sind Pro-Funktionen. Gratis laeuft die App
-    // vollstaendig lokal und dort uneingeschraenkt (docs/PRODUCT.md, "Premium").
+    // Pro-Funktion ist das GRUENDEN einer Gruppe samt Einladen. Cloud-Sync ausdruecklich
+    // NICHT, und Beitreten ebenfalls nicht (docs/PRODUCT.md, "Premium").
     //
     // Die Berechtigung eines BELIEBIGEN Kontos, nicht nur des Anfragenden: beim
     // Gruppenzugriff zaehlt die des Inhabers (siehe unten). Ein abgelaufenes "until"
@@ -67,33 +69,17 @@ service cloud.firestore {
             || entitlementOf(uid).until == null
             || entitlementOf(uid).until > request.time);
     }
-    // Die EINE Ausnahme fuer Konten ohne Pro: der Zeiger auf die Gruppe. Ohne ihn koennte
-    // ein Gratis-Konto einer Gruppe weder beitreten noch sie verlassen - und Beitreten
-    // soll ausdruecklich gratis bleiben, weil der Inhaber fuer die Gruppe zahlt.
-    // Genau diese drei Felder (plus updatedAt) schreibt der Client dafuer einzeln, an
-    // pushNow() vorbei (siehe joinGroup()/leaveGroup()/prepareGroup() in index.html).
-    function nurGruppenZeiger() {
-      return request.resource.data.diff(resource.data).affectedKeys()
-        .hasOnly(["groupId", "pendingGroupId", "pendingInviteUrl", "updatedAt"]);
-    }
 
     // ---- Konto-Daten: Plan, Meals, Profil ----
-    // Jede Person liest ihr eigenes Dokument immer - auch ohne Pro. Das ist keine
-    // Grosszuegigkeit, sondern Art. 15/20 DSGVO: Wer seine Daten nicht mehr schreiben
-    // darf, muss sie weiterhin abrufen und mitnehmen koennen ("Cloud-Daten herunterladen" im
-    // Profilmenue). Loeschen bleibt aus demselben Grund offen (Art. 17).
+    // Jede Person liest und schreibt ausschließlich ihr eigenes Dokument.
+    //
+    // KEINE Pro-Pruefung hier, und das ist eine ausdrueckliche Entscheidung (15.08.2026):
+    // Cloud-Sync ist die Grunderwartung an ein Konto, kein Zusatznutzen - wer sich anmeldet,
+    // will seine Meals auf dem zweiten Geraet sehen. D2b hatte diese Regel kurzzeitig hinter
+    // hasPro() gelegt; zurueckgenommen am selben Tag, ohne dass sie je veroeffentlicht war.
+    // Pro traegt stattdessen die Gruppe (siehe groupOwnerHasPro weiter unten).
     match /users/{uid} {
-      allow read, delete: if request.auth != null && request.auth.uid == uid;
-      // create ohne resource: dort gibt es keinen Vorher-Stand, gegen den diff() laufen
-      // koennte - deshalb die Feldliste direkt am eingehenden Dokument. Der Fall ist real:
-      // ein frisches Gratis-Konto, das ueber einen Einladungslink beitritt, legt sein
-      // Kontodokument mit genau diesen Feldern ueberhaupt erst an.
-      allow create: if request.auth != null && request.auth.uid == uid
-                    && (hasPro(uid)
-                        || request.resource.data.keys()
-                             .hasOnly(["groupId", "pendingGroupId", "pendingInviteUrl", "updatedAt"]));
-      allow update: if request.auth != null && request.auth.uid == uid
-                    && (hasPro(uid) || nurGruppenZeiger());
+      allow read, write: if request.auth != null && request.auth.uid == uid;
     }
 
     // ---- Pro-Berechtigung (D1) ----
@@ -126,12 +112,8 @@ service cloud.firestore {
     // 1-MiB-Grenze des Hauptdokuments laufen. Regeln vererben sich in Firestore
     // NICHT automatisch auf Subcollections - deshalb ein eigener Block, gleiche
     // Zugriffslogik wie beim Hauptdokument. ----
-    // Auch hier: Lesen und Loeschen immer, Schreiben nur mit Pro. Die Meals einer GRUPPE
-    // liegen nicht hier, sondern unter groups/{gid}/recipes - dort gilt die Berechtigung
-    // des Inhabers, und ein Gratis-Mitglied schreibt ganz normal mit.
     match /users/{uid}/recipes/{recipeId} {
-      allow read, delete: if request.auth != null && request.auth.uid == uid;
-      allow create, update: if request.auth != null && request.auth.uid == uid && hasPro(uid);
+      allow read, write: if request.auth != null && request.auth.uid == uid;
     }
 
     // ---- Geteilte Wochenplan-Snapshots ----

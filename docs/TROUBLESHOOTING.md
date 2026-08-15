@@ -1923,6 +1923,10 @@ weil sonst ein ausdrückliches `false` nicht von „gar nicht gesetzt" zu unters
 
 ## 77. Der Baseline-Push lief los, bevor feststand, ob das Konto Pro hat
 
+> **Der auslösende Code ist seit dem 15.08.2026 wieder ausgebaut** — Cloud-Sync ist keine
+> Pro-Funktion mehr, `entitlementGate()` gibt es nicht mehr. Die Denkfalle bleibt trotzdem
+> stehen: Sie trifft jede Bedingung, die vor ihrer ersten Antwort einen Vorgabewert hat.
+
 Beim Einbau der Pro-Sperren (D2b) fiel eine Reihenfolge auf, die vorher folgenlos war: Der
 Berechtigungs-Listener startet in `startCloudSync()`, aber sein erster `onSnapshot` kommt
 **nach** dem Baseline-Push am Ende derselben Funktion. Vorher war das egal, weil `isPro()`
@@ -1951,6 +1955,10 @@ kein neutraler Startwert, sondern eine Aussage.
 
 ## 78. Eine Sperre nur beim Schreiben hätte bei jedem Start Daten gekostet
 
+> **Gegenstandslos geworden am 15.08.2026** — Cloud-Sync ist keine Pro-Funktion mehr, es gibt
+> keine einseitige Synchronisation. Der Merksatz am Ende gilt für jede künftige Situation, in
+> der eine Datenrichtung wegfällt (abgelaufene Berechtigung, Nur-Lese-Rolle, Serverfehler).
+
 Der naheliegende Zuschnitt für D2b war: ohne Pro nicht mehr in die Cloud schreiben, sonst alles
 lassen. Das ist falsch, und zwar in eine Richtung, die man erst beim zweiten Start bemerkt.
 
@@ -1971,6 +1979,10 @@ ein Überschreiber.
 ---
 
 ## 79. `leaveGroup()` hätte ein Gratis-Konto in der Gruppe festgehalten
+
+> **Die Feld-Allowlist ist seit dem 15.08.2026 wieder aus den Regeln raus**, `leaveGroup()`
+> schreibt wieder unverändert `{ groupId: "", plans: … }`. Die Lehre am Ende bleibt für jede
+> künftige Regel gültig, die Felder einzeln erlaubt.
 
 `leaveGroup()` schreibt beim Austritt `{ groupId: "", plans: keepPlans }` — den geleerten
 Zeiger **und** den Wochenplan, der aus der Gruppe wieder ins eigene Konto zurückwandert.
@@ -2005,3 +2017,35 @@ dieselbe Fehlerklasse wie §5/§6 in der App selbst, nur im Prüfstand.
 
 **Die Regel:** Endet die Signaturzeile selbst auf `}`, ist sie die ganze Funktion. Und bei einem
 leeren Prüfstand zuerst den ausgeschnittenen Code ansehen, nicht die Testfälle.
+
+---
+
+## 81. Cloud-Sync war einen Tag lang Pro — die Rücknahme war die richtige Entscheidung
+
+D2b legte am 15.08.2026 Cloud-Sync und Gruppen hinter die Pro-Grenze. Die Umsetzung war
+sauber, geprüft und dokumentiert. Sie war trotzdem falsch, und der Grund stand in keinem
+Agentenbericht: **Wer sich anmeldet, erwartet seine Meals auf dem zweiten Gerät.**
+
+Cloud-Sync ist für Nutzer keine Zusatzleistung, sondern das, wofür ein Konto überhaupt da ist.
+Yazio und Lifesum synchronisieren gratis. Eine App, die dafür Geld verlangt, wirkt nicht
+premium, sondern knausrig — und das Kostenargument trug sachlich nicht einmal: Firestore-Kosten
+für ein paar Dutzend Konten sind nicht messbar.
+
+Aufgefallen ist es bei einer einzigen Nutzerfrage nach dem Push: „Heißt das, die Daten liegen
+jetzt nur noch lokal?" Vier Prüf-Agenten hatten die Änderung vorher abgenommen — keiner hat
+diese Frage gestellt, weil alle vier prüften, **ob** die Sperre korrekt gebaut ist, nicht **ob
+sie sein soll**. Der `kvp`-Agent hat als Einziger die Produktpassung im Auftrag und schrieb
+„passt zu Paar oder WG" — er bewertete die Gruppenregel und übersah den Sync daneben.
+
+**Zwei Lehren:**
+
+1. **Prüf-Agenten validieren die Umsetzung, nicht die Prämisse.** Eine falsche
+   Produktentscheidung kommt durch jeden Review, wenn sie sauber umgesetzt ist. Die Frage
+   „will ein Nutzer das?" muss vor dem Bauen gestellt werden, nicht danach.
+2. **Was Nutzer als Teil des Grundprodukts verstehen, lässt sich nicht nachträglich zum
+   Verkaufsargument machen.** Der Preis dafür ist nicht Umsatz, sondern Vertrauen.
+
+Technisch bemerkenswert: Der Rückbau ging in einer knappen Stunde, weil die Sperre an genau
+fünf benannten Stellen saß und `canCloudWrite()` als **eine** Funktion existierte statt als
+verstreute `isPro()`-Abfragen. Ein Torwächter mit eigenem Namen ist auch dann die richtige
+Bauform, wenn man ihn später wieder entfernt.
