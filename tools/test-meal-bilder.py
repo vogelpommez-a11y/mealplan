@@ -33,6 +33,36 @@ pruef("Zutaten kommen mit hinein", "with Tofu, Reis, Brokkoli" in p2, True)
 p3 = mb.prompt_fuer("Bowl", ["a", "b", "c", "d", "e", "f"])
 pruef("hoechstens vier Zutaten", "with a, b, c, d," in p3, True)
 
+# --- haupt_zutaten: die groessten Mengen beschreiben das Gericht, nicht die ersten vier ---
+rez = { "name": "Test", "ingredients": [
+    "Salz, Pfeffer",                                    # Freitext, keine Menge
+    { "name": "Petersilie", "grams": 5 },
+    { "name": "Basmatireis", "grams": 200 },
+    { "name": "Rote Linsen", "grams": 120 },
+    { "name": "Olivenoel", "grams": 10 },
+    { "name": "Paprika", "grams": 1, "unit": "st" } ] }
+h = mb.haupt_zutaten(rez)
+pruef("Freitext ohne Menge faellt raus", "Salz, Pfeffer" in h, False)
+pruef("groesste Menge zuerst", h[0], "Basmatireis")
+pruef("zweitgroesste danach", h[1], "Rote Linsen")
+pruef("Stueckzahl wird hochgewichtet", "Paprika" in h, True)
+pruef("Kleinkram faellt raus", "Petersilie" in h, False)
+pruef("hoechstens vier", len(h) <= 4, True)
+pruef("Rezept ohne Zutaten ist harmlos", mb.haupt_zutaten({"name": "x"}), [])
+
+# --- Diaet-Hinweise: der Grund, warum kein Haehnchen im veganen Curry landet ---
+pv = mb.prompt_fuer("Curry", ["Linsen"], None, "Hauptgericht", ["vegan"])
+pruef("vegan wird ausdruecklich verneint", "no meat" in pv and "no dairy" in pv, True)
+pruef("Kategorie bestimmt das Geschirr", "on a plate" in pv, True)
+pf = mb.prompt_fuer("Porridge", None, None, "Frühstück", ["vegetarisch"])
+pruef("Fruehstueck kommt in die Schuessel", "in a bowl" in pf, True)
+pruef("vegetarisch verneint nur Fleisch und Fisch",
+      "no meat, no fish" in pf and "no dairy" not in pf, True)
+pruef("Diaet steht VOR dem Stil",
+      pf.index("vegetarian") < pf.index("moody food photography"), True)
+po = mb.prompt_fuer("Irgendwas", None, None, None, [])
+pruef("ohne Tags kein Diaet-Zusatz", "no meat" in po, False)
+
 # --- speichere_webp: das eigentliche Risiko, weil hier Bytes und Pillow zusammenkommen ---
 gross = Image.new("RGB", (1536, 1024), (200, 120, 60))
 puffer = io.BytesIO(); gross.save(puffer, "PNG")

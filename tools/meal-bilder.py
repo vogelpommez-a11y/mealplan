@@ -127,11 +127,56 @@ def lade_env():
     return os.environ.get("OPENAI_API_KEY")
 
 
-def prompt_fuer(name, zutaten=None, stil=None):
+# Geschirr nach Kategorie. Das Modell trifft es meistens von selbst, aber "meistens" ist bei
+# 100 Bildern zu wenig - ein Porridge auf einem flachen Teller sieht falsch aus.
+KAT_GESCHIRR = {
+    "Frühstück": "in a bowl",
+    "Hauptgericht": "on a plate",
+    "Snack": "in a small bowl",
+    "Dessert": "in a small bowl",
+    "Beilage": "in a small bowl",
+    "Getränk": "in a glass"
+}
+
+# Diaet-Hinweise. OHNE diese Zeilen legt das Modell aus Gewohnheit Fleisch in ein Curry,
+# weil Currys meistens so aussehen - ein veganes Rezept mit Haehnchen im Bild ist bei einer
+# App, die Veganer gezielt anspricht, kein Schoenheitsfehler, sondern ein Vertrauensbruch.
+TAG_HINWEIS = {
+    "vegan": "strictly vegan, no meat, no fish, no eggs, no dairy, no cheese",
+    "vegetarisch": "vegetarian, no meat, no fish",
+    "glutenfrei": "gluten free, no bread, no wheat pasta",
+    "laktosefrei": "no milk, no cheese, no cream"
+}
+
+
+def haupt_zutaten(rezept, anzahl=4):
+    """Die mengenmaessig groessten Zutaten - die beschreiben das Gericht.
+
+    Die ersten vier aus der Liste zu nehmen hiesse womoeglich "Salz, Pfeffer, Olivenoel,
+    Petersilie". Freitext-Zutaten ohne Menge (Gewuerze) fliegen deshalb raus, der Rest wird
+    nach Menge sortiert. Stueckzahlen ("1 Paprika") werden hochgewichtet, weil 1 Stueck
+    mengenmaessig neben 200 g Reis sonst untergeht, obwohl es sichtbar auf dem Teller liegt.
+    """
+    mit_menge = []
+    for z in (rezept.get("ingredients") or []):
+        if not isinstance(z, dict):
+            continue                      # Freitext wie "Salz, Pfeffer" - nicht abbildbar
+        name = str(z.get("name") or "").strip()
+        menge = z.get("grams")
+        if not name or not isinstance(menge, (int, float)) or menge <= 0:
+            continue
+        gewicht = menge * 80 if z.get("unit") == "st" else menge
+        mit_menge.append((gewicht, name))
+    mit_menge.sort(reverse=True)
+    return [n for _, n in mit_menge[:anzahl]]
+
+
+def prompt_fuer(name, zutaten=None, stil=None, kategorie=None, tags=None):
     """Der Gerichtname traegt die Bildidee, die Hauptzutaten schaerfen sie.
 
-    Ohne Zutaten raet das Modell - "Bowl" kann alles sein. Mit zwei, drei Hauptzutaten wird
-    daraus ein bestimmtes Gericht, und das Bild passt zum Rezept daneben.
+    Ohne Zutaten raet das Modell - "Bowl" kann alles sein. Mit den mengenmaessig groessten
+    Zutaten wird daraus ein bestimmtes Gericht, und das Bild passt zum Rezept daneben.
+    Deshalb entstehen die Bilder NACH den Rezepten, nicht davor.
 
     `stil` ueberschreibt den eingefrorenen Baustein - AUSSCHLIESSLICH fuer den einmaligen
     Stilvergleich vor dem Festlegen (--stil). Im Normalbetrieb nie benutzen: Zwei Bilder mit
@@ -139,7 +184,14 @@ def prompt_fuer(name, zutaten=None, stil=None):
     """
     teile = [name]
     if zutaten:
-        teile.append("with " + ", ".join(zutaten[:4]))
+        teile.append("with " + ", ".join(zutaten))
+    # Diaet zuerst nach dem Gericht: Die Verneinungen sollen moeglichst weit vorn stehen,
+    # weit hinten im Prompt werden sie erfahrungsgemaess schwaecher gewichtet.
+    for t in (tags or []):
+        if t in TAG_HINWEIS:
+            teile.append(TAG_HINWEIS[t])
+    if kategorie and kategorie in KAT_GESCHIRR:
+        teile.append(KAT_GESCHIRR[kategorie])
     teile.append(stil or STIL)
     return ", ".join(teile)
 
@@ -208,6 +260,11 @@ def main():
     p = argparse.ArgumentParser(description="Meal-Bilder ueber die OpenAI Images API erzeugen")
     p.add_argument("--meals", nargs="+", help="Gerichtnamen")
     p.add_argument("--datei", help="Textdatei, ein Gerichtname je Zeile")
+    p.add_argument("--rezepte", help="JSON-Datei mit fertigen Rezepten (Liste oder {recipes:[...]}). "
+                                     "DER EMPFOHLENE WEG: Name, Hauptzutaten, Kategorie und Diaet-Tags "
+                                     "gehen in den Prompt - das Bild passt dann zum Rezept.")
+    p.add_argument("--nur-ohne-bild", action="store_true",
+                   help="Aus --rezepte nur die ueberspringen, fuer die schon eine Datei existiert")
     p.add_argument("--varianten", type=int, default=2,
                    help="Bilder je Gericht (Standard 2 - rechne mit 30-50 %% Ausschuss)")
     p.add_argument("--out", default="img/library", help="Zielordner (Standard img/library)")
@@ -217,25 +274,52 @@ def main():
                                   "eingefrorenen Stil-Baustein. Im Normalbetrieb weglassen.")
     args = p.parse_args()
 
-    namen = list(args.meals or [])
+    # Ein Auftrag ist { name, zutaten, kategorie, tags } - aus --rezepte kommt alles davon,
+    # aus --meals/--datei nur der Name.
+    auftraege = [{"name": n} for n in (args.meals or [])]
     if args.datei:
-        namen += [z.strip() for z in Path(args.datei).read_text(encoding="utf-8").splitlines() if z.strip()]
+        auftraege += [{"name": z.strip()} for z in
+                      Path(args.datei).read_text(encoding="utf-8").splitlines() if z.strip()]
+    if args.rezepte:
+        roh = json.loads(Path(args.rezepte).read_text(encoding="utf-8"))
+        liste = roh.get("recipes", roh) if isinstance(roh, dict) else roh
+        for r in liste:
+            if not isinstance(r, dict) or not r.get("name"):
+                continue
+            auftraege.append({
+                "name": r["name"],
+                "zutaten": haupt_zutaten(r),
+                "kategorie": r.get("category"),
+                "tags": r.get("tags") or []
+            })
     if args.probe:
-        namen = ["Rindersteak mit Ofenkartoffeln"]
+        auftraege = [{"name": "Rindersteak mit Ofenkartoffeln"}]
         args.varianten = 1
-    if not namen:
-        p.error("Keine Gerichte angegeben (--meals, --datei oder --probe)")
+    if not auftraege:
+        p.error("Keine Gerichte angegeben (--meals, --datei, --rezepte oder --probe)")
 
-    gesamt = len(namen) * args.varianten
+    if args.nur_ohne_bild:
+        vorher = len(auftraege)
+        auftraege = [a for a in auftraege
+                     if not (WURZEL / args.out / (slug(a["name"]) + ".webp")).exists()]
+        if vorher != len(auftraege):
+            print("%d von %d haben schon ein Bild und werden uebersprungen.\n"
+                  % (vorher - len(auftraege), vorher))
+
+    gesamt = len(auftraege) * args.varianten
     if gesamt > MAX_BILDER:
         print("ABBRUCH: %d Bilder ueberschreiten die Grenze von %d." % (gesamt, MAX_BILDER))
         print("Das ist der Kostenschutz - teile den Lauf auf oder erhoehe MAX_BILDER bewusst.")
         return 1
 
+    def prompt_von(a):
+        return prompt_fuer(a["name"], a.get("zutaten"), args.stil, a.get("kategorie"), a.get("tags"))
+
     if args.dry_run:
-        for n in namen:
-            print("\n%s\n  %s" % (n, prompt_fuer(n)))
-        print("\n%d Bilder waeren das (%d Gerichte x %d Varianten)." % (gesamt, len(namen), args.varianten))
+        for a in auftraege:
+            print("\n%s\n  %s" % (a["name"], prompt_von(a)))
+        print("\n%d Bilder waeren das (%d Gerichte x %d Varianten)."
+              % (gesamt, len(auftraege), args.varianten))
         return 0
 
     api_key = lade_env()
@@ -254,9 +338,10 @@ def main():
     if protokoll_pfad.exists():
         protokoll = json.loads(protokoll_pfad.read_text(encoding="utf-8"))
     credits = {}
-    for name in namen:
+    for a in auftraege:
+        name = a["name"]
         key = slug(name)
-        prompt = prompt_fuer(name, stil=args.stil)
+        prompt = prompt_von(a)
         print("\n%s" % name)
         try:
             bilder = generiere(api_key, prompt, args.varianten)

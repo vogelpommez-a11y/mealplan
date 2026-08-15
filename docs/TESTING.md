@@ -298,6 +298,19 @@ Beispiele:
   Die **Gegenprobe** lief noch an der ursprünglichen Fassung: `canCloudWrite()` künstlich auf
   `true` gesetzt, vier Prüfungen wurden rot. Das ist der Beweis, dass der Prüfstand misst und
   nicht nur läuft (`docs/TESTING.md`, „Messfallen").
+* **Bild-Werkzeug (`tools/test-meal-bilder.py`, 15.08.2026)**: Kein Ausschneide-Prüfstand,
+  sondern ein eigener Test für `tools/meal-bilder.py` — er lädt das Skript als Modul und
+  kommt **ohne einen einzigen API-Aufruf** aus. 33 Prüfungen, alle grün.
+  Das ist hier keine Sparsamkeit: Jeder Fehlversuch am scharfen Werkzeug kostet Geld, und ein
+  Fehler in der Bildverarbeitung fiele sonst erst beim hundertsten bezahlten Bild auf. Genau
+  so wurde `slug("Bowl (vegan), scharf")` → `bowl-vegan--scharf` gefunden.
+  Geprüft werden vier Gruppen: **Dateinamen** (Umlaute, Sonderzeichenketten), **Prompt-Bau**
+  (größte Mengen zuerst, Freitext-Zutaten raus, Diät-Verneinungen vor dem Stil, Kategorie →
+  Geschirr), **Bildverarbeitung** (Zuschnitt auf das Zielverhältnis, **mittig** — belegt mit
+  einem Testbild, dessen Ränder rot markiert sind —, WebP, kein Hochskalieren) und die
+  **eingefrorenen Konstanten**.
+  Als der Zuschnitt eingeführt wurde, hat der alte Testfall „Seitenverhältnis bleibt" die
+  Änderung korrekt gemeldet, statt sie durchgehen zu lassen.
 * **Ernährungsprofil (15.08.2026)**: `DIETS`/`AVOIDS`, `dietOk()`, `avoidOk()`, `fitsDiet()`,
   `toggleAvoid()`, `sanitizeGoal()` und `computeGoal()` geschnitten. 33 Prüfungen, alle grün.
   Drei Fälle, die man leicht übersieht: **vegetarisch muss vegane Gerichte zulassen** (sonst
