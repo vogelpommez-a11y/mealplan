@@ -233,8 +233,30 @@ Zwei Folgen, die dazugehören:
 
 Technisch ist der Status **serverseitig** verankert (`entitlements/{uid}`, für den Client nur
 lesbar) — eine UI-Sperre wäre keine Grenze, sondern eine Anzeige. Siehe
-`docs/ARCHITECTURES.md`. Gesperrt ist bislang **nichts**: erst muss der lokale Modus der
-Regelfall werden (D1b), sonst stünde eine Grenze vor einem Weg, den es noch nicht gibt.
+`docs/ARCHITECTURES.md`.
+
+### Was seit D2b (15.08.2026) tatsächlich gesperrt ist
+
+**Pro:** Cloud-Sync des eigenen Kontos (Wochenplan, Ziel, Gewichte, Profilbild, eigene Meals)
+und das **Gründen** einer Gruppe samt Einladen.
+
+**Nicht Pro:** alles Lokale, und ausdrücklich das **Beitreten** zu einer Gruppe samt
+Mitplanen darin.
+
+Diese zweite Zeile ist eine bewusste Entscheidung und keine Nachlässigkeit: **In einer Gruppe
+zahlt der Inhaber, nicht das Mitglied.** Wäre Sync für jeden Beteiligten Pro-pflichtig, hieße
+„gemeinsam planen", dass beide zahlen — und jede Einladung wäre eine Verkaufsaufforderung an
+den Partner. Das passt nicht zu „Paar oder WG". Verworfen wurden „beide brauchen Pro" (sperrt
+Dritte aus) und „Gruppe bleibt ganz gratis" (dann trägt die Grenze kaum).
+
+**Lesen wird nie gesperrt.** Ein Konto ohne Pro kann seinen Cloud-Stand weiterhin abrufen und
+über „Cloud-Daten herunterladen" im Profilmenü als Datei mitnehmen (Art. 15/20 DSGVO). Gesperrt ist
+ausschließlich das Schreiben; Löschen bleibt ebenfalls offen (Art. 17).
+
+**Ohne Pro wird der Cloud-Stand auch nicht mehr hereingezogen** — nicht nur nicht geschrieben.
+Sonst überschriebe der eingefrorene Cloud-Stand bei jedem Start die inzwischen lokal gemachte
+Arbeit, ohne dass sie je zurückwandern könnte. Die Anzeige heißt dann **„Nur auf diesem Gerät"**
+und ist bewusst kein Fehlerzustand: nichts ist kaputt, die Daten liegen sicher.
 
 ## Langfristige Vision
 

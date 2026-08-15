@@ -757,11 +757,68 @@ zählt (kein `"true"`, keine `1`), unbekannte `source`-Werte fallen auf `"manual
 **unbrauchbares `until` ergibt kein Pro** statt eines unbefristeten (siehe
 `docs/TROUBLESHOOTING.md` §76).
 
-Kein Feature ist bisher gesperrt — D1 legt nur die Grenze und den Lesepfad an. Sichtbar ist der
-Status als „Pro"-Marke im Profilmenü. Die serverseitige Durchsetzung für Cloud-Sync und Gruppen
-steht als vorbereiteter, **noch nicht aktiver** Helfer in `firestore.rules`; sie scharf zu
-schalten, bevor D1b (lokaler Modus als Regelfall) steht, würde jeden bestehenden Zugang
-aussperren.
+Sichtbar ist der Status als „Pro"-Marke im Profilmenü.
+
+### Die Sperrpunkte (D2b, 15.08.2026)
+
+`canCloudWrite()` ist der **eine** Torwächter für Schreibvorgänge im eigenen Cloud-Konto. Er ist
+bewusst eine eigene Funktion neben `isPro()`: Gruppen-Schreibvorgänge hängen an einer **anderen**
+Bedingung — dort zählt die Berechtigung des **Inhabers**, nicht die des Schreibenden (siehe
+`docs/PRODUCT.md`). Die beiden Fragen dürfen nicht zu einer verschmelzen.
+
+Vier Punkte im Client:
+
+| Ort | Ohne Pro |
+|---|---|
+| `pushNow()` | schreibt das Kontodokument nicht; in einer Gruppe laufen `syncRecipes()` und `pushGroupPlan()` weiter |
+| `syncRecipes()` | nur gesperrt, wenn `recipeBase()` auf das eigene Konto zeigt — in der Gruppe nicht |
+| `onRemote()` | Gruppenwechsel wird weiter ausgewertet, sonst wird **nichts** übernommen |
+| `startCloudSync()` | `personalCloud` schaltet den persönlichen Merge, den Rezept-Listener und die Baseline ab |
+
+Dazu die Gruppen-Gates: `prepareGroup()` und `createInviteLink()` verlangen `isPro()`; das
+Gruppen-Blatt zeigt ohne Pro statt „Person einladen" einen Hinweis — **„Einladung scannen" bleibt
+stehen**, denn Beitreten ist gratis.
+
+**Warum auch das Hereinziehen gesperrt ist und nicht nur das Schreiben:** Ohne Schreibrecht ist
+der Cloud-Stand eingefroren. Zöge ihn die App weiter herein, überschriebe er bei jedem Start die
+inzwischen lokal gemachte Arbeit — und der Weg zurück ist versperrt. Das wäre stiller
+Datenverlust bei jedem Neustart.
+
+**`entitlementGate()`** löst ein Zeitproblem: Bis der erste `onSnapshot` da ist, liefert `isPro()`
+`false`. Fiele der Baseline-Push in dieses Fenster, verweigerte sich der Sync einem **zahlenden**
+Konto und `lastPushedJSON` stünde danach falsch. `startCloudSync()` wartet deshalb auf den ersten
+Snapshot, gedeckelt auf 4 s: bleibt die Antwort aus (Regel nicht veröffentlicht, Netz weg), gilt
+„kein Pro" — das ist die sichere Richtung, sie sperrt nur Schreibvorgänge. Kommt die Berechtigung
+später doch herein, holt der Listener den übersprungenen Push nach.
+
+**`leaveGroup()` schreibt ohne Pro nur `{ groupId: "" }`**, nicht zusätzlich `plans`. Sonst
+scheiterte der ganze Schreibvorgang an der Regel, die Cloud-`groupId` bliebe stehen, und der
+nächste Start zöge das Konto in eine Gruppe zurück, die es gerade verlassen hat.
+
+**Statuszeile:** `syncStatus` kennt zusätzlich `"locked"` → „Nur auf diesem Gerät", mit der
+Klasse `off` und nicht `err`: Es ist kein Fehler, sondern der Normalzustand ohne Pro.
+
+**Serverseitig** (`firestore.rules`, Fassung vom 15.08.2026 — **im Repo scharf, in der Konsole
+erst nach Ankündigung zu veröffentlichen**):
+
+* `users/{uid}`: `read` und `delete` immer (Art. 15/17/20), `create`/`update` nur mit Pro —
+  **Ausnahme:** eine Änderung, die ausschließlich `groupId`, `pendingGroupId`,
+  `pendingInviteUrl`, `updatedAt` betrifft. Ohne diese Ausnahme könnte ein Gratis-Konto einer
+  Gruppe weder beitreten noch sie verlassen. Genau diese Felder schreibt der Client einzeln, an
+  `pushNow()` vorbei.
+* `users/{uid}/recipes/*`: dasselbe Muster ohne die Zeiger-Ausnahme.
+* `groups/{gid}`: `create` nur mit eigenem Pro. Schreiben in `plans`/`recipes` prüft
+  `groupOwnerHasPro(gid)` — ein zusätzliches `get()` auf das Gruppendokument plus eines auf
+  `entitlements`; zusammen mit dem Mitglieder-`get()` drei von zehn erlaubten.
+* **Lesen und Löschen bleiben in der ganzen Gruppe frei**, auch wenn die Berechtigung des
+  Inhabers ausläuft. Sonst verlören Dritte den Zugriff auf ihre eigene Planung, weil jemand
+  anderes nicht verlängert hat — und `pruneWeeks()` könnte alte Wochen nicht mehr aufräumen.
+* `invites`: `create` nur für den Inhaber **mit** Pro.
+
+**Cloud-Daten herunterladen** (`downloadCloudData()`): lädt Kontodokument und Meals und speichert sie als
+JSON-Datei. Nur ohne Pro im Profilmenü sichtbar — mit Pro sind die Cloud-Daten ohnehin die Daten
+in der App. Bewusst eine Datei statt einer Übernahme in den lokalen Stand: das Zusammenführen wäre
+Sync durch die Hintertür, und ohne Rückweg ließe sich nicht mehr sagen, welcher Stand gilt.
 
 **Löschung (Art. 17 DSGVO):** `deleteAccount()` entfernt `entitlements/{uid}` mit, bevor das
 Kontodokument fällt. Dafür erlaubt die Regel dem Client genau eine Schreibart: `delete`.

@@ -6,7 +6,19 @@ rules_version = '2';
 // Firebase-Konsole unter Firestore Database -> Regeln eingefügt und VERÖFFENTLICHT wird.
 // Sie liegt hier im Repo, damit nachvollziehbar ist, was gelten soll.
 //
-// Stand: 2026-07-26
+// Stand: 2026-08-15
+//
+// ACHTUNG, VOR DEM VEROEFFENTLICHEN LESEN (D2b):
+// Diese Fassung schaltet die Pro-Grenze SCHARF. Sie nimmt bestehenden Konten das
+// Schreiben in die Cloud weg, sobald sie veroeffentlicht ist. Vorher zwingend:
+//   1. Den entitlements-Block (D1) muss es in der Konsole bereits geben - sonst liest
+//      die App dauerhaft "kein Pro" und JEDES Konto steht sofort ohne Sync da.
+//   2. Die betroffenen Konten informieren (in der Firebase-Konsole unter
+//      Authentication -> Users nachsehen, wer zuletzt aktiv war).
+//   3. Wer Pro behalten soll, braucht vorher ein entitlements/{uid}-Dokument
+//      (Anleitung: FIREBASE-SETUP.md).
+// Lesen und Loeschen bleiben in JEDEM Fall offen - Art. 15, 17 und 20 DSGVO. Gesperrt
+// wird ausschliesslich das Schreiben.
 
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -35,10 +47,53 @@ service cloud.firestore {
       return get(/databases/$(database)/documents/invites/$(code)).data;
     }
 
+    // ---- Pro-Grenze (D2b) ----
+    //
+    // Cloud-Sync und das GRUENDEN einer Gruppe sind Pro-Funktionen. Gratis laeuft die App
+    // vollstaendig lokal und dort uneingeschraenkt (docs/PRODUCT.md, "Premium").
+    //
+    // Die Berechtigung eines BELIEBIGEN Kontos, nicht nur des Anfragenden: beim
+    // Gruppenzugriff zaehlt die des Inhabers (siehe unten). Ein abgelaufenes "until"
+    // zaehlt als kein Pro - dieselbe Pruefung wie in isPro() im Client.
+    // "until" wird als Firestore-Timestamp erwartet; fehlt es oder ist es null, gilt die
+    // Berechtigung unbefristet (Testkonten, lebenslange Kaeufe).
+    function entitlementOf(uid) {
+      return get(/databases/$(database)/documents/entitlements/$(uid)).data;
+    }
+    function hasPro(uid) {
+      return exists(/databases/$(database)/documents/entitlements/$(uid))
+        && entitlementOf(uid).pro == true
+        && (!("until" in entitlementOf(uid))
+            || entitlementOf(uid).until == null
+            || entitlementOf(uid).until > request.time);
+    }
+    // Die EINE Ausnahme fuer Konten ohne Pro: der Zeiger auf die Gruppe. Ohne ihn koennte
+    // ein Gratis-Konto einer Gruppe weder beitreten noch sie verlassen - und Beitreten
+    // soll ausdruecklich gratis bleiben, weil der Inhaber fuer die Gruppe zahlt.
+    // Genau diese drei Felder (plus updatedAt) schreibt der Client dafuer einzeln, an
+    // pushNow() vorbei (siehe joinGroup()/leaveGroup()/prepareGroup() in index.html).
+    function nurGruppenZeiger() {
+      return request.resource.data.diff(resource.data).affectedKeys()
+        .hasOnly(["groupId", "pendingGroupId", "pendingInviteUrl", "updatedAt"]);
+    }
+
     // ---- Konto-Daten: Plan, Meals, Profil ----
-    // Jede Person liest und schreibt ausschließlich ihr eigenes Dokument.
+    // Jede Person liest ihr eigenes Dokument immer - auch ohne Pro. Das ist keine
+    // Grosszuegigkeit, sondern Art. 15/20 DSGVO: Wer seine Daten nicht mehr schreiben
+    // darf, muss sie weiterhin abrufen und mitnehmen koennen ("Cloud-Daten herunterladen" im
+    // Profilmenue). Loeschen bleibt aus demselben Grund offen (Art. 17).
     match /users/{uid} {
-      allow read, write: if request.auth != null && request.auth.uid == uid;
+      allow read, delete: if request.auth != null && request.auth.uid == uid;
+      // create ohne resource: dort gibt es keinen Vorher-Stand, gegen den diff() laufen
+      // koennte - deshalb die Feldliste direkt am eingehenden Dokument. Der Fall ist real:
+      // ein frisches Gratis-Konto, das ueber einen Einladungslink beitritt, legt sein
+      // Kontodokument mit genau diesen Feldern ueberhaupt erst an.
+      allow create: if request.auth != null && request.auth.uid == uid
+                    && (hasPro(uid)
+                        || request.resource.data.keys()
+                             .hasOnly(["groupId", "pendingGroupId", "pendingInviteUrl", "updatedAt"]));
+      allow update: if request.auth != null && request.auth.uid == uid
+                    && (hasPro(uid) || nurGruppenZeiger());
     }
 
     // ---- Pro-Berechtigung (D1) ----
@@ -67,28 +122,16 @@ service cloud.firestore {
       allow list, create, update: if false;
     }
 
-    // NOCH NICHT SCHARF: Sobald Cloud-Sync und Gruppen Pro-Funktionen werden (D2b), kommt
-    // die serverseitige Durchsetzung über diesen Helfer in die users/- und groups/-Regeln:
-    //
-    //   function hasPro() {
-    //     return request.auth != null
-    //       && exists(/databases/$(database)/documents/entitlements/$(request.auth.uid))
-    //       && get(/databases/$(database)/documents/entitlements/$(request.auth.uid)).data.pro == true;
-    //   }
-    //
-    // Er steht hier als Kommentar und nicht als Code, weil ein Veröffentlichen in diesem
-    // Zustand JEDEN bestehenden Zugang sofort aussperren würde — auch den des Inhabers, der
-    // noch kein entitlements-Dokument hat. Reihenfolge laut Plan: erst D1b (lokaler Modus
-    // wird der Regelfall), dann D2b (Sperrpunkte), und erst dann diese Regel.
-    // Zu bedenken ist dabei der Lesezugriff: Ein Konto ohne Pro muss seine Daten weiterhin
-    // LESEN und EXPORTIEREN können (Art. 15/20 DSGVO) — gesperrt wird das Schreiben.
-
     // ---- Rezepte: eigenes Dokument je Meal, damit Fotos nicht mehr gegen die
     // 1-MiB-Grenze des Hauptdokuments laufen. Regeln vererben sich in Firestore
     // NICHT automatisch auf Subcollections - deshalb ein eigener Block, gleiche
     // Zugriffslogik wie beim Hauptdokument. ----
+    // Auch hier: Lesen und Loeschen immer, Schreiben nur mit Pro. Die Meals einer GRUPPE
+    // liegen nicht hier, sondern unter groups/{gid}/recipes - dort gilt die Berechtigung
+    // des Inhabers, und ein Gratis-Mitglied schreibt ganz normal mit.
     match /users/{uid}/recipes/{recipeId} {
-      allow read, write: if request.auth != null && request.auth.uid == uid;
+      allow read, delete: if request.auth != null && request.auth.uid == uid;
+      allow create, update: if request.auth != null && request.auth.uid == uid && hasPro(uid);
     }
 
     // ---- Geteilte Wochenplan-Snapshots ----
@@ -122,6 +165,24 @@ service cloud.firestore {
     // Die Sperren in der Oberfläche ("Nur ansehen" blendet Knöpfe aus) sind reiner
     // Komfort und mit den Entwicklerwerkzeugen des Browsers umgehbar.
 
+    // ---- Pro in der Gruppe: es zaehlt der INHABER, nicht das Mitglied ----
+    //
+    // Waere Cloud-Sync fuer jeden Beteiligten Pro-pflichtig, hiesse "gemeinsam planen",
+    // dass BEIDE zahlen - jede Einladung waere eine Verkaufsaufforderung an den Partner.
+    // Das passt nicht zu "Paar oder WG" (docs/PRODUCT.md). Entscheidung vom 13.08.2026:
+    // Der Inhaber braucht Pro, die Mitglieder nicht.
+    //
+    // Kosten je Schreibvorgang: das Mitglieder-Dokument (canWrite), das Gruppendokument
+    // (fuer den Inhaber) und das entitlements-Dokument, das hasPro() sowohl mit exists()
+    // als auch mit get() anfasst - zusammen drei bis vier. Die Grenze liegt bei 10.
+    //
+    // LESEN bleibt in der ganzen Gruppe frei, auch wenn die Berechtigung des Inhabers
+    // ablaeuft. Sonst verloeren Dritte den Zugriff auf ihre eigene Planung, weil jemand
+    // anderes nicht verlaengert hat.
+    function groupOwnerHasPro(gid) {
+      return hasPro(get(/databases/$(database)/documents/groups/$(gid)).data.owner);
+    }
+
     // ---- Die Gruppe selbst: Name und Einstellungen ----
     match /groups/{gid} {
       allow get: if isMember(gid);
@@ -129,8 +190,11 @@ service cloud.firestore {
       // Person sämtliche Gruppen samt Namen abfragen.
       allow list: if false;
 
+      // Gruenden ist eine Pro-Funktion (D2b). Beitreten ausdruecklich nicht - siehe
+      // groupOwnerHasPro() oben.
       allow create: if request.auth != null
-                    && request.resource.data.owner == request.auth.uid;
+                    && request.resource.data.owner == request.auth.uid
+                    && hasPro(request.auth.uid);
 
       // Nur der Inhaber ändert Name/Einstellungen – und kann sich dabei nicht selbst
       // gegen jemand anderen austauschen.
@@ -182,13 +246,18 @@ service cloud.firestore {
     // nicht gegenseitig überschreibt. Hier greift "Nur ansehen" wirklich.
     match /groups/{gid}/plans/{weekKey} {
       allow get, list: if isMember(gid);
-      allow create, update, delete: if canWrite(gid);
+      // delete bewusst OHNE Pro-Pruefung: pruneWeeks() raeumt vergangene Wochen weg, und
+      // eine Gruppe, deren Inhaber nicht verlaengert, soll nicht dauerhaft Karteileichen
+      // ansammeln. Aufraeumen darf immer, wer ohnehin Mitglied mit Schreibrecht ist.
+      allow create, update: if canWrite(gid) && groupOwnerHasPro(gid);
+      allow delete: if canWrite(gid);
     }
 
     // ---- Gemeinsame Meals: gleiche Struktur wie users/{uid}/recipes ----
     match /groups/{gid}/recipes/{recipeId} {
       allow get, list: if isMember(gid);
-      allow create, update, delete: if canWrite(gid);
+      allow create, update: if canWrite(gid) && groupOwnerHasPro(gid);
+      allow delete: if canWrite(gid);
     }
 
     // ---- Einladungscodes ----
@@ -201,10 +270,12 @@ service cloud.firestore {
       // Einladen darf ausschließlich der Inhaber der Gruppe. Das spart gegenüber einer
       // Einstellung "Mitplaner dürfen auch" einen get() je Einladung - und zu zweit gäbe
       // es nach dem Beitritt ohnehin niemanden mehr einzuladen.
+      // Einladen ist Inhaber-Sache, und Inhaber sein setzt Pro voraus (D2b).
       allow create: if request.auth != null
                     && request.resource.data.by == request.auth.uid
                     && request.resource.data.role in ["edit", "view"]
-                    && isOwner(request.resource.data.gid);
+                    && isOwner(request.resource.data.gid)
+                    && hasPro(request.auth.uid);
 
       // Ein Code ist unveränderlich - wer andere Rechte vergeben will, erzeugt einen neuen.
       allow update: if false;

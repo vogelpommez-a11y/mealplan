@@ -1918,3 +1918,90 @@ durchgegangen — sie liest sich vollkommen plausibel.
 
 Verwandt, gleiche Denkfalle: `sanitizeRecipe()` prüft `"mealPrep" in r` statt `if (r.mealPrep)`,
 weil sonst ein ausdrückliches `false` nicht von „gar nicht gesetzt" zu unterscheiden wäre.
+
+---
+
+## 77. Der Baseline-Push lief los, bevor feststand, ob das Konto Pro hat
+
+Beim Einbau der Pro-Sperren (D2b) fiel eine Reihenfolge auf, die vorher folgenlos war: Der
+Berechtigungs-Listener startet in `startCloudSync()`, aber sein erster `onSnapshot` kommt
+**nach** dem Baseline-Push am Ende derselben Funktion. Vorher war das egal, weil `isPro()`
+nichts sperrte.
+
+Mit den Sperren wäre daraus ein Fehler geworden, den ein zahlender Nutzer trägt: Beim Start
+gilt `isPro() === false`, `pushNow()` bricht ab — und der nächste Push kommt erst bei der
+nächsten Änderung. Schlimmer: `lastPushedJSON` und `lastPushedRecipes` stünden auf einem Stand,
+den nie jemand geschrieben hat.
+
+`entitlementGate()` löst das: `startCloudSync()` wartet auf den ersten Snapshot, gedeckelt auf
+4 Sekunden. Zwei Eigenschaften sind dabei wichtig:
+
+* **Die Zeitgrenze fällt in die sichere Richtung.** Bleibt die Antwort aus, gilt „kein Pro" —
+  gesperrt wird nur das Schreiben, nichts geht verloren.
+* **Mehrfaches Auflösen ist harmlos.** Der Listener feuert bei jedem Server-Echo erneut.
+
+Und weil eine Zeitgrenze nie ein Ersatz für den echten Wert ist, holt der Listener den
+übersprungenen Push nach, sobald die Berechtigung doch eintrifft.
+
+**Die allgemeine Form:** Wer eine Bedingung einführt, die vorher immer `true` war, muss prüfen,
+**wann** sie zum ersten Mal ihren richtigen Wert hat. Ein `false` vor der ersten Antwort ist
+kein neutraler Startwert, sondern eine Aussage.
+
+---
+
+## 78. Eine Sperre nur beim Schreiben hätte bei jedem Start Daten gekostet
+
+Der naheliegende Zuschnitt für D2b war: ohne Pro nicht mehr in die Cloud schreiben, sonst alles
+lassen. Das ist falsch, und zwar in eine Richtung, die man erst beim zweiten Start bemerkt.
+
+Ohne Schreibrecht ist der Cloud-Stand **eingefroren**. Der Merge in `startCloudSync()` lässt
+aber an mehreren Stellen ausdrücklich die Cloud gewinnen (`goal`, `favs`, `shopPersons`,
+`profileImage`) — das ist richtig, solange beide Richtungen fließen. Ohne Rückweg heißt es:
+Jeder Start überschreibt die lokale Arbeit mit einem Stand von vor der Umstellung, und die
+Änderung ist weg, ohne dass irgendwo ein Fehler auftaucht.
+
+Deshalb sperrt `personalCloud` in `startCloudSync()` und der Check in `onRemote()` auch das
+**Hereinziehen**, nicht nur das Schreiben. Erreichbar bleibt der Cloud-Stand über „Cloud-Daten
+laden" im Profilmenü — als Datei, nicht als Zusammenführung: Ohne Rückweg ließe sich nicht mehr
+sagen, welcher der beiden Stände der gültige ist.
+
+**Merksatz:** Eine einseitig gewordene Synchronisation ist keine halbe Synchronisation, sondern
+ein Überschreiber.
+
+---
+
+## 79. `leaveGroup()` hätte ein Gratis-Konto in der Gruppe festgehalten
+
+`leaveGroup()` schreibt beim Austritt `{ groupId: "", plans: keepPlans }` — den geleerten
+Zeiger **und** den Wochenplan, der aus der Gruppe wieder ins eigene Konto zurückwandert.
+
+Die neue Firestore-Regel lässt ohne Pro genau vier Felder zu (`groupId`, `pendingGroupId`,
+`pendingInviteUrl`, `updatedAt`). Ein Schreibvorgang mit `plans` scheitert damit **komplett** —
+Firestore kennt kein „schreibt den erlaubten Teil". Der Fehler landete im `catch` und wäre
+still geblieben; die Cloud-`groupId` wäre stehen geblieben, und der nächste Start hätte das
+Konto in die Gruppe zurückgezogen, die es gerade verlassen hat.
+
+Ohne Pro wird deshalb nur `{ groupId: "" }` geschrieben. Der Plan bleibt lokal — wie alles
+andere auch.
+
+**Die allgemeine Form:** Eine Feld-Allowlist in den Regeln muss gegen **jede** Aufrufstelle
+geprüft werden, die das Dokument anfasst — nicht nur gegen den Hauptpfad. Die Zeiger-Felder
+werden an vier Stellen einzeln geschrieben; `leaveGroup()` war die einzige, die noch etwas
+anderes mitschickte.
+
+---
+
+## 80. Ein Einzeiler zerlegte den Prüfstand — und der Fehler war unsichtbar
+
+Der Ausschneide-Prüfstand für D2b schneidet Funktionen „von der Signaturzeile bis zur ersten
+Zeile, die genau `  }` ist". Bei `function canCloudWrite() { return isPro(); }` steht die
+schließende Klammer in **derselben** Zeile — der Schnitt lief also weiter bis zur nächsten
+Funktion und nahm deren Rumpf zur Hälfte mit.
+
+Das Ergebnis war kein Testfehler, sondern eine **leere Seite**: Ein Syntaxfehler verhindert,
+dass der `<script>`-Block überhaupt ausgeführt wird — und damit läuft auch der eigens
+eingebaute `window.onerror`-Handler nicht, der den Fehler hätte anzeigen sollen. Genau
+dieselbe Fehlerklasse wie §5/§6 in der App selbst, nur im Prüfstand.
+
+**Die Regel:** Endet die Signaturzeile selbst auf `}`, ist sie die ganze Funktion. Und bei einem
+leeren Prüfstand zuerst den ausgeschnittenen Code ansehen, nicht die Testfälle.
