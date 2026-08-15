@@ -1054,6 +1054,28 @@ scrollen soll: `scrollWidth === clientWidth` (bzw. `scrollHeight === clientHeigh
 Scroller, und schon sechs Pixel Überlauf schalten die Wischgeste des Elternteils ab. Die Geste
 selbst ist headless nicht auslösbar — diese beiden Werte sind der belastbare Ersatz.
 
+### `env(safe-area-inset-*)` prüfen, ohne ein Gerät mit Notch zu haben
+
+Edge headless simuliert keine Safe-Area — `env()` liefert dort immer den Fallback. Ein Test, der
+nur die fertige Seite lädt, misst deshalb **nichts** von der Sache, um die es geht, und wäre auch
+dann grün, wenn die `calc()`-Kette gar nicht rechnet.
+
+Der Prüfstand für D6 löst das mit **zwei** Seiten aus demselben ausgeschnittenen `<style>`-Block:
+
+1. **Normalfall** — unverändert. Erwartung: exakt die Werte von vorher (`.wrap` 20 px bzw. 14 px,
+   `.tabs` 12 px bzw. 10 px, `.overlay` 16 px). Das ist die eigentliche Regressionsprüfung: Der
+   Fallback `0px` darf für alle Geräte ohne Notch nichts verändern.
+2. **Gegenprobe** — im CSS wird `env(safe-area-inset-left, 0px)` per Textersetzung durch `44px`
+   getauscht. Erwartung: jeder Wert um genau 44 px größer (64/58, 54, 60). Erst das beweist, dass
+   die Kette überhaupt greift.
+
+Gemessen wird mit `getComputedStyle`, nicht am Markup. Der `<style>`-Block wird vom Skript
+kopiert, nie gelesen — er ist über 200 KB groß (`CLAUDE.md` §13).
+
+**Was damit weiterhin offen bleibt:** wie breit die Aussparung auf einem echten iPhone im
+Querformat wirklich ist und ob das Ergebnis gut aussieht. Der Prüfstand belegt die Rechnung,
+nicht die Optik.
+
 ### Erst prüfen, ob überhaupt Daten da sind — dann messen
 
 Ein Prüfstand, der die echte App mit vorbefülltem `localStorage` startet, kann einen **leeren**

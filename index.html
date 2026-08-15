@@ -326,7 +326,16 @@
     -webkit-font-smoothing: antialiased;
   }
 
-  .wrap { max-width: var(--maxw); margin: 0 auto; padding: 0 20px; }
+  /* Links/rechts die Notch-Aussparung mitrechnen (D6): Mit viewport-fit=cover reicht die
+     Seite im QUERFORMAT unter die Kamera-Insel und die abgerundeten Ecken. Ohne das
+     verschwinden dort die ersten Zeichen jeder Zeile — auf dem Startbildschirm genauso wie
+     im Wochenplan. Oben und unten war das laengst beruecksichtigt, links/rechts nicht.
+     Der Fallback 0px haelt jeden Browser ohne env() bei den bisherigen Werten. */
+  .wrap {
+    max-width: var(--maxw); margin: 0 auto;
+    padding-left: calc(20px + env(safe-area-inset-left, 0px));
+    padding-right: calc(20px + env(safe-area-inset-right, 0px));
+  }
 
   /* ---------- Header ---------- */
   /* Hintergrund und Weichzeichnung liegen bewusst auf dem Pseudo-Element, nicht auf
@@ -396,7 +405,10 @@
        nicht im `padding` — sonst waere die Kapsel unten aufgeblaeht statt hochgeschoben. */
     .tabs {
       position: fixed; z-index: 50;
-      left: 12px; right: 12px;
+      /* Wie bei .wrap: im Querformat laege der linke Rand sonst unter der Notch. Die Kapsel
+         ist fixiert und waechst nicht mit dem Seiteninhalt mit (D6). */
+      left: calc(12px + env(safe-area-inset-left, 0px));
+      right: calc(12px + env(safe-area-inset-right, 0px));
       bottom: calc(10px + env(safe-area-inset-bottom, 0px));
       display: grid; grid-template-columns: repeat(4, 1fr); gap: 0;
       border: 1px solid var(--glass-edge); border-radius: 999px;
@@ -1678,7 +1690,11 @@
   .empty p { margin: 0 auto 18px; max-width: 42ch; }
 
   /* ---------- Modal ---------- */
-  .overlay { position: fixed; inset: 0; z-index: 60; background: color-mix(in srgb, #0a0c07 55%, transparent); display: grid; place-items: start center; padding: 5vh 16px 16px; overflow-y: auto; color: var(--text); font-family: var(--font-body); }
+  /* Seitliche Notch-Aussparung auch hier (D6): Das Overlay liegt fixiert ueber der ganzen
+     Flaeche, also greift das Padding von .wrap nicht. Betrifft alle Modals — und besonders
+     den Barcode-Scanner, der ausdruecklich fuers QUERFORMAT gebaut ist, wo die Aussparung
+     erst wirklich breit wird. */
+  .overlay { position: fixed; inset: 0; z-index: 60; background: color-mix(in srgb, #0a0c07 55%, transparent); display: grid; place-items: start center; padding: 5vh calc(16px + env(safe-area-inset-right, 0px)) 16px calc(16px + env(safe-area-inset-left, 0px)); overflow-y: auto; color: var(--text); font-family: var(--font-body); }
   .modal {
     background: var(--surface); border: 1px solid var(--border); border-radius: 14px; box-shadow: 0 24px 70px rgba(0,0,0,.35);
     width: 100%; max-width: 540px; overflow: hidden;
@@ -2333,10 +2349,16 @@
     .tab { flex: none; white-space: nowrap; padding: 9px 12px; }
   }
   @media (max-width: 560px) {
-    .wrap { padding: 0 14px; }
+    .wrap {
+      padding-left: calc(14px + env(safe-area-inset-left, 0px));
+      padding-right: calc(14px + env(safe-area-inset-right, 0px));
+    }
     main { padding: 20px 0 64px; }
     /* Auf sehr schmalen Geraeten etwas naeher an den Rand — sonst wird die Kapsel innen eng. */
-    .tabs { left: 10px; right: 10px; }
+    .tabs {
+      left: calc(10px + env(safe-area-inset-left, 0px));
+      right: calc(10px + env(safe-area-inset-right, 0px));
+    }
     .row2 { grid-template-columns: 1fr; }
     /* Drei Kennzahlen nebeneinander werden auf schmalen Geraeten eng - etwas kleinere
        Zahlen und weniger Abstand halten sie in einer Zeile, statt sie umbrechen zu lassen. */
