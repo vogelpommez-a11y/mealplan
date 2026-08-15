@@ -28,6 +28,17 @@ serviceAccount*.json
 .claude/Skills/
 .claude/skills/
 
+# Python-Bytecode. Entsteht automatisch, sobald ein tools/-Skript als Modul geladen wird
+# (der Pruefstand tut genau das). Binaerdateien in der Historie bringen nichts und erzeugen
+# bei jedem Python-Versionswechsel Konflikte - eine ist am 15.08.2026 versehentlich
+# mitgekommen (Fund von website-security).
+__pycache__/
+*.py[cod]
+
+# Zwischenergebnis von tools/rezept-makros.py --json. Wird bei jedem Lauf neu erzeugt und
+# beschreibt nur, was ohnehin in index.html steht.
+tools/zutaten-makros.json
+
 # Editor / System
 *~
 *.bak
