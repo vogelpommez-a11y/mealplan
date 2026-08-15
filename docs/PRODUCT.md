@@ -267,6 +267,33 @@ er ist ab jetzt nicht mehr nur das stärkste, sondern das entscheidende Pro-Feat
 nachträglich nicht in ein Verkaufsargument umdeuten. Der Preis dafür wäre nicht Umsatz, sondern
 Vertrauen.
 
+## Ernährungsprofil (15.08.2026)
+
+Die Einführung fragt seit dem 15.08.2026 nach der **Ernährungsform** (Alles / Vegetarisch /
+Vegan) und optionalen **Einschränkungen** (glutenfrei, laktosefrei). Beides liegt in
+`state.goal`.
+
+**Warum das kein Nachzügler sein durfte:** Ohne diese Angabe plant der Auto-Wochenplaner einem
+Veganer Rindersteak — nicht als Panne, sondern systematisch. Und die kuratierte Bibliothek (C1)
+wüsste nicht, welche Meals sie überhaupt braucht. Nachträglich eingeführt hieße: 30 Meals
+nachtaggen, den Planer umbauen, die Beispieldaten austauschen.
+
+**Die Ernährungsform ist eine harte Grenze, keine Gewichtung.** Wer vegan gewählt hat, bekommt
+nie ein Gericht ohne den Tag — auch nicht, wenn die Makros perfekt passen. „Ungefähr vegan" gibt
+es nicht.
+
+**Vegan schließt vegetarisch ein.** Wer vegetarisch wählt, sieht auch vegane Gerichte; ohne diese
+Regel fiele die Hälfte des Bestands weg.
+
+**Der Meal-Filter wird bewusst NICHT vorbelegt.** Er filtert die *eigene* Sammlung — die hat der
+Nutzer selbst angelegt, und sie automatisch zu beschneiden versteckt nur etwas, statt Zeit zu
+sparen. Das Profil wirkt dort, wo *Vorschläge* entstehen: im Auto-Planer und in der
+Pro-Bibliothek.
+
+**Formulierung:** „Ich möchte glutenfreie Meals", nicht „Ich vertrage kein Gluten". Die App fragt
+tatsächlich nur, was vorgeschlagen werden soll, und leitet daraus keine Gesundheitsaussage ab —
+das ist der Unterschied zwischen einer Präferenz und einem Gesundheitsdatum nach Art. 9 DSGVO.
+
 ## Ein Meal ist eine Portion (15.08.2026)
 
 **Die App kennt keine Portionsgrößen mehr.** Ein Meal ist genau eine Portion: Nährwerte und

@@ -298,6 +298,14 @@ Beispiele:
   Die **Gegenprobe** lief noch an der ursprünglichen Fassung: `canCloudWrite()` künstlich auf
   `true` gesetzt, vier Prüfungen wurden rot. Das ist der Beweis, dass der Prüfstand misst und
   nicht nur läuft (`docs/TESTING.md`, „Messfallen").
+* **Ernährungsprofil (15.08.2026)**: `DIETS`/`AVOIDS`, `dietOk()`, `avoidOk()`, `fitsDiet()`,
+  `toggleAvoid()`, `sanitizeGoal()` und `computeGoal()` geschnitten. 33 Prüfungen, alle grün.
+  Drei Fälle, die man leicht übersieht: **vegetarisch muss vegane Gerichte zulassen** (sonst
+  fällt die Hälfte des Bestands weg), **`computeGoal()` muss die Felder durchreichen** (seine
+  Rückgabe zählt einzeln auf — ohne das wäre das Profil nach der ersten Wiegung weg), und die
+  **Reihenfolge in `avoid` muss unabhängig von der Tippreihenfolge sein**, sonst entsteht gegen
+  `canonJSON()` ein Endlos-Schreibzyklus. Dazu die Sanitizer-Fälle: unbekannte Werte fliegen
+  raus, ohne Angabe entsteht **kein** Feld.
 * **Ausbau von `portions` (15.08.2026)**: `sanitizeRecipe()` samt `nutNum()` und `ingObj()`
   geschnitten, der Rest gestubbt. 18 Prüfungen, alle grün. Der Kern ist nicht die Umrechnung
   selbst (200 → 100), sondern zweierlei: **Idempotenz** — dreimal durchlaufen ergibt dasselbe

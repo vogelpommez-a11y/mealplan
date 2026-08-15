@@ -892,6 +892,50 @@ kopierte `Object.assign()` ihn aus Altdaten und geteilten Meals dauerhaft weiter
 Die Faustregel daraus: Ein Datenfeld wird angelegt, wenn ein konkretes Feature es liest — nicht,
 weil es später einmal nützlich sein könnte.
 
+### Ernährungsprofil: `state.goal.diet` und `state.goal.avoid` (15.08.2026)
+
+```
+state.goal.diet   = "alles" | "vegetarisch" | "vegan"     // genau eine, optional
+state.goal.avoid  = ["glutenfrei", "laktosefrei"]         // Teilmenge, optional
+```
+
+**Zwei Felder statt einer Mehrfachauswahl:** `diet` ist eine Ernährungsform und schließt ein
+(vegan ist immer auch vegetarisch), `avoid` sind Einschränkungen quer dazu. Eine gemeinsame
+Liste erlaubte „vegetarisch + vegan", was keinen Sinn ergibt.
+
+**Die Werte sind dieselben Schlüssel wie in `RECIPE_TAGS`** — so vergleichen Filter und Planer
+ohne Übersetzungstabelle dazwischen.
+
+Drei Helfer, und `fitsDiet()` ist der einzige, den Aufrufer benutzen dürfen:
+
+| Funktion | Aufgabe |
+|---|---|
+| `dietOk(r, diet)` | Ernährungsform. `vegetarisch` lässt vegane Gerichte ausdrücklich zu |
+| `avoidOk(r, avoid)` | Einschränkungen, UND-verknüpft, harte Grenze |
+| `fitsDiet(r, goal)` | die Verknüpfung — **hier fragen, nie die beiden darüber** |
+| `toggleAvoid(list, key)` | An/Abwählen; baut die Liste aus `AVOID_KEYS` **neu auf** |
+
+`toggleAvoid()` steht als eigene Funktion da, obwohl sie nur ein Klick-Handler braucht: Sie ist
+so im Prüfstand messbar, und sie tut mehr, als sie aussieht — durch den Neuaufbau aus
+`AVOID_KEYS` ist die Reihenfolge unabhängig von der Tippreihenfolge. Ein umsortiertes Array wäre
+gegenüber `canonJSON()` ein dauerhafter Diff und damit ein Endlos-Schreibzyklus (dieselbe Falle
+wie bei `sanitizeTags()`).
+
+**Nicht gesetzt bleibt nicht gesetzt.** `sanitizeGoal()` löscht unbekannte Werte, statt auf einen
+Standard zu fallen, und `onbGoalInput()` schreibt „alles ohne Einschränkung" gar nicht erst —
+sonst bekäme jedes Bestandsziel allein durchs Laden zwei neue Felder und damit einen
+überflüssigen Cloud-Schreibvorgang (dieselbe Überlegung wie bei `tags`/`mealPrep`).
+
+**`computeGoal()` reicht beide Felder ausdrücklich durch.** Seine Rückgabe zählt ihre Felder
+einzeln auf — ein nicht genanntes Feld wäre nach jedem Neuberechnen verschwunden, und das Profil
+überlebte weder eine Wiegung (`syncGoalWeight()`) noch „Ziele neu berechnen". Genau diese Falle
+ist dort schon für `bodyfat` dokumentiert.
+
+**Onboarding:** ein Bildschirm (`diet`) zwischen Zielwahl und Ergebnis. Vorbelegt mit „Alles",
+weil das die häufigste Antwort ist und niemand tippen soll, um weiterzukommen — anders als bei
+den übrigen Fragen ist das keine unterstellte Angabe, sondern der Zustand, in dem die App ohne
+das Feld ohnehin läuft. Kein `onbAutoNext`: Nach der Form kommen noch die Zusatz-Schalter.
+
 ### `portions` ist entfallen — ein Meal ist eine Portion (15.08.2026)
 
 Nährwerte und Zutatenmengen beschreiben seitdem denselben Gegenstand. Wer mehr braucht, plant
