@@ -3958,6 +3958,30 @@
       ],
       steps: "Reisnudeln nach Packungsangabe einweichen. Tofu würfeln und in Sesamöl knusprig braten, Gemüse zugeben und 3–4 Min. mitbraten. Nudeln unterheben und mit Sojasauce und Ingwer abschmecken." },
 
+    { id: "haehnchen-zucchini-feta", name: "Hähnchen-Zucchini-Pfanne mit Feta",
+      category: "Hauptgericht", time: 20, tags: ["highprotein", "lowcarb", "glutenfrei"], mealPrep: true,
+      nutrition: { kcal: 480, carbs: 12, protein: 51, fat: 25 },
+      ingredients: [
+        { name: "Hähnchenbrust", grams: 200 },
+        { name: "Zucchini", grams: 250 },
+        { name: "Kirschtomaten", grams: 100 },
+        { name: "Feta", grams: 50 },
+        "1 EL Olivenöl, Oregano, Salz, Pfeffer"
+      ],
+      steps: "Hähnchen würfeln, würzen und scharf anbraten. Zucchini in Halbmonde schneiden, zugeben und 5 Min. mitbraten. Tomaten kurz mitziehen lassen, vom Herd nehmen und den Feta darüberbröseln." },
+
+    { id: "blumenkohl-curry-tofu", name: "Blumenkohl-Curry mit Tofu",
+      category: "Hauptgericht", time: 25, tags: ["vegan", "vegetarisch", "lowcarb", "glutenfrei", "laktosefrei", "highprotein"], mealPrep: true,
+      nutrition: { kcal: 420, carbs: 18, protein: 28, fat: 26 },
+      ingredients: [
+        { name: "Räuchertofu", grams: 200 },
+        { name: "Blumenkohl", grams: 300 },
+        { name: "Kokosmilch", grams: 150, unit: "ml" },
+        { name: "Spinat", grams: 100 },
+        "Currypaste, Ingwer, Limette, Salz"
+      ],
+      steps: "Tofu würfeln und knusprig anbraten, herausnehmen. Blumenkohlröschen mit Currypaste anrösten, mit Kokosmilch ablöschen und 10 Min. köcheln. Spinat und Tofu unterheben, mit Limette abschmecken." },
+
     { id: "skyr-beeren-nuesse", name: "Skyr mit Beeren und Walnüssen",
       category: "Snack", time: 3, tags: ["vegetarisch", "highprotein", "glutenfrei"], mealPrep: false,
       nutrition: { kcal: 260, carbs: 18, protein: 24, fat: 11 },
@@ -8436,6 +8460,13 @@
   // bewusst NICHT gespeichert - wer die App startet, will seine eigenen Meals sehen, nicht
   // den Katalog, in dem er zuletzt gestoebert hat.
   let recipeTab = "meine";
+  // Suche und Filter des Rezeptbuchs sind BEWUSST getrennt von denen der eigenen Meals:
+  // Es sind zwei Bestaende. Wer im Katalog nach "vegan" filtert und zurueckwechselt, will
+  // seine eigene Liste vollstaendig sehen, nicht denselben Filter darauf.
+  let cookbookQuery = "";
+  const cookbookFilters = new Set();
+  // Alle Kategorien starten eingeklappt - siehe paintCookbook().
+  const cookbookCollapsed = new Set(CATEGORIES);
   // Aktive Merkmals-Filter (B7), UND-verknuepft. Wie recipeQuery bewusst nicht gespeichert:
   // ein Filter, den man beim naechsten Start nicht mehr auf dem Schirm hat, erklaert eine
   // halb leere Liste nicht - er laesst sie kaputt aussehen.
@@ -8507,8 +8538,17 @@
       syncWeekSwitchPill(view.querySelector(".week-switch"), vor ? 1 : -1);
     }));
     if (imBuch) {
-      view.querySelectorAll("[data-adopt]").forEach(b =>
-        b.addEventListener("click", () => adoptFromCookbook(b.dataset.adopt)));
+      const cbSearch = view.querySelector("#cb-search");
+      if (cbSearch) cbSearch.addEventListener("input", () => { cookbookQuery = cbSearch.value; paintCookbook(); });
+      // Wie im Meals-Reiter: Die Chip-Reihe wird NICHT neu gebaut, sondern am Knopf
+      // umgeschaltet - ein Neuaufbau setzte die waagerechte Scrollposition zurueck.
+      view.querySelectorAll("#cb-filters button").forEach(b => b.addEventListener("click", () => {
+        const key = b.dataset.f;
+        if (cookbookFilters.has(key)) cookbookFilters.delete(key); else cookbookFilters.add(key);
+        b.setAttribute("aria-pressed", cookbookFilters.has(key) ? "true" : "false");
+        paintCookbook();
+      }));
+      paintCookbook();
       return;
     }
     const searchEl = view.querySelector("#r-search");
@@ -8538,27 +8578,100 @@
         <p>Für deine Auswahl haben wir gerade keine passenden Meals. Wir bauen das Rezeptbuch weiter aus.</p>
       </div>`;
     }
-    const karten = liste.map(r => {
-      const drin = isAdopted(r.id);
-      return `<article class="rcard">
-        ${cardImageHtml(r)}
-        <div class="rbody">
-          <div class="top"><h3>${esc(r.name)}</h3></div>
-          <div class="rstats">${cardStatsHtml(r)}</div>
-          <div class="cb-foot">
-            ${drin
-              ? `<span class="cb-drin">In deinen Meals</span>`
-              : `<button class="btn primary sm" data-adopt="${esc(r.id)}">Übernehmen</button>`}
-          </div>
-        </div>
-      </article>`;
-    }).join("");
     // Der Hinweis steht nur da, wenn tatsaechlich gefiltert wird - sonst waere er eine
     // Erklaerung fuer etwas, das gar nicht passiert (CLAUDE.md §7).
     return `<div class="cookbook">
       ${gefiltert ? `<p class="cb-hint">Passend zu deiner Auswahl${g.diet && g.diet !== "alles" ? ` (${esc(dietLabel(g.diet))})` : ""}. Ändern kannst du sie über „Ziele neu berechnen".</p>` : ""}
-      <div class="recipes">${karten}</div>
+      <div class="recipe-search">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+        <input type="search" id="cb-search" placeholder="Rezept suchen …" autocomplete="off" value="${esc(cookbookQuery)}" aria-label="Rezeptbuch durchsuchen">
+      </div>
+      ${recipeFilterHtml(liste, cookbookFilters, "cb-filters")}
+      <div id="cb-groups"></div>
     </div>`;
+  }
+
+  // Gruppierung wie bei den eigenen Meals - dieselben Kategorien, dieselben Klassen,
+  // dieselben Symbole. Ein zweites Ordnungssystem fuer denselben Gegenstand waere genau die
+  // Sorte Abweichung, vor der CLAUDE.md bei den Makro-Formen warnt.
+  //
+  // EIN Unterschied, und der ist Absicht: Hier starten ALLE Kategorien eingeklappt, bei den
+  // eigenen Meals nur die ab der zweiten. Bei zwoelf selbst angelegten Meals waere Klappen
+  // laestig; bei hundert fremden ist die Uebersicht ueber die Kategorien der eigentliche
+  // Einstieg - man sieht "Hauptgericht 45" und entscheidet, ob man hineingeht.
+  function paintCookbook() {
+    const container = view.querySelector("#cb-groups");
+    if (!container) return;
+    const q = cookbookQuery.toLowerCase().trim();
+    let pool = cookbookVisible();
+    if (q) pool = pool.filter(r => r.name.toLowerCase().includes(q) || (r.category || "").toLowerCase().includes(q));
+    if (cookbookFilters.size) pool = pool.filter(r => recipeMatchesFilters(r, cookbookFilters));
+
+    const groups = new Map();
+    CATEGORIES.forEach(c => groups.set(c, []));
+    pool.forEach(r => {
+      const c = groups.has(r.category) ? r.category : "Sonstige";
+      if (!groups.has(c)) groups.set(c, []);
+      groups.get(c).push(r);
+    });
+
+    // Wie im Meals-Reiter: Suchen und Filtern klappen alles auf und nehmen den Klappknopf
+    // weg - sonst laege ein Treffer in einer zugeklappten Kategorie und die Zaehlung zeigte
+    // eine Zahl auf eine Flaeche, in der nichts zu sehen ist.
+    const filtering = !!q || cookbookFilters.size > 0;
+    let html = "";
+    let etwas = false;
+    for (const [cat, items] of groups) {
+      if (!items.length) continue;
+      etwas = true;
+      items.sort((a, b) => a.name.localeCompare(b.name, "de"));
+      const icon = CAT_ICON[cat] || "pot";
+      const iconCls = "cicon" + (CAT_CLASS[cat] ? " " + CAT_CLASS[cat] : "");
+      const open = filtering || !cookbookCollapsed.has(cat);
+      html += `<section class="catgroup">`;
+      html += filtering
+        ? `<div class="cathead static">
+            <span class="cname">${iconSvg(icon, iconCls)}${esc(cat)}</span>
+            <span class="ccount">${items.length}</span>
+          </div>`
+        : `<button class="cathead" data-cbcat="${esc(cat)}" aria-expanded="${open}">
+            <svg class="caret${open ? " open" : ""}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+            <span class="cname">${iconSvg(icon, iconCls)}${esc(cat)}</span>
+            <span class="ccount">${items.length}</span>
+          </button>`;
+      if (!open) { html += `</section>`; continue; }
+      html += `<div class="recipes">` + items.map(r => {
+        const drin = isAdopted(r.id);
+        // Dasselbe Stretched-Link-Muster wie bei den eigenen Meals: Der Titel ist der Knopf,
+        // sein ::after spannt die ganze Karte auf - so ist das Bild mit anklickbar, ohne dass
+        // eine zweite Trefferflaeche entsteht. Der Uebernehmen-Knopf liegt per z-index
+        // darueber (.cb-foot), sonst faenge der Stretched Link ihn ab.
+        return `<article class="rcard">
+          ${cardImageHtml(r)}
+          <div class="rbody">
+            <div class="top"><h3><button type="button" class="rcard-open" data-cbview="${esc(r.id)}">${esc(r.name)}</button></h3></div>
+            <div class="rstats">${cardStatsHtml(r)}</div>
+            <div class="cb-foot">
+              ${drin
+                ? `<span class="cb-drin">In deinen Meals</span>`
+                : `<button class="btn primary sm" data-adopt="${esc(r.id)}">Übernehmen</button>`}
+            </div>
+          </div>
+        </article>`;
+      }).join("") + `</div></section>`;
+    }
+    container.innerHTML = etwas ? html : `<p style="color:var(--text-muted);margin:0">Kein Rezept gefunden.</p>`;
+    container.querySelectorAll("[data-adopt]").forEach(b =>
+      b.addEventListener("click", () => adoptFromCookbook(b.dataset.adopt)));
+    // Ansicht mit Zutaten und Zubereitung - dieselbe wie bei den eigenen Meals, damit
+    // niemand blind uebernimmt. Die Karte wird als Ursprung uebergeben (FLIP am Rechner).
+    container.querySelectorAll("[data-cbview]").forEach(b => b.addEventListener("click", () =>
+      openMealSheet(b.dataset.cbview, null, b.closest(".rcard"))));
+    container.querySelectorAll("[data-cbcat]").forEach(b => b.addEventListener("click", () => {
+      const c = b.dataset.cbcat;
+      if (cookbookCollapsed.has(c)) cookbookCollapsed.delete(c); else cookbookCollapsed.add(c);
+      paintCookbook();
+    }));
   }
   function dietLabel(k) { const d = DIETS.find(x => x.key === k); return d ? d.label : k; }
 
@@ -8566,27 +8679,32 @@
   // aus acht Merkmalen, von denen sieben nie zutreffen, ist keine Hilfe, sondern Ballast.
   // Bei weniger als sechs Meals gibt es gar keine Reihe - dort ist die Liste ueberschaubar
   // und das Suchfeld genuegt.
-  function recipeFilterHtml() {
-    const library = libraryRecipes();
-    if (library.length < 6) { recipeFilters.clear(); return ""; }
+  // Zwei Bestaende, dieselbe Reihe: der eigene (Meals-Reiter) und der Katalog (Rezeptbuch).
+  // Deshalb Liste, Zustand und Kennung als Parameter - der Aufbau ist identisch, und zwei
+  // fast gleiche Funktionen waeren genau die Sorte Duplikat, die spaeter auseinanderlaeuft.
+  function recipeFilterHtml(liste, aktive, id) {
+    liste = liste || libraryRecipes();
+    aktive = aktive || recipeFilters;
+    id = id || "r-filters";
+    if (liste.length < 6) { aktive.clear(); return ""; }
     const chips = [];
-    if (library.some(r => r.mealPrep)) chips.push({ k: "mealPrep", label: "Meal-Prep" });
+    if (liste.some(r => r.mealPrep)) chips.push({ k: "mealPrep", label: "Meal-Prep" });
     RECIPE_TAGS.forEach(t => {
-      if (library.some(r => (r.tags || []).indexOf(t.key) !== -1)) chips.push({ k: "tag:" + t.key, label: t.label });
+      if (liste.some(r => (r.tags || []).indexOf(t.key) !== -1)) chips.push({ k: "tag:" + t.key, label: t.label });
     });
-    if (!chips.length) { recipeFilters.clear(); return ""; }
+    if (!chips.length) { aktive.clear(); return ""; }
     // Ein Filter, dessen Chip gerade weggefallen ist (letztes passendes Meal geloescht),
     // wuerde sonst unsichtbar weiterfiltern.
     const valid = new Set(chips.map(c => c.k));
-    recipeFilters.forEach(k => { if (!valid.has(k)) recipeFilters.delete(k); });
-    return `<div class="mtags rfilters" id="r-filters" role="group" aria-label="Meals filtern">${
-      chips.map(c => `<button type="button" data-f="${esc(c.k)}" aria-pressed="${recipeFilters.has(c.k) ? "true" : "false"}">${esc(c.label)}</button>`).join("")
+    aktive.forEach(k => { if (!valid.has(k)) aktive.delete(k); });
+    return `<div class="mtags rfilters" id="${id}" role="group" aria-label="Meals filtern">${
+      chips.map(c => `<button type="button" data-f="${esc(c.k)}" aria-pressed="${aktive.has(c.k) ? "true" : "false"}">${esc(c.label)}</button>`).join("")
     }</div>`;
   }
   // UND-Verknuepfung: jeder gesetzte Filter muss zutreffen. Oder-Logik waere bei
   // "Vegan + Meal-Prep" das Gegenteil dessen, was jemand erwartet, der beides antippt.
-  function recipeMatchesFilters(r) {
-    for (const k of recipeFilters) {
+  function recipeMatchesFilters(r, aktive) {
+    for (const k of (aktive || recipeFilters)) {
       if (k === "mealPrep") { if (!r.mealPrep) return false; continue; }
       if (k.slice(0, 4) === "tag:" && (r.tags || []).indexOf(k.slice(4)) === -1) return false;
     }
@@ -9237,7 +9355,12 @@
     // openSheetId/openSheetRemovedCb bleiben hier unangetastet: es wird lokal nichts
     // editiert, ein Remote-Update darf ganz normal durchschlagen.
     if (readOnly) {
-      const r = getRecipe(id);
+      // Katalog-Rezepte stehen NICHT in state.recipes - deshalb hier und nur hier auch im
+      // Rezeptbuch nachsehen. getRecipe() bleibt bewusst unangetastet: Es wird vom
+      // Wochenplan, der Einkaufsliste und dem Druck benutzt, und dort darf eine Katalog-ID
+      // niemals auftauchen (ein Plan-Eintrag zeigt immer auf ein Meal im eigenen Bestand).
+      const ausBuch = COOKBOOK.find(x => x.id === id) || null;
+      const r = ausBuch || getRecipe(id);
       if (!r) return;
       const cls = CAT_CLASS[r.category] || "cat-x";
       const statsInner = mealStatsHtml(r);
@@ -9247,10 +9370,14 @@
       const ingHtml = (r.ingredients && r.ingredients.length)
         ? `<div class="ing-list">${r.ingredients.map(i => roIngRowHtml(i)).join("")}</div>`
         : `<p class="ms-empty-ings">Noch keine Zutaten</p>`;
+      // Ein Katalog-Rezept gehoert dem Nutzer noch nicht: Bearbeiten waere gegenstandslos
+      // (er wuerde eine Vorlage aendern, die beim naechsten Start wieder dasteht), und
+      // Teilen erzeugte einen shared-Eintrag fuer etwas, das ohnehin jeder in der App hat.
+      // An ihre Stelle tritt unten im Fuss der Uebernehmen-Knopf.
       const node = el(`<div class="modal detail mealsheet${useAnimExit ? " flip-anim" : ""}" role="dialog" aria-modal="true" aria-label="${esc(r.name)}">
         <div class="modal-head">
-          ${canEditNow ? `<button type="button" class="ms-photobtn ms-edit-btn" data-edit>Bearbeiten</button>` : ""}
-          <button type="button" class="btn ghost icon-gh on-photo" data-share title="Meal teilen" aria-label="Meal teilen">${TOOL_ICONS.share}</button>
+          ${canEditNow && !ausBuch ? `<button type="button" class="ms-photobtn ms-edit-btn" data-edit>Bearbeiten</button>` : ""}
+          ${ausBuch ? "" : `<button type="button" class="btn ghost icon-gh on-photo" data-share title="Meal teilen" aria-label="Meal teilen">${TOOL_ICONS.share}</button>`}
           <button type="button" class="btn ghost icon-gh on-photo" data-close aria-label="Schließen">✕</button>
         </div>
         <div class="ms-photo has-photo"><img src="${photoFor(r)}" alt="${esc(r.name)}"></div>
@@ -9261,7 +9388,11 @@
           <div class="ms-ings"><h4 class="sec-h">Zutaten</h4>${ingHtml}</div>
           ${r.steps ? `<div class="dsec"><h4 class="sec-h">Zubereitung</h4><div class="steps">${esc(r.steps)}</div></div>` : ""}
         </div>
-        <div class="modal-foot"><button class="btn primary" data-close>Schließen</button></div>
+        <div class="modal-foot">${ausBuch
+          ? (isAdopted(r.id)
+              ? `<span class="cb-drin">In deinen Meals</span><button class="btn primary" data-close>Schließen</button>`
+              : `<button class="btn ghost" data-close>Schließen</button><button class="btn primary" data-adopt-close>Übernehmen</button>`)
+          : `<button class="btn primary" data-close>Schließen</button>`}</div>
       </div>`);
       function finishClose() { restoreFocusTarget(id); closeModal(); }
       modalCloseHook = () => {
@@ -9269,7 +9400,12 @@
         if (useAnimExit) closeWithMotion(node, id, finishClose); else finishClose();
       };
       node.querySelectorAll("[data-close]").forEach(b => b.addEventListener("click", closeModal));
-      node.querySelector("[data-share]").addEventListener("click", () => { closeModal(); shareRecipeNow(r.id); });
+      const shareBtn = node.querySelector("[data-share]");
+      if (shareBtn) shareBtn.addEventListener("click", () => { closeModal(); shareRecipeNow(r.id); });
+      // Uebernehmen aus der Ansicht heraus: erst schliessen, dann kopieren - adoptFromCookbook
+      // ruft render(), und das baut die Ansicht unter dem offenen Sheet weg.
+      const adoptBtn = node.querySelector("[data-adopt-close]");
+      if (adoptBtn) adoptBtn.addEventListener("click", () => { closeModal(); adoptFromCookbook(r.id); });
       // "Bearbeiten" (nur bei canEditNow gerendert): tauscht den Knoten OHNE FLIP gegen den
       // Bearbeiten-Zweig aus (originEl bewusst null) - die Ansicht ist schon offen und an
       // ihrem Platz, siehe plans/MealAnsicht.MD Nachtrag. openModal() im rekursiven Aufruf
