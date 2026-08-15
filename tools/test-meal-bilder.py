@@ -104,6 +104,33 @@ with tempfile.TemporaryDirectory() as tmp:
     with Image.open(ziel2) as k:
         pruef("kleines Bild bleibt klein", k.width, 400)
 
+# --- Dateiname: die id gewinnt, und sie wird ASCII-sicher gemacht ---
+# Ohne diese Regel zeigte die App nach einer Namensaenderung auf eine Datei, die es nicht
+# mehr gibt - und bei einer id mit Umlaut auf einen Pfad, den kein Server gern ausliefert.
+pruef("id schlaegt den Namen",
+      mb.dateiname({"name": "Ganz anders benanntes Gericht", "id": "linsen-dal"}), "linsen-dal")
+pruef("Umlaut in der id wird umgeschrieben",
+      mb.dateiname({"name": "X", "id": "rührei-avocadobrot"}), "ruehrei-avocadobrot")
+pruef("ohne id zaehlt der Name",
+      mb.dateiname({"name": "Tofu-Bowl (scharf)"}), "tofu-bowl-scharf")
+
+# --- Geschirr: der Name darf die Kategorie ueberstimmen ---
+# Ein Brot in einer Schuessel sieht sofort falsch aus (TROUBLESHOOTING 88).
+def geschirr(name, kat):
+    p = mb.prompt_fuer(name, None, None, kat, None)
+    for w in ("in a small bowl", "in a bowl", "on a plate", "in a glass"):
+        if w in p:
+            return w
+    return None
+pruef("Brot liegt auf dem Teller, nicht in der Schuessel",
+      geschirr("Rührei mit Avocado auf Vollkornbrot", "Frühstück"), "on a plate")
+pruef("Pancakes ebenso", geschirr("Protein-Pancakes mit Skyr", "Frühstück"), "on a plate")
+pruef("Ofengemuese vom Blech ebenso", geschirr("Ofengemüse vom Blech", "Beilage"), "on a plate")
+pruef("ein normales Fruehstueck bleibt in der Schuessel",
+      geschirr("Overnight Oats mit Beeren", "Frühstück"), "in a bowl")
+pruef("Getraenke bleiben im Glas",
+      geschirr("Grüner Smoothie mit Spinat", "Getränk"), "in a glass")
+
 # --- Konstanten, die eingefroren sind ---
 pruef("Modell ist gesetzt", mb.MODELL, "gpt-image-2")
 pruef("Kostenschutz existiert", mb.MAX_BILDER > 0, True)

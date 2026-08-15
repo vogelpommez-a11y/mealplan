@@ -1,5 +1,5 @@
-# Ausschneide-Pruefstand Rezeptbuch: Katalog, Profilfilter und Uebernahme.
-import io, os, re
+# Ausschneide-Pruefstand Rezeptbuch: Katalog, Profilfilter, Uebernahme und Bildwahl.
+import io, json, os, re
 
 SRC = r"C:\Users\Paddy\Documents\Paddys Mealplan\index.html"
 OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "pruefstand-cookbook.html")
@@ -28,12 +28,24 @@ teile = [
     block("  const COOKBOOK = [", "  ];"),
     block("  const DIETS = [", "  const AVOID_KEYS ="),
     block("  const RECIPE_TAGS = [", "  const RECIPE_TAG_KEYS ="),
+    # Fuer die Bildschluessel und den Abgleich Merkmal/Badge - beides gehoert zur Kuration.
+    block("  const PHOTOS = {", "  };"),
+    block("  const PHOTO_RULES = [", "  const CAT_PHOTO ="),
+    # Die Bildwahl selbst: LIB_IMG/libPhoto stehen unmittelbar vor photoFor.
+    block("  const LIB_IMG = ", "  function libPhoto("),
+    schnitt("  function photoFor("),
+    schnitt("  function safeImage("),
+    schnitt("  function macroBadges("),
+    schnitt("  function recipeNut("),
     schnitt("  function dietOk("),
     schnitt("  function avoidOk("),
     schnitt("  function fitsDiet("),
     schnitt("  function cookbookVisible("),
     schnitt("  function isAdopted("),
     schnitt("  function adoptFromCookbook("),
+    schnitt("  function copyFromCookbook("),
+    block("  const STARTER_ANZAHL = ", "  };"),
+    schnitt("  function addStarterMeals("),
     schnitt("  function sanitizeRecipe("),
     schnitt("  function nutNum("),
     schnitt("  function ingObj("),
@@ -41,6 +53,15 @@ teile = [
     schnitt("  function recipeFilterHtml("),
 ]
 code = "\n\n".join(teile)
+
+# Die Bilddateien, die TATSAECHLICH im Ordner liegen. Der Browser kann das unter file://
+# nicht nachsehen, deshalb kommt die Liste hier aus dem Dateisystem in die Seite. Ohne
+# diesen Abgleich prueft die Seite nur, dass ein Dateiname dasteht - nicht, dass es die
+# Datei gibt. Ein Tippfehler im Namen ergibt in der App eine leere Bildflaeche.
+BILD_ORDNER = os.path.join(os.path.dirname(os.path.abspath(SRC)), "img", "library")
+vorhanden = sorted(f for f in os.listdir(BILD_ORDNER) if f.endswith(".webp")) \
+    if os.path.isdir(BILD_ORDNER) else []
+code += "\n\nvar DATEIEN = " + json.dumps(vorhanden) + ";"
 
 seite = u"""<!doctype html><meta charset="utf-8"><title>Pruefstand Rezeptbuch</title>
 <pre id="log"></pre>
@@ -142,12 +163,153 @@ __CODE__
     pruef("Merkmal '" + t + "' kommt im Katalog vor",
       COOKBOOK.some(function (r) { return (r.tags || []).indexOf(t) !== -1; }), true);
   });
-  ["Frühstück", "Hauptgericht", "Snack"].forEach(function (c) {
+  // Alle sechs Kategorien, nicht nur die drei haeufigen: Wer im Wochenplan einen Slot
+  // "Dessert" oder "Beilage" fuellen will, steht sonst vor einer leeren Kategorie (C1).
+  ["Frühstück", "Hauptgericht", "Snack", "Dessert", "Beilage", "Getränk"].forEach(function (c) {
     pruef("Kategorie '" + c + "' ist besetzt",
       COOKBOOK.some(function (r) { return r.category === c; }), true);
   });
   pruef("mindestens ein Meal zum Vorkochen",
     COOKBOOK.some(function (r) { return r.mealPrep === true; }), true);
+  // Die 30 sind eine Zusage aus PRODUCT.md ("von 30 auf ueber 100 mit Pro") und stehen
+  // so auch im Onboarding-Text. Faellt der Katalog darunter, ist der Text falsch.
+  pruef("Katalog hat mindestens 30 Rezepte", COOKBOOK.length >= 30, true);
+
+  // ---- Bildschluessel ----
+  // photoFor() faellt bei einem unbekannten Schluessel still auf die Stichwortregeln
+  // zurueck - genau die, die im Katalog danebengreifen. Ein Tippfehler waere deshalb
+  // unsichtbar, aber wirksam.
+  pruef("jeder gesetzte Bildschluessel steckt in PHOTOS",
+    COOKBOOK.filter(function (r) { return r.photo && !PHOTOS[r.photo]; }).map(function (r) { return r.id; }), []);
+
+  // Der Schluessel muss die Uebernahme UEBERLEBEN: sonst sieht die Kopie im eigenen
+  // Bestand anders aus als das Original im Katalog, obwohl der Nutzer nichts geaendert hat.
+  var mitBild = COOKBOOK.filter(function (r) { return !!r.photo; })[0];
+  var kopie = sanitizeRecipe(Object.assign({}, mitBild, { id: "x1", lib: mitBild.id }));
+  pruef("uebernommene Kopie behaelt den Bildschluessel", kopie.photo, mitBild.photo);
+  // Und er muss eine FORM haben: Er kommt bei geteilten Meals von aussen herein.
+  pruef("Freitext im Bildschluessel wird verworfen",
+    "photo" in sanitizeRecipe({ id: "x2", name: "A", photo: "../../etc/passwd" }), false);
+  pruef("Nicht-String im Bildschluessel wird verworfen",
+    "photo" in sanitizeRecipe({ id: "x3", name: "A", photo: { toString: function () { return "salad"; } } }), false);
+
+  // ---- Die eigenen Bilder der Bibliothek ----
+  pruef("jedes Katalog-Rezept hat ein Bild",
+    COOKBOOK.filter(function (r) { return !r.img; }).map(function (r) { return r.id; }), []);
+  // Der Abgleich mit dem Dateisystem - der Kern dieser Gruppe. Ein Dateiname, den es nicht
+  // gibt, ist in der App eine leere Flaeche und faellt beim Lesen des Codes nicht auf.
+  pruef("jeder Dateiname existiert wirklich",
+    COOKBOOK.filter(function (r) { return r.img && DATEIEN.indexOf(r.img) === -1; })
+            .map(function (r) { return r.img; }), []);
+  pruef("kein Bild trägt einen Umlaut im Dateinamen",
+    COOKBOOK.filter(function (r) { return r.img && !/^[a-z0-9-]+\\.webp$/.test(r.img); })
+            .map(function (r) { return r.img; }), []);
+
+  var mitBild2 = COOKBOOK.filter(function (r) { return !!r.img; })[0];
+  pruef("photoFor nimmt das Bibliotheksbild",
+    photoFor(mitBild2), "img/library/" + mitBild2.img);
+  // Die uebernommene Kopie hat eine EIGENE id und kennt das Original nur ueber `lib` -
+  // ohne diese Aufloesung zeigte sie ein anderes Bild als die Karte, aus der sie entstand.
+  pruef("die Kopie zeigt dasselbe Bild wie das Original",
+    photoFor({ id: "irgendeine-uid", lib: mitBild2.id, name: mitBild2.name, category: mitBild2.category }),
+    "img/library/" + mitBild2.img);
+  // Reihenfolge: Das eigene Foto des Nutzers muss gewinnen.
+  var eigenes = "data:image/png;base64,AAAA=";
+  pruef("eigenes Foto schlägt das Bibliotheksbild",
+    photoFor(Object.assign({}, mitBild2, { image: eigenes })), eigenes);
+  // Ein ausgemustertes Bild faellt sauber auf die naechste Stufe zurueck, statt einen 404
+  // zu erzeugen. Der Fall entsteht dadurch, dass `img` am KATALOGEINTRAG fehlt - die id
+  // steht dann nicht in LIB_IMG. Am uebergebenen Objekt zu loeschen genuegt nicht: Die Map
+  // ist die Quelle, nicht das Feld (erster Anlauf dieser Pruefung lag genau daran falsch).
+  pruef("ausgemustertes Bild faellt auf den kuratierten Schlüssel zurück",
+    photoFor({ id: "nicht-im-katalog", name: "Irgendwas", category: "Snack", photo: "cake" }),
+    PHOTOS.cake);
+  pruef("ein fremdes Meal bekommt kein Bibliotheksbild",
+    photoFor({ id: "eigenes-meal", name: "Nudeln mit Sauce", category: "Hauptgericht" })
+      .indexOf("img/library") === -1, true);
+
+  // ---- Startmeals nach dem Onboarding ----
+  // Der erste Bestand entsteht seit dem 15.08.2026 NACH dem Onboarding und aus dem Katalog -
+  // vorher setzte load() vier feste Meals, bevor die Ernaehrungsform bekannt war.
+  pruef("alle drei Formen sind besetzt",
+    Object.keys(STARTER).sort(), ["alles", "vegan", "vegetarisch"]);
+  pruef("jede Starter-id existiert im Katalog",
+    Object.keys(STARTER).reduce(function (fehlt, form) {
+      return fehlt.concat(STARTER[form].filter(function (id) {
+        return !COOKBOOK.some(function (r) { return r.id === id; });
+      }));
+    }, []), []);
+
+  // Die LISTE selbst muss zur Form passen, nicht nur das Ergebnis: fitsDiet() wirft ein
+  // unpassendes Gericht heraus und addStarterMeals() fuellt still auf - eine falsche
+  // Kuration bliebe damit unsichtbar. Aufgefallen in der Gegenprobe, als ein Chili in der
+  // veganen Liste alle Pruefungen gruen liess.
+  pruef("jede Liste passt zu ihrer Ernaehrungsform",
+    Object.keys(STARTER).reduce(function (fehlt, form) {
+      return fehlt.concat(STARTER[form].filter(function (id) {
+        var r = COOKBOOK.filter(function (x) { return x.id === id; })[0];
+        return r && !dietOk(r, form);
+      }).map(function (id) { return form + ":" + id; }));
+    }, []), []);
+
+  ["alles", "vegetarisch", "vegan"].forEach(function (form) {
+    state.recipes = []; state.goal = { diet: form };
+    addStarterMeals();
+    pruef(form + ": genau " + STARTER_ANZAHL + " Meals", state.recipes.length, STARTER_ANZAHL);
+    pruef(form + ": jedes traegt lib",
+      state.recipes.every(function (r) { return !!r.lib; }), true);
+    // Die harte Zusage: Ein Veganer bekommt NIE ein Gericht ohne den Tag - genau das ging
+    // vorher schief, weil die Auswahl vor dem Onboarding stand.
+    pruef(form + ": jedes passt zum Profil",
+      state.recipes.every(function (r) {
+        var k = COOKBOOK.filter(function (x) { return x.id === r.lib; })[0];
+        return k && fitsDiet(k);
+      }), true);
+    // Sonst waeren es fuenf Hauptgerichte und der Fruehstuecks-Slot bliebe leer.
+    var kat = state.recipes.map(function (r) { return r.category; });
+    ["Frühstück", "Hauptgericht", "Snack"].forEach(function (c) {
+      pruef(form + ": " + c + " ist dabei", kat.indexOf(c) !== -1, true);
+    });
+    pruef(form + ": kein Pfad in den Nutzerdaten",
+      state.recipes.some(function (r) { return "img" in r; }), false);
+    // Und das Bild wird trotzdem gefunden - ueber lib.
+    pruef(form + ": jedes findet sein Bild",
+      state.recipes.every(function (r) { return photoFor(r).indexOf("img/library/") === 0; }), true);
+  });
+
+  // Einschraenkung quer zur Form: Die Liste wird gefiltert UND wieder aufgefuellt.
+  state.recipes = []; state.goal = { diet: "vegan", avoid: ["glutenfrei"] };
+  addStarterMeals();
+  pruef("glutenfreier Veganer bekommt trotzdem fuenf", state.recipes.length, STARTER_ANZAHL);
+  pruef("und alle fuenf sind glutenfrei", state.recipes.every(function (r) {
+    return (r.tags || []).indexOf("glutenfrei") !== -1;
+  }), true);
+  pruef("aufgefuellt wird nicht nur mit Hauptgerichten",
+    new Set(state.recipes.map(function (r) { return r.category; })).size >= 3, true);
+
+  // NUR in einen leeren Bestand - sonst bekaeme ein Zweitgeraet fuenf Dubletten.
+  state.recipes = [{ id: "x", name: "Mein Meal" }]; state.goal = { diet: "vegan" };
+  addStarterMeals();
+  pruef("bei vorhandenem Bestand kommt nichts dazu", state.recipes.length, 1);
+
+  // Auch die Katalog-Kopie ueber den Uebernehmen-Knopf traegt keinen Pfad.
+  state.recipes = []; state.goal = null;
+  var katKopie = sanitizeRecipe(Object.assign({}, mitBild2, { id: uid(), lib: mitBild2.id }));
+  pruef("Katalog-Kopie traegt keinen Pfad", "img" in katKopie, false);
+  pruef("findet ihr Bild aber über lib", photoFor(katKopie), "img/library/" + mitBild2.img);
+
+  // ---- Merkmal und Badge muessen dasselbe sagen ----
+  // Der Filter "High Protein" und das Badge "Proteinreich" auf derselben Karte kommen aus
+  // zwei Quellen: der Tag ist gepflegt, das Badge gerechnet (macroBadges). Weichen sie ab,
+  // widerspricht die Karte ihrem eigenen Filter. Im KATALOG ist das ein Kurationsfehler -
+  // bei selbst angelegten Meals darf der Nutzer taggen, wie er will.
+  pruef("kein Katalog-Meal widerspricht seinem Badge",
+    COOKBOOK.filter(function (r) {
+      var b = macroBadges(r).map(function (x) { return x.label; });
+      var t = r.tags || [];
+      return (b.indexOf("Proteinreich") !== -1) !== (t.indexOf("highprotein") !== -1)
+          || (b.indexOf("Low Carb") !== -1) !== (t.indexOf("lowcarb") !== -1);
+    }).map(function (r) { return r.id; }), []);
 
   // ---- Filter-Chips: dieselbe Reihe fuer zwei Bestaende ----
   var eigene = new Set(), katalog = new Set();
@@ -172,6 +334,26 @@ __CODE__
   pruef("zwei Filter sind UND-verknuepft", beide.every(function (r) {
     return (r.tags || []).indexOf("vegan") !== -1 && r.mealPrep === true;
   }), true);
+
+  // ---- Der Aufrufweg selbst ----
+  // Ein Fund des Nutzers am 15.08.2026: In "Meine Meals" stand
+  // `pool.filter(recipeMatchesFilters)`. Array.filter uebergibt als zweites Argument den
+  // INDEX - der landete im Parameter `aktive`. Bei Index 0 (falsy) griff der Rueckfall noch,
+  // ab Index 1 warf `for (const k of 1)`, paintRecipeGroups() brach ab und liess die
+  // UNGEFILTERTE Liste stehen. Der Filter sah damit aus wie "zeigt immer alles".
+  // Die Pruefung sichert die Haertung: `aktive` wird nur als Set akzeptiert.
+  recipeFilters.clear(); recipeFilters.add("tag:highprotein");
+  var probe = [{ tags: ["highprotein"] }, { tags: [] }, { tags: ["highprotein"] }];
+  var direkt;
+  try { direkt = probe.filter(recipeMatchesFilters).length; }
+  catch (e) { direkt = e.constructor.name + ": " + e.message; }
+  pruef("direkt als filter-Callback wirft nicht und filtert richtig", direkt, 2);
+  pruef("mit uebergebenem Set ebenso",
+    probe.filter(function (r) { return recipeMatchesFilters(r, recipeFilters); }).length, 2);
+  // Und der Rueckfall auf den globalen Zustand bleibt erhalten (ohne zweites Argument).
+  pruef("ohne zweites Argument gilt der globale Zustand",
+    probe.filter(function (r) { return recipeMatchesFilters(r); }).length, 2);
+  recipeFilters.clear();
 
   LOG.push("");
   LOG.push(bad ? ("FEHLGESCHLAGEN: " + bad + " von " + (ok + bad)) : ("ALLE " + ok + " PRUEFUNGEN GRUEN"));

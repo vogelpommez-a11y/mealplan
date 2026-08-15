@@ -200,8 +200,15 @@ def main():
         abw = {}
         for k in ("kcal", "carbs", "protein", "fat"):
             s = soll.get(k)
-            if s:
-                abw[k] = (summe[k] - s) / s
+            if not s:
+                continue
+            # Unter 5 g ist die PROZENTUALE Abweichung Rauschen: 1,5 g gerechnetes Fett
+            # gegen 2 g angegebenes sind -20 %, obwohl beide Werte dasselbe aussagen und
+            # die Rundung auf ganze Gramm richtig ist. Ein Werkzeug, das dauerhaft einen
+            # unbehebbaren Treffer meldet, wird ueberlesen - und mit ihm der echte.
+            if k != "kcal" and s < 5:
+                continue
+            abw[k] = (summe[k] - s) / s
         schlimmste = max((abs(v) for v in abw.values()), default=0)
         marke = "OK  " if schlimmste <= TOLERANZ and not fehlend else ("LUECKE" if fehlend else "PRUEFEN")
         if fehlend: offen += 1

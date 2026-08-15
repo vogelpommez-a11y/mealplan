@@ -907,7 +907,10 @@ angezeigt. Sie sind dann still falsch. Deshalb trägt jede Zutat der `COOKBOOK`-
 | `st` / `el` / `tl` | je **Einheit** | `menge` |
 
 `tools/rezept-makros.py` schlägt die Werte in `FOODS` nach, rechnet die Rezeptsumme gegen und
-meldet Abweichungen über 12 % (Garverluste und Rundungen liegen darunter). `--anwenden`
+meldet Abweichungen über 12 % (Garverluste und Rundungen liegen darunter). Makros **unter 5 g**
+werden dabei nicht prozentual bewertet: 1,5 g gerechnetes Fett gegen 2 g angegebenes sind −20 %,
+obwohl die Rundung auf ganze Gramm richtig ist — ein Werkzeug mit einem dauerhaft unbehebbaren
+Treffer wird überlesen, und mit ihm der echte. `--anwenden`
 schreibt sie in die `COOKBOOK`-Zutaten — aber **nur**, wenn keine Zutat mehr ohne Wert ist:
 Halbe Daten sind schlimmer als keine, weil die Summe dann still danebenliegt.
 
@@ -930,12 +933,14 @@ Ein **Katalog, kein Bestand.** Die kuratierten Meals liegen in der Konstanten `C
 **nicht** in `state.recipes`. Gezeigt werden sie im Meals-Reiter unter „Rezeptbuch"; erst beim
 Übernehmen entsteht eine Kopie im eigenen Konto.
 
-**Warum nicht wie `SEED` direkt in die Sammlung:** 30 fremde Meals im eigenen Bestand
+**Warum nicht der ganze Katalog direkt in die Sammlung:** 34 fremde Meals im eigenen Bestand
 erdrücken die eigenen, kosten bei jedem Konto denselben Cloud-Speicher, und ein Veganer
 schleppt zwei Drittel mit, die er nie kocht. Der Katalog kostet nichts, bis jemand zugreift.
 
 ```
-COOKBOOK[i].id   → dauerhafter Schlüssel, zugleich Dateiname in img/library/
+COOKBOOK[i].id    → dauerhafter Schlüssel (NICHT der Dateiname, siehe img)
+COOKBOOK[i].img   → Dateiname in img/library/ (das eigens erzeugte Bild)
+COOKBOOK[i].photo → Schlüssel aus PHOTOS (Rückfall, wenn kein eigenes Bild da ist)
 state.recipes[i].lib = "<COOKBOOK id>"   → Herkunft der Kopie
 ```
 
@@ -962,6 +967,131 @@ der Wochenwechsel (`.week-switch`/`.ws-ind`, `syncWeekSwitchPill()`, `CLAUDE.md`
 
 Mit Pro wächst genau diese Ansicht auf die große Bibliothek, die monatlich wechselt — deshalb
 dieselbe Struktur und derselbe Übernahme-Weg.
+
+#### `photo`: kuratierte Bildwahl statt Stichwortraten (15.08.2026)
+
+`photoFor()` prüft seit dem Ausbau auf 30 Rezepte in dieser Reihenfolge:
+
+```
+r.image (eigenes Foto, safeImage)
+  → libPhoto(r)   (img/library/<datei>, das eigens erzeugte Bild)
+  → r.photo       (Schlüssel in PHOTOS)
+  → PHOTO_RULES → CAT_PHOTO → PHOTOS.neutral
+```
+
+#### `img` und `libPhoto()`: die eigenen Bilder der Bibliothek
+
+```
+COOKBOOK[i].img = "<dateiname>.webp"   → liegt in img/library/
+LIB_IMG: Map(COOKBOOK id → Pfad), einmalig aufgebaut
+libPhoto(r) → LIB_IMG.get(r.lib) || LIB_IMG.get(r.id)
+```
+
+**Der Dateiname steht am Eintrag, statt aus der `id` abgeleitet zu werden.** Eine `id` darf
+einen Umlaut tragen (`rührei-avocadobrot`), ein Dateiname sollte keinen — die Ableitung
+müsste in JavaScript dieselbe Slug-Regel nachbauen, die `tools/meal-bilder.py` in Python
+anwendet. Zwei Fassungen derselben Regel laufen auseinander.
+
+**Die Kopie speichert den Pfad nicht mit.** `libPhoto()` fragt über `lib` (Kopie) bzw. `id`
+(Katalogeintrag) im Katalog nach. Ein später ersetztes oder zurückgezogenes Bild wirkt damit
+sofort überall, und in den Nutzerdaten — Cloud, geteilte Meals — liegt kein Pfad, der eines
+Tages ins Leere zeigt.
+
+**Ein Eintrag ohne `img` ist vorgesehen, kein Fehler.** Bilder, die die Sichtprüfung nicht
+bestehen, werden ausgemustert; die Karte fällt dann auf `photo` bzw. die mitgelieferten Fotos
+zurück statt auf eine 404-Fehlstelle.
+
+#### Der erste Bestand: `addStarterMeals()` statt `SEED` (15.08.2026)
+
+**`SEED` ist ersatzlos entfallen**, ebenso `isExample()`, `clearExamples()` und die
+Namensauflösung `SEED_IMG`/`seedPhoto()`. Die vier Gerichte stehen jetzt im Katalog (siehe
+`COOKBOOK`), ihre Bilder laufen über `LIB_IMG`.
+
+```
+load()               → recipes: []            (kein Profilwissen vorhanden)
+finishOnboarding()   → addStarterMeals()      (diet ist jetzt bekannt)
+STARTER[diet]        → 5 ids, durch fitsDiet() gefiltert und aufgefüllt
+copyFromCookbook(r)  → { …r, id: uid(), lib: r.id }
+```
+
+**Warum der Zeitpunkt der eigentliche Punkt ist:** `load()` läuft vor dem Onboarding — dort
+Meals einzusetzen heißt, sie ohne Kenntnis der Ernährungsform zu wählen (siehe
+`docs/TROUBLESHOOTING.md` 91).
+
+**`copyFromCookbook()` ist der EINE Kopierweg** vom Katalog in den Bestand, benutzt von
+`adoptFromCookbook()` und von den Startmeals. Zwei Kopierwege würden irgendwann verschiedene
+Felder mitnehmen, und der Unterschied fällt erst beim Sync auf.
+
+**Bedingung `state.recipes.length === 0`.** Sonst bekäme ein Cloud-Nutzer, der auf einem zweiten
+Gerät das Onboarding durchläuft, fünf Dubletten.
+
+**Startmeals sind echte Meals.** Sie tragen `lib`, werden synchronisiert und beim Gründen einer
+Gruppe mitkopiert — die beiden `isExample()`-Filter in `mergeRemoteRecipes()` und
+`copyOwnRecipesToGroup()` sind entfallen. Das ist der bewusste Preis dafür, die Sonderrolle
+„mitgelieferte Attrappe" abzuschaffen: Der Nutzer hat sie nicht selbst gewählt, aber sie wurden
+für sein Profil ausgewählt, und `isAdopted()` zeigt sie im Rezeptbuch korrekt als „In deinen
+Meals".
+
+**Folge für Bestandsnutzer:** Wer die vier alten Beispiele im Bestand hat, behält sie als normale
+Meals. Sie verlieren den Chip „Beispiel" und ihr Bild (die Namensauflösung ist weg). Keine
+Migration, kein Datenverlust.
+
+#### Die Regel dahinter: ein Schlüssel darf in Nutzerdaten, ein Pfad nicht
+
+`sanitizeRecipe()` **löscht `img` aktiv** — wie `difficulty` und `portions`. Es ist ein Feld der
+mitgelieferten Daten, nie eines von Nutzerdaten:
+
+| Feld | in Nutzerdaten? | warum |
+|---|---|---|
+| `lib`, `photo` | **ja** | stabile Schlüssel, werden zur Anzeigezeit aufgelöst |
+| `img` | **nein** | ein Pfad. `Object.assign()` trüge ihn beim Kopieren in Bestand, Cloud und geteilte Meals; ein später ersetztes Bild wäre dort für immer eingefroren, bis er ins Leere zeigt |
+
+Die Kopie verliert dadurch nichts: Sie trägt `lib` und findet ihr Bild darüber — auch die fünf Startmeals.
+
+**Nicht in den Service Worker.** Die Bilder gehören **nicht** in `SHELL_ASSETS` — der
+`fetch`-Handler liefert eigene Assets ohnehin cache-first und legt sie beim ersten Gebrauch
+nach. Im Precache würden sie den Kaltstart um über ein Megabyte verteuern, für Bilder, die
+viele Nutzer nie sehen. **Aber:** Wird ein Bild *ausgetauscht*, muss `VERSION` in `sw.js`
+hoch — cache-first heißt sonst, dass Wiederkehrer die alte Datei behalten. Für *neue*
+Dateien gilt das nicht.
+
+**Warum ein eigenes Feld nötig war:** `PHOTO_RULES` sucht Stichwörter im *Namen* und ist für
+selbst angelegte Meals richtig — im Katalog greift es aber sichtbar daneben, weil die Namen
+Zutaten nennen. „Grüner Smoothie mit Spinat" landete über die Regel `spinat` auf dem
+**Salatfoto**, „Schoko-Protein-Quark" über `quark` auf **Porridge**, „Dattel-Nuss-Bissen mit
+Kakao" über `kakao` auf einem **Getränk**. An den Regeln zu drehen wäre der falsche Hebel: Sie
+wirken auf jedes Nutzer-Meal, und Teilwort-Kollisionen sind dort die bekannte Falle
+(`CLAUDE.md` §22). Gesetzt ist `photo` deshalb nur bei den elf Einträgen, bei denen die Regel
+falsch liegt — nicht überall, sonst wäre die Zuordnung doppelt gepflegt.
+
+Es ist ein **Schlüssel**, kein Pfad. Ein unbekannter Wert fällt still auf die Regeln zurück,
+statt ein leeres Bild zu erzeugen; `safeImage()` bleibt für `image` zuständig und lässt
+ohnehin nur `data:`-URIs zu, könnte also nie einen Bibliothekspfad tragen.
+
+**In `sanitizeRecipe()` wird nur die FORM geprüft** (`/^[a-z]{2,20}$/`), nicht die Gültigkeit.
+Ein Abgleich gegen `PHOTOS` wäre dort ein **TDZ-Fehler**: `sanitizeRecipe()` läuft schon in
+`let state = load()`, `PHOTOS` ist erst weiter unten als `const` deklariert. Das ist keine
+Lücke — `photoFor()` schlägt in der Konstante nach. Das Feld überlebt die Übernahme
+(`Object.assign`) und wandert damit in Cloud und geteilte Meals, weshalb die Form überhaupt
+geprüft wird.
+
+**Wenn die eigenen Bilder aus `img/library/` kommen, ist `photo` der Anschlusspunkt** — dann
+entscheidet die Kuration weiterhin, nur mit einer anderen Quelle.
+
+#### Merkmal und Badge müssen dasselbe sagen
+
+Der Tag `highprotein` (gepflegt, filterbar) und das Badge „Proteinreich" (gerechnet, aus
+`macroBadges()`) stehen auf derselben Karte. Im Katalog müssen sie sich **deckungsgleich**
+verhalten, sonst widerspricht die Karte ihrem eigenen Filter. Maßgeblich ist die Rechnung:
+
+| Badge | Schwelle |
+|---|---|
+| Proteinreich | Protein ≥ 30 % der Makro-Kalorien |
+| Low Carb | Kohlenhydrate ≤ 15 % **und** ≤ 20 g |
+
+Vier der ersten neun Rezepte trugen `highprotein` bei 17–25 % Proteinanteil; die Tags sind am
+15.08.2026 entfernt worden. Bei **selbst angelegten** Meals gilt das nicht — dort darf der
+Nutzer taggen, wie er will. Geprüft wird es im Prüfstand (`docs/TESTING.md`).
 
 ### Ernährungsprofil: `state.goal.diet` und `state.goal.avoid` (15.08.2026)
 

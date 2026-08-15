@@ -1302,7 +1302,11 @@
      Bearbeiten-Aktionen. Bewusst keine eigene Kartenoptik - es ist derselbe Gegenstand,
      nur noch nicht der eigene. */
   .cb-hint { margin: 0 0 14px; color: var(--text-muted); font-size: 13px; }
-  .cb-foot { margin-top: 10px; }
+  /* position + z-index sind hier PFLICHT, nicht Kosmetik: .rcard-open::after spannt als
+     Stretched Link mit z-index:1 ueber die ganze Karte. Ein statisch positioniertes Element
+     kann z-index gar nicht anwenden - der Link lag deshalb ueber dem Uebernehmen-Knopf und
+     fing jeden Klick ab, die Ansicht ging auf statt zu uebernehmen (TROUBLESHOOTING 90). */
+  .cb-foot { margin-top: 10px; position: relative; z-index: 2; }
   .cb-foot .btn { width: 100%; }
   /* "In deinen Meals" ist eine Feststellung, kein Knopf - deshalb ohne Rahmen und in der
      gedaempften Schrift. Gleiche Hoehe wie der Knopf daneben, damit die Karten in einer
@@ -1673,7 +1677,6 @@
   .chip.cat-fr { color: var(--fr); background: color-mix(in srgb, var(--fr) 14%, var(--surface)); }
   .chip.cat-ha { color: var(--mi); background: color-mix(in srgb, var(--mi) 14%, var(--surface)); }
   .chip.cat-x { color: var(--accent-strong); background: color-mix(in srgb, var(--accent) 14%, var(--surface)); }
-  .chip.example { color: var(--fr); background: color-mix(in srgb, var(--fr) 15%, var(--surface)); border: 1px solid color-mix(in srgb, var(--fr) 32%, transparent); }
   .rcard .meta { display: flex; gap: 14px; flex-wrap: wrap; color: var(--text-muted); font-size: 12.5px; }
   .rcard .meta span { display: inline-flex; align-items: center; gap: 5px; }
   .rcard .meta svg { width: 14px; height: 14px; color: var(--accent); opacity: 1; }
@@ -3750,7 +3753,7 @@
   const RECIPE_TAG_KEYS = RECIPE_TAGS.map(t => t.key);
   function tagLabel(k) { const t = RECIPE_TAGS.find(x => x.key === k); return t ? t.label : k; }
 
-  // ---------- Ernaehrungsprofil (state.goal.diet / state.goal.avoid) ----------
+    // ---------- Ernaehrungsprofil (state.goal.diet / state.goal.avoid) ----------
   // Zwei GETRENNTE Angaben, bewusst nicht eine Mehrfachauswahl:
   //   diet  - die Ernaehrungsform. Genau eine, und sie schliesst ein: vegan ist immer auch
   //           vegetarisch. Eine gemeinsame Liste erlaubte "vegetarisch + vegan", was keinen
@@ -3816,64 +3819,12 @@
   // (Filter heute, Auto-Planer in D2).
   // Alt-Werte werden in sanitizeRecipe() aktiv entfernt, nicht bloss ignoriert.
 
-  // Beispiel-Meals mit Fitness-/Abnehm-Fokus (viel Protein, realistische Portionen fuers
-  // Meal-Prep) statt generischer Alltagsgerichte - passend zum Zielpublikum der App.
-  const SEED = [
-    { name: "Protein-Porridge mit Beeren", category: "Frühstück", time: 10,
-      tags: ["highprotein", "vegetarisch"], mealPrep: true,
-      nutrition: { kcal: 530, carbs: 64, protein: 43, fat: 11 },
-      ingredients: [
-        { name: "Haferflocken", grams: 60 },
-        { name: "Milch", grams: 250, unit: "ml" },
-        { name: "Whey-Protein Vanille", grams: 30 },
-        { name: "Beeren, gemischt", grams: 100 },
-        "1 TL Chiasamen", "Prise Zimt"
-      ],
-      steps: "Haferflocken mit Milch aufkochen und 3–4 Min. bei milder Hitze quellen lassen. Vom Herd nehmen, Whey-Protein unterrühren. In eine Schale füllen, mit Beeren, Chiasamen und Zimt toppen." },
-    // Mengen fuer EIN Meal. Bis zum 15.08.2026 stand hier `portions: 2` mit den doppelten
-    // Mengen, waehrend die Naehrwerte schon fuer eine Portion galten - wer danach einkaufte,
-    // kaufte doppelt (siehe sanitizeRecipe). Gegenprobe zu den 620 kcal: 100 g Haehnchen
-    // (~110) + 75 g Pute (~80) + 100 g Reis roh (~350) + Gemuese (~40) + halber EL Oel (~45).
-    { name: "Hähnchen mit Pute und Reis", category: "Hauptgericht", time: 30,
-      tags: ["highprotein", "laktosefrei"], mealPrep: true,
-      nutrition: { kcal: 620, carbs: 55, protein: 55, fat: 16 },
-      ingredients: [
-        { name: "Hähnchenbrust", grams: 100 },
-        { name: "Putenbrust", grams: 75 },
-        { name: "Basmatireis", grams: 100 },
-        { name: "Paprika", grams: 0.5, unit: "st" },
-        { name: "Zucchini", grams: 0.5, unit: "st" },
-        "1 EL Olivenöl", "Sojasauce", "Paprikapulver, Salz, Pfeffer"
-      ],
-      steps: "Reis nach Packungsangabe kochen. Hähnchen- und Putenbrust würfeln, würzen und in Olivenöl scharf anbraten. Paprika und Zucchini kurz mitbraten, mit Sojasauce ablöschen. Alles auf dem Reis anrichten." },
-    { name: "Eiweißshake mit Whey und Milch", category: "Snack", time: 5,
-      tags: ["highprotein", "vegetarisch", "glutenfrei"], mealPrep: false,
-      nutrition: { kcal: 350, carbs: 39, protein: 35, fat: 6 },
-      ingredients: [
-        { name: "Milch", grams: 300, unit: "ml" },
-        { name: "Whey-Protein", grams: 30 },
-        { name: "Banane", grams: 1, unit: "st" },
-        "Eiswürfel"
-      ],
-      steps: "Milch, Whey-Protein, Banane und ein paar Eiswürfel in den Mixer geben und cremig mixen." },
-    { name: "Rindersteak mit Ofenkartoffeln", category: "Hauptgericht", time: 35,
-      tags: ["highprotein", "glutenfrei", "laktosefrei"], mealPrep: false,
-      nutrition: { kcal: 650, carbs: 62, protein: 56, fat: 20 },
-      ingredients: [
-        { name: "Rindersteak (Rumpsteak)", grams: 200 },
-        { name: "Kartoffeln", grams: 300 },
-        { name: "Brokkoli", grams: 150 },
-        "1 EL Olivenöl", "Rosmarin, Salz, Pfeffer"
-      ],
-      steps: "Kartoffeln würfeln, mit Olivenöl und Rosmarin vermengen und im Ofen bei 200 °C ca. 25 Min. rösten. Steak salzen, pfeffern und in einer heißen Pfanne von jeder Seite 2–3 Min. braten, kurz ruhen lassen. Brokkoli dämpfen und alles zusammen anrichten." },
-  ];
-
   // ---------- Rezeptbuch ----------
   // Ein KATALOG, kein Bestand: Diese Meals liegen nicht in state.recipes, sondern werden
   // im Meals-Reiter unter "Rezeptbuch" gezeigt und per Tipp uebernommen. Erst dabei
   // entsteht eine Kopie im eigenen Konto.
   //
-  // Warum nicht wie SEED direkt in die Sammlung: 30 fremde Meals im eigenen Bestand
+  // Warum nicht der ganze Katalog direkt in die Sammlung: 34 fremde Meals im eigenen Bestand
   // erdruecken die eigenen, kosten bei jedem Konto denselben Cloud-Speicher, und ein
   // Veganer schleppt zwei Drittel mit, die er nie kocht. Der Katalog kostet nichts, bis
   // jemand zugreift.
@@ -3881,13 +3832,18 @@
   // `id` ist der dauerhafte Schluessel: Er landet beim Uebernehmen als `lib` an der Kopie
   // (siehe adoptFromCookbook) und verbindet sie mit dem Original - so laesst sich spaeter
   // eine korrigierte Fassung zuordnen. Er darf sich NIE aendern, auch wenn der Name sich
-  // aendert. Zugleich der Dateiname des Bildes in img/library/.
+  // aendert.
+  //
+  // Das BILD steht dagegen in `img` und wird NICHT aus der id abgeleitet: Eine id darf einen
+  // Umlaut tragen ("rührei-avocadobrot"), ein Dateiname sollte keinen. Eine Ableitung muesste
+  // die Slug-Regel des Werkzeugs in JS nachbauen - zwei Fassungen derselben Regel laufen
+  // auseinander (siehe docs/TROUBLESHOOTING.md 89).
   //
   // Mit Pro waechst genau diese Ansicht auf die grosse Bibliothek, die monatlich wechselt -
   // deshalb dieselbe Struktur und derselbe Uebernahme-Weg (siehe plans/Auto_Wochenplaner_D2.MD).
   const COOKBOOK = [
     { id: "overnight-oats-soja-beeren", name: "Overnight Oats mit Sojajoghurt und Beeren",
-      category: "Frühstück", time: 5, tags: ["vegan", "vegetarisch", "highprotein", "laktosefrei"], mealPrep: true,
+      category: "Frühstück", time: 5, tags: ["vegan", "vegetarisch", "laktosefrei"], mealPrep: true, img: "overnight-oats-soja-beeren.webp",
       nutrition: { kcal: 449, carbs: 47, protein: 20, fat: 16 },
       ingredients: [
         { name: "Haferflocken", grams: 60, kcal: 372, carbs: 59, protein: 13, fat: 7 },
@@ -3899,7 +3855,7 @@
       steps: "Haferflocken mit Sojajoghurt verrühren und über Nacht in den Kühlschrank stellen. Am Morgen Beeren und Erdnussmus daraufgeben, mit Zimt bestreuen." },
 
     { id: "rührei-avocadobrot", name: "Rührei mit Avocado auf Vollkornbrot",
-      category: "Frühstück", time: 10, tags: ["vegetarisch", "highprotein"], mealPrep: false,
+      category: "Frühstück", time: 10, tags: ["vegetarisch"], mealPrep: false, img: "ruehrei-avocadobrot.webp",
       nutrition: { kcal: 520, carbs: 29, protein: 28, fat: 29 },
       ingredients: [
         { name: "Ei, Größe M", grams: 3, unit: "st", kcal: 80, carbs: 0.4, protein: 7, fat: 5.7 },
@@ -3910,7 +3866,7 @@
       steps: "Eier verquirlen, salzen und bei mittlerer Hitze langsam stocken lassen – so bleiben sie cremig. Brot toasten, Avocado darauf zerdrücken, Rührei daraufgeben und mit Schnittlauch bestreuen." },
 
     { id: "rotes-linsen-dal", name: "Rotes Linsen-Dal mit Reis",
-      category: "Hauptgericht", time: 25, tags: ["vegan", "vegetarisch", "glutenfrei", "laktosefrei", "highprotein"], mealPrep: true,
+      category: "Hauptgericht", time: 25, tags: ["vegan", "vegetarisch", "glutenfrei", "laktosefrei"], mealPrep: true, img: "rotes-linsen-dal.webp",
       nutrition: { kcal: 636, carbs: 95, protein: 25, fat: 13 },
       ingredients: [
         { name: "Rote Linsen, roh", grams: 70, kcal: 350, carbs: 52, protein: 24, fat: 1.5 },
@@ -3923,7 +3879,7 @@
       steps: "Zwiebel, Ingwer und Knoblauch anschwitzen, Gewürze kurz mitrösten. Linsen, Tomaten und Kokosmilch zugeben und 15–20 Min. köcheln, bis die Linsen zerfallen. Reis separat garen und dazu servieren." },
 
     { id: "haehnchen-bowl-brokkoli", name: "Hähnchen-Bowl mit Brokkoli und Reis",
-      category: "Hauptgericht", time: 30, tags: ["highprotein", "glutenfrei", "laktosefrei"], mealPrep: true,
+      category: "Hauptgericht", time: 30, tags: ["highprotein", "glutenfrei", "laktosefrei"], mealPrep: true, img: "haehnchen-bowl-brokkoli.webp", photo: "rice",
       nutrition: { kcal: 656, carbs: 74, protein: 56, fat: 13 },
       ingredients: [
         { name: "Hähnchenbrustfilet", grams: 180, kcal: 105, carbs: 0, protein: 23, fat: 1.2 },
@@ -3936,7 +3892,7 @@
       steps: "Reis garen. Hähnchen würfeln, würzen und scharf anbraten. Brokkoli und Karotte 4–5 Min. dämpfen, damit sie bissfest bleiben. Alles in einer Schüssel anrichten und mit Sojasauce abschmecken." },
 
     { id: "ofen-feta-kichererbsen", name: "Ofen-Feta mit Kichererbsen und Tomaten",
-      category: "Hauptgericht", time: 30, tags: ["vegetarisch", "glutenfrei"], mealPrep: true,
+      category: "Hauptgericht", time: 30, tags: ["vegetarisch", "glutenfrei"], mealPrep: true, img: "ofen-feta-kichererbsen.webp", photo: "casserole",
       nutrition: { kcal: 654, carbs: 41, protein: 30, fat: 37 },
       ingredients: [
         { name: "Feta", grams: 100, kcal: 265, carbs: 1, protein: 14, fat: 22 },
@@ -3949,7 +3905,7 @@
       steps: "Kichererbsen, Tomaten und Zwiebel mit Öl und Oregano in eine Auflaufform geben, den Feta in die Mitte setzen. Bei 200 °C etwa 25 Min. backen, dann alles grob verrühren." },
 
     { id: "tofu-gemuesepfanne", name: "Tofu-Gemüsepfanne mit Reisnudeln",
-      category: "Hauptgericht", time: 20, tags: ["vegan", "vegetarisch", "glutenfrei", "laktosefrei", "highprotein"], mealPrep: true,
+      category: "Hauptgericht", time: 20, tags: ["vegan", "vegetarisch", "glutenfrei", "laktosefrei"], mealPrep: true, img: "tofu-gemuesepfanne.webp",
       nutrition: { kcal: 680, carbs: 60, protein: 38, fat: 29 },
       ingredients: [
         { name: "Räuchertofu", grams: 180, kcal: 165, carbs: 1, protein: 17, fat: 10 },
@@ -3962,7 +3918,7 @@
       steps: "Reisnudeln nach Packungsangabe einweichen. Tofu würfeln und in Sesamöl knusprig braten, Gemüse zugeben und 3–4 Min. mitbraten. Nudeln unterheben und mit Sojasauce und Ingwer abschmecken." },
 
     { id: "haehnchen-zucchini-feta", name: "Hähnchen-Zucchini-Pfanne mit Feta",
-      category: "Hauptgericht", time: 20, tags: ["highprotein", "lowcarb", "glutenfrei"], mealPrep: true,
+      category: "Hauptgericht", time: 20, tags: ["highprotein", "lowcarb", "glutenfrei"], mealPrep: true, img: "haehnchen-zucchini-feta.webp", photo: "chicken",
       nutrition: { kcal: 500, carbs: 8, protein: 57, fat: 24 },
       ingredients: [
         { name: "Hähnchenbrustfilet", grams: 200, kcal: 105, carbs: 0, protein: 23, fat: 1.2 },
@@ -3975,7 +3931,7 @@
       steps: "Hähnchen würfeln, würzen und scharf anbraten. Zucchini in Halbmonde schneiden, zugeben und 5 Min. mitbraten. Tomaten kurz mitziehen lassen, vom Herd nehmen und den Feta darüberbröseln." },
 
     { id: "blumenkohl-curry-tofu", name: "Blumenkohl-Curry mit Tofu",
-      category: "Hauptgericht", time: 25, tags: ["vegan", "vegetarisch", "lowcarb", "glutenfrei", "laktosefrei", "highprotein"], mealPrep: true,
+      category: "Hauptgericht", time: 25, tags: ["vegan", "vegetarisch", "lowcarb", "glutenfrei", "laktosefrei", "highprotein"], mealPrep: true, img: "blumenkohl-curry-tofu.webp",
       nutrition: { kcal: 497, carbs: 13, protein: 37, fat: 31 },
       ingredients: [
         { name: "Räuchertofu", grams: 150, kcal: 165, carbs: 1, protein: 17, fat: 10 },
@@ -3987,7 +3943,7 @@
       steps: "Tofu würfeln und knusprig anbraten, herausnehmen. Blumenkohlröschen mit Currypaste anrösten, mit Kokosmilch ablöschen und 10 Min. köcheln. Spinat und Tofu unterheben, mit Limette abschmecken." },
 
     { id: "skyr-beeren-nuesse", name: "Skyr mit Beeren und Walnüssen",
-      category: "Snack", time: 3, tags: ["vegetarisch", "highprotein", "glutenfrei"], mealPrep: false,
+      category: "Snack", time: 3, tags: ["vegetarisch", "highprotein", "glutenfrei"], mealPrep: false, img: "skyr-beeren-nuesse.webp",
       nutrition: { kcal: 250, carbs: 13, protein: 25, fat: 10 },
       ingredients: [
         { name: "Skyr, natur", grams: 200, kcal: 63, carbs: 4, protein: 11, fat: 0.2 },
@@ -3995,16 +3951,325 @@
         { name: "Walnüsse", grams: 15, kcal: 650, carbs: 7, protein: 15, fat: 63 }
       ],
       steps: "Skyr in eine Schüssel geben, Beeren und grob gehackte Walnüsse darüberstreuen." },
-  ];
 
-  // Erkennt die mitgelieferten Beispiel-Meals: gleicher Name UND unveränderte Zubereitung.
-  // Sobald der Nutzer ein Beispiel bearbeitet, gilt es als sein eigenes (kein Badge mehr).
-  function isExample(r) {
-    if (!r || !r.name) return false;
-    const key = r.name.trim().toLowerCase();
-    const s = SEED.find(x => x.name.trim().toLowerCase() === key);
-    return !!s && String(r.steps || "").trim() === String(s.steps || "").trim();
-  }
+    { id: "quark-haferflocken-banane", name: "Quark-Haferflocken-Schale mit Banane",
+      category: "Frühstück", time: 5, tags: ["vegetarisch", "highprotein"], mealPrep: true, img: "quark-haferflocken-banane.webp",
+      nutrition: { kcal: 514, carbs: 64, protein: 40, fat: 9 },
+      ingredients: [
+        { name: "Magerquark", grams: 250, kcal: 67, carbs: 4, protein: 12, fat: 0.3 },
+        { name: "Haferflocken", grams: 50, kcal: 372, carbs: 59, protein: 13, fat: 7 },
+        { name: "Banane", grams: 120, kcal: 90, carbs: 20, protein: 1.1, fat: 0.3 },
+        { name: "Leinsamen", grams: 10, kcal: 530, carbs: 3, protein: 24, fat: 42 },
+        "Zimt"
+      ],
+      steps: "Quark mit den Haferflocken verrühren und einen Schluck Wasser oder Milch untermischen, sonst wird es zu fest. Banane in Scheiben schneiden, mit Leinsamen und Zimt daraufgeben. Hält im Kühlschrank zwei Tage." },
+
+    { id: "protein-pancakes-skyr", name: "Protein-Pancakes mit Skyr und Beeren",
+      category: "Frühstück", time: 15, tags: ["vegetarisch", "highprotein"], mealPrep: false, img: "protein-pancakes-skyr.webp",
+      nutrition: { kcal: 480, carbs: 48, protein: 43, fat: 11 },
+      ingredients: [
+        { name: "Haferflocken", grams: 60, kcal: 372, carbs: 59, protein: 13, fat: 7 },
+        { name: "Eiklar", grams: 150, kcal: 52, carbs: 0.7, protein: 11, fat: 0.2 },
+        { name: "Ei, Größe M", grams: 1, unit: "st", kcal: 80, carbs: 0.4, protein: 7, fat: 5.7 },
+        { name: "Skyr, natur", grams: 100, kcal: 63, carbs: 4, protein: 11, fat: 0.2 },
+        { name: "Heidelbeeren", grams: 80, kcal: 45, carbs: 9, protein: 0.7, fat: 0.3 },
+        "Backpulver, Vanille, Prise Salz"
+      ],
+      steps: "Haferflocken fein mahlen, mit Eiklar, Ei und Backpulver zu einem dickflüssigen Teig verrühren und 5 Min. quellen lassen. Bei mittlerer Hitze kleine Pancakes backen – zu heiß und sie werden außen dunkel, bevor die Mitte fest ist. Mit Skyr und Beeren servieren." },
+
+    { id: "tofu-ruehrei-vollkornbrot", name: "Tofu-Rührei auf Vollkornbrot",
+      category: "Frühstück", time: 10, tags: ["vegan", "vegetarisch", "highprotein", "laktosefrei"], mealPrep: false, img: "tofu-ruehrei-vollkornbrot.webp",
+      nutrition: { kcal: 437, carbs: 24, protein: 33, fat: 22 },
+      ingredients: [
+        { name: "Tofu, natur", grams: 200, kcal: 130, carbs: 1, protein: 14, fat: 8 },
+        { name: "Vollkornbrot", grams: 60, kcal: 210, carbs: 35, protein: 8, fat: 2 },
+        { name: "Frühlingszwiebel", grams: 20, kcal: 32, carbs: 4.5, protein: 1.8, fat: 0.2 },
+        { name: "Rapsöl", grams: 5, kcal: 900, carbs: 0, protein: 0, fat: 100 },
+        "Kurkuma, Salz, Pfeffer, Schnittlauch"
+      ],
+      steps: "Tofu mit der Gabel grob zerdrücken – nicht pürieren, die Struktur macht den Unterschied. In Öl 4–5 Min. braten, mit Kurkuma, Salz und Pfeffer würzen. Auf getoastetem Vollkornbrot anrichten und mit Frühlingszwiebel bestreuen." },
+
+    { id: "chia-pudding-soja-beeren", name: "Chia-Pudding mit Sojadrink und Beeren",
+      category: "Frühstück", time: 5, tags: ["vegan", "vegetarisch", "highprotein", "glutenfrei", "laktosefrei"], mealPrep: true, img: "chia-pudding-soja-beeren.webp",
+      nutrition: { kcal: 310, carbs: 11, protein: 25, fat: 14 },
+      ingredients: [
+        { name: "Chiasamen", grams: 25, kcal: 480, carbs: 5, protein: 17, fat: 31 },
+        { name: "Sojadrink, ungesüßt", grams: 250, unit: "ml", kcal: 39, carbs: 0.6, protein: 3.3, fat: 1.9 },
+        { name: "Erbsenprotein-Pulver", grams: 15, kcal: 380, carbs: 5, protein: 80, fat: 6 },
+        { name: "Heidelbeeren", grams: 80, kcal: 45, carbs: 9, protein: 0.7, fat: 0.3 }
+      ],
+      steps: "Chiasamen, Sojadrink und Proteinpulver verrühren, nach fünf Minuten noch einmal umrühren – sonst setzen sich die Samen am Boden ab. Über Nacht in den Kühlschrank, am Morgen die Beeren daraufgeben." },
+
+    { id: "ofenlachs-suesskartoffel", name: "Ofenlachs mit Süßkartoffeln und Brokkoli",
+      category: "Hauptgericht", time: 35, tags: ["glutenfrei", "laktosefrei"], mealPrep: true, img: "ofenlachs-suesskartoffel.webp", photo: "fish",
+      nutrition: { kcal: 656, carbs: 54, protein: 40, fat: 30 },
+      ingredients: [
+        { name: "Lachsfilet", grams: 150, kcal: 200, carbs: 0, protein: 20, fat: 13 },
+        { name: "Süßkartoffeln", grams: 250, kcal: 86, carbs: 20, protein: 1.6, fat: 0.1 },
+        { name: "Brokkoli", grams: 150, kcal: 34, carbs: 3, protein: 3.8, fat: 0.4 },
+        { name: "Olivenöl", grams: 10, kcal: 900, carbs: 0, protein: 0, fat: 100 },
+        "Zitrone, Salz, Pfeffer"
+      ],
+      steps: "Süßkartoffeln würfeln, mit Öl mischen und bei 200 °C 20 Min. rösten. Lachs auf das Blech legen und weitere 12 Min. garen – er ist fertig, sobald er sich mit der Gabel in Segmente teilen lässt. Brokkoli dämpfen und mit Zitrone servieren." },
+
+    { id: "putenpfanne-vollkornnudeln", name: "Putenpfanne mit Vollkornnudeln",
+      category: "Hauptgericht", time: 25, tags: ["highprotein"], mealPrep: true, img: "putenpfanne-vollkornnudeln.webp",
+      nutrition: { kcal: 584, carbs: 50, protein: 58, fat: 14 },
+      ingredients: [
+        { name: "Putenbrustfilet", grams: 180, kcal: 105, carbs: 0, protein: 24, fat: 1 },
+        { name: "Vollkornnudeln, roh", grams: 70, kcal: 335, carbs: 62, protein: 14, fat: 2.5 },
+        { name: "Champignons", grams: 150, kcal: 22, carbs: 0.6, protein: 2.7, fat: 0.3 },
+        { name: "Paprika, rot", grams: 100, kcal: 37, carbs: 6, protein: 1, fat: 0.4 },
+        { name: "Olivenöl", grams: 10, kcal: 900, carbs: 0, protein: 0, fat: 100 },
+        "Kräuter, Salz, Pfeffer"
+      ],
+      steps: "Nudeln bissfest kochen. Pute in Streifen schneiden, kräftig würzen und heiß anbraten, dann herausnehmen. Champignons und Paprika in derselben Pfanne braten, bis die Flüssigkeit verdampft ist, alles zusammenführen." },
+
+    { id: "chili-rinderhack-bohnen", name: "Chili mit Rinderhack und Kidneybohnen",
+      category: "Hauptgericht", time: 35, tags: ["highprotein", "glutenfrei", "laktosefrei"], mealPrep: true, img: "chili-rinderhack-bohnen.webp",
+      nutrition: { kcal: 543, carbs: 44, protein: 49, fat: 15 },
+      ingredients: [
+        { name: "Rinderhackfleisch, mager", grams: 150, kcal: 130, carbs: 0, protein: 21, fat: 5 },
+        { name: "Kidneybohnen, Dose", grams: 150, kcal: 110, carbs: 14, protein: 8, fat: 0.6 },
+        { name: "Passierte Tomaten", grams: 200, kcal: 32, carbs: 5, protein: 1.4, fat: 0.2 },
+        { name: "Mais, Dose", grams: 60, kcal: 90, carbs: 16, protein: 3, fat: 1.2 },
+        { name: "Zwiebeln", grams: 70, kcal: 28, carbs: 5, protein: 1.2, fat: 0.2 },
+        { name: "Rapsöl", grams: 5, kcal: 900, carbs: 0, protein: 0, fat: 100 },
+        "Kreuzkümmel, Paprikapulver, Chili, Salz"
+      ],
+      steps: "Zwiebeln anschwitzen, Hack krümelig anbraten und die Gewürze kurz mitrösten. Tomaten, Bohnen und Mais zugeben und 20 Min. offen köcheln. Am nächsten Tag schmeckt es besser – das ist das ideale Gericht zum Vorkochen." },
+
+    { id: "linsen-bolognese-vollkorn", name: "Linsen-Bolognese mit Vollkornnudeln",
+      category: "Hauptgericht", time: 30, tags: ["vegan", "vegetarisch", "laktosefrei"], mealPrep: true, img: "linsen-bolognese-vollkorn.webp",
+      nutrition: { kcal: 642, carbs: 91, protein: 29, fat: 13 },
+      ingredients: [
+        { name: "Linsen, roh", grams: 70, kcal: 340, carbs: 50, protein: 24, fat: 1.5 },
+        { name: "Vollkornnudeln, roh", grams: 60, kcal: 335, carbs: 62, protein: 14, fat: 2.5 },
+        { name: "Passierte Tomaten", grams: 200, kcal: 32, carbs: 5, protein: 1.4, fat: 0.2 },
+        { name: "Karotten", grams: 80, kcal: 40, carbs: 7, protein: 0.9, fat: 0.2 },
+        { name: "Zwiebeln", grams: 60, kcal: 28, carbs: 5, protein: 1.2, fat: 0.2 },
+        { name: "Olivenöl", grams: 10, kcal: 900, carbs: 0, protein: 0, fat: 100 },
+        "Knoblauch, Oregano, Salz, Pfeffer"
+      ],
+      steps: "Zwiebel und Karotte fein würfeln und in Öl anschwitzen. Linsen und Tomaten zugeben, mit Wasser auffüllen und 25 Min. köcheln, bis die Linsen weich sind. Nudeln separat garen und die Sauce daraufgeben." },
+
+    { id: "haehnchen-brokkoli-auflauf", name: "Hähnchen-Brokkoli-Auflauf",
+      category: "Hauptgericht", time: 35, tags: ["highprotein", "lowcarb", "glutenfrei"], mealPrep: true, img: "haehnchen-brokkoli-auflauf.webp",
+      nutrition: { kcal: 534, carbs: 12, protein: 72, fat: 20 },
+      ingredients: [
+        { name: "Hähnchenbrustfilet", grams: 200, kcal: 105, carbs: 0, protein: 23, fat: 1.2 },
+        { name: "Brokkoli", grams: 300, kcal: 34, carbs: 3, protein: 3.8, fat: 0.4 },
+        { name: "Frischkäse, light", grams: 80, kcal: 145, carbs: 4, protein: 9, fat: 10 },
+        { name: "Gouda, mittelalt", grams: 30, kcal: 355, carbs: 0, protein: 25, fat: 28 },
+        "Muskat, Salz, Pfeffer"
+      ],
+      steps: "Brokkoli 4 Min. vorgaren, damit er im Ofen nicht hart bleibt. Hähnchen würfeln, würzen und mit dem Brokkoli in eine Form geben. Frischkäse mit etwas Wasser glattrühren, darübergießen, Käse daraufreiben und bei 200 °C 20 Min. backen." },
+
+    { id: "garnelen-zucchini-tomaten", name: "Garnelen mit Zucchini und Kirschtomaten",
+      category: "Hauptgericht", time: 20, tags: ["highprotein", "lowcarb", "glutenfrei", "laktosefrei"], mealPrep: false, img: "garnelen-zucchini-tomaten.webp", photo: "seafood",
+      nutrition: { kcal: 338, carbs: 10, protein: 43, fat: 13 },
+      ingredients: [
+        { name: "Garnelen", grams: 200, kcal: 85, carbs: 0, protein: 19, fat: 1 },
+        { name: "Zucchini", grams: 250, kcal: 19, carbs: 2, protein: 1.6, fat: 0.4 },
+        { name: "Kirschtomaten", grams: 150, kcal: 20, carbs: 3.4, protein: 0.9, fat: 0.2 },
+        { name: "Olivenöl", grams: 10, kcal: 900, carbs: 0, protein: 0, fat: 100 },
+        "Knoblauch, Chili, Petersilie, Salz"
+      ],
+      steps: "Zucchini in Streifen schneiden und in heißem Öl 3 Min. braten, Tomaten kurz mitziehen lassen. Garnelen erst zum Schluss zugeben und nur 2 Min. garen – länger und sie werden zäh. Mit Knoblauch, Chili und Petersilie abschmecken." },
+
+    { id: "kichererbsen-curry-spinat", name: "Kichererbsen-Curry mit Spinat und Reis",
+      category: "Hauptgericht", time: 25, tags: ["vegan", "vegetarisch", "glutenfrei", "laktosefrei"], mealPrep: true, img: "kichererbsen-curry-spinat.webp",
+      nutrition: { kcal: 610, carbs: 78, protein: 26, fat: 18 },
+      ingredients: [
+        { name: "Kichererbsen, Dose", grams: 200, kcal: 120, carbs: 15, protein: 7, fat: 2.6 },
+        { name: "Spinat, frisch", grams: 150, kcal: 23, carbs: 0.6, protein: 2.9, fat: 0.4 },
+        { name: "Kokosmilch", grams: 60, unit: "ml", kcal: 190, carbs: 3, protein: 2, fat: 19 },
+        { name: "Passierte Tomaten", grams: 150, kcal: 32, carbs: 5, protein: 1.4, fat: 0.2 },
+        { name: "Zwiebeln", grams: 60, kcal: 28, carbs: 5, protein: 1.2, fat: 0.2 },
+        { name: "Basmatireis, roh", grams: 45, kcal: 349, carbs: 78, protein: 8, fat: 0.8 },
+        "Currypulver, Ingwer, Knoblauch, Salz"
+      ],
+      steps: "Reis aufsetzen. Zwiebel, Ingwer und Knoblauch anschwitzen, Curry kurz mitrösten. Kichererbsen, Tomaten und Kokosmilch zugeben, 10 Min. köcheln, dann den Spinat unterheben – er fällt in einer Minute zusammen." },
+
+    { id: "quinoa-bowl-edamame", name: "Quinoa-Bowl mit Edamame und Avocado",
+      category: "Hauptgericht", time: 25, tags: ["vegan", "vegetarisch", "glutenfrei", "laktosefrei"], mealPrep: true, img: "quinoa-bowl-edamame.webp",
+      nutrition: { kcal: 654, carbs: 63, protein: 34, fat: 27 },
+      ingredients: [
+        { name: "Quinoa, roh", grams: 70, kcal: 368, carbs: 58, protein: 14, fat: 6 },
+        { name: "Edamame", grams: 200, kcal: 120, carbs: 8, protein: 11, fat: 5 },
+        { name: "Avocado", grams: 50, kcal: 160, carbs: 1, protein: 2, fat: 15 },
+        { name: "Karotten", grams: 80, kcal: 40, carbs: 7, protein: 0.9, fat: 0.2 },
+        { name: "Sesamöl", grams: 5, kcal: 884, carbs: 0, protein: 0, fat: 100 },
+        "Limette, Sojasauce (glutenfrei), Sesam"
+      ],
+      steps: "Quinoa vor dem Kochen gut abspülen, sonst schmeckt er bitter, und 15 Min. garen. Edamame kurz blanchieren, Karotte fein raspeln. Alles in einer Schüssel schichten, Avocado darauflegen und mit Sesamöl, Limette und Sojasauce abschmecken." },
+
+    { id: "huettenkaese-vollkornbrot", name: "Hüttenkäse auf Vollkornbrot mit Radieschen",
+      category: "Snack", time: 5, tags: ["vegetarisch", "highprotein"], mealPrep: false, img: "huettenkaese-vollkornbrot.webp", photo: "sandwich",
+      nutrition: { kcal: 284, carbs: 26, protein: 25, fat: 7 },
+      ingredients: [
+        { name: "Hüttenkäse", grams: 150, kcal: 100, carbs: 3, protein: 13, fat: 4 },
+        { name: "Vollkornbrot", grams: 60, kcal: 210, carbs: 35, protein: 8, fat: 2 },
+        { name: "Radieschen", grams: 50, kcal: 15, carbs: 2, protein: 1, fat: 0.1 },
+        "Schnittlauch, Pfeffer"
+      ],
+      steps: "Brot toasten, Hüttenkäse daraufgeben und mit Pfeffer würzen. Radieschen in dünne Scheiben schneiden und mit Schnittlauch darüberstreuen." },
+
+    { id: "edamame-sesam-snack", name: "Edamame mit Sesam und Meersalz",
+      category: "Snack", time: 10, tags: ["vegan", "vegetarisch", "highprotein", "glutenfrei", "laktosefrei"], mealPrep: false, img: "edamame-sesam-snack.webp", photo: "salad",
+      nutrition: { kcal: 284, carbs: 16, protein: 22, fat: 15 },
+      ingredients: [
+        { name: "Edamame", grams: 200, kcal: 120, carbs: 8, protein: 11, fat: 5 },
+        { name: "Sesamöl", grams: 5, kcal: 884, carbs: 0, protein: 0, fat: 100 },
+        "Meersalz, Sesam, Chiliflocken"
+      ],
+      steps: "Edamame 4 Min. in Salzwasser kochen und abgießen. Mit Sesamöl schwenken, mit Meersalz, Sesam und Chiliflocken bestreuen und aus der Schote essen." },
+
+    { id: "thunfisch-quark-dip", name: "Thunfisch-Quark-Dip mit Gurke",
+      category: "Snack", time: 5, tags: ["highprotein", "lowcarb", "glutenfrei"], mealPrep: false, img: "thunfisch-quark-dip.webp", photo: "fish",
+      nutrition: { kcal: 218, carbs: 8, protein: 42, fat: 2 },
+      ingredients: [
+        { name: "Thunfisch in Wasser, Dose", grams: 100, kcal: 105, carbs: 0, protein: 24, fat: 1 },
+        { name: "Magerquark", grams: 150, kcal: 67, carbs: 4, protein: 12, fat: 0.3 },
+        { name: "Gurke", grams: 100, kcal: 12, carbs: 1.8, protein: 0.6, fat: 0.1 },
+        "Zitrone, Salz, Pfeffer, Dill"
+      ],
+      steps: "Thunfisch gut abtropfen lassen und mit dem Quark verrühren, mit Zitrone, Salz und Pfeffer abschmecken. Gurke in Stifte schneiden und zum Dippen dazustellen." },
+
+    { id: "schoko-protein-quark", name: "Schoko-Protein-Quark",
+      category: "Dessert", time: 5, tags: ["vegetarisch", "highprotein", "glutenfrei"], mealPrep: false, img: "schoko-protein-quark.webp", photo: "cake",
+      nutrition: { kcal: 282, carbs: 14, protein: 42, fat: 6 },
+      ingredients: [
+        { name: "Magerquark", grams: 250, kcal: 67, carbs: 4, protein: 12, fat: 0.3 },
+        { name: "Proteinpulver, Whey", grams: 15, kcal: 380, carbs: 5, protein: 78, fat: 6 },
+        { name: "Zartbitterschokolade 70 %", grams: 10, kcal: 570, carbs: 33, protein: 8, fat: 42 },
+        "Backkakao, Süße nach Geschmack"
+      ],
+      steps: "Quark mit Proteinpulver, Kakao und einem Schluck Wasser cremig rühren – erst das Wasser, dann das Pulver, sonst klumpt es. Schokolade grob hacken und darüberstreuen." },
+
+    { id: "dattel-nuss-bissen", name: "Dattel-Nuss-Bissen mit Kakao",
+      category: "Dessert", time: 15, tags: ["vegan", "vegetarisch", "glutenfrei", "laktosefrei"], mealPrep: true, img: "dattel-nuss-bissen.webp", photo: "cake",
+      nutrition: { kcal: 300, carbs: 33, protein: 6, fat: 16 },
+      ingredients: [
+        { name: "Datteln, getrocknet", grams: 40, kcal: 280, carbs: 65, protein: 2.5, fat: 0.4 },
+        { name: "Cashewkerne", grams: 25, kcal: 560, carbs: 27, protein: 18, fat: 44 },
+        { name: "Kokosraspeln", grams: 8, kcal: 600, carbs: 6, protein: 6, fat: 57 },
+        "Backkakao, Prise Salz"
+      ],
+      steps: "Datteln und Cashews im Mixer zu einer klebrigen Masse zerkleinern, Kakao und Salz untermischen. Kleine Kugeln formen, in Kokosraspeln wälzen und kalt stellen. Hält im Kühlschrank eine Woche." },
+
+    { id: "ofengemuese-blech", name: "Ofengemüse vom Blech",
+      category: "Beilage", time: 30, tags: ["vegan", "vegetarisch", "glutenfrei", "laktosefrei"], mealPrep: true, img: "ofengemuese-blech.webp",
+      nutrition: { kcal: 224, carbs: 20, protein: 6, fat: 12 },
+      ingredients: [
+        { name: "Zucchini", grams: 200, kcal: 19, carbs: 2, protein: 1.6, fat: 0.4 },
+        { name: "Paprika, rot", grams: 150, kcal: 37, carbs: 6, protein: 1, fat: 0.4 },
+        { name: "Karotten", grams: 100, kcal: 40, carbs: 7, protein: 0.9, fat: 0.2 },
+        { name: "Olivenöl", grams: 10, kcal: 900, carbs: 0, protein: 0, fat: 100 },
+        "Rosmarin, Thymian, Salz, Pfeffer"
+      ],
+      steps: "Gemüse in gleich große Stücke schneiden, mit Öl und Kräutern mischen und auf dem Blech verteilen – nicht stapeln, sonst dämpft es statt zu rösten. Bei 200 °C 25 Min. backen." },
+
+    { id: "quinoa-salat-kichererbsen", name: "Quinoa-Salat mit Kichererbsen",
+      category: "Beilage", time: 20, tags: ["vegan", "vegetarisch", "glutenfrei", "laktosefrei"], mealPrep: true, img: "quinoa-salat-kichererbsen.webp",
+      nutrition: { kcal: 371, carbs: 43, protein: 14, fat: 13 },
+      ingredients: [
+        { name: "Quinoa, roh", grams: 40, kcal: 368, carbs: 58, protein: 14, fat: 6 },
+        { name: "Kichererbsen, Dose", grams: 100, kcal: 120, carbs: 15, protein: 7, fat: 2.6 },
+        { name: "Gurke", grams: 100, kcal: 12, carbs: 1.8, protein: 0.6, fat: 0.1 },
+        { name: "Kirschtomaten", grams: 100, kcal: 20, carbs: 3.4, protein: 0.9, fat: 0.2 },
+        { name: "Olivenöl", grams: 8, kcal: 900, carbs: 0, protein: 0, fat: 100 },
+        "Zitrone, Petersilie, Salz, Pfeffer"
+      ],
+      steps: "Quinoa 15 Min. garen und auskühlen lassen – warm eingerührt wird der Salat matschig. Mit Kichererbsen, gewürfelter Gurke und halbierten Tomaten mischen, mit Öl und Zitrone abschmecken." },
+
+    { id: "beeren-protein-shake-hafer", name: "Beeren-Protein-Shake mit Hafermilch",
+      category: "Getränk", time: 5, tags: ["vegan", "vegetarisch", "highprotein", "laktosefrei"], mealPrep: false, img: "beeren-protein-shake-hafer.webp",
+      nutrition: { kcal: 336, carbs: 26, protein: 30, fat: 11 },
+      ingredients: [
+        { name: "Hafermilch, ungesüßt", grams: 300, unit: "ml", kcal: 45, carbs: 6.5, protein: 0.8, fat: 1.5 },
+        { name: "Erbsenprotein-Pulver", grams: 30, kcal: 380, carbs: 5, protein: 80, fat: 6 },
+        { name: "Himbeeren", grams: 100, kcal: 34, carbs: 5, protein: 1.2, fat: 0.3 },
+        { name: "Leinsamen", grams: 10, kcal: 530, carbs: 3, protein: 24, fat: 42 }
+      ],
+      steps: "Alles zusammen mixen, bis keine Stücke mehr zu sehen sind. Gefrorene Beeren machen den Shake dicker und kalt, ganz ohne Eis." },
+
+    { id: "gruener-smoothie-spinat", name: "Grüner Smoothie mit Spinat und Banane",
+      category: "Getränk", time: 5, tags: ["vegan", "vegetarisch", "glutenfrei", "laktosefrei"], mealPrep: false, img: "gruener-smoothie-spinat.webp", photo: "drink",
+      nutrition: { kcal: 207, carbs: 26, protein: 6, fat: 7 },
+      ingredients: [
+        { name: "Spinat, frisch", grams: 60, kcal: 23, carbs: 0.6, protein: 2.9, fat: 0.4 },
+        { name: "Banane", grams: 120, kcal: 90, carbs: 20, protein: 1.1, fat: 0.3 },
+        { name: "Mandelmilch, ungesüßt", grams: 250, unit: "ml", kcal: 15, carbs: 0.3, protein: 0.5, fat: 1.2 },
+        { name: "Chiasamen", grams: 10, kcal: 480, carbs: 5, protein: 17, fat: 31 },
+        "Zitrone, Ingwer"
+      ],
+      steps: "Spinat zuerst mit der Mandelmilch mixen, dann die Banane zugeben – so bleiben keine Blattstücke zurück. Mit Zitrone und Ingwer abschmecken." },
+
+    // Die vier ehemaligen Beispiel-Meals (SEED). Sie sind am 15.08.2026 in den Katalog
+    // gewandert, statt geloescht zu werden: Ihre Bilder lagen bereits im eingefrorenen Stil
+    // vor, und das Rindersteak ist bis heute das einzige seiner Art im Rezeptbuch.
+    // Die `id` ist bewusst der vorhandene Dateiname - so musste keine Datei umbenannt und
+    // kein Eintrag im Herkunftsnachweis angefasst werden.
+    // Zwei Dinge sind dabei geradegezogen worden: Das Oel stand im FREITEXT und fiel damit
+    // aus jeder Rechnung (TROUBLESHOOTING 85), und die Zutatennamen trafen die FOODS-Tabelle
+    // nicht ("Whey-Protein Vanille", "Beeren, gemischt"). Stueckangaben sind in Gramm
+    // umgerechnet - eine halbe Paprika ist eine Schaetzung, 75 g sind eine Menge.
+    { id: "protein-porridge-mit-beeren", name: "Protein-Porridge mit Beeren",
+      category: "Frühstück", time: 10, tags: ["highprotein", "vegetarisch"], mealPrep: true,
+      img: "protein-porridge-mit-beeren.webp",
+      nutrition: { kcal: 561, carbs: 56, protein: 42, fat: 17 },
+      ingredients: [
+        { name: "Haferflocken", grams: 60, kcal: 372, carbs: 59, protein: 13, fat: 7 },
+        { name: "Milch 1,5 %", grams: 250, unit: "ml", kcal: 64, carbs: 4.8, protein: 3.4, fat: 3.5 },
+        { name: "Proteinpulver, Whey", grams: 30, kcal: 380, carbs: 5, protein: 78, fat: 6 },
+        { name: "Heidelbeeren", grams: 50, kcal: 45, carbs: 9, protein: 0.7, fat: 0.3 },
+        { name: "Himbeeren", grams: 50, kcal: 34, carbs: 5, protein: 1.2, fat: 0.3 },
+        { name: "Chiasamen", grams: 5, kcal: 480, carbs: 5, protein: 17, fat: 31 },
+        "Zimt"
+      ],
+      steps: "Haferflocken mit Milch aufkochen und 3–4 Min. bei milder Hitze quellen lassen. Vom Herd nehmen und erst dann das Proteinpulver unterrühren – in der kochenden Masse würde es flocken. Mit Beeren, Chiasamen und Zimt toppen." },
+
+    { id: "haehnchen-mit-pute-und-reis", name: "Hähnchen mit Pute und Reis",
+      category: "Hauptgericht", time: 30, tags: ["highprotein", "laktosefrei"], mealPrep: true,
+      img: "haehnchen-mit-pute-und-reis.webp",
+      nutrition: { kcal: 600, carbs: 69, protein: 50, fat: 13 },
+      ingredients: [
+        { name: "Hähnchenbrustfilet", grams: 100, kcal: 105, carbs: 0, protein: 23, fat: 1.2 },
+        { name: "Putenbrustfilet", grams: 75, kcal: 105, carbs: 0, protein: 24, fat: 1 },
+        { name: "Basmatireis, roh", grams: 80, kcal: 349, carbs: 78, protein: 8, fat: 0.8 },
+        { name: "Paprika, rot", grams: 75, kcal: 37, carbs: 6, protein: 1, fat: 0.4 },
+        { name: "Zucchini", grams: 100, kcal: 19, carbs: 2, protein: 1.6, fat: 0.4 },
+        { name: "Olivenöl", grams: 10, kcal: 900, carbs: 0, protein: 0, fat: 100 },
+        "Sojasauce, Paprikapulver, Salz, Pfeffer"
+      ],
+      steps: "Reis nach Packungsangabe kochen. Hähnchen- und Putenbrust würfeln, würzen und in Olivenöl scharf anbraten. Paprika und Zucchini kurz mitbraten, mit Sojasauce ablöschen. Alles auf dem Reis anrichten." },
+
+    { id: "rindersteak-mit-ofenkartoffeln", name: "Rindersteak mit Ofenkartoffeln",
+      category: "Hauptgericht", time: 35, tags: ["highprotein", "glutenfrei", "laktosefrei"], mealPrep: false,
+      img: "rindersteak-mit-ofenkartoffeln.webp",
+      nutrition: { kcal: 631, carbs: 50, protein: 56, fat: 22 },
+      ingredients: [
+        { name: "Rumpsteak", grams: 200, kcal: 140, carbs: 0, protein: 22, fat: 5.5 },
+        { name: "Kartoffeln", grams: 300, kcal: 70, carbs: 15, protein: 2, fat: 0.1 },
+        { name: "Brokkoli", grams: 150, kcal: 34, carbs: 3, protein: 3.8, fat: 0.4 },
+        { name: "Olivenöl", grams: 10, kcal: 900, carbs: 0, protein: 0, fat: 100 },
+        "Rosmarin, Salz, Pfeffer"
+      ],
+      steps: "Kartoffeln würfeln, mit Olivenöl und Rosmarin vermengen und im Ofen bei 200 °C ca. 25 Min. rösten. Steak salzen, pfeffern und in einer heißen Pfanne von jeder Seite 2–3 Min. braten, dann kurz ruhen lassen – sonst läuft der Saft aus. Brokkoli dämpfen und alles anrichten." },
+
+    { id: "eiweissshake-mit-whey-und-milch", name: "Eiweißshake mit Whey und Milch",
+      category: "Snack", time: 5, tags: ["highprotein", "vegetarisch", "glutenfrei"], mealPrep: false,
+      img: "eiweissshake-mit-whey-und-milch.webp",
+      nutrition: { kcal: 414, carbs: 40, protein: 35, fat: 13 },
+      ingredients: [
+        { name: "Milch 1,5 %", grams: 300, unit: "ml", kcal: 64, carbs: 4.8, protein: 3.4, fat: 3.5 },
+        { name: "Proteinpulver, Whey", grams: 30, kcal: 380, carbs: 5, protein: 78, fat: 6 },
+        { name: "Banane", grams: 120, kcal: 90, carbs: 20, protein: 1.1, fat: 0.3 },
+        "Eiswürfel"
+      ],
+      steps: "Milch, Proteinpulver, Banane und ein paar Eiswürfel in den Mixer geben und cremig mixen." },
+  ];
 
   // ---------- State ----------
   let state = load();
@@ -4433,7 +4698,10 @@
     try { data = JSON.parse(localStorage.getItem(STORE_KEY)); } catch (e) { data = null; }
     const curKey = weekKeyFor("cur");
     if (!data || !Array.isArray(data.recipes)) {
-      const recipes = SEED.map(r => Object.assign({ id: uid() }, r));
+      // Bewusst LEER: Der erste Bestand entsteht in finishOnboarding() ueber
+      // addStarterMeals(), passend zur dort erst bekannten Ernaehrungsform. Hier feste
+      // Meals einzusetzen hiess, sie ohne jedes Profilwissen zu waehlen.
+      const recipes = [];
       const plans = {}; plans[curKey] = makeEmptyPlan();
       return { recipes, plans, plan: plans[curKey], viewWeek: "cur", viewYear: new Date().getFullYear(), tab: "home", goal: null, shares: [], onboarded: false, weights: [], weightGoals: {}, weekStats: {}, profileImage: null, weightConsent: noConsent(), shopPersons: 1, groupId: "", pendingGroupId: "", pendingInviteUrl: "", inviteCodes: [], favs: [], deleted: {} };
     }
@@ -5418,7 +5686,7 @@
       function mergeRemoteRecipes(list) {
         const map = {};
         sanitizeRecipes(list).forEach(r => { if (r && r.id && !isDeleted(r.id)) map[r.id] = r; });
-        state.recipes.forEach(r => { if (r && r.id && !map[r.id] && !isExample(r) && !isDeleted(r.id)) map[r.id] = r; });
+        state.recipes.forEach(r => { if (r && r.id && !map[r.id] && !isDeleted(r.id)) map[r.id] = r; });
         state.recipes = Object.values(map);
         const rp = pruneWeeks(normalizePlans(plansField(remote), state.recipes));
         Object.keys(state.plans).forEach(k => { if (!rp[k]) rp[k] = state.plans[k]; }); // lokale Wochen behalten, die es remote nicht gibt
@@ -5624,16 +5892,65 @@
   // Schon uebernommen? Ueber `lib` und nicht ueber den Namen: Wer die Kopie umbenennt oder
   // anpasst, soll sie nicht ein zweites Mal angeboten bekommen.
   function isAdopted(id) { return state.recipes.some(r => r && r.lib === id); }
-  // Uebernehmen = KOPIE ins eigene Konto. Das Original bleibt im Katalog stehen; die Kopie
-  // gehoert dem Nutzer und darf frei bearbeitet werden. `lib` bleibt daran haengen, damit
-  // spaeter eine korrigierte Fassung zugeordnet werden kann - und damit die Karte zeigen
-  // kann, woher das Meal stammt.
+  // Der eine Kopierweg vom Katalog in den Bestand - benutzt vom Uebernehmen-Knopf UND von
+  // den Startmeals. Bewusst EINE Funktion: Zwei Kopierwege wuerden irgendwann verschiedene
+  // Felder mitnehmen, und der Unterschied faellt erst beim Sync auf.
+  // Die Katalog-`id` wird NICHT als Rezept-id uebernommen: state.recipes braucht eigene,
+  // eindeutige Schluessel (uid()), sonst kollidieren zwei Konten in derselben Gruppe.
+  // `lib` bleibt daran haengen, damit spaeter eine korrigierte Fassung zugeordnet werden
+  // kann - und damit das Bild aus img/library/ gefunden wird (libPhoto).
+  function copyFromCookbook(vorlage) {
+    return sanitizeRecipe(Object.assign({}, vorlage, { id: uid(), lib: vorlage.id }));
+  }
+
+  // ---------- Startmeals nach dem Onboarding ----------
+  // Bis zum 15.08.2026 setzte load() vier feste Beispiel-Meals (SEED) in den Bestand - und
+  // zwar beim ALLERERSTEN Start, also bevor das Onboarding gelaufen war. Damit stand die
+  // Auswahl fest, bevor jemand wusste, ob der Nutzer vegan isst: Ein Veganer bekam als
+  // Erstes ein Rindersteak und einen Molke-Shake. Deshalb entsteht der erste Bestand jetzt
+  // NACH dem Onboarding und aus dem Katalog.
+  //
+  // Feste Listen statt Zufall: Die Auswahl ist eine Kurationsentscheidung, und bei einer
+  // Rueckfrage weiss man sonst nicht, was der Nutzer ueberhaupt gesehen hat.
+  //
+  // Je Liste 1 Fruehstueck, 3 Hauptgerichte, 1 Snack - so ist jeder Slot-Typ des Wochenplans
+  // (fr, mi/ab, sn) sofort bedienbar, und die Hauptgerichte, die 14 Slots pro Woche fuellen
+  // muessen, haben Auswahl. Wo es geht, mit `mealPrep`.
+  const STARTER_ANZAHL = 5;
+  const STARTER = {
+    alles: ["quark-haferflocken-banane", "haehnchen-bowl-brokkoli", "chili-rinderhack-bohnen",
+            "ofenlachs-suesskartoffel", "skyr-beeren-nuesse"],
+    vegetarisch: ["quark-haferflocken-banane", "ofen-feta-kichererbsen", "tofu-gemuesepfanne",
+                  "linsen-bolognese-vollkorn", "skyr-beeren-nuesse"],
+    vegan: ["overnight-oats-soja-beeren", "rotes-linsen-dal", "tofu-gemuesepfanne",
+            "kichererbsen-curry-spinat", "edamame-sesam-snack"],
+  };
+  function addStarterMeals() {
+    // NUR in einen leeren Bestand. Wer sich auf einem zweiten Geraet anmeldet und dort das
+    // Onboarding durchlaeuft, hat seine Meals schon - fuenf Dubletten waeren die Folge.
+    if (state.recipes.length) return;
+    const wunsch = STARTER[(state.goal && state.goal.diet) || "alles"] || STARTER.alles;
+    const nimm = [];
+    // Durch fitsDiet(), nicht blind: Die Listen sind nach Ernaehrungsform gebaut, `avoid`
+    // (glutenfrei/laktosefrei) liegt quer dazu. Ein glutenfreier Veganer bekaeme sonst die
+    // Bolognese mit Vollkornnudeln.
+    wunsch.forEach(id => {
+      const r = COOKBOOK.find(x => x.id === id);
+      if (r && fitsDiet(r)) nimm.push(r);
+    });
+    // Aufgefuellt wird aus demselben gefilterten Katalog - und dabei gehen Kategorien vor,
+    // die noch fehlen: sonst haette ein glutenfreier Veganer am Ende vier Hauptgerichte.
+    while (nimm.length < STARTER_ANZAHL) {
+      const rest = cookbookVisible().filter(r => !nimm.some(x => x.id === r.id));
+      if (!rest.length) break;
+      nimm.push(rest.find(r => !nimm.some(x => x.category === r.category)) || rest[0]);
+    }
+    nimm.slice(0, STARTER_ANZAHL).forEach(r => state.recipes.push(copyFromCookbook(r)));
+  }
   function adoptFromCookbook(id) {
     const vorlage = COOKBOOK.find(r => r.id === id);
     if (!vorlage || isAdopted(id)) return;
-    // Die Katalog-`id` NICHT als Rezept-id uebernehmen: state.recipes braucht eigene,
-    // eindeutige Schluessel (uid()), sonst kollidieren zwei Konten in derselben Gruppe.
-    const kopie = sanitizeRecipe(Object.assign({}, vorlage, { id: uid(), lib: vorlage.id }));
+    const kopie = copyFromCookbook(vorlage);
     state.recipes.push(kopie);
     save(); render();
     undoToast(`„${vorlage.name}" ist in deinen Meals`, () => {
@@ -5759,6 +6076,27 @@
     // Feld und damit einen ueberfluessigen Cloud-Schreibvorgang.
     const tags = sanitizeTags(r.tags);
     if (tags) out.tags = tags; else delete out.tags;
+    // Bildschluessel aus dem Rezeptbuch (photoFor). Er kommt bei uebernommenen Meals
+    // ueber Object.assign mit und wandert von dort in die Cloud und in geteilte Meals.
+    // Geprueft wird hier nur die FORM, nicht die Gueltigkeit: Ein Abgleich gegen PHOTOS
+    // waere an dieser Stelle ein TDZ-Fehler, denn sanitizeRecipe laeuft schon in
+    // `let state = load()` und PHOTOS ist erst weiter unten als const deklariert.
+    // Das ist keine Luecke - photoFor() schlaegt den Schluessel in der Konstante nach
+    // und faellt bei einem unbekannten Wert auf die Stichwortregeln zurueck.
+    if (typeof r.photo === "string" && /^[a-z]{2,20}$/.test(r.photo)) out.photo = r.photo;
+    else delete out.photo;
+    // `img` dagegen wird AKTIV entfernt - so wie `difficulty` und `portions`. Es ist ein
+    // Feld des mitgelieferten Katalogs (COOKBOOK), nie eines von Nutzerdaten:
+    //
+    //   Ein SCHLUESSEL darf mitwandern (`photo`, `lib`) - er ist stabil und wird zur
+    //   Anzeigezeit aufgeloest. Ein PFAD darf es nicht: Object.assign() wuerde ihn beim
+    //   Uebernehmen und beim Kopieren der Beispiele in den Bestand tragen, von dort in die
+    //   Cloud und in geteilte Meals - und ein spaeter ersetztes oder zurueckgezogenes Bild
+    //   waere dort fuer immer eingefroren, bis es eines Tages ins Leere zeigt.
+    //
+    // Die Kopie verliert dadurch nichts: Sie traegt `lib` und findet ihr Bild darueber
+    // (libPhoto) - auch die fuenf Startmeals aus addStarterMeals().
+    delete out.img;
     if ("mealPrep" in r) out.mealPrep = r.mealPrep === true;
     // Portionen (entfernt am 15.08.2026): Ein Meal IST ab jetzt eine Portion - Naehrwerte
     // und Zutaten beschreiben denselben Gegenstand.
@@ -5978,7 +6316,24 @@
   // Zweite Chance, wenn kein Stichwort greift: passendes Foto je Kategorie.
   // Hauptgericht fehlt bewusst - das kann alles sein, dort passt das neutrale Bild.
   const CAT_PHOTO = { "Frühstück": "porridge", "Snack": "fruit", "Dessert": "cake", "Beilage": "salad", "Getränk": "drink" };
-  // Liefert IMMER ein Foto: eigenes Bild > Stichwort-Treffer > Kategorie > neutrales Bild.
+  // ---------- Bilder der kuratierten Bibliothek (img/library/) ----------
+  // Der Dateiname steht AM KATALOGEINTRAG (`img`) und wird NICHT aus der id abgeleitet:
+  // Eine id darf einen Umlaut tragen ("rührei-avocadobrot"), ein Dateiname sollte keinen.
+  // Die Ableitung muesste in JS dieselbe Slug-Regel nachbauen, die das Werkzeug in Python
+  // anwendet - zwei Fassungen derselben Regel laufen frueher oder spaeter auseinander.
+  //
+  // Ein Eintrag OHNE `img` ist kein Fehler, sondern vorgesehen: Ein Bild, das die
+  // Sichtpruefung nicht besteht, wird ausgemustert, und die Karte faellt sauber auf die
+  // mitgelieferten Fotos zurueck, statt eine 404-Fehlstelle zu zeigen.
+  const LIB_IMG = new Map(COOKBOOK.filter(r => r.img).map(r => [r.id, "img/library/" + r.img]));
+  // Gilt fuer den Katalogeintrag selbst (`id`) UND fuer die uebernommene Kopie (`lib`).
+  // Die Kopie speichert den Dateinamen bewusst nicht mit: Ein spaeter ersetztes oder
+  // zurueckgezogenes Bild wirkt so sofort ueberall, und in den Nutzerdaten (Cloud, geteilte
+  // Meals) liegt kein Pfad, der eines Tages ins Leere zeigt.
+  function libPhoto(r) { return LIB_IMG.get(r.lib) || LIB_IMG.get(r.id) || null; }
+
+  // Liefert IMMER ein Foto: eigenes Bild > Bibliotheksbild > kuratierter Schluessel >
+  // Stichwort-Treffer > Kategorie > neutrales Bild.
   function photoFor(r) {
     // Zweite Verteidigungslinie unmittelbar vor der Ausgabe: der Wert landet gleich
     // ungeschuetzt in einem src="..."-Attribut. Die Eingangspunkte filtern bereits
@@ -5987,6 +6342,21 @@
     // zu oeffnen. Greift nur fuer eigene Fotos; die mitgelieferten PHOTOS sind
     // Konstanten aus dieser Datei und brauchen keine Pruefung.
     if (r.image) { const ok = safeImage(r.image); if (ok) return ok; }
+    // Das eigene Bild des Nutzers gewinnt immer, danach kommt das kuratierte
+    // Bibliotheksbild - es ist fuer genau dieses Rezept erzeugt worden.
+    const lib = libPhoto(r);
+    if (lib) return lib;
+    // Kuratierte Zuordnung vor dem Stichwortraten: Die Regeln unten sind fuer die
+    // SELBST angelegten Meals des Nutzers gebaut und dort auch richtig - im Rezeptbuch
+    // greifen sie aber sichtbar daneben, weil sie auf Zutaten im Namen anspringen.
+    // "Gruener Smoothie mit Spinat" landete auf dem Salatfoto (Regel "spinat"),
+    // "Schoko-Protein-Quark" auf Porridge (Regel "quark"), "Dattel-Nuss-Bissen mit
+    // Kakao" auf einem Getraenk. An den Regeln zu drehen waere der falsche Hebel: Sie
+    // wirken auf jedes Nutzer-Meal, und Teilwort-Kollisionen sind dort die bekannte
+    // Falle (CLAUDE.md §22). Deshalb entscheidet beim Katalog die Kuration - ueber
+    // einen SCHLUESSEL aus PHOTOS, nicht ueber einen Pfad. Ein unbekannter Schluessel
+    // faellt still auf die Regeln zurueck, statt ein leeres Bild zu erzeugen.
+    if (r.photo && PHOTOS[r.photo]) return PHOTOS[r.photo];
     const n = (r.name || "").toLowerCase();
     for (const [keys, key] of PHOTO_RULES) { if (keys.some(k => n.includes(k)) && PHOTOS[key]) return PHOTOS[key]; }
     const byCat = CAT_PHOTO[r.category];
@@ -8514,8 +8884,7 @@
             <button class="ws-btn${imBuch ? " active" : ""}" data-rtab="buch" role="tab" aria-selected="${imBuch ? "true" : "false"}">Rezeptbuch</button>
           </div>
         </div>
-        ${imBuch ? "" : `${canEdit() && state.recipes.some(isExample) ? `<button class="btn ghost sm" data-action="clear-examples">Beispiele entfernen</button>` : ""}
-        ${canEdit() ? `<button class="btn primary" data-action="new-recipe">
+        ${imBuch ? "" : `${canEdit() ? `<button class="btn primary" data-action="new-recipe">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
           Neues Meal
         </button>` : ""}`}
@@ -8709,7 +9078,12 @@
   // UND-Verknuepfung: jeder gesetzte Filter muss zutreffen. Oder-Logik waere bei
   // "Vegan + Meal-Prep" das Gegenteil dessen, was jemand erwartet, der beides antippt.
   function recipeMatchesFilters(r, aktive) {
-    for (const k of (aktive || recipeFilters)) {
+    // Auf `instanceof Set` pruefen, nicht bloss auf truthy: Wird die Funktion versehentlich
+    // direkt als filter-Callback uebergeben, kommt hier der Array-INDEX an. `aktive || …`
+    // fiel darauf herein und lief in einen TypeError - eine Zahl ist nicht iterierbar.
+    // So kann derselbe Fehler nicht ein zweites Mal entstehen.
+    const set = (aktive instanceof Set) ? aktive : recipeFilters;
+    for (const k of set) {
       if (k === "mealPrep") { if (!r.mealPrep) return false; continue; }
       if (k.slice(0, 4) === "tag:" && (r.tags || []).indexOf(k.slice(4)) === -1) return false;
     }
@@ -8740,7 +9114,12 @@
     // spaeter weg - siehe quickAddByBarcode.
     let pool = library;
     if (q) pool = pool.filter(r => r.name.toLowerCase().includes(q) || (r.category || "").toLowerCase().includes(q));
-    if (recipeFilters.size) pool = pool.filter(recipeMatchesFilters);
+    // NICHT `pool.filter(recipeMatchesFilters)`: Array.filter uebergibt als zweites Argument
+    // den INDEX, und der landete im Parameter `aktive`. Bei Index 0 (falsy) griff der
+    // Rueckfall zufaellig noch, ab Index 1 warf `for (const k of 1)` - paintRecipeGroups()
+    // brach mitten drin ab und liess die ungefilterte Liste stehen. Der Filter sah damit aus
+    // wie "zeigt immer alles" (siehe docs/TROUBLESHOOTING.md 92).
+    if (recipeFilters.size) pool = pool.filter(r => recipeMatchesFilters(r, recipeFilters));
 
     // Favoriten stehen oben UND bleiben in ihrer Kategorie: wer ein Meal dort sucht, soll es
     // dort auch finden - sonst werden die Kategorien loechrig, sobald jemand viel favorisiert.
@@ -8829,7 +9208,6 @@
         <div class="rbody">
         <div class="top">
           <h3><button type="button" class="rcard-open" data-action="view" data-id="${r.id}">${esc(r.name)}</button></h3>
-          ${isExample(r) ? `<span class="chip example" title="Mitgeliefertes Beispiel-Meal">Beispiel</span>` : ""}
         </div>
         <div class="rstats">
           ${statsInner || `<p class="ms-empty-ings">Noch keine Nährwerte</p>`}
@@ -10769,23 +11147,6 @@
     });
   }
 
-  function clearExamples() {
-    const exIds = new Set(state.recipes.filter(isExample).map(r => r.id));
-    if (!exIds.size) { toast("Keine Beispiele vorhanden"); return; }
-    const n = exIds.size;
-    confirmModal({
-      title: "Beispiele entfernen?",
-      text: `Die ${n} mitgelieferten Beispiel-Meal${n === 1 ? "" : "s"} werden entfernt und aus dem Wochenplan gelöscht. Deine eigenen Meals bleiben erhalten.`,
-      okLabel: "Entfernen",
-      onConfirm: () => {
-        state.recipes = state.recipes.filter(r => !exIds.has(r.id));
-        dropRecipeIds(exIds);
-        markDeleted(Array.from(exIds));   // sonst kaemen sie beim naechsten Anmelden zurueck
-        render(); toast("Beispiele entfernt");
-      }
-    });
-  }
-
   // ---------- Rechtstexte (Impressum / Datenschutz) ----------
   function legalModal(title, bodyHtml) {
     const node = el(`<div class="modal" role="dialog" aria-modal="true" aria-label="${title}">
@@ -10816,8 +11177,11 @@
          Die Bilder wurden mittig zugeschnitten, sonst nicht verändert. Von Nutzenden selbst hochgeladene Fotos
          sind hier nicht erfasst – dafür ist die jeweilige Person verantwortlich.</p>
       ${creditsHtml()}
+      <p>Die Gerichtsfotos im <strong>Rezeptbuch</strong> sind <strong>KI-generiert</strong> (OpenAI, Modell <code>gpt-image-2</code>).
+         Die kommerzielle Nutzung ist nach den <a href="https://openai.com/policies/terms-of-use" target="_blank" rel="noopener noreferrer">OpenAI-Nutzungsbedingungen</a> erlaubt.
+         Sie zeigen keine realen Personen, Orte oder Ereignisse; zu jedem Bild ist festgehalten, mit welcher Beschreibung und wann es entstanden ist.</p>
       <h4>Nährwertdaten</h4>
-      <p>Die Nährwerte der mitgelieferten Meals und der Rezepte im <strong>Rezeptbuch</strong> sind aus den Zutatenmengen anhand allgemeiner Nährwerttabellen <strong>berechnet</strong>. Es sind <strong>Richtwerte</strong>: Sorte, Reifegrad, Zubereitung und Garverluste verändern die tatsächlichen Werte. Sie sind nicht laborgeprüft und ersetzen keine ernährungsmedizinische Beratung.</p>
+      <p>Die Nährwerte der Rezepte im <strong>Rezeptbuch</strong> – und damit auch der Meals, die zu Beginn passend zu deiner Auswahl in deine Sammlung gelegt werden – sind aus den Zutatenmengen anhand allgemeiner Nährwerttabellen <strong>berechnet</strong>. Es sind <strong>Richtwerte</strong>: Sorte, Reifegrad, Zubereitung und Garverluste verändern die tatsächlichen Werte. Sie sind nicht laborgeprüft und ersetzen keine ernährungsmedizinische Beratung.</p>
       <p>Die Produktdaten beim Barcode-Scan stammen von <strong>Open Food Facts</strong>
          (<a href="https://world.openfoodfacts.org" target="_blank" rel="noopener noreferrer">world.openfoodfacts.org</a>),
          einer offenen, gemeinschaftlich gepflegten Datenbank. Die Datenbank als Ganzes steht unter
@@ -10850,7 +11214,7 @@
       <p>Diese Website wird bei GitHub Pages gehostet, einem Dienst der GitHub, Inc., 88 Colin P. Kelly Jr. Street, San Francisco, CA 94107, USA. Beim Aufruf der Seite verarbeitet GitHub technisch notwendige Zugriffsdaten (z. B. deine IP-Adresse), um die Seite auszuliefern und deren Sicherheit zu gewährleisten. Rechtsgrundlage ist unser berechtigtes Interesse an einer sicheren und effizienten Bereitstellung (Art. 6 Abs. 1 lit. f DSGVO). Dabei kann eine Übermittlung in die USA erfolgen. Weitere Infos: <a href="https://docs.github.com/de/site-policy/privacy-policies/github-general-privacy-statement" target="_blank" rel="noopener">GitHub Privacy Statement</a>.</p>
       <h4>3. Welche Daten wir verarbeiten</h4>
       <p><strong>Zwei Betriebsarten – und nur eine davon verarbeitet Daten bei uns.</strong> Du kannst die App <strong>ohne Konto</strong> nutzen: Dann bleiben deine Plan- und Profildaten ausschließlich auf deinem Gerät (Browser-Speicher), sie werden <strong>weder an uns noch an Firebase übertragen</strong>, und wir haben keinen Zugriff darauf. Unabhängig davon lädt dein Browser beim Aufruf der Seite die Software für die Cloud-Funktionen von Google-Servern nach und übermittelt dabei deine <strong>IP-Adresse</strong> – das passiert auch ohne Konto und ist in Ziffer 5 beschrieben. Wir fragen dabei nur einen frei wählbaren <strong>Namen</strong> ab; eine E-Mail-Adresse ist optional und verlässt das Gerät ebenfalls nicht. Der folgende Abschnitt beschreibt die zweite Betriebsart: die Nutzung <strong>mit Konto</strong> (Cloud-Synchronisierung), für die du dich aktiv entscheidest. Löschst du die Websitedaten deines Browsers, sind lokal gespeicherte Angaben unwiederbringlich weg – im Betrieb ohne Konto haben wir keine Kopie davon.</p>
-      <p>Bei der Registrierung: <strong>Name und E-Mail-Adresse</strong>. Bei Nutzung der App: die von dir angelegten <strong>Wochenpläne, Meals/Rezepte und ggf. Fotos</strong> sowie ein optionales <strong>Profilbild</strong> (als Kreis-Avatar zugeschnitten, in deinem Nutzerkonto gespeichert, nicht Teil von Teilen-Links) sowie – im Rahmen der Einführungsfragen zu Beginn, die zur Nutzung der App erforderlich sind – <strong>Geschlecht, Alter, Größe, Gewicht, Alltagsbewegung und Ziel</strong> sowie optional deine <strong>Trainingstage</strong> (Wochentag, Intensität und Dauer) und deinen <strong>Körperfettanteil</strong> (als grobe Stufe; Details zu beidem siehe Ziffer 3a) sowie – ebenfalls optional – deine <strong>Auswahl, welche Meals dir vorgeschlagen werden sollen</strong> (vegetarisch, vegan oder ohne Einschränkung; dazu wahlweise glutenfrei und/oder laktosefrei). Erstellst du Teilen-Links, merkt sich dein Konto zusätzlich deren <strong>Kennungen</strong> (keine Klardaten, siehe Ziffer 8), damit sie beim Löschen deines Kontos zugeordnet und mitentfernt werden können. Nutzt du „Gemeinsam planen", speichert dein Konto außerdem die <strong>Kennung deiner Gruppe</strong> sowie die Kennungen der von dir erstellten <strong>Einladungslinks</strong> – aus demselben Grund (siehe Ziffer 8a); an einem in einer Gruppe angelegten Meal wird zusätzlich deine <strong>Nutzerkennung</strong> vermerkt, damit sichtbar ist, wer es angelegt hat. Weist du ein geplantes Gericht nur einem Teil der Gruppe zu (statt „für alle"), wird für dieses Gericht zusätzlich vermerkt, welche Mitglieder es per <strong>Nutzerkennung</strong> essen – sichtbar für die ganze Gruppe als kleines Farb-Badge auf der Meal-Karte. Stellst du in der Einkaufsliste eine <strong>Personenanzahl</strong> ein, wird auch diese gespeichert. Markierst du Meals als <strong>Favorit</strong>, wird diese Auswahl ebenfalls in deinem Konto gespeichert – nur für dich, auch in einer Gruppe. Übernimmst du ein Rezept aus dem mitgelieferten <strong>Rezeptbuch</strong>, entsteht eine Kopie in deiner Sammlung; an ihr wird zusätzlich die <strong>Kennung des Ursprungsrezepts</strong> vermerkt, damit sich eine später korrigierte Fassung zuordnen lässt. Stimmst du der Speicherung deines <strong>Gewichtsverlaufs</strong> ausdrücklich zu, speichern wir je Eintrag Kalenderwoche und Gewicht sowie ein optionales <strong>Jahres-Zielgewicht</strong> (Details und Widerruf siehe Ziffer 3b). Ist für dein Konto die kostenpflichtige <strong>Pro-Stufe</strong> freigeschaltet, speichern wir dazu ein eigenes Dokument mit dem <strong>Pro-Status</strong>, der <strong>Herkunft der Freischaltung</strong> (manuell, Apple oder Google) und gegebenenfalls einem <strong>Ablaufdatum</strong>. Dieses Dokument kann die App nur lesen, nicht ändern – gesetzt wird es ausschließlich von uns bzw. künftig vom Bezahlvorgang des jeweiligen App-Stores. Es wird mit deinem Konto gelöscht (Ziffer 10). Eine Bezahlfunktion gibt es derzeit nicht. Diese Daten speichern wir, damit du dich anmelden und deine Planung geräteübergreifend nutzen kannst.</p>
+      <p>Bei der Registrierung: <strong>Name und E-Mail-Adresse</strong>. Bei Nutzung der App: die von dir angelegten <strong>Wochenpläne, Meals/Rezepte und ggf. Fotos</strong> sowie ein optionales <strong>Profilbild</strong> (als Kreis-Avatar zugeschnitten, in deinem Nutzerkonto gespeichert, nicht Teil von Teilen-Links) sowie – im Rahmen der Einführungsfragen zu Beginn, die zur Nutzung der App erforderlich sind – <strong>Geschlecht, Alter, Größe, Gewicht, Alltagsbewegung und Ziel</strong> sowie optional deine <strong>Trainingstage</strong> (Wochentag, Intensität und Dauer) und deinen <strong>Körperfettanteil</strong> (als grobe Stufe; Details zu beidem siehe Ziffer 3a) sowie – ebenfalls optional – deine <strong>Auswahl, welche Meals dir vorgeschlagen werden sollen</strong> (vegetarisch, vegan oder ohne Einschränkung; dazu wahlweise glutenfrei und/oder laktosefrei). Erstellst du Teilen-Links, merkt sich dein Konto zusätzlich deren <strong>Kennungen</strong> (keine Klardaten, siehe Ziffer 8), damit sie beim Löschen deines Kontos zugeordnet und mitentfernt werden können. Nutzt du „Gemeinsam planen", speichert dein Konto außerdem die <strong>Kennung deiner Gruppe</strong> sowie die Kennungen der von dir erstellten <strong>Einladungslinks</strong> – aus demselben Grund (siehe Ziffer 8a); an einem in einer Gruppe angelegten Meal wird zusätzlich deine <strong>Nutzerkennung</strong> vermerkt, damit sichtbar ist, wer es angelegt hat. Weist du ein geplantes Gericht nur einem Teil der Gruppe zu (statt „für alle"), wird für dieses Gericht zusätzlich vermerkt, welche Mitglieder es per <strong>Nutzerkennung</strong> essen – sichtbar für die ganze Gruppe als kleines Farb-Badge auf der Meal-Karte. Stellst du in der Einkaufsliste eine <strong>Personenanzahl</strong> ein, wird auch diese gespeichert. Markierst du Meals als <strong>Favorit</strong>, wird diese Auswahl ebenfalls in deinem Konto gespeichert – nur für dich, auch in einer Gruppe. Übernimmst du ein Rezept aus dem mitgelieferten <strong>Rezeptbuch</strong>, entsteht eine Kopie in deiner Sammlung; an ihr wird zusätzlich die <strong>Kennung des Ursprungsrezepts</strong> vermerkt, damit sich eine später korrigierte Fassung zuordnen lässt. Damit du nicht mit einer leeren Sammlung beginnst, legen wir am Ende der Einführungsfragen <strong>fünf solcher Kopien</strong> für dich an – ausgewählt passend zu deiner Angabe, welche Meals dir vorgeschlagen werden sollen. Sie gehören dann dir und lassen sich wie jedes andere Meal bearbeiten oder löschen. Stimmst du der Speicherung deines <strong>Gewichtsverlaufs</strong> ausdrücklich zu, speichern wir je Eintrag Kalenderwoche und Gewicht sowie ein optionales <strong>Jahres-Zielgewicht</strong> (Details und Widerruf siehe Ziffer 3b). Ist für dein Konto die kostenpflichtige <strong>Pro-Stufe</strong> freigeschaltet, speichern wir dazu ein eigenes Dokument mit dem <strong>Pro-Status</strong>, der <strong>Herkunft der Freischaltung</strong> (manuell, Apple oder Google) und gegebenenfalls einem <strong>Ablaufdatum</strong>. Dieses Dokument kann die App nur lesen, nicht ändern – gesetzt wird es ausschließlich von uns bzw. künftig vom Bezahlvorgang des jeweiligen App-Stores. Es wird mit deinem Konto gelöscht (Ziffer 10). Eine Bezahlfunktion gibt es derzeit nicht. Diese Daten speichern wir, damit du dich anmelden und deine Planung geräteübergreifend nutzen kannst.</p>
       <h4>3a. Ziel-Berechnung (Einführungsfragen)</h4>
       <p>Zur Nutzung der App gibst du bei den Einführungsfragen zu Beginn <strong>Geschlecht, Alter, Größe und Gewicht</strong> sowie deine Alltagsbewegung und dein Ziel an – ohne diese Angaben lässt sich kein Kalorien- und Makroziel berechnen und die App steht dir nicht zur Verfügung. Optional legst du zusätzlich deine <strong>Trainingstage</strong> fest – also an welchen Wochentagen du trainierst, mit welcher Intensität und wie lange; diese Angabe kannst du auch weglassen. Ebenfalls optional wählst du eine grobe Stufe für deinen <strong>Körperfettanteil</strong> – gibst du sie an, berechnet die App deinen Grundumsatz nach der Katch-McArdle-Formel über die fettfreie Masse statt nach Mifflin-St-Jeor; wählst du „Weiß ich nicht", bleibt es bei Mifflin-St-Jeor. Daraus berechnet die App direkt in deinem Browser deinen Tagesbedarf, deine Makronährstoffe und deinen BMI; an Trainingstagen zusätzlich den geschätzten Mehrbedarf durch die jeweilige Einheit. Übernimmst du das Ergebnis als dein Ziel, werden diese Angaben wie deine übrigen Plandaten lokal und – bei Cloud-Nutzung – in deinem Nutzerkonto (Cloud Firestore, siehe Ziffer 5) gespeichert, um sie geräteübergreifend verfügbar zu halten. Du kannst dein Ziel jederzeit über den Knopf „Ziel neu berechnen" im Wochenplan neu berechnen; die vorherigen Werte sind dann durch die neuen ersetzt. Rechtsgrundlage ist wie unter Ziffer 4 die Erfüllung des Nutzungsvertrags (Art. 6 Abs. 1 lit. b DSGVO). Diese Angaben werden <strong>nicht</strong> in Teilen-Links aufgenommen (siehe Ziffer 8).</p>
       <h4>3b. Gewichtsverlauf („Ziele &lt;Jahr&gt;")</h4>
@@ -11052,7 +11416,7 @@
   // (togglePlanMenu) und ruft clearWeek() direkt auf. Das Menue selbst wird nur bei
   // canEdit() gerendert - dieselbe Lage wie bei den data-del-/data-share-Knoepfen im
   // Meal-Sheet.
-  const WRITE_ACTIONS = ["new-recipe", "pick", "unassign", "assign", "clear-examples"];
+  const WRITE_ACTIONS = ["new-recipe", "pick", "unassign", "assign"];
   function blockedByRole() {
     if (canEdit()) return false;
     toast("Du kannst diesen Plan ansehen – zum Mitplanen bitten die Inhaberin oder den Inhaber um Rechte.");
@@ -11080,7 +11444,6 @@
       const origin = e.target.closest(".rcard, .filled");
       openMealSheet(t.dataset.id, null, origin);
     }
-    else if (a === "clear-examples") clearExamples();
     else if (a === "toggle-cat") {
       const c = t.dataset.cat;
       if (collapsedCats.has(c)) collapsedCats.delete(c); else collapsedCats.add(c);
@@ -12250,6 +12613,9 @@
     onb = null;
     state.onboarded = true;
     appEl.classList.remove("onboarding");
+    // Erst HIER, nicht in load(): Vorher ist die Ernaehrungsform nicht bekannt. Gilt auch
+    // fuer den uebersprungenen Weg - dann greift STARTER.alles.
+    addStarterMeals();
     if (toPlan) { setViewWeek("cur"); pendingDayTarget = "today"; state.tab = "plan"; }
     else state.tab = "home";
     save();
@@ -12771,7 +13137,6 @@
 
   // ---------- Einstellungen ----------
   function openSettings() {
-    const hasEx = state.recipes.some(isExample);
     const th = getTheme();
     const thBtn = (v, label) => `<button type="button" role="radio" data-th="${v}" aria-checked="${th === v}" tabindex="${th === v ? 0 : -1}"${th === v ? ' class="on"' : ""}>${label}</button>`;
     const node = el(`<div class="modal" role="dialog" aria-modal="true" aria-label="Einstellungen">
@@ -12783,7 +13148,6 @@
             <b id="setth-l">Erscheinungsbild</b>
             <div class="seg" data-thgrp role="radiogroup" aria-labelledby="setth-l">${thBtn("light", "Hell")}${thBtn("dark", "Dunkel")}${thBtn("system", "System")}</div>
           </div>
-          ${hasEx ? `<button type="button" class="setrow" data-si="examples"><span><b>Beispiel-Meals entfernen</b><small>Die mitgelieferten Meals löschen</small></span></button>` : ""}
         </div>
       </div>
       <div class="modal-foot"><button class="btn primary" data-close>Schließen</button></div>
@@ -12817,7 +13181,6 @@
       const k = b.dataset.si;
       closeModal();
       if (k === "profile") openProfileForm();
-      else if (k === "examples") clearExamples();
     }));
     openModal(node);
   }
@@ -13493,11 +13856,11 @@
   // ================= Gemeinsam planen (Gruppe) =================
   const ROLE_LABEL = { owner: "Inhaber", edit: "Mitplanen", view: "Nur ansehen" };
 
-  // Eigene Meals in die Gruppe kopieren. Beispiel-Meals bleiben aussen vor - sie sind ein
-  // einmaliges Willkommens-Angebot und haetten in einer fremden Sammlung nichts verloren
-  // (gleicher Filter wie beim Konto-Merge in startCloudSync).
+  // Eigene Meals in die Gruppe kopieren. Seit dem 15.08.2026 ohne Ausnahme: Es gibt keine
+  // mitgelieferten Attrappen mehr, die man aussen vor lassen muesste - die Startmeals aus dem
+  // Rezeptbuch sind echte Meals des Nutzers (siehe addStarterMeals).
   async function copyOwnRecipesToGroup(gid) {
-    const mine = state.recipes.filter(r => r && r.id && !isExample(r));
+    const mine = state.recipes.filter(r => r && r.id);
     if (!mine.length) return;
     // In Haeppchen: writeBatch vertraegt hoechstens 500 Vorgaenge, und Meals mit Fotos
     // sind gross - lieber mehrere kleine Batches als einer, der ganz scheitert.

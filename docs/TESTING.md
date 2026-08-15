@@ -308,7 +308,9 @@ Beispiele:
   ob sie aus den richtigen Lebensmitteln entstanden ist.
   Toleranz 12 % — enger prüfen meldet vor allem Garverluste und Rundungen.
 * **Rezeptbuch (15.08.2026)**: `COOKBOOK`, `cookbookVisible()`, `isAdopted()`,
-  `adoptFromCookbook()` samt `sanitizeRecipe()` geschnitten. 28 Prüfungen, alle grün.
+  `adoptFromCookbook()` samt `sanitizeRecipe()` geschnitten — beim Ausbau auf 30 Rezepte
+  zusätzlich `PHOTOS`, `PHOTO_RULES`, `LIB_IMG`/`libPhoto()`, `photoFor()`, `safeImage()`,
+  `macroBadges()`, `recipeNut()`, `copyFromCookbook()`, `STARTER` und `addStarterMeals()`. **100 Prüfungen, alle grün.**
   Drei Gruppen, und die erste ist die, die bei wachsendem Katalog Bestand haben muss:
   **Struktur des Katalogs** — alle IDs eindeutig, alle mit Nährwerten, Kategorie und Zutaten,
   und **jedes vegane Meal trägt auch `vegetarisch`** (sonst findet es der Filter im
@@ -319,9 +321,53 @@ Beispiele:
   **Übernahme** — eigene `id` statt der Katalog-`id` (sonst kollidieren zwei Konten in einer
   Gruppe), `lib` als Herkunft, Rückgängig, und die Gegenprobe, dass **Umbenennen der Kopie
   nicht auf den Katalog abfärbt** (Kopie, keine Referenz).
+  **Zusagen des Katalogs (ergänzt beim Ausbau auf 30)** — alle **sechs** Kategorien besetzt
+  (vorher nur die drei häufigen geprüft, Dessert/Beilage/Getränk waren leer und niemand hätte
+  es gemerkt), mindestens 30 Rezepte, weil die Zahl in `PRODUCT.md` und im Pro-Versprechen
+  steht.
+  **Eigene Bilder (`img`/`libPhoto`)** — sechs Prüfungen: jedes Rezept hat ein Bild, jeder
+  Dateiname **existiert wirklich**, kein Dateiname trägt einen Umlaut, `photoFor()` nimmt das
+  Bibliotheksbild, die übernommene **Kopie zeigt dasselbe Bild** (Auflösung über `lib`, sie
+  hat eine eigene `id`), das eigene Foto des Nutzers schlägt es, und ein ausgemustertes Bild
+  fällt auf den kuratierten Schlüssel zurück.
+  **Der Dateisystem-Abgleich ist der Kern davon.** Unter `file://` kann der Browser den Ordner
+  nicht lesen, deshalb legt der Generator die Liste der vorhandenen `.webp`-Dateien als
+  Konstante `DATEIEN` in die Seite. Ohne ihn prüft die Seite nur, dass *irgendein* Name
+  dasteht — ein Tippfehler ergibt in der App eine leere Bildfläche und fällt beim Lesen des
+  Codes nicht auf. **Gegenprobe gefahren**: `rotes-linsen-dal.webp` → `rotes-linsen-dahl.webp`
+  im Prüfstand, und die Prüfung wird rot.
+  **Eine Fehlprüfung war zuerst falsch gedacht:** „ohne Bild kein Pfad nach img/library" löschte
+  `img` am übergebenen Objekt — `LIB_IMG` ist aber aus dem Katalog gebaut, die Map kennt die
+  `id` weiter. Der Rückfall entsteht dadurch, dass `img` am **Katalogeintrag** fehlt.
+  **Der Aufrufweg des Filters** — drei Prüfungen, entstanden aus einem Fund des Nutzers:
+  `recipeMatchesFilters()` direkt als `filter`-Callback (dort kommt der **Index** als zweites
+  Argument an), mit ausdrücklich übergebenem Set, und ohne zweites Argument. Die erste war vor
+  der Härtung ein `TypeError` — gegengeprüft, indem `instanceof Set` im Prüfstand auf `||`
+  zurückgedreht wird. Getestet wird hier bewusst nicht die Filterlogik, sondern die **Signatur**:
+  Die Logik war korrekt, der Aufruf nicht.
+  **Startmeals** — je Ernährungsform (`alles`, `vegetarisch`, `vegan`) durchgespielt: genau fünf
+  Meals, jedes trägt `lib`, jedes besteht `fitsDiet()`, Frühstück/Hauptgericht/Snack sind
+  vertreten, keines trägt einen Pfad in den Nutzerdaten, und jedes findet sein Bild trotzdem
+  (über `lib`). Dazu der Fall `vegan` + `glutenfrei`: trotzdem fünf, alle glutenfrei, und
+  mindestens drei Kategorien — sonst hätte das Auffüllen vier Hauptgerichte ergeben. Und die
+  Bedingung, die Dubletten verhindert: bei **nicht** leerem Bestand kommt nichts dazu.
+  **Eine Prüfung ist erst durch die Gegenprobe entstanden:** Ein Fleischgericht in der veganen
+  Liste ließ alles grün, weil `fitsDiet()` es herausfilterte und `addStarterMeals()` still
+  auffüllte. Das Ergebnis prüft also nur den Filter, nie die Kuration — seither prüft
+  `dietOk()` jede Liste einzeln.
+  **Bildschlüssel** — jeder gesetzte `photo` steckt in `PHOTOS`; ein Tippfehler wäre sonst
+  unsichtbar **und wirksam**, weil `photoFor()` still auf die Stichwortregeln zurückfällt,
+  also genau auf die Zuordnung, die im Katalog danebengreift. Dazu drei Prüfungen am neuen
+  Feld: dass es die Übernahme überlebt, und dass Freitext (`"../../etc/passwd"`) und
+  Nicht-Strings verworfen werden — es kommt bei geteilten Meals von außen herein.
+  **Merkmal gegen Badge** — kein Katalog-Meal darf `highprotein`/`lowcarb` tragen, ohne die
+  Schwelle aus `macroBadges()` zu erreichen. Sonst widerspricht die Karte ihrem eigenen Filter.
+  **Gegenprobe gefahren** (Prüfstand-HTML verfälscht, nicht `index.html`): ein Bildschlüssel auf
+  `"gibtsnicht"` und ein entfernter Tag lassen genau die beiden neuen Prüfungen rot werden.
+  Ohne diesen Schritt wüsste niemand, ob sie überhaupt etwas messen.
 * **Bild-Werkzeug (`tools/test-meal-bilder.py`, 15.08.2026)**: Kein Ausschneide-Prüfstand,
   sondern ein eigener Test für `tools/meal-bilder.py` — er lädt das Skript als Modul und
-  kommt **ohne einen einzigen API-Aufruf** aus. 33 Prüfungen, alle grün.
+  kommt **ohne einen einzigen API-Aufruf** aus. **41 Prüfungen, alle grün** — dazugekommen sind `dateiname()` (die `id` schlägt den Namen, Umlaute werden umgeschrieben) und die Geschirrwahl (`NAME_GESCHIRR` überstimmt die Kategorie, ohne Getränke und normale Frühstücke zu verändern).
   Das ist hier keine Sparsamkeit: Jeder Fehlversuch am scharfen Werkzeug kostet Geld, und ein
   Fehler in der Bildverarbeitung fiele sonst erst beim hundertsten bezahlten Bild auf. Genau
   so wurde `slug("Bowl (vegan), scharf")` → `bowl-vegan--scharf` gefunden.
@@ -1204,3 +1250,60 @@ sauber" — genau so ist ein Fix zweimal ungeprüft ans Gerät gegangen.
 `getComputedStyle(el).overflowX/overflowY`, `touchAction` und `scrollWidth === clientWidth` auf
 der Achse, die nicht scrollen soll. Nur `auto`/`scroll` fangen Gesten ab — `hidden` nicht.
 Das ist ein Indiz, kein Beweis; die Abnahme am Gerät bleibt Pflicht.
+
+## Sichtprüfung generierter Bilder: Kontaktabzug statt Einzelaufrufe (15.08.2026)
+
+30 Bilder einzeln zu öffnen ist der sichere Weg, den Vergleich zu verlieren — Stilbrüche sieht
+man nur **nebeneinander**. Bewährt hat sich ein Kontaktabzug aus dem Skript: alle Bilder auf
+eine Kachelbreite skaliert, zwei Spalten, Nummer und Gerichtname eingezeichnet, als PNG in den
+Scratchpad. Zwei Blätter für 30 Bilder sind noch lesbar genug, um Text im Bild zu erkennen.
+
+Geprüft wird in dieser Reihenfolge, und die erste Frage ist die rechtlich wichtige:
+
+1. **Text, Logos, Marken** im Bild — der realistische Fallstrick, nicht das Motiv selbst.
+2. **Diät-Treue**: Zeigt ein veganes Gericht Fleisch, Ei oder Käse? Das ist bei einer App, die
+   Veganer gezielt anspricht, kein Schönheitsfehler.
+3. **Geschirr**: Liegt Brot auf einem Teller und nicht in einer Schüssel?
+4. **Appetitlichkeit** — die weichste, aber nicht die unwichtigste Frage. Aus 30 Bildern fiel
+   genau eines durch (Chia-Pudding: sachlich richtig grau, im Schaufenster unbrauchbar).
+
+**Ausschuss wird nicht repariert, sondern neu gezogen** — zwei Varianten desselben,
+unveränderten Prompts, dann die bessere behalten. Den Prompt für ein einzelnes Bild
+nachzuschärfen wäre eine Sonderbehandlung, und der Stil ist ausdrücklich eingefroren.
+
+**Danach muss das Protokoll stimmen.** Wird `…-1.webp` zur finalen Datei umbenannt, muss der
+Eintrag in `bilder-protokoll.json` mitwandern und der Eintrag der verworfenen Variante
+verschwinden — sonst belegt der Herkunftsnachweis eine Datei, die es nicht gibt. Der Abgleich
+gehört ins Skript: **Datei ohne Protokolleintrag** und **Protokolleintrag ohne Datei** müssen
+beide leer sein.
+
+## Stapelkontext und Trefferflächen: `elementFromPoint()` im echten Browser (15.08.2026)
+
+**Headless nicht messbar.** Ob ein Knopf einen Klick tatsächlich bekommt, entscheidet der
+Stapelkontext — und der entsteht erst im Layout. Der Prüfstand kann es nicht sehen, ein
+Screenshot zeigt es nicht (das Element ist ja sichtbar, nur überdeckt).
+
+Der Nachweis läuft über `document.elementFromPoint()` auf die **Mitte** des Elements, im
+laufenden Browser über den lokalen Server:
+
+```js
+const r = knopf.getBoundingClientRect();
+document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+```
+
+Beim Übernehmen-Knopf der Rezeptbuch-Karte lieferte das `button.rcard-open` — den Stretched Link,
+nicht den Knopf (siehe `TROUBLESHOOTING.md` 90). Nach dem Fix `button.btn primary sm`, und ein
+Punkt auf dem Bild weiterhin `button.rcard-open`.
+
+**Die Gegenprobe gehört in denselben Aufruf:** den Stil per `el.style.position = "static"`
+zurücksetzen, erneut messen, danach zurücksetzen. Fällt der Treffer dabei wieder auf das
+überdeckende Element, ist die Ursache bewiesen und nicht nur das Symptom verschwunden.
+
+**Kein Schreibvorgang nötig.** Genau das ist der Vorteil: Ein echter Klick auf „Übernehmen" hätte
+ein Meal in das Cloud-Konto geschrieben. Gemessen wird die Trefferfläche, nicht die Wirkung.
+
+**Und: lokale Testdaten vorher sichern.** Für einen frischen Zustand müssen die
+`wochenkueche_*`-Schlüssel aus `localStorage` weichen. Sie gehören dem Nutzer — vorher nach
+`sessionStorage` sichern (überlebt den Reload), danach zurückschreiben. Der `__test`-Suffix
+trennt nur localStorage, **nicht** die Cloud: Ein angemeldetes Konto schreibt von localhost in
+dieselbe Firestore-Datenbank.

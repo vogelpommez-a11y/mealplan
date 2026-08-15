@@ -138,6 +138,20 @@ KAT_GESCHIRR = {
     "Getränk": "in a glass"
 }
 
+# Ausnahmen, die VOR der Kategorie greifen. Die Kategorie allein reicht nicht: "Rührei mit
+# Avocado auf Vollkornbrot" ist Fruehstueck und bekaeme damit eine Schuessel - eine Scheibe
+# Brot in einer Schuessel sieht falsch aus, und zwar sofort. Dasselbe bei Pancakes und
+# Ofengemuese vom Blech. Bewusst nur wenige, sehr eindeutige Stichwoerter: Jede weitere
+# Regel ist eine neue Gelegenheit fuer eine Teilwort-Kollision (CLAUDE.md §22).
+NAME_GESCHIRR = [
+    (("brot", "toast", "sandwich", "pancake", "pfannkuchen", "waffel", "steak", "blech"), "on a plate"),
+    # Getrunken wird aus einem Glas, egal welche Kategorie das Rezept traegt. Aufgefallen am
+    # Beispiel-Meal "Eiweissshake mit Whey und Milch": Es steht in der Kategorie SNACK und
+    # bekam damit eine Schuessel - im Bild eine cremige Masse mit einem Haufen Pulver darauf.
+    # Ein Shake, den man nicht trinken kann.
+    (("shake", "smoothie", "saft", "limonade", "kaffee", "tee"), "in a glass"),
+]
+
 # Diaet-Hinweise. OHNE diese Zeilen legt das Modell aus Gewohnheit Fleisch in ein Curry,
 # weil Currys meistens so aussehen - ein veganes Rezept mit Haehnchen im Bild ist bei einer
 # App, die Veganer gezielt anspricht, kein Schoenheitsfehler, sondern ein Vertrauensbruch.
@@ -190,8 +204,16 @@ def prompt_fuer(name, zutaten=None, stil=None, kategorie=None, tags=None):
     for t in (tags or []):
         if t in TAG_HINWEIS:
             teile.append(TAG_HINWEIS[t])
-    if kategorie and kategorie in KAT_GESCHIRR:
-        teile.append(KAT_GESCHIRR[kategorie])
+    geschirr = None
+    n = name.lower()
+    for woerter, wahl in NAME_GESCHIRR:
+        if any(w in n for w in woerter):
+            geschirr = wahl
+            break
+    if not geschirr and kategorie:
+        geschirr = KAT_GESCHIRR.get(kategorie)
+    if geschirr:
+        teile.append(geschirr)
     teile.append(stil or STIL)
     return ", ".join(teile)
 
@@ -256,6 +278,18 @@ def slug(name):
     return re.sub(r"[^a-z0-9]+", "-", s).strip("-")
 
 
+def dateiname(auftrag):
+    """Der Dateiname ohne Endung.
+
+    Wenn das Rezept eine `id` mitbringt (COOKBOOK), gewinnt SIE - nicht der Gerichtname.
+    Die id ist der dauerhafte Schluessel und aendert sich nie; ein Name darf sich aendern,
+    und dann zeigte die App auf eine Datei, die es nicht mehr gibt. Durch slug() laeuft sie
+    trotzdem, weil eine id einen Umlaut enthalten kann ("rührei-avocadobrot") und Umlaute
+    in Dateinamen und URLs nur Aerger machen.
+    """
+    return slug(auftrag.get("id") or auftrag["name"])
+
+
 def main():
     p = argparse.ArgumentParser(description="Meal-Bilder ueber die OpenAI Images API erzeugen")
     p.add_argument("--meals", nargs="+", help="Gerichtnamen")
@@ -288,6 +322,7 @@ def main():
                 continue
             auftraege.append({
                 "name": r["name"],
+                "id": r.get("id"),
                 "zutaten": haupt_zutaten(r),
                 "kategorie": r.get("category"),
                 "tags": r.get("tags") or []
@@ -301,7 +336,7 @@ def main():
     if args.nur_ohne_bild:
         vorher = len(auftraege)
         auftraege = [a for a in auftraege
-                     if not (WURZEL / args.out / (slug(a["name"]) + ".webp")).exists()]
+                     if not (WURZEL / args.out / (dateiname(a) + ".webp")).exists()]
         if vorher != len(auftraege):
             print("%d von %d haben schon ein Bild und werden uebersprungen.\n"
                   % (vorher - len(auftraege), vorher))
@@ -340,7 +375,7 @@ def main():
     credits = {}
     for a in auftraege:
         name = a["name"]
-        key = slug(name)
+        key = dateiname(a)
         prompt = prompt_von(a)
         print("\n%s" % name)
         try:

@@ -2138,3 +2138,203 @@ Gewürze dürfen Freitext bleiben — sie tragen nichts bei. **Fett nie:** 10 g 
 das ist bei einem 500-kcal-Gericht ein Fünftel.
 
 **Prüffrage bei jedem neuen Rezept:** Steht etwas im Freitext, das Kalorien hat?
+
+---
+
+## 86. Stichwort-Fotos greifen im Rezeptbuch daneben — an den Regeln zu drehen ist der falsche Hebel
+
+Beim Ausbau des Katalogs auf 30 Rezepte (15.08.2026) bekam **„Grüner Smoothie mit Spinat und
+Banane" das Salatfoto**, „Schoko-Protein-Quark" ein Porridge und „Dattel-Nuss-Bissen mit Kakao"
+ein Getränk. Ursache ist keine Panne, sondern die Bauart von `PHOTO_RULES`: Die Regeln suchen
+Stichwörter im **Namen**, und `salad` fängt unter anderem `spinat`, `brokkoli`, `zucchini` und
+`gemüse`, `porridge` fängt `quark` und `hüttenkäse`, `drink` fängt `kakao`.
+
+Für **selbst angelegte** Meals ist das richtig — dort heißt ein Gericht „Salat mit Hähnchen"
+und nicht „Hähnchenbrust 180 g". Kuratierte Rezeptnamen nennen dagegen ihre Zutaten, und damit
+springt fast immer eine Zutatenregel an, bevor die Gerichtsregel drankommt.
+
+**Nicht die Regeln anfassen.** Sie wirken auf jedes Nutzer-Meal, und Teilwort-Kollisionen sind
+dort die dokumentierte Falle (`CLAUDE.md` §22: `eis` steckt in `Rindfleisch`). Eine Regel zu
+entschärfen, um elf Katalogbilder zu retten, verschlechtert die Zuordnung für alle anderen.
+
+**Stattdessen entscheidet die Kuration**: `COOKBOOK[i].photo` trägt einen **Schlüssel aus
+`PHOTOS`**, den `photoFor()` vor den Regeln prüft. Gesetzt nur dort, wo die Regel falsch liegt.
+
+**Zwei Dinge, die dabei fast schiefgegangen wären:**
+
+* **TDZ.** Die Gültigkeitsprüfung `PHOTOS[r.photo]` gehörte scheinbar in `sanitizeRecipe()` —
+  das läuft aber schon in `let state = load()` (Zeile ~4264), und `PHOTOS` ist erst auf ~6165
+  als `const` deklariert. Das hätte die App beim Start zerlegt. `typeof` hilft nicht: Auch das
+  wirft in der TDZ. Geprüft wird dort deshalb nur die **Form**, die Gültigkeit in `photoFor()`.
+* **Ein Tippfehler wäre unsichtbar gewesen.** Ein unbekannter Schlüssel fällt still auf die
+  Regeln zurück — also genau auf das falsche Bild, das man vermeiden wollte. Dagegen gibt es
+  jetzt eine Prüfung im Prüfstand.
+
+---
+
+## 87. „High Protein" als Tag und „Proteinreich" als Badge sind zwei Quellen für dieselbe Aussage
+
+Auf jeder Meal-Karte stehen beide nebeneinander: der **gepflegte** Tag aus `RECIPE_TAGS`
+(filterbar) und das **gerechnete** Badge aus `macroBadges()` (Protein ≥ 30 % der
+Makro-Kalorien). Am 15.08.2026 trugen **vier der ersten neun Katalog-Rezepte** den Tag bei
+17–25 % Proteinanteil — das Rote-Linsen-Dal mit 17 %. Wer im Rezeptbuch auf „High Protein"
+filterte, bekam Karten, auf denen kein Badge stand.
+
+Im **Katalog** ist das ein Kurationsfehler, und er ist jetzt geprüft. Bei **eigenen** Meals ist
+es keiner: Dort taggt der Nutzer selbst, und ihm vorzuschreiben, was er proteinreich nennen
+darf, wäre Bevormundung.
+
+**Merken:** Wo eine gepflegte Angabe neben einer gerechneten steht, ist die gerechnete die
+Wahrheit — und die Prüfung gehört an die Daten, nicht in den Kopf dessen, der sie einträgt.
+
+---
+
+## 88. Das Geschirr aus der Kategorie allein legt Brot in eine Schüssel
+
+`tools/meal-bilder.py` wählte das Geschirr im Bildprompt nur nach `category`: Frühstück → Bowl,
+Hauptgericht → Teller, Getränk → Glas. Beim Trockenlauf für die 30 Katalog-Rezepte fiel auf,
+dass damit **„Rührei mit Avocado auf Vollkornbrot" eine Schüssel bekommen hätte** — genau wie
+„Protein-Pancakes", „Hüttenkäse auf Vollkornbrot" und „Ofengemüse vom Blech". Eine Scheibe
+Brot in einer Schüssel sieht auf den ersten Blick falsch aus, und es wäre erst nach dem
+Bezahlen aufgefallen.
+
+Behoben mit `NAME_GESCHIRR`: wenige, sehr eindeutige Stichwörter (`brot`, `toast`, `sandwich`,
+`pancake`, `pfannkuchen`, `waffel`, `steak`, `blech`) greifen **vor** der Kategorie. Bewusst
+knapp gehalten — jede weitere Regel ist eine neue Gelegenheit für eine Teilwort-Kollision
+(`CLAUDE.md` §22).
+
+**Derselbe Fehler in die andere Richtung, wenige Stunden später:** Das Beispiel-Meal
+„**Eiweißshake** mit Whey und Milch" steht in der Kategorie **Snack** und bekam damit eine
+Schüssel — im Bild eine cremige Masse mit einem Haufen Pulver darauf. Ein Shake, den man nicht
+trinken kann. Ergänzt um eine zweite Regel (`shake`, `smoothie`, `saft`, `limonade`, `kaffee`,
+`tee` → Glas). **Die Lehre daraus ist die interessantere:** Die Kategorie beschreibt, *wann* man
+etwas isst, nicht *woraus*. Für die Bildwahl ist sie deshalb nur ein Näherungswert — und wer
+sie als einzige Quelle nimmt, produziert genau an den Rändern Unsinn.
+
+**Die allgemeine Form:** Der Trockenlauf (`--dry-run`) ist bei einem Werkzeug, das Geld kostet,
+kein optionaler Zwischenschritt. Die 30 Prompts einmal zu lesen hat einen Fehler gefunden, der
+sonst 30 Bilder lang mitgelaufen wäre. Den Shake hat er allerdings **nicht** gefunden — dort war
+der Prompt unauffällig, aufgefallen ist erst das Bild. Beides braucht es also: Trockenlauf
+**und** Sichtprüfung.
+
+---
+
+## 89. Ein Dateiname darf nicht aus der Katalog-`id` abgeleitet werden
+
+Der Kommentar am `COOKBOOK` sagte ursprünglich, die `id` sei „zugleich der Dateiname des Bildes
+in `img/library/`". Das stimmt so nicht: `rührei-avocadobrot` ist eine gültige `id`, aber ein
+schlechter Dateiname — Umlaute in Pfaden und URLs sind eine Fehlerquelle. Das Python-Werkzeug
+schreibt deshalb `ruehrei-avocadobrot.webp`.
+
+Damit gäbe es zwei Möglichkeiten, und nur eine ist tragfähig:
+
+* **Ableiten in JavaScript** — dann existiert die Slug-Regel zweimal, in Python und in JS. Zwei
+  Fassungen derselben Regel laufen auseinander, sobald eine id einen Fall trifft, den nur eine
+  der beiden kennt (`ß`, ein Punkt, zwei Sonderzeichen hintereinander).
+* **Den Dateinamen am Eintrag hinterlegen** (`img: "…webp"`) — eine Quelle, vom Werkzeug
+  erzeugt, im Prüfstand gegen das Dateisystem abgeglichen. So ist es umgesetzt.
+
+**Die `id` bleibt trotzdem der Schlüssel.** Sie wird nicht „aufgeräumt", nur weil ein Umlaut
+darin steht: Sie steckt als `lib` in übernommenen Kopien und damit in Nutzerdaten.
+
+**Und die Kopie speichert den Pfad nicht mit.** `libPhoto()` löst über `lib` im Katalog auf.
+Ein ersetztes oder zurückgezogenes Bild wirkt damit sofort überall, und in Cloud-Daten und
+geteilten Meals liegt kein Pfad, der eines Tages ins Leere zeigt.
+
+---
+
+## 90. `z-index` ohne `position` ist wirkungslos — und ein Kommentar ist kein Code
+
+Der „Übernehmen"-Knopf auf den Rezeptbuch-Karten war **wirkungslos**: Statt zu übernehmen,
+öffnete er die große Meal-Ansicht. Ursache ist das Stretched-Link-Muster der Karte —
+`.rcard-open::after` liegt mit `position: absolute; inset: 0; z-index: 1` über der **ganzen**
+Karte, damit Bild und Titel gemeinsam anklickbar sind.
+
+`.cb-foot` war dagegen nur `margin-top: 10px`, also **`position: static`**. Ein statisch
+positioniertes Element bildet keinen Stapelkontext und **ignoriert `z-index` vollständig** — es
+liegt damit zwangsläufig unter dem Link, egal welchen Wert man setzt. Behoben mit
+`position: relative; z-index: 2`.
+
+**Der eigentliche Lehrsatz steht im JS.** Dort stand seit dem Bau der Ansicht:
+
+> „Der Uebernehmen-Knopf liegt per z-index darueber (.cb-foot), sonst faenge der Stretched Link
+> ihn ab."
+
+Der Kommentar beschrieb eine Absicht, die nie im CSS gelandet ist — und er hat verhindert, dass
+jemand nachsieht: Wer ihn liest, hält das Problem für gelöst. **Ein Kommentar, der eine
+Umsetzung behauptet, muss gegen die Umsetzung geprüft werden**, sonst ist er schlimmer als kein
+Kommentar.
+
+**So ist es nachweisbar** (im Browser, nicht headless — der Stapelkontext entsteht erst im
+Layout): `document.elementFromPoint()` auf die Mitte des Knopfes. Vorher lieferte es
+`button.rcard-open`, jetzt `button.btn primary sm`; ein Klick auf das Bild liefert weiterhin
+`button.rcard-open`. Die Gegenprobe im selben Schritt: `.cb-foot` per Stil auf `static` zurück —
+der Treffer fällt sofort wieder auf den Link. Kein Schreibvorgang nötig, also auch keine
+Testdaten in der Cloud.
+
+---
+
+## 91. Mitgelieferte Daten vor dem Onboarding einsetzen heißt, sie ohne Profilwissen zu wählen
+
+`load()` füllte den Bestand beim allerersten Start aus einem festen `SEED`-Array — vier Meals,
+darunter ein Rindersteak und ein Molke-Shake. Das geschah, **bevor** das Onboarding lief, also
+bevor `state.goal.diet` existierte: Ein Veganer bekam als Erstes zwei Gerichte, die er nie kocht,
+und ausgerechnet als Begrüßung.
+
+Der Fehler war nicht die Auswahl, sondern der **Zeitpunkt**. Behoben, indem der erste Bestand in
+`finishOnboarding()` über `addStarterMeals()` entsteht — dort ist die Ernährungsform bekannt, und
+die fünf Meals kommen aus dem Katalog, durch `fitsDiet()` gefiltert.
+
+**Zwei Fallen dabei:**
+
+* **Nur in einen leeren Bestand.** Wer sich auf einem zweiten Gerät anmeldet und dort das
+  Onboarding durchläuft, hat seine Meals schon — ohne die Bedingung `state.recipes.length === 0`
+  wären fünf Dubletten die Folge.
+* **Die Liste muss selbst zur Form passen, nicht nur ihr Ergebnis.** `addStarterMeals()` filtert
+  mit `fitsDiet()` und füllt still aus demselben Katalog auf. Ein Fleischgericht in der veganen
+  Liste fällt dadurch **nicht auf** — es wird weggefiltert, ersetzt, und alle Prüfungen bleiben
+  grün. Aufgefallen ist das erst in der Gegenprobe des Prüfstands. Es gibt jetzt eine eigene
+  Prüfung, die `dietOk()` auf jede Liste anwendet.
+
+**Verallgemeinert:** Wo eine Auswahl gefiltert *und* aufgefüllt wird, prüft das Ergebnis nur den
+Filter — nie die Kuration.
+
+---
+
+## 92. `array.filter(fn)` übergibt den Index — und ein abgebrochener Repaint sieht aus wie ein Filter ohne Wirkung
+
+**Fund des Nutzers am 15.08.2026:** Im Meals-Reiter zeigte der Filter „High Protein" (und jeder
+andere) **alles** an. Im Rezeptbuch funktionierte er.
+
+Die Ursache stand seit B7 (13.08.2026) in `paintRecipeGroups()`:
+
+```js
+pool = pool.filter(recipeMatchesFilters);          // falsch
+pool = pool.filter(r => recipeMatchesFilters(r, recipeFilters));   // richtig
+```
+
+`Array.prototype.filter` ruft den Callback mit **drei** Argumenten auf: `(element, index, array)`.
+Der Index landete damit im zweiten Parameter `aktive`, und `for (const k of (aktive || …))` bekam
+eine Zahl:
+
+* **Index 0** ist falsy → der Rückfall auf `recipeFilters` griff, das erste Element wurde noch
+  korrekt geprüft.
+* **Ab Index 1** warf `for (const k of 1)` einen `TypeError: 1 is not iterable`.
+
+**Deshalb sah es nach „Filter ohne Wirkung" aus, nicht nach einem Fehler:** `paintRecipeGroups()`
+brach mitten drin ab, *bevor* es `#r-groups` neu beschrieb. Stehen blieb das, was schon im DOM war
+— die ungefilterte Liste. Der Chip wurde trotzdem gedrückt dargestellt, weil `aria-pressed` im
+Klick-Handler *vor* dem Repaint gesetzt wird. Ein stiller Abbruch mit sichtbar plausibler Oberfläche.
+
+**Das Rezeptbuch war nie betroffen**, weil `paintCookbook()` das Set ausdrücklich übergibt. Genau
+diese Asymmetrie machte die Suche kurz: derselbe Matcher, zwei Aufrufer, ein Unterschied.
+
+**Zwei Lehren:**
+
+1. **Eine Funktion mit optionalem zweiten Parameter darf nie direkt als `filter`/`map`/`forEach`-
+   Callback übergeben werden.** Der Fehler ist unsichtbar, weil der erste Durchlauf zufällig
+   funktioniert. `recipeMatchesFilters()` prüft jetzt `aktive instanceof Set`, statt nur auf
+   truthy — damit kann derselbe Fehler nicht ein zweites Mal entstehen.
+2. **Ein „Feature ohne Wirkung" ist ein Kandidat für einen abgebrochenen Repaint.** Nicht zuerst
+   die Logik lesen, sondern die Konsole — und prüfen, ob die Funktion, die das DOM schreibt,
+   überhaupt bis zum Ende läuft.

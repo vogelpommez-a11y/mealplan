@@ -279,6 +279,89 @@ Meals. Das ist der erste sichtbare Nutzen des Profils.
 **Im eigenen Bestand wird dagegen nicht gefiltert** — die Meals dort hat der Nutzer selbst
 angelegt, sie zu verstecken wäre Bevormundung. Vorschläge filtern, Eigenes nie.
 
+### Die 30 Rezepte (15.08.2026)
+
+Der Katalog ist vollständig: **34 Rezepte in allen sechs Kategorien** — 7 Frühstück,
+16 Hauptgerichte, 5 Snacks, 2 Desserts, 2 Beilagen, 2 Getränke. Die Aufteilung ist keine
+Gleichverteilung, sondern folgt dem Wochenplan: Mittag und Abend sind vierzehn Slots pro Woche,
+Dessert und Getränk je einer.
+
+**Ausgerichtet auf Fitness und Meal-Prep, nicht auf Vielfalt um ihrer selbst willen:**
+
+* **21 von 34 sind zum Vorkochen geeignet** (`mealPrep`). Wer sonntags kocht, braucht Gerichte,
+  die drei Tage im Kühlschrank überstehen — nicht Rührei.
+* **21 von 34 erreichen die Schwelle „Proteinreich"** (≥ 30 % der Kalorien aus Protein).
+* Die Portionen liegen zwischen 207 kcal (Getränk) und 680 kcal (Hauptgericht) — planbar gegen
+  ein Tagesziel, ohne dass ein einzelnes Meal die Bilanz sprengt.
+* **15 von 34 sind vegan, 24 vegetarisch**, und zwar in **jeder** Kategorie. Der Katalog wird
+  nach dem Profil gefiltert; wer vegan gewählt hat, darf nicht vor einer halb leeren Ansicht
+  stehen.
+
+**Jedes der 34 Rezepte hat ein eigenes Bild** (`img/library/`, zusammen rund 1,6 MB, je 40–65 KB
+im Format 2,4:1). Sie sind KI-generiert, in einem einzigen eingefrorenen Stil: dunkles
+Nussbaumholz, helles mattes Steingut, 45-Grad-Seitenansicht. Das ist der sichtbarste Unterschied
+zu vorher — der Katalog lief bis dahin auf allgemeinen Stichwortfotos, auf denen zwei
+verschiedene Gerichte dasselbe Bild trugen. Bei der Sichtprüfung fielen zwei durch und wurden neu
+gezogen: der Chia-Pudding (sachlich richtig grau) und der Eiweißshake (stand in einer Schüssel
+statt im Glas, weil die Kategorie „Snack" das Geschirr bestimmte).
+
+### Der erste Bestand kommt aus dem Katalog (15.08.2026)
+
+**Die vier festen Beispiel-Meals sind abgeschafft.** Nach dem Onboarding legt die App **fünf
+Startmeals** an, die zur gewählten Ernährungsform passen — Kopien aus dem Rezeptbuch.
+
+**Der Grund ist ein Zeitpunkt, keine Geschmacksfrage.** Die alten Beispiele wurden beim
+allerersten Start eingesetzt, also *bevor* nach der Ernährungsform gefragt wurde. Ein Veganer
+bekam als Begrüßung ein Rindersteak und einen Molke-Shake. Die Auswahl stand fest, bevor
+irgendetwas über den Nutzer bekannt war.
+
+**Verteilt auf 1 Frühstück, 3 Hauptgerichte, 1 Snack** — damit ist jeder Slot-Typ des
+Wochenplans sofort bedienbar, und die Hauptgerichte, die 14 Slots pro Woche füllen müssen, haben
+Auswahl. Wo möglich mit `mealPrep`.
+
+**Es sind echte Meals, keine Attrappen.** Sie synchronisieren, sie wandern in eine Gruppe, sie
+tauchen im Rezeptbuch als „In deinen Meals" auf. Der Knopf „Beispiele entfernen" ist damit
+entfallen: Es gibt nichts mehr, was sich vom eigenen Bestand unterscheidet — löschen kann man
+sie einzeln wie jedes andere Meal.
+
+**Und sie tragen dieselben Bilder wie der Katalog.** Ein Bestand mit allgemeinen Stichwortfotos
+neben einem hochwertigen Katalog hätte den ersten Eindruck genau dort gebrochen, wo er entsteht.
+
+**Die vier alten Gerichte sind nicht verloren** — sie stehen jetzt im Rezeptbuch (Katalog damit
+**34** Rezepte). Ihre Bilder lagen bereits im richtigen Stil vor, und das Rindersteak ist bis
+heute das einzige seiner Art.
+
+**Die Bilder liegen nicht im Precache des Service Workers.** Sie kommen beim ersten Blick auf
+die Meals und liegen danach dauerhaft im Cache. Den Kaltstart um über ein Megabyte zu
+verteuern, für Bilder, die viele Nutzer nie sehen, wäre die falsche Abwägung — Ladezeit ist in
+dieser App ein Produktwert.
+
+**Herkunft der Rezepte, für den Fall der Frage:** Sie sind für dieses Projekt **selbst
+formuliert** — keine Übernahme aus Rezeptsammlungen, Kochbüchern oder einer Rezeptdatenbank.
+Die einzige benutzte Datenquelle ist die projekteigene `FOODS`-Tabelle. Das ist keine bloße
+Vorsichtsmaßnahme: Ein Rezept **als solches** ist ohnehin nicht urheberrechtlich geschützt
+(Zutaten und Mengen sind eine Handlungsanweisung, keine persönliche geistige Schöpfung,
+§ 2 Abs. 2 UrhG); schutzfähig wäre allein eine eigenständige sprachliche Fassung des
+Zubereitungstexts. Die Texte hier sind kurz und zweckgebunden und erreichen das nicht.
+Gerichtsnamen sind bewusst **beschreibend** und nennen keine Marken.
+
+**Das Risiko liegt bei den Bildern, nicht bei den Texten** — dafür gelten `PHOTO_CREDITS` und
+`CLAUDE.md` §22 unverändert weiter. Die 30 Bilder des Rezeptbuchs sind KI-generiert und im
+Impressum als solche gekennzeichnet; zu jedem ist in `img/library/bilder-protokoll.json`
+festgehalten, mit welcher Beschreibung, welchem Modell und wann es entstanden ist. Das ist der
+Beleg, dass nichts von fremden Seiten übernommen wurde. Kommt eine künftige Charge Rezepte aus einer fremden
+Quelle, ist das eine **andere** Rechtslage als diese hier; siehe auch die Entscheidung gegen
+Scraping für die Pro-Bibliothek.
+
+**Jeder Nährwert ist gegengerechnet, keiner geschätzt** (`tools/rezept-makros.py`). Das ist
+keine Genauigkeitsspielerei: Ein Katalog, der um 30 % danebenliegt, macht die Tagesbilanz —
+den Kern der App — wertlos.
+
+**Was der Filter sagt, muss die Karte bestätigen.** Der Tag „High Protein" und das Badge
+„Proteinreich" kommen aus zwei Quellen (gepflegt bzw. gerechnet). Im Katalog sind sie
+deckungsgleich; vier der ersten neun Rezepte trugen den Tag ohne die Schwelle zu erreichen und
+haben ihn verloren. Bei **eigenen** Meals gilt das nicht — dort taggt der Nutzer selbst.
+
 **Mit Pro wächst dieselbe Ansicht** von 30 auf über 100 Rezepte, die monatlich wechseln. Das
 ist der Kern des Pro-Versprechens: nicht ein anderer Ort, sondern **mehr vom selben, laufend
 neu**. Ein Gratis-Nutzer lernt den Mechanismus an 30 Rezepten kennen und versteht ohne
@@ -289,6 +372,21 @@ Reiter anstelle von „Fortschritt" vor. Der `ux-reviewer` hat zwei Einwände ge
 trugen: Die vier Reiter sind Tätigkeiten (orientieren, planen, verwalten) — „entdecken"
 gehört **vor** das Verwalten, nicht daneben. Und die Gewichtskarte zurück auf Home zu holen
 hätte genau den überladenen Zustand wiederhergestellt, den B8 zwei Tage zuvor aufgelöst hatte.
+
+### Keine Vegan/Vegetarisch-Badges auf der Karte (entschieden 15.08.2026)
+
+Die Meal-Karte zeigt höchstens zwei gerechnete Badges („Proteinreich", „Low Carb", aus
+`macroBadges()`). Ein drittes für die Ernährungsform wurde geprüft und **verworfen**:
+
+* **Es hätte keine Trennschärfe.** 24 von 34 Rezepten sind vegetarisch, 15 vegan — ein Badge auf
+  drei Vierteln der Karten informiert nicht mehr, es wird Tapete. Badges leben von Seltenheit.
+* **Im Rezeptbuch wäre es redundant.** Der Katalog ist bereits nach der Ernährungsform gefiltert;
+  wer vegan gewählt hat, sieht ausschließlich vegane Meals.
+* **Es verdeckt das Bild.** Die Badges liegen als Overlay auf dem Foto — und die Fotos sind gerade
+  der Grund, warum die Karten überhaupt hochwertig wirken.
+
+Die Information ist vollständig verfügbar: als Merkmal im großen Sheet (`mealFlagsHtml()`) und
+als Filter-Chip in beiden Ansichten.
 
 ## Ernährungsprofil (15.08.2026)
 

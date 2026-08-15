@@ -66,3 +66,9 @@ Instagram/
 # einziges "git add ." haette sie oeffentlich gemacht, und aus der Historie bekommt man sie
 # nicht mehr heraus (Fund von website-security).
 plans/
+
+# Erzeugnisse der Pruefstaende. Sie entstehen bei jedem Lauf neu aus index.html und sagen
+# nichts, was nicht dort steht - im Repo waeren sie ein zweiter, sofort veralteter Stand
+# desselben Codes. Das Skript, das sie baut, ist getrackt.
+# (tools/zutaten-makros.json steht aus demselben Grund schon weiter oben.)
+tools/pruefstand-*.html
