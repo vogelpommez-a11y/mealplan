@@ -2084,3 +2084,57 @@ plausiblen Wert — und nur die Kombination ist falsch.
 
 **Prüffrage für jedes neue Feld am Datenmodell:** Welche Auswertungen gibt es, und rechnen
 **alle** damit? Wenn nicht: Warum nicht, und ist das Ergebnis dann noch widerspruchsfrei?
+
+---
+
+## 83. Geschätzte Nährwerte in einem Rezept sehen aus wie gerechnete
+
+Die ersten neun Rezepte des Rezeptbuchs bekamen ihre Nährwerte per Augenmaß. Sie sahen
+plausibel aus — 540 kcal für eine Tofu-Pfanne, 420 für ein Curry. Tatsächlich lagen sie bis zu
+**86 % daneben**; die Pfanne hatte 680 kcal, das Curry 713 (vor der Mengenkorrektur).
+
+Aufgefallen ist es nur, weil der Nutzer beim Bearbeiten eines übernommenen Rezepts bemerkte,
+dass die **Zutaten keine eigenen Nährwerte** trugen. Die daraus gebaute Gegenrechnung
+(`tools/rezept-makros.py`) machte den Fehler in einem Lauf sichtbar.
+
+**Warum das die gefährlichste Fehlerklasse in dieser App ist:** Bei einem Layoutfehler sieht
+man, dass etwas nicht stimmt. Bei einer falschen Kalorienzahl sieht man gar nichts — sie wird
+geglaubt, geplant und gegessen. In einer App, deren Kernversprechen „triff deine Makros" ist,
+ist das der einzige Fehler, der das Produkt in seiner Substanz beschädigt.
+
+**Regel:** Kein Rezept kommt in den Katalog, dessen Summe nicht gegen die Zutaten gerechnet
+wurde. Und die Zutaten tragen ihre Werte mit, sonst kann die App beim Bearbeiten nichts
+nachrechnen.
+
+---
+
+## 84. Ein falsch zugeordnetes Lebensmittel ist schlimmer als ein fehlendes
+
+Beim Nachschlagen der Zutaten in `FOODS` matchte **„Zuckerschoten" auf „Zucker"** — 400 statt
+42 kcal, fast reine Kohlenhydrate. Das Rezept kam damit auf 168 g KH statt 60. Die Ursache war
+ein zu großzügiges Präfix-Matching (`"zuckerschoten".startswith("zucker")`).
+
+**Der Unterschied zur fehlenden Zutat ist entscheidend:** Fehlt eine, meldet das Werkzeug eine
+Lücke und niemand trägt etwas ein. Wird eine falsch zugeordnet, entsteht ein Wert, der
+plausibel aussieht, durch jede Sichtprüfung geht und schlicht falsch ist.
+
+Behoben durch Vergleich **nur an Wortgrenzen**: Ein Kandidat passt, wenn er ein vollständiges
+Wortpräfix ist (`"zucker "` ist kein Präfix von `"zuckerschoten"`).
+
+**Die allgemeine Form:** Bei jedem unscharfen Abgleich (Name → Datensatz) muss die Zuordnung
+**sichtbar** sein, nicht nur das Ergebnis. Deshalb gibt das Werkzeug mit `--json` aus, welcher
+Eintrag getroffen wurde. Wer nur die Summe prüft, prüft die Hälfte.
+
+---
+
+## 85. Freitext-Zutaten fallen aus jeder Rechnung
+
+„1 EL Olivenöl, Oregano, Salz, Pfeffer" als Freitext-Zeile ist bequem zu schreiben und für die
+Einkaufsliste ausreichend — aber ein Freitext hat keine Menge und keine Nährwerte. In den
+ersten Katalog-Rezepten fehlte dadurch **das gesamte Bratfett**: Der Fettwert lag bis zu 69 %
+zu niedrig, obwohl jedes Rezept einen Esslöffel Öl nannte.
+
+Gewürze dürfen Freitext bleiben — sie tragen nichts bei. **Fett nie:** 10 g Öl sind 88 kcal,
+das ist bei einem 500-kcal-Gericht ein Fünftel.
+
+**Prüffrage bei jedem neuen Rezept:** Steht etwas im Freitext, das Kalorien hat?

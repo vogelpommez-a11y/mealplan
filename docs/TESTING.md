@@ -298,6 +298,15 @@ Beispiele:
   Die **Gegenprobe** lief noch an der ursprünglichen Fassung: `canCloudWrite()` künstlich auf
   `true` gesetzt, vier Prüfungen wurden rot. Das ist der Beweis, dass der Prüfstand misst und
   nicht nur läuft (`docs/TESTING.md`, „Messfallen").
+* **Rezept-Nährwerte gegenrechnen (`tools/rezept-makros.py`, 15.08.2026)**: Kein Prüfstand im
+  üblichen Sinn, sondern ein **Datenprüfer** — er schlägt jede Zutat in `FOODS` nach und
+  vergleicht die Summe mit den angegebenen Rezeptwerten. Pflicht bei jedem neuen Rezept im
+  Katalog, weil ein Rezept die einzige Stelle ist, an der falsche Zahlen wie richtige aussehen.
+  Beim ersten Lauf fand er, dass **alle neun Katalog-Rezepte geschätzte Werte hatten** (bis zu
+  86 % daneben) — und beim zweiten einen Fehler in sich selbst: „Zuckerschoten" auf „Zucker"
+  gematcht. **Deshalb gibt `--json` die Zuordnung aus**: Wer nur die Summe prüft, sieht nicht,
+  ob sie aus den richtigen Lebensmitteln entstanden ist.
+  Toleranz 12 % — enger prüfen meldet vor allem Garverluste und Rundungen.
 * **Rezeptbuch (15.08.2026)**: `COOKBOOK`, `cookbookVisible()`, `isAdopted()`,
   `adoptFromCookbook()` samt `sanitizeRecipe()` geschnitten. 28 Prüfungen, alle grün.
   Drei Gruppen, und die erste ist die, die bei wachsendem Katalog Bestand haben muss:

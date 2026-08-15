@@ -892,6 +892,38 @@ kopierte `Object.assign()` ihn aus Altdaten und geteilten Meals dauerhaft weiter
 Die Faustregel daraus: Ein Datenfeld wird angelegt, wenn ein konkretes Feature es liest — nicht,
 weil es später einmal nützlich sein könnte.
 
+### Nährwerte an den Zutaten — und warum sie dort stehen müssen
+
+Ein Rezept, dessen Zutaten keine eigenen Nährwerte tragen, lässt sich **nicht nachrechnen**:
+Wer beim Bearbeiten 200 g Reis auf 150 g ändert, bekommt weiterhin die alten Gesamtwerte
+angezeigt. Sie sind dann still falsch. Deshalb trägt jede Zutat der `COOKBOOK`-Rezepte
+`kcal`, `carbs`, `protein`, `fat`.
+
+**Die Bezugsgröße unterscheidet sich je Einheit** (`ingContrib()`):
+
+| Einheit | Nährwert gilt | Faktor |
+|---|---|---|
+| `g` / `ml` | je **100** | `menge / 100` |
+| `st` / `el` / `tl` | je **Einheit** | `menge` |
+
+`tools/rezept-makros.py` schlägt die Werte in `FOODS` nach, rechnet die Rezeptsumme gegen und
+meldet Abweichungen über 12 % (Garverluste und Rundungen liegen darunter). `--anwenden`
+schreibt sie in die `COOKBOOK`-Zutaten — aber **nur**, wenn keine Zutat mehr ohne Wert ist:
+Halbe Daten sind schlimmer als keine, weil die Summe dann still danebenliegt.
+
+**Zwei Fallen, beide am 15.08.2026 real aufgetreten:**
+
+* **Geschätzte statt gerechneter Werte.** Die ersten neun Katalog-Rezepte lagen bis zu 86 %
+  daneben. Ohne Gegenrechnung fällt das niemandem auf — die Zahlen sehen plausibel aus.
+* **Falsch zugeordnetes Lebensmittel.** „Zuckerschoten" matchte auf „Zucker" (400 statt
+  42 kcal). Präfixe zählen deshalb nur an der **Wortgrenze**. Ein falscher Treffer ist
+  gefährlicher als ein fehlender, weil er nicht auffällt.
+
+Daraus folgt für die Rezepte: **Zutatennamen müssen den `FOODS`-Namen entsprechen** („Zwiebeln",
+nicht „Zwiebel"; „Ei, Größe M", nicht „Eier"), und **Öl gehört als Zutat, nicht in den
+Freitext** — als Freitext fällt es aus jeder Rechnung, und das Fett lag um bis zu 69 % zu
+niedrig.
+
 ### Rezeptbuch: `COOKBOOK` als Katalog (15.08.2026)
 
 Ein **Katalog, kein Bestand.** Die kuratierten Meals liegen in der Konstanten `COOKBOOK` und
