@@ -53,9 +53,37 @@ WURZEL = Path(__file__).resolve().parent.parent
 # Wer diesen Block anfasst, muss ALLE Bilder neu erzeugen - sonst stehen im Rezeptbuch zwei
 # Bildsprachen nebeneinander, und das sieht man auf den ersten Blick.
 # ------------------------------------------------------------------------------------------
-STIL = ("top-down flat lay food photography, natural daylight from the left, "
-        "matte light ceramic plate, light wooden table, soft shadows, shallow depth of field, "
-        "fresh and appetizing, no text, no logos, no hands, no cutlery in frame")
+# Der erste Teil ist keine Geschmacksfrage, sondern folgt aus einer Messung: Die App zeigt
+# Meal-Bilder in einem sehr breiten Streifen (.rimg ist 116 px hoch, die Karte 330-485 px
+# breit - also 2,85:1 bis 4,18:1). Das breiteste Format, das das Modell liefert, ist 3:2.
+# Beim Zuschneiden faellt deshalb knapp die Haelfte der Hoehe weg. Wenn oben oder unten
+# etwas Wichtiges liegt, ist es in der App nicht mehr da.
+# Ausgewaehlt am 15.08.2026 aus sechs Varianten, die an ZWEI Motiven verglichen wurden:
+# einem Steak (sieht in jedem dunklen Stil gut aus) und einem Porridge (der schwierige Fall -
+# hell, breiig, ohne Struktur). Ein Stil, der nur am Steak gewaehlt wird, faellt bei der
+# Haelfte einer Bibliothek durch, die zu grossen Teilen vegetarisch und vegan ist.
+#
+# Die drei Bestandteile und warum sie zusammen funktionieren:
+#   * dunkles Nussbaumholz - traegt die "professionelle" Anmutung (reine Studio-Optik auf
+#     Weiss wirkte wie ein Katalog);
+#   * HELLES Steingut darauf - der Kontrast ist der Grund, warum auch ein Porridge nicht im
+#     Dunkeln absaeuft. Dunkles Geschirr auf dunklem Grund war die verworfene Variante B;
+#   * 45-Grad-Seitenansicht - gibt Volumen und Tiefe. Bewusst in Kauf genommen: Bei
+#     geschichteten Bowls verdeckt der Schuesselrand mehr als eine Draufsicht. Die Zutaten
+#     stehen als Liste darunter, die Anmutung entscheidet ueber den ersten Eindruck.
+STIL = ("the plate is exactly centered in the frame with equal space on the left and right, "
+        "the dish fills the middle of the frame, "
+        "generous empty margin at top and bottom, nothing important near the upper or lower edge, "
+        "moody food photography, 45 degree side angle view, "
+        "matte light ceramic plate, dark walnut wood table, "
+        "soft directional side light from the left, gentle shadows, shallow depth of field, "
+        "warm and appetizing, no text, no logos, no hands, no cutlery in frame")
+
+# Zielverhaeltnis beim Zuschneiden. 2,4:1 ist der Mittelwert der gemessenen Darstellungen
+# (Karte 2,85-4,18:1, Meal-Ansicht 2,10-4,91:1) - naeher an der App als das 1,5:1 des
+# Modells, aber nicht so extrem, dass ein etwas anderes Layout das Bild sofort unbrauchbar
+# macht. Zugeschnitten wird MITTIG; dafuer sorgt der Stil-Baustein oben fuer freie Raender.
+ZUSCHNITT = 2.4
 
 # Ebenfalls eingefroren: Ein anderes Modell erzeugt einen anderen Look. Nur bewusst wechseln
 # - und dann alle Bilder neu.
@@ -64,8 +92,10 @@ API_GENERATE = "https://api.openai.com/v1/images/generations"
 
 # Querformat passt zu den Meal-Karten. Muss eine der vom Modell erlaubten Groessen sein.
 GROESSE = "1536x1024"
-# Auf diese Breite wird fuers Repo verkleinert. 100 Bilder x ~70 KB bleiben so ertraeglich.
-ZIEL_BREITE = 800
+# Auf diese Breite wird fuers Repo verkleinert. 1100 statt 800, weil die Meal-Ansicht auf
+# dem Desktop bis zu 1080 CSS-Pixel breit wird - bei 800 waere sie sichtbar unscharf.
+# Durch den Zuschnitt auf 2,4:1 bleibt die Dateigroesse trotzdem im selben Rahmen.
+ZIEL_BREITE = 1100
 
 # Kostenschutz: Ein Tippfehler darf nicht 500 Bilder erzeugen.
 MAX_BILDER = 60
@@ -97,16 +127,20 @@ def lade_env():
     return os.environ.get("OPENAI_API_KEY")
 
 
-def prompt_fuer(name, zutaten=None):
+def prompt_fuer(name, zutaten=None, stil=None):
     """Der Gerichtname traegt die Bildidee, die Hauptzutaten schaerfen sie.
 
     Ohne Zutaten raet das Modell - "Bowl" kann alles sein. Mit zwei, drei Hauptzutaten wird
     daraus ein bestimmtes Gericht, und das Bild passt zum Rezept daneben.
+
+    `stil` ueberschreibt den eingefrorenen Baustein - AUSSCHLIESSLICH fuer den einmaligen
+    Stilvergleich vor dem Festlegen (--stil). Im Normalbetrieb nie benutzen: Zwei Bilder mit
+    verschiedenen Stilen in derselben Sammlung sieht man sofort.
     """
     teile = [name]
     if zutaten:
         teile.append("with " + ", ".join(zutaten[:4]))
-    teile.append(STIL)
+    teile.append(stil or STIL)
     return ", ".join(teile)
 
 
@@ -139,9 +173,18 @@ def generiere(key, prompt, anzahl):
 
 
 def speichere_webp(roh, ziel):
-    """Als WebP verkleinern - Ladezeit ist in dieser App ein Produktwert."""
+    """Mittig auf das Zielverhaeltnis beschneiden, dann als WebP verkleinern.
+
+    Der Zuschnitt passiert HIER und nicht in der App: object-fit: cover wuerde denselben
+    Bereich wegschneiden, aber das Bild vorher vollstaendig laden - also mehrere hundert
+    Kilobyte fuer Pixel, die niemand sieht. Ladezeit ist in dieser App ein Produktwert.
+    """
     from PIL import Image
     bild = Image.open(BytesIO(roh)).convert("RGB")
+    ziel_hoehe = round(bild.width / ZUSCHNITT)
+    if ziel_hoehe < bild.height:
+        oben = (bild.height - ziel_hoehe) // 2
+        bild = bild.crop((0, oben, bild.width, oben + ziel_hoehe))
     if bild.width > ZIEL_BREITE:
         h = round(bild.height * ZIEL_BREITE / bild.width)
         bild = bild.resize((ZIEL_BREITE, h), Image.LANCZOS)
@@ -170,6 +213,8 @@ def main():
     p.add_argument("--out", default="img/library", help="Zielordner (Standard img/library)")
     p.add_argument("--dry-run", action="store_true", help="Nur die Prompts zeigen, nichts aufrufen")
     p.add_argument("--probe", action="store_true", help="Ein einziges Testbild erzeugen")
+    p.add_argument("--stil", help="NUR fuer den einmaligen Stilvergleich: ueberschreibt den "
+                                  "eingefrorenen Stil-Baustein. Im Normalbetrieb weglassen.")
     args = p.parse_args()
 
     namen = list(args.meals or [])
@@ -211,7 +256,7 @@ def main():
     credits = {}
     for name in namen:
         key = slug(name)
-        prompt = prompt_fuer(name)
+        prompt = prompt_fuer(name, stil=args.stil)
         print("\n%s" % name)
         try:
             bilder = generiere(api_key, prompt, args.varianten)

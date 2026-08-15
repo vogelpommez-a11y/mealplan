@@ -43,9 +43,28 @@ with tempfile.TemporaryDirectory() as tmp:
     pruef("Ordner wird angelegt", ziel.parent.is_dir(), True)
     with Image.open(ziel) as erg:   # schliessen, sonst haelt Windows die Datei fest
         pruef("auf Zielbreite verkleinert", erg.width, mb.ZIEL_BREITE)
-        pruef("Seitenverhaeltnis bleibt", erg.height, round(1024 * mb.ZIEL_BREITE / 1536))
+        # Zugeschnitten, NICHT proportional verkleinert: Die App zeigt einen sehr breiten
+        # Streifen (.rimg 116 px hoch), ein 3:2-Bild verlaere dort knapp die Haelfte.
+        pruef("auf das Zielverhaeltnis zugeschnitten",
+              round(erg.width / erg.height, 2), mb.ZUSCHNITT)
         pruef("Format ist WebP", erg.format, "WEBP")
     pruef("Groesse unter 150 KB", groesse < 150 * 1024, True)
+
+    # Wird MITTIG zugeschnitten? Ein Testbild mit roten Streifen oben und unten: die muessen
+    # verschwinden, die Mitte muss bleiben. Ohne diese Pruefung koennte der Zuschnitt vom
+    # oberen Rand her laufen und immer die Bildmitte anschneiden.
+    m = Image.new("RGB", (1536, 1024), (0, 200, 0))
+    for y in list(range(0, 100)) + list(range(924, 1024)):
+        for x in range(1536):
+            m.putpixel((x, y), (255, 0, 0))
+    pm = io.BytesIO(); m.save(pm, "PNG")
+    ziel3 = Path(tmp) / "mitte.webp"
+    mb.speichere_webp(pm.getvalue(), ziel3)
+    with Image.open(ziel3) as z3:
+        oben = z3.getpixel((z3.width // 2, 3))
+        mitte = z3.getpixel((z3.width // 2, z3.height // 2))
+        pruef("roter Rand oben ist weggeschnitten", oben[0] < 200, True)
+        pruef("gruene Mitte ist erhalten", mitte[1] > 150, True)
 
     # Kleines Bild darf NICHT hochskaliert werden
     klein = Image.new("RGB", (400, 300), (10, 10, 10))

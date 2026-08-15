@@ -1,0 +1,16 @@
+{
+  "rindersteak-mit-ofenkartoffeln.webp": {
+    "gericht": "Rindersteak mit Ofenkartoffeln",
+    "prompt": "Rindersteak mit Ofenkartoffeln, the plate is exactly centered in the frame with equal space on the left and right, the dish fills the middle of the frame, generous empty margin at top and bottom, nothing important near the upper or lower edge, moody food photography, 45 degree side angle view, matte light ceramic plate, dark walnut wood table, soft directional side light from the left, gentle shadows, shallow depth of field, warm and appetizing, no text, no logos, no hands, no cutlery in frame",
+    "modell": "gpt-image-2",
+    "groesse": "1536x1024",
+    "erzeugt": "2026-08-15T14:48:02+00:00"
+  },
+  "protein-porridge-mit-beeren.webp": {
+    "gericht": "Protein-Porridge mit Beeren",
+    "prompt": "Protein-Porridge mit Beeren, the plate is exactly centered in the frame with equal space on the left and right, the dish fills the middle of the frame, generous empty margin at top and bottom, nothing important near the upper or lower edge, moody food photography, 45 degree side angle view, matte light ceramic plate, dark walnut wood table, soft directional side light from the left, gentle shadows, shallow depth of field, warm and appetizing, no text, no logos, no hands, no cutlery in frame",
+    "modell": "gpt-image-2",
+    "groesse": "1536x1024",
+    "erzeugt": "2026-08-15T14:48:30+00:00"
+  }
+}
