@@ -298,6 +298,13 @@ Beispiele:
   Die **Gegenprobe** lief noch an der ursprünglichen Fassung: `canCloudWrite()` künstlich auf
   `true` gesetzt, vier Prüfungen wurden rot. Das ist der Beweis, dass der Prüfstand misst und
   nicht nur läuft (`docs/TESTING.md`, „Messfallen").
+* **Ausbau von `portions` (15.08.2026)**: `sanitizeRecipe()` samt `nutNum()` und `ingObj()`
+  geschnitten, der Rest gestubbt. 18 Prüfungen, alle grün. Der Kern ist nicht die Umrechnung
+  selbst (200 → 100), sondern zweierlei: **Idempotenz** — dreimal durchlaufen ergibt dasselbe
+  wie einmal, sonst schrumpften die Mengen bei jedem Cloud-Eingang weiter — und die
+  **Unsinnswerte**: `portions: 0`, negativ oder als Text dürfen nichts verändern (keine Division
+  durch null, keine erfundenen Mengen). Dazu: Freitext-Zutaten bleiben unangetastet, Einheiten
+  überleben, gerundet wird auf eine Nachkommastelle.
 * **Vorkochen (C3)**: `buildBatchList()` braucht nur Stubs für `getRecipe`, `shopPersons` und
   `todayDayKey` — dazu `planDaysAhead()`, die gemeinsame Zeitraum-Quelle. 17 Prüfungen, alle grün — Bündelung, Sortierung, Portionsfaktor, aufgerundete
   Kochdurchgänge, Zuweisung statt Personenzahl, leerer Plan. Zwei Fälle, die man leicht

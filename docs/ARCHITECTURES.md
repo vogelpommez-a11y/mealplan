@@ -527,10 +527,14 @@ zugewiesene Person darf nie im Datenmodell existieren.
 
 Die Einkaufsliste (`buildShoppingList()`) trennt pro Zutat `sharedQty` (aus "für alle"-Gerichten,
 skaliert erst mit dem globalen `per`-Personenfaktor) von `assignedQty` (aus individuell
-zugewiesenen Gerichten, bereits pro Gericht auf `uids.length / (r.portions || 1)` skaliert).
-Endsumme: `sharedQty * per + assignedQty`. Bewusste Entscheidung: "für alle"-Einträge verhalten
-sich exakt wie vor diesem Feature (unbeeinflusst vom Rezept-`portions`-Feld), nur abweichend
-zugewiesene Gerichte werden zusätzlich skaliert.
+zugewiesenen Gerichten, bereits pro Gericht auf `uids.length` skaliert — jede zugewiesene Person
+braucht ein eigenes Meal). Endsumme: `sharedQty * per + assignedQty`. Bewusste Entscheidung:
+"für alle"-Einträge verhalten sich exakt wie vor diesem Feature, nur abweichend zugewiesene
+Gerichte werden zusätzlich skaliert.
+
+Der frühere Teiler `r.portions` ist am 15.08.2026 entfallen (ein Meal = eine Portion). Er war
+die einzige Stelle, an der das Feld überhaupt rechnete — und genau deshalb widersprüchlich:
+Bei "für alle" wurde er nie angewandt, die Tagesbilanz kannte ihn ohnehin nicht.
 
 Farbring/Initiale (`--member-1` bis `--member-6`) nur bei "eigenen"/"anderen" Karten, nie bei
 "gemeinsam". Maximal 2 Badges pro Karte, der Rest sammelt sich in einem "+N"-Badge
@@ -825,11 +829,13 @@ Dritte Auswertung desselben Wochenbestands, neben `buildShoppingList()` (Zutaten
 Wochenplan selbst (Tage). Gruppiert nach Rezept-ID:
 
 ```
-{ r, portions, days[], runs, perRun }
+{ r, portions, days[] }
 ```
 
-* `portions` = Σ `entryPortion(entry) × Esser`, wobei Esser = `uids.length` bzw. `shopPersons()`
-* `runs` = `Math.ceil(portions / r.portions)`, nur wenn `portions` am Rezept gepflegt ist
+* `portions` = Σ Esser je Eintrag, wobei Esser = `uids.length` bzw. `shopPersons()`.
+  Seit dem 15.08.2026 ist das zugleich die **Anzahl der Meals** — ein Eintrag ist eine Portion.
+* `runs`/`perRun` (Kochdurchgänge) sind entfallen: Mit `portions` am Rezept fiel der Nenner weg,
+  „4× kochen à 1 Portion" wäre nur eine umständliche Wiederholung der Zahl daneben.
 * Zeitraum identisch zu `buildShoppingList()`: aktuelle Woche ab heute, nächste Woche ganz
 
 Kein eigener State, kein neues Datenfeld — reine Ableitung. Die Ansicht (`openBatchCooking()`)
@@ -885,6 +891,31 @@ kopierte `Object.assign()` ihn aus Altdaten und geteilten Meals dauerhaft weiter
 
 Die Faustregel daraus: Ein Datenfeld wird angelegt, wenn ein konkretes Feature es liest — nicht,
 weil es später einmal nützlich sein könnte.
+
+### `portions` ist entfallen — ein Meal ist eine Portion (15.08.2026)
+
+Nährwerte und Zutatenmengen beschreiben seitdem denselben Gegenstand. Wer mehr braucht, plant
+das Meal zweimal ein; das ist zugleich die Grundlage dafür, dass der Auto-Planer in einer Gruppe
+unterschiedliche Kalorienziele über die **Anzahl** der Einträge abbilden kann (`docs/PRODUCT.md`).
+
+Der Ausbau war kein Aufräumen, sondern eine **Fehlerbehebung**: Das Feld wirkte nur an einer
+einzigen Stelle als Teiler (individuell zugewiesene Gerichte in der Einkaufsliste). Die
+Tagesbilanz kannte es gar nicht, und bei „für alle" — dem Normalfall — wurde es übersprungen.
+Ein Meal mit `portions: 2` zählte also mit den Nährwerten **einer** Portion und kaufte die
+Zutaten für **zwei** ein. Genau dieser Fehler steckte im eigenen Beispieldatensatz.
+
+**Die Mengen werden deshalb umgerechnet, nicht nur das Feld gelöscht:** `sanitizeRecipe()` teilt
+bei `portions > 1` jede Zutatenmenge durch den Wert und entfernt das Feld danach. Zwei
+Eigenschaften machen das im Sanitizer statt in einer einmaligen Migration möglich:
+
+* **Idempotent** — nach dem ersten Durchlauf fehlt `portions`, jeder weitere Aufruf ist wirkungslos.
+  Damit ist es egal, wie oft und über welchen Eingang (Cloud, Teilen-Link, Import, Gruppe) ein
+  Rezept läuft; jedes Gerät kommt zum selben Ergebnis.
+* **Robust gegen Unsinn** — `nutNum()` liefert für `0`, negative Werte und Text eine `0`, die
+  Bedingung `> 1` fängt sie ab. Keine Division durch null, keine erfundenen Mengen.
+
+Freitext-Zutaten („Salz, Pfeffer") haben keine Menge und bleiben unberührt. Gerundet wird auf
+eine Nachkommastelle, damit aus 200 g ÷ 3 nicht 66,66666667 wird.
 
 `sanitizeTags()` lässt ausschließlich bekannte Schlüssel durch, entfernt Duplikate und stellt
 die **feste Reihenfolge aus `RECIPE_TAG_KEYS`** her. Letzteres ist kein Schönheitsdetail: Ein

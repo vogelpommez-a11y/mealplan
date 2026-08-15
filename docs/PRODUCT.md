@@ -267,6 +267,33 @@ er ist ab jetzt nicht mehr nur das stärkste, sondern das entscheidende Pro-Feat
 nachträglich nicht in ein Verkaufsargument umdeuten. Der Preis dafür wäre nicht Umsatz, sondern
 Vertrauen.
 
+## Ein Meal ist eine Portion (15.08.2026)
+
+**Die App kennt keine Portionsgrößen mehr.** Ein Meal ist genau eine Portion: Nährwerte und
+Zutatenmengen beschreiben denselben Gegenstand. Wer mehr braucht, plant das Meal zweimal ein.
+
+Das ist der dritte und letzte Schritt einer Linie, die zweimal vorher gezogen wurde: Der
+Portionsfaktor am Slot-Eintrag (B5) und das Merkmal „Aufwand" sind aus demselben Grund
+gefallen — sie verlangten eine Entscheidung, ohne dafür etwas zurückzugeben.
+
+Bei `portions` kam hinzu, dass das Feld **schlicht falsche Ergebnisse erzeugte**: Die
+Tagesbilanz rechnete mit den vollen Nährwerten des Rezepts, die Einkaufsliste mit den vollen
+Zutatenmengen — und der Teiler griff nur bei individuell zugewiesenen Gerichten in einer Gruppe.
+Im Normalfall kaufte man für zwei und rechnete für einen. Der eigene Beispieldatensatz enthielt
+genau diesen Fehler.
+
+**Was dadurch einfacher wird:**
+
+* Die Einkaufsliste stimmt zum ersten Mal mit den Nährwerten überein.
+* Die Vorkochen-Ansicht sagt „Hähnchen 4× diese Woche" statt „4 Portionen, 2 Durchgänge" — die
+  Frage, wie viel in einen Topf passt, beantwortet ohnehin nur der Topf.
+* **Der Auto-Planer bekommt eine verlässliche Einheit.** Unterschiedliche Kalorienziele in einer
+  Gruppe lassen sich damit über die **Anzahl** der Einträge abbilden: Alle essen dasselbe
+  Gericht, wer mehr braucht, bekommt zwei davon. Einmal kochen, verschiedene Mengen.
+
+Bestehende Meals mit `portions > 1` werden beim Laden einmalig umgerechnet (Mengen geteilt),
+statt den Fehler stillschweigend weiterzutragen — siehe `docs/ARCHITECTURES.md`.
+
 ## Langfristige Vision
 
 Entwicklung:

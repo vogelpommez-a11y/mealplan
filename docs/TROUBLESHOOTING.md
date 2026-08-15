@@ -2049,3 +2049,38 @@ Technisch bemerkenswert: Der Rückbau ging in einer knappen Stunde, weil die Spe
 fünf benannten Stellen saß und `canCloudWrite()` als **eine** Funktion existierte statt als
 verstreute `isPro()`-Abfragen. Ein Torwächter mit eigenem Namen ist auch dann die richtige
 Bauform, wenn man ihn später wieder entfernt.
+
+---
+
+## 82. Ein Feld, das nur an einer von drei Stellen rechnete — und deshalb falsch einkaufte
+
+`portions` am Rezept sah nach einer harmlosen Angabe aus („ergibt 2 Portionen"). Tatsächlich
+wurde es nur an **einer einzigen** Stelle ausgewertet: in der Einkaufsliste, und dort auch nur
+bei individuell zugewiesenen Gerichten in einer Gruppe (`uids.length / (r.portions || 1)`).
+
+Nicht ausgewertet wurde es:
+
+* in der **Tagesbilanz** — `dayNutOf()` nimmt immer die vollen Nährwerte des Rezepts;
+* in der Einkaufsliste bei **„für alle"** — dem Normalfall, dort war der Faktor fest `1`.
+
+Ein Meal mit `portions: 2` zählte also mit den Nährwerten **einer** Portion und kaufte die
+Zutaten für **zwei** ein. Wer nach dieser Liste einkaufte, kaufte doppelt.
+
+**Aufgefallen ist es im eigenen Beispieldatensatz**, und zwar erst bei einer Frage des Nutzers
+nach etwas ganz anderem (dem Auto-Planer). „Hähnchen mit Pute und Reis" trug `portions: 2`,
+620 kcal und Zutaten, die zusammen weit über 1000 kcal ergeben. Beim Nachrechnen war klar:
+Die Nährwerte galten für eine Portion, die Zutaten für zwei. Der Fehler stand seit Monaten in
+den mitgelieferten Daten, hat jeden Prüfstand überlebt und wurde von keinem Prüf-Agenten
+gemeldet — weil alle prüften, ob der Code **tut, was er soll**, nicht ob die **Bedeutung** der
+Felder zueinander passt.
+
+**Behoben durch Ausbau des Feldes** (ein Meal ist eine Portion) statt durch eine Korrektur der
+drei Auswertungsstellen. Die Mengen werden in `sanitizeRecipe()` einmalig umgerechnet.
+
+**Die allgemeine Form — und der eigentliche Wert dieses Eintrags:** Ein Feld, das in einer von
+drei Auswertungen fehlt, ist gefährlicher als ein Feld, das überall fehlt. Fehlt es überall,
+merkt man es sofort; fehlt es an zwei von drei Stellen, ergibt jede Ansicht für sich einen
+plausiblen Wert — und nur die Kombination ist falsch.
+
+**Prüffrage für jedes neue Feld am Datenmodell:** Welche Auswertungen gibt es, und rechnen
+**alle** damit? Wenn nicht: Warum nicht, und ist das Ergebnis dann noch widerspruchsfrei?
