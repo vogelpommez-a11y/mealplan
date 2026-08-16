@@ -2577,19 +2577,6 @@
        = 44px Trefferflaeche. Der volle Text steht im aria-label und im title. */
     .btn.icon-gh.plan-auto { width: 34px; padding: 0; }
     .pa-w { display: none; }
-  }
-
-  /* ---------- Sehr schmale Geraete: der vierte Knopf passt nicht mehr ----------
-     Gemessen am 16.08.2026: Bei 320px braucht die Werkzeugzeile 300px (Wochenumschalter 168
-     + drei Symbole a 34 + drei Abstaende a 10) und hat 277px. Sie bricht um, und die
-     Kopfzeile waechst von 42 auf 86px - genau die Hoehe, die im Sheet den Tageskarten fehlt
-     (TROUBLESHOOTING 60). Ab 360px passt es mit 32px Luft.
-
-     Unter 360px wandert der Planer deshalb ins Ueberlaufmenue, statt eine zweite Zeile
-     aufzumachen. Es bleibt bei EINEM sichtbaren Weg: Was hier erscheint, verschwindet oben. */
-  @media (max-width: 359px) {
-    .plan-tools .plan-auto { display: none; }
-    .plan-menu .menu [data-mi="autoplan"] { display: flex; }
 
     /* ---------- Kein zweiter Scroller im Wischstreifen ----------
        Der Plan-Reiter war zwischenzeitlich eine Flaeche fester Hoehe, in der die
@@ -2853,6 +2840,24 @@
       background: var(--surface-2); border-color: var(--border); color: var(--text);
     }
     .wg-actions .wg-recalc:hover { background: var(--surface-2); border-color: var(--accent); }
+  }
+
+  /* ---------- Sehr schmale Geraete: der vierte Knopf passt nicht mehr ----------
+     Gemessen am 16.08.2026: Bei 320px braucht die Werkzeugzeile 300px (Wochenumschalter 168
+     + drei Symbole a 34 + drei Abstaende a 10) und hat 277px. Sie bricht um, und die
+     Kopfzeile waechst von 42 auf 86px - genau die Hoehe, die im Sheet den Tageskarten fehlt
+     (TROUBLESHOOTING 60). Ab 360px passt es mit 32px Luft.
+
+     Unter 360px wandert der Planer deshalb ins Ueberlaufmenue, statt eine zweite Zeile
+     aufzumachen. Es bleibt bei EINEM sichtbaren Weg: Was hier erscheint, verschwindet oben.
+
+     DIESER BLOCK STEHT BEWUSST HINTER DEM 680px-BLOCK, nicht darin. Ein erster Anlauf hat ihn
+     mittendrin eingefuegt und dabei den 680px-Block vorzeitig geschlossen - alles Folgende
+     (Wischstreifen, Tagesleiste, Wochenziele) galt danach nur noch unter 360px, und auf dem
+     Handy stand die ganze App untereinander. Siehe TROUBLESHOOTING 97. */
+  @media (max-width: 359px) {
+    .plan-tools .plan-auto { display: none; }
+    .plan-menu .menu [data-mi="autoplan"] { display: flex; }
   }
 
   /* ---------- Erste Schritte (Onboarding) ----------

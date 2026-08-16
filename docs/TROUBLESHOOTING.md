@@ -2441,3 +2441,48 @@ nichts — fr/mi/ab decken den Tag schon ab, der Snack bekommt höchstens einen 
 Der Testfall muss den großen Rest **erzwingen**: hohes Ziel, absichtlich kleine Gerichte, damit
 der Deckel bei fr/mi/ab greift. Dann zeigt die Gegenprobe den Unterschied unmittelbar —
 `["ks1","ks1","ks1","ks1"]` gegen `["ks1","ks2"]`.
+
+## 97. Eine Klammer zu früh: der halbe 680px-Block landete in einer 360px-Abfrage
+
+**Fund des Nutzers am 16.08.2026, direkt nach dem Push:** „Bei Home kann man nicht mehr nach
+links und rechts wischen und bei den Wochentagen auch nicht, es ist alles untereinander."
+
+Ursache war ein CSS-Eingriff von zwei Zeilen. Der neue 359px-Block wurde **mitten in den
+680px-Block** geschrieben, und dessen öffnende Klammer damit vorzeitig geschlossen:
+
+```css
+@media (max-width: 680px) {
+  …
+  .pa-w { display: none; }
+  }                          /* ← schliesst den 680px-Block hier */
+
+@media (max-width: 359px) {
+  .plan-tools .plan-auto { display: none; }
+  /* ab hier stand der GESAMTE Rest des 680px-Blocks: */
+  .week { overflow-x: auto; scroll-snap-type: x mandatory; … }
+  .daybar { … }
+  .wg-cols { … }
+}                            /* die urspruengliche Klammer schliesst jetzt DIESEN Block */
+```
+
+**Die gesamte mobile Ansicht galt damit nur noch unter 360 px.** Auf jedem echten Handy
+(360–430 px) fiel `.week` auf das Desktop-Raster zurück — die sieben Tage untereinander, kein
+Snap-Streifen, keine Wischgeste. Dasselbe auf der Startseite bei den Wochenzielen.
+
+**Warum es kein Prüfstand gemerkt hat:** Der Layout-Prüfstand maß das *neue Bauteil* — Knopfbreite,
+Zeilenhöhe, Trefferfläche — und das war alles korrekt. Gemessen wurde die Umgebung nicht.
+
+**Zwei Regeln, die daraus folgen:**
+
+1. **Einen neuen `@media`-Block nie zwischen bestehende Regeln setzen**, sondern hinter das Ende
+   des Blocks, in dem man gerade liest. Wo das Ende liegt, wird gezählt, nicht geschätzt —
+   der 680px-Block ist 375 Zeilen lang, sein Ende steht nicht auf demselben Bildschirm wie
+   seine Regeln zur Werkzeugleiste.
+2. **Ein Prüfstand für ein Bauteil muss die Umgebung mitmessen.** Der Layout-Prüfstand prüft
+   jetzt bei jeder Breite: `.daybar` sichtbar, `.week` mit `overflow-x: auto` und
+   `scroll-snap-type: x`, `scrollWidth > clientWidth`, und dasselbe für `.wg-cols` auf der
+   Startseite. Am Rechner die Gegenrichtung (`display: grid`, Tagesleiste aus).
+
+**Schnellprüfung nach jeder CSS-Änderung** — sie hätte den Fehler in einer Sekunde gefunden:
+Klammerbilanz des `<style>`-Blocks zählen und die Grenzen aller `@media`-Blöcke ausgeben. Ein
+Block, der plötzlich viel kürzer ist als vorher, ist genau dieser Fehler.

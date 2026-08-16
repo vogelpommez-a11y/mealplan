@@ -1394,6 +1394,23 @@ Fünf Fallen, die dabei Zeit gekostet haben:
   blieb wortlos bei „laeuft…" stehen, was wie ein Timeout aussieht. Im eingebetteten JS immer
   `\\n` schreiben (der bestehende Code tut das an jeder anderen Stelle).
 
+**Der Prüfstand misst seit dem 16.08.2026 auch die Umgebung, nicht nur das neue Bauteil.** Ein
+CSS-Eingriff in der Werkzeugleiste hatte den 680px-Block zerlegt und damit die komplette mobile
+Ansicht abgeschaltet (TROUBLESHOOTING §97) — während jede Prüfung zum Knopf selbst grün blieb.
+Neu je Breite: `.daybar` sichtbar, `.week` mit `overflow-x: auto` und `scroll-snap-type: x`,
+`scrollWidth > clientWidth`, dasselbe für `.wg-cols` auf der Startseite, und am Rechner die
+Gegenrichtung (`display: grid`, Tagesleiste aus).
+
+Das Skript kennt dafür einen **Sabotage-Schalter** (`--sabotage`), der genau diesen Fehler in der
+Prüfkopie nachbaut. Er gehört zur Prüfung dazu: Ohne ihn ist nicht belegt, dass die neue Gruppe
+den Fehler überhaupt sieht. Mit ihm meldet sie bei 390 px `overflow-x=visible snap=none
+display=grid` und fünf rote Zeilen.
+
+**Vor jeder CSS-Änderung an einem Media-Block: Klammerbilanz und Blockgrenzen zählen.** Ein
+Zehnzeiler in Python über den `<style>`-Inhalt gibt Start- und Endzeile jedes `@media`-Blocks aus.
+Wird ein Block plötzlich kürzer, ist eine Klammer zu früh gesetzt — der Fehler ist in einer
+Sekunde sichtbar und sonst erst am Gerät.
+
 **Und die Falle aus §60 hat wieder zugeschlagen:** Nach einem Lauf, der ins Timeout gelaufen war,
 blieb der Server auf Port 8181 stehen und lieferte weiter die **alte** Seite aus — drei Läufe
 lang. Das Skript prüft den Port jetzt beim Start und bricht mit einer Anleitung ab, statt still
