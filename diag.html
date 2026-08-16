@@ -17,7 +17,7 @@
 <button onclick="navigator.clipboard.writeText(document.getElementById('out').textContent).then(()=>alert('Kopiert'))">Ergebnis kopieren</button>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
-import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
+import { getAuth, onAuthStateChanged, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
 import { getFirestore, doc, getDoc, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 
 const out = document.getElementById("out");
@@ -47,6 +47,11 @@ try {
     Object.keys(d.plans[w][t]).forEach(s => n += (d.plans[w][t][s] || []).length)));
   log("  Eintraege im Plan: " + n);
 } catch (e) { log("LOKAL: Lesefehler " + e.message); }
+
+// DIESELBE Persistenz wie die App (index.html: setPersistence(auth, browserLocalPersistence)).
+// Ohne das nimmt das SDK seinen Standard (IndexedDB) und findet die in localStorage abgelegte
+// Sitzung nicht - die Seite meldete dann "nicht angemeldet", obwohl die App laeuft.
+await setPersistence(auth, browserLocalPersistence).catch(() => {});
 
 onAuthStateChanged(auth, async (user) => {
   log("");
