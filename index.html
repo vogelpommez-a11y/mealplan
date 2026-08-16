@@ -3623,6 +3623,14 @@
           }, function () { cb(null, false); });   // Lesefehler als null melden, NICHT als leere Liste - sonst laese der Aufrufer daraus einen Rauswurf
         },
         putMember: function (gid, uid, data) { return setDoc(doc(db, "groups", gid, "members", uid), data, { merge: true }); },
+        // Bin ich in DIESER Gruppe schon eingetragen? Liefert null, wenn die Frage nicht
+        // beantwortbar ist (ein Nichtmitglied darf die Mitgliederliste nicht lesen - genau
+        // dann lautet die Antwort aber ohnehin "nein, noch nicht").
+        istMitglied: function (gid, uid) {
+          return getDoc(doc(db, "groups", gid, "members", uid))
+            .then(function (s) { return s.exists(); })
+            .catch(function () { return false; });
+        },
         setRole: function (gid, uid, role) { return updateDoc(doc(db, "groups", gid, "members", uid), { role: role }); },
         removeMember: function (gid, uid) { return deleteDoc(doc(db, "groups", gid, "members", uid)); },
 
@@ -14832,12 +14840,24 @@
       // ist ohnehin die ehrlichere Reihenfolge: Es gibt nur EINE Quelle der Wahrheit, und
       // zwischen Pruefung und Beitritt koennte sonst jemand anderes den letzten Platz nehmen.
       const role = inv.role === "view" ? "view" : "edit";
-      // Atomar: Mitgliedschaft und memberCount in EINEM Batch. Einzeln wuerde die Regel es
-      // ablehnen (siehe CloudGroup.joinAtomic).
-      await window.CloudGroup.joinAtomic(inv.gid, syncUid, {
+      const daten = {
         name: profile.name || "", avatar: await smallAvatar(state.profileImage),
         role: role, via: code, joinedAt: Date.now()
-      });
+      };
+      // Stehe ich in dieser Gruppe SCHON? Dann ist das kein Beitritt, sondern eine Rueckkehr -
+      // etwa wenn das Konto zwischenzeitlich auf eine andere Gruppe zeigte. Dann darf der
+      // Zaehler NICHT steigen: Es kommt ja niemand hinzu.
+      //
+      // Ohne diese Unterscheidung waere die Rueckkehr sogar unmoeglich - die update-Regel
+      // verlangt fuer den +1-Zweig ausdruecklich, dass ich vorher KEIN Mitglied bin, der Batch
+      // fiele also komplett durch. Genau dieser Fall ist am 16.08.2026 aufgetreten.
+      if (await window.CloudGroup.istMitglied(inv.gid, syncUid)) {
+        await window.CloudGroup.putMember(inv.gid, syncUid, daten);
+      } else {
+        // Atomar: Mitgliedschaft und memberCount in EINEM Batch. Einzeln wuerde die Regel es
+        // ablehnen (siehe CloudGroup.joinAtomic).
+        await window.CloudGroup.joinAtomic(inv.gid, syncUid, daten);
+      }
       // Nur mitlesende Mitglieder duerfen laut Regel gar nichts in die Gruppe schreiben -
       // ihre eigenen Meals bleiben deshalb im eigenen Konto liegen, statt hier an einer
       // abgelehnten Schreiboperation haengen zu bleiben.
@@ -14869,15 +14889,20 @@
       // inv kann hier noch null sein (fetchInvite() selbst ist gescheitert, bevor inv zugewiesen
       // wurde) - dann bleibt lastGroupAttempt null, statt beim Lesen von inv.gid erneut zu werfen.
       lastGroupAttempt = (inv && inv.gid) || null;
-      // "permission-denied" heisst beim Beitritt praktisch immer: die Gruppe ist voll. Der
-      // Einladungscode wurde oben ja bereits erfolgreich gelesen, und die Regel laesst genau
-      // zwei Gruende fuer eine Absage - kein Platz mehr, oder ein Code, der auf eine andere
-      // Gruppe zeigt. Letzteres kann ueber einen echten Link nicht passieren.
+      // Die Meldung nennt MOEGLICHE Gruende und behauptet keinen bestimmten.
       //
-      // Bewusst ohne Zahl: Wie gross die Gruppe ist, geht Aussenstehende nichts an.
-      const voll = e && e.code === "permission-denied";
-      toast(voll
-        ? "Diese Gruppe ist schon voll."
+      // Vorher stand hier "Diese Gruppe ist schon voll", sobald ein "permission-denied" kam -
+      // mit der Begruendung, das heisse beim Beitritt "praktisch immer" genau das. Das war eine
+      // Annahme, und sie war falsch: Am 16.08.2026 lehnte die Regel den Beitritt ab, weil der
+      // Client bereits den Zaehler mitschrieb, die neuen Regeln aber noch nicht veroeffentlicht
+      // waren. Die App behauptete daraufhin ein volles Haus bei einer Gruppe mit einer einzigen
+      // Person, und die Fehlersuche lief eine Stunde in die falsche Richtung.
+      //
+      // Eine Fehlermeldung darf raten - aber sie muss es kenntlich machen. Aus einem Fehlercode
+      // auf EINE Ursache zu schliessen ist nur zulaessig, wenn es wirklich nur eine gibt.
+      const abgelehnt = e && e.code === "permission-denied";
+      toast(abgelehnt
+        ? "Der Beitritt wurde abgelehnt. Vielleicht ist die Gruppe voll oder die Einladung gilt nicht mehr."
         : "Der Beitritt hat nicht geklappt. Bitte den Link noch einmal öffnen.");
     } finally {
       groupTransition = false;
@@ -15778,60 +15803,6 @@
   // ---------- Boot ----------
   boot();
 
-  // ---------- Voruebergehend: Sync-Diagnose ueber ?diag=1 ----------
-  // Warum IN der App und nicht als eigene Seite: Eine separate Seite bekommt die Anmeldung
-  // nicht zu faellen (die App legt sie per browserLocalPersistence ab, eine frische
-  // Auth-Instanz sucht woanders), und auf einem Android-Handy gibt es keine Konsole, mit der
-  // man nachsehen koennte. Hier laeuft alles im echten Zustand der App - syncUid, syncGid und
-  // CloudGroup sind genau die Objekte, die auch der Wochenplan benutzt.
-  //
-  // Nach der Fehlersuche ersatzlos entfernen.
-  if (location.search.indexOf("diag=1") !== -1) {
-    setTimeout(async function () {
-      const z = [];
-      const box = document.createElement("pre");
-      box.style.cssText = "position:fixed;inset:8px;z-index:99999;overflow:auto;background:#111;color:#eee;border:2px solid #c62828;border-radius:10px;padding:12px;font:13px/1.5 monospace;white-space:pre-wrap;word-break:break-word";
-      document.body.appendChild(box);
-      const schreib = function (s) { z.push(s); box.textContent = z.join("\n"); };
-      schreib("SYNC-DIAGNOSE — zum Schliessen Seite neu laden\n");
-      schreib("angemeldet als: " + (syncUid ? syncUid.slice(0, 8) + "…" : "NEIN"));
-      schreib("authMode: " + authMode);
-      schreib("syncGid (aktive Gruppe): " + (syncGid || "KEINE"));
-      schreib("state.groupId: " + (state.groupId || "(leer)"));
-      schreib("myRole: " + (myRole || "-"));
-      schreib("groupMembers: " + groupMembers.length);
-      schreib("groupSyncFailed: " + groupSyncFailed);
-      schreib("state.recipes (lokal): " + state.recipes.length);
-      schreib("Wochen lokal: " + Object.keys(state.plans || {}).join(", "));
-      let n = 0;
-      Object.keys(state.plans || {}).forEach(function (w) {
-        DAYS.forEach(function (d) { MEALS.forEach(function (m) {
-          n += ((state.plans[w][d.key] || {})[m.key] || []).length; }); });
-      });
-      schreib("Eintraege im Plan (lokal): " + n);
-      const gid = syncGid || state.groupId;
-      if (!gid || !window.CloudGroup) { schreib("\nKeine Gruppe — Ende."); return; }
-      schreib("\n--- direkt aus der Cloud ---");
-      try {
-        const r = await window.CloudSync.loadRecipes(["groups", gid]);
-        schreib("Rezepte in der Gruppe: " + ((r.recipes || r || []).length));
-      } catch (e) { schreib("Rezepte FEHLER: " + (e && e.code) + " " + (e && e.message)); }
-      try {
-        const p = await window.CloudGroup.loadPlans(gid);
-        schreib("Planwochen: " + p.map(function (x) { return x.week; }).join(", "));
-        p.forEach(function (x) {
-          let k = 0;
-          Object.keys(x.fields).forEach(function (f) { if (Array.isArray(x.fields[f])) k += x.fields[f].length; });
-          schreib("  " + x.week + ": " + k + " Eintraege");
-        });
-      } catch (e) { schreib("Plaene FEHLER: " + (e && e.code) + " " + (e && e.message)); }
-      try {
-        const m = await window.CloudGroup.fetchMembers(gid);
-        schreib("Mitglieder: " + m.members.length + (m.fromCache ? " (aus dem Cache)" : ""));
-      } catch (e) { schreib("Mitglieder FEHLER: " + (e && e.code)); }
-      schreib("\nBitte abfotografieren und schicken.");
-    }, 3000);
-  }
 })();
 </script>
 <script>

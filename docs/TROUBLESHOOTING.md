@@ -2646,15 +2646,56 @@ Stattdessen entscheidet die Regel, und der `catch` in `joinGroup()` übersetzt
 `permission-denied` in „Diese Gruppe ist schon voll." Das ist ohnehin die ehrlichere Reihenfolge:
 eine einzige Quelle der Wahrheit, und kein Rennen zwischen Prüfung und Beitritt.
 
-### Die Reihenfolge beim Deployment ist nicht optional
+### Die Reihenfolge beim Deployment — und warum „nichts bricht" falsch war
 
 **Erst der Client, dann die Regeln.** Umgekehrt verlangen die Regeln ein Feld, das noch niemand
 geschrieben hat — die bestehende Gruppe wäre sofort unbenutzbar.
 
-1. Client pushen (enthält `migrateMemberCount()`). Regeln noch alt → nichts bricht.
+1. Client pushen (enthält `migrateMemberCount()`).
 2. Als Inhaber die App öffnen, dann in der Firebase Console prüfen, dass
    `groups/{gid}.memberCount` steht und zur Mitgliederzahl passt.
-3. Erst dann die Regeln veröffentlichen.
+3. **Sofort danach** die Regeln veröffentlichen.
+
+**Zwischen Schritt 1 und 3 ist der Beitritt kaputt, und das ist keine Kleinigkeit.** Der
+ursprüngliche Plan behauptete an dieser Stelle „Regeln noch alt → nichts bricht". Das war falsch
+und hat am 16.08.2026 real Schaden angerichtet:
+
+`joinAtomic()` schreibt **zwei** Dokumente in einem Batch — den Mitglieder-Eintrag *und*
+`memberCount` im Gruppendokument. Die alten Regeln erlauben `groups/{gid}`-Updates aber nur dem
+**Inhaber**. Für alle anderen fällt damit der ganze Batch durch, und der Beitritt ist unmöglich.
+
+Verschärft wurde es durch die damalige Fehlermeldung, die jedes `permission-denied` als „Diese
+Gruppe ist schon voll" ausgab — bei einer Gruppe mit **einer** Person. Die Fehlersuche lief
+daraufhin eine Stunde in die falsche Richtung, am Ende wurde die Gruppe gelöscht, und dabei ging
+der Wochenplan verloren (siehe nächster Abschnitt).
+
+**Die Lehre ist allgemeiner als dieser Fall:** Ein Client, der neue Regeln *voraussetzt*, ist
+nicht abwärtskompatibel, nur weil er „zusätzlich" etwas schreibt. Vor jedem Deploy in dieser
+Reihenfolge gehört die Frage beantwortet: *Welche Schreibvorgänge des neuen Clients lehnen die
+alten Regeln ab?* Sind es welche, muss das Zeitfenster so kurz wie möglich sein — oder der Client
+braucht einen Rückfallpfad.
+
+### Gruppe auflösen nimmt den Wochenplan mit
+
+`dissolveGroup()` ruft erst `dissolveGroupFirestore()` (löscht alle Pläne, Meals, Mitglieder und
+das Gruppendokument in einem Batch) und danach `leaveGroup()`, das Plan und Meals als **eigene
+Kopie** sichern soll:
+
+```js
+const keepRecipes = state.recipes.slice();
+const keepPlans = JSON.parse(JSON.stringify(state.plans || {}));
+```
+
+Am 16.08.2026 kam dabei ein **leerer** Plan heraus. Der Grund liegt in der Reihenfolge: Zwischen
+dem Löschen in Firestore und dem Snapshot feuert der `watchPlans`-Listener und räumt die
+gelöschten Wochen aus `state.plans`. Gesichert wird dann, was übrig ist — nichts. Anschließend
+schreibt `leaveGroup()` diesen leeren Stand ins eigene Konto und überschreibt damit auch die
+letzte Kopie.
+
+**Wer das behebt**, muss den Snapshot **vor** `dissolveGroupFirestore()` ziehen (oder die
+Listener vorher abmelden) und ihn an `leaveGroup()` übergeben, statt ihn dort neu zu bilden.
+Solange das offen ist: **Vor dem Auflösen einer Gruppe exportieren**, wenn der Plan noch gebraucht
+wird.
 
 **Rollback:** alte Regeln aus der Git-Historie erneut veröffentlichen. Der Client bleibt
 lauffähig — `memberCount` ist dann ein Feld, das niemand liest.
