@@ -27,6 +27,13 @@ def block(start_sig, end_sig):
     if a is None or b is None: raise SystemExit("BLOCK: " + start_sig)
     return "\n".join(lines[a:b + 1])
 
+# Genau EINE Zeile. Nicht ueber block(sig, sig) loesbar: dort sucht das elif das Ende erst ab
+# der Folgezeile und findet bei gleicher Signatur nie eines.
+def zeile(sig):
+    for z in lines:
+        if z.startswith(sig): return z
+    raise SystemExit("ZEILE NICHT GEFUNDEN: " + sig)
+
 teile = [
     block("  const DAYS = [", "  ];"),
     block("  const MEALS = [", "  ];"),
@@ -50,7 +57,11 @@ teile = [
     # Slot-Eintraege und Zuweisung (Regel 6 / Gruppenfall).
     schnitt("  function entryId("),
     schnitt("  function entryUids("),
+    schnitt("  function entryIsShared("),
     schnitt("  function makeEntry("),
+    # Seit dem 16.08.2026 fragt auch der Planer, ob eine Zeile noch fuer alle gilt - dieselbe
+    # Frage, die der Picker an fuenf Stellen stellt.
+    schnitt("  function slotIsShared("),
     schnitt("  function makeEmptyPlan("),
     # Wochenschluessel - der Undo-Pfad haengt daran.
     schnitt("  function isoWeekKey("),
@@ -91,8 +102,17 @@ teile = [
     schnitt("  function planAdopt("),
     schnitt("  function planTagKcal("),
     schnitt("  function planRecentIds("),
-    # Gedaechtnis des Planers (state.planned)
-    block("  const PLAN_GEDAECHTNIS_WOCHEN = ", "  }"),
+    # Gedaechtnis des Planers (state.planned).
+    #
+    # Konstante und Funktion werden GETRENNT geschnitten, seit die Konstante am 16.08.2026 nach
+    # ganz oben gewandert ist (direkt vor `let state = load()`, wegen der temporalen Totzone -
+    # siehe dort). Ein block() ab ihrer Zeile bis zur naechsten "  }" zog danach den halben
+    # State-Aufbau mitsamt `let state = load()` herein und kollidierte mit dem Stub oben:
+    # "Identifier 'state' has already been declared". Der Pruefstand lief dann gar nicht mehr an,
+    # und das Log blieb leer statt rot - deshalb im Zweifel `python syntax-check.py` auf die
+    # GENERIERTE Datei werfen, es nimmt einen Pfad entgegen.
+    zeile("  const PLAN_GEDAECHTNIS_WOCHEN = "),
+    schnitt("  function sanitizePlanned("),
     # weekKeyBack samt seinem Puffer - die let-Zeile davor gehoert dazu, sonst wirft die
     # Funktion beim ersten Aufruf (im ersten Anlauf genau so passiert).
     block("  let weekBackCache = ", "  }"),
@@ -346,19 +366,79 @@ function bestand() {
   autoPlanWeek();
   pruef("in der Gruppe plant auch ein Mitglied ohne Pro", alleEintraege().length > 0, true);
 
-  // ---- Gruppe: Zuweisung nur an mich ----
+  // ---- Gruppe: der Planer traegt niemanden FREMDES allein ein ----
+  // Bis zum 16.08.2026 stand hier "jeder Eintrag zaehlt nur fuer mich". Das galt, solange der
+  // Planer ausnahmslos sich selbst eintrug - und genau das war der Fehler (siehe naechste
+  // Gruppe). Die Zusage, die bleibt, ist eine andere: Was individuell zugewiesen wird, gehoert
+  // MIR. Der Planer weist niemals einer anderen Person etwas zu; das waere Fremdplanung.
   frischerPlan(bestand());
   syncGid = "g1"; myRole = "edit"; syncUid = "ich"; groupMembers = [{ uid: "ich" }, { uid: "du" }];
   autoPlanWeek();
-  pruef("in der Gruppe zaehlt jeder Eintrag nur fuer mich",
+  pruef("individuell zugewiesen wird nur an mich",
     alleEintraege().every(function (x) {
-      var u = entryUids(x.e); return !!u && u.length === 1 && u[0] === "ich"; }), true);
-  pruef("kein Eintrag ist eine geteilte Objektreferenz",
+      var u = entryUids(x.e); return u === null || (u.length === 1 && u[0] === "ich"); }), true);
+  pruef("kein Eintrag ist eine geteilte OBJEKTreferenz",
     (function () {
-      var e = alleEintraege().map(function (x) { return x.e; });
+      // Nur Objekte pruefen: Zwei "fuer alle"-Eintraege sind derselbe String, und Strings sind
+      // unveraenderlich - bei ihnen ist Wertgleichheit kein Problem, sondern der Normalfall.
+      var e = alleEintraege().map(function (x) { return x.e; }).filter(function (x) { return typeof x === "object"; });
       for (var i = 0; i < e.length; i++) for (var j = i + 1; j < e.length; j++) if (e[i] === e[j]) return false;
       return true;
     })(), true);
+
+  // ---- Leere Zeile heisst "fuer alle" ----
+  // Gefunden am Geraet zu zweit: Der Planer trug ausnahmslos sich selbst ein, 31 von 31
+  // Eintraegen trugen ein Badge. Der gemeinsame Plan war voll und fuer die andere Person
+  // trotzdem leer. Der Picker macht es an fuenf Stellen anders (slotIsShared), der Planer war
+  // die Ausnahme.
+  frischerPlan(bestand());
+  syncGid = "g1"; myRole = "edit"; syncUid = "ich"; groupMembers = [{ uid: "ich" }, { uid: "du" }];
+  autoPlanWeek();
+  pruef("in leere Zeilen plant der Planer fuer ALLE",
+    DAYS.every(function (d) {
+      return ["fr", "mi", "ab"].every(function (m) {
+        var arr = state.plan[d.key][m];
+        return !arr.length || entryIsShared(arr[0]);
+      });
+    }), true);
+  pruef("und zwar wirklich als blanker String (nicht als Objekt mit allen uids)",
+    typeof state.plan.mon.fr[0], "string");
+  // Gegenprobe zur Bilanz: Ein "fuer alle" zaehlt in JEDER Bilanz, auch in meiner.
+  pruef("das Gericht zaehlt weiterhin in meiner Tagesbilanz",
+    dayNutOf(state.plan, "mon").kcal > 0, true);
+
+  // Die ZWEITE Portion bleibt individuell - "wir essen dasselbe, ich zweimal".
+  frischerPlan(bestand(), { kcal: 3600, carbs: 360, protein: 260, fat: 110 });
+  syncGid = "g1"; myRole = "edit"; syncUid = "ich"; groupMembers = [{ uid: "ich" }, { uid: "du" }];
+  autoPlanWeek();
+  (function () {
+    var doppelt = null;
+    DAYS.forEach(function (d) {
+      ["fr", "mi", "ab"].forEach(function (m) {
+        if (!doppelt && state.plan[d.key][m].length === 2) doppelt = state.plan[d.key][m];
+      });
+    });
+    pruef("bei zwei Portionen gibt es so einen Slot ueberhaupt", !!doppelt, true);
+    pruef("die erste Portion gilt fuer alle", doppelt ? entryIsShared(doppelt[0]) : null, true);
+    pruef("die zweite gehoert nur mir",
+      doppelt ? JSON.stringify(entryUids(doppelt[1])) : null, JSON.stringify(["ich"]));
+  })();
+
+  // Steht in der Zeile schon eine FREMDE Zuweisung, wird daraus kein "fuer alle" - sonst
+  // schriebe der Planer der anderen Person ihr eigenes Gericht um.
+  frischerPlan(bestand());
+  syncGid = "g1"; myRole = "edit"; syncUid = "ich"; groupMembers = [{ uid: "ich" }, { uid: "du" }];
+  state.plan.mon.fr.push({ id: "fr3", uids: ["du"] });   // passt nicht in den fr-Slot? doch: Fruehstueck
+  autoPlanWeek();
+  pruef("neben einer fremden Zuweisung entsteht kein fuer-alle",
+    state.plan.mon.fr.every(function (e) { return !entryIsShared(e); })
+      || state.plan.mon.fr.length === 1, true);
+
+  // Und allein aendert sich gar nichts: makeEntry liefert ohnehin die String-Form.
+  frischerPlan(bestand());
+  autoPlanWeek();
+  pruef("allein bleibt alles wie bisher fuer alle",
+    alleEintraege().every(function (x) { return entryIsShared(x.e); }), true);
 
   // ---- Regel 5: dem vorhandenen Eintrag BEITRETEN ----
   // Bis zum 16.08.2026 legte der Planer hier einen ZWEITEN Eintrag an - zwei Karten mit

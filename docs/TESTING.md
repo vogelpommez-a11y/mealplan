@@ -1293,7 +1293,7 @@ Dass die Tagesziele mit ausgeschnitten werden statt gestubbt, ist der Punkt: Ein
 `goalTargetsForDay = () => 2000` hätte die Prüfung „Trainingstag bekommt mehr eingeplant"
 grün und wertlos gemacht.
 
-141 Prüfungen, gegliedert nach den fünf Regeln. Die wichtigen sind die **Ausschlüsse**:
+149 Prüfungen, gegliedert nach den fünf Regeln. Die wichtigen sind die **Ausschlüsse**:
 
 * Meals ohne Nährwerte und Barcode-Schnellprodukte kommen nicht in die Auswahl.
 * Ein veganes Profil bekommt **nie** ein Gericht ohne den Tag — auch nicht, wenn neun Meals
@@ -1414,6 +1414,7 @@ Referenz trennt „ersetzt" von „mutiert" — und genau daran hängt der Undo-
 | Beitritt **mutierend** (`altUids.push(syncUid)`) | die Ersetzt-Prüfungen fallen | 5 von 141 rot |
 | vegan auf `+= 50` — **mit** `Math.min(8, …)` | Deckel greift, Zeile bleibt grün | „mehr als 8 gibt es nicht" = 8 ✔ |
 | dieselbe Übertreibung **ohne** `Math.min` | Deckel fehlt, Zeile fällt | 53 statt 8 |
+| `slotGemeinsam` entfernt (wieder immer `meineUids()`) | die „für alle"-Prüfungen fallen | 3 von 149 rot |
 
 Die dritte war nicht optional: Bei der ersten Gegenprobe blieben „das fremde Objekt wurde
 ersetzt" und „Rückgängig stellt den fremden Eintrag her" **grün** — ohne Beitritt wird eben
@@ -1431,6 +1432,30 @@ bleibt. Wer einen Grenzwert prüfen will, muss an die Grenze gehen, nicht danebe
 Gruppe. Alle übrigen Beiträge (Kategorie, Protein, Größe) sind in beiden Läufen gleich und kürzen
 sich heraus — übrig bleibt exakt der neue Beitrag (`5` bzw. gedeckelte `8`). Ein Vergleich am
 Planergebnis wäre durch die gewichtete Ziehung verrauscht gewesen.
+
+### Ein leeres Log ist kein grünes Log (16.08.2026)
+
+Nach dem TDZ-Fix (`PLAN_GEDAECHTNIS_WOCHEN` wanderte vor `let state = load()`) blieb das `<pre>`
+des Prüfstands **komplett leer** — keine Zeile, kein „JS-FEHLER". Ursache: Der Extraktor schnitt
+`block("  const PLAN_GEDAECHTNIS_WOCHEN = ", "  }")` und zog nach dem Umzug den halben
+State-Aufbau samt `let state = load()` mit herein. Das kollidierte mit dem Stub oben
+(`Identifier 'state' has already been declared`), und ein **Parse**-Fehler verhindert, dass
+`window.onerror` überhaupt registriert wird — der Fehlerhaken sitzt ja im selben Block.
+
+Zwei Werkzeuge dafür, beide vorhanden:
+
+* `python syntax-check.py tools/pruefstand-autoplaner.html` — das Skript **nimmt einen Pfad
+  entgegen** und prüft jede erzeugte Seite genauso wie `index.html`.
+* Im Zweifel das `<pre id="log">` **roh** ansehen statt gefiltert. Ein Filter auf `FEHL|ALLE`
+  liefert bei leerem Log dasselbe Bild wie bei einem sauberen Lauf: nichts.
+
+**Merksatz:** Ein Prüfstand, der nichts sagt, hat nicht bestanden — er hat nicht stattgefunden.
+Deshalb gehört in jede Auswertung eine Zeile, die *positiv* bestätigt, dass gelaufen wurde
+(hier: „ALLE n PRUEFUNGEN GRUEN"), und nicht bloß die Abwesenheit von Fehlern.
+
+Dieselbe Sitzung lieferte den Gegenpol: eine Prüfung, die den Extraktor **nicht** mitzog. Wird im
+Produktionscode eine neue Funktion benutzt (`slotIsShared` im Planer), muss sie in `teile`
+aufgenommen werden — sonst endet der Lauf in `ReferenceError`, diesmal immerhin sichtbar.
 
 ### Eine Prüfung, die den Würfel misst, ist schlimmer als keine
 

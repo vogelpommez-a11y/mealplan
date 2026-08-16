@@ -1868,6 +1868,21 @@ geteilt oder mir zugewiesen? Ein Eintrag, der nur anderen Mitgliedern gehört, l
 mich offen. Genau daran hängt Regel 5: `planUebernahme()` sieht dann nach, ob deren Gericht auch
 zu meinem Profil passt, und nimmt dasselbe.
 
+**`slotGemeinsam` — der Planer fragt jetzt dieselbe Frage wie der Picker** (16.08.2026). Vor dem
+Einfügen wird `slotIsShared(tag, slot)` einmal ausgewertet; ist die Zeile leer oder rein
+gemeinsam, bekommt der **erste** Eintrag `null` als `uids` („für alle"), jeder weitere
+`meineUids()`. Vorher trug der Planer ausnahmslos die eigene UID ein — als einzige Stelle der
+App, denn die fünf manuellen Einplan-Wege stellen die Frage seit jeher:
+
+```js
+state.plan[day][meal].push(slotIsShared(day, meal) ? id : makeEntry(id, [syncUid]));
+```
+
+`slotIsShared()` ist bei leerem Slot `true` (`every` auf leerem Array). **Der Wert muss VOR der
+Portionsschleife festgehalten werden** — nach dem ersten Einfügen wäre die Antwort eine andere,
+und die zweite Portion würde ebenfalls „für alle", also zwei Portionen für jeden statt zwei für
+mich.
+
 **`planUebernahme()` liefert `{ r, idx }`, nicht nur das Rezept** (16.08.2026). Der Index ist der
 Grund für die Änderung: Der Planer legt im Übernahmefall **keinen zweiten Eintrag** mehr an,
 sondern trägt sich am vorhandenen ein —

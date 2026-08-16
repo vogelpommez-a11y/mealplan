@@ -331,6 +331,31 @@ abnehmen sollte.
    3000, 2000 und 1800 kcal essen dasselbe Gericht in unterschiedlicher Anzahl. Passt es nicht
    zum eigenen Profil, wird ein anderes gewählt.
 
+### Eine leere Zeile heißt „für alle" (16.08.2026)
+
+Am Gerät zu zweit fiel auf: Der Planer trug **ausnahmslos sich selbst** ein. 31 von 31 Einträgen
+trugen ein Namensschild. Der gemeinsame Wochenplan war randvoll — und für die andere Person
+trotzdem leer, ihre Tagesbilanz stand auf null.
+
+Der Maßstab lag längst in der App: Beim **manuellen** Einplanen entsteht in einer leeren Zeile
+ein „für alle"-Gericht (`slotIsShared()`, an fünf Stellen). Der Auto-Planer war die einzige
+Ausnahme. Er stellt jetzt dieselbe Frage.
+
+**Das ist keine Fremdplanung.** Über das Kalorienziel der anderen wird nichts entschieden — jede
+Bilanz rechnet weiter gegen ihr eigenes Ziel — und ein Klick auf das Personen-Symbol nimmt das
+Gericht wieder heraus. Entschieden wird nur, **was gekocht wird**, und gemeinsam kochen ist der
+Normalfall. Der darf keinen Zusatzklick kosten.
+
+Die Grenze bleibt sauber:
+
+* **Erste Portion** einer leeren Zeile → für alle.
+* **Jede weitere** → nur mir. „Wir essen dasselbe, ich zweimal" — genau die Aussage, für die es
+  Mehrfacheinträge in der Gruppe überhaupt gibt.
+* **Beim Snack** ebenso: Die Zahl der Snacks hängt an meinem Restbudget, wer ein kleineres Ziel
+  hat, soll nicht automatisch drei Kleinigkeiten mitessen.
+* Steht in der Zeile schon eine **fremde Zuweisung**, entsteht kein „für alle" — sonst schriebe
+  der Planer jemandem sein eigenes Gericht um.
+
 ### Beitreten statt doppeln (16.08.2026)
 
 Der erste Test zu zweit zeigte, dass Regel 5 zwar das richtige Gericht wählte, aber einen

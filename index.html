@@ -11862,6 +11862,28 @@
         const liste = wahl[m.key];
         const uebernommen = planUebernahme(d.key, m.key);
 
+        // Gilt das ERSTE Gericht in diesem Slot fuer alle? Dieselbe Frage, die der Picker
+        // seit jeher stellt - dort steht an fuenf Stellen woertlich
+        //
+        //   state.plan[day][meal].push(slotIsShared(day, meal) ? id : makeEntry(id, [syncUid]));
+        //
+        // und slotIsShared() ist bei einem LEEREN Slot true (every auf leerem Array). Von Hand
+        // eingeplant entsteht in einer leeren Zeile also ein "fuer alle"-Eintrag; der Planer war
+        // die einzige Stelle der App, die stattdessen immer nur sich selbst eintrug.
+        //
+        // Die Folge sah man erst am Geraet zu zweit: 31 von 31 Eintraegen trugen ein Badge, der
+        // gemeinsame Plan war voll und fuer die andere Person trotzdem leer. Gemeinsam kochen ist
+        // der Normalfall - der muss ohne Zusatzklick entstehen.
+        //
+        // Das ist KEINE Fremdplanung: Ueber das Kalorienziel der anderen wird nichts entschieden
+        // (jede Bilanz rechnet weiter gegen ihr eigenes), und ein Klick auf das Personen-Symbol
+        // nimmt das Gericht wieder heraus. Entschieden wird nur, was gekocht wird.
+        //
+        // VOR der Schleife festgehalten: Nach dem ersten Einfuegen waere die Antwort eine andere,
+        // und dann bekaeme auch die zweite Portion ein "fuer alle" - zwei Portionen fuer jeden
+        // statt zwei fuer mich.
+        const slotGemeinsam = slotIsShared(d.key, m.key);
+
         // Der Snack-Slot bekommt VERSCHIEDENE Snacks, nicht ein Vielfaches desselben.
         // Vorher rechnete auch er `round(rest / kcal)` - bei einem 150-kcal-Shake und
         // 600 kcal Rest ergab das vier Stueck desselben Getraenks. Als Mahlzeit isst man
@@ -11876,7 +11898,10 @@
             // Ein weiterer Snack nur, wenn der Rest ihn im Wesentlichen noch traegt -
             // sonst schoebe die Zeile den Tag ueber das Ziel.
             if (offen < skcal * 0.6) break;
-            state.plan[d.key][m.key].push(makeEntry(planId(s), meineUids()));
+            // Der erste Snack gilt fuer alle, jeder weitere nur mir: Die Zahl der Snacks haengt
+            // an MEINEM Restbudget, und wer ein kleineres Ziel hat, soll nicht automatisch drei
+            // Kleinigkeiten mitessen.
+            state.plan[d.key][m.key].push(makeEntry(planId(s), k === 0 && slotGemeinsam ? null : meineUids()));
             offen -= skcal;
             gesetzt++;
           }
@@ -11948,9 +11973,12 @@
           }
           // makeEntry je Eintrag neu: eine gemeinsame Objektreferenz mehrfach im Plan waere
           // eine Falle fuer jede spaetere Aenderung an genau einem der Eintraege.
-          // In der Gruppe zaehlt der Eintrag nur in MEINER Bilanz und Einkaufsmenge; allein
-          // liefert makeEntry ohnehin die schlichte String-Form ("fuer alle").
-          state.plan[d.key][m.key].push(makeEntry(rid, meineUids()));
+          //
+          // Die erste Portion in einer leeren Zeile gilt fuer alle (siehe slotGemeinsam oben),
+          // jede weitere nur mir: "wir essen dasselbe, ich zweimal" - genau die Aussage, fuer
+          // die es die Mehrfacheintraege in der Gruppe ueberhaupt gibt.
+          // Allein liefert makeEntry ohnehin die schlichte String-Form.
+          state.plan[d.key][m.key].push(makeEntry(rid, i === 0 && slotGemeinsam ? null : meineUids()));
         }
         offen -= n * kcal;
         gesetzt += n;
