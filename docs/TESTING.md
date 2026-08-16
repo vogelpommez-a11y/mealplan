@@ -1487,23 +1487,36 @@ Drei Gegenproben, jede einzeln gefahren:
 
 **Die Firestore-Regeln selbst.** Es gibt kein Node und keinen Emulator im Projekt (CLAUDE.md
 Ziffer 12), und die Regeln sind die *verbindliche* Grenze — der Prüfstand sichert nur, dass der
-Client sie überhaupt bedienen kann. Diese Lücke ist keine Nachlässigkeit, sondern muss bewusst
-von Hand geschlossen werden: **Rules Playground** in der Firebase Console, vor jedem Deploy.
+Client sie überhaupt bedienen kann.
 
-| # | Vorgang | erwartet |
+### Der Rules Playground hilft hier nur zur Hälfte — und täuscht in der anderen
+
+**Der Playground simuliert immer genau EINE Operation, nie einen Batch.** Für Regeln, die mit
+`getAfter()` zwei Dokumente koppeln, ist er damit nicht nur nutzlos, sondern **irreführend**:
+Beim simulierten `create` auf `members/{uid}` bleibt das Gruppendokument unangetastet, also ist
+`grpAfter(gid) == grpNow(gid)`, die Bedingung `== grpNow + 1` schlägt fehl — und ein völlig
+korrekter Beitritt erscheint als **verweigert**. Wer das für einen Befund hält, sucht einen
+Fehler, den es nicht gibt.
+
+Im Playground sinnvoll prüfbar sind deshalb nur die Einzeloperationen auf `groups/{gid}`:
+
+| # | Vorgang (als Update auf `groups/{gid}`) | erwartet |
 |---|---|---|
-| 1 | Beitritt bei `memberCount: 3` | erlaubt |
-| 2 | Beitritt bei `memberCount: 4` | **verweigert** |
-| 3 | member-create **ohne** Zähler-Update im Batch | **verweigert** |
-| 4 | `memberCount` 4 → 3 ohne Löschung, als Mitglied | **verweigert** |
-| 5 | Inhaber ändert den Gruppennamen | erlaubt, Zähler unberührt |
-| 6 | Inhaber trägt `memberCount` erstmalig nach | erlaubt (Migration) |
-| 7 | Inhaber ändert Name **und** Zähler zugleich | **verweigert** |
-| 8 | `dissolve`-Batch | erlaubt, obwohl das Gruppendokument danach fehlt |
-| 9 | Invite für eine volle Gruppe erstellen | **verweigert** |
+| 1 | `memberCount` 4 → 3, als Mitglied, ohne Austritt | **verweigert** |
+| 2 | Inhaber ändert nur den Gruppennamen | erlaubt |
+| 3 | Inhaber ändert Name **und** `memberCount` zugleich | **verweigert** |
+| 4 | Inhaber trägt `memberCount` erstmalig nach (Feld fehlt vorher) | erlaubt (Migration) |
+| 5 | `invites`-create für eine Gruppe mit `memberCount: 4` | **verweigert** |
 
-Szenario 8 ist das wichtigste: Ohne die `!existsAfter()`-Ausnahme ließe sich eine Gruppe nie
-wieder auflösen (`docs/TROUBLESHOOTING.md`, Punkt 101).
+Alles mit Batch — Beitritt, Austritt, Entfernen, `dissolve` — **muss in der echten App
+abgenommen werden**. Der `dissolve`-Fall ist dabei der wichtigste: Ohne die
+`!existsAfter()`-Ausnahme ließe sich eine Gruppe nie wieder auflösen
+(`docs/TROUBLESHOOTING.md`, Punkt 101), und das merkt man erst am Gerät.
+
+**Merksatz:** Ein Werkzeug, das eine Frage nicht beantworten *kann*, antwortet trotzdem. Vor dem
+Verlassen auf ein Prüfwerkzeug gehört die Frage, ob es den geprüften Mechanismus überhaupt
+abbilden kann — sonst misst man seine Grenzen statt des Codes. Dieselbe Klasse Fehler wie die
+Prüfung, die den Würfel statt der Bewertung maß (Abschnitt oben).
 
 ### Der Layout-Prüfstand liegt im Scratchpad, nicht im Projekt
 
