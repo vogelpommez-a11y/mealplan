@@ -2379,3 +2379,65 @@ der Platz da, und ein echtes Maß ist einem Trick vorzuziehen, wo beides möglic
 
 **Prüfregel:** Wer der Leiste einen Knopf hinzufügt, misst dessen `getBoundingClientRect()`
 **und** `getComputedStyle(el, "::after")`. Eine der beiden Zahlen muss 44 ergeben.
+
+## 95. Der Automatismus braucht eine engere Kategorie-Bindung als der Picker
+
+**Fund des Nutzers am 16.08.2026, einen Tag nach dem Live-Gang von D2:** Der Auto-Wochenplaner
+lieferte *sechsmal Joghurt als Mittagessen und vier Shakes als Snack*.
+
+Zwei Ursachen, die sich gegenseitig verstärkten:
+
+**1. `catFitsMeal()` ist absichtlich großzügig.**
+
+```js
+function catFitsMeal(cat, mealKey) {
+  const bound = CAT_TO_MEAL[cat];
+  return !bound || bound.indexOf(mealKey) !== -1;   // !bound = passt ueberall
+}
+```
+
+`CAT_TO_MEAL` kennt nur Frühstück, Hauptgericht, Snack und Dessert. **Beilage, Getränk und jede
+unbekannte Kategorie fallen in den `!bound`-Zweig und passen damit in jeden Slot.** Für den
+Picker ist das richtig und war es immer: Wer einen Shake zum Mittag einplanen will, soll das
+dürfen, und ein geteiltes Meal mit fremder Kategorie darf nicht unplanbar werden.
+
+Ein Automatismus, der dieselbe Freiheit nutzt, trifft diese Entscheidung aber für den Nutzer —
+und dann ist sie falsch. Der Planer fragt seit dem 16.08.2026 `catPlanFitsMeal()`, das nur
+**exakte** Treffer zulässt.
+
+**2. Der Planer hatte zu wenig Auswahl.** Er sah nur `state.recipes`. Nach dem Onboarding sind
+das fünf Startmeals — bei drei Haupt-Slots muss die Rotation auf demselben Gericht landen.
+Behoben durch das Rezeptbuch als zweite Kandidatenquelle.
+
+**Die Lehre, die über diesen Fall hinausgeht:** Eine Regel, die für eine *Auswahl durch Menschen*
+gebaut ist, taugt nicht unbesehen für eine *Auswahl durch die App*. Der Mensch sieht, was er
+wählt, und korrigiert sofort; der Automatismus legt 28 Einträge an und niemand prüft jeden
+einzeln. Wer eine bestehende Prüffunktion in einem neuen Automatismus wiederverwendet, muss
+zuerst fragen, welche Freiheit sie absichtlich lässt.
+
+**Falle beim Prüfen dieser Regel:** Der erste Prüfstand-Anlauf war grün und bewies nichts. Mit
+einem normalen Bestand verdrängt schon die Bewertung (`planRang`) die losen Kandidaten aus den
+Top drei — die Gegenprobe färbte nur eine einzige Zeile rot. Erst ein Testfall mit *wenigen*
+exakt passenden Gerichten und einem losen Kandidaten mit Meal-Prep und hohem Proteinanteil
+erzwingt den Fehler. Und die drei losen Fälle müssen **einzeln** laufen: In einem gemeinsamen
+Testfall verdrängten sie sich gegenseitig, der kategorielose fiel um 0,5 Punkte heraus.
+
+## 96. Vier Portionen desselben Snacks — dieselbe Formel, zwei Bedeutungen
+
+Aus demselben Fund vom 16.08.2026. `anzahl = round(budget / kcal)` ist bei Frühstück, Mittag und
+Abend genau richtig: Es ist der Kern des Gruppen-Konzepts (zweimal Porridge bei 3000 kcal,
+einmal bei 1800).
+
+Beim **Snack-Slot** bedeutet dieselbe Formel etwas anderes. Er bekommt nicht einen Anteil,
+sondern den **Rest** des Tages — und der ist groß. Bei einem 150-kcal-Shake und 600 offenen kcal
+ergibt das vier Stück desselben Getränks. Rechnerisch korrekt, als Mahlzeit unbrauchbar.
+
+Der Snack-Slot füllt jetzt mit **verschiedenen** Snacks, jeder höchstens einmal pro Tag. Bleibt
+danach etwas offen, wird es im Toast benannt statt mit Wiederholungen kaschiert.
+
+**Prüffalle, die zwei Anläufe gekostet hat:** Ein Testfall mit normalem Bestand beweist hier
+nichts — fr/mi/ab decken den Tag schon ab, der Snack bekommt höchstens einen Eintrag, und
+„keine Dublette" ist dann auch mit der alten Formel erfüllt. Die Gegenprobe blieb komplett grün.
+Der Testfall muss den großen Rest **erzwingen**: hohes Ziel, absichtlich kleine Gerichte, damit
+der Deckel bei fr/mi/ab greift. Dann zeigt die Gegenprobe den Unterschied unmittelbar —
+`["ks1","ks1","ks1","ks1"]` gegen `["ks1","ks2"]`.

@@ -642,13 +642,24 @@
      ueberlaufendem Text (gemessen). */
   .btn.icon-gh.shop-ic { width: auto; padding: 0 12px; gap: 8px; font-size: 13px; font-weight: 600; }
   .shop-ic svg { color: var(--accent); }
-  /* Auto-Wochenplaner (D2). Gleiche Bauart wie der Einkaufsknopf daneben: Ghost mit
+  /* Auto-Wochenplaner (D2). Exakt dieselbe Bauart wie der Einkaufsknopf daneben: Ghost mit
      Akzent-Symbol, nicht gefuellt - die Wochen-Pille in derselben Zeile traegt schon den
      Akzent-Gradienten, zwei Akzentflaechen nebeneinander konkurrieren (siehe .shop-ic).
-     Er behaelt sein Wort auf JEDEM Geraet: "Einkaufsliste" erraet man am Wagen, "planen"
-     an keinem Symbol. Statt das Wort zu opfern, bekommt er ab 720px eine eigene Zeile. */
-  .btn.plan-auto { padding: 0 12px; height: 34px; gap: 8px; font-size: 13px; font-weight: 600; }
+
+     Und wie dort gilt: Der Selektor MUSS .btn.icon-gh mitnehmen, sonst gewinnt dessen
+     width:34px mit zwei Klassen und der Knopf bliebe quadratisch mit ueberlaufendem Text
+     (TROUBLESHOOTING 62).
+
+     Er trug bis zum 16.08.2026 auf dem Handy eine eigene, volle Zeile. Das kostete die
+     Kopfzeile rund 54px - Hoehe, die im Sheet fester Hoehe den Tageskarten fehlt, genau der
+     Fall aus TROUBLESHOOTING 60. Jetzt weicht stattdessen das Wort (.pa-w), wie beim
+     Einkaufsknopf: ein Muster fuer denselben Platzmangel, nicht zwei. */
+  .btn.icon-gh.plan-auto { width: auto; padding: 0 12px; gap: 8px; font-size: 13px; font-weight: 600; }
   .plan-auto svg { color: var(--accent); }
+  /* Derselbe Befehl steht zusaetzlich im Ueberlaufmenue - aber nur auf sehr schmalen
+     Geraeten, siehe den 359px-Block. Im Regelfall ist er dort ausgeblendet, damit es nicht
+     zwei sichtbare Wege zu derselben Aktion gibt. */
+  .plan-menu .menu [data-mi="autoplan"] { display: none; }
   /* Klebende Tagesbilanz: nur auf dem Handy. Am Rechner steht sie in jeder der sieben
      Tageskarten - eine achte, gemeinsame Leiste waere dort sinnlos. Hier ist das
      Nur-auf-einem-Geraet richtig, weil dieselbe INFORMATION am Rechner schon woanders
@@ -2403,12 +2414,10 @@
     /* Der Icon-Knopf (Woche leeren) bleibt quadratisch neben den Tabs -
        ohne diese Ausnahme wuerde er durch die Regel darueber in die Breite gezogen. */
     .plan-tools .icon-gh { flex: none; }
-    /* D2: eigene, volle Zeile unter dem Wochenumschalter. Die Werkzeugzeile ist bei 360px
-       bis auf wenige Pixel voll (siehe .shop-ic im 560px-Block) - ein vierter Knopf DARIN
-       waere entweder ein raetselhaftes Symbol oder ein Umbruch mit halber Breite.
-       Auf der eigenen Zeile ist Platz fuer die vollen 44px Trefferflaeche - die 34px oben
-       sind eine Rechner-Groesse und brauchen dort keinen hitSlop-Trick (TROUBLESHOOTING #38). */
-    .plan-tools .plan-auto { flex: 1 0 100%; height: 44px; justify-content: center; }
+    /* Der Planer-Knopf traegt .icon-gh und faellt damit unter die Regel darueber
+       (flex: none) - er wird also nicht in die Breite gezogen und braucht hier nichts
+       Eigenes mehr. Bis zum 16.08.2026 stand hier `flex: 1 0 100%`, das ihm eine eigene
+       Zeile gab; siehe die Begruendung bei .btn.icon-gh.plan-auto. */
     .week { gap: 12px; }
     .recipes { gap: 12px; }
     .imgfield { flex-direction: column; align-items: stretch; }
@@ -2564,6 +2573,23 @@
        Damit greift wieder .btn.icon-gh: 34px + 5px hitSlop = 44px Trefferflaeche. */
     .btn.icon-gh.shop-ic { width: 34px; padding: 0; }
     .sh-w { display: none; }
+    /* Dieselbe Rechnung fuer den Planer-Knopf: Wort weg, Symbol bleibt, 34px + 5px hitSlop
+       = 44px Trefferflaeche. Der volle Text steht im aria-label und im title. */
+    .btn.icon-gh.plan-auto { width: 34px; padding: 0; }
+    .pa-w { display: none; }
+  }
+
+  /* ---------- Sehr schmale Geraete: der vierte Knopf passt nicht mehr ----------
+     Gemessen am 16.08.2026: Bei 320px braucht die Werkzeugzeile 300px (Wochenumschalter 168
+     + drei Symbole a 34 + drei Abstaende a 10) und hat 277px. Sie bricht um, und die
+     Kopfzeile waechst von 42 auf 86px - genau die Hoehe, die im Sheet den Tageskarten fehlt
+     (TROUBLESHOOTING 60). Ab 360px passt es mit 32px Luft.
+
+     Unter 360px wandert der Planer deshalb ins Ueberlaufmenue, statt eine zweite Zeile
+     aufzumachen. Es bleibt bei EINEM sichtbaren Weg: Was hier erscheint, verschwindet oben. */
+  @media (max-width: 359px) {
+    .plan-tools .plan-auto { display: none; }
+    .plan-menu .menu [data-mi="autoplan"] { display: flex; }
 
     /* ---------- Kein zweiter Scroller im Wischstreifen ----------
        Der Plan-Reiter war zwischenzeitlich eine Flaeche fester Hoehe, in der die
@@ -3748,6 +3774,19 @@
   }
   // Vorschlagsrang im Picker: passt die Kategorie GENAU zu diesem Slot (nicht nur "erlaubt")?
   function catSuggestsMeal(cat, mealKey) { return (CAT_TO_MEAL[cat] || []).indexOf(mealKey) !== -1; }
+  // Der AUTO-PLANER fragt hier, nicht bei catFitsMeal - und das ist der Unterschied zwischen
+  // "der Mensch entscheidet" und "die App entscheidet".
+  //
+  // catFitsMeal ist absichtlich grosszuegig: Beilage, Getraenk und jede unbekannte Kategorie
+  // (geteilte oder sehr alte Meals) passen dort ueberall hin, damit nichts unplanbar wird.
+  // Fuer den Picker ist das richtig - wer einen Shake zum Mittag einplanen will, soll das
+  // duerfen. Ein Automatismus, der dieselbe Freiheit nutzt, legt aber vier Shakes ins
+  // Mittagessen, und genau das ist am 16.08.2026 passiert.
+  //
+  // Deshalb plant die App nur, was GENAU zu diesem Slot gehoert. Die Kehrseite gehoert dazu:
+  // Beilagen, Getraenke und Meals ohne bekannte Kategorie werden nie automatisch eingeplant.
+  // Von Hand bleibt jeder Slot unveraendert frei bebaubar.
+  function catPlanFitsMeal(cat, mealKey) { return catSuggestsMeal(cat, mealKey); }
 
   // ---------- Merkmale eines Meals (Tags, Meal-Prep) ----------
   // Bewusst eine FESTE Liste statt freier Tags: nur so kann der Filter (Meals-Reiter) und
@@ -8667,7 +8706,7 @@
                Anders als der Einkaufsknopf behaelt er sein Wort auch auf dem Handy - er
                rutscht dort per CSS (.plan-auto) in eine eigene Zeile, weil "Woche planen"
                als Symbol allein nicht erratbar waere. -->
-          ${canEdit() && goalTargets(1) ? `<button class="btn ghost plan-auto" data-action="auto-plan" title="Woche automatisch planen" aria-label="Woche automatisch planen">${TOOL_ICONS.wand}<span>Woche planen</span></button>` : ""}
+          ${canEdit() && goalTargets(1) ? `<button class="btn ghost icon-gh plan-auto" data-action="auto-plan" title="Woche automatisch planen" aria-label="Woche automatisch planen">${TOOL_ICONS.wand}<span class="pa-w">Woche planen</span></button>` : ""}
           <!-- B3: "Woche leeren" stand hier bis 13.08.2026 gleichrangig neben der
                Einkaufsliste - eine destruktive Aktion mit derselben Prominenz wie das
                meistgenutzte Werkzeug, direkt daneben. Jetzt im Ueberlaufmenue; die
@@ -11238,7 +11277,7 @@
       <p>Diese Website wird bei GitHub Pages gehostet, einem Dienst der GitHub, Inc., 88 Colin P. Kelly Jr. Street, San Francisco, CA 94107, USA. Beim Aufruf der Seite verarbeitet GitHub technisch notwendige Zugriffsdaten (z. B. deine IP-Adresse), um die Seite auszuliefern und deren Sicherheit zu gewährleisten. Rechtsgrundlage ist unser berechtigtes Interesse an einer sicheren und effizienten Bereitstellung (Art. 6 Abs. 1 lit. f DSGVO). Dabei kann eine Übermittlung in die USA erfolgen. Weitere Infos: <a href="https://docs.github.com/de/site-policy/privacy-policies/github-general-privacy-statement" target="_blank" rel="noopener">GitHub Privacy Statement</a>.</p>
       <h4>3. Welche Daten wir verarbeiten</h4>
       <p><strong>Zwei Betriebsarten – und nur eine davon verarbeitet Daten bei uns.</strong> Du kannst die App <strong>ohne Konto</strong> nutzen: Dann bleiben deine Plan- und Profildaten ausschließlich auf deinem Gerät (Browser-Speicher), sie werden <strong>weder an uns noch an Firebase übertragen</strong>, und wir haben keinen Zugriff darauf. Unabhängig davon lädt dein Browser beim Aufruf der Seite die Software für die Cloud-Funktionen von Google-Servern nach und übermittelt dabei deine <strong>IP-Adresse</strong> – das passiert auch ohne Konto und ist in Ziffer 5 beschrieben. Wir fragen dabei nur einen frei wählbaren <strong>Namen</strong> ab; eine E-Mail-Adresse ist optional und verlässt das Gerät ebenfalls nicht. Der folgende Abschnitt beschreibt die zweite Betriebsart: die Nutzung <strong>mit Konto</strong> (Cloud-Synchronisierung), für die du dich aktiv entscheidest. Löschst du die Websitedaten deines Browsers, sind lokal gespeicherte Angaben unwiederbringlich weg – im Betrieb ohne Konto haben wir keine Kopie davon.</p>
-      <p>Bei der Registrierung: <strong>Name und E-Mail-Adresse</strong>. Bei Nutzung der App: die von dir angelegten <strong>Wochenpläne, Meals/Rezepte und ggf. Fotos</strong> sowie ein optionales <strong>Profilbild</strong> (als Kreis-Avatar zugeschnitten, in deinem Nutzerkonto gespeichert, nicht Teil von Teilen-Links) sowie – im Rahmen der Einführungsfragen zu Beginn, die zur Nutzung der App erforderlich sind – <strong>Geschlecht, Alter, Größe, Gewicht, Alltagsbewegung und Ziel</strong> sowie optional deine <strong>Trainingstage</strong> (Wochentag, Intensität und Dauer) und deinen <strong>Körperfettanteil</strong> (als grobe Stufe; Details zu beidem siehe Ziffer 3a) sowie – ebenfalls optional – deine <strong>Auswahl, welche Meals dir vorgeschlagen werden sollen</strong> (vegetarisch, vegan oder ohne Einschränkung; dazu wahlweise glutenfrei und/oder laktosefrei). Erstellst du Teilen-Links, merkt sich dein Konto zusätzlich deren <strong>Kennungen</strong> (keine Klardaten, siehe Ziffer 8), damit sie beim Löschen deines Kontos zugeordnet und mitentfernt werden können. Nutzt du „Gemeinsam planen", speichert dein Konto außerdem die <strong>Kennung deiner Gruppe</strong> sowie die Kennungen der von dir erstellten <strong>Einladungslinks</strong> – aus demselben Grund (siehe Ziffer 8a); an einem in einer Gruppe angelegten Meal wird zusätzlich deine <strong>Nutzerkennung</strong> vermerkt, damit sichtbar ist, wer es angelegt hat. Weist du ein geplantes Gericht nur einem Teil der Gruppe zu (statt „für alle"), wird für dieses Gericht zusätzlich vermerkt, welche Mitglieder es per <strong>Nutzerkennung</strong> essen – sichtbar für die ganze Gruppe als kleines Farb-Badge auf der Meal-Karte. Stellst du in der Einkaufsliste eine <strong>Personenanzahl</strong> ein, wird auch diese gespeichert. Markierst du Meals als <strong>Favorit</strong>, wird diese Auswahl ebenfalls in deinem Konto gespeichert – nur für dich, auch in einer Gruppe. Übernimmst du ein Rezept aus dem mitgelieferten <strong>Rezeptbuch</strong>, entsteht eine Kopie in deiner Sammlung; an ihr wird zusätzlich die <strong>Kennung des Ursprungsrezepts</strong> vermerkt, damit sich eine später korrigierte Fassung zuordnen lässt. Damit du nicht mit einer leeren Sammlung beginnst, legen wir am Ende der Einführungsfragen <strong>fünf solcher Kopien</strong> für dich an – ausgewählt passend zu deiner Angabe, welche Meals dir vorgeschlagen werden sollen. Sie gehören dann dir und lassen sich wie jedes andere Meal bearbeiten oder löschen. Stimmst du der Speicherung deines <strong>Gewichtsverlaufs</strong> ausdrücklich zu, speichern wir je Eintrag Kalenderwoche und Gewicht sowie ein optionales <strong>Jahres-Zielgewicht</strong> (Details und Widerruf siehe Ziffer 3b). Ist für dein Konto die kostenpflichtige <strong>Pro-Stufe</strong> freigeschaltet, speichern wir dazu ein eigenes Dokument mit dem <strong>Pro-Status</strong>, der <strong>Herkunft der Freischaltung</strong> (manuell, Apple oder Google) und gegebenenfalls einem <strong>Ablaufdatum</strong>. Dieses Dokument kann die App nur lesen, nicht ändern – gesetzt wird es ausschließlich von uns bzw. künftig vom Bezahlvorgang des jeweiligen App-Stores. Es wird mit deinem Konto gelöscht (Ziffer 10). Eine Bezahlfunktion gibt es derzeit nicht. Diese Daten speichern wir, damit du dich anmelden und deine Planung geräteübergreifend nutzen kannst.</p>
+      <p>Bei der Registrierung: <strong>Name und E-Mail-Adresse</strong>. Bei Nutzung der App: die von dir angelegten <strong>Wochenpläne, Meals/Rezepte und ggf. Fotos</strong> sowie ein optionales <strong>Profilbild</strong> (als Kreis-Avatar zugeschnitten, in deinem Nutzerkonto gespeichert, nicht Teil von Teilen-Links) sowie – im Rahmen der Einführungsfragen zu Beginn, die zur Nutzung der App erforderlich sind – <strong>Geschlecht, Alter, Größe, Gewicht, Alltagsbewegung und Ziel</strong> sowie optional deine <strong>Trainingstage</strong> (Wochentag, Intensität und Dauer) und deinen <strong>Körperfettanteil</strong> (als grobe Stufe; Details zu beidem siehe Ziffer 3a) sowie – ebenfalls optional – deine <strong>Auswahl, welche Meals dir vorgeschlagen werden sollen</strong> (vegetarisch, vegan oder ohne Einschränkung; dazu wahlweise glutenfrei und/oder laktosefrei). Erstellst du Teilen-Links, merkt sich dein Konto zusätzlich deren <strong>Kennungen</strong> (keine Klardaten, siehe Ziffer 8), damit sie beim Löschen deines Kontos zugeordnet und mitentfernt werden können. Nutzt du „Gemeinsam planen", speichert dein Konto außerdem die <strong>Kennung deiner Gruppe</strong> sowie die Kennungen der von dir erstellten <strong>Einladungslinks</strong> – aus demselben Grund (siehe Ziffer 8a); an einem in einer Gruppe angelegten Meal wird zusätzlich deine <strong>Nutzerkennung</strong> vermerkt, damit sichtbar ist, wer es angelegt hat. Weist du ein geplantes Gericht nur einem Teil der Gruppe zu (statt „für alle"), wird für dieses Gericht zusätzlich vermerkt, welche Mitglieder es per <strong>Nutzerkennung</strong> essen – sichtbar für die ganze Gruppe als kleines Farb-Badge auf der Meal-Karte. Stellst du in der Einkaufsliste eine <strong>Personenanzahl</strong> ein, wird auch diese gespeichert. Markierst du Meals als <strong>Favorit</strong>, wird diese Auswahl ebenfalls in deinem Konto gespeichert – nur für dich, auch in einer Gruppe. Übernimmst du ein Rezept aus dem mitgelieferten <strong>Rezeptbuch</strong>, entsteht eine Kopie in deiner Sammlung; an ihr wird zusätzlich die <strong>Kennung des Ursprungsrezepts</strong> vermerkt, damit sich eine später korrigierte Fassung zuordnen lässt. Damit du nicht mit einer leeren Sammlung beginnst, legen wir am Ende der Einführungsfragen <strong>fünf solcher Kopien</strong> für dich an – ausgewählt passend zu deiner Angabe, welche Meals dir vorgeschlagen werden sollen. Sie gehören dann dir und lassen sich wie jedes andere Meal bearbeiten oder löschen. Dasselbe geschieht, wenn der <strong>automatische Wochenplaner</strong> ein Rezept aus dem Rezeptbuch in deine Woche einplant: Auch dabei entsteht eine solche Kopie in deiner Sammlung – die App nennt dir direkt danach die Anzahl und bietet an, den Vorgang rückgängig zu machen. Stimmst du der Speicherung deines <strong>Gewichtsverlaufs</strong> ausdrücklich zu, speichern wir je Eintrag Kalenderwoche und Gewicht sowie ein optionales <strong>Jahres-Zielgewicht</strong> (Details und Widerruf siehe Ziffer 3b). Ist für dein Konto die kostenpflichtige <strong>Pro-Stufe</strong> freigeschaltet, speichern wir dazu ein eigenes Dokument mit dem <strong>Pro-Status</strong>, der <strong>Herkunft der Freischaltung</strong> (manuell, Apple oder Google) und gegebenenfalls einem <strong>Ablaufdatum</strong>. Dieses Dokument kann die App nur lesen, nicht ändern – gesetzt wird es ausschließlich von uns bzw. künftig vom Bezahlvorgang des jeweiligen App-Stores. Es wird mit deinem Konto gelöscht (Ziffer 10). Eine Bezahlfunktion gibt es derzeit nicht. Diese Daten speichern wir, damit du dich anmelden und deine Planung geräteübergreifend nutzen kannst.</p>
       <h4>3a. Ziel-Berechnung (Einführungsfragen)</h4>
       <p>Zur Nutzung der App gibst du bei den Einführungsfragen zu Beginn <strong>Geschlecht, Alter, Größe und Gewicht</strong> sowie deine Alltagsbewegung und dein Ziel an – ohne diese Angaben lässt sich kein Kalorien- und Makroziel berechnen und die App steht dir nicht zur Verfügung. Optional legst du zusätzlich deine <strong>Trainingstage</strong> fest – also an welchen Wochentagen du trainierst, mit welcher Intensität und wie lange; diese Angabe kannst du auch weglassen. Ebenfalls optional wählst du eine grobe Stufe für deinen <strong>Körperfettanteil</strong> – gibst du sie an, berechnet die App deinen Grundumsatz nach der Katch-McArdle-Formel über die fettfreie Masse statt nach Mifflin-St-Jeor; wählst du „Weiß ich nicht", bleibt es bei Mifflin-St-Jeor. Daraus berechnet die App direkt in deinem Browser deinen Tagesbedarf, deine Makronährstoffe und deinen BMI; an Trainingstagen zusätzlich den geschätzten Mehrbedarf durch die jeweilige Einheit. Übernimmst du das Ergebnis als dein Ziel, werden diese Angaben wie deine übrigen Plandaten lokal und – bei Cloud-Nutzung – in deinem Nutzerkonto (Cloud Firestore, siehe Ziffer 5) gespeichert, um sie geräteübergreifend verfügbar zu halten. Du kannst dein Ziel jederzeit über den Knopf „Ziel neu berechnen" im Wochenplan neu berechnen; die vorherigen Werte sind dann durch die neuen ersetzt. Rechtsgrundlage ist wie unter Ziffer 4 die Erfüllung des Nutzungsvertrags (Art. 6 Abs. 1 lit. b DSGVO). Diese Angaben werden <strong>nicht</strong> in Teilen-Links aufgenommen (siehe Ziffer 8).</p>
       <h4>3b. Gewichtsverlauf („Ziele &lt;Jahr&gt;")</h4>
@@ -11385,12 +11424,34 @@
       return !uids || uids.indexOf(syncUid) !== -1;
     });
   }
-  // Was kommt ueberhaupt in Frage? Ohne Naehrwerte laesst sich nicht rechnen - solche Meals
-  // werden ausgeschlossen und NICHT geschaetzt (in einer Fitness-App ist eine erfundene
-  // Zahl schlimmer als ein fehlendes Gericht). Barcode-Schnellprodukte (quick) bleiben
-  // ueber libraryRecipes() ohnehin draussen.
+  // Was kommt ueberhaupt in Frage? ZWEI Quellen, und die zweite ist der Grund, warum der
+  // Planer ueberhaupt brauchbar ist:
+  //
+  //   1. der eigene Bestand (libraryRecipes)
+  //   2. das Rezeptbuch (cookbookVisible), sofern noch nicht uebernommen
+  //
+  // Ohne Quelle 2 plant die App nach dem Onboarding aus FUENF Startmeals - bei drei
+  // Haupt-Slots landet die Rotation dann zwangslaeufig sieben Tage lang auf demselben
+  // Gericht. Genau das ist am 16.08.2026 passiert (sechsmal derselbe Joghurt zum Mittag),
+  // waehrend 34 kuratierte Rezepte danebenlagen.
+  //
+  // cookbookVisible() filtert bereits ueber fitsDiet() - der Katalog kann also nie etwas
+  // liefern, das der Ernaehrungsform widerspricht. isAdopted() haelt Dubletten heraus: Ein
+  // schon uebernommenes Rezept liegt im eigenen Bestand und kommt ueber Quelle 1.
+  //
+  // Ohne Naehrwerte laesst sich nicht rechnen - solche Meals werden ausgeschlossen und NICHT
+  // geschaetzt (in einer Fitness-App ist eine erfundene Zahl schlimmer als ein fehlendes
+  // Gericht). Barcode-Schnellprodukte (quick) bleiben ueber libraryRecipes() ohnehin draussen.
+  //
+  // `__cb` markiert einen Katalog-Kandidaten. Es sitzt an einer FLACHEN KOPIE, nie am
+  // Katalogeintrag selbst: COOKBOOK ist gemeinsamer Bestand, ein Feld daran wuerde die
+  // Rezeptbuch-Ansicht und jede spaetere Uebernahme mitverschmutzen.
   function planKandidaten() {
-    return libraryRecipes().filter(r => fitsDiet(r) && recipeNut(r).kcal > 0);
+    const eigene = libraryRecipes().filter(r => fitsDiet(r) && recipeNut(r).kcal > 0);
+    const katalog = cookbookVisible()
+      .filter(r => !isAdopted(r.id) && recipeNut(r).kcal > 0)
+      .map(r => Object.assign({}, r, { __cb: true }));
+    return eigene.concat(katalog);
   }
   // Bewertung eines Gerichts fuer einen Slot. Die Stufen liegen so weit auseinander, dass
   // eine hoehere nie von einer niedrigeren eingeholt wird: Kategorie schlaegt Meal-Prep,
@@ -11401,13 +11462,17 @@
     if (r.mealPrep === true) s += 10;
     const n = recipeNut(r);
     s += Math.min(9, (n.protein * 4 / n.kcal) * 20);      // Proteinanteil je kcal, gedeckelt
+    // Gleichstand geht an das EIGENE Meal. Bewusst kleiner als jeder andere Beitrag: Der
+    // Katalog soll nicht verdraengt werden, aber wer ein Gericht selbst angelegt hat, will
+    // es auch im Plan sehen.
+    if (!r.__cb) s += 0.5;
     return s;
   }
   // Die Wochengerichte einer Slot-Art. Erst mischen, dann stabil sortieren: So entscheidet
   // der Zufall nur dort, wo die Bewertung gleich ist - zwei Aufrufe liefern nicht denselben
   // Plan, aber nie ein schlechteres Gericht vor einem besseren.
   function planWochengerichte(kandidaten, mealKey) {
-    const passend = kandidaten.filter(r => catFitsMeal(r.category, mealKey));
+    const passend = kandidaten.filter(r => catPlanFitsMeal(r.category, mealKey));
     for (let i = passend.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       const t = passend[i]; passend[i] = passend[j]; passend[j] = t;
@@ -11419,9 +11484,26 @@
     const ids = state.plan[dayKey][mealKey].map(entryId);
     for (let i = 0; i < ids.length; i++) {
       const r = getRecipe(ids[i]);
-      if (r && fitsDiet(r) && recipeNut(r).kcal > 0 && catFitsMeal(r.category, mealKey)) return r;
+      if (r && fitsDiet(r) && recipeNut(r).kcal > 0 && catPlanFitsMeal(r.category, mealKey)) return r;
     }
     return null;
+  }
+  // Ein gewaehltes Katalog-Rezept in den eigenen Bestand holen und die neue id liefern.
+  //
+  // Das ist keine Bequemlichkeit, sondern Pflicht: normalizePlan() filtert jeden Slot-Eintrag
+  // gegen die vorhandenen Rezept-IDs. Ein Eintrag, der auf eine KATALOG-id zeigt, waere beim
+  // naechsten Laden lautlos verschwunden - der Plan saehe nach dem Neuladen halb leer aus,
+  // ohne dass irgendetwas einen Fehler meldet.
+  //
+  // Kopiert wird ueber copyFromCookbook(), denselben Weg wie der Uebernehmen-Knopf: eigene
+  // uid(), `lib` als Herkunft, kein Pfad in den Nutzerdaten. Zwei Kopierwege wuerden
+  // irgendwann verschiedene Felder mitnehmen.
+  function planAdopt(r, neueIds) {
+    if (!r.__cb) return r.id;
+    const kopie = copyFromCookbook(COOKBOOK.find(x => x.id === r.id) || r);
+    state.recipes.push(kopie);
+    neueIds.push(kopie.id);
+    return kopie.id;
   }
   // Was steht an diesem Tag schon fuer mich? Wird vom Snack-Rest abgezogen - sonst zaehlte
   // ein von Hand eingetragenes Fruehstueck nicht mit und der Tag laege darueber.
@@ -11450,6 +11532,18 @@
     const wahl = {};
     MEALS.forEach(m => { wahl[m.key] = planWochengerichte(kand, m.key); });
 
+    // Katalog-Rezepte werden erst kopiert, wenn sie TATSAECHLICH eingeplant werden - und
+    // dann genau einmal, auch wenn dasselbe Gericht an fuenf Tagen steht. Die Map haelt
+    // Katalog-id -> neue Bestands-id, neueIds traegt den Undo-Pfad.
+    const neueIds = [];
+    const adoptiert = {};
+    const planId = r => {
+      if (!r.__cb) return r.id;
+      if (!adoptiert[r.id]) adoptiert[r.id] = planAdopt(r, neueIds);
+      return adoptiert[r.id];
+    };
+    const meineUids = () => syncGid && syncUid ? [syncUid] : null;
+
     let gesetzt = 0;
     DAYS.forEach((d, di) => {
       const ziel = goalTargetsForDay(d.key);
@@ -11459,25 +11553,48 @@
       let offen = ziel.kcal - planTagKcal(d.key);
       MEALS.forEach(m => {
         if (!slotOpenForMe(d.key, m.key)) return;
+        const liste = wahl[m.key];
+        const uebernommen = planUebernahme(d.key, m.key);
+
+        // Der Snack-Slot bekommt VERSCHIEDENE Snacks, nicht ein Vielfaches desselben.
+        // Vorher rechnete auch er `round(rest / kcal)` - bei einem 150-kcal-Shake und
+        // 600 kcal Rest ergab das vier Stueck desselben Getraenks. Als Mahlzeit isst man
+        // zwei verschiedene Kleinigkeiten, nicht viermal dasselbe.
+        //
+        // Bei fr/mi/ab bleibt das Vielfache dagegen richtig: Es ist der Kern des
+        // Gruppen-Konzepts (2x Porridge bei 3000 kcal, 1x bei 1800).
+        if (m.key === "sn" && !uebernommen) {
+          for (let k = 0; k < liste.length && state.plan[d.key][m.key].length < PLAN_MAX_PRO_SLOT; k++) {
+            const s = liste[(di + k) % liste.length];
+            const skcal = recipeNut(s).kcal;
+            // Ein weiterer Snack nur, wenn der Rest ihn im Wesentlichen noch traegt -
+            // sonst schoebe die Zeile den Tag ueber das Ziel.
+            if (offen < skcal * 0.6) break;
+            state.plan[d.key][m.key].push(makeEntry(planId(s), meineUids()));
+            offen -= skcal;
+            gesetzt++;
+          }
+          return;
+        }
+
         // Rotation ueber den Wochentag statt Zufall je Slot: dasselbe Gericht landet an
         // mehreren Tagen, und die Reihenfolge ist nachvollziehbar (Regel 2).
-        const liste = wahl[m.key];
-        const r = planUebernahme(d.key, m.key) || (liste.length ? liste[di % liste.length] : null);
+        const r = uebernommen || (liste.length ? liste[di % liste.length] : null);
         if (!r) return;
         const kcal = recipeNut(r).kcal;
-        // Der Snack bekommt den Rest, die drei Hauptslots ihren Anteil. Beim Snack gibt es
-        // KEIN Minimum von eins: Ist der Tag rechnerisch voll, bleibt die Zeile leer,
-        // statt ihn ueber das Ziel zu schieben.
+        // Beim Snack (nur noch im Uebernahme-Fall) gibt es KEIN Minimum von eins: Ist der
+        // Tag rechnerisch voll, bleibt die Zeile leer, statt ihn ueber das Ziel zu schieben.
         const n = m.key === "sn"
           ? Math.min(PLAN_MAX_PRO_SLOT, Math.round(offen / kcal))
           : Math.max(1, Math.min(PLAN_MAX_PRO_SLOT, Math.round(ziel.kcal * PLAN_SHARE[m.key] / kcal)));
         if (n < 1) return;
+        const rid = planId(r);
         for (let i = 0; i < n; i++) {
           // makeEntry je Eintrag neu: eine gemeinsame Objektreferenz mehrfach im Plan waere
           // eine Falle fuer jede spaetere Aenderung an genau einem der Eintraege.
           // In der Gruppe zaehlt der Eintrag nur in MEINER Bilanz und Einkaufsmenge; allein
           // liefert makeEntry ohnehin die schlichte String-Form ("fuer alle").
-          state.plan[d.key][m.key].push(makeEntry(r.id, syncGid && syncUid ? [syncUid] : null));
+          state.plan[d.key][m.key].push(makeEntry(rid, meineUids()));
         }
         offen -= n * kcal;
         gesetzt += n;
@@ -11501,19 +11618,27 @@
     const diff = wZiel ? wIst.kcal - wZiel.kcal : 0;
     const protFehlt = wZiel ? wZiel.protein - wIst.protein : 0;
     const wenigAuswahl = MEALS.some(m => m.key !== "sn" && wahl[m.key].length < 2);
-    // Nur EIN Zusatz, damit der Toast kurz bleibt: die groebere Abweichung gewinnt, und
-    // kcal steht vor Protein - wer 3000 kcal zu wenig plant, hat das groessere Problem.
+    // Nur EIN Zusatz, damit der Toast kurz bleibt. Reihenfolge: die Zielverfehlung zuerst
+    // (kcal vor Protein - wer 3000 kcal zu wenig plant, hat das groessere Problem), dann die
+    // Uebernahme aus dem Rezeptbuch. Sie muss genannt werden, weil dabei still Meals im
+    // eigenen Bestand entstehen; ein stiller Zuwachs waere eine unangekuendigte Nebenwirkung.
     let msg = "Woche geplant";
     if (wZiel && Math.abs(diff) > wZiel.kcal * PLAN_TOLERANZ) {
       msg += diff < 0 ? ` · noch rund ${nfmt(-diff)} kcal offen` : ` · rund ${nfmt(diff)} kcal über dem Ziel`;
     } else if (wZiel && protFehlt > wZiel.protein * PLAN_TOLERANZ) {
       msg += ` · rund ${nfmt(protFehlt)} g Protein fehlen`;
+    } else if (neueIds.length) {
+      msg += ` · ${neueIds.length} Meal${neueIds.length === 1 ? "" : "s"} aus dem Rezeptbuch`;
     } else if (wenigAuswahl) {
       msg += " · mehr Meals bringen mehr Abwechslung";
     }
     undoToast(msg, () => {
       const p = state.plans[key]; if (!p) return;   // Woche existiert nach 5 s praktisch immer noch
       DAYS.forEach(d => MEALS.forEach(m => { p[d.key][m.key] = before[d.key][m.key]; }));
+      // Die still uebernommenen Rezeptbuch-Meals gehen MIT zurueck. Sie sind allein wegen
+      // dieses Plans entstanden - liesse man sie stehen, haette "Rueckgaengig" den Bestand
+      // veraendert, ohne dass davon je die Rede war.
+      if (neueIds.length) state.recipes = state.recipes.filter(r => neueIds.indexOf(r.id) === -1);
       save(); render();
     });
   }
@@ -12277,13 +12402,20 @@
     if (!wrap) return;
     const open = wrap.querySelector(".menu");
     if (open) { closeMenuNode(open); return; }
+    // "Woche planen" steht hier NUR fuer sehr schmale Geraete (unter 360px, siehe CSS) - dort
+    // passt der Knopf nicht mehr in die Werkzeugzeile. Der Eintrag ist immer im Markup und
+    // wird per Media Query ein- bzw. ausgeblendet: ein zweiter JS-Zweig fuer dieselbe Aktion
+    // waere ein zweiter Ort, an dem man die Bedingung pflegen muesste.
     const menu = el(`<div class="menu" role="menu">
+      ${goalTargets(1) ? `<button data-mi="autoplan" role="menuitem">${TOOL_ICONS.wand}Woche planen</button>` : ""}
       <button data-mi="batch" role="menuitem">${iconSvg("pot", "")}Vorkochen</button>
       <hr>
       <button data-mi="clear" class="destructive" role="menuitem">${TOOL_ICONS.clear}Woche leeren</button>
     </div>`);
     wrap.appendChild(menu);
     const close = attachMenuDismiss(menu, btn);
+    const auto = menu.querySelector("[data-mi='autoplan']");
+    if (auto) auto.addEventListener("click", () => { close(false); autoPlanWeek(); });
     menu.querySelector("[data-mi='batch']").addEventListener("click", () => { close(false); openBatchCooking(); });
     menu.querySelector("[data-mi='clear']").addEventListener("click", () => { close(false); clearWeek(); });
   }

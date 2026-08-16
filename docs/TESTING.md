@@ -1293,7 +1293,7 @@ Dass die Tagesziele mit ausgeschnitten werden statt gestubbt, ist der Punkt: Ein
 `goalTargetsForDay = () => 2000` hätte die Prüfung „Trainingstag bekommt mehr eingeplant"
 grün und wertlos gemacht.
 
-63 Prüfungen, gegliedert nach den fünf Regeln. Die wichtigen sind die **Ausschlüsse**:
+92 Prüfungen, gegliedert nach den fünf Regeln. Die wichtigen sind die **Ausschlüsse**:
 
 * Meals ohne Nährwerte und Barcode-Schnellprodukte kommen nicht in die Auswahl.
 * Ein veganes Profil bekommt **nie** ein Gericht ohne den Tag — auch nicht, wenn neun Meals
@@ -1323,6 +1323,36 @@ das, indem in der **generierten** Prüfseite je eine Regel ausgehebelt wurde:
 Nebenbefund aus der zweiten Sabotage: Die Ehrlichkeits-Meldung funktioniert auch nach oben
 („rund 14.060 kcal über dem Ziel"). Das wäre im Normalfall nie aufgetreten.
 
+### Nachtrag 16.08.2026: 92 Prüfungen, drei Gegenproben — und zwei blinde Tests
+
+Mit dem Rezeptbuch als zweiter Kandidatenquelle kamen Prüfungen dazu, die den **Kopierpfad**
+absichern: Jedes eingeplante Katalog-Rezept muss als Kopie im Bestand liegen, mit eigener id,
+`lib` als Herkunft und ohne Bildpfad — und `normalizePlan(state.plan, state.recipes)` darf
+**keinen** Eintrag verlieren. Genau das ist die aussagekräftigste Zeile des ganzen Prüfstands:
+Mit ausgehebeltem `planAdopt()` meldet sie `ist=0 soll=33`, also einen Plan, der beim nächsten
+Laden vollständig verschwunden wäre.
+
+Der Katalog läuft im Prüfstand **per Vorgabe aus** (`katalogAus()` in `frischerPlan()`) und wird
+nur dort zugeschaltet, wo es um ihn geht. Sonst maßen die Prüfungen zur Auswahllogik plötzlich
+gegen 34 zusätzliche Rezepte statt gegen den gebauten Testfall.
+
+**Zwei Prüfungen waren zunächst blind — beide fielen erst in der Gegenprobe auf:**
+
+| Prüfung | Warum sie nichts maß | Behoben durch |
+|---|---|---|
+| „Beilage/Getränk wird nie eingeplant" | `planRang()` verdrängte die losen Kandidaten ohnehin aus den Top drei | dünner Bestand, lose Kandidaten mit Meal-Prep und hohem Protein, **jeder Fall einzeln** |
+| „kein Snack-Slot enthält dasselbe Gericht zweimal" | Ohne großen Tagesrest bekommt der Snack höchstens einen Eintrag | hohes Ziel + absichtlich kleine Gerichte, damit der Deckel greift und ~800 kcal beim Snack landen |
+
+Siehe `docs/TROUBLESHOOTING.md` 95 und 96. **Die Lehre: Eine grüne Prüfung ohne Gegenprobe sagt
+nichts darüber, ob der Testfall die Regel überhaupt herausfordert.**
+
+**`window.onerror` darf das Log nicht überschreiben.** Der Handler des Prüfstands setzte
+`textContent` auf die Fehlermeldung — und löschte damit genau die roten Zeilen, die vor dem
+Absturz entstanden waren. Bei der Gegenprobe zum Kopierpfad (der Produktionscode stürzt dort
+absichtlich ab) sah man deshalb nur „JS-FEHLER" und keinen einzigen Befund. Der Handler hängt
+die Meldung jetzt an das bestehende Log an, und `pruef()` schreibt **fortlaufend** ins `<pre>`
+statt erst am Ende (Ergebnisfortschritt, Abschnitt 3).
+
 ### Der Layout-Prüfstand liegt im Scratchpad, nicht im Projekt
 
 Für den Knopf selbst braucht es die **echte App mit Anmeldung** — Aufbau wie oben unter
@@ -1333,7 +1363,16 @@ Gemessen bei 390 px und 1200 px, jeweils hell und dunkel: eigene Zeile unter dem
 44 px Trefferfläche, kein waagerechter Überlauf, Symbol trägt den Akzent, `aria-label`, und der
 Klick über die **echte Delegation** (nicht der Funktionsaufruf).
 
-Zwei Fallen, die dabei Zeit gekostet haben:
+Gemessen wird bei **320/360/390/430 und 1200 px**, hell und dunkel. Die entscheidende Zahl ist
+die **Höhe von `.plan-head`**: Sie muss über alle Breiten gleich sein (Prüfregel aus
+TROUBLESHOOTING §60). 86 px statt 42 px heißt Umbruch, und im Sheet fester Höhe fehlt diese Höhe
+den Tageskarten.
+
+Ergänzend die Platzrechnung, die den Umbruch *erklärt* statt ihn nur festzustellen: Summe der
+Kinderbreiten + Gaps gegen die Breite von `.plan-tools`. Bei 320 px sind es 300 gegen 277 — bei
+360 px 300 gegen 317.
+
+Fünf Fallen, die dabei Zeit gekostet haben:
 
 * **`state.tab: "plan"` im Seed reicht nicht.** Die App startet auf der Startseite. Der Reiter
   muss per echtem Klick auf `[data-tab="plan"]` geöffnet werden, und der Rahmen wartet auf
@@ -1343,6 +1382,22 @@ Zwei Fallen, die dabei Zeit gekostet haben:
   …)` im Rahmen trennt die Themes wirklich — sichtbar an zwei verschiedenen Akzenten
   (`rgb(220,38,38)` hell, `rgb(255,48,64)` dunkel). **Wer im Prüfstand ein Theme setzt, muss
   belegen, dass es angekommen ist** — sonst prüft man zweimal dasselbe.
+* **`textContent` ignoriert `display: none`.** Die Prüfung „auf dem Handy bleibt nur das Symbol"
+  las den Text des Knopfes und schlug fehl, obwohl das CSS längst griff. Gefragt ist die
+  berechnete Darstellung: `getComputedStyle(span).display`.
+* **Zeilen nicht über verschiedene `top`-Werte zählen.** `.plan-tools` zentriert vertikal, und
+  der Wochenumschalter ist höher als die Knöpfe — jedes Kind hat damit sein eigenes `top`, und
+  die Leiste sah selbst am 1200-px-Rechner „zweizeilig" aus. Richtig ist die Höhe der Leiste
+  gegen die des höchsten Kindes.
+* **Ein `"\n"` in der Python-Vorlage ist ein echter Zeilenumbruch.** In der JS-Zeichenkette
+  landete er mitten im String-Literal und zerlegte damit das gesamte Rahmen-Skript — die Seite
+  blieb wortlos bei „laeuft…" stehen, was wie ein Timeout aussieht. Im eingebetteten JS immer
+  `\\n` schreiben (der bestehende Code tut das an jeder anderen Stelle).
+
+**Und die Falle aus §60 hat wieder zugeschlagen:** Nach einem Lauf, der ins Timeout gelaufen war,
+blieb der Server auf Port 8181 stehen und lieferte weiter die **alte** Seite aus — drei Läufe
+lang. Das Skript prüft den Port jetzt beim Start und bricht mit einer Anleitung ab, statt still
+falsch zu messen.
 
 ## Stapelkontext und Trefferflächen: `elementFromPoint()` im echten Browser (15.08.2026)
 

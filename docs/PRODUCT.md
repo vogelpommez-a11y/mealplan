@@ -273,6 +273,25 @@ Vertrauen.
 zweite Bein der Pro-Stufe (siehe oben) — und die App tut endlich selbst, was sie verspricht:
 Entscheidungen abnehmen statt sie zu verwalten.
 
+### Er plant aus zwei Quellen (16.08.2026)
+
+**Der eigene Bestand allein reicht nicht.** Nach dem Onboarding stehen dort fünf Startmeals —
+bei drei Haupt-Slots rotiert die Woche damit zwangsläufig auf denselben Gerichten. In der Praxis
+kam heraus: sechsmal derselbe Joghurt zum Mittag, während 34 kuratierte Rezepte danebenlagen.
+
+Der Planer zieht deshalb auch aus dem **Rezeptbuch** — gefiltert über `cookbookVisible()`, also
+**nur, was zur Ernährungsform passt**. Eigene und kuratierte Meals stehen gleichberechtigt im
+Topf; bei gleicher Bewertung gewinnt das eigene.
+
+**Ein eingeplantes Rezeptbuch-Meal wandert dabei still in die eigenen Meals.** Das ist keine
+Bequemlichkeit, sondern Bedingung: Der Wochenplan speichert nur IDs, und was nicht im Bestand
+steht, wird beim nächsten Laden aus dem Plan entfernt. Damit das keine unangekündigte
+Nebenwirkung ist, **nennt der Toast die Zahl** („· 6 Meals aus dem Rezeptbuch"), und
+*Rückgängig* nimmt Plan **und** Kopien zurück.
+
+Das passt zur Rolle des Rezeptbuchs: Es ist ohnehin der Ort, aus dem man per Tipp übernimmt. Der
+Planer geht denselben Weg (`copyFromCookbook()`), nur ohne den Tipp.
+
 ### Was er ist, und was er ausdrücklich nicht ist
 
 Er ist **kein Rezept-Zufallsgenerator**. 21 verschiedene Gerichte in einer Woche sind das
@@ -300,11 +319,28 @@ abnehmen sollte.
 2. **Meal-Prep vor Abwechslung.**
 3. **Das Ernährungsprofil ist eine harte Grenze**, keine Gewichtung. Ein veganes Profil bekommt
    nie ein Gericht ohne `vegan`-Tag — auch nicht, wenn die Makros perfekt passen.
-4. **Die Kategorie muss zum Slot passen.**
+4. **Die Kategorie muss GENAU zum Slot passen.** Der Picker ist großzügig — dort darf ein
+   Mensch eine Beilage zum Frühstück einplanen, und ein Meal ohne bekannte Kategorie passt
+   überall hin, damit nichts unplanbar wird. Ein Automatismus mit derselben Freiheit legt
+   dagegen vier Shakes ins Mittagessen; genau das ist am 16.08.2026 passiert. Der Planer
+   verwendet deshalb **nur, was ausdrücklich zu diesem Slot gehört**: Frühstück, Hauptgericht,
+   Snack und Dessert. **Beilagen, Getränke und Meals ohne Kategorie plant er nie** — von Hand
+   bleibt jeder Slot unverändert frei bebaubar.
 5. **In der Gruppe wird ein vorhandenes Gericht übernommen**, statt ein zweites zu wählen: ein
    Topf, zwei Mengen. Das ist der eigentliche Trick am gemeinsamen Planen — drei Menschen mit
    3000, 2000 und 1800 kcal essen dasselbe Gericht in unterschiedlicher Anzahl. Passt es nicht
    zum eigenen Profil, wird ein anderes gewählt.
+
+### Mehrere Portionen ja, viermal dasselbe Getränk nein
+
+Bei Frühstück, Mittag und Abend sind **Vielfache richtig** — sie sind Regel 5 in Zahlen: zweimal
+Porridge bei 3000 kcal, einmal bei 1800.
+
+Beim **Snack-Slot** war dieselbe Rechnung falsch. Er bekommt den Rest des Tages, und der ist
+groß; bei einem 150-kcal-Shake ergab `Rest / kcal` vier Stück desselben Getränks. Als Mahlzeit
+isst man zwei verschiedene Kleinigkeiten, nicht viermal dasselbe. Der Snack-Slot füllt deshalb
+mit **verschiedenen** Snacks, jeden höchstens einmal am Tag. Bleibt danach etwas offen, wird es
+im Toast benannt statt mit Wiederholungen aufgefüllt.
 
 ### Ehrlich sein statt schönrechnen
 

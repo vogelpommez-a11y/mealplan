@@ -1790,12 +1790,12 @@ werden müssen, ohne dass irgendetwas ihn auswertet.
 | Schritt | Was passiert |
 |---|---|
 | Riegel | `canEdit()`, `goalTargets(1)`, Pro (`isPro() \|\| syncGid`), genug Kandidaten |
-| 1 | `planKandidaten()` — `libraryRecipes()` ∩ `fitsDiet()` ∩ `kcal > 0` |
+| 1 | `planKandidaten()` — eigene (`libraryRecipes()`) **plus Katalog** (`cookbookVisible()` ∩ `!isAdopted()`), beide ∩ `fitsDiet()` ∩ `kcal > 0` |
 | 2 | `planWochengerichte(kand, slot)` je Slot-Art: mischen, dann nach `planRang()` sortieren, die besten `PLAN_VARIANTEN` behalten |
 | 3 | je Tag `goalTargetsForDay(tag)` — Trainingstage sind darin schon enthalten |
-| 4 | je Slot `anzahl = round(budget / kcal)`, gedeckelt auf `PLAN_MAX_PRO_SLOT` |
-| 5 | der Snack bekommt den **Rest** des Tages, nicht einen festen Anteil |
-| 6 | `makeEntry(id, syncGid ? [syncUid] : null)` je Eintrag einzeln |
+| 4 | fr/mi/ab: `anzahl = round(budget / kcal)`, gedeckelt auf `PLAN_MAX_PRO_SLOT` |
+| 5 | sn: der **Rest** des Tages, gefüllt mit **verschiedenen** Snacks statt Vielfachen |
+| 6 | `planId()` → ggf. `planAdopt()`, dann `makeEntry(id, syncGid ? [syncUid] : null)` je Eintrag einzeln |
 | 7 | Wochenbilanz gegen `goalTargetsForDays()` — **kcal und Protein**; > `PLAN_TOLERANZ` wird im Toast benannt |
 
 **Schritt 7 prüft beide Säulen, weil Schritt 4 nur eine kennt.** Die Mengen entstehen aus dem
@@ -1826,6 +1826,30 @@ zu meinem Profil passt, und nimmt dasselbe.
 **`makeEntry()` wird je Eintrag neu gerufen**, nicht einmal und n-mal eingefügt. Sonst lägen bei
 mehreren Portionen mehrere Verweise auf **dasselbe Objekt** im Plan, und eine spätere Änderung an
 genau einem Eintrag (Zuweisung ändern) hätte alle mitgeändert.
+
+### Zwei Kandidatenquellen — und warum der Katalog kopiert werden muss
+
+Seit dem 16.08.2026 zieht der Planer auch aus `COOKBOOK`. Katalog-Kandidaten tragen `__cb: true`
+an einer **flachen Kopie** — nie am Katalogeintrag selbst, der ist gemeinsamer Bestand und würde
+sonst die Rezeptbuch-Ansicht mitverschmutzen.
+
+`planAdopt()` legt ein gewähltes Katalog-Rezept über `copyFromCookbook()` im Bestand ab und gibt
+die neue id zurück; `planId()` in `autoPlanWeek()` hält eine Map Katalog-id → Bestands-id, damit
+dasselbe Gericht an fünf Tagen **einmal** kopiert wird. `neueIds` trägt den Undo-Pfad.
+
+**Ohne diesen Schritt wäre der Plan wertlos:** `normalizePlan()` filtert jeden Slot-Eintrag gegen
+die vorhandenen Rezept-IDs. Im Prüfstand gemessen — mit ausgehebeltem Kopierschritt verliert der
+Plan **alle 33 Einträge** beim nächsten Laden, lautlos und ohne Fehlermeldung.
+
+`isAdopted()` hält Dubletten heraus: Ein bereits übernommenes Rezept liegt im eigenen Bestand und
+kommt über die erste Quelle.
+
+**Undo nimmt beides zurück** — Slots *und* Kopien (`state.recipes.filter(…)`). Ein „Rückgängig",
+das den Bestand verändert zurücklässt, wäre keins.
+
+**Sync-Folge, die dazugehört:** Die Kopien sind normale Meals. Sie werden mitsynchronisiert und
+sind in einer Gruppe für alle Mitglieder sichtbar — wie jedes von Hand übernommene
+Rezeptbuch-Meal auch.
 
 ### Pro-Grenze
 

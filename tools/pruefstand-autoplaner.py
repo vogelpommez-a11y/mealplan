@@ -34,6 +34,15 @@ teile = [
     block("  const CATEGORIES = [", "  const CAT_LEGACY ="),
     schnitt("  function catFitsMeal("),
     schnitt("  function catSuggestsMeal("),
+    schnitt("  function catPlanFitsMeal("),
+    # Der Katalog selbst - seit dem 16.08.2026 zweite Kandidatenquelle des Planers.
+    block("  const COOKBOOK = [", "  ];"),
+    schnitt("  function cookbookVisible("),
+    schnitt("  function isAdopted("),
+    schnitt("  function copyFromCookbook("),
+    schnitt("  function sanitizeRecipe("),
+    schnitt("  function normalizePlan("),
+    schnitt("  function asIdList("),
     # Ernaehrungsprofil - die harte Grenze (Regel 3).
     schnitt("  function dietOk("),
     schnitt("  function avoidOk("),
@@ -49,6 +58,7 @@ teile = [
     schnitt("  function activeWeekKey("),
     # Naehrwerte und Tagesbilanz.
     schnitt("  function nutNum("),
+    schnitt("  function nutParse("),
     schnitt("  function recipeNut("),
     schnitt("  function addNut("),
     schnitt("  function dayNutOf("),
@@ -78,6 +88,7 @@ teile = [
     schnitt("  function planRang("),
     schnitt("  function planWochengerichte("),
     schnitt("  function planUebernahme("),
+    schnitt("  function planAdopt("),
     schnitt("  function planTagKcal("),
     schnitt("  function autoPlanWeek("),
 ]
@@ -92,6 +103,11 @@ function pruef(name, ist, soll) {
   var gut = JSON.stringify(ist) === JSON.stringify(soll);
   if (gut) ok++; else bad++;
   LOG.push((gut ? "OK   " : "FEHL ") + name + (gut ? "" : "  ist=" + JSON.stringify(ist) + " soll=" + JSON.stringify(soll)));
+  // Ergebnisfortschritt (docs/TESTING.md, Abschnitt 3): laufend schreiben statt erst am Ende.
+  // Bei einer Gegenprobe stuerzt der Produktionscode absichtlich ab - ohne das saehe man
+  // dann ein leeres <pre> statt der Zeilen, die bis dahin rot geworden sind.
+  var el = document.getElementById("log");
+  if (el) el.textContent = LOG.join("\\n");
 }
 
 // ---- Randstuecke, die der Planer nur anfasst ----
@@ -103,6 +119,14 @@ function save() { gespeichert++; }
 function render() { gezeichnet++; }
 function toast(t) { letzterToast = t; window.__undo = null; }
 function undoToast(t, cb) { letzterToast = t; window.__undo = cb; }
+// Randstuecke von sanitizeRecipe() - dieselben Stubs wie im Rezeptbuch-Pruefstand.
+var lfdUid = 0;
+function uid() { return "u" + (++lfdUid); }
+function safeImage(x) { return x || null; }
+function migrateCat(c) { return c; }
+function sanitizeIng(x) { return x; }
+function sanitizeTags(t) { return Array.isArray(t) && t.length ? t.slice() : null; }
+function esc(s) { return String(s == null ? "" : s); }
 
 __CODE__
 
@@ -111,8 +135,20 @@ function meal(id, kat, kcal, prot, tags, prep) {
   return { id: id, name: id, category: kat, tags: tags || [], mealPrep: prep === true,
            nutrition: { kcal: kcal, carbs: 10, protein: prot == null ? 20 : prot, fat: 10 } };
 }
+// Der Katalog ist seit dem 16.08.2026 zweite Kandidatenquelle. Damit die Pruefungen zur
+// AUSWAHLLOGIK weiterhin genau das messen, was sie messen sollen, laeuft er per Vorgabe aus
+// und wird nur dort zugeschaltet, wo es um ihn geht. COOKBOOK ist const, aber der INHALT
+// ist veraenderlich - deshalb ueber die Laenge statt ueber eine Neuzuweisung.
+var KATALOG_ALLE = COOKBOOK.slice();
+function katalogAus() { COOKBOOK.length = 0; }
+function katalogAn() { COOKBOOK.length = 0; KATALOG_ALLE.forEach(function (r) { COOKBOOK.push(r); }); }
+
 function frischerPlan(recipes, goal) {
-  state.recipes = recipes || [];
+  katalogAus();
+  // KOPIE, nicht die uebergebene Liste: Der Planer legt seit dem 16.08.2026 selbst Meals an
+  // (uebernommene Katalog-Rezepte). Ohne .slice() wuechse die Vorlage des Testfalls mit, und
+  // eine spaetere Pruefung gegen ihre Laenge misst dann sich selbst.
+  state.recipes = (recipes || []).slice();
   state.goal = goal === undefined ? { kcal: 2000, carbs: 200, protein: 150, fat: 60 } : goal;
   state.plans = {}; state.plans[activeWeekKey()] = makeEmptyPlan();
   state.plan = state.plans[activeWeekKey()];
@@ -422,6 +458,159 @@ function bestand() {
   proInfo = null;
   autoPlanWeek();
   pruef("Pro-Hinweis bleibt kurz", letzterToast, "Automatisch planen gehört zu Pro");
+
+  // ---- Slot-Bindung: der Planer ist strenger als der Picker ----
+  // Der gemeldete Fehler vom 16.08.2026: vier Shakes als Snack, sechsmal Joghurt zum Mittag.
+  // Ursache war catFitsMeal - Getraenk, Beilage und alles ohne bekannte Kategorie passen dort
+  // ueberall hin. Fuer den Picker richtig, fuer einen Automatismus nicht.
+  //
+  // Jeder lose Kandidat wird EINZELN geprueft, und der Bestand ist bewusst duenn: zwei
+  // Fruehstuecke, zwei Hauptgerichte, ein Snack. Damit ist in jeder Wochenauswahl noch ein
+  // Platz frei, und der lose Kandidat traegt Meal-Prep samt hohem Proteinanteil - mit der
+  // alten Regel muss er hineinrutschen.
+  //
+  // Zwei Anlaeufe davor bewiesen nichts: Mit dem vollen Bestand verdraengte schon die
+  // Bewertung die losen Kandidaten, und in einem gemeinsamen Testfall verdraengten sie sich
+  // gegenseitig - der kategorielose fiel um 0,5 Punkte aus den Top drei. Eine Pruefung, die
+  // nur wegen der Rangfolge gruen ist, misst nicht die Regel, um die es geht.
+  var grund = [
+    meal("fr1", "Frühstück", 400, 30, [], true), meal("fr2", "Frühstück", 380, 26, [], true),
+    meal("ha1", "Hauptgericht", 620, 45, [], true), meal("ha2", "Hauptgericht", 650, 42, [], true),
+    meal("sn1", "Snack", 200, 15, [], false)
+  ];
+  [{ id: "gt1", cat: "Getränk",  was: "ein Getraenk" },
+   { id: "bl1", cat: "Beilage",  was: "eine Beilage" },
+   { id: "ohne", cat: null,      was: "ein Meal ohne Kategorie" }].forEach(function (f) {
+    var los = { id: f.id, name: f.id, tags: [], mealPrep: true,
+                nutrition: { kcal: 480, carbs: 20, protein: 60, fat: 10 } };
+    if (f.cat) los.category = f.cat;
+    frischerPlan(grund.concat([los]));
+    autoPlanWeek();
+    pruef(f.was + " wird nie eingeplant",
+      alleEintraege().some(function (x) { return entryId(x.e) === f.id; }), false);
+    pruef(f.was + ": die Woche entsteht trotzdem", alleEintraege().length > 0, true);
+  });
+  // Gegenprobe: DASSELBE Meal als Hauptgericht muss eingeplant werden - sonst wuerde die
+  // Pruefung oben auch dann gruen sein, wenn der Planer gar nichts mehr faende.
+  frischerPlan([
+    meal("fr1", "Frühstück", 400, 30, [], true), meal("fr2", "Frühstück", 450, 25, [], true),
+    meal("gt1", "Hauptgericht", 620, 40, [], true), meal("gt2", "Hauptgericht", 650, 42, [], true),
+    meal("gt3", "Hauptgericht", 600, 38, [], true), meal("sn1", "Snack", 200, 15, [], false)
+  ]);
+  autoPlanWeek();
+  pruef("als Hauptgericht angelegt wird es eingeplant",
+    alleEintraege().some(function (x) { return entryId(x.e) === "gt1"; }), true);
+
+  // ---- Snack-Slot: verschiedene Snacks statt Vielfachen ----
+  // Der Testfall MUSS einen grossen Snack-Rest erzwingen, sonst beweist er nichts: Mit dem
+  // normalen Bestand decken fr/mi/ab den Tag schon ab, der Snack bekommt hoechstens einen
+  // Eintrag - und dann ist "keine Dublette" auch mit der alten Vielfach-Logik erfuellt.
+  // Genau daran ist der erste Anlauf gescheitert (Gegenprobe blieb komplett gruen).
+  // Deshalb: hohes Ziel, absichtlich kleine Gerichte, damit der Deckel bei fr/mi/ab greift
+  // und rund 800 kcal beim Snack landen.
+  frischerPlan([
+    meal("kf1", "Frühstück", 150, 12, [], true), meal("kf2", "Frühstück", 160, 12, [], true),
+    meal("kh1", "Hauptgericht", 200, 18, [], true), meal("kh2", "Hauptgericht", 210, 18, [], true),
+    meal("ks1", "Snack", 100, 9, [], false), meal("ks2", "Snack", 110, 9, [], false)
+  ], { kcal: 3000, carbs: 300, protein: 200, fat: 90 });
+  autoPlanWeek();
+  var snZeilen = DAYS.map(function (d) { return state.plan[d.key].sn.map(entryId); });
+  LOG.push("Snack-Zeilen: " + JSON.stringify(snZeilen[0]) + " …");
+  pruef("kein Snack-Slot enthaelt dasselbe Gericht zweimal",
+    snZeilen.every(function (ids) { return ids.length === new Set(ids).size; }), true);
+  pruef("aber es stehen mehrere verschiedene Snacks im Slot",
+    snZeilen.some(function (ids) { return ids.length > 1; }), true);
+  // Gegenprobe zur Aussagekraft: Bei fr/mi/ab ist das Vielfache ausdruecklich erwuenscht
+  // (2x Porridge bei grossem Ziel) - dort muss dieselbe Pruefung fehlschlagen, sonst haette
+  // die Aenderung schlicht alle Vielfachen abgeschafft.
+  pruef("bei den Hauptmahlzeiten stehen weiterhin Vielfache",
+    DAYS.some(function (d) {
+      return ["fr", "mi", "ab"].some(function (m) {
+        var ids = state.plan[d.key][m].map(entryId);
+        return ids.length > 1 && new Set(ids).size === 1;
+      });
+    }), true);
+
+  // ---- Das Rezeptbuch als zweite Quelle ----
+  var KATALOG_IDS = new Set(KATALOG_ALLE.map(function (r) { return r.id; }));
+  // Der gemeldete Fall: fuenf Startmeals, drei Haupt-Slots - ohne Katalog rotiert die Woche
+  // zwangslaeufig auf denselben Gerichten.
+  // Sechs Meals, nicht fuenf: Mit genau fuenf greift schon PLAN_MIN_KANDIDATEN und der Planer
+  // verweigert die Arbeit (gemessen: null Gerichte) - dann verglichen wir gegen einen
+  // Leerlauf statt gegen die Monotonie, um die es hier geht.
+  var fuenf = [
+    meal("s1", "Frühstück", 420, 28, ["vegetarisch"], true),
+    meal("s6", "Frühstück", 390, 24, ["vegetarisch"], true),
+    meal("s2", "Hauptgericht", 620, 45, [], true),
+    meal("s3", "Hauptgericht", 650, 40, [], true),
+    meal("s4", "Hauptgericht", 590, 38, [], true),
+    meal("s5", "Snack", 210, 22, ["vegetarisch"], false)
+  ];
+  frischerPlan(fuenf);   // frischerPlan schaltet den Katalog selbst ab
+  autoPlanWeek();
+  var ohneKat = new Set(alleEintraege().map(function (x) { return entryId(x.e); })).size;
+  frischerPlan(fuenf); katalogAn();
+  autoPlanWeek();
+  var mitKat = new Set(alleEintraege().map(function (x) { return entryId(x.e); })).size;
+  LOG.push("verschiedene Gerichte: ohne Katalog " + ohneKat + ", mit Katalog " + mitKat);
+  pruef("ohne Katalog kann es nie mehr als der eigene Bestand sein", ohneKat <= fuenf.length, true);
+  pruef("mit dem Rezeptbuch werden es mehr als drei", mitKat > 3, true);
+  pruef("und mehr als ohne Katalog", mitKat > ohneKat, true);
+
+  // Jedes eingeplante Katalog-Rezept MUSS als Kopie im Bestand liegen - sonst wirft
+  // normalizePlan() den Eintrag beim naechsten Laden lautlos weg.
+  pruef("kein Plan-Eintrag zeigt auf eine Katalog-id",
+    alleEintraege().some(function (x) { return KATALOG_IDS.has(entryId(x.e)); }), false);
+  pruef("jeder Plan-Eintrag findet sein Meal im Bestand",
+    alleEintraege().every(function (x) { return !!getRecipe(entryId(x.e)); }), true);
+  var kopien = state.recipes.filter(function (r) { return !!r.lib; });
+  pruef("es sind Kopien entstanden", kopien.length > 0, true);
+  pruef("jede Kopie traegt eine Herkunft aus dem Katalog",
+    kopien.every(function (r) { return KATALOG_IDS.has(r.lib); }), true);
+  pruef("jede Kopie hat eine EIGENE id",
+    kopien.every(function (r) { return !KATALOG_IDS.has(r.id); }), true);
+  pruef("keine Kopie traegt einen Bildpfad",
+    kopien.some(function (r) { return "img" in r; }), false);
+  // Die eigentliche Probe: der Plan ueberlebt einen Ladevorgang.
+  var nachLaden = normalizePlan(state.plan, state.recipes);
+  var vorher = alleEintraege().length, danach = 0;
+  DAYS.forEach(function (d) { MEALS.forEach(function (m) { danach += nachLaden[d.key][m.key].length; }); });
+  pruef("normalizePlan verliert keinen Eintrag", danach, vorher);
+  // Ein Katalog-Rezept an mehreren Tagen darf nur EINMAL kopiert werden.
+  pruef("keine doppelten Kopien desselben Rezepts",
+    kopien.map(function (r) { return r.lib; }).length,
+    new Set(kopien.map(function (r) { return r.lib; })).size);
+  pruef("der Toast nennt die Uebernahme oder eine Zielabweichung",
+    /Rezeptbuch|kcal|Protein/.test(letzterToast), true);
+
+  // Rueckgaengig nimmt BEIDES zurueck - Plan und die still uebernommenen Meals.
+  window.__undo();
+  pruef("Rueckgaengig leert die Woche", alleEintraege().length, 0);
+  pruef("Rueckgaengig entfernt auch die Kopien", state.recipes.length, fuenf.length);
+  pruef("und laesst die eigenen Meals stehen",
+    state.recipes.map(function (r) { return r.id; }).sort().join(),
+    fuenf.map(function (r) { return r.id; }).sort().join());
+
+  // Ein bereits uebernommenes Rezept kommt ueber den eigenen Bestand - nicht ein zweites Mal.
+  var vorlage = KATALOG_ALLE.filter(function (r) { return r.category === "Hauptgericht"; })[0];
+  frischerPlan(fuenf.concat([copyFromCookbook(vorlage)])); katalogAn();
+  autoPlanWeek();
+  pruef("ein schon uebernommenes Rezept wird nicht erneut kopiert",
+    state.recipes.filter(function (r) { return r.lib === vorlage.id; }).length, 1);
+
+  // Die Ernaehrungsform gilt auch fuer den Katalog - cookbookVisible filtert ueber fitsDiet.
+  frischerPlan(fuenf.slice(0, 1), { kcal: 2000, carbs: 200, protein: 150, fat: 60, diet: "vegan" });
+  katalogAn();
+  autoPlanWeek();
+  pruef("ein veganes Profil plant auch aus dem Katalog nur Veganes",
+    alleEintraege().every(function (x) {
+      return (getRecipe(entryId(x.e)).tags || []).indexOf("vegan") !== -1;
+    }), true);
+  pruef("und bekommt trotzdem eine Woche", alleEintraege().length > 0, true);
+  pruef("auch vegan wird in allen vier Slots etwas gefunden",
+    ["fr", "mi", "ab", "sn"].filter(function (m) {
+      return alleEintraege().some(function (x) { return x.m === m; });
+    }).length, 4);
 
   LOG.push("");
   LOG.push(bad ? ("FEHLGESCHLAGEN: " + bad + " von " + (ok + bad)) : ("ALLE " + ok + " PRUEFUNGEN GRUEN"));
