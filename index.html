@@ -1263,9 +1263,15 @@
      weiter unten) - hier nur die Mehrfachauswahl-Markierung ergaenzen. */
   .menu .assign-chip.on { background: color-mix(in srgb, var(--accent) 12%, transparent); font-weight: 600; }
   .menu .assign-chip .avatar { width: 22px; height: 22px; font-size: 10px; }
-  /* Kein Mitgliederlimit im Code (siehe Gruppen-Dokumentation) - bei einer groesseren
-     Gruppe darf das Chip-Popover nicht ueber den Viewport hinauswachsen. */
+  /* Seit dem 16.08.2026 fasst eine Gruppe hoechstens vier Personen - mit "Fuer alle" sind das
+     fuenf Chips, die ohnehin auf jeden Bildschirm passen. max-height bleibt als Netz fuer sehr
+     kleine Viewports (Querformat auf dem Handy) stehen, nicht mehr fuer grosse Gruppen. */
   .assign-menu { max-height: 50vh; overflow-y: auto; }
+  /* Der "Fuer alle"-Chip hat keinen Avatar. Ohne Platzhalter staende sein Text rund 32 px
+     weiter links als die Namen darunter - eine Liste, die nicht fluchtet, liest sich wie ein
+     Fehler. Der Platzhalter ist genau so breit wie ein Avatar samt gap. */
+  .menu .assign-chip .avatar-spacer { width: 22px; height: 22px; flex: 0 0 22px; }
+  .menu .assign-sep { height: 1px; background: var(--border); margin: 4px 0; }
   .slot.dragover { background: color-mix(in srgb, var(--accent) 12%, transparent); outline: 2px dashed var(--accent); outline-offset: -2px; }
   .slot.nodrop { opacity: .4; cursor: not-allowed; }
   .filled.dragging { opacity: .4; }
@@ -3252,7 +3258,7 @@
   import {
     getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager,
     terminate, clearIndexedDbPersistence,
-    doc, collection, getDoc, getDocs, setDoc, updateDoc, deleteDoc, writeBatch, onSnapshot
+    doc, collection, getDoc, getDocs, setDoc, updateDoc, deleteDoc, writeBatch, increment, onSnapshot
   } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 
   /* ▼▼▼ HIER die Werte aus der Firebase-Konsole eintragen ▼▼▼
@@ -3383,8 +3389,44 @@
           // "request.auth.uid == uid" greift per Kurzschluss unabhaengig vom Dokumentinhalt.
           // deleteBestEffort() ist hier also v. a. Konsistenz mit den anderen beiden Stellen,
           // nicht dieselbe Notwendigkeit.
+          //
+          // Seit dem Mitgliederlimit (16.08.2026) MUSS das als Batch samt memberCount laufen.
+          // Eine Einzelloeschung wird von der Regel abgelehnt - und zwar mit
+          // "permission-denied", das deleteBestEffort() ausdruecklich VERZEIHT. Der Austritt
+          // waere damit still gescheitert und Name samt Profilbild blieben in fremder Gruppe
+          // stehen, ohne jede Fehlermeldung: genau der Zustand, den der Kommentar oben
+          // ausschliessen soll (Ziffer 10 der Datenschutzerklaerung, Art. 17 DSGVO).
+          //
+          // Deshalb hier bewusst KEIN deleteBestEffort: Der Batch ist entweder erlaubt oder
+          // es liegt ein echter Fehler vor, den der Loeschvorgang melden soll. Die Ausnahme
+          // ist eine bereits aufgeloeste Gruppe - dann gibt es nichts mehr zu loeschen.
+          //
+          // Verziehen wird nur, was NACHWEISLICH schon erledigt ist. Der Unterschied zu
+          // deleteBestEffort() ist genau der: Dort genuegt der Fehlercode, hier wird
+          // nachgesehen. Ein "permission-denied" heisst naemlich zweierlei - entweder ist
+          // der Eintrag laengst weg (dann ist das Ziel erreicht), oder die Regel hat
+          // tatsaechlich abgelehnt (dann muss die Loeschung scheitern und es sagen).
+          //
+          // Der Fall ist real: Wurde man auf einem anderen Geraet gerade aus der Gruppe
+          // entfernt, waehrend syncGid lokal noch steht, trifft KEIN Zweig der update-Regel
+          // mehr zu (Zweig 3 verlangt exists(memberPath)). Ohne diese Unterscheidung braeche
+          // daran die GESAMTE Kontoloeschung ab - schlimmer als der alte Zustand, und ein
+          // Verstoss gegen "jederzeit selbst und sofort loeschen" (Ziffer 10, Art. 17 DSGVO).
           if (opts && opts.groupId) {
-            await deleteBestEffort(doc(db, "groups", opts.groupId, "members", uid));
+            const mref = doc(db, "groups", opts.groupId, "members", uid);
+            try {
+              const gref = doc(db, "groups", opts.groupId);
+              const gsnap = await getDoc(gref);
+              if (gsnap.exists()) {
+                const b = writeBatch(db);
+                b.delete(mref);
+                b.update(gref, { memberCount: increment(-1) });
+                await b.commit();
+              }
+            } catch (e) {
+              const weg = await getDoc(mref).then(s => !s.exists()).catch(() => false);
+              if (!weg) throw e;
+            }
           }
           // Selbst erzeugte Einladungscodes: sie zeigen auf die Gruppe und traegen die
           // eigene uid im Feld "by". Gleiche resource.data-Regel wie oben.
@@ -3583,6 +3625,33 @@
         putMember: function (gid, uid, data) { return setDoc(doc(db, "groups", gid, "members", uid), data, { merge: true }); },
         setRole: function (gid, uid, role) { return updateDoc(doc(db, "groups", gid, "members", uid), { role: role }); },
         removeMember: function (gid, uid) { return deleteDoc(doc(db, "groups", gid, "members", uid)); },
+
+        // ----- Mitgliederlimit: Beitritt und Austritt sind ATOMAR -----
+        //
+        // Das Gruppendokument fuehrt memberCount, und die Firestore-Regel koppelt es per
+        // getAfter() hart an die Mitgliedschaft: Wer beitritt, MUSS im selben Batch
+        // hochzaehlen, wer austritt, herunter. Einzelne Schreibvorgaenge werden abgelehnt -
+        // deshalb geht ab jetzt jede Mitgliedschaftsaenderung ueber diese beiden Methoden.
+        //
+        // increment() statt "gelesener Wert + 1": Zwei gleichzeitige Beitritte laegen sonst
+        // auf derselben veralteten Basis, und die Regel wiese den zweiten ab. Firestore wertet
+        // die Transformation vor der Regelpruefung aus, die Regel sieht also das Ergebnis.
+        joinAtomic: function (gid, uid, data) {
+          const batch = writeBatch(db);
+          batch.set(doc(db, "groups", gid, "members", uid), data, { merge: true });
+          batch.update(groupDoc(gid), { memberCount: increment(1) });
+          return batch.commit();
+        },
+        leaveAtomic: function (gid, uid) {
+          const batch = writeBatch(db);
+          batch.delete(doc(db, "groups", gid, "members", uid));
+          batch.update(groupDoc(gid), { memberCount: increment(-1) });
+          return batch.commit();
+        },
+        // Einmalige Migration einer Gruppe aus der Zeit vor dem Limit. Nur der Inhaber darf
+        // das Gruppendokument schreiben, und die Regel laesst genau diesen Fall zu, solange
+        // das Feld noch fehlt.
+        setCount: function (gid, n) { return updateDoc(groupDoc(gid), { memberCount: n }); },
 
         // ----- Wochenplan -----
         loadPlans: function (gid) {
@@ -5627,6 +5696,32 @@
     } catch (e) { /* nicht kritisch: Name/Bild sind Beiwerk, der Sync laeuft weiter */ }
   }
 
+  // Eine Gruppe aus der Zeit vor dem Mitgliederlimit (16.08.2026) hat kein memberCount. Die
+  // neuen Firestore-Regeln brauchen das Feld aber, um ueberhaupt rechnen zu koennen - fehlt es,
+  // koennte niemand mehr beitreten oder austreten.
+  //
+  // Deshalb traegt der INHABER es beim naechsten Betreten der Gruppe einmalig nach. Nur er darf
+  // das Gruppendokument schreiben, und die update-Regel laesst genau diesen Fall ausdruecklich
+  // zu, solange das Feld noch fehlt. Danach greift wieder die harte Sperre "der Inhaber aendert
+  // den Zaehler nie".
+  //
+  // Selbstheilend statt einmalige Migration, wie die uebrigen Umstellungen im Projekt: Jedes
+  // Geraet des Inhabers kommt zum selben Ergebnis, und ein zweiter Lauf tut nichts mehr.
+  //
+  // WICHTIG fuer die Reihenfolge beim Deployment: Diese Funktion muss LIVE sein, BEVOR die
+  // neuen Regeln veroeffentlicht werden - sonst verlangen die Regeln ein Feld, das noch
+  // niemand geschrieben hat. Siehe docs/TROUBLESHOOTING.md.
+  async function migrateMemberCount(gid) {
+    if (!gid || !window.CloudGroup || myRole !== "owner") return;
+    if (!groupInfo || typeof groupInfo.memberCount === "number") return;
+    const n = groupMembers.length;
+    if (!n) return;                       // ungeklaertes Leseergebnis - lieber nichts schreiben
+    try {
+      await window.CloudGroup.setCount(gid, n);
+      groupInfo = Object.assign({}, groupInfo, { memberCount: n });
+    } catch (e) { noteError("group:migrateCount", e); }
+  }
+
   // In den Gruppenmodus wechseln. Liefert DREI Zustaende, nicht true/false:
   //   "ok"    - drin, Listener haengen
   //   "gone"  - nachweislich draussen (Gruppe aufgeloest oder man wurde entfernt)
@@ -5704,6 +5799,7 @@
       syncUnsubGroupPlans = window.CloudGroup.watchPlans(gid, onGroupPlansRemote);
       syncUnsubRecipes = window.CloudSync.watchRecipes(["groups", gid], onRecipesRemote);
       syncMyMember();          // bewusst ohne await: Name/Bild duerfen den Start nicht aufhalten
+      migrateMemberCount(gid); // desgleichen: einmalige Nachpflege, kein Startblocker
       return "ok";
     } catch (e) {
       // Haeufigster Fall: die Firestore-Regeln sind noch nicht veroeffentlicht, jeder
@@ -8829,9 +8925,9 @@
         // Makro-Aufklapper (docs/TROUBLESHOOTING.md, Punkt 59): ein Bedienelement, das
         // sich beim Benutzen wegbewegt, ist kaputt, auch wenn die Logik stimmt.
         //
-        // Die Gruppierung loeste einen seltenen Fall (ab drei fremden Gerichten in EINEM
-        // Slot), der Sprung traf jede einzelne Zuweisung. Das Einklappen funktioniert auch
-        // ohne sie - siehe otherSeen unten.
+        // Die Gruppierung loeste einen selteneren Fall (ab vier fremden Gerichten in EINEM
+        // Slot, siehe SLOT_OTHERS_MAX), der Sprung traf jede einzelne Zuweisung. Das
+        // Einklappen funktioniert auch ohne sie - siehe otherSeen unten.
         //
         // Der Original-Index bleibt jeder Karte ueber data-slot-src fest zugeordnet. Das
         // ist weiterhin wichtig: Er zeigt in state.plan, nicht auf die Anzeigeposition.
@@ -12432,7 +12528,7 @@
     if (authMode !== "cloud") {
       confirmModal({
         title: "Cloud-Konto nötig",
-        text: "Diese Einladung braucht ein Cloud-Konto – nur so kommt euer gemeinsamer Plan auf beide Geräte.",
+        text: "Diese Einladung braucht ein Cloud-Konto – nur so kommt euer gemeinsamer Plan auf alle Geräte.",
         okLabel: "Cloud-Konto anmelden",
         onConfirm: () => { pendingInvite = code; authMode = "cloud"; renderAuthCloud(); }
       });
@@ -12612,7 +12708,13 @@
     return `<span class="r-badges" aria-hidden="true">${shown}${more}</span>`;
   }
 
-  const SLOT_OTHERS_MAX = 2;
+  // Wie viele FREMDE Gerichte ein Slot zeigt, bevor der Rest hinter "+N weitere" verschwindet.
+  //
+  // Seit dem Mitgliederlimit von vier ist 3 die richtige Zahl, nicht mehr 2: In einer vollen
+  // Gruppe gibt es genau drei andere Personen. Bei 2 waere das Einklappen der Dauerzustand
+  // gewesen - man muesste jeden Slot aufklappen, um zu sehen, was die Familie isst. Ein
+  // Aufklapper, der immer da ist, ist kein Aufklapper mehr, sondern eine Hürde.
+  const SLOT_OTHERS_MAX = 3;
   const MSTACK_MAX = 3;
   function memberStackHtml() {
     if (!syncGid || !groupMembers.length) return "";
@@ -12792,7 +12894,19 @@
     const open = document.querySelector(".assign-menu");
     if (open) closeMenuNode(open);
     const curUids = entryUids(entry) || groupMembers.map(x => x.uid);
+    // "Für alle" als eigener Chip ganz oben, nicht nur als Ergebnis vollstaendigen Anhakens.
+    //
+    // Bei zwei Mitgliedern war der Rueckweg auf "fuer alle" ein einziger Klick (der Zyklus
+    // oben). Ab drei fuehrte er nur noch ueber das Anhaken JEDER einzelnen Person - bei vier
+    // also drei Tipser fuer den haeufigsten Fall ueberhaupt, denn gemeinsam essen ist der
+    // Normalfall und individuell zuweisen die Ausnahme. Der Sammelchip stellt das gerade.
+    //
+    // Er setzt uids auf null - genau das, was makeEntry() ohnehin erzeugt, sobald alle
+    // abgedeckt sind. Kein zweiter Weg zum selben Zustand, nur eine Abkuerzung dorthin.
+    const alleAn = entryUids(entry) === null;
     const menu = el(`<div class="menu assign-menu" role="menu">
+      <button class="assign-chip${alleAn ? " on" : ""}" data-all="1" role="menuitem"><span class="avatar-spacer" aria-hidden="true"></span><span>Für alle</span></button>
+      <div class="assign-sep" aria-hidden="true"></div>
       ${groupMembers.map(mem => `<button class="assign-chip${curUids.indexOf(mem.uid) !== -1 ? " on" : ""}" data-uid="${esc(mem.uid)}" role="menuitem">${memberAvatarHtml(mem, true)}<span>${esc(firstName(mem.name) || "Jemand")}</span></button>`).join("")}
     </div>`);
     // An <body> haengen statt an die Karte: .day hat overflow:hidden (fuer die mobilen
@@ -12810,6 +12924,8 @@
     // als schwebend an falscher Stelle stehen zu bleiben. close() ist idempotent (mehrfacher
     // Aufruf harmlos), { once: true } entfernt den Listener nach dem ersten Scroll von selbst.
     window.addEventListener("scroll", () => close(false), { capture: true, once: true });
+    const alleChip = menu.querySelector("[data-all]");
+    if (alleChip) alleChip.addEventListener("click", () => { close(false); apply(null); });
     menu.querySelectorAll("[data-uid]").forEach(chip => chip.addEventListener("click", () => {
       const uid = chip.dataset.uid;
       const nowUids = entryUids(state.plan[d][m][idx]) || groupMembers.map(x => x.uid);
@@ -14478,6 +14594,14 @@
   // ================= Gemeinsam planen (Gruppe) =================
   const ROLE_LABEL = { owner: "Inhaber", edit: "Mitplanen", view: "Nur ansehen" };
 
+  // Eine Gruppe traegt hoechstens vier Personen: Paar, WG oder Familie. Wer mehr braucht, ist
+  // kein Haushalt mehr - und Pro traegt einen Haushalt, keine Verteilerliste.
+  //
+  // Dieselbe Zahl steht in firestore.rules (maxMitglieder). VERBINDLICH ist ausschliesslich
+  // die Regel; diese Konstante ist nur die freundliche Oberflaeche davor, damit niemand erst
+  // in eine technische Fehlermeldung laeuft (CLAUDE.md, Ziffer 18).
+  const MAX_GROUP_MEMBERS = 4;
+
   // Eigene Meals in die Gruppe kopieren. Seit dem 15.08.2026 ohne Ausnahme: Es gibt keine
   // mitgelieferten Attrappen mehr, die man aussen vor lassen muesste - die Startmeals aus dem
   // Rezeptbuch sind echte Meals des Nutzers (siehe addStarterMeals).
@@ -14505,6 +14629,9 @@
     try {
       await window.CloudGroup.create(gid, {
         name: "", owner: syncUid, createdAt: Date.now(), status: "pending",
+        // Der Gruender ist das erste Mitglied - sein eigener Eintrag unten zaehlt deshalb
+        // NICHT noch einmal hoch (die Regel verlangt hier ausdruecklich die 1).
+        memberCount: 1,
         settings: { shopForAll: true, changeHints: true }
       });
       await window.CloudGroup.putMember(gid, syncUid, {
@@ -14653,8 +14780,19 @@
       // Derselbe Guard wie in openInviteModal() (dort ausfuehrlich kommentiert) - hier
       // zusaetzlich noetig, weil joinGroup() auch direkt aufgerufen werden kann.
       if (state.pendingGroupId === inv.gid) { toast("Das ist deine eigene Einladung."); return; }
+
+      // KEIN Vorab-Check auf "ist noch Platz": Ein Nichtmitglied darf das Gruppendokument
+      // nicht lesen ("allow get: if isMember(gid)"), und diese Regel zu lockern, um eine
+      // huebschere Meldung zu bekommen, waere der falsche Handel - die Mitgliederzahl einer
+      // fremden Gruppe geht Aussenstehende nichts an.
+      //
+      // Stattdessen entscheidet die Regel, und der catch-Block uebersetzt ihre Absage. Das
+      // ist ohnehin die ehrlichere Reihenfolge: Es gibt nur EINE Quelle der Wahrheit, und
+      // zwischen Pruefung und Beitritt koennte sonst jemand anderes den letzten Platz nehmen.
       const role = inv.role === "view" ? "view" : "edit";
-      await window.CloudGroup.putMember(inv.gid, syncUid, {
+      // Atomar: Mitgliedschaft und memberCount in EINEM Batch. Einzeln wuerde die Regel es
+      // ablehnen (siehe CloudGroup.joinAtomic).
+      await window.CloudGroup.joinAtomic(inv.gid, syncUid, {
         name: profile.name || "", avatar: await smallAvatar(state.profileImage),
         role: role, via: code, joinedAt: Date.now()
       });
@@ -14689,7 +14827,16 @@
       // inv kann hier noch null sein (fetchInvite() selbst ist gescheitert, bevor inv zugewiesen
       // wurde) - dann bleibt lastGroupAttempt null, statt beim Lesen von inv.gid erneut zu werfen.
       lastGroupAttempt = (inv && inv.gid) || null;
-      toast("Der Beitritt hat nicht geklappt. Bitte den Link noch einmal öffnen.");
+      // "permission-denied" heisst beim Beitritt praktisch immer: die Gruppe ist voll. Der
+      // Einladungscode wurde oben ja bereits erfolgreich gelesen, und die Regel laesst genau
+      // zwei Gruende fuer eine Absage - kein Platz mehr, oder ein Code, der auf eine andere
+      // Gruppe zeigt. Letzteres kann ueber einen echten Link nicht passieren.
+      //
+      // Bewusst ohne Zahl: Wie gross die Gruppe ist, geht Aussenstehende nichts an.
+      const voll = e && e.code === "permission-denied";
+      toast(voll
+        ? "Diese Gruppe ist schon voll."
+        : "Der Beitritt hat nicht geklappt. Bitte den Link noch einmal öffnen.");
     } finally {
       groupTransition = false;
     }
@@ -14753,8 +14900,12 @@
     const keepRecipes = state.recipes.slice();
     const keepPlans = JSON.parse(JSON.stringify(state.plans || {}));
     try {
-      await window.CloudGroup.removeMember(gid, syncUid);
-    } catch (e) { /* schon entfernt - der Rest muss trotzdem laufen */ }
+      // Atomar samt memberCount - einzeln lehnt die Regel es ab (CloudGroup.leaveAtomic).
+      // Der leere catch traegt seit dem Limit einen Fall mehr: Nach dissolveGroup() ist das
+      // Gruppendokument bereits weg, das update() darin scheitert also zwangslaeufig. Das ist
+      // Normalbetrieb und kein Fehler - der Rest muss trotzdem laufen.
+      await window.CloudGroup.leaveAtomic(gid, syncUid);
+    } catch (e) { /* schon entfernt oder Gruppe aufgeloest - der Rest muss trotzdem laufen */ }
     state.groupId = "";
     leaveGroupState();
     state.recipes = keepRecipes;
@@ -14786,7 +14937,7 @@
     if (authMode !== "cloud") {
       confirmModal({
         title: "Cloud-Konto nötig",
-        text: "Gemeinsam planen geht nur mit einem Cloud-Konto – nur so kommt euer Plan auf beide Geräte.",
+        text: "Gemeinsam planen geht nur mit einem Cloud-Konto – nur so kommt euer Plan auf alle Geräte.",
         okLabel: "Cloud-Konto anmelden",
         onConfirm: () => { authMode = "cloud"; renderAuthCloud(); }
       });
@@ -14816,7 +14967,7 @@
         wire();
         loadInviteQr(body.querySelector("#grp-qr"), state.pendingInviteUrl);
       } else {
-        title.textContent = "Zu zweit planen";
+        title.textContent = "Gemeinsam planen";
         body.innerHTML = startHtml();
         wire();
       }
@@ -14849,7 +15000,7 @@
         ? `<button class="btn primary" id="grp-invite-start" style="width:100%">Person einladen</button>`
         : `<p class="share-mini" style="margin:0 0 8px"><b>Einladen gehört zu Pro.</b> Eingeladen werden kannst du jederzeit – Pro braucht nur, wer die Gruppe gründet.</p>`;
       return `
-        <p class="share-hint">Plant euren Wochenplan gemeinsam – einer trägt ein, beide sehen es sofort. Kalorienziel und Gewicht bleiben privat.</p>
+        <p class="share-hint">Plant euren Wochenplan gemeinsam – einer trägt ein, alle sehen es sofort. Kalorienziel und Gewicht bleiben privat.</p>
         ${invite}
         <button class="btn ghost" id="grp-scan-start" style="width:100%;margin-top:8px">Einladung scannen</button>
         <details class="grp-note">
@@ -14917,7 +15068,12 @@
         </div>
         <p class="share-mini">Wer den Link öffnet und sich anmeldet, ist dabei. Zurückziehen kannst du ihn unten.</p>
         <button class="btn ghost sm" id="grp-revoke" style="margin-top:8px">Link zurückziehen</button>`
-      : `<button class="btn primary" id="grp-invite" style="width:100%">Person einladen</button>`) : "";
+      : (groupMembers.length >= MAX_GROUP_MEMBERS
+          // Voll: der Knopf verschwindet ganz, statt deaktiviert dazustehen. Ein grauer Knopf
+          // sieht nach Fehler aus, ein Satz erklaert es. Die Zahl darf hier stehen - das ist
+          // die eigene Gruppe, kein Fremder.
+          ? `<p class="share-mini" style="margin:0"><b>Ihr seid vollzählig</b> – mehr als ${MAX_GROUP_MEMBERS} Personen passen nicht in eine Gruppe. Geht jemand, wird ein Platz frei.</p>`
+          : `<button class="btn primary" id="grp-invite" style="width:100%">Person einladen</button>`)) : "";
       const settingsBlock = owner ? `
         <span class="share-sub" style="margin-top:16px;display:block">Einstellungen</span>
         <div class="setpick">
@@ -15025,7 +15181,8 @@
           text: "Die Person sieht euren gemeinsamen Plan dann nicht mehr. Die von ihr angelegten Meals bleiben bei euch.",
           okLabel: "Entfernen",
           onConfirm: async () => {
-            try { await window.CloudGroup.removeMember(syncGid, b.dataset.kick); } catch (e) { toast("Das hat nicht geklappt."); }
+            // Atomar samt memberCount - sonst bliebe der Platz fuer immer belegt.
+            try { await window.CloudGroup.leaveAtomic(syncGid, b.dataset.kick); } catch (e) { toast("Das hat nicht geklappt."); }
           }
         });
       }));

@@ -452,6 +452,51 @@ Scheitert `enterGroupSync()` in `startCloudSync()` direkt nach einer gerade erst
 
 **Zweite Lehre, aus derselben Nacht:** Der erste Anlauf deckte nur die drei `catch`-Blöcke ab und übersah den vierten und häufigsten Ort — `groupSyncFailed = groupResult === "error"` mitten im `try` von `startCloudSync()`. `enterGroupSync()` fängt seine Fehler nämlich selbst ab und **liefert** `"error"` zurück, statt zu werfen; ein `catch` sieht diesen Fall nie. Wer ein Fehler-Flag absichert, muss `grep`en, wo es überall gesetzt wird — nicht annehmen, Fehler kämen ausschließlich als Exception. Gefunden haben das `kvp` und `website-security` unabhängig voneinander.
 
+## Mitgliederlimit: `memberCount` (16.08.2026)
+
+Eine Gruppe trägt höchstens **vier** Personen. Die Zahl steht an zwei Stellen —
+`MAX_GROUP_MEMBERS` im Client und `maxMitglieder()` in `firestore.rules`. **Verbindlich ist
+ausschließlich die Regel**; die Konstante ist die freundliche Oberfläche davor.
+
+**Rules können nicht zählen** — es gibt kein `count()` auf eine Unterkollektion. Deshalb führt
+das Gruppendokument ein Feld `memberCount`, das per `getAfter()` hart an die Mitgliedschaft
+gekoppelt ist: `get()` liefert den Stand **vor** dem Batch, `getAfter()` den **danach**. Wer
+beitritt, muss im selben Batch hochzählen; wer austritt, herunter. Einzelne Schreibvorgänge
+werden abgelehnt.
+
+Die vier Zweige von `allow update` auf `groups/{gid}`:
+
+| Zweig | Wer | Bedingung |
+|---|---|---|
+| 1 | Inhaber | Name/Einstellungen/`status`, Zähler **unverändert** — oder erstmalig nachgetragen (Migration) |
+| 2 | Beitretender | genau `+1`, `< 4`, vorher **kein** und nachher Mitglied |
+| 3 | Austretender | genau `−1`, vorher Mitglied und nachher **nicht** |
+| 4 | Inhaber | genau `−1` (entfernt jemanden) |
+
+`zaehlerNurUm(delta)` prüft zusätzlich `affectedKeys().hasOnly(['memberCount'])` — ohne das
+ließe sich unter dem Deckmantel eines Beitritts auch der Inhaber austauschen.
+
+### Vier Stellen schreiben Mitgliedschaft — alle atomar
+
+`CloudGroup.joinAtomic()` / `leaveAtomic()` bündeln Mitglied und Zähler in einem `writeBatch`,
+mit `increment()` statt eines gelesenen Werts: Zwei gleichzeitige Beitritte lägen sonst auf
+derselben veralteten Basis, und die Regel wiese den zweiten ab.
+
+* `joinGroup()` → `joinAtomic`
+* `leaveGroup()` → `leaveAtomic`
+* Mitglied entfernen im Gruppen-Modal → `leaveAtomic`
+* `CloudAuth.deleteAccount()` → eigener Batch (siehe `docs/TROUBLESHOOTING.md`)
+
+`CloudGroup.dissolve()` bleibt **unverändert** — die `delete`-Regel nimmt es über
+`!existsAfter(grpPath(gid))` aus, weil dort das Gruppendokument im selben Batch verschwindet.
+
+### Migration
+
+`migrateMemberCount()` trägt das Feld bei einer Gruppe aus der Zeit davor einmalig nach —
+**nur der Inhaber**, nur wenn es fehlt, und nur bei nichtleerer Mitgliederliste (eine leere
+Liste ist ein ungeklärtes Leseergebnis, kein Beweis). Genau dafür ist der Migrationszweig in
+Regelzweig 1 da. Läuft ohne `await` neben `syncMyMember()`, darf den Start also nicht aufhalten.
+
 ## Gruppen-Wochenplan
 
 Der Plan wird als ein Dokument pro ISO-Woche gespeichert.

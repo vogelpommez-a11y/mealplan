@@ -1012,6 +1012,27 @@ Abschnitt „Gruppenmodus"). Wer nur mal ausprobiert, ob das Feature etwas für 
 nicht ungefragt dauerhaft in einer Einpersonen-Gruppe. Erst wenn wirklich geplant wird, ist es
 auch wirklich „gemeinsam".
 
+### Höchstens vier Personen (16.08.2026)
+
+Eine Gruppe fasst **vier** Mitglieder: Paar, WG oder Familie. Wer mehr braucht, ist kein Haushalt
+mehr — und **Pro trägt einen Haushalt, keine Verteilerliste.**
+
+Vorher gab es gar kein Limit, und das war eine offene Flanke: Cloud-Sync ist ausdrücklich gratis,
+Pro trägt allein das *Gründen* einer Gruppe. Ein einmal weitergereichter Einladungslink ließ
+beliebig viele herein — einer zahlt, zehn essen mit. Das ist kein theoretischer Missbrauch,
+sondern der naheliegende: Man teilt einen Link, den man hat.
+
+Vier statt zwei, obwohl die Praxis zu zweit stattfindet: Das Datenmodell trägt es ohnehin
+(Farbvergabe, Initialen-Auflösung, Zuweisungs-Chips, Einkaufsliste), und Ziffer 8a der
+Datenschutzerklärung nennt seit jeher „etwa als Paar oder WG". Ein Limit von zwei hätte eine
+Zusage gebrochen, die schon gemacht war.
+
+**Der Riegel liegt in den Firestore Rules, nicht in der Oberfläche.** Der Missbrauchende wäre
+hier der Inhaber selbst — eine ausgeblendete Schaltfläche hält ihn nicht auf. Die Oberfläche
+zeigt nur die freundliche Seite davon: Ist die Gruppe voll, verschwindet „Person einladen" und
+ein Satz erklärt es; wer mit einem Link auf eine volle Gruppe trifft, liest „Diese Gruppe ist
+schon voll." — **ohne Zahl**, denn wie groß eine fremde Gruppe ist, geht Außenstehende nichts an.
+
 ### Gerichte müssen nicht für alle gleich sein
 
 Der Wochenplan war bisher zwangsläufig für die ganze Gruppe identisch, obwohl jede Person schon

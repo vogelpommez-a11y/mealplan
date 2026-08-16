@@ -1455,6 +1455,56 @@ am *Ergebnis* der Auswahl hing. Ein sporadisch roter Prüfstand ist kein kleiner
 falscher — man gewöhnt sich an die rote Zeile und übersieht die echte daneben. Deshalb gehört zu
 jeder Änderung an der Auswahl ein **Wiederholungslauf** (hier: 20×), nicht ein einzelner grüner.
 
+## Mitgliederlimit: die eine Hälfte ist prüfbar, die andere nicht (16.08.2026)
+
+`tools/pruefstand-gruppenlimit.py` — 19 Prüfungen, drei Gegenproben. Er schneidet
+`CloudGroup.joinAtomic`/`leaveAtomic`/`setCount` und `migrateMemberCount()` im Original-Wortlaut
+aus `index.html` und lässt sie gegen eine **aufzeichnende Firestore-Attrappe** laufen: `doc()`
+liefert nur einen Pfad, `writeBatch()` sammelt Vorgänge, `commit()` legt sie als **ein** Bündel
+ab. Einzelne `setDoc`/`deleteDoc` landen in einem getrennten Eimer.
+
+Das ist der Kern: Die Regel lehnt jeden Einzelvorgang ab, also ist die **Bündelung** die
+eigentliche Zusage — und genau die lässt sich ohne Firebase messen.
+
+Geprüft wird außerdem der **Typ** des Zählerwerts, nicht bloß sein Vorzeichen: `increment()`
+statt eines gelesenen Werts, sonst lägen zwei gleichzeitige Beitritte auf derselben veralteten
+Basis und die Regel wiese den zweiten ab.
+
+Die Migration bekommt alle Verzweigungen: Inhaber ohne Feld schreibt einmal, ein zweiter Lauf
+nicht mehr (selbstheilend, nicht wiederholend), ein Mitglied versucht es gar nicht erst — und
+eine **leere Mitgliederliste schreibt nichts**, denn sie ist ein ungeklärtes Leseergebnis und
+kein Beweis; ein `memberCount: 0` hätte die Gruppe für immer verriegelt.
+
+Drei Gegenproben, jede einzeln gefahren:
+
+| Sabotage | gemessen |
+|---|---|
+| `joinAtomic` wieder als einzelnes `setDoc` (der Stand vor dem Limit) | 7 von 19 rot |
+| Owner-Prüfung aus der Migration entfernt | 1 von 19 rot |
+| `increment(1)` durch die feste Zahl 3 ersetzt | 2 von 19 rot |
+
+### Was dieser Prüfstand ausdrücklich NICHT beweist
+
+**Die Firestore-Regeln selbst.** Es gibt kein Node und keinen Emulator im Projekt (CLAUDE.md
+Ziffer 12), und die Regeln sind die *verbindliche* Grenze — der Prüfstand sichert nur, dass der
+Client sie überhaupt bedienen kann. Diese Lücke ist keine Nachlässigkeit, sondern muss bewusst
+von Hand geschlossen werden: **Rules Playground** in der Firebase Console, vor jedem Deploy.
+
+| # | Vorgang | erwartet |
+|---|---|---|
+| 1 | Beitritt bei `memberCount: 3` | erlaubt |
+| 2 | Beitritt bei `memberCount: 4` | **verweigert** |
+| 3 | member-create **ohne** Zähler-Update im Batch | **verweigert** |
+| 4 | `memberCount` 4 → 3 ohne Löschung, als Mitglied | **verweigert** |
+| 5 | Inhaber ändert den Gruppennamen | erlaubt, Zähler unberührt |
+| 6 | Inhaber trägt `memberCount` erstmalig nach | erlaubt (Migration) |
+| 7 | Inhaber ändert Name **und** Zähler zugleich | **verweigert** |
+| 8 | `dissolve`-Batch | erlaubt, obwohl das Gruppendokument danach fehlt |
+| 9 | Invite für eine volle Gruppe erstellen | **verweigert** |
+
+Szenario 8 ist das wichtigste: Ohne die `!existsAfter()`-Ausnahme ließe sich eine Gruppe nie
+wieder auflösen (`docs/TROUBLESHOOTING.md`, Punkt 101).
+
 ### Der Layout-Prüfstand liegt im Scratchpad, nicht im Projekt
 
 Für den Knopf selbst braucht es die **echte App mit Anmeldung** — Aufbau wie oben unter

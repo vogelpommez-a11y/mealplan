@@ -55,6 +55,33 @@ service cloud.firestore {
       return get(/databases/$(database)/documents/invites/$(code)).data;
     }
 
+    // ---- Mitgliederlimit (16.08.2026) ----
+    //
+    // Eine Gruppe traegt hoechstens vier Personen: Paar, WG oder Familie. Ohne Limit war
+    // "Gemeinsam planen" ein Familien-Abo, das nie verkauft wurde - Pro traegt das GRUENDEN
+    // einer Gruppe, und ein einmal weitergereichter Einladungslink liess beliebig viele herein.
+    //
+    // Rules koennen nicht zaehlen: Es gibt kein count() auf eine Unterkollektion. Deshalb
+    // fuehrt das Gruppendokument ein Feld memberCount, das ueber getAfter() hart an die
+    // Mitgliedschaft gekoppelt ist - wer beitritt, MUSS im selben Batch hochzaehlen, wer
+    // austritt, MUSS herunterzaehlen. getAfter() liefert den Stand NACH dem Batch; get()
+    // liefert den davor (dieselbe Semantik, die CloudGroup.dissolve() im Client ausnutzt).
+    //
+    // Die 4 steht auch im Client als MAX_GROUP_MEMBERS. Beide Stellen gehoeren zusammen -
+    // verbindlich ist aber ausschliesslich diese hier (CLAUDE.md, Ziffer 18).
+    function maxMitglieder() { return 4; }
+
+    function grpPath(gid)  { return /databases/$(database)/documents/groups/$(gid); }
+    function grpNow(gid)   { return get(grpPath(gid)).data; }
+    function grpAfter(gid) { return getAfter(grpPath(gid)).data; }
+
+    // Genau eine Aenderung am Zaehler und sonst NICHTS. Ohne hasOnly() liesse sich unter dem
+    // Deckmantel eines Beitritts auch der Inhaber austauschen oder eine Einstellung kippen.
+    function zaehlerNurUm(delta) {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['memberCount'])
+        && request.resource.data.memberCount == resource.data.memberCount + delta;
+    }
+
     // ---- Pro-Grenze (D2b) ----
     //
     // Pro-Funktion ist das GRUENDEN einer Gruppe samt Einladen. Cloud-Sync ausdruecklich
@@ -180,14 +207,45 @@ service cloud.firestore {
 
       // Gruenden ist eine Pro-Funktion (D2b). Beitreten ausdruecklich nicht - siehe
       // groupOwnerHasPro() oben.
+      // memberCount startet bei 1: Der Gruender ist das erste Mitglied.
       allow create: if request.auth != null
                     && request.resource.data.owner == request.auth.uid
-                    && hasPro(request.auth.uid);
+                    && hasPro(request.auth.uid)
+                    && request.resource.data.memberCount == 1;
 
-      // Nur der Inhaber ändert Name/Einstellungen – und kann sich dabei nicht selbst
-      // gegen jemand anderen austauschen.
-      allow update: if isOwner(gid)
-                    && request.resource.data.owner == resource.data.owner;
+      // Vier Wege, das Gruppendokument zu ändern - mehr gibt es nicht.
+      allow update: if
+        // 1) Der Inhaber ändert Name, Einstellungen oder status. Den Zähler NIE: sonst wäre
+        //    das Limit eine Bitte. Der Migrationszweig steht VOR dem Vergleich, weil bei
+        //    einer Gruppe aus der Zeit ohne das Feld resource.data.memberCount ein Fehler
+        //    wäre und nicht etwa false - er erlaubt dem Inhaber, es einmalig nachzutragen.
+        ( isOwner(gid)
+          && request.resource.data.owner == resource.data.owner
+          && ( !("memberCount" in resource.data)
+               || request.resource.data.memberCount == resource.data.memberCount ) )
+
+        // 2) Beitritt: genau +1, und nur wenn ich vorher KEIN und nachher Mitglied bin.
+        //    Beides zusammen macht den Zähler fälschungssicher - ein Hochzählen ohne
+        //    tatsächlichen Beitritt scheitert an existsAfter().
+        || ( request.auth != null
+             && zaehlerNurUm(1)
+             && resource.data.memberCount < maxMitglieder()
+             && !exists(memberPath(gid))
+             && existsAfter(memberPath(gid)) )
+
+        // 3) Austritt: genau -1, und nur wenn ich danach wirklich draußen bin.
+        || ( request.auth != null
+             && zaehlerNurUm(-1)
+             && exists(memberPath(gid))
+             && !existsAfter(memberPath(gid)) )
+
+        // 4) Der Inhaber entfernt jemanden. Ziffer 8a der Datenschutzerklärung sagt diese
+        //    Funktion ausdrücklich zu, und diese Regel sieht nicht, WEN er im selben Batch
+        //    löscht - deshalb ist der Zweig weiter als die übrigen. Bekannte Grenze: Ein
+        //    Inhaber mit Entwicklerwerkzeugen kann den Zähler senken, ohne jemanden zu
+        //    entfernen. Gegen Beitretende ist der Riegel dicht, gegen den Zahlenden am
+        //    eigenen Abo ist er eine Bremse. Siehe docs/TROUBLESHOOTING.md.
+        || ( isOwner(gid) && zaehlerNurUm(-1) );
 
       allow delete: if isOwner(gid);
     }
@@ -201,14 +259,20 @@ service cloud.firestore {
       // 2) Beitritt über einen Einladungscode. Der Code bestimmt Gruppe UND Rolle, und
       //    beides wird gegengeprüft - sonst könnte sich jeder mit einem Nur-Lesen-Code
       //    selbst zum Inhaber oder Mitplaner machen.
+      // Der Gründer zählt NICHT hoch: memberCount steht beim Anlegen der Gruppe schon auf 1,
+      // er ist darin bereits enthalten. Der Beitritt dagegen muss im selben Batch hochzählen -
+      // ohne getAfter() liesse sich ein Mitglied anlegen und der Zähler einfach weglassen.
       allow create: if request.auth != null && request.auth.uid == uid
                     && (
-                         (get(/databases/$(database)/documents/groups/$(gid)).data.owner == request.auth.uid
-                          && request.resource.data.role == "owner")
+                         (grpNow(gid).owner == request.auth.uid
+                          && request.resource.data.role == "owner"
+                          && grpNow(gid).memberCount == 1)
                       || (request.resource.data.via is string
                           && inviteData(request.resource.data.via).gid == gid
                           && inviteData(request.resource.data.via).role == request.resource.data.role
-                          && request.resource.data.role in ["edit", "view"])
+                          && request.resource.data.role in ["edit", "view"]
+                          && grpNow(gid).memberCount < maxMitglieder()
+                          && grpAfter(gid).memberCount == grpNow(gid).memberCount + 1)
                        );
 
       // Name und Bild ändert jeder nur an sich selbst - und die eigene Rolle dabei NICHT.
@@ -224,9 +288,17 @@ service cloud.firestore {
                           && request.resource.data.role in ["edit", "view"])
                        );
 
-      // Selbst verlassen, oder vom Inhaber entfernt werden.
+      // Selbst verlassen, oder vom Inhaber entfernt werden - und dabei den Zähler mit senken,
+      // sonst bliebe der Platz für immer belegt.
+      //
+      // Die Ausnahme !existsAfter(grpPath(gid)) ist NICHT optional: CloudGroup.dissolve()
+      // löscht alle Mitglieder UND das Gruppendokument in einem Batch. Ohne sie liesse sich
+      // eine Gruppe nie wieder auflösen, weil grpAfter() auf ein Dokument zugriffe, das es
+      // nach dem Batch nicht mehr gibt.
       allow delete: if request.auth != null
-                    && (request.auth.uid == uid || isOwner(gid));
+                    && (request.auth.uid == uid || isOwner(gid))
+                    && ( !existsAfter(grpPath(gid))
+                         || grpAfter(gid).memberCount == grpNow(gid).memberCount - 1 );
     }
 
     // ---- Gemeinsamer Wochenplan: ein Dokument je ISO-Woche ----
@@ -259,11 +331,14 @@ service cloud.firestore {
       // Einstellung "Mitplaner dürfen auch" einen get() je Einladung - und zu zweit gäbe
       // es nach dem Beitritt ohnehin niemanden mehr einzuladen.
       // Einladen ist Inhaber-Sache, und Inhaber sein setzt Pro voraus (D2b).
+      // Für eine volle Gruppe entstehen erst gar keine Links - der freundlichere Riegel als
+      // ein Beitritt, der am Ende doch abgewiesen wird.
       allow create: if request.auth != null
                     && request.resource.data.by == request.auth.uid
                     && request.resource.data.role in ["edit", "view"]
                     && isOwner(request.resource.data.gid)
-                    && hasPro(request.auth.uid);
+                    && hasPro(request.auth.uid)
+                    && grpNow(request.resource.data.gid).memberCount < maxMitglieder();
 
       // Ein Code ist unveränderlich - wer andere Rechte vergeben will, erzeugt einen neuen.
       allow update: if false;

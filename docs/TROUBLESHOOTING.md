@@ -2592,3 +2592,80 @@ anderen Person herein, setzt „Rückgängig" den Slot auf den Stand **vor meine
 verwirft damit deren zwischenzeitliche Änderung. Das ist bestehendes Verhalten des
 Schnappschuss-Pfades und kein Sonderfall des Beitritts — durch die Zusammenführung fällt es nur
 eher auf.
+
+---
+
+## 101. Mitgliederlimit: drei Stellen, die den ganzen Umbau still gekippt hätten
+
+Seit dem 16.08.2026 begrenzt `memberCount` im Gruppendokument die Gruppe auf vier Personen,
+per `getAfter()` hart an die Mitgliedschaft gekoppelt. Beim Durchgehen des Lebenszyklus kamen
+drei Stellen heraus, die eine naive Umsetzung kaputtgemacht hätten — keine davon fällt beim
+Lesen der Regel selbst auf.
+
+### 1. `dissolve()` löscht das Gruppendokument mit
+
+`CloudGroup.dissolve()` räumt Mitglieder, Pläne, Meals **und** das Gruppendokument in einem
+einzigen Batch weg. Eine Regel „wer ein Mitglied löscht, muss `memberCount` senken" greift dort
+auf ein Dokument zu, das es nach dem Batch nicht mehr gibt — **eine Gruppe ließe sich nie wieder
+auflösen.** Deshalb die Ausnahme:
+
+```
+allow delete: if … && ( !existsAfter(grpPath(gid))
+                        || grpAfter(gid).memberCount == grpNow(gid).memberCount - 1 );
+```
+
+### 2. `deleteAccount()` verzeiht genau den Fehler, den es melden müsste
+
+Der Konto-Löschpfad entfernt `groups/{gid}/members/{uid}` über `deleteBestEffort()`, und das
+verzeiht `permission-denied` — mit gutem Grund, denn mehrere Löschregeln prüfen `resource.data`
+und liefern bei fehlendem Dokument dasselbe Signal.
+
+Genau das wird hier zur Falle: Eine Einzellöschung lehnt die neue Regel mit `permission-denied`
+ab, `deleteBestEffort()` schluckt es, und **Name samt Profilbild blieben für immer in fremder
+Gruppe stehen** — ohne Fehlermeldung, ohne Spur. Das ist ein Bruch von Ziffer 10 der
+Datenschutzerklärung und Art. 17 DSGVO, ausgelöst durch eine Zeile, die aussieht, als hätte man
+sie nicht angefasst.
+
+Der Gruppenaustritt läuft dort jetzt als **eigener Batch** und bewusst **ohne**
+`deleteBestEffort`: Entweder er ist erlaubt, oder es liegt ein echter Fehler vor, den der
+Löschvorgang melden soll. Die eine Ausnahme ist eine bereits aufgelöste Gruppe — dann gibt es
+nichts mehr zu löschen, geprüft per `getDoc()` vorab.
+
+**Die allgemeine Lehre:** Ein `catch`, der einen Fehlercode absichtlich verzeiht, ist eine
+stillschweigende Annahme darüber, was diesen Code auslösen kann. Ändert man die Regeln, ändert
+man diese Annahme — und der `catch` schweigt weiter.
+
+### 3. Ein Nichtmitglied darf die Gruppe nicht lesen
+
+Der ursprüngliche Plan wollte vor dem Beitritt `memberCount` lesen und freundlich abweisen. Das
+geht nicht: `allow get: if isMember(gid)`. Und diese Regel zu lockern, nur um eine hübschere
+Meldung zu bekommen, wäre der falsche Handel — die Mitgliederzahl einer fremden Gruppe geht
+Außenstehende nichts an.
+
+Stattdessen entscheidet die Regel, und der `catch` in `joinGroup()` übersetzt
+`permission-denied` in „Diese Gruppe ist schon voll." Das ist ohnehin die ehrlichere Reihenfolge:
+eine einzige Quelle der Wahrheit, und kein Rennen zwischen Prüfung und Beitritt.
+
+### Die Reihenfolge beim Deployment ist nicht optional
+
+**Erst der Client, dann die Regeln.** Umgekehrt verlangen die Regeln ein Feld, das noch niemand
+geschrieben hat — die bestehende Gruppe wäre sofort unbenutzbar.
+
+1. Client pushen (enthält `migrateMemberCount()`). Regeln noch alt → nichts bricht.
+2. Als Inhaber die App öffnen, dann in der Firebase Console prüfen, dass
+   `groups/{gid}.memberCount` steht und zur Mitgliederzahl passt.
+3. Erst dann die Regeln veröffentlichen.
+
+**Rollback:** alte Regeln aus der Git-Historie erneut veröffentlichen. Der Client bleibt
+lauffähig — `memberCount` ist dann ein Feld, das niemand liest.
+
+### Bekannte Grenze, bewusst offen
+
+Zweig 4 der `update`-Regel erlaubt dem **Inhaber**, den Zähler zu senken. Er muss Mitglieder
+entfernen können (Ziffer 8a sagt es zu), und die Regel für das Gruppendokument sieht nicht,
+*wen* er im selben Batch löscht.
+
+Gegen Beitretende ist der Riegel damit dicht. Gegen einen Inhaber, der mit den
+Entwicklerwerkzeugen bei jedem Beitritt den Zähler zurücksetzt, ist er eine Bremse und keine
+Mauer. Vertretbar, weil der realistische Missbrauch der weitergereichte Link ist und nicht die
+gezielte Firestore-Manipulation am eigenen Abo.
