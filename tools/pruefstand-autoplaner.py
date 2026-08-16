@@ -219,8 +219,19 @@ function bestand() {
   pruef("hoechstens " + PLAN_VARIANTEN + " Wochengerichte je Slot",
     planWochengerichte(kand, "mi").length <= PLAN_VARIANTEN, true);
   // Meal-Prep schlaegt Nicht-Meal-Prep bei sonst gleicher Kategorie (Regel 2).
-  var mi = planWochengerichte(kand, "mi");
-  pruef("Meal-Prep steht vorn", mi[0].mealPrep, true);
+  //
+  // Gemessen an planRang(), NICHT am Ziehungsergebnis. Die Pruefung stand bis zum 16.08.2026
+  // als `planWochengerichte(kand, "mi")[0].mealPrep` da - richtig, solange strikt die besten
+  // PLAN_VARIANTEN genommen wurden. Seit der gewichteten Pool-Ziehung kann auch Platz 4 auf
+  // Platz 1 landen: In 20 Laeufen war die Zeile zweimal rot, ohne dass sich am Code etwas
+  // geaendert hatte. Eine Pruefung, die in jedem zehnten Lauf zufaellig fehlschlaegt, ist
+  // schlimmer als keine - man gewoehnt sich an die rote Zeile.
+  //
+  // Zwei sonst identische Meals, damit die Differenz GENAU der Meal-Prep-Beitrag ist und
+  // nicht noch Protein- oder Groessenanteile mittraegt.
+  pruef("Meal-Prep steht vorn",
+    planRang(meal("mpA", "Hauptgericht", 600, 45, [], true), "mi", 0, null)
+    - planRang(meal("mpB", "Hauptgericht", 600, 45, [], false), "mi", 0, null), 10);
   // Gegenprobe zur Bewertung: eine EXAKTE Kategorie schlaegt eine bloss erlaubte.
   var mitBeilage = kand.concat([meal("bl1", "Beilage", 600, 60, [], true)]);
   pruef("genaue Kategorie schlaegt erlaubte",
@@ -349,16 +360,55 @@ function bestand() {
       return true;
     })(), true);
 
-  // ---- Regel 5: vorhandenes Gericht der anderen uebernehmen ----
+  // ---- Regel 5: dem vorhandenen Eintrag BEITRETEN ----
+  // Bis zum 16.08.2026 legte der Planer hier einen ZWEITEN Eintrag an - zwei Karten mit
+  // demselben Gericht und zwei Badges. Jetzt traegt er sich am vorhandenen ein, und
+  // makeEntry() macht daraus von selbst ein "fuer alle", sobald alle abgedeckt sind.
+  frischerPlan(bestand());
+  syncGid = "g1"; myRole = "edit"; syncUid = "ich"; groupMembers = [{ uid: "ich" }, { uid: "du" }];
+  // Die Referenz merken: der Kern-Nachweis ist, dass der Planer das fremde Objekt ERSETZT und
+  // nicht mutiert. Ein uids.push() daran schluege durch den Undo-Pfad durch (before haelt nur
+  // eine flache Kopie des Slot-Arrays) und veraenderte A's Eintrag dauerhaft.
+  var fremd = { id: "ha3", uids: ["du"] };
+  state.plan.mon.mi.push(fremd);
+  autoPlanWeek();
+  pruef("aus zwei Karten wird eine", state.plan.mon.mi.length, 1);
+  pruef("es bleibt DASSELBE Gericht", entryId(state.plan.mon.mi[0]), "ha3");
+  pruef("und es gilt jetzt fuer alle", entryIsShared(state.plan.mon.mi[0]), true);
+  pruef("das fremde Objekt wurde ersetzt, nicht mutiert",
+    JSON.stringify(fremd), JSON.stringify({ id: "ha3", uids: ["du"] }));
+
+  // Drei Mitglieder: nach EINEM Beitritt sind noch nicht alle abgedeckt - der Eintrag bleibt
+  // die Objektform mit beiden UIDs. Erst wer als Dritter beitritt, macht ein "fuer alle" daraus.
+  frischerPlan(bestand());
+  syncGid = "g1"; myRole = "edit"; syncUid = "ich";
+  groupMembers = [{ uid: "ich" }, { uid: "du" }, { uid: "er" }];
+  state.plan.mon.mi.push({ id: "ha3", uids: ["du"] });
+  autoPlanWeek();
+  pruef("bei dreien traegt der Eintrag beide UIDs",
+    JSON.stringify(entryUids(state.plan.mon.mi[0])), JSON.stringify(["du", "ich"]));
+  pruef("und ist noch KEIN fuer-alle", entryIsShared(state.plan.mon.mi[0]), false);
+
+  // Zwei Portionen: die erste ist der Beitritt, die zweite ein eigener Eintrag daneben. Das ist
+  // dann eine echte Aussage ("ich esse davon zwei") und keine Doppelung.
+  frischerPlan(bestand(), { kcal: 3600, carbs: 360, protein: 260, fat: 110 });
+  syncGid = "g1"; myRole = "edit"; syncUid = "ich"; groupMembers = [{ uid: "ich" }, { uid: "du" }];
+  state.plan.mon.mi.push({ id: "ha3", uids: ["du"] });
+  autoPlanWeek();
+  pruef("zwei Portionen ergeben zwei Eintraege", state.plan.mon.mi.length, 2);
+  pruef("der erste ist der gemeinsame", entryIsShared(state.plan.mon.mi[0]), true);
+  pruef("der zweite gehoert nur mir",
+    JSON.stringify(entryUids(state.plan.mon.mi[1])), JSON.stringify(["ich"]));
+  pruef("und ist dasselbe Gericht", entryId(state.plan.mon.mi[1]), "ha3");
+
+  // "Nochmal"/Rueckgaengig nach einem Beitritt: A's Eintrag steht wieder im Original da.
   frischerPlan(bestand());
   syncGid = "g1"; myRole = "edit"; syncUid = "ich"; groupMembers = [{ uid: "ich" }, { uid: "du" }];
   state.plan.mon.mi.push({ id: "ha3", uids: ["du"] });
   autoPlanWeek();
-  pruef("der Slot der anderen gilt als offen fuer mich", state.plan.mon.mi.length > 1, true);
-  pruef("und ich bekomme DASSELBE Gericht",
-    state.plan.mon.mi.slice(1).every(function (e) { return entryId(e) === "ha3"; }), true);
-  pruef("der fremde Eintrag bleibt unangetastet",
-    JSON.stringify(state.plan.mon.mi[0]), JSON.stringify({ id: "ha3", uids: ["du"] }));
+  window.__undo();
+  pruef("Rueckgaengig stellt den fremden Eintrag her",
+    JSON.stringify(state.plan.mon.mi), JSON.stringify([{ id: "ha3", uids: ["du"] }]));
 
   // Gegenprobe: passt das Gericht der anderen NICHT zu meinem Profil, wird ein eigenes gewaehlt.
   frischerPlan(bestand().concat([
@@ -375,6 +425,34 @@ function bestand() {
   pruef("stattdessen etwas Veganes",
     state.plan.mon.mi.slice(1).every(function (e) {
       return getRecipe(entryId(e)).tags.indexOf("vegan") !== -1; }), true);
+
+  // ---- Wer zuerst plant, waehlt vertraeglich (planRang in der Gruppe) ----
+  // Gemessen wird die DIFFERENZ zweier Gerichte, einmal allein und einmal in der Gruppe. Alle
+  // uebrigen Beitraege (Kategorie, Protein, Budget) sind in beiden Laeufen gleich und kuerzen
+  // sich damit heraus - uebrig bleibt genau der neue Vertraeglichkeits-Beitrag.
+  frischerPlan(bestand().concat([
+    meal("alle", "Hauptgericht", 700, 50, ["vegan", "vegetarisch", "glutenfrei", "laktosefrei"], true)
+  ]));
+  var rVegan = getRecipe("ha1");          // vegan + vegetarisch
+  var rFleisch = getRecipe("ha2");        // ohne Tags, sonst gleich (700 kcal, 50 P, mealPrep)
+  var rAlles = getRecipe("alle");         // alle vier Tags
+  var alleinDiff = planRang(rVegan, "mi", 0, null) - planRang(rFleisch, "mi", 0, null);
+  var alleinMax = planRang(rAlles, "mi", 0, null) - planRang(rFleisch, "mi", 0, null);
+
+  syncGid = "g1"; myRole = "edit"; syncUid = "ich"; groupMembers = [{ uid: "ich" }, { uid: "du" }];
+  pruef("in der Gruppe steigt das vegane Gericht um 5",
+    planRang(rVegan, "mi", 0, null) - planRang(rFleisch, "mi", 0, null) - alleinDiff, 5);
+  pruef("und der Beitrag ist bei 8 gedeckelt",
+    planRang(rAlles, "mi", 0, null) - planRang(rFleisch, "mi", 0, null) - alleinMax, 8);
+  pruef("er bleibt unter dem Wiederholungs-Malus von 40", 8 < 40, true);
+
+  // Gegenprobe: allein in einer Gruppe (noch niemand beigetreten) gibt es nichts zu beruecksichtigen.
+  groupMembers = [{ uid: "ich" }];
+  pruef("allein in der Gruppe wirkt der Beitrag nicht",
+    planRang(rVegan, "mi", 0, null) - planRang(rFleisch, "mi", 0, null), alleinDiff);
+  syncGid = null; myRole = null; syncUid = null; groupMembers = [];
+  pruef("und ohne Gruppe erst recht nicht",
+    planRang(rVegan, "mi", 0, null) - planRang(rFleisch, "mi", 0, null), alleinDiff);
 
   // Und ein Eintrag, der MIR schon gehoert, macht den Slot zu (Regel 1 vor Regel 5).
   frischerPlan(bestand());
@@ -726,6 +804,25 @@ function bestand() {
   }
   LOG.push("verschiedene Plaene aus acht Laeufen: " + Object.keys(sigs).length);
   pruef("acht Laeufe ergeben mehr als einen Plan", Object.keys(sigs).length > 1, true);
+
+  // Und was der POOL bewirkt: nicht nur andere Reihenfolgen, sondern ueberhaupt andere
+  // Gerichte. Ueber zehn Laeufe muessen im Mittag-Slot mehr als PLAN_VARIANTEN verschiedene
+  // Gerichte vorkommen - sonst zieht der Planer immer aus derselben Dreiergruppe.
+  //
+  // Zweiter Anlauf: Die Pruefung darueber ("mehr als ein Plan") blieb in der Gegenprobe
+  // gruen, obwohl der Pool auf PLAN_VARIANTEN geschrumpft war - drei Gerichte in wechselnder
+  // REIHENFOLGE ergeben eben auch verschiedene Plaene. Sie misst also den Zufall, nicht das
+  // Feld, aus dem gezogen wird.
+  var jeMittag = new Set();
+  for (var lauf3 = 0; lauf3 < 10; lauf3++) {
+    frischerPlan(bestand()); katalogAn();
+    autoPlanWeek();
+    DAYS.forEach(function (d) {
+      state.plan[d.key].mi.forEach(function (e) { jeMittag.add(entryId(e)); });
+    });
+  }
+  LOG.push("verschiedene Mittagsgerichte ueber zehn Laeufe: " + jeMittag.size);
+  pruef("der Pool laesst mehr als drei Gerichte zu", jeMittag.size > PLAN_VARIANTEN, true);
 
   // Der Pool haelt schwache Kandidaten trotzdem draussen: Ein Getraenk und ein Meal ohne
   // Naehrwerte duerfen in KEINEM der Laeufe auftauchen.

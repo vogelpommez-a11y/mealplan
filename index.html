@@ -11570,6 +11570,29 @@
     // 400 kcal. Gedeckelt auf 5 - unter Meal-Prep, damit die Rangfolge darueber steht.
     if (budget > 0 && n.kcal > 0) s += 5 * Math.max(0, 1 - Math.abs(n.kcal - budget) / budget);
 
+    // ----- In der Gruppe: was zu MEHR Profilen passt, kommt weiter nach vorn -----
+    // Ein veganes Hauptgericht kann auch der Fleischesser mitessen (dietOk laesst es zu),
+    // umgekehrt nicht. Wer als Erster plant, waehlt damit haeufiger etwas, dem die andere
+    // Person spaeter BEITRETEN kann (Regel 5) - beide kochen einmal statt jeder fuer sich.
+    //
+    // Ohne fremde Profile zu lesen: bewertet wird allein das Gericht, nicht das Gegenueber.
+    // Ziffer 8a der Datenschutzerklaerung bleibt unberuehrt.
+    //
+    // Hoechstens 8 und damit UNTER dem Wiederholungs-Malus (40): sonst stuende jede Woche
+    // dasselbe vegane Gericht oben. Es ist ein Ausschlag bei annaehernd gleichem Rang, keine
+    // Vorentscheidung. Allein (kein syncGid) aendert sich am Ergebnis NICHTS - der Solo-Planer
+    // soll nicht ploetzlich vegetarisch bevorzugen.
+    //
+    // Wirkungslos und harmlos, wenn ich selbst schon vegan bin: dann sind alle Kandidaten vegan
+    // (planKandidaten/cookbookVisible filtern ueber fitsDiet), der Beitrag ist konstant.
+    if (syncGid && groupMembers.length > 1) {
+      const tags = r.tags || [];
+      if (tags.indexOf("vegan") !== -1) s += 5;
+      else if (tags.indexOf("vegetarisch") !== -1) s += 3;
+      if (tags.indexOf("glutenfrei") !== -1) s += 1.5;
+      if (tags.indexOf("laktosefrei") !== -1) s += 1.5;
+    }
+
     // Gleichstand geht an das EIGENE Meal. Bewusst kleiner als jeder andere Beitrag: Der
     // Katalog soll nicht verdraengt werden, aber wer ein Gericht selbst angelegt hat, will
     // es auch im Plan sehen.
@@ -11610,11 +11633,16 @@
     return gezogen;
   }
   // Regel 5: Steht im Slot schon das Gericht der anderen, wird DASSELBE genommen.
+  //
+  // Geliefert wird { r, idx } statt nur des Rezepts: autoPlanWeek TRITT dem vorhandenen Eintrag
+  // BEI, statt einen zweiten daneben zu legen - dafuer braucht es die Position im Slot. Vor dem
+  // 16.08.2026 entstanden so zwei Karten mit demselben Gericht und zwei Badges; der Plan zeigte
+  // die Buchhaltung statt das Essen ("ein Topf, zwei Teller").
   function planUebernahme(dayKey, mealKey) {
-    const ids = state.plan[dayKey][mealKey].map(entryId);
-    for (let i = 0; i < ids.length; i++) {
-      const r = getRecipe(ids[i]);
-      if (r && fitsDiet(r) && recipeNut(r).kcal > 0 && catPlanFitsMeal(r.category, mealKey)) return r;
+    const eintraege = state.plan[dayKey][mealKey];
+    for (let i = 0; i < eintraege.length; i++) {
+      const r = getRecipe(entryId(eintraege[i]));
+      if (r && fitsDiet(r) && recipeNut(r).kcal > 0 && catPlanFitsMeal(r.category, mealKey)) return { r: r, idx: i };
     }
     return null;
   }
@@ -11741,7 +11769,7 @@
         // mehreren Tagen, und die Reihenfolge ist nachvollziehbar (Regel 2). Der Abend
         // bekommt einen Versatz von eins - zweite Absicherung gegen "Mittag = Abend", falls
         // die Listen sich im Rueckfall doch ueberschneiden.
-        let r = uebernommen;
+        let r = uebernommen ? uebernommen.r : null;
         if (!r && liste.length) {
           const versatz = m.key === "ab" ? 1 : 0;
           r = liste[(di + versatz) % liste.length];
@@ -11779,6 +11807,27 @@
         if (m.key === "mi") mittagsGericht = r;
         const rid = planId(r);
         for (let i = 0; i < n; i++) {
+          // Erste Portion im Uebernahmefall: dem vorhandenen Eintrag BEITRETEN statt einen
+          // zweiten daneben zu legen - derselbe Topf, ein Teller mehr. makeEntry() macht daraus
+          // von selbst ein "fuer alle" (blanker String), sobald damit jedes Mitglied abgedeckt
+          // ist; aus zwei Karten wird eine, ohne neue Logik.
+          //
+          // Braucht jemand ZWEI Portionen, kommt der zweite Eintrag regulaer dazu (i > 0). Das
+          // ist dann eine echte Aussage ("ich esse davon zwei") und keine Doppelung.
+          //
+          // ERSETZEN, nicht mutieren: `before` haelt nur eine flache Kopie des Slot-Arrays. Ein
+          // uids.push() am vorhandenen Objekt schluege durch den Undo-Pfad durch und veraenderte
+          // den fremden Eintrag dauerhaft.
+          //
+          // Die Faelle "Eintrag ohne uids" und "uids enthaelt mich schon" koennen hier nicht
+          // auftreten: beide machen den Slot ueber slotOpenForMe() fuer mich zu, der Planer
+          // laeuft dort gar nicht erst.
+          if (i === 0 && uebernommen && meineUids()) {
+            const alt = state.plan[d.key][m.key][uebernommen.idx];
+            const altUids = entryUids(alt);
+            if (altUids) state.plan[d.key][m.key][uebernommen.idx] = makeEntry(entryId(alt), altUids.concat(syncUid));
+            continue;
+          }
           // makeEntry je Eintrag neu: eine gemeinsame Objektreferenz mehrfach im Plan waere
           // eine Falle fuer jede spaetere Aenderung an genau einem der Eintraege.
           // In der Gruppe zaehlt der Eintrag nur in MEINER Bilanz und Einkaufsmenge; allein

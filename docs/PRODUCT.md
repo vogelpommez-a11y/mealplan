@@ -326,10 +326,43 @@ abnehmen sollte.
    verwendet deshalb **nur, was ausdrücklich zu diesem Slot gehört**: Frühstück, Hauptgericht,
    Snack und Dessert. **Beilagen, Getränke und Meals ohne Kategorie plant er nie** — von Hand
    bleibt jeder Slot unverändert frei bebaubar.
-5. **In der Gruppe wird ein vorhandenes Gericht übernommen**, statt ein zweites zu wählen: ein
-   Topf, zwei Mengen. Das ist der eigentliche Trick am gemeinsamen Planen — drei Menschen mit
+5. **In der Gruppe wird einem vorhandenen Gericht beigetreten**, statt ein zweites zu wählen: ein
+   Topf, zwei Teller. Das ist der eigentliche Trick am gemeinsamen Planen — drei Menschen mit
    3000, 2000 und 1800 kcal essen dasselbe Gericht in unterschiedlicher Anzahl. Passt es nicht
    zum eigenen Profil, wird ein anderes gewählt.
+
+### Beitreten statt doppeln (16.08.2026)
+
+Der erste Test zu zweit zeigte, dass Regel 5 zwar das richtige Gericht wählte, aber einen
+**zweiten Eintrag** dafür anlegte. Im Slot standen dann zwei Karten mit demselben Gericht und
+zwei Namensplaketten. Rechnerisch stimmte alles — nur las es sich wie *jeder kocht für sich*,
+obwohl *ein Topf, zwei Teller* gemeint war. **Der Plan zeigte die Buchhaltung statt das Essen.**
+
+Deshalb trägt sich der Planer jetzt am **vorhandenen** Eintrag ein. Sind damit alle Mitglieder
+dabei, wird daraus automatisch ein „für alle"-Gericht — aus zwei Karten wird eine, ohne Badge,
+weil gemeinsam essen der Normalfall ist. Ein **zweiter** Eintrag entsteht nur noch, wenn jemand
+wirklich zwei Portionen braucht. Dann ist er eine echte Aussage und keine Doppelung.
+
+**Wer zuerst plant, wählt verträglich.** Ein veganes Hauptgericht kann auch der Fleischesser
+mitessen, umgekehrt nicht. In einer Gruppe rücken Gerichte mit wenigen Einschränkungen deshalb
+etwas nach vorn — damit die zweite Person häufiger beitreten kann und beide einmal kochen. Es ist
+ein leichter Ausschlag, keine Vorentscheidung: Wer allein plant, merkt davon nichts, und das
+Gedächtnis für Abwechslung wiegt weiterhin deutlich schwerer.
+
+Verschiedene Ernährungsformen werden dabei **nicht wegprogrammiert**: Ein Veganer und ein
+Fleischesser können nicht dasselbe essen. Dann stehen zwei Karten im Slot, jede mit ihrer
+Plakette — und das ist die richtige Antwort, kein Fehler.
+
+### Drei bewusste Grenzen beim gemeinsamen Planen
+
+* **Der Planer füllt nie fremde Slots.** Ein Klick könnte die Woche für alle füllen, aber er
+  würde für jemand anderen entscheiden — dessen Kalorienziel man gar nicht kennt (Ziffer 8a).
+  Jeder plant für sich; das Zusammenführen passiert beim Beitreten.
+* **„Nochmal" wirft nur die eigenen Einträge weg.** Fremde bleiben stehen, sie gehören jemand
+  anderem. War man einem Gericht beigetreten, steigt man wieder aus — das Gericht selbst bleibt
+  der anderen Person erhalten.
+* **Die Reihenfolge entscheidet.** Wer zuerst plant, gibt die Woche vor. Ein echtes „für alle
+  zugleich planen" bräuchte die Ziele aller, und die sind ausdrücklich privat.
 
 ### Abwechslung ist eine eigene Regel (16.08.2026)
 

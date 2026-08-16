@@ -1795,7 +1795,7 @@ werden müssen, ohne dass irgendetwas ihn auswertet.
 | 3 | je Tag `goalTargetsForDay(tag)` — Trainingstage sind darin schon enthalten |
 | 4 | fr/mi/ab: `anzahl = round(budget / kcal)`, gedeckelt auf **1** (allein) bzw. **2** (in der Gruppe) |
 | 5 | sn: der **Rest** des Tages, gefüllt mit **verschiedenen** Snacks statt Vielfachen |
-| 6 | `planId()` → ggf. `planAdopt()`, dann `makeEntry(id, syncGid ? [syncUid] : null)` je Eintrag einzeln |
+| 6 | `planId()` → ggf. `planAdopt()`, dann `makeEntry(id, syncGid ? [syncUid] : null)` je Eintrag einzeln. Im Übernahmefall wird die **erste** Portion stattdessen am vorhandenen Eintrag eingetragen (siehe unten) |
 | 7 | Wochenbilanz gegen `goalTargetsForDays()` — **kcal und Protein**; > `PLAN_TOLERANZ` wird im Toast benannt |
 
 **Schritt 7 prüft beide Säulen, weil Schritt 4 nur eine kennt.** Die Mengen entstehen aus dem
@@ -1822,6 +1822,33 @@ ist beim Ansehen nachvollziehbar.
 geteilt oder mir zugewiesen? Ein Eintrag, der nur anderen Mitgliedern gehört, lässt den Slot für
 mich offen. Genau daran hängt Regel 5: `planUebernahme()` sieht dann nach, ob deren Gericht auch
 zu meinem Profil passt, und nimmt dasselbe.
+
+**`planUebernahme()` liefert `{ r, idx }`, nicht nur das Rezept** (16.08.2026). Der Index ist der
+Grund für die Änderung: Der Planer legt im Übernahmefall **keinen zweiten Eintrag** mehr an,
+sondern trägt sich am vorhandenen ein —
+
+```js
+state.plan[d][m][idx] = makeEntry(entryId(alt), entryUids(alt).concat(syncUid));
+```
+
+— und `makeEntry()` erledigt den Rest von selbst: Deckt die UID-Menge alle `groupMembers` ab,
+kommt die schlichte String-Form zurück („für alle"). Aus zwei Karten wird eine, **ohne neue
+Logik**. Nur die erste Portion tritt bei; braucht jemand zwei, kommt der zweite Eintrag regulär
+dazu.
+
+**Ersetzen, nicht mutieren** — das ist hier keine Stilfrage. `before` in `autoPlanWeek()` hält
+nur eine **flache Kopie** des Slot-Arrays (`.slice()`). Ein `uids.push()` am vorhandenen Objekt
+schlüge durch den Undo-Pfad durch und veränderte den fremden Eintrag dauerhaft. Siehe
+`docs/TROUBLESHOOTING.md`.
+
+Die Fälle „Eintrag ohne `uids`" und „`uids` enthält mich schon" können dabei nicht auftreten:
+Beide machen den Slot über `slotOpenForMe()` für mich zu, der Planer läuft dort gar nicht erst.
+
+**Der Verträglichkeits-Beitrag in `planRang()`** (max. 8, nur bei `syncGid && groupMembers.length
+> 1`): vegan +5 bzw. vegetarisch +3, glutenfrei und laktosefrei je +1,5. Er steht **unter** dem
+Wiederholungs-Malus (40) — sonst stünde jede Woche dasselbe vegane Gericht oben. Bewertet wird
+allein das Gericht, **nie ein fremdes Profil**; Ziffer 8a der Datenschutzerklärung bleibt
+unberührt. Ohne Gruppe ändert sich am Ergebnis nichts.
 
 **`makeEntry()` wird je Eintrag neu gerufen**, nicht einmal und n-mal eingefügt. Sonst lägen bei
 mehreren Portionen mehrere Verweise auf **dasselbe Objekt** im Plan, und eine spätere Änderung an

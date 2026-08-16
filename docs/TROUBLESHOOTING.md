@@ -2541,3 +2541,54 @@ den wäre er falsch, sobald die App über Mitternacht offen bleibt.
    nicht ändert, gehört davor berechnet.
 2. **Ein langsamer Prüfstand ist ein Befund, kein Ärgernis.** Die zwei Minuten waren derselbe
    Code, den später ein Handy ausführt — nur mit weniger Geduld auf der anderen Seite.
+
+---
+
+## 100. Ein `uids.push()` am fremden Eintrag hätte den Undo-Pfad ausgehebelt
+
+Seit dem 16.08.2026 tritt der Auto-Planer in einer Gruppe einem vorhandenen Eintrag **bei**,
+statt einen zweiten daneben zu legen. Der naheliegende Weg wäre gewesen:
+
+```js
+entryUids(alt).push(syncUid);          // FALSCH
+```
+
+Er hätte funktioniert — bis jemand „Rückgängig" drückt. `autoPlanWeek()` legt vor dem Lauf einen
+Schnappschuss an:
+
+```js
+before[d.key][m.key] = state.plan[d.key][m.key].slice();
+```
+
+`.slice()` kopiert das **Array**, nicht die Einträge darin. Der Schnappschuss und der Plan zeigen
+also auf **dieselben Objekte**. Ein `push()` am fremden Eintrag hätte damit auch den
+Schnappschuss verändert, und „Rückgängig" hätte den fremden Eintrag mit der eigenen UID darin
+wiederhergestellt — eine fremde Planung, dauerhaft verändert durch einen Lauf, den man gerade
+zurückgenommen hat. In der Gruppe wäre das Ergebnis anschließend synchronisiert worden.
+
+**Richtig ist Ersetzen:**
+
+```js
+state.plan[d][m][idx] = makeEntry(entryId(alt), entryUids(alt).concat(syncUid));
+```
+
+`concat()` liefert ein neues Array, `makeEntry()` ein neues Objekt — der Schnappschuss behält das
+alte. Als Nebenwirkung macht `makeEntry()` daraus von selbst ein „für alle", sobald damit alle
+Mitglieder abgedeckt sind.
+
+**Die Regel dahinter, und sie gilt für jeden Slot-Eintrag:** Einträge im Wochenplan werden
+**ersetzt, nie mutiert.** Wer einen vorhandenen Eintrag ändern will, baut einen neuen und setzt
+ihn an dieselbe Stelle. Das ist dieselbe Linie wie §93 (ein Rückgabewert, n-mal eingefügt) — dort
+ging es um geteilte Referenzen im Plan, hier um geteilte Referenzen zwischen Plan und
+Schnappschuss.
+
+**Nachgewiesen ist es über eine Gegenprobe**, die genau in diese Falle tritt: Wird der Beitritt im
+Prüfstand auf `altUids.push(syncUid)` umgestellt, werden „das fremde Objekt wurde ersetzt, nicht
+mutiert" und „Rückgängig stellt den fremden Eintrag her" rot. Ohne diese dritte Gegenprobe wären
+beide Prüfungen unbemerkt wertlos gewesen (siehe `docs/TESTING.md`).
+
+**Bekannte Grenze, bewusst so gelassen:** Kommt im 9-Sekunden-Fenster des Undo-Toasts ein Sync der
+anderen Person herein, setzt „Rückgängig" den Slot auf den Stand **vor meinem Lauf** zurück und
+verwirft damit deren zwischenzeitliche Änderung. Das ist bestehendes Verhalten des
+Schnappschuss-Pfades und kein Sonderfall des Beitritts — durch die Zusammenführung fällt es nur
+eher auf.

@@ -1293,14 +1293,15 @@ Dass die Tagesziele mit ausgeschnitten werden statt gestubbt, ist der Punkt: Ein
 `goalTargetsForDay = () => 2000` hätte die Prüfung „Trainingstag bekommt mehr eingeplant"
 grün und wertlos gemacht.
 
-126 Prüfungen, gegliedert nach den fünf Regeln. Die wichtigen sind die **Ausschlüsse**:
+141 Prüfungen, gegliedert nach den fünf Regeln. Die wichtigen sind die **Ausschlüsse**:
 
 * Meals ohne Nährwerte und Barcode-Schnellprodukte kommen nicht in die Auswahl.
 * Ein veganes Profil bekommt **nie** ein Gericht ohne den Tag — auch nicht, wenn neun Meals
   dastehen und nur drei passen (dann wird gar nicht geplant).
 * Ein belegter Slot bleibt unberührt; eine volle Woche bleibt **byteweise identisch**.
-* In der Gruppe: fremder Eintrag unangetastet, mein Eintrag nur mir zugewiesen, dasselbe Gericht
-  übernommen — und ein Gericht, das nicht zu meinem Profil passt, ausdrücklich **nicht**.
+* In der Gruppe: fremder Eintrag unangetastet, mein Eintrag nur mir zugewiesen, dem vorhandenen
+  Gericht **beigetreten** statt gedoppelt — und ein Gericht, das nicht zu meinem Profil passt,
+  ausdrücklich **nicht** übernommen (siehe eigener Abschnitt unten).
 * Kein Eintrag ist eine geteilte Objektreferenz (paarweiser `===`-Vergleich über alle Einträge).
 
 Sechs Prüfungen kamen aus dem Pushcheck dazu (16.08.2026): Ein Bestand aus fettigen
@@ -1353,7 +1354,7 @@ absichtlich ab) sah man deshalb nur „JS-FEHLER" und keinen einzigen Befund. De
 die Meldung jetzt an das bestehende Log an, und `pruef()` schreibt **fortlaufend** ins `<pre>`
 statt erst am Ende (Ergebnisfortschritt, Abschnitt 3).
 
-### Nachtrag 16.08.2026, zweiter Teil: 126 Prüfungen, vier Gegenproben
+### Nachtrag 16.08.2026, zweiter Teil: 127 Prüfungen, vier Gegenproben
 
 Mit Abwechslung, Würfeln und Gedächtnis kamen Prüfungen dazu, die anders gebaut sind als die
 bisherigen — sie messen **Verteilungen**, nicht Einzelergebnisse:
@@ -1384,6 +1385,66 @@ wurden nach der Ein-Portionen-Regel rot — zu Recht, denn ihre Erwartung galt n
 messen jetzt die neue Zusage (etwa: „bei sehr hohem Ziel wird die Lücke benannt" statt „der
 Korridor wird getroffen"). Eine Prüfung, die man nur so weit lockert, bis sie wieder grün ist,
 misst am Ende nichts.
+
+### Nachtrag 16.08.2026, dritter Teil: der Planer in der Gruppe (141 Prüfungen)
+
+Mit „Beitreten statt doppeln" kam die erste Prüfgruppe dazu, die den **Zustand eines fremden
+Eintrags vor und nach** dem Lauf vergleicht. Vierzehn neue Prüfungen, drei Gegenproben.
+
+**Die wichtigste Prüfung hält eine Referenz fest**, nicht nur einen Wert:
+
+```js
+var fremd = { id: "ha3", uids: ["du"] };
+state.plan.mon.mi.push(fremd);
+autoPlanWeek();
+pruef("das fremde Objekt wurde ersetzt, nicht mutiert",
+  JSON.stringify(fremd), JSON.stringify({ id: "ha3", uids: ["du"] }));
+```
+
+Ein Vergleich gegen `state.plan.mon.mi[0]` hätte hier **nichts** bewiesen: Bei einer Mutation
+zeigt der Slot ja auf dasselbe Objekt, das gerade verändert wurde. Nur die außen gehaltene
+Referenz trennt „ersetzt" von „mutiert" — und genau daran hängt der Undo-Pfad.
+
+**Drei Gegenproben, jede einzeln gefahren** — sie belegen zusammen, was eine allein nicht kann:
+
+| Sabotage | erwartet | gemessen |
+|---|---|---|
+| Beitritt abgeschaltet (`if (false)`) → wieder zwei Einträge | die Beitritts-Prüfungen fallen | 5 von 141 rot |
+| Verträglichkeits-Beitrag in `planRang()` abgeschaltet | die Bewertungs-Prüfungen fallen | 2 von 141 rot |
+| Beitritt **mutierend** (`altUids.push(syncUid)`) | die Ersetzt-Prüfungen fallen | 5 von 141 rot |
+
+Die dritte war nicht optional: Bei der ersten Gegenprobe blieben „das fremde Objekt wurde
+ersetzt" und „Rückgängig stellt den fremden Eintrag her" **grün** — ohne Beitritt wird eben
+nichts mutiert. Eine Prüfung gegen genau die Falle, vor der der Code warnt, braucht eine
+Gegenprobe, die genau in diese Falle tritt.
+
+**Die Bewertung wird als Differenz zweier Gerichte gemessen**, einmal allein und einmal in der
+Gruppe. Alle übrigen Beiträge (Kategorie, Protein, Größe) sind in beiden Läufen gleich und kürzen
+sich heraus — übrig bleibt exakt der neue Beitrag (`5` bzw. gedeckelte `8`). Ein Vergleich am
+Planergebnis wäre durch die gewichtete Ziehung verrauscht gewesen.
+
+### Eine Prüfung, die den Würfel misst, ist schlimmer als keine
+
+Beim Fahren der Gegenproben fiel eine Zeile auf, die **rot war, obwohl die Sabotage sie gar nicht
+berührte**:
+
+```js
+var mi = planWochengerichte(kand, "mi");
+pruef("Meal-Prep steht vorn", mi[0].mealPrep, true);   // bis 16.08.2026
+```
+
+Nachgemessen: **in 20 Läufen zweimal rot**, ohne jede Codeänderung. Die Prüfung war richtig,
+solange strikt die besten `PLAN_VARIANTEN` genommen wurden — seit der gewichteten Pool-Ziehung
+kann auch Platz 4 auf Platz 1 landen. Sie maß den Würfel, nicht die Bewertung.
+
+Sie steht jetzt an `planRang()`, wo die Aussage tatsächlich sitzt, und vergleicht zwei sonst
+**identische** Meals, damit die Differenz genau der Meal-Prep-Beitrag ist (`10`). Danach: 20 von
+20 Läufen grün.
+
+**Merksatz:** Wird eine Auswahl auf Zufall umgestellt, muss jede Prüfung mitwandern, die bisher
+am *Ergebnis* der Auswahl hing. Ein sporadisch roter Prüfstand ist kein kleineres Problem als ein
+falscher — man gewöhnt sich an die rote Zeile und übersieht die echte daneben. Deshalb gehört zu
+jeder Änderung an der Auswahl ein **Wiederholungslauf** (hier: 20×), nicht ein einzelner grüner.
 
 ### Der Layout-Prüfstand liegt im Scratchpad, nicht im Projekt
 
