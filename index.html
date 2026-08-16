@@ -642,6 +642,13 @@
      ueberlaufendem Text (gemessen). */
   .btn.icon-gh.shop-ic { width: auto; padding: 0 12px; gap: 8px; font-size: 13px; font-weight: 600; }
   .shop-ic svg { color: var(--accent); }
+  /* Auto-Wochenplaner (D2). Gleiche Bauart wie der Einkaufsknopf daneben: Ghost mit
+     Akzent-Symbol, nicht gefuellt - die Wochen-Pille in derselben Zeile traegt schon den
+     Akzent-Gradienten, zwei Akzentflaechen nebeneinander konkurrieren (siehe .shop-ic).
+     Er behaelt sein Wort auf JEDEM Geraet: "Einkaufsliste" erraet man am Wagen, "planen"
+     an keinem Symbol. Statt das Wort zu opfern, bekommt er ab 720px eine eigene Zeile. */
+  .btn.plan-auto { padding: 0 12px; height: 34px; gap: 8px; font-size: 13px; font-weight: 600; }
+  .plan-auto svg { color: var(--accent); }
   /* Klebende Tagesbilanz: nur auf dem Handy. Am Rechner steht sie in jeder der sieben
      Tageskarten - eine achte, gemeinsame Leiste waere dort sinnlos. Hier ist das
      Nur-auf-einem-Geraet richtig, weil dieselbe INFORMATION am Rechner schon woanders
@@ -2396,6 +2403,12 @@
     /* Der Icon-Knopf (Woche leeren) bleibt quadratisch neben den Tabs -
        ohne diese Ausnahme wuerde er durch die Regel darueber in die Breite gezogen. */
     .plan-tools .icon-gh { flex: none; }
+    /* D2: eigene, volle Zeile unter dem Wochenumschalter. Die Werkzeugzeile ist bei 360px
+       bis auf wenige Pixel voll (siehe .shop-ic im 560px-Block) - ein vierter Knopf DARIN
+       waere entweder ein raetselhaftes Symbol oder ein Umbruch mit halber Breite.
+       Auf der eigenen Zeile ist Platz fuer die vollen 44px Trefferflaeche - die 34px oben
+       sind eine Rechner-Groesse und brauchen dort keinen hitSlop-Trick (TROUBLESHOOTING #38). */
+    .plan-tools .plan-auto { flex: 1 0 100%; height: 44px; justify-content: center; }
     .week { gap: 12px; }
     .recipes { gap: 12px; }
     .imgfield { flex-direction: column; align-items: stretch; }
@@ -6179,6 +6192,10 @@
     // Plan (Rechner) und der Icon-Knopf im Kopf (Handy). Dasselbe Icon aus einer Quelle,
     // damit die beiden nicht auseinanderlaufen (gleiche Ueberlegung wie bei BARCODE_SVG).
     cart: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6h15l-1.5 9h-12z"/><path d="M6 6 5 2H2"/><circle cx="9" cy="20" r="1.4"/><circle cx="18" cy="20" r="1.4"/></svg>',
+    // Zauberstab mit zwei Funken: der Auto-Wochenplaner (D2). Bewusst KEIN Kalender- oder
+    // Listensymbol - die stehen im Wochenplan schon fuer den Plan selbst; hier geht es um
+    // das automatische Fuellen, nicht um die Woche.
+    wand: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 21 11-11"/><path d="m12.5 8.5 3 3"/><path d="M17.5 2.5 18.6 5l2.5 1.1-2.5 1.1-1.1 2.5-1.1-2.5L13.9 6l2.5-1.1Z"/><path d="M6.5 3 7.2 4.6 8.8 5.3 7.2 6 6.5 7.6 5.8 6 4.2 5.3l1.6-.7Z"/></svg>',
   };
   // Hantel (Trainingstag). Als EINZIGES Icon der App mit gefuellten Flaechen statt reiner
   // Konturen — und das aus einem geprueften Grund: Bei 13 px, wie es in der Tages-Kopfzeile
@@ -8644,6 +8661,13 @@
                Muelleimer. Das aria-label traegt in BEIDEN Faellen den vollen Text: sichtbar
                steht am Rechner nur "Einkaufsliste", gemeint ist die der gezeigten Woche. -->
           <button class="btn ghost icon-gh shop-ic" data-action="shopping" title="Einkaufsliste der Woche" aria-label="Einkaufsliste der Woche">${TOOL_ICONS.cart}<span class="sh-w">Einkaufsliste</span></button>
+          <!-- D2: Auto-Wochenplaner. Sichtbar nur MIT gesetztem Ziel - ohne Ziel gibt es
+               nichts zu treffen, ein Knopf, der nur erklaeren kann, warum er nicht geht,
+               ist keiner. Nicht ins Ueberlaufmenue: er ist das Pro-Zugpferd.
+               Anders als der Einkaufsknopf behaelt er sein Wort auch auf dem Handy - er
+               rutscht dort per CSS (.plan-auto) in eine eigene Zeile, weil "Woche planen"
+               als Symbol allein nicht erratbar waere. -->
+          ${canEdit() && goalTargets(1) ? `<button class="btn ghost plan-auto" data-action="auto-plan" title="Woche automatisch planen" aria-label="Woche automatisch planen">${TOOL_ICONS.wand}<span>Woche planen</span></button>` : ""}
           <!-- B3: "Woche leeren" stand hier bis 13.08.2026 gleichrangig neben der
                Einkaufsliste - eine destruktive Aktion mit derselben Prominenz wie das
                meistgenutzte Werkzeug, direkt daneben. Jetzt im Ueberlaufmenue; die
@@ -11309,7 +11333,189 @@
       <h4>11. Deine Rechte</h4>
       <p>Du hast das Recht auf Auskunft, Berichtigung, Löschung, Einschränkung der Verarbeitung, Datenübertragbarkeit und Widerspruch – wende dich dafür an die in Ziffer 1 genannte Adresse; Löschen und Widerruf gehen zusätzlich direkt in der App (Ziffern 3b und 10). Soweit eine Verarbeitung auf deiner Einwilligung beruht, kannst du diese jederzeit mit Wirkung für die Zukunft widerrufen. Zudem hast du ein Beschwerderecht bei einer Datenschutz-Aufsichtsbehörde – für uns zuständig ist das Bayerische Landesamt für Datenschutzaufsicht (BayLDA), Promenade 18, 91522 Ansbach.</p>
       <h4>12. Automatisierte Entscheidungsfindung</h4>
-      <p>Eine automatisierte Entscheidungsfindung oder ein Profiling im Sinne des Art. 22 DSGVO findet nicht statt.</p>`);
+      <p>Eine automatisierte Entscheidungsfindung oder ein Profiling mit rechtlicher Wirkung oder ähnlich erheblicher
+         Beeinträchtigung im Sinne des Art. 22 DSGVO findet nicht statt. Funktionen, die dir etwas <em>vorschlagen</em> –
+         etwa der automatische Wochenplaner, der aus deinen eigenen Meals einen Vorschlag gegen dein Kalorienziel
+         zusammenstellt – fallen nicht darunter: Das Ergebnis ist ein Vorschlag in deinem Plan, den du jederzeit ändern,
+         rückgängig machen oder löschen kannst.</p>`);
+  }
+
+  // ---------- Auto-Wochenplaner (D2) ----------
+  //
+  // Ein Klick fuellt die offenen Slots der gezeigten Woche gegen das Kalorienziel. Kein
+  // Konfigurationsdialog, kein Regler fuer Abwechslung: ein Ergebnis, Rueckgaengig daneben.
+  //
+  // Fuenf Regeln, die den ganzen Ablauf tragen:
+  //   1. Nur fuellen, was FUER MICH leer ist. Bestehendes wird nie ueberschrieben.
+  //   2. Meal-Prep vor Abwechslung - wenige Gerichte, die sich wiederholen. 21 verschiedene
+  //      Gerichte sind das Gegenteil dessen, wofuer die App da ist.
+  //   3. Das Ernaehrungsprofil ist eine harte Grenze, keine Gewichtung (fitsDiet).
+  //   4. Die Kategorie muss zum Slot passen (catFitsMeal), genaue Treffer zuerst.
+  //   5. In der Gruppe wird ein schon eingeplantes Gericht UEBERNOMMEN statt ein zweites
+  //      gewaehlt: ein Topf, zwei Mengen. Nur wenn es zum eigenen Profil nicht passt, wird
+  //      ein anderes gesucht.
+  //
+  // Pro-Gating: In einer Gruppe darf JEDES Mitglied planen, auch ohne eigenes Pro - in der
+  // Gruppe zahlt der Inhaber, und ohne das liefe Regel 5 fuer Eingeladene leer. Die Sperre
+  // ist hier ausnahmsweise reine UI: Der Planer schreibt nur Slots, die derselbe Nutzer auch
+  // von Hand schreiben duerfte, es gibt also nichts serverseitig durchzusetzen (CLAUDE.md
+  // §18 betrifft den Zugriff auf Daten, nicht den Komfort).
+
+  // Anteile am Tagesziel. Der Snack steht bewusst NICHT in dieser Tabelle: er bekommt den
+  // REST des Tages (Schritt 5), sonst muesste sich die Rundung der drei Hauptslots
+  // irgendwo verstecken.
+  const PLAN_SHARE = { fr: 0.25, mi: 0.35, ab: 0.30 };
+  // So viele Gerichte je Slot-Art fuer die ganze Woche. Zwei waeren oede, sieben waeren
+  // sieben Einkaeufe und sieben Kochabende (Regel 2).
+  const PLAN_VARIANTEN = 3;
+  // Darunter waere der Plan eine Wiederholung desselben Tages - dann lieber ein klarer
+  // Hinweis als ein magerer Plan.
+  const PLAN_MIN_KANDIDATEN = 6;
+  // Deckel je Slot: Bei einem 90-kcal-Snack und 900 kcal offenem Budget kaemen sonst zehn
+  // Eintraege in eine einzige Zeile.
+  const PLAN_MAX_PRO_SLOT = 4;
+  // Ab dieser Abweichung wird die Woche beim Namen genannt statt schoengerechnet.
+  const PLAN_TOLERANZ = 0.1;
+
+  // Ist dieser Slot fuer MICH leer? Ein Eintrag, der nur anderen Mitgliedern zugewiesen ist,
+  // zaehlt nicht - genau wie in dayNutOf(), das dieselbe Frage fuer die Bilanz beantwortet.
+  function slotOpenForMe(dayKey, mealKey) {
+    return !state.plan[dayKey][mealKey].some(e => {
+      const uids = entryUids(e);
+      return !uids || uids.indexOf(syncUid) !== -1;
+    });
+  }
+  // Was kommt ueberhaupt in Frage? Ohne Naehrwerte laesst sich nicht rechnen - solche Meals
+  // werden ausgeschlossen und NICHT geschaetzt (in einer Fitness-App ist eine erfundene
+  // Zahl schlimmer als ein fehlendes Gericht). Barcode-Schnellprodukte (quick) bleiben
+  // ueber libraryRecipes() ohnehin draussen.
+  function planKandidaten() {
+    return libraryRecipes().filter(r => fitsDiet(r) && recipeNut(r).kcal > 0);
+  }
+  // Bewertung eines Gerichts fuer einen Slot. Die Stufen liegen so weit auseinander, dass
+  // eine hoehere nie von einer niedrigeren eingeholt wird: Kategorie schlaegt Meal-Prep,
+  // Meal-Prep schlaegt den Proteinanteil.
+  function planRang(r, mealKey) {
+    let s = 0;
+    if (catSuggestsMeal(r.category, mealKey)) s += 100;   // genau dieser Slot statt nur "erlaubt"
+    if (r.mealPrep === true) s += 10;
+    const n = recipeNut(r);
+    s += Math.min(9, (n.protein * 4 / n.kcal) * 20);      // Proteinanteil je kcal, gedeckelt
+    return s;
+  }
+  // Die Wochengerichte einer Slot-Art. Erst mischen, dann stabil sortieren: So entscheidet
+  // der Zufall nur dort, wo die Bewertung gleich ist - zwei Aufrufe liefern nicht denselben
+  // Plan, aber nie ein schlechteres Gericht vor einem besseren.
+  function planWochengerichte(kandidaten, mealKey) {
+    const passend = kandidaten.filter(r => catFitsMeal(r.category, mealKey));
+    for (let i = passend.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      const t = passend[i]; passend[i] = passend[j]; passend[j] = t;
+    }
+    return passend.sort((a, b) => planRang(b, mealKey) - planRang(a, mealKey)).slice(0, PLAN_VARIANTEN);
+  }
+  // Regel 5: Steht im Slot schon das Gericht der anderen, wird DASSELBE genommen.
+  function planUebernahme(dayKey, mealKey) {
+    const ids = state.plan[dayKey][mealKey].map(entryId);
+    for (let i = 0; i < ids.length; i++) {
+      const r = getRecipe(ids[i]);
+      if (r && fitsDiet(r) && recipeNut(r).kcal > 0 && catFitsMeal(r.category, mealKey)) return r;
+    }
+    return null;
+  }
+  // Was steht an diesem Tag schon fuer mich? Wird vom Snack-Rest abgezogen - sonst zaehlte
+  // ein von Hand eingetragenes Fruehstueck nicht mit und der Tag laege darueber.
+  function planTagKcal(dayKey) {
+    return dayNutOf(state.plan, dayKey).kcal;
+  }
+
+  function autoPlanWeek() {
+    if (!canEdit()) return;
+    // Ohne Ziel gibt es nichts zu treffen - dann wird der Knopf gar nicht erst angeboten
+    // (siehe renderPlan). Der Riegel hier ist die Absicherung dahinter, deshalb stumm.
+    if (!goalTargets(1)) return;
+    // Bewusst OHNE den Zusatz "in einer Gruppe plant jedes Mitglied mit": Diese Meldung
+    // sieht nur, wer KEINE Gruppe hat (sonst greift die Sperre gar nicht) - der Hinweis
+    // ginge also immer an die Falschen. Beim Gruppen-Blatt liegt der Fall anders, dort
+    // betrifft der Zusatz dieselbe Person.
+    if (!isPro() && !syncGid) { toast("Automatisch planen gehört zu Pro"); return; }
+    const kand = planKandidaten();
+    if (kand.length < PLAN_MIN_KANDIDATEN) { toast("Zu wenige passende Meals – leg noch welche an."); return; }
+
+    const key = activeWeekKey();
+    const before = {};
+    DAYS.forEach(d => { before[d.key] = {}; MEALS.forEach(m => { before[d.key][m.key] = state.plan[d.key][m.key].slice(); }); });
+
+    // Die Wochengerichte stehen VOR der Tagesschleife fest - das ist Regel 2 in einer Zeile.
+    const wahl = {};
+    MEALS.forEach(m => { wahl[m.key] = planWochengerichte(kand, m.key); });
+
+    let gesetzt = 0;
+    DAYS.forEach((d, di) => {
+      const ziel = goalTargetsForDay(d.key);
+      if (!ziel) return;
+      // Laufender Rest des Tages. Startet beim Ziel abzueglich dessen, was schon fuer mich
+      // im Plan steht, und schrumpft mit jedem gesetzten Slot - am Ende bekommt ihn der Snack.
+      let offen = ziel.kcal - planTagKcal(d.key);
+      MEALS.forEach(m => {
+        if (!slotOpenForMe(d.key, m.key)) return;
+        // Rotation ueber den Wochentag statt Zufall je Slot: dasselbe Gericht landet an
+        // mehreren Tagen, und die Reihenfolge ist nachvollziehbar (Regel 2).
+        const liste = wahl[m.key];
+        const r = planUebernahme(d.key, m.key) || (liste.length ? liste[di % liste.length] : null);
+        if (!r) return;
+        const kcal = recipeNut(r).kcal;
+        // Der Snack bekommt den Rest, die drei Hauptslots ihren Anteil. Beim Snack gibt es
+        // KEIN Minimum von eins: Ist der Tag rechnerisch voll, bleibt die Zeile leer,
+        // statt ihn ueber das Ziel zu schieben.
+        const n = m.key === "sn"
+          ? Math.min(PLAN_MAX_PRO_SLOT, Math.round(offen / kcal))
+          : Math.max(1, Math.min(PLAN_MAX_PRO_SLOT, Math.round(ziel.kcal * PLAN_SHARE[m.key] / kcal)));
+        if (n < 1) return;
+        for (let i = 0; i < n; i++) {
+          // makeEntry je Eintrag neu: eine gemeinsame Objektreferenz mehrfach im Plan waere
+          // eine Falle fuer jede spaetere Aenderung an genau einem der Eintraege.
+          // In der Gruppe zaehlt der Eintrag nur in MEINER Bilanz und Einkaufsmenge; allein
+          // liefert makeEntry ohnehin die schlichte String-Form ("fuer alle").
+          state.plan[d.key][m.key].push(makeEntry(r.id, syncGid && syncUid ? [syncUid] : null));
+        }
+        offen -= n * kcal;
+        gesetzt += n;
+      });
+    });
+
+    if (!gesetzt) { toast("Deine Woche ist schon geplant"); return; }
+
+    save(); render();
+
+    // Schritt 7 - ehrlich sein. Eine Woche, die deutlich unter dem Ziel liegt, wird benannt
+    // und nicht kaschiert; lieber ein offener Rest als ein schoengerechneter Plan.
+    //
+    // Geprueft werden BEIDE Saeulen. Der Planer rechnet die Mengen gegen kcal, Protein wirkt
+    // nur ueber die Vorsortierung (planRang) - ein Plan kann also die Kalorien treffen und
+    // das Proteinziel trotzdem verfehlen. In einer Fitness-App ist genau das der Fall, der
+    // nicht verschwiegen werden darf. Beim Protein zaehlt nur ein DEFIZIT: Es ist eine
+    // Untergrenze, darueber ist gut (dieselbe Lesart wie goalState(..., "min")).
+    const wZiel = goalTargetsForDays(DAYS.map(d => d.key));
+    const wIst = weekNut();
+    const diff = wZiel ? wIst.kcal - wZiel.kcal : 0;
+    const protFehlt = wZiel ? wZiel.protein - wIst.protein : 0;
+    const wenigAuswahl = MEALS.some(m => m.key !== "sn" && wahl[m.key].length < 2);
+    // Nur EIN Zusatz, damit der Toast kurz bleibt: die groebere Abweichung gewinnt, und
+    // kcal steht vor Protein - wer 3000 kcal zu wenig plant, hat das groessere Problem.
+    let msg = "Woche geplant";
+    if (wZiel && Math.abs(diff) > wZiel.kcal * PLAN_TOLERANZ) {
+      msg += diff < 0 ? ` · noch rund ${nfmt(-diff)} kcal offen` : ` · rund ${nfmt(diff)} kcal über dem Ziel`;
+    } else if (wZiel && protFehlt > wZiel.protein * PLAN_TOLERANZ) {
+      msg += ` · rund ${nfmt(protFehlt)} g Protein fehlen`;
+    } else if (wenigAuswahl) {
+      msg += " · mehr Meals bringen mehr Abwechslung";
+    }
+    undoToast(msg, () => {
+      const p = state.plans[key]; if (!p) return;   // Woche existiert nach 5 s praktisch immer noch
+      DAYS.forEach(d => MEALS.forEach(m => { p[d.key][m.key] = before[d.key][m.key]; }));
+      save(); render();
+    });
   }
 
   function clearWeek() {
@@ -11534,6 +11740,7 @@
       undoToast("Entfernt", () => { state.plan[d][m].splice(idx, 0, removedId); save(); render(); });
     }
     else if (a === "shopping") openShopping();
+    else if (a === "auto-plan") autoPlanWeek();
     else if (a === "week") {
       if ((t.dataset.week === "next") !== (state.viewWeek === "next")) {
         // Anker-Regel + Uebergangsrichtung fuer renderPlan() (Schritt 2/5): "next" setzt

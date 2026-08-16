@@ -1277,6 +1277,73 @@ verschwinden — sonst belegt der Herkunftsnachweis eine Datei, die es nicht gib
 gehört ins Skript: **Datei ohne Protokolleintrag** und **Protokolleintrag ohne Datei** müssen
 beide leer sein.
 
+## Auto-Wochenplaner: zwei Prüfstände, zwei Fragen (16.08.2026)
+
+Der Planer (D2) zerfällt sauber in **Logik** und **Oberfläche** — und beide brauchen einen
+eigenen Aufbau, weil sie an verschiedenen Dingen scheitern.
+
+### `tools/pruefstand-autoplaner.py` — die Auswahl- und Mengenlogik
+
+Schneidet den Planer samt seiner ganzen Rechenkette aus `index.html` aus: `fitsDiet`,
+`catFitsMeal`, `recipeNut`/`dayNutOf`, `makeEntry`, `goalTargetsForDay` **mitsamt den
+Trainingstagen** (`TRAIN_LEVELS`, `trainKcal`, `trainFromRest`) und `activeWeekKey`. Gestubbt
+sind nur die Randstücke: `save`, `render`, `toast`, `undoToast` und die Sync-Variablen.
+
+Dass die Tagesziele mit ausgeschnitten werden statt gestubbt, ist der Punkt: Ein Stub
+`goalTargetsForDay = () => 2000` hätte die Prüfung „Trainingstag bekommt mehr eingeplant"
+grün und wertlos gemacht.
+
+63 Prüfungen, gegliedert nach den fünf Regeln. Die wichtigen sind die **Ausschlüsse**:
+
+* Meals ohne Nährwerte und Barcode-Schnellprodukte kommen nicht in die Auswahl.
+* Ein veganes Profil bekommt **nie** ein Gericht ohne den Tag — auch nicht, wenn neun Meals
+  dastehen und nur drei passen (dann wird gar nicht geplant).
+* Ein belegter Slot bleibt unberührt; eine volle Woche bleibt **byteweise identisch**.
+* In der Gruppe: fremder Eintrag unangetastet, mein Eintrag nur mir zugewiesen, dasselbe Gericht
+  übernommen — und ein Gericht, das nicht zu meinem Profil passt, ausdrücklich **nicht**.
+* Kein Eintrag ist eine geteilte Objektreferenz (paarweiser `===`-Vergleich über alle Einträge).
+
+Sechs Prüfungen kamen aus dem Pushcheck dazu (16.08.2026): Ein Bestand aus fettigen
+Kohlenhydraten trifft die Kalorien punktgenau und verfehlt das Proteinziel — der Toast muss das
+nennen. **Mit beiden Gegenproben**, ohne die die Meldung wertlos wäre: bei getroffenem Protein
+darf sie nicht erscheinen, und ein Protein-*Überschuss* ist kein Befund.
+
+### Die Gegenprobe hat hier zwei Hebel
+
+Ein Prüfstand, der nur den Normalfall fährt, beweist über Ausschlussregeln nichts. Belegt wurde
+das, indem in der **generierten** Prüfseite je eine Regel ausgehebelt wurde:
+
+| Sabotage | erwartet | gemessen |
+|---|---|---|
+| `fitsDiet` → `return true` | die Profil-Prüfungen fallen | 7 von 57 rot |
+| `slotOpenForMe` → `return true` | Regel 1 fällt | 6 von 57 rot |
+
+(Zahlen aus dem Lauf mit 57 Prüfungen; die Sabotage wirkt unverändert.)
+
+Nebenbefund aus der zweiten Sabotage: Die Ehrlichkeits-Meldung funktioniert auch nach oben
+(„rund 14.060 kcal über dem Ziel"). Das wäre im Normalfall nie aufgetreten.
+
+### Der Layout-Prüfstand liegt im Scratchpad, nicht im Projekt
+
+Für den Knopf selbst braucht es die **echte App mit Anmeldung** — Aufbau wie oben unter
+„Angemeldeter Prüfstand ohne Cloud-Gefahr": Kopie mit `apiKey: "DEIN_API_KEY"` (per `assert`
+abgesichert), eigener Port 8181, `seed.html` mit `__test`-Suffix, Rahmen mit fester CSS-Breite.
+
+Gemessen bei 390 px und 1200 px, jeweils hell und dunkel: eigene Zeile unter dem Einkaufsknopf,
+44 px Trefferfläche, kein waagerechter Überlauf, Symbol trägt den Akzent, `aria-label`, und der
+Klick über die **echte Delegation** (nicht der Funktionsaufruf).
+
+Zwei Fallen, die dabei Zeit gekostet haben:
+
+* **`state.tab: "plan"` im Seed reicht nicht.** Die App startet auf der Startseite. Der Reiter
+  muss per echtem Klick auf `[data-tab="plan"]` geöffnet werden, und der Rahmen wartet auf
+  `.week` — nicht darauf, dass `#view` Inhalt hat.
+* **`--force-dark-mode` schaltet die App nicht um.** Beide Durchläufe lieferten exakt dieselbe
+  Farbe (`rgb(166,155,157)`), der Test war blind. Erst `documentElement.setAttribute("data-theme",
+  …)` im Rahmen trennt die Themes wirklich — sichtbar an zwei verschiedenen Akzenten
+  (`rgb(220,38,38)` hell, `rgb(255,48,64)` dunkel). **Wer im Prüfstand ein Theme setzt, muss
+  belegen, dass es angekommen ist** — sonst prüft man zweimal dasselbe.
+
 ## Stapelkontext und Trefferflächen: `elementFromPoint()` im echten Browser (15.08.2026)
 
 **Headless nicht messbar.** Ob ein Knopf einen Klick tatsächlich bekommt, entscheidet der

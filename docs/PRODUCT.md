@@ -267,6 +267,76 @@ er ist ab jetzt nicht mehr nur das stärkste, sondern das entscheidende Pro-Feat
 nachträglich nicht in ein Verkaufsargument umdeuten. Der Preis dafür wäre nicht Umsatz, sondern
 Vertrauen.
 
+## Auto-Wochenplaner (16.08.2026)
+
+**Ein Knopf im Wochenplan füllt die offenen Slots gegen das Kalorienziel.** Damit steht das
+zweite Bein der Pro-Stufe (siehe oben) — und die App tut endlich selbst, was sie verspricht:
+Entscheidungen abnehmen statt sie zu verwalten.
+
+### Was er ist, und was er ausdrücklich nicht ist
+
+Er ist **kein Rezept-Zufallsgenerator**. 21 verschiedene Gerichte in einer Woche sind das
+Gegenteil dessen, wofür die App da ist: Sie wären sieben Einkäufe und sieben Kochabende. Der
+Planer wählt je Slot-Art **zwei bis drei Gerichte für die ganze Woche** und wiederholt sie
+(`PLAN_VARIANTEN`). Meal-Prep-taugliche Gerichte stehen dabei vorn, danach entscheidet der
+Proteinanteil je Kalorie — die Zielgruppe der App ist Fitness und Abnehmen, nicht Abwechslung.
+
+**Wichtig, damit die Zusage stimmt:** Der Proteinanteil **bevorzugt** Gerichte, er wird nicht
+optimiert. Die Mengen rechnet der Planer gegen das **Kalorienziel**; ein Plan kann die Kalorien
+also treffen und beim Protein trotzdem darunter liegen. Genau deshalb prüft die
+Ehrlichkeits-Meldung (siehe unten) **beide** Säulen und nennt auch ein Protein-Defizit. Eine
+Mengenrechnung gegen zwei Ziele gleichzeitig wäre ein anderer Algorithmus — der lohnt sich erst,
+wenn die Bibliothek groß genug ist, um darin überhaupt Spielraum zu haben.
+
+Er ist auch **kein Assistent mit Rückfragen**. Kein Regler für Abwechslung, keine Vorabfrage,
+kein Bestätigungsdialog: ein Klick, ein Ergebnis, *Rückgängig* daneben. Ein
+Konfigurationsdialog vor einer Automatik nimmt genau die Entscheidungen zurück, die sie
+abnehmen sollte.
+
+### Fünf Regeln
+
+1. **Nur füllen, was für mich leer ist.** Bestehendes wird nie überschrieben. In einer Gruppe
+   heißt „leer": kein Eintrag, der mich betrifft.
+2. **Meal-Prep vor Abwechslung.**
+3. **Das Ernährungsprofil ist eine harte Grenze**, keine Gewichtung. Ein veganes Profil bekommt
+   nie ein Gericht ohne `vegan`-Tag — auch nicht, wenn die Makros perfekt passen.
+4. **Die Kategorie muss zum Slot passen.**
+5. **In der Gruppe wird ein vorhandenes Gericht übernommen**, statt ein zweites zu wählen: ein
+   Topf, zwei Mengen. Das ist der eigentliche Trick am gemeinsamen Planen — drei Menschen mit
+   3000, 2000 und 1800 kcal essen dasselbe Gericht in unterschiedlicher Anzahl. Passt es nicht
+   zum eigenen Profil, wird ein anderes gewählt.
+
+### Ehrlich sein statt schönrechnen
+
+Trifft der Plan das Wochenziel um mehr als 10 % nicht, **sagt die App das**: „Woche geplant ·
+noch rund 400 kcal offen" — und, wenn die Kalorien stimmen, das Protein aber nicht: „· rund
+120 g Protein fehlen". Beim Protein zählt nur ein Defizit; es ist eine Untergrenze, darüber ist
+gut. Lieber ein offener Rest als ein Plan, der die Lücke versteckt. Das ist dieselbe Haltung wie
+beim Rückblick (siehe unten): Die Marke hilft, sie beschönigt nicht.
+
+Genannt wird immer nur **ein** Zusatz, damit der Toast kurz bleibt — kcal vor Protein, denn wer
+3000 kcal zu wenig geplant hat, hat das größere Problem.
+
+Genauso wird nicht geraten: **Meals ohne Nährwerte fallen aus der Auswahl** statt geschätzt zu
+werden. In einer Fitness-App ist eine erfundene Zahl schlimmer als ein fehlendes Gericht.
+
+### Grenzfälle, die zum Produkt gehören
+
+| Lage | Verhalten |
+|---|---|
+| Kein Ziel gesetzt | Der Knopf erscheint gar nicht — ohne Ziel gibt es nichts zu treffen |
+| Weniger als sechs passende Meals | „Zu wenige passende Meals – leg noch welche an." Kein magerer Plan |
+| Alle Slots schon belegt | „Deine Woche ist schon geplant." Kein Leerlauf-Klick |
+| Wenig Auswahl je Slot | Der Plan entsteht, der Hinweis nennt die fehlende Abwechslung |
+
+### Pro-Gating
+
+Der Planer ist eine Pro-Funktion — **in einer Gruppe darf ihn aber jedes Mitglied nutzen**, auch
+ohne eigenes Pro. Das folgt aus „in der Gruppe zahlt der Inhaber"; ohne diese Ausnahme könnte
+ein eingeladenes Mitglied seinen Teil der Woche gar nicht füllen, und Regel 5 liefe leer.
+
+Ohne Pro erscheint derselbe freundliche Hinweis wie beim Gruppen-Gründen, kein toter Knopf.
+
 ## Rezeptbuch (15.08.2026)
 
 Im Meals-Reiter gibt es zwei Ansichten: **Meine Meals** und **Rezeptbuch** — ein kuratierter

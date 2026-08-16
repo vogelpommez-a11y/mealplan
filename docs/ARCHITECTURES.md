@@ -1775,6 +1775,66 @@ Block sichtbar ist — das Formular-DOM bleibt für jede Zeile immer im Dokument
 `z-index` darüber. Ein „Fertig"-Knopf am Ende des aufgeklappten Bereichs ruft `closeIngRow(row)`
 als sichtbaren vierten Schließweg neben Enter, Fokusverlust und dem Öffnen einer anderen Zeile.
 
+## Auto-Wochenplaner (D2, 16.08.2026)
+
+**Kein neues Datenfeld, kein neuer Speicherort.** Der Planer schreibt ausschließlich in
+`state.plan[tag][slot]` — dieselben Einträge, die auch der Picker erzeugt, über denselben
+Helfer `makeEntry()`. Damit gilt für ihn automatisch alles, was für den Wochenplan schon gilt:
+`flattenWeek()`/`unflattenWeek()`, der Gruppen-Sync, die Einkaufsliste, das PDF und `pruneWeeks()`.
+Ein Plan, der vom Planer stammt, ist von einem handgemachten **nicht unterscheidbar** — und das
+ist Absicht: Ein Herkunftsvermerk am Eintrag hätte durch Sync, Undo und Zuweisung mitgeführt
+werden müssen, ohne dass irgendetwas ihn auswertet.
+
+### Ablauf von `autoPlanWeek()`
+
+| Schritt | Was passiert |
+|---|---|
+| Riegel | `canEdit()`, `goalTargets(1)`, Pro (`isPro() \|\| syncGid`), genug Kandidaten |
+| 1 | `planKandidaten()` — `libraryRecipes()` ∩ `fitsDiet()` ∩ `kcal > 0` |
+| 2 | `planWochengerichte(kand, slot)` je Slot-Art: mischen, dann nach `planRang()` sortieren, die besten `PLAN_VARIANTEN` behalten |
+| 3 | je Tag `goalTargetsForDay(tag)` — Trainingstage sind darin schon enthalten |
+| 4 | je Slot `anzahl = round(budget / kcal)`, gedeckelt auf `PLAN_MAX_PRO_SLOT` |
+| 5 | der Snack bekommt den **Rest** des Tages, nicht einen festen Anteil |
+| 6 | `makeEntry(id, syncGid ? [syncUid] : null)` je Eintrag einzeln |
+| 7 | Wochenbilanz gegen `goalTargetsForDays()` — **kcal und Protein**; > `PLAN_TOLERANZ` wird im Toast benannt |
+
+**Schritt 7 prüft beide Säulen, weil Schritt 4 nur eine kennt.** Die Mengen entstehen aus dem
+kcal-Budget; Protein wirkt ausschließlich über `planRang()`, also über die *Auswahl*. Ein
+Bestand aus fettigen Kohlenhydraten trifft die Kalorien damit punktgenau und verfehlt das
+Proteinziel deutlich — in einer Fitness-App der Fall, der benannt gehört. Beim Protein zählt nur
+ein **Defizit** (Untergrenze, wie `goalState(…, "min")`), und es wird nur genannt, wenn die
+Kalorien stimmen: Ein Toast mit zwei Zusätzen liest niemand.
+
+**Warum `planRang()` mit Stufenabständen arbeitet** (100 / 10 / max. 9): Die Bewertung soll
+nicht „ausgemittelt" werden. Eine exakt passende Kategorie muss jedes Meal-Prep-Gericht der
+falschen Kategorie schlagen, und Meal-Prep jeden Proteinvorsprung. Mit Punkten in derselben
+Größenordnung wäre die Reihenfolge Zufall.
+
+**Warum erst mischen, dann sortieren:** `Array.prototype.sort` ist stabil. Der Zufall entscheidet
+damit nur bei Punktgleichstand — zwei Aufrufe liefern nicht denselben Plan, aber nie ein
+schlechteres Gericht vor einem besseren.
+
+**Die Gerichtwahl je Tag ist eine Rotation** (`liste[tagIndex % liste.length]`), kein Zufall pro
+Slot. Nur so wiederholt sich ein Gericht planbar über die Woche (Meal-Prep), und das Ergebnis
+ist beim Ansehen nachvollziehbar.
+
+**`slotOpenForMe()` stellt dieselbe Frage wie `dayNutOf()`:** Betrifft mich dieser Eintrag —
+geteilt oder mir zugewiesen? Ein Eintrag, der nur anderen Mitgliedern gehört, lässt den Slot für
+mich offen. Genau daran hängt Regel 5: `planUebernahme()` sieht dann nach, ob deren Gericht auch
+zu meinem Profil passt, und nimmt dasselbe.
+
+**`makeEntry()` wird je Eintrag neu gerufen**, nicht einmal und n-mal eingefügt. Sonst lägen bei
+mehreren Portionen mehrere Verweise auf **dasselbe Objekt** im Plan, und eine spätere Änderung an
+genau einem Eintrag (Zuweisung ändern) hätte alle mitgeändert.
+
+### Pro-Grenze
+
+Der Planer ist die einzige Pro-Sperre, die **rein in der UI** liegt — und darf es sein: Er
+schreibt nur Slots, die derselbe Nutzer auch von Hand schreiben dürfte. Es gibt nichts
+serverseitig durchzusetzen, weil keine Datengrenze berührt wird (`CLAUDE.md` §18 betrifft den
+Zugriff auf Daten, nicht den Komfort). In einer Gruppe (`syncGid`) entfällt die Sperre ganz —
+dort zahlt der Inhaber.
+
 ## Architekturprinzip
 
 Bei mehreren möglichen Lösungen gewinnt grundsätzlich die Lösung mit:

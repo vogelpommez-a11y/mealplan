@@ -2338,3 +2338,44 @@ diese Asymmetrie machte die Suche kurz: derselbe Matcher, zwei Aufrufer, ein Unt
 2. **Ein „Feature ohne Wirkung" ist ein Kandidat für einen abgebrochenen Repaint.** Nicht zuerst
    die Logik lesen, sondern die Konsole — und prüfen, ob die Funktion, die das DOM schreibt,
    überhaupt bis zum Ende läuft.
+
+## 93. Ein Rückgabewert, n-mal eingefügt: derselbe Eintrag steht dann n-mal im Plan — als ein Objekt
+
+**Beim Bau des Auto-Wochenplaners (16.08.2026) vermieden, nicht erlitten** — aber die Stelle ist
+so verführerisch, dass sie hier stehen muss.
+
+Der Planer legt für ein Gericht mehrere Portionen in denselben Slot. Naheliegend wäre:
+
+```js
+const eintrag = makeEntry(r.id, uids);          // FALSCH
+for (let i = 0; i < n; i++) state.plan[d][m].push(eintrag);
+```
+
+`makeEntry()` liefert **entweder einen String** (der Normalfall „für alle") **oder ein Objekt**
+`{id, uids}`. Beim String ist das harmlos, beim Objekt liegen danach n Verweise auf **dasselbe**
+Objekt im Plan. Alles funktioniert — bis jemand die Zuweisung genau einer dieser Portionen
+ändert oder ein `uids`-Array in place mutiert: Dann ändern sich alle mit, und zwar in einem
+Feature (Zuweisung), das mit dem Planer nichts zu tun hat.
+
+Der Fehler wäre also erst Wochen später und an ganz anderer Stelle aufgefallen. Richtig ist,
+`makeEntry()` **je Eintrag** zu rufen. Der Prüfstand hält das mit einem paarweisen
+`===`-Vergleich über alle Einträge fest — eine Prüfung, die man nur schreibt, wenn man die
+Falle kennt.
+
+**Die allgemeine Form:** Ein Helfer, der *manchmal* ein Objekt und *manchmal* einen Primitiven
+zurückgibt, verzeiht das Wiederverwenden in der Hälfte der Fälle. Das ist schlimmer, als wenn er
+es nie verziehe.
+
+## 94. `.btn` in einer Reihe mit `.btn.icon-gh` sieht gleich groß aus — und ist kein Touch-Ziel
+
+Die Werkzeugleiste des Wochenplans arbeitet mit 34 px hohen Knöpfen. Die 44 px Trefferfläche
+entstehen dort **nicht** aus der Höhe, sondern aus `.btn.icon-gh::after { inset: -5px }`
+(siehe §38). Ein neuer Knopf, der nur `.btn` trägt, übernimmt die Optik der Reihe, aber nicht
+den hitSlop — sichtbar identisch, auf dem Handy 34 px hoch antippbar.
+
+Beim „Woche planen"-Knopf (D2) ist die Lösung nicht ein weiterer `::after`, sondern die Zeile:
+Unter 720 px bekommt er `flex: 1 0 100%` und **echte** `height: 44px`. Auf der eigenen Zeile ist
+der Platz da, und ein echtes Maß ist einem Trick vorzuziehen, wo beides möglich ist.
+
+**Prüfregel:** Wer der Leiste einen Knopf hinzufügt, misst dessen `getBoundingClientRect()`
+**und** `getComputedStyle(el, "::after")`. Eine der beiden Zahlen muss 44 ergeben.
