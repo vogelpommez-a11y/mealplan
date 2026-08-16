@@ -1845,8 +1845,11 @@ Die Fälle „Eintrag ohne `uids`" und „`uids` enthält mich schon" können da
 Beide machen den Slot über `slotOpenForMe()` für mich zu, der Planer läuft dort gar nicht erst.
 
 **Der Verträglichkeits-Beitrag in `planRang()`** (max. 8, nur bei `syncGid && groupMembers.length
-> 1`): vegan +5 bzw. vegetarisch +3, glutenfrei und laktosefrei je +1,5. Er steht **unter** dem
-Wiederholungs-Malus (40) — sonst stünde jede Woche dasselbe vegane Gericht oben. Bewertet wird
+> 1`): vegan +5 bzw. vegetarisch +3, glutenfrei und laktosefrei je +1,5, zusammengefasst durch
+`Math.min(8, …)`. Er steht **unter** dem Wiederholungs-Malus (40) — sonst stünde jede Woche
+dasselbe vegane Gericht oben. Der Deckel steht bewusst im **Code**, obwohl die vier Tags von
+selbst höchstens 8 ergeben: Eine fünfte Unverträglichkeit würde die Zusage sonst still brechen,
+und keine Prüfung würde es merken (der Deckel ist mit vier Tags nicht erreichbar). Bewertet wird
 allein das Gericht, **nie ein fremdes Profil**; Ziffer 8a der Datenschutzerklärung bleibt
 unberührt. Ohne Gruppe ändert sich am Ergebnis nichts.
 

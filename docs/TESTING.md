@@ -1405,18 +1405,27 @@ Ein Vergleich gegen `state.plan.mon.mi[0]` hätte hier **nichts** bewiesen: Bei 
 zeigt der Slot ja auf dasselbe Objekt, das gerade verändert wurde. Nur die außen gehaltene
 Referenz trennt „ersetzt" von „mutiert" — und genau daran hängt der Undo-Pfad.
 
-**Drei Gegenproben, jede einzeln gefahren** — sie belegen zusammen, was eine allein nicht kann:
+**Vier Gegenproben, jede einzeln gefahren** — sie belegen zusammen, was eine allein nicht kann:
 
 | Sabotage | erwartet | gemessen |
 |---|---|---|
 | Beitritt abgeschaltet (`if (false)`) → wieder zwei Einträge | die Beitritts-Prüfungen fallen | 5 von 141 rot |
 | Verträglichkeits-Beitrag in `planRang()` abgeschaltet | die Bewertungs-Prüfungen fallen | 2 von 141 rot |
 | Beitritt **mutierend** (`altUids.push(syncUid)`) | die Ersetzt-Prüfungen fallen | 5 von 141 rot |
+| vegan auf `+= 50` — **mit** `Math.min(8, …)` | Deckel greift, Zeile bleibt grün | „mehr als 8 gibt es nicht" = 8 ✔ |
+| dieselbe Übertreibung **ohne** `Math.min` | Deckel fehlt, Zeile fällt | 53 statt 8 |
 
 Die dritte war nicht optional: Bei der ersten Gegenprobe blieben „das fremde Objekt wurde
 ersetzt" und „Rückgängig stellt den fremden Eintrag her" **grün** — ohne Beitritt wird eben
 nichts mutiert. Eine Prüfung gegen genau die Falle, vor der der Code warnt, braucht eine
 Gegenprobe, die genau in diese Falle tritt.
+
+Die letzten beiden sind ein Paar und zeigen einen Fall, der sonst durchrutscht: **Ein Deckel, den
+der Normallauf nie erreicht, ist im Normallauf nicht prüfbar.** Mit den heutigen vier Tags ergibt
+die Summe von selbst genau 8 — `Math.min(8, …)` ändert am Ergebnis nichts und wäre durch eine
+gewöhnliche Sabotage („Deckel entfernen") nicht zu fassen. Beweisen lässt er sich nur, indem man
+ihn **auslöst**: einen Beitrag künstlich über die Grenze treiben und sehen, ob die Zahl stehen
+bleibt. Wer einen Grenzwert prüfen will, muss an die Grenze gehen, nicht daneben.
 
 **Die Bewertung wird als Differenz zweier Gerichte gemessen**, einmal allein und einmal in der
 Gruppe. Alle übrigen Beiträge (Kategorie, Protein, Größe) sind in beiden Läufen gleich und kürzen

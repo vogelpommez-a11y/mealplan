@@ -11583,14 +11583,22 @@
     // Vorentscheidung. Allein (kein syncGid) aendert sich am Ergebnis NICHTS - der Solo-Planer
     // soll nicht ploetzlich vegetarisch bevorzugen.
     //
+    // Der Deckel steht als Math.min() im CODE, nicht bloss im Kommentar. Die Summe ergibt heute
+    // von selbst hoechstens 8 (5 + 1,5 + 1,5), aber nur weil es genau diese vier Tags gibt und
+    // vegan/vegetarisch sich per else-if ausschliessen. Eine fuenfte Unvertraeglichkeit wuerde
+    // den Beitrag sonst still ueber die 40 heben - eine Zusage, die von der Laenge einer Liste
+    // abhaengt, ist keine.
+    //
     // Wirkungslos und harmlos, wenn ich selbst schon vegan bin: dann sind alle Kandidaten vegan
     // (planKandidaten/cookbookVisible filtern ueber fitsDiet), der Beitrag ist konstant.
     if (syncGid && groupMembers.length > 1) {
       const tags = r.tags || [];
-      if (tags.indexOf("vegan") !== -1) s += 5;
-      else if (tags.indexOf("vegetarisch") !== -1) s += 3;
-      if (tags.indexOf("glutenfrei") !== -1) s += 1.5;
-      if (tags.indexOf("laktosefrei") !== -1) s += 1.5;
+      let vertraeglich = 0;
+      if (tags.indexOf("vegan") !== -1) vertraeglich += 5;
+      else if (tags.indexOf("vegetarisch") !== -1) vertraeglich += 3;
+      if (tags.indexOf("glutenfrei") !== -1) vertraeglich += 1.5;
+      if (tags.indexOf("laktosefrei") !== -1) vertraeglich += 1.5;
+      s += Math.min(8, vertraeglich);
     }
 
     // Gleichstand geht an das EIGENE Meal. Bewusst kleiner als jeder andere Beitrag: Der

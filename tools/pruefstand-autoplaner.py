@@ -442,7 +442,14 @@ function bestand() {
   syncGid = "g1"; myRole = "edit"; syncUid = "ich"; groupMembers = [{ uid: "ich" }, { uid: "du" }];
   pruef("in der Gruppe steigt das vegane Gericht um 5",
     planRang(rVegan, "mi", 0, null) - planRang(rFleisch, "mi", 0, null) - alleinDiff, 5);
-  pruef("und der Beitrag ist bei 8 gedeckelt",
+  // Der hoechstmoegliche Beitrag. Mit den heutigen vier Tags ergibt die Summe von selbst genau
+  // 8 - im NORMALLAUF misst diese Zeile also nur den Wert, nicht den Math.min(8)-Deckel.
+  //
+  // Beweisen laesst er sich trotzdem, ueber eine Gegenprobe, die ihn AUSLOEST: `vertraeglich
+  // += 50` fuer vegan. Mit Deckel bleibt die Zeile gruen (8), ohne Deckel meldet sie 53. Das
+  // ist der Grund, warum das Math.min() im Code steht und nicht bloss im Kommentar - eine
+  // fuenfte Unvertraeglichkeit wuerde die Zusage "bleibt unter 40" sonst still brechen.
+  pruef("mehr als 8 gibt es nicht",
     planRang(rAlles, "mi", 0, null) - planRang(rFleisch, "mi", 0, null) - alleinMax, 8);
   pruef("er bleibt unter dem Wiederholungs-Malus von 40", 8 < 40, true);
 
