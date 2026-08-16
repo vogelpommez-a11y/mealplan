@@ -331,6 +331,41 @@ abnehmen sollte.
    3000, 2000 und 1800 kcal essen dasselbe Gericht in unterschiedlicher Anzahl. Passt es nicht
    zum eigenen Profil, wird ein anderes gewählt.
 
+### Abwechslung ist eine eigene Regel (16.08.2026)
+
+Der erste Planer lieferte **an jedem Tag dasselbe Gericht für Mittag und Abend**. Das war kein
+Zufall, sondern zwangsläufig: Beide Slots zogen aus derselben Menge, mit derselben Bewertung und
+demselben Rotationsindex. Daraus folgen drei Festlegungen:
+
+* **Mittag und Abend bekommen getrennte Gerichte** — je drei, aus disjunkten Mengen. Macht sechs
+  verschiedene Hauptgerichte pro Woche.
+* **An einem Tag nie zweimal dasselbe Gericht.** Das ist eine harte Regel am Ende der Auswahl,
+  keine Wahrscheinlichkeit.
+* **Eine Portion je Hauptmahlzeit**, wenn allein geplant wird. Mehrere Einträge desselben
+  Gerichts ergeben nur in der Gruppe Sinn (siehe unten) — allein sehen sie wie ein Fehler aus.
+  Was zum Tagesziel fehlt, geht in die Snack-Zeile; bleibt danach etwas offen, wird es benannt.
+
+### Jeder Lauf ein anderer Plan
+
+Der Planer nimmt **nicht** die drei bestbewerteten Gerichte, sondern zieht aus den **acht besten**
+gewichtet nach Rang. Damit ergibt jeder Klick einen anderen Vorschlag — und jeder ist gut, weil
+schwache Kandidaten gar nicht erst im Feld sind. Reiner Zufall würde auch das schlechteste
+Gericht ziehen und die Zusage „trifft dein Kalorien- und Proteinziel" untergraben.
+
+Dazu ein **„Nochmal"** direkt im Toast: Der Vorschlag wird verworfen und neu gewürfelt, so oft
+man will. Ohne diesen Knopf müsste man über „Woche leeren" samt Rückfrage gehen — drei Schritte
+für eine Meinungsfrage.
+
+### Der Planer erinnert sich
+
+Was in den letzten zwei Wochen dran war, wird abgewertet — **nicht gesperrt**. Bei sechs eigenen
+Meals würde eine Sperre Slots leer lassen; die Abwertung wirkt dann gleichmäßig und das Ergebnis
+bleibt brauchbar. Mit einer großen Bibliothek führt dieselbe Regel dazu, dass praktisch jede Woche
+andere Gerichte oben stehen. Eine Regel, die über beide Größenordnungen trägt.
+
+Dafür merkt sich das Konto zu eingeplanten Meals die Kalenderwoche (`state.planned`) — persönlich,
+auch in einer Gruppe, und nach einigen Wochen automatisch vergessen.
+
 ### Mehrere Portionen ja, viermal dasselbe Getränk nein
 
 Bei Frühstück, Mittag und Abend sind **Vielfache richtig** — sie sind Regel 5 in Zahlen: zweimal

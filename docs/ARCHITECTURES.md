@@ -1791,9 +1791,9 @@ werden müssen, ohne dass irgendetwas ihn auswertet.
 |---|---|
 | Riegel | `canEdit()`, `goalTargets(1)`, Pro (`isPro() \|\| syncGid`), genug Kandidaten |
 | 1 | `planKandidaten()` — eigene (`libraryRecipes()`) **plus Katalog** (`cookbookVisible()` ∩ `!isAdopted()`), beide ∩ `fitsDiet()` ∩ `kcal > 0` |
-| 2 | `planWochengerichte(kand, slot)` je Slot-Art: mischen, dann nach `planRang()` sortieren, die besten `PLAN_VARIANTEN` behalten |
+| 2 | `planWochengerichte(kand, slot, budget, letzte)` je Slot-Art: mischen, nach `planRang()` sortieren, aus den besten `PLAN_POOL` (8) drei **gewichtet ziehen**. `ab` zieht aus der Menge **ohne** die `mi`-Gerichte |
 | 3 | je Tag `goalTargetsForDay(tag)` — Trainingstage sind darin schon enthalten |
-| 4 | fr/mi/ab: `anzahl = round(budget / kcal)`, gedeckelt auf `PLAN_MAX_PRO_SLOT` |
+| 4 | fr/mi/ab: `anzahl = round(budget / kcal)`, gedeckelt auf **1** (allein) bzw. **2** (in der Gruppe) |
 | 5 | sn: der **Rest** des Tages, gefüllt mit **verschiedenen** Snacks statt Vielfachen |
 | 6 | `planId()` → ggf. `planAdopt()`, dann `makeEntry(id, syncGid ? [syncUid] : null)` je Eintrag einzeln |
 | 7 | Wochenbilanz gegen `goalTargetsForDays()` — **kcal und Protein**; > `PLAN_TOLERANZ` wird im Toast benannt |
@@ -1850,6 +1850,41 @@ das den Bestand verändert zurücklässt, wäre keins.
 **Sync-Folge, die dazugehört:** Die Kopien sind normale Meals. Sie werden mitsynchronisiert und
 sind in einer Gruppe für alle Mitglieder sichtbar — wie jedes von Hand übernommene
 Rezeptbuch-Meal auch.
+
+### Abwechslung: drei Mechanismen, die zusammenwirken (16.08.2026)
+
+**1. Getrennte Mengen für Mittag und Abend.** `wahl.ab` zieht aus `kand` ohne die `mi`-Gerichte;
+reicht das nicht für `PLAN_VARIANTEN`, wird aus der vollen Menge aufgefüllt. Der Rückfall prüft
+die Zahl der **gezogenen Abendgerichte**, nicht die Größe der Restmenge — die enthält ja noch
+Frühstücke und Snacks und ist deshalb nie leer. Genau daran ist der erste Anlauf gescheitert:
+Bei zwei Hauptgerichten im Bestand blieb der Abend die ganze Woche leer.
+
+**2. Rotationsversatz und Kollisionsregel.** `ab` greift mit `di + 1` zu, und am Ende steht eine
+harte Prüfung: Ist das Abendgericht dasselbe wie mittags, rückt die Liste weiter. Verglichen wird
+über **Objektidentität** und — nur bei eigenen Meals — über die id; `planId()` darf hier nicht
+gerufen werden, das würde ein Katalog-Rezept kopieren, nur um es zu verwerfen.
+
+**3. Gewichtete Ziehung.** Aus den besten `PLAN_POOL` (8) werden `PLAN_VARIANTEN` (3) ohne
+Zurücklegen gezogen, Gewicht `PLAN_POOL - index`. Jeder Lauf ergibt einen anderen Plan, ohne dass
+je ein schwacher Kandidat ins Feld kommt.
+
+### Gedächtnis: `state.planned`
+
+`{ "<rezeptId>": "YYYY-Www" }`, geschrieben **nur** von `autoPlanWeek()` nach einem erfolgreichen
+Lauf. Persönliches Feld nach dem Vorbild von `state.favs` — dieselbe Sync-Kette (load ×2,
+`sanitizePlanned`, save, `dataJSON`, Push-Objekt, `onRemote` ×2) und dasselbe Miträumen beim
+Löschen eines Meals. **`dataJSON()` ist die Stelle, an der ein neues Feld sonst still
+verschwindet** (§73): Fehlt es dort, unterscheidet sich die Zeichenkette nicht und es wird nie
+gepusht.
+
+Bewertet wird in `planRang()`: vorige Woche −40, die davor −20 — über Meal-Prep (10) und Protein
+(9), unter der Kategorie (100). Dazu `planRecentIds()`, das die **jeweils andere** der beiden
+vorgehaltenen Wochen liest (kostenlos, erfasst auch von Hand geplante Gerichte).
+
+**`weekKeyBack()` ist gepuffert, und das ist kein Feinschliff:** `planRang()` ruft es dreimal und
+läuft selbst in der Vergleichsfunktion eines `sort()`. Ohne Puffer entstehen bei 150 Rezepten
+tausende `Date`-Objekte je Slot — im Prüfstand war der Unterschied **über zwei Minuten gegen eine
+Sekunde**. Der Puffer trägt den Tagesstempel mit, damit er über Mitternacht nicht falsch wird.
 
 ### Pro-Grenze
 

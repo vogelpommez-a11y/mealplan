@@ -4694,6 +4694,55 @@
   }
   function isFav(id) { return (state.favs || []).indexOf(id) !== -1; }
 
+  // ---------- Gedaechtnis des Auto-Planers (state.planned) ----------
+  // id -> Wochenschluessel des letzten Mals, an dem der PLANER dieses Gericht gesetzt hat.
+  // Damit bekommt man nicht jede Woche dieselben Gerichte vorgeschlagen - und das wird umso
+  // wichtiger, je groesser die Rezept-Bibliothek wird.
+  //
+  // Warum nur der Planer schreibt und nicht auch der Picker: Ein Eintrag je Antippen waere
+  // ein Cloud-Schreibvorgang je Antippen. Von Hand geplante Gerichte sieht der Planer
+  // ohnehin - ueber die zweite Woche, die in state.plans immer mitliegt (planRecentIds).
+  //
+  // Aufbewahrung: PLAN_GEDAECHTNIS_WOCHEN. Aeltere Eintraege sagen nichts mehr und wuerden
+  // das Kontodokument nur mit jeder Woche weiter aufblaehen.
+  const PLAN_GEDAECHTNIS_WOCHEN = 6;
+  function sanitizePlanned(v, recipes) {
+    const out = {};
+    if (!v || typeof v !== "object") return out;
+    // Grenze als Wochenschluessel: "YYYY-Www" ist als Zeichenkette sortierbar, solange die
+    // Wochennummer zweistellig ist (padStart in isoWeekKey) - deshalb genuegt ein Vergleich
+    // ohne Datumsrechnung.
+    const grenze = isoWeekKey(new Date(Date.now() - PLAN_GEDAECHTNIS_WOCHEN * 7 * 864e5));
+    // Nur Meals, die es noch gibt. Ohne diese Pruefung bliebe der Verweis auf ein geloeschtes
+    // Meal ewig stehen - dieselbe Ueberlegung wie beim Mitraeumen der Favoriten.
+    const bekannt = recipes ? new Set(recipes.map(r => r.id)) : null;
+    Object.keys(v).forEach(id => {
+      const w = v[id];
+      if (typeof id !== "string" || !id) return;
+      if (typeof w !== "string" || !/^\d{4}-W\d{2}$/.test(w)) return;
+      if (w < grenze) return;
+      if (bekannt && !bekannt.has(id)) return;
+      out[id] = w;
+    });
+    return out;
+  }
+  // Wochenschluessel um n Wochen zurueck - fuer die Bewertung "war das zuletzt dran?".
+  //
+  // Gepuffert, und das ist keine vorschnelle Optimierung: planRang() ruft die Funktion
+  // dreimal, und planRang() selbst laeuft in der Vergleichsfunktion eines sort() - bei 150
+  // Rezepten sind das einige tausend Date-Konstruktionen je Slot. Im Pruefstand war der
+  // Unterschied deutlich messbar (Minuten statt Sekunden ueber alle Laeufe).
+  //
+  // Der Puffer traegt den Tag mit: Bleibt die App ueber Mitternacht offen, waere ein fester
+  // Puffer sonst ab dem Wochenwechsel falsch.
+  let weekBackCache = { tag: null };
+  function weekKeyBack(n) {
+    const heute = new Date().toDateString();
+    if (weekBackCache.tag !== heute) weekBackCache = { tag: heute };
+    if (weekBackCache[n] === undefined) weekBackCache[n] = isoWeekKey(new Date(Date.now() - n * 7 * 864e5));
+    return weekBackCache[n];
+  }
+
   // ---------- Grabsteine geloeschter Meals ----------
   // Der Zusammenfuehr-Schritt beim Anmelden (mergeRemoteRecipes) kann von sich aus nicht
   // unterscheiden, ob ein nur lokal vorhandenes Meal NEU ist (noch nicht hochgeladen) oder
@@ -4760,7 +4809,7 @@
       // Meals einzusetzen hiess, sie ohne jedes Profilwissen zu waehlen.
       const recipes = [];
       const plans = {}; plans[curKey] = makeEmptyPlan();
-      return { recipes, plans, plan: plans[curKey], viewWeek: "cur", viewYear: new Date().getFullYear(), tab: "home", goal: null, shares: [], onboarded: false, weights: [], weightGoals: {}, weekStats: {}, profileImage: null, weightConsent: noConsent(), shopPersons: 1, groupId: "", pendingGroupId: "", pendingInviteUrl: "", inviteCodes: [], favs: [], deleted: {} };
+      return { recipes, plans, plan: plans[curKey], viewWeek: "cur", viewYear: new Date().getFullYear(), tab: "home", goal: null, shares: [], onboarded: false, weights: [], weightGoals: {}, weekStats: {}, profileImage: null, weightConsent: noConsent(), shopPersons: 1, groupId: "", pendingGroupId: "", pendingInviteUrl: "", inviteCodes: [], favs: [], planned: {}, deleted: {} };
     }
     const recipes = sanitizeRecipes(data.recipes);
     const plans = {};
@@ -4773,7 +4822,7 @@
     // und braucht dafuer state (Ziel, Rezepte). Das laeuft noch nicht — state = load() ist gerade
     // erst am Entstehen. boot() ruft pruneWeeks(state.plans) direkt nach dem State-Aufbau nach.
     if (!plans[curKey]) plans[curKey] = makeEmptyPlan();
-    return { recipes, plans, plan: plans[curKey], viewWeek: "cur", viewYear: new Date().getFullYear(), tab: data.tab === "recipes" ? "recipes" : "home", goal: sanitizeGoal(data.goal), shares: Array.isArray(data.shares) ? data.shares : [], onboarded: data.onboarded === true, weights: sanitizeWeights(data.weights), weightGoals: sanitizeWeightGoals(data.weightGoals), weekStats: sanitizeWeekStats(data.weekStats), profileImage: typeof data.profileImage === "string" ? data.profileImage : null, weightConsent: sanitizeConsent(data.weightConsent), shopPersons: sanitizeShopPersons(data.shopPersons), groupId: typeof data.groupId === "string" ? data.groupId : "", pendingGroupId: typeof data.pendingGroupId === "string" ? data.pendingGroupId : "", pendingInviteUrl: typeof data.pendingInviteUrl === "string" ? data.pendingInviteUrl : "", inviteCodes: Array.isArray(data.inviteCodes) ? data.inviteCodes : [], favs: sanitizeFavs(data.favs), deleted: sanitizeTombstones(data.deleted) };
+    return { recipes, plans, plan: plans[curKey], viewWeek: "cur", viewYear: new Date().getFullYear(), tab: data.tab === "recipes" ? "recipes" : "home", goal: sanitizeGoal(data.goal), shares: Array.isArray(data.shares) ? data.shares : [], onboarded: data.onboarded === true, weights: sanitizeWeights(data.weights), weightGoals: sanitizeWeightGoals(data.weightGoals), weekStats: sanitizeWeekStats(data.weekStats), profileImage: typeof data.profileImage === "string" ? data.profileImage : null, weightConsent: sanitizeConsent(data.weightConsent), shopPersons: sanitizeShopPersons(data.shopPersons), groupId: typeof data.groupId === "string" ? data.groupId : "", pendingGroupId: typeof data.pendingGroupId === "string" ? data.pendingGroupId : "", pendingInviteUrl: typeof data.pendingInviteUrl === "string" ? data.pendingInviteUrl : "", inviteCodes: Array.isArray(data.inviteCodes) ? data.inviteCodes : [], favs: sanitizeFavs(data.favs), planned: sanitizePlanned(data.planned, recipes), deleted: sanitizeTombstones(data.deleted) };
   }
 
   // Schlaegt das lokale Speichern fehl (Speicher voll, privater Modus), darf das NICHT
@@ -4793,7 +4842,7 @@
       // shopPersons(): dieselbe Regel wie in pushNow() - berechnet lesen, aber NIE roh schreiben. Sonst
       // kaeme der berechnete Wert beim naechsten load() aus localStorage zurueck und ueberschriebe
       // eine bewusst auf 1 gesetzte Personenzahl dauerhaft.
-      localStorage.setItem(STORE_KEY, JSON.stringify({ recipes: recipesForLS, plans: state.plans, tab: state.tab, goal: state.goal || null, shares: state.shares || [], onboarded: state.onboarded === true, weights: state.weights || [], weightGoals: state.weightGoals || {}, weekStats: state.weekStats || {}, profileImage: idbOK ? null : (state.profileImage || null), weightConsent: state.weightConsent || noConsent(), shopPersons: sanitizeShopPersons(state.shopPersons), groupId: state.groupId || "", pendingGroupId: state.pendingGroupId || "", pendingInviteUrl: state.pendingInviteUrl || "", inviteCodes: state.inviteCodes || [], favs: state.favs || [], deleted: sanitizeTombstones(state.deleted) }));
+      localStorage.setItem(STORE_KEY, JSON.stringify({ recipes: recipesForLS, plans: state.plans, tab: state.tab, goal: state.goal || null, shares: state.shares || [], onboarded: state.onboarded === true, weights: state.weights || [], weightGoals: state.weightGoals || {}, weekStats: state.weekStats || {}, profileImage: idbOK ? null : (state.profileImage || null), weightConsent: state.weightConsent || noConsent(), shopPersons: sanitizeShopPersons(state.shopPersons), groupId: state.groupId || "", pendingGroupId: state.pendingGroupId || "", pendingInviteUrl: state.pendingInviteUrl || "", inviteCodes: state.inviteCodes || [], favs: state.favs || [], planned: state.planned || {}, deleted: sanitizeTombstones(state.deleted) }));
       storageFullWarned = false;
     } catch (e) {
       if (!storageFullWarned) {
@@ -5120,7 +5169,7 @@
     return v;
   }
   function canonJSON(v) { return JSON.stringify(canonValue(v)); }
-  function dataJSON(d) { return canonJSON({ plans: (syncGid || groupSyncFailed) ? null : plansField(d), goal: (d && d.goal) || null, shares: (d && d.shares) || [], onboarded: !!(d && d.onboarded), weights: (d && d.weights) || [], weightGoals: (d && d.weightGoals) || {}, profileImage: (d && d.profileImage) || null, weightConsent: (d && d.weightConsent) || noConsent(), shopPersons: sanitizeShopPersons(d && d.shopPersons), inviteCodes: (d && d.inviteCodes) || [], favs: sanitizeFavs(d && d.favs), deleted: sanitizeTombstones(d && d.deleted) }); }
+  function dataJSON(d) { return canonJSON({ plans: (syncGid || groupSyncFailed) ? null : plansField(d), goal: (d && d.goal) || null, shares: (d && d.shares) || [], onboarded: !!(d && d.onboarded), weights: (d && d.weights) || [], weightGoals: (d && d.weightGoals) || {}, profileImage: (d && d.profileImage) || null, weightConsent: (d && d.weightConsent) || noConsent(), shopPersons: sanitizeShopPersons(d && d.shopPersons), inviteCodes: (d && d.inviteCodes) || [], favs: sanitizeFavs(d && d.favs), planned: sanitizePlanned(d && d.planned), deleted: sanitizeTombstones(d && d.deleted) }); }
 
   function scheduleCloudPush() {
     if (!syncUid) return;
@@ -5262,7 +5311,7 @@
     // keine Kontoeinstellung. sanitizeShopPersons(state.shopPersons) schreibt die tatsaechlich
     // vom Nutzer gesetzte Zahl (Default 1) - sonst ueberschriebe der berechnete Wert eine
     // bewusst gesetzte 1 dauerhaft in der Cloud (siehe dataJSON()/shopPersons()-Kommentare).
-    const d = { tab: state.tab, goal: state.goal || null, shares: state.shares || [], onboarded: state.onboarded === true, weights: state.weights || [], weightGoals: state.weightGoals || {}, profileImage: state.profileImage || null, weightConsent: state.weightConsent || noConsent(), shopPersons: sanitizeShopPersons(state.shopPersons), inviteCodes: state.inviteCodes || [], favs: sanitizeFavs(state.favs), deleted: sanitizeTombstones(state.deleted) };
+    const d = { tab: state.tab, goal: state.goal || null, shares: state.shares || [], onboarded: state.onboarded === true, weights: state.weights || [], weightGoals: state.weightGoals || {}, profileImage: state.profileImage || null, weightConsent: state.weightConsent || noConsent(), shopPersons: sanitizeShopPersons(state.shopPersons), inviteCodes: state.inviteCodes || [], favs: sanitizeFavs(state.favs), planned: sanitizePlanned(state.planned, state.recipes), deleted: sanitizeTombstones(state.deleted) };
     // groupId NUR schreiben, wenn dieser Client den Gruppenzustand wirklich kennt. syncGid null
     // heisst nicht "keine Gruppe", sondern nur "gerade keine Gruppen-Session" - ein "groupId: ''"
     // wuerde die Gruppe dann fuer ALLE Geraete des Kontos ausloeschen. Dank merge:true bleibt der
@@ -5359,6 +5408,7 @@
     if (data.profileImage !== undefined) state.profileImage = typeof data.profileImage === "string" ? data.profileImage : null;
     if (data.shopPersons !== undefined) state.shopPersons = sanitizeShopPersons(data.shopPersons);
     if (data.favs !== undefined) state.favs = sanitizeFavs(data.favs); // Cloud gewinnt, kein Union (siehe sanitizeFavs)
+    if (data.planned !== undefined) state.planned = sanitizePlanned(data.planned, state.recipes);
     // Grabsteine immer vereinigen, nie ersetzen: ein Loeschen, das dieses Geraet gerade erst
     // vorgemerkt und noch nicht gepusht hat, darf durch einen eingehenden Snapshot nicht
     // verschwinden - sonst kaeme das Meal genau auf dem Weg zurueck, den das hier verhindert.
@@ -5726,6 +5776,7 @@
         // sonst ueberschriebe ein frisch angemeldetes zweites Geraet sie mit seiner 1.
         if (remote.shopPersons !== undefined) state.shopPersons = sanitizeShopPersons(remote.shopPersons);
         if (remote.favs !== undefined) state.favs = sanitizeFavs(remote.favs); // Cloud gewinnt, kein Union
+        if (remote.planned !== undefined) state.planned = sanitizePlanned(remote.planned, state.recipes);
         // Muss VOR dem Rezept-Merge stehen: der fragt die Grabsteine ab, um zu entscheiden,
         // was ueberhaupt noch in den Bestand darf.
         state.deleted = mergeTombstones(state.deleted, remote.deleted);
@@ -11187,6 +11238,8 @@
     });
     // Favoriten mitraeumen: ein Herz auf ein geloeschtes Meal waere ein Geisterverweis.
     if (Array.isArray(state.favs)) state.favs = state.favs.filter(x => !idSet.has(x));
+    // Dasselbe fuers Planer-Gedaechtnis - ein Verweis auf ein geloeschtes Meal traegt nichts bei.
+    if (state.planned) Object.keys(state.planned).forEach(id => { if (idSet.has(id)) delete state.planned[id]; });
   }
   function deleteRecipe(id) {
     const r = getRecipe(id); if (!r) return;
@@ -11282,7 +11335,7 @@
       <p>Diese Website wird bei GitHub Pages gehostet, einem Dienst der GitHub, Inc., 88 Colin P. Kelly Jr. Street, San Francisco, CA 94107, USA. Beim Aufruf der Seite verarbeitet GitHub technisch notwendige Zugriffsdaten (z. B. deine IP-Adresse), um die Seite auszuliefern und deren Sicherheit zu gewährleisten. Rechtsgrundlage ist unser berechtigtes Interesse an einer sicheren und effizienten Bereitstellung (Art. 6 Abs. 1 lit. f DSGVO). Dabei kann eine Übermittlung in die USA erfolgen. Weitere Infos: <a href="https://docs.github.com/de/site-policy/privacy-policies/github-general-privacy-statement" target="_blank" rel="noopener">GitHub Privacy Statement</a>.</p>
       <h4>3. Welche Daten wir verarbeiten</h4>
       <p><strong>Zwei Betriebsarten – und nur eine davon verarbeitet Daten bei uns.</strong> Du kannst die App <strong>ohne Konto</strong> nutzen: Dann bleiben deine Plan- und Profildaten ausschließlich auf deinem Gerät (Browser-Speicher), sie werden <strong>weder an uns noch an Firebase übertragen</strong>, und wir haben keinen Zugriff darauf. Unabhängig davon lädt dein Browser beim Aufruf der Seite die Software für die Cloud-Funktionen von Google-Servern nach und übermittelt dabei deine <strong>IP-Adresse</strong> – das passiert auch ohne Konto und ist in Ziffer 5 beschrieben. Wir fragen dabei nur einen frei wählbaren <strong>Namen</strong> ab; eine E-Mail-Adresse ist optional und verlässt das Gerät ebenfalls nicht. Der folgende Abschnitt beschreibt die zweite Betriebsart: die Nutzung <strong>mit Konto</strong> (Cloud-Synchronisierung), für die du dich aktiv entscheidest. Löschst du die Websitedaten deines Browsers, sind lokal gespeicherte Angaben unwiederbringlich weg – im Betrieb ohne Konto haben wir keine Kopie davon.</p>
-      <p>Bei der Registrierung: <strong>Name und E-Mail-Adresse</strong>. Bei Nutzung der App: die von dir angelegten <strong>Wochenpläne, Meals/Rezepte und ggf. Fotos</strong> sowie ein optionales <strong>Profilbild</strong> (als Kreis-Avatar zugeschnitten, in deinem Nutzerkonto gespeichert, nicht Teil von Teilen-Links) sowie – im Rahmen der Einführungsfragen zu Beginn, die zur Nutzung der App erforderlich sind – <strong>Geschlecht, Alter, Größe, Gewicht, Alltagsbewegung und Ziel</strong> sowie optional deine <strong>Trainingstage</strong> (Wochentag, Intensität und Dauer) und deinen <strong>Körperfettanteil</strong> (als grobe Stufe; Details zu beidem siehe Ziffer 3a) sowie – ebenfalls optional – deine <strong>Auswahl, welche Meals dir vorgeschlagen werden sollen</strong> (vegetarisch, vegan oder ohne Einschränkung; dazu wahlweise glutenfrei und/oder laktosefrei). Erstellst du Teilen-Links, merkt sich dein Konto zusätzlich deren <strong>Kennungen</strong> (keine Klardaten, siehe Ziffer 8), damit sie beim Löschen deines Kontos zugeordnet und mitentfernt werden können. Nutzt du „Gemeinsam planen", speichert dein Konto außerdem die <strong>Kennung deiner Gruppe</strong> sowie die Kennungen der von dir erstellten <strong>Einladungslinks</strong> – aus demselben Grund (siehe Ziffer 8a); an einem in einer Gruppe angelegten Meal wird zusätzlich deine <strong>Nutzerkennung</strong> vermerkt, damit sichtbar ist, wer es angelegt hat. Weist du ein geplantes Gericht nur einem Teil der Gruppe zu (statt „für alle"), wird für dieses Gericht zusätzlich vermerkt, welche Mitglieder es per <strong>Nutzerkennung</strong> essen – sichtbar für die ganze Gruppe als kleines Farb-Badge auf der Meal-Karte. Stellst du in der Einkaufsliste eine <strong>Personenanzahl</strong> ein, wird auch diese gespeichert. Markierst du Meals als <strong>Favorit</strong>, wird diese Auswahl ebenfalls in deinem Konto gespeichert – nur für dich, auch in einer Gruppe. Übernimmst du ein Rezept aus dem mitgelieferten <strong>Rezeptbuch</strong>, entsteht eine Kopie in deiner Sammlung; an ihr wird zusätzlich die <strong>Kennung des Ursprungsrezepts</strong> vermerkt, damit sich eine später korrigierte Fassung zuordnen lässt. Damit du nicht mit einer leeren Sammlung beginnst, legen wir am Ende der Einführungsfragen <strong>fünf solcher Kopien</strong> für dich an – ausgewählt passend zu deiner Angabe, welche Meals dir vorgeschlagen werden sollen. Sie gehören dann dir und lassen sich wie jedes andere Meal bearbeiten oder löschen. Dasselbe geschieht, wenn der <strong>automatische Wochenplaner</strong> ein Rezept aus dem Rezeptbuch in deine Woche einplant: Auch dabei entsteht eine solche Kopie in deiner Sammlung – die App nennt dir direkt danach die Anzahl und bietet an, den Vorgang rückgängig zu machen. Stimmst du der Speicherung deines <strong>Gewichtsverlaufs</strong> ausdrücklich zu, speichern wir je Eintrag Kalenderwoche und Gewicht sowie ein optionales <strong>Jahres-Zielgewicht</strong> (Details und Widerruf siehe Ziffer 3b). Ist für dein Konto die kostenpflichtige <strong>Pro-Stufe</strong> freigeschaltet, speichern wir dazu ein eigenes Dokument mit dem <strong>Pro-Status</strong>, der <strong>Herkunft der Freischaltung</strong> (manuell, Apple oder Google) und gegebenenfalls einem <strong>Ablaufdatum</strong>. Dieses Dokument kann die App nur lesen, nicht ändern – gesetzt wird es ausschließlich von uns bzw. künftig vom Bezahlvorgang des jeweiligen App-Stores. Es wird mit deinem Konto gelöscht (Ziffer 10). Eine Bezahlfunktion gibt es derzeit nicht. Diese Daten speichern wir, damit du dich anmelden und deine Planung geräteübergreifend nutzen kannst.</p>
+      <p>Bei der Registrierung: <strong>Name und E-Mail-Adresse</strong>. Bei Nutzung der App: die von dir angelegten <strong>Wochenpläne, Meals/Rezepte und ggf. Fotos</strong> sowie ein optionales <strong>Profilbild</strong> (als Kreis-Avatar zugeschnitten, in deinem Nutzerkonto gespeichert, nicht Teil von Teilen-Links) sowie – im Rahmen der Einführungsfragen zu Beginn, die zur Nutzung der App erforderlich sind – <strong>Geschlecht, Alter, Größe, Gewicht, Alltagsbewegung und Ziel</strong> sowie optional deine <strong>Trainingstage</strong> (Wochentag, Intensität und Dauer) und deinen <strong>Körperfettanteil</strong> (als grobe Stufe; Details zu beidem siehe Ziffer 3a) sowie – ebenfalls optional – deine <strong>Auswahl, welche Meals dir vorgeschlagen werden sollen</strong> (vegetarisch, vegan oder ohne Einschränkung; dazu wahlweise glutenfrei und/oder laktosefrei). Erstellst du Teilen-Links, merkt sich dein Konto zusätzlich deren <strong>Kennungen</strong> (keine Klardaten, siehe Ziffer 8), damit sie beim Löschen deines Kontos zugeordnet und mitentfernt werden können. Nutzt du „Gemeinsam planen", speichert dein Konto außerdem die <strong>Kennung deiner Gruppe</strong> sowie die Kennungen der von dir erstellten <strong>Einladungslinks</strong> – aus demselben Grund (siehe Ziffer 8a); an einem in einer Gruppe angelegten Meal wird zusätzlich deine <strong>Nutzerkennung</strong> vermerkt, damit sichtbar ist, wer es angelegt hat. Weist du ein geplantes Gericht nur einem Teil der Gruppe zu (statt „für alle"), wird für dieses Gericht zusätzlich vermerkt, welche Mitglieder es per <strong>Nutzerkennung</strong> essen – sichtbar für die ganze Gruppe als kleines Farb-Badge auf der Meal-Karte. Stellst du in der Einkaufsliste eine <strong>Personenanzahl</strong> ein, wird auch diese gespeichert. Markierst du Meals als <strong>Favorit</strong>, wird diese Auswahl ebenfalls in deinem Konto gespeichert – nur für dich, auch in einer Gruppe. Nutzt du den <strong>automatischen Wochenplaner</strong>, merkt sich dein Konto zu den eingeplanten Meals die <strong>Kalenderwoche</strong>, in der sie zuletzt vorgeschlagen wurden – damit du nicht jede Woche dieselben Gerichte bekommst. Diese Angabe gilt nur für dich, auch in einer Gruppe, und wird nach einigen Wochen automatisch wieder entfernt. Übernimmst du ein Rezept aus dem mitgelieferten <strong>Rezeptbuch</strong>, entsteht eine Kopie in deiner Sammlung; an ihr wird zusätzlich die <strong>Kennung des Ursprungsrezepts</strong> vermerkt, damit sich eine später korrigierte Fassung zuordnen lässt. Damit du nicht mit einer leeren Sammlung beginnst, legen wir am Ende der Einführungsfragen <strong>fünf solcher Kopien</strong> für dich an – ausgewählt passend zu deiner Angabe, welche Meals dir vorgeschlagen werden sollen. Sie gehören dann dir und lassen sich wie jedes andere Meal bearbeiten oder löschen. Dasselbe geschieht, wenn der <strong>automatische Wochenplaner</strong> ein Rezept aus dem Rezeptbuch in deine Woche einplant: Auch dabei entsteht eine solche Kopie in deiner Sammlung – die App nennt dir direkt danach die Anzahl und bietet an, den Vorgang rückgängig zu machen. Stimmst du der Speicherung deines <strong>Gewichtsverlaufs</strong> ausdrücklich zu, speichern wir je Eintrag Kalenderwoche und Gewicht sowie ein optionales <strong>Jahres-Zielgewicht</strong> (Details und Widerruf siehe Ziffer 3b). Ist für dein Konto die kostenpflichtige <strong>Pro-Stufe</strong> freigeschaltet, speichern wir dazu ein eigenes Dokument mit dem <strong>Pro-Status</strong>, der <strong>Herkunft der Freischaltung</strong> (manuell, Apple oder Google) und gegebenenfalls einem <strong>Ablaufdatum</strong>. Dieses Dokument kann die App nur lesen, nicht ändern – gesetzt wird es ausschließlich von uns bzw. künftig vom Bezahlvorgang des jeweiligen App-Stores. Es wird mit deinem Konto gelöscht (Ziffer 10). Eine Bezahlfunktion gibt es derzeit nicht. Diese Daten speichern wir, damit du dich anmelden und deine Planung geräteübergreifend nutzen kannst.</p>
       <h4>3a. Ziel-Berechnung (Einführungsfragen)</h4>
       <p>Zur Nutzung der App gibst du bei den Einführungsfragen zu Beginn <strong>Geschlecht, Alter, Größe und Gewicht</strong> sowie deine Alltagsbewegung und dein Ziel an – ohne diese Angaben lässt sich kein Kalorien- und Makroziel berechnen und die App steht dir nicht zur Verfügung. Optional legst du zusätzlich deine <strong>Trainingstage</strong> fest – also an welchen Wochentagen du trainierst, mit welcher Intensität und wie lange; diese Angabe kannst du auch weglassen. Ebenfalls optional wählst du eine grobe Stufe für deinen <strong>Körperfettanteil</strong> – gibst du sie an, berechnet die App deinen Grundumsatz nach der Katch-McArdle-Formel über die fettfreie Masse statt nach Mifflin-St-Jeor; wählst du „Weiß ich nicht", bleibt es bei Mifflin-St-Jeor. Daraus berechnet die App direkt in deinem Browser deinen Tagesbedarf, deine Makronährstoffe und deinen BMI; an Trainingstagen zusätzlich den geschätzten Mehrbedarf durch die jeweilige Einheit. Übernimmst du das Ergebnis als dein Ziel, werden diese Angaben wie deine übrigen Plandaten lokal und – bei Cloud-Nutzung – in deinem Nutzerkonto (Cloud Firestore, siehe Ziffer 5) gespeichert, um sie geräteübergreifend verfügbar zu halten. Du kannst dein Ziel jederzeit über den Knopf „Ziel neu berechnen" im Wochenplan neu berechnen; die vorherigen Werte sind dann durch die neuen ersetzt. Rechtsgrundlage ist wie unter Ziffer 4 die Erfüllung des Nutzungsvertrags (Art. 6 Abs. 1 lit. b DSGVO). Diese Angaben werden <strong>nicht</strong> in Teilen-Links aufgenommen (siehe Ziffer 8).</p>
       <h4>3b. Gewichtsverlauf („Ziele &lt;Jahr&gt;")</h4>
@@ -11410,8 +11463,13 @@
   // irgendwo verstecken.
   const PLAN_SHARE = { fr: 0.25, mi: 0.35, ab: 0.30 };
   // So viele Gerichte je Slot-Art fuer die ganze Woche. Zwei waeren oede, sieben waeren
-  // sieben Einkaeufe und sieben Kochabende (Regel 2).
+  // sieben Einkaeufe und sieben Kochabende (Regel 2). Mittag und Abend bekommen JE drei aus
+  // getrennten Mengen - macht sechs verschiedene Hauptgerichte je Woche.
   const PLAN_VARIANTEN = 3;
+  // Aus so vielen der bestbewerteten wird gezogen. Der Pool ist der Unterschied zwischen
+  // "jede Woche derselbe Plan" (Pool = VARIANTEN) und "jede Woche wuerfeln" (Pool = alles):
+  // Acht laesst die Auswahl deutlich streuen und haelt schwache Gerichte trotzdem draussen.
+  const PLAN_POOL = 8;
   // Darunter waere der Plan eine Wiederholung desselben Tages - dann lieber ein klarer
   // Hinweis als ein magerer Plan.
   const PLAN_MIN_KANDIDATEN = 6;
@@ -11458,31 +11516,98 @@
       .map(r => Object.assign({}, r, { __cb: true }));
     return eigene.concat(katalog);
   }
+  // Welche Gerichte waren zuletzt dran? Zwei Quellen, und die erste kostet nichts:
+  //
+  //   1. die ANDERE Woche, die ohnehin im Speicher liegt (state.plans haelt aktuelle +
+  //      naechste). Wer die naechste Woche plant, sieht damit die aktuelle - und zwar
+  //      einschliesslich der von HAND eingeplanten Gerichte, die im Gedaechtnis nie stehen.
+  //   2. state.planned, das Gedaechtnis ueber den Wochenwechsel hinaus.
+  //
+  // Rueckgabe: Set der ids aus der anderen Woche. Fuer das Gedaechtnis fragt planRang direkt.
+  function planRecentIds() {
+    const ids = new Set();
+    const andere = weekKeyFor(state.viewWeek === "next" ? "cur" : "next");
+    const p = (state.plans || {})[andere];
+    if (!p) return ids;
+    DAYS.forEach(d => MEALS.forEach(m => {
+      (p[d.key] && p[d.key][m.key] || []).forEach(e => ids.add(entryId(e)));
+    }));
+    return ids;
+  }
   // Bewertung eines Gerichts fuer einen Slot. Die Stufen liegen so weit auseinander, dass
-  // eine hoehere nie von einer niedrigeren eingeholt wird: Kategorie schlaegt Meal-Prep,
-  // Meal-Prep schlaegt den Proteinanteil.
-  function planRang(r, mealKey) {
+  // eine hoehere nie von einer niedrigeren eingeholt wird: Kategorie schlaegt alles, dann
+  // kommt die Wiederholung, dann Meal-Prep, dann Proteinanteil und Budget-Passung.
+  //
+  // `budget` ist das kcal-Budget des Slots an einem Ruhetag (optional), `letzte` das Set aus
+  // planRecentIds().
+  function planRang(r, mealKey, budget, letzte) {
     let s = 0;
     if (catSuggestsMeal(r.category, mealKey)) s += 100;   // genau dieser Slot statt nur "erlaubt"
+
+    // ----- Wiederholung: was zuletzt dran war, rutscht nach hinten -----
+    // Beide Werte liegen UEBER Meal-Prep (10) und Protein (max. 9), aber UNTER der Kategorie
+    // (100): Ein kuerzlich gekochtes Gericht verliert damit gegen jedes frische, kann aber
+    // nie in einen falschen Slot geraten.
+    //
+    // Bewusst ein Malus und KEINE Sperre: Bei sechs eigenen Meals wuerde ein Ausschluss Slots
+    // leer lassen; so wirkt er gleichmaessig und das Ergebnis bleibt brauchbar. Mit 150
+    // Rezepten fuehrt dieselbe Regel dazu, dass praktisch jede Woche andere Gerichte oben
+    // stehen - eine Regel, die ueber beide Groessenordnungen traegt.
+    const lib = r.__cb ? null : r.id;
+    const w = lib && state.planned ? state.planned[lib] : null;
+    if (w === weekKeyBack(0) || w === weekKeyBack(1)) s -= 40;
+    else if (w === weekKeyBack(2)) s -= 20;
+    if (letzte && lib && letzte.has(lib)) s -= 40;
+
     if (r.mealPrep === true) s += 10;
     const n = recipeNut(r);
     s += Math.min(9, (n.protein * 4 / n.kcal) * 20);      // Proteinanteil je kcal, gedeckelt
+
+    // ----- Passt die Groesse zum Slot? -----
+    // Seit dem 16.08.2026 gibt es je Hauptmahlzeit nur noch EINE Portion (siehe autoPlanWeek).
+    // Damit entscheidet die Groesse des Gerichts darueber, wie gut der Tag gefuellt wird: Wer
+    // 3200 kcal plant, soll die grossen Gerichte bekommen und nicht das proteinreichste mit
+    // 400 kcal. Gedeckelt auf 5 - unter Meal-Prep, damit die Rangfolge darueber steht.
+    if (budget > 0 && n.kcal > 0) s += 5 * Math.max(0, 1 - Math.abs(n.kcal - budget) / budget);
+
     // Gleichstand geht an das EIGENE Meal. Bewusst kleiner als jeder andere Beitrag: Der
     // Katalog soll nicht verdraengt werden, aber wer ein Gericht selbst angelegt hat, will
     // es auch im Plan sehen.
     if (!r.__cb) s += 0.5;
     return s;
   }
-  // Die Wochengerichte einer Slot-Art. Erst mischen, dann stabil sortieren: So entscheidet
-  // der Zufall nur dort, wo die Bewertung gleich ist - zwei Aufrufe liefern nicht denselben
-  // Plan, aber nie ein schlechteres Gericht vor einem besseren.
-  function planWochengerichte(kandidaten, mealKey) {
+  // Die Wochengerichte einer Slot-Art.
+  //
+  // Bis zum 16.08.2026 wurden strikt die besten PLAN_VARIANTEN genommen. Das war
+  // reproduzierbar - und genau das war das Problem: Zweimal planen ergab zweimal denselben
+  // Plan, und wer sich etwas anderes wuenschte, musste von Hand umbauen.
+  //
+  // Jetzt wird aus den besten PLAN_POOL gezogen, gewichtet nach Rangplatz. Der Unterschied zu
+  // "einfach wuerfeln" ist wesentlich: Ein Gericht ausserhalb des Pools kommt NIE vor, ein
+  // schwaches im Pool selten. Jeder Lauf ergibt einen anderen Plan - und jeder ist gut.
+  function planWochengerichte(kandidaten, mealKey, budget, letzte) {
     const passend = kandidaten.filter(r => catPlanFitsMeal(r.category, mealKey));
+    // Mischen vor dem Sortieren: entscheidet weiterhin bei exaktem Punktgleichstand, weil
+    // Array.sort stabil ist.
     for (let i = passend.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       const t = passend[i]; passend[i] = passend[j]; passend[j] = t;
     }
-    return passend.sort((a, b) => planRang(b, mealKey) - planRang(a, mealKey)).slice(0, PLAN_VARIANTEN);
+    const pool = passend
+      .sort((a, b) => planRang(b, mealKey, budget, letzte) - planRang(a, mealKey, budget, letzte))
+      .slice(0, PLAN_POOL);
+    // Gewichtete Ziehung ohne Zuruecklegen: Platz 1 bekommt das hoechste Gewicht, der letzte
+    // Poolplatz das kleinste (aber nie 0 - sonst waere er gar nicht im Pool).
+    const gezogen = [];
+    while (gezogen.length < PLAN_VARIANTEN && pool.length) {
+      let summe = 0;
+      const gew = pool.map((r, i) => { const g = pool.length - i; summe += g; return g; });
+      let wurf = Math.random() * summe;
+      let idx = 0;
+      for (; idx < gew.length - 1; idx++) { wurf -= gew[idx]; if (wurf <= 0) break; }
+      gezogen.push(pool.splice(idx, 1)[0]);
+    }
+    return gezogen;
   }
   // Regel 5: Steht im Slot schon das Gericht der anderen, wird DASSELBE genommen.
   function planUebernahme(dayKey, mealKey) {
@@ -11532,10 +11657,37 @@
     const key = activeWeekKey();
     const before = {};
     DAYS.forEach(d => { before[d.key] = {}; MEALS.forEach(m => { before[d.key][m.key] = state.plan[d.key][m.key].slice(); }); });
+    // Auch das Gedaechtnis gehoert in den Schnappschuss - sonst gaelten nach "Rueckgaengig"
+    // Gerichte als "zuletzt geplant", die nie im Plan gelandet sind.
+    const plannedBefore = Object.assign({}, state.planned || {});
 
     // Die Wochengerichte stehen VOR der Tagesschleife fest - das ist Regel 2 in einer Zeile.
+    //
+    // Mittag und Abend werden NACHEINANDER gezogen, und der Abend nur aus dem, was uebrig
+    // bleibt. Ohne das bekamen beide Slots dieselbe Liste (gleiche Kandidaten, gleiche
+    // Bewertung, deterministische Sortierung) und mit demselben Rotationsindex jeden Tag
+    // dasselbe Gericht - der haeufigste Beschwerdepunkt am ersten Planer.
+    const letzte = planRecentIds();
+    const tagesziel = goalTargets(1);
+    const budgetFuer = mk => tagesziel && PLAN_SHARE[mk] ? tagesziel.kcal * PLAN_SHARE[mk] : 0;
     const wahl = {};
-    MEALS.forEach(m => { wahl[m.key] = planWochengerichte(kand, m.key); });
+    wahl.fr = planWochengerichte(kand, "fr", budgetFuer("fr"), letzte);
+    wahl.mi = planWochengerichte(kand, "mi", budgetFuer("mi"), letzte);
+    wahl.ab = planWochengerichte(kand.filter(r => wahl.mi.indexOf(r) === -1), "ab", budgetFuer("ab"), letzte);
+    // Rueckfall, wenn der Rest zu duenn ist: aus der VOLLEN Menge auffuellen. Ein leerer oder
+    // magerer Abend waere schlechter als eine Wiederholung - dass an EINEM Tag nicht zweimal
+    // dasselbe steht, sichert ohnehin die Kollisionsregel weiter unten.
+    //
+    // Der erste Anlauf pruefte hier `restFuerAbend.length` und lag damit falsch: Die Restmenge
+    // enthaelt ja noch Fruehstuecke und Snacks, ist also nie leer - nur an HAUPTGERICHTEN
+    // fehlte es. Bei genau zwei Hauptgerichten im Bestand blieb der Abend dadurch die ganze
+    // Woche leer. Gefunden vom Pruefstand, nicht beim Lesen.
+    if (wahl.ab.length < PLAN_VARIANTEN) {
+      planWochengerichte(kand, "ab", budgetFuer("ab"), letzte).forEach(r => {
+        if (wahl.ab.length < PLAN_VARIANTEN && wahl.ab.indexOf(r) === -1) wahl.ab.push(r);
+      });
+    }
+    wahl.sn = planWochengerichte(kand, "sn", 0, letzte);
 
     // Katalog-Rezepte werden erst kopiert, wenn sie TATSAECHLICH eingeplant werden - und
     // dann genau einmal, auch wenn dasselbe Gericht an fuenf Tagen steht. Die Map haelt
@@ -11556,6 +11708,9 @@
       // Laufender Rest des Tages. Startet beim Ziel abzueglich dessen, was schon fuer mich
       // im Plan steht, und schrumpft mit jedem gesetzten Slot - am Ende bekommt ihn der Snack.
       let offen = ziel.kcal - planTagKcal(d.key);
+      // Was heute mittags gewaehlt wurde - der Abend darf es nicht noch einmal bekommen.
+      // MEALS laeuft in der Reihenfolge fr, mi, ab, sn, mi ist also vor ab dran.
+      let mittagsGericht = null;
       MEALS.forEach(m => {
         if (!slotOpenForMe(d.key, m.key)) return;
         const liste = wahl[m.key];
@@ -11583,16 +11738,45 @@
         }
 
         // Rotation ueber den Wochentag statt Zufall je Slot: dasselbe Gericht landet an
-        // mehreren Tagen, und die Reihenfolge ist nachvollziehbar (Regel 2).
-        const r = uebernommen || (liste.length ? liste[di % liste.length] : null);
+        // mehreren Tagen, und die Reihenfolge ist nachvollziehbar (Regel 2). Der Abend
+        // bekommt einen Versatz von eins - zweite Absicherung gegen "Mittag = Abend", falls
+        // die Listen sich im Rueckfall doch ueberschneiden.
+        let r = uebernommen;
+        if (!r && liste.length) {
+          const versatz = m.key === "ab" ? 1 : 0;
+          r = liste[(di + versatz) % liste.length];
+          // Harte Garantie am Ende der Kette: Am selben Tag nie zweimal dasselbe Gericht.
+          // Alles davor macht es unwahrscheinlich - hier wird es ausgeschlossen.
+          //
+          // Verglichen wird OHNE planId(): Das wuerde ein Katalog-Rezept kopieren, nur um es
+          // gleich darauf zu verwerfen. Zwei Vergleiche genuegen und decken beide Faelle ab:
+          // die Objektidentitaet gegen das mittags gewaehlte Gericht, und - nur fuer eigene
+          // Meals - die id gegen das, was mittags schon im Plan steht. Ein Katalog-Kandidat
+          // kann dort nicht stehen, er ist ja noch nicht im Bestand (isAdopted-Filter).
+          if (m.key === "ab" && liste.length > 1) {
+            const mittags = state.plan[d.key].mi.map(entryId);
+            const kollidiert = x => x === mittagsGericht || (!x.__cb && mittags.indexOf(x.id) !== -1);
+            for (let k = 1; k <= liste.length && kollidiert(r); k++) {
+              r = liste[(di + versatz + k) % liste.length];
+            }
+          }
+        }
         if (!r) return;
         const kcal = recipeNut(r).kcal;
         // Beim Snack (nur noch im Uebernahme-Fall) gibt es KEIN Minimum von eins: Ist der
         // Tag rechnerisch voll, bleibt die Zeile leer, statt ihn ueber das Ziel zu schieben.
+        //
+        // Bei den Hauptmahlzeiten gibt es allein GENAU EINE Portion. Mehrere Eintraege
+        // desselben Gerichts sind nur in der Gruppe sinnvoll: Dort tragen sie die eigentliche
+        // Information ("ein Topf, verschiedene Kalorienziele" - drei Leute mit 3000/2000/1800
+        // essen dasselbe Gericht unterschiedlich oft). Allein sieht dieselbe Zahl nur nach
+        // einem Fehler aus; was zum Tagesziel fehlt, geht in die Snack-Zeile.
+        const maxPort = syncGid ? 2 : 1;
         const n = m.key === "sn"
           ? Math.min(PLAN_MAX_PRO_SLOT, Math.round(offen / kcal))
-          : Math.max(1, Math.min(PLAN_MAX_PRO_SLOT, Math.round(ziel.kcal * PLAN_SHARE[m.key] / kcal)));
+          : Math.max(1, Math.min(maxPort, Math.round(ziel.kcal * PLAN_SHARE[m.key] / kcal)));
         if (n < 1) return;
+        if (m.key === "mi") mittagsGericht = r;
         const rid = planId(r);
         for (let i = 0; i < n; i++) {
           // makeEntry je Eintrag neu: eine gemeinsame Objektreferenz mehrfach im Plan waere
@@ -11607,6 +11791,15 @@
     });
 
     if (!gesetzt) { toast("Deine Woche ist schon geplant"); return; }
+
+    // Gedaechtnis fortschreiben: Was dieser Lauf gesetzt hat, gilt fuer die geplante Woche als
+    // "war dran" und wird beim naechsten Mal abgewertet. Erst NACH der Schleife, damit ein
+    // Gericht, das in derselben Woche mehrfach vorkommt, nur einen Eintrag bekommt.
+    if (!state.planned) state.planned = {};
+    const geplanteWoche = key;
+    DAYS.forEach(d => MEALS.forEach(m => {
+      state.plan[d.key][m.key].forEach(e => { state.planned[entryId(e)] = geplanteWoche; });
+    }));
 
     save(); render();
 
@@ -11637,14 +11830,28 @@
     } else if (wenigAuswahl) {
       msg += " · mehr Meals bringen mehr Abwechslung";
     }
-    undoToast(msg, () => {
-      const p = state.plans[key]; if (!p) return;   // Woche existiert nach 5 s praktisch immer noch
+    // Den Vorschlag vollstaendig zuruecknehmen: Slots, still uebernommene Rezeptbuch-Meals
+    // und das Gedaechtnis. Ein Weg fuer BEIDE Knoepfe - "Nochmal" ist nichts anderes als
+    // "Rueckgaengig und dann noch einmal planen", und zwei getrennte Ruecknahmepfade waeren
+    // die sichere Art, dass einer von beiden irgendwann etwas vergisst.
+    const zuruecknehmen = () => {
+      const p = state.plans[key]; if (!p) return false;   // Woche existiert praktisch immer noch
       DAYS.forEach(d => MEALS.forEach(m => { p[d.key][m.key] = before[d.key][m.key]; }));
-      // Die still uebernommenen Rezeptbuch-Meals gehen MIT zurueck. Sie sind allein wegen
-      // dieses Plans entstanden - liesse man sie stehen, haette "Rueckgaengig" den Bestand
-      // veraendert, ohne dass davon je die Rede war.
+      // Die Kopien sind allein wegen dieses Plans entstanden - liesse man sie stehen, haette
+      // "Rueckgaengig" den Bestand veraendert, ohne dass davon je die Rede war.
       if (neueIds.length) state.recipes = state.recipes.filter(r => neueIds.indexOf(r.id) === -1);
-      save(); render();
+      state.planned = plannedBefore;
+      return true;
+    };
+    undoToast(msg, () => { if (zuruecknehmen()) { save(); render(); } }, {
+      // "Nochmal" wuerfelt einen neuen Vorschlag: zuruecknehmen, dann derselbe Aufruf. Ohne
+      // diesen Knopf muesste man ueber "Woche leeren" samt Rueckfrage gehen, um eine zweite
+      // Fassung zu sehen - drei Schritte fuer etwas, das eine Meinungsfrage ist.
+      // Ohne save()/render() dazwischen: autoPlanWeek macht beides selbst.
+      label: "Nochmal",
+      fn: () => { if (zuruecknehmen()) autoPlanWeek(); },
+      // Ein Wochenplan will laenger angesehen werden als ein geloeschter Slot.
+      ms: 9000
     });
   }
 
@@ -11685,19 +11892,33 @@
   // textContent (nicht innerHTML) gesetzt, weil Meal-/Wochentagsnamen im Text stehen koennen -
   // kein Injection-Risiko durch Nutzereingaben.
   let undoTimer = null;
-  function undoToast(msg, undoFn) {
+  // `opts` ist optional und aendert am bestehenden Verhalten nichts - die sechs Altaufrufer
+  // bleiben unveraendert bei einem Knopf und 5 Sekunden. Der Auto-Wochenplaner braucht einen
+  // zweiten Knopf ("Nochmal") und mehr Zeit, weil ein Wochenplan laenger angesehen wird als
+  // ein geloeschter Slot. Bewusst dieselbe Funktion statt einer zweiten daneben: sonst gibt
+  // es zwei Toasts mit Knopf, die sich langsam auseinanderentwickeln.
+  //   opts = { label, fn, ms }
+  function undoToast(msg, undoFn, opts) {
     const t = document.getElementById("toast");
     if (!t) return;
     clearTimeout(toastTimer); clearTimeout(undoTimer);
     t.textContent = "";
     const span = document.createElement("span"); span.textContent = msg;
-    const btn = document.createElement("button");
-    btn.type = "button"; btn.className = "toast-undo"; btn.textContent = "Rückgängig";
-    t.appendChild(span); t.appendChild(btn);
-    t.classList.add("show", "has-undo");
+    t.appendChild(span);
     const finish = () => { t.classList.remove("show", "has-undo"); t.textContent = ""; };
-    btn.addEventListener("click", () => { clearTimeout(undoTimer); finish(); undoFn(); });
-    undoTimer = setTimeout(finish, 5000);
+    const knopf = (label, fn) => {
+      const b = document.createElement("button");
+      b.type = "button"; b.className = "toast-undo"; b.textContent = label;
+      b.addEventListener("click", () => { clearTimeout(undoTimer); finish(); fn(); });
+      t.appendChild(b);
+      return b;
+    };
+    // Reihenfolge: der Zusatzknopf zuerst, "Rueckgaengig" bleibt aussen rechts - dort sucht
+    // man es nach sechs anderen Stellen in der App.
+    if (opts && opts.fn) knopf(opts.label || "Nochmal", opts.fn);
+    knopf("Rückgängig", undoFn);
+    t.classList.add("show", "has-undo");
+    undoTimer = setTimeout(finish, (opts && opts.ms) || 5000);
   }
 
   // ---------- Event delegation ----------

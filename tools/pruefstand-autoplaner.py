@@ -90,6 +90,12 @@ teile = [
     schnitt("  function planUebernahme("),
     schnitt("  function planAdopt("),
     schnitt("  function planTagKcal("),
+    schnitt("  function planRecentIds("),
+    # Gedaechtnis des Planers (state.planned)
+    block("  const PLAN_GEDAECHTNIS_WOCHEN = ", "  }"),
+    # weekKeyBack samt seinem Puffer - die let-Zeile davor gehoert dazu, sonst wirft die
+    # Funktion beim ersten Aufruf (im ersten Anlauf genau so passiert).
+    block("  let weekBackCache = ", "  }"),
     schnitt("  function autoPlanWeek("),
 ]
 code = "\n\n".join(teile)
@@ -118,7 +124,7 @@ var gespeichert = 0, gezeichnet = 0, letzterToast = "";
 function save() { gespeichert++; }
 function render() { gezeichnet++; }
 function toast(t) { letzterToast = t; window.__undo = null; }
-function undoToast(t, cb) { letzterToast = t; window.__undo = cb; }
+function undoToast(t, cb, opts) { letzterToast = t; window.__undo = cb; window.__opts = opts || null; }
 // Randstuecke von sanitizeRecipe() - dieselben Stubs wie im Rezeptbuch-Pruefstand.
 var lfdUid = 0;
 function uid() { return "u" + (++lfdUid); }
@@ -145,6 +151,8 @@ function katalogAn() { COOKBOOK.length = 0; KATALOG_ALLE.forEach(function (r) { 
 
 function frischerPlan(recipes, goal) {
   katalogAus();
+  state.planned = {};
+  window.__opts = null;
   // KOPIE, nicht die uebergebene Liste: Der Planer legt seit dem 16.08.2026 selbst Meals an
   // (uebernommene Katalog-Rezepte). Ohne .slice() wuechse die Vorlage des Testfalls mit, und
   // eine spaetere Pruefung gegen ihre Laenge misst dann sich selbst.
@@ -385,20 +393,39 @@ function bestand() {
   autoPlanWeek();
   var gross = alleEintraege().length;
   pruef("3200 kcal ergeben mehr Eintraege als 1600", gross > klein, true);
-  pruef("auch das grosse Ziel bleibt im Korridor", (function () {
-    var z = goalTargetsForDays(DAYS.map(function (d) { return d.key; }));
-    return Math.abs(weekNut().kcal - z.kcal) <= z.kcal * PLAN_TOLERANZ;
-  })(), true);
+  // Seit dem 16.08.2026 gibt es allein nur EINE Portion je Hauptmahlzeit. Ein 3200er Ziel
+  // laesst sich damit aus fr/mi/ab nicht mehr decken - der Rest geht an die Snacks, und was
+  // dann noch fehlt, wird BENANNT statt aufgefuellt. Genau das ist hier zu pruefen.
+  pruef("bei sehr hohem Ziel wird die Luecke benannt",
+    letzterToast.indexOf("kcal offen") !== -1, true);
+  pruef("und der Plan entsteht trotzdem vollstaendig",
+    DAYS.every(function (d) {
+      return ["fr", "mi", "ab"].every(function (m) { return state.plan[d.key][m].length > 0; });
+    }), true);
 
   // Trainingstage haben ein hoeheres Ziel - der Planer muss das mitnehmen, weil er
   // goalTargetsForDay() fragt und nicht goalTargets(1).
-  frischerPlan(bestand(), { kcal: 2000, carbs: 200, protein: 150, fat: 60, weight: 80,
-                            training: { mon: { level: "hard", min: 90 } } });
+  // Der Trainingstag braucht mehr - abbilden kann der Planer das seit dem 16.08.2026 nur noch
+  // ueber die Snack-Zeile, weil es je Hauptmahlzeit genau EINE Portion gibt. Der Testfall
+  // bekommt deshalb vier Snacks: Mit den zwei aus bestand() ist die Zeile an beiden Tagen
+  // erschoepft, und die Pruefung haette nur gemessen, dass der Deckel greift.
+  frischerPlan(bestand().concat([
+    meal("sn3", "Snack", 190, 14, ["vegetarisch"], false),
+    meal("sn4", "Snack", 170, 13, ["vegetarisch"], false)
+  ]), { kcal: 2000, carbs: 200, protein: 150, fat: 60, weight: 80,
+        training: { mon: { level: "hard", min: 90 } } });
   autoPlanWeek();
   pruef("Trainingstag hat ein hoeheres Ziel als der Ruhetag",
     goalTargetsForDay("mon").kcal > goalTargetsForDay("tue").kcal, true);
   pruef("und bekommt auch mehr eingeplant",
     dayNutOf(state.plan, "mon").kcal > dayNutOf(state.plan, "tue").kcal, true);
+  // Die Kehrseite gehoert mitgeprueft: Reicht die Snack-Zeile nicht, bleibt eine Luecke -
+  // und die wird benannt statt mit Wiederholungen aufgefuellt.
+  frischerPlan(bestand(), { kcal: 2000, carbs: 200, protein: 150, fat: 60, weight: 80,
+                            training: { mon: { level: "hard", min: 120 } } });
+  autoPlanWeek();
+  pruef("bei zu wenigen Snacks bleibt der Trainingstag unter seinem Ziel",
+    dayNutOf(state.plan, "mon").kcal < goalTargetsForDay("mon").kcal, true);
 
   // ---- Von Hand eingetragenes zaehlt gegen den Rest ----
   // Steht schon ein Fruehstueck im Tag, darf der Snack den Tag nicht darueber schieben.
@@ -426,11 +453,15 @@ function bestand() {
   // gegen kcal, Protein wirkt nur ueber die Vorsortierung. Ein Bestand aus fettigen
   // Kohlenhydraten trifft die Kalorien also punktgenau und verfehlt das Proteinziel deutlich -
   // in einer Fitness-App genau der Fall, der nicht verschwiegen werden darf.
+  // Vier Hauptgerichte, damit Mittag und Abend getrennte Listen bekommen (drei plus einer),
+  // und ein Ziel, das mit EINER Portion je Mahlzeit erreichbar ist - sonst gewinnt die
+  // kcal-Meldung und die Protein-Meldung kaeme nie zum Zug.
   frischerPlan([
     meal("k1", "Frühstück", 500, 8, [], true), meal("k2", "Frühstück", 500, 8, [], true),
     meal("k3", "Hauptgericht", 700, 12, [], true), meal("k4", "Hauptgericht", 700, 12, [], true),
-    meal("k5", "Hauptgericht", 600, 10, [], true), meal("k6", "Snack", 200, 3, [], false)
-  ], { kcal: 2000, carbs: 200, protein: 150, fat: 60 });
+    meal("k5", "Hauptgericht", 600, 10, [], true), meal("k7", "Hauptgericht", 650, 11, [], true),
+    meal("k6", "Snack", 200, 3, [], false), meal("k8", "Snack", 180, 3, [], false)
+  ], { kcal: 2100, carbs: 210, protein: 150, fat: 60 });
   autoPlanWeek();
   var zielW = goalTargetsForDays(DAYS.map(function (d) { return d.key; }));
   pruef("die Kalorien stimmen in diesem Fall",
@@ -441,7 +472,11 @@ function bestand() {
 
   // Gegenprobe: Wird das Proteinziel getroffen, darf davon NICHTS im Toast stehen - sonst
   // waere die Meldung eine Dauerwarnung und damit wertlos.
-  frischerPlan(bestand());
+  // Das Ziel ist bewusst auf 120 g gesetzt: Seit es je Hauptmahlzeit nur EINE Portion gibt,
+  // liefert der Bestand rund 135 g - mit den frueheren 150 g waere hier dauerhaft ein
+  // Defizit gemeldet worden, und die Pruefung haette das Gegenteil dessen gemessen, was sie
+  // soll.
+  frischerPlan(bestand(), { kcal: 2000, carbs: 200, protein: 120, fat: 60 });
   autoPlanWeek();
   pruef("bei getroffenem Protein keine Protein-Meldung",
     letzterToast.indexOf("Protein") === -1, true);
@@ -520,15 +555,11 @@ function bestand() {
     snZeilen.every(function (ids) { return ids.length === new Set(ids).size; }), true);
   pruef("aber es stehen mehrere verschiedene Snacks im Slot",
     snZeilen.some(function (ids) { return ids.length > 1; }), true);
-  // Gegenprobe zur Aussagekraft: Bei fr/mi/ab ist das Vielfache ausdruecklich erwuenscht
-  // (2x Porridge bei grossem Ziel) - dort muss dieselbe Pruefung fehlschlagen, sonst haette
-  // die Aenderung schlicht alle Vielfachen abgeschafft.
-  pruef("bei den Hauptmahlzeiten stehen weiterhin Vielfache",
-    DAYS.some(function (d) {
-      return ["fr", "mi", "ab"].some(function (m) {
-        var ids = state.plan[d.key][m].map(entryId);
-        return ids.length > 1 && new Set(ids).size === 1;
-      });
+  // Und bei den Hauptmahlzeiten steht allein genau EINE Portion - die Vielfachen gibt es
+  // seit dem 16.08.2026 nur noch in der Gruppe (eigene Pruefgruppe weiter unten).
+  pruef("bei den Hauptmahlzeiten steht allein genau eine Portion",
+    DAYS.every(function (d) {
+      return ["fr", "mi", "ab"].every(function (m) { return state.plan[d.key][m].length <= 1; });
     }), true);
 
   // ---- Das Rezeptbuch als zweite Quelle ----
@@ -611,6 +642,184 @@ function bestand() {
     ["fr", "mi", "ab", "sn"].filter(function (m) {
       return alleEintraege().some(function (x) { return x.m === m; });
     }).length, 4);
+
+  // ---- Mittag und Abend: nie dasselbe Gericht ----
+  // Der Beschwerdepunkt vom 16.08.2026. Ursache war strukturell: gleiche Kandidatenmenge,
+  // gleiche Bewertung, gleicher Rotationsindex - also zwangslaeufig dasselbe Ergebnis.
+  function mittagAbendGleich() {
+    return DAYS.filter(function (d) {
+      var mi = state.plan[d.key].mi.map(entryId), ab = state.plan[d.key].ab.map(entryId);
+      return mi.some(function (x) { return ab.indexOf(x) !== -1; });
+    }).map(function (d) { return d.key; });
+  }
+  frischerPlan(bestand()); katalogAn();
+  autoPlanWeek();
+  pruef("an keinem Tag stehen Mittag und Abend gleich", mittagAbendGleich(), []);
+  var haupt = new Set();
+  DAYS.forEach(function (d) {
+    ["mi", "ab"].forEach(function (m) {
+      state.plan[d.key][m].forEach(function (e) { haupt.add(entryId(e)); });
+    });
+  });
+  LOG.push("verschiedene Hauptgerichte in der Woche: " + haupt.size);
+  pruef("mindestens fuenf verschiedene Hauptgerichte", haupt.size >= 5, true);
+  // Die eigentliche Wirkung der GETRENNTEN Mengen: Was mittags vorkommt, taucht abends gar
+  // nicht auf - nicht bloss nicht am selben Tag.
+  //
+  // Diese Pruefung ist der zweite Anlauf. Die erste ("an keinem Tag Mittag = Abend") blieb in
+  // der Gegenprobe gruen, weil schon die Kollisionsregel sie erfuellt - sie misst die
+  // Trennung also nicht. Ein Beispiel dafuer, dass mehrere Mechanismen fuer dasselbe Ziel
+  // eine Pruefung unbrauchbar machen koennen, ohne dass es auffaellt.
+  var miSet = new Set(), abSet = new Set();
+  DAYS.forEach(function (d) {
+    state.plan[d.key].mi.forEach(function (e) { miSet.add(entryId(e)); });
+    state.plan[d.key].ab.forEach(function (e) { abSet.add(entryId(e)); });
+  });
+  pruef("Mittag und Abend nutzen getrennte Gerichte",
+    Array.from(miSet).filter(function (x) { return abSet.has(x); }), []);
+
+  // Auch mit knappem Bestand: nur ZWEI Hauptgerichte - der Abend muss trotzdem eines
+  // bekommen, und zwar das andere.
+  frischerPlan([
+    meal("f1", "Frühstück", 400, 30, [], true), meal("f2", "Frühstück", 420, 28, [], true),
+    meal("h1", "Hauptgericht", 620, 45, [], true), meal("h2", "Hauptgericht", 600, 42, [], true),
+    meal("s1", "Snack", 200, 15, [], false), meal("s2", "Snack", 180, 14, [], false)
+  ]);
+  autoPlanWeek();
+  pruef("auch mit zwei Hauptgerichten: nie beides am selben Tag", mittagAbendGleich(), []);
+  pruef("und der Abend bleibt trotzdem besetzt",
+    DAYS.every(function (d) { return state.plan[d.key].ab.length > 0; }), true);
+
+  // ---- Eine Portion allein, bis zwei in der Gruppe ----
+  frischerPlan(bestand(), { kcal: 3600, carbs: 360, protein: 220, fat: 100 }); katalogAn();
+  autoPlanWeek();
+  pruef("allein hoechstens EIN Eintrag je Hauptmahlzeit",
+    DAYS.every(function (d) {
+      return ["fr", "mi", "ab"].every(function (m) { return state.plan[d.key][m].length <= 1; });
+    }), true);
+  // Gegenprobe: In der Gruppe traegt die Anzahl eine Information und ist weiter erlaubt.
+  frischerPlan(bestand(), { kcal: 3600, carbs: 360, protein: 220, fat: 100 }); katalogAn();
+  syncGid = "g1"; myRole = "edit"; syncUid = "ich"; groupMembers = [{ uid: "ich" }, { uid: "du" }];
+  autoPlanWeek();
+  pruef("in der Gruppe sind zwei Portionen moeglich",
+    DAYS.some(function (d) {
+      return ["fr", "mi", "ab"].some(function (m) { return state.plan[d.key][m].length === 2; });
+    }), true);
+  pruef("aber nie mehr als zwei",
+    DAYS.every(function (d) {
+      return ["fr", "mi", "ab"].every(function (m) { return state.plan[d.key][m].length <= 2; });
+    }), true);
+
+  // ---- Zwei Laeufe, zwei Plaene ----
+  // Gemessen ueber mehrere Wiederholungen: Ein einzelner Vergleich koennte auch zufaellig
+  // gleich ausfallen, ohne dass etwas kaputt ist.
+  function planSignatur() {
+    return DAYS.map(function (d) {
+      return MEALS.map(function (m) { return state.plan[d.key][m.key].map(entryId).join(","); }).join("|");
+    }).join(";");
+  }
+  var sigs = {};
+  for (var lauf = 0; lauf < 8; lauf++) {
+    frischerPlan(bestand()); katalogAn();
+    autoPlanWeek();
+    sigs[planSignatur()] = 1;
+  }
+  LOG.push("verschiedene Plaene aus acht Laeufen: " + Object.keys(sigs).length);
+  pruef("acht Laeufe ergeben mehr als einen Plan", Object.keys(sigs).length > 1, true);
+
+  // Der Pool haelt schwache Kandidaten trotzdem draussen: Ein Getraenk und ein Meal ohne
+  // Naehrwerte duerfen in KEINEM der Laeufe auftauchen.
+  var nie = { gt: 0, ohne: 0 };
+  for (var lauf2 = 0; lauf2 < 20; lauf2++) {
+    frischerPlan(bestand().concat([
+      meal("gtx", "Getränk", 400, 40, [], true),
+      { id: "ohnenut", name: "Ohne Werte", category: "Hauptgericht", tags: [], nutrition: {} }
+    ]));
+    autoPlanWeek();
+    alleEintraege().forEach(function (x) {
+      if (entryId(x.e) === "gtx") nie.gt++;
+      if (entryId(x.e) === "ohnenut") nie.ohne++;
+    });
+  }
+  pruef("ein Getraenk taucht in 20 Laeufen nie auf", nie.gt, 0);
+  pruef("ein Meal ohne Naehrwerte ebenso", nie.ohne, 0);
+
+  // ---- Das Gedaechtnis ----
+  frischerPlan(bestand()); katalogAn();
+  autoPlanWeek();
+  pruef("nach dem Planen ist das Gedaechtnis gefuellt",
+    Object.keys(state.planned).length > 0, true);
+  pruef("und traegt den Wochenschluessel der geplanten Woche",
+    Object.keys(state.planned).every(function (id) { return state.planned[id] === activeWeekKey(); }), true);
+  // Rueckgaengig nimmt das Gedaechtnis mit zurueck.
+  window.__undo();
+  pruef("Rueckgaengig leert auch das Gedaechtnis", Object.keys(state.planned).length, 0);
+
+  // Wirkung: Was letzte Woche dran war, rutscht nach hinten. Messbar an der Bewertung -
+  // ein Plan-Vergleich waere durch den Zufall verrauscht.
+  frischerPlan(bestand());
+  var probe = state.recipes.filter(function (r) { return r.category === "Hauptgericht"; })[0];
+  var ohneMalus = planRang(probe, "mi", 700, null);
+  state.planned = {}; state.planned[probe.id] = weekKeyBack(1);
+  var mitMalus = planRang(probe, "mi", 700, null);
+  LOG.push("Rang mit/ohne Wiederholung: " + Math.round(mitMalus) + " / " + Math.round(ohneMalus));
+  pruef("ein Gericht aus der Vorwoche wird abgewertet", mitMalus < ohneMalus, true);
+  pruef("der Malus ist groesser als Meal-Prep und Protein zusammen",
+    ohneMalus - mitMalus > 19, true);
+  // Aber er darf die Kategorie NIE ueberstimmen - sonst landet ein Snack im Mittagessen.
+  var snack = state.recipes.filter(function (r) { return r.category === "Snack"; })[0];
+  pruef("selbst abgewertet schlaegt das Hauptgericht jeden Snack im Mittag-Slot",
+    mitMalus > planRang(snack, "mi", 700, null), true);
+
+  // Stufe A: die andere Woche wird gesehen - auch bei von Hand gesetzten Eintraegen.
+  frischerPlan(bestand());
+  var andereWoche = weekKeyFor("next");
+  state.plans[andereWoche] = makeEmptyPlan();
+  state.plans[andereWoche].mon.mi.push("ha1");
+  pruef("planRecentIds findet die andere Woche", planRecentIds().has("ha1"), true);
+  pruef("und wertet sie ab",
+    planRang(getRecipe("ha1"), "mi", 700, planRecentIds()) < planRang(getRecipe("ha1"), "mi", 700, null), true);
+
+  // ---- sanitizePlanned ----
+  var jetzt = activeWeekKey();
+  var roh = {};
+  roh["ha1"] = jetzt;                       // gueltig
+  roh["ha2"] = "quatsch";                   // kaputter Wochenwert
+  roh["weg"] = jetzt;                       // Rezept existiert nicht
+  roh["ha3"] = weekKeyBack(40);             // zu alt
+  roh[""] = jetzt;                          // leere id
+  var sauber = sanitizePlanned(roh, bestand());
+  pruef("gueltiger Eintrag bleibt", sauber.ha1, jetzt);
+  pruef("kaputter Wochenwert faellt raus", "ha2" in sauber, false);
+  pruef("verwaiste id faellt raus", "weg" in sauber, false);
+  pruef("zu alter Eintrag faellt raus", "ha3" in sauber, false);
+  pruef("leere id faellt raus", "" in sauber, false);
+  pruef("Unsinn statt Objekt ergibt ein leeres Gedaechtnis",
+    JSON.stringify(sanitizePlanned("nein", bestand())), "{}");
+
+  // ---- "Nochmal" wird angeboten ----
+  frischerPlan(bestand()); katalogAn();
+  autoPlanWeek();
+  pruef("der Toast bietet einen zweiten Knopf", !!(window.__opts && window.__opts.fn), true);
+  pruef("und er heisst 'Nochmal'", window.__opts.label, "Nochmal");
+  pruef("der Toast steht laenger als der normale", window.__opts.ms > 5000, true);
+  window.__opts.fn();
+  pruef("Nochmal erzeugt wieder einen vollstaendigen Plan", alleEintraege().length > 0, true);
+  pruef("auch danach nie Mittag = Abend", mittagAbendGleich(), []);
+  // Die eigentliche Frage bei "Nochmal" ist nicht die Anzahl der Meals - ein neuer Vorschlag
+  // darf andere Rezepte uebernehmen. Entscheidend ist, dass keine VERWAISTEN Kopien
+  // zurueckbleiben: Jede Kopie im Bestand muss im aktuellen Plan auch verwendet werden.
+  // Sonst wuechse der Bestand mit jedem Klick um Meals, die niemand bestellt hat.
+  function verwaisteKopien() {
+    var imPlan = new Set(alleEintraege().map(function (x) { return entryId(x.e); }));
+    return state.recipes.filter(function (r) { return r.lib && !imPlan.has(r.id); })
+                        .map(function (r) { return r.lib; });
+  }
+  pruef("nach Nochmal bleibt keine verwaiste Kopie zurueck", verwaisteKopien(), []);
+  // Und auch nach mehrfachem Wuerfeln nicht - der Fall, den man beim Ausprobieren erzeugt.
+  for (var w = 0; w < 3; w++) { if (window.__opts && window.__opts.fn) window.__opts.fn(); }
+  pruef("auch nach dreimal Nochmal nicht", verwaisteKopien(), []);
+  pruef("und der Plan steht immer noch", alleEintraege().length > 0, true);
 
   LOG.push("");
   LOG.push(bad ? ("FEHLGESCHLAGEN: " + bad + " von " + (ok + bad)) : ("ALLE " + ok + " PRUEFUNGEN GRUEN"));

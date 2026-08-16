@@ -1293,7 +1293,7 @@ Dass die Tagesziele mit ausgeschnitten werden statt gestubbt, ist der Punkt: Ein
 `goalTargetsForDay = () => 2000` hätte die Prüfung „Trainingstag bekommt mehr eingeplant"
 grün und wertlos gemacht.
 
-92 Prüfungen, gegliedert nach den fünf Regeln. Die wichtigen sind die **Ausschlüsse**:
+126 Prüfungen, gegliedert nach den fünf Regeln. Die wichtigen sind die **Ausschlüsse**:
 
 * Meals ohne Nährwerte und Barcode-Schnellprodukte kommen nicht in die Auswahl.
 * Ein veganes Profil bekommt **nie** ein Gericht ohne den Tag — auch nicht, wenn neun Meals
@@ -1352,6 +1352,38 @@ Absturz entstanden waren. Bei der Gegenprobe zum Kopierpfad (der Produktionscode
 absichtlich ab) sah man deshalb nur „JS-FEHLER" und keinen einzigen Befund. Der Handler hängt
 die Meldung jetzt an das bestehende Log an, und `pruef()` schreibt **fortlaufend** ins `<pre>`
 statt erst am Ende (Ergebnisfortschritt, Abschnitt 3).
+
+### Nachtrag 16.08.2026, zweiter Teil: 126 Prüfungen, vier Gegenproben
+
+Mit Abwechslung, Würfeln und Gedächtnis kamen Prüfungen dazu, die anders gebaut sind als die
+bisherigen — sie messen **Verteilungen**, nicht Einzelergebnisse:
+
+* „An keinem Tag Mittag = Abend" prüft alle sieben Tage und meldet die betroffenen Tage als
+  Liste, nicht als `true`/`false`. Ein Fehlschlag sagt damit sofort, *wo*.
+* „Acht Läufe ergeben mehr als einen Plan" sammelt Plan-Signaturen in einem Set. Ein einzelner
+  Vergleich könnte zufällig gleich ausfallen, ohne dass etwas kaputt ist.
+* „Ein Getränk taucht in 20 Läufen nie auf" — bei einer Zufallsauswahl ist ein einzelner
+  sauberer Lauf kein Beweis.
+* Das Gedächtnis wird über die **Bewertung** geprüft (`planRang` mit und ohne Eintrag), nicht
+  über einen Plan-Vergleich: Der wäre durch den Zufall verrauscht.
+
+**Vier Gegenproben** (disjunkte Auswahl · Portionsdeckel · Wiederholungs-Malus · Pool-Ziehung),
+jede einzeln gefahren. Jede muss genau ihre Prüfungen rot färben.
+
+**Was der Prüfstand dabei selbst gefunden hat** — beides beim Lesen des Codes nicht aufgefallen:
+
+1. **Der Abend blieb leer**, wenn nach Abzug der Mittagsgerichte keine Hauptgerichte mehr übrig
+   waren. Der Rückfall prüfte die Größe der Restmenge, die aber noch Frühstücke und Snacks
+   enthält und deshalb nie leer ist (TROUBLESHOOTING §98).
+2. **Der Lauf dauerte über zwei Minuten** statt einer Sekunde — eine Datumsrechnung in der
+   Vergleichsfunktion eines `sort()` (§99). Ein langsamer Prüfstand ist ein Befund: Es ist
+   derselbe Code, den später ein Handy ausführt.
+
+**Prüfungen mit an die neuen Regeln ziehen, nicht bloß reparieren.** Vier Bestandsprüfungen
+wurden nach der Ein-Portionen-Regel rot — zu Recht, denn ihre Erwartung galt nicht mehr. Sie
+messen jetzt die neue Zusage (etwa: „bei sehr hohem Ziel wird die Lücke benannt" statt „der
+Korridor wird getroffen"). Eine Prüfung, die man nur so weit lockert, bis sie wieder grün ist,
+misst am Ende nichts.
 
 ### Der Layout-Prüfstand liegt im Scratchpad, nicht im Projekt
 

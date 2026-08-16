@@ -2486,3 +2486,58 @@ Zeilenhöhe, Trefferfläche — und das war alles korrekt. Gemessen wurde die Um
 **Schnellprüfung nach jeder CSS-Änderung** — sie hätte den Fehler in einer Sekunde gefunden:
 Klammerbilanz des `<style>`-Blocks zählen und die Grenzen aller `@media`-Blöcke ausgeben. Ein
 Block, der plötzlich viel kürzer ist als vorher, ist genau dieser Fehler.
+
+## 98. Zwei Slots, dieselbe Menge, dieselbe Bewertung, derselbe Index — dasselbe Ergebnis
+
+**Fund des Nutzers am 16.08.2026:** Der Auto-Planer setzte an fast jedem Tag *dasselbe Gericht
+für Mittag und Abend*. Das war kein Zufall, sondern zwangsläufig:
+
+```js
+wahl[m.key] = planWochengerichte(kand, m.key);   // fuer "mi" und "ab" identisch
+…
+const r = liste[di % liste.length];              // fuer beide derselbe Index
+```
+
+Drei Zutaten, jede für sich harmlos:
+
+1. **Dieselbe Kandidatenmenge** — `catPlanFitsMeal("Hauptgericht", …)` ist für `mi` und `ab` wahr.
+2. **Dieselbe Bewertung** — `planRang()` kannte den Slot nur für die Kategorie-Frage, die hier für
+   beide gleich ausgeht.
+3. **Derselbe Rotationsindex.**
+
+Der Shuffle vor dem `sort()` half nicht: `Array.sort` ist **stabil und deterministisch**, der
+Zufall wirkt also nur bei exaktem Punktgleichstand. Zwei Aufrufe derselben Funktion mit denselben
+Eingaben liefern dieselbe Liste — genau wie es sich gehört, nur eben nicht das, was hier gebraucht
+wurde.
+
+**Behoben** durch drei Maßnahmen, weil eine allein zu leicht wieder kippt: getrennte Mengen für
+Mittag und Abend, ein Rotationsversatz, und eine harte Kollisionsregel am Ende der Kette.
+
+**Die Lehre:** Wenn zwei Aufrufer einer Auswahlfunktion *unterschiedliche* Ergebnisse brauchen,
+muss sich mindestens eine Eingabe unterscheiden — Menge, Bewertung oder Zugriff. Zufall im
+Inneren garantiert das **nicht**, solange die Sortierung ihn wieder aufhebt.
+
+**Falle beim Rückfall:** Der erste Fix prüfte `restFuerAbend.length`, um zu entscheiden, ob die
+volle Menge nötig ist. Die Restmenge enthält aber weiterhin Frühstücke und Snacks und ist deshalb
+nie leer — nur an *Hauptgerichten* fehlte es. Bei genau zwei Hauptgerichten im Bestand blieb der
+Abend dadurch die ganze Woche leer. Gezählt werden muss, was am Ende **gezogen** wurde, nicht was
+vorher im Topf lag. Gefunden hat das der Prüfstand, nicht das Lesen des Codes.
+
+## 99. Eine Datumsrechnung in der Vergleichsfunktion eines `sort()`
+
+Beim Einbau des Planer-Gedächtnisses rief `planRang()` dreimal `weekKeyBack()`, und jedes davon
+baute ein `new Date()`. `planRang()` läuft aber in der **Vergleichsfunktion** eines `sort()` — bei
+43 Kandidaten sind das rund 400 Aufrufe je Slot, mal vier Slots, mal jeder Prüflauf.
+
+Der Prüfstand brauchte damit **über zwei Minuten** statt einer Sekunde. Auf einem Handy mit einer
+Bibliothek von 150 Rezepten wäre derselbe Effekt beim Antippen spürbar gewesen.
+
+**Behoben** durch einen Puffer, der den Tagesstempel mitträgt (`new Date().toDateString()`) — ohne
+den wäre er falsch, sobald die App über Mitternacht offen bleibt.
+
+**Zwei Lehren:**
+
+1. **In einer Vergleichsfunktion nichts konstruieren.** Was sich während eines Sortiervorgangs
+   nicht ändert, gehört davor berechnet.
+2. **Ein langsamer Prüfstand ist ein Befund, kein Ärgernis.** Die zwei Minuten waren derselbe
+   Code, den später ein Handy ausführt — nur mit weniger Geduld auf der anderen Seite.
