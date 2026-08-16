@@ -15777,6 +15777,61 @@
 
   // ---------- Boot ----------
   boot();
+
+  // ---------- Voruebergehend: Sync-Diagnose ueber ?diag=1 ----------
+  // Warum IN der App und nicht als eigene Seite: Eine separate Seite bekommt die Anmeldung
+  // nicht zu faellen (die App legt sie per browserLocalPersistence ab, eine frische
+  // Auth-Instanz sucht woanders), und auf einem Android-Handy gibt es keine Konsole, mit der
+  // man nachsehen koennte. Hier laeuft alles im echten Zustand der App - syncUid, syncGid und
+  // CloudGroup sind genau die Objekte, die auch der Wochenplan benutzt.
+  //
+  // Nach der Fehlersuche ersatzlos entfernen.
+  if (location.search.indexOf("diag=1") !== -1) {
+    setTimeout(async function () {
+      const z = [];
+      const box = document.createElement("pre");
+      box.style.cssText = "position:fixed;inset:8px;z-index:99999;overflow:auto;background:#111;color:#eee;border:2px solid #c62828;border-radius:10px;padding:12px;font:13px/1.5 monospace;white-space:pre-wrap;word-break:break-word";
+      document.body.appendChild(box);
+      const schreib = function (s) { z.push(s); box.textContent = z.join("\n"); };
+      schreib("SYNC-DIAGNOSE — zum Schliessen Seite neu laden\n");
+      schreib("angemeldet als: " + (syncUid ? syncUid.slice(0, 8) + "…" : "NEIN"));
+      schreib("authMode: " + authMode);
+      schreib("syncGid (aktive Gruppe): " + (syncGid || "KEINE"));
+      schreib("state.groupId: " + (state.groupId || "(leer)"));
+      schreib("myRole: " + (myRole || "-"));
+      schreib("groupMembers: " + groupMembers.length);
+      schreib("groupSyncFailed: " + groupSyncFailed);
+      schreib("state.recipes (lokal): " + state.recipes.length);
+      schreib("Wochen lokal: " + Object.keys(state.plans || {}).join(", "));
+      let n = 0;
+      Object.keys(state.plans || {}).forEach(function (w) {
+        DAYS.forEach(function (d) { MEALS.forEach(function (m) {
+          n += ((state.plans[w][d.key] || {})[m.key] || []).length; }); });
+      });
+      schreib("Eintraege im Plan (lokal): " + n);
+      const gid = syncGid || state.groupId;
+      if (!gid || !window.CloudGroup) { schreib("\nKeine Gruppe — Ende."); return; }
+      schreib("\n--- direkt aus der Cloud ---");
+      try {
+        const r = await window.CloudSync.loadRecipes(["groups", gid]);
+        schreib("Rezepte in der Gruppe: " + ((r.recipes || r || []).length));
+      } catch (e) { schreib("Rezepte FEHLER: " + (e && e.code) + " " + (e && e.message)); }
+      try {
+        const p = await window.CloudGroup.loadPlans(gid);
+        schreib("Planwochen: " + p.map(function (x) { return x.week; }).join(", "));
+        p.forEach(function (x) {
+          let k = 0;
+          Object.keys(x.fields).forEach(function (f) { if (Array.isArray(x.fields[f])) k += x.fields[f].length; });
+          schreib("  " + x.week + ": " + k + " Eintraege");
+        });
+      } catch (e) { schreib("Plaene FEHLER: " + (e && e.code) + " " + (e && e.message)); }
+      try {
+        const m = await window.CloudGroup.fetchMembers(gid);
+        schreib("Mitglieder: " + m.members.length + (m.fromCache ? " (aus dem Cache)" : ""));
+      } catch (e) { schreib("Mitglieder FEHLER: " + (e && e.code)); }
+      schreib("\nBitte abfotografieren und schicken.");
+    }, 3000);
+  }
 })();
 </script>
 <script>
