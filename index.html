@@ -4398,6 +4398,21 @@
   ];
 
   // ---------- State ----------
+  // Wie lange sich der Planer merkt, was schon dran war (state.planned).
+  //
+  // Die Konstante steht HIER und nicht bei den uebrigen PLAN_*-Werten weiter unten, und das
+  // ist kein Schoenheitsfehler: load() laeuft in der naechsten Zeile, ruft sanitizePlanned()
+  // und liest damit diesen Wert - waere er erst spaeter deklariert, laege er beim Aufruf noch
+  // in der temporalen Totzone und die App braeche mit "Cannot access ... before
+  // initialization" ab. Genau das ist am 16.08.2026 live passiert.
+  //
+  // Der Fehler blieb tagelang unsichtbar, weil sanitizePlanned bei leerem state.planned vorher
+  // zurueckkehrt: Nur wer den Auto-Planer schon einmal benutzt hatte, kam ueberhaupt bis zu
+  // dieser Zeile. Siehe docs/TROUBLESHOOTING.md.
+  //
+  // Merksatz: Alles, was load() erreicht, muss VOR load() stehen.
+  const PLAN_GEDAECHTNIS_WOCHEN = 6;
+
   let state = load();
 
   // Ueber MEALS statt einer festen Slot-Liste: sonst fehlt ein neu dazugekommener Slot
@@ -4772,9 +4787,8 @@
   // ein Cloud-Schreibvorgang je Antippen. Von Hand geplante Gerichte sieht der Planer
   // ohnehin - ueber die zweite Woche, die in state.plans immer mitliegt (planRecentIds).
   //
-  // Aufbewahrung: PLAN_GEDAECHTNIS_WOCHEN. Aeltere Eintraege sagen nichts mehr und wuerden
-  // das Kontodokument nur mit jeder Woche weiter aufblaehen.
-  const PLAN_GEDAECHTNIS_WOCHEN = 6;
+  // Aufbewahrung: PLAN_GEDAECHTNIS_WOCHEN (oben deklariert, VOR `let state = load()` -
+  // siehe die Begruendung dort).
   function sanitizePlanned(v, recipes) {
     const out = {};
     if (!v || typeof v !== "object") return out;
