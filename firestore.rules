@@ -275,6 +275,42 @@ service cloud.firestore {
                           && grpAfter(gid).memberCount == grpNow(gid).memberCount + 1)
                        );
 
+      // ================== STUFE 2, NOCH NICHT VERÖFFENTLICHEN ==================
+      //
+      // Die beiden Zeilen unten machen den Code-Verbrauch zur harten Grenze. Sie gehören in
+      // den obigen Zweig 2, direkt hinter die grpAfter-Zeile - aber ERST, wenn kein alter
+      // Client mehr unterwegs ist:
+      //
+      //     && inviteData(request.resource.data.via).get("used", false) != true
+      //     && inviteAfter(request.resource.data.via).get("used", false) == true
+      //
+      // dazu oben zu den Helfern:
+      //
+      //     function inviteAfter(code) {
+      //       return getAfter(/databases/$(database)/documents/invites/$(code)).data;
+      //     }
+      //
+      // WARUM GESTAFFELT, und das ist der ganze Punkt:
+      //
+      // Die update-Erlaubnis für invites (unten) ist eine reine ERWEITERUNG - sie bricht
+      // keinen alten Client. Diese zwei Zeilen sind es NICHT: Sie VERLANGEN, dass der
+      // Beitretende den Code im selben Batch als verbraucht markiert. Ein Client, der das
+      // noch nicht tut, kann dann überhaupt nicht mehr beitreten.
+      //
+      // Zwischen einem Regel-Deploy und dem Ankommen des neuen Clients liegt bei GitHub Pages
+      // der Service Worker und der Browser-Cache - alte Clients sind also garantiert eine
+      // Weile unterwegs. Genau diese Fehlerklasse hat am 16.08.2026 den Beitritt für alle
+      // außer dem Inhaber unmöglich gemacht (docs/TROUBLESHOOTING.md 101).
+      //
+      // Die Reihenfolge lautet deshalb:
+      //   1. Regeln mit `allow update` veröffentlichen (dieser Stand hier) - bricht nichts.
+      //   2. Client ausrollen, der `used: true` mitschreibt - funktioniert mit Stand 1.
+      //   3. Erst danach diese zwei Zeilen einkommentieren und erneut veröffentlichen.
+      //
+      // Bis Schritt 3 prüft nur der Client auf `used`. Das ist eine Bequemlichkeit, keine
+      // Grenze (CLAUDE.md, Ziffer 18) - Schritt 3 ist Pflicht, nicht Kür.
+      // =========================================================================
+
       // Name und Bild ändert jeder nur an sich selbst - und die eigene Rolle dabei NICHT.
       // Rollen vergibt ausschließlich der Inhaber, und nicht an sich selbst (sonst könnte
       // er sich versehentlich degradieren und die Gruppe wäre führungslos). Der Wertebereich
@@ -341,7 +377,43 @@ service cloud.firestore {
                     && grpNow(request.resource.data.gid).memberCount < maxMitglieder();
 
       // Ein Code ist unveränderlich - wer andere Rechte vergeben will, erzeugt einen neuen.
-      allow update: if false;
+      // Die EINE Ausnahme seit dem 17.08.2026: Er darf beim Beitritt als verbraucht markiert
+      // werden. Ohne das bleibt ein weitergereichter Link dauerhaft eine offene Tür - wer ihn
+      // je gesehen hat, kommt herein, sobald ein Platz frei wird.
+      //
+      // Gespeichert wird ausschließlich `used: true`, KEINE UID des Beitretenden. Wer in der
+      // Gruppe ist, sagt die Mitgliederliste; ein zweites Mal brauchte es dafür einen
+      // Personenbezug in einem Dokument, das jeder Angemeldete lesen darf (CLAUDE.md,
+      // Ziffer 20).
+      //
+      // Die drei Bedingungen sind einzeln nötig:
+      //   1. `used` ist eine Einbahnstraße - ein einmal verbrauchter Code wird nie wieder frei.
+      //   2. hasOnly(["used"]) - sonst ließe sich über diesen Weg die Rolle hochschreiben.
+      //   3. !exists() UND existsAfter() auf die eigene Mitgliedschaft - der Code darf nur von
+      //      jemandem verbraucht werden, der in genau diesem Batch beitritt.
+      //
+      // Punkt 3 stand im ersten Entwurf nur als existsAfter() da, mit der Begründung, damit
+      // könne "niemand einen Code verbrennen, ohne selbst beizutreten". Das war falsch:
+      // existsAfter() beschreibt den Zustand NACH dem Batch, und für ein BEREITS bestehendes
+      // Mitglied ist er ohne jede weitere Aktion erfüllt. Jedes Mitglied - auch eines mit
+      // "Nur ansehen" - hätte damit jeden offenen Code der eigenen Gruppe per einzelnem
+      // update() verbrennen können, ohne beizutreten. Mit Stufe 2 wäre daraus ein gezielter
+      // Riegel gegen eine fremde, gerade weitergegebene Einladung geworden: Die eingeladene
+      // Person käme nie mehr herein. Das unterläuft nebenbei die engere delete-Regel unten,
+      // die das Zurückziehen bewusst auf Ersteller und Inhaber beschränkt.
+      //
+      // !exists() davor macht daraus den Zwei-Zustands-Riegel, den das Gruppendokument für
+      // memberCount schon benutzt (Zweig 2 dort, gleiches Muster): vorher kein Mitglied,
+      // nachher Mitglied - also ein echter, gerade stattfindender Beitritt.
+      //
+      // get("used", false) statt .used: Der Zugriff auf ein FEHLENDES Feld lässt die
+      // Regelauswertung scheitern, und bei jedem heute bestehenden Code fehlt es.
+      allow update: if request.auth != null
+                    && resource.data.get("used", false) != true
+                    && request.resource.data.used == true
+                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["used"])
+                    && !exists(memberPath(resource.data.gid))
+                    && existsAfter(memberPath(resource.data.gid));
 
       // Zurückziehen darf, wer ihn erzeugt hat, sowie der Inhaber der Gruppe.
       allow delete: if request.auth != null

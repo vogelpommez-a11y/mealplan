@@ -124,10 +124,21 @@ function zaehlerOp(ops) {
     var b = letzterBatch();
     pruef("Beitritt schreibt GENAU EINEN Batch", geschrieben.length, 1);
     pruef("und nichts daneben", einzeln.length, 0);
-    pruef("der Batch traegt zwei Vorgaenge", b ? b.length : 0, 2);
+    // Seit dem 17.08.2026 DREI Vorgaenge: Mitgliedschaft, Zaehler und der Verbrauch des
+    // Einladungscodes. Atomar ist hier keine Kuer - ein Verbrauch ohne Beitritt (oder
+    // umgekehrt) waere schlimmer als ein Code, der zu lange gilt.
+    pruef("der Batch traegt drei Vorgaenge", b ? b.length : 0, 3);
     pruef("Mitgliedschaft anlegen", b ? b[0].art + " " + b[0].pfad : "", "set groups/g1/members/neu");
     pruef("Zaehler im selben Batch hoch", zaehlerOp(b || []), 1);
     pruef("und zwar am Gruppendokument", b ? b[1].pfad : "", "groups/g1");
+    pruef("der Einladungscode wird im selben Batch verbraucht",
+      b ? b[2].art + " " + b[2].pfad : "", "update invites/code1");
+    pruef("und zwar nur ueber das Feld used",
+      b ? JSON.stringify(b[2].data) : "", JSON.stringify({ used: true }));
+    // Keine UID des Beitretenden im invites-Dokument: Es darf jeder Angemeldete lesen, und
+    // wer dabei ist, sagt die Mitgliederliste (CLAUDE.md, Ziffer 20).
+    pruef("ohne UID des Beitretenden",
+      b ? Object.keys(b[2].data).length : 0, 1);
 
     // ---- Austritt ----
     frisch();
@@ -149,6 +160,9 @@ function zaehlerOp(ops) {
     var op = b && b[1] && b[1].data && b[1].data.memberCount;
     pruef("der Zaehler laeuft ueber increment(), nicht ueber einen gelesenen Wert",
       !!(op && typeof op.__inc === "number"), true);
+    // Derselbe Aufruf OHNE Code: doc(db, "invites", undefined) wuerde werfen und den ganzen
+    // Beitritt mitnehmen. Der Batch bleibt dann bei zwei Vorgaengen, statt zu scheitern.
+    pruef("ohne Einladungscode bleibt es bei zwei Vorgaengen", b ? b.length : 0, 2);
 
     // ---- Migration ----
     frisch();

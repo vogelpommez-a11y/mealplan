@@ -3644,10 +3644,24 @@
         // increment() statt "gelesener Wert + 1": Zwei gleichzeitige Beitritte laegen sonst
         // auf derselben veralteten Basis, und die Regel wiese den zweiten ab. Firestore wertet
         // die Transformation vor der Regelpruefung aus, die Regel sieht also das Ergebnis.
+        //
+        // Seit dem 17.08.2026 faehrt ein DRITTES Dokument mit: der Einladungscode wird im
+        // selben Batch als verbraucht markiert. Ein weitergereichter Link war sonst dauerhaft
+        // eine offene Tuer - wer ihn je gesehen hat, kam herein, sobald ein Platz frei wurde.
+        // Atomar ist hier keine Kuer: Ein Verbrauch ohne Beitritt (oder umgekehrt) waere
+        // schlimmer als der heutige Zustand.
+        //
+        // Gespeichert wird nur `used: true`, keine UID des Beitretenden - wer dabei ist, sagt
+        // die Mitgliederliste (CLAUDE.md, Ziffer 20).
+        //
+        // Die via-Pruefung ist Absicherung gegen einen Aufruf ohne Code: doc(db, "invites",
+        // undefined) wuerde werfen und den ganzen Beitritt mitnehmen. Im Regelfall traegt
+        // jeder Beitritt einen Code, der Gruender geht gar nicht ueber diesen Weg.
         joinAtomic: function (gid, uid, data) {
           const batch = writeBatch(db);
           batch.set(doc(db, "groups", gid, "members", uid), data, { merge: true });
           batch.update(groupDoc(gid), { memberCount: increment(1) });
+          if (data && data.via) batch.update(doc(db, "invites", data.via), { used: true });
           return batch.commit();
         },
         leaveAtomic: function (gid, uid) {
@@ -12754,6 +12768,14 @@
       // Firestore-Regel ohnehin abgelehnt, hier aber mit einer verstaendlichen Meldung statt
       // einem generischen Fehler.
       if (state.pendingGroupId === inv.gid) { toast("Das ist deine eigene Einladung."); return; }
+      // Verbrauchter Code: gar nicht erst zum Beitreten einladen. Der Riegel steht hier
+      // NACH den Sonderfaellen darueber - "Du bist schon dabei" ist die genauere Auskunft
+      // als "schon benutzt", und beim eigenen Link gilt dasselbe.
+      //
+      // Ein noch bestehendes Mitglied, das ueber denselben Link zurueckkehrt, wird hiervon
+      // nicht getroffen: Dieser Fall haengt an syncGid bzw. wird in joinGroup() ueber
+      // istMitglied() aufgeloest, bevor der Verbrauch geprueft wird.
+      if (inv.used) { toast("Diese Einladung wurde schon benutzt – frag nach einer neuen."); return; }
       const viewOnly = inv.role === "view";
       const switching = !!syncGid;
       const switchingPending = !switching && !!state.pendingGroupId && state.pendingGroupId !== inv.gid;
@@ -15054,8 +15076,18 @@
       if (await window.CloudGroup.istMitglied(inv.gid, syncUid)) {
         await window.CloudGroup.putMember(inv.gid, syncUid, daten);
       } else {
-        // Atomar: Mitgliedschaft und memberCount in EINEM Batch. Einzeln wuerde die Regel es
-        // ablehnen (siehe CloudGroup.joinAtomic).
+        // Ein verbrauchter Code ist keine Einladung mehr. Die Pruefung steht bewusst HIER und
+        // nicht oben bei den anderen Riegeln: Die Rueckkehr eines noch bestehenden Mitglieds
+        // laeuft ueber putMember() und muss weiterhin gehen, auch wenn der Code laengst
+        // verbraucht ist - sonst sperrte der Verbrauch genau die Leute aus, die schon dabei
+        // sind.
+        //
+        // Das ist eine freundliche Meldung, keine Grenze: Verbindlich ist die Regel, die den
+        // Batch ablehnt (firestore.rules, Stufe 2). Hier geht es darum, dass der Nutzer den
+        // Grund erfaehrt, statt an einem "permission-denied" zu scheitern.
+        if (inv.used) { toast("Diese Einladung wurde schon benutzt – frag nach einer neuen."); return; }
+        // Atomar: Mitgliedschaft, memberCount und der Verbrauch des Codes in EINEM Batch.
+        // Einzeln wuerde die Regel es ablehnen (siehe CloudGroup.joinAtomic).
         await window.CloudGroup.joinAtomic(inv.gid, syncUid, daten);
       }
       // Nur mitlesende Mitglieder duerfen laut Regel gar nichts in die Gruppe schreiben -

@@ -2841,3 +2841,78 @@ Zwei Feinheiten, die leicht falsch herum gebaut werden:
   Rückweg des Wochenplans ins eigene Konto an einer Aufräumarbeit gehangen. Datenintegrität vor
   Ordnung (CLAUDE.md, Ziffer 33). Der Prüfstand misst die **Reihenfolge** der beiden
   `save()`-Aufrufe deshalb ausdrücklich mit.
+
+## 105. Einladungscode verbrauchen: warum das zwei Regel-Deploys braucht, nicht einen
+
+**Befund:** Ein weitergereichter Einladungslink blieb dauerhaft eine offene Tür. Wer ihn je
+gesehen hatte, kam herein, sobald ein Platz frei wurde — das Mitgliederlimit von vier war damit
+eine Bremse, keine Mauer.
+
+**Umgesetzt am 17.08.2026.** `joinAtomic()` schreibt ein drittes Dokument im selben Batch:
+`invites/{code}.used = true`. Atomar ist hier keine Kür — ein Verbrauch ohne Beitritt (oder
+umgekehrt) wäre schlimmer als der alte Zustand.
+
+**Gespeichert wird `used: true`, keine UID des Beitretenden.** Wer dabei ist, sagt die
+Mitgliederliste; ein zweites Mal bräuchte es dafür einen Personenbezug in einem Dokument, das
+jeder Angemeldete lesen darf (CLAUDE.md, Ziffer 20).
+
+### Die Deploy-Reihenfolge ist der eigentliche Inhalt dieses Punktes
+
+Der erste Entwurf notierte „Regeln zuerst, dann Client — reine Erlaubnis-Erweiterung, bricht
+nichts". **Das stimmt nur für die Hälfte der Änderung.**
+
+* `allow update` für `invites` ist tatsächlich eine Erweiterung. Ein alter Client schreibt
+  einfach kein `used`, ihn stört die neue Erlaubnis nicht.
+* Die Verschärfung der `members`-create-Regel ist das Gegenteil. Sie **verlangt**, dass der
+  Beitretende den Code im selben Batch als verbraucht markiert. Ein Client, der das noch nicht
+  tut, kann dann überhaupt nicht mehr beitreten.
+
+Zwischen einem Regel-Deploy und dem Ankommen des neuen Clients liegen bei GitHub Pages der
+Service Worker und der Browser-Cache — alte Clients sind also **garantiert** eine Weile
+unterwegs. Genau diese Fehlerklasse hat am 16.08.2026 den Beitritt für alle außer dem Inhaber
+unmöglich gemacht (Punkt 101).
+
+Deshalb drei Schritte statt zwei:
+
+1. Regeln mit `allow update` veröffentlichen — bricht nichts.
+2. Client ausrollen, der `used: true` mitschreibt — funktioniert mit Regelstand 1.
+3. Erst danach den Stufe-2-Block in `firestore.rules` einkommentieren und erneut
+   veröffentlichen.
+
+Bis Schritt 3 prüft **nur der Client** auf `used`. Das ist eine Bequemlichkeit, keine Grenze
+(CLAUDE.md, Ziffer 18) — Schritt 3 ist Pflicht, nicht Kür.
+
+**Die allgemeine Regel:** Bei einer gestaffelten Auslieferung genügt es nicht zu fragen, ob die
+neuen Regeln den alten Client brechen. Man muss jede einzelne Bedingung danach sortieren, ob sie
+etwas **erlaubt** oder etwas **verlangt**. Nur das Erlaubende darf vorausfahren.
+
+### Zwei Fallen im Regeltext selbst
+
+* **`get("used", false)` statt `.used`.** Der Zugriff auf ein fehlendes Feld lässt die
+  Regelauswertung scheitern — und bei jedem heute bestehenden Code fehlt das Feld. Mit `.used`
+  wäre kein einziger Altcode mehr benutzbar gewesen.
+* **`existsAfter()` allein ist kein Beitritts-Nachweis** — und das war im ersten Entwurf genau
+  der Fehler. Die Begründung lautete: „damit kann niemand einen Code verbrennen, ohne selbst
+  beizutreten". Falsch. `existsAfter()` beschreibt den Zustand **nach** dem Batch, und für ein
+  **bereits bestehendes** Mitglied ist er ohne jede weitere Aktion erfüllt. Jedes Mitglied —
+  auch eines mit „Nur ansehen" — hätte damit jeden offenen Code der eigenen Gruppe per
+  einzelnem `update()` verbrennen können. Mit Stufe 2 wäre daraus ein gezielter Riegel gegen
+  eine gerade weitergegebene fremde Einladung geworden: Die eingeladene Person käme nie mehr
+  herein. Nebenbei unterläuft es die engere `delete`-Regel, die das Zurückziehen bewusst auf
+  Ersteller und Inhaber beschränkt.
+
+  Richtig ist der **Zwei-Zustands-Riegel** `!exists(memberPath(gid)) && existsAfter(…)` —
+  vorher kein Mitglied, nachher Mitglied. Dasselbe Muster stand längst zwei Regeln weiter oben
+  im `memberCount`-Zweig; es war nur nicht übertragen worden. **Merksatz:** Ein `existsAfter()`
+  ohne sein `!exists()` beweist einen Zustand, keinen Übergang. Gefunden vom
+  `website-security`-Agenten, nicht beim Lesen.
+* **`hasOnly(["used"])`** gehört ebenso dazu, sonst ließe sich über den Update-Weg die Rolle
+  hochschreiben.
+
+### Und die Reihenfolge im Client
+
+`joinGroup()` prüft `inv.used` **innerhalb** des Else-Zweigs, also erst nachdem `istMitglied()`
+verneint hat. Die Prüfung nach oben zu den anderen Riegeln zu ziehen ist die erste Idee, die man
+hat — und sie sperrt jedes bestehende Mitglied aus, das über denselben Link zurückkehrt. Der
+Prüfstand `tools/pruefstand-einladung-verbrauch.py` fährt genau diese falsche Fassung als
+Gegenprobe.

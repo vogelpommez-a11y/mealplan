@@ -1800,3 +1800,37 @@ schuldig aus; läuft nur Fall 1, ist alles grün und der reale Fehler unsichtbar
 direkten Fragen an die Funktion selbst — ein fremdes „für alle" schließt, eine leere Zeile ist
 offen, ein Eintrag nur für die andere Person lässt offen. Ohne die letzten beiden misst die erste
 nur „irgendetwas ist belegt".
+
+## Eine Reihenfolge prüfen, die beim Lesen richtig aussieht (17.08.2026)
+
+`tools/pruefstand-einladung-verbrauch.py` — 17 Prüfungen für den Verbrauch des Einladungscodes
+(`TROUBLESHOOTING.md` 105). Er schneidet `joinGroup()` im Original-Wortlaut aus und lässt es
+gegen aufzeichnende Attrappen laufen: `joinAtomic` und `putMember` merken sich nur, **welcher
+Weg** genommen wurde.
+
+Der Fehler, um den es geht, ist keine falsche Bedingung, sondern eine falsche **Position**. Die
+Prüfung auf `inv.used` gehört hinter `istMitglied()` — davor sperrt sie jedes bestehende
+Mitglied aus, das über denselben Link zurückkehrt. Beide Fassungen lesen sich plausibel.
+
+**Deshalb ist die Gegenprobe hier der Prüfstand.** Der Extraktor baut aus demselben
+ausgeschnittenen Code eine zweite Fassung, in der die `used`-Zeile nach oben zu den anderen
+Riegeln wandert, und verlangt, dass das Mitglied dabei **ausgesperrt** wird. Bleibt sie grün,
+misst der Hauptfall nichts. Der Extraktor bricht ab, wenn sich diese Fassung nicht mehr bilden
+lässt — eine verschobene Zeile darf nicht dazu führen, dass die Gegenprobe still verschwindet.
+
+Vier Zustände werden gefahren, und erst ihre Kombination trennt die beiden Bedingungen:
+
+| Code | schon Mitglied? | erwartet |
+|---|---|---|
+| offen | nein | Beitritt über `joinAtomic`, Code fährt als `via` mit |
+| verbraucht | nein | abgewiesen, nichts kopiert, keine Gruppe gewechselt |
+| **verbraucht** | **ja** | **Rückkehr über `putMember`** — der kritische Fall |
+| offen | ja | ebenfalls Rückkehr |
+
+Die letzte Zeile sieht überflüssig aus und ist es nicht: Ohne sie wäre die dritte auch dann
+grün, wenn die Rückkehr generell an `istMitglied()` hinge und der Verbrauch gar nicht mehr
+geprüft würde.
+
+**Was hier nicht geprüft wird:** die Firestore-Regeln. Der Verbrauch ist erst mit Stufe 2 eine
+harte Grenze; bis dahin ist die Client-Prüfung eine Bequemlichkeit. Der Batch selbst — drei
+Dokumente, `used: true` ohne UID — wird in `pruefstand-gruppenlimit.py` gemessen.
