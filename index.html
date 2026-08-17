@@ -11700,9 +11700,10 @@
          dein Mitglieder-Eintrag (Name und Bild) sowie die von dir erstellten Einladungslinks mitentfernt. Bist du
          <strong>Inhaber</strong> einer Gruppe, musst du sie vorher auflösen – die App weist dich darauf hin, damit
          keine Gruppe ohne Inhaber zurückbleibt.</p>
-      <p>Verlässt du eine Gruppe, wird dein Mitglieder-Eintrag entfernt und du siehst den gemeinsamen Plan nicht
-         mehr. Die Meals und Wochenpläne, die in der Gruppe entstanden sind, <strong>bleiben bei der Gruppe</strong>
-         – du behältst davon eine eigene Kopie. Das gilt auch für Meals, die ursprünglich von dir stammen: Sobald du
+      <p>Verlässt du eine Gruppe oder löst sie auf, wird dein Mitglieder-Eintrag entfernt und du siehst den
+         gemeinsamen Plan nicht mehr. Die von dir erstellten Einladungslinks werden dabei ebenfalls gelöscht –
+         du musst dafür nicht bis zur Kontolöschung warten. Die Meals und Wochenpläne, die in der Gruppe entstanden
+         sind, <strong>bleiben bei der Gruppe</strong> – du behältst davon eine eigene Kopie. Das gilt auch für Meals, die ursprünglich von dir stammen: Sobald du
          sie in eine Gruppe eingebracht hast, kannst du sie den übrigen Mitgliedern nicht mehr einseitig entziehen.
          Der Personenbezug entfällt dabei, weil zu einem Meal nur deine Nutzerkennung gespeichert ist, die mit
          deinem Mitglieder-Eintrag verschwindet.</p>
@@ -15141,13 +15142,59 @@
     if (ownCodes.length) state.inviteCodes = (state.inviteCodes || []).filter(c => ownCodes.indexOf(c) === -1);
   }
 
+  // Nach dem Verlassen oder Aufloesen ist JEDER eigene Einladungscode wertlos: Erzeugen darf
+  // ihn nur der Inhaber einer Gruppe (firestore.rules), und in dieser Gruppe ist man danach
+  // nicht mehr.
+  //
+  // Bis zum 17.08.2026 blieben sie liegen. dissolveGroupFirestore() raeumt nur Codes der
+  // GERADE aufgeloesten Gruppe (inv.gid === gid) - ein Code aus einer frueheren Gruppe faellt
+  // durch genau diese Pruefung und wird nie wieder angefasst; der Kommentar dort nannte den
+  // Fall sogar ausdruecklich. Ueber mehrere Gruppenwechsel sammelten sich so tote Codes an
+  // (vier Stueck an einem Abend), die beim Anklicken nur noch "Die Einladung konnte nicht
+  // geladen werden" ergaben - und in Firestore als Karteileichen mit gid-Verweis liegen
+  // blieben.
+  //
+  // Die delete-Regel traegt das auch bei laengst geloeschter Gruppe: Ihr erster Zweig prueft
+  // nur resource.data.by == request.auth.uid und braucht kein get() auf das Gruppendokument.
+  //
+  // Nur ERFOLGREICH geloeschte fliegen aus der Liste. Was offline scheitert, bleibt stehen und
+  // wird beim naechsten Verlassen erneut versucht - eine lokal geleerte Liste waere die sichere
+  // Art, das Dokument nie wieder loeschen zu koennen (dieselbe Liste benutzt auch
+  // deleteAccountFlow). Ein Code in der Liste kostet nichts, er taucht in keiner Ansicht auf.
+  async function dropAllInviteCodes() {
+    const codes = (state.inviteCodes || []).slice();
+    if (!codes.length) return;
+    const weg = [];
+    for (const code of codes) {
+      try { await window.CloudGroup.deleteInvite(code); weg.push(code); }
+      catch (e) { noteError("group:deleteInvite", e); }
+    }
+    if (weg.length) state.inviteCodes = (state.inviteCodes || []).filter(c => weg.indexOf(c) === -1);
+  }
+
+  // Eigene Kopie von Meals und Plan aus dem aktuellen State. Tiefe Kopie beim Plan, weil
+  // die Wochen verschachtelt sind und die Listener sie sonst unter der Hand mitleeren.
+  function snapshotOwnData() {
+    return {
+      recipes: state.recipes.slice(),
+      plans: JSON.parse(JSON.stringify(state.plans || {}))
+    };
+  }
+
   // Gruppe vollstaendig aufloesen (nur der Inhaber, ueber "Auflösen"), danach dieselbe lokale
   // Aufraeumarbeit wie beim einfachen Verlassen. Der eigene Mitglieder-Eintrag ist durch den
   // Batch in dissolveGroupFirestore() schon weg; removeMember() darin (in leaveGroup()) ist
   // dann ein folgenloser Zweitversuch auf ein bereits geloeschtes Dokument.
+  //
+  // Der Snapshot wird bewusst HIER gezogen und nicht erst in leaveGroup(): Sobald
+  // dissolveGroupFirestore() die Gruppe geraeumt hat, feuern watchPlans/watchRecipes und
+  // leeren state.plans bzw. state.recipes. Ein danach gebildeter "keep" ist leer - und
+  // ueberschreibt beim Zurueckschreiben auch noch die letzte eigene Kopie.
+  // Siehe docs/TROUBLESHOOTING.md, Punkt 101.
   async function dissolveGroup() {
     if (!syncGid || !syncUid) return;
     const gid = syncGid;
+    const keep = snapshotOwnData();
     try {
       await dissolveGroupFirestore(gid);
     } catch (e) {
@@ -15155,16 +15202,20 @@
       // in einer Gruppe festzuhalten, die er gerade aufloesen wollte. Auf dem Server bleibt sie
       // dann zwar bestehen, leaveGroup() unten entfernt zumindest den eigenen Zugriff.
     }
-    await leaveGroup();
+    await leaveGroup(keep);
   }
 
   // Gruppe verlassen. Plan und Meals bleiben als eigene Kopie erhalten - sie stehen ja
   // schon vollstaendig im lokalen State; sie werden nur wieder ins eigene Konto geschrieben.
-  async function leaveGroup() {
+  // "keep" darf von aussen kommen, wenn der Aufrufer den Stand VOR einem Eingriff sichern
+  // musste (dissolveGroup(); dort steht die Begruendung). Ohne Argument bleibt es beim
+  // bisherigen Verhalten: Der Snapshot entsteht hier, direkt aus dem aktuellen State.
+  async function leaveGroup(keep) {
     if (!syncGid || !syncUid) return;
     const gid = syncGid;
-    const keepRecipes = state.recipes.slice();
-    const keepPlans = JSON.parse(JSON.stringify(state.plans || {}));
+    const snap = keep || snapshotOwnData();
+    const keepRecipes = snap.recipes;
+    const keepPlans = snap.plans;
     try {
       // Atomar samt memberCount - einzeln lehnt die Regel es ab (CloudGroup.leaveAtomic).
       // Der leere catch traegt seit dem Limit einen Fall mehr: Nach dissolveGroup() ist das
@@ -15184,6 +15235,14 @@
       lastPushedRecipes = new Map();
       lastPushedJSON = null;
     } catch (e) { noteError("group:leaveSaveOwn", e); }
+    // Aufraeumen erst NACH der Datensicherung, und das ist kein Schoenheitsfehler: Ein
+    // Firestore-Schreibvorgang resolvt erst mit der Server-Bestaetigung, offline also gar
+    // nicht. Stuende das Loeschen davor, haenge der Rueckweg des Wochenplans an einer
+    // Aufraeumarbeit - Datenintegritaet vor Ordnung (CLAUDE.md, Ziffer 33).
+    await dropAllInviteCodes();
+    try {
+      await window.CloudSync.save(syncUid, { inviteCodes: state.inviteCodes || [] });
+    } catch (e) { noteError("group:leaveSaveCodes", e); }
     await switchGroup(null);
     toast("Du planst wieder für dich – deine Meals sind mitgekommen");
   }

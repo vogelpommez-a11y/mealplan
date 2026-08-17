@@ -185,6 +185,24 @@ function frischerPlan(recipes, goal) {
   proInfo = { pro: true, source: "manual", until: null };
   gespeichert = 0; gezeichnet = 0; letzterToast = "";
 }
+// Der Planer zieht seine Wochengerichte seit dem 16.08.2026 ABSICHTLICH zufaellig
+// (planWochengerichte: mischen, gewichtet ziehen). Jede Pruefung, die zwei Tage der Woche
+// gegeneinander misst, wuerfelt damit mit - der Vergleich "Trainingstag gegen Ruhetag" fiel
+// am 17.08.2026 in etwa jedem sechsten Lauf um, weil der Ruhetag zufaellig die teureren
+// Hauptgerichte erwischte. Ein Prueftstand, der mal rot und mal gruen ist, ist wertlos.
+//
+// Fuer GENAU solche Faelle wird der Zufall festgenagelt: ein einfacher LCG statt
+// Math.random, reproduzierbar und trotzdem gestreut (eine Konstante wie 0.5 haette die
+// Ziehung immer auf denselben Index gelegt und damit auch das Ergebnis verzerrt).
+//
+// Bewusst nur lokal um einen einzelnen Fall gelegt und NICHT global: Die Streuung selbst ist
+// eine zugesagte Eigenschaft ("jeder Lauf ergibt einen anderen Plan") und wird weiter unten
+// geprueft - global festgenagelt waere diese Pruefung vakuos gruen.
+function mitFestemZufall(saat, fn) {
+  var echt = Math.random, z = saat;
+  Math.random = function () { z = (z * 1103515245 + 12345) % 2147483648; return z / 2147483648; };
+  try { return fn(); } finally { Math.random = echt; }
+}
 function alleEintraege() {
   var out = [];
   DAYS.forEach(function (d) { MEALS.forEach(function (m) {
@@ -580,11 +598,38 @@ function bestand() {
     meal("sn4", "Snack", 170, 13, ["vegetarisch"], false)
   ]), { kcal: 2000, carbs: 200, protein: 150, fat: 60, weight: 80,
         training: { mon: { level: "hard", min: 90 } } });
-  autoPlanWeek();
+  // Festgenagelter Zufall, siehe mitFestemZufall(): Der Vergleich zweier Tage haengt sonst
+  // an der Ziehung der Wochengerichte und nicht an der Zielrechnung, um die es hier geht.
+  mitFestemZufall(4711, function () { autoPlanWeek(); });
   pruef("Trainingstag hat ein hoeheres Ziel als der Ruhetag",
     goalTargetsForDay("mon").kcal > goalTargetsForDay("tue").kcal, true);
   pruef("und bekommt auch mehr eingeplant",
     dayNutOf(state.plan, "mon").kcal > dayNutOf(state.plan, "tue").kcal, true);
+  // Die Zusage soll nicht an einer gluecklichen Saat haengen: dasselbe ueber zwanzig
+  // verschiedene Ziehungen.
+  //
+  // Zwei getrennte Aussagen, weil sie unterschiedlich stark sind. Der Trainingstag traegt
+  // sein Plus ausschliesslich ueber die SNACK-Zeile: Die Hauptgerichte kommen bei allen Tagen
+  // aus derselben Wochenrotation, und die zieht der Planer absichtlich zufaellig. Erwischt der
+  // Ruhetag die teureren Gerichte, kann der Trainingstag trotz eines Snacks mehr genau
+  // gleichauf landen (bei Saat 14655 beide auf 2050 kcal, mon mit drei Snacks gegen zwei).
+  // Das ist ein knapper Fall, kein Fehler - "nie WENIGER" ist deshalb die belastbare Zusage,
+  // "immer mehr" waere eine, die der Planer gar nicht gibt.
+  (function () {
+    var weniger = 0, wenigerSnacks = 0;
+    for (var s = 1; s <= 20; s++) {
+      frischerPlan(bestand().concat([
+        meal("sn3", "Snack", 190, 14, ["vegetarisch"], false),
+        meal("sn4", "Snack", 170, 13, ["vegetarisch"], false)
+      ]), { kcal: 2000, carbs: 200, protein: 150, fat: 60, weight: 80,
+            training: { mon: { level: "hard", min: 90 } } });
+      mitFestemZufall(s * 977, function () { autoPlanWeek(); });
+      if (dayNutOf(state.plan, "mon").kcal < dayNutOf(state.plan, "tue").kcal) weniger++;
+      if (state.plan.mon.sn.length < state.plan.tue.sn.length) wenigerSnacks++;
+    }
+    pruef("ueber zwanzig Ziehungen bekommt der Trainingstag nie weniger", weniger, 0);
+    pruef("und nie weniger Snacks als der Ruhetag", wenigerSnacks, 0);
+  })();
   // Die Kehrseite gehoert mitgeprueft: Reicht die Snack-Zeile nicht, bleibt eine Luecke -
   // und die wird benannt statt mit Wiederholungen aufgefuellt.
   frischerPlan(bestand(), { kcal: 2000, carbs: 200, protein: 150, fat: 60, weight: 80,
@@ -999,6 +1044,83 @@ function bestand() {
   for (var w = 0; w < 3; w++) { if (window.__opts && window.__opts.fn) window.__opts.fn(); }
   pruef("auch nach dreimal Nochmal bleibt der Bestand gleich", state.recipes.length, bestand().length);
   pruef("und der Plan steht immer noch", alleEintraege().length > 0, true);
+
+  // ---- Zwei zeitversetzte Laeufe in derselben Gruppe (17.08.2026) ----
+  //
+  // Der Zwei-Personen-Test vom 16.08.2026 hinterliess Snacks in Slots, die durch einen
+  // "fuer alle"-Eintrag der anderen Person laengst geschlossen waren (mon.sn, sun.sn).
+  // Der Verdacht lautete: slotOpenForMe() behandelt uids === null falsch.
+  //
+  // Hier wird beides auseinandergezogen - die Funktion und der Zeitpunkt. Simuliert wird kein
+  // Firestore: Zwei Laeufe auf DEMSELBEN Ausgangsstand sind genau das, was zwei Clients tun,
+  // die voneinander noch nichts wissen.
+  function planStand() { return JSON.parse(JSON.stringify(state.plans[activeWeekKey()])); }
+  function planStandSetzen(p) {
+    state.plans[activeWeekKey()] = JSON.parse(JSON.stringify(p));
+    state.plan = state.plans[activeWeekKey()];
+  }
+  function slotsMitEintraegen(p) {
+    var n = 0;
+    DAYS.forEach(function (d) { MEALS.forEach(function (m) { if (p[d.key][m.key].length) n++; }); });
+    return n;
+  }
+
+  // A plant zuerst. Sein Stand ist der spaetere "richtige".
+  frischerPlan(bestand());
+  syncGid = "g1"; myRole = "edit"; syncUid = "ich"; groupMembers = [{ uid: "ich" }, { uid: "du" }];
+  mitFestemZufall(2026, function () { autoPlanWeek(); });
+  var standA = planStand();
+  pruef("A hat geplant", slotsMitEintraegen(standA) > 0, true);
+  pruef("und zwar in leere Zeilen fuer alle", entryIsShared(standA.mon.mi[0]), true);
+
+  // ---- Fall 1: B kennt A's Stand SCHON. So soll es sein. ----
+  // Derselbe Ausgangsstand wie A ihn hinterlassen hat, nur eine andere UID am Steuer.
+  planStandSetzen(standA);
+  syncUid = "du";
+  mitFestemZufall(99, function () { autoPlanWeek(); });
+  pruef("B fuegt einem aktuellen Stand nichts hinzu",
+    JSON.stringify(planStand()), JSON.stringify(standA));
+  pruef("und sagt das auch", letzterToast, "Deine Woche ist schon geplant");
+
+  // Das gilt ausdruecklich auch fuer die SNACK-Zeile - genau dort trat der Fall am
+  // 16.08.2026 auf.
+  pruef("auch die Snack-Zeile bleibt unangetastet",
+    JSON.stringify(state.plan.mon.sn), JSON.stringify(standA.mon.sn));
+
+  // ---- Fall 2: B kennt A's Stand NOCH NICHT. Der reale Fehlerfall. ----
+  // B plant auf dem leeren Stand von vorhin - sein Client hat A's Push noch nicht empfangen.
+  frischerPlan(bestand());
+  syncGid = "g1"; myRole = "edit"; syncUid = "du"; groupMembers = [{ uid: "ich" }, { uid: "du" }];
+  mitFestemZufall(99, function () { autoPlanWeek(); });
+  var standB = planStand();
+  pruef("B plant auf dem veralteten Stand eine volle Woche", slotsMitEintraegen(standB) > 0, true);
+  // Beide haben dieselben Slots belegt. Trifft der eine Stand auf den anderen, steht dort
+  // doppelt, was einmal dort stehen sollte.
+  (function () {
+    var kollisionen = 0;
+    DAYS.forEach(function (d) { MEALS.forEach(function (m) {
+      if (standA[d.key][m.key].length && standB[d.key][m.key].length) kollisionen++;
+    }); });
+    pruef("beide Laeufe belegen dieselben Slots", kollisionen > 0, true);
+  })();
+
+  // ---- Der Befund ----
+  // slotOpenForMe() ist NICHT die Ursache. Sie liefert fuer einen "fuer alle"-Eintrag
+  // zuverlaessig "geschlossen" - auch fuer den, der ihn nicht geschrieben hat.
+  planStandSetzen(standA);
+  syncUid = "du";
+  pruef("ein fremdes fuer-alle schliesst den Slot auch fuer mich",
+    slotOpenForMe("mon", "mi"), false);
+  pruef("dasselbe fuer die Snack-Zeile",
+    standA.mon.sn.length ? slotOpenForMe("mon", "sn") : false, false);
+  // Und die Gegenprobe, sonst misst die Zeile darueber nur "irgendwas ist belegt":
+  state.plan.mon.mi = [];
+  pruef("eine wirklich leere Zeile ist offen", slotOpenForMe("mon", "mi"), true);
+  // Ein Eintrag, der nur der ANDEREN gehoert, laesst den Slot fuer mich offen - das ist die
+  // Absicht und der Unterschied zu "fuer alle".
+  state.plan.mon.mi = [{ id: "ha1", uids: ["ich"] }];
+  pruef("ein Eintrag nur fuer die andere Person laesst mir den Slot offen",
+    slotOpenForMe("mon", "mi"), true);
 
   LOG.push("");
   LOG.push(bad ? ("FEHLGESCHLAGEN: " + bad + " von " + (ok + bad)) : ("ALLE " + ok + " PRUEFUNGEN GRUEN"));

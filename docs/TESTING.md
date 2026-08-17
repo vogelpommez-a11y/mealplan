@@ -1731,3 +1731,72 @@ ein Meal in das Cloud-Konto geschrieben. Gemessen wird die Trefferfläche, nicht
 `sessionStorage` sichern (überlebt den Reload), danach zurückschreiben. Der `__test`-Suffix
 trennt nur localStorage, **nicht** die Cloud: Ein angemeldetes Konto schreibt von localhost in
 dieselbe Firestore-Datenbank.
+
+## Ein Listener als Prüfobjekt: die Attrappe muss den Nebeneffekt haben (17.08.2026)
+
+`tools/pruefstand-gruppe-aufloesen.py` — 11 Prüfungen für `TROUBLESHOOTING.md` 101 (Gruppe
+auflösen nahm den Wochenplan mit). Er schneidet `snapshotOwnData()`, `dissolveGroup()` und
+`leaveGroup()` im Original-Wortlaut aus `index.html`.
+
+**Der Fehler lag nicht in einer Funktion, sondern zwischen zweien.** Prüfbar wird so etwas nur,
+wenn die Attrappe den fremden Nebeneffekt nachstellt: `dissolveGroupFirestore()` leert hier
+`state.plans` und `state.recipes` — genau das, was der echte `watchPlans`-Listener nach dem
+Löschen tut. Eine Attrappe, die bloß `Promise.resolve()` liefert, hätte den Fehler nie gezeigt.
+
+Im Prüfstand passiert es synchron im selben `await`, im Echtbetrieb Millisekunden später. Das
+reicht als Beweis, weil der fehlerhafte Code in **jedem** Fall erst nach dem Löschen sicherte.
+
+**Die Gegenprobe ist hier die wichtigste Zeile.** Sie fährt denselben ausgeschnittenen Code mit
+einer einzigen zurückgedrehten Stelle (`const keep = snapshotOwnData();` → `undefined`) und
+verlangt, dass der Plan dabei **verloren geht**. Bleibt sie grün, misst Durchgang 1 nichts.
+
+Der Extraktor bricht ab, wenn `dissolveGroup()` den Snapshot nicht mehr zieht oder ihn nicht
+weiterreicht, und ebenso, wenn sich die Gegenprobe nicht mehr bilden lässt. Das ist die Lehre
+aus dem stillen Fehlschnitt vom 16.08.2026: Ein Prüfstand, der nichts sagt, hat nicht bestanden.
+
+**Dritter Durchgang, leicht zu vergessen:** das einfache Verlassen ohne Auflösen. Dort bildet
+`leaveGroup()` den Snapshot weiterhin selbst — der Fix darf den häufigen Fall nicht mit ändern.
+
+## Ein absichtlich zufälliger Planer braucht festgenagelten Zufall (17.08.2026)
+
+`planWochengerichte()` mischt und zieht gewichtet — jeder Lauf ergibt einen anderen Plan, und
+das ist eine zugesagte Eigenschaft. Jede Prüfung, die **zwei Tage derselben Woche** gegeneinander
+misst, würfelt damit mit.
+
+Aufgefallen ist es am Vergleich „Trainingstag gegen Ruhetag": Er war in etwa jedem sechsten Lauf
+rot, weil der Ruhetag zufällig die teureren Hauptgerichte erwischte. Fünf grüne Läufe danach
+hätten die Sache erledigt aussehen lassen — **ein sporadisch roter Prüfstand ist aber kein
+kleineres Problem, sondern das gefährlichere**: Man gewöhnt sich an die rote Zeile.
+
+`mitFestemZufall(saat, fn)` ersetzt `Math.random` für die Dauer eines Aufrufs durch einen LCG.
+Zwei Punkte, die dabei zählen:
+
+* **Ein LCG, keine Konstante.** `Math.random = () => 0.5` hätte die gewichtete Ziehung immer auf
+  denselben Index gelegt und damit das Ergebnis verzerrt statt nur festgehalten.
+* **Nur lokal um einzelne Fälle gelegt, nie global.** Die Streuung selbst wird an anderer Stelle
+  geprüft („jeder Lauf ergibt einen anderen Plan") — global festgenagelt wäre diese Prüfung
+  vakuos grün.
+
+**Und der Befund dahinter war am Ende kein Fehler.** Bei einer der zwanzig Saaten landeten
+Trainings- und Ruhetag auf exakt denselben 2050 kcal, der Trainingstag mit drei Snacks gegen zwei.
+Er gleicht die teureren Hauptgerichte des Ruhetags über die Snack-Zeile genau aus. Die belastbare
+Zusage heißt deshalb „nie **weniger**" — „immer mehr" wäre eine, die der Planer gar nicht gibt.
+Wer eine Prüfung rot findet, sollte sich erst die Zahlen ausgeben lassen, bevor er den Code ändert:
+Hier stand die Wahrheit in einer einzigen Log-Zeile.
+
+## Zwei Clients ohne Firestore: derselbe Ausgangsstand, zwei Läufe (17.08.2026)
+
+Für den Gleichzeitigkeits-Befund (`TROUBLESHOOTING.md` 103) braucht es keine Attrappe und kein
+Netz. Zwei Läufe auf **demselben** Ausgangsstand, dazwischen nur ein Wechsel von `syncUid`, sind
+exakt das, was zwei Clients tun, die voneinander noch nichts wissen.
+
+Entscheidend ist, beide Fälle zu fahren und nicht nur den kaputten:
+
+1. B plant auf A's **aktuellem** Stand → darf nichts hinzufügen.
+2. B plant auf dem **veralteten** Stand → belegt dieselben Slots.
+
+Erst der Vergleich trennt die Funktion vom Zeitpunkt. Läuft nur Fall 2, sieht `slotOpenForMe()`
+schuldig aus; läuft nur Fall 1, ist alles grün und der reale Fehler unsichtbar. Dazu gehören die
+direkten Fragen an die Funktion selbst — ein fremdes „für alle" schließt, eine leere Zeile ist
+offen, ein Eintrag nur für die andere Person lässt offen. Ohne die letzten beiden misst die erste
+nur „irgendetwas ist belegt".

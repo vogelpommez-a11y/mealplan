@@ -395,6 +395,10 @@ Aktivierung (`finalizeGroupActivation()`) läuft auf zwei Wegen:
 
 „Einladung zurückziehen“ im Wartezustand (`withdrawPendingInvite()`) löst die vorbereitete Gruppe vollständig auf (`dissolveGroupFirestore()`, auch von `dissolveGroup()` für aktive Gruppen genutzt) und leert `pendingGroupId`/`pendingInviteUrl` — danach ist der Zustand identisch zu vor dem Einladen.
 
+**Einladungscodes überdauern keine Mitgliedschaft.** `dropAllInviteCodes()` löscht in `leaveGroup()` alle Codes aus `state.inviteCodes` — auf beiden Wegen, Verlassen wie Auflösen. Begründung ist eine Zusage der Regeln: Erzeugen darf einen Code nur der Inhaber einer Gruppe, und in dieser Gruppe ist man danach nicht mehr. `dissolveGroupFirestore()` behält seine gid-gefilterte Runde, weil sie auch im Wartezustand läuft (`withdrawPendingInvite()`), wo es noch keine Mitgliedschaft zu verlassen gibt. Nur erfolgreich gelöschte Codes verlassen die Liste (`docs/TROUBLESHOOTING.md` 104).
+
+**Verlassen und Auflösen sichern denselben Snapshot, aber zu verschiedenen Zeitpunkten.** `snapshotOwnData()` liefert Meals und Wochenplan als eigene Kopie; `leaveGroup(keep)` schreibt sie zurück ins eigene Konto. Beim einfachen Verlassen bildet `leaveGroup()` den Snapshot selbst. Beim Auflösen zieht ihn `dissolveGroup()` **vor** `dissolveGroupFirestore()` und reicht ihn herein — sonst hätten `watchPlans`/`watchRecipes` den lokalen Stand nach dem Löschen bereits geräumt und die Sicherung wäre leer (`docs/TROUBLESHOOTING.md` 101).
+
 Drei Randfälle werden bewusst behandelt, statt einen zweiten, verwaisten Gruppen-Zeiger entstehen zu lassen:
 
 * **Konto löschen im Wartezustand:** `deleteAccountFlow()` sperrt nicht nur bei aktiver Eigner-Rolle (`syncGid`), sondern auch bei gesetztem `state.pendingGroupId` — sonst bliebe `groups/{gid}` als Karteileiche ohne erreichbaren Owner zurück.

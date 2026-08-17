@@ -2675,7 +2675,7 @@ Reihenfolge gehört die Frage beantwortet: *Welche Schreibvorgänge des neuen Cl
 alten Regeln ab?* Sind es welche, muss das Zeitfenster so kurz wie möglich sein — oder der Client
 braucht einen Rückfallpfad.
 
-### Gruppe auflösen nimmt den Wochenplan mit
+### Gruppe auflösen nimmt den Wochenplan mit — behoben am 17.08.2026
 
 `dissolveGroup()` ruft erst `dissolveGroupFirestore()` (löscht alle Pläne, Meals, Mitglieder und
 das Gruppendokument in einem Batch) und danach `leaveGroup()`, das Plan und Meals als **eigene
@@ -2692,10 +2692,22 @@ gelöschten Wochen aus `state.plans`. Gesichert wird dann, was übrig ist — ni
 schreibt `leaveGroup()` diesen leeren Stand ins eigene Konto und überschreibt damit auch die
 letzte Kopie.
 
-**Wer das behebt**, muss den Snapshot **vor** `dissolveGroupFirestore()` ziehen (oder die
-Listener vorher abmelden) und ihn an `leaveGroup()` übergeben, statt ihn dort neu zu bilden.
-Solange das offen ist: **Vor dem Auflösen einer Gruppe exportieren**, wenn der Plan noch gebraucht
-wird.
+**Behoben am 17.08.2026.** `snapshotOwnData()` bündelt die beiden Kopierzeilen, `dissolveGroup()`
+zieht den Snapshot **vor** `dissolveGroupFirestore()`, und `leaveGroup(keep)` nimmt ihn entgegen.
+Ohne Argument bildet `leaveGroup()` ihn weiter selbst — beim einfachen Verlassen löscht ja niemand
+etwas, dort gibt es kein Zeitfenster.
+
+Die Listener bleiben dabei bewusst angemeldet. Sie vorher abzumelden wäre die zweite mögliche
+Lösung gewesen, hätte aber `leaveGroupState()` vorgezogen und damit `syncGid` genullt — das
+`if (!syncGid) return` am Anfang von `leaveGroup()` hätte den ganzen Rücklauf verschluckt.
+Ein vorgezogener Snapshot kommt ohne diese Umbauten aus.
+
+**Der allgemeine Fall dahinter:** Wer lokalen Zustand sichern will, den ein Remote-Listener
+mitpflegt, muss ihn sichern, **bevor** er das Remote-Ende anfasst. Zwischen `await` und `await`
+liegt in dieser App immer ein Listener-Fenster.
+
+Belegt durch `tools/pruefstand-gruppe-aufloesen.py` (11 Prüfungen, mit Gegenprobe gegen den
+alten Stand) — siehe `docs/TESTING.md`.
 
 **Rollback:** alte Regeln aus der Git-Historie erneut veröffentlichen. Der Client bleibt
 lauffähig — `memberCount` ist dann ein Feld, das niemand liest.
@@ -2762,4 +2774,70 @@ oder Kür ist.** Hier ist er Kür — fällt der Abgleich aus, wird wie früher 
 die Migration räumt die Dubletten später weg. Ein paar Dubletten sind ärgerlich, ein
 gescheiterter Beitritt ist schlimmer.
 
-Punkt 101 (Gruppe auflösen löscht den Wochenplan) bleibt davon unberührt und offen.
+Punkt 101 (Gruppe auflösen löscht den Wochenplan) bleibt davon unberührt; er ist am 17.08.2026
+getrennt behoben worden.
+
+## 103. Zwei Planer gleichzeitig: die Funktion war unschuldig, der Zeitpunkt nicht
+
+**Befund vom 16.08.2026:** Luisa bekam Snacks in Slots (`mon.sn`, `sun.sn`), die durch einen
+„für alle"-Eintrag längst geschlossen waren. Der notierte Verdacht: `slotOpenForMe()` behandle
+`uids === null` falsch.
+
+**Gemessen am 17.08.2026 — der Verdacht trifft nicht zu.** Der Autoplaner-Prüfstand fährt jetzt
+zwei zeitversetzte Läufe (`tools/pruefstand-autoplaner.py`, Abschnitt am Ende):
+
+| geprüft | Ergebnis |
+|---|---|
+| B plant auf A's **aktuellem** Stand | fügt **nichts** hinzu, meldet „Deine Woche ist schon geplant" |
+| auch die Snack-Zeile | unangetastet |
+| ein fremdes „für alle" | schließt den Slot auch für den, der es nicht geschrieben hat |
+| ein Eintrag nur für die andere Person | lässt den Slot offen (Absicht, kein Widerspruch) |
+| B plant auf dem **veralteten** Stand | belegt dieselben Slots — der reale Fehlerfall |
+
+Die Ursache ist also ein reiner Zeitversatz: Der zweite Client hatte den Push des ersten noch
+nicht empfangen. Das Fenster ist der Debounce von **800 ms** in `scheduleCloudPush()` plus die
+Zustellzeit — genau deshalb tritt es nur auf, wenn beide fast gleichzeitig auf „Woche planen"
+drücken.
+
+**Bewusst nicht gebaut.** Wasserdicht wäre nur eine Firestore-Transaktion je Slot: `savePlanWeek`
+schreibt heute mit `merge: true` ganze Slot-Felder, ein Read-Modify-Write über zwei Geräte kann
+das nicht auflösen. Ein Vorab-Refresh im Planer würde das Fenster verkleinern, aber nicht
+schließen — er müsste `autoPlanWeek()` asynchron machen (drei Aufrufer plus Undo-Pfad) und
+brächte ein neues Risiko mit, weil ein Reload lokale, noch nicht gepushte Slots überschreiben
+kann. Für einen seltenen und **gutartigen** Effekt (eine Zusatzportion, per Klick entfernt) ist
+das unverhältnismäßig.
+
+**Wer es doch angeht**, muss beides zusammen lösen: erst den eigenen Stand herausschreiben, dann
+laden, dann planen — sonst tauscht man einen doppelten Eintrag gegen einen verlorenen.
+
+## 104. Einladungscodes überlebten jeden Gruppenwechsel
+
+**Befund:** Paddys Konto trug am 16.08.2026 vier Codes, die alle auf gelöschte Gruppen zeigten.
+Angeklickt ergaben sie nur „Die Einladung konnte nicht geladen werden"; in Firestore lagen sie
+als Karteileichen mit `gid`-Verweis.
+
+Die Ursache stand als Kommentar bereits im Code: `dissolveGroupFirestore()` löscht nur Codes,
+für die `inv.gid === gid` gilt — also ausschließlich die der **gerade** aufgelösten Gruppe. Ein
+Code aus einer früheren Gruppe fällt durch genau diese Prüfung und wird danach nie wieder
+angefasst. Über mehrere Gruppenwechsel an einem Abend sammelten sich so vier an.
+
+**Behoben am 17.08.2026** mit `dropAllInviteCodes()`, aufgerufen in `leaveGroup()` — also auf
+**beiden** Wegen, Verlassen wie Auflösen. Die Begründung ist eine Zusage der Regeln: Erzeugen darf
+einen Code nur der Inhaber einer Gruppe (`allow create: … isOwner(…)`), und in dieser Gruppe ist
+man danach nicht mehr. Es gibt keinen Code, der ein Verlassen überdauern dürfte.
+
+Zwei Feinheiten, die leicht falsch herum gebaut werden:
+
+* **Die `delete`-Regel trägt auch bei längst gelöschter Gruppe.** Ihr erster Zweig prüft nur
+  `resource.data.by == request.auth.uid` und braucht kein `get()` auf das Gruppendokument — der
+  zweite (`isOwner`) würde bei fehlender Gruppe scheitern.
+* **Nur erfolgreich gelöschte fliegen aus `state.inviteCodes`.** Eine lokal geleerte Liste wäre
+  die sichere Art, ein offline nicht gelöschtes Dokument nie wieder löschen zu können — dieselbe
+  Liste benutzt auch `deleteAccountFlow()`. Ein Code in der Liste kostet nichts, er taucht in
+  keiner Ansicht auf.
+* **Das Aufräumen steht NACH der Datensicherung**, und das ist kein Schönheitsfehler: Ein
+  Firestore-Schreibvorgang resolvt erst mit der Server-Bestätigung, offline also gar nicht.
+  Im ersten Anlauf stand `dropAllInviteCodes()` vor dem `CloudSync.save()` — damit hätte der
+  Rückweg des Wochenplans ins eigene Konto an einer Aufräumarbeit gehangen. Datenintegrität vor
+  Ordnung (CLAUDE.md, Ziffer 33). Der Prüfstand misst die **Reihenfolge** der beiden
+  `save()`-Aufrufe deshalb ausdrücklich mit.
