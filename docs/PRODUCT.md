@@ -283,14 +283,33 @@ Der Planer zieht deshalb auch aus dem **Rezeptbuch** — gefiltert über `cookbo
 **nur, was zur Ernährungsform passt**. Eigene und kuratierte Meals stehen gleichberechtigt im
 Topf; bei gleicher Bewertung gewinnt das eigene.
 
-**Ein eingeplantes Rezeptbuch-Meal wandert dabei still in die eigenen Meals.** Das ist keine
-Bequemlichkeit, sondern Bedingung: Der Wochenplan speichert nur IDs, und was nicht im Bestand
-steht, wird beim nächsten Laden aus dem Plan entfernt. Damit das keine unangekündigte
-Nebenwirkung ist, **nennt der Toast die Zahl** („· 6 Meals aus dem Rezeptbuch"), und
-*Rückgängig* nimmt Plan **und** Kopien zurück.
+**Ein eingeplantes Rezeptbuch-Meal wandert seit dem 17.08.2026 NICHT mehr in die eigenen
+Meals.** Bis dahin legte der Planer für jedes eingeplante Katalog-Rezept eine Bestandskopie an —
+vermeintlich zwingend, weil der Wochenplan nur IDs speichert und ein Eintrag ohne passendes Meal
+beim nächsten Laden verschwunden wäre. Diese Annahme war überholt: Das Rezeptbuch ist
+mitgeliefert und auf jedem Gerät identisch, ein Planeintrag darf also direkt auf ein
+Katalog-Gericht zeigen, ohne es vorher zu kopieren. Ein Planerlauf lässt den Bestand seither
+unverändert. Der Toast nennt die Nutzung des Rezeptbuchs trotzdem weiter („· 6 Meals aus dem
+Rezeptbuch") — eine relevante Information darüber, woher die Abwechslung dieser Woche kommt,
+auch ganz ohne stillen Zuwachs im Bestand.
 
-Das passt zur Rolle des Rezeptbuchs: Es ist ohnehin der Ort, aus dem man per Tipp übernimmt. Der
-Planer geht denselben Weg (`copyFromCookbook()`), nur ohne den Tipp.
+**„Meine Meals" enthält damit ausschließlich, was selbst angelegt oder bewusst übernommen
+wurde** — eine bewusste Produktentscheidung, kein bloßes Implementierungsdetail. Wer ein
+geplantes Rezeptbuch-Gericht wirklich in seine Sammlung holen und dort verändern will, tut das
+weiterhin über den Übernehmen-Knopf (auch direkt aus der Meal-Ansicht eines Wochenplan-Slots
+heraus) — genau der Weg, den das Rezeptbuch ohnehin vorsieht.
+
+**Die Handauswahl schöpft aus derselben Menge wie der Planer.** Sobald der Bestand nicht mehr
+bei jedem Planerlauf mitwächst, fiele eine bis dahin kaum sichtbare Asymmetrie auf: Der
+Auto-Planer durfte aus dem gesamten Rezeptbuch wählen, wer einen Slot von Hand füllte, sah nur
+den eigenen Bestand. Die Meal-Auswahl eines Slots zeigt deshalb beides — eigene Meals zuerst,
+darunter der Abschnitt „Aus dem Rezeptbuch" (`pickerQuellen()`). Das spart den Umweg über
+Übernehmen und hält den Grundsatz ein, dass zwei Wege zum selben Ziel dieselbe Auswahl haben.
+
+Bewusst **nicht** dieselbe Funktion wie beim Planer (`planKandidaten()`), obwohl die Quellen
+übereinstimmen: Der Planer muss rechnen und lässt Meals ohne Nährwerte weg. Von Hand darf man
+sehr wohl etwas ohne Nährwerte einplanen — dem Nutzer eigene Meals vorzuenthalten, weil der
+Planer mit ihnen nichts anfangen kann, wäre die falsche Sparsamkeit.
 
 ### Was er ist, und was er ausdrücklich nicht ist
 

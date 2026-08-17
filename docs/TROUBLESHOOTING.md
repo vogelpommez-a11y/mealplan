@@ -2710,3 +2710,56 @@ Gegen Beitretende ist der Riegel damit dicht. Gegen einen Inhaber, der mit den
 Entwicklerwerkzeugen bei jedem Beitritt den Zähler zurücksetzt, ist er eine Bremse und keine
 Mauer. Vertretbar, weil der realistische Missbrauch der weitergereichte Link ist und nicht die
 gezielte Firestore-Manipulation am eigenen Abo.
+
+## 102. 61 Rezepte, 51 Namen: zwei Zuflüsse, eine falsche Verdächtige
+
+Der Zwei-Personen-Gruppentest vom 16.08.2026 hinterließ zehn Namenspaare mit gleichem `lib`,
+verschiedener `id` und unterschiedlichen Nährwerten. Der im Aufräum-Plan notierte Verdacht -
+`isAdopted()` versage nach einem Gruppenwechsel - **traf nicht zu.** `isAdopted()` sieht nur
+`state.recipes` des eigenen Kontos und konnte den eigentlichen Fall gar nicht bemerken. Die
+Ursache lag eine Ebene höher und hatte zwei getrennte Zuflüsse:
+
+1. **Der Planer kopierte.** `planAdopt()` legte für jedes eingeplante Katalog-Rezept eine
+   Bestandskopie mit neuer `uid()` an - drei Planerläufe an einem Abend erzeugten drei neue
+   Meals. Der Bestand wuchs still mit jeder Benutzung.
+2. **Der Gruppenbeitritt glich nicht ab.** `copyOwnRecipesToGroup()` lud jedes eigene Meal
+   hoch, ohne zu prüfen, was in der Gruppe schon lag. Da Startmeals je Ernährungsform fest
+   verdrahtet sind (`STARTER`), erzeugten zwei Konten mit gleichem Profil **garantiert** fünf
+   Paare, bevor irgendjemand etwas tat.
+
+**Die Lehre: ein plausibler erster Verdacht ist kein Befund.** `isAdopted()` liest sich wie der
+naheliegende Übeltäter, weil er genau dort steht, wo Dubletten sichtbar werden (das
+Rezeptbuch). Der tatsächliche Fehler lag an zwei ganz anderen Stellen, die beide *Kopien*
+erzeugen - `isAdopted()` filtert nur, kopiert aber nie. Wer die Symptomstelle mit der
+Ursachenstelle verwechselt, repariert am Ende die falsche Funktion.
+
+**Behoben am 17.08.2026** (`plans/Katalog_als_Nachschlagequelle.MD`): Zufluss 1 ist
+trockengelegt, weil der Planer nicht mehr kopiert - `getRecipe()` und `normalizePlan()` kennen
+den Katalog jetzt direkt (siehe `docs/ARCHITECTURES.md`, „Der Katalog wird nachschlagbar").
+Zufluss 2 ist trockengelegt, weil `copyOwnRecipesToGroup()` vor dem Hochladen gegen den
+vorhandenen Gruppenbestand abgleicht. Altlasten aus der Zeit davor räumt eine einmalige,
+idempotente Migration (`dedupeAgainstCatalog()`, `state.dedupeV1`) auf.
+
+**Reihenfolge nicht verhandelbar:** Ein Plan-Verweis muss IMMER erst auf die neue `id`
+umgebogen werden, dann erst darf die alte Kopie verschwinden (Löschung, Migration oder
+Gruppen-Dedup gleichermaßen) - `normalizePlan()` filtert jeden Eintrag gegen die vorhandenen
+IDs und wirft einen verwaisten Verweis beim nächsten Laden lautlos weg, ohne Fehlermeldung.
+
+**Falle für die Gruppe:** Die Migration darf erst laufen, wenn der Bestand vollständig steht -
+sonst hält sie einen noch leeren oder unvollständigen Gruppenbestand für die Wahrheit und
+löscht die eigenen Meals. Deshalb der Riegel `syncGid && !syncHandshakeOk` → sofortiger
+Ausstieg, ohne `state.dedupeV1` zu setzen (der nächste Handshake versucht es erneut).
+
+**Nachtrag aus der Gegenprüfung:** Der Abgleich in `copyOwnRecipesToGroup()` brachte einen
+*neuen Lesevorgang* in den Beitrittspfad — und der liegt im `try` von `joinGroup()`. Ohne
+eigenes `catch` hätte ein Netzfehler beim **Lesen** den gesamten Beitritt zurückgerollt, obwohl
+`joinAtomic()` die Mitgliedschaft in Firestore längst geschrieben hatte. Das ist exakt die
+Fehlerklasse, die am 16.08.2026 den Beitritt für alle außer dem Inhaber unmöglich machte.
+
+Die Regel dahinter, allgemeiner als dieser Fall: **Wer einem bereits funktionierenden,
+mehrstufigen Cloud-Ablauf einen Schritt hinzufügt, muss entscheiden, ob der neue Schritt Pflicht
+oder Kür ist.** Hier ist er Kür — fällt der Abgleich aus, wird wie früher alles hochgeladen, und
+die Migration räumt die Dubletten später weg. Ein paar Dubletten sind ärgerlich, ein
+gescheiterter Beitritt ist schlimmer.
+
+Punkt 101 (Gruppe auflösen löscht den Wochenplan) bleibt davon unberührt und offen.

@@ -1013,6 +1013,82 @@ der Wochenwechsel (`.week-switch`/`.ws-ind`, `syncWeekSwitchPill()`, `CLAUDE.md`
 Mit Pro wächst genau diese Ansicht auf die große Bibliothek, die monatlich wechselt — deshalb
 dieselbe Struktur und derselbe Übernahme-Weg.
 
+#### Der Katalog wird nachschlagbar (17.08.2026)
+
+Der Zwei-Personen-Gruppentest vom 16.08.2026 hinterließ im Bestand 61 Rezepte bei nur 51
+Namen - zehn Paare mit gleichem `lib`, verschiedener `id`. Zwei Zuflüsse trugen dazu bei, und
+beide sind seither trockengelegt:
+
+1. **Der Planer kopierte.** `planAdopt()` legte für jedes eingeplante Katalog-Rezept eine
+   Bestandskopie an - drei Planerläufe an einem Abend erzeugten drei neue Meals. `planAdopt()`
+   ist **ersatzlos entfallen**; `planId()` in `autoPlanWeek()` liefert seither einfach `r.id`,
+   auch für Katalog-Kandidaten. Ein Planerlauf lässt `state.recipes.length` unverändert.
+2. **Der Gruppenbeitritt glich nicht ab.** `copyOwnRecipesToGroup()` lud jedes eigene Meal
+   hoch, ohne den Gruppenbestand zu kennen - zwei Konten mit gleichem `lib` (Startmeals sind
+   je Ernährungsform fest verdrahtet, `STARTER`) erzeugten garantiert Dubletten.
+
+**Grund für das frühere Kopieren war eine inzwischen überholte Annahme:** `normalizePlan()`
+speichert im Plan nur IDs und filterte jeden Eintrag gegen `state.recipes` - ein Slot, der auf
+eine Katalog-`id` zeigte, wäre beim nächsten Laden lautlos verschwunden. Das Rezeptbuch ist
+aber mitgeliefert, auf jedem Gerät identisch und trägt vollständige `ingredients`/`nutrition` -
+ein Planeintrag darf also direkt auf eine Katalog-`id` zeigen. Drei Bausteine tragen das:
+
+```
+getRecipe(id)      → state.recipes zuerst, bei Fehltreffer Rückfall auf COOKBOOK.find()
+normalizePlan()     → das ids-Set enthält jetzt auch alle COOKBOOK-IDs
+rewritePlanIds(von, nach)  → ein Plan-Verweis wird in ALLEN gespeicherten Wochen umgebogen,
+                              inkl. state.planned (Planer-Gedächtnis)
+```
+
+`recipeIndex` (der render()-Cache für `getRecipe()`) bleibt bewusst **nur** aus
+`state.recipes` gebaut - der Katalog kommt erst beim Fehltreffer dazu, nicht als weitere 34
+Einträge in jedem Render-Durchlauf.
+
+**„Meals" enthält damit nur noch, was der Nutzer selbst angelegt oder bewusst übernommen hat**
+(siehe `docs/PRODUCT.md`). Der Wochenplan greift auf Bestand *und* Katalog zu.
+
+**`rewritePlanIds()` ist der gemeinsame Helfer für zwei Stellen**, die beide einen Plan-Verweis
+umbiegen müssen, weil eine `id` nicht mehr gilt:
+
+* `adoptFromCookbook()` - nach dem Übernehmen (auch aus einem Wochenplan-Slot heraus, per
+  Übernehmen-Knopf im Nur-Lese-Zweig der Meal-Ansicht) zeigt der Plan sonst weiter auf das
+  unveränderte Original, und eine spätere Bearbeitung der Kopie bliebe unsichtbar. Das
+  Rückgängig-Machen biegt in Gegenrichtung zurück.
+* `copyOwnRecipesToGroup()` - siehe unten.
+
+**Katalog-Objekte dürfen nie mutiert werden.** `getRecipe()` kann seit diesem Umbau ein
+`COOKBOOK`-Objekt liefern statt einer eigenen Kopie. Drei Aufrufer schreiben auf ihr Ergebnis
+(Foto per Drag & Drop, Foto per Einfügen, `deleteRecipe()`) und tragen deshalb einen Riegel
+`if (!state.recipes.some(x => x.id === r.id)) return;` - praktisch unerreichbar, weil
+Katalog-Rezepte nicht in der Meals-Liste stehen, aber ein späterer Umbau soll den Katalog nicht
+still beschädigen können. Aus demselben Grund prüft `onRecipesRemote()` eine entfernte Löschung
+direkt gegen `state.recipes`, nicht über `getRecipe()` - das würde für eine gelöschte
+Katalog-`id` sonst fälschlich „noch vorhanden" melden.
+
+**Gruppenbeitritt gleicht ab.** `copyOwnRecipesToGroup()` liest zuerst den vorhandenen
+Gruppenbestand (`window.CloudSync.loadRecipes(["groups", gid])`) und baut eine Map
+`lib → vorhandene id`. Ein eigenes Meal mit `lib` wird **nicht** hochgeladen, wenn die Gruppe
+bereits eines mit demselben `lib` trägt - stattdessen biegt `rewritePlanIds()` die eigenen
+Planeinträge auf die schon vorhandene Gruppen-`id` um, **vor** dem Hochladen des Plans (sonst
+wirft `normalizePlan()` sie beim nächsten Laden weg). Meals **ohne** `lib` (selbst angelegte)
+werden nie dedupliziert - ein Namensabgleich würde fremde Meals verschlucken; zwei Leute dürfen
+je eine eigene „Banane" haben.
+
+**Einmalige Migration (`dedupeAgainstCatalog()`, `state.dedupeV1`).** Räumt Altlasten aus der
+Zeit vor diesem Umbau: eine Bestandskopie mit `lib`, die ihrem - über `sanitizeRecipe()`
+sanitisierten - Katalog-Original in `name`, `category`, `nutrition`, `ingredients`, `steps`,
+`time`, `tags` und `mealPrep` entspricht, wird gelöscht; ihre Planeinträge wandern vorher
+(nicht nachher - sonst verwirft `normalizePlan()` sie) auf die Katalog-`id`. Ein eigenes Foto
+macht die Kopie nicht abweichend. Unangetastet bleiben veränderte Kopien, Meals ohne `lib`,
+Barcode-Produkte (`quick`) und Favoriten. Läuft idempotent (`state.dedupeV1`, nur lokal
+persistiert, kein Cloud-Feld) und **erst nach dem Gruppen-Handshake**
+(`syncGid && !syncHandshakeOk` → sofortiger Ausstieg, ohne das Flag zu setzen) - sonst hielte
+sie einen noch leeren Gruppenbestand für die Wahrheit und löschte die eigenen Meals. Aufgerufen
+in `enterApp()` (lokaler Modus) und in `startCloudSync()` direkt nach `syncHandshakeOk = true`,
+vor dem Baseline-`pushNow()`.
+
+Ausschneide-Prüfstand: `tools/pruefstand-katalog-plan.py` → `pruefstand-katalog-plan.html`.
+
 #### `photo`: kuratierte Bildwahl statt Stichwortraten (15.08.2026)
 
 `photoFor()` prüft seit dem Ausbau auf 30 Rezepte in dieser Reihenfolge:
@@ -1840,7 +1916,7 @@ werden müssen, ohne dass irgendetwas ihn auswertet.
 | 3 | je Tag `goalTargetsForDay(tag)` — Trainingstage sind darin schon enthalten |
 | 4 | fr/mi/ab: `anzahl = round(budget / kcal)`, gedeckelt auf **1** (allein) bzw. **2** (in der Gruppe) |
 | 5 | sn: der **Rest** des Tages, gefüllt mit **verschiedenen** Snacks statt Vielfachen |
-| 6 | `planId()` → ggf. `planAdopt()`, dann `makeEntry(id, syncGid ? [syncUid] : null)` je Eintrag einzeln. Im Übernahmefall wird die **erste** Portion stattdessen am vorhandenen Eintrag eingetragen (siehe unten) |
+| 6 | `planId()` liefert seit dem 17.08.2026 einfach `r.id` (kein Kopieren mehr, siehe „Der Katalog wird nachschlagbar" oben), dann `makeEntry(id, syncGid ? [syncUid] : null)` je Eintrag einzeln. Im Übernahmefall wird die **erste** Portion stattdessen am vorhandenen Eintrag eingetragen (siehe unten) |
 | 7 | Wochenbilanz gegen `goalTargetsForDays()` — **kcal und Protein**; > `PLAN_TOLERANZ` wird im Toast benannt |
 
 **Schritt 7 prüft beide Säulen, weil Schritt 4 nur eine kennt.** Die Mengen entstehen aus dem
@@ -1917,29 +1993,28 @@ unberührt. Ohne Gruppe ändert sich am Ergebnis nichts.
 mehreren Portionen mehrere Verweise auf **dasselbe Objekt** im Plan, und eine spätere Änderung an
 genau einem Eintrag (Zuweisung ändern) hätte alle mitgeändert.
 
-### Zwei Kandidatenquellen — und warum der Katalog kopiert werden muss
+### Zwei Kandidatenquellen — und warum der Katalog seit dem 17.08.2026 NICHT mehr kopiert wird
 
 Seit dem 16.08.2026 zieht der Planer auch aus `COOKBOOK`. Katalog-Kandidaten tragen `__cb: true`
 an einer **flachen Kopie** — nie am Katalogeintrag selbst, der ist gemeinsamer Bestand und würde
 sonst die Rezeptbuch-Ansicht mitverschmutzen.
 
-`planAdopt()` legt ein gewähltes Katalog-Rezept über `copyFromCookbook()` im Bestand ab und gibt
-die neue id zurück; `planId()` in `autoPlanWeek()` hält eine Map Katalog-id → Bestands-id, damit
-dasselbe Gericht an fünf Tagen **einmal** kopiert wird. `neueIds` trägt den Undo-Pfad.
+**Bis zum 17.08.2026 legte `planAdopt()` hier eine Bestandskopie an** (siehe „Der Katalog wird
+nachschlagbar" oben) — der Grund war die damalige Annahme, `normalizePlan()` filtere jeden
+Katalog-Eintrag sonst lautlos aus dem Plan. Genau das filtert `normalizePlan()` seither nicht
+mehr aus: `planId(r)` liefert einfach `r.id`, auch für `r.__cb`-Kandidaten. Der Bestand wächst
+dadurch nicht mehr mit jedem Planerlauf.
 
-**Ohne diesen Schritt wäre der Plan wertlos:** `normalizePlan()` filtert jeden Slot-Eintrag gegen
-die vorhandenen Rezept-IDs. Im Prüfstand gemessen — mit ausgehebeltem Kopierschritt verliert der
-Plan **alle 33 Einträge** beim nächsten Laden, lautlos und ohne Fehlermeldung.
+`isAdopted()` bleibt trotzdem als Filter in `planKandidaten()` bestehen: Ein bereits
+übernommenes Rezept liegt im eigenen Bestand und käme sonst **zweimal** in die Kandidatenliste —
+einmal als Kopie, einmal als Katalogeintrag.
 
-`isAdopted()` hält Dubletten heraus: Ein bereits übernommenes Rezept liegt im eigenen Bestand und
-kommt über die erste Quelle.
+**Undo nimmt nur noch die Slots und das Gedächtnis zurück.** Kopien gibt es seit dem Umbau
+nicht mehr, die dabei extra entfernt werden müssten.
 
-**Undo nimmt beides zurück** — Slots *und* Kopien (`state.recipes.filter(…)`). Ein „Rückgängig",
-das den Bestand verändert zurücklässt, wäre keins.
-
-**Sync-Folge, die dazugehört:** Die Kopien sind normale Meals. Sie werden mitsynchronisiert und
-sind in einer Gruppe für alle Mitglieder sichtbar — wie jedes von Hand übernommene
-Rezeptbuch-Meal auch.
+**Der Toast nennt die Katalog-Nutzung trotzdem** (`ausKatalog`-Set in `autoPlanWeek()`): Auch
+ohne dass etwas in den Bestand wandert, bleibt „X Meals aus dem Rezeptbuch" eine relevante
+Information darüber, woher die Abwechslung dieser Woche kommt.
 
 ### Abwechslung: drei Mechanismen, die zusammenwirken (16.08.2026)
 
@@ -1951,8 +2026,11 @@ Bei zwei Hauptgerichten im Bestand blieb der Abend die ganze Woche leer.
 
 **2. Rotationsversatz und Kollisionsregel.** `ab` greift mit `di + 1` zu, und am Ende steht eine
 harte Prüfung: Ist das Abendgericht dasselbe wie mittags, rückt die Liste weiter. Verglichen wird
-über **Objektidentität** und — nur bei eigenen Meals — über die id; `planId()` darf hier nicht
-gerufen werden, das würde ein Katalog-Rezept kopieren, nur um es zu verwerfen.
+über **Objektidentität** (trifft auch Katalog-Kandidaten, weil `kand` einmalig gebaut wird und
+`mi`/`ab` dieselben Objektreferenzen ziehen) und — nur bei eigenen Meals — über die id.
+`planId()` darf hier nicht gerufen werden: Seit dem 17.08.2026 kopiert es zwar nichts mehr,
+merkt sich aber die Katalog-Nutzung fürs `ausKatalog`-Set des Toasts — ein Aufruf hier würde
+einen gleich wieder verworfenen Kandidaten fälschlich mitzählen.
 
 **3. Gewichtete Ziehung.** Aus den besten `PLAN_POOL` (8) werden `PLAN_VARIANTEN` (3) ohne
 Zurücklegen gezogen, Gewicht `PLAN_POOL - index`. Jeder Lauf ergibt einen anderen Plan, ohne dass

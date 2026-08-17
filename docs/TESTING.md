@@ -1606,6 +1606,101 @@ blieb der Server auf Port 8181 stehen und lieferte weiter die **alte** Seite aus
 lang. Das Skript prüft den Port jetzt beim Start und bricht mit einer Anleitung ab, statt still
 falsch zu messen.
 
+## Katalog als Nachschlagequelle: eine Erwartung dreht sich um (17.08.2026)
+
+`plans/Katalog_als_Nachschlagequelle.MD`: Der Planer kopiert keine Katalog-Rezepte mehr in den
+Bestand (siehe `docs/TROUBLESHOOTING.md` 102), `getRecipe()` und `normalizePlan()` kennen den
+Katalog stattdessen direkt. Das dreht die zentrale Zusage von `tools/pruefstand-autoplaner.py`
+um: **„kein Plan-Eintrag zeigt auf eine Katalog-id"** (bis 16.08.2026) wird zu **„ein
+eingeplantes Katalog-Rezept zeigt direkt auf die Katalog-id"**.
+
+**Eine falsch gelockerte Prüfung wäre hier der teuerste Fehler gewesen.** Vor der Anpassung
+warf ein Lauf gegen den geänderten Code nur **zwei** von 149 Prüfungen um:
+
+```
+FEHL kein Plan-Eintrag zeigt auf eine Katalog-id     ist=true  soll=false
+FEHL es sind Kopien entstanden                        ist=false soll=true
+```
+
+Alle übrigen „Kopien"-Prüfungen (`jede Kopie trägt eine Herkunft…`, `keine Kopie trägt einen
+Bildpfad…`, `keine doppelten Kopien…`) blieben **grün, obwohl sie nichts mehr maßen** — auf
+einer leeren `kopien`-Liste ist `.every(...)` vakuos wahr und `.some(...)` vakuos falsch. Ein
+grünes Ergebnis an dieser Stelle hätte nur bewiesen, dass niemand mehr kopiert, nicht dass die
+Prüfung noch etwas aussagt. Sie wurden ersetzt durch direkte Aussagen über die neue Zusage
+(„ein Planerlauf kopiert nichts mehr in den Bestand", `state.recipes.length` bleibt exakt
+gleich) statt über eine jetzt immer leere Zwischenmenge.
+
+Dieselbe Falle traf `verwaisteKopien()` bei „Nochmal": Die Prüfung „keine verwaiste Kopie bleibt
+zurück" wäre nach dem Umbau ebenfalls dauerhaft (und wertlos) grün geblieben, weil es gar keine
+Kopien mehr gibt, die verwaisen könnten. Ersetzt durch die direktere Aussage, die auch nach
+dreimaligem Würfeln gilt: `state.recipes.length` rührt sich durch „Nochmal" überhaupt nicht.
+
+**Der Extraktor selbst brach zuerst.** `schnitt("  function planAdopt(")` fand die entfernte
+Funktion nicht mehr und stoppte den Lauf mit `NICHT GEFUNDEN` — sichtbar, kein leeres Log. Die
+Zeile wurde aus `teile` entfernt (mit Kommentar, warum). Nach der Anpassung: **145 von 145
+Prüfungen grün** (149 minus vier: `planAdopt` fällt weg, drei „Kopien"-Detailprüfungen weichen
+zwei direkteren).
+
+**Neuer Prüfstand `tools/pruefstand-katalog-plan.py` → `pruefstand-katalog-plan.html`** (33
+Prüfungen), Vorbild `pruefstand-autoplaner.py`/`pruefstand-gruppenlimit.py` für die
+Firestore-Attrappe. Deckt die vier neuen Zusagen aus dem Plan ab, plus eine sechste (Gruppen-
+Merge):
+
+1. Ein Plan mit Katalog-id übersteht `normalizePlan()`, eine erfundene id fällt weiter raus.
+2. Ein Planerlauf mit dünnem Bestand lässt `state.recipes.length` unverändert, und mindestens
+   ein Plan-Eintrag stammt nachweislich direkt aus dem Katalog (sonst bewiese die erste Zeile
+   nur einen Zufallstreffer ohne Katalog-Beteiligung).
+3. `adoptFromCookbook()` aus einem simulierten Slot heraus biegt den Plan-Eintrag auf die neue
+   Kopie um — **in allen gespeicherten Wochen**, nicht nur der aktiven, und im Planer-Gedächtnis
+   (`state.planned`) gleich mit. Rückgängig macht beides wieder rückgängig.
+4. `dedupeAgainstCatalog()` löscht eine unveränderte Kopie, lässt eine inhaltlich abweichende
+   und eine bloß favorisierte (aber sonst identische) Kopie stehen, verliert dabei keinen
+   Plan-Eintrag aus keiner Woche und ist beim zweiten Lauf ein Nullvorgang. Eine eigene Gruppe
+   prüft die Vorsichtsregel: vor dem Handshake bleibt der Bestand unangetastet und
+   `state.dedupeV1` bleibt `false`, danach läuft dieselbe Migration nach.
+5. (Teil des Punkts oben, siehe Migration.)
+6. `copyOwnRecipesToGroup()` gegen eine aufzeichnende `window.CloudSync`-Attrappe (Vorbild:
+   `pruefstand-gruppenlimit.html`): Zwei Bestände mit demselben `lib` ergeben in der Gruppe
+   **ein** Rezept, meine überflüssige Kopie wird nicht hochgeladen, und beide Pläne (aktive und
+   andere Woche) zeigen danach auf die schon vorhandene Gruppen-id. Die Gegenprobe mit zwei
+   gleichnamigen, aber `lib`-losen „Bananen" belegt, dass ein Namensabgleich hier bewusst
+   **nicht** stattfindet — beide bleiben stehen.
+
+**Nachtrag aus der Gegenprüfung (17.08.2026), jetzt 42 Prüfungen:**
+
+7. **Der reale Fall vom 16.08.2026: beide Hälften eines Paars im SELBEN Slot.** Montag Frühstück
+   trug „Chia-Pudding" zweimal — zwei Rezepte mit demselben `lib`. Biegt die Migration beide um,
+   steht danach zweimal *dieselbe* id im Slot. Das ist festgehaltenes Verhalten und kein
+   Versehen: Es bleibt bei zwei Portionen wie zuvor, der Nutzer entfernt eine von Hand. Geprüft
+   wird nur, dass die Migration hier **keinen Eintrag verliert** und keiner ins Leere zeigt.
+   Genau dieses Muster steckt in den echten Daten und fehlte in der ersten Fassung.
+8. **Die Handauswahl sieht dieselbe Menge wie der Planer** (`pickerQuellen()`): eigener Bestand
+   plus sichtbares Rezeptbuch, ein übernommenes Rezept genau einmal (als eigene Kopie, nicht als
+   Katalogeintrag) — und `COOKBOOK` trägt hinterher **kein** `__cb`, die Marke sitzt nur an der
+   flachen Kopie.
+
+Zu 8 gehört eine Lehre über Prüfbarkeit: `pickerQuellen()` stand zuerst *innerhalb* von
+`openPicker()` und war damit für den Ausschneide-Prüfstand unerreichbar — der Extraktor schneidet
+über `function name(` auf oberster Ebene. Eine Funktion, die man prüfen will, gehört nach außen.
+Das ist kein Selbstzweck: Die Alternative wäre gewesen, die Auswahllogik im Prüfstand
+nachzubauen, und damit hätte man geprüft, was man selbst geschrieben hat, statt was die App tut.
+
+**Aufruf** (wie bei den anderen Prüfständen: erst schneiden, dann headless ausführen):
+
+```powershell
+python tools\pruefstand-katalog-plan.py          # schneidet aus index.html, schreibt die .html
+& "C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe" `
+  --headless=new --disable-gpu --virtual-time-budget=20000 `
+  --user-data-dir="<scratchpad>\edge-profile" `
+  --dump-dom "file:///C:/Users/Paddy/Documents/Paddys%20Mealplan/tools/pruefstand-katalog-plan.html"
+```
+
+Im `<pre id="log">` des Dumps steht die Bilanz (`ALLE 42 PRUEFUNGEN GRUEN`). **Nach jeder Änderung
+an `getRecipe()`, `normalizePlan()`, `rewritePlanIds()`, `dedupeAgainstCatalog()`,
+`pickerQuellen()` oder `copyOwnRecipesToGroup()` laufen lassen** — bricht der Extraktor mit
+`NICHT GEFUNDEN` ab, wurde eine dieser Funktionen umbenannt oder anders eingerückt, und der
+Prüfstand misst sonst nichts mehr (siehe die `planAdopt`-Erfahrung oben).
+
 ## Stapelkontext und Trefferflächen: `elementFromPoint()` im echten Browser (15.08.2026)
 
 **Headless nicht messbar.** Ob ein Knopf einen Klick tatsächlich bekommt, entscheidet der

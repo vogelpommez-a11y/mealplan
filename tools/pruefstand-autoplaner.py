@@ -99,7 +99,8 @@ teile = [
     schnitt("  function planRang("),
     schnitt("  function planWochengerichte("),
     schnitt("  function planUebernahme("),
-    schnitt("  function planAdopt("),
+    # planAdopt() ist am 17.08.2026 entfallen (Katalog-Umbau): der Planer kopiert nicht mehr,
+    # planId() in autoPlanWeek() liefert seither einfach r.id.
     schnitt("  function planTagKcal("),
     schnitt("  function planRecentIds("),
     # Gedaechtnis des Planers (state.planned).
@@ -753,46 +754,44 @@ function bestand() {
   pruef("mit dem Rezeptbuch werden es mehr als drei", mitKat > 3, true);
   pruef("und mehr als ohne Katalog", mitKat > ohneKat, true);
 
-  // Jedes eingeplante Katalog-Rezept MUSS als Kopie im Bestand liegen - sonst wirft
-  // normalizePlan() den Eintrag beim naechsten Laden lautlos weg.
-  pruef("kein Plan-Eintrag zeigt auf eine Katalog-id",
-    alleEintraege().some(function (x) { return KATALOG_IDS.has(entryId(x.e)); }), false);
-  pruef("jeder Plan-Eintrag findet sein Meal im Bestand",
+  // Seit dem 17.08.2026 (Katalog-Umbau) kopiert der Planer NICHT MEHR: ein Plan-Eintrag darf
+  // direkt auf eine Katalog-id zeigen, weil sowohl getRecipe() als auch normalizePlan() den
+  // Katalog jetzt selbst kennen. Die fruehere Zusage kehrt sich damit um.
+  pruef("ein eingeplantes Katalog-Rezept zeigt direkt auf die Katalog-id",
+    alleEintraege().some(function (x) { return KATALOG_IDS.has(entryId(x.e)); }), true);
+  pruef("jeder Plan-Eintrag findet sein Meal (Bestand oder Katalog)",
     alleEintraege().every(function (x) { return !!getRecipe(entryId(x.e)); }), true);
-  var kopien = state.recipes.filter(function (r) { return !!r.lib; });
-  pruef("es sind Kopien entstanden", kopien.length > 0, true);
-  pruef("jede Kopie traegt eine Herkunft aus dem Katalog",
-    kopien.every(function (r) { return KATALOG_IDS.has(r.lib); }), true);
-  pruef("jede Kopie hat eine EIGENE id",
-    kopien.every(function (r) { return !KATALOG_IDS.has(r.id); }), true);
-  pruef("keine Kopie traegt einen Bildpfad",
-    kopien.some(function (r) { return "img" in r; }), false);
-  // Die eigentliche Probe: der Plan ueberlebt einen Ladevorgang.
+  pruef("ein Planerlauf kopiert nichts mehr in den Bestand",
+    state.recipes.length, fuenf.length);
+  // Die eigentliche Probe: der Plan (mitsamt Katalog-Verweisen) ueberlebt einen Ladevorgang -
+  // genau die Zusage aus 1.2, ohne die jeder Katalog-Eintrag beim naechsten Laden lautlos
+  // aus dem Plan fiele.
   var nachLaden = normalizePlan(state.plan, state.recipes);
   var vorher = alleEintraege().length, danach = 0;
   DAYS.forEach(function (d) { MEALS.forEach(function (m) { danach += nachLaden[d.key][m.key].length; }); });
   pruef("normalizePlan verliert keinen Eintrag", danach, vorher);
-  // Ein Katalog-Rezept an mehreren Tagen darf nur EINMAL kopiert werden.
-  pruef("keine doppelten Kopien desselben Rezepts",
-    kopien.map(function (r) { return r.lib; }).length,
-    new Set(kopien.map(function (r) { return r.lib; })).size);
-  pruef("der Toast nennt die Uebernahme oder eine Zielabweichung",
+  pruef("der Toast nennt die Nutzung des Rezeptbuchs oder eine Zielabweichung",
     /Rezeptbuch|kcal|Protein/.test(letzterToast), true);
 
-  // Rueckgaengig nimmt BEIDES zurueck - Plan und die still uebernommenen Meals.
+  // Rueckgaengig macht nur noch die Slots und das Gedaechtnis rueckgaengig - Kopien gibt es
+  // seit dem Umbau nicht mehr, die frueher extra zurueckgenommen werden mussten.
   window.__undo();
   pruef("Rueckgaengig leert die Woche", alleEintraege().length, 0);
-  pruef("Rueckgaengig entfernt auch die Kopien", state.recipes.length, fuenf.length);
-  pruef("und laesst die eigenen Meals stehen",
+  pruef("und der Bestand bleibt dabei unveraendert",
     state.recipes.map(function (r) { return r.id; }).sort().join(),
     fuenf.map(function (r) { return r.id; }).sort().join());
 
-  // Ein bereits uebernommenes Rezept kommt ueber den eigenen Bestand - nicht ein zweites Mal.
+  // Ein bereits uebernommenes Rezept kommt ueber den eigenen Bestand (isAdopted() haelt es aus
+  // der Katalog-Kandidatenliste heraus) - der Plan-Eintrag zeigt dann auf die eigene Kopie,
+  // nicht (noch einmal) auf die Katalog-id.
   var vorlage = KATALOG_ALLE.filter(function (r) { return r.category === "Hauptgericht"; })[0];
-  frischerPlan(fuenf.concat([copyFromCookbook(vorlage)])); katalogAn();
+  var eigeneKopie = copyFromCookbook(vorlage);
+  frischerPlan(fuenf.concat([eigeneKopie])); katalogAn();
   autoPlanWeek();
-  pruef("ein schon uebernommenes Rezept wird nicht erneut kopiert",
+  pruef("ein schon uebernommenes Rezept bleibt eine einzige Kopie",
     state.recipes.filter(function (r) { return r.lib === vorlage.id; }).length, 1);
+  pruef("kein Plan-Eintrag zeigt dafuer auf die Katalog-id",
+    alleEintraege().some(function (x) { return entryId(x.e) === vorlage.id; }), false);
 
   // Die Ernaehrungsform gilt auch fuer den Katalog - cookbookVisible filtert ueber fitsDiet.
   frischerPlan(fuenf.slice(0, 1), { kcal: 2000, carbs: 200, protein: 150, fat: 60, diet: "vegan" });
@@ -990,19 +989,15 @@ function bestand() {
   window.__opts.fn();
   pruef("Nochmal erzeugt wieder einen vollstaendigen Plan", alleEintraege().length > 0, true);
   pruef("auch danach nie Mittag = Abend", mittagAbendGleich(), []);
-  // Die eigentliche Frage bei "Nochmal" ist nicht die Anzahl der Meals - ein neuer Vorschlag
-  // darf andere Rezepte uebernehmen. Entscheidend ist, dass keine VERWAISTEN Kopien
-  // zurueckbleiben: Jede Kopie im Bestand muss im aktuellen Plan auch verwendet werden.
-  // Sonst wuechse der Bestand mit jedem Klick um Meals, die niemand bestellt hat.
-  function verwaisteKopien() {
-    var imPlan = new Set(alleEintraege().map(function (x) { return entryId(x.e); }));
-    return state.recipes.filter(function (r) { return r.lib && !imPlan.has(r.id); })
-                        .map(function (r) { return r.lib; });
-  }
-  pruef("nach Nochmal bleibt keine verwaiste Kopie zurueck", verwaisteKopien(), []);
+  // Bis zum 17.08.2026 stand hier eine Pruefung auf VERWAISTE Kopien: "Nochmal" durfte den
+  // Bestand nicht mit jedem Klick um Meals wachsen lassen, die niemand mehr bestellt. Mit dem
+  // Katalog-Umbau kopiert der Planer ueberhaupt nicht mehr (siehe oben) - die eigentliche
+  // Zusage, die bleibt, ist deshalb direkter: der Bestand ruehrt sich durch "Nochmal" gar
+  // nicht, beliebig oft gewuerfelt.
+  pruef("Nochmal aendert den Bestand nicht", state.recipes.length, bestand().length);
   // Und auch nach mehrfachem Wuerfeln nicht - der Fall, den man beim Ausprobieren erzeugt.
   for (var w = 0; w < 3; w++) { if (window.__opts && window.__opts.fn) window.__opts.fn(); }
-  pruef("auch nach dreimal Nochmal nicht", verwaisteKopien(), []);
+  pruef("auch nach dreimal Nochmal bleibt der Bestand gleich", state.recipes.length, bestand().length);
   pruef("und der Plan steht immer noch", alleEintraege().length > 0, true);
 
   LOG.push("");

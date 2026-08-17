@@ -4900,7 +4900,9 @@
       // Meals einzusetzen hiess, sie ohne jedes Profilwissen zu waehlen.
       const recipes = [];
       const plans = {}; plans[curKey] = makeEmptyPlan();
-      return { recipes, plans, plan: plans[curKey], viewWeek: "cur", viewYear: new Date().getFullYear(), tab: "home", goal: null, shares: [], onboarded: false, weights: [], weightGoals: {}, weekStats: {}, profileImage: null, weightConsent: noConsent(), shopPersons: 1, groupId: "", pendingGroupId: "", pendingInviteUrl: "", inviteCodes: [], favs: [], planned: {}, deleted: {} };
+      // dedupeV1: bei einem leeren Bestand gibt es nichts aufzuraeumen - true von Anfang an,
+      // damit die Migration hier nie unnoetig anlaeuft (siehe dedupeAgainstCatalog()).
+      return { recipes, plans, plan: plans[curKey], viewWeek: "cur", viewYear: new Date().getFullYear(), tab: "home", goal: null, shares: [], onboarded: false, weights: [], weightGoals: {}, weekStats: {}, profileImage: null, weightConsent: noConsent(), shopPersons: 1, groupId: "", pendingGroupId: "", pendingInviteUrl: "", inviteCodes: [], favs: [], planned: {}, deleted: {}, dedupeV1: true };
     }
     const recipes = sanitizeRecipes(data.recipes);
     const plans = {};
@@ -4913,7 +4915,7 @@
     // und braucht dafuer state (Ziel, Rezepte). Das laeuft noch nicht — state = load() ist gerade
     // erst am Entstehen. boot() ruft pruneWeeks(state.plans) direkt nach dem State-Aufbau nach.
     if (!plans[curKey]) plans[curKey] = makeEmptyPlan();
-    return { recipes, plans, plan: plans[curKey], viewWeek: "cur", viewYear: new Date().getFullYear(), tab: data.tab === "recipes" ? "recipes" : "home", goal: sanitizeGoal(data.goal), shares: Array.isArray(data.shares) ? data.shares : [], onboarded: data.onboarded === true, weights: sanitizeWeights(data.weights), weightGoals: sanitizeWeightGoals(data.weightGoals), weekStats: sanitizeWeekStats(data.weekStats), profileImage: typeof data.profileImage === "string" ? data.profileImage : null, weightConsent: sanitizeConsent(data.weightConsent), shopPersons: sanitizeShopPersons(data.shopPersons), groupId: typeof data.groupId === "string" ? data.groupId : "", pendingGroupId: typeof data.pendingGroupId === "string" ? data.pendingGroupId : "", pendingInviteUrl: typeof data.pendingInviteUrl === "string" ? data.pendingInviteUrl : "", inviteCodes: Array.isArray(data.inviteCodes) ? data.inviteCodes : [], favs: sanitizeFavs(data.favs), planned: sanitizePlanned(data.planned, recipes), deleted: sanitizeTombstones(data.deleted) };
+    return { recipes, plans, plan: plans[curKey], viewWeek: "cur", viewYear: new Date().getFullYear(), tab: data.tab === "recipes" ? "recipes" : "home", goal: sanitizeGoal(data.goal), shares: Array.isArray(data.shares) ? data.shares : [], onboarded: data.onboarded === true, weights: sanitizeWeights(data.weights), weightGoals: sanitizeWeightGoals(data.weightGoals), weekStats: sanitizeWeekStats(data.weekStats), profileImage: typeof data.profileImage === "string" ? data.profileImage : null, weightConsent: sanitizeConsent(data.weightConsent), shopPersons: sanitizeShopPersons(data.shopPersons), groupId: typeof data.groupId === "string" ? data.groupId : "", pendingGroupId: typeof data.pendingGroupId === "string" ? data.pendingGroupId : "", pendingInviteUrl: typeof data.pendingInviteUrl === "string" ? data.pendingInviteUrl : "", inviteCodes: Array.isArray(data.inviteCodes) ? data.inviteCodes : [], favs: sanitizeFavs(data.favs), planned: sanitizePlanned(data.planned, recipes), deleted: sanitizeTombstones(data.deleted), dedupeV1: data.dedupeV1 === true };
   }
 
   // Schlaegt das lokale Speichern fehl (Speicher voll, privater Modus), darf das NICHT
@@ -4933,7 +4935,7 @@
       // shopPersons(): dieselbe Regel wie in pushNow() - berechnet lesen, aber NIE roh schreiben. Sonst
       // kaeme der berechnete Wert beim naechsten load() aus localStorage zurueck und ueberschriebe
       // eine bewusst auf 1 gesetzte Personenzahl dauerhaft.
-      localStorage.setItem(STORE_KEY, JSON.stringify({ recipes: recipesForLS, plans: state.plans, tab: state.tab, goal: state.goal || null, shares: state.shares || [], onboarded: state.onboarded === true, weights: state.weights || [], weightGoals: state.weightGoals || {}, weekStats: state.weekStats || {}, profileImage: idbOK ? null : (state.profileImage || null), weightConsent: state.weightConsent || noConsent(), shopPersons: sanitizeShopPersons(state.shopPersons), groupId: state.groupId || "", pendingGroupId: state.pendingGroupId || "", pendingInviteUrl: state.pendingInviteUrl || "", inviteCodes: state.inviteCodes || [], favs: state.favs || [], planned: state.planned || {}, deleted: sanitizeTombstones(state.deleted) }));
+      localStorage.setItem(STORE_KEY, JSON.stringify({ recipes: recipesForLS, plans: state.plans, tab: state.tab, goal: state.goal || null, shares: state.shares || [], onboarded: state.onboarded === true, weights: state.weights || [], weightGoals: state.weightGoals || {}, weekStats: state.weekStats || {}, profileImage: idbOK ? null : (state.profileImage || null), weightConsent: state.weightConsent || noConsent(), shopPersons: sanitizeShopPersons(state.shopPersons), groupId: state.groupId || "", pendingGroupId: state.pendingGroupId || "", pendingInviteUrl: state.pendingInviteUrl || "", inviteCodes: state.inviteCodes || [], favs: state.favs || [], planned: state.planned || {}, deleted: sanitizeTombstones(state.deleted), dedupeV1: state.dedupeV1 === true }));
       storageFullWarned = false;
     } catch (e) {
       if (!storageFullWarned) {
@@ -5146,9 +5148,15 @@
   // Gruppe von zwei bis fuenf Leuten nichts dazu.
   function firstName(n) { return String(n || "").trim().split(/\s+/)[0] || ""; }
 
+  // Seit dem 17.08.2026 zaehlt neben dem eigenen Bestand auch der mitgelieferte Katalog als
+  // gueltiges Ziel: Der Planer legt fuer katalogbasierte Gerichte keine Kopie mehr an (siehe
+  // planId()/planAdopt()-Wegfall), ein Slot-Eintrag kann also direkt auf eine COOKBOOK-id
+  // zeigen. Ohne die Erweiterung wuerfe dieser Filter jeden Katalog-Eintrag beim naechsten
+  // Laden lautlos aus dem Plan.
   function normalizePlan(rawPlan, recipes) {
     const plan = makeEmptyPlan();
     const ids = new Set((recipes || []).map(r => r.id));
+    COOKBOOK.forEach(r => ids.add(r.id));
     if (rawPlan) DAYS.forEach(d => MEALS.forEach(m => {
       const raw = rawPlan[d.key] && rawPlan[d.key][m.key];
       plan[d.key][m.key] = asIdList(raw).filter(e => ids.has(entryId(e)));
@@ -5551,7 +5559,10 @@
     changes.forEach(c => {
       if (c.pending) return; // eigener Schreibvorgang → ignorieren
       if (c.type === "removed") {
-        if (getRecipe(c.id)) {
+        // Direkt gegen state.recipes pruefen, NICHT ueber getRecipe(): das faellt seit dem
+        // 17.08.2026 auf den Katalog zurueck und wuerde fuer eine entfernte Katalog-id
+        // faelschlich "vorhanden" melden - obwohl hier gar nichts geloescht wurde.
+        if (state.recipes.some(r => r.id === c.id)) {
           state.recipes = state.recipes.filter(r => r.id !== c.id);
           dropRecipeIds(new Set([c.id])); // sonst bleibt auf diesem Geraet ein Geisterverweis im Wochenplan
           changed = true;
@@ -6025,6 +6036,11 @@
       // jetzt darf pushNow() den groupId-Zeiger ueberhaupt anfassen. Muss vor dem Baseline-Push
       // stehen, sonst schriebe genau der das Feld nie mit.
       syncHandshakeOk = true;
+      // Der Bestand steht jetzt vollstaendig (Gruppen-Merge bzw. Cloud-Merge ist oben schon
+      // gelaufen) - genau die Vorbedingung, die dedupeAgainstCatalog() fuer die Gruppe
+      // verlangt. VOR pushNow(), damit eine hier ausgeloeste Aufraeumung gleich mit der
+      // folgenden Baseline hochgeschrieben wird statt einen Zyklus zu verzoegern.
+      dedupeAgainstCatalog();
       await pushNow();                            // zusammengeführten Stand als Baseline hochschreiben
       // Sperrfrist gleich mitstarten: direkt nach dem Verbinden sagt schon „Mit deiner
       // Cloud verbunden", dass Daten hereingekommen sind — ein zweiter Hinweis darauf
@@ -6098,9 +6114,16 @@
   // Suche. Er lebt bewusst NUR innerhalb von render(): dort mutiert state.recipes nicht,
   // ausserhalb koennte er veralten - deshalb faellt getRecipe dann auf die Suche zurueck.
   let recipeIndex = null;
+  // Seit dem 17.08.2026 zweistufig: erst der eigene Bestand, dann - bei Fehltreffer - der
+  // mitgelieferte Katalog. Die Reihenfolge ist Absicht: Eine bewusst uebernommene und
+  // veraenderte Kopie traegt dieselbe Bedeutung wie das Original und muss es schlagen, sonst
+  // zeigte ein Wochenplan-Slot nach dem Uebernehmen weiterhin die unveraenderte Fassung.
+  // recipeIndex bleibt bewusst NUR aus state.recipes gebaut (siehe dort) - der Katalog kommt
+  // hier erst beim Fehltreffer dazu, nicht als weitere 34 Eintraege in jedem render().
   function getRecipe(id) {
-    if (recipeIndex) return recipeIndex.get(id) || null;
-    return state.recipes.find(r => r.id === id) || null;
+    const eigenes = recipeIndex ? (recipeIndex.get(id) || null) : (state.recipes.find(r => r.id === id) || null);
+    if (eigenes) return eigenes;
+    return COOKBOOK.find(r => r.id === id) || null;
   }
   // Die Meals-Bibliothek OHNE die per Barcode-Schnellzugriff still angelegten Produkte
   // (quick: true). Zaehler, Suchfeld, Leerzustand und Liste im Reiter "Meals" muessen
@@ -6178,13 +6201,65 @@
     if (!vorlage || isAdopted(id)) return;
     const kopie = copyFromCookbook(vorlage);
     state.recipes.push(kopie);
+    // Plan-Verweise auf das Katalog-Original biegen auf die neue Kopie um - sonst zeigt der
+    // Wochenplan weiter auf die unveraenderte Fassung und eine spaetere Bearbeitung der Kopie
+    // bliebe dort unsichtbar (rewritePlanIds(), Teil 1.5 des Katalog-Umbaus).
+    rewritePlanIds(vorlage.id, kopie.id);
     save(); render();
     undoToast(`„${vorlage.name}" ist in deinen Meals`, () => {
       state.recipes = state.recipes.filter(r => r.id !== kopie.id);
+      rewritePlanIds(kopie.id, vorlage.id);
       save(); render();
     });
   }
   function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;" }[c])); }
+
+  // ---------- Einmalige Aufraeumung alter Dubletten (Teil 3 des Katalog-Umbaus, 17.08.2026) ----
+  // Vor diesem Umbau kopierte sowohl der Planer (planAdopt(), inzwischen entfallen) als auch
+  // der Gruppenbeitritt (copyOwnRecipesToGroup(), vor der Deduplizierung in Teil 2) Katalog-
+  // Rezepte ohne Abgleich in den Bestand. Startmeals sind je Ernaehrungsform fest verdrahtet
+  // (STARTER) - zwei Konten mit gleichem Profil erzeugten so garantiert Dubletten, mehrfaches
+  // Planen zusaetzliche. Diese Migration raeumt sie EINMALIG auf, gesteuert ueber
+  // state.dedupeV1: eine Bestandskopie mit `lib`, die ihrem Katalog-Original inhaltlich
+  // entspricht, wird geloescht, ihre Planeintraege wandern vorher auf die Katalog-id.
+  //
+  // Verglichen wird gegen sanitizeRecipe(original), NICHT gegen das rohe Katalog-Objekt -
+  // sanitizeRecipe() entfernt img/portions/difficulty, ein Rohvergleich schluege deshalb immer
+  // fehl. Unangetastet bleiben veraenderte Kopien, Meals ohne lib, Barcode-Produkte (quick)
+  // und Favoriten - ein eigenes Foto (image) zaehlt dabei NICHT als Abweichung, es reist mit
+  // der id ohnehin weiter mit (siehe rewritePlanIds()).
+  const DEDUPE_FELDER = ["name", "category", "nutrition", "ingredients", "steps", "time", "tags", "mealPrep"];
+  function kopieEntsprichtKatalog(kopie, original) {
+    const sauber = sanitizeRecipe(original);
+    return DEDUPE_FELDER.every(f => canonJSON(kopie[f]) === canonJSON(sauber[f]));
+  }
+  function dedupeAgainstCatalog() {
+    if (state.dedupeV1) return;
+    // Vorsichtsregel: In einer Gruppe muss der Bestand vollstaendig stehen, BEVOR verglichen
+    // wird - sonst haelt die Migration einen noch leeren oder unvollstaendigen Gruppenbestand
+    // fuer die Wahrheit und loescht die eigenen Meals. Ohne Gruppe ist der Bestand nach load()
+    // immer vollstaendig (lokal oder Solo-Cloud), der Handshake spielt dort keine Rolle. Ohne
+    // das Flag zu setzen kehren wir hier einfach zurueck - der naechste Aufruf (naechster
+    // Start, naechster Handshake) versucht es erneut.
+    if (syncGid && !syncHandshakeOk) return;
+    const geloescht = [];
+    state.recipes.forEach(r => {
+      if (!r || !r.lib || r.quick) return;               // nur Kopien mit Herkunft, keine Barcode-Produkte
+      if (Array.isArray(state.favs) && state.favs.indexOf(r.id) !== -1) return;   // Favoriten unangetastet
+      const original = COOKBOOK.find(x => x.id === r.lib);
+      if (!original) return;                              // Herkunft gibt es im Katalog nicht mehr
+      if (!kopieEntsprichtKatalog(r, original)) return;    // veraendert - bleibt stehen
+      // Reihenfolge nicht verhandelbar: ERST die Planeintraege umbiegen, DANN loeschen -
+      // umgekehrt wuerfe normalizePlan() sie beim naechsten Laden weg.
+      rewritePlanIds(r.id, original.id);
+      geloescht.push(r.id);
+    });
+    if (geloescht.length) state.recipes = state.recipes.filter(r => geloescht.indexOf(r.id) === -1);
+    // Idempotent: Zwei gleichzeitig laufende Clients in einer Gruppe sind deshalb unkritisch,
+    // das Loeschen propagiert ganz normal ueber den syncRecipes()-Diff.
+    state.dedupeV1 = true;
+    save();
+  }
 
   // ---------- Zahleneingabe: Rad am Handy, Tastatur am Rechner ----------
   // Ein <select> rendert Safari auf dem iPhone als natives Auswahlrad (UIPickerView),
@@ -9975,12 +10050,19 @@
     // openSheetId/openSheetRemovedCb bleiben hier unangetastet: es wird lokal nichts
     // editiert, ein Remote-Update darf ganz normal durchschlagen.
     if (readOnly) {
-      // Katalog-Rezepte stehen NICHT in state.recipes - deshalb hier und nur hier auch im
-      // Rezeptbuch nachsehen. getRecipe() bleibt bewusst unangetastet: Es wird vom
-      // Wochenplan, der Einkaufsliste und dem Druck benutzt, und dort darf eine Katalog-ID
-      // niemals auftauchen (ein Plan-Eintrag zeigt immer auf ein Meal im eigenen Bestand).
+      // Bis zum 17.08.2026 stand hier, getRecipe() duerfe eine Katalog-ID NIE sehen, weil ein
+      // Plan-Eintrag immer auf ein Meal im eigenen Bestand zeige. Genau diese Annahme ist mit
+      // dem Katalog-Umbau gefallen: der Wochenplan-Slot ist seither der einzige NEUE Weg
+      // hierher, und ein Slot kann jetzt direkt auf eine Katalog-id zeigen. getRecipe() faellt
+      // deshalb selbst auf den Katalog zurueck (state.recipes zuerst, siehe dort) - hier
+      // reicht ein einziger Aufruf.
+      //
+      // `ausBuch` wird trotzdem separat ermittelt: Es entscheidet NICHT, ob das Rezept
+      // gefunden wird (das erledigt getRecipe() allein), sondern ob Bearbeiten/Teilen oder der
+      // Uebernehmen-Knopf angeboten wird - eine Katalog-id gehoert dem Nutzer noch nicht, egal
+      // ob sie aus der Rezeptbuch-Liste oder einem Slot kommt.
       const ausBuch = COOKBOOK.find(x => x.id === id) || null;
-      const r = ausBuch || getRecipe(id);
+      const r = getRecipe(id);
       if (!r) return;
       const cls = CAT_CLASS[r.category] || "cat-x";
       const statsInner = mealStatsHtml(r);
@@ -10780,6 +10862,32 @@
     </div>`;
   }
   // ---------- Picker ----------
+  // Woraus die Handauswahl fuer einen Slot schoepft. Seit dem 17.08.2026 dieselbe Menge wie
+  // beim Auto-Planer: eigener Bestand PLUS Rezeptbuch. Vorher durfte der Planer aus 34
+  // Katalog-Rezepten waehlen und der Mensch nur aus dem eigenen Bestand - eine Asymmetrie,
+  // die mit dem Katalog-Umbau erst richtig auffiel, weil der Bestand seitdem nicht mehr bei
+  // jedem Planerlauf mitwaechst.
+  //
+  // Bewusst NICHT planKandidaten() wiederverwendet, obwohl die Quellen dieselben sind: Der
+  // Planer muss rechnen und schliesst deshalb Meals ohne Naehrwerte aus. Von Hand darf man
+  // sehr wohl ein Meal ohne Naehrwerte einplanen - dieselbe Menge zu erzwingen hiesse, dem
+  // Nutzer eigene Meals vorzuenthalten, weil der Planer mit ihnen nichts anfangen kann.
+  //
+  // cookbookVisible() filtert ueber fitsDiet(), der Katalog kann hier also nichts anbieten,
+  // was der Ernaehrungsform widerspricht. isAdopted() haelt Dubletten heraus - ein
+  // uebernommenes Rezept steht schon im eigenen Bestand und kommt ueber die erste Quelle.
+  //
+  // `__cb` sitzt an einer FLACHEN KOPIE, nie am Katalogeintrag selbst (gleiche Begruendung
+  // wie bei planKandidaten): COOKBOOK ist gemeinsamer Bestand, ein Feld daran verschmutzte
+  // die Rezeptbuch-Ansicht und jede spaetere Uebernahme mit.
+  function pickerQuellen() {
+    const eigene = libraryRecipes();
+    const katalog = cookbookVisible()
+      .filter(r => !isAdopted(r.id))
+      .map(r => Object.assign({}, r, { __cb: true }));
+    return eigene.concat(katalog);
+  }
+
   function openPicker(day, meal) {
     const dLabel = DAYS.find(d => d.key === day).label;
     const mLabel = MEALS.find(m => m.key === meal).label;
@@ -10812,7 +10920,7 @@
 
     function paint(q) {
       const query = (q || "").toLowerCase().trim();
-      let list = libraryRecipes().sort((a, b) => a.name.localeCompare(b.name, "de"));
+      let list = pickerQuellen().sort((a, b) => a.name.localeCompare(b.name, "de"));
       if (query) list = list.filter(r => r.name.toLowerCase().includes(query) || (r.category || "").toLowerCase().includes(query));
       const hidden = list.filter(r => !catFitsMeal(r.category, meal)).length;
       if (!showAll) list = list.filter(r => catFitsMeal(r.category, meal));
@@ -10834,7 +10942,21 @@
       // Dieselbe Rangfolge wie in der Zutatenzeile (rankFoods), damit "ban" sich hier
       // nicht anders verhaelt als dort.
       const pieces = query.length >= 2 ? pieceSearch(query, 8) : pieceTop();
-      const libEmpty = libraryRecipes().length === 0;
+      // Leer ist die Auswahl erst, wenn AUCH das Rezeptbuch nichts hergibt - sonst stuende
+      // "Noch keine Meals angelegt" ueber 34 verfuegbaren Gerichten.
+      const libEmpty = pickerQuellen().length === 0;
+      // Ein Meal-Knopf, unabhaengig von der Quelle: der Umbau macht die Katalog-id zu einem
+      // gueltigen Plan-Verweis, zugewiesen wird also in beiden Faellen gleich (data-assign).
+      const itemHtml = r => {
+        const suggest = catSuggestsMeal(r.category, meal) ? " suggest" : "";
+        const off = catFitsMeal(r.category, meal) ? "" : " offcat";
+        return `<button class="pitem${suggest}${off}" data-assign="${r.id}">
+          ${thumbHtml(r, "pthumb")}
+          <span class="pn">${esc(r.name)}</span>
+          ${isFav(r.id) ? `<span class="pfav" aria-hidden="true">${iconSvg("heart", "")}</span>` : ""}
+          <span class="pc">${esc(r.category || "")}</span>
+        </button>`;
+      };
 
       let html;
       if (libEmpty) {
@@ -10845,16 +10967,15 @@
       } else if (list.length === 0) {
         html = `<p class="pempty">Kein passendes Meal gefunden.</p>${more}`;
       } else {
-        html = list.map(r => {
-          const suggest = catSuggestsMeal(r.category, meal) ? " suggest" : "";
-          const off = catFitsMeal(r.category, meal) ? "" : " offcat";
-          return `<button class="pitem${suggest}${off}" data-assign="${r.id}">
-            ${thumbHtml(r, "pthumb")}
-            <span class="pn">${esc(r.name)}</span>
-            ${isFav(r.id) ? `<span class="pfav" aria-hidden="true">${iconSvg("heart", "")}</span>` : ""}
-            <span class="pc">${esc(r.category || "")}</span>
-          </button>`;
-        }).join("") + more;
+        // Eigene Meals zuerst, das Rezeptbuch als eigener Abschnitt darunter - die Herkunft
+        // steht damit ueber der Gruppe statt als Marke an jeder einzelnen Zeile. `.sec-h` ist
+        // die EINE Abschnittsform der App und im Picker schon fuer "Schnell" in Gebrauch
+        // (CLAUDE.md, Ziffer 8) - keine neue Form, kein zusaetzlicher Erklaertext.
+        const eigene = list.filter(r => !r.__cb);
+        const ausBuch = list.filter(r => r.__cb);
+        html = eigene.map(itemHtml).join("");
+        if (ausBuch.length) html += `<div class="sec-h pq-h">Aus dem Rezeptbuch</div>` + ausBuch.map(itemHtml).join("");
+        html += more;
       }
       if (pieces.length) {
         // Eine Nachkommastelle behalten: nfmt() rundet auf ganze Zahlen und machte aus
@@ -11359,8 +11480,43 @@
     // Dasselbe fuers Planer-Gedaechtnis - ein Verweis auf ein geloeschtes Meal traegt nichts bei.
     if (state.planned) Object.keys(state.planned).forEach(id => { if (idSet.has(id)) delete state.planned[id]; });
   }
+  // Einen Plan-Verweis auf eine ANDERE id umbiegen, in ALLEN gespeicherten Wochen - dasselbe
+  // Vorbild wie dropRecipeIds() oben, nur ersetzen statt entfernen. Gebraucht an zwei Stellen,
+  // die beide denselben Fehler vermeiden muessen (deshalb EIN gemeinsamer Helfer statt zwei
+  // Kopien, die irgendwann auseinanderlaufen):
+  //
+  //   1. adoptFromCookbook(): ein Katalog-Slot wird uebernommen, der Plan soll danach auf die
+  //      eigene (editierbare) Kopie zeigen statt weiter auf das unveraenderte Original.
+  //   2. copyOwnRecipesToGroup(): meine Kopie wird beim Gruppenbeitritt NICHT hochgeladen,
+  //      weil die Gruppe schon eine mit demselben `lib` hat - meine Plaene muessen dann auf
+  //      die Gruppen-id zeigen, sonst wirft normalizePlan() sie beim naechsten Laden weg.
+  //
+  // Objekt-Eintraege ({id, uids}) werden NEU angelegt statt mutiert - dasselbe Prinzip wie im
+  // Planer (siehe Kommentar bei autoPlanWeek): eine gemeinsame Objektreferenz waere eine Falle
+  // fuer den naechsten, der genau diesen Eintrag anfasst.
+  function rewritePlanIds(vonId, nachId) {
+    Object.keys(state.plans).forEach(key => {
+      const p = state.plans[key];
+      if (!p) return;
+      DAYS.forEach(d => MEALS.forEach(m => {
+        const arr = p[d.key] && p[d.key][m.key];
+        if (!arr || !arr.length) return;
+        p[d.key][m.key] = arr.map(e => entryId(e) !== vonId ? e
+          : (typeof e === "string" ? nachId : Object.assign({}, e, { id: nachId })));
+      }));
+    });
+    // Gedaechtnis mitziehen - sonst gilt die neue id faelschlich als "noch nie geplant" und
+    // der Planer wertet sie beim naechsten Lauf nicht ab, obwohl sie gerade erst dran war.
+    if (state.planned && Object.prototype.hasOwnProperty.call(state.planned, vonId)) {
+      state.planned[nachId] = state.planned[vonId];
+      delete state.planned[vonId];
+    }
+  }
   function deleteRecipe(id) {
     const r = getRecipe(id); if (!r) return;
+    // Derselbe Riegel wie bei den Foto-Handlern oben: getRecipe() kann seit dem 17.08.2026
+    // ein COOKBOOK-Objekt liefern, und ein Katalog-Rezept darf nie geloescht werden.
+    if (!state.recipes.some(x => x.id === id)) return;
     confirmModal({
       title: "Meal löschen?",
       bodyHtml: `<p style="margin:0">„<strong>${esc(r.name)}</strong>" wird dauerhaft entfernt und aus dem Wochenplan gelöscht.</p>`,
@@ -11453,7 +11609,7 @@
       <p>Diese Website wird bei GitHub Pages gehostet, einem Dienst der GitHub, Inc., 88 Colin P. Kelly Jr. Street, San Francisco, CA 94107, USA. Beim Aufruf der Seite verarbeitet GitHub technisch notwendige Zugriffsdaten (z. B. deine IP-Adresse), um die Seite auszuliefern und deren Sicherheit zu gewährleisten. Rechtsgrundlage ist unser berechtigtes Interesse an einer sicheren und effizienten Bereitstellung (Art. 6 Abs. 1 lit. f DSGVO). Dabei kann eine Übermittlung in die USA erfolgen. Weitere Infos: <a href="https://docs.github.com/de/site-policy/privacy-policies/github-general-privacy-statement" target="_blank" rel="noopener">GitHub Privacy Statement</a>.</p>
       <h4>3. Welche Daten wir verarbeiten</h4>
       <p><strong>Zwei Betriebsarten – und nur eine davon verarbeitet Daten bei uns.</strong> Du kannst die App <strong>ohne Konto</strong> nutzen: Dann bleiben deine Plan- und Profildaten ausschließlich auf deinem Gerät (Browser-Speicher), sie werden <strong>weder an uns noch an Firebase übertragen</strong>, und wir haben keinen Zugriff darauf. Unabhängig davon lädt dein Browser beim Aufruf der Seite die Software für die Cloud-Funktionen von Google-Servern nach und übermittelt dabei deine <strong>IP-Adresse</strong> – das passiert auch ohne Konto und ist in Ziffer 5 beschrieben. Wir fragen dabei nur einen frei wählbaren <strong>Namen</strong> ab; eine E-Mail-Adresse ist optional und verlässt das Gerät ebenfalls nicht. Der folgende Abschnitt beschreibt die zweite Betriebsart: die Nutzung <strong>mit Konto</strong> (Cloud-Synchronisierung), für die du dich aktiv entscheidest. Löschst du die Websitedaten deines Browsers, sind lokal gespeicherte Angaben unwiederbringlich weg – im Betrieb ohne Konto haben wir keine Kopie davon.</p>
-      <p>Bei der Registrierung: <strong>Name und E-Mail-Adresse</strong>. Bei Nutzung der App: die von dir angelegten <strong>Wochenpläne, Meals/Rezepte und ggf. Fotos</strong> sowie ein optionales <strong>Profilbild</strong> (als Kreis-Avatar zugeschnitten, in deinem Nutzerkonto gespeichert, nicht Teil von Teilen-Links) sowie – im Rahmen der Einführungsfragen zu Beginn, die zur Nutzung der App erforderlich sind – <strong>Geschlecht, Alter, Größe, Gewicht, Alltagsbewegung und Ziel</strong> sowie optional deine <strong>Trainingstage</strong> (Wochentag, Intensität und Dauer) und deinen <strong>Körperfettanteil</strong> (als grobe Stufe; Details zu beidem siehe Ziffer 3a) sowie – ebenfalls optional – deine <strong>Auswahl, welche Meals dir vorgeschlagen werden sollen</strong> (vegetarisch, vegan oder ohne Einschränkung; dazu wahlweise glutenfrei und/oder laktosefrei). Erstellst du Teilen-Links, merkt sich dein Konto zusätzlich deren <strong>Kennungen</strong> (keine Klardaten, siehe Ziffer 8), damit sie beim Löschen deines Kontos zugeordnet und mitentfernt werden können. Nutzt du „Gemeinsam planen", speichert dein Konto außerdem die <strong>Kennung deiner Gruppe</strong> sowie die Kennungen der von dir erstellten <strong>Einladungslinks</strong> – aus demselben Grund (siehe Ziffer 8a); an einem in einer Gruppe angelegten Meal wird zusätzlich deine <strong>Nutzerkennung</strong> vermerkt, damit sichtbar ist, wer es angelegt hat. Weist du ein geplantes Gericht nur einem Teil der Gruppe zu (statt „für alle"), wird für dieses Gericht zusätzlich vermerkt, welche Mitglieder es per <strong>Nutzerkennung</strong> essen – sichtbar für die ganze Gruppe als kleines Farb-Badge auf der Meal-Karte. Stellst du in der Einkaufsliste eine <strong>Personenanzahl</strong> ein, wird auch diese gespeichert. Markierst du Meals als <strong>Favorit</strong>, wird diese Auswahl ebenfalls in deinem Konto gespeichert – nur für dich, auch in einer Gruppe. Nutzt du den <strong>automatischen Wochenplaner</strong>, merkt sich dein Konto zu den eingeplanten Meals die <strong>Kalenderwoche</strong>, in der sie zuletzt vorgeschlagen wurden – damit du nicht jede Woche dieselben Gerichte bekommst. Diese Angabe gilt nur für dich, auch in einer Gruppe, und wird nach einigen Wochen automatisch wieder entfernt. Übernimmst du ein Rezept aus dem mitgelieferten <strong>Rezeptbuch</strong>, entsteht eine Kopie in deiner Sammlung; an ihr wird zusätzlich die <strong>Kennung des Ursprungsrezepts</strong> vermerkt, damit sich eine später korrigierte Fassung zuordnen lässt. Damit du nicht mit einer leeren Sammlung beginnst, legen wir am Ende der Einführungsfragen <strong>fünf solcher Kopien</strong> für dich an – ausgewählt passend zu deiner Angabe, welche Meals dir vorgeschlagen werden sollen. Sie gehören dann dir und lassen sich wie jedes andere Meal bearbeiten oder löschen. Dasselbe geschieht, wenn der <strong>automatische Wochenplaner</strong> ein Rezept aus dem Rezeptbuch in deine Woche einplant: Auch dabei entsteht eine solche Kopie in deiner Sammlung – die App nennt dir direkt danach die Anzahl und bietet an, den Vorgang rückgängig zu machen. Stimmst du der Speicherung deines <strong>Gewichtsverlaufs</strong> ausdrücklich zu, speichern wir je Eintrag Kalenderwoche und Gewicht sowie ein optionales <strong>Jahres-Zielgewicht</strong> (Details und Widerruf siehe Ziffer 3b). Ist für dein Konto die kostenpflichtige <strong>Pro-Stufe</strong> freigeschaltet, speichern wir dazu ein eigenes Dokument mit dem <strong>Pro-Status</strong>, der <strong>Herkunft der Freischaltung</strong> (manuell, Apple oder Google) und gegebenenfalls einem <strong>Ablaufdatum</strong>. Dieses Dokument kann die App nur lesen, nicht ändern – gesetzt wird es ausschließlich von uns bzw. künftig vom Bezahlvorgang des jeweiligen App-Stores. Es wird mit deinem Konto gelöscht (Ziffer 10). Eine Bezahlfunktion gibt es derzeit nicht. Diese Daten speichern wir, damit du dich anmelden und deine Planung geräteübergreifend nutzen kannst.</p>
+      <p>Bei der Registrierung: <strong>Name und E-Mail-Adresse</strong>. Bei Nutzung der App: die von dir angelegten <strong>Wochenpläne, Meals/Rezepte und ggf. Fotos</strong> sowie ein optionales <strong>Profilbild</strong> (als Kreis-Avatar zugeschnitten, in deinem Nutzerkonto gespeichert, nicht Teil von Teilen-Links) sowie – im Rahmen der Einführungsfragen zu Beginn, die zur Nutzung der App erforderlich sind – <strong>Geschlecht, Alter, Größe, Gewicht, Alltagsbewegung und Ziel</strong> sowie optional deine <strong>Trainingstage</strong> (Wochentag, Intensität und Dauer) und deinen <strong>Körperfettanteil</strong> (als grobe Stufe; Details zu beidem siehe Ziffer 3a) sowie – ebenfalls optional – deine <strong>Auswahl, welche Meals dir vorgeschlagen werden sollen</strong> (vegetarisch, vegan oder ohne Einschränkung; dazu wahlweise glutenfrei und/oder laktosefrei). Erstellst du Teilen-Links, merkt sich dein Konto zusätzlich deren <strong>Kennungen</strong> (keine Klardaten, siehe Ziffer 8), damit sie beim Löschen deines Kontos zugeordnet und mitentfernt werden können. Nutzt du „Gemeinsam planen", speichert dein Konto außerdem die <strong>Kennung deiner Gruppe</strong> sowie die Kennungen der von dir erstellten <strong>Einladungslinks</strong> – aus demselben Grund (siehe Ziffer 8a); an einem in einer Gruppe angelegten Meal wird zusätzlich deine <strong>Nutzerkennung</strong> vermerkt, damit sichtbar ist, wer es angelegt hat. Weist du ein geplantes Gericht nur einem Teil der Gruppe zu (statt „für alle"), wird für dieses Gericht zusätzlich vermerkt, welche Mitglieder es per <strong>Nutzerkennung</strong> essen – sichtbar für die ganze Gruppe als kleines Farb-Badge auf der Meal-Karte. Stellst du in der Einkaufsliste eine <strong>Personenanzahl</strong> ein, wird auch diese gespeichert. Markierst du Meals als <strong>Favorit</strong>, wird diese Auswahl ebenfalls in deinem Konto gespeichert – nur für dich, auch in einer Gruppe. Nutzt du den <strong>automatischen Wochenplaner</strong>, merkt sich dein Konto zu den eingeplanten Meals die <strong>Kalenderwoche</strong>, in der sie zuletzt vorgeschlagen wurden – damit du nicht jede Woche dieselben Gerichte bekommst. Diese Angabe gilt nur für dich, auch in einer Gruppe, und wird nach einigen Wochen automatisch wieder entfernt. Übernimmst du ein Rezept aus dem mitgelieferten <strong>Rezeptbuch</strong>, entsteht eine Kopie in deiner Sammlung; an ihr wird zusätzlich die <strong>Kennung des Ursprungsrezepts</strong> vermerkt, damit sich eine später korrigierte Fassung zuordnen lässt. Damit du nicht mit einer leeren Sammlung beginnst, legen wir am Ende der Einführungsfragen <strong>fünf solcher Kopien</strong> für dich an – ausgewählt passend zu deiner Angabe, welche Meals dir vorgeschlagen werden sollen. Sie gehören dann dir und lassen sich wie jedes andere Meal bearbeiten oder löschen. Plant der <strong>automatische Wochenplaner</strong> ein Rezept aus dem Rezeptbuch ein, entsteht dabei <strong>keine</strong> Kopie: Dein Plan verweist dann unmittelbar auf das mitgelieferte Gericht, und deine Sammlung bleibt unverändert. Kopien, die frühere Fassungen der App beim Planen angelegt haben und die du nie verändert hast, räumt die App einmalig auf (siehe Ziffer 10). Stimmst du der Speicherung deines <strong>Gewichtsverlaufs</strong> ausdrücklich zu, speichern wir je Eintrag Kalenderwoche und Gewicht sowie ein optionales <strong>Jahres-Zielgewicht</strong> (Details und Widerruf siehe Ziffer 3b). Ist für dein Konto die kostenpflichtige <strong>Pro-Stufe</strong> freigeschaltet, speichern wir dazu ein eigenes Dokument mit dem <strong>Pro-Status</strong>, der <strong>Herkunft der Freischaltung</strong> (manuell, Apple oder Google) und gegebenenfalls einem <strong>Ablaufdatum</strong>. Dieses Dokument kann die App nur lesen, nicht ändern – gesetzt wird es ausschließlich von uns bzw. künftig vom Bezahlvorgang des jeweiligen App-Stores. Es wird mit deinem Konto gelöscht (Ziffer 10). Eine Bezahlfunktion gibt es derzeit nicht. Diese Daten speichern wir, damit du dich anmelden und deine Planung geräteübergreifend nutzen kannst.</p>
       <h4>3a. Ziel-Berechnung (Einführungsfragen)</h4>
       <p>Zur Nutzung der App gibst du bei den Einführungsfragen zu Beginn <strong>Geschlecht, Alter, Größe und Gewicht</strong> sowie deine Alltagsbewegung und dein Ziel an – ohne diese Angaben lässt sich kein Kalorien- und Makroziel berechnen und die App steht dir nicht zur Verfügung. Optional legst du zusätzlich deine <strong>Trainingstage</strong> fest – also an welchen Wochentagen du trainierst, mit welcher Intensität und wie lange; diese Angabe kannst du auch weglassen. Ebenfalls optional wählst du eine grobe Stufe für deinen <strong>Körperfettanteil</strong> – gibst du sie an, berechnet die App deinen Grundumsatz nach der Katch-McArdle-Formel über die fettfreie Masse statt nach Mifflin-St-Jeor; wählst du „Weiß ich nicht", bleibt es bei Mifflin-St-Jeor. Daraus berechnet die App direkt in deinem Browser deinen Tagesbedarf, deine Makronährstoffe und deinen BMI; an Trainingstagen zusätzlich den geschätzten Mehrbedarf durch die jeweilige Einheit. Übernimmst du das Ergebnis als dein Ziel, werden diese Angaben wie deine übrigen Plandaten lokal und – bei Cloud-Nutzung – in deinem Nutzerkonto (Cloud Firestore, siehe Ziffer 5) gespeichert, um sie geräteübergreifend verfügbar zu halten. Du kannst dein Ziel jederzeit über den Knopf „Ziel neu berechnen" im Wochenplan neu berechnen; die vorherigen Werte sind dann durch die neuen ersetzt. Rechtsgrundlage ist wie unter Ziffer 4 die Erfüllung des Nutzungsvertrags (Art. 6 Abs. 1 lit. b DSGVO). Diese Angaben werden <strong>nicht</strong> in Teilen-Links aufgenommen (siehe Ziffer 8).</p>
       <h4>3b. Gewichtsverlauf („Ziele &lt;Jahr&gt;")</h4>
@@ -11524,7 +11680,12 @@
       <p>Wir speichern deine Daten, solange dein Konto besteht. Eine Ausnahme: Einträge, die du
          schnell in den Plan gelegt hast – per Barcode-Scan oder durch Antippen eines zählbaren
          Lebensmittels (z. B. ein Apfel) –, räumt die App nach etwa drei Wochen von selbst
-         weg – aber nur, wenn sie in keiner deiner Wochen mehr eingeplant sind. Über „Konto löschen" im Profilmenü kannst du dein
+         weg – aber nur, wenn sie in keiner deiner Wochen mehr eingeplant sind. Einmalig räumt die App außerdem
+         Kopien aus dem mitgelieferten <strong>Rezeptbuch</strong> weg, die frühere Fassungen beim Planen angelegt
+         haben: Sie werden nicht mehr gebraucht, weil dein Plan inzwischen direkt auf das mitgelieferte Gericht
+         verweisen kann (Ziffer 3). Betroffen sind ausschließlich Kopien, die du <strong>nie verändert</strong> und
+         nicht als Favorit markiert hast – alles, woran du gearbeitet hast, bleibt. Deine Wochenpläne bleiben dabei
+         vollständig erhalten; sie zeigen anschließend auf das Rezept im Rezeptbuch. Über „Konto löschen" im Profilmenü kannst du dein
          Konto und deine Daten <strong>jederzeit selbst und sofort</strong> unwiderruflich löschen; alternativ kannst
          du die Löschung auch per E-Mail an uns verlangen. Das schließt deinen <strong>Pro-Status</strong> (siehe Ziffer 3) ein, der zusammen mit dem Konto entfernt wird,
          sowie alle Teilen-Links für einzelne Meals, die deinem
@@ -11772,23 +11933,12 @@
     }
     return null;
   }
-  // Ein gewaehltes Katalog-Rezept in den eigenen Bestand holen und die neue id liefern.
-  //
-  // Das ist keine Bequemlichkeit, sondern Pflicht: normalizePlan() filtert jeden Slot-Eintrag
-  // gegen die vorhandenen Rezept-IDs. Ein Eintrag, der auf eine KATALOG-id zeigt, waere beim
-  // naechsten Laden lautlos verschwunden - der Plan saehe nach dem Neuladen halb leer aus,
-  // ohne dass irgendetwas einen Fehler meldet.
-  //
-  // Kopiert wird ueber copyFromCookbook(), denselben Weg wie der Uebernehmen-Knopf: eigene
-  // uid(), `lib` als Herkunft, kein Pfad in den Nutzerdaten. Zwei Kopierwege wuerden
-  // irgendwann verschiedene Felder mitnehmen.
-  function planAdopt(r, neueIds) {
-    if (!r.__cb) return r.id;
-    const kopie = copyFromCookbook(COOKBOOK.find(x => x.id === r.id) || r);
-    state.recipes.push(kopie);
-    neueIds.push(kopie.id);
-    return kopie.id;
-  }
+  // Bis zum 17.08.2026 stand hier planAdopt(): Ein gewaehltes Katalog-Rezept wurde in den
+  // eigenen Bestand kopiert, weil normalizePlan() jeden Slot-Eintrag gegen die vorhandenen
+  // Rezept-IDs filterte und eine Katalog-id sonst beim naechsten Laden lautlos verschwunden
+  // waere. Genau DAS filtert normalizePlan() jetzt nicht mehr aus (Teil 1.2 des
+  // Katalog-Umbaus) - ein Slot-Eintrag darf direkt auf eine COOKBOOK-id zeigen, und der
+  // Planer kopiert nicht mehr. Der Bestand waechst dadurch nicht mehr mit jedem Planerlauf.
   // Was steht an diesem Tag schon fuer mich? Wird vom Snack-Rest abgezogen - sonst zaehlte
   // ein von Hand eingetragenes Fruehstueck nicht mit und der Tag laege darueber.
   function planTagKcal(dayKey) {
@@ -11843,16 +11993,13 @@
     }
     wahl.sn = planWochengerichte(kand, "sn", 0, letzte);
 
-    // Katalog-Rezepte werden erst kopiert, wenn sie TATSAECHLICH eingeplant werden - und
-    // dann genau einmal, auch wenn dasselbe Gericht an fuenf Tagen steht. Die Map haelt
-    // Katalog-id -> neue Bestands-id, neueIds traegt den Undo-Pfad.
-    const neueIds = [];
-    const adoptiert = {};
-    const planId = r => {
-      if (!r.__cb) return r.id;
-      if (!adoptiert[r.id]) adoptiert[r.id] = planAdopt(r, neueIds);
-      return adoptiert[r.id];
-    };
+    // Katalog-Rezepte werden seit dem 17.08.2026 NICHT mehr kopiert (getRecipe() und
+    // normalizePlan() kennen den Katalog jetzt direkt) - planId liefert einfach r.id. Die
+    // Katalog-Nutzung wird trotzdem gemerkt: der Toast soll weiterhin sagen koennen, dass
+    // Gerichte aus dem Rezeptbuch dabei waren, auch ohne dass dafuer etwas in den Bestand
+    // wandert.
+    const ausKatalog = new Set();
+    const planId = r => { if (r.__cb) ausKatalog.add(r.id); return r.id; };
     const meineUids = () => syncGid && syncUid ? [syncUid] : null;
 
     let gesetzt = 0;
@@ -11927,11 +12074,14 @@
           // Harte Garantie am Ende der Kette: Am selben Tag nie zweimal dasselbe Gericht.
           // Alles davor macht es unwahrscheinlich - hier wird es ausgeschlossen.
           //
-          // Verglichen wird OHNE planId(): Das wuerde ein Katalog-Rezept kopieren, nur um es
-          // gleich darauf zu verwerfen. Zwei Vergleiche genuegen und decken beide Faelle ab:
-          // die Objektidentitaet gegen das mittags gewaehlte Gericht, und - nur fuer eigene
-          // Meals - die id gegen das, was mittags schon im Plan steht. Ein Katalog-Kandidat
-          // kann dort nicht stehen, er ist ja noch nicht im Bestand (isAdopted-Filter).
+          // Verglichen wird OHNE planId(): Seit dem 17.08.2026 kopiert planId() zwar nichts
+          // mehr, merkt sich aber die Katalog-Nutzung fuer den Toast (ausKatalog-Set) - ein
+          // Aufruf hier wuerde einen gleich wieder verworfenen Kandidaten faelschlich
+          // mitzaehlen. Zwei Vergleiche genuegen und decken beide Faelle ab: die
+          // Objektidentitaet gegen das mittags gewaehlte Gericht (trifft auch Katalog-
+          // Kandidaten, weil kand einmalig gebaut wird und dieselben Objektreferenzen fuer
+          // mi und ab benutzt), und - nur fuer eigene Meals - die id gegen das, was mittags
+          // schon im Plan steht.
           if (m.key === "ab" && liste.length > 1) {
             const mittags = state.plan[d.key].mi.map(entryId);
             const kollidiert = x => x === mittagsGericht || (!x.__cb && mittags.indexOf(x.id) !== -1);
@@ -12021,28 +12171,27 @@
     const wenigAuswahl = MEALS.some(m => m.key !== "sn" && wahl[m.key].length < 2);
     // Nur EIN Zusatz, damit der Toast kurz bleibt. Reihenfolge: die Zielverfehlung zuerst
     // (kcal vor Protein - wer 3000 kcal zu wenig plant, hat das groessere Problem), dann die
-    // Uebernahme aus dem Rezeptbuch. Sie muss genannt werden, weil dabei still Meals im
-    // eigenen Bestand entstehen; ein stiller Zuwachs waere eine unangekuendigte Nebenwirkung.
+    // Nutzung des Rezeptbuchs. Seit dem 17.08.2026 entsteht dabei nichts mehr im eigenen
+    // Bestand (kein stiller Zuwachs mehr) - genannt wird es trotzdem, weil es fuer die Person
+    // eine relevante Information bleibt ("woher kommt die Abwechslung diese Woche").
     let msg = "Woche geplant";
     if (wZiel && Math.abs(diff) > wZiel.kcal * PLAN_TOLERANZ) {
       msg += diff < 0 ? ` · noch rund ${nfmt(-diff)} kcal offen` : ` · rund ${nfmt(diff)} kcal über dem Ziel`;
     } else if (wZiel && protFehlt > wZiel.protein * PLAN_TOLERANZ) {
       msg += ` · rund ${nfmt(protFehlt)} g Protein fehlen`;
-    } else if (neueIds.length) {
-      msg += ` · ${neueIds.length} Meal${neueIds.length === 1 ? "" : "s"} aus dem Rezeptbuch`;
+    } else if (ausKatalog.size) {
+      msg += ` · ${ausKatalog.size} Meal${ausKatalog.size === 1 ? "" : "s"} aus dem Rezeptbuch`;
     } else if (wenigAuswahl) {
       msg += " · mehr Meals bringen mehr Abwechslung";
     }
-    // Den Vorschlag vollstaendig zuruecknehmen: Slots, still uebernommene Rezeptbuch-Meals
-    // und das Gedaechtnis. Ein Weg fuer BEIDE Knoepfe - "Nochmal" ist nichts anderes als
-    // "Rueckgaengig und dann noch einmal planen", und zwei getrennte Ruecknahmepfade waeren
-    // die sichere Art, dass einer von beiden irgendwann etwas vergisst.
+    // Den Vorschlag vollstaendig zuruecknehmen: nur noch die Slots und das Gedaechtnis - seit
+    // dem 17.08.2026 gibt es keine still uebernommenen Rezeptbuch-Meals mehr, die dabei
+    // mitgeraeumt werden muessten (siehe planId()-Kommentar oben). Ein Weg fuer BEIDE Knoepfe -
+    // "Nochmal" ist nichts anderes als "Rueckgaengig und dann noch einmal planen", und zwei
+    // getrennte Ruecknahmepfade waeren die sichere Art, dass einer von beiden etwas vergisst.
     const zuruecknehmen = () => {
       const p = state.plans[key]; if (!p) return false;   // Woche existiert praktisch immer noch
       DAYS.forEach(d => MEALS.forEach(m => { p[d.key][m.key] = before[d.key][m.key]; }));
-      // Die Kopien sind allein wegen dieses Plans entstanden - liesse man sie stehen, haette
-      // "Rueckgaengig" den Bestand veraendert, ohne dass davon je die Rede war.
-      if (neueIds.length) state.recipes = state.recipes.filter(r => neueIds.indexOf(r.id) === -1);
       state.planned = plannedBefore;
       return true;
     };
@@ -12409,6 +12558,10 @@
     const f = e.dataTransfer.files && e.dataTransfer.files[0];
     const r = getRecipe(card.dataset.rid);
     if (!f || !r) return;
+    // getRecipe() kann seit dem 17.08.2026 auch ein COOKBOOK-Objekt liefern - gemeinsamen,
+    // mitgelieferten Bestand, der nie mutiert werden darf. Praktisch unerreichbar (Katalog-
+    // Rezepte stehen nicht in der Meals-Liste), aber ein Riegel kostet eine Zeile.
+    if (!state.recipes.some(x => x.id === r.id)) return;
     if (blockedByRole()) return;   // laeuft nicht ueber die Delegation
     if (!/^image\//.test(f.type)) { toast("Bitte ein Bild verwenden"); return; }
     readAndDownscale(f, dataUrl => { if (dataUrl) { r.image = dataUrl; save(); render(); toast("Foto übernommen"); } else toast("Bild konnte nicht geladen werden"); });
@@ -12441,6 +12594,8 @@
     e.preventDefault();
     const r = getRecipe(hoveredCardId);
     if (!r) return;
+    // Derselbe Riegel wie beim Datei-Drop oben - siehe Kommentar dort.
+    if (!state.recipes.some(x => x.id === r.id)) return;
     readAndDownscale(file, dataUrl => { if (dataUrl) { r.image = dataUrl; save(); render(); toast("Foto eingefügt"); } else toast("Bild konnte nicht geladen werden"); });
   });
 
@@ -12554,7 +12709,12 @@
     else if (pendingShare) { const id = pendingShare; pendingShare = null; shareOnStart = true; loadSharedById(id); }
     // Im Cloud-Modus entscheidet startCloudSync ueber die ersten Schritte, nicht wir: das
     // Flag kann noch aus der Cloud nachkommen. Lokal gibt es niemanden, auf den zu warten waere.
-    if (authMode === "local") maybeStartOnboarding();
+    if (authMode === "local") {
+      maybeStartOnboarding();
+      // Lokal ist der Bestand nach load() immer vollstaendig - hier ist kein Handshake
+      // abzuwarten (startCloudSync() ruft dieselbe Migration fuer Cloud-/Gruppenkonten auf).
+      dedupeAgainstCatalog();
+    }
   }
   // Einladung per Kamera scannen statt Link. Nutzt denselben Live-Scanner wie der
   // Zutaten-Barcode, aber auf QR beschraenkt (QR_FORMATS) und ohne Foto-Ausweg - ein QR
@@ -14655,13 +14815,52 @@
   // Eigene Meals in die Gruppe kopieren. Seit dem 15.08.2026 ohne Ausnahme: Es gibt keine
   // mitgelieferten Attrappen mehr, die man aussen vor lassen muesste - die Startmeals aus dem
   // Rezeptbuch sind echte Meals des Nutzers (siehe addStarterMeals).
+  //
+  // Seit dem 17.08.2026 mit Abgleich (Teil 2 des Katalog-Umbaus): Startmeals und bewusst
+  // uebernommene Rezepte sind echte Kopien mit `lib` als Herkunft. Treffen zwei Konten mit
+  // demselben Katalog-Rezept aufeinander - der Normalfall, weil die Startmeals je
+  // Ernaehrungsform fest verdrahtet sind (STARTER) - entstuenden ohne Abgleich zwei
+  // Dokumente mit gleichem `lib`. Verglichen wird AUSSCHLIESSLICH ueber `lib`: Meals ohne
+  // `lib` (selbst angelegte) werden nie dedupliziert, sonst verschluckte ein Namensabgleich
+  // fremde Meals ("Banane" darf es zweimal geben).
   async function copyOwnRecipesToGroup(gid) {
     const mine = state.recipes.filter(r => r && r.id);
     if (!mine.length) return;
+    // Der Abgleich ist eine KUER, der Beitritt die Pflicht: Dieser Lesevorgang kam mit dem
+    // Umbau neu in den Beitrittspfad, und er liegt im try von joinGroup() - ohne das catch
+    // hier risse ein Netzfehler beim LESEN den ganzen Beitritt zurueck, obwohl joinAtomic()
+    // die Mitgliedschaft in Firestore laengst geschrieben hat. Genau diese Fehlerklasse hat
+    // am 16.08.2026 den Beitritt fuer alle ausser dem Inhaber unmoeglich gemacht.
+    //
+    // Faellt der Abgleich aus, bleibt es beim alten Verhalten (alles hochladen): ein paar
+    // Dubletten sind aergerlich, ein gescheiterter Beitritt ist schlimmer. Die naechste
+    // Migration raeumt sie ohnehin weg (dedupeAgainstCatalog).
+    let vorhanden = [];
+    try {
+      vorhanden = await window.CloudSync.loadRecipes(["groups", gid]) || [];
+    } catch (e) { noteError("group:copyOwnRecipesRead", e); }
+    const libZuId = new Map();
+    vorhanden.forEach(r => { if (r && r.lib && !libZuId.has(r.lib)) libZuId.set(r.lib, r.id); });
+    const hochladen = [];
+    mine.forEach(r => {
+      const treffer = r.lib ? libZuId.get(r.lib) : null;
+      if (treffer && treffer !== r.id) {
+        // Meine Kopie ist ueberfluessig und wird NICHT hochgeladen. Meine eigenen
+        // Planeintraege zeigen aber noch auf sie - vor dem Hochladen des Plans (siehe
+        // prepareGroup()/den Beitrittspfad) muessen sie auf die Gruppen-id umgeschrieben
+        // werden, sonst wirft normalizePlan() sie beim naechsten Laden weg. rewritePlanIds()
+        // ist derselbe Helfer wie bei adoptFromCookbook() (Teil 1.5) - eine Umschreibung,
+        // nicht zwei.
+        rewritePlanIds(r.id, treffer);
+      } else {
+        hochladen.push(r);
+      }
+    });
+    if (!hochladen.length) return;
     // In Haeppchen: writeBatch vertraegt hoechstens 500 Vorgaenge, und Meals mit Fotos
     // sind gross - lieber mehrere kleine Batches als einer, der ganz scheitert.
-    for (let i = 0; i < mine.length; i += 20) {
-      await window.CloudSync.saveRecipesBatch(["groups", gid], mine.slice(i, i + 20), []);
+    for (let i = 0; i < hochladen.length; i += 20) {
+      await window.CloudSync.saveRecipesBatch(["groups", gid], hochladen.slice(i, i + 20), []);
     }
   }
 
