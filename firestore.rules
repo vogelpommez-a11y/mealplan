@@ -54,6 +54,11 @@ service cloud.firestore {
     function inviteData(code) {
       return get(/databases/$(database)/documents/invites/$(code)).data;
     }
+    // Stand NACH dem Batch. Der Beitritt verbraucht den Code im selben Batch, in dem die
+    // Mitgliedschaft entsteht - get() sähe hier noch den unverbrauchten Stand.
+    function inviteAfter(code) {
+      return getAfter(/databases/$(database)/documents/invites/$(code)).data;
+    }
 
     // ---- Mitgliederlimit (16.08.2026) ----
     //
@@ -272,44 +277,31 @@ service cloud.firestore {
                           && inviteData(request.resource.data.via).role == request.resource.data.role
                           && request.resource.data.role in ["edit", "view"]
                           && grpNow(gid).memberCount < maxMitglieder()
-                          && grpAfter(gid).memberCount == grpNow(gid).memberCount + 1)
+                          && grpAfter(gid).memberCount == grpNow(gid).memberCount + 1
+                          // Der Code muss noch offen sein UND in diesem Batch verbraucht
+                          // werden - erst das macht die Einladung wirklich einmalig. Ohne die
+                          // zweite Zeile könnte ein Client den Verbrauch einfach weglassen.
+                          // get("used", false), weil das Feld bei Altcodes fehlt.
+                          && inviteData(request.resource.data.via).get("used", false) != true
+                          && inviteAfter(request.resource.data.via).get("used", false) == true)
                        );
 
-      // ================== STUFE 2, NOCH NICHT VERÖFFENTLICHEN ==================
+      // Die beiden invite-Zeilen im Zweig 2 sind am 17.08.2026 GESTAFFELT dazugekommen, und
+      // die Reihenfolge war der eigentliche Inhalt der Änderung:
       //
-      // Die beiden Zeilen unten machen den Code-Verbrauch zur harten Grenze. Sie gehören in
-      // den obigen Zweig 2, direkt hinter die grpAfter-Zeile - aber ERST, wenn kein alter
-      // Client mehr unterwegs ist:
+      //   1. Regeln mit `allow update` für invites veröffentlichen - reine ERWEITERUNG, sie
+      //      bricht keinen alten Client.
+      //   2. Client ausrollen, der `used: true` im Beitritts-Batch mitschreibt.
+      //   3. Erst danach die beiden Zeilen oben scharf schalten (dieser Stand hier).
       //
-      //     && inviteData(request.resource.data.via).get("used", false) != true
-      //     && inviteAfter(request.resource.data.via).get("used", false) == true
+      // Warum nicht alles auf einmal: Die zwei Zeilen VERLANGEN den Verbrauch. Ein Client,
+      // der ihn noch nicht mitschreibt, kann damit überhaupt nicht mehr beitreten - und
+      // zwischen Regel-Deploy und neuem Client stehen bei GitHub Pages der Service Worker und
+      // der Browser-Cache. Genau diese Fehlerklasse hat am 16.08.2026 den Beitritt für alle
+      // außer dem Inhaber unmöglich gemacht (docs/TROUBLESHOOTING.md 101 und 105).
       //
-      // dazu oben zu den Helfern:
-      //
-      //     function inviteAfter(code) {
-      //       return getAfter(/databases/$(database)/documents/invites/$(code)).data;
-      //     }
-      //
-      // WARUM GESTAFFELT, und das ist der ganze Punkt:
-      //
-      // Die update-Erlaubnis für invites (unten) ist eine reine ERWEITERUNG - sie bricht
-      // keinen alten Client. Diese zwei Zeilen sind es NICHT: Sie VERLANGEN, dass der
-      // Beitretende den Code im selben Batch als verbraucht markiert. Ein Client, der das
-      // noch nicht tut, kann dann überhaupt nicht mehr beitreten.
-      //
-      // Zwischen einem Regel-Deploy und dem Ankommen des neuen Clients liegt bei GitHub Pages
-      // der Service Worker und der Browser-Cache - alte Clients sind also garantiert eine
-      // Weile unterwegs. Genau diese Fehlerklasse hat am 16.08.2026 den Beitritt für alle
-      // außer dem Inhaber unmöglich gemacht (docs/TROUBLESHOOTING.md 101).
-      //
-      // Die Reihenfolge lautet deshalb:
-      //   1. Regeln mit `allow update` veröffentlichen (dieser Stand hier) - bricht nichts.
-      //   2. Client ausrollen, der `used: true` mitschreibt - funktioniert mit Stand 1.
-      //   3. Erst danach diese zwei Zeilen einkommentieren und erneut veröffentlichen.
-      //
-      // Bis Schritt 3 prüft nur der Client auf `used`. Das ist eine Bequemlichkeit, keine
-      // Grenze (CLAUDE.md, Ziffer 18) - Schritt 3 ist Pflicht, nicht Kür.
-      // =========================================================================
+      // Wer hier künftig etwas hinzufügt, sortiert jede neue Bedingung zuerst danach, ob sie
+      // etwas ERLAUBT oder etwas VERLANGT. Nur das Erlaubende darf vorausfahren.
 
       // Name und Bild ändert jeder nur an sich selbst - und die eigene Rolle dabei NICHT.
       // Rollen vergibt ausschließlich der Inhaber, und nicht an sich selbst (sonst könnte
