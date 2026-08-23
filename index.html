@@ -7369,6 +7369,9 @@
     const showPhoto = opts.photoFallback !== false;
     return new Promise(resolve => {
       let stream = null, reader = null, timer = 0, done = false;
+      // Oben deklariert, weil cleanup() sie referenziert - eine const weiter unten laege
+      // in der zeitlichen Totzone, sobald irgendein Pfad frueher aufraeumt.
+      let backClose = null;
       const node = el(`<div class="scanwrap" role="dialog" aria-modal="true" aria-label="${esc(title)}">
         <div class="scanbox">
           <div class="scanhead">
@@ -7399,6 +7402,10 @@
         if (orientTimer) { clearTimeout(orientTimer); orientTimer = 0; }
         if (node.parentNode) node.remove();
         liveScanStop = null;
+        // Zweite Ebene der Zurueck-Taste: Der Scanner liegt UEBER dem Meal-Formular, das
+        // offen bleibt (z-index 80 gegen 60). Ein Zurueck schliesst deshalb erst den Sucher
+        // und laesst das Formular stehen - genau die Erwartung auf Android.
+        if (backClose) overlayClosed(backClose);
       }
       // ---- Kamerabild: Buehnenformat und Fokus ----
       // Hochkant lieferte die Kamera weiter 4:3 quer, waehrend die Buehne per Breakpoint auf
@@ -7486,7 +7493,12 @@
       const photoBtn = node.querySelector("[data-photo]");
       if (photoBtn) photoBtn.addEventListener("click", () => finish({ photo: true }));
       document.body.appendChild(node);
-      liveScanStop = () => finish({ cancelled: true });
+      // Eine Referenz fuer beide Wege: liveScanStop (closeModal raeumt den Sucher mit ab) und
+      // der History-Stapel muessen dieselbe Funktion sehen, sonst findet overlayClosed() sie
+      // spaeter nicht wieder.
+      backClose = () => finish({ cancelled: true });
+      liveScanStop = backClose;
+      overlayOpened(backClose);
       document.addEventListener("keydown", onKey, true);
       document.addEventListener("visibilitychange", onHide);
       window.addEventListener("pagehide", onHide);
@@ -9551,6 +9563,82 @@
     container.innerHTML = anyRendered ? html : `<p style="color:var(--text-muted);margin:0">Kein Meal gefunden.</p>`;
   }
 
+  // ---------- Zurueck-Taste (D5) ----------
+  // Android hat eine Systemtaste "Zurueck", iOS die Wischgeste am linken Rand. Ohne eigenen
+  // History-Eintrag beenden beide die App, waehrend ein Overlay offen ist - der erste Griff
+  // jedes Android-Testers und ein sicherer Kritikpunkt im Play Store.
+  //
+  // Modell: Jedes geoeffnete Overlay legt GENAU EINEN History-Eintrag an, dessen Marke
+  // (pmOverlay) die Stapeltiefe an dieser Stelle festhaelt, und hinterlegt seine
+  // Schliessfunktion. Zurueck vergleicht die Marke mit dem Stapel und schliesst alles, was
+  // darueber liegt. Ein auf normalem Weg geschlossenes Overlay (✕, Escape, Backdrop, "Fertig")
+  // nimmt seinen Eintrag selbst zurueck, damit kein toter Eintrag stehenbleibt.
+  //
+  // Die beiden Richtungen kommen sich nicht ins Gehege, weil der Stapel schon gekuerzt ist,
+  // bevor das eigene go() sein popstate ausloest - die Schleife unten laeuft dann gar nicht
+  // erst an. Ein Zaehler eigener Ereignisse waere hier die naheliegende, aber falsche Loesung:
+  // Wie viele popstate ein Sprung ueber mehrere Eintraege ausloest, ist Browsersache.
+  const overlayStack = [];
+  let offeneRuecknahmen = 0;   // geschlossen, aber der History-Eintrag ist noch da
+  let ruecknahmeTimer = 0;
+
+  // Die Ruecknahmen eines Ticks werden gebuendelt: Zwei history.back() direkt hintereinander
+  // fuehrt der Browser NICHT beide aus - gemessen am 23.08.2026 im Pruefstand, Fall 5b. Genau
+  // das passiert aber im Alltag, weil closeModal() zuerst einen laufenden Sucher beendet und
+  // dann sich selbst. Uebrig blieb ein toter Eintrag, und der naechste Druck auf Zurueck tat
+  // sichtbar nichts - der Fehler, den D5 gerade abstellen soll.
+  function ruecknahmeAusfuehren() {
+    ruecknahmeTimer = 0;
+    const n = offeneRuecknahmen;
+    offeneRuecknahmen = 0;
+    if (n > 0) { try { history.go(-n); } catch (e) { noteError("back:go", e); } }
+  }
+
+  function overlayOpened(close) {
+    overlayStack.push(close);
+    if (offeneRuecknahmen > 0) {
+      // Im selben Tick geschlossen und sofort wieder geoeffnet - "Teilen" etwa schliesst die
+      // Meal-Ansicht und oeffnet danach das Teilen-Modal. Der noch nicht zurueckgenommene
+      // Eintrag wird weiterverwendet, sonst ginge das gebuendelte go() einen Schritt zu weit
+      // und risse das eben geoeffnete Fenster gleich wieder mit.
+      offeneRuecknahmen--;
+      try { history.replaceState({ pmOverlay: overlayStack.length }, ""); }
+      catch (e) { noteError("back:replace", e); }
+      return;
+    }
+    // Kein neuer Pfad, nur ein Eintrag: pushState(state, "") laesst die Adresszeile in Ruhe.
+    // Ein "#modal" o. Ae. waere sichtbar und landete in Lesezeichen und geteilten Links.
+    try { history.pushState({ pmOverlay: overlayStack.length }, ""); }
+    catch (e) { noteError("back:push", e); overlayStack.pop(); }
+  }
+
+  function overlayClosed(close) {
+    // lastIndexOf statt indexOf: Jedes Overlay bringt eine eigene Funktion mit (closeModal ist
+    // je Modal dieselbe, aber es ist auch nur EINES offen; der Sucher baut sich seine bei jedem
+    // Start neu). Faende hier doch einmal etwas doppelt, trifft es das obere - das ist das,
+    // welches gerade geschlossen wurde.
+    const i = overlayStack.lastIndexOf(close);
+    if (i < 0) return;   // kam aus popstate, der Eintrag ist schon vom Stapel
+    overlayStack.splice(i, 1);
+    offeneRuecknahmen++;
+    if (!ruecknahmeTimer) ruecknahmeTimer = setTimeout(ruecknahmeAusfuehren, 0);
+  }
+
+  // Der Abgleich laeuft ueber die Marke im History-Eintrag, nicht ueber einen Zaehler eigener
+  // Ereignisse: history.go(-2) loest je nach Browser EIN popstate aus oder zwei. Die Marke sagt
+  // dagegen unmissverstaendlich, wie viele Overlays an dieser Stelle der History offen waren -
+  // alles darueber ist weggefallen und wird geschlossen. Nach einem selbst ausgeloesten go()
+  // ist der Stapel bereits kurz genug, die Schleife laeuft dann gar nicht erst an.
+  window.addEventListener("popstate", function (e) {
+    const marke = (e.state && e.state.pmOverlay) || 0;
+    while (overlayStack.length > marke) {
+      const close = overlayStack.pop();
+      let verweigert = false;
+      try { verweigert = close() === false; } catch (err) { noteError("back:close", err); }
+      if (verweigert) { overlayOpened(close); break; }
+    }
+  });
+
   // ---------- Modal ----------
   const modalRoot = document.getElementById("modal-root");
   const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
@@ -9562,7 +9650,12 @@
   // greift dadurch ueberall gleich, ohne dass jeder Aufrufer ihn einzeln kennen muesste.
   let modalCloseHook = null;
   function closeModal() {
-    if (modalCloseHook) { const hook = modalCloseHook; modalCloseHook = null; hook(); return; }
+    // Rueckgabe: false, wenn ein Hook das Schliessen VERWEIGERT hat (Meal-Formular ohne Namen).
+    // Die Zurueck-Taste braucht diese Auskunft - ihr History-Eintrag ist zu dem Zeitpunkt schon
+    // zurueckgenommen und muss neu angelegt werden, sonst verlaesst der naechste Druck die App,
+    // obwohl noch etwas offen steht. Am DOM ablesen liesse sich das nicht: Waehrend der
+    // Exit-Animation steht das Overlay genauso noch da.
+    if (modalCloseHook) { const hook = modalCloseHook; modalCloseHook = null; return hook() !== false; }
     // Sicherheitsnetz: schliesst irgendetwas das Formular, waehrend der Live-Scanner
     // laeuft, darf die Kamera nicht weiterlaufen.
     if (liveScanStop) liveScanStop();
@@ -9573,6 +9666,9 @@
     // Seitenanfang und Tastaturnutzer verlieren ihre Position.
     if (lastFocused && document.contains(lastFocused)) { try { lastFocused.focus(); } catch (e) { noteError("modal:restoreFocus", e); } }
     lastFocused = null;
+    // Zuletzt: den History-Eintrag dieses Overlays abraeumen.
+    overlayClosed(closeModal);
+    return true;
   }
   // Escape schliesst; Tab bleibt im Dialog gefangen (sonst wandert der Fokus hinter
   // den Dialog in die Seite, die visuell gar nicht bedienbar ist).
@@ -9595,6 +9691,11 @@
   // Aussenlayout waehlen, ohne dass es alle anderen Modals trifft. Heute nur von
   // openMealSheet() genutzt ("sheet-overlay", das Bottom-Sheet am Handy).
   function openModal(node, opts) {
+    // VOR dem Leeren messen: Die Meal-Ansicht wechselt per openModal() in den Bearbeiten-Zweig,
+    // ohne vorher closeModal() zu rufen (siehe openMealSheet). Das ist EIN Overlay, das seinen
+    // Inhalt tauscht - ein zweiter History-Eintrag wuerde daraus zwei Zurueck-Druecke fuer ein
+    // sichtbares Fenster machen.
+    const ersetztOffenes = modalRoot.childElementCount > 0;
     hoveredCardId = null;   // Maus steht ab jetzt ueber dem Overlay, nicht mehr auf einer Karte
     lastFocused = document.activeElement;
     const overlay = document.createElement("div");
@@ -9606,6 +9707,7 @@
     document.addEventListener("keydown", modalKeys);
     const focusEl = (opts && "focus" in opts) ? opts.focus : node.querySelector("input, textarea, select, button");
     if (focusEl) setTimeout(() => focusEl.focus(), 30);
+    if (!ersetztOffenes) overlayOpened(closeModal);
   }
   function el(html) { const t = document.createElement("template"); t.innerHTML = html.trim(); return t.content.firstElementChild; }
 
@@ -10307,7 +10409,11 @@
           const nameInp = node.querySelector("#f-name");
           nameInp.focus(); nameInp.style.borderColor = "var(--danger)";
           toast("Bitte gib einen Namen ein");
-          return; // Schliessen bleibt aus
+          // closeModal() hat den Hook vor dem Aufruf geleert - ohne diese Zeile waere der
+          // ZWEITE Schliessversuch ungeprueft durchgegangen und haette den Entwurf still
+          // verworfen. Faellt seit D5 auf, weil die Zurueck-Taste denselben Weg nimmt.
+          modalCloseHook = attemptClose;
+          return false; // Schliessen bleibt aus
         }
       } else {
         commitNow();

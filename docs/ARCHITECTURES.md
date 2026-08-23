@@ -1747,6 +1747,78 @@ Bewusst kein echtes Wischen bei Woche und Tabs: das bräuchte alle Ansichten gle
 (ein horizontaler Scroller im horizontalen Scroller), auf Touch gewinnt immer der innere
 Scroller, und `overscroll-behavior-x: contain` unterbindet die Weitergabe zusätzlich absichtlich.
 
+## Zurück-Taste und Overlay-Stapel (D5, 23.08.2026)
+
+Android hat eine Systemtaste „Zurück", iOS die Wischgeste am linken Rand. Ohne eigenen
+History-Eintrag **beenden beide die App**, auch wenn gerade ein Modal offen steht. Das ist der
+erste Griff jedes Android-Testers.
+
+Der Mechanismus steht als ein Block direkt über dem Modal-Abschnitt in `index.html` und besteht
+aus drei Teilen:
+
+| | |
+|---|---|
+| `overlayStack` | die Schließfunktionen der offenen Overlays, unterstes zuerst |
+| `overlayOpened(fn)` | ein Overlay ist aufgegangen: `fn` auf den Stapel, `pushState({pmOverlay: tiefe})` |
+| `overlayClosed(fn)` | auf normalem Weg geschlossen: vom Stapel nehmen und den Eintrag zurücknehmen |
+
+Angebunden sind genau zwei Stellen, weil es genau zwei Overlay-Ebenen gibt:
+
+* **`openModal()` / `closeModal()`** — alle 22 Modals laufen hier durch, auch Bottom-Sheets und
+  Bestätigungen.
+* **`scanBarcodeLive()`** — der Live-Sucher hat eine eigene Ebene (`z-index` 80). Er wird von
+  drei Stellen aus geöffnet, und **sie verhalten sich unterschiedlich**:
+
+  | Aufrufer | Was vorher offen ist | Ebene |
+  |---|---|---|
+  | `openMealSheet()` (Zutaten-Barcode) | das Meal-Formular, das offen **bleibt** | zweite |
+  | `openGroupModal()` → `scanInvite()` | das Gruppen-Modal, das offen **bleibt** | zweite |
+  | Slot-Auswahl → `quickAddByBarcode()` | das Modal wird vorher **geschlossen** | erste |
+
+  Der dritte Fall ist der heikle: `closeModal(); quickAddByBarcode(day, meal);` schließt und
+  öffnet im selben Tick. Genau dafür erbt `overlayOpened()` einen noch nicht zurückgenommenen
+  Eintrag, statt einen zweiten anzulegen.
+
+### Drei Entscheidungen, die nicht offensichtlich sind
+
+**Die Marke im Eintrag, nicht ein Zähler eigener Ereignisse.** `pushState` legt
+`{pmOverlay: <Stapeltiefe>}` ab; der `popstate`-Handler schließt alles, was über der Marke des
+angesteuerten Eintrags liegt. Der naheliegende Weg — mitzählen, wie viele `popstate` man selbst
+ausgelöst hat — scheitert daran, dass ein Sprung über mehrere Einträge je nach Browser ein
+Ereignis auslöst oder mehrere.
+
+**Rücknahmen werden über einen `setTimeout(…, 0)` gebündelt.** Zwei `history.back()` im selben
+Tick führt der Browser nicht beide aus (nachgemessen, siehe `docs/TROUBLESHOOTING.md` Punkt 107)
+— und genau das passiert, wenn `closeModal()` erst den laufenden Sucher beendet und dann sich
+selbst. Gebündelt wird daraus ein `history.go(-n)`.
+
+**Wer im selben Tick schließt und wieder öffnet, erbt den Eintrag.** „Teilen" in der Meal-Ansicht
+ruft `closeModal()` und direkt danach `shareRecipeNow()`. `overlayOpened()` prüft deshalb auf
+offene Rücknahmen und verwendet den noch vorhandenen Eintrag per `replaceState` weiter, statt
+einen zweiten anzulegen.
+
+### Was bewusst offen bleibt
+
+* **Ein abgebrochenes Schließen behält seinen Eintrag.** Das Meal-Formular ohne Namen verweigert
+  über `modalCloseHook` das Schließen. Kam der Versuch über ✕ oder Escape, kommt `closeModal()`
+  an `overlayClosed()` gar nicht erst an und der Eintrag bleibt einfach stehen. Kam er über die
+  Zurück-Taste, ist der Eintrag zu diesem Zeitpunkt schon weg — deshalb **meldet `closeModal()`
+  eine Verweigerung mit `false`**, und der `popstate`-Handler legt den Eintrag neu an. Am DOM
+  ablesen ließe sich das nicht: Während der Exit-Animation steht das Overlay genauso noch da.
+* **Ein Modal, das seinen Inhalt tauscht, bleibt ein Eintrag.** `openMealSheet()` wechselt per
+  `openModal()` in den Bearbeiten-Zweig, ohne vorher zu schließen. `openModal()` misst deshalb
+  **vor** dem Leeren, ob schon etwas offen war.
+* **Reiterwechsel und der Onboarding-Wizard hängen nicht am Stapel.** Zurück verlässt dort die
+  App. Das ist eine Entscheidung, keine Lücke: D5 deckt Overlays ab. Ein Wizard-Schritt zurück
+  hätte einen eigenen Zustandsbegriff gebraucht und wäre mit dem separaten `Zurück`-Knopf in
+  Konkurrenz getreten (CLAUDE.md, Ziffer 10).
+* **Nach einem Neuladen mit offenem Overlay** steht ein Eintrag ohne zugehöriges Overlay in der
+  History. Der erste Druck auf Zurück tut dann nichts Sichtbares. Ein Overlay über einen Reload
+  hinweg wiederherzustellen wäre der falsche Preis dafür.
+
+Belegt durch `tools/pruefstand-zurueck-taste.py` (48 Prüfungen, zwei Gegenproben) und einen
+Durchlauf gegen die echte `index.html`.
+
 ## Meal-Ansicht: eine Oberfläche statt zweier (`openMealSheet`)
 
 Ein Meal hatte früher drei getrennte Oberflächen: die Karte in der Liste, ein Ansehen-Modal

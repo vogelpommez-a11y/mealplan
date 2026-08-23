@@ -1869,3 +1869,60 @@ geprüft würde.
 **Was hier nicht geprüft wird:** die Firestore-Regeln. Der Verbrauch ist erst mit Stufe 2 eine
 harte Grenze; bis dahin ist die Client-Prüfung eine Bequemlichkeit. Der Batch selbst — drei
 Dokumente, `used: true` ohne UID — wird in `pruefstand-gruppenlimit.py` gemessen.
+
+---
+
+## `tools/pruefstand-zurueck-taste.py` — die Zurück-Taste schließt Overlays (D5)
+
+48 Prüfungen, zwei Gegenproben. Geprüft wird der Overlay-Stapel aus D5
+(`docs/ARCHITECTURES.md`, „Zurück-Taste und Overlay-Stapel").
+
+**Warum dieser Prüfstand einen echten Browser braucht.** `history.back()` ist asynchron, und der
+gefährliche Fall ist nicht das Öffnen, sondern das Schließen auf normalem Weg: Dabei muss der
+Eintrag zurückgenommen werden, ohne dass der eigene `popstate`-Handler daraufhin ein zweites Mal
+schließt. Diese Schleife lässt sich nicht durch Lesen ausschließen, nur durch Laufenlassen. Die
+Prüfungen warten deshalb zwischen den Schritten (`await warte(120)`), statt synchron zu messen.
+
+**Das Polster.** Vor dem ersten Fall legt die Prüfseite einen eigenen History-Eintrag an. Ohne
+ihn würde ein Zurück ohne offenes Overlay die Prüfseite verlassen — der Lauf wäre zu Ende, nicht
+bestanden.
+
+**Der Fall, der die erste Fassung widerlegt hat** (Nr. 5b): `closeModal()` beendet erst einen
+laufenden Barcode-Sucher und dann sich selbst — zwei Rücknahmen im selben Tick. Acht Prüfungen
+waren grün, diese neunte nicht. Details: `docs/TROUBLESHOOTING.md`, Punkt 107.
+
+**Der Scanner wird nicht mitgeschnitten** (Kamera), sondern über denselben Vertrag simuliert, den
+er benutzt: `overlayOpened(fn)` beim Anhängen, `overlayClosed(fn)` im `cleanup`. Dass
+`scanBarcodeLive()` das wirklich so tut, prüft der Extraktor zusätzlich am Quelltext und schreibt
+das Ergebnis unter das Protokoll.
+
+**Die beiden Gegenproben** bauen aus demselben Ausschnitt die zwei naheliegenden Fehlfassungen:
+`openModal()` ohne History-Eintrag (der Stand vor D5 — Zurück darf dann nichts schließen) und
+`closeModal()` ohne Rücknahme (der tote Eintrag — das erste Zurück muss dann ins Leere laufen).
+Der Extraktor bricht ab, wenn sich eine davon nicht mehr bilden lässt.
+
+Beide Ladewege funktionieren, `file://` wie HTTP.
+
+### Und die Falle, die den ersten Lauf gekostet hat
+
+Der Lauf zeigte nur `laeuft…` — kein Ergebnis, keine Fehlermeldung. Der Grund: ein Syntaxfehler
+in der erzeugten Seite, und der `window.onerror`-Melder stand im **selben** Script-Block, wurde
+also nie angemeldet.
+
+**Für Prüfstände gilt deshalb dieselbe Reihenfolge wie für die App:**
+
+```powershell
+python tools\pruefstand-zurueck-taste.py            # erzeugt die .html
+python syntax-check.py tools\pruefstand-zurueck-taste.html   # ERST prüfen
+```
+
+Der Syntax-Check nimmt einen Pfad als Argument. Er hat den Fehler mitsamt Zeile in einer Sekunde
+benannt, nachdem der Browserlauf zweimal schweigend nichts geliefert hatte.
+
+### Zusätzlich: ein Durchlauf gegen die echte `index.html`
+
+Der Ausschnitt beweist die Mechanik, nicht die Verdrahtung. Eine Prüfseite mit
+`<iframe src="./index.html">` im selben Origin klickt deshalb den Impressum-Knopf im Fuß (ohne
+Anmeldung erreichbar), liest `history.state` aus und ruft `contentWindow.history.back()`. Gemessen
+am 23.08.2026: Öffnen setzt `{"pmOverlay":1}`, Zurück schließt und stellt `null` her, und nach
+Öffnen/Schließen/Öffnen genügt weiterhin **ein** Zurück — also bleibt kein toter Eintrag liegen.

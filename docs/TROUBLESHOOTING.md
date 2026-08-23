@@ -2974,3 +2974,66 @@ weil gstatic per `https` mit `Access-Control-Allow-Origin: *` antwortete.
 Google-Infrastruktur und kein Bundle — es bleibt ein Fremdaufruf, bis der native Login aus D7 da
 ist. Für Apple 2.5.2 ist das unkritisch (es lädt keinen Code in die App), für die
 Datenschutzerklärung bleibt Google damit weiterhin Empfänger.
+
+---
+
+## 107. Zwei `history.back()` im selben Tick sind nur eines
+
+**Datum:** 23.08.2026 · **Anlass:** D5 — die Zurück-Taste schließt Overlays.
+
+Der Umbau legt je offenem Overlay einen History-Eintrag an. Ein auf normalem Weg geschlossenes
+Overlay muss seinen Eintrag zurücknehmen, sonst bleibt er als toter Eintrag stehen und der
+nächste Druck auf Zurück tut **sichtbar nichts** — genau der Kritikpunkt, den D5 abstellen soll.
+
+Die erste Fassung rief dafür schlicht `history.back()` und zählte mit, wie viele `popstate`
+selbst ausgelöst wurden. Sie bestand acht Prüfungen und fiel bei der neunten durch:
+
+> `closeModal()` beendet zuerst einen laufenden Barcode-Sucher (`liveScanStop`) und schließt
+> danach sich selbst.
+
+Das sind **zwei** Rücknahmen im selben Tick. Gemessen: Der Stapel war korrekt leer, beide
+Overlays zu — aber die History stand noch einen Eintrag zu hoch. Der Browser führt zwei
+unmittelbar aufeinanderfolgende `back()` nicht als zwei Sprünge aus.
+
+### Zwei Lehren, nicht eine
+
+**1. Rücknahmen bündeln.** Ein `setTimeout(…, 0)` sammelt die Rücknahmen eines Ticks und löst
+sie als ein `history.go(-n)` aus.
+
+**2. Nicht eigene Ereignisse zählen — die Marke im Eintrag lesen.** Ob `history.go(-2)` ein
+`popstate` auslöst oder zwei, ist Browsersache; ein Zähler steht danach falsch und schließt beim
+nächsten echten Zurück ein unbeteiligtes Overlay. Der Eintrag trägt deshalb `{pmOverlay: tiefe}`,
+und der Handler schließt alles, was über der Marke des angesteuerten Eintrags liegt. Nach einer
+selbst ausgelösten Rücknahme ist der Stapel bereits kurz genug — die Schleife läuft dann gar
+nicht erst an, ganz ohne Zähler.
+
+### Der Folgefall, der dabei auffiel
+
+Schließen und im **selben Tick** wieder öffnen kommt real vor: „Teilen" in der Meal-Ansicht ruft
+`closeModal()` und direkt danach `shareRecipeNow()`. Wäre die Rücknahme da schon unterwegs, risse
+sie das eben geöffnete Fenster gleich wieder mit. `overlayOpened()` prüft deshalb auf offene
+Rücknahmen und erbt den vorhandenen Eintrag per `replaceState`.
+
+### Der Nebenfund: der zweite Schließversuch war ungeprüft
+
+`closeModal()` leert `modalCloseHook`, **bevor** es ihn aufruft. Verweigert `attemptClose()`
+danach das Schließen (Meal-Formular ohne Namen), ist der Hook weg — der **zweite** Versuch ging
+seither ungeprüft durch und verwarf den Entwurf still. Über Escape war das schon vorher so; die
+Zurück-Taste nimmt denselben Weg und hat es sichtbar gemacht. `attemptClose()` trägt sich beim
+Abbruch jetzt wieder ein.
+
+Dazu kommt der Fall, den es vorher gar nicht gab: Kommt der Versuch aus `popstate`, ist der
+History-Eintrag beim Aufruf **schon zurückgenommen**. Das Formular stünde dann ohne Eintrag da,
+und der nächste Druck auf Zurück verließe die App. `closeModal()` meldet eine Verweigerung
+deshalb mit `false`, und der Handler legt den Eintrag neu an. Am DOM ablesen ließe sich das
+nicht — während der Exit-Animation steht das Overlay genauso noch da.
+
+### Und eine Falle im Prüfstand selbst
+
+Der erste Lauf zeigte nur `laeuft…` — kein Ergebnis, keine Fehlermeldung. Ursache war ein
+Syntaxfehler in der erzeugten Seite (die Gegenprobe hatte den ganzen Ausschnitt ein zweites Mal
+eingebunden und damit `overlayStack` doppelt deklariert). Der `window.onerror`-Melder stand im
+**selben** Script-Block und wurde deshalb nie angemeldet.
+
+**Für Prüfstände gilt derselbe Ablauf wie für die App:** `python syntax-check.py <datei>` zuerst.
+Er nimmt einen Pfad als Argument und benennt Fehler und Zeile in einer Sekunde.
