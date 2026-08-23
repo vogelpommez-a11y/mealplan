@@ -2916,3 +2916,61 @@ verneint hat. Die Prüfung nach oben zu den anderen Riegeln zu ziehen ist die er
 hat — und sie sperrt jedes bestehende Mitglied aus, das über denselben Link zurückkehrt. Der
 Prüfstand `tools/pruefstand-einladung-verbrauch.py` fährt genau diese falsche Fassung als
 Gegenprobe.
+
+---
+
+## 106. Firebase lokal: der eine Pfad, der die App sonst zweimal startet
+
+**Datum:** 23.08.2026 · **Anlass:** D4 — das SDK aus dem Repo statt vom gstatic-CDN.
+
+Die drei ES-Module liegen jetzt in `vendor/firebase/10.12.5/` und werden relativ importiert.
+Die Umstellung sieht nach „drei URLs ersetzen" aus. Sie hat drei Fallen.
+
+### 1. `firebase-auth.js` und `firebase-firestore.js` importieren gstatic weiter
+
+Beide Bundles enthalten am Anfang
+
+```js
+import{…}from"https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js"
+```
+
+Wer nur die drei Importe in `index.html` umstellt, hat das Ziel **verfehlt** und es zusätzlich
+kaputt gemacht: Die Seite lädt `firebase-app.js` dann **zweimal** — einmal lokal für
+`initializeApp`, einmal von gstatic für Auth und Firestore. Zwei Modulinstanzen heißen zwei
+getrennte Komponenten-Register; `getAuth(app)` sucht seine App im falschen. Beweisen lässt es
+sich nur über die Ressourcenliste der Seite, nicht über das DOM:
+
+```js
+performance.getEntriesByType("resource").filter(e => e.name.indexOf(location.origin) !== 0)
+```
+
+Muss `[]` sein. `tools/firebase-vendor.py` schreibt diesen einen Import um und **bricht ab**,
+wenn er ihn nicht findet — ein stilles Weiterlaufen wäre hier das Schlimmste.
+
+### 2. Dieselbe URL steht in `firebase-app.js` — und darf nicht angefasst werden
+
+```js
+const name$p = "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js"
+const logger = new Logger('https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js')
+```
+
+Das ist kein Ladepfad, sondern der **Komponentenname**, unter dem sich das Modul registriert
+und loggt. Ein `sed` über alle Dateien benennt eine registrierte Komponente um. Deshalb ersetzt
+das Skript ausdrücklich nur das Muster `from"<url>"` und nur in den beiden anderen Dateien.
+
+### 3. Der `file://`-Smoke-Test zeigt ab jetzt den lokalen Modus
+
+Ein relativer Modul-Import scheitert über `file://` an der Opaque Origin. Die App fängt das über
+ihren 6-Sekunden-Timeout ab und startet lokal — `#view` ist gefüllt, aber es steht „Wie sollen
+wir dich nennen?" statt „Willkommen bei Paddy's Mealplan". Vor D4 ging der `file://`-Lauf durch,
+weil gstatic per `https` mit `Access-Control-Allow-Origin: *` antwortete.
+
+**Das ist ab jetzt kein Befund, sondern der Normalfall.** Wer den Cloud-Pfad sehen will, lädt
+über `test-server.ps1`. Nachgemessene Belege stehen in `docs/TESTING.md`, Abschnitt 1.
+
+### Was lokal *nicht* geht
+
+`signInWithPopup` öffnet ein iframe unter `https://<projekt>.firebaseapp.com/__/auth/…`. Das ist
+Google-Infrastruktur und kein Bundle — es bleibt ein Fremdaufruf, bis der native Login aus D7 da
+ist. Für Apple 2.5.2 ist das unkritisch (es lädt keinen Code in die App), für die
+Datenschutzerklärung bleibt Google damit weiterhin Empfänger.

@@ -97,7 +97,30 @@ das Teilen-Blatt ab, kommt ein `AbortError` — Normalbetrieb, kein Fehler.
 
 Das `type="module"`-Script läuft vor dem eigentlichen App-Script.
 
-Es importiert Firebase v10 vom gstatic-CDN und stellt über `window` folgende Schnittstellen bereit:
+Es importiert Firebase v10 **aus dem Repo** (`vendor/firebase/10.12.5/`, drei ES-Module) und
+stellt über `window` folgende Schnittstellen bereit:
+
+### Firebase liegt lokal, nicht auf gstatic
+
+Seit dem 23.08.2026 lädt das SDK nicht mehr von `https://www.gstatic.com/firebasejs/…`, sondern
+aus `vendor/firebase/10.12.5/` — dieselbe Ablage wie `vendor/zxing.min.js`. Zwei Gründe:
+
+* **Apple 2.5.2.** Eine App darf keinen ausführbaren Code aus dem Netz nachladen. Solange das
+  SDK vom CDN kam, wäre das im Review angreifbar gewesen.
+* **Kaltstart ohne Netz.** Der Service Worker reicht fremde Hosts absichtlich durch. Ohne
+  Verbindung kam das SDK also nie an, und der Cloud-Nutzer landete nach 6 Sekunden Timeout im
+  lokalen Modus — mit lokalem SDK startet die Anmeldung sofort.
+
+Gepflegt wird der Ordner über `tools/firebase-vendor.py` (Version als Argument). Das Skript
+schreibt genau **einen** Pfad um: In `firebase-auth.js` und `firebase-firestore.js` zeigt der
+Import von `firebase-app.js` auf die absolute gstatic-URL. Bliebe der stehen, hätte die Seite
+zwei App-Instanzen — eine lokale und eine nachgeladene — mit getrennten Komponenten-Registern,
+und `getAuth(app)` fände seine App nicht mehr. Die gleichlautenden Strings **innerhalb** von
+`firebase-app.js` sind dagegen Komponentennamen, keine Ladepfade, und bleiben unangetastet.
+
+Nicht lokalisierbar bleibt der OAuth-Popup-Weg: `signInWithPopup` öffnet ein iframe unter
+`https://paddys-mealplan.firebaseapp.com/__/auth/…`. Das ist Google-Infrastruktur, kein
+Bundle — es verschwindet erst mit dem nativen Login aus D7.
 
 ### `window.CloudAuth`
 
@@ -1518,6 +1541,11 @@ Pfad des Logos ändert, muss **beide** Stellen anfassen. Details und die `file:/
 vier Icons. Die 32 Meal-Fotos und `vendor/zxing.min.js` sind seit dem 10.08.2026 **nicht** mehr
 im Precache — sie kommen über den Cache-First-Zweig des `fetch`-Handlers nach und liegen danach
 genauso dauerhaft im Cache. Das spart 927 KB bei der Installation.
+
+Das Firebase-SDK aus `vendor/firebase/` (~690 KB) steht aus demselben Grund **nicht** im
+Precache. Es fällt seit D4 unter den Cache-First-Zweig, weil es jetzt same-origin ist — und
+genau der Seitenaufruf, der es holen würde, holt es ohnehin selbst. Ein Precache zöge die
+690 KB nur auf die Installation vor, ohne einen Abruf zu sparen.
 
 Alles wird Cache-First ausgeliefert: Wird ein Foto oder das Logo ausgetauscht, muss `VERSION`
 hoch (aktuell `pm-v6`). Siehe `docs/TROUBLESHOOTING.md`, Punkt 68.

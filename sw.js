@@ -4,8 +4,9 @@
  * Strategie bewusst konservativ, damit nie eine veraltete App klebenbleibt:
  *   - Navigationen (die HTML-Seite selbst): NETWORK-FIRST. Online immer die frische index.html,
  *     nur wenn offline aus dem Cache. So wirkt ein Deploy sofort, ohne Cache-Invalidierungs-Zauber.
- *   - Eigene statische Assets (Icons, Manifest, spaeter lokales ZXing): CACHE-FIRST.
- *   - Fremde Hosts (Firebase/gstatic/Firestore, Open Food Facts, CDN): NICHT anfassen -
+ *   - Eigene statische Assets (Icons, Manifest, ZXing, das Firebase-SDK aus vendor/):
+ *     CACHE-FIRST. Seit D4 liegt das SDK im Repo, es faellt also unter diesen Zweig.
+ *   - Fremde Hosts (Firestore/Identity-Toolkit-API, Open Food Facts): NICHT anfassen -
  *     einfach durchreichen. Auth/Live-Daten duerfen nie aus dem Cache kommen.
  *
  * Alle Pfade relativ, weil die App unter .../mealplan/ liegt, nicht auf dem Domain-Root.

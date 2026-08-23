@@ -140,6 +140,41 @@ Beispiele:
 
 Ein HTTP-200 beweist hier nichts.
 
+### Seit D4: `file://` prüft nur noch den Fallback
+
+Das Firebase-SDK liegt seit dem 23.08.2026 in `vendor/firebase/` und wird **relativ**
+importiert. Über `file://` blockiert der Browser genau diesen Import (Modul-Auflösung gegen
+eine Opaque Origin) — die App fängt das nach 6 Sekunden über ihren Timeout ab und startet im
+lokalen Modus. Nachgemessen am 23.08.2026, jeweils im ersten Bildschirm von `#view`:
+
+| Ladeweg | Überschrift in `#view` |
+|---|---|
+| `file://`, Stand vor D4 (gstatic per https) | „Willkommen bei Paddy's Mealplan" — Cloud-Einstieg |
+| `file://`, Stand nach D4 | „Wie sollen wir dich nennen?" — **lokaler Modus** |
+| `http://127.0.0.1`, Stand nach D4 | Cloud-Einstieg, `window.CloudAuth.configured === true` |
+
+Der `file://`-Lauf bleibt als schneller Startbeweis brauchbar — er zeigt aber ab jetzt **nie**
+den Cloud-Pfad, und ein „Wie sollen wir dich nennen?" ist dort **kein Befund**. Wer die
+Anmeldung, Firestore oder den Sync im Smoke-Test sehen will, muss über HTTP laden:
+
+```powershell
+powershell -NoProfile -File test-server.ps1   # http://localhost:8000/
+```
+
+Dass das SDK wirklich lokal geladen hat, zeigt am zuverlässigsten die Ressourcenliste der
+Seite selbst — nicht das DOM:
+
+```js
+performance.getEntriesByType("resource")
+  .filter(e => e.name.indexOf(location.origin) !== 0)   // muss [] sein
+```
+
+Gemessen wird das aus einer Prüfseite mit `<iframe src="./index.html">` im selben Origin
+(dort ist `contentWindow` zugänglich) und das Ergebnis in ein `<pre>` geschrieben, damit
+`--dump-dom` es einsammelt. Gegenprobe, ohne die kein Ergebnis zählt: `firebase-app.js`
+kurz umbenennen — dann muss `window.CloudAuth` **fehlen** und `#view` trotzdem gefüllt sein.
+Am 23.08.2026 genau so belegt.
+
 ## 2. Ausschneide-Prüfstand
 
 Der Ausschneide-Prüfstand ist die wichtigste Methode für Funktionen, die hinter Login, Modal oder komplexem Zustand liegen.
