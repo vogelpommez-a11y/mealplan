@@ -1926,3 +1926,94 @@ Der Ausschnitt beweist die Mechanik, nicht die Verdrahtung. Eine Prüfseite mit
 Anmeldung erreichbar), liest `history.state` aus und ruft `contentWindow.history.back()`. Gemessen
 am 23.08.2026: Öffnen setzt `{"pmOverlay":1}`, Zurück schließt und stellt `null` her, und nach
 Öffnen/Schließen/Öffnen genügt weiterhin **ein** Zurück — also bleibt kein toter Eintrag liegen.
+
+## Drei Prüfstände zum Ernährungsprofil und zum Rezeptbuch (24.08.2026)
+
+Zum Speicherfehler von `docs/TROUBLESHOOTING.md` Ziffer 108 und zum Umbau des Rezeptbuchs.
+Alle drei tragen ihre **Gegenprobe eingebaut** — das ist hier nicht Kür, sondern der Grund,
+warum es sie gibt (siehe Ziffer 109: zwei Werkzeuge hatten jahrelang nichts geprüft).
+
+### `tools/pruefstand-ziel-undefined.py` — kein Feld darf `undefined` tragen
+
+Schneidet `computeGoal()`, `sanitizeGoal()` und `onbGoalInput()` samt ihrer Konstanten aus
+`index.html`. Geprüft wird eine einzige Eigenschaft:
+
+```js
+Object.keys(g).some(k => g[k] === undefined)
+```
+
+**Die Gegenprobe steht als erster Abschnitt im Ergebnis** und ist ein *erwarteter Treffer*:
+`computeGoal()` ohne Hülle **muss** `diet` und `avoid` auf `undefined` liefern. Fällt dieser
+Block weg, prüft der Rest nichts mehr.
+
+Der wichtigste Fall ist nicht der Wizard, sondern `syncGoalWeight()`: Dort fehlt `diet` im
+gespeicherten Ziel meistens ganz, `Object.assign` kopiert es nicht, und `computeGoal()` erzeugt
+es als `undefined`. Der Prüfstand baut diesen Zustand deshalb ausdrücklich aus einem vorher
+sanitisierten Ziel auf, statt ihn von Hand hinzuschreiben.
+
+Zusätzlich belegt: `sanitizeGoal()` ist **idempotent**. Ohne das wäre jeder Push ein Dauer-Diff
+gegen `canonJSON()` — dieselbe Falle wie bei `sanitizeTags()`.
+
+### `tools/pruefstand-rezeptbuch-filter.py` — die Chips treffen dieselbe Menge
+
+Rechnet nach, dass der vorbelegte Chip **exakt dieselbe Rezeptmenge** liefert wie der frühere
+harte Vorfilter `cookbookVisible()` — über sechs Profile, verglichen als sortierte ID-Liste.
+Das ist die eigentliche Zusage des Umbaus: Wer nichts anfasst, sieht genau das, was er vorher
+sah, nur jetzt sichtbar begründet.
+
+Zwei Prüfungen, die man leicht vergisst und die beide einen echten Fehler abdecken würden:
+
+* **Jeder vorbelegte Schlüssel überlebt `recipeFilterHtml()`** und steht dort als `data-f`. Die
+  Funktion löscht aktive Filter, deren Chip es nicht gibt — ein Schlüssel, der im Katalog nicht
+  vorkommt, verschwände lautlos, und die Ansicht zeigte mehr, als das Profil vorsieht.
+* **Ein von Hand abgewählter Chip kommt ohne Profilwechsel nicht zurück.** Ohne diese Zeile
+  liefe auch ein „belegt bei jedem Aufbau neu vor" durchweg grün.
+
+### `tools/pruefstand-rezeptbuch-ansicht.py` — an der ungekürzten `index.html`
+
+Der Logik-Prüfstand rechnet Mengen; er kann nicht sagen, ob die Chip-Reihe im DOM landet. Diese
+Datei startet deshalb die **echte App** headless mit gesetztem Ziel, geht über die Reiterleiste
+in den Katalog und misst dort.
+
+**Gegenprobe über ein Argument:**
+
+```powershell
+git show HEAD:index.html > alt.html
+python tools/pruefstand-rezeptbuch-ansicht.py alt.html   # MUSS rot sein
+```
+
+Gegen den Stand vom 23.08.2026 fällt er an genau vier Stellen um: beide Chips nicht vorbelegt,
+`.cb-hint` noch da, und die Kopfzeilen verlieren bei einem von Hand gesetzten Chip ihren
+Klappknopf. Genau das sind die vier Dinge, die geändert wurden.
+
+Drei Fallen, die den Bau gekostet haben — alle drei gelten für jeden künftigen Prüfstand dieser
+Bauart:
+
+* **Ein Fehler in einem Event-Listener steigt nicht zum Aufrufer auf.** Er landet nur bei
+  `window.onerror`. Die Fehlerliste muss deshalb **nach** dem Klick gelesen werden; vorher
+  gelesen meldet sie „keine" und verschluckt die Ursache.
+* **`paintCookbook()` baut `#cb-groups` per `innerHTML` neu auf.** Ein vor dem Klick gegriffener
+  Knoten ist danach abgehängt und meldet Höhe 0 — das sah wie ein A11y-Befund aus und war eine
+  Messfalle.
+* **Nicht über `state.tab` in eine Ansicht springen, sondern die Reiter klicken.** So läuft
+  derselbe Weg wie beim Menschen, einschließlich `render()`.
+
+### `tools/mobilprobe-rezeptbuch.html` — echte Handybreiten
+
+Handgeschrieben, kein Erzeugnis — deshalb heißt sie **nicht** `pruefstand-*.html` (das Muster
+steht in `.gitignore`, sie wäre beim nächsten Checkout weg). Läuft im `iframe`-Rahmen gegen den
+lokalen Server, misst 360/390/560/720 px und trägt die Gegenprobe als `?alt=1` (lädt
+`alt-index.html`).
+
+**Ihr eigentlicher Wert war die Gegenprobe.** Drei Layout-Befunde — 3 px waagerechter Überstand,
+eine 18 px überstehende Karte, 35 px hohe Kategorie-Kopfzeilen statt der geforderten 44 — sind
+im `?alt=1`-Lauf **Zeichen für Zeichen gleich**. Sie sind also älter als der Umbau und ihm nicht
+anzulasten. Sie stehen als `ALT` im Ergebnis und werden nicht als Fehler gezählt; wer einen davon
+behebt, streicht ihn aus `ALTBEFUND`, dann fällt er beim nächsten Auftreten wieder auf.
+
+Zwei Messfallen, die den ersten Lauf komplett rot gefärbt haben:
+
+* **Gegen `innerWidth` prüfen, nicht gegen `clientWidth`.** Im Rahmen sind die Scrollleisten
+  klassisch und nehmen ~15 px von `clientWidth` — dagegen geprüft schlägt „scrollt waagerecht"
+  immer an. (Steht weiter oben schon einmal; es ist trotzdem wieder passiert.)
+* **Die tatsächliche Breite mitloggen** (`soll=390 ist=390`), sonst ordnet die Messung nichts ein.

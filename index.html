@@ -1325,7 +1325,6 @@
   /* Rezeptbuch: dieselbe Karte wie die eigenen Meals, nur mit einem Fuss statt der
      Bearbeiten-Aktionen. Bewusst keine eigene Kartenoptik - es ist derselbe Gegenstand,
      nur noch nicht der eigene. */
-  .cb-hint { margin: 0 0 14px; color: var(--text-muted); font-size: 13px; }
   /* position + z-index sind hier PFLICHT, nicht Kosmetik: .rcard-open::after spannt als
      Stretched Link mit z-index:1 ueber die ganze Karte. Ein statisch positioniertes Element
      kann z-index gar nicht anwenden - der Link lag deshalb ueber dem Uebernehmen-Knopf und
@@ -3467,13 +3466,24 @@
       // lokalen Login zurueck. Deshalb eigenes try/catch mit Fallback auf den fluechtigen Cache.
       // Der Multi-Tab-Manager ist Pflicht: ohne ihn schaltet der zweite Tab die Persistenz
       // stillschweigend ab. Siehe docs/TROUBLESHOOTING.md ("fromCache ist kein Beweis").
+      // ignoreUndefinedProperties: das Netz unter den Sanitizern. Firestore lehnt sonst das
+      // GANZE Dokument ab, sobald irgendwo ein Feld auf undefined steht - und der Push
+      // wiederholt denselben Wurf bei jedem save(). Genau so blieb ein "goal.diet: undefined"
+      // wochenlang unbemerkt liegen (docs/TROUBLESHOOTING.md). Damit verhaelt sich die Cloud
+      // wie JSON.stringify und canonJSON(): fehlt ein Wert, fehlt das Feld. Die Sanitizer
+      // bleiben trotzdem die Quelle der Wahrheit - ein still fallengelassenes Feld ist eine
+      // Notbremse, kein sauberer Datensatz.
+      // Der Fallback muss es MITTRAGEN: sonst verliert ein Geraet ohne IndexedDB das Netz
+      // wieder. Deshalb dort ebenfalls initializeFirestore, nur ohne persistenten Cache.
       let db;
       try {
         db = initializeFirestore(app, {
+          ignoreUndefinedProperties: true,
           localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
         });
       } catch (e) {
-        db = getFirestore(app);
+        try { db = initializeFirestore(app, { ignoreUndefinedProperties: true }); }
+        catch (e2) { db = getFirestore(app); }
       }
       // Rezepte liegen zweimal in derselben Struktur: unter users/{uid}/recipes fuer das
       // eigene Konto und unter groups/{gid}/recipes fuer eine gemeinsame Gruppe. Deshalb
@@ -3504,12 +3514,29 @@
             return snap.exists() ? snap.data() : null;
           });
         },
-        // merge=true schreibt nur die uebergebenen Felder und laesst alles andere stehen.
-        // Wichtig, sobald der Wochenplan in einer Gruppe liegt: das Kontodokument wird dann
-        // ohne "plans" gepusht - ohne merge wuerde jeder Push das Feld beim Verlassen der
-        // Gruppe geloescht zuruecklassen. Ohne Gruppe ist es schlicht die sicherere Variante.
+        // Schreibt nur die uebergebenen Felder und laesst alles andere stehen. Wichtig,
+        // sobald der Wochenplan in einer Gruppe liegt: das Kontodokument wird dann ohne
+        // "plans" gepusht - ohne diese Semantik wuerde jeder Push das Feld beim Verlassen
+        // der Gruppe geloescht zuruecklassen. Auch ohne Gruppe die sicherere Variante.
+        //
+        // mergeFields und NICHT merge:true - das war jahrelang das falsche Werkzeug fuer
+        // genau die Absicht, die der Absatz darueber beschreibt:
+        //   merge:true    mischt Maps BLATTWEISE. Ein "goal" ohne "diet" loescht goal.diet
+        //                 nicht. "Vegetarisch -> Alles" war damit ueberhaupt nicht
+        //                 wegzuschreiben, und ein einmal gesetztes goal.manual kam nach
+        //                 jedem "Ziele neu berechnen" aus der Cloud zurueck.
+        //   mergeFields   ersetzt die genannten Felder GANZ und laesst alle uebrigen
+        //                 unangetastet. Genau das ist gemeint.
+        // Object.keys(data) heisst: was der Aufrufer schickt, wird gesetzt; was er weglaesst,
+        // bleibt liegen. Die Teil-Schreibvorgaenge ({ pendingGroupId: ... }) verhalten sich
+        // dadurch unveraendert. Alle Feldnamen sind einfache Bezeichner, FieldPath ist nicht
+        // noetig. Ein leeres Objekt waere fuer Firestore ein Fehler - dann gibt es aber auch
+        // nichts zu schreiben.
         save: function (uid, data, merge) {
-          return setDoc(doc(db, "users", uid), data, { merge: merge !== false });
+          if (merge === false) return setDoc(doc(db, "users", uid), data);
+          const felder = Object.keys(data);
+          if (!felder.length) return Promise.resolve();
+          return setDoc(doc(db, "users", uid), data, { mergeFields: felder });
         },
         watch: function (uid, cb) {
           return onSnapshot(doc(db, "users", uid), function (snap) {
@@ -5136,6 +5163,19 @@
   // beim Kaltstart ohne Netz), bleibt es false, syncUid ist aber schon gesetzt - der naechste
   // save() schriebe dann groupId:"" und loeschte die Gruppe fuer ALLE Geraete des Kontos.
   let syncHandshakeOk = false;
+  // Wurde der Cloud-Stand dieser Sitzung schon geladen und mit dem lokalen zusammengefuehrt?
+  //
+  // Notwendig geworden mit dem Wechsel auf mergeFields (siehe CloudSync.save): Der schreibt
+  // ein Feld GANZ, statt Maps blattweise zu mischen. startCloudSync() setzt syncUid aber
+  // bereits VOR dem await auf CloudSync.load() - und boot() ruft in derselben Sekunde
+  // archiveWeek() + save(). Braucht das Laden laenger als die 800 ms des Debounce, schriebe
+  // der Push den noch nicht zusammengefuehrten lokalen Stand hoch und ersetzte damit goal,
+  // weightGoals, planned und die Grabsteine der Cloud. Auf einem frisch angemeldeten Geraet
+  // waere das ein echter Datenverlust.
+  //
+  // Betrifft NUR das Kontodokument. syncRecipes() und pushGroupPlan() haben ihre eigenen,
+  // diff-basierten Baselines und laufen unveraendert weiter.
+  let cloudBaselineOk = false;
   // Ein Beitritt/eine Aktivierung laeuft gerade: syncGid ist dabei bewusst noch null, waehrend
   // die Cloud-groupId schon geschrieben wird (finalizeGroupActivation/joinGroup). Ein in dieses
   // Fenster fallender Debounce-Push wuerde sie sofort wieder mit "" ueberschreiben.
@@ -5300,6 +5340,8 @@
   // (jetzt winzige) Hauptdokument bestehen, loest praktisch nie mehr aus.
   const CLOUD_DOC_MAX = 900000;      // Sicherheitsabstand zur 1-MiB-Grenze
   let cloudTooBigWarned = false;
+  // Einmal-Meldung fuer einen Push, der NICHT am Netz gescheitert ist - siehe pushNow().
+  let cloudPushFailed = false;
   // Rezepte einzeln synchronisieren (users/{uid}/recipes/{id}), diff-basiert genau wie
   // der Rest des States: lastPushedRecipes ist die zuletzt bestaetigte Baseline (Map
   // id -> JSON-String). Nur was sich seitdem geaendert hat, wird geschrieben/geloescht -
@@ -5423,6 +5465,11 @@
     if (!syncUid || !window.CloudSync) return;
     await syncRecipes();
     await pushGroupPlan();
+    // Kein Kontodokument schreiben, bevor der Cloud-Stand dieser Sitzung eingemischt ist -
+    // siehe cloudBaselineOk. Kein Verlust: lastPushedJSON bleibt unberuehrt, und der
+    // Baseline-Push am Ende von startCloudSync() schreibt den zusammengefuehrten Stand ohnehin.
+    // NACH syncRecipes()/pushGroupPlan(): die haben eigene Baselines und sind nicht betroffen.
+    if (!cloudBaselineOk) return;
     // shopPersons(): berechnet lesen, aber NIE roh schreiben - shopPersons() haengt in der
     // Gruppe an groupMembers.length/"shopForAll" und ist damit ein abgeleiteter Anzeigewert,
     // keine Kontoeinstellung. sanitizeShopPersons(state.shopPersons) schreibt die tatsaechlich
@@ -5431,8 +5478,8 @@
     const d = { tab: state.tab, goal: state.goal || null, shares: state.shares || [], onboarded: state.onboarded === true, weights: state.weights || [], weightGoals: state.weightGoals || {}, profileImage: state.profileImage || null, weightConsent: state.weightConsent || noConsent(), shopPersons: sanitizeShopPersons(state.shopPersons), inviteCodes: state.inviteCodes || [], favs: sanitizeFavs(state.favs), planned: sanitizePlanned(state.planned, state.recipes), deleted: sanitizeTombstones(state.deleted) };
     // groupId NUR schreiben, wenn dieser Client den Gruppenzustand wirklich kennt. syncGid null
     // heisst nicht "keine Gruppe", sondern nur "gerade keine Gruppen-Session" - ein "groupId: ''"
-    // wuerde die Gruppe dann fuer ALLE Geraete des Kontos ausloeschen. Dank merge:true bleibt der
-    // vorhandene Cloud-Wert unangetastet, wenn das Feld hier fehlt. Das regulaere Verlassen
+    // wuerde die Gruppe dann fuer ALLE Geraete des Kontos ausloeschen. Fehlt das Feld hier,
+    // steht es auch nicht in mergeFields - der vorhandene Cloud-Wert bleibt unangetastet. Das regulaere Verlassen
     // schreibt sein groupId:"" ohnehin selbst (leaveGroup()).
     // Drei Faelle, in denen der Zeiger tabu ist:
     //   !syncHandshakeOk  - startCloudSync() ist nie fertig geworden (Netz weg beim Start)
@@ -5441,9 +5488,10 @@
     const groupKnown = syncHandshakeOk && !groupSyncFailed && !groupTransition;
     if (groupKnown) d.groupId = syncGid || "";
     // In einer Gruppe wandert der Wochenplan nach groups/{gid}/plans - dann NICHT auch noch
-    // ins Kontodokument schreiben. Dank merge:true bleibt das dortige "plans"-Feld als
-    // Stand von vor dem Beitritt liegen; beim Verlassen wird der Gruppenplan bewusst
-    // hineinkopiert (leaveGroup), statt ihn hier fortlaufend zu ueberschreiben.
+    // ins Kontodokument schreiben. Weil das Feld dann auch in mergeFields fehlt, bleibt das
+    // dortige "plans"-Feld als Stand von vor dem Beitritt liegen; beim Verlassen wird der
+    // Gruppenplan bewusst hineinkopiert (leaveGroup), statt ihn hier fortlaufend zu
+    // ueberschreiben.
     // In den drei Faellen oben ebenfalls nicht: state.plans ist dann moeglicherweise der
     // persoenliche Stand von vor dem Beitritt und wuerde den Kontoplan mit veralteten Daten
     // ueberschreiben.
@@ -5468,9 +5516,29 @@
     setSyncStatus("saving");
     try {
       await window.CloudSync.save(syncUid, Object.assign({}, d, { updatedAt: Date.now() }));
+      cloudPushFailed = false;
       setSyncStatus("synced");
     } catch (e) {
       lastPushedJSON = null; setSyncStatus("offline"); /* z. B. offline – nächster Save versucht es erneut */
+      // Ein Netzfehler heilt von selbst, ein DATENfehler nie: Er wiederholt sich bei jedem
+      // save() und blockiert dabei das ganze Kontodokument - Ziel, Gewichte, Favoriten,
+      // Profilbild. Als "offline" gemeldet sieht beides gleich aus, und genau so blieb ein
+      // "goal.diet: undefined" wochenlang unbemerkt liegen (docs/TROUBLESHOOTING.md).
+      // Deshalb einmalig melden, sobald der Fehlercode nicht auf ein Netzproblem deutet -
+      // einmal, nicht alle 800 ms (analog cloudTooBigWarned/recipesSyncFailed).
+      const netz = !e || !e.code || e.code === "unavailable" || e.code === "deadline-exceeded"
+        || e.code === "cancelled" || e.code === "resource-exhausted";
+      if (!netz) {
+        noteError("sync:push", e);
+        if (!cloudPushFailed) {
+          cloudPushFailed = true;
+          // Kein Heilsversprechen: Ein "starte die App neu" waere hier falsch - der fehlerhafte
+          // Wert steht weiter im lokalen Zustand und erzeugt nach dem Neustart denselben Wurf
+          // (Befund des anwalt-Agenten). Der Satz sagt genau zwei wahre Dinge: die Aenderung
+          // ist nicht verloren, und sie ist gerade nur hier.
+          toast("Diese Änderung liegt sicher auf diesem Gerät, kommt gerade aber nicht in deiner Cloud an.");
+        }
+      }
     }
   }
   function onRemote(data, pending) {
@@ -6054,6 +6122,7 @@
       // jetzt darf pushNow() den groupId-Zeiger ueberhaupt anfassen. Muss vor dem Baseline-Push
       // stehen, sonst schriebe genau der das Feld nie mit.
       syncHandshakeOk = true;
+      cloudBaselineOk = true;   // der Cloud-Stand ist geladen und eingemischt - ab jetzt darf gepusht werden
       // Der Bestand steht jetzt vollstaendig (Gruppen-Merge bzw. Cloud-Merge ist oben schon
       // gelaufen) - genau die Vorbedingung, die dedupeAgainstCatalog() fuer die Gruppe
       // verlangt. VOR pushNow(), damit eine hier ausgeloeste Aufraeumung gleich mit der
@@ -6079,6 +6148,13 @@
       // weiter), also muss der Gruppenzeiger ausdruecklich gesperrt bleiben - sonst traegt der
       // naechste beliebige save() ein groupId:"" in die Cloud.
       groupSyncFailed = true;
+      // Bewusst freigeben, obwohl kein Cloud-Stand geladen wurde: Der Kommentar oben gilt
+      // weiter - syncUid bleibt gesetzt, die App synct persoenlich weiter, und das soll sie.
+      // Ohne diese Zeile bliebe das Kontodokument bis zum naechsten App-Start ungesichert.
+      // Ehrlich benannt: In diesem Zweig gewinnt der lokale Stand. Das war auch vorher schon
+      // so - merge:true hat daran nur einzelne Map-Blaetter zufaellig vorbeigerettet, waehrend
+      // weights/shares/inviteCodes (Arrays) ohnehin immer ganz ersetzt wurden.
+      cloudBaselineOk = true;
       lastGroupAttempt = state.groupId || null;   // fuer WELCHE Gruppe der Versuch scheiterte (onRemote)
       setSyncStatus("offline"); /* offline: App läuft lokal weiter, Sync greift beim nächsten Mal */
       maybeStartOnboarding();   // ohne Cloud entscheidet der lokale Stand
@@ -6095,6 +6171,7 @@
     leaveGroupState();   // Gruppen-Listener haengen sonst weiter und schreiben in den alten Zustand
     clearTimeout(pushTimer);
     syncUid = null; lastPushedJSON = null; lastPushedRecipes = null; recipesSyncFailed = false; groupSyncFailed = false; syncHandshakeOk = false;
+    cloudBaselineOk = false;   // naechste Sitzung muss den Cloud-Stand erst wieder laden
     lastGroupAttempt = null;   // Sicherheitsnetz aus onRemote() gehoert zu genau dieser Sync-Session
     setSyncStatus("off");
   }
@@ -9182,6 +9259,38 @@
   // seine eigene Liste vollstaendig sehen, nicht denselben Filter darauf.
   let cookbookQuery = "";
   const cookbookFilters = new Set();
+  // Das Ernaehrungsprofil ist im Rezeptbuch kein VORFILTER mehr, sondern ein vorbelegter,
+  // abschaltbarer Chip. Vorher war es eine unsichtbare Wand: Wer "vegetarisch" gewaehlt hatte,
+  // kam an den Rest des Katalogs nur heran, indem er sein ZIEL umstellte - und genau dafuer
+  // ist das Ziel nicht da. Jetzt sieht man, WARUM die Liste kuerzer ist, und kann es fuer
+  // einen Blick abschalten. Die Automatik bleibt streng: cookbookVisible() ist unveraendert
+  // und filtert weiter hart (Startmeals, Picker-Vorschlaege, Auto-Planer).
+  //
+  // Vorbelegt wird ueber eine SIGNATUR aus diet + avoid, nicht ueber ein Flag wie
+  // collapsedCatsSeeded: Das Profil kann sich aus drei Richtungen aendern (erste Schritte,
+  // "Ziele neu berechnen", Cloud-Snapshot in onRemote). Ein Flag muesste an jeder dieser
+  // Stellen von Hand zurueckgesetzt werden - eine davon uebersieht der naechste Umbau, und
+  // dann filtert die Ansicht stillschweigend nach dem alten Profil weiter. Die Signatur
+  // merkt es von selbst.
+  //
+  // Abgewaehlte Chips bleiben innerhalb der Sitzung abgewaehlt, beim Neustart gilt wieder das
+  // Profil. Umgekehrtes Vorzeichen zu recipeFilters (Kommentar unten): Dort ist der leere
+  // Zustand der erklaerte, hier der vorbelegte.
+  let cookbookSeedSig = null;
+  function seedCookbookFilters() {
+    const g = state.goal || {};
+    const diet = DIET_KEYS.indexOf(g.diet) !== -1 ? g.diet : "alles";
+    // Aus AVOID_KEYS neu aufbauen: sonst haengt die Signatur an der Tippreihenfolge.
+    const avoid = Array.isArray(g.avoid) ? AVOID_KEYS.filter(k => g.avoid.indexOf(k) !== -1) : [];
+    const sig = diet + "|" + avoid.join(",");
+    if (sig === cookbookSeedSig) return;
+    cookbookSeedSig = sig;
+    cookbookFilters.clear();
+    // Die Schluessel von DIETS/AVOIDS sind bewusst dieselben wie die von RECIPE_TAGS - es
+    // braucht keine Uebersetzungstabelle, nur das "tag:"-Praefix aus recipeFilterHtml().
+    if (diet !== "alles") cookbookFilters.add("tag:" + diet);
+    avoid.forEach(k => cookbookFilters.add("tag:" + k));
+  }
   // Alle Kategorien starten eingeklappt - siehe paintCookbook().
   const cookbookCollapsed = new Set(CATEGORIES);
   // Aktive Merkmals-Filter (B7), UND-verknuepft. Wie recipeQuery bewusst nicht gespeichert:
@@ -9216,7 +9325,10 @@
     // Der Umschalter nutzt dieselbe gleitende Pille wie der Wochenwechsel (CLAUDE.md §11)
     // und denselben Helfer - .week-switch/.ws-btn/.ws-ind samt syncWeekSwitchPill().
     const imBuch = recipeTab === "buch";
-    const buch = cookbookVisible();
+    // Der VOLLE Katalog, nicht cookbookVisible(): die Einschraenkung entsteht jetzt ueber die
+    // vorbelegten Chips (seedCookbookFilters) und ist damit sichtbar und abschaltbar.
+    seedCookbookFilters();
+    const buch = COOKBOOK;
     let html = `
       <div class="section-head">
         <div class="title">
@@ -9284,20 +9396,12 @@
   // Rezeptbuch-Ansicht. Bewusst dieselbe Kartenform wie die eigenen Meals (.rcard) statt
   // einer eigenen Optik: Es ist derselbe Gegenstand, nur noch nicht der eigene. Unterschied
   // ist allein der Knopf unten - "Übernehmen" statt der Bearbeiten-Aktionen.
+  // Kein Leerzustand und kein Hinweistext mehr: `liste` ist der vollstaendige Katalog, also
+  // nie leer, und was gerade filtert, sagen die Chips selbst (CLAUDE.md §7). Trifft Suche
+  // oder Filter nichts, meldet das paintCookbook() an der Stelle, an der es passiert.
   function cookbookHtml(liste) {
-    const g = state.goal || {};
-    const gefiltert = (g.diet && g.diet !== "alles") || (g.avoid && g.avoid.length);
-    if (!liste.length) {
-      return `<div class="empty">
-        <svg class="em-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4v16a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1V7l-4-3H5a1 1 0 0 0-1 1Z"/><path d="M8 9h8M8 13h8"/></svg>
-        <h3>Hier ist noch nichts für dich dabei</h3>
-        <p>Für deine Auswahl haben wir gerade keine passenden Meals. Wir bauen das Rezeptbuch weiter aus.</p>
-      </div>`;
-    }
-    // Der Hinweis steht nur da, wenn tatsaechlich gefiltert wird - sonst waere er eine
-    // Erklaerung fuer etwas, das gar nicht passiert (CLAUDE.md §7).
+    seedCookbookFilters();
     return `<div class="cookbook">
-      ${gefiltert ? `<p class="cb-hint">Passend zu deiner Auswahl${g.diet && g.diet !== "alles" ? ` (${esc(dietLabel(g.diet))})` : ""}. Ändern kannst du sie über „Ziele neu berechnen".</p>` : ""}
       <div class="recipe-search">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
         <input type="search" id="cb-search" placeholder="Rezept suchen …" autocomplete="off" value="${esc(cookbookQuery)}" aria-label="Rezeptbuch durchsuchen">
@@ -9319,7 +9423,8 @@
     const container = view.querySelector("#cb-groups");
     if (!container) return;
     const q = cookbookQuery.toLowerCase().trim();
-    let pool = cookbookVisible();
+    seedCookbookFilters();
+    let pool = COOKBOOK;
     if (q) pool = pool.filter(r => r.name.toLowerCase().includes(q) || (r.category || "").toLowerCase().includes(q));
     if (cookbookFilters.size) pool = pool.filter(r => recipeMatchesFilters(r, cookbookFilters));
 
@@ -9331,10 +9436,16 @@
       groups.get(c).push(r);
     });
 
-    // Wie im Meals-Reiter: Suchen und Filtern klappen alles auf und nehmen den Klappknopf
-    // weg - sonst laege ein Treffer in einer zugeklappten Kategorie und die Zaehlung zeigte
-    // eine Zahl auf eine Flaeche, in der nichts zu sehen ist.
-    const filtering = !!q || cookbookFilters.size > 0;
+    // Nur die TEXTSUCHE klappt alles auf und nimmt den Klappknopf weg: Wer tippt, sucht ein
+    // bestimmtes Rezept und will es nicht in einer zugeklappten Kategorie verstecken.
+    //
+    // Aktive Chips tun das ausdruecklich NICHT (mehr). Ein Filter grenzt eine Menge ein, er
+    // sucht kein Einzelstueck - und seit die Chips aus dem Ernaehrungsprofil vorbelegt sind,
+    // ist ein dauerhaft aktiver Filter hier der REGELFALL. Beides zusammen haette die
+    // Kategorien praktisch nie mehr klappbar gemacht, und das Klappen ist bei 34 Rezepten der
+    // eigentliche Einstieg. Die alte Sorge (Zahl auf einer leeren Flaeche) trifft nur die
+    // statische Kopfzeile ohne Caret - mit Caret ist der Klick da, wo er hingehoert.
+    const filtering = !!q;
     let html = "";
     let etwas = false;
     for (const [cat, items] of groups) {
@@ -9389,7 +9500,6 @@
       paintCookbook();
     }));
   }
-  function dietLabel(k) { const d = DIETS.find(x => x.key === k); return d ? d.label : k; }
 
   // Filter-Chips (B7). Gezeigt wird nur, was im Bestand tatsaechlich vorkommt: eine Reihe
   // aus acht Merkmalen, von denen sieben nie zutreffen, ist keine Hilfe, sondern Ballast.
@@ -9483,11 +9593,14 @@
     // Klapp-Vorbelegung auf dem gefilterten Bestand fest. Favoriten zaehlen hier nicht mit,
     // sonst waere die Favoriten-Gruppe die "erste Kategorie mit Inhalt" und alle echten
     // Kategorien starteten eingeklappt.
-    // Filtern verhaelt sich wie Suchen: alles offen, Kopfzeilen ohne Klappknopf. Sonst laege
-    // ein Treffer in einer eingeklappten Kategorie und die Zaehlung zeigte "1" auf eine
-    // Flaeche, in der nichts zu sehen ist.
-    const filtering = !!q || recipeFilters.size > 0;
-    if (!filtering && !collapsedCatsSeeded) {
+    // Nur die Textsuche klappt auf und nimmt den Klappknopf weg - aktive Chips lassen die
+    // Klappmechanik unangetastet. Dieselbe Regel wie im Rezeptbuch (siehe paintCookbook),
+    // ein zweites Verhalten an der zweiten Liste waere genau die Abweichung, vor der
+    // CLAUDE.md §8 warnt.
+    const filtering = !!q;
+    // Die Klapp-Vorbelegung haengt weiter an BEIDEM: Auf einem gefilterten Bestand
+    // festgeschrieben, waere "erste Kategorie mit Inhalt" die erste Kategorie des Filters.
+    if (!q && !recipeFilters.size && !collapsedCatsSeeded) {
       collapsedCatsSeeded = true;
       let firstSeen = false;
       for (const [cat, items] of groups) {
@@ -13438,7 +13551,12 @@
     // Ueberschreibung, gegen die die Handanpassung gemacht ist. Das Gewicht selbst zieht
     // trotzdem mit: daran haengt der Trainingstag-Aufschlag (dayTrainKcal).
     if (state.goal.manual) { state.goal = Object.assign({}, state.goal, { weight: last.kg }); return; }
-    state.goal = computeGoal(Object.assign({}, state.goal, { weight: last.kg }));
+    // sanitizeGoal um das frische Ergebnis: computeGoal reicht diet/avoid unveraendert
+    // durch (siehe dort), und hier fehlen die Schluessel im Eingangsziel meistens ganz -
+    // dann traegt das Ergebnis "diet: undefined". Lokal faellt das nicht auf (JSON.stringify
+    // verschluckt es), Firestore lehnt aber das GANZE Kontodokument ab. Siehe
+    // docs/TROUBLESHOOTING.md.
+    state.goal = sanitizeGoal(computeGoal(Object.assign({}, state.goal, { weight: last.kg })));
   }
   // Die Gegenrichtung zu syncGoalWeight: Das Gewicht wird auch im Rechner und in den
   // ersten Schritten abgefragt: Wer dort etwas eintraegt, hat sich gewogen - das gehoert
@@ -14179,7 +14297,10 @@
           }
         }
       }
-      if (id === "result") { state.goal = computeGoal(onbGoalInput()); noteWeightFromGoal(); save(); }
+      // sanitizeGoal ist Pflicht, nicht Vorsicht: onbGoalInput() setzt "keine Einschraenkung"
+      // als undefined (siehe dort), computeGoal reicht das durch - und ein undefined in einem
+      // verschachtelten Feld laesst den Cloud-Push des ganzen Kontodokuments scheitern.
+      if (id === "result") { state.goal = sanitizeGoal(computeGoal(onbGoalInput())); noteWeightFromGoal(); save(); }
       onbGo(1);
     });
     view.querySelector(".onb-back").addEventListener("click", () => onbGo(-1));

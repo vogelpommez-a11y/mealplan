@@ -1,0 +1,145 @@
+<!doctype html><meta charset="utf-8"><title>Pruefstand Rezeptbuch mobil</title>
+<pre id="log">laeuft …</pre>
+<script>
+// Mobile Abnahme des Rezeptbuchs bei echten Handybreiten. Ein Chrome-Fenster laesst sich
+// unter Windows nicht schmaler als ~500 px ziehen - deshalb der iframe fester Breite, in dem
+// Media Queries ganz normal greifen (docs/TESTING.md, "Echte Handybreite im Browser").
+//
+// Gegen den Server, NICHT gegen file://: Nur dort gilt dieselbe Origin und der DOM des
+// Rahmens ist zugaenglich.  Aufruf: http://localhost:8000/tools/mobilprobe-rezeptbuch.html
+var LOG = [], ok = 0, bad = 0, altbekannt = 0;
+// Drei Befunde sind im Lauf gegen ?alt=1 Zeichen fuer Zeichen GLEICH und damit aelter als
+// diese Aenderung. Sie werden weiter geprueft und weiter gemeldet - nur nicht mehr dieser
+// Aenderung angelastet, sonst steht der Pruefstand dauerhaft auf rot und niemand sieht mehr
+// hin. Wer einen davon behebt, streicht ihn hier; dann faellt er beim naechsten Auftreten
+// wieder als echter Fehler auf.
+var ALTBEFUND = {
+  "waagerecht": "3 px Ueberstand, auch vor dieser Aenderung",
+  "hinaus":     "Chia-Pudding ragt 18 px hinaus, auch vor dieser Aenderung",
+  "kopfhoehe":  "35 px statt 44 px Trefferflaeche, auch vor dieser Aenderung"
+};
+function pruef(name, bed, zusatz, altKey) {
+  if (bed) { ok++; LOG.push("  OK      " + name); }
+  else if (altKey && ALTBEFUND[altKey]) {
+    altbekannt++;
+    LOG.push("  ALT     " + name + "  ->  " + (zusatz || "") + "   [" + ALTBEFUND[altKey] + "]");
+  } else { bad++; LOG.push("  FEHLER  " + name + (zusatz ? "  ->  " + zusatz : "")); }
+  document.getElementById("log").textContent = LOG.join("\n");
+}
+function warte(bed, ms) {
+  return new Promise(function (fertig, schief) {
+    var bis = Date.now() + (ms || 12000);
+    (function tick() {
+      var w; try { w = bed(); } catch (e) { w = false; }
+      if (w) return fertig(w);
+      if (Date.now() > bis) return schief(new Error("Zeit abgelaufen"));
+      setTimeout(tick, 60);
+    })();
+  });
+}
+
+// Das Ziel wird VOR dem Laden gesetzt. localKey() haengt auf localhost "__test" an jeden
+// Schluessel (isTestOrigin) - ohne Suffix liest die App nichts und zeigt den Login.
+var GOAL = { kcal: 2200, carbs: 220, protein: 160, fat: 65, sex: "m", age: 34, height: 182,
+             weight: 88, activity: "pal16", mode: "lose", pace: "moderate", training: {},
+             diet: "vegetarisch", avoid: ["glutenfrei"] };
+try {
+  localStorage.setItem("wochenkueche_v1__test", JSON.stringify(
+    { recipes: [], plans: {}, goal: GOAL, onboarded: true, tab: "home", favs: [],
+      planned: {}, shopPersons: 1, viewWeek: "cur" }));
+  localStorage.setItem("wochenkueche_profile_v1__test", JSON.stringify({ name: "Test" }));
+} catch (e) {}
+
+var BREITEN = [360, 390, 560, 720];
+
+async function messe(breite) {
+  var f = document.createElement("iframe");
+  f.style.cssText = "width:" + breite + "px;height:760px;border:0;position:absolute;left:-9999px";
+  // Gegenprobe: ?alt=1 laedt den Stand vor der Aenderung (alt-index.html, aus git HEAD).
+  // Ohne diesen Lauf ist nicht zu unterscheiden, welche Layout-Befunde neu sind.
+  f.src = /(\?|&)alt=1/.test(location.search) ? "/alt-index.html" : "/index.html";
+  document.body.appendChild(f);
+  // Auf ein Merkmal der APP warten, nicht auf readyState: about:blank meldet sofort
+  // "complete", und ein dort gemerktes Dokument bleibt fuer immer leer.
+  await warte(function () { return f.contentDocument && f.contentDocument.querySelector(".app"); });
+  // Ohne Cloud faellt boot() erst nach 6 s auf den lokalen Modus zurueck - solange traegt
+  // .app die Klasse "authing" und die Reiterleiste ist zwar da, aber wirkungslos.
+  await warte(function () {
+    return !f.contentDocument.querySelector(".app").classList.contains("authing");
+  }, 15000);
+  var d = f.contentDocument, w = f.contentWindow;
+  d.querySelector('[data-tab="recipes"]').click();
+  await warte(function () { return d.querySelector('[data-rtab="buch"]'); });
+  d.querySelector('[data-rtab="buch"]').click();
+  await warte(function () { return d.querySelector("#cb-filters"); });
+  // Eine Kategorie aufklappen, damit auch Karten gemessen werden und nicht nur Kopfzeilen.
+  var kopf = d.querySelector("#cb-groups button.cathead");
+  if (kopf) kopf.click();
+
+  var el = d.documentElement, reihe = d.querySelector("#cb-filters");
+  // NACH dem Klick neu greifen: paintCookbook() baut #cb-groups per innerHTML neu auf, der
+  // vorher gemerkte Knoten ist abgehaengt und meldet Hoehe 0 (docs/TESTING.md).
+  kopf = d.querySelector("#cb-groups button.cathead");
+  var m = {
+    breite: w.innerWidth,
+    schmal: w.matchMedia("(max-width: 560px)").matches,
+    // Gegen innerWidth, NICHT gegen clientWidth: Im Rahmen sind die Scrollleisten klassisch
+    // und nehmen ~15 px von clientWidth weg - dagegen geprueft schlaegt der Test IMMER an.
+    seiteScrollt: el.scrollWidth > w.innerWidth,
+    ueberstand: el.scrollWidth - w.innerWidth,
+    reiheScrollt: reihe.scrollWidth > reihe.clientWidth,
+    chips: d.querySelectorAll("#cb-filters button").length,
+    gedrueckt: d.querySelectorAll('#cb-filters button[aria-pressed="true"]').length,
+    karten: d.querySelectorAll("#cb-groups .rcard").length,
+    // Trefferflaechen: 44 px sind Pflicht (CLAUDE.md 26). Bei den Chips gilt die Enge nur in
+    // einer Achse - gemessen wird deshalb die Hoehe.
+    chipHoehe: Math.round(reihe.querySelector("button").getBoundingClientRect().height),
+    kopfHoehe: kopf ? Math.round(kopf.getBoundingClientRect().height) : 0,
+    // Ragt irgendeine Karte ueber den Rahmen hinaus?
+    // Nutzbar ist innerWidth minus der klassischen Scrollleiste - deshalb clientWidth als
+    // Bezug, plus 1 px Toleranz fuer Teilpixel.
+    zuBreit: Array.prototype.filter.call(d.querySelectorAll("#cb-groups .rcard"), function (c) {
+      return c.getBoundingClientRect().right > el.clientWidth + 1;
+    }).length,
+    schlimmste: (function () {
+      var max = 0, wer = "-";
+      Array.prototype.forEach.call(d.querySelectorAll("#cb-groups .rcard"), function (c) {
+        var u = c.getBoundingClientRect().right - el.clientWidth;
+        if (u > max) { max = u; wer = (c.querySelector("h3") || {}).textContent || "?"; }
+      });
+      return Math.round(max) + " px (" + wer + ")";
+    })()
+  };
+  f.remove();
+  return m;
+}
+
+(async function () {
+  document.getElementById("log").textContent = "";
+  for (var i = 0; i < BREITEN.length; i++) {
+    var b = BREITEN[i], m;
+    try { m = await messe(b); }
+    catch (e) { pruef(b + " px: Messung", false, e.message); continue; }
+    LOG.push("--- " + b + " px (gemessen: " + m.breite + " px) ---");
+    // Die tatsaechliche Breite mitloggen, sonst ordnet die Messung nichts ein.
+    pruef(b + " px: der Rahmen hat wirklich diese Breite", m.breite === b, "" + m.breite);
+    pruef(b + " px: die Seite scrollt NICHT waagerecht", !m.seiteScrollt,
+          m.ueberstand + " px zu breit", "waagerecht");
+    pruef(b + " px: keine Karte ragt hinaus", m.zuBreit === 0,
+          m.zuBreit + " Karten, schlimmste " + m.schlimmste, "hinaus");
+    pruef(b + " px: das Profil ist als Chip vorbelegt", m.gedrueckt === 2,
+          m.gedrueckt + " von " + m.chips + " gedrueckt");
+    pruef(b + " px: die Kategorie liess sich aufklappen", m.karten > 0, "" + m.karten);
+    pruef(b + " px: Chips mind. 40 px hoch", m.chipHoehe >= 40, m.chipHoehe + " px");
+    pruef(b + " px: Kopfzeilen mind. 44 px hoch", m.kopfHoehe >= 44, m.kopfHoehe + " px", "kopfhoehe");
+    if (b <= 560) pruef(b + " px: die Mobil-Media-Query greift", m.schmal);
+    // Die Chip-Reihe DARF in sich scrollen - das ist ihr Entwurf (.rfilters). Nur mitgeloggt,
+    // damit sichtbar ist, ab welcher Breite sie es tut.
+    LOG.push("          (Chip-Reihe scrollt in sich: " + (m.reiheScrollt ? "ja" : "nein") + ")");
+    LOG.push("");
+  }
+  LOG.push(bad ? ("FEHLGESCHLAGEN: " + bad + " von " + (ok + bad + altbekannt))
+              : ("Alle " + ok + " Pruefungen gruen, " + altbekannt + " bekannte Altbefunde (siehe oben)."));
+  document.getElementById("log").textContent = LOG.join("\n");
+})();
+</script>

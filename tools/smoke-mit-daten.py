@@ -19,6 +19,7 @@ import io, json, os, re, subprocess, sys, tempfile, shutil
 BASIS = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 INDEX = os.path.join(BASIS, "index.html")
 EDGE = r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe"
+ANKER = '<meta charset="utf-8">'
 
 # Ein Konto, das die App WIRKLICH benutzt hat. Die Schluessel stammen aus index.html
 # (wochenkueche_v1 / wochenkueche_profile_v1) - siehe CLAUDE.md, Ziffer 21: die internen
@@ -49,8 +50,13 @@ seed = (u'<script>window.__fehler=[];'
         u'window.addEventListener("error",function(e){window.__fehler.push((e.message||"")+" @"+(e.lineno||"?"));});'
         u'window.addEventListener("unhandledrejection",function(e){window.__fehler.push("unhandled: "+((e.reason&&e.reason.message)||e.reason));});'
         u'try{'
-        u'localStorage.setItem("wochenkueche_v1", %s);'
-        u'localStorage.setItem("wochenkueche_profile_v1", %s);'
+        # Das "__test"-Suffix ist Pflicht: localKey() haengt es unter file:// und auf
+        # localhost an JEDEN Schluessel (isTestOrigin), damit Testlaeufe die echten Daten
+        # nicht anfassen. Ohne Suffix liest die App gar nichts und zeigt den Login - der
+        # Test misst dann den Anmeldebildschirm. Beide Schreibweisen setzen, damit dieselbe
+        # Datei auch gegen eine echte Herkunft laeuft.
+        u'["wochenkueche_v1","wochenkueche_v1__test"].forEach(function(k){localStorage.setItem(k, %s);});'
+        u'["wochenkueche_profile_v1","wochenkueche_profile_v1__test"].forEach(function(k){localStorage.setItem(k, %s);});'
         u'}catch(e){}</script>' % (json.dumps(json.dumps(STATE)), json.dumps(json.dumps(PROFILE))))
 # Die gesammelten Fehler sichtbar machen, damit --dump-dom sie mitliefert.
 #
@@ -65,9 +71,16 @@ AUSGABE = (u'<script>(function(){var p=document.createElement("pre");p.id="fehle
            u'p.textContent=(window.__fehler||[]).join(" || ")||"keine";'
            u'document.documentElement.appendChild(p);})();</script>')
 
-if "<head>" not in seite:
-    raise SystemExit("Kein <head> gefunden - Aufbau von index.html hat sich geaendert.")
-seite = seite.replace("<head>", "<head>" + seed, 1)
+# Einhaengepunkt ist der charset-Meta, NICHT "<head>": index.html hat gar kein <head>-Tag
+# (der Browser ergaenzt es). Der einzige Treffer fuer "<head>" in der Datei steht in einem
+# JS-Kommentar (bei MOTION) - ein dorthin ersetztes <script> zerschlaegt den Kommentar und
+# damit den ganzen Script-Block. Genau das ist hier passiert: Der Test lief, meldete "keine
+# Fehler" und hatte die Nutzerdaten nie gesetzt. Siehe docs/TROUBLESHOOTING.md.
+# Nach dem charset-Meta und nicht davor: Ein Script vor der Zeichensatzangabe verschiebt sie
+# ueber die 1024-Byte-Grenze hinaus, ab der der Browser sie nicht mehr beachtet.
+if seite.count(ANKER) != 1:
+    raise SystemExit("charset-Meta nicht genau einmal gefunden - Aufbau von index.html hat sich geaendert.")
+seite = seite.replace(ANKER, ANKER + seed, 1)
 # index.html hat KEIN </body> (bewusst, die Datei endet mit </html>) - deshalb dort einhaengen.
 if "</html>" not in seite:
     raise SystemExit("Kein </html> gefunden - Aufbau von index.html hat sich geaendert.")

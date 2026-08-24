@@ -438,7 +438,7 @@ Drei Randfälle werden bewusst behandelt, statt einen zweiten, verwaisten Gruppe
 * `"gone"` — Gruppendokument existiert nicht mehr, oder man steht nicht in der Mitgliederliste. **Nur hier** darf `startCloudSync()` `state.groupId` leeren. Eine **leere** Mitgliederliste zählt ausdrücklich nicht dazu: `getDocs()` wirft offline nicht, sondern liefert das leere Cache-Ergebnis — das ergibt `"error"`.
 * `"error"` — der Zugriff ist gescheitert (Netz, noch nicht veröffentlichte Regeln, Rate-Limit) oder `CloudGroup` ist gar nicht verfügbar. Über die Mitgliedschaft sagt das nichts aus, der Zeiger bleibt stehen, der nächste Start versucht es erneut.
 
-Bei `"error"` setzt `startCloudSync()` zusätzlich `groupSyncFailed = true`. Dieses Flag hält `pushNow()` davon ab, die Felder `groupId` und `plans` überhaupt in das Kontodokument zu schreiben — dank `merge: true` bleibt der vorhandene Cloud-Stand dann unangetastet. Ohne das Flag würde der Fehlerzustand (`syncGid === null`) als `groupId: ""` hochgeschrieben und die Gruppe für **alle** Geräte des Kontos unauffindbar machen. Das reguläre Verlassen ist davon nicht betroffen: `leaveGroup()` schreibt sein `groupId: ""` selbst und explizit.
+Bei `"error"` setzt `startCloudSync()` zusätzlich `groupSyncFailed = true`. Dieses Flag hält `pushNow()` davon ab, die Felder `groupId` und `plans` überhaupt in das Kontodokument zu schreiben — was nicht in der Nutzlast steht, steht auch nicht in `mergeFields`, der vorhandene Cloud-Stand bleibt also unangetastet (siehe „Das Kontodokument wird feldweise ersetzt" unten). Ohne das Flag würde der Fehlerzustand (`syncGid === null`) als `groupId: ""` hochgeschrieben und die Gruppe für **alle** Geräte des Kontos unauffindbar machen. Das reguläre Verlassen ist davon nicht betroffen: `leaveGroup()` schreibt sein `groupId: ""` selbst und explizit.
 
 Der `"gone"`-Zweig räumt bewusst **nicht** mehr per `removeMember()` auf. `CloudGroup.fetch()` liefert `null` für jedes Leseergebnis ohne Dokument — aus einem Lesevorgang darf keine Löschung folgen.
 
@@ -452,11 +452,53 @@ Der `"gone"`-Zweig räumt bewusst **nicht** mehr per `removeMember()` auf. `Clou
 | `groupSyncFailed` | bei `enterGroupSync() === "error"`, im `catch` von `startCloudSync()`, `activateGroup()` und `joinGroup()` | ungeklärte Mitgliedschaft nach einem gescheiterten Zugriff |
 | `groupTransition` | für die Dauer von `activateGroup()`/`joinGroup()`, `finally` räumt auf | Debounce-Push im Fenster zwischen Cloud-Write und `switchGroup()`, in dem `syncGid` der Cloud absichtlich nachhinkt. Beide Funktionen rufen beim Eintritt zusätzlich `clearTimeout(pushTimer)`. |
 
-Ist `groupKnown` false, fehlen `groupId` **und** `plans` im geschriebenen Objekt — dank `merge: true` bleibt der Cloud-Stand unangetastet. Das reguläre Verlassen ist davon nicht betroffen: `leaveGroup()` schreibt sein `groupId: ""` selbst und explizit.
+Ist `groupKnown` false, fehlen `groupId` **und** `plans` im geschriebenen Objekt — sie stehen damit auch nicht in `mergeFields`, der Cloud-Stand bleibt unangetastet. Das reguläre Verlassen ist davon nicht betroffen: `leaveGroup()` schreibt sein `groupId: ""` selbst und explizit.
 
 Aus derselben Logik behandeln die Listener leere Ergebnisse als *ungeklärt*, nicht als Austritt: `watchMembers()` meldet Lesefehler als `null` statt als leere Liste, `onMembersRemote()` steigt bei leerer Liste aus (eine bestehende Gruppe hat immer ≥ 1 Mitglied; das echte Auflösen kommt über `onGroupRemote()`), und `onRemote()` löst bei leerem `remoteGid` **kein** `switchGroup(null)` mehr aus, solange eine Gruppen-Session läuft.
 
 Seit dem Firestore-Offline-Cache gilt dieselbe Vorsicht zusätzlich für `fromCache`-Ergebnisse, nicht nur für leere: siehe „Firestore-Offline-Cache" oben und `docs/TROUBLESHOOTING.md` („`fromCache` ist kein Beweis").
+
+### Das Kontodokument wird feldweise ersetzt, nicht blattweise gemischt (24.08.2026)
+
+```js
+setDoc(doc(db, "users", uid), data, { mergeFields: Object.keys(data) })
+```
+
+**Die Regel:** Was der Aufrufer schickt, wird **ganz** gesetzt; was er weglässt, bleibt liegen.
+Das ist die Semantik, auf die sich `groupKnown`, `leaveGroup()` und die Teil-Schreibvorgänge
+(`{ pendingGroupId: … }`) schon immer verlassen haben.
+
+Bis zum 24.08.2026 stand dort `{ merge: true }` — und das ist etwas anderes: ein **tiefer** Merge
+über Blattpfade. Eine Map, die ohne `diet` ankam, löschte `goal.diet` in Firestore nicht.
+„Vegetarisch → Alles" war damit überhaupt nicht wegzuschreiben, `goal.manual` überlebte den
+Rechner, ein entfernter Trainingstag blieb stehen. Ausführlich in `docs/TROUBLESHOOTING.md`,
+Ziffer 108.
+
+**Zwei Felder ändern dadurch ihre Bedeutung — beide gewollt:**
+
+* `plans` (nur außerhalb einer Gruppe, siehe `groupKnown`) wird **ersetzt**. `state.plans` ist
+  durch `pruneWeeks()` auf aktuelle + nächste Woche beschnitten; die Cloud verliert damit alte
+  Wochen, die sie bisher als Rest mitschleppte. Beim Lesen läuft `pruneWeeks()` ohnehin — der
+  Datensatz wird ehrlicher, nicht ärmer.
+* `weightGoals`, `deleted`, `weightConsent` und `planned` werden ebenfalls **ersetzt**. Alle vier
+  vereinigt `onRemote()` **vor** dem Speichern lokal (`mergeWeights`, `mergeTombstones`,
+  `mergeConsent`, `unionIds`), der lokale Stand ist also bereits der vollständige. Ersetzen ist
+  hier nicht nur unschädlich, sondern die einzige Variante, in der ein Löschen ankommt.
+
+**Nicht betroffen sind die Gruppen-Plandokumente** (`CloudGroup.savePlanWeek`). Dort ist der
+blattweise Merge genau richtig: Zwei Geräte sollen sich nur im selben Slot ins Gehege kommen,
+nicht im ganzen Wochendokument.
+
+**Dazu `ignoreUndefinedProperties: true`** in beiden Zweigen von `initializeFirestore()` (auch im
+Fallback ohne persistenten Cache). Damit verhält sich die Cloud wie `JSON.stringify` und
+`canonJSON()`: Fehlt ein Wert, fehlt das Feld. Es ist ein Netz unter den Sanitizern, kein Ersatz
+für sie — ein still fallengelassenes Feld ist eine Notbremse, kein sauberer Datensatz.
+
+**`pushNow()` unterscheidet jetzt Netz- von Datenfehlern.** Ein Netzfehler (`unavailable`,
+`deadline-exceeded`, `cancelled`, `resource-exhausted`) bleibt stumm und meldet nur „offline“;
+alles andere geht einmalig über `noteError("sync:push", …)` samt Toast hinaus. Der Grund steht in
+Ziffer 108: Ein Datenfehler heilt nicht von selbst, und als „offline“ gemeldet bleibt er
+unsichtbar — obwohl er das gesamte Kontodokument blockiert.
 
 ### Selbstheilung des Zeigers
 
@@ -1027,9 +1069,39 @@ wüsste hinterher niemand mehr, welches Rezept gemeint war. Die Katalog-`id` wir
 `isAdopted()` prüft über `lib`, nicht über den Namen — wer die Kopie umbenennt, soll sie nicht
 ein zweites Mal angeboten bekommen.
 
-**Der Katalog ist nach dem Ernährungsprofil gefiltert** (`cookbookVisible()` → `fitsDiet()`).
-Das ist der erste sichtbare Nutzen des Profils; im Meals-Reiter selbst wird bewusst **nicht**
-gefiltert (siehe `docs/PRODUCT.md`).
+**Der Katalog wird seit dem 24.08.2026 vollständig gezeigt** — `paintCookbook()` und
+`renderRecipes()` lesen `COOKBOOK`, nicht mehr `cookbookVisible()`. Die Einschränkung durch das
+Ernährungsprofil entsteht jetzt über **vorbelegte Filter-Chips** und ist damit sichtbar und
+abschaltbar (Begründung in `docs/PRODUCT.md`).
+
+`seedCookbookFilters()` belegt `cookbookFilters` aus `state.goal.diet`/`.avoid` vor. Zwei Dinge
+daran sind bewusst so:
+
+* **Die Schlüssel brauchen keine Übersetzung.** `DIETS`/`AVOIDS` und `RECIPE_TAGS` verwenden
+  dieselben Bezeichner — es fehlt nur das Präfix `"tag:"`, das `recipeFilterHtml()` setzt.
+* **Auslöser ist eine Signatur, kein Flag.** `cookbookSeedSig` ist `diet + "|" + avoid.join(",")`;
+  ändert sie sich, wird neu vorbelegt. Ein Flag nach dem Muster von `collapsedCatsSeeded` müsste
+  an **drei** Stellen von Hand zurückgesetzt werden — erste Schritte, „Ziele neu berechnen" und
+  `onRemote()` (Cloud-Snapshot). Eine davon übersieht der nächste Umbau, und die Ansicht filterte
+  danach still nach dem alten Profil weiter. `avoid` wird für die Signatur aus `AVOID_KEYS` neu
+  aufgebaut, damit die Tippreihenfolge sie nicht verändert (dieselbe Überlegung wie bei
+  `toggleAvoid()`).
+
+Ein von Hand abgewählter Chip überlebt innerhalb der Sitzung jeden weiteren Aufbau; erst ein
+Profilwechsel belegt neu vor.
+
+**`cookbookVisible()` bleibt unverändert** und behält seine drei Aufrufer, bei denen das Profil
+eine **harte** Grenze ist: `addStarterMeals()` (`docs/TROUBLESHOOTING.md` 91), `pickerQuellen()`
+und der Auto-Planer. Durchlässig wird nur die Ansicht, nie die Automatik.
+
+**Klappbare Kategorien: nur die Textsuche schaltet sie ab.** `filtering` in `paintCookbook()`
+und `paintRecipeGroups()` hängt seither allein an der Suche (`!!q`), nicht mehr an aktiven Chips.
+Sonst wären die Kategorien praktisch nie mehr klappbar — ein aktiver Chip ist hier ja jetzt der
+Regelfall. Die Klapp-**Vorbelegung** (`collapsedCatsSeeded`) prüft weiterhin beides: auf einem
+gefilterten Bestand festgeschrieben, wäre „erste Kategorie mit Inhalt" die erste des Filters.
+
+Im Meals-Reiter selbst wird der eigene Bestand unverändert **nicht** nach dem Profil gefiltert
+(siehe `docs/PRODUCT.md`).
 
 **Warum kein eigener Reiter:** Der `ux-reviewer` hat den Entwurf am 15.08.2026 geprüft und
 zwei tragende Einwände gebracht. Erstens sind die vier Reiter Tätigkeiten — orientieren,
@@ -1281,6 +1353,21 @@ sonst bekäme jedes Bestandsziel allein durchs Laden zwei neue Felder und damit 
 einzeln auf — ein nicht genanntes Feld wäre nach jedem Neuberechnen verschwunden, und das Profil
 überlebte weder eine Wiegung (`syncGoalWeight()`) noch „Ziele neu berechnen". Genau diese Falle
 ist dort schon für `bodyfat` dokumentiert.
+
+**Invariante, seit 24.08.2026: Jedes frisch berechnete Ziel geht durch `sanitizeGoal()`.**
+
+```js
+state.goal = sanitizeGoal(computeGoal(…));   //  IMMER, nicht nur meistens
+```
+
+Beide Aufrufer halten sich daran — der Wizard-Schritt `result` und `syncGoalWeight()`. Der Grund
+ist kein Stilempfinden: `computeGoal()` gibt `diet`/`avoid` unverändert weiter, also auch das
+`undefined`, mit dem `onbGoalInput()` „keine Einschränkung" ausdrückt. `JSON.stringify` verschluckt
+das — Firestore lehnt dafür **das ganze Kontodokument** ab, und der Push wiederholte den Wurf bei
+jedem `save()`. Ausführlich in `docs/TROUBLESHOOTING.md`, Ziffer 108.
+
+`sanitizeGoal()` ist idempotent (im Prüfstand belegt), ein zusätzlicher Durchlauf kostet also
+nichts. Wer eine dritte Stelle anlegt, die `computeGoal()` aufruft, zieht die Hülle mit.
 
 **Onboarding:** ein Bildschirm (`diet`) zwischen Zielwahl und Ergebnis. Vorbelegt mit „Alles",
 weil das die häufigste Antwort ist und niemand tippen soll, um weiterzukommen — anders als bei

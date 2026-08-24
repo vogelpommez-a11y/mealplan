@@ -72,3 +72,6 @@ plans/
 # desselben Codes. Das Skript, das sie baut, ist getrackt.
 # (tools/zutaten-makros.json steht aus demselben Grund schon weiter oben.)
 tools/pruefstand-*.html
+# HANDGESCHRIEBENE Pruefseiten heissen bewusst anders (tools/mobilprobe-*.html): Sie werden
+# nicht erzeugt, sondern gepflegt - unter das Muster oben geraten waeren sie beim naechsten
+# frischen Checkout schlicht weg.

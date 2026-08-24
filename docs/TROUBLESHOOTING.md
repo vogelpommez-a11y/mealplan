@@ -3037,3 +3037,130 @@ eingebunden und damit `overlayStack` doppelt deklariert). Der `window.onerror`-M
 
 **Für Prüfstände gilt derselbe Ablauf wie für die App:** `python syntax-check.py <datei>` zuerst.
 Er nimmt einen Pfad als Argument und benennt Fehler und Zeile in einer Sekunde.
+
+## 108. Ein `undefined` im Ziel legte die ganze Cloud-Sicherung still
+
+**Gemeldet als:** „Ich habe beim Onboarding Vegetarisch gewählt, dann über *Ziele neu berechnen*
+etwas anderes eingestellt — danach hat es nie wieder gespeichert." Der alte Stand kam nach jedem
+Neustart zurück. Betroffen war nicht nur das Ernährungsprofil, sondern **jedes** Feld des
+Kontodokuments: Ziel, Gewichte, Zielgewichte, Favoriten, Profilbild, Einladungscodes.
+
+Drei Ursachen, die sich gegenseitig verdeckt haben.
+
+### (a) `computeGoal()` reicht `undefined` durch — Firestore lehnt das Dokument ab
+
+`onbGoalInput()` schreibt „keine Einschränkung" bewusst nicht als Wert:
+
+```js
+diet:  c.diet && c.diet !== "alles" ? c.diet : undefined,
+avoid: c.avoid && c.avoid.length   ? c.avoid.slice() : undefined,
+```
+
+Das ist richtig — ein Feld, das bei fast allen denselben Wert trägt, ist Ballast im Datensatz.
+`computeGoal()` gibt beide Felder unverändert weiter, und der Kommentar dort sagte schon immer:
+„undefined bleibt undefined, `sanitizeGoal` räumt es danach weg". **Nur lief `sanitizeGoal()` an
+den zwei Stellen nicht, die `computeGoal()` aufrufen** — im Wizard-Schritt `result` und in
+`syncGoalWeight()`.
+
+Lokal fiel das nie auf: `JSON.stringify` verschluckt `undefined` ersatzlos. Das Firestore-SDK
+nicht — es wirft `Unsupported field value: undefined`, und zwar für das **ganze Dokument**.
+
+`syncGoalWeight()` ist dabei der schlimmere der beiden Wege: Dort fehlt der Schlüssel `diet` im
+gespeicherten Ziel meistens **ganz** (weil `sanitizeGoal()` ihn korrekt entfernt hat).
+`Object.assign` kopiert ihn deshalb nicht, `computeGoal()` setzt ihn auf `undefined` — und damit
+kippte **jede Wiegung** eines Kontos ohne Ernährungsprofil die Cloud-Sicherung.
+
+### (b) Der Fehler meldete sich als „offline"
+
+```js
+} catch (e) { lastPushedJSON = null; setSyncStatus("offline"); }
+```
+
+Ein Netzfehler heilt von selbst, ein Datenfehler nie — beide sahen gleich aus. `lastPushedJSON =
+null` sorgte zusätzlich dafür, dass **jeder** weitere `save()` denselben Wurf erneut erzeugte.
+Deshalb blieb der Fehler wochenlang unbemerkt: Der Sync-Punkt stand auf „offline", was in einer
+App, die offline funktionieren soll, wie ein vorübergehender Zustand aussieht.
+
+`pushNow()` unterscheidet jetzt am Fehlercode (`unavailable`, `deadline-exceeded`, `cancelled`,
+`resource-exhausted` = Netz) und meldet alles andere **einmalig** über `noteError()` plus Toast —
+einmal, nicht alle 800 ms (dasselbe Muster wie `cloudTooBigWarned`/`recipesSyncFailed`).
+
+**Die allgemeine Regel:** Ein `catch`, der zwei Fehlerklassen mit derselben Meldung abfrühstückt,
+versteckt die schlimmere von beiden. Wenn eine davon nicht von selbst weggeht, muss sie sich
+unterscheiden lassen.
+
+### (c) `merge: true` kann ein Feld gar nicht löschen — das falsche Werkzeug von Anfang an
+
+`CloudSync.save()` schrieb mit `setDoc(..., { merge: true })`. Das ist ein **tiefer** Merge über
+Blattpfade: Eine Map, die ohne `diet` ankommt, löscht `goal.diet` in Firestore nicht.
+**„Vegetarisch → Alles" war über diesen Weg grundsätzlich nicht wegzuschreiben**, auch nach dem
+Fix von (a) nicht.
+
+Der Kommentar an der Stelle beschrieb die Absicht völlig korrekt („schreibt nur die übergebenen
+Felder und lässt alles andere stehen") — nur ist das die Semantik von **`mergeFields`**, nicht die
+von `merge: true`. Ein Kommentar, der die Absicht beschreibt, ist kein Beleg dafür, dass der Code
+sie umsetzt.
+
+Zwei weitere, bereits dokumentierte Entscheidungen hingen still daran:
+
+* **`manual: true`** (Ziffer 74) verschwand nach „Ziele neu berechnen" nur lokal. In der Cloud
+  blieb es stehen und kam beim nächsten Start zurück — der Rechner hob die Handmarke also
+  **nicht** dauerhaft auf, entgegen der dortigen Zusage.
+* Ein entfernter Trainingstag in `goal.training` und ein gelöschtes Jahr in `weightGoals`
+  überlebten in der Cloud.
+
+Jetzt `{ mergeFields: Object.keys(data) }`: Was der Aufrufer schickt, wird **ganz** ersetzt; was
+er weglässt, bleibt unangetastet. Die Teil-Schreibvorgänge (`{ pendingGroupId: … }`) verhalten
+sich unverändert.
+
+**Zwei Felder ändern dadurch ihre Semantik, beide gewollt:** `plans` (nur außerhalb einer Gruppe)
+wird ersetzt statt gemischt — `state.plans` ist durch `pruneWeeks()` ohnehin beschnitten, und
+beim Lesen läuft `pruneWeeks()` erneut. `weightGoals`, `deleted`, `weightConsent` und `planned`
+werden ebenfalls ersetzt; alle vier werden in `onRemote()` **vor** dem Speichern lokal vereinigt,
+der lokale Stand ist also bereits der vollständige.
+
+### Was den Fehler unsichtbar hielt
+
+Der Nutzer sah eine App, die lokal alles richtig anzeigte. Erst der Neustart holte den alten
+Stand zurück — und da war die Verbindung zur eigenen Änderung längst verloren. Genau deshalb sind
+(a) und (b) getrennt behoben worden: (a) macht den Datensatz sauber, (b) sorgt dafür, dass der
+nächste Fehler dieser Art beim ersten Auftreten sichtbar ist.
+
+`ignoreUndefinedProperties: true` liegt jetzt zusätzlich als Netz unter den Sanitizern (beide
+Zweige von `initializeFirestore()`, auch der Fallback ohne persistenten Cache). Es ersetzt sie
+nicht: Ein still fallengelassenes Feld ist eine Notbremse, kein sauberer Datensatz.
+
+## 109. Zwei Prüfwerkzeuge, die seit ihrer Entstehung nichts geprüft haben
+
+Beim Bau des Prüfstands für Ziffer 108 fiel auf, dass `tools/smoke-mit-daten.py` seinen Zweck nie
+erfüllt hat. Zwei Gründe, beide auch für jeden künftigen Prüfstand relevant.
+
+### `index.html` hat gar kein `<head>`-Tag
+
+Die Datei beginnt mit `<!doctype html>`, `<html lang="de">` und dann direkt den Meta-Tags — der
+Browser ergänzt `<head>` selbst. Der **einzige** Treffer für die Zeichenkette `<head>` in der
+ganzen Datei steht in einem JS-Kommentar (bei `MOTION`, rund um Zeile 8200).
+
+`seite.replace("<head>", "<head>" + seed, 1)` setzte das Seed-Script also **mitten in einen
+Kommentar** — das zerschlägt die Kommentarzeile, beendet den `<script>`-Block und schaltet damit
+das halbe App-Script ab. Der Test lief trotzdem durch und meldete „keine Fehler", weil seine
+Auswertung an `</html>` hing und dort intakt ankam.
+
+**Einhängepunkt ist jetzt `<meta charset="utf-8">`** — genau einmal in der Datei, und der Test
+bricht ab, wenn das nicht mehr stimmt. **Dahinter, nicht davor:** Ein Script vor der
+Zeichensatzangabe schiebt sie über die 1024-Byte-Grenze hinaus, ab der der Browser sie ignoriert.
+
+### `localKey()` hängt unter `file://` und auf `localhost` ein `__test` an
+
+`isTestOrigin()` ist ausdrücklich so gebaut, damit Testläufe die echten Daten nicht anfassen.
+Die Schlüssel heißen dort also `wochenkueche_v1__test` und `wochenkueche_profile_v1__test`.
+Wer nur `wochenkueche_v1` setzt, sät ins Leere: Die App liest nichts und zeigt den Login — der
+Test misst dann den Anmeldebildschirm und hält ihn für einen gesunden Start.
+
+Beide Prüfstände setzen jetzt **beide** Schreibweisen. Nach der Reparatur zeigt
+`smoke-mit-daten.py` tatsächlich den Wochenplan.
+
+**Die allgemeine Lehre, und sie ist die wichtigere:** Ein Prüfstand, der noch nie rot war, ist
+kein Beweis, sondern ein Verdachtsfall. Die Gegenprobe gegen den Stand **vor** der Änderung ist
+deshalb keine Kür — `tools/pruefstand-rezeptbuch-ansicht.py` nimmt dafür einen Dateipfad als
+Argument, `tools/mobilprobe-rezeptbuch.html` einen `?alt=1`-Schalter.

@@ -491,10 +491,34 @@ Im Meals-Reiter gibt es zwei Ansichten: **Meine Meals** und **Rezeptbuch** — e
 Katalog, aus dem man mit einem Tipp übernimmt. Was man übernimmt, ist eine **Kopie**: Sie
 gehört danach dem Nutzer und darf frei bearbeitet werden.
 
-**Der Katalog ist nach dem Ernährungsprofil gefiltert.** Wer vegan gewählt hat, sieht vegane
-Meals. Das ist der erste sichtbare Nutzen des Profils.
+**Das Ernährungsprofil ist ein vorbelegter Filter, keine Wand (seit 24.08.2026).**
+Wer vegan gewählt hat, sieht beim Öffnen vegane Meals — der Chip „Vegan" ist von selbst
+gedrückt. Er lässt sich aber **abschalten**, und dann steht der ganze Katalog da.
 
-**Im eigenen Bestand wird dagegen nicht gefiltert** — die Meals dort hat der Nutzer selbst
+Vorher war das Profil ein unsichtbarer Vorfilter. Das war aus zwei Gründen falsch:
+
+* **Die Einschränkung war nicht erklärt.** Ein kürzerer Katalog sah aus wie ein kleinerer
+  Katalog. Der Hinweistext darunter („Passend zu deiner Auswahl …") versuchte das zu erklären —
+  ein Chip, der die Sache selbst zeigt und den man antippen kann, ist die bessere Antwort, und
+  der Text fällt damit weg (`CLAUDE.md` §7).
+* **Sie war nur über das Ziel zu lösen.** Wer einmal etwas anderes sehen wollte, musste „Ziele
+  neu berechnen" durchlaufen — einen fünfzehnschrittigen Ablauf über Körperdaten und Training,
+  nur um einen Blick in den Katalog zu werfen. Genau dieser Umweg hat den Speicherfehler von
+  Ziffer 108 (`docs/TROUBLESHOOTING.md`) überhaupt erst zutage gefördert. Das Ziel ist für
+  Kalorien und Makros da, nicht als Fernbedienung für eine Liste.
+
+**Die Automatik bleibt streng.** Durchlässig ist nur die **Ansicht**. Überall dort, wo die App
+statt des Menschen entscheidet, ist das Profil weiter eine harte Grenze — Startmeals,
+Picker-Vorschläge, Auto-Planer (alle über `cookbookVisible()`, unverändert). Das ist die Grenze
+zwischen „der Mensch entscheidet" und „die App entscheidet": Ein Veganer, dem die App von sich
+aus ein Steak einplant, ist ein Fehler. Ein Veganer, der bewusst nachsieht, was es sonst noch
+gibt, ist ein Nutzer.
+
+**Ein abgewählter Chip gilt für die Sitzung, nicht für immer.** Beim nächsten Start ist das
+Profil wieder vorbelegt — es beschreibt ja, wie jemand isst, nicht was er einmal nachgeschlagen
+hat.
+
+**Im eigenen Bestand wird dagegen gar nicht gefiltert** — die Meals dort hat der Nutzer selbst
 angelegt, sie zu verstecken wäre Bevormundung. Vorschläge filtern, Eigenes nie.
 
 ### Die 30 Rezepte (15.08.2026)
@@ -598,8 +622,11 @@ Die Meal-Karte zeigt höchstens zwei gerechnete Badges („Proteinreich", „Low
 
 * **Es hätte keine Trennschärfe.** 24 von 34 Rezepten sind vegetarisch, 15 vegan — ein Badge auf
   drei Vierteln der Karten informiert nicht mehr, es wird Tapete. Badges leben von Seltenheit.
-* **Im Rezeptbuch wäre es redundant.** Der Katalog ist bereits nach der Ernährungsform gefiltert;
-  wer vegan gewählt hat, sieht ausschließlich vegane Meals.
+* **Im Rezeptbuch wäre es meistens redundant.** Der Katalog ist beim Öffnen nach der
+  Ernährungsform vorgefiltert; wer vegan gewählt hat, sieht zunächst ausschließlich vegane Meals.
+  Seit dem 24.08.2026 lässt sich dieser Chip abschalten — dann steht der volle Katalog da, und
+  ein Badge hätte dort wieder Trennschärfe. Der erste Einwand bleibt trotzdem bestehen und
+  trägt allein: Drei Viertel der Karten wären beklebt.
 * **Es verdeckt das Bild.** Die Badges liegen als Overlay auf dem Foto — und die Fotos sind gerade
   der Grund, warum die Karten überhaupt hochwertig wirken.
 
