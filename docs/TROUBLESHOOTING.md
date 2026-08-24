@@ -3164,3 +3164,164 @@ Beide Prüfstände setzen jetzt **beide** Schreibweisen. Nach der Reparatur zeig
 kein Beweis, sondern ein Verdachtsfall. Die Gegenprobe gegen den Stand **vor** der Änderung ist
 deshalb keine Kür — `tools/pruefstand-rezeptbuch-ansicht.py` nimmt dafür einen Dateipfad als
 Argument, `tools/mobilprobe-rezeptbuch.html` einen `?alt=1`-Schalter.
+
+## 110. Das versprochene `render()`, das es nie gab
+
+**Gemeldet als:** „Die Nährwerte im Wochenplan bleiben nach dem Bearbeiten stehen." Der Zustand
+war korrekt, nur die Anzeige alt — die kcal je Slot-Karte, die Tagesbilanz und die klebende
+Leiste `#day-bal` standen auf dem alten Wert, bis irgendetwas anderes neu zeichnete
+(Reiterwechsel, Drag&Drop, ein Cloud-Snapshot).
+
+`commitNow()` endete mit:
+
+```js
+save();
+if (view.querySelector("#r-groups")) paintRecipeGroups();
+```
+
+`#r-groups` gibt es nur im Meals-Reiter. Der Kommentar darüber versprach ausdrücklich, über dem
+Wochenplan genüge ein `render()` **nach** dem Schließen, „siehe `attemptClose()`/`[data-close]`".
+**Dieses `render()` existierte an keiner der drei genannten Stellen.** `attemptClose()` →
+`finishClose()` machte nur `restoreFocusTarget()` + `closeModal()`; `closeModal()` leert
+`modalRoot`; der `[data-close]`-Handler ist schlicht `closeModal`.
+
+**Ein Kommentar, der eine Stelle nennt, ist kein Beleg dafür, dass es sie gibt.** Dieselbe
+Fehlerklasse wie bei `merge: true` in Ziffer 108 — dort beschrieb der Kommentar korrekt eine
+Absicht, die der Code nicht umsetzte.
+
+### Die eigentliche Arbeit steckte nicht im `render()`, sondern in der Frage „hat sich was geändert?"
+
+Ein `render()` bei **jedem** Schließen wäre falsch: `commitNow()` läuft auch beim bloßen
+Hineinsehen — `attemptClose()` ruft es, und jedes `focusout` ebenfalls. Der Wochenplan würde
+dann bei jedem Blick in ein Meal komplett neu gezeichnet.
+
+Zwei Anläufe waren nötig, und beide Fehlschläge sind lehrreich:
+
+**(a) Signatur vor/nach `mutateLocal()` innerhalb von `commitNow()` — maß nichts.**
+`scheduleCommit()` ruft `mutateLocal()` bereits beim `input`-Ereignis. Das nachfolgende
+`commitNow()` sah vorher wie nachher denselben, längst geänderten Wert. Die Marke blieb `false`,
+**der Fehler sah behoben aus, ohne behoben zu sein** — der Prüfstand hat das gefangen, das
+Codelesen nicht.
+
+**(b) `canonJSON()` über das ganze Objekt, verglichen mit dem Stand beim Öffnen — schlug zu oft
+an.** `mutateLocal()` normalisiert nebenbei: Ein Meal ohne `steps` bekommt `""`, ein leeres
+`tags: []` wird gelöscht. Das ist keine Nutzeränderung, zählte aber als eine.
+
+**Die Signatur beschreibt jetzt ausdrücklich nur die Felder, die dieses Formular schreibt** —
+`name`, `category`, `ingredients`, `nutrition`, `steps`, `tags`, `mealPrep` — und zwar in
+derselben normalisierten Form, in der `mutateLocal()` sie ablegt. `image` bleibt draußen (ein
+eigenes Foto ist Base64; der Vergleich wäre ein megabytegroßer String bei jedem `focusout`), die
+beiden Foto-Knöpfe melden sich stattdessen selbst.
+
+**Allgemein:** Eine „hat sich etwas geändert?"-Prüfung muss gegen den Stand **beim Öffnen**
+vergleichen, nicht gegen den Stand kurz vor dem Schreiben — und sie muss wissen, welche Felder
+überhaupt zur Frage gehören.
+
+### Und die Reihenfolge in `finishClose()` ist nicht beliebig
+
+```js
+function finishClose() {
+  if (sheetDirty() && !view.querySelector("#r-groups")) render();
+  restoreFocusTarget(recId);
+  closeModal();
+}
+```
+
+`render()` steht **vor** `restoreFocusTarget()`. Das merkt sich einen **Knoten** in `lastFocused`,
+und `render()` ersetzt `view` komplett per `innerHTML`. Andersherum wäre der gemerkte Knopf danach
+abgehängt, `closeModal()` prüft `document.contains()` — und der Fokus fiele ins Nichts. Die
+Exit-Animation ist davon nicht betroffen: `finishClose` läuft ohnehin erst nach `closeWithMotion`.
+
+### Der Prüfstand hat gleich den nächsten Fehler mitgebracht: `macroOverridden`
+
+Der erste Entwurf des Prüfstands testete den Fall „nur hineingesehen, nichts geändert" mit einem
+Meal **ohne Zutaten** — aufgefallen ist das dem `kvp`-Agenten, nicht mir. Mit gemischten Zutaten
+(Freitext, Objekt mit Einheit, Objekt mit Nährwerten) fiel er sofort um, und zwar härter als
+erwartet: **Beim bloßen Öffnen wurden aus 500 gespeicherten kcal 440.**
+
+`macroOverridden` lebte **innerhalb** von `openMealSheet()` und startete bei jedem Öffnen auf
+`false`. `updateMacroSum()` schrieb daraufhin die Zutatensumme in die Felder, und der erste
+`commitNow()` — den schon das Schließen auslöst — machte sie dauerhaft. Wer seine Makros von
+Hand gesetzt hatte, verlor sie beim nächsten **Öffnen** des Editors, ohne etwas zu tun.
+
+**Die Übersteuerung ist eine Eigenschaft des Meals, kein Sitzungszustand.** Sie wird deshalb aus
+den Daten abgeleitet: Weicht das gespeicherte `nutrition` von der Zutatensumme ab, war es von
+Hand gesetzt. Kein neues Datenfeld nötig, rückwärtskompatibel.
+
+**Zwei Details entscheiden, ob das funktioniert:**
+
+* **Aus den DATEN rechnen, nicht aus dem DOM,** und die Marke **vor** dem Aufbau der
+  Zutatenzeilen setzen. `addIngRow()`/`openIngEdit()` rufen `updateMacroSum()` bereits selbst —
+  genau dieser Aufruf überschreibt die Felder, solange die Marke noch `false` ist. Eine
+  Ableitung nach der Schleife kam nachweislich zu spät: Der Reset-Knopf erschien dann korrekt,
+  im Feld stand aber längst die Summe. Das war erst an einer Messung von `#f-kcal` direkt nach
+  dem Aufbau zu sehen, nicht am Ergebnis.
+* **Auf dieselbe Genauigkeit runden, in der `updateMacroSum()` schreibt** (kcal ganzzahlig,
+  Makros auf eine Nachkommastelle). Sonst gilt ein Rundungsrest als Übersteuerung, und
+  „Automatisch übernehmen" stünde dauerhaft da.
+
+**Allgemein, und das ist die Lehre aus Ziffer 74 in neuer Form:** Jede Funktion, die abgeleitete
+Werte neu berechnet, braucht eine Antwort auf die Frage „und wenn der Nutzer sie selbst gesetzt
+hat?". Steht die Antwort in einer Variablen, die bei jedem Öffnen neu entsteht, ist sie keine
+Antwort.
+
+### Was `sheetDirty()` ausdrücklich NICHT erkennt
+
+Gleichzeitiges Bearbeiten desselben Meals auf zwei Geräten bleibt **last-write-wins**.
+`mutateLocal()` schreibt beim Schließen alle Formularfelder zurück, unabhängig davon, ob
+zwischenzeitlich ein Remote-Snapshot dieselben Felder geändert hat — nur die *Löschung* des Meals
+wird über `openSheetRemovedCb` abgefangen, ein reines Update nicht. `sheetDirty()` vergleicht
+dabei gegen den Stand beim Öffnen, sieht also „unverändert" und meldet keinen Konflikt.
+
+Das ist **kein neues Verhalten** — `commitNow()` schrieb beim Schließen schon immer —, aber
+`sheetDirty()` ist ab jetzt die Stelle, an der man es vermuten würde. Wer einem künftigen
+Sync-Fehler nachgeht, sucht ihn dort vergeblich (Fund des `kvp`-Agenten).
+
+## 111. Eine Filterschwelle direkt neben der Zahl, die die App selbst erzeugt
+
+`recipeFilterHtml()` begann mit `if (liste.length < 6) { aktive.clear(); return ""; }`.
+`addStarterMeals()` legt nach dem Onboarding genau `STARTER_ANZAHL = 5` Meals an.
+
+**5 < 6 — jeder neue Nutzer sah seine Startmeals ohne eine einzige Filterzeile**, bis er das
+sechste Meal anlegte. Die Schwelle war als Schutz gegen eine Chip-Reihe über zwei Karten gedacht;
+sie stand aber genau eine Position neben der Zahl, die die App selbst erzeugt. Das ist kein
+Grenzfall, das ist der Regelfall.
+
+Schwelle jetzt `< 4`. Dazu die zweite Hälfte, ohne die die erste das Problem nur verlagert hätte:
+**ein Merkmal wird nur zum Chip, wenn es auf mindestens einen und nicht auf alle Einträge
+zutrifft.** Nachgerechnet ergäbe die gesenkte Schwelle allein über den fünf Startmeals eines
+Veganers sechs Chips, davon zwei („Vegan", „Vegetarisch") auf *alle fünf* zutreffend. Ein Filter
+ist ein Werkzeug zum Wegnehmen; trifft er auf alles zu, nimmt er nichts weg.
+
+**Merkregel für Schwellenwerte:** Wenn die App selbst eine Anzahl erzeugt, muss jede Schwelle in
+ihrer Nähe gegen genau diese Zahl geprüft werden — nicht gegen einen gefühlten Normalfall.
+
+## 112. `weekLabel()` war zweimal deklariert — und die falsche gewann
+
+Zwei Top-Level-Function-Declarations gleichen Namens im selben Script-Block:
+
+* eine erwartete einen ISO-Wochenschlüssel (`"2026-W33"`) → `"KW 33 · 10.08."`
+* eine erwartete eine Zahl (Wochen-Offset) → `"Woche 29 · 13.–19. Juli"`
+
+Durch Hoisting gewinnt die **spätere** für alle Aufrufer. Die acht Aufrufstellen mit
+Wochenschlüssel rechneten deshalb `getDate() + "2026-W33" * 7` → `NaN`. **Live gemessen:**
+
+```
+Woche NaN · NaN. undefined – NaN. undefined: 88,5 Kilogramm
+```
+
+Betroffen waren das Gewichtsdiagramm samt `aria-label` und `<title>` je Punkt, die Kennzahl unter
+der Kurve, das Wochen-Dropdown, die Liste im Verwalten-Dialog samt Lösch-Beschriftung und der
+Toast nach dem Wiegen. Der Fehler war **still**: keine Ausnahme, nur `NaN` im Text.
+
+Die Wochenschlüssel-Variante heißt jetzt `weekKeyLabel()`, die acht Aufrufer sind mitgezogen.
+
+**Verifikation vor dem Fix, nicht danach** — der Plan verlangte das ausdrücklich, und zu Recht:
+Die Klammerbilanz ist als Beweis untauglich (Regex- und Template-Literale verfälschen sie), und
+`weekLabel()` lebt im IIFE, ist also von außen nicht aufrufbar. Bewiesen wurde es über die
+**Anzeige** (`tools/pruefstand-wochenbeschriftung.py`), mit der Hero-Zeile als Gegenprobe: Die
+Zahl-Variante musste unverändert ihre eigene Form behalten.
+
+**Allgemein:** Zwei gleichnamige Funktionsdeklarationen sind kein Syntaxfehler und keine Warnung.
+Der Linter, der das fände, existiert in diesem Projekt nicht — die einzige Verteidigung ist, bei
+`grep -n "function name"` auf die **Anzahl** der Treffer zu sehen.

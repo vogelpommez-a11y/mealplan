@@ -1,7 +1,10 @@
 # Ausschneide-Pruefstand Rezeptbuch: Katalog, Profilfilter, Uebernahme und Bildwahl.
-import io, json, os, re
+import io, json, os, re, sys
 
-SRC = r"C:\Users\Paddy\Documents\Paddys Mealplan\index.html"
+# Gegenprobe: Der Pruefstand nimmt wahlweise eine andere Datei entgegen, damit er gegen den
+# Stand VOR einer Aenderung laufen kann. Ohne diesen Lauf beweist er nichts.
+#   git show HEAD:index.html > alt.html && python tools/pruefstand-rezeptbuch.py alt.html
+SRC = os.path.abspath(sys.argv[1]) if len(sys.argv) > 1 else r"C:\Users\Paddy\Documents\Paddys Mealplan\index.html"
 OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "pruefstand-cookbook.html")
 lines = io.open(SRC, encoding="utf-8").read().split("\n")
 
@@ -87,6 +90,12 @@ function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function
   return ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]; }); }
 function libraryRecipes() { return state.recipes.filter(function (r) { return r.quick !== true; }); }
 var recipeFilters = new Set();
+// adoptFromCookbook() zieht eingeplante Slots auf die neue Kopie um. Hier nur mitzaehlen:
+// Der Wochenplan gehoert nicht zu dem, was dieser Pruefstand pruefen soll, aber OHNE den
+// Stub bricht die Seite mit "rewritePlanIds is not defined" ab - und zwar erst BEIM
+// AUFRUF, also mitten im Lauf. Der Pruefstand meldete dann nur noch die Fehlerzeile.
+var umgeschrieben = [];
+function rewritePlanIds(alt, neu) { umgeschrieben.push([alt, neu]); }
 
 __CODE__
 
@@ -314,12 +323,40 @@ __CODE__
   // ---- Filter-Chips: dieselbe Reihe fuer zwei Bestaende ----
   var eigene = new Set(), katalog = new Set();
   var reihe = recipeFilterHtml(COOKBOOK, katalog, "cb-filters");
-  pruef("Chip-Reihe erscheint ab sechs Eintraegen", reihe.indexOf("cb-filters") !== -1, true);
+  pruef("Chip-Reihe erscheint ueber dem Katalog", reihe.indexOf("cb-filters") !== -1, true);
   pruef("vegan ist als Chip dabei", reihe.indexOf("Vegan") !== -1, true);
   pruef("vegetarisch ist als Chip dabei", reihe.indexOf("Vegetarisch") !== -1, true);
   pruef("Meal-Prep ist als Chip dabei", reihe.indexOf("Meal-Prep") !== -1, true);
-  pruef("unter sechs Eintraegen keine Reihe",
+  pruef("unter vier Eintraegen keine Reihe",
     recipeFilterHtml(COOKBOOK.slice(0, 3), katalog, "cb-filters"), "");
+
+  // ---- Die Startmeals sehen ihre Filter (Punkt 3 der Alltagsbefunde, 24.08.2026) ----
+  // Die Schwelle stand auf "< 6", addStarterMeals() legt STARTER_ANZAHL = 5 an. Jeder neue
+  // Nutzer sah seine Startmeals also ohne eine einzige Filterzeile. Das ist kein Grenzfall,
+  // das ist der Regelfall - deshalb ist die Zahl hier ausdruecklich mitgeprueft.
+  pruef("die App legt weiterhin genau 5 Startmeals an", STARTER_ANZAHL, 5);
+  ["alles", "vegetarisch", "vegan"].forEach(function (diet) {
+    state.goal = { diet: diet };
+    state.recipes = [];
+    addStarterMeals();
+    var liste = libraryRecipes();
+    pruef("Startmeals fuer " + diet + ": " + liste.length + " Stueck", liste.length, 5);
+    var s2 = new Set();
+    var r2 = recipeFilterHtml(liste, s2, "r-filters");
+    pruef("Startmeals fuer " + diet + " zeigen eine Filterreihe", r2.indexOf("r-filters") !== -1, true);
+    // Und keinen Chip, der auf ALLE fuenf zutrifft - der naehme nichts weg. Genau das waere
+    // bei "vegan" passiert: "Vegan" und "Vegetarisch" treffen dort auf jedes der fuenf Meals.
+    var wirkungslos = [];
+    RECIPE_TAGS.forEach(function (t) {
+      var n = liste.filter(function (r) { return (r.tags || []).indexOf(t.key) !== -1; }).length;
+      if (n === liste.length && r2.indexOf('data-f="tag:' + t.key + '"') !== -1) wirkungslos.push(t.key);
+    });
+    pruef("kein wirkungsloser Chip bei " + diet, wirkungslos, []);
+    // Gegenprobe zur Gegenprobe: Es muss ueberhaupt Chips geben, sonst ist "keiner
+    // wirkungslos" trivial wahr.
+    pruef("und es gibt ueberhaupt Chips bei " + diet, (r2.match(/data-f=/g) || []).length > 0, true);
+  });
+  state.goal = null; state.recipes = [];
 
   // Die beiden Zustaende duerfen sich NICHT beeinflussen
   katalog.clear(); eigene.clear();

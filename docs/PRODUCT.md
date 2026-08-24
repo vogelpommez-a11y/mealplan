@@ -524,9 +524,22 @@ angelegt, sie zu verstecken wäre Bevormundung. Vorschläge filtern, Eigenes nie
 ### Die 30 Rezepte (15.08.2026)
 
 Der Katalog ist vollständig: **34 Rezepte in allen sechs Kategorien** — 7 Frühstück,
-16 Hauptgerichte, 5 Snacks, 2 Desserts, 2 Beilagen, 2 Getränke. Die Aufteilung ist keine
+16 Hauptgerichte, 4 Snacks, 2 Desserts, 2 Beilagen, 3 Getränke. Die Aufteilung ist keine
 Gleichverteilung, sondern folgt dem Wochenplan: Mittag und Abend sind vierzehn Slots pro Woche,
 Dessert und Getränk je einer.
+
+**Der Eiweißshake ist am 24.08.2026 von „Snack" auf „Getränk" gewechselt.** Über `CAT_TO_MEAL`
+ist „Snack" exklusiv an den Slot `sn` gebunden — ein Shake mit 414 kcal und 35 g Protein war
+damit von Hand nirgendwo sonst planbar, obwohl ein Shake zum Frühstück oder nach dem Training
+der Normalfall ist. Der zweite Shake im Katalog stand von Anfang an als „Getränk" da; dieser
+hier war die Abweichung.
+
+Zwei Folgen, beide gewollt: Von Hand ist er jetzt in **jeden** Slot planbar, und der Auto-Planer
+plant ihn **nicht mehr** automatisch ein — `catPlanFitsMeal()` ist bewusst enger, seit der Planer
+am 16.08.2026 vier Shakes ins Mittagessen gelegt hatte. **Gegengerechnet, die Auswahl trägt es:**
+Für den `sn`-Slot des Planers bleiben 4 Snacks plus 2 Desserts (Dessert hängt über `CAT_TO_MEAL`
+ebenfalls an `sn`) — sechs Kandidaten. Der Shake war der kalorienreichste davon; sein Wegfall
+macht den Snack-Slot eher besser.
 
 **Ausgerichtet auf Fitness und Meal-Prep, nicht auf Vielfalt um ihrer selbst willen:**
 

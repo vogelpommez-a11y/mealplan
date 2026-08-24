@@ -787,7 +787,13 @@ Das Feld heißt weiterhin `m` — es steckt in gespeicherten Daten und in der Cl
   Näherung, wenn der Tag nicht mehr bekannt ist)
 
 Hilfsfunktionen: `weightKeyNow(dt)`, `validWeightKey(s)`, `weekNumOf(s)`, `weekMonday(key)`
-(über den 4. Januar, der per ISO immer in KW 1 liegt) und `weekLabel(key)` → `"KW 33 · 10.08."`.
+(über den 4. Januar, der per ISO immer in KW 1 liegt) und `weekKeyLabel(key)` →
+`"KW 33 · 10.08."`.
+
+**`weekKeyLabel`, nicht `weekLabel`** (24.08.2026): Der Name kollidierte mit einer zweiten
+Top-Level-Funktion, die einen Wochen-**Offset** als Zahl erwartet (`appHeroHtml()`). Durch
+Hoisting gewann die spätere für alle Aufrufer, und der Gewichtsverlauf zeigte live
+„Woche NaN · NaN. undefined". Siehe `docs/TROUBLESHOOTING.md` 112.
 
 Das Diagramm verteilt die Wochennummer 1–52 über die feste Jahresbreite und zeichnet ab vier
 Messungen zusätzlich den **gleitenden Durchschnitt über vier Messungen** (`.wch-avg`); die

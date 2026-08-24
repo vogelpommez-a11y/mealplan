@@ -4437,8 +4437,15 @@
       ],
       steps: "Kartoffeln würfeln, mit Olivenöl und Rosmarin vermengen und im Ofen bei 200 °C ca. 25 Min. rösten. Steak salzen, pfeffern und in einer heißen Pfanne von jeder Seite 2–3 Min. braten, dann kurz ruhen lassen – sonst läuft der Saft aus. Brokkoli dämpfen und alles anrichten." },
 
+    // "Getränk", nicht "Snack" (24.08.2026): Ueber CAT_TO_MEAL ist "Snack" exklusiv an den
+    // Slot sn gebunden - der Shake war von Hand nirgendwo sonst planbar, obwohl ein Shake zum
+    // Fruehstueck oder nach dem Training der Normalfall ist. Der zweite Shake im Katalog
+    // (beeren-protein-shake-hafer) stand von Anfang an als "Getränk" da; das hier war die
+    // Abweichung. Zwei gewollte Folgen: von Hand ueberall planbar (catFitsMeal laesst
+    // Getraenke ueberall zu), und der Auto-Planer plant ihn NICHT mehr automatisch ein -
+    // catPlanFitsMeal ist bewusst enger, seit der Planer vier Shakes ins Mittagessen legte.
     { id: "eiweissshake-mit-whey-und-milch", name: "Eiweißshake mit Whey und Milch",
-      category: "Snack", time: 5, tags: ["highprotein", "vegetarisch", "glutenfrei"], mealPrep: false,
+      category: "Getränk", time: 5, tags: ["highprotein", "vegetarisch", "glutenfrei"], mealPrep: false,
       img: "eiweissshake-mit-whey-und-milch.webp",
       nutrition: { kcal: 414, carbs: 40, protein: 35, fat: 13 },
       ingredients: [
@@ -8632,7 +8639,15 @@
   }
   // Beschriftung einer Wiegung (B2): "KW 33 · 10.08." - die Kalenderwoche allein ist im
   // Alltag schwer einzuordnen, das Datum des Montags verankert sie.
-  function weekLabel(k) {
+  //
+  // weekKEYLabel, nicht weekLabel: Sie hiess bis zum 24.08.2026 genauso wie die Funktion
+  // weiter unten, die einen Wochen-OFFSET als Zahl erwartet (appHeroHtml). Zwei Top-Level-
+  // Declarations gleichen Namens im selben Script - durch Hoisting gewann die spaetere fuer
+  // ALLE Aufrufer, und diese hier wurde nie ausgefuehrt. Der Gewichtsverlauf zeigte deshalb
+  // live "Woche NaN · NaN. undefined". Siehe docs/TROUBLESHOOTING.md.
+  //
+  // Der Parameter ist ein ISO-Wochenschluessel ("2026-W33"), NICHT eine Zahl.
+  function weekKeyLabel(k) {
     const d = weekMonday(k);
     return "KW " + weekNumOf(k) + " · " + String(d.getDate()).padStart(2, "0") + "." + String(d.getMonth() + 1).padStart(2, "0") + ".";
   }
@@ -8753,8 +8768,8 @@
     // waere hier das groessere Uebel.
     const hitR = Math.max(11, Math.min(18, plotW / 11 / 2)).toFixed(1);
     const dots = rows.map(r =>
-      `<g class="wch-pt" tabindex="0" role="img" data-m="${r.m}" aria-label="${esc(weekLabel(r.m))}: ${kgfmt(r.kg)} Kilogramm">
-         <title>${esc(weekLabel(r.m))}: ${kgfmt(r.kg)} kg</title>
+      `<g class="wch-pt" tabindex="0" role="img" data-m="${r.m}" aria-label="${esc(weekKeyLabel(r.m))}: ${kgfmt(r.kg)} Kilogramm">
+         <title>${esc(weekKeyLabel(r.m))}: ${kgfmt(r.kg)} kg</title>
          <circle class="wch-hit" cx="${px(weekNumOf(r.m)).toFixed(1)}" cy="${py(r.kg).toFixed(1)}" r="${hitR}"/>
          <circle class="wch-dot" cx="${px(weekNumOf(r.m)).toFixed(1)}" cy="${py(r.kg).toFixed(1)}" r="4"/>
        </g>`).join("");
@@ -8847,7 +8862,7 @@
         // antippbar ist, zeigt er selbst; ein Satz daneben waere genau die Erklaerung,
         // die die Textmenge-Vorgabe untersagt. Bei nur einer Messung steht hier der Wert,
         // weil es dort nichts zu vergleichen gibt.
-        + `<div class="wch-tip" aria-live="polite">${rows.length > 1 ? "" : weekLabel(last.m) + " · " + kgfmt(last.kg) + " kg"}</div>`;
+        + `<div class="wch-tip" aria-live="polite">${rows.length > 1 ? "" : weekKeyLabel(last.m) + " · " + kgfmt(last.kg) + " kg"}</div>`;
     }
 
     // B1: Das Plus traegt jetzt die haeufigste Handlung direkt - ein Tipp, und das
@@ -9014,7 +9029,7 @@
     host.querySelectorAll(".wch-pt").forEach(pt => {
       const show = () => {
         const row = rows.filter(e => e.m === pt.dataset.m)[0];
-        if (row && tip) tip.textContent = weekLabel(row.m) + " · " + kgfmt(row.kg) + " kg";
+        if (row && tip) tip.textContent = weekKeyLabel(row.m) + " · " + kgfmt(row.kg) + " kg";
         host.querySelectorAll(".wch-pt").forEach(o => o.classList.toggle("is-on", o === pt));
       };
       pt.addEventListener("click", show);
@@ -9512,11 +9527,27 @@
     liste = liste || libraryRecipes();
     aktive = aktive || recipeFilters;
     id = id || "r-filters";
-    if (liste.length < 6) { aktive.clear(); return ""; }
+    // Schwelle 4, nicht 6: addStarterMeals() legt nach dem Onboarding genau
+    // STARTER_ANZAHL = 5 Meals an. Bei "< 6" bekam also JEDER neue Nutzer seine Startmeals
+    // ohne eine einzige Filterzeile zu sehen, bis er das sechste Meal anlegte - die Schwelle
+    // stand genau eine Position neben der Zahl, die die App selbst erzeugt. Bei zwei oder
+    // drei selbst angelegten Meals bleibt die Reihe weg, dort waere sie wirklich sinnlos.
+    if (liste.length < 4) { aktive.clear(); return ""; }
+    // Ein Merkmal wird nur zum Chip, wenn es auf MINDESTENS EINEN und NICHT AUF ALLE
+    // Eintraege zutrifft. Ein Filter ist ein Werkzeug zum Wegnehmen; trifft er auf alles zu,
+    // nimmt er nichts weg. Ohne diese Bedingung stuenden ueber den fuenf Startmeals eines
+    // Veganers sechs Chips, davon zwei ("Vegan", "Vegetarisch") ohne jede Wirkung - das
+    // Problem waere nur verlagert. Dass die eigene Sammlung komplett vegan ist, liest man
+    // an den Karten ab; eine Filterzeile ist der falsche Ort dafuer.
     const chips = [];
-    if (liste.some(r => r.mealPrep)) chips.push({ k: "mealPrep", label: "Meal-Prep" });
+    const trifft = (f) => {
+      let n = 0;
+      liste.forEach(r => { if (f(r)) n++; });
+      return n > 0 && n < liste.length;
+    };
+    if (trifft(r => r.mealPrep)) chips.push({ k: "mealPrep", label: "Meal-Prep" });
     RECIPE_TAGS.forEach(t => {
-      if (liste.some(r => (r.tags || []).indexOf(t.key) !== -1)) chips.push({ k: "tag:" + t.key, label: t.label });
+      if (trifft(r => (r.tags || []).indexOf(t.key) !== -1)) chips.push({ k: "tag:" + t.key, label: t.label });
     });
     if (!chips.length) { aktive.clear(); return ""; }
     // Ein Filter, dessen Chip gerade weggefallen ist (letztes passendes Meal geloescht),
@@ -9892,7 +9923,7 @@
       let out = "";
       for (let w = maxW; w >= 1; w--) {
         const key = y + "-W" + String(w).padStart(2, "0");
-        out += `<option value="${String(w).padStart(2, "0")}">${esc(weekLabel(key))}</option>`;
+        out += `<option value="${String(w).padStart(2, "0")}">${esc(weekKeyLabel(key))}</option>`;
       }
       mEl.innerHTML = out;
       mEl.value = (sel && +sel <= maxW) ? sel : String(maxW).padStart(2, "0");
@@ -9905,8 +9936,8 @@
       const rows = (state.weights || []).slice().reverse();
       listEl.innerHTML = rows.length
         ? `<h4 style="margin:18px 0 2px;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--text-muted)">Verlauf</h4>`
-          + rows.map(r => `<div class="wl-row"><span class="wl-d">${esc(weekLabel(r.m))}</span><span class="wl-k">${kgfmt(r.kg)} kg</span>
-              <button class="btn ghost sm" data-del="${r.m}" aria-label="Eintrag ${esc(weekLabel(r.m))} löschen">✕</button></div>`).join("")
+          + rows.map(r => `<div class="wl-row"><span class="wl-d">${esc(weekKeyLabel(r.m))}</span><span class="wl-k">${kgfmt(r.kg)} kg</span>
+              <button class="btn ghost sm" data-del="${r.m}" aria-label="Eintrag ${esc(weekKeyLabel(r.m))} löschen">✕</button></div>`).join("")
         : `<p class="wl-empty">Noch keine Messung.</p>`;
       listEl.querySelectorAll("[data-del]").forEach(b => b.addEventListener("click", () => {
         const m = b.dataset.del;
@@ -9955,7 +9986,7 @@
       if (oldKcal != null && newKcal != null && oldKcal !== newKcal) {
         goalAdjustModal(`Neues Gewicht: ${kgfmt(kg)} kg`, oldKcal, newKcal, "Dein Körpergewicht hat sich verändert und dein Energiebedarf wurde neu berechnet.");
       } else {
-        toast(m === nowKey ? "Gewicht gespeichert" : (neu ? "Nachgetragen: " : "Geändert: ") + weekLabel(m));
+        toast(m === nowKey ? "Gewicht gespeichert" : (neu ? "Nachgetragen: " : "Geändert: ") + weekKeyLabel(m));
       }
     });
     openModal(node);
@@ -10431,6 +10462,48 @@
 
     // --- Autosave: input mutiert nur lokal, change/blur committen, 1500ms Leerlauf-Timer als Netz ---
     let idleTimer = null;
+    // Hat sich in dieser Sitzung wirklich etwas geaendert? Nur dann muss die Ansicht
+    // darunter nach dem Schliessen neu gezeichnet werden (siehe finishClose).
+    //
+    // NICHT einfach in commitNow() auf true setzen: Die Funktion laeuft auch beim blossen
+    // Oeffnen-und-wieder-Schliessen - attemptClose() ruft sie, und jedes focusout ebenfalls,
+    // auch wenn niemand etwas getippt hat. Der Wochenplan wuerde dann bei jedem Blick in ein
+    // Meal komplett neu gezeichnet.
+    //
+    // Verglichen wird gegen den Stand BEIM OEFFNEN, nicht gegen den Stand kurz vor dem
+    // Schreiben. Der erste Entwurf tat das und maass nichts: scheduleCommit() ruft
+    // mutateLocal() bereits beim "input"-Ereignis, das nachfolgende commitNow() sah also
+    // vorher wie nachher denselben, laengst geaenderten Wert. Die Marke blieb false, und der
+    // Fehler sah behoben aus, ohne behoben zu sein.
+    //
+    // Die Signatur beschreibt AUSDRUECKLICH nur die Felder, die dieses Formular schreibt -
+    // und in derselben normalisierten Form, in der mutateLocal() sie ablegt. Ein
+    // canonJSON() ueber das ganze Objekt taugt dafuer NICHT:
+    //   * mutateLocal() normalisiert nebenbei. Ein Meal ohne `steps` bekommt "", ein leeres
+    //     `tags: []` wird geloescht. Das ist keine Nutzeraenderung, zaehlte aber als eine -
+    //     und der Wochenplan wurde nach jedem blossen Hineinsehen neu gezeichnet.
+    //   * `image` traegt bei einem eigenen Foto ein Base64-Bild. Der Vergleich waere ein
+    //     megabytegrosser String; die beiden Foto-Knoepfe melden sich stattdessen selbst.
+    //   * Felder, die dieses Formular gar nicht anfasst (`by`, `barcode`, `lib`, `quick`),
+    //     gehen es nichts an.
+    function sheetSig() {
+      const r = rec();
+      if (!r) return "";
+      return canonJSON({
+        name: r.name || "",
+        category: r.category || "",
+        ingredients: r.ingredients || [],
+        nutrition: r.nutrition || null,
+        steps: r.steps || "",
+        tags: (r.tags && r.tags.length) ? r.tags : null,
+        mealPrep: !!r.mealPrep
+      });
+    }
+    // Einmal beim Oeffnen. Bei einem neuen Meal ist das die Signatur des leeren Entwurfs -
+    // wer ihn unveraendert wieder schliesst, loest damit korrekt KEIN Neuzeichnen aus.
+    const sigBeimOeffnen = sheetSig();
+    let fotoGeaendert = false;
+    function sheetDirty() { return fotoGeaendert || sheetSig() !== sigBeimOeffnen; }
     function mutateLocal() {
       const target = rec();
       if (!target) return;
@@ -10480,8 +10553,8 @@
       save();
       // Steht die Ansicht ueber der Meals-Liste, dort neu zeichnen (Teil-Repaint statt
       // render(), sonst faellt der Eingabefokus aus dem gerade offenen Feld). Steht sie ueber
-      // dem Wochenplan, gibt es #r-groups nicht - dort genuegt render() NACH dem Schliessen
-      // (kein Eingabefokus mehr im Weg), siehe attemptClose()/[data-close].
+      // dem Wochenplan, gibt es #r-groups nicht - dort wird NACH dem Schliessen gezeichnet,
+      // siehe finishClose() in attemptClose().
       if (view.querySelector("#r-groups")) paintRecipeGroups();
     }
     function scheduleCommit() {
@@ -10540,7 +10613,27 @@
       // echte ID, unter der die Karte im Raster steht. Fokus geht erst NACH der Animation
       // zurueck (finishClose), sonst haette ein Screenreader schon "angekommen" gemeldet,
       // waehrend die Karte optisch noch waechst/schrumpft.
-      function finishClose() { restoreFocusTarget(recId); closeModal(); }
+      // Das fehlende render(): Ueber dem WOCHENPLAN blieben die Zahlen nach dem Bearbeiten
+      // stehen - die kcal je Slot-Karte, die Tagesbilanz und die klebende Leiste #day-bal.
+      // Der Zustand war korrekt, nur die Anzeige alt, bis irgendetwas anderes neu zeichnete
+      // (Reiterwechsel, Drag&Drop, ein Cloud-Snapshot). Der Kommentar in commitNow()
+      // versprach dieses render() ausdruecklich - es hat nie existiert.
+      //
+      // Drei Dinge daran sind Absicht:
+      //  * NICHT im Meals-Reiter: dort hat commitNow() ueber paintRecipeGroups() schon
+      //    gezeichnet, ein zweiter Durchlauf waere doppelte Arbeit und ein sichtbarer Sprung.
+      //  * VOR restoreFocusTarget(): das merkt sich einen KNOTEN, und render() ersetzt view
+      //    komplett per innerHTML. Andersherum waere der gemerkte Knopf danach abgehaengt,
+      //    closeModal() prueft document.contains() - und der Fokus fiele ins Nichts.
+      //    (Der Plan sah "nach closeModal()" vor; das galt fuer ein render() VOR der
+      //    Exit-Animation. finishClose laeuft ohnehin erst danach, siehe closeWithMotion.)
+      //  * Nur bei echter Aenderung: sonst zeichnete jeder Blick in ein Meal den Wochenplan
+      //    neu - commitNow() laeuft naemlich auch beim blossen Schliessen (siehe sheetDirty).
+      function finishClose() {
+        if (sheetDirty() && !view.querySelector("#r-groups")) render();
+        restoreFocusTarget(recId);
+        closeModal();
+      }
       if (useAnimExit) closeWithMotion(node, recId, finishClose); else finishClose();
     }
     modalCloseHook = attemptClose;
@@ -10584,6 +10677,7 @@
         const target = rec();
         if (!target) return;
         target.image = dataUrl;
+        fotoGeaendert = true;   // sheetSig() laesst image bewusst aus - siehe dort
         commitNow();
         photoImg.src = photoFor(target);
         photoBtn.textContent = "Foto ändern";
@@ -10596,6 +10690,7 @@
       const target = rec();
       if (!target) return;
       target.image = null;
+      fotoGeaendert = true;   // wie beim Setzen: sheetSig() sieht image nicht
       commitNow();
       photoImg.src = photoFor(target);
       photoBtn.textContent = "Foto wählen";
@@ -10934,12 +11029,38 @@
     // und wird von weiteren Zutaten-Aenderungen nicht mehr ueberschrieben, bis er per
     // "Automatisch uebernehmen" wieder zurueckgesetzt wird.
     let macroOverridden = false;
+    // Weicht das GESPEICHERTE nutrition von der Zutatensumme ab? Dann war es von Hand
+    // gesetzt. Genau daraus wird macroOverridden beim Oeffnen abgeleitet (siehe unten beim
+    // Aufruf) - ein neues Datenfeld braucht es dafuer nicht.
+    function macroWeichtAb(zutaten) {
+      const n = initial.nutrition;
+      if (!n) return false;                       // nichts gespeichert - nichts uebersteuert
+      // Aus den DATEN rechnen, nicht aus dem DOM: Der Aufruf muss VOR dem Aufbau der
+      // Zutatenzeilen stehen (siehe dort), und da gibt es noch keine Zeilen zu lesen.
+      const summe = ingSummeAus(zutaten);
+      if (!summe) return false;                   // ohne Zutatensumme gibt es nichts zu vergleichen
+      // Auf dieselbe Genauigkeit runden, in der updateMacroSum() schreibt: sonst gilt ein
+      // Rundungsrest als Uebersteuerung, und "Automatisch uebernehmen" staende dauerhaft da.
+      const r0 = v => Math.round(v || 0), r1 = v => Math.round((v || 0) * 10) / 10;
+      return r0(n.kcal) !== r0(summe.kcal) || r1(n.carbs) !== r1(summe.carbs)
+          || r1(n.protein) !== r1(summe.protein) || r1(n.fat) !== r1(summe.fat);
+    }
+    // Die Summe der Zutaten mit Naehrwerten, oder null, wenn es keine gibt. Eine Quelle fuer
+    // updateMacroSum() und macroWeichtAb() - zwei Kopien derselben Bedingung waeren genau die
+    // Sorte Duplikat, bei der die eine Seite spaeter etwas anders zaehlt als die andere.
+    function ingSummeAus(liste) {
+      const withNut = (liste || []).map(ingObj)
+        .filter(i => typeof i === "object" && nutNum(i.grams) && ingHasNut(i));
+      if (!withNut.length) return null;
+      let s = { kcal: 0, carbs: 0, protein: 0, fat: 0 };
+      withNut.forEach(i => { s = addNut(s, ingContrib(i)); });
+      return s;
+    }
+    function ingSumme() { return ingSummeAus(collectIngs()); }
     function updateMacroSum() {
-      const withNut = collectIngs().filter(i => typeof i === "object" && nutNum(i.grams) && ingHasNut(i));
-      const auto = withNut.length > 0;
+      const s = ingSumme();
+      const auto = !!s;
       if (auto && !macroOverridden) {
-        let s = { kcal: 0, carbs: 0, protein: 0, fat: 0 };
-        withNut.forEach(i => { s = addNut(s, ingContrib(i)); });
         node.querySelector("#f-kcal").value = Math.round(s.kcal);
         node.querySelector("#f-carbs").value = Math.round(s.carbs * 10) / 10;
         node.querySelector("#f-protein").value = Math.round(s.protein * 10) / 10;
@@ -10969,6 +11090,17 @@
     // "Noch keine Zutaten" steht dann ueber dem Knopf (updateEmptyIngNote).
     const startIngs = (initial.ingredients && initial.ingredients.length) ? initial.ingredients
       : (isNew && pre && pre.ingredients && pre.ingredients.length ? pre.ingredients : []);
+    // macroOverridden aus den DATEN ableiten statt bei false zu starten. Die Uebersteuerung
+    // ist eine Eigenschaft des MEALS, kein Sitzungszustand - und als Sitzungszustand hat sie
+    // Daten zerstoert: Wer seine Makros von Hand gesetzt hatte, verlor sie beim naechsten
+    // OEFFNEN des Editors, ohne etwas zu tun. Im Pruefstand wurden aus 500 kcal beim blossen
+    // Hineinsehen 440, und der erste commitNow() schrieb das fest.
+    //
+    // Die Zeile MUSS hier stehen, VOR dem Aufbau der Zeilen: addIngRow()/openIngEdit() rufen
+    // updateMacroSum() bereits selbst, und genau dieser Aufruf ueberschreibt die Felder,
+    // solange die Marke noch false ist. Eine Ableitung nach der Schleife kam nachweislich zu
+    // spaet - der Reset-Knopf erschien dann korrekt, im Feld stand aber schon die Summe.
+    macroOverridden = macroWeichtAb(startIngs);
     startIngs.forEach(i => {
       const o = ingObj(i);
       const row = addIngRow(o);

@@ -2017,3 +2017,79 @@ Zwei Messfallen, die den ersten Lauf komplett rot gefärbt haben:
   klassisch und nehmen ~15 px von `clientWidth` — dagegen geprüft schlägt „scrollt waagerecht"
   immer an. (Steht weiter oben schon einmal; es ist trotzdem wieder passiert.)
 * **Die tatsächliche Breite mitloggen** (`soll=390 ist=390`), sonst ordnet die Messung nichts ein.
+
+## Paket 1 der Alltagsbefunde: drei weitere Prüfstände (24.08.2026)
+
+### `tools/pruefstand-sheet-repaint.py` — bleibt die Zahl im Wochenplan stehen?
+
+Gemessen wird **nicht**, wie oft `render()` läuft — die Funktion lebt im IIFE und ist von außen
+nicht patchbar. Gemessen wird die Zahl, um die es dem Nutzer geht: die Tagesbilanz im
+Wochenplan, gelesen nach genau dem Weg, den ein Mensch nimmt (Plan-Reiter → Slot antippen →
+„Bearbeiten" → kcal ändern → schließen).
+
+**Der `render()`-Detektor ohne Patchen** ist der brauchbarste Teil und für jeden künftigen
+Prüfstand nachnutzbar: Vor der Aktion bekommt ein Knoten **innerhalb** von `view` eine Marke
+(`data-marke`). `render()` ersetzt `view.innerHTML` komplett — überlebt die Marke, wurde nicht
+neu gezeichnet. Damit ist „die Anzeige ist nur alt" von „es wurde neu gezeichnet und falsch
+gerechnet" sauber unterscheidbar, ohne eine einzige Zeile Produktionscode anzufassen.
+
+Drei Fälle, und zwei davon sind die Gegenproben:
+
+| | | erwartet |
+|---|---|---|
+| A | Wochenplan, kcal geändert | Zahl zieht mit, `render()` **lief** |
+| B | Wochenplan, nur hineingesehen | Zahl gleich, `render()` lief **nicht** |
+| C | Meals-Reiter, kcal geändert | Karte zeigt die neue Zahl (Teil-Repaint, unverändert) |
+
+Fall B prüft ausdrücklich **beides**: dieselbe Zahl allein wäre ein Zufallstreffer.
+
+**Zwei Messfallen haben je einen Lauf gekostet, beide sind eigene Lehren:**
+
+* **`.day-goals`, nicht `.day-nut`.** `dayNutHtml()` ersetzt die Textzeile durch die Balkenform,
+  sobald ein Ziel gespeichert ist — und ohne Ziel gäbe es gar keine Tagesbilanz. Mit `.day-nut`
+  fand der erste Lauf nichts, und **Fall B lief still grün durch**, obwohl gar nichts gemessen
+  wurde. Ein `(nicht gefunden)` == `(nicht gefunden)` ist kein bestandener Test.
+* **Der Prüfstand hat einen falschen Fix entlarvt, den das Codelesen durchgehen ließ.** Die erste
+  Fassung der „hat sich etwas geändert?"-Prüfung maß nachweislich nichts (siehe
+  `docs/TROUBLESHOOTING.md` 110) — sie sah beim Lesen völlig plausibel aus.
+
+Gegenprobe über ein Argument: `python tools/pruefstand-sheet-repaint.py alt.html` — gegen den
+Stand davor muss Fall A rot sein (Zahl bleibt stehen, `render()` lief nicht).
+
+**Die Testdaten tragen bewusst gemischte Zutaten** — einen Freitext-String, ein Objekt mit
+eigener Einheit, eines mit vollen Nährwerten und eines ganz ohne. Der erste Entwurf nahm
+`ingredients: []`, und Fall B lief damit grün durch, **ohne den Umweg Datensatz → DOM →
+`collectIngs()` → zurück auch nur einmal zu belasten**, den `mutateLocal()` bei jedem
+`commitNow()` geht. Mit echten Zutaten fiel er sofort um und legte einen zweiten, größeren
+Fehler frei: `macroOverridden` (siehe `docs/TROUBLESHOOTING.md` 110). Der Hinweis kam vom
+`kvp`-Agenten — **ein leerer Sonderfall ist kein Testfall.**
+
+### `tools/pruefstand-wochenbeschriftung.py` — Verifikation VOR dem Fix
+
+Der Plan verlangte hier ausdrücklich, den Befund erst zu beweisen. Zu Recht: Die Klammerbilanz
+ist als Scope-Beweis untauglich (Regex- und Template-Literale verfälschen sie), und
+`weekLabel()` ist von außen nicht aufrufbar. Bewiesen wurde es über die **Anzeige** — mit einer
+Wiegung im Zustand, abgelesen an `.wch-tip` und am `aria-label` des Diagrammpunkts.
+
+Zwei Dinge daran sind Absicht:
+
+* **Genau EINE Wiegung.** Bei mehreren lässt `rueckblickHtml()` die `.wch-tip` bewusst leer
+  (dort steht dann der Vergleich statt des Einzelwerts) — der Text, um den es geht, wäre gar
+  nicht da, und die Prüfung liefe ins Leere. Der erste Lauf hatte genau diesen Fehler.
+* **Die Hero-Zeile als Gegenprobe.** Die Zahl-Variante muss unverändert ihre eigene Form
+  behalten (`"Woche 35 · 24.–30. August"`). Ohne sie beweist der Test nur, dass irgendetwas
+  anders geworden ist.
+
+### `tools/pruefstand-rezeptbuch.py` — erweitert und wieder scharf
+
+**Der Prüfstand lief seit einer Weile gar nicht mehr:** `adoptFromCookbook()` ruft
+`rewritePlanIds()`, ein Stub dafür fehlte, und die Seite brach mit
+`rewritePlanIds is not defined` ab — mitten im Lauf, sichtbar nur als eine Fehlerzeile. Damit ist
+es das **dritte** Werkzeug in zwei Tagen, das nichts geprüft hat (vgl. Ziffer 109). Stub ergänzt,
+Gegenprobe-Argument nachgerüstet, jetzt 113 Prüfungen.
+
+Neu darin: die Startmeals sehen ihre Filter. Für alle drei Profile wird geprüft, dass
+`addStarterMeals()` fünf Meals anlegt, dass darüber eine Filterreihe erscheint **und** dass kein
+Chip auf alle fünf zutrifft. Die letzte Prüfung braucht ihre eigene Gegenprobe („und es gibt
+überhaupt Chips"), sonst wäre „keiner wirkungslos" trivial wahr, sobald die Reihe fehlt — genau
+der Zustand vor der Änderung.
