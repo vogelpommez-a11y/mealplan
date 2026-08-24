@@ -2093,3 +2093,67 @@ Neu darin: die Startmeals sehen ihre Filter. Für alle drei Profile wird geprüf
 Chip auf alle fünf zutrifft. Die letzte Prüfung braucht ihre eigene Gegenprobe („und es gibt
 überhaupt Chips"), sonst wäre „keiner wirkungslos" trivial wahr, sobald die Reihe fehlt — genau
 der Zustand vor der Änderung.
+
+## Abnahme am echten Cloud-Konto: `tools/cdp.py` (24.08.2026)
+
+**Die Lücke, die das schließt:** Alles, was ein echtes Firebase-Konto braucht — Anmeldung,
+Firestore-Schreibvorgänge, Zwei-Geräte-Verhalten —, galt bisher als „nur am Gerät prüfbar" und
+blieb damit beim Nutzer liegen. Headless geht es nicht (kein Login), im Ausschneide-Prüfstand
+auch nicht (keine Cloud).
+
+`tools/cdp.py` steuert einen **sichtbaren** Chrome über das DevTools-Protokoll:
+
+```powershell
+python tools/cdp.py start          # Chrome mit Fernbedienung, Profil im TEMP
+python tools/cdp.py eval "<js>"    # JavaScript in der App-Seite auswerten
+python tools/cdp.py stop
+```
+
+**Die Arbeitsteilung ist der Punkt:** Der Mensch meldet sich **einmal von Hand** an — Passwörter
+laufen nie durch das Skript und stehen in keinem Protokoll. Danach liest und klickt das Skript.
+
+Vier Dinge, die den Aufbau brauchbar machen:
+
+* **`--remote-allow-origins=*` beim Start und `origin=` beim Verbinden.** Ohne beides lehnt
+  Chrome die WebSocket-Verbindung zum Debug-Port mit `403 Rejected an incoming WebSocket
+  connection` ab. Das war die erste Hürde und ist nicht selbsterklärend.
+* **`awaitPromise: true` und `returnByValue: true`** bei `Runtime.evaluate` — sonst kommt bei
+  `await CloudSync.load(uid)` nur eine Objekt-ID zurück statt des Dokuments.
+* **Eigenes Profilverzeichnis.** Ein bereits laufender Alltags-Chrome verhindert das
+  Debug-Port-Flag sonst stillschweigend, und der Alltagsbrowser bleibt unangetastet.
+* **`window.CloudSync` ist global** — damit ersetzt `CloudSync.load(uid)` den Gang in die
+  Firebase-Konsole vollständig und liest genau das, was die App sieht. Die `uid` steht in
+  `localStorage` unter `wochenkueche_lastprofile_v1__test`.
+
+**`Object.keys(goal)` statt `JSON.stringify(goal)`** beim Prüfen auf ein *fehlendes* Feld:
+`JSON.stringify` lässt `undefined`-Werte weg, ein fehlendes Feld sieht dann aus wie ein
+Skriptfehler statt wie das Ergebnis. Das hat einen Lauf gekostet.
+
+### Der Ablauf, wenn echte Nutzerdaten im Spiel sind
+
+`localhost` trennt nur den **lokalen** Speicher (`__test`-Suffix über `localKey()`), **nicht die
+Cloud** — ein Test am echten Konto schreibt in echte Firestore-Daten. Deshalb:
+
+1. **Zuerst sichern.** Das betroffene Feld über `CloudSync.load()` lesen und wegschreiben.
+2. Test fahren.
+3. **Zurückschreiben und gegenprüfen**, dass die Schlüsselmenge deckungsgleich ist — nicht nur
+   ein einzelner Wert.
+4. Beide Fenster neu laden, damit keines mit dem alten Zustand weiterpusht.
+5. Chrome beenden. **Ein offener Debug-Port ist eine offene Fernbedienung** und darf nicht
+   länger laufen als die Abnahme.
+
+### Damit gefahren: die Abnahme zu `78f125d`
+
+Ergebnis am echten Konto, alle fünf Punkte:
+
+| | |
+|---|---|
+| Ausgangsstand | `goal.diet: "vegetarisch"` stand tatsächlich in der Cloud |
+| nach „Ziele neu berechnen" → „Alles" | Sync-Punkt **„Synchronisiert"**, nicht „offline" |
+| in der Cloud | `goal.diet` **weg** — und `goal.manual` ebenfalls (Ziffer 74 damit erstmals wirklich eingelöst) |
+| nach dem Neuladen | bleibt „Alles", der alte Stand kommt nicht zurück |
+| zwei Fenster, 50 s | `updatedAt` steht still — **nichts oszilliert** |
+
+Der Zwei-Fenster-Test misst `updatedAt` **in der Cloud**, nicht die Anzeige: Steigt der
+Zeitstempel weiter, obwohl niemand etwas tut, schreiben sich die Geräte gegenseitig hoch. Das ist
+die Messgröße für TROUBLESHOOTING 34/44, und sie ist billiger als jede DOM-Beobachtung.
