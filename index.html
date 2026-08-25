@@ -2474,6 +2474,26 @@
     input[type="text"], input[type="number"], input[type="email"], input[type="password"], input[type="search"], select, textarea { font-size: 16px; }
   }
 
+  /* Dieselbe Regel noch einmal, aber an der RICHTIGEN Bedingung: nicht an der Breite,
+     sondern am Zeigertyp.
+
+     Die Fassung im 560px-Block oben deckte nur das Hochformat ab. Gemessen am 25.08.2026:
+     Bei 720 px Viewport hatte das Suchfeld des Meal-Pickers 14 px – und **jedes iPhone im
+     Querformat** liegt zwischen 667 und 932 px CSS-Breite, also ausserhalb der 560er-Regel.
+     Wer dort ins Suchfeld tippt, bekommt den iOS-Auto-Zoom, den der Kommentar oben
+     ausdruecklich verhindern will. Auf dem iPad gilt dasselbe in jeder Lage.
+
+     `pointer: coarse` trifft genau die Geraete, um die es geht, und laesst den Rechner in
+     Ruhe – dasselbe Merkmal, an dem im Projekt schon der Zahlen-Picker haengt.
+
+     Belegt über `tools/cdp.py messen` (der Zeigertyp gilt nur in der offenen
+     CDP-Verbindung, deshalb dieser Weg und nicht `viewport`):
+       720 px mit Touch → 16 px · 720 px ohne Touch → 14 px · 560 px ohne Touch → 16 px
+     Die mittlere Zeile ist die eigentliche Gegenprobe: Am Rechner ändert sich nichts. */
+  @media (pointer: coarse) {
+    input[type="text"], input[type="number"], input[type="email"], input[type="password"], input[type="search"], select, textarea { font-size: 16px; }
+  }
+
   /* ---------- Handy: Wochenplan und Wochenziele werden gewischt ----------
      Untereinander ergaben die sieben Tageskarten auf dem Handy ein Band von weit
      ueber 3.000 px Hoehe – Donnerstag erreichte man nur durch langes Scrollen, und
@@ -11483,19 +11503,9 @@
       listEl.innerHTML = html;
 
       const toggle = listEl.querySelector("[data-toggle-all]");
-      if (toggle) toggle.addEventListener("click", () => { showAll = !showAll; paint(searchEl.value); });
-      // Beim Umschalten wird die ganze Liste neu gebaut: ohne Rueckgabe landete der Fokus
-      // auf <body> - mitten in einem Dialog. Die Scrollposition wird mit gehalten, sonst
-      // springt .plist beim Zuklappen nach oben.
+      if (toggle) toggle.addEventListener("click", () => { showAll = !showAll; umschalten("[data-toggle-all]"); });
       const pqBtn = listEl.querySelector("[data-pq-toggle]");
-      if (pqBtn) pqBtn.addEventListener("click", () => {
-        pqOpen = !pqOpen;
-        const top = listEl.scrollTop;
-        paint(searchEl.value);
-        listEl.scrollTop = top;
-        const wieder = listEl.querySelector("[data-pq-toggle]");
-        if (wieder) wieder.focus({ preventScroll: true });
-      });
+      if (pqBtn) pqBtn.addEventListener("click", () => { pqOpen = !pqOpen; umschalten("[data-pq-toggle]"); });
       const go = listEl.querySelector("[data-go]");
       if (go) go.addEventListener("click", () => { closeModal(); state.tab = "recipes"; render(); openMealSheet(null); });
       listEl.querySelectorAll("[data-assign]").forEach(b => b.addEventListener("click", () => {
@@ -11509,6 +11519,27 @@
         quickAddPiece(day, meal, f);
         closeModal(); render(); toast("„" + f.name + "“ zum Plan hinzugefügt");
       }));
+    }
+    // Beide Umschalter der Liste ("Alle anzeigen" und der Schnell-Aufklapper) zeichnen ueber
+    // paint() das ganze listEl neu. Dabei geht der Fokus verloren: Er landet auf <body>, und
+    // zwar MITTEN IN EINEM DIALOG - fuer die Tastatur ist der Weg zurueck in die Liste damit
+    // weg. Gemessen, nicht vermutet (Kopie ohne diese Zeilen, Chrome: activeElement === body).
+    //
+    // Die Scrollposition wird bewusst NICHT gerettet, obwohl das naheliegt: Chrome haelt
+    // scrollTop ueber einen innerHTML-Neuaufbau hinweg, solange die neue Hoehe es zulaesst.
+    // Eine Fassung mit `const top = listEl.scrollTop` / `listEl.scrollTop = top` wurde gegen
+    // eine Kopie OHNE diese Zeilen gemessen: beide Male 200 -> 200 und 150 -> 150. Sie tat
+    // nichts. Wird die Liste so viel kuerzer, dass der Browser klemmt, kann sie es auch nicht
+    // richten - der Inhalt ist dann weg. Siehe docs/TROUBLESHOOTING.md 116.
+    //
+    // preventScroll, weil focus() sonst zur Zeile springt und damit genau die Bewegung
+    // ausloest, um die es hier geht (focus() als Messfalle, siehe docs/TESTING.md).
+    // Faellt der Knopf beim Neuzeichnen weg, faengt das Suchfeld den Fokus - es ist im
+    // Picker das erste Bedienelement und nie leer.
+    function umschalten(wahl) {
+      paint(searchEl.value);
+      const b = listEl.querySelector(wahl) || searchEl;
+      b.focus({ preventScroll: true });
     }
     searchEl.addEventListener("input", () => paint(searchEl.value));
     paint("");

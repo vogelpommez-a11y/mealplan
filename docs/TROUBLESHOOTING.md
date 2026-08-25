@@ -3418,3 +3418,86 @@ Korrektheit, sondern nur dafür, dass die Funktion stimmt. **Bei Sync-Änderunge
 am echten Konto (`tools/cdp.py`) keine Kür, sondern der einzige Ort, an dem ein fehlender
 Aufrufer auffällt.**
 
+---
+
+## 116. `innerHTML` wirft die Scrollposition NICHT weg — zwei Runden toter Code dafür
+
+`kvp` meldete zum Picker: Der Knopf „Alle anzeigen" halte die Scrollposition nicht, während der
+neue Schnell-Aufklapper daneben es richtig mache. Klang plausibel, die beiden standen
+nebeneinander, und die Empfehlung war zwei Zeilen lang:
+
+```js
+const top = listEl.scrollTop;
+paint(searchEl.value);
+listEl.scrollTop = top;
+```
+
+**Gemessen war die Behauptung falsch — und zwar für beide Knöpfe.** Gegen eine Kopie *ohne*
+diese Zeilen (Ganzdatei-Kopie, siehe `docs/TESTING.md`) im ferngesteuerten Chrome:
+
+| | mit den Zeilen | ohne die Zeilen |
+|---|---|---|
+| „Alle anzeigen", `scrollTop` 200 | 200 | **200** |
+| Schnell-Aufklapper, `scrollTop` 150 | 150 | **150** |
+
+**Chrome hält `scrollTop` über einen `innerHTML`-Neuaufbau hinweg**, solange die neue Höhe es
+zulässt. Auch `el.innerHTML = el.innerHTML` lässt die Position stehen. Und wird die Liste so
+viel kürzer, dass der Browser klemmen muss, richtet die Rettung es ebenfalls nicht — der Inhalt
+ist dann weg. Es gibt keinen Fall, in dem die zwei Zeilen etwas tun.
+
+**Der Fokus dagegen geht wirklich verloren** und ist der einzige Grund, warum es den Helfer
+`umschalten()` überhaupt gibt: Ohne ihn steht `document.activeElement` nach dem Neuzeichnen auf
+`<body>` — gemessen, und das mitten in einem geöffneten Dialog.
+
+**Zwei Lehren, und die zweite ist die unbequeme:**
+
+1. **`innerHTML` und Scrollposition: nachmessen statt annehmen.** Die Annahme ist verbreitet
+   genug, dass sie hier zweimal in den Code geraten wäre.
+2. **Der falsche Kommentar stand zuerst von mir selbst da.** Der Schnell-Aufklapper (`56c4b41`)
+   trug die Zeilen von Anfang an, mit der Begründung „sonst springt `.plist` beim Zuklappen
+   nach oben" — ungeprüft. Der `kvp`-Fund hat sie nicht erfunden, sondern **zitiert**: Er sah
+   zwei Knöpfe, von denen einer ein Muster hatte und der andere nicht, und schloss auf einen
+   Mangel. **Ein ungeprüfter Kommentar wird zur Quelle des nächsten Fundes.** Genau deshalb
+   steht in `CLAUDE.md`, dass ein Kommentar, der die Absicht beschreibt, kein Beleg dafür ist,
+   dass der Code sie umsetzt (siehe auch Punkt 108, `merge: true`).
+
+---
+
+## 117. Die 16-px-Regel gegen den iOS-Zoom griff im Querformat nicht
+
+`CLAUDE.md` §26 verlangt 16 px für Eingabefelder, damit Safari beim Fokussieren nicht
+hineinzoomt. Die Regel gab es auch — aber im Block `@media (max-width: 560px)`.
+
+**Gemessen am 25.08.2026:** Bei 720 px Viewport hatte das Suchfeld des Meal-Pickers **14 px**.
+Und 560 px ist keine sinnvolle Grenze für „Handy":
+
+| Gerät | CSS-Breite quer |
+|---|---|
+| iPhone SE | 667 px |
+| iPhone 15 | 852 px |
+| iPhone 15 Pro Max | 932 px |
+| iPad mini (hoch!) | 768 px |
+
+**Jedes iPhone im Querformat und jedes iPad in jeder Lage** fiel aus der Regel heraus. Wer dort
+ins Suchfeld tippte, bekam genau den Zoom, den der Kommentar darüber verhindern wollte.
+
+**Die Bedingung war von Anfang an die falsche.** Nicht die Breite entscheidet, ob ein Gerät
+zoomt, sondern der Zeigertyp. Ergänzt wurde deshalb ein `@media (pointer: coarse)`-Block mit
+derselben Regel — dasselbe Merkmal, an dem im Projekt schon der Zahlen-Picker hängt. Die
+560er-Fassung bleibt unangetastet: Sie schadet nicht, und Bestand wird nicht ohne Not angefasst.
+
+Belegkette über `tools/cdp.py messen`:
+
+| | Suchfeld |
+|---|---|
+| 720 px **mit** Touch | **16 px** — neue Regel greift |
+| 720 px **ohne** Touch | 14 px — am Rechner ändert sich nichts |
+| 560 px ohne Touch | 16 px — alte Regel greift weiter |
+
+Die mittlere Zeile ist die eigentliche Gegenprobe. Ohne sie wäre nicht belegt, dass die Regel
+am Zeigertyp hängt und nicht einfach immer gilt.
+
+**Der neue `@media`-Block steht bewusst direkt hinter der schliessenden Klammer des
+560er-Blocks**, nicht irgendwo dazwischen — siehe die Falle beim 680er-Block, die einmal die
+ganze mobile Ansicht lahmgelegt hat.
+

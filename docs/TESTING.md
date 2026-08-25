@@ -2267,3 +2267,82 @@ ausräumen: **lokal zuerst leeren, dann `CloudSync.save(uid, { weekStats: {} })`
 Reihenfolge, sonst schiebt der Baseline-Merge die Testwochen sofort wieder hoch. Zum Schluss
 die Schlüsselmenge gegen die Sicherung aus Schritt 1 prüfen.
 
+---
+
+## Eine Zeile prüfen, indem man sie WEGNIMMT (25.08.2026)
+
+Zum Fund in TROUBLESHOOTING 116 gehört die Methode, die ihn geliefert hat — sie ist billig und
+hätte die falsche Behauptung schon eine Runde früher gefunden.
+
+Die Frage war nicht „funktioniert der Code?", sondern **„täte sich ohne ihn etwas anderes?"**
+Beides sieht in der Messung gleich aus, solange man nur die vorhandene Fassung testet: `200 → 200`
+liest sich wie ein Erfolg. Erst der Vergleich zeigt, ob die Zeile das bewirkt hat oder der
+Browser.
+
+```python
+# Ganzdatei-Kopie, in der GENAU die fragliche Zeile fehlt
+neu = alt.replace("      listEl.scrollTop = top;", "")
+io.open("_ohne-scrollrettung.html", "w", encoding="utf-8", newline="").write(neu)
+```
+
+Dann beide Fassungen über `test-server.ps1` im selben ferngesteuerten Chrome fahren und
+dieselbe Messung machen. Kommt **derselbe** Wert heraus, tut die Zeile nichts.
+
+**Wann sich das lohnt:** immer, wenn Code eine Browser-Eigenheit „repariert" — Scrollposition,
+Fokus, Layout-Flush, Repaint-Erzwingung. Genau dort häuft sich Code, den niemand mehr anfasst,
+weil alle annehmen, er tue etwas. Bei diesem Lauf war die Fokus-Rettung echt (ohne sie steht
+`activeElement` auf `<body>`) und die Scroll-Rettung wirkungslos — **im selben Helfer, zwei
+Zeilen auseinander.**
+
+Die Kopien wandern danach sofort in den Müll, und der Chrome wird zurück auf `index.html`
+navigiert (siehe die Bedingungen bei der Ganzdatei-Kopie weiter oben).
+
+---
+
+## Mobile Abnahme fernsteuern: `cdp.py messen` (25.08.2026)
+
+`tools/cdp.py` kann jetzt Viewport und Farbschema setzen. Der Unterschied zwischen den beiden
+Befehlen ist kein Komfort, sondern eine harte Eigenschaft des DevTools-Protokolls:
+
+| | hält wie lange |
+|---|---|
+| `Emulation.setDeviceMetricsOverride` (Viewport) | **persistent** — überlebt Verbindungsende und `location.reload()` |
+| `Emulation.setEmulatedMedia` (Farbschema) | **nur solange die Verbindung offen ist** |
+| `Emulation.setTouchEmulationEnabled` (`pointer: coarse`) | **nur solange die Verbindung offen ist** |
+
+`cdp.py` schliesst den Socket nach jedem Befehl. Ein `theme light` als eigener Aufruf war
+deshalb **wirkungslos** — und das fällt nicht auf, wenn das System selbst auf Dark steht: Dann
+scheint `theme dark` zu „funktionieren", obwohl nur das System durchschlägt. Genau so wäre hier
+eine Light-Abnahme als erledigt durchgegangen, die nie stattgefunden hat.
+
+**Deshalb `messen`, das beides in EINER Verbindung tut:**
+
+```powershell
+python tools/cdp.py viewport 560 900              # dauerhaft, fuer Breakpoints
+python tools/cdp.py messen 720 900 dark "<js>"    # Viewport + Theme + Auswertung
+python tools/cdp.py viewport aus
+```
+
+Aus Python heraus mit `mobil=False` für die Desktop-Gegenprobe:
+
+```python
+import sys; sys.path.insert(0, "tools"); import cdp
+cdp.messen(720, 900, "dark", js, mobil=True)    # pointer: coarse
+cdp.messen(720, 900, "dark", js, mobil=False)   # pointer: fine
+```
+
+**Drei Fallen, alle beim ersten Lauf hineingetreten:**
+
+* **Nach einer CSS-Änderung neu laden.** `messen` lädt nicht von selbst; sonst misst man den
+  alten Stylesheet und sucht den Fehler in der Regel.
+* **`//`-Kommentare im übergebenen JavaScript**, wenn der Code per `tr '
+' ' '` auf eine Zeile
+  gefaltet wird — der Rest der Zeile ist dann auskommentiert (`SyntaxError: Unexpected end of
+  input`). Block-Kommentare nehmen.
+* **Die Windows-Konsole steht auf cp1252.** Ein Schliesskreuz im gemessenen Text reichte, um
+  `print()` mit `UnicodeEncodeError` abbrechen zu lassen — die Messung war gelaufen und trotzdem
+  verloren. `cdp.py` stellt stdout jetzt selbst auf UTF-8.
+
+Was so **nicht** prüfbar bleibt: die Android-Zurück-Taste (echte Geste), Wischen (drei Anläufe,
+siehe oben) und alles, was am Gerät „sich richtig anfühlen" muss.
+
