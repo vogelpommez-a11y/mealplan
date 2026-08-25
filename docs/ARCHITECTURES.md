@@ -1495,7 +1495,13 @@ Darauf setzen drei Helfer auf:
   sind nur zwei Aufrufer davon; beide verhalten sich deshalb identisch.
 * `pieceFoods()` — die zählbaren Einträge: entweder schon je Stück erfasst (`unit === "st"`, z. B.
   das Ei) oder mit Stückgewicht. Deren 100-g-Werte werden **einmal** aufs Stück hochgerechnet.
-  `PIECE_TOP`/`pieceTop()` ist die kurze feste Auswahl, die der Picker ohne Suchbegriff zeigt.
+  `PIECE_TOP`/`pieceTop()` ist die kurze feste Auswahl, die der Picker ohne Suchbegriff anbietet.
+  Sichtbar ist sie dort nur aufgeklappt: Der Abschnitt „Schnell" ist ein Aufklapper, dessen
+  Zustand in einer Variablen des jeweiligen Pickers liegt (`pqOpen`, geschlossen vorbelegt) und
+  **nicht** in einem `<details>` — die Liste wird bei jedem Tastendruck über `innerHTML` neu
+  gebaut, ein DOM-Zustand ginge dabei verloren. Ab zwei Zeichen und bei leerer Meal-Auswahl
+  (`libEmpty`) ist er zwingend offen und die Kopfzeile nur Beschriftung — dieselbe Unterscheidung
+  wie `.cathead` / `.cathead.static` im Rezeptbuch.
 
 `offServingSize(p)` (neben `fetchOffNutrition()`) wertet OFF's `serving_size`/`quantity`-Feld
 aus und liefert `{grams, count, serving}` oder `null`:

@@ -3325,3 +3325,61 @@ Zahl-Variante musste unverändert ihre eigene Form behalten.
 **Allgemein:** Zwei gleichnamige Funktionsdeklarationen sind kein Syntaxfehler und keine Warnung.
 Der Linter, der das fände, existiert in diesem Projekt nicht — die einzige Verteidigung ist, bei
 `grep -n "function name"` auf die **Anzahl** der Treffer zu sehen.
+
+---
+
+## 113. Ein neues Icon, das nur die halbe `viewBox` benutzt
+
+Mit dem Eiweißshake-Wechsel bekam die Kategorie „Getränk" ein eigenes Symbol — vorher fiel sie
+über `CAT_ICON[cat] || "pot"` auf den Topf zurück. Die erste Fassung des Trinkglases war ein
+sauberer Pfad und sah bei 64 px gut aus. In der Kopfzeile, wo das Icon **16 px** groß ist, las es
+sich als Becher oder Batterie.
+
+**Die Ursache war keine Detailfrage, sondern die Breite.** Das Glas lief von `x=6` bis `x=18` —
+die Hälfte der 24er-`viewBox`. Alle Nachbarn nutzen sie ganz: der Topf `2–22`, das Besteck
+`4–21`, das Brot `3,5–20,5`. Bei 16 px Renderbreite blieben davon also 8 px echte Zeichnung neben
+16 px bei den anderen. In einer Reihe untereinander stehender Kategorien fällt genau das auf,
+nicht die Form.
+
+**Regel:** Ein neues `ICONS`-Symbol wird bei **16 px neben einem bestehenden Nachbarn** geprüft,
+nicht allein und nicht groß. Der Vergleich kostet eine HTML-Datei im Scratchpad und einen
+Edge-Screenshot; die Fassung mit `x=4,5` bis `19,5` stand danach in einer Minute.
+
+Dieselbe Überlegung steht schon bei `ICON_DUMBBELL` im Code, dort aus dem umgekehrten Grund
+(gefüllte Flächen statt Konturen, weil dünne Striche bei 13 px verschmelzen). Beide Fälle sagen
+dasselbe: **Die Zielgröße ist Teil der Zeichnung, nicht eine Anzeigeeinstellung.**
+
+---
+
+## 114. Die eine ID-Ausgabe ohne `esc()` — gefunden beim Lesen der Nachbarzeilen
+
+Beim Push-Check zum Schnell-Aufklapper fiel eine Stelle auf, die mit der Änderung nichts zu tun
+hatte: Der Picker schrieb `data-assign="${r.id}"` **ohne** `esc()`. Die drei Geschwister tun es
+seit jeher — `data-cbview="${esc(r.id)}"`, `data-adopt="${esc(r.id)}"`,
+`data-cbcat="${esc(cat)}"`. Vier gleichartige Ausgaben, drei escaped, eine nicht.
+
+**Warum das mehr als Kosmetik ist:** `sanitizeRecipe()` prüft die `id` nicht. Sie kommt über
+`Object.assign({}, r)` ungeprüft durch — bewusst, denn die Funktion säubert Bild, Kategorie,
+Zutaten und Merkmale, nicht Schlüssel. Und Rezepte entstehen nicht nur lokal: Sie kommen aus
+**Sharing-Links und aus dem Gruppen-Sync**, also von fremd.
+
+Die Gegenprobe mit dem echten `esc()` aus `index.html` (Prüfstand im Scratchpad):
+
+| | Attribut `onmouseover` erzeugt? | `dataset.assign` |
+|---|---|---|
+| ohne `esc()` | **ja** — der Ausbruch gelingt | auf `r1` verstümmelt |
+| mit `esc()` | nein, nur `class` und `data-assign` | vollständig und unverändert |
+
+Die id kommt über `dataset` **dekodiert** wieder heraus — die Zuweisung ändert sich durch das
+Escapen also nicht, gegengeprüft auch mit einer normalen id.
+
+**Die Lehre ist nicht „immer escapen"** — das wusste das Projekt. Sie lautet: **Wo dieselbe Sache
+an vier Stellen ausgegeben wird, ist die Abweichung der Fund.** Drei Stellen richtig zu haben
+erzeugt genau das Vertrauen, das die vierte durchrutschen lässt. `grep` auf das Muster
+(`data-[a-z]*="\${` ohne `esc`) kostet eine Sekunde und findet so etwas zuverlässiger als das
+Lesen der geänderten Zeilen.
+
+Nicht angefasst und bewusst offen: `sanitizeRecipe()` prüft die `id` weiterhin nicht. Escaping
+bei der **Ausgabe** ist der richtige Ort dafür; eine Formatprüfung beim Einlesen träfe auch
+Bestandsdaten und Katalogschlüssel und wäre ein eigener Umbau.
+

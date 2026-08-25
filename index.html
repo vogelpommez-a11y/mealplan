@@ -1873,6 +1873,22 @@
   /* Schnelleintrag (zaehlbare Lebensmittel). Die Ueberschrift traegt .sec-h, hier steht
      nur der Abstand - Ort-abhaengig ist der Abstand, nie die Schrift (siehe .sec-h). */
   .pq-h { margin: 15px 4px 5px; }
+  /* Aufklapper-Variante derselben Kopfzeile (Schnell-Bereich). Nur Knopf-Reset und Caret -
+     Groesse, Gewicht und Farbe kommen weiter aus .sec-h, sonst entstuende eine zweite
+     Abschnittsform (CLAUDE.md, Ziffer 8). Der Abstand wandert dabei in ein padding, damit
+     die Trefferflaeche wie bei .cathead die ganze Zeile ist und trotzdem NICHT ueber den
+     Rand des Scroll-Containers .plist ragt. */
+  button.pq-h {
+    display: flex; align-items: center; gap: 6px; margin: 9px 4px 0; padding: 6px 0 5px;
+    background: none; border: none; font-family: inherit; text-align: left; cursor: pointer;
+  }
+  /* Wie .cathead.static: waehrend der Suche ist die Kopfzeile nur Beschriftung. Der Einzug
+     haelt "Schnell" auf derselben Kante wie mit Caret (13 px Caret + 6 px gap), sonst
+     springt das Wort beim zweiten getippten Zeichen sichtbar nach links. */
+  .pq-h.static { padding-left: 19px; }
+  button.pq-h .caret { width: 13px; height: 13px; flex: none; transition: transform var(--dur-fast); }
+  button.pq-h .caret.open { transform: rotate(90deg); }
+  @media (prefers-reduced-motion: reduce) { button.pq-h .caret { transition: none; } }
   /* Die 38px halten die Namen der Schnellzeilen auf derselben Kante wie die Meal-Zeilen
      mit Foto (.pthumb) - ohne Platzhalter saehe die Liste zweispaltig aus. */
   .pitem .pqi { flex: none; width: 38px; height: 28px; display: grid; place-items: center; color: var(--text-muted); }
@@ -6539,7 +6555,7 @@
   function sanitizeRecipes(list) { return Array.isArray(list) ? list.map(sanitizeRecipe).filter(Boolean) : []; }
 
   // ---------- Strich-Icons fuer die Kategorie-Ueberschriften ----------
-  // Nur diese sechs werden gebraucht; Meals selbst zeigen immer ein Foto (siehe photoFor).
+  // Nur diese sieben werden gebraucht; Meals selbst zeigen immer ein Foto (siehe photoFor).
   const ICONS = {
     pot:      '<path d="M4 9.5h16v6a4.5 4.5 0 0 1-4.5 4.5h-7A4.5 4.5 0 0 1 4 15.5v-6Z"/><path d="M2.5 9.5h19"/><path d="M2 12.5h2M20 12.5h2"/><path d="M12 6.5V4.5"/><path d="M9 4.5h6"/>',
     utensils: '<path d="M5 2.5v6M7.75 2.5v6M10.5 2.5v6"/><path d="M4 8.5h7.5V10a3.75 3.75 0 0 1-7.5 0V8.5Z"/><path d="M7.75 13.75V21.5"/><path d="M19.5 2.5c-1.9 1.9-3 4.6-3 7.4v2.35h4.5V2.5Z"/><path d="M19.5 12.25V21.5"/>',
@@ -6548,8 +6564,15 @@
     cake:     '<path d="M4.5 20.5v-7a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2v7"/><path d="M2.5 20.5h19"/><path d="M4.5 15.5c1.4 0 1.4 1.5 2.9 1.5s1.4-1.5 2.9-1.5 1.4 1.5 2.9 1.5 1.4-1.5 2.9-1.5 1.4 1.5 2.9 1.5"/><path d="M12 11.5V8.5"/><circle cx="12" cy="7" r="1.4"/>',
     fruit:    '<path d="M12 7.8c-1-1.6-3-2.2-4.7-1.1C4.8 8.2 4 11.2 5 14.6c.9 3 2.6 5.4 4.6 5.4 1 0 1.4-.5 2.4-.5s1.4.5 2.4.5c2 0 3.7-2.4 4.6-5.4 1-3.4.2-6.4-2.3-7.9-1.7-1.1-3.7-.5-4.7 1.1Z"/><path d="M12 7.8V4.6c0-1 1-2 2.5-2"/>',
     heart:    '<path d="M20.8 6.6a5 5 0 0 0-7.1 0L12 8.3l-1.7-1.7a5 5 0 1 0-7.1 7.1l8.8 8.8 8.8-8.8a5 5 0 0 0 0-7.1Z"/>',
+    // Trinkglas mit Fuellstandslinie. Kam mit dem Eiweisshake-Wechsel dazu: "Getraenk" fiel
+    // vorher auf den Topf zurueck (CAT_ICON[cat] || "pot"). Bewusst zwei Striche statt eines
+    // detaillierten Glases - bei den 16 px der .cathead verschmilzt alles Feinere.
+    // Die Breite ist gegengeprueft: eine erste Fassung lief nur von x=6 bis 18 und war bei
+    // 16 px halb so breit wie Topf und Besteck - sie las sich als Becher, nicht als Glas.
+    // Wer den Pfad aendert, prueft ihn bei 16 px gegen ein Nachbaricon, nicht bei 64 px.
+    drink:    '<path d="M4.5 4h15l-1.5 15.3a2 2 0 0 1-2 1.7H8a2 2 0 0 1-2-1.7Z"/><path d="M5.2 9.5h13.6"/>',
   };
-  const CAT_ICON = { "Frühstück": "bread", "Hauptgericht": "utensils", "Snack": "fruit", "Dessert": "cake", "Beilage": "salad" };
+  const CAT_ICON = { "Frühstück": "bread", "Hauptgericht": "utensils", "Snack": "fruit", "Dessert": "cake", "Beilage": "salad", "Getränk": "drink" };
   // Dieselben Symbole an den Slot-Ueberschriften des Wochenplans, damit Plan und
   // Meals-Reiter dieselbe Bildsprache sprechen. Bewusst eine EIGENE Zuordnung und nicht
   // CAT_ICON durchgereicht: Slots sind keine Kategorien. "Hauptgericht" faellt auf zwei
@@ -11286,6 +11309,8 @@
     const searchEl = node.querySelector("#p-search");
     const mealCat = MEALS.find(m => m.key === meal).label;
     let showAll = false;
+    // Bewusst pro Picker und geschlossen vorbelegt - siehe Begruendung unten bei pqForced.
+    let pqOpen = false;
 
     function paint(q) {
       const query = (q || "").toLowerCase().trim();
@@ -11319,7 +11344,12 @@
       const itemHtml = r => {
         const suggest = catSuggestsMeal(r.category, meal) ? " suggest" : "";
         const off = catFitsMeal(r.category, meal) ? "" : " offcat";
-        return `<button class="pitem${suggest}${off}" data-assign="${r.id}">
+        // esc() auch um die id: Sie ist die EINZIGE der vier data-*-ID-Stellen, die es lange
+        // nicht hatte (data-cbview, data-adopt und data-cbcat schon). sanitizeRecipe() prueft
+        // die id nicht - Object.assign uebernimmt sie ungeprueft -, und Rezepte kommen aus
+        // Sharing-Links und Gruppen-Sync auch von fremd. Der Wert kommt ueber dataset wieder
+        // dekodiert heraus, die Zuweisung aendert sich also nicht.
+        return `<button class="pitem${suggest}${off}" data-assign="${esc(r.id)}">
           ${thumbHtml(r, "pthumb")}
           <span class="pn">${esc(r.name)}</span>
           ${isFav(r.id) ? `<span class="pfav" aria-hidden="true">${iconSvg("heart", "")}</span>` : ""}
@@ -11347,10 +11377,32 @@
         html += more;
       }
       if (pieces.length) {
+        // Der Schnell-Bereich ist ein Aufklapper und beim Oeffnen zu. Er stand hier frueher
+        // IMMER offen und verlaengerte jede Meal-Auswahl um sechs feste Zeilen, auch wenn
+        // gar kein Lebensmittel gesucht war.
+        //
+        // Zwei Faelle klappen ihn zwingend auf; die Kopfzeile ist dann nur Beschriftung -
+        // dieselbe Unterscheidung wie bei .cathead/.cathead.static im Rezeptbuch:
+        //   - ab zwei Zeichen greift pieceSearch(): wer "ban" tippt, will die Banane sehen
+        //     und nicht erst einen Knopf finden.
+        //   - ohne ein einziges Meal (libEmpty) ist der Schnell-Bereich der EINZIGE Weg,
+        //     den Slot zu fuellen (siehe Kommentar oben) - zugeklappt waere das ein Dead End.
+        //
+        // Bewusst kein natives <details>, obwohl die App es an vier Stellen nutzt: listEl
+        // wird bei jedem Tastendruck ueber innerHTML neu gebaut, ein DOM-Zustand ginge dabei
+        // verloren. Der Zustand liegt deshalb in pqOpen.
+        const pqForced = query.length >= 2 || libEmpty;
+        const pqShow = pqForced || pqOpen;
+        html += pqForced
+          ? `<div class="sec-h pq-h static">Schnell</div>`
+          : `<button type="button" class="sec-h pq-h" data-pq-toggle aria-expanded="${pqShow}">
+              <svg class="caret${pqShow ? " open" : ""}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
+              <span>Schnell</span>
+            </button>`;
         // Eine Nachkommastelle behalten: nfmt() rundet auf ganze Zahlen und machte aus
         // 0,4 g Fett im Apfel eine 0 (gleiche Begruendung wie bei .ing-brief).
         const nz = v => (Math.round(v * 10) / 10).toLocaleString("de-DE");
-        html += `<div class="sec-h pq-h">Schnell</div>` + pieces.map((f, i) => `
+        if (pqShow) html += pieces.map((f, i) => `
           <button class="pitem pq" data-piece="${i}">
             <span class="pqi" aria-hidden="true">${iconSvg("fruit", "")}</span>
             <span class="pqb">
@@ -11367,6 +11419,18 @@
 
       const toggle = listEl.querySelector("[data-toggle-all]");
       if (toggle) toggle.addEventListener("click", () => { showAll = !showAll; paint(searchEl.value); });
+      // Beim Umschalten wird die ganze Liste neu gebaut: ohne Rueckgabe landete der Fokus
+      // auf <body> - mitten in einem Dialog. Die Scrollposition wird mit gehalten, sonst
+      // springt .plist beim Zuklappen nach oben.
+      const pqBtn = listEl.querySelector("[data-pq-toggle]");
+      if (pqBtn) pqBtn.addEventListener("click", () => {
+        pqOpen = !pqOpen;
+        const top = listEl.scrollTop;
+        paint(searchEl.value);
+        listEl.scrollTop = top;
+        const wieder = listEl.querySelector("[data-pq-toggle]");
+        if (wieder) wieder.focus({ preventScroll: true });
+      });
       const go = listEl.querySelector("[data-go]");
       if (go) go.addEventListener("click", () => { closeModal(); state.tab = "recipes"; render(); openMealSheet(null); });
       listEl.querySelectorAll("[data-assign]").forEach(b => b.addEventListener("click", () => {

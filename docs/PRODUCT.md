@@ -1178,6 +1178,14 @@ und Barcode scannen: tippen, antippen, drin.
 seine Meals und darunter den Abschnitt „Schnell". Ein zweiter Knopf am Slot hätte den Nutzer
 gezwungen, vorher zu wissen, in welcher der beiden Listen sein Ziel steckt.
 
+**Der Abschnitt ist zugeklappt, bis er gebraucht wird.** Er stand anfangs immer offen und
+verlängerte damit jede Meal-Auswahl um sechs feste Zeilen — auch bei dem, der gar kein
+Lebensmittel suchte, sondern nur sein Meal anklicken wollte. Das ist die Umkehrung des
+Grundgedankens: Der Schnelleintrag soll den seltenen Fall billig machen, nicht den häufigen
+teurer. Zwei Situationen klappen ihn ohne Zutun auf, weil ein Knopf dort reine Reibung wäre:
+sobald jemand sucht (ab zwei Zeichen), und wenn es überhaupt kein Meal gibt — dann ist er der
+einzige Weg aus dem Slot heraus.
+
 **Nur echte Stück-Artikel.** Apfel, Banane, Ei, Brötchen, Mandarine — Dinge, bei denen „ein Stück"
 eine natürliche Portion ist. Keine Scheiben, keine Handvoll: „1 Stück Brot" ist schlicht falsch,
 und jedes eigene Mengenwort wäre eine neue Sonderregel in einer Liste, die vom Ablesen lebt.

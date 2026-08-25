@@ -2157,3 +2157,72 @@ Ergebnis am echten Konto, alle fünf Punkte:
 Der Zwei-Fenster-Test misst `updatedAt` **in der Cloud**, nicht die Anzeige: Steigt der
 Zeitstempel weiter, obwohl niemand etwas tut, schreiben sich die Geräte gegenseitig hoch. Das ist
 die Messgröße für TROUBLESHOOTING 34/44, und sie ist billiger als jede DOM-Beobachtung.
+
+---
+
+## Ein Zweig, der nur bei leerem Bestand läuft: die Ganzdatei-Kopie (25.08.2026)
+
+Der Schnell-Bereich im Picker klappt in einem Fall zwingend auf: wenn es **kein einziges Meal**
+gibt (`libEmpty`) — zugeklappt wäre der Slot dann eine Sackgasse. Dieser Zweig ist am echten
+Konto nicht erreichbar: `pickerQuellen()` liefert eigene Meals **plus** die nicht übernommenen
+Katalogrezepte, und der Katalog ist nie leer.
+
+Ausschneiden ließ sich `paint()` schlecht — es hängt an elf Helfern, an `state` und am Modal.
+Der billigere Weg war die **Umkehrung des Prinzips**: nicht den Code aus der Datei schneiden,
+sondern die ganze Datei kopieren und darin **einen** Helfer stumpfsinnig machen.
+
+```python
+alt = "  function pickerQuellen() {
+    const eigene = libraryRecipes();"
+neu = "  function pickerQuellen() {
+    return [];  // PRUEFSTAND libEmpty
+" + alt.split("
+")[1]
+io.open("_pruefstand-libempty.html", "w", encoding="utf-8", newline="").write(s.replace(alt, neu))
+```
+
+Die Kopie liegt **im Projektordner**, damit `test-server.ps1` sie ausliefert, und wird per
+`tools/cdp.py` im laufenden Chrome geladen — mit derselben Anmeldung, demselben CSS, demselben
+`state`. Ergebnis in einem Aufruf: Leer-Hinweis oben, Kopfzeile statisch, alle sechs
+Schnell-Zeilen offen.
+
+**Drei Bedingungen, damit das sauber bleibt:**
+
+* Der Stub steht als **erste Zeile** der Funktion (`return []`), der Originalcode bleibt darunter
+  stehen. Wer ihn löscht, kann den Prüfstand nicht mehr gegen das Original diffen.
+* Der Dateiname beginnt mit `_` und die Kopie wird **sofort nach dem Lauf gelöscht**. Sie liegt
+  im Projektordner, also im Blickfeld von `git status` — das ist Absicht, nicht Nachlässigkeit.
+* Nach dem Lauf zurück auf `index.html` navigieren. Bleibt die Kopie offen, misst der nächste
+  Prüfschritt eine App mit einem absichtlich kaputten Helfer.
+
+Grenze der Methode: Sie taugt für Zweige, die von **einer** Datenquelle abhängen. Sobald zwei
+Helfer zusammenspielen müssen, ist der echte Ausschneide-Prüfstand wieder der ehrlichere Weg —
+eine Kopie mit fünf Stubs ist keine Produktionsimplementierung mehr.
+
+---
+
+## Ein Escape-Fix beweist sich nur mit dem Vorher (25.08.2026)
+
+Zum `esc()`-Nachtrag bei `data-assign` (TROUBLESHOOTING 114) gehört ein Prüfstand, der **beide**
+Fassungen rendert — die alte und die neue — statt nur zu zeigen, dass die neue harmlos aussieht.
+`esc()` wird dazu unverändert aus `index.html` geschnitten:
+
+```python
+esc = [l for l in s.split("
+") if l.strip().startswith("function esc(s)")]
+assert len(esc) == 1
+```
+
+Geprüft wird nicht der ausgegebene Text, sondern **was der Parser daraus gemacht hat**:
+
+* `el.hasAttribute("onmouseover")` — ohne `esc()` **true**, das ist der Beleg, dass der Ausbruch
+  ohne den Fix wirklich gelingt. Ein Prüfstand, der nur die neue Fassung zeigt, beweist nichts.
+* `el.attributes.length` — mit `esc()` genau zwei (`class`, `data-assign`).
+* `el.dataset.assign === id` — die Nutzlast kommt **dekodiert** zurück, die Zuweisung bricht also
+  nicht. Zusätzlich mit einer normalen id gegengeprüft, damit der Regelfall belegt ist und nicht
+  nur der Angriffsfall.
+
+**`innerHTML` im Prüfstand ist hier kein Fehler, sondern der Messpunkt:** Genau diesen Weg geht
+die App, und nur er zeigt, ob ein Attribut entsteht. Ein String-Vergleich hätte den Fund nicht
+belegt.
+
