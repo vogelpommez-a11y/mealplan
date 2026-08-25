@@ -992,6 +992,38 @@ Der Rückblick selbst (`rueckblickHtml()`) normiert jeden Balken auf **sein eige
 Wochenziel und kann das ±10-%-Band deshalb als feste Fläche zeichnen. Siehe
 `docs/TROUBLESHOOTING.md` Punkt 72 für den Zustand davor.
 
+#### Synchronisation (seit 25.08.2026)
+
+**Bis dahin war `weekStats` gerätelokal** — es fehlte in `dataJSON()`, in der
+`pushNow()`-Nutzlast und wurde in `onRemote()` nie gelesen. Ziel, Gewichte, Plan und Favoriten
+liefen längst über die Cloud, der Rückblick nicht: Wer sich auf einem zweiten Gerät anmeldete,
+hatte dort Streak 0 und ein leeres Diagramm. Diese Seite hat das früher **nicht erwähnt**, was
+den Zustand wie eine Entscheidung aussehen liess — er war keine.
+
+Das Feld läuft jetzt im Kontodokument mit. Weil `CloudSync.save` mit `mergeFields` schreibt und
+ein Feld damit **ganz** ersetzt, wäre blosses Mitschreiben ein Datenverlust: Beide Geräte
+archivieren dieselbe Vergangenheit unabhängig (`pruneWeeks()` läuft bei jedem Laden), das
+zuletzt schreibende hätte die Wochen des anderen gelöscht. Zusammengeführt wird deshalb mit
+`mergeWeekStats()`, wie bei `shares`, `weights` und `deleted`:
+
+* **Vereinigung, nie Ersetzen.** Eine Woche, die nur ein Gerät kennt, bleibt.
+* **Bei derselben Woche gewinnt der Eintrag mit mehr `days`** — wer mehr geplante Tage sah,
+  hatte den vollständigeren Plan. Danach entscheiden `hit`, `kcal`, `target`.
+* **Der Tiebreak ist rein wertbasiert und kennt kein „remote gewinnt".** Sonst nähme A den Wert
+  von B und B gleichzeitig den von A — die beiden täuschten eine Runde lang. Wertbasiert kommen
+  beide unabhängig zum selben Ergebnis. Belegt durch `tools/pruefstand-weekstats-sync.py`, das
+  genau dafür `merge(A,B) === merge(B,A)` prüft.
+* Anschliessend läuft `sanitizeWeekStats()` über das Ergebnis: Die Vereinigung zweier je
+  26 Wochen langer Archive kann 52 ergeben, und `slice(-26)` braucht die Sortierung, um die
+  **jüngsten** zu behalten.
+
+**Zwei Merge-Stellen, nicht eine.** `onRemote()` deckt den laufenden Betrieb ab; der
+Baseline-Merge in `startCloudSync()` den Start. Fehlt das Feld dort, ist die Vereinigung
+wirkungslos — der Baseline-Push läuft direkt danach und ersetzt das Cloud-Feld mit dem
+lokalen Stand. Siehe `docs/TROUBLESHOOTING.md` Punkt 115.
+
+Grössenordnung: 26 Wochen à rund 60 Byte, also gut 1,5 KB — unkritisch gegen `CLOUD_DOC_MAX`.
+
 ### Merkmale eines Meals: `tags[]` und `mealPrep`
 
 Zwei optionale Felder, seit 13.08.2026. Sie sind die Grundlage für den Meal-Filter, die

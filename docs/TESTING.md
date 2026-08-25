@@ -2226,3 +2226,44 @@ Geprüft wird nicht der ausgegebene Text, sondern **was der Parser daraus gemach
 die App, und nur er zeigt, ob ein Attribut entsteht. Ein String-Vergleich hätte den Fund nicht
 belegt.
 
+---
+
+## `tools/pruefstand-weekstats-sync.py` — und warum er den Fehler nicht fand (25.08.2026)
+
+Zum Cloud-Sync des Wochenarchivs gehört ein dauerhafter Prüfstand. Er schneidet
+`sanitizeWeekStats()`, `weekStatRang()`, `mergeWeekStats()` und `canonValue()/canonJSON()` aus
+`index.html` und fährt 24 Prüfungen headless. Exit-Code 0 nur bei „0 rot".
+
+**Die Messgrösse ist nicht „kommt eine Woche an", sondern die Einigkeit zweier Geräte:**
+
+```
+mergeWeekStats(A, B) === mergeWeekStats(B, A)
+```
+
+Ein Tiebreak „remote gewinnt" erfüllt das nicht — A nähme den Wert von B und B gleichzeitig
+den von A. **Prüfung 9 baut genau diese naive Fassung nach und verlangt, dass sie durchfällt**
+(3 von 3 Fällen uneinig, während die echte in allen einig ist). Ohne diese Gegenprobe bestünde
+den Test auch die kaputte Variante.
+
+### Der Teil, den er nicht leisten kann
+
+Der Prüfstand war **grün, bevor der eigentliche Fehler gefunden war** — der Aufruf im
+Baseline-Merge von `startCloudSync()` fehlte, und `onRemote()` allein kam beim Start nie zum
+Zug (TROUBLESHOOTING 115). Ein isolierter Prüfstand prüft die **Funktion**, nicht ihre
+**Aufrufer**; einen fehlenden Aufruf kann er per Konstruktion nicht sehen.
+
+**Bei Sync-Änderungen gehört deshalb der Lauf am echten Konto dazu.** Er hat hier drei Schritte
+und dauert zwei Minuten (`tools/cdp.py`, siehe unten):
+
+1. **Sichern.** `CloudSync.load(uid)` lesen, **Schlüsselmenge** notieren — nicht nur einen Wert.
+2. **Gerät 1 spielen:** `weekStats` im `localStorage` (`wochenkueche_v1__test`) auf eine Woche
+   setzen, neu laden, in der Cloud nachsehen, ob sie ankommt.
+3. **Gerät 2 spielen:** lokal eine **andere** Woche setzen — die erste also lokal entfernen —,
+   neu laden. Danach müssen **beide** Wochen lokal und in der Cloud stehen. Genau hier fiel der
+   Lauf durch, und nur hier.
+
+Danach `updatedAt` über ~45 s beobachten (muss stillstehen) und die Testdaten wieder
+ausräumen: **lokal zuerst leeren, dann `CloudSync.save(uid, { weekStats: {} })`** — in dieser
+Reihenfolge, sonst schiebt der Baseline-Merge die Testwochen sofort wieder hoch. Zum Schluss
+die Schlüsselmenge gegen die Sicherung aus Schritt 1 prüfen.
+

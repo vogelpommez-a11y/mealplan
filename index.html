@@ -4637,6 +4637,54 @@
     Object.keys(out).sort().slice(-26).forEach(k => { trimmed[k] = out[k]; });
     return trimmed;
   }
+  // Zwei Archive zusammenfuehren. Notwendig geworden, als weekStats in den Cloud-Sync kam:
+  // CloudSync.save schreibt mit mergeFields und ersetzt ein Feld damit GANZ. Beide Geraete
+  // archivieren dieselbe Vergangenheit unabhaengig voneinander (pruneWeeks laeuft bei jedem
+  // Laden), also wuerde ohne Vereinigung das zuletzt schreibende Geraet die Wochen des
+  // anderen loeschen - dieselbe Fehlerklasse wie in TROUBLESHOOTING 34/44. Vereinigt wird
+  // deshalb, nie ersetzt, genau wie bei shares, inviteCodes, weights und deleted.
+  //
+  // Der Tiebreak ist bewusst REIN WERTBASIERT und kennt kein "remote gewinnt": Sonst naehme
+  // A den Wert von B und B gleichzeitig den von A, und die beiden tauschten eine Runde lang
+  // hin und her, bevor sie sich einigen. Wertbasiert kommen beide Geraete unabhaengig zum
+  // selben Ergebnis - es gibt nichts zu tauschen.
+  //
+  // Mehr `days` gewinnt, weil das Geraet mit mehr geplanten Tagen den vollstaendigeren Plan
+  // gesehen hat (ein Handy, das zwei Wochen aus war, archiviert dieselbe Woche duenner).
+  // Danach `hit`, `kcal`, `target` - nur als Entscheider bei Gleichstand, damit das Ergebnis
+  // eindeutig ist und nicht von der Reihenfolge abhaengt.
+  //
+  // Bekanntes Limit, bewusst in Kauf genommen: Sind days/hit/kcal identisch und nur die
+  // eingefrorenen Ziele verschieden (der Nutzer hat zwischen den beiden Archivierungen sein
+  // Ziel geaendert), gewinnt schlicht das hoehere `target`. Das ist fachlich willkuerlich -
+  // aber Eindeutigkeit ist hier mehr wert als die Wahl des "richtigeren" Ziels: Ein Tiebreak,
+  // der die Geraete uneinig laesst, kostet nicht eine Kennzahl, sondern erzeugt einen
+  // Dauerkonflikt. Der Fall verlangt drei identische Werte und ist entsprechend selten.
+  function weekStatRang(s) { return [s.days || 0, s.hit || 0, s.kcal || 0, s.target || 0]; }
+  function mergeWeekStats(prim, sec) {
+    const a = sanitizeWeekStats(sec), b = sanitizeWeekStats(prim);
+    const out = Object.assign({}, a);
+    Object.keys(b).forEach(k => {
+      const alt = out[k];
+      if (!alt) { out[k] = b[k]; return; }
+      const ra = weekStatRang(alt), rb = weekStatRang(b[k]);
+      for (let i = 0; i < ra.length; i++) {
+        if (rb[i] === ra[i]) continue;
+        if (rb[i] > ra[i]) out[k] = b[k];
+        return;
+      }
+    });
+    // Aussen noch einmal sanitizen, und zwar wegen der 26-Wochen-Grenze: Die Vereinigung
+    // zweier je 26 Wochen langer Archive kann bis zu 52 Wochen ergeben. sanitizeWeekStats
+    // sortiert vor dem `slice(-26)` - nur deshalb bleiben die JUENGSTEN 26 stehen und nicht
+    // die, die Object.assign zufaellig zuletzt eingehaengt hat.
+    //
+    // Fuer den Push-Vergleich waere die Reihenfolge egal: dataJSON() laeuft ueber canonJSON,
+    // und canonValue() sortiert Objektschluessel rekursiv. Die Sortierung hier ist also
+    // NICHT das Mittel gegen zwei aufschaukelnde Geraete - das leistet allein der
+    // wertbasierte Tiebreak oben.
+    return sanitizeWeekStats(out);
+  }
   // Aktive Woche als Referenz spiegeln, damit alle bestehenden state.plan[..]-Zugriffe gelten.
   function setViewWeek(which) {
     state.viewWeek = which === "next" ? "next" : "cur";
@@ -5349,7 +5397,7 @@
     return v;
   }
   function canonJSON(v) { return JSON.stringify(canonValue(v)); }
-  function dataJSON(d) { return canonJSON({ plans: (syncGid || groupSyncFailed) ? null : plansField(d), goal: (d && d.goal) || null, shares: (d && d.shares) || [], onboarded: !!(d && d.onboarded), weights: (d && d.weights) || [], weightGoals: (d && d.weightGoals) || {}, profileImage: (d && d.profileImage) || null, weightConsent: (d && d.weightConsent) || noConsent(), shopPersons: sanitizeShopPersons(d && d.shopPersons), inviteCodes: (d && d.inviteCodes) || [], favs: sanitizeFavs(d && d.favs), planned: sanitizePlanned(d && d.planned), deleted: sanitizeTombstones(d && d.deleted) }); }
+  function dataJSON(d) { return canonJSON({ plans: (syncGid || groupSyncFailed) ? null : plansField(d), goal: (d && d.goal) || null, shares: (d && d.shares) || [], onboarded: !!(d && d.onboarded), weights: (d && d.weights) || [], weightGoals: (d && d.weightGoals) || {}, profileImage: (d && d.profileImage) || null, weightConsent: (d && d.weightConsent) || noConsent(), weekStats: sanitizeWeekStats(d && d.weekStats), shopPersons: sanitizeShopPersons(d && d.shopPersons), inviteCodes: (d && d.inviteCodes) || [], favs: sanitizeFavs(d && d.favs), planned: sanitizePlanned(d && d.planned), deleted: sanitizeTombstones(d && d.deleted) }); }
 
   function scheduleCloudPush() {
     if (!syncUid) return;
@@ -5498,7 +5546,7 @@
     // keine Kontoeinstellung. sanitizeShopPersons(state.shopPersons) schreibt die tatsaechlich
     // vom Nutzer gesetzte Zahl (Default 1) - sonst ueberschriebe der berechnete Wert eine
     // bewusst gesetzte 1 dauerhaft in der Cloud (siehe dataJSON()/shopPersons()-Kommentare).
-    const d = { tab: state.tab, goal: state.goal || null, shares: state.shares || [], onboarded: state.onboarded === true, weights: state.weights || [], weightGoals: state.weightGoals || {}, profileImage: state.profileImage || null, weightConsent: state.weightConsent || noConsent(), shopPersons: sanitizeShopPersons(state.shopPersons), inviteCodes: state.inviteCodes || [], favs: sanitizeFavs(state.favs), planned: sanitizePlanned(state.planned, state.recipes), deleted: sanitizeTombstones(state.deleted) };
+    const d = { tab: state.tab, goal: state.goal || null, shares: state.shares || [], onboarded: state.onboarded === true, weights: state.weights || [], weightGoals: state.weightGoals || {}, profileImage: state.profileImage || null, weightConsent: state.weightConsent || noConsent(), weekStats: sanitizeWeekStats(state.weekStats), shopPersons: sanitizeShopPersons(state.shopPersons), inviteCodes: state.inviteCodes || [], favs: sanitizeFavs(state.favs), planned: sanitizePlanned(state.planned, state.recipes), deleted: sanitizeTombstones(state.deleted) };
     // groupId NUR schreiben, wenn dieser Client den Gruppenzustand wirklich kennt. syncGid null
     // heisst nicht "keine Gruppe", sondern nur "gerade keine Gruppen-Session" - ein "groupId: ''"
     // wuerde die Gruppe dann fuer ALLE Geraete des Kontos ausloeschen. Fehlt das Feld hier,
@@ -5613,6 +5661,14 @@
     // herausgefiltert wuerde - das Ziel waere weg. sanitizeWeightGoals ist idempotent.
     state.weightGoals = sanitizeWeightGoals(Object.assign({}, sanitizeWeightGoals(state.weightGoals), sanitizeWeightGoals(data.weightGoals)));
     state.weightConsent = mergeConsent(data.weightConsent, state.weightConsent); // juengste Entscheidung gewinnt
+    // Wochenarchiv vereinigen, nie ersetzen (siehe mergeWeekStats). Bewusst OHNE
+    // `data.weekStats !== undefined`-Wache: Fehlt das Feld in der Cloud - jedes Konto, das seit
+    // dieser Aenderung noch nicht gepusht hat -, liefert mergeWeekStats den lokalen Stand
+    // unveraendert zurueck. Eine Wache waere hier also wirkungslos, ein "Cloud gewinnt" wie bei
+    // favs dagegen schaedlich: Es loeschte beim ersten Snapshot die gesamte lokale Historie.
+    // Steht NACH dem pruneWeeks() oben - das archiviert unterwegs neue Wochen in
+    // state.weekStats, und die sollen mit in die Vereinigung.
+    state.weekStats = mergeWeekStats(data.weekStats, state.weekStats);
     if (data.profileImage !== undefined) state.profileImage = typeof data.profileImage === "string" ? data.profileImage : null;
     if (data.shopPersons !== undefined) state.shopPersons = sanitizeShopPersons(data.shopPersons);
     if (data.favs !== undefined) state.favs = sanitizeFavs(data.favs); // Cloud gewinnt, kein Union (siehe sanitizeFavs)
@@ -6009,6 +6065,15 @@
         state.weights = mergeWeights(remote.weights, state.weights);
         state.weightGoals = Object.assign({}, sanitizeWeightGoals(state.weightGoals), sanitizeWeightGoals(remote.weightGoals));
         state.weightConsent = mergeConsent(remote.weightConsent, state.weightConsent);
+        // Wochenarchiv, aus demselben Grund wie die Wiegungen direkt darueber: Dieser Block
+        // ist der Baseline-Merge beim Anmelden, und gleich danach schreibt pushNow() den
+        // zusammengefuehrten Stand hoch. Fehlt weekStats HIER, hilft die Vereinigung in
+        // onRemote() nichts mehr - der Baseline-Push ist dann schon mit dem duennen lokalen
+        // Archiv durch, und mergeFields ersetzt das Cloud-Feld ganz. Genau so ist beim
+        // Abnahmelauf eine Woche verlorengegangen, die nur die Cloud kannte.
+        // Steht ausserhalb der Gruppen-Unterscheidung weiter unten: Der Rueckblick ist
+        // kontobezogen, nicht gruppenbezogen - er gilt in beiden Faellen.
+        state.weekStats = mergeWeekStats(remote.weekStats, state.weekStats);
         if (remote.profileImage && typeof remote.profileImage === "string") { state.profileImage = remote.profileImage; renderProfileChip(); }
         // Cloud gewinnt: die Personenzahl ist eine Kontoeinstellung, kein Geraetezustand -
         // sonst ueberschriebe ein frisch angemeldetes zweites Geraet sie mit seiner 1.
@@ -12042,7 +12107,7 @@
       <p>Diese Website wird bei GitHub Pages gehostet, einem Dienst der GitHub, Inc., 88 Colin P. Kelly Jr. Street, San Francisco, CA 94107, USA. Beim Aufruf der Seite verarbeitet GitHub technisch notwendige Zugriffsdaten (z. B. deine IP-Adresse), um die Seite auszuliefern und deren Sicherheit zu gewährleisten. Rechtsgrundlage ist unser berechtigtes Interesse an einer sicheren und effizienten Bereitstellung (Art. 6 Abs. 1 lit. f DSGVO). Dabei kann eine Übermittlung in die USA erfolgen. Weitere Infos: <a href="https://docs.github.com/de/site-policy/privacy-policies/github-general-privacy-statement" target="_blank" rel="noopener">GitHub Privacy Statement</a>.</p>
       <h4>3. Welche Daten wir verarbeiten</h4>
       <p><strong>Zwei Betriebsarten – und nur eine davon verarbeitet Daten bei uns.</strong> Du kannst die App <strong>ohne Konto</strong> nutzen: Dann bleiben deine Plan- und Profildaten ausschließlich auf deinem Gerät (Browser-Speicher), sie werden <strong>weder an uns noch an Firebase übertragen</strong>, und wir haben keinen Zugriff darauf. Ohne Konto entsteht dabei auch keine Verbindung zu Google: Die Software für die Cloud-Funktionen wird seit August 2026 zusammen mit der Seite ausgeliefert und nicht mehr von Google-Servern nachgeladen (Ziffer 5). Wir fragen dabei nur einen frei wählbaren <strong>Namen</strong> ab; eine E-Mail-Adresse ist optional und verlässt das Gerät ebenfalls nicht. Der folgende Abschnitt beschreibt die zweite Betriebsart: die Nutzung <strong>mit Konto</strong> (Cloud-Synchronisierung), für die du dich aktiv entscheidest. Löschst du die Websitedaten deines Browsers, sind lokal gespeicherte Angaben unwiederbringlich weg – im Betrieb ohne Konto haben wir keine Kopie davon.</p>
-      <p>Bei der Registrierung: <strong>Name und E-Mail-Adresse</strong>. Bei Nutzung der App: die von dir angelegten <strong>Wochenpläne, Meals/Rezepte und ggf. Fotos</strong> sowie ein optionales <strong>Profilbild</strong> (als Kreis-Avatar zugeschnitten, in deinem Nutzerkonto gespeichert, nicht Teil von Teilen-Links) sowie – im Rahmen der Einführungsfragen zu Beginn, die zur Nutzung der App erforderlich sind – <strong>Geschlecht, Alter, Größe, Gewicht, Alltagsbewegung und Ziel</strong> sowie optional deine <strong>Trainingstage</strong> (Wochentag, Intensität und Dauer) und deinen <strong>Körperfettanteil</strong> (als grobe Stufe; Details zu beidem siehe Ziffer 3a) sowie – ebenfalls optional – deine <strong>Auswahl, welche Meals dir vorgeschlagen werden sollen</strong> (vegetarisch, vegan oder ohne Einschränkung; dazu wahlweise glutenfrei und/oder laktosefrei). Erstellst du Teilen-Links, merkt sich dein Konto zusätzlich deren <strong>Kennungen</strong> (keine Klardaten, siehe Ziffer 8), damit sie beim Löschen deines Kontos zugeordnet und mitentfernt werden können. Nutzt du „Gemeinsam planen", speichert dein Konto außerdem die <strong>Kennung deiner Gruppe</strong> sowie die Kennungen der von dir erstellten <strong>Einladungslinks</strong> – aus demselben Grund (siehe Ziffer 8a); an einem in einer Gruppe angelegten Meal wird zusätzlich deine <strong>Nutzerkennung</strong> vermerkt, damit sichtbar ist, wer es angelegt hat. Weist du ein geplantes Gericht nur einem Teil der Gruppe zu (statt „für alle"), wird für dieses Gericht zusätzlich vermerkt, welche Mitglieder es per <strong>Nutzerkennung</strong> essen – sichtbar für die ganze Gruppe als kleines Farb-Badge auf der Meal-Karte. Stellst du in der Einkaufsliste eine <strong>Personenanzahl</strong> ein, wird auch diese gespeichert. Markierst du Meals als <strong>Favorit</strong>, wird diese Auswahl ebenfalls in deinem Konto gespeichert – nur für dich, auch in einer Gruppe. Nutzt du den <strong>automatischen Wochenplaner</strong>, merkt sich dein Konto zu den eingeplanten Meals die <strong>Kalenderwoche</strong>, in der sie zuletzt vorgeschlagen wurden – damit du nicht jede Woche dieselben Gerichte bekommst. Diese Angabe gilt nur für dich, auch in einer Gruppe, und wird nach einigen Wochen automatisch wieder entfernt. Übernimmst du ein Rezept aus dem mitgelieferten <strong>Rezeptbuch</strong>, entsteht eine Kopie in deiner Sammlung; an ihr wird zusätzlich die <strong>Kennung des Ursprungsrezepts</strong> vermerkt, damit sich eine später korrigierte Fassung zuordnen lässt. Damit du nicht mit einer leeren Sammlung beginnst, legen wir am Ende der Einführungsfragen <strong>fünf solcher Kopien</strong> für dich an – ausgewählt passend zu deiner Angabe, welche Meals dir vorgeschlagen werden sollen. Sie gehören dann dir und lassen sich wie jedes andere Meal bearbeiten oder löschen. Plant der <strong>automatische Wochenplaner</strong> ein Rezept aus dem Rezeptbuch ein, entsteht dabei <strong>keine</strong> Kopie: Dein Plan verweist dann unmittelbar auf das mitgelieferte Gericht, und deine Sammlung bleibt unverändert. Kopien, die frühere Fassungen der App beim Planen angelegt haben und die du nie verändert hast, räumt die App einmalig auf (siehe Ziffer 10). Stimmst du der Speicherung deines <strong>Gewichtsverlaufs</strong> ausdrücklich zu, speichern wir je Eintrag Kalenderwoche und Gewicht sowie ein optionales <strong>Jahres-Zielgewicht</strong> (Details und Widerruf siehe Ziffer 3b). Ist für dein Konto die kostenpflichtige <strong>Pro-Stufe</strong> freigeschaltet, speichern wir dazu ein eigenes Dokument mit dem <strong>Pro-Status</strong>, der <strong>Herkunft der Freischaltung</strong> (manuell, Apple oder Google) und gegebenenfalls einem <strong>Ablaufdatum</strong>. Dieses Dokument kann die App nur lesen, nicht ändern – gesetzt wird es ausschließlich von uns bzw. künftig vom Bezahlvorgang des jeweiligen App-Stores. Es wird mit deinem Konto gelöscht (Ziffer 10). Eine Bezahlfunktion gibt es derzeit nicht. Diese Daten speichern wir, damit du dich anmelden und deine Planung geräteübergreifend nutzen kannst.</p>
+      <p>Bei der Registrierung: <strong>Name und E-Mail-Adresse</strong>. Bei Nutzung der App: die von dir angelegten <strong>Wochenpläne, Meals/Rezepte und ggf. Fotos</strong> sowie ein optionales <strong>Profilbild</strong> (als Kreis-Avatar zugeschnitten, in deinem Nutzerkonto gespeichert, nicht Teil von Teilen-Links) sowie – im Rahmen der Einführungsfragen zu Beginn, die zur Nutzung der App erforderlich sind – <strong>Geschlecht, Alter, Größe, Gewicht, Alltagsbewegung und Ziel</strong> sowie optional deine <strong>Trainingstage</strong> (Wochentag, Intensität und Dauer) und deinen <strong>Körperfettanteil</strong> (als grobe Stufe; Details zu beidem siehe Ziffer 3a) sowie – ebenfalls optional – deine <strong>Auswahl, welche Meals dir vorgeschlagen werden sollen</strong> (vegetarisch, vegan oder ohne Einschränkung; dazu wahlweise glutenfrei und/oder laktosefrei). Erstellst du Teilen-Links, merkt sich dein Konto zusätzlich deren <strong>Kennungen</strong> (keine Klardaten, siehe Ziffer 8), damit sie beim Löschen deines Kontos zugeordnet und mitentfernt werden können. Nutzt du „Gemeinsam planen", speichert dein Konto außerdem die <strong>Kennung deiner Gruppe</strong> sowie die Kennungen der von dir erstellten <strong>Einladungslinks</strong> – aus demselben Grund (siehe Ziffer 8a); an einem in einer Gruppe angelegten Meal wird zusätzlich deine <strong>Nutzerkennung</strong> vermerkt, damit sichtbar ist, wer es angelegt hat. Weist du ein geplantes Gericht nur einem Teil der Gruppe zu (statt „für alle"), wird für dieses Gericht zusätzlich vermerkt, welche Mitglieder es per <strong>Nutzerkennung</strong> essen – sichtbar für die ganze Gruppe als kleines Farb-Badge auf der Meal-Karte. Stellst du in der Einkaufsliste eine <strong>Personenanzahl</strong> ein, wird auch diese gespeichert. Markierst du Meals als <strong>Favorit</strong>, wird diese Auswahl ebenfalls in deinem Konto gespeichert – nur für dich, auch in einer Gruppe. Nutzt du den <strong>automatischen Wochenplaner</strong>, merkt sich dein Konto zu den eingeplanten Meals die <strong>Kalenderwoche</strong>, in der sie zuletzt vorgeschlagen wurden – damit du nicht jede Woche dieselben Gerichte bekommst. Diese Angabe gilt nur für dich, auch in einer Gruppe, und wird nach einigen Wochen automatisch wieder entfernt. Damit dein <strong>Rückblick</strong> auf der Startseite über die zwei im Plan gehaltenen Wochen hinausreicht, bewahrt dein Konto zu jeder vergangenen Kalenderwoche vier <strong>Kennzahlen</strong> auf: die durchschnittlich <em>geplanten</em> Tageskalorien, die Anzahl geplanter Tage, die Zahl der Tage innerhalb deines Zielkorridors und das damals gültige Tagesziel. Der Wochenplan selbst wird dabei gelöscht – gespeichert bleiben nur diese Zahlen, keine Gerichte und keine Fotos. Älteres als die letzten <strong>26 Wochen</strong> entfällt automatisch. Übernimmst du ein Rezept aus dem mitgelieferten <strong>Rezeptbuch</strong>, entsteht eine Kopie in deiner Sammlung; an ihr wird zusätzlich die <strong>Kennung des Ursprungsrezepts</strong> vermerkt, damit sich eine später korrigierte Fassung zuordnen lässt. Damit du nicht mit einer leeren Sammlung beginnst, legen wir am Ende der Einführungsfragen <strong>fünf solcher Kopien</strong> für dich an – ausgewählt passend zu deiner Angabe, welche Meals dir vorgeschlagen werden sollen. Sie gehören dann dir und lassen sich wie jedes andere Meal bearbeiten oder löschen. Plant der <strong>automatische Wochenplaner</strong> ein Rezept aus dem Rezeptbuch ein, entsteht dabei <strong>keine</strong> Kopie: Dein Plan verweist dann unmittelbar auf das mitgelieferte Gericht, und deine Sammlung bleibt unverändert. Kopien, die frühere Fassungen der App beim Planen angelegt haben und die du nie verändert hast, räumt die App einmalig auf (siehe Ziffer 10). Stimmst du der Speicherung deines <strong>Gewichtsverlaufs</strong> ausdrücklich zu, speichern wir je Eintrag Kalenderwoche und Gewicht sowie ein optionales <strong>Jahres-Zielgewicht</strong> (Details und Widerruf siehe Ziffer 3b). Ist für dein Konto die kostenpflichtige <strong>Pro-Stufe</strong> freigeschaltet, speichern wir dazu ein eigenes Dokument mit dem <strong>Pro-Status</strong>, der <strong>Herkunft der Freischaltung</strong> (manuell, Apple oder Google) und gegebenenfalls einem <strong>Ablaufdatum</strong>. Dieses Dokument kann die App nur lesen, nicht ändern – gesetzt wird es ausschließlich von uns bzw. künftig vom Bezahlvorgang des jeweiligen App-Stores. Es wird mit deinem Konto gelöscht (Ziffer 10). Eine Bezahlfunktion gibt es derzeit nicht. Diese Daten speichern wir, damit du dich anmelden und deine Planung geräteübergreifend nutzen kannst.</p>
       <h4>3a. Ziel-Berechnung (Einführungsfragen)</h4>
       <p>Zur Nutzung der App gibst du bei den Einführungsfragen zu Beginn <strong>Geschlecht, Alter, Größe und Gewicht</strong> sowie deine Alltagsbewegung und dein Ziel an – ohne diese Angaben lässt sich kein Kalorien- und Makroziel berechnen und die App steht dir nicht zur Verfügung. Optional legst du zusätzlich deine <strong>Trainingstage</strong> fest – also an welchen Wochentagen du trainierst, mit welcher Intensität und wie lange; diese Angabe kannst du auch weglassen. Ebenfalls optional wählst du eine grobe Stufe für deinen <strong>Körperfettanteil</strong> – gibst du sie an, berechnet die App deinen Grundumsatz nach der Katch-McArdle-Formel über die fettfreie Masse statt nach Mifflin-St-Jeor; wählst du „Weiß ich nicht", bleibt es bei Mifflin-St-Jeor. Daraus berechnet die App direkt in deinem Browser deinen Tagesbedarf, deine Makronährstoffe und deinen BMI; an Trainingstagen zusätzlich den geschätzten Mehrbedarf durch die jeweilige Einheit. Übernimmst du das Ergebnis als dein Ziel, werden diese Angaben wie deine übrigen Plandaten lokal und – bei Cloud-Nutzung – in deinem Nutzerkonto (Cloud Firestore, siehe Ziffer 5) gespeichert, um sie geräteübergreifend verfügbar zu halten. Du kannst dein Ziel jederzeit über den Knopf „Ziel neu berechnen" im Wochenplan neu berechnen; die vorherigen Werte sind dann durch die neuen ersetzt. Rechtsgrundlage ist wie unter Ziffer 4 die Erfüllung des Nutzungsvertrags (Art. 6 Abs. 1 lit. b DSGVO). Diese Angaben werden <strong>nicht</strong> in Teilen-Links aufgenommen (siehe Ziffer 8).</p>
       <h4>3b. Gewichtsverlauf („Ziele &lt;Jahr&gt;")</h4>

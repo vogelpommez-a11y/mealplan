@@ -883,6 +883,17 @@ Zwei Regeln, die daraus folgen:
 Was der Rückblick weiterhin **nicht** tut: bewerten. Wochen außerhalb des Ziels sind gedämpft
 gezeichnet, nicht rot.
 
+**Der Rückblick gehört zum Konto, nicht zum Gerät** (seit 25.08.2026). Bis dahin lag das
+Wochenarchiv nur im `localStorage`: Wer sich auf dem Handy anmeldete, sah dort Streak 0 und ein
+leeres Diagramm, obwohl Ziel, Gewichte und Plan längst ankamen. Das war keine Entscheidung,
+sondern eine Lücke — und sie traf ausgerechnet die Zahl, die über Wochen wächst und deshalb am
+meisten wert ist. Ein Streak, den ein Gerätewechsel zurücksetzt, ist schlimmer als keiner: Er
+bestraft den Nutzer für etwas, das er nicht getan hat, und das verstößt gegen „Die Marke hilft,
+sie bewertet nicht" (`CLAUDE.md` §6).
+
+Beim Zusammenführen zweier Geräte gilt deshalb: **Es geht nie eine Woche verloren**, und bei
+derselben Woche zählt der vollständigere Stand — nicht der zuletzt geschriebene.
+
 ## Bewusste Produktentscheidungen: Wochenplan
 
 ### Der angezeigte Tag folgt einer Anker-Regel

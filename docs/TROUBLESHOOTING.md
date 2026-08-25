@@ -3383,3 +3383,38 @@ Nicht angefasst und bewusst offen: `sanitizeRecipe()` prüft die `id` weiterhin 
 bei der **Ausgabe** ist der richtige Ort dafür; eine Formatprüfung beim Einlesen träfe auch
 Bestandsdaten und Katalogschlüssel und wäre ein eigener Umbau.
 
+---
+
+## 115. Ein neues Sync-Feld braucht ZWEI Merge-Stellen — der isolierte Prüfstand sieht nur eine
+
+Beim Aufnehmen von `weekStats` in den Cloud-Sync war die Verschmelzungsfunktion
+`mergeWeekStats()` fertig, mit 22 grünen Prüfungen samt Gegenprobe: Vereinigung, wertbasierter
+Tiebreak, Konvergenz über zwei Runden, 26-Wochen-Grenze. Der Aufruf stand in `onRemote()`.
+
+**Die Abnahme am echten Konto fiel trotzdem durch.** Ein Gerät, das eine Woche nicht kannte,
+löschte sie in der Cloud — genau der Datenverlust, den die ganze Übung verhindern sollte.
+
+**Der Grund:** Der Sync hat **zwei** Zusammenführungen, nicht eine.
+
+| Stelle | Wann | Was passiert danach |
+|---|---|---|
+| `startCloudSync()`, Block `if (remote) { … }` | einmal beim Anmelden/Start | setzt `cloudBaselineOk = true` und ruft **sofort `pushNow()`** |
+| `onRemote()` | bei jedem weiteren Snapshot | nur `save()`/`render()` |
+
+`onRemote()` kam beim Start gar nicht zum Zug: Der Baseline-Push war schneller, hatte das
+dünne lokale Archiv im Gepäck, und `mergeFields` ersetzte das Cloud-Feld ganz. Der eingehende
+Snapshot war danach der **eigene** — `j === lastPushedJSON`, also `return`.
+
+**Regel: Wer ein Feld in den Sync aufnimmt, sucht beide Stellen.** Der Baseline-Block ist an
+seinen Nachbarn zu erkennen — `mergeWeights`, `mergeConsent`, `mergeTombstones`, `favs`,
+`planned` stehen dort alle beieinander. Fehlt der neue Nachbar in dieser Reihe, ist er
+vergessen worden. Umgekehrt gilt dasselbe: Nur im Baseline-Merge gepflegt, würde ein Gerät
+Änderungen des anderen im laufenden Betrieb verwerfen.
+
+**Die allgemeine Lehre ist die über Prüfstände:** Ein isolierter Prüfstand prüft die
+**Funktion**, nicht ihre **Aufrufer**. Er kann per Konstruktion nicht bemerken, dass ein
+zweiter Aufruf fehlt — er ruft ja selbst auf. 22 grüne Prüfungen waren hier kein Beleg für
+Korrektheit, sondern nur dafür, dass die Funktion stimmt. **Bei Sync-Änderungen ist der Lauf
+am echten Konto (`tools/cdp.py`) keine Kür, sondern der einzige Ort, an dem ein fehlender
+Aufrufer auffällt.**
+
