@@ -1,0 +1,20 @@
+# Zeilenenden. Ohne diese Datei warnt git bei jedem "git add" auf Windows
+# ("LF will be replaced by CRLF") und die Arbeitskopie kann sich je nach Rechner
+# unterscheiden - das erzeugt Diff-Rauschen, das keine Aenderung ist.
+#
+# * text=auto  -> git speichert intern LF, checkt plattformueblich aus.
+* text=auto
+
+# Diese Dateien MUESSEN LF behalten, sonst laufen sie nicht:
+*.sh      text eol=lf
+*.py      text eol=lf
+*.yml     text eol=lf
+*.yaml    text eol=lf
+
+# Binaerdateien nie anfassen.
+*.png     binary
+*.jpg     binary
+*.jpeg    binary
+*.webp    binary
+*.ico     binary
+*.pdf     binary

@@ -1,6 +1,29 @@
 <!doctype html>
 <html lang="de">
 <meta charset="utf-8">
+<!-- Begrenzt den Schaden, wenn doch einmal fremder Inhalt ins DOM gerät - die gefährlichste
+     Quelle ist ein geteilter Plan, siehe docs/SECURITY.md. Bewusst nur diese drei Direktiven:
+
+     base-uri 'self'    verhindert, dass ein eingeschleustes <base> alle relativen Pfade der
+                        Seite auf einen fremden Host umbiegt. Klassische XSS-Eskalation.
+     form-action 'self' verhindert, dass ein eingeschleustes Formular Eingaben nach draußen
+                        schickt. Die App hat selbst kein einziges <form>.
+     object-src 'none'  verbietet Plugin-Einbettungen. Die App nutzt keine.
+
+     Was hier BEWUSST fehlt und warum:
+     * script-src  Die App ist vollständig inline geschrieben (fünf script-Blöcke ohne
+                   src-Attribut; die spitzen Klammern fehlen hier mit Absicht - als Text im
+                   Kommentar hält syntax-check.py sie für den Beginn eines echten Blocks und
+                   meldet einen Fehler, den es nicht gibt. Beim Schreiben dieses Kommentars
+                   prompt passiert, gefunden vom Syntax-Hook).
+                   Ohne Build-Schritt bliebe nur 'unsafe-inline' - das erlaubt genau
+                   das, wogegen die Direktive schützen soll. Hashes müssten bei jeder
+                   Änderung neu berechnet werden; dafür gibt es hier keine Toolchain.
+     * frame-ancestors und X-Frame-Options  Beide wirken NUR als HTTP-Header, in einem
+                   <meta> werden sie ignoriert. GitHub Pages kann keine Header setzen -
+                   das gehört in den Cloudflare Worker, sobald der deployt ist. -->
+<meta http-equiv="Content-Security-Policy" content="base-uri 'self'; form-action 'self'; object-src 'none'">
+<meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#DC2626">
 <meta name="theme-color" content="#0C0A0B" media="(prefers-color-scheme: dark)">

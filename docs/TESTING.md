@@ -58,6 +58,7 @@ Die Verfahren gibt es auch als Skill: `/smoke`, `/pruefstand`, `/abnahme`, `/dep
 | · | Eine Zeile prüfen, indem man sie WEGNIMMT (25.08.2026) |
 | · | Mobile Abnahme fernsteuern: `cdp.py messen` (25.08.2026) |
 | · | `tools/pruefstand-rueckblick-ziel.py` — der Beweis, dass eine Woche fehlt (26.08.2026) |
+| · | `tools/alle-pruefstaende.py` — der Reihenlauf (26.08.2026) |
 
 <!-- REGISTER-ENDE -->
 
@@ -2522,3 +2523,34 @@ Prüfstand muss auch dann sprechen, wenn er selbst kaputt ist.
 
 **Und nicht stubben, was der Ausschnitt mitbringt.** `STREAK_MIN_DAYS` kommt jetzt aus dem
 echten Code — das ist ohnehin näher an der Produktion als jeder selbst gesetzte Wert.
+
+## `tools/alle-pruefstaende.py` — der Reihenlauf (26.08.2026)
+
+```powershell
+python tools/alle-pruefstaende.py            # alle
+python tools/alle-pruefstaende.py rezept     # nur passende Namen
+```
+
+**Warum es ihn gibt:** Es gibt über zwanzig Prüfstände, und die CI kann keinen davon fahren
+— sie brauchen Edge und Windows. Bis heute musste man jeden einzeln aufrufen **und wissen,
+dass es ihn gibt.** Ein Prüfstand, den niemand mehr findet, ist so gut wie keiner.
+
+**Kein Ersatz für den Einzelaufruf.** Wer an einer Sache arbeitet, fährt ihren Prüfstand
+direkt — nur dort sieht man die vollständige Ausgabe. Der Reihenlauf ist für den Blick aufs
+Ganze: vor einem größeren Commit, oder wenn man wissen will, ob irgendwo etwas
+kaputtgegangen ist, woran man gar nicht gedacht hat.
+
+### „Grün" heißt nicht überall dasselbe — und das hat sofort einen Fehlalarm erzeugt
+
+Manche Prüfstände trennen `OFFEN` (Sollzustand, wird noch gebaut) von `REGRESSION`
+(Bestehendes heil?) und lassen **nur die zweite Gruppe den Rückgabewert bestimmen** — sonst
+wäre so ein Prüfstand während des ganzen Umbaus rot und als Warnsignal wertlos.
+
+Der Reihenlauf sieht aber nur den Rückgabewert. Beim ersten Lauf meldete er
+`pruefstand-wochenmaske.py` prompt als **„unerwartet grün"**, obwohl dessen Rückgabewert
+absichtlich 0 ist. Deshalb gibt es jetzt die Liste `TEILWEISE`: Für die dort genannten
+Prüfstände weist der Läufer ausdrücklich **„keine Regression"** aus statt „grün", mit einem
+Satz dazu, was noch offen ist.
+
+**Die Lehre:** Ein Läufer, der falschen Alarm schlägt, wird abgeschaltet — und dann läuft
+gar nichts mehr. Lieber eine Zeile mehr Erklärung als ein Signal, dem niemand glaubt.

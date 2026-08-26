@@ -14,6 +14,7 @@
 | 6. Bekannte Kompromisse | Was ist bewusst offen? |
 | 7. Was nicht prüfbar ist | Wo endet die lokale Prüfung — und was zuletzt in der Konsole nachgesehen wurde |
 | 8. Im Ernstfall | Was tun bei einem Leck? |
+| 9. Offene Härtung | Was bewusst noch fehlt — App Check, Backup, CSP, CI als Bremse |
 
 Dieses Dokument beschreibt das Modell. Der **Meldeweg für Lücken von außen** steht in
 `SECURITY.md` im Projektwurzelverzeichnis — das hier ist die interne Fassung.
@@ -258,3 +259,91 @@ Repo im selben Schritt nachziehen, sonst driften Vorlage und Wirklichkeit ausein
 - `docs/DATENSCHUTZ-INTERN.md` — Auftragsverarbeiter, Art. 30, TOM, Meldeweg
 - `docs/TROUBLESHOOTING.md` Punkte 2, 3, 4, 12, 13 — die historischen Fälle
 - `.claude/agents/website-security.md` — der Prüfauftrag, der daraus folgt
+
+---
+
+## 9. Offene Härtung — was bewusst noch fehlt
+
+Aufgenommen am 26.08.2026 nach der Frage „was haben wir vergessen?". Jeder Punkt ist
+nachgeprüft, nicht vermutet. Nach Gewicht sortiert.
+
+### 9.1 Firebase App Check fehlt — die größte inhaltliche Lücke
+
+**Kommt im ganzen Projekt nicht vor**: nicht im Code, nicht in einer Doku, in keinem Agenten.
+
+App Check bindet Anfragen an die **echte** App. Er ist damit die naheliegende Antwort auf
+zwei Probleme, die in diesem Dokument benannt und offen gelassen sind:
+
+* das nur clientseitig durchgesetzte Pro-Gating am Auto-Wochenplaner (Abschnitt 6)
+* fremde Skripte, die mit einem gültigen Konto direkt gegen die Firestore-API sprechen —
+  der Hauptangreifer aus dem Bedrohungsmodell (Abschnitt 5)
+
+**Warum es nicht nebenbei geht:** App Check braucht Code in `index.html`, Einrichtung in der
+Firebase-Konsole (reCAPTCHA im Web, App Attest unter iOS) und eine Entscheidung über die
+Durchsetzung. Falsch eingerichtet **weist er echte Nutzer ab** — er gehört in eine eigene
+Sitzung mit Abnahme am echten Konto, nicht in einen Abend nebenher.
+
+### 9.2 Kein Backup der Firestore-Daten
+
+Art. 32 DSGVO nennt die Wiederherstellbarkeit ausdrücklich. Heute gilt: Wenn ein Fehler die
+`weekStats` oder die Rezepte eines Kontos überschreibt, **gibt es keinen Weg zurück**.
+
+Geplante Firestore-Exporte setzen den **Blaze**-Tarif voraus — das hängt damit an derselben
+Entscheidung wie die Bezahlung (`docs/STORE.md`). Ein einfacherer Zwischenschritt wäre ein
+Export über `tools/cdp.py` am eigenen Konto; das deckt allerdings nur das eigene ab.
+
+Steht als offener Punkt auch in `docs/DATENSCHUTZ-INTERN.md`, Abschnitt 3.
+
+### 9.3 Die CI ist eine Meldung, keine Bremse
+
+`main` hat **keinen Branch-Schutz** (am 26.08.2026 über die API geprüft). Schwerer wiegt
+aber etwas Strukturelles: **GitHub Pages baut aus dem Branch, die CI läuft erst danach.**
+Sie kann melden, dass etwas kaputt ist — verhindern kann sie es nie.
+
+Der echte Fix wäre, über Actions zu deployen statt aus dem Branch: bauen → prüfen → nur bei
+grün veröffentlichen. Das ist ein Umbau der Auslieferung, kein Häkchen.
+
+**Bis dahin gilt:** Die Bremse vor dem Push sind der Push-Wächter und `/pushcheck`, nicht
+die CI. Wer sich auf die CI verlässt, verlässt sich auf eine Meldung, die zu spät kommt.
+
+### 9.4 Content-Security-Policy nur zur Hälfte
+
+Seit dem 26.08.2026 steht eine `<meta>`-CSP in `index.html`: `base-uri 'self'`,
+`form-action 'self'`, `object-src 'none'` — dazu `referrer` auf
+`strict-origin-when-cross-origin`. Das blockiert eine klassische XSS-Eskalation über ein
+eingeschleustes `base`-Element und verhindert Abfluss über eingeschleuste Formulare.
+
+**Was fehlt und warum:**
+
+* **`script-src`** — die App ist vollständig inline geschrieben. Ohne Build-Schritt bliebe
+  nur `'unsafe-inline'`, was genau das erlaubt, wogegen die Direktive schützt. Hashes
+  müssten bei jeder Änderung neu berechnet werden; dafür gibt es hier keine Toolchain.
+  **Das heißt: Ein vergessenes `esc()` ist weiterhin voll ausnutzbar.**
+* **`frame-ancestors` und `X-Frame-Options`** — wirken nur als HTTP-Header und werden im
+  `meta` ignoriert. GitHub Pages kann keine Header setzen. Gehört in den Cloudflare Worker,
+  sobald der deployt ist — zusammen mit `Referrer-Policy` und `X-Content-Type-Options`.
+
+### 9.5 Kontingent-Erschöpfung auf dem Spark-Tarif
+
+Der Gratis-Tarif hat harte Tageslimits für Lese- und Schreibvorgänge. Wer sie leerläuft —
+böswillig mit einem gültigen Konto oder durch einen Fehler in einer Schleife — legt die App
+**für alle Nutzer** lahm, bis das Kontingent zurückgesetzt wird. Firestore-Regeln können
+nicht drosseln; sie kennen keine Rate.
+
+Auch hier wäre App Check (9.1) die wirksamste Gegenmaßnahme, weil er fremde Clients
+aussperrt, bevor sie Kontingent verbrauchen.
+
+### 9.6 Die Prüfstände laufen nirgends automatisch
+
+Sie brauchen Edge und Windows, die CI läuft auf Linux. Seit dem 26.08.2026 gibt es
+wenigstens `python tools/alle-pruefstaende.py` für den Reihenlauf auf diesem Rechner —
+vorher musste man jeden einzeln aufrufen **und wissen, dass es ihn gibt.**
+
+### 9.7 Was besser ist als erwartet
+
+**GitHub-Secret-Scanning und Push Protection sind aktiv** (API-Abfrage am 26.08.2026).
+GitHub blockiert einen erkannten Schlüssel also schon serverseitig, bevor der Push ankommt.
+Der Secret-Scan in der eigenen CI ist damit eine **zweite** Schicht, nicht die einzige.
+
+Dependabot ist deaktiviert — folgerichtig, weil es ohne `package.json` nichts zu prüfen
+gäbe. Diese Rolle hat der Agent `lieferkette`.

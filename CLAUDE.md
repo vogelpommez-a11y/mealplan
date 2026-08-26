@@ -253,6 +253,15 @@ Die Verfahren gibt es als Skill:
 | `/abnahme` | Abnahme am echten Cloud-Konto über `tools/cdp.py` |
 | `/deploy` | Push, Verifikation, Rollback |
 
+Für den Blick aufs Ganze vor einem größeren Commit:
+
+```powershell
+python tools/alle-pruefstaende.py
+```
+
+Achtung: Bei Prüfständen, die `OFFEN` von `REGRESSION` trennen, heißt „grün" dort nur
+**keine Regression** — offene Punkte kann es trotzdem geben. Der Läufer weist das aus.
+
 Zwei Regeln, die dabei nicht verhandelbar sind:
 
 * **Getestet wird echter, ausgeschnittener Produktionscode** — kein Nachbau.
