@@ -1,0 +1,29 @@
+Alle Rechte vorbehalten.
+
+Copyright (c) 2026 Patrick Fleischmann
+
+Der Quellcode von "Paddy's Mealplan" ist oeffentlich einsehbar, damit nachvollziehbar
+ist, was die Anwendung tut - insbesondere im Umgang mit personenbezogenen Daten.
+
+Er ist damit NICHT zur Weiterverwendung freigegeben.
+
+Ohne ausdrueckliche schriftliche Erlaubnis des Rechteinhabers ist es nicht gestattet,
+diese Software oder Teile davon zu vervielfaeltigen, zu veraendern, zu verbreiten,
+oeffentlich zugaenglich zu machen oder daraus abgeleitete Werke zu erstellen.
+
+Erlaubt bleibt selbstverstaendlich, was das Urheberrecht ohnehin gestattet - etwa das
+Lesen des Codes, das Zitieren einzelner Stellen zu Zwecken der Kritik, der Forschung
+oder der Berichterstattung, sowie das Melden von Sicherheitsluecken (siehe SECURITY.md).
+
+AUSNAHMEN - Bestandteile mit eigener Lizenz:
+
+  vendor/firebase/     Firebase JavaScript SDK, Google LLC, Apache License 2.0
+  vendor/zxing.min.js  ZXing / @zxing/library, Apache License 2.0
+  Fotos in der App     CC0 1.0 bzw. Public Domain Mark 1.0
+                       Herkunft je Bild: PHOTO_CREDITS in index.html, ausgewiesen
+                       im Impressum unter "Bildnachweise"
+
+Fuer diese Bestandteile gelten ausschliesslich deren jeweilige Lizenzbedingungen,
+nicht die obige Einschraenkung.
+
+Kontakt: siehe Impressum unter https://www.paddysmealplan.de
