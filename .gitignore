@@ -25,8 +25,17 @@ serviceAccount*.json
 # Fremde Inhalte ohne belegte Lizenz kommen nicht ins oeffentliche Repo - dieselbe Regel
 # wie bei Fotos, und Geloeschtes bliebe hier ohnehin in der Historie stehen. Claude Code
 # laedt die Skills auch ohne Repo-Kopie, der Ablauf haengt also nicht daran.
-.claude/Skills/
-.claude/skills/
+.claude/Skills/*
+.claude/skills/*
+
+# ...ABER die selbst geschriebenen Projekt-Skills gehoeren sehr wohl ins Repo. Sie liegen
+# im SELBEN Ordner, weil Windows Gross-/Kleinschreibung nicht unterscheidet - "Skills" und
+# "skills" sind dasselbe Verzeichnis. Deshalb oben "/*" statt "/": nur so steigt git
+# ueberhaupt hinein und diese Ausnahmen koennen greifen.
+!.claude/skills/pruefstand/
+!.claude/skills/smoke/
+!.claude/skills/abnahme/
+!.claude/skills/deploy/
 
 # Python-Bytecode. Entsteht automatisch, sobald ein tools/-Skript als Modul geladen wird
 # (der Pruefstand tut genau das). Binaerdateien in der Historie bringen nichts und erzeugen
@@ -75,3 +84,17 @@ tools/pruefstand-*.html
 # HANDGESCHRIEBENE Pruefseiten heissen bewusst anders (tools/mobilprobe-*.html): Sie werden
 # nicht erzeugt, sondern gepflegt - unter das Muster oben geraten waeren sie beim naechsten
 # frischen Checkout schlicht weg.
+
+# Merker des Push-Waechters (.claude/hooks/push-waechter.py): enthaelt den Commit-Hash,
+# fuer den zuletzt /pushcheck gelaufen ist. Rechnergebunden und bei jedem Lauf neu -
+# im Repo waere er nur ein fremder, sofort falscher Stand.
+.claude/.letzter-pushcheck
+
+# Interne Datenschutz-Unterlagen: Vertragsstaende (AVV), offene Pflichten, der Notfallweg
+# und die Aufsichtsbehoerde. Gleiche Begruendung wie bei plans/ und ROADMAP.html - das
+# beschreibt, wo das Projekt verwundbar ist, und gehoert nicht oeffentlich auf Pages.
+docs/DATENSCHUTZ-INTERN.md
+
+# Datum der letzten Wartungspruefung (tools/wartung-check.py --setze). Rechnergebunden wie
+# der Pushcheck-Merker; im Repo waere es ein fremder, sofort falscher Stand.
+.claude/.letzte-wartung

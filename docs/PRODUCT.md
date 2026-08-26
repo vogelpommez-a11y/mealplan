@@ -4,6 +4,46 @@
 
 Dieses Dokument beschreibt Produktidentität, Produktphilosophie, UX-Prinzipien, Markenstimme und Regeln für neue Features.
 
+<!-- REGISTER-ANFANG (erzeugt aus den Ueberschriften, nicht von Hand pflegen) -->
+
+**Register — 29 Abschnitte.** Produktregeln vorne, bewusste Einzelentscheidungen hinten.
+Eine Ueberschrift mit „Bewusste Produktentscheidung" heisst: Das ist entschieden, nicht
+vergessen — wer es aendern will, aendert eine Entscheidung.
+
+| # | Abschnitt |
+|---|---|
+| · | Produkt in einem Satz |
+| · | Was die App nicht ist |
+| · | Produktversprechen |
+| · | Offline-Nutzbarkeit |
+| · | Produktidentität |
+| · | Produktfilter für Features |
+| · | UX-Philosophie |
+| · | Markencharakter |
+| · | Markenstimme |
+| · | Textmenge |
+| · | Premium |
+| · | Auto-Wochenplaner (16.08.2026) |
+| · | Bewusste Produktentscheidung: Wie Pro verkauft wird (26.08.2026) |
+| · | Rezeptbuch (15.08.2026) |
+| · | Ernährungsprofil (15.08.2026) |
+| · | Ein Meal ist eine Portion (15.08.2026) |
+| · | Langfristige Vision |
+| · | Meal-Datenbank |
+| · | Bewusste Produktentscheidung: Vier Reiter, vier Fragen |
+| · | Bewusste Produktentscheidungen für Fitness & Meal-Prep (13.08.2026) |
+| · | Bewusste Produktentscheidung: Vorkochen ist eine eigene Ansicht |
+| · | Bewusste Produktentscheidung: Der Wizard endet im Wochenplan |
+| · | Bewusste Produktentscheidung: Der Rückblick misst gegen das Ziel |
+| · | Bewusste Produktentscheidungen: Wochenplan |
+| · | Bewusste Produktentscheidungen: Gemeinsam planen |
+| · | Bewusste Produktentscheidung: Barcode-Schnellzugriff |
+| · | Bewusste Produktentscheidung: Schnelleintrag für Stück-Artikel |
+| · | Bewusste Produktentscheidung: Meal-Ansicht und Editor sind eins |
+| · | Was bewusst nicht passieren soll |
+
+<!-- REGISTER-ENDE -->
+
 ## Produkt in einem Satz
 
 **Paddy's Mealplan ist ein intelligenter Wochen-Essensplaner, der Menschen möglichst viele Ernährungsentscheidungen im Alltag abnimmt.**
@@ -484,6 +524,69 @@ ohne eigenes Pro. Das folgt aus „in der Gruppe zahlt der Inhaber"; ohne diese 
 ein eingeladenes Mitglied seinen Teil der Woche gar nicht füllen, und Regel 5 liefe leer.
 
 Ohne Pro erscheint derselbe freundliche Hinweis wie beim Gruppen-Gründen, kein toter Knopf.
+
+## Bewusste Produktentscheidung: Wie Pro verkauft wird (26.08.2026)
+
+Vier Entscheidungen, getroffen nach dem ersten Lauf des Agenten `store-check`. Sie sind
+**noch nicht umgesetzt** — sie legen fest, wie umgesetzt wird.
+
+### 1. Pro ist ein Abo — monatlich und jährlich
+
+Kein Einmalkauf. Der Grund ist die Kostenstruktur, nicht die Gier: Gruppe und Cloud-Sync
+verursachen **dauerhaft** Firestore-Kosten. Ein Einmalkauf würde bedeuten, einen Nutzer
+unbegrenzt lange aus einer einmaligen Zahlung zu tragen.
+
+Die jährliche Option steht mit Rabatt daneben, weil sie die Absprungrate senkt.
+
+Was daran hängt (Store-Pflicht, nicht Kür): Preis, Laufzeit und Verlängerungsbedingungen
+müssen **vor** dem Kauf sichtbar sein, mit Link auf AGB und Datenschutzerklärung auf
+derselben Ansicht — dazu „Wiederherstellen".
+
+### 2. Es gibt zwei Arten von Pro-Funktionen, und nur eine ist durchsetzbar
+
+Diese Unterscheidung ist ab jetzt bei **jeder** neuen Pro-Funktion zu treffen:
+
+| Art | Wer entscheidet | Beispiel | Durchsetzbar? |
+|---|---|---|---|
+| **Der Server gibt etwas heraus** | Firestore-Regel | Gruppe gründen, künftige Pro-Rezepte | **Ja** — ein Türsteher |
+| **Die App rechnet selbst** | Code auf dem Gerät | Auto-Wochenplaner | **Nein** — nur ein Schild |
+
+Eine Funktion der zweiten Art darf Pro sein. Sie darf nur nicht **allein** die Pro-Stufe
+tragen, denn sie lässt sich mit den Entwicklerwerkzeugen umgehen.
+
+### 3. Der Auto-Wochenplaner bleibt Pro — mit offener Flanke
+
+Er rechnet auf dem Gerät und schreibt in das eigene Nutzerdokument, in das der Nutzer
+ohnehin schreiben darf. Die Regeln sehen einem fertigen Plan nicht an, wie er entstanden
+ist. Der `isPro()`-Riegel ist damit eine UI-Sperre.
+
+**Bewusst nicht serverseitig gerechnet:** Das würde den Planer vom Netz abhängig machen —
+gegen die Offline-Zusage des Produkts und gegen eine Store-Anforderung (Prüfer testen im
+Flugmodus).
+
+Festgehalten als bekannte Grenze in `docs/SECURITY.md`, Abschnitt 6 — nicht versteckt.
+
+### 4. Künftige Pro-Rezepte kommen aus Firestore, nicht aus `index.html`
+
+Die heutigen **34 Katalog-Rezepte** stehen als `const COOKBOOK` in `index.html` und werden
+an jeden ausgeliefert. Das bleibt so: Sie sind der **Gratis-Grundstock** und müssen offline
+verfügbar sein.
+
+**Alles, was künftig als Pro-Inhalt nachgeliefert wird, kommt aus Firestore** — mit einer
+Regel im Sinne von `allow get: if hasPro(uid)`. Dann gibt der Server die Rezepte ohne Abo
+gar nicht erst heraus.
+
+Der Grund: Ein Pro-Rezept, das in `index.html` mitgeliefert wird, ist ab der Veröffentlichung
+für jeden im Quelltext lesbar — auch für Leute, die nie bezahlt haben. Das Rezeptbuch wäre
+damit dauerhaft ein „Schild" statt eines Türstehers und als Kaufargument entsprechend weich.
+
+Ehrlich dazu: Einmal geladen, liegen auch diese Rezepte auf dem Gerät. Die Hürde steigt von
+„Strg+U drücken" auf „ein bezahltes Konto haben" — das ist der erreichbare Schutz, nicht
+Unknackbarkeit.
+
+**Folge für die Planung:** Die Firestore-Sammlung und ihre Regel gehören angelegt, **bevor**
+die erste Pro-Charge ausgerollt wird. Ein späterer Umzug ist teurer.
+
 
 ## Rezeptbuch (15.08.2026)
 

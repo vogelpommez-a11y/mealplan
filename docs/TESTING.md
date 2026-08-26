@@ -14,6 +14,54 @@ Es gibt:
 
 Die primäre Verifikation erfolgt deshalb über den Browser und gezielte isolierte Tests.
 
+<!-- REGISTER-ANFANG (erzeugt aus den Ueberschriften, nicht von Hand pflegen) -->
+
+**Register — 32 Abschnitte.** Vorne (0 bis 9) die geltenden Verfahren: Syntax-Check,
+Smoke-Test, Ausschneide-Pruefstand, Sync-Tests. Dahinter das datierte Fallarchiv —
+einzelne Pruefstaende und was ihre Gegenprobe gezeigt hat.
+
+Die Verfahren gibt es auch als Skill: `/smoke`, `/pruefstand`, `/abnahme`, `/deploy`.
+
+| # | Abschnitt |
+|---|---|
+| · | Testprinzip |
+| 0 | Syntax-Check (läuft zuerst, vor allem anderen) |
+| 1 | Smoke-Test |
+| 2 | Ausschneide-Prüfstand |
+| 3 | Ergebnisfortschritt |
+| 4 | Was isoliert getestet werden kann |
+| 5 | UI-Testregeln |
+| 6 | Mehrstufige Abläufe |
+| 7 | Sync-Tests |
+| 8 | Datenschutz-/Security-Regression |
+| 8a | Cloudflare-Worker-Test (`worker/og.js`) |
+| 9 | Testabschluss |
+| · | Grundregel |
+| | **— ab hier Teil B: Fallarchiv, datierte Einzelfälle —** |
+| · | Sichtprüfung generierter Bilder: Kontaktabzug statt Einzelaufrufe (15.08.2026) |
+| · | Auto-Wochenplaner: zwei Prüfstände, zwei Fragen (16.08.2026) |
+| · | Mitgliederlimit: die eine Hälfte ist prüfbar, die andere nicht (16.08.2026) |
+| · | Katalog als Nachschlagequelle: eine Erwartung dreht sich um (17.08.2026) |
+| · | Stapelkontext und Trefferflächen: `elementFromPoint()` im echten Browser (15.08.2026) |
+| · | Ein Listener als Prüfobjekt: die Attrappe muss den Nebeneffekt haben (17.08.2026) |
+| · | Ein absichtlich zufälliger Planer braucht festgenagelten Zufall (17.08.2026) |
+| · | Zwei Clients ohne Firestore: derselbe Ausgangsstand, zwei Läufe (17.08.2026) |
+| · | Eine Reihenfolge prüfen, die beim Lesen richtig aussieht (17.08.2026) |
+| · | `tools/pruefstand-zurueck-taste.py` — die Zurück-Taste schließt Overlays (D5) |
+| · | Drei Prüfstände zum Ernährungsprofil und zum Rezeptbuch (24.08.2026) |
+| · | Paket 1 der Alltagsbefunde: drei weitere Prüfstände (24.08.2026) |
+| · | Abnahme am echten Cloud-Konto: `tools/cdp.py` (24.08.2026) |
+| · | Ein Zweig, der nur bei leerem Bestand läuft: die Ganzdatei-Kopie (25.08.2026) |
+| · | Ein Escape-Fix beweist sich nur mit dem Vorher (25.08.2026) |
+| · | `tools/pruefstand-weekstats-sync.py` — und warum er den Fehler nicht fand (25.08.2026) |
+| · | `tools/pruefstand-wochenmaske.py` — ein Prüfstand, der absichtlich rot ist (26.08.2026) |
+| · | Eine Zeile prüfen, indem man sie WEGNIMMT (25.08.2026) |
+| · | Mobile Abnahme fernsteuern: `cdp.py messen` (25.08.2026) |
+
+<!-- REGISTER-ENDE -->
+
+# Teil A — Die geltenden Verfahren
+
 ## Testprinzip
 
 **Nicht vermuten. Ausführen.**
@@ -1286,6 +1334,17 @@ sauber" — genau so ist ein Fix zweimal ungeprüft ans Gerät gegangen.
 der Achse, die nicht scrollen soll. Nur `auto`/`scroll` fangen Gesten ab — `hidden` nicht.
 Das ist ein Indiz, kein Beweis; die Abnahme am Gerät bleibt Pflicht.
 
+# Teil B — Fallarchiv
+
+Ab hier stehen **datierte Einzelfälle**: einzelne Prüfstände, was sie gemessen haben und was
+ihre Gegenprobe gezeigt hat. Sie sind Belege und Erfahrungsberichte, keine Vorschriften.
+
+**Wer wissen will, WIE geprüft wird, liest Teil A** (Abschnitte 0 bis 9 und die Grundregel).
+Hier nachschlagen, wenn die Frage lautet: „Hatten wir diesen Fall schon einmal?"
+
+Die Trennung ist bewusst: In einer Datei von 140 KB geht sonst das Geltende zwischen den
+Belegen unter, und beim Suchen findet man den Einzelfall von 2026 statt der Regel.
+
 ## Sichtprüfung generierter Bilder: Kontaktabzug statt Einzelaufrufe (15.08.2026)
 
 30 Bilder einzeln zu öffnen ist der sichere Weg, den Vergleich zu verlieren — Stilbrüche sieht
@@ -2266,6 +2325,75 @@ Danach `updatedAt` über ~45 s beobachten (muss stillstehen) und die Testdaten w
 ausräumen: **lokal zuerst leeren, dann `CloudSync.save(uid, { weekStats: {} })`** — in dieser
 Reihenfolge, sonst schiebt der Baseline-Merge die Testwochen sofort wieder hoch. Zum Schluss
 die Schlüsselmenge gegen die Sicherung aus Schritt 1 prüfen.
+
+---
+
+## `tools/pruefstand-wochenmaske.py` — ein Prüfstand, der absichtlich rot ist (26.08.2026)
+
+Zu Paket 6 (Fortschritt-Kalender) gehört die Tagesmaske `weekStats[wk].d`. Der Prüfstand dazu
+wurde **vor** dem Umbau angelegt und läuft gegen den Stand, den er noch gar nicht beschreibt.
+Er schneidet `DAYS`, `hasNut()`, `pruneWeeks()`, `archiveWeek()`, `sanitizeWeekStats()`,
+`mergeWeekStats()` und `canonValue()/canonJSON()` aus `index.html`; gestubbt sind nur `state`,
+`dayNutOf()` und `goalTargetsForDay()`.
+
+**Er zählt zwei Gruppen getrennt, und nur eine bestimmt den Exit-Code:**
+
+| Gruppe | Bedeutung | Exit-Code |
+|---|---|---|
+| `OFFEN` | Sollzustand nach B2–B5. Rot ist hier der erwartete Stand. | zählt nicht |
+| `REGRESSION` | was heute schon gilt und beim Umbau nicht brechen darf | 0 nur bei „0 rot" |
+
+Ohne diese Trennung wäre der Prüfstand während des ganzen Umbaus rot und damit als Warnsignal
+wertlos — eine kaputte Regression ginge in 24 erwarteten Fehlschlägen unter.
+
+**Die Eingangsprobe war die Gegenprobe** — und sie hat ihren Zweck erfüllt. Abschnitt 1
+verlangte, dass ohne `state.goal` archiviert wird; die Fassung von damals tat das nicht
+(`if (!pl || !state.goal) return;`).
+
+**Stand 26.08.2026: B1 und B2 sind umgesetzt.** Der Ziel-Guard sitzt jetzt innen
+(`if (!pl) return;`), `archiveWeek()` archiviert ohne Ziel und schreibt die Maske —
+Abschnitt 1 ist **grün**. Offen und weiterhin absichtlich rot sind:
+
+* **Abschnitt 5** — `sanitizeWeekStats()` verwirft ein gültiges `d` (Schritt B3)
+* **Abschnitt 7** — `mergeWeekStats()` vereinigt die Masken nicht (Schritt B4)
+* zwei Zeilen zum Archivfenster (zwei Kalenderjahre statt 26 Wochen)
+
+Sieben rote `OFFEN`-Zeilen, **null rote `REGRESSION`-Zeilen**. Genau so soll ein
+Zwischenstand aussehen: Das Neue ist noch nicht fertig, das Bestehende ist heil.
+
+Wer diesen Absatz liest, während Abschnitt 1 rot ist, hat einen echten Rückschritt vor
+sich — dann lädt der Prüfstand nicht die echte `archiveWeek()`, und alles Folgende misst
+nichts.
+
+### Die Falle: grüne Zeilen aus dem falschen Grund
+
+Ein Teil der `OFFEN`-Zeilen ist schon jetzt grün, weil `sanitizeWeekStats()` das Feld `d` gar
+nicht kennt und deshalb **jedes** `d` wegwirft — kaputtes wie gültiges. „Kaputtes d: Feld fällt
+weg" und der komplette Determinismus-Abschnitt sind damit heute grün, ohne etwas zu beweisen;
+sie messen erst ab B3/B5.
+
+Die jeweilige Gegenprobe steht daneben und ist rot („gültiges d überlebt", „Masken vereinigt").
+**Die Paare gehören zusammen gelesen** — wer nach B3 nur auf die Zähler schaut, verpasst es.
+Das ist dieselbe Klasse wie die naive Fassung in `pruefstand-weekstats-sync.py`, nur andersherum:
+Dort beweist ein erzwungener Fehlschlag, dass der Test misst; hier verrät ein zu früh grüner
+Treffer, dass er es noch nicht tut.
+
+### Was er festschreibt, weil der Plan es offen ließ
+
+Der Plan sagt an einer Stelle „`days` auf `Math.max` ziehen" und an anderer „`days` = Anzahl der
+Einsen". Der Prüfstand legt die einzige Lesart fest, die beides erfüllt:
+
+```
+days = max(alter days, neuer days, Anzahl Einsen der vereinigten Maske)
+```
+
+`days` ist damit nie kleiner als die Maske hergibt und nie kleiner als ein früher gemessener
+Wert; für Altwochen ohne `d` bleibt schlicht das Maximum wirksam. Ebenso festgelegt:
+`kcal`/`hit`/`target` ersetzt der neue Lauf nur, wenn er **mindestens so viele Tage** gesehen
+hat — derselbe wertbasierte Gedanke wie im Tiebreak von `mergeWeekStats()`.
+
+**Auch dieser Prüfstand sieht keinen fehlenden Aufrufer** (TROUBLESHOOTING 115). Sobald `d` im
+Sync mitläuft, gehört der Zwei-Geräte-Lauf am echten Konto dazu, wie oben beschrieben.
 
 ---
 

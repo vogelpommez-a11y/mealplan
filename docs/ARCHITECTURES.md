@@ -4,6 +4,39 @@
 
 Dieses Dokument beschreibt die technische Struktur, Datenflüsse, Persistenz und bewusst beibehaltenen Architekturentscheidungen.
 
+<!-- REGISTER-ANFANG (erzeugt aus den Ueberschriften, nicht von Hand pflegen) -->
+
+**Register — 24 Abschnitte.** Wo welcher Teil des Systems beschrieben ist.
+
+| # | Abschnitt |
+|---|---|
+| · | Grundstruktur |
+| · | Struktur von `index.html` |
+| · | HTML-Grundgerüst |
+| · | Fehlermelder `window.noteError` (Aufgabe A7) |
+| · | Zwei-Script-Architektur |
+| · | Brücke zwischen Firebase und App |
+| · | Graceful Fallback |
+| · | State |
+| · | Cloud-Synchronisation |
+| · | Gruppenmodus |
+| · | Mitgliederlimit: `memberCount` (16.08.2026) |
+| · | Gruppen-Wochenplan |
+| · | Gerichte-Zuweisung (Gemeinsam planen) |
+| · | Wichtige Gruppen-Sync-Regeln |
+| · | Rollen |
+| · | Datenmodell und Datenschutz |
+| · | Firebase Security |
+| · | Namensdualität |
+| · | Bilder |
+| · | Wochenplan auf dem Handy |
+| · | Zurück-Taste und Overlay-Stapel (D5, 23.08.2026) |
+| · | Meal-Ansicht: eine Oberfläche statt zweier (`openMealSheet`) |
+| · | Auto-Wochenplaner (D2, 16.08.2026) |
+| · | Architekturprinzip |
+
+<!-- REGISTER-ENDE -->
+
 ## Grundstruktur
 
 Die App besteht aus einer einzigen:
@@ -971,12 +1004,35 @@ verworfen wird, sichert `archiveWeek()` ihre Kennzahlen — bewusst **nur Zahlen
 Meal-Referenzen und keine Fotos:
 
 ```
-weekStats["2026-W29"] = { kcal, days, hit, target }
+weekStats["2026-W29"] = { kcal, days, hit, target, d }
 ```
 
 * `kcal` — Ø geplante Tageskalorien über die geplanten Tage
 * `days` — Anzahl geplanter Tage (1–7)
 * `hit` — Tage innerhalb ±10 % des Tagesziels
+* `d` — **7-Zeichen-Maske** wie `"1101100"`, Index 0 = Montag bis 6 = Sonntag: welche
+  Wochentage beplant waren. Erzeugt von `weekMaskOf(pl)`, gezählt von `maskDays(m)`.
+
+  **Warum ein Festlängen-String und keine Zahl 0–127:** Jeder Unfall (`Number("")` → 0,
+  `parseInt` auf Müll → `NaN`) würde lautlos zu „nichts geplant" und wäre von einer echt
+  leeren Woche nicht mehr zu unterscheiden. `/^[01]{7}$/` trifft oder trifft nicht. Dazu
+  ist `"1101100"` in der Firestore-Konsole lesbar, `108` nicht.
+
+  ⚠️ **Stand 26.08.2026 (Paket 6, Schritt B1): `d` erreicht die Cloud noch nicht.**
+  `archiveWeek()` schreibt das Feld, aber `sanitizeWeekStats()` kennt es nicht und wirft es
+  **beim eigenen Push** wieder weg — nicht erst beim Zusammenführen zweier Geräte. Ebenso
+  vereinigt `mergeWeekStats()` die Masken noch nicht. Beides ist als Schritt B3/B4 offen und
+  im Prüfstand `tools/pruefstand-wochenmaske.py` als absichtlich roter `OFFEN`-Fall
+  festgehalten. **Bis dahin nichts bauen, das sich auf ein synchronisiertes `d` verlässt.**
+
+  Das ist derselbe Fehlertyp wie in `docs/TROUBLESHOOTING.md` Punkt 115 („ein neues
+  Sync-Feld braucht zwei Merge-Stellen") — nur an einer dritten Stelle, weil
+  `sanitizeWeekStats()` jedes Objekt neu aufbaut und dabei alles Unbekannte verliert.
+
+`mergeArchived(alt, neu)` führt beim **lokalen** Archivieren den neu berechneten Datensatz
+mit einem schon gespeicherten zusammen, statt ihn zu überschreiben: Masken werden vereinigt
+(ODER), `days` nimmt das Maximum, `hit`/`target` bleiben als Paar zusammen. Das ist nicht
+dasselbe wie `mergeWeekStats()` weiter unten — jenes führt zwei **Geräte** zusammen.
 * `target` — **das damals gültige** mittlere Tagesziel (seit 13.08.2026, B10)
 
 `target` ist der Kern: Ohne es misst der Rückblick jede vergangene Woche gegen das heutige

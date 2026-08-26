@@ -4,6 +4,134 @@
 
 Dieses Dokument enthält bekannte Fehlerquellen, historische Bugs und Probleme, die bei Änderungen an Paddy's Mealplan berücksichtigt werden müssen.
 
+<!-- REGISTER-ANFANG (erzeugt aus den Ueberschriften, nicht von Hand pflegen) -->
+
+**Register — 117 dokumentierte Fallen.** Chronologisch gewachsen: je hoeher die Nummer,
+desto juenger der Fund. Wer eine Falle sucht, sucht hier zuerst; die Ueberschrift sagt
+jeweils, worum es geht. **Nicht die ganze Datei lesen** — sie ist ueber 200 KB gross.
+
+| # | Abschnitt |
+|---|---|
+| 1 | Firebase-Domain vergessen |
+| 2 | Firebase-Regeln im Repository sind nicht zwingend live |
+| 3 | `allow read` ist nicht dasselbe wie `allow get` |
+| 4 | Firebase-Web-Konfiguration ist kein Secret |
+| 5 | `#view` leer trotz HTTP 200 |
+| 6 | Strict Mode und Oktal-Escapes |
+| 7 | Base64-Fotos |
+| 8 | Namensdualität nicht „bereinigen" |
+| 9 | Gruppen-Sync: `plans` nicht doppelt speichern |
+| 10 | Gruppen-Sync: leere Slots |
+| 11 | Gruppen-Sync: parallele Pushes |
+| 12 | UI-Rolle ist keine Security Boundary |
+| 13 | Meal `by` enthält nur UID |
+| 14 | Foto-Credits |
+| 15 | Teilwort-Matching |
+| 16 | `initCarousel()` und Progress-Bar |
+| 17 | Kamera-Test |
+| 18 | Hängende Tests |
+| 19 | Mobile Makro-Raster |
+| 20 | Push hängt unter Windows |
+| 21 | `ROADMAP.html` vergessen |
+| 22 | Farbverläufe lassen sich nicht überblenden |
+| 23 | `element.style.transition` ist eine Kurzform und löscht alles andere |
+| 24 | Zwei Bedingungen für einen sichtbaren Zustand |
+| 25 | `will-change: transform` und Paint-Eigenschaften vertragen sich nicht |
+| 26 | `display: none` ist nicht übergangsfähig |
+| 27 | Gruppen-Wartezustand: Zeitfenster zwischen Beitritt und Aktivierung |
+| 28 | QR-Code im Dark Theme |
+| 29 | `window.CloudGroup` hat kein `loadRecipes` |
+| 30 | ZXing-SVG-QR-Code braucht ein eigenes `viewBox` |
+| 31 | Zwei-Konten-Race im Gruppen-Wartezustand |
+| 32 | Popover in `.day` wird von `overflow: hidden` abgeschnitten |
+| 33 | `state.plan`-Einträge nie direkt an `getRecipe()` übergeben |
+| 34 | Zusammengeführte Listen müssen sortiert sein, sonst schaukeln sich zwei Geräte auf |
+| 35 | Ein gescheiterter Lesevorgang darf nie zu einem Schreibvorgang werden |
+| 36 | Der lokale Teststand schreibt in die echte Cloud |
+| 37 | Löschen muss beide Speicher treffen, nicht nur `localStorage` |
+| 38 | hitSlop bei benachbarten Knöpfen: die Enge gilt nur in einer Achse |
+| 39 | CSS-`transition` greift nicht an Elementen aus `view.innerHTML` |
+| 40 | `navigator.share()` verliert die Nutzer-Aktivierung nach einem `await` |
+| 41 | Open Food Facts liefert `serving_size` nicht zuverlässig |
+| 42 | Wochenplan bleibt beim Zurückwischen zwischen zwei Tagen stehen |
+| 43 | Grundregel bei Fehlern |
+| 44 | Firestore sortiert Map-Schlüssel — Fortsetzung von Ziffer 34 |
+| 45 | `fromCache` ist kein Beweis |
+| 46 | Ein Reload vor dem erfolgreichen Push kann eine lokale Änderung innerhalb einer bereits |
+| 47 | Zweiter Tab bekommt Änderungen des ersten nicht live mit (unbestätigt, nicht root-ursächlich geklärt) |
+| 48 | `deleteAccountFlow()` kann durch einen einzigen fremden oder toten `shared/{id}`-Eintrag |
+| 49 | `wipeCache()` stand am falschen Objekt und lief dadurch nie (gefunden und behoben) |
+| 50 | Messenger-Crawler führen kein JavaScript aus — statische `og:`-Tags reichen für geteilte Links nicht |
+| 51 | `onRecipesRemote()` ersetzt Rezept-Objekte statt sie zu mutieren — langlebige Ansichten müssen immer über `getRecipe(id)` zugreifen |
+| 52 | Ein Element ausblenden, das gerade den Fokus hat, löst `focusout` aus — Aufklapp-Zeilen schlossen sich sofort wieder |
+| 53 | FLIP wird unsichtbar, wenn Ursprung und Ziel gleich breit sind |
+| 54 | Im Hintergrund-Tab misst kein Animationstest etwas Verlässliches |
+| 55 | Ein Transform über die halbe Bildschirmhöhe ist auf dem Handy zu teuer |
+| 56 | Grid-Auto-Platzierung rutscht hoch, wenn eine Reihe `display: none` ist |
+| 57 | Höhe eines Sheets nie aus einzelnen Variablen summieren |
+| 58 | `overflow-y: auto` macht die andere Achse mit zum Scroller — und blockiert die Wischgeste |
+| 59 | Ein Aufklapper, der seinen eigenen Auslöser verschiebt, ist praktisch nicht schließbar |
+| 60 | `flex-wrap: wrap` in der Kopfzeile — ein Umbruch, der die Leiste verdoppelt |
+| 61 | Ein Farbstreifen im Fensterrand — warum das kein zweiter Scroller wird |
+| 62 | `.btn.icon-gh` schlägt eine einzelne Klasse — der Knopf bleibt quadratisch |
+| 63 | Kamera-Bühne ≠ Kamera-Bild: warum der Barcode-Scanner nur quer funktionierte |
+| 64 | `focusMode` gibt es nur in Chromium — der Nahfokus ist kein Bug, der sich überall fixen lässt |
+| 65 | Hochformat lässt sich im Web auf dem iPhone nicht erzwingen — das Querformat muss taugen |
+| 66 | Ein offener Scanner + `--virtual-time-budget` = hängender Prüfstand |
+| 67 | Das Logo im PDF hängt jetzt am Netzpfad, nicht mehr am CSS |
+| 68 | Der Service Worker lud 1 MB vor, das kaum jemand brauchte |
+| 69 | Ein JSON-LD-Block ist kein JavaScript — der Syntax-Check lief prompt darauf auf |
+| 70 | Vorschaubilder werden bei WhatsApp, Facebook und Co. **serverseitig** zwischengespeichert |
+| 71 | Leere `catch`-Blöcke sind jetzt gefüllt — und dabei zwei Fallen aufgetaucht |
+| 72 | Der Rückblick zeigte Streuung und sah dabei wie Zielerreichung aus |
+| 73 | Ein neues Feld im Slot-Eintrag wäre am Sync fast unbemerkt verschwunden |
+| 74 | Von Hand gesetzte Kalorienziele wurden von der nächsten Wiegung überschrieben |
+| 75 | Eine CSS-Regel, die nie griff — und die es auch nicht sollte |
+| 76 | `if (wert)` statt `if ("feld" in objekt)` — die Lücke zeigte in die falsche Richtung |
+| 77 | Der Baseline-Push lief los, bevor feststand, ob das Konto Pro hat |
+| 78 | Eine Sperre nur beim Schreiben hätte bei jedem Start Daten gekostet |
+| 79 | `leaveGroup()` hätte ein Gratis-Konto in der Gruppe festgehalten |
+| 80 | Ein Einzeiler zerlegte den Prüfstand — und der Fehler war unsichtbar |
+| 81 | Cloud-Sync war einen Tag lang Pro — die Rücknahme war die richtige Entscheidung |
+| 82 | Ein Feld, das nur an einer von drei Stellen rechnete — und deshalb falsch einkaufte |
+| 83 | Geschätzte Nährwerte in einem Rezept sehen aus wie gerechnete |
+| 84 | Ein falsch zugeordnetes Lebensmittel ist schlimmer als ein fehlendes |
+| 85 | Freitext-Zutaten fallen aus jeder Rechnung |
+| 86 | Stichwort-Fotos greifen im Rezeptbuch daneben — an den Regeln zu drehen ist der falsche Hebel |
+| 87 | „High Protein" als Tag und „Proteinreich" als Badge sind zwei Quellen für dieselbe Aussage |
+| 88 | Das Geschirr aus der Kategorie allein legt Brot in eine Schüssel |
+| 89 | Ein Dateiname darf nicht aus der Katalog-`id` abgeleitet werden |
+| 90 | `z-index` ohne `position` ist wirkungslos — und ein Kommentar ist kein Code |
+| 91 | Mitgelieferte Daten vor dem Onboarding einsetzen heißt, sie ohne Profilwissen zu wählen |
+| 92 | `array.filter(fn)` übergibt den Index — und ein abgebrochener Repaint sieht aus wie ein Filter ohne Wirkung |
+| 93 | Ein Rückgabewert, n-mal eingefügt: derselbe Eintrag steht dann n-mal im Plan — als ein Objekt |
+| 94 | `.btn` in einer Reihe mit `.btn.icon-gh` sieht gleich groß aus — und ist kein Touch-Ziel |
+| 95 | Der Automatismus braucht eine engere Kategorie-Bindung als der Picker |
+| 96 | Vier Portionen desselben Snacks — dieselbe Formel, zwei Bedeutungen |
+| 97 | Eine Klammer zu früh: der halbe 680px-Block landete in einer 360px-Abfrage |
+| 98 | Zwei Slots, dieselbe Menge, dieselbe Bewertung, derselbe Index — dasselbe Ergebnis |
+| 99 | Eine Datumsrechnung in der Vergleichsfunktion eines `sort()` |
+| 100 | Ein `uids.push()` am fremden Eintrag hätte den Undo-Pfad ausgehebelt |
+| 101 | Mitgliederlimit: drei Stellen, die den ganzen Umbau still gekippt hätten |
+| 102 | 61 Rezepte, 51 Namen: zwei Zuflüsse, eine falsche Verdächtige |
+| 103 | Zwei Planer gleichzeitig: die Funktion war unschuldig, der Zeitpunkt nicht |
+| 104 | Einladungscodes überlebten jeden Gruppenwechsel |
+| 105 | Einladungscode verbrauchen: warum das zwei Regel-Deploys braucht, nicht einen |
+| 106 | Firebase lokal: der eine Pfad, der die App sonst zweimal startet |
+| 107 | Zwei `history.back()` im selben Tick sind nur eines |
+| 108 | Ein `undefined` im Ziel legte die ganze Cloud-Sicherung still |
+| 109 | Zwei Prüfwerkzeuge, die seit ihrer Entstehung nichts geprüft haben |
+| 110 | Das versprochene `render()`, das es nie gab |
+| 111 | Eine Filterschwelle direkt neben der Zahl, die die App selbst erzeugt |
+| 112 | `weekLabel()` war zweimal deklariert — und die falsche gewann |
+| 113 | Ein neues Icon, das nur die halbe `viewBox` benutzt |
+| 114 | Die eine ID-Ausgabe ohne `esc()` — gefunden beim Lesen der Nachbarzeilen |
+| 115 | Ein neues Sync-Feld braucht ZWEI Merge-Stellen — der isolierte Prüfstand sieht nur eine |
+| 116 | `innerHTML` wirft die Scrollposition NICHT weg — zwei Runden toter Code dafür |
+| 117 | Die 16-px-Regel gegen den iOS-Zoom griff im Querformat nicht |
+
+<!-- REGISTER-ENDE -->
+
 ## 1. Firebase-Domain vergessen
 
 Eine neue Domain oder Subdomain muss zusätzlich in Firebase Authentication unter den Authorized Domains eingetragen werden.
@@ -2192,7 +2320,7 @@ Wahrheit — und die Prüfung gehört an die Daten, nicht in den Kopf dessen, de
 ## 88. Das Geschirr aus der Kategorie allein legt Brot in eine Schüssel
 
 `tools/meal-bilder.py` wählte das Geschirr im Bildprompt nur nach `category`: Frühstück → Bowl,
-Hauptgericht → Teller, Getränk → Glas. Beim Trockenlauf für die 30 Katalog-Rezepte fiel auf,
+Hauptgericht → Teller, Getränk → Glas. Beim Trockenlauf für die damals 30 Katalog-Rezepte fiel auf,
 dass damit **„Rührei mit Avocado auf Vollkornbrot" eine Schüssel bekommen hätte** — genau wie
 „Protein-Pancakes", „Hüttenkäse auf Vollkornbrot" und „Ofengemüse vom Blech". Eine Scheibe
 Brot in einer Schüssel sieht auf den ersten Blick falsch aus, und es wäre erst nach dem
