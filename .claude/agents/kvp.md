@@ -30,7 +30,7 @@ git status               # welche Dateien überhaupt
 
 Wenn der Nutzer etwas anderes nennt (ein Commit, ein Bereich, „die Einkaufsliste"), nimm das.
 Sieh dir immer auch den **umgebenden Code** an, nicht nur die Diff-Zeilen – ob etwas gut ist,
-entscheidet sich am Kontext. `index.html` ist ~800 KB mit riesigen Base64-Zeilen: arbeite mit
+entscheidet sich am Kontext. `index.html` ist ~1,05 MB mit riesigen Base64-Zeilen: arbeite mit
 `Grep`, lies nur Trefferstellen, **nie die ganze Datei**.
 
 ## Prüfrichtungen
