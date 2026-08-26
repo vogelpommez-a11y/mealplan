@@ -34,26 +34,44 @@ jobs:
       - name: Script-Bloecke pruefen
         run: |
           python - <<'PY'
-          import re, subprocess, sys, pathlib, tempfile, os
+          import json, re, subprocess, sys, pathlib, tempfile, os
 
           html = pathlib.Path("index.html").read_text(encoding="utf-8", errors="replace")
 
-          # Nur echte, inline geschriebene Scripte. Blocke mit src= laden von woanders,
-          # und type="module" muss node als .mjs sehen, sonst meckert es bei import.
+          # POSITIVLISTE, keine Ausschlussliste - dieselbe wie in syntax-check.py.
+          # Der erste Entwurf zaehlte auf, was NICHT JavaScript ist, und uebersah dabei
+          # "application/ld+json": Der Schema.org-Block in Zeile 44 wurde als JavaScript
+          # geparst und meldete "Unexpected token ':'" - ein Fehler, der keiner war.
+          # Beim allerersten CI-Lauf am 26.08.2026 prompt passiert.
+          TYPE_RE = re.compile(r'type\s*=\s*(?:"([^"]*)"|\'([^\']*)\'|([^\s>]+))', re.I)
+          JS_TYPES = {"", "module", "text/javascript", "application/javascript",
+                      "text/ecmascript", "application/ecmascript"}
+
           muster = re.compile(r"<script([^>]*)>(.*?)</script>", re.S | re.I)
           fehler = 0
           geprueft = 0
 
           for treffer in muster.finditer(html):
               attr, code = treffer.group(1), treffer.group(2)
-              if "src=" in attr.lower():
+              if "src=" in attr.lower() or not code.strip():
                   continue
-              if not code.strip():
+              m = TYPE_RE.search(attr)
+              typ = ((m.group(1) or m.group(2) or m.group(3)) if m else "").strip().lower()
+
+              # Datenbloecke sind kein Code. JSON-LD trotzdem pruefen - ein Tippfehler dort
+              # bricht die Suchmaschinen-Auswertung, aber eben als JSON, nicht als JS.
+              if typ not in JS_TYPES:
+                  if typ == "application/ld+json":
+                      zeile = html[: treffer.start(2)].count("\n") + 1
+                      geprueft += 1
+                      try:
+                          json.loads(code)
+                      except Exception as e:
+                          fehler += 1
+                          print("FEHLER im JSON-LD-Block ab Zeile %d: %s" % (zeile, e))
                   continue
-              typ = attr.lower()
-              if "application/json" in typ or "text/template" in typ:
-                  continue
-              endung = ".mjs" if "module" in typ else ".js"
+
+              endung = ".mjs" if typ == "module" else ".js"
               zeile = html[: treffer.start(2)].count("\n") + 1
               geprueft += 1
               with tempfile.NamedTemporaryFile("w", suffix=endung, delete=False,
