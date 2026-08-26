@@ -4611,6 +4611,25 @@
     return vorher - state.recipes.length;
   }
 
+  // Welche Wochentage einer Woche beplant sind, als 7-Zeichen-Maske "1101100":
+  // Index 0 = Montag ... 6 = Sonntag, Position ueber den DAYS-Index, nie ueber
+  // Wochentagsarithmetik.
+  //
+  // GEMEINSAME QUELLE, und das ist der Zweck: archiveWeek() schreibt damit das Archiv,
+  // der Fortschritt-Kalender zeichnet damit die noch NICHT archivierten Wochen direkt
+  // aus state.plans. Zwei getrennte Fassungen wuerden sich in genau dem Moment
+  // widersprechen, in dem eine laufende Woche archiviert wird.
+  //
+  // Festlaengen-String statt Zahl 0-127 mit Absicht: Jeder Unfall (Number("") -> 0,
+  // parseInt auf Muell -> NaN) wuerde lautlos zu "nichts geplant" und waere von einer
+  // echt leeren Woche nicht mehr zu unterscheiden. /^[01]{7}$/ trifft oder trifft nicht.
+  // Dazu ist "1101100" in der Firestore-Konsole lesbar, 108 nicht.
+  function weekMaskOf(pl) {
+    if (!pl) return "0000000";
+    return DAYS.map(d => hasNut(dayNutOf(pl, d.key)) ? "1" : "0").join("");
+  }
+  function maskDays(m) { return (String(m || "").match(/1/g) || []).length; }
+
   // Kennzahlen einer abgelaufenen Woche fuer den Rueckblick festhalten. Bewusst NUR Summen/
   // Zahlen, keine Meal-Referenzen — winzig, kein Foto-Ballast. Ziel-Treffer = Tag geplant UND
   // Tageskalorien innerhalb +/-10 % des (heutigen) Tagesziels. Ohne Ziel keine Treffer-Quote.
@@ -4618,22 +4637,70 @@
   // die geplanten Tage — Trainingstage haben ein hoeheres Ziel als Ruhetage). Ohne das misst
   // der Rueckblick jede vergangene Woche gegen das HEUTIGE Ziel: Wer sein Defizit aendert,
   // aendert damit rueckwirkend die Bedeutung seiner gesamten Historie.
+  //
+  // Paket 6: Der Ziel-Guard steht jetzt INNEN. Frueher stieg die Funktion bei !state.goal
+  // sofort aus — damit hatte jeder, der ohne Ziel plant, ueberhaupt keine Vergangenheit,
+  // und der Kalender waere fuer ihn dauerhaft leer geblieben. Geschuetzt gehoert nur der
+  // goalTargetsForDay()-Aufruf, nicht die ganze Funktion: `days`/`kcal`/`d` sind vom Ziel
+  // unabhaengig, `hit`/`target` sind es nicht.
   function archiveWeek(wk, pl) {
-    if (!pl || !state.goal) return;
+    if (!pl) return;
+    const mask = weekMaskOf(pl);                // eine Quelle fuer "welcher Tag ist beplant"
     let sum = 0, days = 0, hit = 0, tsum = 0, tdays = 0;
-    DAYS.forEach(d => {
+    DAYS.forEach((d, i) => {
+      if (mask.charAt(i) !== "1") return;
       const n = dayNutOf(pl, d.key);
-      if (!hasNut(n)) return;
       days++; sum += n.kcal;
+      if (!state.goal) return;
       const t = goalTargetsForDay(d.key);
       if (t && t.kcal) { tsum += t.kcal; tdays++; }
       if (t && t.kcal && Math.abs(n.kcal - t.kcal) <= t.kcal * 0.1) hit++;
     });
     if (!days) return;                          // leere Woche hat keinen Rueckblick-Wert
     if (!state.weekStats) state.weekStats = {};
-    const rec = { kcal: Math.round(sum / days), days: days, hit: hit };
+    const rec = { kcal: Math.round(sum / days), days: days, hit: hit, d: mask };
     if (tdays) rec.target = Math.round(tsum / tdays);
-    state.weekStats[wk] = rec;
+    state.weekStats[wk] = mergeArchived(state.weekStats[wk], rec);
+  }
+  // Einen frisch gerechneten Wochendatensatz mit dem bereits gespeicherten vereinigen,
+  // statt ihn zu ersetzen.
+  //
+  // Das repariert einen Fehler, den es auch ohne die Tagesmaske schon gab: pruneWeeks()
+  // laeuft aus sechs Aufrufstellen, darunter ZWEI Remote-Pfade (onRemote und der
+  // Baseline-Merge in startCloudSync). Ein Geraet, das lange offline war, sieht von einer
+  // Vergangenheitswoche nur seinen duenneren Plan — und ueberschrieb damit bisher den
+  // reicheren Datensatz, den der Sync gerade erst hergestellt hatte. Mit der Maske waere
+  // daraus ein sichtbares Verschwinden von Tagen geworden.
+  //
+  // Die Regeln, und sie sind bewusst nicht dieselben fuer alle Felder:
+  //
+  // * `d` wird VEREINIGT (bitweises ODER). Ein Tag, den nur ein Geraet kennt, ist eine
+  //   Beobachtung, kein Widerspruch — er darf nie verschwinden.
+  // * `days` = Maximum aus beiden Zaehlern UND der Anzahl Einsen der vereinigten Maske.
+  //   Nur so ist der Zaehler nie kleiner als die Maske hergibt und nie kleiner als ein
+  //   frueher gemessener Wert. Bei Altwochen ohne `d` bleibt schlicht das Maximum uebrig.
+  //   Ein Rest-Widerspruch bleibt moeglich (`days` groesser als die Maske, wenn die alte
+  //   Woche vor Einfuehrung der Maske archiviert wurde) und ist gewollt: `days` traegt den
+  //   Rueckblick, `d` den Kalender.
+  // * `kcal`/`hit`/`target` kommen vom Lauf, der MEHR Tage gesehen hat. Der aermere Lauf
+  //   gewinnt nicht — derselbe wertbasierte Gedanke wie im Tiebreak von mergeWeekStats().
+  function mergeArchived(alt, neu) {
+    if (!alt) return neu;
+    let d = "";
+    for (let i = 0; i < 7; i++) {
+      d += (String(alt.d || "").charAt(i) === "1" || neu.d.charAt(i) === "1") ? "1" : "0";
+    }
+    const reicher = (neu.days || 0) >= (alt.days || 0) ? neu : alt;
+    const out = Object.assign({}, reicher);
+    // `hit` und `target` gehoeren zusammen und werden nur als PAAR ersetzt: Ein Lauf ohne
+    // gesetztes Ziel liefert hit = 0 und gar kein target. Das ist keine bessere Information
+    // als das damals eingefrorene Ziel, sondern gar keine — also die Paarung der anderen
+    // Seite uebernehmen, statt eine echte Zahl durch eine Null zu ersetzen.
+    const ander = reicher === neu ? alt : neu;
+    if (!out.target && ander.target) { out.target = ander.target; out.hit = ander.hit; }
+    out.d = d;
+    out.days = Math.max(alt.days || 0, neu.days || 0, maskDays(d));
+    return out;
   }
   // Archiv saeubern: nur gueltige "YYYY-Www"-Eintraege, geklemmte Werte, hoechstens die letzten
   // 26 Wochen (halbes Jahr) — das Archiv soll nicht endlos wachsen.
