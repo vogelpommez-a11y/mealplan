@@ -16,7 +16,7 @@ Die primäre Verifikation erfolgt deshalb über den Browser und gezielte isolier
 
 <!-- REGISTER-ANFANG (erzeugt aus den Ueberschriften, nicht von Hand pflegen) -->
 
-**Register — 32 Abschnitte.** Vorne (0 bis 9) die geltenden Verfahren: Syntax-Check,
+**Register — 34 .** Vorne (0 bis 9) die geltenden Verfahren: Syntax-Check,
 Smoke-Test, Ausschneide-Pruefstand, Sync-Tests. Dahinter das datierte Fallarchiv —
 einzelne Pruefstaende und was ihre Gegenprobe gezeigt hat.
 
@@ -57,6 +57,7 @@ Die Verfahren gibt es auch als Skill: `/smoke`, `/pruefstand`, `/abnahme`, `/dep
 | · | `tools/pruefstand-wochenmaske.py` — ein Prüfstand, der absichtlich rot ist (26.08.2026) |
 | · | Eine Zeile prüfen, indem man sie WEGNIMMT (25.08.2026) |
 | · | Mobile Abnahme fernsteuern: `cdp.py messen` (25.08.2026) |
+| · | `tools/pruefstand-rueckblick-ziel.py` — der Beweis, dass eine Woche fehlt (26.08.2026) |
 
 <!-- REGISTER-ENDE -->
 
@@ -2474,3 +2475,50 @@ cdp.messen(720, 900, "dark", js, mobil=False)   # pointer: fine
 Was so **nicht** prüfbar bleibt: die Android-Zurück-Taste (echte Geste), Wischen (drei Anläufe,
 siehe oben) und alles, was am Gerät „sich richtig anfühlen" muss.
 
+## `tools/pruefstand-rueckblick-ziel.py` — der Beweis, dass eine Woche fehlt (26.08.2026)
+
+**Was er prüft:** Eine Archivwoche ohne eigenes `target` darf im Rückblick nicht auftauchen.
+
+**Warum es ihn gibt:** Seit `archiveWeek()` auch ohne Ziel archiviert (Paket 6, B2),
+entstehen solche Wochen regelmäßig. `rueckblickHtml()` fiel dafür auf
+`avgDailyTargetToday()` zurück — maß die Woche also am **heutigen** Ziel — und schrieb
+„0 von 5 Tagen im Ziel" für eine Woche, in der es gar kein Ziel gab.
+
+### Die Gegenprobe ist hier besonders aussagekräftig
+
+```powershell
+python tools/pruefstand-rueckblick-ziel.py            # heute: 9 von 9 grün
+python tools/pruefstand-rueckblick-ziel.py 76d1120    # davor:  7 von 9 ROT
+```
+
+Der alte Stand fällt nicht einfach durch — er sagt auch **warum**:
+
+```
+ROT  heutiges Ziel nicht als Massstab -> 'Ziel 2000' kommt 4x vor
+ROT  zeigt 10/12 Tage -> gefundene Fussnote: Ziel getroffen ... 10/23 Tage
+```
+
+Viermal dasselbe Ziel für vier verschiedene Wochen, und eine Trefferquote über 23 Tage
+statt über die 12, für die es überhaupt ein Ziel gab. Ein Prüfstand, der beim Durchfallen
+den Fehler *benennt*, ist mehr wert als einer, der nur rot wird.
+
+### Drei `<script>`-Blöcke statt einem — und warum das kein Schönheitsdetail ist
+
+Der erste Anlauf hatte Attrappen, ausgeschnittenen Code und Prüfungen in **einem** Block.
+Ergebnis: **völlig leere Ausgabe.** Kein Fehler, kein Hinweis, nichts.
+
+Der Grund: Der ausgeschnittene Bereich enthält `const STREAK_MIN_DAYS`, und daneben stand
+eine gleichnamige Attrappe — `Identifier has already been declared`. Ein **Parse**-Fehler
+tötet aber den ganzen Block, also auch `melde()` und `window.onerror`, die im selben Block
+standen. Der Melder war tot, bevor er etwas melden konnte.
+
+**Die Regel daraus:** Attrappen (samt Fehlermelder), Produktionscode und Prüfungen gehören
+in **getrennte** `<script>`-Blöcke. Dann überlebt der Melder aus Block 1 einen Fehler in
+Block 2 — und der dritte Block prüft zuerst `typeof rueckblickHtml === "function"` und sagt
+im Zweifel „der Codeblock hat nicht geladen" statt gar nichts.
+
+Das ist die praktische Anwendung von „Ablauf-Trace statt Raten" (Abschnitt 2): Ein
+Prüfstand muss auch dann sprechen, wenn er selbst kaputt ist.
+
+**Und nicht stubben, was der Ausschnitt mitbringt.** `STREAK_MIN_DAYS` kommt jetzt aus dem
+echten Code — das ist ohnehin näher an der Produktion als jeder selbst gesetzte Wert.

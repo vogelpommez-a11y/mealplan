@@ -9117,20 +9117,34 @@
     while (true) { const wk = isoWeekKey(dcur); if (stats[wk] && stats[wk].days >= STREAK_MIN_DAYS) { streak++; dcur.setDate(dcur.getDate() - 7); } else break; }
     if (curDays >= STREAK_MIN_DAYS) streak++;
     if (!keys.length && !streak) return "";
-    const shownKeys = keys.slice(-8);
+    // ZWEI ABGELEITETE LISTEN AUS EINEM ARCHIV - bitte nicht "vereinfachen":
+    //
+    // Der STREAK oben laeuft ueber ALLE Wochen. Er fragt nur "wurde geplant?" und braucht
+    // dafuer kein Ziel - wer ohne Ziel plant, hat trotzdem eine Serie.
+    //
+    // Die GRAFIK darunter zeigt dagegen Wochen GEGEN IHR ZIEL. Eine Woche ohne eigenes
+    // `target` gehoert dort nicht hinein. Seit archiveWeek() auch ohne Ziel archiviert
+    // (Paket 6, B2), entstehen solche Wochen regelmaessig - genau auf dem normalen Weg:
+    // erst ein paar Wochen planen, spaeter das erste Ziel setzen.
+    //
+    // Vorher fielen sie auf avgDailyTargetToday() zurueck, wurden also am HEUTIGEN Ziel
+    // gemessen - der Fehler, gegen den seinerzeit B10 gebaut wurde - und die Tippzeile
+    // behauptete "0 von 5 Tagen im Ziel" fuer eine Woche, in der es gar kein Ziel gab.
+    // Das ist keine fehlende Aussage, sondern eine falsche.
+    const zielKeys = keys.filter(k => stats[k].target);
+    const shownKeys = zielKeys.slice(-8);
+    if (!shownKeys.length && !streak) return "";
     let chart = "";
     if (shownKeys.length) {
-      const fallback = avgDailyTargetToday();
       const bars = shownKeys.map(k => {
         const s = stats[k];
-        const target = s.target || fallback;
+        const target = s.target;   // garantiert gesetzt, siehe Filter oben
         // Verhaeltnis zum Ziel; gezeichnet wird bis 140 %, alles darueber laeuft an die
-        // Decke (der genaue Wert steht in der Tippzeile). Ohne bekanntes Ziel bliebe nur
-        // Streuung uebrig - dann lieber ein halber Balken ohne Aussage als eine falsche.
-        const ratio = target ? s.kcal / target : 0.7;
+        // Decke (der genaue Wert steht in der Tippzeile).
+        const ratio = s.kcal / target;
         const h = Math.max(4, Math.min(100, Math.round(ratio / 1.4 * 100)));
-        const hit = target && Math.abs(s.kcal - target) <= target * 0.1;
-        const label = `${weekKwLabel(k)} · Ø ${nfmt(s.kcal)} kcal${target ? " · Ziel " + nfmt(target) : ""} · ${s.hit} von ${s.days} Tagen im Ziel`;
+        const hit = Math.abs(s.kcal - target) <= target * 0.1;
+        const label = `${weekKwLabel(k)} · Ø ${nfmt(s.kcal)} kcal · Ziel ${nfmt(target)} · ${s.hit} von ${s.days} Tagen im Ziel`;
         return `<button type="button" class="rueck-bar${hit ? " hit" : ""}" data-tip="${esc(label)}" aria-label="${esc(label)}"><i style="height:${h}%"></i></button>`;
       }).join("");
       const kws = shownKeys.map(k => `<span>${esc(weekKwLabel(k).replace("KW ", ""))}</span>`).join("");
@@ -9140,8 +9154,8 @@
       const avgKcal = Math.round(vals.reduce((a, v) => a + v, 0) / vals.length);
       const lastKey = shownKeys[shownKeys.length - 1];
       const lastS = stats[lastKey];
-      const lastTarget = lastS.target || fallback;
-      const firstTip = `${weekKwLabel(lastKey)} · Ø ${nfmt(lastS.kcal)} kcal${lastTarget ? " · Ziel " + nfmt(lastTarget) : ""} · ${lastS.hit} von ${lastS.days} Tagen im Ziel`;
+      const lastTarget = lastS.target;
+      const firstTip = `${weekKwLabel(lastKey)} · Ø ${nfmt(lastS.kcal)} kcal · Ziel ${nfmt(lastTarget)} · ${lastS.hit} von ${lastS.days} Tagen im Ziel`;
       chart = `<div class="rueck-plot">
           <div class="rueck-band"></div>
           <div class="rueck-bandlbl">Ziel ±10 %</div>

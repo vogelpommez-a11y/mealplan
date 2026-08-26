@@ -6,7 +6,7 @@ Dieses Dokument enthält bekannte Fehlerquellen, historische Bugs und Probleme, 
 
 <!-- REGISTER-ANFANG (erzeugt aus den Ueberschriften, nicht von Hand pflegen) -->
 
-**Register — 117 dokumentierte Fallen.** Chronologisch gewachsen: je hoeher die Nummer,
+**Register — 118 .** Chronologisch gewachsen: je hoeher die Nummer,
 desto juenger der Fund. Wer eine Falle sucht, sucht hier zuerst; die Ueberschrift sagt
 jeweils, worum es geht. **Nicht die ganze Datei lesen** — sie ist ueber 200 KB gross.
 
@@ -129,6 +129,7 @@ jeweils, worum es geht. **Nicht die ganze Datei lesen** — sie ist ueber 200 KB
 | 115 | Ein neues Sync-Feld braucht ZWEI Merge-Stellen — der isolierte Prüfstand sieht nur eine |
 | 116 | `innerHTML` wirft die Scrollposition NICHT weg — zwei Runden toter Code dafür |
 | 117 | Die 16-px-Regel gegen den iOS-Zoom griff im Querformat nicht |
+| 118 | Ein Guard, der nach innen wandert, erzeugt Datensätze ohne ein Feld, auf das anderswo still gebaut wird |
 
 <!-- REGISTER-ENDE -->
 
@@ -3629,3 +3630,43 @@ am Zeigertyp hängt und nicht einfach immer gilt.
 560er-Blocks**, nicht irgendwo dazwischen — siehe die Falle beim 680er-Block, die einmal die
 ganze mobile Ansicht lahmgelegt hat.
 
+## 118. Ein Guard, der nach innen wandert, erzeugt Datensätze ohne ein Feld, auf das anderswo still gebaut wird
+
+**Der Fall (26.08.2026, live gepusht und noch am selben Abend repariert):** Paket 6 verlegte
+den Ziel-Guard in `archiveWeek()` nach innen — vorher stieg die Funktion bei `!state.goal`
+sofort aus, jetzt archiviert sie auch ohne Ziel. Gewollt: Wer ohne Ziel plant, soll trotzdem
+eine Vergangenheit bekommen.
+
+**Die Folge, die niemand mitgedacht hat:** Ab da entstehen Archivwochen **ohne `target`**.
+Und `rueckblickHtml()` hatte für diesen Fall längst eine Rückfalllösung:
+
+```js
+const fallback = avgDailyTargetToday();
+const target = s.target || fallback;      // misst gegen das HEUTIGE Ziel
+```
+
+Diese Zeile war vorher praktisch tot — ohne Ziel wurde ja gar nicht archiviert. Nach dem
+Umbau lief sie regelmäßig und maß fremde Wochen am heutigen Ziel: **genau der Fehler, gegen
+den Ziffer 74 seinerzeit gebaut wurde.** Dazu behauptete die Tippzeile „0 von 5 Tagen im
+Ziel" für eine Woche, in der es kein Ziel gab — eine **falsche** Aussage, keine fehlende.
+
+**Warum es niemandem sofort auffiel:** Der Rückblick zeigt ohne Ziel gar nichts
+(`if (!state.goal) return "";`). Der Fehler wird erst in dem Moment sichtbar, in dem jemand
+sein **erstes** Ziel setzt — also genau auf dem normalen Onboarding-Weg: erst ein paar
+Wochen planen, dann das Ziel.
+
+**Der Fix:** Zwei abgeleitete Listen aus einem Archiv. Der **Streak** läuft über alle Wochen
+(er fragt nur „wurde geplant?"), die **Grafik** nur über Wochen mit eigenem `target`. Beide
+Stellen sind ausdrücklich kommentiert, sonst legt sie jemand wieder zusammen.
+
+**Die Lehre, die über diesen Fall hinausgeht:** Wenn ein Guard wandert, ändert sich nicht
+nur, *ob* etwas passiert, sondern **welche Form die entstehenden Daten haben**. Jede Stelle,
+die ein optionales Feld mit `||` auffängt, ist ab dann ein Kandidat: Der Rückfall war für
+einen seltenen Sonderfall gedacht und wird plötzlich zum Normalfall.
+
+**Beim nächsten Guard-Umbau also fragen:** Welche Felder fehlen den neu entstehenden
+Datensätzen — und wer fängt dieses Fehlen heute mit einem Standardwert auf, der dann falsch
+ist?
+
+Gefunden hat es die Sitzung, die den Umbau gebaut hatte, beim Aufschreiben ihres eigenen
+Wissens — nicht der Code-Review. Prüfstand: `tools/pruefstand-rueckblick-ziel.py`.
