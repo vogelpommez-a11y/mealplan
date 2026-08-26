@@ -1,0 +1,146 @@
+# Die einzige Pruefung, die auch dann laeuft, wenn sie jemand vergisst.
+#
+# Die Hooks unter .claude/hooks/ greifen nur auf diesem Rechner und nur, wenn Claude Code
+# die Aenderung macht. Ein Handedit im Editor laeuft daran vorbei - und ein Push auf main
+# geht sofort ueber GitHub Pages live. Dieser Workflow ist das Netz darunter.
+#
+# Bewusst ohne npm, ohne Bundler, ohne neue Toolchain: nur Python, wie im Projekt ueblich.
+
+name: Pruefung
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  syntax:
+    name: JavaScript-Syntax in index.html
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # syntax-check.py nutzt lokal die V8-Engine von Edge. Auf dem Runner gibt es die
+      # nicht, deshalb hier node --check ueber die extrahierten <script>-Bloecke.
+      # Gleiche Frage, anderer Motor: beendet ein Syntaxfehler das App-Script?
+      - name: Script-Bloecke pruefen
+        run: |
+          python - <<'PY'
+          import re, subprocess, sys, pathlib, tempfile, os
+
+          html = pathlib.Path("index.html").read_text(encoding="utf-8", errors="replace")
+
+          # Nur echte, inline geschriebene Scripte. Blocke mit src= laden von woanders,
+          # und type="module" muss node als .mjs sehen, sonst meckert es bei import.
+          muster = re.compile(r"<script([^>]*)>(.*?)</script>", re.S | re.I)
+          fehler = 0
+          geprueft = 0
+
+          for treffer in muster.finditer(html):
+              attr, code = treffer.group(1), treffer.group(2)
+              if "src=" in attr.lower():
+                  continue
+              if not code.strip():
+                  continue
+              typ = attr.lower()
+              if "application/json" in typ or "text/template" in typ:
+                  continue
+              endung = ".mjs" if "module" in typ else ".js"
+              zeile = html[: treffer.start(2)].count("\n") + 1
+              geprueft += 1
+              with tempfile.NamedTemporaryFile("w", suffix=endung, delete=False,
+                                               encoding="utf-8") as f:
+                  f.write(code)
+                  name = f.name
+              lauf = subprocess.run(["node", "--check", name],
+                                    capture_output=True, text=True)
+              os.unlink(name)
+              if lauf.returncode != 0:
+                  fehler += 1
+                  print("FEHLER im <script>-Block ab Zeile %d von index.html:" % zeile)
+                  print(lauf.stderr.strip())
+
+          print("%d Script-Bloecke geprueft, %d fehlerhaft." % (geprueft, fehler))
+          if geprueft == 0:
+              print("KEIN einziger Block geprueft - das ist selbst ein Fehler.")
+              sys.exit(1)
+          sys.exit(1 if fehler else 0)
+          PY
+
+  geheimnisse:
+    name: Keine Geheimnisse im Repo
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Nach Secret-Mustern suchen
+        run: |
+          python - <<'PY'
+          import pathlib, re, subprocess, sys
+
+          # Muster, die ein echtes Geheimnis anzeigen. Die Firebase-Web-Config
+          # (apiKey: "AIzaSy...") steht hier BEWUSST NICHT: sie ist oeffentlich by design
+          # und identifiziert nur das Projekt. Siehe CLAUDE.md, Abschnitt 19.
+          MUSTER = [
+              (r"sk-[A-Za-z0-9_\-]{20,}",        "OpenAI-Schluessel"),
+              (r"sk-ant-[A-Za-z0-9_\-]{20,}",    "Anthropic-Schluessel"),
+              (r"gh[pousr]_[A-Za-z0-9]{30,}",    "GitHub-Token"),
+              (r"-----BEGIN [A-Z ]*PRIVATE KEY", "privater Schluessel"),
+              (r"\"private_key\"\s*:",           "Service-Account-Credential"),
+              (r"\"type\"\s*:\s*\"service_account\"", "Service-Account-Datei"),
+          ]
+
+          # Dateien, die den MUSTERTEXT selbst enthalten duerfen, weil sie davor warnen.
+          AUSNAHMEN = {
+              "CLAUDE.md", "SECURITY.md", ".gitignore",
+              ".github/workflows/pruefung.yml",
+              "worker/og.js",
+              ".claude/agents/website-security.md",
+              ".claude/agents/datenschutz-technik.md",
+              ".claude/agents/store-check.md",
+              ".claude/hooks/secrets-filter.py",
+          }
+
+          dateien = subprocess.run(["git", "ls-files"], capture_output=True,
+                                   text=True).stdout.split()
+          funde = []
+          for name in dateien:
+              if name in AUSNAHMEN:
+                  continue
+              p = pathlib.Path(name)
+              if not p.is_file() or p.stat().st_size > 8_000_000:
+                  continue
+              try:
+                  text = p.read_text(encoding="utf-8", errors="ignore")
+              except Exception:
+                  continue
+              for regex, was in MUSTER:
+                  for m in re.finditer(regex, text):
+                      zeile = text[: m.start()].count("\n") + 1
+                      funde.append("%s:%d  %s" % (name, zeile, was))
+
+          # Zusaetzlich: Dateien, die es im Repo gar nicht geben darf.
+          VERBOTEN = (".env", ".pem", ".key", "serviceAccount")
+          for name in dateien:
+              if name.endswith(VERBOTEN) or name.startswith(("plans/", "Fotos/",
+                                                             "Marketing/", "Instagram/")) \
+                 or name == "ROADMAP.html":
+                  funde.append("%s  darf nicht im Repo liegen" % name)
+
+          if funde:
+              print("GEFUNDEN:")
+              for f in funde:
+                  print("  " + f)
+              sys.exit(1)
+          print("%d getrackte Dateien geprueft - nichts gefunden." % len(dateien))
+          PY
