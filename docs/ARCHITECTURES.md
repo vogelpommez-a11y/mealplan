@@ -124,6 +124,26 @@ rutschen, das vorher scheitern kann, und nichts nachladen.
 **Eine Stelle bleibt bewusst leer:** `navigator.share(...).catch(() => {})`. Bricht der Nutzer
 das Teilen-Blatt ab, kommt ein `AbortError` — Normalbetrieb, kein Fehler.
 
+**Nachtrag 27.08.2026 — ein freundlicher Toast ist auch ein Schlucken.** Der Melder deckte die
+*leeren* `catch`-Blöcke ab, nicht die, die den Fehler in eine Nutzermeldung übersetzen und ihn
+damit genauso verlieren. Drei Cloud-Pfade waren betroffen und haben jetzt ihre Kennung:
+
+| Kennung | Wo | Was der Nutzer sieht |
+|---|---|---|
+| `group:switch` | Gruppe laden/wechseln | „Die Gruppe ist gerade nicht erreichbar …" |
+| `sync:recipes` | Rezept-Batch in die Cloud | „Deine Meal-Fotos konnten gerade nicht …" |
+| `save:localStorage` | `save()` schlägt fehl | „Der Speicher dieses Geräts ist voll …" |
+
+Der Nutzen zeigte sich sofort: Beim ersten Lauf über `localhost` meldete `group:switch` die
+Ursache, die vorher niemand sehen konnte — **„Missing or insufficient permissions."**, also ein
+Firestore-Regelfall und kein Netzproblem. Genau diese Unterscheidung nimmt der Toast dem
+Leser ab.
+
+Weitere ~28 `catch`-Blöcke übersetzen ebenfalls in einen Toast (Teilen, PDF, Zwischenablage,
+Einladungen). Sie sind **nicht** angefasst: Dort ist die Ursache aus der Aktion heraus meist
+offensichtlich, und das Minimalprinzip gilt auch für Verbesserungen. Wer dort einmal im Dunkeln
+steht, weiß jetzt, wo das Muster steht.
+
 ## Zwei-Script-Architektur
 
 ### Firebase-Modul

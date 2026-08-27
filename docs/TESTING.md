@@ -16,7 +16,7 @@ Die primäre Verifikation erfolgt deshalb über den Browser und gezielte isolier
 
 <!-- REGISTER-ANFANG (erzeugt aus den Ueberschriften, nicht von Hand pflegen) -->
 
-**Register — 34 .** Vorne (0 bis 9) die geltenden Verfahren: Syntax-Check,
+**Register — 35.** Vorne (0 bis 9) die geltenden Verfahren: Syntax-Check,
 Smoke-Test, Ausschneide-Pruefstand, Sync-Tests. Dahinter das datierte Fallarchiv —
 einzelne Pruefstaende und was ihre Gegenprobe gezeigt hat.
 
@@ -59,6 +59,7 @@ Die Verfahren gibt es auch als Skill: `/smoke`, `/pruefstand`, `/abnahme`, `/dep
 | · | Mobile Abnahme fernsteuern: `cdp.py messen` (25.08.2026) |
 | · | `tools/pruefstand-rueckblick-ziel.py` — der Beweis, dass eine Woche fehlt (26.08.2026) |
 | · | `tools/alle-pruefstaende.py` — der Reihenlauf (26.08.2026) |
+| · | `tools/pruefstand-grpm-zoom.py` — eine Behauptung über die CSS-Kaskade messen (27.08.2026) |
 
 <!-- REGISTER-ENDE -->
 
@@ -2554,3 +2555,45 @@ Satz dazu, was noch offen ist.
 
 **Die Lehre:** Ein Läufer, der falschen Alarm schlägt, wird abgeschaltet — und dann läuft
 gar nichts mehr. Lieber eine Zeile mehr Erklärung als ein Signal, dem niemand glaubt.
+
+## `tools/pruefstand-grpm-zoom.py` — eine Behauptung über die CSS-Kaskade messen (27.08.2026)
+
+```powershell
+python tools/pruefstand-grpm-zoom.py
+```
+
+**Die Frage:** Gilt für `.grp-m select` auf einem Touch-Gerät 16 px (kein iOS-Zoom) oder die
+13 px aus der spezifischeren Regel weiter unten? Siehe `docs/TROUBLESHOOTING.md` §120.
+
+**Warum das ein Browser beantworten muss.** Spezifität und Reihenfolge kann man am Quelltext
+*behaupten* — welche Regel gewonnen hat, sagt nur `getComputedStyle()`. Und `pointer: coarse`
+gilt ausschliesslich unter Touch-Emulation, also nur über das DevTools-Protokoll.
+
+**Der Aufbau, drei Punkte, die andere Prüfstände übernehmen können:**
+
+1. **Echtes CSS, ausgeschnitten.** Der komplette `<style>`-Inhalt aus `index.html` wandert
+   unverändert in die Prüfseite. Ein nachgebauter Auszug hätte genau die Eigenschaft verloren,
+   um die es geht — die Reihenfolge zweier weit auseinanderliegender Regeln.
+2. **Der Prüftext hängt an denselben Klassen** wie `memberRowHtml()`: `.grp-m` mit Avatar,
+   Name und `<select>`.
+3. **Alles in EINER CDP-Verbindung.** `setTouchEmulationEnabled` gilt nur, solange sie offen
+   ist — dieselbe Sitzungsbindung, die `tools/cdp.py` dokumentiert. Wer den Zeigertyp in einem
+   eigenen Aufruf setzt, misst hinterher wieder `fine` und merkt es nicht.
+
+**Die Gegenprobe steckt im Prüfstand selbst**, nicht in git: Er erzeugt eine zweite Seite, aus
+der genau der neue `@media`-Block herausgeschnitten ist, und misst beide.
+
+| | `<select>` |
+|---|---|
+| mit Touch, CSS wie es ist | **16 px** |
+| mit Touch, neuer Block entfernt | 13 px — **die Gegenprobe** |
+| ohne Touch, CSS wie es ist | 13 px — am Rechner unverändert |
+
+Ohne die mittlere Zeile wäre nur belegt, dass irgendwo 16 px stehen — nicht, dass dieser Block
+sie bewirkt. Ohne die dritte wäre nicht belegt, dass die Regel am Zeigertyp hängt statt einfach
+immer zu gelten.
+
+**Edge statt Chrome, eigener Port (9333).** `tools/cdp.py` fährt einen sichtbaren Chrome für
+die Abnahme am echten Konto; läuft der Alltags-Chrome des Nutzers schon, lässt sich der
+Debug-Port nicht mehr öffnen. Dieser Prüfstand braucht kein Konto und keine Sichtbarkeit,
+deshalb Edge headless auf einem eigenen Port — er kollidiert mit nichts.

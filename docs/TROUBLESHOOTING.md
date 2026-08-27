@@ -6,7 +6,7 @@ Dieses Dokument enthält bekannte Fehlerquellen, historische Bugs und Probleme, 
 
 <!-- REGISTER-ANFANG (erzeugt aus den Ueberschriften, nicht von Hand pflegen) -->
 
-**Register — 118 .** Chronologisch gewachsen: je hoeher die Nummer,
+**Register — 122.** Chronologisch gewachsen: je hoeher die Nummer,
 desto juenger der Fund. Wer eine Falle sucht, sucht hier zuerst; die Ueberschrift sagt
 jeweils, worum es geht. **Nicht die ganze Datei lesen** — sie ist ueber 200 KB gross.
 
@@ -18,7 +18,7 @@ jeweils, worum es geht. **Nicht die ganze Datei lesen** — sie ist ueber 200 KB
 | 4 | Firebase-Web-Konfiguration ist kein Secret |
 | 5 | `#view` leer trotz HTTP 200 |
 | 6 | Strict Mode und Oktal-Escapes |
-| 7 | Base64-Fotos |
+| 7 | Sehr lange Zeilen in `index.html` (früher: Base64-Fotos) |
 | 8 | Namensdualität nicht „bereinigen" |
 | 9 | Gruppen-Sync: `plans` nicht doppelt speichern |
 | 10 | Gruppen-Sync: leere Slots |
@@ -130,6 +130,10 @@ jeweils, worum es geht. **Nicht die ganze Datei lesen** — sie ist ueber 200 KB
 | 116 | `innerHTML` wirft die Scrollposition NICHT weg — zwei Runden toter Code dafür |
 | 117 | Die 16-px-Regel gegen den iOS-Zoom griff im Querformat nicht |
 | 118 | Ein Guard, der nach innen wandert, erzeugt Datensätze ohne ein Feld, auf das anderswo still gebaut wird |
+| 119 | Ein Wächter, der die eigenen Werkzeuge blockiert — und `core.ignorecase` als stiller Mitwisser |
+| 120 | Eine Schutzregel, die von der Regel überholt wird, die sie schützen soll |
+| 121 | Ein freundlicher Toast ist auch ein Schlucken |
+| 122 | Ein Zähler, der beim Start wandert — und kein Fehler ist |
 
 <!-- REGISTER-ENDE -->
 
@@ -241,23 +245,30 @@ Das PDF wird selbst erzeugt (`planPdfString` / `downloadPdf`) und verwendet Helv
 
 `window.print()` nicht als Ersatz verwenden, wenn die Artifact-Sandbox Drucken blockiert.
 
-## 7. Base64-Fotos
+## 7. Sehr lange Zeilen in `index.html` (früher: Base64-Fotos)
 
-`index.html` enthält Base64-Fotos mit sehr langen Zeilen.
+`index.html` ist ~1,1 MB gross, 16.700 Zeilen, einzelne Zeilen über 12.000 Zeichen lang.
 
 Niemals:
 
 * komplette Datei blind lesen
 * `cat` verwenden
-* Base64 durch den Kontext kopieren
 
 Stattdessen:
 
 * `Grep`
-* gezielte Ausschnitte
+* gezielte Ausschnitte mit Offset/Limit
 * Python-Skripte zum Injizieren/Verarbeiten
 
-Beim Kopieren über Chat-/Kontextgrenzen können Base64-Daten beschädigt werden.
+**Nachtrag 27.08.2026 — die Begründung stimmte nicht mehr.** Dieser Abschnitt und
+`CLAUDE.md` §10 sprachen weiter von „Base64-Fotos in der Datei". Nachgezählt: **null**. Die
+Meal-Fotos liegen seit dem Bildumbau als 32 Dateien in `img/`; der einzige Treffer auf
+`base64,` im Quelltext ist die Prüf-Regex in `safeImage()` (Zeile 6648). Was zur Laufzeit
+noch als `data:image;base64` auftaucht, sind Bilder des Nutzers aus `localStorage` bzw.
+Firestore — die Warnung fürs Kopieren über Kontextgrenzen gilt dort weiter, im Quelltext
+gibt es nichts mehr zu beschädigen.
+
+Die Warnung „nicht blind lesen" bleibt richtig — wegen der Dateigrösse, nicht wegen Base64.
 
 ## 8. Namensdualität nicht „bereinigen"
 
@@ -3670,3 +3681,155 @@ ist?
 
 Gefunden hat es die Sitzung, die den Umbau gebaut hatte, beim Aufschreiben ihres eigenen
 Wissens — nicht der Code-Review. Prüfstand: `tools/pruefstand-rueckblick-ziel.py`.
+
+## 119. Ein Wächter, der die eigenen Werkzeuge blockiert — und `core.ignorecase` als stiller Mitwisser
+
+**Gefunden am 27.08.2026** bei der ersten Nachprüfung des Setups, das am Vortag entstanden war.
+
+Der Commit-Wächter (`.claude/hooks/commit-waechter.py`) führte `.claude/Skills/` als
+verboten, mit der Begründung „zugekaufte Skill-Texte — fremde Inhalte ohne belegte Lizenz".
+Richtig gedacht, nur liegen im **selben Ordner** die vier selbst geschriebenen
+Projekt-Skills, seit dem Vortag getrackt:
+
+```
+.claude/Skills/smoke/SKILL.md   .claude/Skills/abnahme/SKILL.md
+.claude/Skills/deploy/SKILL.md  .claude/Skills/pruefstand/SKILL.md
+```
+
+Die nächste Änderung an `/smoke` oder `/deploy` wäre am eigenen Hook gescheitert — mit einer
+Meldung, die einen falschen Grund nennt. Behoben über eine `ERLAUBT`-Liste, die vor den
+Verbotslisten greift.
+
+**Warum es niemand gemerkt hat**, obwohl `tools/wartung-check.py` die Deckung zwischen
+`.gitignore` und Wächter prüft: Die Prüfung fragte nur eine Richtung — *blockiert der
+Wächter genug?* Nie: *blockiert er zu viel?* Beide Richtungen sind jetzt drin, und die
+Gegenrichtung fragt den Wächter über seine neue Funktion `bewerte()` selbst, statt seine
+Listen ein zweites Mal nachzubauen — zwei Kopien derselben Regel driften auseinander.
+
+**Der stille Mitwisser.** Beim selben Fund fiel auf, dass `.gitignore` die eigenen Skills
+nur in Kleinschreibung wieder freigab (`!.claude/skills/smoke/`), der echte Ordner aber
+`Skills` heisst. Auf diesem Rechner fällt das nicht auf:
+
+```
+git config core.ignorecase   →  true
+```
+
+Damit trifft ein Muster in Kleinschreibung auch `Skills/`, und `git check-ignore` meldet die
+Datei brav als sichtbar — die Prüfung in `pruefe_skills()` schwieg deshalb zu Recht. Auf
+einem **case-sensitiven** Dateisystem — Linux, der CI-Runner, ein Mac mit APFS-Case — trifft
+es nicht mehr: dann greift `.claude/Skills/*`, die Ausnahme in Kleinschreibung aber nicht,
+und ein **neu angelegter** eigener Skill wäre dort stillschweigend ignoriert. Die vier
+bestehenden überlebten nur, weil `.gitignore` auf bereits getrackte Dateien nicht mehr wirkt.
+Beide Schreibweisen stehen jetzt in beiden Dateien.
+
+**Die Lehre:** Eine Prüfung, die eine Regel nur in einer Richtung testet, ist eine halbe
+Prüfung — und eine lokale Git-Einstellung kann eine kaputte Regel monatelang richtig
+aussehen lassen. Hängt ein Muster an Gross-/Kleinschreibung, gehören beide Schreibweisen
+hin, auch wenn „es hier funktioniert".
+
+## 120. Eine Schutzregel, die von der Regel überholt wird, die sie schützen soll
+
+**Gefunden am 27.08.2026**, beim Durchsehen der App nach dem Setup-Umbau.
+
+`.grp-m select` — die Rollenwahl je Mitglied in der Gruppenverwaltung — stand auf 13 px.
+Safari zoomt beim Öffnen eines `<select>` unter 16 px in die Seite hinein. Den Schutz dagegen
+gibt es seit Fall 117:
+
+```css
+@media (pointer: coarse) {
+  input…, select, textarea { font-size: 16px; }   /* Zeile 2516 */
+}
+…
+.grp-m select { … font-size: 13px; … }            /* Zeile 3207 */
+```
+
+**Der Schutz greift trotzdem nicht**, und zwar aus zwei voneinander unabhängigen Gründen:
+`.grp-m select` hat die höhere Spezifität (0,1,1 gegen 0,0,1) **und** steht weiter unten.
+Jeder für sich würde schon reichen.
+
+Das ist die eigentliche Lehre: **Eine Schutzregel mit niedriger Spezifität schützt nur, bis
+jemand weiter unten spezifischer wird.** Sie sieht danach unverändert richtig aus — man liest
+den `@media (pointer: coarse)`-Block, findet `select` darin und hakt ab. Fall 117 hat die
+Bedingung repariert (Breite → Zeigertyp) und dabei diese zweite Bruchstelle nicht gesehen.
+
+Behoben durch dieselbe Regel noch einmal, direkt hinter der Regel, die sie korrigiert. Der
+Block steht **hinter** `.grp-m select` auf oberster Ebene, nicht in einem fremden `@media`-Block
+— siehe die Falle mit dem zerschnittenen 680er-Block.
+
+Belegt über `tools/pruefstand-grpm-zoom.py` (echtes CSS aus `index.html`, Touch-Emulation
+über CDP):
+
+| | `<select>` |
+|---|---|
+| mit Touch, CSS wie es ist | **16 px** — der Block greift |
+| mit Touch, neuer Block entfernt | 13 px — **Gegenprobe**, ohne ihn fällt es zurück |
+| ohne Touch, CSS wie es ist | 13 px — am Rechner ändert sich nichts |
+
+Die mittlere Zeile ist die eigentliche Gegenprobe. Ohne sie wäre nur belegt, dass irgendwo
+16 px stehen — nicht, dass dieser Block sie bewirkt.
+
+**Wer die 16-px-Regel prüft, prüft ab jetzt nicht den Schutzblock, sondern das Ergebnis am
+Element.** Alles andere ist eine Behauptung über die Kaskade.
+
+## 121. Ein freundlicher Toast ist auch ein Schlucken
+
+**Gefunden am 27.08.2026.** Der Fehlermelder `noteError` (Fall 29, `docs/ARCHITECTURES.md`)
+wurde eingeführt, um **leere** `catch`-Blöcke zu beseitigen. Er übersah eine zweite Sorte, die
+genauso blind macht:
+
+```js
+} catch (e) {
+  leaveGroupState();
+  toast("Die Gruppe ist gerade nicht erreichbar – du planst vorerst für dich.");
+}
+```
+
+Der Nutzer ist freundlich informiert. Der Fehler ist **weg** — kein Log, keine Konsole, kein
+`dump()`. „Nicht erreichbar" kann heißen: offline, falsche `gid`, fehlende Firestore-Regel,
+entfernte Mitgliedschaft. Vier verschiedene Ursachen, eine Meldung, keine Möglichkeit zu
+unterscheiden.
+
+Ergänzt wurden `group:switch`, `sync:recipes` und `save:localStorage`. **Der Nutzen war sofort
+messbar:** Beim ersten Lauf über `localhost` stand im `dump()`
+
+```
+tag: "group:switch"   msg: "Missing or insufficient permissions."
+```
+
+— ein Firestore-Regelfall, kein Netzproblem. Diese Unterscheidung war vorher aus der App heraus
+nicht zu treffen.
+
+**Die Lehre:** Beim Aufräumen von `catch`-Blöcken nicht nach `{}` suchen, sondern danach, ob
+der Block den Fehler *irgendwohin* rettet. Ein Toast ist eine Nachricht an den Nutzer, keine
+Diagnose — die beiden ersetzen einander nicht.
+
+Bewusst **nicht** angefasst: rund 28 weitere `catch`-Blöcke, die in einen Toast übersetzen
+(Teilen, PDF, Zwischenablage, Einladung laden). Dort ergibt sich die Ursache meist aus der
+Aktion selbst, und Bestand wird nicht ohne Not umgebaut.
+
+## 122. Ein Zähler, der beim Start wandert — und kein Fehler ist
+
+**Beobachtet am 27.08.2026, live:** Der Meals-Zähler im Reiter lief nach dem Laden ohne jede
+Nutzeraktion von 33 über 34, 33, 31 auf **28** und blieb dort. Das sieht aus, als verlöre man
+Meals.
+
+Nachgerechnet:
+
+```
+im localStorage:        36 Rezepte, 36 eindeutige IDs
+davon quick (Barcode):   8
+libraryRecipes():       36 − 8 = 28      ← genau der Zähler
+```
+
+`libraryRecipes()` filtert `quick !== true` — Barcode-Produkte zählen bewusst nicht als Meals.
+Der Endstand **28 ist korrekt**, und die 36 im Speicher sind vollständig. Die Zwischenwerte sind
+Momentaufnahmen, während Gruppen-Handshake, Remote-Events und die einmalige `dedupeV1`-Migration
+konvergieren. Beim zweiten Laden misst man 21 Sekunden lang unverändert 28.
+
+**Warum das hier steht, obwohl nichts kaputt ist:** Der Verlauf sieht exakt wie Datenverlust aus
+und hat bei der Durchsicht Zeit gekostet. Wer ihn das nächste Mal sieht, rechnet zuerst
+`gesamt − quick` und lädt ein zweites Mal, bevor er eine Sync-Fehlersuche beginnt.
+
+Verbleibt als **UX-Beobachtung**, nicht als Bug: Für den Nutzer zappelt eine Zahl etwa eine
+halbe Minute lang. Nicht geändert — der Eingriff (Zähler bis zum Handshake zurückhalten) hätte
+mehr Fläche als Nutzen.

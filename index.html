@@ -3205,6 +3205,19 @@
      buendig darunter beginnt: neben dem Namen passte sie bei 390px nicht mehr mit dem
      Entfernen-Knopf zusammen, und der rutschte dann allein in die zweite Zeile. */
   .grp-m select { flex: 0 0 calc(100% - 46px); margin-left: 46px; width: auto; font: inherit; font-size: 13px; min-height: 44px; padding: 6px 8px; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--surface); color: var(--text); }
+  /* Die 13 px oben gelten NUR am Rechner. Auf Touch zoomt Safari beim Oeffnen eines
+     <select> unter 16 px hinein - genau das, was der pointer-coarse-Block weiter oben
+     (Fall 117) verhindern soll. Er greift hier aber nicht: `.grp-m select` ist
+     spezifischer UND steht spaeter, also gewinnt 13 px. Deshalb dieselbe Regel noch
+     einmal an dieser Stelle, hinter der Regel, die sie korrigiert.
+
+     Gemessen am 27.08.2026 ueber tools/pruefstand-grpm-zoom.py:
+       mit Touch ohne diesen Block: 13 px  ·  mit: 16 px  ·  ohne Touch: 13 px
+     Die letzte Zahl ist die Gegenprobe - am Rechner bleibt die Rollenwahl so schlank
+     wie der Name darueber (14 px). */
+  @media (pointer: coarse) {
+    .grp-m select { font-size: 16px; }
+  }
   .grp-m .btn.icon-gh { flex: none; }
   /* Der rechtliche Hinweis beim Gruppenstart gehoert hinter ein <details>: er ist Pflicht,
      aber keine Information, die im Regelfall gebraucht wird. */
@@ -5164,6 +5177,7 @@
       localStorage.setItem(STORE_KEY, JSON.stringify({ recipes: recipesForLS, plans: state.plans, tab: state.tab, goal: state.goal || null, shares: state.shares || [], onboarded: state.onboarded === true, weights: state.weights || [], weightGoals: state.weightGoals || {}, weekStats: state.weekStats || {}, profileImage: idbOK ? null : (state.profileImage || null), weightConsent: state.weightConsent || noConsent(), shopPersons: sanitizeShopPersons(state.shopPersons), groupId: state.groupId || "", pendingGroupId: state.pendingGroupId || "", pendingInviteUrl: state.pendingInviteUrl || "", inviteCodes: state.inviteCodes || [], favs: state.favs || [], planned: state.planned || {}, deleted: sanitizeTombstones(state.deleted), dedupeV1: state.dedupeV1 === true }));
       storageFullWarned = false;
     } catch (e) {
+      noteError("save:localStorage", e);   // QuotaExceeded sieht anders aus als ein Serialisierungsfehler
       if (!storageFullWarned) {
         storageFullWarned = true;
         toast(syncUid
@@ -5562,6 +5576,7 @@
       // laeuft unabhaengig weiter und zeigt "synced", waehrend Rezeptfotos nie ankommen -
       // z.B. wenn die neue Firestore-Regel noch nicht veroeffentlicht wurde. Einmalig
       // melden, damit das nicht unbemerkt bleibt (analog cloudTooBigWarned oben).
+      noteError("sync:recipes", e);   // welche Regel, welcher Code - der Toast sagt es nicht
       if (!recipesSyncFailed) {
         recipesSyncFailed = true;
         toast("Deine Meal-Fotos konnten gerade nicht mit der Cloud synchronisiert werden – wird automatisch erneut versucht.");
@@ -6114,6 +6129,13 @@
       // Gruppen-Zugriff scheitert. Nicht still bleiben - sonst sieht der Nutzer nur einen
       // leeren Plan und haelt seine Daten fuer verloren.
       leaveGroupState();
+      // Der Toast sagt dem Nutzer freundlich, was Sache ist - und verschluckte bis zum
+      // 27.08.2026 den eigentlichen Fehler dabei vollstaendig. Wer wissen wollte, WARUM die
+      // Gruppe nicht erreichbar war (fehlende Regel? falsche gid? offline?), stand ohne jede
+      // Spur da: kein Log, keine Konsole, nichts. Genau der Zustand, den noteError()
+      // verhindern soll. Der Nutzer sieht davon nichts, `noteError.dump()` in den DevTools
+      // schon.
+      noteError("group:switch", e);
       // "vorerst" ist woertlich gemeint: der Zeiger bleibt gespeichert, der naechste Start
       // verbindet wieder. Deshalb "error" und nicht "gone".
       toast("Die Gruppe ist gerade nicht erreichbar – du planst vorerst für dich.");
