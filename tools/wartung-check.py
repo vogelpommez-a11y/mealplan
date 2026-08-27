@@ -402,9 +402,17 @@ def pruefe_abdeckung():
     if bekannt is None:
         rot(bereich, "docs/ABDECKUNG.md fehlt - ohne Register ist kein Bereich zugeordnet")
         return
+    if bekannt == "kaputt":
+        rot(bereich, "docs/ABDECKUNG.md liest kaum Kennungen - das Format ist gebrochen, "
+                     "damit waere JEDER Bereich scheinbar ohne Pruefer")
+        return
     for k in luecken:
         gelb(bereich, "'%s' ist keinem Pruefer zugeordnet - Entscheidung noetig "
                       "(docs/ABDECKUNG.md, Abschnitt 7)" % k)
+    # Die andere Richtung: Zeilen, die etwas beschreiben, das es nicht mehr gibt.
+    for k in m.tote_zeilen():
+        gelb(bereich, "'%s' steht im Register, kommt im Repo aber nicht vor - die "
+                      "Zuordnung ist Fiktion geworden" % k)
 
     # Und die Probe aufs Exempel: Wuerde die Pruefung eine Luecke ueberhaupt bemerken?
     # Eine Erhebung, die nichts mehr findet, meldet ewig "alles zugeordnet".

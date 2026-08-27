@@ -57,6 +57,24 @@ findet:
 **Neue Zeile anlegen heißt: eine bewusste Zuordnung treffen.** Wer eine Kennung nur einträgt,
 damit die Meldung verschwindet, hat die Prüfung abgeschaltet, nicht bestanden.
 
+### Was die Erkennung strukturell **nicht** sieht
+
+Diese Grenzen sind bekannt und bewusst. Wer einen Bereich anlegt, der so aussieht, trägt ihn
+**von Hand** ein — das Skript wird ihn nie melden:
+
+| Fall | Warum | Was stattdessen greift |
+|---|---|---|
+| Ein Reiter, den JavaScript zur Laufzeit erzeugt | Gesucht wird `data-tab="…"` im **Quelltext**. Heute stehen alle vier Reiter im Template (`dataset.tab` wird nur gelesen, nie gesetzt) | von Hand eintragen |
+| Ein gitignorter Ordner (`plans/`, `Fotos/`, `Marketing/`) | `git ls-files` kennt nur Versioniertes | er geht auch nicht live; der Commit-Wächter blockiert ihn zusätzlich |
+| Ein leeres Verzeichnis | git kennt keine leeren Verzeichnisse | fällt auf, sobald die erste Datei darin liegt |
+| Hostnamen ohne Punkt (`localhost`) | bewusst gefiltert, sonst landet jedes URL-Fragment im Register | keine echte Verbindung nach draußen |
+| Eine Domain, die nur in `vendor/` steht | Fremdcode nennt Dutzende Hosts, die er nie kontaktiert — das Register wäre nach einem Update unlesbar | `pfad:vendor/` hat mit `lieferkette` seinen eigenen Prüfer |
+
+**Die andere Richtung prüft das Skript ebenfalls:** Steht eine Kennung im Register, die im
+Repo nirgends vorkommt, meldet es das als **Verrottung**. Ohne diese Prüfung könnte ein
+gelöschter Bereich seine Zeile behalten, und die Zuordnung wäre Fiktion, ohne dass es jemand
+merkt.
+
 ---
 
 ## 3. Pfade
@@ -115,7 +133,6 @@ Alles, was nach draußen geht, ist entweder eine **Verarbeitung** (Datenschutz) 
 | Google-Login | `domain:oauth2.googleapis.com` | `datenschutz-technik`, `store-check` | Login-Änderung (Apple 4.8) |
 | Google-APIs | `domain:www.googleapis.com` | `datenschutz-technik` | neuer Dienst |
 | Eigene Domain | `domain:www.paddysmealplan.de` | `website-security` | Domainwechsel |
-| Lokaler Test | `domain:localhost` | — nur Entwicklung — | — |
 | Strukturierte Daten | `domain:schema.org` | — Namensraum, keine Verbindung — | — |
 | OpenAI-Nutzungsbedingungen | `domain:openai.com` | `anwalt` | Rechtstext-Verweis |
 | GitHub-Datenschutz | `domain:docs.github.com` | `anwalt` | Rechtstext-Verweis |

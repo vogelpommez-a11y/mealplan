@@ -48,7 +48,14 @@ WURZEL = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 REGISTER = os.path.join("docs", "ABDECKUNG.md")
 
 # Dateien, die nach draussen zeigen koennen und deshalb auf Domains durchsucht werden.
+# vendor/ steht BEWUSST nicht dabei: Fremdcode nennt Dutzende Hosts, die er nie kontaktiert,
+# und das Register waere binnen eines Updates unlesbar. Fuer vendor/ ist `lieferkette`
+# zustaendig - der Bereich steht als `pfad:vendor/` im Register und hat damit seinen Pruefer.
 QUELLEN_FUER_DOMAINS = ["index.html", "sw.js", os.path.join("worker", "og.js")]
+
+# Unterhalb dieser Zahl gilt das Register als kaputt statt als leer. Grosszuegig gewaehlt:
+# Es geht um "Format gebrochen", nicht um "eine Zeile geloescht".
+MINDESTENS_IM_REGISTER = 20
 
 
 def lies(pfad):
@@ -68,7 +75,13 @@ def register_kennungen():
     text = lies(REGISTER)
     if not text:
         return None   # Register fehlt - das ist selbst ein Befund, siehe main()
-    return set(re.findall(r"`((?:pfad|doku|reiter|domain):[^`]+)`", text))
+    gefunden = set(re.findall(r"`((?:pfad|doku|reiter|domain):[^`]+)`", text))
+    # Sanity: Ein Register, dessen Format bricht, liefert plotzlich wenige oder gar keine
+    # Kennungen - dann waere auf einen Schlag "alles ohne Pruefer", und der Bericht ginge in
+    # 57 Meldungen unter statt den EINEN Fehler zu nennen. Lieber hier hart abbrechen.
+    if len(gefunden) < MINDESTENS_IM_REGISTER:
+        return "kaputt"
+    return gefunden
 
 
 def ist_zustand():
@@ -114,10 +127,26 @@ def ist_zustand():
 def pruefe():
     """Liefert (luecken, bekannt, gefunden). luecken ist leer, wenn alles zugeordnet ist."""
     bekannt = register_kennungen()
-    if bekannt is None:
-        return None, None, None
+    if bekannt is None or bekannt == "kaputt":
+        return None, bekannt, None
     gefunden = ist_zustand()
     return sorted(gefunden - bekannt), bekannt, gefunden
+
+
+def tote_zeilen():
+    """Kennungen, die im Register stehen, aber im Repo nicht (mehr) vorkommen.
+
+    Kein Fehler, aber Verrottung: Wird ein Verzeichnis geloescht, bleibt seine Zeile stehen
+    und niemand merkt, dass die Zuordnung Fiktion geworden ist. Genau die stille Drift,
+    gegen die dieses ganze Setup gebaut ist - hier in der Pruefung selbst.
+
+    Gefunden am 27.08.2026 beim Gegenpruefen eines Fehlalarms: `domain:localhost` stand im
+    Register und wurde nie erhoben, weil Hostnamen ohne Punkt bewusst durchfallen.
+    """
+    bekannt = register_kennungen()
+    if bekannt is None or bekannt == "kaputt":
+        return []
+    return sorted(bekannt - ist_zustand())
 
 
 def kurzmeldung():
@@ -125,6 +154,9 @@ def kurzmeldung():
     luecken, bekannt, _ = pruefe()
     if bekannt is None:
         return "Abdeckungspruefung: %s fehlt - kein Bereich ist mehr zugeordnet." % REGISTER
+    if bekannt == "kaputt":
+        return ("Abdeckungspruefung: %s liest kaum Kennungen - das Format ist vermutlich "
+                "gebrochen." % REGISTER)
     if not luecken:
         return None
     beispiele = ", ".join(luecken[:3])
@@ -153,8 +185,8 @@ def gegenprobe():
         "domain:newsletter.example.com",
     }
     bekannt = register_kennungen()
-    if bekannt is None:
-        print("GEGENPROBE nicht moeglich: %s fehlt." % REGISTER)
+    if bekannt is None or bekannt == "kaputt":
+        print("GEGENPROBE nicht moeglich: %s fehlt oder ist unlesbar." % REGISTER)
         return 1
 
     echt = ist_zustand()
@@ -214,16 +246,37 @@ def main():
         print("\n%s fehlt. Ohne Register ist keine Zuordnung pruefbar." % REGISTER)
         return 1
 
+    if bekannt == "kaputt":
+        print("\n%s liefert weniger als %d Kennungen - das Format ist vermutlich gebrochen."
+              % (REGISTER, MINDESTENS_IM_REGISTER))
+        print("Ohne lesbares Register waere jeder Bereich 'ohne Pruefer', und der eine")
+        print("echte Fehler ginge in Dutzenden Meldungen unter. Erst das Register richten.")
+        return 1
+
+    tot = tote_zeilen()
+
     if not luecken:
         print("\n%d Bereiche erhoben, alle im Register zugeordnet." % len(gefunden))
+        if tot:
+            print("\nAber %d Registerzeile(n) ohne Entsprechung im Repo:" % len(tot))
+            for k in tot:
+                print("  * %s" % k)
+            print("\nKein Fehler, aber Verrottung: Die Zuordnung beschreibt etwas, das es")
+            print("nicht mehr gibt. Zeile streichen - oder pruefen, ob der Bereich in")
+            print("Wahrheit noch da ist und die Erhebung ihn nur nicht sieht.")
         print("\nDas heisst NICHT, dass jeder Pruefer gut ist - nur, dass keiner fehlt.")
         print("Ob die Zuordnung noch stimmt, sagt kein Skript. Das Register lesen:")
         print("  %s" % REGISTER)
-        return 0
+        return 1 if tot else 0
 
     print("\n%d Bereich(e) ohne Zuordnung:\n" % len(luecken))
     for k in luecken:
         print("  * %s" % k)
+    if tot:
+        print("\nAusserdem %d Registerzeile(n) ohne Entsprechung im Repo (Verrottung):"
+              % len(tot))
+        for k in tot:
+            print("  * %s" % k)
 
     print("""
 Das ist kein Fehler - es ist eine Entscheidung, die aussteht. Drei Wege sind richtig:
