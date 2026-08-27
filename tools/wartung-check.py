@@ -177,6 +177,40 @@ def pruefe_verweise():
 
 
 # --------------------------------------------------------------------------- 3
+def erwartete_modelle(text):
+    """Welches Modell verspricht ein Anleitungstext je Agent?
+
+    Zwei Schreibweisen kommen im Projekt vor, beide werden gelesen:
+      * eine Tabellenzeile mit eigener Modellspalte:  | `kvp` | haiku | ... |
+      * ein Sammelsatz ueber einer Tabelle:           **Nach Ausloeser, alle auf sonnet:**
+        Er gilt fuer jede Agentenzeile bis zur naechsten Ueberschrift oder zum naechsten
+        Sammelsatz.
+    """
+    MODELLE = ("sonnet", "haiku", "opus", "fable")
+    gefunden = {}
+    sammel = None
+    for zeile in text.splitlines():
+        if zeile.startswith("#"):
+            sammel = None
+        s = re.search(r"alle auf (%s)" % "|".join(MODELLE), zeile)
+        if s:
+            sammel = s.group(1)
+            continue
+        agent = re.search(r"`([a-z][a-z-]+)`", zeile)
+        if not agent or not (zeile.lstrip().startswith("|")
+                             or "model:" in zeile):
+            continue
+        agent = agent.group(1)
+        # Modell in einer eigenen Tabellenspalte (`| haiku |`) oder als `model: haiku`
+        eigene = re.search(r"(?:\|\s*|model:\s*)(%s)\s*(?:\||`|$)" % "|".join(MODELLE),
+                           zeile)
+        if eigene:
+            gefunden[agent] = eigene.group(1)
+        elif sammel and zeile.lstrip().startswith("|"):
+            gefunden[agent] = sammel
+    return gefunden
+
+
 def pruefe_agenten():
     """Formales und die eine Falle, die schon zugeschlagen hat.
 
@@ -217,6 +251,25 @@ def pruefe_agenten():
         if m.group(1) not in namen:
             rot(bereich, "CLAUDE.md nennt Agent '%s', die Datei fehlt" % m.group(1))
 
+    # Modellabgleich: steht in der Agentendatei dasselbe Modell wie in der Anleitung?
+    #
+    # Warum das hier steht: Am 27.08.2026 lief `kvp` laut seiner eigenen Datei auf Sonnet,
+    # waehrend CLAUDE.md und pushcheck.md an drei Stellen Haiku versprachen. Kein Fehlalarm
+    # und kein Schoenheitsfehler - wer die Kosten eines /pushcheck abschaetzt, rechnet mit
+    # dem, was in der Anleitung steht. Diese Pruefung hat es damals nicht gesehen.
+    for datei, quelle in ((cm, "CLAUDE.md"), (lies(".claude/commands/pushcheck.md"),
+                                              "pushcheck.md")):
+        for agent, modell in erwartete_modelle(datei).items():
+            if agent not in namen:
+                continue
+            kopf = lies(".claude/agents/%s.md" % agent).split("---")
+            kopf = kopf[1] if len(kopf) >= 3 else ""
+            m = re.search(r"model:\s*(\S+)", kopf)
+            ist = m.group(1) if m else "(fehlt)"
+            if ist != modell:
+                rot(bereich, "%s verspricht fuer '%s' das Modell %s, die Agentendatei "
+                             "sagt %s" % (quelle, agent, modell, ist))
+
 
 # --------------------------------------------------------------------------- 4
 def pruefe_hooks():
@@ -244,6 +297,34 @@ def pruefe_hooks():
         if eintrag in gi and eintrag not in wc:
             rot(bereich, "'%s' ist gitignored, aber der Commit-Waechter kennt es nicht "
                          "- ein 'git add -f' kaeme durch" % eintrag)
+
+    # Dieselbe Deckung in der ANDEREN Richtung: blockiert der Waechter etwas, das laengst
+    # im Repo liegt?
+    #
+    # Warum das noetig ist: Am 27.08.2026 fuehrte der Waechter ".claude/Skills/" als
+    # verboten - dort liegen aber auch die vier selbst geschriebenen Projekt-Skills, seit
+    # dem Vortag getrackt. Jede Aenderung an /smoke oder /deploy waere am eigenen Hook
+    # gescheitert, mit der Begruendung "fremde Inhalte ohne belegte Lizenz". Die Pruefung
+    # oben konnte das nicht sehen: sie schaut nur, ob der Waechter genug blockiert, nie ob
+    # er zu viel blockiert.
+    #
+    # Gefragt wird der Waechter selbst (bewerte()), nicht eine Kopie seiner Listen - sonst
+    # driften Pruefung und Regel auseinander.
+    try:
+        import importlib.util
+        spec = importlib.util.spec_from_file_location("cw", ".claude/hooks/commit-waechter.py")
+        cw = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(cw)
+        getrackt = subprocess.run(["git", "ls-files"], capture_output=True,
+                                  text=True, timeout=30).stdout.split()
+        for pfad in getrackt:
+            grund = cw.bewerte(pfad)
+            if grund:
+                rot(bereich, "Der Commit-Waechter blockiert '%s' (%s) - die Datei liegt "
+                             "aber getrackt im Repo. Jede Aenderung daran waere nicht "
+                             "committebar." % (pfad, grund))
+    except Exception as e:
+        gelb(bereich, "Gegenrichtung des Commit-Waechters nicht pruefbar: %s" % e)
 
 
 # --------------------------------------------------------------------------- 5

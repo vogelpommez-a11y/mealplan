@@ -47,7 +47,11 @@ Genau zwei Dinge. Beide liegen außerhalb des Repos, und ein Leck erzwingt bei b
 
 Geschützt werden sie durch:
 - `.gitignore` (`.env`, `*.key`, `*.pem`, `serviceAccount*.json`)
-- den **Commit-Wächter** (`.claude/hooks/commit-waechter.py`) — prüft den Index, nicht die Regel
+- den **Commit-Wächter** (`.claude/hooks/commit-waechter.py`) — prüft den Index, nicht die Regel.
+  Seine `ERLAUBT`-Liste (seit 27.08.2026) nimmt ausschliesslich die vier eigenen Projekt-Skills
+  aus, die im selben Ordner liegen wie die zugekauften — sie berührt kein Geheimnis und keine
+  der Verbotslisten. `tools/wartung-check.py` prüft seither beide Richtungen: blockiert er
+  genug, und blockiert er zu viel?
 - den **Secrets-Filter** (`.claude/hooks/secrets-filter.py`) — hält `.env` aus Protokollen
 - den CI-Lauf `.github/workflows/pruefung.yml`, Job *Keine Geheimnisse im Repo*
 

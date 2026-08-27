@@ -29,13 +29,24 @@ serviceAccount*.json
 .claude/skills/*
 
 # ...ABER die selbst geschriebenen Projekt-Skills gehoeren sehr wohl ins Repo. Sie liegen
-# im SELBEN Ordner, weil Windows Gross-/Kleinschreibung nicht unterscheidet - "Skills" und
-# "skills" sind dasselbe Verzeichnis. Deshalb oben "/*" statt "/": nur so steigt git
+# im SELBEN Ordner wie die zugekauften. Deshalb oben "/*" statt "/": nur so steigt git
 # ueberhaupt hinein und diese Ausnahmen koennen greifen.
+#
+# Beide Schreibweisen, und das ist kein Uebereifer: Auf diesem Rechner steht
+# core.ignorecase=true, dort trifft ein Muster in Kleinschreibung auch den echten Ordner
+# "Skills". Auf einem case-sensitiven Dateisystem - Linux, der CI-Runner, ein Mac mit
+# APFS-Case - tut es das NICHT. Dann greift ".claude/Skills/*", die Ausnahme in
+# Kleinschreibung aber nicht: ein neu angelegter eigener Skill waere dort stillschweigend
+# ignoriert. Am 27.08.2026 nachgetragen; die vier bestehenden ueberlebten nur, weil sie
+# bereits getrackt sind und .gitignore auf getrackte Dateien nicht mehr wirkt.
 !.claude/skills/pruefstand/
 !.claude/skills/smoke/
 !.claude/skills/abnahme/
 !.claude/skills/deploy/
+!.claude/Skills/pruefstand/
+!.claude/Skills/smoke/
+!.claude/Skills/abnahme/
+!.claude/Skills/deploy/
 
 # Python-Bytecode. Entsteht automatisch, sobald ein tools/-Skript als Modul geladen wird
 # (der Pruefstand tut genau das). Binaerdateien in der Historie bringen nichts und erzeugen

@@ -36,6 +36,21 @@ VERBOTEN = [
     (".claude/skills/",  "dasselbe Verzeichnis, andere Schreibweise"),
 ]
 
+# Die AUSNAHME zu ".claude/Skills/": die vier selbst geschriebenen Projekt-Skills. Sie
+# liegen im selben Ordner wie die zugekauften und gehoeren ausdruecklich ins Repo - sie
+# sind dort seit dem 26.08.2026 getrackt. Ohne diese Liste blockierte der Waechter jede
+# Aenderung an /smoke, /pruefstand, /abnahme und /deploy, und zwar mit einer falschen
+# Begruendung ("fremde Inhalte ohne belegte Lizenz"). Am 27.08.2026 nachgetragen.
+#
+# Beide Schreibweisen, aus demselben Grund wie in der .gitignore: welcher Ordnername bei
+# git ankommt, haengt an core.ignorecase des jeweiligen Rechners.
+ERLAUBT = [
+    ".claude/Skills/smoke/",      ".claude/skills/smoke/",
+    ".claude/Skills/pruefstand/", ".claude/skills/pruefstand/",
+    ".claude/Skills/abnahme/",    ".claude/skills/abnahme/",
+    ".claude/Skills/deploy/",     ".claude/skills/deploy/",
+]
+
 # Zusaetzlich: Dateiendungen, die nie ins Repo gehoeren.
 VERBOTENE_ENDUNGEN = [
     (".key", "privater Schluessel"),
@@ -50,6 +65,27 @@ VERBOTENE_MUSTER = [
     ("tools/pruefstand-*.html", "Erzeugnis eines Pruefstands - entsteht bei jedem Lauf neu"),
     ("serviceAccount*.json",    "Service-Account-Credentials"),
 ]
+
+
+def bewerte(pfad):
+    """Der Grund, warum dieser Pfad nicht ins Repo darf - oder None.
+
+    Als eigene Funktion, damit tools/wartung-check.py dieselbe Entscheidung nachfragen kann,
+    statt die Listen ein zweites Mal nachzubauen. Zwei Kopien derselben Regel driften
+    auseinander, und dann prueft die Wartung etwas anderes als der Waechter blockiert.
+    """
+    if any(pfad.startswith(e) for e in ERLAUBT):
+        return None   # eigener Projekt-Skill, siehe ERLAUBT
+    for praefix, grund in VERBOTEN:
+        if pfad == praefix or pfad.startswith(praefix):
+            return grund
+    for endung, grund in VERBOTENE_ENDUNGEN:
+        if pfad.endswith(endung):
+            return grund
+    for muster, grund in VERBOTENE_MUSTER:
+        if fnmatch.fnmatch(pfad, muster) or fnmatch.fnmatch(pfad.split("/")[-1], muster):
+            return grund
+    return None
 
 
 def ist_commit(befehl):
@@ -82,20 +118,9 @@ def main():
     funde = []
 
     for pfad in gestaged:
-        for praefix, grund in VERBOTEN:
-            if pfad == praefix or pfad.startswith(praefix):
-                funde.append("%s  (%s)" % (pfad, grund))
-                break
-        else:
-            for endung, grund in VERBOTENE_ENDUNGEN:
-                if pfad.endswith(endung):
-                    funde.append("%s  (%s)" % (pfad, grund))
-                    break
-            else:
-                for muster, grund in VERBOTENE_MUSTER:
-                    if fnmatch.fnmatch(pfad, muster) or fnmatch.fnmatch(pfad.split("/")[-1], muster):
-                        funde.append("%s  (%s)" % (pfad, grund))
-                        break
+        grund = bewerte(pfad)
+        if grund:
+            funde.append("%s  (%s)" % (pfad, grund))
 
     if not funde:
         sys.exit(0)

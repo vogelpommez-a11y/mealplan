@@ -219,13 +219,17 @@ Python ist vorhanden und wird für Hilfs- und Testskripte verwendet.
 
 # 10. Lesen und Bearbeiten von `index.html`
 
-Die Datei ist ~1,1 MB groß und enthält Base64-Fotos.
+Die Datei ist ~1,1 MB groß, 16.700 Zeilen, einzelne Zeilen über 12.000 Zeichen lang.
 
-**Niemals die komplette Datei blind lesen.** Kein `cat`, keine riesigen Base64-Zeilen, keine
-Base64-Daten durch den Kontext kopieren.
+**Niemals die komplette Datei blind lesen.** Kein `cat`, keine überlangen Zeilen ungefiltert
+in den Kontext.
 
-Stattdessen: mit `Grep` die relevante Stelle suchen, nur diese mit Offset/Limit lesen, bei
-Base64 über Skripte arbeiten.
+Stattdessen: mit `Grep` die relevante Stelle suchen, nur diese mit Offset/Limit lesen.
+
+Die Meal-Fotos liegen als 32 Dateien in `img/`, **nicht** mehr als Base64 in der Datei. Was
+noch als `data:image;base64` vorkommt, sind Bilder des Nutzers aus `localStorage`/Firestore —
+zur Laufzeit, nicht im Quelltext. Trifft man sie doch einmal an: über Skripte arbeiten, nie
+durch den Kontext kopieren.
 
 Wenn Code getestet werden soll: **niemals abtippen oder manuell nachbauen** — den echten
 Code aus `index.html` ausschneiden.
@@ -439,9 +443,11 @@ das garantiert.
 python tools/wartung-check.py          # mechanisch, Sekunden
 ```
 
-Prüft Zahlen gegen die Wirklichkeit, tote Verweise, Lücken im Commit-Wächter — und die
-Falle, die schon zugeschlagen hat: **ein Agent ohne `tools:`-Zeile hat ALLE Werkzeuge**,
-auch wenn seine Beschreibung „ändert nichts" verspricht.
+Prüft Zahlen gegen die Wirklichkeit, tote Verweise, das Modell jedes Agenten gegen das,
+was diese Datei verspricht, den Commit-Wächter in **beiden** Richtungen (blockiert er zu
+wenig — oder zu viel?) — und die Falle, die schon zugeschlagen hat: **ein Agent ohne
+`tools:`-Zeile hat ALLE Werkzeuge**, auch wenn seine Beschreibung „ändert nichts"
+verspricht.
 
 Was das Skript **nicht** kann: sehen, ob sich Recht, Store-Richtlinien oder die
 Sicherheitslage von Fremdcode geändert haben. Dafür `anwalt`, `store-check` und
