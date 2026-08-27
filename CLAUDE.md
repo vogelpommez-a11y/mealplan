@@ -46,6 +46,7 @@ Fotos, Impressum und Datenschutzerklärung. Ausgeliefert ohne Build-Prozess.
 | Bekannte Fehler, Fallen, Workarounds | `docs/TROUBLESHOOTING.md` |
 | Sicherheitsmodell | `docs/SECURITY.md` |
 | Store-Anforderungen | `docs/STORE.md` |
+| Wer prüft was | `docs/ABDECKUNG.md` |
 | Deploy, Rollback, Notfälle | `docs/RUNBOOK.md` |
 | Datenschutz-Pflichten (gitignored) | `docs/DATENSCHUTZ-INTERN.md` |
 | Firebase-Einrichtung | `FIREBASE-SETUP.md` |
@@ -460,6 +461,47 @@ Erinnerungs-Hook zum Schweigen.
 Wartungsprüfung", 1. des Monats), damit sie auch dann stattfindet, wenn wochenlang niemand
 das Projekt öffnet. Sie ändert nichts und berichtet nur — und sie sieht **nur, was gepusht
 ist**.
+
+---
+
+# 18b. Abdeckung — hat jeder Bereich einen Prüfer?
+
+Abschnitt 18a fragt: *Sind die Fakten der Prüfer noch aktuell?* Hier ist die andere Frage:
+**Gibt es für alles überhaupt einen Prüfer?**
+
+Das ist keine Wortklauberei. `wartung-check.py` prüft Konsistenz zwischen Dingen, **die es
+gibt**. Ein Bereich **ohne** Prüfer fällt ihm nie auf — er kennt nur die Agenten, die
+existieren. Käme ein Marketing-Bereich in die App, meldete das ganze System weiter „keine
+Befunde": Es weiß nicht, dass es etwas nicht weiß.
+
+```powershell
+python tools/abdeckung.py              # Bericht
+python tools/abdeckung.py --gegenprobe # wuerde sie eine Luecke ueberhaupt bemerken?
+```
+
+Das Register steht in **`docs/ABDECKUNG.md`**. Erkannt werden vier Arten von Bereichen:
+Pfade (`git ls-files`), Dateien in `docs/`, **Reiter der App** (`data-tab="…"`) und externe
+Verbindungen. Läuft mit in `wartung-check.py`, im Sitzungsstart-Hook und in der
+Monatsroutine.
+
+## Die Regel, die nicht vom Skript abhängt
+
+**Entsteht ein neuer Produktbereich, gehört die Frage nach seinem Prüfer zur Änderung —
+nicht in einen späteren Aufräumschritt.** Das Skript ist das Netz darunter, nicht der Plan.
+
+Meldet es eine Lücke, sind drei Wege richtig — und einer ist falsch:
+
+1. Gehört zu einem bestehenden Prüfer → Zeile in `docs/ABDECKUNG.md` Abschnitt 3–5.
+2. Braucht wirklich einen neuen → **Agenten entwerfen und dem Nutzer zur Abnahme vorlegen.**
+   Nie still anlegen.
+3. Braucht bewusst keinen → Zeile in Abschnitt 6, **mit Begründung**.
+
+**Falsch ist, eine Kennung einzutragen, damit Ruhe ist.** Das schaltet die Prüfung für
+diesen Bereich dauerhaft ab, und niemand sieht es je wieder.
+
+> **Ein Prüfer, den niemand geprüft hat, meldet „sauber" — und man glaubt ihm.** Genau das
+> ist am 26.08. und am 27.08.2026 je einmal passiert (`docs/TROUBLESHOOTING.md` §119, §123).
+> Deshalb wird ein neuer Agent **abgenommen**, bevor er scharf geht.
 
 ---
 

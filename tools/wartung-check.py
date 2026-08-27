@@ -381,6 +381,43 @@ def pruefe_alter():
 
 
 # --------------------------------------------------------------------------- Lauf
+def pruefe_abdeckung():
+    """Gibt es einen Bereich im Projekt, den niemand prueft?
+
+    Andere Frage als der Rest dieses Skripts: Hier geht es nicht um Konsistenz zwischen
+    vorhandenen Dingen, sondern um FEHLENDES. Die Logik steht in tools/abdeckung.py, damit
+    der Sitzungsstart-Hook dieselbe Antwort bekommt, ohne sie nachzubauen.
+    """
+    bereich = "Abdeckung"
+    try:
+        import importlib.util
+        spec = importlib.util.spec_from_file_location("abdeckung", "tools/abdeckung.py")
+        m = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(m)
+    except Exception as e:
+        gelb(bereich, "tools/abdeckung.py nicht ladbar: %s" % e)
+        return
+
+    luecken, bekannt, _ = m.pruefe()
+    if bekannt is None:
+        rot(bereich, "docs/ABDECKUNG.md fehlt - ohne Register ist kein Bereich zugeordnet")
+        return
+    for k in luecken:
+        gelb(bereich, "'%s' ist keinem Pruefer zugeordnet - Entscheidung noetig "
+                      "(docs/ABDECKUNG.md, Abschnitt 7)" % k)
+
+    # Und die Probe aufs Exempel: Wuerde die Pruefung eine Luecke ueberhaupt bemerken?
+    # Eine Erhebung, die nichts mehr findet, meldet ewig "alles zugeordnet".
+    try:
+        echt = m.ist_zustand()
+        if len(echt) < 20:
+            rot(bereich, "Die Abdeckungserhebung liefert nur %d Bereiche - sie ist "
+                         "vermutlich kaputt und meldet deshalb faelschlich 'sauber'"
+                % len(echt))
+    except Exception as e:
+        gelb(bereich, "Abdeckungserhebung nicht pruefbar: %s" % e)
+
+
 def main():
     print("Wartungspruefung - Paddy's Mealplan Setup")
     print("=" * 62)
@@ -391,7 +428,7 @@ def main():
         print("Wartungsdatum auf %s gesetzt.\n" % datetime.date.today().isoformat())
 
     for fn in (pruefe_fakten, pruefe_verweise, pruefe_agenten,
-               pruefe_hooks, pruefe_skills, pruefe_alter):
+               pruefe_hooks, pruefe_skills, pruefe_abdeckung, pruefe_alter):
         try:
             fn()
         except Exception as e:
