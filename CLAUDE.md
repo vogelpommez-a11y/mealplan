@@ -374,7 +374,9 @@ Firebase-SDK und ZXing liegen **lokal**, nicht auf einem CDN. Grund: Apple 2.5.2
 Offline-Start (Abschnitt 1). Diese Entscheidung wird nicht zurückgedreht — auch nicht mit
 dem Argument, ein CDN sei einfacher zu aktualisieren.
 
-* Aktualisiert wird über `tools/firebase-vendor.py`, nicht von Hand.
+* Aktualisiert wird über `tools/firebase-vendor.py`, nicht von Hand. Version, Quelle
+  und SHA-256 je Datei stehen in **`vendor/HERKUNFT.md`** — nach jedem Update dort
+  nachtragen, sonst ist die Unversehrtheit beim nächsten Mal wieder unbelegbar.
 * Ein Update **nur mit Anlass** — Sicherheitslücke oder konkreter Fehler. Es gibt keine
   Testsuite, die ein Update auffängt; eine höhere Versionsnummer ist kein Grund.
 * Es gibt kein npm und kein Dependabot: **niemand merkt von selbst, wenn eine Bibliothek
