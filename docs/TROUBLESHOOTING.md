@@ -6,7 +6,7 @@ Dieses Dokument enthält bekannte Fehlerquellen, historische Bugs und Probleme, 
 
 <!-- REGISTER-ANFANG (erzeugt aus den Ueberschriften, nicht von Hand pflegen) -->
 
-**Register — 122.** Chronologisch gewachsen: je hoeher die Nummer,
+**Register — 123.** Chronologisch gewachsen: je hoeher die Nummer,
 desto juenger der Fund. Wer eine Falle sucht, sucht hier zuerst; die Ueberschrift sagt
 jeweils, worum es geht. **Nicht die ganze Datei lesen** — sie ist ueber 200 KB gross.
 
@@ -134,6 +134,7 @@ jeweils, worum es geht. **Nicht die ganze Datei lesen** — sie ist ueber 200 KB
 | 120 | Eine Schutzregel, die von der Regel überholt wird, die sie schützen soll |
 | 121 | Ein freundlicher Toast ist auch ein Schlucken |
 | 122 | Ein Zähler, der beim Start wandert — und kein Fehler ist |
+| 123 | Eine Ausnahme, die vor den Verboten steht, hebelt sie alle aus |
 
 <!-- REGISTER-ENDE -->
 
@@ -3833,3 +3834,50 @@ und hat bei der Durchsicht Zeit gekostet. Wer ihn das nächste Mal sieht, rechne
 Verbleibt als **UX-Beobachtung**, nicht als Bug: Für den Nutzer zappelt eine Zahl etwa eine
 halbe Minute lang. Nicht geändert — der Eingriff (Zähler bis zum Handshake zurückhalten) hätte
 mehr Fläche als Nutzen.
+
+## 123. Eine Ausnahme, die vor den Verboten steht, hebelt sie alle aus
+
+**Gefunden am 27.08.2026** vom Agenten `website-security` im `/pushcheck` — und zwar an Code,
+der am selben Tag entstanden war, um Fall 119 zu beheben. Die Reparatur hatte ein neues Loch
+gerissen.
+
+`bewerte()` im Commit-Wächter prüfte die neue `ERLAUBT`-Liste **zuerst**:
+
+```python
+if any(pfad.startswith(e) for e in ERLAUBT):
+    return None          # <- vor allen Verbotslisten
+```
+
+`ERLAUBT` ist ein reiner Verzeichnis-Präfixtest auf vier Skill-Ordner. Damit entschied der
+**Ordnername allein** — was für eine Datei darin lag, spielte keine Rolle mehr:
+
+```
+.claude/Skills/smoke/.env                  -> durchgelassen
+.claude/Skills/smoke/serviceAccount.json   -> durchgelassen
+.claude/Skills/deploy/geheim.pem           -> durchgelassen
+```
+
+**Beim Gegenprüfen fiel ein zweiter, älterer Fehler auf**, der nichts mit der Ausnahme zu tun
+hatte: `.env` stand nur in `VERBOTEN`, und das ist ein **Präfix**test gegen den Repo-Pfad. Er
+griff also ausschliesslich auf `.env` im Wurzelverzeichnis:
+
+```
+docs/.env                                  -> durchgelassen   (seit es den Wächter gibt)
+```
+
+Für das eine echte Geheimnis des Projekts fiel damit eine der vier Schutzschichten aus, sobald
+die Datei in einem Unterordner lag und jemand `git add -f` benutzte.
+
+**Behoben durch die Reihenfolge:** harte Verbote (Endungen, Namensmuster) zuerst — sie gelten
+überall, auch in einem `ERLAUBT`-Ordner —, danach die Ausnahme, danach die Präfixe. Dazu `.env`
+und `.env.*` als **Namensmuster** statt als Präfix, damit sie in jedem Verzeichnis greifen.
+13 Fälle als Gegenprobe, beide Richtungen.
+
+**Die Lehre, und sie ist unangenehm allgemein:** Eine Ausnahme gehört ans **Ende** einer
+Prüfkette, nicht an den Anfang. Steht sie oben, ist sie kein Sonderfall mehr, sondern ein
+Generalschlüssel. Und: Wer eine Sicherheitsregel repariert, prüft die Reparatur mit derselben
+Härte wie das Original — die Lücke hier war jünger als einen Tag und stand in Code, dessen
+ausdrücklicher Zweck das Verhindern genau solcher Lücken ist.
+
+**Warum es auffiel:** Weil `/pushcheck` gelaufen ist, bevor gepusht wurde. Der Wächter hätte
+sich selbst nie gemeldet — er prüft den Index, nicht sich.

@@ -96,7 +96,7 @@
        gehalten sind sie mit dem Schliessen des Tabs weg.
      * Wirft nie selbst. Ein Melder, der den Fehlerpfad zerlegt, waere schlimmer als keiner.
      Und der Grund, warum er GANZ oben steht: Ein leerer catch war unzerstoerbar, ein catch mit
-     noteError() darin nicht mehr - fehlte die Funktion, wuerde jeder der 38 Blocks mit einem
+     noteError() darin nicht mehr - fehlte die Funktion, wuerde JEDER dieser Blocks mit einem
      ReferenceError nachlegen, also genau das Gegenteil bewirken. Der Melder darf deshalb nie
      hinter etwas rutschen, das vorher scheitern kann, und nichts nachladen. */
   window.noteError = (function () {

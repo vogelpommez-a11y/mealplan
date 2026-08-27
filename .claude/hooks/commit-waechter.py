@@ -60,6 +60,12 @@ VERBOTENE_ENDUNGEN = [
 # Und Namensmuster. Anders als die Praefixe oben trifft das Dateien ueberall im Baum.
 import fnmatch
 VERBOTENE_MUSTER = [
+    # Am 27.08.2026 nachgetragen: ".env" stand nur in VERBOTEN, und das ist ein
+    # PRAEFIX-Test - er griff also ausschliesslich auf ".env" im Repo-Wurzelverzeichnis.
+    # Ein "docs/.env" oder ".claude/Skills/smoke/.env" kam durch, seit es den Waechter gibt.
+    # Als Namensmuster trifft es die Datei in jedem Verzeichnis.
+    (".env",               "ZUGANGSDATEN - enthaelt einen echten API-Schluessel"),
+    (".env.*",             "ZUGANGSDATEN - Variante der .env"),
     ("index.backup*.html", "lokales Backup der App"),
     ("*backup*.html",      "lokales Backup der App"),
     ("tools/pruefstand-*.html", "Erzeugnis eines Pruefstands - entsteht bei jedem Lauf neu"),
@@ -74,16 +80,21 @@ def bewerte(pfad):
     statt die Listen ein zweites Mal nachzubauen. Zwei Kopien derselben Regel driften
     auseinander, und dann prueft die Wartung etwas anderes als der Waechter blockiert.
     """
-    if any(pfad.startswith(e) for e in ERLAUBT):
-        return None   # eigener Projekt-Skill, siehe ERLAUBT
-    for praefix, grund in VERBOTEN:
-        if pfad == praefix or pfad.startswith(praefix):
-            return grund
+    # REIHENFOLGE IST SICHERHEITSRELEVANT. Die harten Verbote stehen VOR der Ausnahme:
+    # sie gelten ueberall, auch innerhalb eines ERLAUBT-Ordners. In der ersten Fassung vom
+    # 27.08.2026 stand ERLAUBT ganz oben - damit waere eine .env oder ein serviceAccount.json
+    # in .claude/Skills/smoke/ glatt durchgegangen, weil der Ordnername allein schon
+    # entschied. Gefunden vom Agenten website-security im /pushcheck desselben Tages.
     for endung, grund in VERBOTENE_ENDUNGEN:
         if pfad.endswith(endung):
             return grund
     for muster, grund in VERBOTENE_MUSTER:
         if fnmatch.fnmatch(pfad, muster) or fnmatch.fnmatch(pfad.split("/")[-1], muster):
+            return grund
+    if any(pfad.startswith(e) for e in ERLAUBT):
+        return None   # eigener Projekt-Skill, siehe ERLAUBT
+    for praefix, grund in VERBOTEN:
+        if pfad == praefix or pfad.startswith(praefix):
             return grund
     return None
 

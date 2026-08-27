@@ -117,8 +117,12 @@ nie wirklich aufräumen, ohne dass irgendwo etwas auffiel.
 * Heißt bewusst **nicht** `reportError`: `window.reportError` ist eine echte Plattform-API.
 
 **Warum die Position kritisch ist:** Ein leerer `catch` war unzerstörbar. Ein `catch` mit
-`noteError()` darin ist es nicht mehr — fehlte die Funktion, legte jede der 38 Stellen einen
-`ReferenceError` nach und bewirkte das Gegenteil. Der Melder darf deshalb nie hinter etwas
+`noteError()` darin ist es nicht mehr — fehlte die Funktion, legte **jede einzelne** dieser
+Stellen einen `ReferenceError` nach und bewirkte das Gegenteil.
+
+*(Hier stand bis zum 27.08.2026 „jede der 38 Stellen". Es waren zu dem Zeitpunkt längst 54 —
+eine feste Zahl in einem Fließtext altert still, und niemand zählt nach. Deshalb steht hier
+jetzt keine mehr. Wer die aktuelle braucht: `grep -c 'noteError("' index.html`.)* Der Melder darf deshalb nie hinter etwas
 rutschen, das vorher scheitern kann, und nichts nachladen.
 
 **Eine Stelle bleibt bewusst leer:** `navigator.share(...).catch(() => {})`. Bricht der Nutzer

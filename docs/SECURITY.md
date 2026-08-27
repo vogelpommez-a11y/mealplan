@@ -49,9 +49,11 @@ Geschützt werden sie durch:
 - `.gitignore` (`.env`, `*.key`, `*.pem`, `serviceAccount*.json`)
 - den **Commit-Wächter** (`.claude/hooks/commit-waechter.py`) — prüft den Index, nicht die Regel.
   Seine `ERLAUBT`-Liste (seit 27.08.2026) nimmt ausschliesslich die vier eigenen Projekt-Skills
-  aus, die im selben Ordner liegen wie die zugekauften — sie berührt kein Geheimnis und keine
-  der Verbotslisten. `tools/wartung-check.py` prüft seither beide Richtungen: blockiert er
-  genug, und blockiert er zu viel?
+  aus, die im selben Ordner liegen wie die zugekauften. Sie steht in `bewerte()` **hinter** den
+  harten Verboten (Endungen, Namensmuster): Ein `.env`, `.key`, `.pem` oder `serviceAccount*.json`
+  bleibt auch in einem erlaubten Ordner blockiert. In der ersten Fassung stand sie davor und war
+  damit ein Generalschlüssel — `docs/TROUBLESHOOTING.md` §123. `tools/wartung-check.py` prüft
+  seither beide Richtungen: blockiert er genug, und blockiert er zu viel?
 - den **Secrets-Filter** (`.claude/hooks/secrets-filter.py`) — hält `.env` aus Protokollen
 - den CI-Lauf `.github/workflows/pruefung.yml`, Job *Keine Geheimnisse im Repo*
 
