@@ -11837,8 +11837,44 @@
     return SHOP_OTHER;
   }
   const SHOP_DONE_KEY = localKey("wochenkueche_shop_v1");
-  function loadShopDone() { try { return new Set(JSON.parse(localStorage.getItem(SHOP_DONE_KEY) || "[]")); } catch (e) { return new Set(); } }
-  function saveShopDone(set) { try { localStorage.setItem(SHOP_DONE_KEY, JSON.stringify(Array.from(set))); } catch (e) { noteError("store:saveShopDone", e); } }
+  // Der abgehakte Zustand haengt an der WOCHE, fuer die eingekauft wird - nicht an der App.
+  //
+  // Bis zum 28.08.2026 war das ein flaches Set aus `norm`-Schluesseln, geteilt von beiden
+  // Wochenreitern. Wer in der aktuellen Woche "500 g Hackfleisch" abhakte und dann auf
+  // "Naechste Woche" umschaltete, fand die Position dort bereits erledigt - und kaufte zu
+  // wenig ein. Am Montag rueckte derselbe Zustand ausserdem stillschweigend nach: die frische
+  // Woche startete mit den Haken der vergangenen.
+  //
+  // Gespeichert wird deshalb {"2026-W35": [...], "2026-W36": [...]} - derselbe
+  // ISO-Wochenschluessel wie bei state.plans. Das erledigt zwei Dinge nebenbei: die Haken der
+  // "naechsten Woche" wandern beim Wochenwechsel von selbst mit (ihr Schluessel bleibt ja
+  // derselbe, sie heisst dann nur "aktuell"), und alte Wochen verfallen nach derselben Regel
+  // wie die Plaene - ohne das waechst der Eintrag mit jeder Woche weiter, und niemand sieht es.
+  function loadShopDoneAll() {
+    try {
+      const raw = JSON.parse(localStorage.getItem(SHOP_DONE_KEY) || "{}");
+      // Altbestand aus der Fassung davor (flaches Array) gehoert der Woche, in der man
+      // gerade steht - alles andere waere geraten. Einmalig uebernehmen statt wegwerfen,
+      // sonst verliert jeder Nutzer beim Update seinen halb abgehakten Einkauf.
+      if (Array.isArray(raw)) { const o = {}; o[weekKeyFor("cur")] = raw; return o; }
+      return raw && typeof raw === "object" ? raw : {};
+    } catch (e) { return {}; }
+  }
+  function loadShopDone() {
+    const list = loadShopDoneAll()[activeWeekKey()];
+    return new Set(Array.isArray(list) ? list : []);
+  }
+  function saveShopDone(set) {
+    try {
+      const all = loadShopDoneAll();
+      const key = activeWeekKey();
+      if (set.size) all[key] = Array.from(set); else delete all[key];
+      // Nur aktuelle + naechste Woche behalten - dieselbe Regel wie pruneWeeks() fuer die Plaene.
+      const keep = {}; keep[weekKeyFor("cur")] = 1; keep[weekKeyFor("next")] = 1;
+      Object.keys(all).forEach(k => { if (!keep[k]) delete all[k]; });
+      localStorage.setItem(SHOP_DONE_KEY, JSON.stringify(all));
+    } catch (e) { noteError("store:saveShopDone", e); }
+  }
 
   // Einkaufsliste als Klartext (Warengruppe als Ueberschrift, Zutaten mit Punkt). Eine Quelle
   // fuer "Als Text kopieren" und fuers Teilen ueber den nativen Dialog - sonst laufen die
@@ -11926,6 +11962,21 @@
     return { todayIdx: todayIdx, relevantDays: state.viewWeek === "next" ? DAYS : DAYS.slice(todayIdx) };
   }
 
+  // Welchen Zeitraum beschreibt die Liste? Gegenstueck zu planDaysAhead(): dieselbe Frage,
+  // nur in Worten. Eine Stelle fuer Einkaufsliste UND Vorkochliste - sie ziehen ihre Tage aus
+  // derselben Quelle und muessen deshalb auch dieselbe Woche benennen.
+  //
+  // Vorher stand fuer die naechste Woche faelschlich "diese Woche" da: der ternaere Ausdruck
+  // `viewWeek !== "next" && todayIdx > 0 ? "ab heute" : "diese Woche"` fiel fuer "next" in
+  // den zweiten Zweig. Das PDF schrieb an derselben Stelle korrekt "Naechste Woche" - womit
+  // belegt war, dass es ein Versehen ist und keine Absicht. Bei geoeffnetem Modal ist der
+  // Wochenumschalter verdeckt, der Kopf ist dann der einzige Hinweis, fuer welche Woche man
+  // gerade einkauft.
+  function planScopeLabel(todayIdx) {
+    if (state.viewWeek === "next") return "nächste Woche";
+    return todayIdx > 0 ? "diese Woche, ab heute" : "diese Woche";
+  }
+
   // ---------- Vorkochen (C3) ----------
   // Die Einkaufsliste beantwortet "was muss ich kaufen?", der Wochenplan "was esse ich wann?".
   // Beim Meal-Prep fehlt die dritte Frage: "was koche ich am Sonntag, und wie viel davon?"
@@ -11985,7 +12036,7 @@
       <div class="modal-head">
         <div class="shop-head" style="flex:1">
           <div class="cart" aria-hidden="true">${iconSvg("pot", "")}</div>
-          <div><div class="kicker">${items.length} Gericht${items.length === 1 ? "" : "e"} · ${nfmt(total)} Meal${total === 1 ? "" : "s"} · ${state.viewWeek !== "next" && todayIdx > 0 ? "ab heute" : "diese Woche"}</div><h3 style="margin:2px 0 0">Vorkochen</h3></div>
+          <div><div class="kicker">${items.length} Gericht${items.length === 1 ? "" : "e"} · ${nfmt(total)} Meal${total === 1 ? "" : "s"} · ${esc(planScopeLabel(todayIdx))}</div><h3 style="margin:2px 0 0">Vorkochen</h3></div>
         </div>
         <button class="btn ghost sm" data-close aria-label="Schließen">✕</button>
       </div>
@@ -12049,7 +12100,10 @@
       <div class="modal-head">
         <div class="shop-head" style="flex:1">
           <div class="cart" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6h15l-1.5 9h-12z"/><path d="M6 6 5 2H2"/><circle cx="9" cy="20" r="1.4"/><circle cx="18" cy="20" r="1.4"/></svg></div>
-          <div><div class="kicker">${items.length} Position${items.length===1?"":"en"} · ${state.viewWeek !== "next" && todayIdx > 0 ? "ab heute" : "diese Woche"}</div><h3 style="margin:2px 0 0">Einkaufsliste der Woche</h3></div>
+          <!-- "der Woche" ist am 28.08.2026 entfallen: seit der Kicker die Woche beim Namen
+               nennt ("diese Woche, ab heute" / "nächste Woche"), stand sie sonst zweimal da -
+               einmal unbestimmt, einmal genau. Die genaue Angabe gewinnt. -->
+          <div><div class="kicker">${items.length} Position${items.length===1?"":"en"} · ${esc(planScopeLabel(todayIdx))}</div><h3 style="margin:2px 0 0">Einkaufsliste</h3></div>
         </div>
         <button class="btn ghost sm" data-close>✕</button>
       </div>

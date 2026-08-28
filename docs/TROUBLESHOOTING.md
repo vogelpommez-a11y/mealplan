@@ -6,7 +6,7 @@ Dieses Dokument enthält bekannte Fehlerquellen, historische Bugs und Probleme, 
 
 <!-- REGISTER-ANFANG (erzeugt aus den Ueberschriften, nicht von Hand pflegen) -->
 
-**Register — 123.** Chronologisch gewachsen: je hoeher die Nummer,
+**Register — 124.** Chronologisch gewachsen: je hoeher die Nummer,
 desto juenger der Fund. Wer eine Falle sucht, sucht hier zuerst; die Ueberschrift sagt
 jeweils, worum es geht. **Nicht die ganze Datei lesen** — sie ist ueber 200 KB gross.
 
@@ -135,6 +135,7 @@ jeweils, worum es geht. **Nicht die ganze Datei lesen** — sie ist ueber 200 KB
 | 121 | Ein freundlicher Toast ist auch ein Schlucken |
 | 122 | Ein Zähler, der beim Start wandert — und kein Fehler ist |
 | 123 | Eine Ausnahme, die vor den Verboten steht, hebelt sie alle aus |
+| 124 | Ein Zustand ohne Wochenbezug neben zwei Wochenreitern |
 
 <!-- REGISTER-ENDE -->
 
@@ -3881,3 +3882,86 @@ ausdrücklicher Zweck das Verhindern genau solcher Lücken ist.
 
 **Warum es auffiel:** Weil `/pushcheck` gelaufen ist, bevor gepusht wurde. Der Wächter hätte
 sich selbst nie gemeldet — er prüft den Index, nicht sich.
+
+## 124. Ein Zustand ohne Wochenbezug neben zwei Wochenreitern
+
+**Datum:** 28.08.2026 · **Betrifft:** Einkaufsliste, `localStorage["wochenkueche_shop_v1"]`
+
+### Der Fehler
+
+Die Einkaufsliste kennt zwei Wochen — der Umschalter über dem Plan hat die Reiter
+**Aktuelle Woche** und **Nächste Woche**, und `buildShoppingList()` folgt ihnen korrekt: Die
+Positionen und ihre Mengen wechseln mit. Der **abgehakte Zustand** folgte ihnen nicht. Er lag
+als ein einziges flaches Set aus `norm`-Schlüsseln (`"hackfleisch|g"`) im `localStorage`, ohne
+jeden Bezug darauf, für welche Woche gehakt worden war.
+
+Zwei Folgen, beide fallen erst im Supermarkt auf:
+
+1. **Der Haken färbte auf die andere Woche ab.** Wer in der aktuellen Woche „500 g Hackfleisch"
+   abhakte und auf *Nächste Woche* umschaltete, fand die Position dort erledigt — obwohl die
+   nächste Woche eine andere Menge braucht (`ab heute` gegen die volle Woche). Man kauft zu
+   wenig ein und merkt es beim Kochen.
+2. **Am Montag rückte der Zustand still nach.** Die neue Woche startete mit den Haken der
+   vergangenen, weil „aktuell" kein Schlüssel war, sondern nur eine Sicht.
+
+Dazu ein zweiter, kleinerer Fund an derselben Stelle: Der Kopf des Modals beschriftete die
+nächste Woche als **„diese Woche"**. Der Ausdruck
+
+```js
+state.viewWeek !== "next" && todayIdx > 0 ? "ab heute" : "diese Woche"
+```
+
+fällt für `viewWeek === "next"` in den zweiten Zweig — der `else`-Fall trug die Beschriftung
+eines Falls, den er auch bedient. Dasselbe stand im Vorkoch-Modal, aus derselben kopierten
+Zeile.
+
+### Warum es so lange niemandem auffiel
+
+**Weil die Liste selbst immer richtig war.** Positionen, Mengen, Warengruppen, PDF, Text und
+Teilen folgten dem Reiter sauber — `shopPdfString()` schrieb sogar korrekt „Nächste Woche" in
+den PDF-Kopf. Wer die Liste ansah, sah eine funktionierende Einkaufsliste. Falsch war nur die
+eine Ebene darüber, die man beim Ansehen nicht sieht: welcher Woche ein Häkchen *gehört*.
+
+Das PDF ist dabei der Beleg, dass die Kopfbeschriftung ein Versehen war und keine Absicht — an
+zwei Stellen wurde dieselbe Frage beantwortet, einmal richtig und einmal falsch.
+
+### Die Regel dahinter
+
+> **Wenn eine Ansicht zwei Zeiträume hat, muss jeder Zustand, den der Nutzer darin erzeugt,
+> sagen können, zu welchem er gehört.** Sonst gehört er stillschweigend beiden.
+
+Das gilt nicht nur für Häkchen. Jeder künftige Zustand neben dem Wochenumschalter — eine
+Sortierung, eine Filterung, ein „erledigt", ein Notizfeld — steht vor derselben Frage. Wird sie
+nicht gestellt, lautet die Antwort per Vorgabe „beiden", und das fällt niemandem auf, solange
+man nur eine Woche benutzt.
+
+### Die Lösung
+
+Der Speicher ist nach ISO-Wochenschlüssel gegliedert — **demselben**, unter dem schon
+`state.plans` liegt:
+
+```json
+{ "2026-W35": ["hackfleisch|g"], "2026-W36": ["milch|ml"] }
+```
+
+Dass es derselbe Schlüssel ist und kein eigener („cur"/„next"), erledigt den zweiten Teil des
+Fehlers von selbst: Die Haken der nächsten Woche **wandern beim Wochenwechsel mit**, weil ihr
+Schlüssel sich nicht ändert — die Woche heißt am Montag nur nicht mehr „nächste". Ein eigenes
+Schema hätte hier eine Rotationslogik gebraucht, also genau die Stelle, an der der Fehler
+wieder entstünde.
+
+`saveShopDone()` behält nur `cur` und `next` — dieselbe Regel wie `pruneWeeks()`. Ein flaches
+Array aus der Fassung davor wird als Bestand der aktuellen Woche übernommen, nicht verworfen:
+Wegwerfen wäre bequemer und hätte jedem Nutzer beim Update seinen halb abgehakten Einkauf
+gelöscht.
+
+Die Beschriftung liegt jetzt in `planScopeLabel(todayIdx)` — eine Quelle für Einkaufsliste
+**und** Vorkochliste, als Gegenstück zu `planDaysAhead()`, das ihre Tage liefert. Zwei
+Funktionen, die dieselbe Woche beschreiben, sollen sie auch gemeinsam benennen; als zwei Kopien
+derselben Zeile war das Auseinanderlaufen nur eine Frage der Zeit — und war ja bereits
+eingetreten.
+
+### Prüfstand
+
+`tools/pruefstand-einkaufsliste.py` — 37 Prüfungen in vier Läufen, gegen den alten Stand
+**11 Fehler**. Details zum Aufbau: `docs/TESTING.md`.

@@ -2379,6 +2379,74 @@ serverseitig durchzusetzen, weil keine Datengrenze berührt wird (`CLAUDE.md` §
 Zugriff auf Daten, nicht den Komfort). In einer Gruppe (`syncGid`) entfällt die Sperre ganz —
 dort zahlt der Inhaber.
 
+## Einkaufsliste: der Abhak-Zustand hängt an der Woche (28.08.2026)
+
+Die Liste selbst hat nie ein Wochenproblem gehabt: `buildShoppingList()` läuft über
+`state.plan`, und das ist per `setViewWeek()` immer die gerade gezeigte Woche. Der **abgehakte
+Zustand** dagegen lag bis zum 28.08.2026 als ein einziges flaches Set in
+`localStorage["wochenkueche_shop_v1"]` — geteilt von beiden Wochenreitern.
+
+Die Folge war ein Fehler, den man beim Einkaufen bemerkt und nicht davor: Wer in der aktuellen
+Woche „500 g Hackfleisch" abhakte und auf **Nächste Woche** umschaltete, fand die Position dort
+bereits erledigt — obwohl die nächste Woche eine ganz andere Menge braucht (`ab heute` gegen die
+volle Woche). Und am Montag rückte derselbe Zustand stillschweigend nach: Die frische Woche
+startete mit den Haken der vergangenen.
+
+**Der Speicher ist deshalb nach ISO-Wochenschlüssel gegliedert** — denselben, unter dem auch
+`state.plans` liegt:
+
+```json
+{ "2026-W35": ["hackfleisch|g", "nudeln|g"], "2026-W36": ["milch|ml"] }
+```
+
+| Funktion | Aufgabe |
+|---|---|
+| `loadShopDoneAll()` | liest das ganze Objekt; ein **flaches Array** aus der Fassung davor gilt als Bestand der *aktuellen* Woche |
+| `loadShopDone()` | das Set für `activeWeekKey()` — genau die Woche, die der Reiter zeigt |
+| `saveShopDone(set)` | schreibt diese eine Woche und wirft dabei alles außer `cur`/`next` weg |
+
+Zwei Dinge fallen dadurch ohne eigene Logik ab:
+
+* **Die Haken der nächsten Woche wandern beim Wochenwechsel von selbst mit.** Ihr Schlüssel
+  ändert sich nicht — die Woche heißt am Montag nur nicht mehr „nächste", sondern „aktuell".
+  Genau dieselbe Mechanik trägt schon `state.plans` (siehe „Wochen" oben), es gibt weiterhin
+  keine Rotationslogik.
+* **Der Eintrag wächst nicht ewig.** `saveShopDone()` behält nur die zwei bekannten Wochen —
+  dieselbe Regel wie `pruneWeeks()` für die Pläne. Ohne das sammelte sich jede je abgehakte
+  Zutat dauerhaft an, und niemand hätte es je gesehen.
+
+Der Migrationspfad ist bewusst nicht „wegwerfen": Der Altbestand landet in der aktuellen Woche.
+Alles andere wäre geraten — und hätte jedem Nutzer beim Update seinen halb abgehakten Einkauf
+gelöscht.
+
+`norm` (Zutatenname + Einheit, **ohne** Menge) bleibt unverändert der Schlüssel innerhalb einer
+Woche. Dass die Menge nicht darin steckt, ist der Grund, warum ein Haken eine geänderte
+Personenzahl überlebt.
+
+### `planScopeLabel(todayIdx)` — welche Woche steht im Kopf?
+
+Gegenstück zu `planDaysAhead()`: dieselbe Frage, nur in Worten. **Eine** Quelle für
+Einkaufsliste *und* Vorkochliste — beide ziehen ihre Tage aus `planDaysAhead()` und müssen
+deshalb auch dieselbe Woche benennen.
+
+| `viewWeek` | `todayIdx` | Label |
+|---|---|---|
+| `"next"` | egal | `nächste Woche` |
+| `"cur"` | `> 0` | `diese Woche, ab heute` |
+| `"cur"` | `0` (Montag) | `diese Woche` |
+
+Vorher stand für die nächste Woche fälschlich „diese Woche" da — der ternäre Ausdruck
+`viewWeek !== "next" && todayIdx > 0 ? "ab heute" : "diese Woche"` fiel für `"next"` in den
+zweiten Zweig. Das PDF (`shopPdfString()`) schrieb an derselben Stelle immer korrekt
+„Nächste Woche", womit belegt war, dass es ein Versehen ist und keine Absicht.
+
+Bei geöffnetem Modal ist der Wochenumschalter verdeckt — der Kopf ist dann der einzige Hinweis,
+für welche Woche man gerade einkauft. Die Überschrift heißt seitdem nur noch „Einkaufsliste"
+statt „Einkaufsliste der Woche": Mit einem Kicker, der die Woche genau benennt, stand sie sonst
+zweimal da, einmal unbestimmt und einmal genau.
+
+→ Prüfstand: `tools/pruefstand-einkaufsliste.py` (vier Läufe, siehe `docs/TESTING.md`)
+
 ## Architekturprinzip
 
 Bei mehreren möglichen Lösungen gewinnt grundsätzlich die Lösung mit:

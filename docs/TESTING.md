@@ -60,6 +60,7 @@ Die Verfahren gibt es auch als Skill: `/smoke`, `/pruefstand`, `/abnahme`, `/dep
 | · | `tools/pruefstand-rueckblick-ziel.py` — der Beweis, dass eine Woche fehlt (26.08.2026) |
 | · | `tools/alle-pruefstaende.py` — der Reihenlauf (26.08.2026) |
 | · | `tools/pruefstand-grpm-zoom.py` — eine Behauptung über die CSS-Kaskade messen (27.08.2026) |
+| · | `tools/pruefstand-einkaufsliste.py` — vier Läufe über beide Wochenreiter (28.08.2026) |
 
 <!-- REGISTER-ENDE -->
 
@@ -2597,3 +2598,63 @@ immer zu gelten.
 die Abnahme am echten Konto; läuft der Alltags-Chrome des Nutzers schon, lässt sich der
 Debug-Port nicht mehr öffnen. Dieser Prüfstand braucht kein Konto und keine Sichtbarkeit,
 deshalb Edge headless auf einem eigenen Port — er kollidiert mit nichts.
+
+## `tools/pruefstand-einkaufsliste.py` — vier Läufe über beide Wochenreiter (28.08.2026)
+
+Die Einkaufsliste hat zwei Zustände, die verschiedenen Dingen gehören: Die **Positionen**
+kommen aus `state.plan` und wechseln mit dem Reiter von selbst mit. Der **abgehakte Zustand**
+liegt in `localStorage` — und lag bis zum 28.08.2026 wochenblind darin
+(`docs/TROUBLESHOOTING.md` §124).
+
+Ein Fehler in localStorage lässt sich nicht durch Ausschneiden prüfen. Er entsteht erst aus dem
+Zusammenspiel von Schreiben, Reiterwechsel und Neuöffnen — deshalb fährt dieser Prüfstand die
+**ungekürzte `index.html`** headless und bedient sie wie ein Nutzer: Reiter anklicken,
+Liste öffnen, Haken setzen, Woche wechseln, wieder öffnen.
+
+### Warum vier Läufe und nicht einer
+
+Jeder Lauf startet den Browser mit einem **anderen Ausgangszustand**. Das ist der Punkt: Drei
+der vier Fragen lassen sich nur stellen, wenn schon etwas im Speicher liegt — und ein Lauf kann
+nur mit einem Vorher anfangen.
+
+| Lauf | Ausgangslage | Frage |
+|---|---|---|
+| A | leerer Speicher | Färbt ein Haken der aktuellen Woche auf die nächste ab? Nennt der Kopf die richtige Woche? |
+| B | **flaches Array** (Format vor dem Umbau) | Überlebt ein Haken den Neustart? Wo landet der Altbestand? |
+| C | Objekt mit einer **drei Wochen alten** Woche darin | Verfällt sie, oder wächst der Eintrag ewig weiter? |
+| D | leerer Speicher | Überlebt ein Haken die geänderte Personenzahl — und ändert sich die Menge trotzdem? |
+
+**Lauf C ist bewusst ein eigener Lauf.** In Lauf B liegt gar keine alte Woche im Speicher; die
+Prüfung „nichts Fremdes bleibt stehen" wäre dort trivial erfüllt gewesen und hätte nichts
+gemessen. Genau die Sorte grüner Zeile, die man später glaubt.
+
+### Was die Läufe belegen, und was das kostet
+
+Die Wochenschlüssel rechnet der Prüfstand in Python aus `datetime.isocalendar()` — dieselbe
+ISO-Regel wie `isoWeekKey()`. Nachgebaut ist daran nichts: Der Schlüssel ist der *Eingabewert*
+des Tests, nicht sein Prüfobjekt.
+
+Die Rezepte teilen sich mit Absicht **eine** Zutat (`Hackfleisch`). Ohne sie hätten beide Wochen
+verschiedene `norm`-Schlüssel, und der geteilte Speicher wäre nie aufgefallen — der Fehler
+braucht eine Kollision, um sichtbar zu werden.
+
+Geplant wird auf **alle sieben Tage**. In der aktuellen Woche zählt nur `ab heute`
+(`planDaysAhead()`); wer nur Montag belegt, bekommt am Freitag eine leere Liste und einen Lauf,
+der nichts aussagt.
+
+### Gegenprobe
+
+```powershell
+git show HEAD:index.html > alt.html
+python tools/pruefstand-einkaufsliste.py alt.html   # MUSS rot sein
+python tools/pruefstand-einkaufsliste.py            # der neue Stand
+```
+
+| Stand | Ergebnis |
+|---|---|
+| vor dem Fix | **11 Fehler** — in allen vier Läufen |
+| nach dem Fix | 37 grün |
+
+Der Prüfstand nimmt einen Pfad als Argument, genau dafür. Dass die Fehler sich über alle vier
+Läufe verteilen, ist selbst ein Befund: Der geteilte Speicher war nicht ein Fehler an einer
+Stelle, sondern eine falsche Annahme, die an vier verschiedenen Stellen durchschlug.
