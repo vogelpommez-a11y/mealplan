@@ -60,7 +60,7 @@ Die Verfahren gibt es auch als Skill: `/smoke`, `/pruefstand`, `/abnahme`, `/dep
 | · | `tools/pruefstand-rueckblick-ziel.py` — der Beweis, dass eine Woche fehlt (26.08.2026) |
 | · | `tools/alle-pruefstaende.py` — der Reihenlauf (26.08.2026) |
 | · | `tools/pruefstand-grpm-zoom.py` — eine Behauptung über die CSS-Kaskade messen (27.08.2026) |
-| · | `tools/pruefstand-einkaufsliste.py` — vier Läufe über beide Wochenreiter (28.08.2026) |
+| · | `tools/pruefstand-einkaufsliste.py` — fünf Läufe über beide Wochenreiter (28.08.2026) |
 
 <!-- REGISTER-ENDE -->
 
@@ -2619,10 +2619,11 @@ nur mit einem Vorher anfangen.
 
 | Lauf | Ausgangslage | Frage |
 |---|---|---|
-| A | leerer Speicher | Färbt ein Haken der aktuellen Woche auf die nächste ab? Nennt der Kopf die richtige Woche? |
+| A | leerer Speicher | Färbt ein Haken der aktuellen Woche auf die nächste ab? Nennt der Kopf — sichtbar *und* im Dialognamen — die richtige Woche? |
 | B | **flaches Array** (Format vor dem Umbau) | Überlebt ein Haken den Neustart? Wo landet der Altbestand? |
 | C | Objekt mit einer **drei Wochen alten** Woche darin | Verfällt sie, oder wächst der Eintrag ewig weiter? |
 | D | leerer Speicher | Überlebt ein Haken die geänderte Personenzahl — und ändert sich die Menge trotzdem? |
+| E | leerer Speicher, Web Share API abgeschaltet | Nennt der **PDF-Kopf** denselben Zeitraum wie das Modal? |
 
 **Lauf C ist bewusst ein eigener Lauf.** In Lauf B liegt gar keine alte Woche im Speicher; die
 Prüfung „nichts Fremdes bleibt stehen" wäre dort trivial erfüllt gewesen und hätte nichts
@@ -2658,3 +2659,46 @@ python tools/pruefstand-einkaufsliste.py            # der neue Stand
 Der Prüfstand nimmt einen Pfad als Argument, genau dafür. Dass die Fehler sich über alle vier
 Läufe verteilen, ist selbst ein Befund: Der geteilte Speicher war nicht ein Fehler an einer
 Stelle, sondern eine falsche Annahme, die an vier verschiedenen Stellen durchschlug.
+
+### Lauf E (PDF): drei Fallen, die den Prüfstand selbst betrafen
+
+Der PDF-Lauf war nicht schwer zu *denken*, aber dreimal falsch gebaut. Alle drei Fehler
+gehören hierher, weil sie beim nächsten PDF-Prüfstand wieder auftreten.
+
+**1. Der Knopf war gar nicht da.** Der Modal-Fuß zeigt *entweder* „Teilen" *oder* „Als PDF" +
+„Als Text kopieren" — `canShare()` entscheidet. Headless Edge meldet `navigator.share`, also
+rendert die App den Teilen-Zweig, und `[data-pdf]` existiert nicht. Der Lauf muss
+`navigator.share` abschalten, sonst prüft er einen Zweig, den er nie sieht.
+
+**2. `--virtual-time-budget` beendet Edge nicht, wenn ein Download läuft.** `saveBlob()` hängt
+einen `<a download>` ins Dokument und klickt ihn; headless Edge startet daraufhin einen echten
+Download und bleibt hängen — das Zeitbudget steuert die *Uhr*, nicht laufende I/O. Der Lauf
+lief in den Timeout, neun Edge-Prozesse blieben stehen. Lösung: `HTMLAnchorElement.prototype.click`
+für Elemente mit `download`-Attribut neutralisieren. Der Bytestrom wird ohnehin schon im
+`Blob`-Konstruktor eingesammelt; das Speichern trägt zur Messung nichts bei.
+
+> **Ein hängender Prüfstand ist erst einmal ein Befund, kein Defekt.** Hier war es am Ende der
+> Prüfstand — aber das stand nicht vorher fest, und die Reihenfolge (erst messen, dann
+> reparieren) ist nicht verhandelbar.
+
+**3. Zweimal am Text vorbeigesucht.** `saveBlob()` bekommt `pdfBytes(...)`, also ein
+`Uint8Array` — `String()` darauf ergibt `"37,80,68,70,…"`. Und im PDF steht der Umlaut nicht
+als Buchstabe: `pdfEsc()` schreibt ihn als Oktal-Escape, „Nächste" wird zu `N\344chste`. Zwei
+Umkehrungen sind nötig: Bytes latin-1 dekodieren, dann `\ooo` auflösen. Wer stattdessen nach
+dem Wort sucht, sucht vergeblich — deshalb greift der Regex über die **Struktur** der
+Kopfzeile (`scope` + `\267` + Datum), nicht über ihren Inhalt.
+
+### Und ein Scheingrün, das der Riegel gefangen hat
+
+Die erste Fassung prüfte „das PDF der nächsten Woche sagt NICHT ‚Diese Woche'" — und war
+**grün gegen die Zeichenkette `"(keine Kopfzeile gefunden)"`**. Eine Nicht-Bedingung ist immer
+erfüllt, wenn gar nichts da ist.
+
+Deshalb steht vor den inhaltlichen Prüfungen ein Riegel, der erst feststellt, *dass* beide
+PDFs entstanden sind und eine Kopfzeile tragen; die inhaltlichen Zeilen laufen nur dann. Beim
+ersten Versuch prüfte dieser Riegel nur die eine Seite — und ließ die andere durchrutschen.
+
+> **Jede Prüfung der Form „X kommt nicht vor" braucht eine zweite, die belegt, dass überhaupt
+> etwas da ist.** Sonst misst sie das Nichts.
+
+Dasselbe Muster ist der Grund, warum Lauf C ein eigener Lauf ist.

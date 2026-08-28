@@ -3961,7 +3961,37 @@ Funktionen, die dieselbe Woche beschreiben, sollen sie auch gemeinsam benennen; 
 derselben Zeile war das Auseinanderlaufen nur eine Frage der Zeit — und war ja bereits
 eingetreten.
 
+### Der Nachzug am selben Tag: dieselbe Lüge stand noch im PDF
+
+Der erste Fix ließ **`shopPdfString()` unberührt** — und die Dokumentation behauptete danach,
+`planScopeLabel()` sei „eine Quelle für Einkaufsliste und Vorkochliste". Das PDF baute seinen
+Zeitraum weiter selbst:
+
+```js
+const scope = state.viewWeek === "next" ? "Nächste Woche" : "Diese Woche";
+```
+
+Das nennt die richtige Woche und verschweigt das `ab heute`. Das PDF trug also „Diese Woche"
+über einer Liste, die nur die restlichen Tage enthält — **derselbe Fehlertyp wie im
+Modal-Kopf, nur andersherum**, und im Ausdruck sogar folgenreicher: Auf Papier gibt es keinen
+Reiter, an dem man es merken könnte.
+
+Gefunden hat das der Agent `kvp` bei der nachträglichen Prüfung. Die Lehre ist unbequem:
+**Ich hatte die Einheitlichkeit dokumentiert, bevor ich sie hergestellt hatte.** Genau die
+Behauptung im Fließtext war es, an der der Widerspruch auffiel — hätte die Doku
+zurückhaltender formuliert, wäre das PDF stillschweigend falsch geblieben.
+
+### Zwei bewusste Grenzen, damit sie nicht als Fehler gelesen werden
+
+* **Der Haken kennt die Menge nicht.** `norm` ist Name + Einheit ohne Menge; ein Haken
+  überlebt deshalb eine geänderte Personenzahl — aber auch ein *nachträglich eingeplantes*
+  Gericht mit derselben Zutat. Kehrseite derselben Entscheidung, nicht ein Versehen.
+  Begründung und der Weg, es doch zu lösen: `docs/ARCHITECTURES.md`.
+* **Der Zustand geht nicht in die Cloud.** Ein geteilter Haken hieße in der Gruppe „jemand hat
+  es geholt" — eine Aussage, die niemand getroffen hat.
+
 ### Prüfstand
 
-`tools/pruefstand-einkaufsliste.py` — 37 Prüfungen in vier Läufen, gegen den alten Stand
-**11 Fehler**. Details zum Aufbau: `docs/TESTING.md`.
+`tools/pruefstand-einkaufsliste.py` — 49 Prüfungen in fünf Läufen. Gegen den Stand *vor* dem
+ersten Fix **11 Fehler**, gegen den Stand *nach* dem ersten Fix (Commit `7f48cd7`) noch
+**5** — die Dialognamen, das Komma und der PDF-Kopf. Details: `docs/TESTING.md`.

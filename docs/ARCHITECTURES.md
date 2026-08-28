@@ -2426,14 +2426,20 @@ Personenzahl überlebt.
 ### `planScopeLabel(todayIdx)` — welche Woche steht im Kopf?
 
 Gegenstück zu `planDaysAhead()`: dieselbe Frage, nur in Worten. **Eine** Quelle für
-Einkaufsliste *und* Vorkochliste — beide ziehen ihre Tage aus `planDaysAhead()` und müssen
-deshalb auch dieselbe Woche benennen.
+Einkaufsliste, Vorkochliste *und* das PDF — alle drei ziehen ihre Tage aus `planDaysAhead()`
+und müssen deshalb auch dieselbe Woche benennen.
+
+`planScopeTitle()` ist dieselbe Angabe groß geschrieben, für den PDF-Kopf, wo der Zeitraum
+als Titelzeile steht statt als Fortsetzung eines Satzes.
 
 | `viewWeek` | `todayIdx` | Label |
 |---|---|---|
 | `"next"` | egal | `nächste Woche` |
-| `"cur"` | `> 0` | `diese Woche, ab heute` |
+| `"cur"` | `> 0` | `diese Woche ab heute` |
 | `"cur"` | `0` (Montag) | `diese Woche` |
+
+Ohne Komma: „diese Woche ab heute" ist **eine** Aussage — „ab heute" schränkt „diese Woche"
+ein. Mit Komma lasen sich zwei Angaben hintereinander, als käme noch etwas.
 
 Vorher stand für die nächste Woche fälschlich „diese Woche" da — der ternäre Ausdruck
 `viewWeek !== "next" && todayIdx > 0 ? "ab heute" : "diese Woche"` fiel für `"next"` in den
@@ -2445,7 +2451,48 @@ für welche Woche man gerade einkauft. Die Überschrift heißt seitdem nur noch 
 statt „Einkaufsliste der Woche": Mit einem Kicker, der die Woche genau benennt, stand sie sonst
 zweimal da, einmal unbestimmt und einmal genau.
 
-→ Prüfstand: `tools/pruefstand-einkaufsliste.py` (vier Läufe, siehe `docs/TESTING.md`)
+**Das PDF hing zunächst noch daneben.** `shopPdfString()` baute den Zeitraum bis zum
+Nachzug am 28.08.2026 aus einer eigenen Zeile (`viewWeek === "next" ? "Nächste Woche" :
+"Diese Woche"`). Die nannte zwar die richtige Woche, verschwieg aber das `ab heute`: Das PDF
+trug „Diese Woche" über einer Liste, die nur die restlichen Tage enthält. Wer es ausdruckt,
+sieht dem Blatt nicht an, dass Montag bis Mittwoch fehlen — **derselbe Fehler wie im
+Modal-Kopf, nur andersherum.** Gefunden hat das der Agent `kvp` bei der nachträglichen
+Prüfung, nachdem die Doku hier bereits „eine Quelle" behauptete.
+
+### Der Dialogname trägt die Woche mit
+
+`openShopping()` und `openBatchCooking()` setzen `aria-label="Einkaufsliste, diese Woche ab
+heute"` statt nur `"Einkaufsliste"`. Grund: `openModal()` fokussiert den ersten Knopf, und
+angesagt wird der **Dialogname** — der sichtbare Kicker wird erst beim Weiterlesen erreicht.
+Solange die Überschrift „Einkaufsliste der Woche" hieß, trug wenigstens sie einen Hinweis;
+seit der Kürzung wäre sonst gar keiner mehr im Namen. Die Kürzung hat den Kopf für Sehende
+präziser gemacht und hätte ihn für Screenreader-Nutzer unbestimmter gelassen.
+
+### Warum der Abhak-Zustand *nicht* in die Cloud geht
+
+Er steht in keinem Feld von `dataJSON()`/`pushNow()` — und das ist eine Entscheidung, keine
+Auslassung. In einer Gruppe hieße ein geteilter Haken „jemand hat es geholt": eine Aussage,
+die niemand getroffen hat. Zwei Personen gehen getrennt einkaufen, und wer zuerst abhakt,
+löschte dem anderen die Position von der Liste. Ein gemeinsamer Einkauf ist ein eigenes
+Feature mit einer eigenen Frage („wer holt was?") — kein Nebeneffekt der Speicherung.
+
+Wird er je synchronisiert, braucht `loadShopDoneAll()` **vorher** denselben Schlüssel-Regex
+wie `sanitizeWeekStats()` (`/^\d{4}-W\d{2}$/`). Heute ist er entbehrlich: Der Wert ist rein
+lokal, wer ihn manipuliert, hat den Browser ohnehin. Über Sync käme er von fremd.
+
+### Bekannte Einschränkung: der Haken kennt die Menge nicht
+
+`norm` ist Name + Einheit **ohne** Menge — deshalb überlebt ein Haken eine geänderte
+Personenzahl. Er überlebt aber auch eine geänderte **Planung**: Wer „500 g Hackfleisch"
+abhakt und danach ein weiteres Hackfleisch-Gericht einplant, sieht „750 g" mit gesetztem
+Haken. Das ist die Kehrseite derselben Entscheidung, nicht ein übersehener Fehler.
+
+Bewusst so belassen: Die Menge in den Schlüssel zu nehmen, hieße, dass jede Änderung der
+Personenzahl sämtliche Haken zurücksetzt — der häufigere Fall, und der ärgerlichere. Wer den
+Fall doch lösen will, braucht einen dritten Weg (etwa Haken behalten, aber die gewachsene
+Differenz markieren), nicht den Schlüsseltausch.
+
+→ Prüfstand: `tools/pruefstand-einkaufsliste.py` (fünf Läufe, siehe `docs/TESTING.md`)
 
 ## Architekturprinzip
 

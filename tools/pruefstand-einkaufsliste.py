@@ -90,7 +90,7 @@ MESS = u"""<script>
   var raus = { schritte: [] };
   function q(s) { return document.querySelector(s); }
   function modalInfo() {
-    var m = q('.modal[aria-label="Einkaufsliste"]');
+    var m = q('.modal[aria-label^="Einkaufsliste"]');
     if (!m) return { da: false };
     var ch = Array.prototype.slice.call(m.querySelectorAll(".shop-check"));
     var k = m.querySelector(".kicker");
@@ -100,12 +100,16 @@ MESS = u"""<script>
       abgehakt: ch.filter(function (c) { return c.checked; }).length,
       kicker: k ? k.textContent.trim() : "(kein kicker)",
       ueberschrift: (m.querySelector(".modal-head h3") || {}).textContent || "",
+      // Der Dialogname ist das, was ein Screenreader beim OEFFNEN ansagt - der Kicker wird
+      // erst beim Weiterlesen erreicht. Seit die Ueberschrift gekuerzt ist ("Einkaufsliste"
+      // statt "Einkaufsliste der Woche"), traegt sonst nichts im Namen die Woche.
+      dialogname: m.getAttribute("aria-label") || "",
       fortschritt: (m.querySelector("#shop-count") || {}).textContent || "",
       erste: ch.length ? (ch[0].parentElement.querySelector(".lbl") || {}).textContent : ""
     };
   }
   function schliessen() {
-    var b = document.querySelector('.modal[aria-label="Einkaufsliste"] [data-close]');
+    var b = document.querySelector('.modal[aria-label^="Einkaufsliste"] [data-close]');
     if (b) b.click();
   }
   function oeffnen() { var b = q('[data-action="shopping"]'); if (b) b.click(); return !!b; }
@@ -128,7 +132,7 @@ MESS = u"""<script>
     function () { raus.a_offen = modalInfo(); },
     // 3) die erste Position abhaken und schliessen
     function () {
-      var c = q('.modal[aria-label="Einkaufsliste"] .shop-check');
+      var c = q('.modal[aria-label^="Einkaufsliste"] .shop-check');
       if (c) { c.click(); raus.a_abgehakt = c.dataset.norm; }
       raus.a_nachKlick = modalInfo();
       schliessen();
@@ -175,14 +179,14 @@ MESS_B = u"""<script>
     catch (e) { return "(unlesbar)"; }
   }
   function info() {
-    var m = q('.modal[aria-label="Einkaufsliste"]');
+    var m = q('.modal[aria-label^="Einkaufsliste"]');
     if (!m) return { da: false };
     var ch = Array.prototype.slice.call(m.querySelectorAll(".shop-check"));
     return { da: true, positionen: ch.length,
              abgehakt: ch.filter(function (c) { return c.checked; }).length };
   }
   function schliessen() {
-    var b = document.querySelector('.modal[aria-label="Einkaufsliste"] [data-close]');
+    var b = document.querySelector('.modal[aria-label^="Einkaufsliste"] [data-close]');
     if (b) b.click();
   }
   function ende() {
@@ -202,7 +206,7 @@ MESS_B = u"""<script>
     function () {
       raus.b_next = info();
       // Dort etwas abhaken - das schreibt den Speicher neu und raeumt dabei auf.
-      var c = q('.modal[aria-label="Einkaufsliste"] .shop-check');
+      var c = q('.modal[aria-label^="Einkaufsliste"] .shop-check');
       if (c) c.click();
       raus.b_nachKlick = info();
       schliessen();
@@ -232,7 +236,7 @@ MESS_D = u"""<script>
   var raus = {};
   function q(s) { return document.querySelector(s); }
   function info() {
-    var m = q('.modal[aria-label="Einkaufsliste"]');
+    var m = q('.modal[aria-label^="Einkaufsliste"]');
     if (!m) return { da: false };
     var ch = Array.prototype.slice.call(m.querySelectorAll(".shop-check"));
     return {
@@ -242,18 +246,18 @@ MESS_D = u"""<script>
       erste: ch.length ? (ch[0].parentElement.querySelector(".lbl") || {}).textContent : ""
     };
   }
-  function zu() { var b = q('.modal[aria-label="Einkaufsliste"] [data-close]'); if (b) b.click(); }
+  function zu() { var b = q('.modal[aria-label^="Einkaufsliste"] [data-close]'); if (b) b.click(); }
   var kette = [
     function () { q('[data-tab="plan"]').click(); },
     function () { q('[data-action="shopping"]').click(); },
     function () {
-      var c = q('.modal[aria-label="Einkaufsliste"] .shop-check');
+      var c = q('.modal[aria-label^="Einkaufsliste"] .shop-check');
       if (c) c.click();
       raus.d_vor = info();
     },
     // Personenzahl hochstellen - das ruft buildShoppingList() neu und save()
     function () {
-      var p = q('.modal[aria-label="Einkaufsliste"] .pbtn[data-pers="1"]');
+      var p = q('.modal[aria-label^="Einkaufsliste"] .pbtn[data-pers="1"]');
       if (p) p.click();
       raus.d_nach = info();
       zu();
@@ -273,6 +277,105 @@ MESS_D = u"""<script>
     if (i >= kette.length) return;
     try { kette[i++](); } catch (e) { raus.messfehler = (raus.messfehler || "") + " | " + e.message; }
     setTimeout(n, 260);
+  })();
+})();
+</script>"""
+
+
+# --- Lauf E: der PDF-Kopf --------------------------------------------------------------
+# `shopPdfString()` baut den Zeitraum seit dem 28.08.2026 aus derselben Quelle wie die
+# Modal-Koepfe. Vorher stand dort eine eigene Zeile, die zwar die richtige WOCHE nannte, aber
+# das "ab heute" verschwieg: Das PDF trug "Diese Woche" ueber einer Liste, die nur die
+# restlichen Tage enthaelt. Wer es ausdruckt, sieht dem Blatt nicht an, dass die vergangenen
+# Tage fehlen - derselbe Fehler wie im Modal-Kopf, nur andersherum.
+#
+# Gemessen wird der erzeugte PDF-Bytestrom. Die Kopfzeile steht dort als PDF-Textoperator
+# `(Diese Woche ab heute) Tj` - lesbar, weil pdfEsc() nur Klammern und Backslashes maskiert.
+MESS_E = u"""<script>
+(function () {
+  var raus = {};
+  function ende() {
+    raus.fehler = (window.__fehler || []).join(" || ") || "keine";
+    var p = document.createElement("pre");
+    p.id = "messung"; p.textContent = JSON.stringify(raus);
+    document.documentElement.appendChild(p);
+  }
+  // shopPdfString() lebt im IIFE und ist von aussen nicht erreichbar - erreichbar ist nur der
+  // Weg ueber den Knopf. Das fertige PDF wird deshalb im Blob-Konstruktor abgefangen.
+  //
+  // saveBlob() uebergibt pdfBytes(...), also ein Uint8Array - String() daraus ergaebe
+  // "37,80,68,70,..." und keine lesbare Kopfzeile. Das PDF ist byteweise Latin-1 kodiert
+  // (pdfEsc maskiert nur Klammern und Backslashes), deshalb Zeichen fuer Zeichen dekodieren.
+  var echtesBlob = window.Blob;
+  var gefangen = [];
+  function alsText(teil) {
+    if (typeof teil === "string") return teil;
+    var b = (teil && teil.buffer) ? new Uint8Array(teil.buffer) : new Uint8Array(teil || []);
+    var s = "", schritt = 8192;
+    for (var i = 0; i < b.length; i += schritt) {
+      s += String.fromCharCode.apply(null, b.subarray(i, i + schritt));
+    }
+    return s;
+  }
+  window.Blob = function (teile, opts) {
+    try { if (opts && opts.type === "application/pdf") gefangen.push(alsText(teile[0])); } catch (e) {}
+    return new echtesBlob(teile, opts);
+  };
+  // saveBlob() haengt einen <a download> ins Dokument und klickt ihn. Headless Edge startet
+  // daraufhin einen ECHTEN Download - und beendet sich dann nicht mehr, auch nicht ueber
+  // --virtual-time-budget (das steuert die Uhr, nicht laufende I/O). Der Lauf lief in den
+  // Timeout. Der Bytestrom ist oben bereits eingesammelt, das Speichern traegt hier nichts
+  // bei: Anker-Klicks werden unterbunden. Buttons sind nicht betroffen.
+  var echterKlick = HTMLAnchorElement.prototype.click;
+  HTMLAnchorElement.prototype.click = function () {
+    if (this.hasAttribute("download")) { raus.downloadUnterbunden = true; return; }
+    return echterKlick.apply(this, arguments);
+  };
+  function kopf(txt) {
+    // pdfBrandHeader() setzt die Unterzeile als scope + "   \\267   " + dateStr (\\267 ist der
+    // Mittelpunkt in WinAnsi). Gesucht wird deshalb die STRUKTUR, nicht das Wort: Nach
+    // "Naechste" zu suchen scheiterte am Umlaut - "Nächste" steht dort byteweise WinAnsi-
+    // kodiert, nicht als UTF-8. Ueber das Trennzeichen ist die Kodierung des Wortes egal.
+    var m = /\\(([^)]*?)\\s*\\\\267\\s*[^)]*\\)\\s*Tj/.exec(txt);
+    return m ? m[1].replace(/\\s+$/, "") : "(keine Kopfzeile gefunden)";
+  }
+  function q(s) { return document.querySelector(s); }
+  var kette = [
+    function () {
+      // Der Fuss des Modals zeigt ENTWEDER "Teilen" (wenn das Geraet die Web Share API hat)
+      // ODER "Als PDF" + "Als Text kopieren" - siehe canShare() in index.html. Headless Edge
+      // meldet navigator.share, also erschiene hier nie ein PDF-Knopf. Abschalten, damit der
+      // Zweig geprueft wird, den ein Rechner tatsaechlich sieht.
+      try { navigator.share = undefined; } catch (e) {}
+      raus.shareAus = typeof navigator.share !== "function";
+      q('[data-tab="plan"]').click();
+    },
+    function () { q('[data-action="shopping"]').click(); },
+    function () {
+      var b = q('.modal[aria-label^="Einkaufsliste"] [data-pdf]');
+      raus.pdfKnopfDa = !!b;
+      if (b) b.click();
+    },
+    function () {
+      raus.a_pdf = gefangen.length ? kopf(gefangen[gefangen.length - 1]) : "(kein PDF erzeugt)";
+      var c = q('.modal[aria-label^="Einkaufsliste"] [data-close]'); if (c) c.click();
+    },
+    function () { q('[data-action="week"][data-week="next"]').click(); },
+    function () { q('[data-action="shopping"]').click(); },
+    function () {
+      var b = q('.modal[aria-label^="Einkaufsliste"] [data-pdf]');
+      if (b) b.click();
+    },
+    function () {
+      raus.b_pdf = gefangen.length ? kopf(gefangen[gefangen.length - 1]) : "(kein PDF erzeugt)";
+    },
+    ende
+  ];
+  var i = 0;
+  (function n() {
+    if (i >= kette.length) return;
+    try { kette[i++](); } catch (e) { raus.messfehler = (raus.messfehler || "") + " | " + e.message; }
+    setTimeout(n, 300);
   })();
 })();
 </script>"""
@@ -319,6 +422,22 @@ def lauf(mess=None, shop_seed=None):
         return json.loads(text)
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
+
+
+def pdf_text(s):
+    u"""Oktal-Escapes eines PDF-Strings aufloesen: "N\\344chste Woche" -> "Nächste Woche".
+
+    `pdfEsc()` schreibt Zeichen ausserhalb von ASCII als \\ooo (WinAnsi/Latin-1). Ohne diese
+    Umkehrung suchte man im PDF vergeblich nach "Nächste" - der Umlaut steht dort nicht als
+    Buchstabe. (Genau daran ist die erste Fassung dieser Pruefung gescheitert.)
+    """
+    return re.sub(r"\\([0-7]{3})", lambda m: chr(int(m.group(1), 8)), s)
+
+
+def planScope_modal(kicker):
+    u"""Den Zeitraum aus einem Kicker herausloesen ("3 Positionen . diese Woche ab heute"
+    -> "diese woche ab heute"), um ihn mit der PDF-Kopfzeile vergleichen zu koennen."""
+    return kicker.split(u"·")[-1].strip().lower()
 
 
 ok = bad = 0
@@ -383,6 +502,22 @@ pruef(u"die Ueberschrift wiederholt die Woche nicht",
       u"woche" not in (a.get("ueberschrift") or u"").lower(), a.get("ueberschrift"))
 pruef(u"die Ueberschrift heisst weiterhin 'Einkaufsliste'",
       (a.get("ueberschrift") or u"").strip() == u"Einkaufsliste", a.get("ueberschrift"))
+
+# Der Dialogname ist das, was beim OEFFNEN angesagt wird. Der sichtbare Kicker wird erst beim
+# Weiterlesen erreicht - fuer einen Screenreader-Nutzer waere die Woche sonst eine Stufe
+# tiefer versteckt als fuer alle anderen. Befund des ux-reviewer zu 7f48cd7.
+da = a.get("dialogname") or u""
+db = b.get("dialogname") or u""
+pruef(u"der Dialogname der aktuellen Woche nennt den Zeitraum",
+      u"woche" in da.lower(), da)
+pruef(u"der Dialogname der naechsten Woche nennt SIE",
+      u"nächste woche" in db.lower(), db)
+pruef(u"und verwechselt sie nicht mit dieser",
+      u"diese woche" not in db.lower(), db)
+
+# Ohne Komma: "diese Woche ab heute" ist EINE Aussage. Mit Komma lasen sich zwei Angaben
+# hintereinander, als kaeme noch etwas.
+pruef(u"der Zeitraum kommt ohne Komma aus", u"," not in ka.split(u"·")[-1], a.get("kicker"))
 
 # ========================================================================================
 # Lauf B: Altbestand (flaches Array) und Verfall alter Wochen
@@ -488,6 +623,55 @@ pruef(u"und der Haken kommt beim Neuoeffnen aus dem Speicher zurueck",
       dneu.get("abgehakt") == 1, u"abgehakt=%s" % dneu.get("abgehakt"))
 pruef(u"die Personenzahl ebenfalls",
       u"2 Personen" in (dneu.get("personen") or u""), dneu.get("personen"))
+
+# ========================================================================================
+# Lauf E: der PDF-Kopf nennt denselben Zeitraum wie das Modal
+# ========================================================================================
+print(u"")
+print(u"--- Lauf E: PDF-Kopfzeile ---")
+re_ = lauf(MESS_E)
+ea = pdf_text(re_.get("a_pdf") or u"")
+eb = pdf_text(re_.get("b_pdf") or u"")
+
+print(u"")
+print(u"Gemessen:")
+print(u"  PDF, aktuelle Woche  " + repr(ea))
+print(u"  PDF, naechste Woche  " + repr(eb))
+print(u"")
+
+pruef(u"kein JS-Fehler beim Start (Lauf E)", re_.get("fehler") == "keine", str(re_.get("fehler")))
+if re_.get("messfehler"): pruef(u"Messung E lief durch", False, re_["messfehler"])
+pruef(u"die Web Share API ist fuer diesen Lauf abgeschaltet", re_.get("shareAus") is True)
+pruef(u"der PDF-Knopf existiert", re_.get("pdfKnopfDa") is True)
+
+# ZUERST: ist ueberhaupt ein PDF entstanden? Ohne diesen Riegel waeren die Zeilen darunter
+# auf "(kein PDF erzeugt)" froehlich gruen - eine Zeichenkette, die kein "Diese Woche"
+# enthaelt, erfuellt die Nicht-Bedingung ja. Genau die Sorte gruener Zeile, die man glaubt.
+def pdf_lesbar(s):
+    return bool(s) and u"kein PDF" not in s and u"keine Kopfzeile" not in s
+
+# Der Riegel prueft BEIDE Seiten. Beim ersten Versuch stand hier nur `ea` - dadurch lief
+# "das PDF der naechsten Woche sagt NICHT 'Diese Woche'" gruen gegen die Zeichenkette
+# "(keine Kopfzeile gefunden)", die das Wort erwartungsgemaess nicht enthaelt. Dieselbe
+# Falle, gegen die Lauf C ein eigener Lauf ist.
+pdf_da = pdf_lesbar(ea) and pdf_lesbar(eb)
+pruef(u"beide PDFs wurden erzeugt und tragen eine Kopfzeile", pdf_da,
+      u"a=%r b=%r" % (ea, eb))
+
+if pdf_da:
+    pruef(u"das PDF der naechsten Woche nennt SIE",
+          u"nächste woche" in eb.lower() or u"naechste woche" in eb.lower(), eb)
+    pruef(u"das PDF der naechsten Woche sagt NICHT 'Diese Woche'",
+          u"diese woche" not in eb.lower(), eb)
+    # Der eigentliche Fund von kvp: In der aktuellen Woche stand "Diese Woche" ueber einer
+    # Liste, die nur ab heute rechnet. Der Zeitraum muss dieselbe Einschraenkung tragen wie
+    # das Modal - sonst sieht man dem ausgedruckten Blatt nicht an, dass Tage fehlen.
+    pruef(u"das PDF der aktuellen Woche verschweigt 'ab heute' nicht",
+          (u"ab heute" in ea.lower()) == (u"ab heute" in ka.lower()),
+          u"pdf=%r  modal=%r" % (ea, a.get("kicker")))
+    pruef(u"PDF und Modal beschreiben denselben Zeitraum",
+          ea.lower().strip() == planScope_modal(ka),
+          u"pdf=%r  modal=%r" % (ea, a.get("kicker")))
 
 print(u"")
 print((u"FEHLGESCHLAGEN: %d von %d" % (bad, ok + bad)) if bad else (u"Alle %d Pruefungen gruen." % ok))
