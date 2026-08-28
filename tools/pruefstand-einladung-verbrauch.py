@@ -36,6 +36,7 @@ def schnitt(sig, tiefe=2):
 
 
 JOIN = schnitt("  async function joinGroup(")
+MERGEPLAN = schnitt("  async function mergeOwnPlanIntoGroup(")
 
 # Sicherung gegen einen stillen Fehlschnitt (die Lehre vom 16.08.2026: ein Pruefstand, der
 # nichts sagt, hat nicht bestanden).
@@ -81,6 +82,11 @@ function noteError(k, e) { gemeldet.push(k); }
 function clearTimeout_() {}
 function smallAvatar(x) { return Promise.resolve(null); }
 function copyOwnRecipesToGroup(gid) { kopiert++; return Promise.resolve(); }
+// mergeOwnPlanIntoGroup() kommt ECHT herein (nicht gestubbt): sie ist seit dem
+// 28.08.2026 Teil des Beitrittspfads, und genau ihr Fehlen hat diesen Pruefstand
+// beim ersten echten Lauf rot gemacht (docs/TROUBLESHOOTING.md 128 und 131).
+__MERGEPLAN__
+function flattenWeek(w) { return w || {}; }
 function switchGroup(gid) { gewechselt = gid; return Promise.resolve(); }
 function withdrawPendingInvite() { return Promise.resolve(); }
 
@@ -94,8 +100,17 @@ window.CloudGroup = {
   fetchInvite: function (code) { return Promise.resolve(invite); },
   istMitglied: function (gid, uid) { return Promise.resolve(!!schonMitglied); },
   putMember: function (gid, uid, daten) { nachgetragen = { gid: gid, uid: uid }; return Promise.resolve(); },
-  joinAtomic: function (gid, uid, daten) { beigetreten = { gid: gid, uid: uid, via: daten.via }; return Promise.resolve(); }
+  joinAtomic: function (gid, uid, daten) { beigetreten = { gid: gid, uid: uid, via: daten.via }; return Promise.resolve(); },
+  // Seit dem 28.08.2026 bringt der Beitritt auch den eigenen Wochenplan mit
+  // (mergeOwnPlanIntoGroup, docs/TROUBLESHOOTING.md 128). Ohne diese beiden Attrappen wirft
+  // der Lesevorgang, joinGroup faengt es ab und meldet ueber noteError - und die Pruefung
+  // "ohne Fehlermeldung" faellt durch, obwohl der Beitritt selbst tadellos laeuft.
+  // Genau dieser Fehlschlag hat den Pruefstand am 28.08.2026 zum ersten Mal ROT gemacht:
+  // Er lief bis dahin gar nicht (Ziffer 131) und konnte deshalb auch nicht auffallen.
+  loadPlansFromServer: function (gid) { return Promise.resolve([]); },
+  savePlanWeek: function (gid, woche, patch) { planGeschrieben.push(woche); return Promise.resolve(); }
 };
+var planGeschrieben = [];
 window.CloudSync = { save: function (uid, daten) { return Promise.resolve(); } };
 var schonMitglied = false;
 
@@ -110,6 +125,7 @@ function frisch(inv, mitglied) {
   invite = inv;
   beigetreten = null; nachgetragen = null; kopiert = 0; gewechselt = null;
   toasts = []; gemeldet = [];
+  planGeschrieben = [];
 }
 var OFFEN = { gid: "g1", role: "edit", by: "paddy" };
 var BENUTZT = { gid: "g1", role: "edit", by: "paddy", used: true };
@@ -121,7 +137,10 @@ var BENUTZT = { gid: "g1", role: "edit", by: "paddy", used: true };
     pruef("ein offener Code fuehrt zum Beitritt", !!beigetreten, true);
     pruef("und der Code faehrt als via mit", beigetreten && beigetreten.via, "code1");
     pruef("die Gruppe wird gewechselt", gewechselt, "g1");
-    pruef("ohne Fehlermeldung", gemeldet.length, 0);
+    pruef("ohne Fehlermeldung", gemeldet.join(",") || 0, 0);
+    // Der Plan des Beitretenden wird nachgetragen (Ziffer 128). state.plans ist hier leer,
+    // also gibt es nichts zu schreiben - gepruefft wird, dass der Weg fehlerfrei durchlaeuft.
+    pruef("der Plan-Nachtrag laeuft ohne Fehler durch", planGeschrieben.length, 0);
 
     // ---- 2. Verbrauchter Code, noch kein Mitglied: abgewiesen ----
     frisch(BENUTZT, false);
@@ -184,5 +203,21 @@ var BENUTZT = { gid: "g1", role: "edit", by: "paddy", used: true };
 """
 
 io.open(ZIEL, "w", encoding="utf-8").write(
-    seite.replace("__JOIN_ALT__", JOIN_ALT).replace("__JOIN__", JOIN))
+    seite.replace("__JOIN_ALT__", JOIN_ALT).replace("__MERGEPLAN__", MERGEPLAN).replace("__JOIN__", JOIN))
 print("geschrieben: " + ZIEL)
+
+
+# --- Selbst fahren statt nur schreiben (28.08.2026) -------------------------------------
+# Bis dahin endete dieses Skript nach dem Schreiben der HTML-Datei mit Rueckgabewert 0.
+# tools/alle-pruefstaende.py bewertet nur den Rueckgabewert und meldete es deshalb bei jedem
+# Durchgang gruen, ohne dass je eine Zusage lief. Acht Pruefstaende waren betroffen - ein
+# Drittel der Suite (docs/TROUBLESHOOTING.md 131).
+#
+# Die Zusagen oben sind UNVERAENDERT. Der gemeinsame Laeufer haengt der erzeugten Seite nur
+# einen Beobachter an und liest ihr Protokoll aus; im Browser geoeffnet verhaelt sie sich
+# genau wie vorher.
+if __name__ == "__main__":
+    import sys as _sys
+    _sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    from pruefstand_lauf import fahren
+    _sys.exit(fahren(ZIEL))

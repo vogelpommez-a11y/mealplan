@@ -4541,6 +4541,76 @@ Stand fahren — und ohne Gegenprobe zählt in diesem Projekt kein Ergebnis.
 Beides sofort belegt: gegen `HEAD` **45 grün**, gegen den Stand vor Ziffer 128
 (`git show 30f4015:index.html`) **43 grün, 2 rot**, Rückgabewert 1.
 
+### Nachtrag am selben Abend: es war nicht einer, es waren acht
+
+Beim Bau der Reihenlauf-Prüfung stellte sich heraus, dass `pruefstand-katalog-plan.py` kein
+Einzelfall war. **Acht von 24 Prüfständen** — ein Drittel der Suite — schrieben nur eine
+HTML-Datei und endeten mit 0:
+
+| Prüfstand | Zusagen, die nie liefen |
+|---|---|
+| `pruefstand-autoplaner.py` | 158 |
+| `pruefstand-rezeptbuch.py` | 113 |
+| `pruefstand-zurueck-taste.py` | 48 |
+| `pruefstand-rezeptbuch-filter.py` | 33 |
+| `pruefstand-ziel-undefined.py` | 24 |
+| `pruefstand-gruppenlimit.py` | 23 |
+| `pruefstand-gruppe-aufloesen.py` | 19 |
+| `pruefstand-einladung-verbrauch.py` | 18 |
+
+Zusammen **436 Prüfungen**, die der Reihenlauf bei jedem Durchgang als grün meldete, ohne
+dass eine einzige davon ausgeführt wurde. Darunter die drei Gruppen-Prüfstände — also genau
+der Bereich, in dem die Ziffern 125 bis 132 entstanden sind.
+
+**Und einer war rot.** `pruefstand-einladung-verbrauch.py` fiel beim allerersten echten Lauf
+durch: `joinGroup()` ruft seit Ziffer 128 `mergeOwnPlanIntoGroup()`, die Funktion war aber
+nicht mit ausgeschnitten — der Aufruf lief in einen `ReferenceError`, den das `catch` in
+`joinGroup()` als `group:joinMergePlan` meldete. Die Zusage „ein Beitritt läuft ohne
+Fehlermeldung durch" war damit verletzt.
+
+Behoben, indem `mergeOwnPlanIntoGroup()` jetzt **echt** mitgeschnitten wird (nicht gestubbt —
+sie ist Teil des Beitrittspfads) und die `CloudGroup`-Attrappe `loadPlansFromServer` und
+`savePlanWeek` kennt. 18 grün.
+
+**Das ist der Beleg dafür, dass es kein theoretisches Problem war.** Ein Prüfstand, der nicht
+läuft, ist nicht nur nutzlos — er verdeckt aktiv einen Fehler, den er gefunden hätte.
+
+### Wie es behoben ist
+
+**Kein Umbau der acht.** Sie teilen dieselbe Bauart: ein `<div id="log">`, in das `pruef()`
+Zeilen schreibt. `tools/pruefstand_lauf.py` hängt der **erzeugten** Seite einen Beobachter an
+(an eine Kopie im Temp-Verzeichnis, nie an die Datei im Repo), wartet, bis das Protokoll
+steht, schiebt es auf die Konsole und zählt `OK`/`FEHL` selbst nach. Jeder der acht bekam
+lediglich vier Zeilen ans Ende:
+
+```python
+if __name__ == "__main__":
+    import sys as _sys
+    _sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    from pruefstand_lauf import fahren
+    _sys.exit(fahren(OUT))
+```
+
+Acht Dateien umzubauen hieße acht Gelegenheiten, versehentlich eine Zusage zu verändern. Im
+Browser geöffnet verhalten sie sich unverändert.
+
+Der Beobachter hat **zwei** Abbruchbedingungen, und die zweite ist die wichtigere: eine
+erkennbare Schlusszeile — oder das Protokoll hat sich 1,5 s nicht mehr verändert. Ohne die
+zweite hinge ein Prüfstand mit abweichender Schlusszeile bis zur Zeitgrenze, und das sähe aus
+wie ein Befund, obwohl nur das Muster nicht passt.
+
+### Das Netz darunter: `alle-pruefstaende.py` verlangt einen Beleg
+
+Damit dasselbe beim **nächsten** Prüfstand nicht wieder passiert, reicht Rückgabewert 0 nicht
+mehr. Der Reihenlauf verlangt eine Zeile, die ein Ergebnis benennt (`BELEG_MUSTER`); fehlt
+sie, meldet er `OHNE BELEG` und zählt den Prüfstand als **auffällig**, nicht als grün.
+
+Bewusst eine **weiße** Liste und keine schwarze: Ein neuer Prüfstand, der nichts belegt, soll
+auffallen — nicht durchrutschen, weil noch niemand sein Muster eingetragen hat.
+
+Gegenprobe gefahren: Ein Skript, das nur `print("geschrieben: irgendwas.html")` tut, wird
+sofort als `OHNE BELEG` gemeldet.
+
 ### Die Regel dahinter
 
 > **Ein Prüfstand, dessen Rückgabewert nicht vom Prüfergebnis abhängt, ist kein Prüfstand.**
@@ -4550,9 +4620,9 @@ Der Prüfpunkt für jeden künftigen: *Kann dieses Skript überhaupt rot werden?
 Antwort nein, misst der Reihenlauf an dieser Stelle nichts — und niemand sieht es, weil grün
 wie grün aussieht.
 
-**Für den Reihenlauf folgt daraus eine offene Frage** (nicht in diesem Zug behoben): Er könnte
-verlangen, dass jeder Prüfstand eine `ERGEBNIS`-Zeile ausgibt, und einen ohne sie als
-`auffaellig` melden statt als grün. Heute ist „Rückgabewert 0" das einzige Kriterium.
+Der Prüfpunkt für jeden künftigen: *Kann dieses Skript überhaupt rot werden?* Lautet die
+Antwort nein, misst der Reihenlauf an dieser Stelle nichts — und niemand sieht es, weil grün
+wie grün aussieht. Seit diesem Zug prüft `alle-pruefstaende.py` genau das (siehe Nachtrag).
 
 ## 132. „Mengen × Mitglieder: Aus" galt nur für die Hälfte der Rechnung
 

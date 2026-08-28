@@ -2982,7 +2982,19 @@ gegen `HEAD` 45 grün, gegen `30f4015` 43 grün / 2 rot.
 > **Ein Prüfstand, dessen Rückgabewert nicht vom Prüfergebnis abhängt, ist kein Prüfstand.**
 > Die Frage an jeden neuen lautet: *Kann dieses Skript überhaupt rot werden?*
 
-**Offen geblieben:** Der Reihenlauf könnte verlangen, dass jeder Prüfstand eine
-`ERGEBNIS`-Zeile ausgibt, und einen ohne sie als `auffaellig` melden statt als grün. Heute ist
-der Rückgabewert das einzige Kriterium — derselbe blinde Fleck bliebe bei einem künftigen
-Skript bestehen.
+**Es waren nicht einer, sondern acht.** Beim Bau der Reihenlauf-Prüfung kamen sieben weitere
+Blindgänger heraus — zusammen **436 Zusagen**, die nie liefen, darunter alle drei
+Gruppen-Prüfstände. Behoben über `tools/pruefstand_lauf.py`: Der gemeinsame Läufer hängt der
+**erzeugten** Seite einen Beobachter an und liest ihr `#log` aus; die acht Prüfstände selbst
+bleiben unangetastet (acht Umbauten wären acht Gelegenheiten, eine Zusage zu verändern).
+
+**Einer war sofort rot.** `pruefstand-einladung-verbrauch.py` fiel beim ersten echten Lauf
+durch — `mergeOwnPlanIntoGroup()` war nicht mitgeschnitten, der Aufruf lief in einen
+`ReferenceError`. Ein Prüfstand, der nicht läuft, ist also nicht nur nutzlos: Er verdeckt
+aktiv einen Fehler, den er gefunden hätte.
+
+**Und das Netz darunter:** `alle-pruefstaende.py` verlangt jetzt eine Zeile, die ein Ergebnis
+benennt (`BELEG_MUSTER`). Fehlt sie, meldet er `OHNE BELEG` und zählt den Prüfstand als
+*auffällig* statt als grün — eine weiße Liste, damit ein neuer Prüfstand auffällt statt
+durchzurutschen. Gegenprobe gefahren: Ein Skript, das nur `print("geschrieben: ...")` tut,
+wird sofort gemeldet.

@@ -228,3 +228,19 @@ seite = (seite.replace("__CODES__", CODES)
               .replace("__LEAVE__", LEAVE))
 io.open(ZIEL, "w", encoding="utf-8").write(seite)
 print("geschrieben: " + ZIEL)
+
+
+# --- Selbst fahren statt nur schreiben (28.08.2026) -------------------------------------
+# Bis dahin endete dieses Skript nach dem Schreiben der HTML-Datei mit Rueckgabewert 0.
+# tools/alle-pruefstaende.py bewertet nur den Rueckgabewert und meldete es deshalb bei jedem
+# Durchgang gruen, ohne dass je eine Zusage lief. Acht Pruefstaende waren betroffen - ein
+# Drittel der Suite (docs/TROUBLESHOOTING.md 131).
+#
+# Die Zusagen oben sind UNVERAENDERT. Der gemeinsame Laeufer haengt der erzeugten Seite nur
+# einen Beobachter an und liest ihr Protokoll aus; im Browser geoeffnet verhaelt sie sich
+# genau wie vorher.
+if __name__ == "__main__":
+    import sys as _sys
+    _sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    from pruefstand_lauf import fahren
+    _sys.exit(fahren(ZIEL))

@@ -37,6 +37,7 @@ Aufruf:
 """
 import glob
 import os
+import re
 import subprocess
 import sys
 import time
@@ -47,6 +48,38 @@ os.chdir(WURZEL)
 # Pruefstaende, die heute mit Absicht rot sind (Rueckgabewert != 0).
 ROT_ERWARTET = {
 }
+
+# --- Belegzwang: hat der Pruefstand ueberhaupt etwas geprueft? (28.08.2026) -------------
+#
+# Der Rueckgabewert allein reicht nicht. Drei Pruefstaende (katalog-plan, ziel-undefined,
+# zurueck-taste) ERZEUGTEN nur eine HTML-Datei, gaben "geschrieben: ..." aus und endeten mit
+# 0 - ihre Zusagen liefen ausschliesslich, wenn ein Mensch die Datei im Browser oeffnete.
+# Dieser Reihenlauf meldete sie trotzdem bei jedem Durchgang gruen. Aufgefallen ist es erst,
+# als eine ihrer Erwartungen durch eine Aenderung falsch wurde und niemand rot sah
+# (docs/TROUBLESHOOTING.md 131).
+#
+# Deshalb muss jeder Lauf eine SCHLUSSZEILE hinterlassen, die ein Ergebnis benennt. Die
+# Muster unten decken die gewachsenen Schreibweisen ab; wer einen neuen Pruefstand baut,
+# nimmt am besten "ERGEBNIS n gruen, m rot".
+#
+# Bewusst eine WEISSE Liste und keine schwarze: Ein neuer Pruefstand, der nichts belegt,
+# soll auffallen - nicht durchrutschen, weil noch niemand sein Muster eingetragen hat.
+BELEG_MUSTER = [
+    r"^ERGEBNIS\b",                   # ERGEBNIS 20 gruen, 0 rot  /  ERGEBNIS REGRESSION ...
+    r"^ALLE\b.*\b(GRUEN|ERWARTET)",   # ALLE 45 PRUEFUNGEN GRUEN  /  ALLE 3 MESSUNGEN WIE ERWARTET
+    r"^Alle \d+ Pruefungen gruen",    # Alle 49 Pruefungen gruen.
+    r"^FEHLGESCHLAGEN\b",             # der rote Fall - auch das ist ein Beleg
+]
+
+
+def hat_beleg(ausgabe):
+    u"""Steht in der Ausgabe irgendwo eine Zeile, die ein Ergebnis benennt?"""
+    for zeile in (ausgabe or "").splitlines():
+        z = zeile.strip()
+        for muster in BELEG_MUSTER:
+            if re.search(muster, z):
+                return True
+    return False
 
 # ACHTUNG, DER RUECKGABEWERT ERZAEHLT NICHT IMMER DIE GANZE WAHRHEIT.
 #
@@ -124,6 +157,12 @@ def main():
             else:
                 print("ROT  (%.0fs)" % dauer)
                 rot.append((name, lauf.stdout.strip().splitlines()[-6:]))
+        elif code == 0 and not hat_beleg(lauf.stdout):
+            # Rueckgabewert 0, aber keine Zeile, die ein Ergebnis benennt. Das ist genau der
+            # Fall, der jahrelang unbemerkt blieb - nicht als gruen durchwinken.
+            print("OHNE BELEG  (%.0fs)" % dauer)
+            kaputt.append((name, "Rueckgabewert 0, aber keine Ergebniszeile - prueft dieses "
+                                 "Skript ueberhaupt etwas? (docs/TROUBLESHOOTING.md 131)"))
         elif code == 0:
             print("gruen  (%.0fs)" % dauer)
             gruen.append(name)
