@@ -257,6 +257,13 @@ Das Gruppendokument selbst trägt `status: "pending" | "active"` (rein informati
 
 ### Firestore-Offline-Cache
 
+**Beim Kontowechsel wird er geleert** (`kontoWechselAufraeumen()`, 29.08.2026). Der Cache liegt
+pro **Ursprung**, nicht pro Konto — ein zweites Konto auf demselben Gerät trifft also auf den
+Cache des ersten. Genau dort war der Zustand aus `docs/TROUBLESHOOTING.md` 134 messbar, in dem
+jeder Zugriff dauerhaft `permission-denied` liefert. Reihenfolge zwingend: **merken, wischen,
+neu laden** — umgekehrt entstünde eine Neulade-Schleife. Als Ausweg von Hand gibt es zusätzlich
+„Einstellungen → Cloud-Verbindung zurücksetzen".
+
 `db` wird über `initializeFirestore(app, { localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }) })` initialisiert, nicht mehr über das flüchtige `getFirestore(app)`. Der Cache spiegelt Wochenplan, Meals und Gruppendaten in IndexedDB, damit die App nach einem Kaltstart ohne Netz nutzbar bleibt (Wochenplan im Supermarkt, Einkaufsliste im Keller). Der Multi-Tab-Manager ist Pflicht — ohne ihn schaltet ein zweiter geöffneter Tab die Persistenz für beide Tabs stillschweigend ab.
 
 Die Initialisierung sitzt in einem eigenen `try/catch` mit Fallback auf `getFirestore(app)`: sie steckt mitten im großen `try`-Block, dessen `catch` `cloudauth:disabled` wirft und damit die **gesamte** Cloud-Anmeldung deaktiviert (siehe „Graceful Fallback" oben). Scheitert die Persistenz allein (Privatmodus ohne IndexedDB, exotische WebView), darf das nicht die ganze Cloud kosten — Persistenz ist ein Komfortgewinn, keine Voraussetzung.

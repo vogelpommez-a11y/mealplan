@@ -144,7 +144,7 @@ jeweils, worum es geht. **Nicht die ganze Datei lesen** — sie ist ueber 200 KB
 | 130 | Ein Gericht, das niemandem gehörte — und ein leeres Array, das `true` ist |
 | 131 | Ein Prüfstand, der immer grün meldete, weil er nie lief |
 | 132 | „Mengen × Mitglieder: Aus“ galt nur für die Hälfte der Rechnung |
-| 133 | Wer aus einer Gruppe entfernt wird, bleibt für immer daran hängen (offen) |
+| 133 | Wer aus einer Gruppe entfernt wird, bleibt für immer daran hängen |
 | 134 | Der vergiftete Offline-Cache — Ursache der `permission-denied`-Phasen |
 
 <!-- REGISTER-ENDE -->
@@ -4741,7 +4741,7 @@ also wird die alte Rechnung im Lauf selbst nachgebildet.
 
 ## 133. Wer aus einer Gruppe entfernt wird, bleibt für immer daran hängen
 
-**Datum:** 28.08.2026 · **Betrifft:** `enterGroupSync()`, `CloudGroup.fetch()` · **NICHT behoben**
+**Datum:** 28.08.2026 · **Betrifft:** `enterGroupSync()`, `CloudGroup.fetch()`
 
 ### Der Befund
 
@@ -4794,8 +4794,21 @@ Drei Wege, alle drei sind Produktentscheidungen und deshalb hier nur benannt:
 3. **Die Ursache der falschen `permission-denied` finden.** Dann trägt Weg 1 oder 2 von
    selbst, und die einfache Auswertung wäre wieder vertretbar.
 
-Bis dahin bleibt der Zustand bestehen — bewusst, und hier dokumentiert, damit er nicht als
-Rätsel wiederkehrt.
+### Behoben über Weg 1 (29.08.2026)
+
+Der Gruppen-Dialog zeigt in genau dieser Lage — Zeiger gesetzt, aber keine laufende
+Gruppensitzung (`!syncGid && state.groupId`) — eine Zeile: **„Diese Gruppe ist nicht
+erreichbar."** mit dem Knopf **„Verbindung lösen"**.
+
+Bewusst Weg 1 und nicht Weg 2 oder 3: Der Nutzer entscheidet, nicht der Client. Er sieht ja,
+dass es nicht mehr geht — und ein Fehlurteil des Clients könnte die Gruppe auf **allen**
+Geräten kosten, weil `pushNow()` das leere `groupId` hochschriebe. Solange derselbe Fehlercode
+auch fälschlich auftreten kann (Ziffer 134), darf keine Automatik daraus eine Löschung machen.
+
+**Kein `leaveGroup()`.** Das schriebe Meals und Plan zurück und wollte eine Mitgliedschaft
+beenden, die es nicht mehr gibt. Geräumt wird nur der Zeiger — lokal **und** in der Cloud,
+denn `wantGid = remote.groupId || state.groupId` holte ihn sonst beim nächsten Start zurück
+(„Selbstheilung des Zeigers“). Der eigene Bestand bleibt unangetastet.
 
 ### Wie man ein betroffenes Konto heute löst
 
@@ -4898,9 +4911,34 @@ lesbar, **null Fehler im Protokoll**.
 
 Prüfstand: `tools/pruefstand-cache-reset.py`, 23 Prüfungen.
 
-**Offen bleibt die Ursache.** Der Knopf behebt den Zustand, er verhindert ihn nicht. Weg 2 aus
-der Liste oben — den Cache beim Kontowechsel automatisch leeren — steht weiterhin zur
-Entscheidung an, und er wäre die eigentliche Behebung.
+### Die Ursache ist jetzt behandelt, nicht nur das Symptom (29.08.2026)
+
+`kontoWechselAufraeumen(uid)` in `handleCloudUser()`: Meldet sich auf demselben Gerät ein
+**anderes** Konto an, wird der Firestore-Zwischenspeicher geleert und die Seite neu geladen —
+**bevor** irgendetwas synchronisiert.
+
+Die Reihenfolge ist der ganze Trick und nicht verhandelbar:
+
+1. neue UID **merken** (`localStorage`, synchron)
+2. Cache leeren
+3. neu laden
+
+Nach dem Neuladen stimmt die gemerkte UID mit der angemeldeten überein — es wird also **nicht
+erneut** gewischt. Stünde das Merken hinter dem Wischen, entstünde eine Neulade-Schleife, und
+die App startete überhaupt nicht mehr. Der Prüfstand baut genau diese falsche Reihenfolge als
+Gegenprobe nach und verlangt, dass sie in die Schleife läuft.
+
+Drei Fälle, in denen bewusst **nichts** passiert: Erstanmeldung auf dem Gerät (es gibt keinen
+fremden Cache), dasselbe Konto (kein Wechsel), und ein Modul ohne `wipeCache()` (älterer Stand
+aus dem Service-Worker-Cache). Scheitert das Wischen — meist ein zweiter offener Tab —, hält
+es die Anmeldung nicht auf: Die App startet normal, der Fehler landet im Protokoll, und der
+Knopf aus den Einstellungen bleibt als Ausweg.
+
+**Bewiesen ist der Zusammenhang weiterhin nicht.** Der Kontowechsel deckt alle Beobachtungen,
+mehr nicht. Sollte der Zustand ohne Kontowechsel wiederkehren, ist diese Behandlung wirkungslos
+und die Suche geht weiter — der Knopf aus den Einstellungen trägt dann immer noch.
+
+Prüfstand: `tools/pruefstand-kontowechsel.py`, 22 Prüfungen.
 
 ### Eine Beobachtung, die kein Befund ist
 

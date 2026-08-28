@@ -13542,6 +13542,48 @@
     cloudSignalled = true; authMode = "local";
     if (!profile) renderAuthLocal(); else enterApp();
   }
+  // ---------- Kontowechsel auf demselben Geraet ----------
+  // Die Ursache von docs/TROUBLESHOOTING.md 134, nicht nur ihr Symptom.
+  //
+  // Der Firestore-Zwischenspeicher liegt pro URSPRUNG, nicht pro Konto. Meldet sich auf
+  // demselben Geraet ein anderes Konto an, trifft es auf den Cache des vorigen - und genau
+  // dort war am 28.08.2026 der Zustand messbar, in dem JEDER Zugriff `permission-denied`
+  // liefert, dauerhaft, ohne Erholung. Die Produktionsdomain, auf der nie gewechselt wurde,
+  // blieb gesund.
+  //
+  // Bewiesen ist der Zusammenhang damit nicht - er deckt aber alle Beobachtungen, und ein
+  // geleerter Cache kostet nichts ausser einem Neuladen: Meals, Plan und Konto liegen in der
+  // Cloud, der Cache ist nur ihre Spiegelung.
+  //
+  // Die Reihenfolge ist der ganze Trick und nicht verhandelbar:
+  //   1. neue UID MERKEN (localStorage, synchron)
+  //   2. Cache leeren
+  //   3. neu laden
+  // Nach dem Neuladen stimmt die gemerkte UID mit der angemeldeten ueberein, es wird also
+  // NICHT erneut gewischt. Stuende das Merken hinter dem Wischen, entstuende eine
+  // Neulade-Schleife - der teuerste denkbare Fehler an dieser Stelle.
+  const LETZTE_UID_KEY = localKey("wochenkueche_lastuid_v1");
+  function kontoWechselAufraeumen(uid) {
+    let vorige = null;
+    try { vorige = localStorage.getItem(LETZTE_UID_KEY); } catch (e) { return false; }
+    try { localStorage.setItem(LETZTE_UID_KEY, uid); } catch (e) { noteError("store:lastUid", e); return false; }
+    // Erstanmeldung auf diesem Geraet ist KEIN Wechsel: Es gibt keinen fremden Cache, und ein
+    // Neuladen beim allerersten Login waere ein unerklaerlicher Ruckler.
+    if (!vorige || vorige === uid) return false;
+    if (!(window.CloudSync && window.CloudSync.wipeCache)) return false;
+    window.CloudSync.wipeCache()
+      .then(() => location.reload())
+      .catch(e => {
+        // Scheitert meist an einem zweiten offenen Tab (clearIndexedDbPersistence verlangt,
+        // dass sonst keine Instanz laeuft). Kein Grund, die Anmeldung aufzuhalten - die App
+        // startet normal weiter, und im schlechtesten Fall bleibt der Knopf in den
+        // Einstellungen ("Cloud-Verbindung zuruecksetzen", Ziffer 134).
+        noteError("cloud:wipeOnSwitch", e);
+        enterApp();
+        startCloudSync(uid);
+      });
+    return true;
+  }
   function handleCloudUser(user) {
     cloudSignalled = true; authMode = "cloud";
     if (user && user.emailVerified) {
@@ -13550,6 +13592,10 @@
         email: user.email || "", uid: user.uid, cloud: true
       };
       saveProfile(); rememberLast();
+      // Kontowechsel auf DIESEM Geraet? Dann den Firestore-Zwischenspeicher leeren, bevor
+      // irgendetwas synchronisiert - siehe kontoWechselAufraeumen(). Gibt true zurueck, wenn
+      // ein Neuladen laeuft; dann ist hier Schluss, die Seite kommt gleich frisch wieder.
+      if (kontoWechselAufraeumen(user.uid)) return;
       enterApp();
       startCloudSync(user.uid);
     } else if (user && !user.emailVerified) {
@@ -16428,8 +16474,26 @@
       const invite = isPro()
         ? `<button class="btn primary" id="grp-invite-start" style="width:100%">Person einladen</button>`
         : `<p class="share-mini" style="margin:0 0 8px"><b>Einladen gehört zu Pro.</b> Eingeladen werden kannst du jederzeit – Pro braucht nur, wer die Gruppe gründet.</p>`;
+      // Ausweg aus einer Gruppe, die nicht mehr erreichbar ist (docs/TROUBLESHOOTING.md 133).
+      //
+      // Wer aus einer Gruppe ENTFERNT wird, behaelt den Zeiger: CloudGroup.fetch() wirft fuer
+      // ein Nichtmitglied `permission-denied`, enterGroupSync() macht daraus "error" statt
+      // "gone" - und "error" heisst ausdruecklich "wir wissen es nicht", laesst den Zeiger
+      // also stehen. Bei jedem Start dieselbe Meldung, ohne Ausweg.
+      //
+      // Automatisch raeumen waere gefaehrlich: Genau dieser Fehlercode kam am 28.08.2026 auch
+      // FAELSCHLICH (Ziffer 134), und ein Fehlurteil kostete die Gruppe auf allen Geraeten.
+      // Deshalb entscheidet der Nutzer - er sieht ja, dass es nicht mehr geht.
+      //
+      // Sichtbar nur in genau dieser Lage: Zeiger gesetzt, aber keine laufende Gruppensitzung.
+      const haengt = !syncGid && !!state.groupId;
+      const loesen = haengt ? `
+        <p class="share-mini" style="margin:0 0 8px"><b>Diese Gruppe ist nicht erreichbar.</b>
+        Vielleicht wurde sie aufgelöst oder du bist nicht mehr dabei.</p>
+        <button class="btn ghost" id="grp-loesen" style="width:100%;margin-bottom:8px">Verbindung lösen</button>` : "";
       return `
         <p class="share-hint">Plant euren Wochenplan gemeinsam – einer trägt ein, alle sehen es sofort. Kalorienziel und Gewicht bleiben privat.</p>
+        ${loesen}
         ${invite}
         <button class="btn ghost" id="grp-scan-start" style="width:100%;margin-top:8px">Einladung scannen</button>
         <details class="grp-note">
@@ -16544,6 +16608,29 @@
 
       // Zustand A: "Person einladen" bereitet die Gruppe vor (Wartezustand) und springt
       // direkt zu Zustand B - der Nutzer muss dafuer nichts auswaehlen.
+      // "Verbindung loesen": nur den Zeiger raeumen, sonst nichts. KEIN leaveGroup() -
+      // das schriebe Meals und Plan zurueck und wuerde die Mitgliedschaft beenden wollen,
+      // die es hier gar nicht mehr gibt. Der eigene Bestand bleibt unangetastet.
+      const loesenBtn = body.querySelector("#grp-loesen");
+      if (loesenBtn) loesenBtn.addEventListener("click", () => {
+        confirmModal({
+          title: "Verbindung lösen?",
+          bodyHtml: `<p style="margin:0">Diese Gruppe wird nicht mehr geladen. Deine Meals und dein
+            Wochenplan bleiben, wie sie sind – du planst danach wieder für dich.</p>`,
+          okLabel: "Lösen",
+          onConfirm: async () => {
+            state.groupId = "";
+            save();
+            // Auch in der Cloud raeumen, sonst holt der naechste Start den Zeiger von dort
+            // zurueck (wantGid = remote.groupId || state.groupId, siehe Selbstheilung).
+            try { await window.CloudSync.save(syncUid, { groupId: "" }); }
+            catch (e) { noteError("group:loesen", e); }
+            closeModal();
+            toast("Verbindung gelöst – du planst wieder für dich");
+            render();
+          }
+        });
+      });
       const inviteStart = body.querySelector("#grp-invite-start");
       if (inviteStart) inviteStart.addEventListener("click", async () => {
         inviteStart.disabled = true; inviteStart.textContent = "Wird vorbereitet …";

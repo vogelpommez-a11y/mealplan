@@ -16,7 +16,7 @@ Die primäre Verifikation erfolgt deshalb über den Browser und gezielte isolier
 
 <!-- REGISTER-ANFANG (erzeugt aus den Ueberschriften, nicht von Hand pflegen) -->
 
-**Register — 44.** Vorne (0 bis 9) die geltenden Verfahren: Syntax-Check,
+**Register — 45.** Vorne (0 bis 9) die geltenden Verfahren: Syntax-Check,
 Smoke-Test, Ausschneide-Pruefstand, Sync-Tests. Dahinter das datierte Fallarchiv —
 einzelne Pruefstaende und was ihre Gegenprobe gezeigt hat.
 
@@ -70,6 +70,7 @@ Die Verfahren gibt es auch als Skill: `/smoke`, `/pruefstand`, `/abnahme`, `/dep
 | · | `tools/pruefstand-einkauf-gruppe.py` — die Lücke im Nachbarprüfstand (28.08.2026) |
 | · | Ein Prüfstand, der nie lief: `pruefstand-katalog-plan.py` (28.08.2026) |
 | · | `tools/pruefstand-cache-reset.py` — was NICHT passieren darf (29.08.2026) |
+| · | `tools/pruefstand-kontowechsel.py` — eine Gegenprobe, die in die Schleife läuft (29.08.2026) |
 
 <!-- REGISTER-ENDE -->
 
@@ -3026,3 +3027,24 @@ gewickelt wird; dort verdeckt `let location` den globalen Namen sauber.
 > **Ein hängender Prüfstand ist nicht automatisch ein Befund — aber auch nicht automatisch
 > ein kaputter Prüfstand.** Hier war es weder: Es war eine Attrappe, die einen
 > schreibgeschützten Namen überschreiben wollte.
+
+
+## `tools/pruefstand-kontowechsel.py` — eine Gegenprobe, die in die Schleife läuft (29.08.2026)
+
+Gehört zu `docs/TROUBLESHOOTING.md` 134. Geprüft wird **nicht**, dass beim Kontowechsel der
+Cache geleert wird — das ist die leichte Hälfte. Die Messgröße steht in Abschnitt 4:
+
+    nach dem Neuladen wird NICHT ERNEUT gewischt
+
+Denn die Reihenfolge entscheidet über alles: merken, wischen, neu laden. Stünde das Merken
+hinter dem Wischen, käme die Seite mit der alten gemerkten UID zurück, würde erneut wischen,
+erneut neu laden — und die App startete nie wieder.
+
+Abschnitt 8 baut genau diese falsche Reihenfolge nach und verlangt, dass sie **fünf Runden
+lang** weiterläuft, während die richtige Fassung nach dem ersten Neuladen ruhig bleibt. Das
+ist die seltene Gegenprobe, die einen Fehler nicht als falsches Ergebnis zeigt, sondern als
+**Nichtterminierung** — und deshalb im Prüfstand nachgebildet statt live provoziert.
+
+Dazu die Fälle, in denen nichts passieren darf (Erstanmeldung, dasselbe Konto, Modul ohne
+`wipeCache`) und der Fehlschlag: Scheitert das Wischen, muss die Anmeldung trotzdem
+durchlaufen — sonst sperrte ein zweiter offener Tab den Nutzer aus seiner eigenen App aus.
