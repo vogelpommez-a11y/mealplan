@@ -14996,6 +14996,48 @@
   }
 
   // ---------- Einstellungen ----------
+  // Der Ausweg aus dem vergifteten Offline-Cache (docs/TROUBLESHOOTING.md 134).
+  //
+  // Der Zustand ist nicht theoretisch: Am 28.08.2026 lieferte die Firestore-Instanz ueber
+  // Stunden `permission-denied` auf JEDEN Zugriff - bei gueltiger Anmeldung und intakten
+  // Regeln. Ein Neuladen half nicht, ein Token-Neubezug half nicht, `disableNetwork`/
+  // `enableNetwork` half nicht. `wipeCache()` half sofort und vollstaendig.
+  //
+  // Praktisch am teuersten: In diesem Zustand laesst sich kein Einladungslink oeffnen -
+  // `openInviteModal()` laeuft beim App-Start, also genau im betroffenen Fenster. Wer
+  // eingeladen wird, kommt nicht herein und liest nur "Die Einladung konnte nicht geladen
+  // werden."
+  //
+  // Die Reparatur gab es also laengst; sie hing nur hinter "Konto loeschen". Genau das ist
+  // die Luecke, die diese Zeile schliesst - eine Reparatur ohne Weg dorthin ist keine.
+  function cloudResetVerfuegbar() {
+    return authMode === "cloud" && !!(window.CloudSync && window.CloudSync.wipeCache);
+  }
+  // Bewusst MIT Rueckfrage: wipeCache() verwirft den lokalen Firestore-Zwischenspeicher und
+  // damit auch Schreibvorgaenge, die noch nicht beim Server angekommen sind. Das ist selten
+  // und meist genau der Muell, der den Zustand verursacht hat - aber es ist nicht nichts.
+  function resetCloudCache() {
+    confirmModal({
+      title: "Cloud-Verbindung zurücksetzen?",
+      bodyHtml: `<p style="margin:0">Der lokale Zwischenspeicher wird geleert und die Seite neu geladen.
+        Deine Meals und dein Wochenplan bleiben – die liegen in deiner Cloud.</p>
+        <p style="margin:10px 0 0">Änderungen, die noch nicht angekommen sind, gehen dabei verloren.</p>`,
+      okLabel: "Zurücksetzen",
+      onConfirm: async () => {
+        try {
+          await window.CloudSync.wipeCache();
+          // Nach terminate() ist die db-Instanz tot - ab hier fuehrt nur noch ein Neuladen
+          // weiter (siehe wipeCache()). Kein Toast davor: er waere im selben Atemzug weg.
+          location.reload();
+        } catch (e) {
+          noteError("cloud:wipeCache", e);
+          // Der haeufigste Grund ist kein Fehler, sondern ein zweiter Tab:
+          // clearIndexedDbPersistence() verlangt, dass sonst keine Instanz laeuft.
+          toast("Das klappt nur, wenn die App sonst nirgends offen ist – schließ die anderen Tabs.");
+        }
+      }
+    });
+  }
   function openSettings() {
     const th = getTheme();
     const thBtn = (v, label) => `<button type="button" role="radio" data-th="${v}" aria-checked="${th === v}" tabindex="${th === v ? 0 : -1}"${th === v ? ' class="on"' : ""}>${label}</button>`;
@@ -15004,6 +15046,7 @@
       <div class="modal-body">
         <div class="setlist">
           <button type="button" class="setrow" data-si="profile"><span><b>Profil bearbeiten</b><small>Name und E-Mail</small></span></button>
+          ${cloudResetVerfuegbar() ? `<button type="button" class="setrow" data-si="wipecache"><span><b>Cloud-Verbindung zurücksetzen</b><small>Hilft, wenn nichts mehr synchronisiert</small></span></button>` : ""}
           <div class="setpick">
             <b id="setth-l">Erscheinungsbild</b>
             <div class="seg" data-thgrp role="radiogroup" aria-labelledby="setth-l">${thBtn("light", "Hell")}${thBtn("dark", "Dunkel")}${thBtn("system", "System")}</div>
@@ -15041,6 +15084,7 @@
       const k = b.dataset.si;
       closeModal();
       if (k === "profile") openProfileForm();
+      else if (k === "wipecache") resetCloudCache();
     }));
     openModal(node);
   }

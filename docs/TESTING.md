@@ -16,7 +16,7 @@ Die primäre Verifikation erfolgt deshalb über den Browser und gezielte isolier
 
 <!-- REGISTER-ANFANG (erzeugt aus den Ueberschriften, nicht von Hand pflegen) -->
 
-**Register — 43.** Vorne (0 bis 9) die geltenden Verfahren: Syntax-Check,
+**Register — 44.** Vorne (0 bis 9) die geltenden Verfahren: Syntax-Check,
 Smoke-Test, Ausschneide-Pruefstand, Sync-Tests. Dahinter das datierte Fallarchiv —
 einzelne Pruefstaende und was ihre Gegenprobe gezeigt hat.
 
@@ -69,6 +69,7 @@ Die Verfahren gibt es auch als Skill: `/smoke`, `/pruefstand`, `/abnahme`, `/dep
 | · | `tools/pruefstand-waise-uids.py` — die Folge messen, nicht die Datenform (28.08.2026) |
 | · | `tools/pruefstand-einkauf-gruppe.py` — die Lücke im Nachbarprüfstand (28.08.2026) |
 | · | Ein Prüfstand, der nie lief: `pruefstand-katalog-plan.py` (28.08.2026) |
+| · | `tools/pruefstand-cache-reset.py` — was NICHT passieren darf (29.08.2026) |
 
 <!-- REGISTER-ENDE -->
 
@@ -2998,3 +2999,30 @@ benennt (`BELEG_MUSTER`). Fehlt sie, meldet er `OHNE BELEG` und zählt den Prüf
 *auffällig* statt als grün — eine weiße Liste, damit ein neuer Prüfstand auffällt statt
 durchzurutschen. Gegenprobe gefahren: Ein Skript, das nur `print("geschrieben: ...")` tut,
 wird sofort gemeldet.
+
+
+## `tools/pruefstand-cache-reset.py` — was NICHT passieren darf (29.08.2026)
+
+Gehört zu `docs/TROUBLESHOOTING.md` 134. Der Knopf „Cloud-Verbindung zurücksetzen“ ruft eine
+Funktion auf, die es längst gab. Zu prüfen ist deshalb nicht, **dass** gewischt wird, sondern
+die drei Eigenschaften, an denen so ein Knopf scheitert:
+
+1. **Er ist da, wenn er gebraucht wird — und nur dann.** Kein Cloud-Konto, kein `wipeCache()`
+   im Modul (älterer Stand aus dem Service-Worker-Cache), gar kein `CloudSync`: keine Zeile,
+   kein Absturz.
+2. **Er fragt vorher**, und der Text nennt beides — was bleibt und was verloren geht.
+3. **Scheitert das Wischen, wird NICHT neu geladen.** Abschnitt 5, und der eigentliche Grund
+   für diesen Prüfstand: Der häufigste Fehlschlag ist kein Fehler, sondern ein zweiter offener
+   Tab. Würde trotzdem neu geladen, sähe der Nutzer denselben kaputten Zustand wieder.
+
+### Der Prüfstand hing zuerst — und der Grund gehört ins Archiv
+
+Die Attrappe setzte `var location = { reload: ... }` auf oberster Ebene. **Im Browser ist
+`location` global schreibgeschützt**: Die Zuweisung greift nicht, der ausgeschnittene Code rief
+den ECHTEN `location.reload()` — und der Prüfstand lud sich selbst in einer Endlosschleife neu,
+bis die Zeitgrenze zuschlug. Behoben, indem die ganze Seite in einen Funktionsbereich
+gewickelt wird; dort verdeckt `let location` den globalen Namen sauber.
+
+> **Ein hängender Prüfstand ist nicht automatisch ein Befund — aber auch nicht automatisch
+> ein kaputter Prüfstand.** Hier war es weder: Es war eine Attrappe, die einen
+> schreibgeschützten Namen überschreiben wollte.

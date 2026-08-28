@@ -4851,8 +4851,9 @@ nichts an der Meldung deutet darauf hin, dass ein Cache das Problem ist.
 Datenschutzerklärung gebaut. Es behebt diesen Zustand **sofort und vollständig**, ist aber nur
 über die Konto-Löschung erreichbar. Es gibt keinen Knopf „Cloud-Verbindung zurücksetzen".
 
-Das ist die eigentliche Lücke: **Für einen Zustand, der die App unbrauchbar macht und den ein
-Neuladen nicht heilt, existiert die Reparatur bereits — nur ohne Weg dorthin.**
+Das war die eigentliche Lücke: **Für einen Zustand, der die App unbrauchbar macht und den ein
+Neuladen nicht heilt, existierte die Reparatur bereits — nur ohne Weg dorthin.** Seit dem
+29.08.2026 gibt es ihn (siehe unten).
 
 ### Was zu entscheiden ist
 
@@ -4867,6 +4868,54 @@ Nicht in diesem Zug gebaut, weil es eine Produktentscheidung ist:
 
 Weg 2 ist der sauberste, wenn sich der Kontowechsel als Auslöser bestätigt. Solange das
 offen ist, wäre Weg 1 der ehrliche Zwischenschritt.
+
+### Der Ausweg ist gebaut (29.08.2026)
+
+**Einstellungen → „Cloud-Verbindung zurücksetzen"** — eine Zeile in der bestehenden
+`.setlist`, sichtbar nur mit Cloud-Konto und nur, wenn das Modul `wipeCache()` überhaupt
+kennt (ein älterer Stand aus dem Service-Worker-Cache könnte es nicht).
+
+Warum in den Einstellungen und nicht dort, wo der Fehler auftritt: Der Einstellungen-Dialog
+rendert **rein lokal**. Er ist also auch dann erreichbar, wenn kein einziger Firestore-Zugriff
+mehr durchgeht — genau der Zustand, für den der Knopf da ist. Ein Hinweis am Sync-Punkt wäre
+näher am Problem, aber der Punkt ist klein und trägt schon eine Bedeutung.
+
+Drei Eigenschaften, die keine Details sind:
+
+* **Es wird vorher gefragt.** `wipeCache()` verwirft den lokalen Zwischenspeicher und damit
+  auch Schreibvorgänge, die noch nicht beim Server sind. Der Text nennt beides — was bleibt
+  („deine Meals und dein Wochenplan liegen in der Cloud") **und** was verloren geht. Nur die
+  beruhigende Hälfte zu nennen wäre die bequemere Lüge.
+* **Scheitert das Wischen, wird NICHT neu geladen.** Der häufigste Fehlschlag ist kein Fehler,
+  sondern ein zweiter offener Tab: `clearIndexedDbPersistence()` verlangt, dass sonst keine
+  Instanz läuft. Würde trotzdem neu geladen, sähe der Nutzer denselben kaputten Zustand wieder
+  und hielte den Knopf für wirkungslos. Stattdessen ein Hinweis, der die Ursache nennt.
+* **Kein Toast vor dem Neuladen.** Er wäre im selben Atemzug wieder weg.
+
+**Live durchlaufen** am 29.08.2026 mit dem Testkonto: Zeile sichtbar, Rückfrage korrekt,
+bestätigt → Cache geleert, Seite neu geladen, danach `permission-denied` weg, Kontodokument
+lesbar, **null Fehler im Protokoll**.
+
+Prüfstand: `tools/pruefstand-cache-reset.py`, 23 Prüfungen.
+
+**Offen bleibt die Ursache.** Der Knopf behebt den Zustand, er verhindert ihn nicht. Weg 2 aus
+der Liste oben — den Cache beim Kontowechsel automatisch leeren — steht weiterhin zur
+Entscheidung an, und er wäre die eigentliche Behebung.
+
+### Eine Beobachtung, die kein Befund ist
+
+Nach dem regulären „Gruppe verlassen" stand einmal der **lokale** Zeiger (`state.groupId` im
+`localStorage`) noch auf der alten Gruppe, während der Cloud-Zeiger korrekt leer war. Weil
+`startCloudSync()` mit `wantGid = remote.groupId || state.groupId` arbeitet, führte das beim
+nächsten Start in genau die Sackgasse aus Ziffer 133 — erreicht über den **normalen** Weg.
+
+**Nicht reproduzierbar.** Nach dem Leeren des lokalen Werts und einem Neustart blieb er leer,
+das Protokoll sauber. Der Rest stammt vermutlich aus dem ungewöhnlichen Ablauf des Tests
+(Verlassen, Messungen, `wipeCache` dazwischen) und nicht aus `leaveGroup()`.
+
+Festgehalten wird es trotzdem, weil die Fehlerklasse teuer wäre — und nach der Regel aus
+Ziffer 102: **ein plausibler erster Verdacht ist kein Befund.** Wer hier je wieder etwas
+sieht, weiß, wo zu suchen ist: der lokale Zeiger nach `leaveGroup()`.
 
 ### Die Regel dahinter
 
