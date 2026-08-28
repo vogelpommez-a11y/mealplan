@@ -16,9 +16,9 @@ Der Vertrag, den beide Listen einhalten muessen:
     duerfen den globalen Faktor NICHT noch einmal abbekommen
   * beide Listen beschreiben dieselbe Woche (planDaysAhead) und zaehlen dieselben Esser
 
-Der Pruefstand haelt diesen Vertrag fest UND misst eine Unstimmigkeit, die dabei
-herausfaellt - siehe Abschnitt 7. Sie ist KEIN Fehlschlag, sondern ein Messwert: Die
-Entscheidung darueber gehoert dem Inhaber, nicht dem Pruefstand.
+Abschnitt 7 haelt zusaetzlich fest, dass "Einkauf fuer alle rechnen: Aus" fuer BEIDE
+Summanden gilt. Bis zum 28.08.2026 folgte ihr nur der "fuer alle"-Anteil - zugewiesene
+Gerichte trugen ihren Faktor fest im Eintrag und blieben doppelt (docs/TROUBLESHOOTING.md 132).
 
 Der Code wird aus `index.html` GESCHNITTEN, nicht abgetippt.
 
@@ -92,9 +92,6 @@ function pr(name, bedingung, extra) {
   if (bedingung) { ok++; console.log("  OK   " + name); }
   else { bad++; console.log("  FAIL " + name + (extra ? "  -> " + extra : "")); }
 }
-function mess(name, wert, soll) {
-  console.log("  MESS " + name + " = " + wert + (soll !== undefined ? "  (Vergleich: " + soll + ")" : ""));
-}
 
 console.log("--- 1. Personenfaktor in der Gruppe ---");
 pr("shopForAll An -> Mitgliederzahl", shopPersons() === 2, shopPersons() + "");
@@ -145,24 +142,50 @@ pr("Salz einmal in der Liste", !!salz, JSON.stringify(l.map(function(i){ return 
 pr("Salz ohne Menge", salz && !salz.qty, salz ? String(salz.qty) : "-");
 pr("Salz zaehlt zwei Meals", salz && salz.count === 2, salz ? salz.count + "" : "-");
 
-console.log("--- 7. MESSUNG: was macht 'Einkauf fuer alle rechnen: Aus'? ---");
-// Die Einstellung verspricht "Mengen x Mitglieder". Aus heisst per = 1. Die Frage ist,
-// ob das auch fuer ZUGEWIESENE Gerichte gilt - dort steckt der Faktor im Eintrag.
+console.log("--- 7. 'Einkauf fuer alle rechnen: Aus' gilt fuer BEIDE Summanden ---");
+// Die Einstellung heisst woertlich "Mengen x Mitglieder". Bis zum 28.08.2026 folgte ihr nur
+// der "fuer alle"-Anteil; zugewiesene Gerichte trugen ihren Faktor fest im Eintrag und
+// blieben doppelt. Wer die Einstellung ausschaltete, um nur fuer sich einzukaufen, bekam
+// trotzdem die doppelte Menge.
 gruppenEinstellungen.shopForAll = false;
 state.plan = leererPlan();
-state.plan.mon.mi = ["nudeln"];                          // fuer alle
-state.plan.mon.ab = [{ id:"salat", uids:["ich","du"] }];  // beiden zugewiesen
+state.plan.mon.mi = ["nudeln"];                          // fuer alle: Tomaten 200
+state.plan.mon.ab = [{ id:"salat", uids:["ich","du"] }];  // zugewiesen: Tomaten 50
 l = buildShoppingList().items;
-var nud = menge(l, "Nudeln"), tom = menge(l, "Tomaten");
-mess("Nudeln (nur 'fuer alle')", nud, "100 = einfache Menge");
-mess("Tomaten (200 'fuer alle' + 50 x 2 zugewiesen)", tom, "200 + 100 = 300");
-pr("'fuer alle' folgt der Einstellung", nud === 100, nud + "");
-pr("zugewiesen folgt ihr NICHT", tom === 300, tom + "");
-console.log("  HINWEIS Mit 'Aus' bleibt der Mitglieder-Faktor bei zugewiesenen Gerichten");
-console.log("          erhalten. Das ist heute so gewollt (jede zugewiesene Person braucht");
-console.log("          ein eigenes Meal), steht aber quer zur Beschriftung 'Mengen x");
-console.log("          Mitglieder / Aus'. Produktentscheidung, kein Fehlschlag.");
+pr("'fuer alle' einfach", menge(l, "Nudeln") === 100, menge(l, "Nudeln") + "");
+pr("zugewiesen jetzt AUCH einfach", menge(l, "Tomaten") === 250, menge(l, "Tomaten") + " statt 250");
+
+// Gegenprobe im selben Atemzug: mit "An" muss sich beides verdoppeln. Ohne sie bestuende
+// der Abschnitt auch dann, wenn ueberall stumpf mit 1 gerechnet wuerde.
 gruppenEinstellungen.shopForAll = true;
+l = buildShoppingList().items;
+pr("mit 'An' verdoppelt sich 'fuer alle'", menge(l, "Nudeln") === 200, menge(l, "Nudeln") + "");
+pr("mit 'An' zaehlt die Zuweisung wieder doppelt", menge(l, "Tomaten") === 500, menge(l, "Tomaten") + "");
+
+console.log("--- 7c. GEGENPROBE: die alte Formel haette bei 'Aus' verdoppelt ---");
+// Der Pruefstand laesst sich nicht gegen die alte index.html fahren - dort gibt es
+// shopCountsMembers() nicht, der Schnitt scheitert am fehlenden Marker. Also wird die alte
+// Rechnung hier nachgebaut: factor = uids.length, ohne Ruecksicht auf die Einstellung.
+gruppenEinstellungen.shopForAll = false;
+state.plan = leererPlan();
+state.plan.mon.ab = [{ id:"salat", uids:["ich","du"] }];   // Tomaten 50, beiden zugewiesen
+var neuWert = menge(buildShoppingList().items, "Tomaten");
+var altWert = 50 * 2;   // die alte Formel: immer mal uids.length
+pr("neue Fassung: einfache Menge", neuWert === 50, String(neuWert));
+pr("alte Fassung haette verdoppelt", altWert === 100 && altWert !== neuWert,
+   "alt=" + altWert + " neu=" + neuWert);
+
+console.log("--- 7b. Auch die Vorkochliste folgt der Einstellung ---");
+// Beide Listen muessen dieselben Esser zaehlen - sonst kocht man fuer eine andere Zahl,
+// als man eingekauft hat.
+gruppenEinstellungen.shopForAll = false;
+state.plan = leererPlan();
+state.plan.mon.mi = [{ id:"nudeln", uids:["ich","du"] }];
+var bAus = buildBatchList().items.filter(function (i) { return i.r.id === "nudeln"; })[0];
+gruppenEinstellungen.shopForAll = true;
+var bAn = buildBatchList().items.filter(function (i) { return i.r.id === "nudeln"; })[0];
+pr("Aus -> 1 Portion", bAus && bAus.portions === 1, bAus ? bAus.portions + "" : "-");
+pr("An  -> 2 Portionen", bAn && bAn.portions === 2, bAn ? bAn.portions + "" : "-");
 
 console.log("--- 8. Vorkochliste zaehlt dieselben Esser ---");
 state.plan = leererPlan();
@@ -216,6 +239,8 @@ def main():
     ingo = zeile(quelle, u"function ingObj(i)")
     ingl = schneide(quelle, u"function ingLabel(i)", u"}", u"")
     shopsan = zeile(quelle, u"function sanitizeShopPersons(v)")
+    zaehlt = schneide(quelle, u"function shopCountsMembers()",
+                      u"return !!(syncGid && groupSetting", u"\n  }")
     shoppers = schneide(quelle, u"function shopPersons()",
                         u"return sanitizeShopPersons(groupMembers.length);",
                         u"\n    return own;\n  }")
@@ -232,7 +257,7 @@ def main():
         io.open(seite, "w", encoding="utf-8").write(
             u"<script>\n" + tage + u"\n" + mahl + u"\n" + helfer + u"\n" + UMFELD +
             u"\n" + makeEmpty + u"\n" + unflat + u"\n" + nutnum + u"\n" + ingu + u"\n" + ingo +
-            u"\n" + ingl + u"\n" + shopsan + u"\n" + shoppers + u"\n" + tage2 +
+            u"\n" + ingl + u"\n" + shopsan + u"\n" + shoppers + u"\n" + zaehlt + u"\n" + tage2 +
             u"\n" + einkauf + u"\n" + vorkoch + u"\n" + TEST + u"\n</script>")
         p = subprocess.run(
             [EDGE, "--headless=new", "--disable-gpu", "--virtual-time-budget=6000",

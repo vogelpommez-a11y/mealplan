@@ -778,11 +778,13 @@ zugewiesene Person darf nie im Datenmodell existieren.
 Zusage aus `planDaysAhead()`, dass Einkaufs- und Vorkochliste dieselbe Woche beschreiben.
 `buildBatchList()` zählt dieselben Esser (`uids ? uids.length : persons`).
 
-**Offen, als Messwert festgehalten:** Steht „Einkauf für alle rechnen“ auf **Aus**, folgt der
-„für alle“-Anteil der Einstellung (einfache Menge), der **zugewiesene** Anteil nicht — dort
-steckt der Mitglieder-Faktor im Eintrag selbst. Das ist konsequent gedacht (jede zugewiesene
-Person braucht ein eigenes Meal), steht aber quer zur Beschriftung „Mengen × Mitglieder“.
-Abschnitt 7 des Prüfstands hält den Ist-Zustand fest, ohne ihn zu bewerten.
+**„Einkauf für alle rechnen“ steuert BEIDE Summanden** (28.08.2026). Bis dahin folgte nur der
+„für alle“-Anteil der Einstellung; der zugewiesene trug seinen Faktor fest im Eintrag
+(`uids.length`) und blieb bei **Aus** doppelt — bei einem Schalter, der „Mengen × Mitglieder“
+heißt. `shopCountsMembers()` ist die gemeinsame Bedingung für `buildShoppingList()` und
+`buildBatchList()`; bewusst **nicht** an `per` gehängt, weil `per` auch aus einer von Hand
+gesetzten Personenzahl stammen kann. Die Zuweisung sagt weiterhin, *wer* isst — nur nicht mehr
+allein, *wie viel* eingekauft wird. `docs/TROUBLESHOOTING.md` 132.
 
 Die Einkaufsliste (`buildShoppingList()`) trennt pro Zutat `sharedQty` (aus "für alle"-Gerichten,
 skaliert erst mit dem globalen `per`-Personenfaktor) von `assignedQty` (aus individuell

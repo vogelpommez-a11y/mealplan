@@ -16,7 +16,11 @@ Randstuecke (save/render/toast/Sync-Variablen).
 """
 import io, os
 
-SRC = r"C:\Users\Paddy\Documents\Paddys Mealplan\index.html"
+# Der Pfad ist ein Argument, kein fester Wert: Nur so laesst sich der Pruefstand gegen
+# einen ALTEN Stand fahren - und ohne Gegenprobe zaehlt kein Ergebnis (docs/TESTING.md).
+import sys
+SRC = os.path.abspath(sys.argv[1]) if len(sys.argv) > 1 else os.path.join(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "index.html")
 OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "pruefstand-katalog-plan.html")
 lines = io.open(SRC, encoding="utf-8").read().split("\n")
 
@@ -132,11 +136,18 @@ seite = u"""<!doctype html><meta charset="utf-8"><title>Pruefstand Katalog-Umbau
 <pre id="log"></pre>
 <script>
 var LOG = [], ok = 0, bad = 0;
-window.onerror = function (m, s, z) { document.getElementById("log").textContent = "JS-FEHLER: " + m + " (Zeile " + z + ")"; };
+window.onerror = function (m, s, z) {
+  console.log("JS-FEHLER: " + m + " (Zeile " + z + ")");
+  console.log("ERGEBNIS 0 gruen, 1 rot");
+  var el = document.getElementById("log");
+  if (el) el.textContent = "JS-FEHLER: " + m + " (Zeile " + z + ")";
+};
 function pruef(name, ist, soll) {
   var gut = JSON.stringify(ist) === JSON.stringify(soll);
   if (gut) ok++; else bad++;
-  LOG.push((gut ? "OK   " : "FEHL ") + name + (gut ? "" : "  ist=" + JSON.stringify(ist) + " soll=" + JSON.stringify(soll)));
+  var zeile = (gut ? "OK   " : "FEHL ") + name + (gut ? "" : "  ist=" + JSON.stringify(ist) + " soll=" + JSON.stringify(soll));
+  LOG.push(zeile);
+  console.log(zeile);   // damit der headless-Lauf dasselbe sieht wie das Browserfenster
   var el = document.getElementById("log");
   if (el) el.textContent = LOG.join("\\n");
 }
@@ -458,6 +469,7 @@ function alleEintraege(plan) {
 
       LOG.push("");
       LOG.push(bad ? ("FEHLGESCHLAGEN: " + bad + " von " + (ok + bad)) : ("ALLE " + ok + " PRUEFUNGEN GRUEN"));
+      console.log("ERGEBNIS " + ok + " gruen, " + bad + " rot");
       document.getElementById("log").textContent = LOG.join("\\n");
     });
   })();
@@ -465,4 +477,50 @@ function alleEintraege(plan) {
 </script>
 """
 io.open(OUT, "w", encoding="utf-8").write(seite.replace("__CODE__", code))
-print("geschrieben")
+
+
+# --- Selbst fahren, statt nur zu schreiben (28.08.2026) --------------------------------
+# Bis dahin endete dieses Skript hier mit print("geschrieben") und Rueckgabewert 0. Der
+# Reihenlauf (tools/alle-pruefstaende.py) bewertet ausschliesslich den Rueckgabewert - er
+# meldete diesen Pruefstand also dauerhaft gruen, ohne dass je eine Zusage geprueft wurde.
+# Aufgefallen ist es erst, als eine seiner Erwartungen durch eine Aenderung falsch wurde und
+# trotzdem niemand rot sah (docs/TROUBLESHOOTING.md 131).
+#
+# Die HTML-Datei bleibt erhalten: docs/ARCHITECTURES.md verweist darauf, und im Browser
+# geoeffnet zeigt sie dasselbe Protokoll - nur eben fuer Menschen.
+EDGE = r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe"
+
+
+def fahren():
+    import re, shutil, subprocess, tempfile
+    tmp = tempfile.mkdtemp(prefix="mp-katalog-")
+    try:
+        p = subprocess.run(
+            [EDGE, "--headless=new", "--disable-gpu", "--virtual-time-budget=8000",
+             "--user-data-dir=" + os.path.join(tmp, "profil"),
+             "--enable-logging=stderr", "--v=0", "file:///" + OUT.replace("\\", "/")],
+            capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=120)
+        aus = (p.stdout or "") + (p.stderr or "")
+        zeilen = []
+        for z in aus.split("\n"):
+            m = re.search(r'CONSOLE:\d+\] "(.*)", source', z)
+            if m:
+                zeilen.append(m.group(1))
+        if not zeilen:
+            print("Keine Konsolenausgabe - lief das Script? Rohausgabe:")
+            print(aus[:2000])
+            return 2
+        for z in zeilen:
+            print(z)
+        letzte = [z for z in zeilen if z.startswith("ERGEBNIS")]
+        if not letzte:
+            print("Kein ERGEBNIS - der asynchrone Teil ist nicht fertig geworden.")
+            return 2
+        return 0 if letzte[-1].endswith("0 rot") else 1
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+
+
+if __name__ == "__main__":
+    import sys
+    sys.exit(fahren())

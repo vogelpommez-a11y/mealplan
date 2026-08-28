@@ -16,7 +16,7 @@ Die primäre Verifikation erfolgt deshalb über den Browser und gezielte isolier
 
 <!-- REGISTER-ANFANG (erzeugt aus den Ueberschriften, nicht von Hand pflegen) -->
 
-**Register — 42.** Vorne (0 bis 9) die geltenden Verfahren: Syntax-Check,
+**Register — 43.** Vorne (0 bis 9) die geltenden Verfahren: Syntax-Check,
 Smoke-Test, Ausschneide-Pruefstand, Sync-Tests. Dahinter das datierte Fallarchiv —
 einzelne Pruefstaende und was ihre Gegenprobe gezeigt hat.
 
@@ -68,6 +68,7 @@ Die Verfahren gibt es auch als Skill: `/smoke`, `/pruefstand`, `/abnahme`, `/dep
 | · | `tools/pruefstand-sync-abriss.py` — eine Anzeige, die lügt (28.08.2026) |
 | · | `tools/pruefstand-waise-uids.py` — die Folge messen, nicht die Datenform (28.08.2026) |
 | · | `tools/pruefstand-einkauf-gruppe.py` — die Lücke im Nachbarprüfstand (28.08.2026) |
+| · | Ein Prüfstand, der nie lief: `pruefstand-katalog-plan.py` (28.08.2026) |
 
 <!-- REGISTER-ENDE -->
 
@@ -2960,3 +2961,28 @@ Beide gehören ins Archiv, weil sie sich bei jedem Ausschneide-Prüfstand wieder
 > **Ein Endmarker muss im Zielbereich EINDEUTIG sein.** Ein `return`, eine schließende Klammer
 > oder ein `}` sind es fast nie. Wird ein Prüfstand ohne Codeänderung rot, ist der Schnitt der
 > erste Verdächtige — nicht der Code.
+
+
+## Ein Prüfstand, der nie lief: `pruefstand-katalog-plan.py` (28.08.2026)
+
+Gehört zu `docs/TROUBLESHOOTING.md` 131. Das Skript **erzeugte** eine HTML-Datei, gab
+`print("geschrieben")` aus und war fertig — Rückgabewert 0. Seine 45 Zusagen liefen nur, wenn
+jemand die Datei im Browser öffnete. `tools/alle-pruefstaende.py` bewertet ausschliesslich den
+Rückgabewert und meldete ihn deshalb bei jedem Durchgang grün.
+
+Aufgefallen ist es nicht beim Lesen, sondern weil eine seiner Erwartungen durch Ziffer 128
+falsch wurde — und der Reihenlauf trotzdem grün blieb.
+
+Jetzt fährt er die Seite selbst headless, gibt jede Zeile aus und liefert einen echten
+Rückgabewert; `window.onerror` meldet einen Absturz als `ERGEBNIS 0 grün, 1 rot` statt still
+zu bleiben. Und er nimmt den Pfad zu `index.html` als **Argument** — ohne das lässt er sich
+nicht gegen einen alten Stand fahren, und ohne Gegenprobe zählt hier kein Ergebnis. Belegt:
+gegen `HEAD` 45 grün, gegen `30f4015` 43 grün / 2 rot.
+
+> **Ein Prüfstand, dessen Rückgabewert nicht vom Prüfergebnis abhängt, ist kein Prüfstand.**
+> Die Frage an jeden neuen lautet: *Kann dieses Skript überhaupt rot werden?*
+
+**Offen geblieben:** Der Reihenlauf könnte verlangen, dass jeder Prüfstand eine
+`ERGEBNIS`-Zeile ausgibt, und einen ohne sie als `auffaellig` melden statt als grün. Heute ist
+der Rückgabewert das einzige Kriterium — derselbe blinde Fleck bliebe bei einem künftigen
+Skript bestehen.

@@ -5072,6 +5072,22 @@
     if (syncGid && groupSetting("shopForAll") && groupMembers.length > 1) return sanitizeShopPersons(groupMembers.length);
     return own;
   }
+  // Zaehlt eine Zuweisung als MENGEN-Faktor? Dieselbe Frage wie oben, nur fuer die andere
+  // Haelfte der Rechnung - und sie muss dieselbe Antwort bekommen.
+  //
+  // Die Einkaufsliste summiert `sharedQty * per + assignedQty`. Der linke Summand folgt der
+  // Einstellung "Einkauf fuer alle rechnen" ueber `per`; der rechte trug seinen Faktor bis
+  // zum 28.08.2026 fest im Eintrag (`uids.length`) und folgte ihr deshalb NICHT. Wer die
+  // Einstellung ausschaltete, bekam fuer "fuer alle"-Gerichte die einfache Menge und fuer
+  // gemeinsam zugewiesene weiterhin die doppelte - bei einem Schalter, der woertlich
+  // "Mengen x Mitglieder" heisst.
+  //
+  // Beide Summanden haengen jetzt an derselben Bedingung. "Aus" heisst ueberall dasselbe:
+  // einfache Mengen. Die Zuweisung bleibt davon unberuehrt - sie sagt weiterhin, WER isst;
+  // sie sagt nur nicht mehr allein, WIE VIEL eingekauft wird.
+  function shopCountsMembers() {
+    return !!(syncGid && groupSetting("shopForAll") && groupMembers.length > 1);
+  }
 
   // Favoriten sind persoenlich (Konto-Dokument, nie Gruppe). Deduplizieren UND sortieren:
   // dataJSON() vergleicht JSON-Strings; eine andere Reihenfolge auf zwei Geraeten laege sonst
@@ -12053,7 +12069,10 @@
       // Ein Meal ist eine Portion (siehe sanitizeRecipe): Ist das Gericht mehreren Personen
       // zugewiesen, braucht jede davon ein eigenes - also mal Anzahl. "Fuer alle" bleibt
       // unskaliert, dort greift der globale per-Faktor weiter unten.
-      const factor = uids ? uids.length : 1;
+      // shopCountsMembers(): steht "Einkauf fuer alle rechnen" auf Aus, zaehlt auch ein
+      // zugewiesenes Gericht nur einfach - sonst folgte nur die eine Haelfte der Summe der
+      // Einstellung (siehe dort).
+      const factor = uids && shopCountsMembers() ? uids.length : 1;
       r.ingredients.forEach(i => {
         const o = ingObj(i);
         const name = String(o.name || "").trim();
@@ -12154,7 +12173,9 @@
       const r = getRecipe(entryId(entry));
       if (!r) return;
       const uids = entryUids(entry);
-      const esser = uids ? uids.length : persons;
+      // Gleiche Bedingung wie in buildShoppingList(): Beide Listen muessen dieselben Esser
+      // zaehlen, sonst kocht man fuer eine andere Zahl, als man eingekauft hat.
+      const esser = uids ? (shopCountsMembers() ? uids.length : 1) : persons;
       const hit = map.get(r.id) || { r: r, portions: 0, days: new Set() };
       hit.portions += esser;
       hit.days.add(d.key);

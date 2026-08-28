@@ -6,7 +6,7 @@ Dieses Dokument enthält bekannte Fehlerquellen, historische Bugs und Probleme, 
 
 <!-- REGISTER-ANFANG (erzeugt aus den Ueberschriften, nicht von Hand pflegen) -->
 
-**Register — 130.** Chronologisch gewachsen: je hoeher die Nummer,
+**Register — 132.** Chronologisch gewachsen: je hoeher die Nummer,
 desto juenger der Fund. Wer eine Falle sucht, sucht hier zuerst; die Ueberschrift sagt
 jeweils, worum es geht. **Nicht die ganze Datei lesen** — sie ist ueber 200 KB gross.
 
@@ -142,6 +142,8 @@ jeweils, worum es geht. **Nicht die ganze Datei lesen** — sie ist ueber 200 KB
 | 128 | Der Beitretende verlor seine Woche — und eine Migration räumte fremden Bestand auf |
 | 129 | „Synchronisiert“, während nichts mehr ankam |
 | 130 | Ein Gericht, das niemandem gehörte — und ein leeres Array, das `true` ist |
+| 131 | Ein Prüfstand, der immer grün meldete, weil er nie lief |
+| 132 | „Mengen × Mitglieder: Aus“ galt nur für die Hälfte der Rechnung |
 
 <!-- REGISTER-ENDE -->
 
@@ -4488,3 +4490,137 @@ neu ist frei *und* leer.
 Zwei Gegenproben: Abschnitt 11 belegt, dass die alte Fassung die Waise durchlässt **und sie
 aus `[null, 7]` selbst erzeugt**. Abschnitt 12 belegt, dass beide Fassungen ohne Waisen
 byte-gleiche Ergebnisse liefern — sonst misst Abschnitt 11 nur „irgendwie anders".
+
+## 131. Ein Prüfstand, der immer grün meldete, weil er nie lief
+
+**Datum:** 28.08.2026 · **Betrifft:** `tools/pruefstand-katalog-plan.py`, `tools/alle-pruefstaende.py`
+
+### Der Fehler
+
+`pruefstand-katalog-plan.py` endete mit:
+
+```python
+io.open(OUT, "w", encoding="utf-8").write(seite.replace("__CODE__", code))
+print("geschrieben")
+```
+
+Es **erzeugte** eine HTML-Datei und war fertig. Rückgabewert: 0. Die 45 Zusagen darin liefen
+nur, wenn ein Mensch die Datei im Browser öffnete.
+
+`tools/alle-pruefstaende.py` bewertet ausschließlich den Rückgabewert. Der Reihenlauf meldete
+diesen Prüfstand also bei **jedem** Durchgang grün — unabhängig davon, ob der geprüfte Code
+noch stimmte.
+
+### Warum es auffiel — und warum das der eigentliche Punkt ist
+
+Nicht durch Lesen. Der Prüfstand enthielt die Erwartung „nach dem Handshake läuft dieselbe
+Migration nach". Ziffer 128 hat genau das abgeschaltet — die Erwartung war ab da **falsch**.
+Trotzdem blieb der Reihenlauf grün, und zwar in mehreren Durchgängen hintereinander.
+
+Gefunden hat es der Agent `doku-waechter`, der die veraltete Beschreibung in `docs/TESTING.md`
+bemerkte. Erst beim Nachsehen fiel auf, dass die zugehörige Prüfung gar nicht ausgeführt wird.
+
+**Ein falscher Prüfstand ist harmlos, solange er läuft — dann wird er rot.** Gefährlich wird
+er erst in Kombination: falsche Erwartung *und* kein Lauf. Dann meldet das System „sauber"
+über eine Behauptung, die es nie geprüft hat. Genau der Zustand, vor dem `CLAUDE.md` 18a
+warnt, nur eine Ebene tiefer: Dort geht es um Prüfer mit veralteten *Fakten*, hier um einen
+Prüfer, der überhaupt nicht **stattfindet**.
+
+### Die Behebung
+
+Das Skript fährt die erzeugte Seite jetzt selbst headless (dasselbe Muster wie die sieben
+Nachbarn), gibt jede Zeile aus und liefert einen echten Rückgabewert. `pruef()` schreibt
+zusätzlich auf die Konsole, `window.onerror` meldet einen Absturz als `ERGEBNIS 0 grün, 1 rot`
+statt still zu bleiben. Die HTML-Datei bleibt erhalten — `docs/ARCHITECTURES.md` verweist
+darauf, und im Browser zeigt sie dasselbe Protokoll für Menschen.
+
+**Dazu nimmt er den Pfad zu `index.html` jetzt als Argument** statt ihn fest verdrahtet zu
+tragen. Das ist keine Kosmetik: Ohne Argument lässt sich der Prüfstand nicht gegen einen alten
+Stand fahren — und ohne Gegenprobe zählt in diesem Projekt kein Ergebnis.
+
+Beides sofort belegt: gegen `HEAD` **45 grün**, gegen den Stand vor Ziffer 128
+(`git show 30f4015:index.html`) **43 grün, 2 rot**, Rückgabewert 1.
+
+### Die Regel dahinter
+
+> **Ein Prüfstand, dessen Rückgabewert nicht vom Prüfergebnis abhängt, ist kein Prüfstand.**
+> Er ist eine Datei, die entsteht.
+
+Der Prüfpunkt für jeden künftigen: *Kann dieses Skript überhaupt rot werden?* Lautet die
+Antwort nein, misst der Reihenlauf an dieser Stelle nichts — und niemand sieht es, weil grün
+wie grün aussieht.
+
+**Für den Reihenlauf folgt daraus eine offene Frage** (nicht in diesem Zug behoben): Er könnte
+verlangen, dass jeder Prüfstand eine `ERGEBNIS`-Zeile ausgibt, und einen ohne sie als
+`auffaellig` melden statt als grün. Heute ist „Rückgabewert 0" das einzige Kriterium.
+
+## 132. „Mengen × Mitglieder: Aus" galt nur für die Hälfte der Rechnung
+
+**Datum:** 28.08.2026 · **Betrifft:** `buildShoppingList()`, `buildBatchList()`, `shopCountsMembers()`
+
+### Der Fehler
+
+Die Einkaufsliste summiert pro Zutat:
+
+```
+Endsumme = sharedQty * per + assignedQty
+```
+
+Der linke Summand folgt der Gruppen-Einstellung **„Einkauf für alle rechnen"** über `per`
+(`shopPersons()`). Der rechte trug seinen Faktor fest im Eintrag: `uids.length`, unabhängig
+von der Einstellung.
+
+Stand der Schalter auf **Aus**, bekam man deshalb:
+
+| Eintrag | Menge |
+|---|---|
+| „für alle" | einfach ✓ |
+| beiden zugewiesen | **weiterhin doppelt** ✗ |
+
+Bei einem Schalter, der wörtlich **„Mengen × Mitglieder"** heißt. Wer ihn ausschaltete, um nur
+für sich einzukaufen, stand mit der doppelten Menge da.
+
+`buildBatchList()` hatte dieselbe Asymmetrie (`esser = uids ? uids.length : persons`) — und
+weil beide Listen ausdrücklich dieselbe Woche beschreiben müssen, hätten sie sonst für
+verschiedene Personenzahlen gekocht und eingekauft.
+
+### Wie es gefunden wurde
+
+Nicht durch einen Fehlschlag. `tools/pruefstand-einkauf-gruppe.py` hielt den Zustand zunächst
+als **Messung** fest (`MESS`-Zeilen statt `pr()`), weil die Frage „was soll *Aus* bedeuten?"
+eine Produktentscheidung ist und keine Fehlerbehebung: Falsche Einkaufsmengen heißen leerer
+Kühlschrank, und das ist nicht die Entscheidung des Prüfstands. Der Inhaber hat sie
+getroffen — beide Summanden folgen der Einstellung.
+
+### Die Behebung
+
+`shopCountsMembers()` neben `shopPersons()` — dieselbe Frage für die andere Hälfte der
+Rechnung, mit derselben Antwort:
+
+```js
+function shopCountsMembers() {
+  return !!(syncGid && groupSetting("shopForAll") && groupMembers.length > 1);
+}
+```
+
+Beide Verwender hängen jetzt daran. **Die Zuweisung selbst bleibt unberührt** — sie sagt
+weiterhin, *wer* isst; sie sagt nur nicht mehr allein, *wie viel* eingekauft wird.
+
+Bewusst **nicht** an `per` gehängt: `per` kann auch aus einer von Hand gesetzten Personenzahl
+stammen (`state.shopPersons`), und die ist ein Haushalts-Multiplikator, keine Aussage über
+Gruppenmitglieder. Die Zuweisung folgt ausschließlich dem Schalter, der ihren Namen trägt.
+
+### Die Regel dahinter
+
+> **Wenn eine Einstellung eine Summe steuert, muss sie jeden Summanden steuern.** Sonst ist
+> sie keine Einstellung, sondern ein Hinweis auf einen Teil des Ergebnisses.
+
+### Prüfstand
+
+`tools/pruefstand-einkauf-gruppe.py`, Abschnitte 7, 7b, 7c — 26 Prüfungen insgesamt.
+Abschnitt 7 prüft beide Summanden bei **Aus** *und* bei **An** (sonst bestünde er auch, wenn
+überall stumpf mit 1 gerechnet würde). 7b hält die Vorkochliste daneben. 7c baut die alte
+Formel nach und verlangt, dass sie sich unterscheidet — der Prüfstand lässt sich nämlich
+**nicht** gegen die alte `index.html` fahren: dort gibt es `shopCountsMembers()` nicht, der
+Schnitt scheitert am fehlenden Marker. Eine Gegenprobe, die am Werkzeug scheitert, ist keine;
+also wird die alte Rechnung im Lauf selbst nachgebildet.
