@@ -6,7 +6,7 @@ Dieses Dokument enthält bekannte Fehlerquellen, historische Bugs und Probleme, 
 
 <!-- REGISTER-ANFANG (erzeugt aus den Ueberschriften, nicht von Hand pflegen) -->
 
-**Register — 133.** Chronologisch gewachsen: je hoeher die Nummer,
+**Register — 134.** Chronologisch gewachsen: je hoeher die Nummer,
 desto juenger der Fund. Wer eine Falle sucht, sucht hier zuerst; die Ueberschrift sagt
 jeweils, worum es geht. **Nicht die ganze Datei lesen** — sie ist ueber 200 KB gross.
 
@@ -145,6 +145,7 @@ jeweils, worum es geht. **Nicht die ganze Datei lesen** — sie ist ueber 200 KB
 | 131 | Ein Prüfstand, der immer grün meldete, weil er nie lief |
 | 132 | „Mengen × Mitglieder: Aus“ galt nur für die Hälfte der Rechnung |
 | 133 | Wer aus einer Gruppe entfernt wird, bleibt für immer daran hängen (offen) |
+| 134 | Der vergiftete Offline-Cache — Ursache der `permission-denied`-Phasen |
 
 <!-- REGISTER-ENDE -->
 
@@ -4370,6 +4371,10 @@ unabhängig erzeugte SDK-Instanz mit denselben Zugangsdaten las im selben Moment
 Die Anzeige log also. Und zwar in genau der Richtung, die am teuersten ist: Sie versprach
 Sicherheit.
 
+**Die Ursache des `permission-denied` selbst ist inzwischen gefunden:** ein vergifteter
+Offline-Cache, siehe Ziffer 134. Das entwertet diese Ziffer nicht — im Gegenteil: Ohne die
+ehrliche Statusanzeige wäre der Zustand weiterhin unsichtbar geblieben.
+
 ### Die Ursache
 
 Vier `onSnapshot`-Aufrufe trugen ein leeres `function () {}` als Fehlerbehandlung:
@@ -4797,3 +4802,74 @@ Rätsel wiederkehrt.
 Es gibt keinen Knopf. Der Zeiger muss im Kontodokument geleert werden
 (`users/{uid}.groupId = ""`); danach startet die App normal und der Nutzer kann einer neuen
 Gruppe beitreten oder selbst eine gründen.
+
+## 134. Der vergiftete Offline-Cache — Ursache der `permission-denied`-Phasen
+
+**Datum:** 28.08.2026 · **Betrifft:** `persistentLocalCache`, Kontowechsel auf demselben Ursprung
+
+### Der Befund
+
+Den ganzen 28.08.2026 über lieferte die App-Instanz phasenweise `permission-denied` auf
+**jeden** Firestore-Zugriff — bei gültiger Anmeldung, intakten Regeln und einem Konto, das
+über die REST-API und über frisch erzeugte SDK-Instanzen einwandfrei lesbar war. Ziffer 129
+ist daraus entstanden (die Anzeige log dabei „Synchronisiert").
+
+**Die Ursache ist der persistente Offline-Cache des jeweiligen Ursprungs.** Gemessen:
+
+| Zustand | Ergebnis |
+|---|---|
+| App-Instanz, betroffener Ladevorgang | `permission-denied`, **25 Versuche über 13 s, nie erholt** |
+| dieselbe Instanz nach `getIdToken(true)` | weiterhin `permission-denied` |
+| dieselbe Instanz nach `disableNetwork`/`enableNetwork` | weiterhin `permission-denied` |
+| frische SDK-Instanz, eigener `persistenceKey` | **immer in Ordnung** |
+| App-Instanz nach `CloudSync.wipeCache()` + Neuladen | **erster Versuch in Ordnung, 0 Fehler** |
+
+Der Zustand ist **pro Ladevorgang stabil**: Ein betroffener Tab erholt sich nicht, ein
+gesunder bleibt gesund. Das erklärt, warum ein Reload manchmal half und manchmal nicht.
+
+### Der Auslöser
+
+Auf `http://localhost:8000` hatte ein **Kontowechsel** stattgefunden (Inhaber → Testkonto).
+Der Firestore-Cache liegt pro **Ursprung**, nicht pro Konto; die Produktionsdomain, auf der
+nie gewechselt wurde, blieb gesund. Das ist die naheliegende Erklärung und deckt die
+Beobachtungen — als bewiesen gilt sie damit **nicht**: Warum ein Kontowechsel den Cache in
+diesen Zustand bringt, ist offen.
+
+### Was das praktisch anrichtet
+
+Nicht nur die Anzeige. Am selben Tag reproduziert: **Der Einladungslink funktioniert in diesem
+Zustand nicht.** `openInviteModal()` läuft beim App-Start, also genau im betroffenen Fenster;
+`fetchInvite()` scheitert, und der Nutzer liest „Die Einladung konnte nicht geladen werden."
+Zweimal hintereinander reproduziert, danach mit geleertem Cache auf Anhieb erfolgreich.
+
+Wer in diesem Zustand einen Einladungslink bekommt, kann der Gruppe **nicht beitreten** — und
+nichts an der Meldung deutet darauf hin, dass ein Cache das Problem ist.
+
+### Der Ausweg, und warum er heute niemand findet
+
+`CloudSync.wipeCache()` gibt es bereits — es wurde für die Löschzusage aus Ziffer 10 der
+Datenschutzerklärung gebaut. Es behebt diesen Zustand **sofort und vollständig**, ist aber nur
+über die Konto-Löschung erreichbar. Es gibt keinen Knopf „Cloud-Verbindung zurücksetzen".
+
+Das ist die eigentliche Lücke: **Für einen Zustand, der die App unbrauchbar macht und den ein
+Neuladen nicht heilt, existiert die Reparatur bereits — nur ohne Weg dorthin.**
+
+### Was zu entscheiden ist
+
+Nicht in diesem Zug gebaut, weil es eine Produktentscheidung ist:
+
+1. **Ein Knopf in den Einstellungen** — „Cloud-Verbindung zurücksetzen" (`wipeCache()` +
+   Neuladen). Wenige Zeilen, weil die Funktion steht. Sichtbar nur, wenn nötig?
+2. **Automatisch beim Kontowechsel.** Erkennt `handleCloudUser()` eine andere UID als beim
+   letzten Start, wird der Cache geleert. Behandelt die vermutete Ursache statt des Symptoms.
+3. **Automatisch bei anhaltendem `permission-denied`** — riskanter, weil `wipeCache()`
+   ungeschriebene Änderungen verwirft. Hängt an derselben Abwägung wie Ziffer 133.
+
+Weg 2 ist der sauberste, wenn sich der Kontowechsel als Auslöser bestätigt. Solange das
+offen ist, wäre Weg 1 der ehrliche Zwischenschritt.
+
+### Die Regel dahinter
+
+> **Ein Cache, der eine Antwort des Servers ersetzt, muss verwerfbar sein — und zwar von der
+> Person, die vor dem Gerät sitzt.** Solange die einzige Reparatur hinter „Konto löschen"
+> liegt, ist sie keine.
