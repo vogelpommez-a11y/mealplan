@@ -6,7 +6,7 @@ Dieses Dokument enthält bekannte Fehlerquellen, historische Bugs und Probleme, 
 
 <!-- REGISTER-ANFANG (erzeugt aus den Ueberschriften, nicht von Hand pflegen) -->
 
-**Register — 134.** Chronologisch gewachsen: je hoeher die Nummer,
+**Register — 135.** Chronologisch gewachsen: je hoeher die Nummer,
 desto juenger der Fund. Wer eine Falle sucht, sucht hier zuerst; die Ueberschrift sagt
 jeweils, worum es geht. **Nicht die ganze Datei lesen** — sie ist ueber 200 KB gross.
 
@@ -146,6 +146,7 @@ jeweils, worum es geht. **Nicht die ganze Datei lesen** — sie ist ueber 200 KB
 | 132 | „Mengen × Mitglieder: Aus“ galt nur für die Hälfte der Rechnung |
 | 133 | Wer aus einer Gruppe entfernt wird, bleibt für immer daran hängen |
 | 134 | Der vergiftete Offline-Cache — Ursache der `permission-denied`-Phasen |
+| 135 | Der Home-Screen-Verweis auf dem iPhone ist ein zweites Gerät |
 
 <!-- REGISTER-ENDE -->
 
@@ -4934,9 +4935,14 @@ aus dem Service-Worker-Cache). Scheitert das Wischen — meist ein zweiter offen
 es die Anmeldung nicht auf: Die App startet normal, der Fehler landet im Protokoll, und der
 Knopf aus den Einstellungen bleibt als Ausweg.
 
-**Bewiesen ist der Zusammenhang weiterhin nicht.** Der Kontowechsel deckt alle Beobachtungen,
-mehr nicht. Sollte der Zustand ohne Kontowechsel wiederkehren, ist diese Behandlung wirkungslos
-und die Suche geht weiter — der Knopf aus den Einstellungen trägt dann immer noch.
+**Bewiesen ist der Zusammenhang weiterhin nicht.** Der Kontowechsel deckte alle damaligen
+Beobachtungen, mehr nicht.
+
+**Und einen Tag später war klar, dass er nicht der einzige Auslöser sein kann:** Der Inhaber
+nutzt die App auf dem iPhone über einen Home-Screen-Verweis, und der hat unter iOS einen
+eigenen Speicherbereich — eigener `localStorage`, eigener Firestore-Cache (Ziffer 135). Dort
+entsteht derselbe Zustand ganz ohne Kontowechsel. Diese Behandlung greift also nur für einen
+von mehreren möglichen Wegen hinein; der Knopf aus den Einstellungen greift für alle.
 
 Prüfstand: `tools/pruefstand-kontowechsel.py`, 22 Prüfungen.
 
@@ -4960,3 +4966,60 @@ sieht, weiß, wo zu suchen ist: der lokale Zeiger nach `leaveGroup()`.
 > **Ein Cache, der eine Antwort des Servers ersetzt, muss verwerfbar sein — und zwar von der
 > Person, die vor dem Gerät sitzt.** Solange die einzige Reparatur hinter „Konto löschen"
 > liegt, ist sie keine.
+
+## 135. Der Home-Screen-Verweis auf dem iPhone ist ein zweites Gerät
+
+**Datum:** 29.08.2026 · **Betrifft:** iOS-Standalone-Betrieb, `state.dedupeV1`, Firestore-Cache
+· **Hinweis des Inhabers, nicht selbst gemessen**
+
+### Der Hinweis
+
+Der Inhaber nutzt Paddy's Mealplan auf dem iPhone über einen **Home-Screen-Verweis aus
+Safari**. `manifest.webmanifest` setzt `"display": "standalone"` — die App startet dort also
+als eigenständiges Fenster, nicht als Safari-Tab.
+
+**Das ist für die App ein zweites Gerät.** iOS führt für zum Home-Screen hinzugefügte
+Web-Apps einen eigenen Speicherbereich — `localStorage`, IndexedDB und damit auch der
+Firestore-Cache sind vom Safari-Browser desselben Geräts getrennt. Wer beides benutzt, hat
+zwei vollständige, unabhängige Clients auf demselben Telefon.
+
+### Warum das die gemessenen Befunde verstärkt
+
+Drei Stellen hängen unmittelbar daran:
+
+1. **`state.dedupeV1` ist ein Geräte-Flag** (nur `localStorage`, siehe Ziffer 128). Zwei
+   Speicherbereiche heißen: Die Migration läuft **zweimal**, unabhängig voneinander.
+2. **Der Rückweg aus der Gruppe** (Ziffer 125) läuft je Client. Zwei Clients, die je einen
+   vollständigen `state` halten und unabhängig pushen, sind genau das Muster, aus dem
+   `lib`-Häufungen von **zwei und drei** entstehen — gemessen wurden am 28.08.2026 beide.
+3. **Der Firestore-Cache liegt je Speicherbereich** (Ziffer 134). Ein beschädigter Cache in
+   *einem* der beiden erklärt, warum die App „mal geht und mal nicht", je nachdem, ob man sie
+   über das Symbol oder über Safari öffnet.
+
+### Was das für die Behebung von Ziffer 134 heißt — und das ist unbequem
+
+Die dortige Behandlung leert den Cache **beim Kontowechsel**. Das war die Hypothese, die alle
+damaligen Beobachtungen deckte. Ein Home-Screen-Verweis braucht dafür aber **gar keinen
+Kontowechsel**: iOS räumt Speicher zum Teil selbsttätig weg, und ein nur teilweise
+vorhandener Firestore-Cache kann denselben Zustand erzeugen.
+
+> **Die Behandlung greift also nur für einen von mehreren möglichen Auslösern.** Der Knopf
+> „Einstellungen → Cloud-Verbindung zurücksetzen" greift für alle — er verlangt nur, dass
+> jemand ihn findet.
+
+Damit ist die Ursachenfrage aus Ziffer 134 **nicht abgeschlossen**, sondern breiter geworden.
+
+### Nicht selbst geprüft
+
+Der gesamte Abschnitt beruht auf der Angabe des Inhabers und auf dem Verhalten von iOS, nicht
+auf einer eigenen Messung — es stand kein iPhone zur Verfügung. Bevor darauf etwas gebaut
+wird, gehört es nachgemessen: dieselbe Anmeldung einmal in Safari, einmal über das
+Home-Screen-Symbol, und in beiden `localStorage.getItem("wochenkueche_v1")` vergleichen. Sind
+die Stände unterschiedlich, ist die Trennung belegt.
+
+### Der naheliegende nächste Schritt
+
+Der Hinweis aus Ziffer 129 („Cloud-Verbindung unterbrochen – lade die Seite neu") **weist ins
+Leere**, wenn die Ursache der beschädigte Cache ist: Neuladen hilft dort nachweislich nicht.
+Er sollte stattdessen auf den Knopf zeigen, der wirklich hilft. Eine Textänderung, aber eine,
+die den Unterschied zwischen „App kaputt" und „ein Klick" ausmacht.
