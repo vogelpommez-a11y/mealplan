@@ -528,8 +528,11 @@ der Cache aber noch nie gesehen. Deshalb `CloudSync.loadRecipesFromServer()`
 **Der Rückweg räumt auf: `pruneOwnRecipes()` (28.08.2026).** Beim Beitritt wandert der eigene
 Bestand in die Gruppe (`copyOwnRecipesToGroup()`) und wird lokal ersetzt — in
 `users/{uid}/recipes` bleibt er aber liegen, denn `recipeBase()` zeigt in einer Gruppe auf
-`["groups", gid]`. `leaveGroup()` löscht dort deshalb ausdrücklich alles, was der mitgebrachte
-Stand nicht mehr enthält. Eine geleerte Baseline reicht dafür **nicht**: `syncRecipes()` bildet
+`["groups", gid]`. `leaveGroup()` räumt dort deshalb auf — **je `lib` bleibt genau einer stehen**, der aus dem
+mitgebrachten Gruppenstand hat Vorrang. Ein Meal, dessen `lib` nur einmal vorkommt, ist damit
+unantastbar; Meals ohne `lib` werden nie angefasst. Die Regel ist gegen die echten 81
+Dokumente gerechnet worden, nachdem zwei einfachere Fassungen daran gescheitert waren
+(`docs/TROUBLESHOOTING.md` 125, zweiter Nachtrag). Eine geleerte Baseline reicht dafür **nicht**: `syncRecipes()` bildet
 `delIds` aus `prev ohne cur`, was nie in der Baseline stand, wird nie gelöscht — und
 `startCloudSync()` mischte den Altbestand beim nächsten Start über `mergeRemoteRecipes()`
 (Vereinigung über die **ID**, gleiche `lib` fällt dort nicht auf) wieder unter die

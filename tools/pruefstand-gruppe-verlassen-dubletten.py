@@ -194,12 +194,28 @@ var vorAnzahl = Object.keys(cloud["users/ich"]).length;
 await pruneOwnRecipes(state.recipes.slice());
 pr("Meal ohne lib ueberlebt", !!cloud["users/ich"]["nieHochgeladen"],
    "selbst angelegte Meals haben keine lib und kein Gegenstueck");
-pr("Meal mit unbekannter lib ueberlebt", !!cloud["users/ich"]["fremdeLib"]);
+pr("Meal mit EINZIGARTIGER lib ueberlebt", !!cloud["users/ich"]["fremdeLib"],
+   "der erste seiner lib bleibt immer - egal ob die Gruppe sie kennt");
 pr("die echten Dubletten sind trotzdem weg",
    Object.keys(cloud["users/ich"]).filter(function (id) { return /^mein[0-9]$/.test(id); }).length === 0,
    JSON.stringify(Object.keys(cloud["users/ich"])));
 pr("es wurde ueberhaupt etwas geloescht", Object.keys(cloud["users/ich"]).length < vorAnzahl,
    "sonst misst dieser Abschnitt nur, dass nichts passiert");
+
+console.log("--- 3c. Paare UNTER dem Altbestand, ohne Gegenstueck in der Gruppe ---");
+// Am echten Konto am 28.08.2026 gemessen: Von 37 Altbestaenden lagen 11 als PAARE
+// untereinander - 8 davon mit einer `lib`, die die Gruppe gar nicht kennt. Die Fassung
+// davor fragte nur "ist die lib in der Gruppe vertreten?" und liess genau diese Paare
+// stehen: 9 von 37 geloescht, Bestand danach immer noch doppelt.
+frischerStand();
+cloud["users/ich"]["altA"] = meal("altA", "nur-bei-mir");
+cloud["users/ich"]["altB"] = meal("altB", "nur-bei-mir");   // dieselbe lib, zweites Exemplar
+cloud["users/ich"]["einzeln"] = meal("einzeln", "kommt-nur-einmal-vor");
+await pruneOwnRecipes(state.recipes.slice());
+var uebrigNurBeiMir = ["altA","altB"].filter(function (id) { return !!cloud["users/ich"][id]; });
+pr("von dem Paar bleibt genau EINER", uebrigNurBeiMir.length === 1, JSON.stringify(uebrigNurBeiMir));
+pr("und zwar der erste nach id", uebrigNurBeiMir[0] === "altA", uebrigNurBeiMir[0]);
+pr("die einzigartige lib bleibt unangetastet", !!cloud["users/ich"]["einzeln"]);
 
 console.log("--- 4. Nur-Leser: sein Bestand darf NICHT geraeumt werden ---");
 // joinGroup() kopiert fuer role==='view' nichts in die Gruppe - dort ist das eigene Konto

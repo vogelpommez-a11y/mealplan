@@ -6,7 +6,7 @@ Dieses Dokument enthält bekannte Fehlerquellen, historische Bugs und Probleme, 
 
 <!-- REGISTER-ANFANG (erzeugt aus den Ueberschriften, nicht von Hand pflegen) -->
 
-**Register — 132.** Chronologisch gewachsen: je hoeher die Nummer,
+**Register — 133.** Chronologisch gewachsen: je hoeher die Nummer,
 desto juenger der Fund. Wer eine Falle sucht, sucht hier zuerst; die Ueberschrift sagt
 jeweils, worum es geht. **Nicht die ganze Datei lesen** — sie ist ueber 200 KB gross.
 
@@ -144,6 +144,7 @@ jeweils, worum es geht. **Nicht die ganze Datei lesen** — sie ist ueber 200 KB
 | 130 | Ein Gericht, das niemandem gehörte — und ein leeres Array, das `true` ist |
 | 131 | Ein Prüfstand, der immer grün meldete, weil er nie lief |
 | 132 | „Mengen × Mitglieder: Aus“ galt nur für die Hälfte der Rechnung |
+| 133 | Wer aus einer Gruppe entfernt wird, bleibt für immer daran hängen (offen) |
 
 <!-- REGISTER-ENDE -->
 
@@ -4087,6 +4088,44 @@ aufgeräumt und wandern beim nächsten Start wieder in den Bestand. Sie sind abe
 Dubletten — es sind Meals, die es nur einmal gibt. **Ein Meal ohne Gegenstück darf dieser
 Weg unter keinen Umständen anfassen.**
 
+### Zweiter Nachtrag: die verschärfte Regel löste das Problem nicht
+
+Die Fassung aus dem ersten Nachtrag — „lösche nur, was eine `lib` trägt, die im Gruppenstand
+vertreten ist" — ist **gegen die echten Daten gerechnet worden** und dabei durchgefallen.
+
+Gemessen am Konto vom 28.08.2026 (81 eigene Meals, 44 in der Gruppe, rein lesend simuliert):
+
+| Regel | löscht | Bestand danach | größte `lib`-Häufung |
+|---|---|---|---|
+| gar nicht aufräumen | 0 | 81 | **3** |
+| pauschal (erste Fassung) | 37 | 44 | 1 — aber 1 Meal **ohne Gegenstück** dabei |
+| `lib` in der Gruppe (zweite Fassung) | 9 | 72 | **2** — Dubletten bleiben |
+| je `lib` einer (jetzige Fassung) | 17 | 64 | **1**, und 0 ohne Gegenstück |
+
+**Warum die zweite Fassung nicht griff:** Von 37 Altbeständen lagen **11 als Paare
+untereinander** — und **8 davon** trugen eine `lib`, die die Gruppe gar nicht kennt. Die
+Frage „ist diese `lib` in der Gruppe?" ging an diesen Paaren vorbei. Die Regel war sicher,
+aber sie löste das gemeldete Problem nicht.
+
+**Die jetzige Regel zählt je `lib` mit:** Der erste bleibt, jeder weitere geht — der aus dem
+mitgebrachten Gruppenstand hat Vorrang. Damit ist ein Meal, dessen `lib` nur **einmal**
+vorkommt, strukturell unantastbar; die Ausnahme für Nur-Leser aus dem ersten Nachtrag bleibt
+zusätzlich bestehen. Sortiert nach `id`, damit zwei Geräte unabhängig voneinander dieselbe
+Kopie behalten (dieselbe Überlegung wie bei `memberColorSlot()`).
+
+### Die Lehre, und sie ist die unangenehmste des Tages
+
+> **Ein Prüfstand mit selbst erfundenen Daten prüft die Regel, die man im Kopf hatte — nicht
+> die Wirklichkeit, für die sie gedacht war.**
+
+Die synthetischen Testdaten bildeten den Fall ab, den ich mir vorgestellt hatte: eigene
+Kopien, deren Gegenstück in der Gruppe liegt. Der häufigste Fall am echten Konto war ein
+anderer: Paare, die *nur* im eigenen Bestand liegen, aus mehreren Beitritts-Zyklen. Beide
+Fassungen waren grün — die zweite über zwei Commits hinweg, mit Gegenprobe.
+
+Gefunden hat es erst die Rechnung gegen die 81 echten Dokumente. Der Prüfstand trägt den Fall
+jetzt nach (Abschnitt 3c).
+
 ### Die Regel dahinter
 
 > **Eine geleerte Baseline ist keine Aufräumung.** Sie sagt „ich weiß nichts über den
@@ -4694,3 +4733,67 @@ Formel nach und verlangt, dass sie sich unterscheidet — der Prüfstand lässt 
 **nicht** gegen die alte `index.html` fahren: dort gibt es `shopCountsMembers()` nicht, der
 Schnitt scheitert am fehlenden Marker. Eine Gegenprobe, die am Werkzeug scheitert, ist keine;
 also wird die alte Rechnung im Lauf selbst nachgebildet.
+
+## 133. Wer aus einer Gruppe entfernt wird, bleibt für immer daran hängen
+
+**Datum:** 28.08.2026 · **Betrifft:** `enterGroupSync()`, `CloudGroup.fetch()` · **NICHT behoben**
+
+### Der Befund
+
+Am Testkonto beobachtet, nachdem der Inhaber es aus der Gruppe entfernt hatte: Das
+Kontodokument trägt weiterhin `groupId`, und ein Lesen der Mitgliederliste antwortet
+`permission-denied` — das Konto ist nachweislich **kein Mitglied mehr**, zeigt aber weiterhin
+auf die Gruppe.
+
+Der Weg dorthin:
+
+1. `CloudGroup.fetch(gid)` ist ein schlichtes `getDoc`. Die Regel lautet
+   `allow get: if isMember(gid)` — für ein Nicht-Mitglied **wirft** der Aufruf.
+2. `enterGroupSync()` fängt das im äußeren `catch` und liefert **`"error"`**, nicht `"gone"`.
+3. `"error"` heißt ausdrücklich „wir wissen es gerade nicht": Der Zeiger bleibt stehen,
+   `groupSyncFailed = true` hält `pushNow()` davon ab, ihn zu räumen.
+4. Beim nächsten Start dasselbe. **Es gibt keinen Weg heraus.**
+
+Sichtbar wird das als „Die Gruppe ist gerade nicht erreichbar – du planst vorerst für dich."
+— bei jedem einzelnen Start, dauerhaft. Der Nutzer plant für sich, glaubt an ein
+Verbindungsproblem, und niemand sagt ihm, dass er schlicht nicht mehr dabei ist.
+
+### Warum das nicht einfach zu beheben ist
+
+Der naheliegende Schluss — „`permission-denied` heißt: kein Mitglied, also `gone`" — ist
+technisch richtig und **trotzdem gefährlich**. Firestore liefert diesen Code nur, wenn der
+Server die Regel ausgewertet hat; offline kommt `unavailable` oder ein Cache-Treffer.
+
+Aber genau am 28.08.2026 war messbar, dass die App-Instanz **fälschlich**
+`permission-denied` liefern kann, über längere Phasen, bei völlig intakten Regeln und
+gültigem Konto (Ziffer 129 ist daraus entstanden). Würde dieser Code als „gone" gewertet,
+verlöre ein rechtmäßiges Mitglied in so einer Phase seine Gruppe — und zwar für **alle**
+seine Geräte, weil `pushNow()` das leere `groupId` hochschriebe.
+
+Damit steht die Abwägung genau andersherum als die bisherige Regel vermuten lässt:
+
+> **Ein Zustand, der sich nicht von selbst auflöst, ist ein Fehler. Ein Zustand, der Daten
+> kostet, ist schlimmer.** Solange die Ursache der falschen `permission-denied` unbekannt
+> ist, darf dieser Code keine Löschung auslösen.
+
+### Was stattdessen zu entscheiden ist
+
+Drei Wege, alle drei sind Produktentscheidungen und deshalb hier nur benannt:
+
+1. **Ein Ausweg in der Oberfläche.** Bleibt `groupSyncFailed` über mehrere Starts bestehen,
+   bietet der Gruppen-Dialog „Diese Gruppe ist nicht mehr erreichbar – Verbindung lösen" an.
+   Der Nutzer entscheidet, nicht der Client. Sicher, aber er muss es finden.
+2. **Zählen statt raten.** Erst nach *n* aufeinanderfolgenden `permission-denied` bei
+   sonst funktionierender Verbindung (das Kontodokument liest sich ja) wird geräumt.
+   Braucht einen Zähler, der Sitzungen überdauert.
+3. **Die Ursache der falschen `permission-denied` finden.** Dann trägt Weg 1 oder 2 von
+   selbst, und die einfache Auswertung wäre wieder vertretbar.
+
+Bis dahin bleibt der Zustand bestehen — bewusst, und hier dokumentiert, damit er nicht als
+Rätsel wiederkehrt.
+
+### Wie man ein betroffenes Konto heute löst
+
+Es gibt keinen Knopf. Der Zeiger muss im Kontodokument geleert werden
+(`users/{uid}.groupId = ""`); danach startet die App normal und der Nutzer kann einer neuen
+Gruppe beitreten oder selbst eine gründen.

@@ -15813,10 +15813,9 @@
     // Ein leerer Behalten-Stand ist kein Auftrag zum Leerraeumen, sondern ein Hinweis
     // darauf, dass der Snapshot zu spaet gezogen wurde (docs/TROUBLESHOOTING.md 101).
     if (!behalteIds.size) return;
-    // Geloescht wird NUR, was nachweislich eine Dublette ist: ein Meal, dessen `lib` in der
-    // Gruppe bereits vertreten ist. Das ist exakt dieselbe Frage, die copyOwnRecipesToGroup()
-    // auf dem Hinweg stellt - nur in die andere Richtung. Was der Beitritt wegen gleicher
-    // `lib` nicht hochgeladen hat, raeumt der Austritt weg; alles andere bleibt.
+    // Geloescht wird NUR, was nachweislich eine Dublette ist: ein zweites Meal mit derselben
+    // `lib`. Der erste seiner Art bleibt immer stehen - egal ob er aus der Gruppe kommt oder
+    // aus dem Altbestand.
     //
     // Die erste Fassung loeschte pauschal alles, was nicht im Gruppenstand lag, und stuetzte
     // sich dabei auf die Annahme "mein Bestand ist beim Beitritt vollstaendig in die Gruppe
@@ -15830,13 +15829,32 @@
     // Meals ohne `lib` (selbst angelegte) bleiben damit immer stehen - dieselbe Grenze wie
     // beim Beitritt, wo ein Namensabgleich fremde Meals verschluecken wuerde ("Banane" darf
     // es zweimal geben, siehe copyOwnRecipesToGroup).
-    const behalteLibs = new Set(behalte.map(r => r.lib).filter(Boolean));
     let vorhanden = [];
     try { vorhanden = await window.CloudSync.loadRecipes(["users", syncUid]) || []; }
     catch (e) { noteError("group:pruneOwnRead", e); return; }
-    const weg = vorhanden
-      .filter(r => r && r.id && !behalteIds.has(r.id) && r.lib && behalteLibs.has(r.lib))
-      .map(r => r.id);
+    // Je `lib` bleibt genau EINER stehen; der aus dem mitgebrachten Gruppenstand hat Vorrang.
+    //
+    // Die zweite Fassung fragte nur "ist diese `lib` in der Gruppe vertreten?" - und traf
+    // damit den haeufigsten Fall nicht. Am echten Konto gemessen: Von 37 Altbestaenden lagen
+    // 11 als PAARE untereinander, 8 davon mit einer `lib`, die die Gruppe gar nicht kennt.
+    // Die Regel loeschte 9 von 37, und der Bestand trug danach immer noch Dubletten
+    // (maxGleicheLib 2). Sie war sicher, aber sie loeste das gemeldete Problem nicht.
+    //
+    // Diese Fassung zaehlt stattdessen je `lib` mit: Der erste bleibt, jeder weitere geht.
+    // Damit ist ein Meal, dessen `lib` nur EINMAL vorkommt, strukturell unantastbar - der
+    // Nur-Leser aus dem Nachtrag oben verliert also weiterhin nichts.
+    //
+    // Sortiert nach id, damit zwei Geraete unabhaengig voneinander dieselbe Kopie behalten -
+    // dieselbe Ueberlegung wie bei memberColorSlot() und sanitizeTombstones().
+    const gesehen = new Set(behalte.map(r => r.lib).filter(Boolean));
+    const weg = [];
+    vorhanden
+      .filter(r => r && r.id && !behalteIds.has(r.id) && r.lib)   // ohne `lib`: nie anfassen
+      .sort((a, b) => a.id < b.id ? -1 : (a.id > b.id ? 1 : 0))
+      .forEach(r => {
+        if (gesehen.has(r.lib)) { weg.push(r.id); return; }
+        gesehen.add(r.lib);
+      });
     if (!weg.length) return;
     // In Haeppchen wie beim Hochladen: writeBatch vertraegt hoechstens 500 Vorgaenge.
     for (let i = 0; i < weg.length; i += 100) {
