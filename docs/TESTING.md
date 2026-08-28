@@ -16,7 +16,7 @@ Die primäre Verifikation erfolgt deshalb über den Browser und gezielte isolier
 
 <!-- REGISTER-ANFANG (erzeugt aus den Ueberschriften, nicht von Hand pflegen) -->
 
-**Register — 35.** Vorne (0 bis 9) die geltenden Verfahren: Syntax-Check,
+**Register — 42.** Vorne (0 bis 9) die geltenden Verfahren: Syntax-Check,
 Smoke-Test, Ausschneide-Pruefstand, Sync-Tests. Dahinter das datierte Fallarchiv —
 einzelne Pruefstaende und was ihre Gegenprobe gezeigt hat.
 
@@ -61,6 +61,13 @@ Die Verfahren gibt es auch als Skill: `/smoke`, `/pruefstand`, `/abnahme`, `/dep
 | · | `tools/alle-pruefstaende.py` — der Reihenlauf (26.08.2026) |
 | · | `tools/pruefstand-grpm-zoom.py` — eine Behauptung über die CSS-Kaskade messen (27.08.2026) |
 | · | `tools/pruefstand-einkaufsliste.py` — fünf Läufe über beide Wochenreiter (28.08.2026) |
+| · | `tools/pruefstand-gruppe-verlassen-dubletten.py` — der Rückweg aus der Gruppe (28.08.2026) |
+| · | `tools/pruefstand-gruppe-beitritt-cache.py` — ein Cache, der lügt (28.08.2026) |
+| · | `tools/pruefstand-zuweisung-loeschen.py` — zwei Funktionen gegeneinander (28.08.2026) |
+| · | `tools/pruefstand-gruppe-plan-mitbringen.py` — zwei Änderungen, zwei Gegenproben (28.08.2026) |
+| · | `tools/pruefstand-sync-abriss.py` — eine Anzeige, die lügt (28.08.2026) |
+| · | `tools/pruefstand-waise-uids.py` — die Folge messen, nicht die Datenform (28.08.2026) |
+| · | `tools/pruefstand-einkauf-gruppe.py` — die Lücke im Nachbarprüfstand (28.08.2026) |
 
 <!-- REGISTER-ENDE -->
 
@@ -1754,8 +1761,11 @@ Merge):
 4. `dedupeAgainstCatalog()` löscht eine unveränderte Kopie, lässt eine inhaltlich abweichende
    und eine bloß favorisierte (aber sonst identische) Kopie stehen, verliert dabei keinen
    Plan-Eintrag aus keiner Woche und ist beim zweiten Lauf ein Nullvorgang. Eine eigene Gruppe
-   prüft die Vorsichtsregel: vor dem Handshake bleibt der Bestand unangetastet und
-   `state.dedupeV1` bleibt `false`, danach läuft dieselbe Migration nach.
+   prüft die Vorsichtsregel. **Seit dem 28.08.2026 schärfer** (`docs/TROUBLESHOOTING.md`
+   128): In einer Gruppe läuft die Migration überhaupt nicht mehr — auch nicht nach dem
+   Handshake — und `state.dedupeV1` bleibt unten, damit sie nach dem Verlassen nachholt.
+   Die Gegenprobe im selben Abschnitt setzt `syncGid = null` und verlangt, dass sie dann
+   sofort aufräumt und das Flag setzt.
 5. (Teil des Punkts oben, siehe Migration.)
 6. `copyOwnRecipesToGroup()` gegen eine aufzeichnende `window.CloudSync`-Attrappe (Vorbild:
    `pruefstand-gruppenlimit.html`): Zwei Bestände mit demselben `lib` ergeben in der Gruppe
@@ -2702,3 +2712,251 @@ ersten Versuch prüfte dieser Riegel nur die eine Seite — und ließ die andere
 > etwas da ist.** Sonst misst sie das Nichts.
 
 Dasselbe Muster ist der Grund, warum Lauf C ein eigener Lauf ist.
+
+
+## `tools/pruefstand-gruppe-verlassen-dubletten.py` — der Rückweg aus der Gruppe (28.08.2026)
+
+Gehört zu `docs/TROUBLESHOOTING.md` 125. Geprüft wird nicht „kommt etwas an“, sondern:
+
+    nach Verlassen + Neustart trägt jede `lib` genau EINEN Eintrag
+
+Der Prüfstand schneidet drei Funktionen aus `index.html` — `pruneOwnRecipes()`,
+`syncRecipes()` und `mergeRemoteRecipes()` — und stellt ihnen ein **falsches Firestore mit
+zwei Sammlungen** (`users/ich` und `groups/g1`) daneben, das die Batch-Semantik von
+`saveRecipesBatch()` echt nachbildet. Die Testdaten sind die Konstellation, die den Fehler
+garantiert erzeugt: fünf Startmeals je Konto mit **gleicher `lib` und eigener id** — `STARTER`
+ist je Ernährungsform fest verdrahtet.
+
+Nachgebildet ist nur die **Reihenfolge** aus `leaveGroup()`/`startCloudSync()`. Das ist die
+Grenze dieses Prüfstands und sie gehört benannt: Er beweist, dass der Bestand nach dem
+Aufräumen dublettenfrei ist — nicht, dass `leaveGroup()` `pruneOwnRecipes()` an der richtigen
+Stelle aufruft. Das bleibt Sache der Abnahme am echten Konto.
+
+Acht Abschnitte, 18 Prüfungen. Vier davon sichern die Grenzen der neuen Funktion ab, und alle
+vier waren beim Entwurf die eigentliche Arbeit: **Nur-Leser** (ihr Bestand ist die einzige
+Kopie und darf nicht geräumt werden), **leerer Behalten-Stand** (das Warnzeichen aus Ziffer
+101, kein Auftrag zum Leerräumen), **Lesefehler** (darf nie zu einer Löschung führen) und
+**Idempotenz**.
+
+### Die Gegenprobe
+
+Abschnitt 8 fährt denselben Ablauf ohne `pruneOwnRecipes()` — also die Fassung mit der bloss
+geleerten Baseline — und verlangt, dass sie **rot** wird: **12 statt 7 Meals**, `lib`-Zählung
+2, und wachsend mit jedem weiteren Zyklus. Das ist genau das Muster, das am 28.08.2026 am
+echten Konto gemessen wurde (81 statt 43, `lib` bis dreifach). Ohne diesen Abschnitt bestünde
+auch die kaputte Fassung den Prüfstand — die Aufräumung hätte nichts zu tun gehabt, weil im
+Modell schon alles gestimmt hätte.
+
+
+## `tools/pruefstand-gruppe-beitritt-cache.py` — ein Cache, der lügt (28.08.2026)
+
+Gehört zu `docs/TROUBLESHOOTING.md` 126. Das Besondere ist nicht der ausgeschnittene Code,
+sondern die **Attrappe**: Das falsche Firestore führt eine Liste `gesehen` mit den Sammlungen,
+die der Cache schon einmal vom Server geladen hat. `loadRecipes()` liefert für alles andere
+ein leeres Array zurück — **ohne zu werfen**, genau wie `getDocs()` mit
+`persistentLocalCache`. `loadRecipesFromServer()` wirft stattdessen, wenn `serverOffline`
+gesetzt ist.
+
+Damit lässt sich der Unterschied überhaupt erst messen, um den es geht: *kalter Cache* (der
+reale Zustand beim Beitritt) gegen *echtes Offline*. Im ersten Fall muss der Abgleich
+funktionieren, im zweiten darf er ausfallen — aber der Beitritt darf nicht scheitern.
+
+### Zwei Gegenproben, und die zweite ist die wichtigere
+
+Abschnitt 7 fährt die alte Fassung (Cache-Weg) beim **kalten** Cache und verlangt Rot:
+12 statt 7 Meals, `lib`-Zählung 2, nichts umgebogen.
+
+Abschnitt 8 fährt **dieselbe alte Fassung** beim **warmen** Cache und verlangt Grün.
+
+Ohne Abschnitt 8 bestünde der Prüfstand auch dann, wenn die alte Fassung aus irgendeinem
+anderen Grund kaputt wäre. Erst das Paar belegt, dass die Ursache der Cache-Zustand ist —
+und nur diese Aussage rechtfertigt den Umbau auf `getDocsFromServer()`.
+
+> **Eine Gegenprobe zeigt, DASS die alte Fassung durchfällt. Erst eine zweite zeigt,
+> WORAN.** Wer nur die erste baut, hat einen Beleg für das Symptom und keinen für die
+> Ursache — und repariert beim nächsten Mal wieder die falsche Funktion (Ziffer 102).
+
+
+## `tools/pruefstand-zuweisung-loeschen.py` — zwei Funktionen gegeneinander (28.08.2026)
+
+Gehört zu `docs/TROUBLESHOOTING.md` 127. Der Prüfstand schneidet **zwei** Funktionen aus,
+obwohl nur eine kaputt war: `dropRecipeIds()` und ihren Nachbarn `rewritePlanIds()`.
+
+Das ist der Kern des Aufbaus. Beide müssen über dieselben Slot-Einträge dieselbe Menge
+treffen — die eine biegt um, die andere entfernt. Abschnitt 6 prüft genau diese Symmetrie:
+erst `rewritePlanIds("r1","rNEU")`, dann `dropRecipeIds({rNEU})`, und beides muss vollständig
+durchgreifen. Ein Prüfstand nur für `dropRecipeIds()` hätte den Fehler zwar auch gefunden,
+aber nicht gezeigt, **woran** man ihn hätte sehen können.
+
+Die Testwoche enthält alle Formen, die das Datenmodell zulässt: „für alle“ (String),
+„nur ich“, „nur die andere Person“, beide-als-Objekt und einen gemischten Slot aus Strings
+und Objekten. Der gemischte Slot ist der wichtigste — er belegt, dass die übrigen Einträge
+stehen bleiben, statt dass einfach der ganze Slot geleert wird.
+
+### Wieder zwei Gegenproben
+
+Abschnitt 8 fährt die alte Filterfassung und verlangt Rot: **4 von 5** Verweisen bleiben
+stehen, entfernt wird nur die „für alle“-Form. Danach dieselbe alte Fassung an einer Woche
+**ohne** Zuweisungen — dort muss sie Grün sein. Erst das Paar belegt, dass die Eintragsform
+die Ursache ist.
+
+### Was er NICHT misst
+
+Dass die drei Aufrufer (`deleteRecipe()`, `onRecipesRemote()`, `startCloudSync()`) die
+Funktion an der richtigen Stelle rufen. Der Prüfstand deckt den Helfer ab, nicht die
+Verdrahtung — das bleibt Sache der Abnahme am echten Konto.
+
+
+## `tools/pruefstand-gruppe-plan-mitbringen.py` — zwei Änderungen, zwei Gegenproben (28.08.2026)
+
+Gehört zu `docs/TROUBLESHOOTING.md` 128. Deckt zwei Veränderungen ab, die nichts miteinander
+zu tun haben außer dem Bereich: den nachgetragenen Wochenplan des Beitretenden und die
+Migration, die in einer Gruppe nicht mehr läuft.
+
+Der Attrappen-Cache ist derselbe wie in `pruefstand-gruppe-beitritt-cache.py` — `gesehen`
+entscheidet, ob der Cache-Weg ein echtes oder ein leeres Ergebnis liefert, `serverOffline`
+lässt den Server-Weg werfen. Damit lassen sich *kalter Cache* und *echtes Offline*
+auseinanderhalten, und genau darauf beruht der Unterschied zwischen „nachtragen" und
+„gar nichts tun".
+
+`flattenWeek()` ist hier **bewusst gestubbt** statt ausgeschnitten: Gemessen wird
+`mergeOwnPlanIntoGroup()`, nicht die Umwandlung einer Woche in flache Slot-Felder — die hat
+ihre eigenen Prüfstände. Der Stub liefert die flache Form direkt.
+
+### Die schwierigste Prüfung ist Abschnitt 9
+
+`pr("das Flag bleibt UNGESETZT", state.dedupeV1 === false)` — dass in der Gruppe nichts
+gelöscht wird, ist die halbe Aussage. Die andere Hälfte ist, dass die Migration danach noch
+**stattfinden kann**. Würde `dedupeAgainstCatalog()` in der Gruppe das Flag setzen, wäre der
+eigene Bestand nach dem Verlassen für immer unaufgeräumt — ein stiller Folgefehler, den ein
+Test nur findet, wenn er ihn ausdrücklich fragt. Abschnitt 10 fährt deshalb direkt hinterher
+und verlangt, dass sie nach `syncGid = null` sofort nachholt.
+
+### Zwei Gegenproben
+
+**A** (Abschnitt 8): der Cache-Weg überschreibt beim kalten Cache den fremden Slot — und ist
+beim warmen Cache heil. **B** (Abschnitt 11): die alte Bedingung `syncGid && !syncHandshakeOk`
+hätte mit erfolgtem Handshake mitten im Gruppenbestand gelöscht. Ohne B bestünde Abschnitt 9
+auch dann, wenn die Testdaten gar nichts zu löschen hätten.
+
+
+## `tools/pruefstand-sync-abriss.py` — eine Anzeige, die lügt (28.08.2026)
+
+Gehört zu `docs/TROUBLESHOOTING.md` 129. Geprüft wird nicht „kommt ein Fehler an", sondern:
+
+    nach einem Listener-Abriss zeigt der Status NICHT mehr "synced" —
+    und der Nutzer bekommt GENAU EINEN Hinweis, nicht einen je Listener
+
+Die zweite Hälfte ist der Grund, warum der Prüfstand mehr ist als eine Formalität. Greift eine
+Firestore-Regel, scheitern alle vier Listener im selben Moment. Ohne Sperre wären das vier
+Toasts hintereinander — eine Verbesserung, die sich sofort wieder als Ärgernis auszahlt.
+Abschnitt 2 misst genau das: vier Protokolleinträge, ein Hinweis.
+
+Die Attrappe ist winzig und trägt trotzdem den ganzen Test: ein `onSnapshot`, das je nach
+`fehlerModus` entweder nichts tut oder asynchron den Fehlerpfad ruft. Mehr braucht es nicht,
+weil die Messgröße nicht im SDK liegt, sondern in dem, was die App daraus macht.
+
+### Was die Abschnitte 5 und 6 absichern
+
+Der Melder läuft im Firebase-Modul, der Empfänger in der App — zwei Skriptblöcke, die
+unabhängig scheitern können. Abschnitt 5 lässt `__onCloudWatchError` werfen, Abschnitt 6
+entfernt es ganz. In beiden Fällen muss der Melder trotzdem protokollieren und darf nicht
+weiterwerfen. Ein Fehlermelder, der selbst einen Fehler auslöst, ist die schlimmste Variante:
+Er verwandelt eine gemeldete Störung in einen Absturz — dieselbe Falle, die bei `noteError()`
+schon einmal beschrieben wurde (`docs/ARCHITECTURES.md`, „Warum die Position kritisch ist").
+
+### Wieder zwei Gegenproben
+
+Abschnitt 8 fährt die alte Fassung mit dem leeren `function () {}`: Der Status bleibt auf
+„synced", kein Hinweis, kein Protokolleintrag — genau der gemessene Zustand vom 28.08.2026.
+Abschnitt 9 belegt, dass die Attrappe im selben Modus wirklich feuert. Ohne ihn bestünde
+Abschnitt 8 auch dann, wenn schlicht kein Fehler ausgelöst worden wäre.
+
+### Was er NICHT misst
+
+Dass Firestore einen fehlgeschlagenen `onSnapshot` wirklich endgültig beendet — das ist eine
+Eigenschaft des SDK und hier als Annahme gesetzt. Wäre sie falsch, wäre die Behebung zu
+streng (ein Hinweis, obwohl sich der Listener erholt), nicht zu lasch.
+
+
+## `tools/pruefstand-waise-uids.py` — die Folge messen, nicht die Datenform (28.08.2026)
+
+Gehört zu `docs/TROUBLESHOOTING.md` 130. Der naheliegende Prüfstand hätte nur gefragt:
+„kommt `{ id, uids: [] }` durch?“ Das wäre richtig gewesen und hätte trotzdem das
+Wichtigste nicht gezeigt.
+
+Abschnitt 10 stellt deshalb alte und neue Fassung **nebeneinander** und misst die
+Folgewirkung: `slotOpenForMe()` meldet bei der alten Fassung „Slot frei“, während im Slot ein
+Eintrag steht — der Auto-Planer plant also darüber, und in der Zeile stehen danach zwei
+Karten, von denen eine niemandem gehört. Neu ist der Slot frei **und** leer, der Widerspruch
+ist weg.
+
+> **Ein Prüfstand, der nur die Datenform prüft, belegt die Reparatur. Einer, der die
+> Folgewirkung prüft, belegt den Schaden.** Nur der zweite sagt dem nächsten Leser, warum die
+> Zeile so aussehen muss.
+
+Abschnitt 2 ist der zweite Kern: Er füttert `uids: [null, 7, {}]` — also Daten, aus denen der
+Sanitizer die Waise **selbst** erzeugt. Es braucht kein manipuliertes Dokument, ein
+fehlerhaftes genügt, und genau das macht aus dem theoretischen Fall einen realen.
+
+Dazu die übliche Absicherung der Nachbarschaft: Objekte ohne `uids` bleiben die String-Form
+(§73), teilweise kaputte Listen behalten ihre Strings, die 24er-Deckelung hält, Müll fällt
+weiterhin heraus. Und zwei Gegenproben — die alte Fassung lässt die Waise durch, liefert
+aber **ohne** Waisen byte-gleiche Ergebnisse.
+
+
+## `tools/pruefstand-einkauf-gruppe.py` — die Lücke im Nachbarprüfstand (28.08.2026)
+
+`tools/pruefstand-einkaufsliste.py` deckt den Abhak-Zustand, die Wochenbindung, die
+Personenzahl und den PDF-Kopf ab — und kennt **keine einzige Zuweisung**. Genau dort verläuft
+in der Gruppe die interessante Grenze: Ein Slot-Eintrag ist entweder ein String („für alle")
+oder `{id, uids}`.
+
+Dieser Prüfstand hält den Vertrag fest, den `buildShoppingList()` und `buildBatchList()`
+gemeinsam einhalten müssen:
+
+    Endsumme = sharedQty * per + assignedQty
+
+„Für alle" wird mit dem globalen Personenfaktor hochgerechnet; zugewiesene Gerichte sind
+bereits pro Gericht auf `uids.length` skaliert und dürfen den globalen Faktor **nicht noch
+einmal** abbekommen. Abschnitt 4 ist der schärfste Test: dieselbe Zutat (Tomaten) aus **beiden**
+Arten im selben Lauf — 200 g „für alle" × 2 plus 50 g zugewiesen × 1 = 450 g. Ein Prüfstand mit
+nur je einer Art bestünde auch dann, wenn beide Töpfe vertauscht wären.
+
+Abschnitt 11 ist die Gegenprobe zum Aufbau: Mit zwei Mitgliedern muss 200 herauskommen, mit
+drei 300. Ohne sie bestünden die Abschnitte 2–4 auch dann, wenn überall stumpf mit 1 gerechnet
+würde.
+
+Abschnitt 9 prüft die Zusage aus `planDaysAhead()`: Einkaufsliste und Vorkochliste müssen
+**dieselbe** Woche beschreiben — sonst kauft man für einen Tag ein, den die Vorkochliste nicht
+mehr kennt.
+
+### Ein Abschnitt, der misst statt zu urteilen
+
+Abschnitt 7 ist bewusst **kein** Fehlschlag, sondern eine Messung mit `MESS`-Zeilen. Er hält
+fest, was „Einkauf für alle rechnen: **Aus**" tatsächlich tut: Der „für alle"-Anteil folgt der
+Einstellung (einfache Menge), der **zugewiesene** Anteil nicht — dort steckt der
+Mitglieder-Faktor im Eintrag selbst und bleibt erhalten.
+
+Das ist heute so gewollt (jede zugewiesene Person braucht ein eigenes Meal) und steht trotzdem
+quer zur Beschriftung „Mengen × Mitglieder". Die Entscheidung darüber gehört dem Inhaber, nicht
+dem Prüfstand.
+
+> **Ein Prüfstand darf eine offene Produktfrage festhalten, ohne sie zu beantworten.** Als
+> `FAIL` getarnt wäre sie ein Dauerrot, das man wegklickt; als Messwert bleibt sie sichtbar und
+> ändert sich mit, sobald jemand die Regel ändert.
+
+### Zwei Schnittfehler, die der Prüfstand beim Bauen selbst produziert hat
+
+Beide gehören ins Archiv, weil sie sich bei jedem Ausschneide-Prüfstand wiederholen können:
+
+* `makeEmptyPlan()` endet mit `return p;`, nicht `return plan;`. Der Endmarker `return plan;`
+  traf deshalb erst Hunderte Zeilen später — der Schnitt schluckte halb `index.html`, samt einer
+  zweiten `syncUid`-Deklaration. Das Symptom war ein `SyntaxError`, nicht ein falsches Ergebnis.
+* `shopPersons()` enthält `return own;` **zweimal** (Kurzausstieg und Schluss). Der Endmarker
+  traf den ersten und lieferte eine Funktion, die bei einer Person `undefined` zurückgab —
+  sieben Prüfungen wurden rot, obwohl der Produktionscode stimmte.
+
+> **Ein Endmarker muss im Zielbereich EINDEUTIG sein.** Ein `return`, eine schließende Klammer
+> oder ein `}` sind es fast nie. Wird ein Prüfstand ohne Codeänderung rot, ist der Schnitt der
+> erste Verdächtige — nicht der Code.

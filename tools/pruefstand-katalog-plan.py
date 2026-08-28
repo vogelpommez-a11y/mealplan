@@ -375,7 +375,13 @@ function alleEintraege(plan) {
       state.plan.mon.fr.every(function (e) { return !!getRecipe(entryId(e)); }), true);
   })();
 
-  // ---- Vorsichtsregel: in einer Gruppe erst NACH dem Handshake ----
+  // ---- Vorsichtsregel: in einer Gruppe laeuft die Migration GAR NICHT ----
+  // Bis zum 28.08.2026 stand hier die Erwartung "nach dem Handshake laeuft dieselbe
+  // Migration nach". Die Bedingung war `syncGid && !syncHandshakeOk` - die Migration lief
+  // also im gemeinsamen Bestand, sobald der Handshake stand. Das ist seit Ziffer 128 in
+  // docs/TROUBLESHOOTING.md abgeschaltet: `state.dedupeV1` steht nur im localStorage und ist
+  // damit ein GERAETE-Flag; in der Gruppe raeumte die Migration aber fremden Bestand auf, und
+  // jedes weitere Geraet liess sie erneut darauf los.
   (function () {
     frisch();
     var vorlage = COOKBOOK[0];
@@ -388,7 +394,15 @@ function alleEintraege(plan) {
       state.dedupeV1, false);
     syncHandshakeOk = true;
     dedupeAgainstCatalog();
-    pruef("nach dem Handshake laeuft dieselbe Migration nach", state.recipes.length, 0);
+    pruef("auch NACH dem Handshake bleibt der Gruppenbestand unangetastet",
+      state.recipes.length, 1);
+    pruef("und das Flag bleibt weiterhin unten - nach dem Verlassen wird nachgeholt",
+      state.dedupeV1, false);
+    // Gegenprobe: ohne Gruppe raeumt dieselbe Migration sofort auf.
+    syncGid = null;
+    dedupeAgainstCatalog();
+    pruef("ohne Gruppe laeuft sie sofort", state.recipes.length, 0);
+    pruef("und setzt jetzt das Flag", state.dedupeV1, true);
   })();
 
   // ---- Zusage 6: Gruppen-Merge - zwei Bestaende mit gleichem `lib` zusammenfuehren ----

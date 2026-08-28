@@ -3333,7 +3333,7 @@
   import {
     getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager,
     terminate, clearIndexedDbPersistence,
-    doc, collection, getDoc, getDocs, setDoc, updateDoc, deleteDoc, writeBatch, increment, onSnapshot
+    doc, collection, getDoc, getDocs, getDocsFromServer, setDoc, updateDoc, deleteDoc, writeBatch, increment, onSnapshot
   } from "./vendor/firebase/10.12.5/firebase-firestore.js";
 
   /* ▼▼▼ HIER die Werte aus der Firebase-Konsole eintragen ▼▼▼
@@ -3565,6 +3565,34 @@
       function recipesCol(base) { return collection(db, base[0], base[1], "recipes"); }
       function recipeDoc(base, id) { return doc(db, base[0], base[1], "recipes", id); }
 
+      // ----- Fehlerbehandlung fuer onSnapshot -----
+      //
+      // Vier Listener trugen bis zum 28.08.2026 ein leeres `function () {}` als
+      // Fehlerbehandlung. Das ist teurer, als es aussieht: Ein onSnapshot, der mit einem
+      // Fehler endet, wird von Firestore ENDGUELTIG beendet - er versucht es nicht erneut.
+      // Der Listener ist danach tot, und niemand erfaehrt es. Der Sync-Punkt zeigte weiter
+      // "Synchronisiert", weil setSyncStatus("synced") am Ende von startCloudSync() gesetzt
+      // wird und nichts es je zuruecknahm.
+      //
+      // Genau dieser Zustand war am 28.08.2026 messbar: Die App konnte weder lesen noch
+      // schreiben, die Anzeige sagte "Synchronisiert". Ein Nutzer haelt seine Daten fuer
+      // gesichert, waehrend nichts mehr ankommt - dieselbe Fehlerklasse wie die leeren
+      // catch-Bloecke aus docs/TROUBLESHOOTING.md 29 und der freundliche Toast aus 121.
+      //
+      // Der Melder tut zwei Dinge und nichts weiter: Er protokolliert ueber noteError
+      // (gedrosselt, drei je Kennung) und reicht den Fall an die App durch, damit sie den
+      // Status ehrlich stellen kann. Bewusst KEIN automatisches Neuanhaengen: Ein Listener,
+      // der wegen einer Regel scheitert, scheitert beim naechsten Versuch genauso, und eine
+      // Wiederanhaenge-Schleife waere ein Dauerfeuer gegen Firestore.
+      function watchFehler(kennung) {
+        return function (e) {
+          window.noteError(kennung, e);
+          if (typeof window.__onCloudWatchError === "function") {
+            try { window.__onCloudWatchError(kennung, e); } catch (e2) { window.noteError("sync:watchMelder", e2); }
+          }
+        };
+      }
+
       // ----- Pro-Berechtigung (D1): eigenes Dokument entitlements/{uid}, NUR lesbar -----
       // Bewusst nicht im Kontodokument: das darf der Nutzer selbst schreiben (siehe
       // firestore.rules). Ein Feld dort waere mit den Entwicklerwerkzeugen sofort auf true
@@ -3613,7 +3641,7 @@
         watch: function (uid, cb) {
           return onSnapshot(doc(db, "users", uid), function (snap) {
             if (snap.exists()) cb(snap.data(), snap.metadata.hasPendingWrites);
-          }, function () {});
+          }, watchFehler("sync:watchKonto"));
         },
         // ----- Rezepte: eigenes Dokument je Meal (users/{uid}/recipes/{id}) -----
         // Batch statt Einzel-setDoc/deleteDoc: batch.commit() ist atomar - entweder
@@ -3622,6 +3650,22 @@
         // naechste Zyklus versucht denselben Diff erneut (siehe syncRecipes()).
         loadRecipes: function (base) {
           return getDocs(recipesCol(base)).then(function (snap) {
+            return snap.docs.map(function (d) { return d.data(); });
+          });
+        },
+        // Ausdruecklich vom SERVER lesen - fuer den einen Fall, in dem ein leeres Ergebnis
+        // eine Entscheidung traegt: den Dubletten-Abgleich beim Gruppenbeitritt
+        // (copyOwnRecipesToGroup). Mit persistentLocalCache WIRFT getDocs offline nicht,
+        // sondern liefert stillschweigend das leere Cache-Ergebnis - und die Rezepte einer
+        // Gruppe, der man gerade erst beigetreten ist, hat dieser Cache noch NIE gesehen.
+        // "Die Gruppe hat noch keine Meals" und "ich weiss es nicht" saehen damit gleich aus,
+        // und der Abgleich lieferte genau dann nichts, wenn er gebraucht wird. Dieselbe
+        // Fehlerklasse wie bei CloudGroup.fetch() ("fromCache ist kein Beweis"), hier aber
+        // ohne Ausweg ueber ein Flag: ein leeres Array traegt keine Herkunft.
+        // getDocsFromServer WIRFT offline - das ist hier die gewuenschte Eigenschaft, der
+        // Aufrufer faengt es ab und faellt auf das alte Verhalten zurueck.
+        loadRecipesFromServer: function (base) {
+          return getDocsFromServer(recipesCol(base)).then(function (snap) {
             return snap.docs.map(function (d) { return d.data(); });
           });
         },
@@ -3636,7 +3680,7 @@
             cb(snap.docChanges().map(function (c) {
               return { type: c.type, id: c.doc.id, data: c.doc.data(), pending: c.doc.metadata.hasPendingWrites };
             }));
-          }, function () {});
+          }, watchFehler("sync:watchRezepte"));
         },
         // Loescht den Firestore-Offline-Cache (IndexedDB) - Teil der Loeschzusage aus
         // Datenschutz Ziffer 10, seit der Cache Inhaltsdaten (Meals, Wochenplan) spiegelt.
@@ -3683,7 +3727,7 @@
           });
         },
         watch: function (gid, cb) {
-          return onSnapshot(groupDoc(gid), function (s) { if (s.exists()) cb(s.data(), s.metadata.hasPendingWrites); }, function () {});
+          return onSnapshot(groupDoc(gid), function (s) { if (s.exists()) cb(s.data(), s.metadata.hasPendingWrites); }, watchFehler("sync:watchGruppe"));
         },
         // updateDoc statt setDoc(merge): scheitert laut, wenn die Gruppe nicht mehr da ist.
         setSettings: function (gid, settings) { return updateDoc(groupDoc(gid), { settings: settings }); },
@@ -3723,7 +3767,10 @@
         watchMembers: function (gid, cb) {
           return onSnapshot(collection(db, "groups", gid, "members"), function (snap) {
             cb(snap.docs.map(function (d) { return Object.assign({ uid: d.id }, d.data()); }), snap.metadata.fromCache);
-          }, function () { cb(null, false); });   // Lesefehler als null melden, NICHT als leere Liste - sonst laese der Aufrufer daraus einen Rauswurf
+          }, function (e) {   // Lesefehler als null melden, NICHT als leere Liste - sonst laese der Aufrufer daraus einen Rauswurf
+            watchFehler("sync:watchMitglieder")(e);
+            cb(null, false);
+          });
         },
         putMember: function (gid, uid, data) { return setDoc(doc(db, "groups", gid, "members", uid), data, { merge: true }); },
         // Bin ich in DIESER Gruppe schon eingetragen? Liefert null, wenn die Frage nicht
@@ -3784,6 +3831,15 @@
             return snap.docs.map(function (d) { return { week: d.id, fields: d.data() }; });
           });
         },
+        // Vom SERVER, aus demselben Grund wie CloudSync.loadRecipesFromServer(): Wer seinen
+        // eigenen Wochenplan in die Gruppe nachtraegt, fuellt nur die Slots, die dort NOCH
+        // LEER sind (mergeOwnPlanIntoGroup). Ein leeres Cache-Ergebnis liesse jeden Slot leer
+        // aussehen - und der Nachtrag ueberschriebe genau das, was er schonen soll.
+        loadPlansFromServer: function (gid) {
+          return getDocsFromServer(collection(db, "groups", gid, "plans")).then(function (snap) {
+            return snap.docs.map(function (d) { return { week: d.id, fields: d.data() }; });
+          });
+        },
         savePlanWeek: function (gid, week, patch) {
           return setDoc(doc(db, "groups", gid, "plans", week), patch, { merge: true });
         },
@@ -3793,7 +3849,7 @@
             cb(snap.docChanges().map(function (c) {
               return { type: c.type, week: c.doc.id, fields: c.doc.data(), pending: c.doc.metadata.hasPendingWrites };
             }));
-          }, function () {});
+          }, watchFehler("sync:watchPlaene"));
         },
 
         // ----- Einladungscodes -----
@@ -5358,6 +5414,12 @@
   // beim Kaltstart ohne Netz), bleibt es false, syncUid ist aber schon gesetzt - der naechste
   // save() schriebe dann groupId:"" und loeschte die Gruppe fuer ALLE Geraete des Kontos.
   let syncHandshakeOk = false;
+  // Ein abgerissener onSnapshot wird pro Sitzung EINMAL gemeldet; stopCloudSync() setzt das
+  // zurueck. Ohne die Sperre kaeme der Hinweis je Listener erneut - und im Regelfall (eine
+  // Regel greift, alle Listener scheitern gleichzeitig) waeren das vier Toasts hintereinander.
+  // Steht hier oben bei den uebrigen Sync-Flags und nicht bei __onCloudWatchError weiter
+  // unten: stopCloudSync() raeumt es mit auf und stuende sonst VOR der Deklaration.
+  let watchAbgerissen = false;
   // Wurde der Cloud-Stand dieser Sitzung schon geladen und mit dem lokalen zusammengefuehrt?
   //
   // Notwendig geworden mit dem Wechsel auf mergeFields (siehe CloudSync.save): Der schreibt
@@ -5462,8 +5524,33 @@
         .map(x => {
           if (typeof x === "string") return x;
           const uids = Array.isArray(x.uids) ? x.uids.filter(u => typeof u === "string").slice(0, 24) : null;
-          return uids ? { id: x.id, uids: uids } : x.id;
-        });
+          // Drei Faelle, nicht zwei - und der dritte ist der gefaehrliche:
+          //   uids === null   -> Objekt ohne uids, inhaltlich die String-Form (siehe oben)
+          //   uids.length > 0 -> echte Zuweisung
+          //   uids.length === 0 -> WAISE: ein Gericht, das niemandem gehoert
+          //
+          // Bis zum 28.08.2026 stand hier `return uids ? {...} : x.id;` - und ein leeres Array
+          // ist in JavaScript TRUTHY. Die Waise ueberlebte also als { id, uids: [] } und war
+          // danach fuer jede Auswertung unsichtbar, aber sichtbar im Plan: dayNutOf() zaehlt
+          // sie niemandem an (`uids.indexOf(syncUid) === -1`), die Einkaufsliste skaliert sie
+          // mit uids.length auf null, slotOpenForMe() haelt den Slot fuer frei und der Planer
+          // plant darueber. Ein Eintrag, den man sieht, der aber niemandem gehoert, nichts
+          // kostet und nichts blockiert.
+          //
+          // Die Zeile daneben verlangt genau das Gegenteil: Der Zuweisungs-Dialog entfernt
+          // einen Eintrag KOMPLETT, sobald die Abwahl `uids.length === 0` ergaebe ("ein
+          // Gericht ohne zugewiesene Person darf nie im Datenmodell existieren",
+          // docs/ARCHITECTURES.md). Der lokale Weg hielt die Zusage, der EINGEHENDE nicht -
+          // ausgerechnet der, der fremden Daten ausdruecklich nicht vertraut.
+          //
+          // Der Filter eine Zeile darueber kann die Waise sogar SELBST erzeugen: Enthaelt
+          // `uids` nur Nicht-Strings (`[null, 7]`), bleibt nach dem filter() ein leeres Array
+          // uebrig. Es braucht also kein manipuliertes Dokument, ein fehlerhaftes genuegt.
+          if (!uids) return x.id;
+          if (!uids.length) return null;    // faellt unten heraus
+          return { id: x.id, uids: uids };
+        })
+        .filter(x => x !== null);
     }));
     return plan;
   }
@@ -6391,6 +6478,7 @@
     leaveGroupState();   // Gruppen-Listener haengen sonst weiter und schreiben in den alten Zustand
     clearTimeout(pushTimer);
     syncUid = null; lastPushedJSON = null; lastPushedRecipes = null; recipesSyncFailed = false; groupSyncFailed = false; syncHandshakeOk = false;
+    watchAbgerissen = false;   // gehoert zu genau dieser Sync-Session (wie lastGroupAttempt unten)
     cloudBaselineOk = false;   // naechste Sitzung muss den Cloud-Stand erst wieder laden
     lastGroupAttempt = null;   // Sicherheitsnetz aus onRemote() gehoert zu genau dieser Sync-Session
     setSyncStatus("off");
@@ -6413,6 +6501,36 @@
     syncStatus = s;
     updateSyncUI();
   }
+  // Gegenstueck zu watchFehler() im Firebase-Modul. Ein onSnapshot, der mit einem Fehler
+  // endet, ist ENDGUELTIG beendet - Firestore haengt ihn nicht wieder an. Ab hier kommt von
+  // aussen nichts mehr, und genau das muss die Anzeige sagen.
+  //
+  // Warum das eine eigene Meldung wert ist: Der Sync-Punkt stand auf "Synchronisiert",
+  // gesetzt am Ende von startCloudSync(), und nichts nahm ihn je zurueck. Am 28.08.2026 war
+  // messbar, dass die App weder lesen noch schreiben konnte, waehrend die Anzeige Sicherheit
+  // versprach. Ein stiller Fehler ist schlimmer als ein lauter, wenn es um Daten geht
+  // (docs/TROUBLESHOOTING.md 29, 121, 129).
+  //
+  // "offline" und nicht ein neuer Zustand: Die Lage ist fuer den Nutzer dieselbe - die App
+  // laeuft lokal weiter, der naechste Start verbindet neu. Ein fuenfter Status brauchte ein
+  // eigenes Symbol und eine eigene Erklaerung, ohne dass sich die Handlung aendert.
+  window.__onCloudWatchError = function (kennung, e) {
+    setSyncStatus("offline");
+    if (watchAbgerissen) return;
+    watchAbgerissen = true;
+    // Kurz gehalten, und zwar aus drei Gruenden, die der Push-Check am 28.08.2026 genannt hat:
+    //
+    //   * Der Toast steht 1,9 Sekunden (toast()). Die erste Fassung hatte 21 Woerter - in der
+    //     Zeit nicht lesbar.
+    //   * "deine Aenderungen bleiben auf diesem Geraet" stand schon im Sync-Punkt daneben
+    //     ("Offline - lokal gespeichert"). Ein Toast ist fuer das NEUE da, nicht fuer den
+    //     Zustand, den die Anzeige ohnehin traegt.
+    //   * "Lade die Seite neu, um weiter zu synchronisieren" versprach eine Wirkung, die nicht
+    //     immer eintritt: Reisst der Listener wegen einer Firestore-Regel ab (Rauswurf aus
+    //     einer Gruppe, geaenderte Berechtigung), scheitert er nach dem Neuladen genauso.
+    //     Jetzt steht dort die Handlung, nicht die Zusage.
+    toast("Cloud-Verbindung unterbrochen – lade die Seite neu");
+  };
   function updateSyncUI() {
     const info = syncStatusInfo();
     document.querySelectorAll("[data-sync-dot]").forEach(elm => {
@@ -6550,13 +6668,27 @@
   }
   function dedupeAgainstCatalog() {
     if (state.dedupeV1) return;
-    // Vorsichtsregel: In einer Gruppe muss der Bestand vollstaendig stehen, BEVOR verglichen
-    // wird - sonst haelt die Migration einen noch leeren oder unvollstaendigen Gruppenbestand
-    // fuer die Wahrheit und loescht die eigenen Meals. Ohne Gruppe ist der Bestand nach load()
-    // immer vollstaendig (lokal oder Solo-Cloud), der Handshake spielt dort keine Rolle. Ohne
-    // das Flag zu setzen kehren wir hier einfach zurueck - der naechste Aufruf (naechster
-    // Start, naechster Handshake) versucht es erneut.
-    if (syncGid && !syncHandshakeOk) return;
+    // In einer Gruppe laeuft die Migration GAR NICHT (28.08.2026). Bis dahin stand hier
+    // `syncGid && !syncHandshakeOk` - sie lief also in der Gruppe, sobald der Bestand
+    // vollstaendig war. Zwei Gruende sprechen dagegen, und beide sind erst durch
+    // state.dedupeV1 selbst entstanden:
+    //
+    //   1. `dedupeV1` steht NUR im localStorage, nicht im Kontodokument (siehe dataJSON()).
+    //      Es ist also ein GERAETE-Flag, kein Konto-Flag. In einer Gruppe raeumt die
+    //      Migration aber nicht den eigenen Bestand auf, sondern den GEMEINSAMEN - und ein
+    //      zweites Geraet, ein neuer Browser oder ein geleerter Speicher laesst sie darauf
+    //      erneut los. "Einmalig" gilt nur pro Geraet, "gemeinsam" gilt fuer alle.
+    //   2. Der Aufraeumschritt loescht Meals und biegt Planverweise auf die Katalog-id um.
+    //      pushNow() schreibt die Loeschung VOR dem Plan (syncRecipes() vor pushGroupPlan()).
+    //      Das andere Mitglied sieht also erst das "removed" - dropRecipeIds() leert dort die
+    //      Slots - und erst danach den umgebogenen Plan. Sein eigener save() dazwischen
+    //      schreibt die geleerten Slots zurueck: Gerichte fallen aus dem gemeinsamen Plan.
+    //
+    // Nichts geht verloren: Das Flag bleibt ungesetzt, und wer die Gruppe verlaesst, laeuft
+    // ueber switchGroup(null) -> startCloudSync() sofort wieder hier durch - dann auf dem
+    // eigenen Bestand, wo die Migration hingehoert. Die Gruppe selbst ist ohnehin beim
+    // Beitritt ueber `lib` abgeglichen worden (copyOwnRecipesToGroup).
+    if (syncGid) return;
     const geloescht = [];
     state.recipes.forEach(r => {
       if (!r || !r.lib || r.quick) return;               // nur Kopien mit Herkunft, keine Barcode-Produkte
@@ -12208,7 +12340,13 @@
       const p = state.plans[key];
       if (!p) return;
       DAYS.forEach(d => MEALS.forEach(m => {
-        if (p[d.key] && p[d.key][m.key]) p[d.key][m.key] = asIdList(p[d.key][m.key]).filter(x => !idSet.has(x));
+        // entryId(x), NICHT x: Ein Slot-Eintrag ist seit "Gemeinsam planen" entweder ein
+        // blanker String ODER ein Objekt {id, uids}. `idSet.has(x)` traf auf ein solches
+        // Objekt nie zu - ein geloeschtes Meal, das jemandem ZUGEWIESEN war, blieb deshalb
+        // als Geisterverweis im Wochenplan stehen, waehrend dasselbe Meal in der "fuer
+        // alle"-Form sauber verschwand. Der Nachbar rewritePlanIds() macht es seit jeher
+        // richtig; sein Kommentar nennt diese Funktion sogar sein "Vorbild".
+        if (p[d.key] && p[d.key][m.key]) p[d.key][m.key] = asIdList(p[d.key][m.key]).filter(x => !idSet.has(entryId(x)));
       }));
     });
     // Favoriten mitraeumen: ein Herz auf ein geloeschtes Meal waere ein Geisterverweis.
@@ -15588,9 +15726,19 @@
     // Faellt der Abgleich aus, bleibt es beim alten Verhalten (alles hochladen): ein paar
     // Dubletten sind aergerlich, ein gescheiterter Beitritt ist schlimmer. Die naechste
     // Migration raeumt sie ohnehin weg (dedupeAgainstCatalog).
+    //
+    // Gelesen wird ausdruecklich vom SERVER (loadRecipesFromServer), nicht aus dem Cache:
+    // Hier traegt ein LEERES Ergebnis eine Entscheidung - "die Gruppe hat dieses Meal noch
+    // nicht, also lade ich meines hoch". Der Offline-Cache hat die Rezepte einer gerade erst
+    // beigetretenen Gruppe aber noch nie gesehen und liefert genau dieses leere Ergebnis,
+    // ohne zu werfen. Der Abgleich fiele damit lautlos aus und JEDES eigene Meal ginge hoch -
+    // bei fest verdrahteten Startmeals (STARTER) garantiert fuenf Paare, also exakt der
+    // Zustand, den Ziffer 102 beseitigt hat. Fehlt die Funktion (aeltere Fassung im Cache
+    // des Service Workers), bleibt es beim bisherigen Weg.
     let vorhanden = [];
     try {
-      vorhanden = await window.CloudSync.loadRecipes(["groups", gid]) || [];
+      const lies = window.CloudSync.loadRecipesFromServer || window.CloudSync.loadRecipes;
+      vorhanden = await lies(["groups", gid]) || [];
     } catch (e) { noteError("group:copyOwnRecipesRead", e); }
     const libZuId = new Map();
     vorhanden.forEach(r => { if (r && r.lib && !libZuId.has(r.lib)) libZuId.set(r.lib, r.id); });
@@ -15614,6 +15762,107 @@
     // sind gross - lieber mehrere kleine Batches als einer, der ganz scheitert.
     for (let i = 0; i < hochladen.length; i += 20) {
       await window.CloudSync.saveRecipesBatch(["groups", gid], hochladen.slice(i, i + 20), []);
+    }
+  }
+
+  // Gegenstueck zu copyOwnRecipesToGroup(): raeumt beim Verlassen einer Gruppe die
+  // Meal-Dokumente aus dem EIGENEN Konto, die der mitgebrachte Gruppenstand nicht mehr
+  // enthaelt.
+  //
+  // Warum das noetig ist: Beim Beitritt wandert der eigene Bestand in die Gruppe
+  // (copyOwnRecipesToGroup) und wird lokal durch den Gruppenbestand ERSETZT
+  // (enterGroupSync, "in einer Gruppe ist die Gruppe die Wahrheit"). In
+  // users/{uid}/recipes bleibt er jedoch unangetastet liegen. Beim Verlassen mischt
+  // startCloudSync() diesen Altbestand ueber mergeRemoteRecipes() wieder unter die
+  // mitgebrachten Gruppen-Meals - beide Fassungen tragen dieselbe `lib`, aber eigene
+  // IDs. Jedes Katalog-Meal steht danach zweimal da, nach dem naechsten Beitritt
+  // dreimal. Genau das war am 28.08.2026 auf dem echten Konto zu sehen: 43 Meals in der
+  // Gruppe, 81 im eigenen Konto, 14 doppelte `lib`.
+  //
+  // Eine leere Baseline (lastPushedRecipes = new Map()) reicht dagegen NICHT: syncRecipes()
+  // bildet delIds aus "prev ohne cur" - was nie in der Baseline stand, wird auch nie
+  // geloescht. Aufgeraeumt werden muss ausdruecklich.
+  //
+  // Kuer, nicht Pflicht - dieselbe Abwaegung wie beim Abgleich im Beitrittspfad: Scheitert
+  // das Lesen oder Loeschen, bleibt es beim alten Verhalten (Dubletten). Ein abgebrochener
+  // Austritt waere schlimmer als ein doppelter Eintrag.
+  async function pruneOwnRecipes(behalten) {
+    const behalte = (behalten || []).filter(r => r && r.id);
+    const behalteIds = new Set(behalte.map(r => r.id));
+    // Ein leerer Behalten-Stand ist kein Auftrag zum Leerraeumen, sondern ein Hinweis
+    // darauf, dass der Snapshot zu spaet gezogen wurde (docs/TROUBLESHOOTING.md 101).
+    if (!behalteIds.size) return;
+    // Geloescht wird NUR, was nachweislich eine Dublette ist: ein Meal, dessen `lib` in der
+    // Gruppe bereits vertreten ist. Das ist exakt dieselbe Frage, die copyOwnRecipesToGroup()
+    // auf dem Hinweg stellt - nur in die andere Richtung. Was der Beitritt wegen gleicher
+    // `lib` nicht hochgeladen hat, raeumt der Austritt weg; alles andere bleibt.
+    //
+    // Die erste Fassung loeschte pauschal alles, was nicht im Gruppenstand lag, und stuetzte
+    // sich dabei auf die Annahme "mein Bestand ist beim Beitritt vollstaendig in die Gruppe
+    // gewandert". Die Annahme ist falsch, und der Push-Check hat den Gegenfall gefunden:
+    // Ein Mitglied tritt als NUR-LESER bei - joinGroup() kopiert dann ausdruecklich nichts
+    // (`role !== "view"`) - und wird spaeter vom Inhaber ueber setRole() zum Mitplaner
+    // befoerdert. Beim Verlassen ist `warNurLeser` dann false, und die pauschale Fassung
+    // haette den GESAMTEN eigenen Bestand geloescht. Ein Meal ohne Gegenstueck darf dieser
+    // Weg unter keinen Umstaenden anfassen.
+    //
+    // Meals ohne `lib` (selbst angelegte) bleiben damit immer stehen - dieselbe Grenze wie
+    // beim Beitritt, wo ein Namensabgleich fremde Meals verschluecken wuerde ("Banane" darf
+    // es zweimal geben, siehe copyOwnRecipesToGroup).
+    const behalteLibs = new Set(behalte.map(r => r.lib).filter(Boolean));
+    let vorhanden = [];
+    try { vorhanden = await window.CloudSync.loadRecipes(["users", syncUid]) || []; }
+    catch (e) { noteError("group:pruneOwnRead", e); return; }
+    const weg = vorhanden
+      .filter(r => r && r.id && !behalteIds.has(r.id) && r.lib && behalteLibs.has(r.lib))
+      .map(r => r.id);
+    if (!weg.length) return;
+    // In Haeppchen wie beim Hochladen: writeBatch vertraegt hoechstens 500 Vorgaenge.
+    for (let i = 0; i < weg.length; i += 100) {
+      try { await window.CloudSync.saveRecipesBatch(["users", syncUid], [], weg.slice(i, i + 100)); }
+      catch (e) { noteError("group:pruneOwnWrite", e); return; }
+    }
+  }
+
+  // Den EIGENEN Wochenplan in die Gruppe nachtragen - aber nur in Slots, die dort noch LEER
+  // sind. Wer schon etwas eingeplant hat, dessen Eintrag bleibt stehen.
+  //
+  // EINE Funktion fuer beide Wege, statt zweier Kopien, die auseinanderlaufen:
+  //   * finalizeGroupActivation() - der Owner traegt nach, was er seit prepareGroup() geplant hat
+  //   * joinGroup()               - der Beitretende bringt seine Woche mit (28.08.2026)
+  //
+  // Der zweite Weg fehlte bis zum 28.08.2026 ganz: enterGroupSync() ERSETZT state.plans durch
+  // den Gruppenplan, hochgeladen wurde der eigene aber nur beim Owner - die Woche des
+  // Beitretenden war damit lautlos weg. Dass das nicht so gemeint war, stand im Code selbst:
+  // copyOwnRecipesToGroup() biegt die Planverweise des Beitretenden auf die Gruppen-ids um
+  // und begruendet das mit "vor dem Hochladen des Plans (siehe prepareGroup()/den
+  // Beitrittspfad)" - auf dem Beitrittspfad wurde nie einer hochgeladen.
+  //
+  // Reihenfolge zwingend: erst copyOwnRecipesToGroup() (biegt die Verweise um), dann dies.
+  // Umgekehrt zeigten die nachgetragenen Slots auf ids, die es in der Gruppe nicht gibt, und
+  // normalizePlan() wuerfe sie beim naechsten Laden lautlos weg.
+  async function mergeOwnPlanIntoGroup(gid) {
+    // Gelesen wird vom SERVER: Hier traegt ein leeres Ergebnis eine Entscheidung ("der Slot
+    // ist frei, ich schreibe hinein"), und der Offline-Cache hat die Plaene einer gerade erst
+    // beigetretenen Gruppe noch nie gesehen. Dieselbe Falle wie in
+    // docs/TROUBLESHOOTING.md 126. Scheitert das Lesen, wird NICHTS geschrieben - ein
+    // nicht nachgetragener Plan ist ein Aergernis, ein ueberschriebener fremder Plan ein
+    // Datenverlust.
+    let existing;
+    try {
+      const lies = window.CloudGroup.loadPlansFromServer || window.CloudGroup.loadPlans;
+      existing = await lies(gid);
+    } catch (e) { noteError("group:mergePlanRead", e); return; }
+    const have = {};
+    existing.forEach(w => { have[w.week] = w.fields || {}; });
+    for (const wk of Object.keys(state.plans || {})) {
+      const flat = flattenWeek(state.plans[wk]);
+      const already = have[wk] || {};
+      const missing = {};
+      Object.keys(flat).forEach(slot => { if (!already[slot]) missing[slot] = flat[slot]; });
+      if (Object.keys(missing).length) {
+        await window.CloudGroup.savePlanWeek(gid, wk, Object.assign(missing, { by: syncUid, at: Date.now() }));
+      }
     }
   }
 
@@ -15672,16 +15921,8 @@
     if (deletedIds.length) await window.CloudSync.saveRecipesBatch(["groups", gid], [], deletedIds);
     // Nur Slots nachtragen, die in der Gruppe noch LEER sind - sonst ueberschriebe der
     // Owner-Push die Slots, die der Beitretende in der Zwischenzeit selbst gefuellt hat.
-    const existing = await window.CloudGroup.loadPlans(gid);
-    const have = {};
-    existing.forEach(w => { have[w.week] = w.fields || {}; });
-    for (const wk of Object.keys(state.plans || {})) {
-      const flat = flattenWeek(state.plans[wk]);
-      const already = have[wk] || {};
-      const missing = {};
-      Object.keys(flat).forEach(slot => { if (!already[slot]) missing[slot] = flat[slot]; });
-      if (Object.keys(missing).length) await window.CloudGroup.savePlanWeek(gid, wk, Object.assign(missing, { by: syncUid, at: Date.now() }));
-    }
+    // Seit dem 28.08.2026 in mergeOwnPlanIntoGroup(), gemeinsam mit dem Beitrittspfad.
+    await mergeOwnPlanIntoGroup(gid);
     try { await window.CloudGroup.activate(gid); } catch (e) { noteError("group:activate", e); }
     await window.CloudSync.save(syncUid, { groupId: gid, pendingGroupId: "", pendingInviteUrl: "" });
   }
@@ -15823,7 +16064,16 @@
       // Nur mitlesende Mitglieder duerfen laut Regel gar nichts in die Gruppe schreiben -
       // ihre eigenen Meals bleiben deshalb im eigenen Konto liegen, statt hier an einer
       // abgelehnten Schreiboperation haengen zu bleiben.
-      if (role !== "view") await copyOwnRecipesToGroup(inv.gid);
+      if (role !== "view") {
+        await copyOwnRecipesToGroup(inv.gid);
+        // ... und die eigene Woche mitbringen, in die Slots, die in der Gruppe noch leer
+        // sind. NACH copyOwnRecipesToGroup(): das biegt die Planverweise erst auf die
+        // Gruppen-ids um. Kuer wie der Meal-Abgleich daneben - ein eigenes catch, damit ein
+        // Netzfehler beim Nachtragen nicht den ganzen Beitritt zurueckrollt, obwohl
+        // joinAtomic() die Mitgliedschaft laengst geschrieben hat (Ziffer 102).
+        try { await mergeOwnPlanIntoGroup(inv.gid); }
+        catch (e) { noteError("group:joinMergePlan", e); }
+      }
       // Cloud zuerst, siehe Begruendung in prepareGroup().
       await window.CloudSync.save(syncUid, { groupId: inv.gid });
       // Eine eigene, noch offene Einladung fuer eine ANDERE Gruppe erst JETZT zuruecknehmen -
@@ -15975,6 +16225,10 @@
   async function leaveGroup(keep) {
     if (!syncGid || !syncUid) return;
     const gid = syncGid;
+    // VOR leaveGroupState() gelesen - das raeumt myRole weg. Nur-Leser haben ihre eigenen
+    // Meals nie in die Gruppe kopiert (joinGroup(), `role !== "view"`); fuer sie ist der
+    // Bestand in users/{uid}/recipes die EINZIGE Kopie und darf nicht aufgeraeumt werden.
+    const warNurLeser = myRole === "view";
     const snap = keep || snapshotOwnData();
     const keepRecipes = snap.recipes;
     const keepPlans = snap.plans;
@@ -15996,6 +16250,11 @@
       // Konto schreibt - dort liegen sie ja noch nicht.
       lastPushedRecipes = new Map();
       lastPushedJSON = null;
+      // ... und den Altbestand von VOR dem Beitritt ausdruecklich wegraeumen. Die leere
+      // Baseline eine Zeile darueber loescht NICHTS (siehe pruneOwnRecipes()); ohne diesen
+      // Schritt mischt der gleich folgende startCloudSync() den Altbestand wieder unter die
+      // mitgebrachten Gruppen-Meals und jedes Katalog-Meal steht danach doppelt da.
+      if (!warNurLeser) await pruneOwnRecipes(keepRecipes);
     } catch (e) { noteError("group:leaveSaveOwn", e); }
     // Aufraeumen erst NACH der Datensicherung, und das ist kein Schoenheitsfehler: Ein
     // Firestore-Schreibvorgang resolvt erst mit der Server-Bestaetigung, offline also gar

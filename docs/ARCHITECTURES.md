@@ -269,11 +269,16 @@ Die Initialisierung sitzt in einem eigenen `try/catch` mit Fallback auf `getFire
 
 Die beiden Scripts teilen sich grundsätzlich keine direkte Implementierung.
 
-Die einzige definierte Brücke ist:
+Es gibt **zwei** definierte Brücken:
 
-`window.__onCloudAuth(user)`
+| Brücke | Wer ruft | Wer empfängt |
+|---|---|---|
+| `window.__onCloudAuth(user)` | Firebase aus `onAuthStateChanged` | `handleCloudUser()` |
+| `window.__onCloudWatchError(kennung, e)` | `watchFehler()` aus jedem `onSnapshot`-Fehler | setzt `setSyncStatus("offline")` und meldet einmal je Sitzung |
 
-Firebase ruft diese Funktion aus `onAuthStateChanged` auf.
+Die zweite kam am 28.08.2026 dazu (`docs/TROUBLESHOOTING.md` 129) und ist bewusst nach
+demselben Muster gebaut: Das Modul kennt die App nicht, es ruft nur eine Funktion, wenn es sie
+gibt.
 
 Die App setzt sie auf:
 
@@ -385,6 +390,22 @@ mitgelieferten Server nicht auftreten.
 
 ## Cloud-Synchronisation
 
+### Ein abgerissener Listener meldet sich (`watchFehler`, 28.08.2026)
+
+Alle fünf `onSnapshot`-Aufrufe (`CloudSync.watch`/`watchRecipes`, `CloudGroup.watch`/
+`watchPlans`/`watchMembers`) tragen einen gemeinsamen Fehlermelder. Er protokolliert über
+`noteError` und reicht den Fall über `window.__onCloudWatchError` an die App — dieselbe
+Brücken-Bauart wie `window.__onCloudAuth`. Die App setzt daraufhin `setSyncStatus("offline")`
+und meldet **einmal je Sitzung** (`watchAbgerissen`, in `stopCloudSync()` zurückgesetzt).
+
+**Warum das nötig ist:** Ein `onSnapshot`, der mit einem Fehler endet, wird von Firestore
+ENDGÜLTIG beendet — er versucht es nicht erneut. Vier dieser Listener trugen ein leeres
+`function () {}`; der Status blieb deshalb auf dem `"synced"` vom Ende des `startCloudSync()`
+stehen, auch wenn nichts mehr ankam. Am 28.08.2026 war genau das messbar. Bewusst **kein**
+automatisches Neuanhängen: Ein Listener, der an einer Regel scheitert, scheitert erneut, und
+eine Wiederanhänge-Schleife wäre Dauerfeuer. `docs/TROUBLESHOOTING.md` 129.
+
+
 Im Cloud-Modus schreibt `save()` den State über:
 
 `scheduleCloudPush()`
@@ -468,6 +489,22 @@ im eigenen `users/{uid}`-Dokument gefunden.
 
 Eine Gruppe wird nicht mehr sofort scharf geschaltet. `prepareGroup()` legt `groups/{gid}` an (`status: "pending"`), lädt eigene Meals/Wochenpläne vorab hoch und erzeugt direkt den Einladungslink. Dabei bleibt `state.groupId` leer — `users/{uid}.pendingGroupId` trägt die vorbereitete Gruppen-ID, `users/{uid}.pendingInviteUrl` den Einladungslink. Der Owner plant bis zum Beitritt unverändert in seinen eigenen Daten weiter; `startCloudSync()` läuft dadurch im Einzelkonto-Zweig, ohne Sonderbehandlung.
 
+**Der Beitretende bringt seine Woche mit (`mergeOwnPlanIntoGroup()`, 28.08.2026).**
+`enterGroupSync()` ersetzt `state.plans` durch den Gruppenplan; hochgeladen wurde der eigene
+Plan bis dahin nur beim Owner — die Woche des Beitretenden war lautlos weg. Nachgetragen
+werden ausschließlich Slots, die in der Gruppe **noch leer** sind (die Owner-Regel aus
+`finalizeGroupActivation()`, jetzt für beide Seiten aus **einer** Funktion). Reihenfolge
+zwingend: erst `copyOwnRecipesToGroup()` (biegt die Planverweise auf die Gruppen-ids um),
+dann der Plan. Gelesen wird über `CloudGroup.loadPlansFromServer()`; scheitert das Lesen,
+wird **nichts** geschrieben — strenger als beim Meal-Abgleich, weil der Schaden hier die
+gelöschte Woche der anderen Person wäre. `docs/TROUBLESHOOTING.md` 128.
+
+**`dedupeAgainstCatalog()` läuft in einer Gruppe gar nicht** (`if (syncGid) return;`, ohne
+das Flag zu setzen). `state.dedupeV1` steht nur im `localStorage` und ist damit ein
+Geräte-Flag — in der Gruppe räumte die Migration aber den gemeinsamen Bestand auf, und jedes
+weitere Gerät ließ sie erneut darauf los. Nach dem Verlassen holt sie es auf dem eigenen
+Bestand sofort nach.
+
 Aktivierung (`finalizeGroupActivation()`) läuft auf zwei Wegen:
 
 * **Live:** ein schlanker `CloudGroup.watchMembers()`-Listener (`watchPendingGroup()`), solange `pendingGroupId` gesetzt ist. Sobald `members.length > 1`, trägt sie neue/gelöschte Meals und noch leere Wochenplan-Slots nach (belegte Slots der beigetretenen Person werden nicht überschrieben), setzt `status: "active"` und `users/{uid}.groupId`, danach `switchGroup()`.
@@ -475,9 +512,32 @@ Aktivierung (`finalizeGroupActivation()`) läuft auf zwei Wegen:
 
 „Einladung zurückziehen“ im Wartezustand (`withdrawPendingInvite()`) löst die vorbereitete Gruppe vollständig auf (`dissolveGroupFirestore()`, auch von `dissolveGroup()` für aktive Gruppen genutzt) und leert `pendingGroupId`/`pendingInviteUrl` — danach ist der Zustand identisch zu vor dem Einladen.
 
+**Der Dubletten-Abgleich beim Beitritt liest vom SERVER, nicht aus dem Cache (28.08.2026).**
+`copyOwnRecipesToGroup()` entscheidet anhand eines LEEREN Leseergebnisses, ob ein eigenes Meal
+hochgeladen wird — und `getDocs()` liefert mit `persistentLocalCache` offline stillschweigend
+ein leeres Ergebnis, statt zu werfen. Die Rezepte einer gerade erst beigetretenen Gruppe hat
+der Cache aber noch nie gesehen. Deshalb `CloudSync.loadRecipesFromServer()`
+(`getDocsFromServer`): Die wirft offline, und genau das erlaubt dem Aufrufer, „leer“ von
+„unbekannt“ zu unterscheiden. Fällt sie aus, bleibt es beim alten Verhalten (alles hochladen).
+`docs/TROUBLESHOOTING.md` 126.
+
 **Ein Einladungscode gilt für genau einen Beitritt.** `joinAtomic()` schreibt seit dem 17.08.2026 drei Dokumente in einem Batch: die Mitgliedschaft, `memberCount` und `invites/{code}.used = true`. Gespeichert wird nur das Flag, **keine UID des Beitretenden** — wer dabei ist, sagt die Mitgliederliste, und `invites/{code}` darf jeder Angemeldete lesen. Die Rückkehr eines noch bestehenden Mitglieds läuft über `putMember()` und ist vom Verbrauch ausdrücklich nicht betroffen; `joinGroup()` prüft `inv.used` deshalb erst, nachdem `istMitglied()` verneint hat. Die harte Grenze liegt in Stufe 2 der Firestore-Regeln, die gestaffelt ausgeliefert wird (`docs/TROUBLESHOOTING.md` 105).
 
 **Einladungscodes überdauern keine Mitgliedschaft.** `dropAllInviteCodes()` löscht in `leaveGroup()` alle Codes aus `state.inviteCodes` — auf beiden Wegen, Verlassen wie Auflösen. Begründung ist eine Zusage der Regeln: Erzeugen darf einen Code nur der Inhaber einer Gruppe, und in dieser Gruppe ist man danach nicht mehr. `dissolveGroupFirestore()` behält seine gid-gefilterte Runde, weil sie auch im Wartezustand läuft (`withdrawPendingInvite()`), wo es noch keine Mitgliedschaft zu verlassen gibt. Nur erfolgreich gelöschte Codes verlassen die Liste (`docs/TROUBLESHOOTING.md` 104).
+
+**Der Rückweg räumt auf: `pruneOwnRecipes()` (28.08.2026).** Beim Beitritt wandert der eigene
+Bestand in die Gruppe (`copyOwnRecipesToGroup()`) und wird lokal ersetzt — in
+`users/{uid}/recipes` bleibt er aber liegen, denn `recipeBase()` zeigt in einer Gruppe auf
+`["groups", gid]`. `leaveGroup()` löscht dort deshalb ausdrücklich alles, was der mitgebrachte
+Stand nicht mehr enthält. Eine geleerte Baseline reicht dafür **nicht**: `syncRecipes()` bildet
+`delIds` aus `prev ohne cur`, was nie in der Baseline stand, wird nie gelöscht — und
+`startCloudSync()` mischte den Altbestand beim nächsten Start über `mergeRemoteRecipes()`
+(Vereinigung über die **ID**, gleiche `lib` fällt dort nicht auf) wieder unter die
+Gruppen-Meals. **Nur-Leser sind ausgenommen** (`warNurLeser`, vor `leaveGroupState()` gelesen):
+`joinGroup()` kopiert für `role === "view"` nichts in die Gruppe, dort ist das eigene Konto die
+einzige Kopie. Ein leerer Behalten-Stand und ein gescheiterter Lesevorgang räumen nichts —
+Kür, nicht Pflicht, wie der Abgleich im Beitrittspfad. Ausführlich:
+`docs/TROUBLESHOOTING.md` 125.
 
 **Verlassen und Auflösen sichern denselben Snapshot, aber zu verschiedenen Zeitpunkten.** `snapshotOwnData()` liefert Meals und Wochenplan als eigene Kopie; `leaveGroup(keep)` schreibt sie zurück ins eigene Konto. Beim einfachen Verlassen bildet `leaveGroup()` den Snapshot selbst. Beim Auflösen zieht ihn `dissolveGroup()` **vor** `dissolveGroupFirestore()` und reicht ihn herein — sonst hätten `watchPlans`/`watchRecipes` den lokalen Stand nach dem Löschen bereits geräumt und die Sicherung wäre leer (`docs/TROUBLESHOOTING.md` 101).
 
@@ -694,9 +754,35 @@ Chip-Popover mit Mehrfachauswahl. Das Popover hängt sich an `document.body` (ni
 weil `.day` `overflow: hidden` für die mobilen Karussell-Streifen trägt und ein daran verankertes
 Popover abschneiden würde.
 
+**Nach `asIdList()` darf kein Vergleich mehr auf den rohen Eintrag zeigen** — kein `.filter`,
+`.indexOf`, `.includes` oder `.has`, immer über `entryId(e)`. `dropRecipeIds()` tat es bis zum
+28.08.2026 doch (`idSet.has(x)`) und ließ damit jedes gelöschte Meal, das jemandem
+**zugewiesen** war, als Geisterverweis im Plan stehen — während dieselbe Löschung in der
+„für alle“-Form sauber durchlief. `dropRecipeIds()` und `rewritePlanIds()` müssen über
+dieselben Einträge dieselbe Menge treffen; `docs/TROUBLESHOOTING.md` 127.
+
+**Der Orphan-Schutz gilt auf BEIDEN Wegen** — seit dem 28.08.2026 auch eingehend.
+`unflattenWeek()` liess `{ id, uids: [] }` durch (`uids ? … : …` — ein leeres Array ist
+truthy) und erzeugte es aus einer nur mit Nicht-Strings gefüllten Liste sogar selbst. Ein
+solcher Eintrag ist sichtbar, aber für jede Auswertung unsichtbar: `dayNutOf()` zählt ihn
+niemandem an, die Einkaufsliste skaliert ihn auf null, und `slotOpenForMe()` meldet den Slot
+als frei — der Auto-Planer plant darüber. Eingehende Waisen werden jetzt entfernt, wie es der
+Zuweisungs-Dialog lokal seit jeher tut. `docs/TROUBLESHOOTING.md` 130.
+
 Orphan-Schutz: Würde eine Abwahl `uids.length === 0` ergeben, wird stattdessen der komplette
 Eintrag entfernt (derselbe Pfad wie `unassign`, inklusive Undo-Toast) — ein Gericht ohne
 zugewiesene Person darf nie im Datenmodell existieren.
+
+**Geprüft seit dem 28.08.2026** durch `tools/pruefstand-einkauf-gruppe.py`: der Vertrag
+`sharedQty * per + assignedQty`, dieselbe Zutat aus beiden Arten im selben Lauf, und die
+Zusage aus `planDaysAhead()`, dass Einkaufs- und Vorkochliste dieselbe Woche beschreiben.
+`buildBatchList()` zählt dieselben Esser (`uids ? uids.length : persons`).
+
+**Offen, als Messwert festgehalten:** Steht „Einkauf für alle rechnen“ auf **Aus**, folgt der
+„für alle“-Anteil der Einstellung (einfache Menge), der **zugewiesene** Anteil nicht — dort
+steckt der Mitglieder-Faktor im Eintrag selbst. Das ist konsequent gedacht (jede zugewiesene
+Person braucht ein eigenes Meal), steht aber quer zur Beschriftung „Mengen × Mitglieder“.
+Abschnitt 7 des Prüfstands hält den Ist-Zustand fest, ohne ihn zu bewerten.
 
 Die Einkaufsliste (`buildShoppingList()`) trennt pro Zutat `sharedQty` (aus "für alle"-Gerichten,
 skaliert erst mit dem globalen `per`-Personenfaktor) von `assignedQty` (aus individuell
@@ -1285,7 +1371,10 @@ direkt gegen `state.recipes`, nicht über `getRecipe()` - das würde für eine g
 Katalog-`id` sonst fälschlich „noch vorhanden" melden.
 
 **Gruppenbeitritt gleicht ab.** `copyOwnRecipesToGroup()` liest zuerst den vorhandenen
-Gruppenbestand (`window.CloudSync.loadRecipes(["groups", gid])`) und baut eine Map
+Gruppenbestand — seit dem 28.08.2026 ausdrücklich vom SERVER
+(`CloudSync.loadRecipesFromServer(["groups", gid])`, Rückfall auf `loadRecipes`, falls ein
+älterer Service-Worker-Stand die Funktion noch nicht kennt; `docs/TROUBLESHOOTING.md` 126)
+— und baut eine Map
 `lib → vorhandene id`. Ein eigenes Meal mit `lib` wird **nicht** hochgeladen, wenn die Gruppe
 bereits eines mit demselben `lib` trägt - stattdessen biegt `rewritePlanIds()` die eigenen
 Planeinträge auf die schon vorhandene Gruppen-`id` um, **vor** dem Hochladen des Plans (sonst
@@ -1300,11 +1389,14 @@ sanitisierten - Katalog-Original in `name`, `category`, `nutrition`, `ingredient
 (nicht nachher - sonst verwirft `normalizePlan()` sie) auf die Katalog-`id`. Ein eigenes Foto
 macht die Kopie nicht abweichend. Unangetastet bleiben veränderte Kopien, Meals ohne `lib`,
 Barcode-Produkte (`quick`) und Favoriten. Läuft idempotent (`state.dedupeV1`, nur lokal
-persistiert, kein Cloud-Feld) und **erst nach dem Gruppen-Handshake**
-(`syncGid && !syncHandshakeOk` → sofortiger Ausstieg, ohne das Flag zu setzen) - sonst hielte
-sie einen noch leeren Gruppenbestand für die Wahrheit und löschte die eigenen Meals. Aufgerufen
-in `enterApp()` (lokaler Modus) und in `startCloudSync()` direkt nach `syncHandshakeOk = true`,
-vor dem Baseline-`pushNow()`.
+persistiert, kein Cloud-Feld) und **in einer Gruppe gar nicht** (`if (syncGid) return;`,
+ohne das Flag zu setzen) — sonst räumte sie den **gemeinsamen** statt des eigenen Bestands auf.
+Bis zum 28.08.2026 stand hier `syncGid && !syncHandshakeOk`, sie lief also in der Gruppe,
+sobald der Handshake stand; `state.dedupeV1` ist aber ein Geräte-Flag, und jedes weitere Gerät
+liess sie erneut auf fremden Bestand los (`docs/TROUBLESHOOTING.md` 128). Aufgerufen in
+`enterApp()` (lokaler Modus) und in `startCloudSync()` direkt nach `syncHandshakeOk = true`,
+vor dem Baseline-`pushNow()` — dort greift der Ausstieg jetzt sofort, sobald `syncGid` gesetzt
+ist. Nach dem Verlassen einer Gruppe holt sie es auf dem eigenen Bestand nach.
 
 Ausschneide-Prüfstand: `tools/pruefstand-katalog-plan.py` → `pruefstand-katalog-plan.html`.
 

@@ -6,7 +6,7 @@ Dieses Dokument enthält bekannte Fehlerquellen, historische Bugs und Probleme, 
 
 <!-- REGISTER-ANFANG (erzeugt aus den Ueberschriften, nicht von Hand pflegen) -->
 
-**Register — 124.** Chronologisch gewachsen: je hoeher die Nummer,
+**Register — 130.** Chronologisch gewachsen: je hoeher die Nummer,
 desto juenger der Fund. Wer eine Falle sucht, sucht hier zuerst; die Ueberschrift sagt
 jeweils, worum es geht. **Nicht die ganze Datei lesen** — sie ist ueber 200 KB gross.
 
@@ -136,6 +136,12 @@ jeweils, worum es geht. **Nicht die ganze Datei lesen** — sie ist ueber 200 KB
 | 122 | Ein Zähler, der beim Start wandert — und kein Fehler ist |
 | 123 | Eine Ausnahme, die vor den Verboten steht, hebelt sie alle aus |
 | 124 | Ein Zustand ohne Wochenbezug neben zwei Wochenreitern |
+| 125 | Gruppe verlassen: der Altbestand kam als Dublette zurück |
+| 126 | Ein leeres Leseergebnis, das eine Entscheidung trägt |
+| 127 | Ein zugewiesenes Meal ließ sich nicht aus dem Plan löschen |
+| 128 | Der Beitretende verlor seine Woche — und eine Migration räumte fremden Bestand auf |
+| 129 | „Synchronisiert“, während nichts mehr ankam |
+| 130 | Ein Gericht, das niemandem gehörte — und ein leeres Array, das `true` ist |
 
 <!-- REGISTER-ENDE -->
 
@@ -3995,3 +4001,490 @@ zurückhaltender formuliert, wäre das PDF stillschweigend falsch geblieben.
 `tools/pruefstand-einkaufsliste.py` — 49 Prüfungen in fünf Läufen. Gegen den Stand *vor* dem
 ersten Fix **11 Fehler**, gegen den Stand *nach* dem ersten Fix (Commit `7f48cd7`) noch
 **5** — die Dialognamen, das Komma und der PDF-Kopf. Details: `docs/TESTING.md`.
+
+## 125. Gruppe verlassen: der Altbestand kam als Dublette zurück
+
+**Datum:** 28.08.2026 · **Betrifft:** `leaveGroup()`, `startCloudSync()`, `users/{uid}/recipes`
+
+### Der Befund
+
+Am echten Konto gemessen, nicht vermutet: **43 Meals in der Gruppe, 81 im eigenen Konto,
+14 doppelte `lib`** — einzelne bis zu **dreifach**. Die Gruppe selbst war sauber: keine
+doppelte `lib`, nur zwei gleichnamige, inhaltlich verschiedene Meals von zwei Personen
+(„Banane" als Barcode-Schnelleintrag neben einem echten Meal, „Steak mit Kartoffeln" einmal
+als Hauptgericht und einmal als Frühstück). Der Abgleich in `copyOwnRecipesToGroup()` tut also
+genau das, was Ziffer 102 zusagt.
+
+Die Dubletten entstanden auf dem **Rückweg**.
+
+### Die Ursachenkette
+
+1. Beim Beitritt wandert der eigene Bestand in die Gruppe (`copyOwnRecipesToGroup()`) und wird
+   **lokal ersetzt** (`enterGroupSync()`: „in einer Gruppe ist die Gruppe die Wahrheit").
+   In `users/{uid}/recipes` bleibt er dabei unangetastet liegen — dorthin schreibt in einer
+   Gruppe niemand mehr, `recipeBase()` zeigt auf `["groups", gid]`.
+2. `leaveGroup()` setzte `lastPushedRecipes = new Map()`, mit der Begründung „damit der
+   nächste Zyklus alle Meals als neu ins eigene Konto schreibt — dort liegen sie ja noch
+   nicht". **Beide Hälften des Satzes waren falsch.** Sie liegen dort noch, und eine leere
+   Baseline schreibt zwar alles, **löscht aber nichts**: `syncRecipes()` bildet `delIds` aus
+   `prev ohne cur` — was nie in der Baseline stand, wird nie gelöscht.
+3. `switchGroup(null)` → `startCloudSync()` liest im Zweig „keine Gruppe"
+   `users/{uid}/recipes` und mischt den Altbestand über `mergeRemoteRecipes()` unter die
+   mitgebrachten Gruppen-Meals. Beide Fassungen tragen dieselbe `lib`, aber eigene IDs —
+   `mergeRemoteRecipes()` vereinigt über die **ID** und sieht deshalb keinen Konflikt.
+4. Der folgende `pushNow()` schreibt die Vereinigung zurück. **Jeder weitere Beitritt und
+   Austritt legt eine Lage obendrauf** — daher die Dreifachen.
+
+Die Rechnung geht exakt auf: 43 mitgebrachte + 38 Karteileichen = 81.
+
+### Die Behebung
+
+`pruneOwnRecipes(behalten)` neben `copyOwnRecipesToGroup()` — das Gegenstück zum Beitritt:
+Es liest `users/{uid}/recipes` und löscht, was der mitgebrachte Stand nicht mehr enthält.
+`leaveGroup()` ruft es nach dem Zurückschreiben auf, `dissolveGroup()` über denselben Weg mit.
+
+Vier Dinge daran sind keine Details:
+
+* **Nur-Leser ausgenommen.** `joinGroup()` kopiert für `role === "view"` nichts in die Gruppe;
+  dort ist das eigene Konto die **einzige** Kopie. `warNurLeser` wird **vor**
+  `leaveGroupState()` gelesen — das räumt `myRole` weg.
+* **Ein leerer Behalten-Stand räumt nichts.** Das ist kein Auftrag zum Leerräumen, sondern das
+  Warnzeichen aus Ziffer 101: der Snapshot wurde zu spät gezogen.
+* **Kür, nicht Pflicht.** Scheitert Lesen oder Löschen, bleibt es beim alten Verhalten
+  (Dubletten). Dieselbe Abwägung wie beim Abgleich im Beitrittspfad (Ziffer 102): ein
+  abgebrochener Austritt wäre schlimmer als ein doppelter Eintrag.
+* **Ein Lesefehler löscht nie.** `loadRecipes()` liefert offline das leere Cache-Ergebnis,
+  ohne zu werfen — deshalb kann ein Fehlschlag hier nur *zu wenig* löschen, nie zu viel.
+
+### Nachtrag am selben Tag: die erste Fassung löschte zu viel
+
+Der Push-Check hat einen Gegenfall gefunden, den die erste Fassung nicht überlebt hätte. Sie
+löschte pauschal **alles**, was nicht im mitgebrachten Gruppenstand lag, gestützt auf die
+Annahme: „Mein Bestand ist beim Beitritt vollständig in die Gruppe gewandert."
+
+**Die Annahme ist falsch.** `joinGroup()` kopiert für `role === "view"` ausdrücklich nichts
+(`if (role !== "view")`) — und der Inhaber kann ein Mitglied über `setRole()` jederzeit von
+„Nur ansehen" auf „Mitplanen" heben. Beim Verlassen ist `warNurLeser` dann **false**, und die
+pauschale Fassung hätte den **gesamten** eigenen Bestand gelöscht: Meals, die nie eine Kopie
+in der Gruppe hatten.
+
+**Die schärfere Regel:** Gelöscht wird nur, was nachweislich eine Dublette ist — ein Meal,
+dessen `lib` im mitgebrachten Gruppenstand bereits vertreten ist. Das ist exakt dieselbe
+Frage, die `copyOwnRecipesToGroup()` auf dem Hinweg stellt, nur in die andere Richtung:
+
+> **Was der Beitritt wegen gleicher `lib` nicht hochgeladen hat, räumt der Austritt weg.
+> Alles andere bleibt.**
+
+Meals ohne `lib` (selbst angelegte) bleiben damit immer stehen — dieselbe Grenze wie beim
+Beitritt, wo ein Namensabgleich fremde Meals verschlucken würde („Banane" darf es zweimal
+geben, Ziffer 102). Die Rollen-Ausnahme `warNurLeser` bleibt zusätzlich bestehen; zwei
+unabhängige Riegel sind hier billiger als ein verlorener Bestand.
+
+Der Preis ist ehrlich zu benennen: Leftovers **ohne** `lib`-Gegenstück werden nicht mehr
+aufgeräumt und wandern beim nächsten Start wieder in den Bestand. Sie sind aber auch keine
+Dubletten — es sind Meals, die es nur einmal gibt. **Ein Meal ohne Gegenstück darf dieser
+Weg unter keinen Umständen anfassen.**
+
+### Die Regel dahinter
+
+> **Eine geleerte Baseline ist keine Aufräumung.** Sie sagt „ich weiß nichts über den
+> Zielzustand", und ein Diff gegen Nichtwissen schreibt alles und löscht nichts. Wer wirklich
+> aufräumen will, muss den Zielzustand **lesen** und die Differenz ausdrücklich löschen.
+
+Und allgemeiner, als Gegenstück zu Ziffer 102: **Wer einen Bestand an einen anderen Ort
+kopiert und lokal ersetzt, schuldet den Rückweg.** Der Hinweg war gebaut und geprüft, der
+Rückweg nie — und er ist die Stelle, an der sich der Fehler mit jedem Durchlauf verstärkt.
+
+### Prüfstand
+
+`tools/pruefstand-gruppe-verlassen-dubletten.py` — 23 Prüfungen mit echtem, ausgeschnittenem
+Code (`pruneOwnRecipes()`, `syncRecipes()`, `mergeRemoteRecipes()`) gegen ein falsches
+Firestore mit zwei Sammlungen. Die **Gegenprobe** fährt denselben Ablauf ohne
+`pruneOwnRecipes()` und muss rot werden: Sie liefert **12 statt 7 Meals**, `lib`-Zählung 2,
+und wächst mit jedem weiteren Zyklus — dasselbe Muster wie am echten Konto.
+
+Abschnitt 3b sichert den Nachtrag oben ab (Meal ohne `lib` und Meal mit unbekannter `lib`
+überleben, die echten Dubletten verschwinden trotzdem), Abschnitt 7b ist seine Gegenprobe:
+die pauschale Fassung löscht das Meal ohne Gegenstück. Ohne 7b misst 3b nichts.
+
+## 126. Ein leeres Leseergebnis, das eine Entscheidung trägt
+
+**Datum:** 28.08.2026 · **Betrifft:** `copyOwnRecipesToGroup()`, `CloudSync.loadRecipes()`
+
+### Der Fehler
+
+Der Dubletten-Abgleich beim Gruppenbeitritt (Ziffer 102) entscheidet anhand eines **leeren**
+Leseergebnisses: „Die Gruppe kennt diese `lib` noch nicht, also lade ich meine Kopie hoch."
+
+Gelesen wurde mit `getDocs()` — und seit dem `persistentLocalCache` **wirft das offline nicht
+mehr**, sondern liefert stillschweigend das leere Cache-Ergebnis. Die Rezepte einer Gruppe,
+der man **gerade erst** beigetreten ist, hat dieser Cache aber noch **nie** gesehen. „Die
+Gruppe hat noch keine Meals" und „ich weiß es nicht" sahen damit identisch aus.
+
+Fiel der Abgleich so aus, ging **jedes** eigene Meal hoch. Da `STARTER` je Ernährungsform
+fest verdrahtet ist, sind das bei zwei Konten mit gleichem Profil garantiert **fünf Paare** —
+exakt der Zustand, den Ziffer 102 beseitigt hatte. Die Reparatur von damals war also nicht
+falsch, sie war nur an genau dem Punkt blind, an dem sie gebraucht wird.
+
+Das ist dieselbe Fehlerklasse wie bei `CloudGroup.fetch()` („`fromCache` ist kein Beweis") —
+hier aber **ohne den Ausweg über ein Flag: ein leeres Array trägt keine Herkunft.**
+
+### Die Behebung
+
+`CloudSync.loadRecipesFromServer()` über `getDocsFromServer()`. Diese Funktion **wirft**
+offline, und das ist hier die gewünschte Eigenschaft: Der Aufrufer kann „leer" endlich von
+„unbekannt" unterscheiden. `copyOwnRecipesToGroup()` liest darüber, fängt den Wurf ab und
+fällt auf das bisherige Verhalten zurück (alles hochladen) — Kür, nicht Pflicht, unverändert
+zu Ziffer 102: ein abgebrochener Beitritt wäre schlimmer als ein paar Dubletten.
+
+Der Aufruf geht bewusst über `window.CloudSync.loadRecipesFromServer || …loadRecipes`. Der
+Service Worker kann eine ältere Fassung des Moduls ausliefern; dann bleibt es beim alten Weg,
+statt an einer fehlenden Funktion zu scheitern.
+
+### Die Regel dahinter
+
+> **Wo ein leeres Leseergebnis eine Entscheidung trägt, ist ein Cache-Lesevorgang das falsche
+> Werkzeug.** Nicht weil er falsch antwortet, sondern weil er nicht sagen kann, ob er
+> überhaupt geantwortet hat.
+
+Der Prüfpunkt für jede künftige Stelle: *Was tue ich, wenn hier nichts zurückkommt?* Lautet
+die Antwort „nichts" oder „weniger", ist der Cache in Ordnung — ein Fehlschlag kann dann nur
+zu wenig bewirken (so bei `pruneOwnRecipes()`, Ziffer 125). Lautet sie „dann schreibe ich",
+muss vom Server gelesen werden.
+
+### Prüfstand
+
+`tools/pruefstand-gruppe-beitritt-cache.py` — 18 Prüfungen mit ausgeschnittenem
+`copyOwnRecipesToGroup()` gegen ein falsches Firestore, dessen Cache **genau so lügt wie in
+echt**: Sammlungen, die er noch nie vom Server geladen hat, liefert er als leeres Array
+zurück, ohne zu werfen.
+
+Zwei Gegenproben statt einer, und die zweite ist die wichtigere: Abschnitt 7 zeigt, dass die
+alte Fassung beim **kalten** Cache durchfällt (12 statt 7 Meals, `lib`-Zählung 2, nichts
+umgebogen). Abschnitt 8 zeigt, dass dieselbe alte Fassung beim **warmen** Cache heil ist.
+Ohne den zweiten Beleg misst Abschnitt 7 nur „die alte Fassung ist irgendwie kaputt" statt
+der Cache-Ursache.
+
+## 127. Ein zugewiesenes Meal ließ sich nicht aus dem Plan löschen
+
+**Datum:** 28.08.2026 · **Betrifft:** `dropRecipeIds()`, Gerichte-Zuweisung, Gruppen-Sync
+
+### Der Fehler
+
+Seit „Gemeinsam planen" ist ein Slot-Eintrag **zweierlei**: ein blanker String (Rezept-ID,
+„für alle") **oder** ein Objekt `{id, uids}`, wenn nur ein Teil der Gruppe das Gericht isst.
+`dropRecipeIds()` filterte gegen den **rohen** Eintrag:
+
+```js
+p[d.key][m.key] = asIdList(p[d.key][m.key]).filter(x => !idSet.has(x));
+```
+
+`idSet` enthält ID-**Strings**. Für ein Objekt trifft `idSet.has(x)` deshalb **nie** zu. Ein
+gelöschtes Meal verschwand sauber, solange es „für alle" geplant war — war es **jemandem
+zugewiesen**, blieb es als Geisterverweis im Wochenplan stehen.
+
+Drei Wege führen in diese Funktion, und alle drei sind in der Gruppe der Normalfall:
+
+| Weg | Wann |
+|---|---|
+| `deleteRecipe()` | ich lösche selbst |
+| `onRecipesRemote()`, `"removed"` | ein anderes Mitglied löscht |
+| `startCloudSync()` | Grabsteine beim Anmelden |
+
+Der zweite ist der unangenehmste: Löscht die andere Person ein Meal, das mir zugewiesen war,
+bleibt es bei mir stehen — und `pushGroupPlan()` schreibt den Geisterverweis anschließend
+zurück in das gemeinsame Wochendokument.
+
+**Selbstheilend, aber nicht folgenlos.** `normalizePlan()` filtert über `entryId(e)` gegen die
+bekannten IDs und wirft den Verweis beim nächsten *Laden* weg. Bis dahin steht er in der
+Ansicht, in der Einkaufsliste und im gemeinsamen Plan.
+
+### Was den Fund erst möglich machte
+
+Der direkte Nachbar `rewritePlanIds()` macht es **seit jeher richtig** (`entryId(e)`) — und
+sein Kommentar nennt `dropRecipeIds()` ausdrücklich sein „Vorbild, nur ersetzen statt
+entfernen". Das Vorbild war die kaputte Fassung. Zwei Funktionen, die dieselbe Menge treffen
+müssen, standen zwanzig Zeilen auseinander und taten es nicht.
+
+`dropRecipeIds()` ist älter als das `{id, uids}`-Format. Beim Einbau der Zuweisung wurden
+`normalizePlan()`, `flattenWeek()`, `buildShoppingList()` und `dayNutOf()` auf `entryId()`
+umgestellt — diese eine Stelle nicht.
+
+### Die Regel dahinter
+
+> **Wenn ein Datenmodell eine zweite Form bekommt, ist die Liste der Stellen, die es lesen,
+> nicht die Liste der Stellen, die es anfassen.** Gesucht werden muss nach jeder Stelle, die
+> einen Eintrag *vergleicht* — auch dort, wo er nur wegsortiert wird.
+
+Praktisch: Nach `asIdList(...)` darf kein `.filter`, `.indexOf`, `.includes` oder `.has` mehr
+auf den rohen Eintrag zeigen. `state.favs` und `state.planned` in derselben Funktion sind
+davon **nicht** betroffen — das sind reine ID-Sammlungen ohne Zuweisungsform.
+
+### Prüfstand
+
+`tools/pruefstand-zuweisung-loeschen.py` — 20 Prüfungen mit ausgeschnittenem
+`dropRecipeIds()` **und** `rewritePlanIds()`. Die Testwoche enthält alle Formen: „für alle",
+„nur ich", „nur die andere Person", beide-als-Objekt und einen gemischten Slot.
+
+Abschnitt 6 prüft die beiden Funktionen **gegeneinander**: Was `rewritePlanIds()` umbiegt,
+muss `dropRecipeIds()` auch löschen können. Genau diese Symmetrie war verletzt.
+
+Die Gegenprobe (Abschnitt 8) fährt die alte Filterfassung: Sie lässt **4 von 5** Verweisen
+stehen und entfernt nur die „für alle"-Form. Dazu die zweite Gegenprobe — ohne Zuweisungen
+war die alte Fassung in Ordnung, die Ursache ist also die Eintragsform und nicht irgendein
+anderer Defekt.
+
+## 128. Der Beitretende verlor seine Woche — und eine Migration räumte fremden Bestand auf
+
+**Datum:** 28.08.2026 · **Betrifft:** `joinGroup()`, `finalizeGroupActivation()`,
+`dedupeAgainstCatalog()`
+
+Zwei Funde aus derselben Durchsicht, beide vom Inhaber abgenommen.
+
+### A. Die Woche des Beitretenden ging lautlos verloren
+
+`enterGroupSync()` **ersetzt** `state.plans` durch den Gruppenplan — dieselbe Begründung wie
+bei den Meals: In einer Gruppe ist die Gruppe die Wahrheit. Hochgeladen wurde der eigene Plan
+aber **nur beim Owner** (`prepareGroup()`, `finalizeGroupActivation()`). Wer beitrat, verlor
+seine geplante Woche ohne Meldung.
+
+**Dass das nicht so gemeint war, stand im Code selbst.** `copyOwnRecipesToGroup()` biegt die
+Planverweise des Beitretenden auf die Gruppen-IDs um und begründet das wörtlich mit „vor dem
+Hochladen des Plans (siehe `prepareGroup()`/**den Beitrittspfad**)". Auf dem Beitrittspfad
+wurde nie ein Plan hochgeladen — die Umschreibung lief dort ins Leere. Ein Kommentar, der
+einen Schritt beschreibt, den es nicht gibt, ist der zuverlässigste Hinweis auf eine
+vergessene Hälfte.
+
+**Behoben** über `mergeOwnPlanIntoGroup(gid)` — **eine** Funktion für beide Aufrufer, statt
+zweier Kopien, die auseinanderlaufen. Nachgetragen werden nur Slots, die in der Gruppe **noch
+leer** sind; wer schon geplant hat, behält seinen Eintrag. Das ist exakt die Owner-Regel aus
+`finalizeGroupActivation()`, jetzt für beide Seiten.
+
+Die Reihenfolge ist zwingend: **erst** `copyOwnRecipesToGroup()` (biegt die Verweise um),
+**dann** der Plan. Umgekehrt zeigten die nachgetragenen Slots auf IDs, die es in der Gruppe
+nicht gibt, und `normalizePlan()` würfe sie beim nächsten Laden lautlos weg.
+
+**Und derselbe Cache-Fallstrick wie in Ziffer 126:** Auch hier trägt ein leeres Leseergebnis
+eine Entscheidung („der Slot ist frei, ich schreibe hinein"), und der Offline-Cache hat die
+Pläne einer gerade erst beigetretenen Gruppe noch nie gesehen. Deshalb
+`CloudGroup.loadPlansFromServer()`. Scheitert das Lesen, wird **nichts** geschrieben — ein
+nicht nachgetragener Plan ist ein Ärgernis, ein überschriebener fremder ein Datenverlust.
+Das ist bewusst **strenger** als beim Meal-Abgleich nebenan: Dort ist der Schaden eine
+Dublette, hier wäre er die gelöschte Woche der anderen Person.
+
+Diese Hälfte war auch in `finalizeGroupActivation()` schon latent falsch — der Owner konnte
+beim Aktivieren mit kaltem Cache die Slots überschreiben, die der Beitretende gerade gefüllt
+hatte. Der gemeinsame Helfer behebt beide Stellen auf einmal.
+
+### B. `dedupeAgainstCatalog()` räumte den gemeinsamen Bestand auf
+
+Die Migration lief bisher auch **in** einer Gruppe, sobald der Handshake stand
+(`if (syncGid && !syncHandshakeOk) return;`). Zwei Gründe sprechen dagegen, und beide
+entstehen erst durch das Steuerflag selbst:
+
+1. **`state.dedupeV1` steht nur im `localStorage`**, nicht im Kontodokument (`dataJSON()`
+   führt es nicht). Es ist damit ein **Geräte**-Flag, kein Konto-Flag. In der Gruppe räumt die
+   Migration aber nicht den eigenen Bestand auf, sondern den **gemeinsamen** — und ein zweites
+   Gerät, ein anderer Browser oder ein geleerter Speicher lässt sie erneut darauf los.
+   „Einmalig" gilt pro Gerät, „gemeinsam" gilt für alle.
+2. **Eine Löschreihenfolge, die andere Mitglieder trifft.** Die Migration löscht Meals *und*
+   biegt Planverweise auf die Katalog-ID um. `pushNow()` schreibt die Löschung **vor** dem
+   Plan (`syncRecipes()` vor `pushGroupPlan()`). Das andere Gerät sieht also zuerst das
+   `"removed"` — `dropRecipeIds()` leert dort die Slots — und erst danach den umgebogenen
+   Plan. Ein eigener `save()` dazwischen schreibt die geleerten Slots zurück: Gerichte fallen
+   aus dem gemeinsamen Plan.
+
+**Behoben:** `if (syncGid) return;` — ohne das Flag zu setzen. Nichts geht verloren: Wer die
+Gruppe verlässt, läuft über `switchGroup(null)` → `startCloudSync()` sofort wieder hier durch,
+dann auf dem eigenen Bestand, wo die Migration hingehört. Die Gruppe selbst ist beim Beitritt
+ohnehin über `lib` abgeglichen (`copyOwnRecipesToGroup()`).
+
+### Die Regel dahinter
+
+> **Ein Aufräumschritt, dessen „erledigt"-Merker lokal liegt, darf nur lokale Daten
+> anfassen.** Sobald er auf gemeinsame Daten zeigt, ist er nicht mehr einmalig — er ist
+> einmalig *pro Gerät*, und das ist etwas völlig anderes.
+
+### Prüfstand
+
+`tools/pruefstand-gruppe-plan-mitbringen.py` — 23 Prüfungen über beide Änderungen, mit
+ausgeschnittenem `mergeOwnPlanIntoGroup()` und `dedupeAgainstCatalog()`.
+
+Zwei Gegenproben: **A** zeigt, dass der Cache-Weg beim kalten Cache den fremden Slot
+überschreibt (und beim warmen heil ist — die Ursache ist also der Cache-Zustand). **B** baut
+die alte Bedingung `syncGid && !syncHandshakeOk` nach und belegt, dass sie mitten im
+Gruppenbestand gelöscht hätte. Ohne B misst Abschnitt 9 nichts.
+
+## 129. „Synchronisiert", während nichts mehr ankam
+
+**Datum:** 28.08.2026 · **Betrifft:** `CloudSync.watch`/`watchRecipes`, `CloudGroup.watch`/`watchPlans`/`watchMembers`, `setSyncStatus()`
+
+### Der Befund
+
+Am echten Konto gemessen, nicht vermutet: Der Sync-Punkt zeigte **„Cloud-Sync:
+Synchronisiert"**, während dieselbe App-Instanz weder lesen noch schreiben konnte — jeder
+Server-Zugriff endete in `permission-denied`, ein Schreibvorgang hing ohne Bestätigung. Eine
+unabhängig erzeugte SDK-Instanz mit denselben Zugangsdaten las im selben Moment fehlerfrei.
+
+Die Anzeige log also. Und zwar in genau der Richtung, die am teuersten ist: Sie versprach
+Sicherheit.
+
+### Die Ursache
+
+Vier `onSnapshot`-Aufrufe trugen ein leeres `function () {}` als Fehlerbehandlung:
+
+| Listener | was er trägt |
+|---|---|
+| `CloudSync.watch` | das Kontodokument |
+| `CloudSync.watchRecipes` | alle Meals |
+| `CloudGroup.watch` | das Gruppendokument |
+| `CloudGroup.watchPlans` | den gemeinsamen Wochenplan |
+
+Entscheidend ist eine Eigenschaft von Firestore, die man kennen muss: **Ein `onSnapshot`, der
+mit einem Fehler endet, wird endgültig beendet.** Er versucht es nicht erneut. Der Listener ist
+danach tot — und mit dem leeren Handler erfuhr das niemand.
+
+`setSyncStatus("synced")` steht am Ende von `startCloudSync()`. Danach nahm es nichts mehr
+zurück: Ein Lesefehler hatte keinen Weg zur Anzeige, und der Push-Pfad (`pushNow()`) meldet nur
+seine *eigenen* Fehlschläge. Der Status blieb auf „synced", bis jemand die Seite neu lud.
+
+`CloudGroup.watchMembers` war die einzige Ausnahme — sie meldete Lesefehler schon vorher als
+`null` statt als leere Liste (Ziffer 105). Genau das hätten die anderen vier auch gebraucht.
+
+### Die Behebung
+
+Ein gemeinsamer Melder `watchFehler(kennung)` im Firebase-Modul, den alle fünf Listener tragen.
+Er tut zwei Dinge und nichts weiter:
+
+1. `noteError(kennung, e)` — gedrosselt auf drei je Kennung, also auch bei einem dauerhaft
+   feuernden Fehler kein Fluten des Ringpuffers.
+2. Durchreichen an `window.__onCloudWatchError`, dieselbe Brücken-Bauart wie
+   `window.__onCloudAuth`. Die App setzt daraufhin `setSyncStatus("offline")` und meldet
+   **einmal je Sitzung** freundlich, dass Änderungen auf diesem Gerät bleiben.
+
+Drei Entscheidungen, die keine Details sind:
+
+* **Kein automatisches Neuanhängen.** Ein Listener, der an einer Regel scheitert, scheitert
+  beim nächsten Versuch genauso — eine Wiederanhänge-Schleife wäre Dauerfeuer gegen Firestore.
+* **Ein Hinweis, nicht vier.** Greift eine Regel, scheitern alle Listener im selben Moment.
+  `watchAbgerissen` sperrt nach dem ersten; `stopCloudSync()` setzt es zurück, damit die
+  nächste Sitzung wieder melden darf. Das Flag steht bei den übrigen Sync-Flags und nicht
+  neben seinem Verwender — `stopCloudSync()` räumt es mit auf und stünde sonst **vor** der
+  `let`-Deklaration.
+* **„offline", kein fünfter Status.** Für den Nutzer ist die Lage dieselbe: Die App läuft
+  lokal weiter, der nächste Start verbindet neu. Ein eigener Zustand bräuchte ein eigenes
+  Symbol und eine eigene Erklärung, ohne dass sich die Handlung ändert.
+
+### Die Regel dahinter
+
+> **Eine Statusanzeige, die nur den Erfolgsfall kennt, ist keine Anzeige, sondern eine
+> Behauptung.** Wer einen Zustand setzt, muss sagen können, was ihn wieder aufhebt — sonst
+> bleibt er stehen, gerade wenn er nicht mehr stimmt.
+
+Das ist dieselbe Familie wie Ziffer 29 (leere `catch`-Blöcke) und Ziffer 121 (ein freundlicher
+Toast ist auch ein Schlucken) — hier aber eine Stufe teurer: Dort ging eine *Ursache*
+verloren, hier ging die Information verloren, dass überhaupt etwas nicht stimmt.
+
+### Prüfstand
+
+`tools/pruefstand-sync-abriss.py` — 22 Prüfungen mit ausgeschnittenem `watchFehler()`,
+`setSyncStatus()` und `__onCloudWatchError`, gegen eine `onSnapshot`-Attrappe, die auf
+Kommando den Fehlerpfad nimmt.
+
+Die eigentliche Messgröße steht in Abschnitt 2: **vier gleichzeitige Abrisse, vier
+Protokolleinträge, aber genau ein Hinweis.** Dazu Abschnitt 4 (nach `stopCloudSync()` darf die
+nächste Sitzung wieder melden) und Abschnitt 5/6 (der Melder wirft nie — auch nicht, wenn die
+App-Seite wirft oder ganz fehlt).
+
+Zwei Gegenproben: Abschnitt 8 fährt die alte Fassung mit dem leeren `function () {}` und
+verlangt, dass der Status auf „synced" **stehen bleibt**. Abschnitt 9 belegt, dass die
+Attrappe im selben Modus wirklich einen Fehler liefert — sonst misst Abschnitt 8 nur, dass gar
+nichts passiert ist.
+
+## 130. Ein Gericht, das niemandem gehörte — und ein leeres Array, das `true` ist
+
+**Datum:** 28.08.2026 · **Betrifft:** `unflattenWeek()`, Gerichte-Zuweisung, Auto-Planer
+
+### Der Fehler
+
+Der Zuweisungs-Dialog hält eine ausdrückliche Zusage: Würde eine Abwahl `uids.length === 0`
+ergeben, wird der Eintrag **komplett entfernt** — „ein Gericht ohne zugewiesene Person darf nie
+im Datenmodell existieren" (`docs/ARCHITECTURES.md`, Orphan-Schutz).
+
+`unflattenWeek()` hielt sie nicht:
+
+```js
+return uids ? { id: x.id, uids: uids } : x.id;
+```
+
+**Ein leeres Array ist in JavaScript truthy.** `{ id, uids: [] }` überlebte also — und zwar
+ausgerechnet auf dem Weg, auf dem Plandaten von einem **anderen Gerät** hereinkommen, dem
+einzigen, der fremden Daten laut eigenem Kommentar ausdrücklich nicht vertraut.
+
+### Warum so ein Eintrag besonders unangenehm ist
+
+Er ist **sichtbar, aber für jede Auswertung unsichtbar**:
+
+| Stelle | Verhalten bei `uids: []` |
+|---|---|
+| `dayNutOf()` | zählt ihn niemandem an (`uids.indexOf(syncUid) === -1`) |
+| `slotOpenForMe()` | meldet den Slot als **frei** — der Auto-Planer plant darüber |
+| `entryIsShared()` | „nicht gemeinsam" → `slotIsShared()` kippt für die ganze Zeile |
+| `buildShoppingList()` | skaliert mit `uids.length` auf **null** — wird nie eingekauft |
+
+Der Widerspruch, den der Prüfstand festhält: Der Slot meldet „frei", obwohl dort etwas
+**steht**. Der Planer legt sein Gericht daneben, und in der Zeile stehen zwei Karten, von denen
+eine niemandem gehört.
+
+### Der Sanitizer erzeugte die Waise selbst
+
+Das ist der Teil, der den Fund von einer Theorie zu einem Befund macht. Es braucht **kein**
+manipuliertes Dokument:
+
+```js
+const uids = Array.isArray(x.uids) ? x.uids.filter(u => typeof u === "string").slice(0, 24) : null;
+```
+
+Enthält `uids` nur Nicht-Strings — `[null, 7]` —, bleibt nach dem `filter()` ein **leeres
+Array** übrig. Die Schutzmaßnahme gegen fehlerhafte Fremddaten produzierte also genau den
+Zustand, den die Zusage nebenan verbietet.
+
+### Die Behebung
+
+Drei Fälle statt zwei, ausdrücklich unterschieden:
+
+```js
+if (!uids) return x.id;           // Objekt ohne uids -> String-Form (Altbestand, §73)
+if (!uids.length) return null;    // Waise -> fällt unten aus dem Array
+return { id: x.id, uids: uids };
+```
+
+Verworfen wurde die Alternative, eine leere Liste als „für alle" zu lesen. Sie wäre die
+schlechtere Wahl: Ein kaputter Eintrag würde damit **allen** angerechnet und für alle
+eingekauft. Entfernen ist zugleich das, was der lokale Weg seit jeher tut — beide Wege sagen
+jetzt dasselbe.
+
+### Die Regel dahinter
+
+> **`if (array)` prüft nicht, ob etwas drin ist.** Wo eine leere Liste eine andere Bedeutung
+> hat als eine gefüllte, muss `.length` geprüft werden — und wo ein Sanitizer filtert, ist die
+> leere Liste ein *Ergebnis*, mit dem zu rechnen ist.
+
+Allgemeiner, und das ist der eigentliche Ertrag: **Eine Zusage, die nur der lokale Weg
+einhält, ist keine Zusage.** Der Orphan-Schutz stand im Zuweisungs-Dialog, wurde dort geprüft
+und galt als erledigt. Der Sync-Weg schrieb dieselbe Datenstruktur, ohne dieselbe Regel zu
+kennen. Dieselbe Fehlerklasse wie Ziffer 127, nur andersherum: dort las eine Stelle die zweite
+Eintragsform nicht, hier schrieb eine Stelle sie falsch.
+
+### Prüfstand
+
+`tools/pruefstand-waise-uids.py` — 23 Prüfungen mit ausgeschnittenem `unflattenWeek()` und
+`slotOpenForMe()`.
+
+Abschnitt 10 ist der wichtigste: Er stellt alte und neue Fassung nebeneinander und zeigt die
+**Folgewirkung** statt nur die Datenform — alt meldet „Slot frei" bei einem Eintrag im Slot,
+neu ist frei *und* leer.
+
+Zwei Gegenproben: Abschnitt 11 belegt, dass die alte Fassung die Waise durchlässt **und sie
+aus `[null, 7]` selbst erzeugt**. Abschnitt 12 belegt, dass beide Fassungen ohne Waisen
+byte-gleiche Ergebnisse liefern — sonst misst Abschnitt 11 nur „irgendwie anders".
