@@ -3048,3 +3048,48 @@ ist die seltene Gegenprobe, die einen Fehler nicht als falsches Ergebnis zeigt, 
 Dazu die Fälle, in denen nichts passieren darf (Erstanmeldung, dasselbe Konto, Modul ohne
 `wipeCache`) und der Fehlschlag: Scheitert das Wischen, muss die Anmeldung trotzdem
 durchlaufen — sonst sperrte ein zweiter offener Tab den Nutzer aus seiner eigenen App aus.
+
+
+## Abnahme am echten Konto: Gruppen-Sync zu zweit (29.08.2026)
+
+Kein Prüfstand, sondern ein Durchlauf am lebenden System — zwei angemeldete Konten auf zwei
+Ursprüngen (Inhaber auf der Produktionsdomain, Testkonto auf `localhost`), damit beide
+gleichzeitig eine eigene Sitzung haben.
+
+| Geprüft | Ergebnis |
+|---|---|
+| Beitritt über den echten Einladungslink | `memberCount` 2→3 atomar, **keine Fehlermeldung** |
+| Gruppenbestand danach | 44 → 44, keine doppelte `lib`, **keine Slot-Änderung** |
+| Inhaber plant ein Meal | beim Testkonto **ohne Neuladen** da, als „für alle“ (leerer Slot) |
+| Testkonto weist zu (3 Mitglieder → Chip-Popover) | korrektes `{id, uids}`, beim Inhaber sofort sichtbar |
+| Badges | „PA“ + „L“ — die zweistellige Unterscheidung greift, weil *Paddy* und *Patrick* beide mit P beginnen |
+| Änderungshinweis | „Patrick hat Sonntag geändert“ |
+| Verlassen | Meals mitgekommen, **keine doppelte `lib`**, beide Zeiger geleert |
+| Wiederherstellung | `memberCount`, Mitglieder, 44 Meal-IDs und alle Slots identisch |
+
+### Zwei Fallen beim Vergleichen, beide hausgemacht
+
+**Erstens:** Der erste Abgleich meldete neun Slot-Abweichungen. Acht davon waren **nur
+Schlüssel-Reihenfolge** (`{"id":…,"uids":…}` gegen `{"uids":…,"id":…}`) — der Vergleich lief
+über `JSON.stringify`, das reihenfolgeabhängig ist. Genau die Falle, gegen die `canonJSON()`
+im Produktionscode gebaut wurde; ein Abnahmeskript darf sie ebenso wenig ignorieren.
+
+**Zweitens:** Die neunte war `sun_sn: undefined → []`. Auch kein Unterschied: Ein geleerter
+Slot wird von `pushGroupPlan()` ausdrücklich als leeres Array geschrieben, damit die Löschung
+beim anderen Gerät ankommt. „Leer“ und „nicht vorhanden“ sind hier dasselbe.
+
+> **Ein Abnahmeskript, das den Produktionscode prüft, muss dessen Vergleichsregeln kennen.**
+> Sonst meldet es Unterschiede, die keine sind — und beim nächsten Mal glaubt ihm niemand.
+
+### Was auch dieser Durchlauf NICHT gezeigt hat
+
+Den ursprünglich gemeldeten Dublettenfall. Das Testkonto trug dieselben Dokument-IDs wie die
+Gruppe (es hatte den Bestand bei einem früheren Austritt übernommen), der Abgleich in
+`copyOwnRecipesToGroup()` hatte also nichts zu tun. Belegt ist der Fall weiterhin über
+`tools/pruefstand-gruppe-verlassen-dubletten.py` und über die Rechnung gegen die 81 echten
+Dokumente (`docs/TROUBLESHOOTING.md` 125, zweiter Nachtrag) — nicht durch einen beobachteten
+Durchlauf. Dafür bräuchte es ein Testkonto mit **eigenen** Startmeals.
+
+Der Auto-Planer in der Gruppe blieb ebenfalls aussen vor: Er füllt eine ganze Woche, und der
+Rückbau wäre größer als der Erkenntnisgewinn. Er ist über `tools/pruefstand-autoplaner.py`
+abgedeckt — 158 Prüfungen, die seit dem 28.08.2026 auch wirklich laufen (Ziffer 131).
