@@ -5130,8 +5130,11 @@ statt eines `Object.assign`, fällt alles Neue lautlos heraus.
   falsch: Die Funktion läuft auf Bestandsdaten, und jede vor der Maske archivierte Woche
   hätte ihre Tage verloren. Beide einzeln validieren, den Widerspruch stehen lassen.
 
-**Belegt durch:** `tools/pruefstand-wochenmaske.py` (48 `OFFEN`-Zeilen grün, Gegenprobe
-gegen `9ae227d` fällt mit sieben roten durch) und `tools/pruefstand-weekstats-sync.py`.
+**Belegt durch:** `tools/pruefstand-wochenmaske.py` und
+`tools/pruefstand-weekstats-sync.py`. **Zählerstände und Gegenproben stehen in
+`docs/TESTING.md`, nicht hier** — diese Zeile nannte ursprünglich eigene Zahlen und war
+schon einen Commit später falsch. Ein Fallbericht hält fest, *was* der Fehler war; wie viele
+Zeilen ein Prüfstand heute grün meldet, gehört an genau eine Stelle.
 
 ---
 

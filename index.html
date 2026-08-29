@@ -1269,9 +1269,10 @@
   //
   // Funktionen statt const, und das ist kein Geschmack: sanitizeWeekStats() wird aus load()
   // gerufen, und load() laeuft schon in `let state = load()` frueh im Script. Eine const an
-  // dieser Stelle waere dort noch in der temporalen Totzone — dieselbe Falle wie bei
-  // ING_UNITS und noConsent(), und sie hat hier am 29.08.2026 prompt wieder zugeschlagen.
-  // Funktionsdeklarationen werden komplett gehoistet.
+  // dieser Stelle waere dort noch in der temporalen Totzone und wuerde die App beim Start
+  // beenden - #view bleibt leer, syntax-check.py meldet sauber. Genau das ist am 29.08.2026
+  // passiert; dieselbe Falle wie bei ING_UNITS und noConsent(), Einzelheiten in
+  // docs/TROUBLESHOOTING.md Punkt 139. Funktionsdeklarationen werden komplett gehoistet.
   function archivJahre(anzahl) {
     const j = new Date().getFullYear(), out = [];
     for (let i = 0; i < anzahl; i++) out.push(String(j - i));
@@ -1341,6 +1342,11 @@
   // in den Rang auf ("mehr Einsen gewinnt"), loeschte man genau die Tage, die nur ein Geraet
   // kennt — der Fehler, gegen den das Feld ueberhaupt gebaut wurde.
   function weekStatRang(s) { return [s.days || 0, s.hit || 0, s.kcal || 0, s.target || 0]; }
+  // ⚠️ NICHT mit mergeArchived() zusammenlegen, so aehnlich die beiden inzwischen aussehen.
+  // Der Unterschied ist genau einer und er ist der ganze Sinn: mergeArchived() bevorzugt bei
+  // Gleichstand den NEUEN Lauf (>=), weil der frisch gerechnete Wert der aktuellere ist.
+  // Hier muss der Gleichstand richtungsunabhaengig aufgeloest werden - sonst nimmt Geraet A
+  // den Wert von B und B gleichzeitig den von A (TROUBLESHOOTING 34/44).
   function mergeWeekStats(prim, sec) {
     const a = sanitizeWeekStats(sec), b = sanitizeWeekStats(prim);
     const out = Object.assign({}, a);

@@ -2379,9 +2379,14 @@ eigentliche Aussage tragen:
 | 26.08., nach B2 | 7 rot | `d` überlebte `sanitizeWeekStats()` nicht, Masken wurden nicht vereinigt, Fenster noch 26 Wochen |
 | 29.08., nach B3/B5 | 0 rot | — |
 
-**Die Gegenprobe gehört zum Ergebnis:** Derselbe Prüfstand gegen `9ae227d` gefahren
-(`git show 9ae227d:index.html > _gegenprobe.html`, dann als Argument übergeben) fällt mit
-**sieben roten `OFFEN`-Zeilen** durch. Ohne diesen Lauf wäre „grün" nur eine Behauptung.
+**Die Gegenprobe gehört zum Ergebnis** — für B3/B5 fiel derselbe Prüfstand gegen `9ae227d`
+mit **sieben roten `OFFEN`-Zeilen** durch. Ohne diesen Lauf wäre „grün" nur eine Behauptung.
+
+⚠️ **Dieser Lauf ist seit `d4b01f6` nicht mehr wiederholbar** und darf nicht als Beleg
+nachgefahren werden: `9ae227d` kennt `archivJahre()` noch nicht, der Schnitt endet mit
+**„Endmarker nicht gefunden: function archivJahre("** — ein Abbruch, kein roter Test. Wer das
+für ein Ergebnis hält, liest einen kaputten Lauf als Beweis. Die heute gültige Gegenprobe
+steht unten (verstellte Kopie).
 
 ### Eine Gegenprobe, die kein alter Commit liefern kann
 
