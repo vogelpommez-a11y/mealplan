@@ -101,9 +101,10 @@ pr("Runde 2 aendert bei A nichts", canonJSON(a2) === canonJSON(a1));
 pr("Runde 2 aendert bei B nichts", canonJSON(b2) === canonJSON(b1));
 
 // Das Fenster war bis zum 29.08.2026 ein rollendes halbes Jahr (die letzten 26 Wochen).
-// Seit Paket 6/B3 sind es das laufende und das vorige Kalenderjahr, getrimmt nach dem
-// Jahres-PRAEFIX des Schluessels - der Fortschritt-Kalender zeigt ganze Jahre, und ein
-// rollendes Fenster haette ihm den Januar weggeschnitten, sobald der Juli da ist.
+// Seit Paket 6/B3 sind es ganze Kalenderjahre, getrimmt nach dem Jahres-PRAEFIX des
+// Schluessels - der Fortschritt-Kalender zeigt ganze Jahre, und ein rollendes Fenster haette
+// ihm den Januar weggeschnitten, sobald der Juli da ist. Behalten werden DREI Jahrgaenge,
+// angeboten werden zwei; der dritte ist der Puffer gegen den Jahreswechsel.
 // Deshalb rechnet dieser Abschnitt mit dem echten laufenden Jahr, nicht mit "2026".
 console.log("--- 6. Archivfenster haelt auch nach der Vereinigung ---");
 var J6 = new Date().getFullYear();
@@ -122,10 +123,12 @@ function zaehle6(o, jahr) {
 var gross = mergeWeekStats(viele(J6, 27, 26), viele(J6, 1, 26));
 pr("Vereinigung schneidet das laufende Jahr nicht ab", zaehle6(gross, J6) === 52,
    zaehle6(gross, J6) + " von 52");
-// Und ein Geraet, das lange nicht geladen hat, bringt kein drittes Jahr wieder herein.
-var alt3 = mergeWeekStats(viele(J6 - 2, 1, 10), viele(J6, 1, 10));
+// Ein Geraet, das lange nicht geladen hat, bringt seinen Altbestand mit. Das Pufferjahr
+// ueberlebt die Vereinigung, ein vierter Jahrgang nicht.
 pr("voriges Jahr bleibt", zaehle6(mergeWeekStats(viele(J6 - 1, 1, 10), viele(J6, 1, 10)), J6 - 1) === 10);
-pr("das Jahr davor faellt weg", zaehle6(alt3, J6 - 2) === 0, zaehle6(alt3, J6 - 2) + " uebrig");
+pr("Pufferjahr bleibt", zaehle6(mergeWeekStats(viele(J6 - 2, 1, 10), viele(J6, 1, 10)), J6 - 2) === 10);
+var zuAlt = mergeWeekStats(viele(J6 - 3, 1, 10), viele(J6, 1, 10));
+pr("das vierte Jahr faellt weg", zaehle6(zuAlt, J6 - 3) === 0, zaehle6(zuAlt, J6 - 3) + " uebrig");
 
 console.log("--- 7. Erstsync und Randfaelle ---");
 pr("Cloud kennt das Feld nicht -> lokal bleibt",
@@ -169,7 +172,7 @@ console.log("ERGEBNIS " + ok + " gruen, " + bad + " rot");
 def main():
     quelle = pm_quelle.lade_seite(INDEX).split(u"\n")
     # Produktionscode schneiden, nicht abtippen.
-    kern = schneide(quelle, u"function sanitizeWeekStats(o)", u"    return sanitizeWeekStats(out);") + u"\n  }\n"
+    kern = schneide(quelle, u"function archivJahre(", u"    return sanitizeWeekStats(out);") + u"\n  }\n"
     canon = schneide(quelle, u"function canonValue(v)", u"function canonJSON(v)")
 
     tmp = tempfile.mkdtemp(prefix="mp-weekstats-")

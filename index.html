@@ -1244,16 +1244,43 @@
     out.days = Math.max(alt.days || 0, neu.days || 0, maskDays(d));
     return out;
   }
-  // Archiv saeubern: nur gueltige "YYYY-Www"-Eintraege, geklemmte Werte, hoechstens das
-  // laufende und das vorige Kalenderjahr — das Archiv soll nicht endlos wachsen.
+  // Das Archivfenster — und warum die beiden Zahlen NICHT gleich sind.
   //
-  // Paket 6/B3: Das Fenster war vorher ein rollendes halbes Jahr (die letzten 26 Wochen).
-  // Der Kalender zeigt ganze Jahre, und ein rollendes Fenster haette ihm den Januar
-  // weggeschnitten, sobald der Juli da ist. Getrimmt wird nach dem ISO-Jahr-PRAEFIX des
-  // Schluessels, NICHT nach echtem Kalenderdatum ("2026-W01" kann real im Dezember 2025
-  // liegen). Das ist richtig — aber nur, solange die ANZEIGE dieselbe Regel benutzt. Wer
-  // beim Kalender anfaengt, den Schluessel in ein Datum umzurechnen, laesst Trimmung und
-  // Darstellung auseinanderdriften.
+  // Getrimmt wird nach dem ISO-Jahr-PRAEFIX des Schluessels, nicht nach echtem Kalenderdatum
+  // ("2026-W01" kann real im Dezember 2025 liegen). Vorher war es ein rollendes halbes Jahr
+  // (die letzten 26 Wochen); der Kalender zeigt aber ganze Jahre, und ein rollendes Fenster
+  // haette ihm den Januar weggeschnitten, sobald der Juli da ist.
+  //
+  // archivJahreBehalten() liefert einen Jahrgang mehr als archivJahreZeigen(), und das ist
+  // der ganze Zweck. Das Fenster
+  // bestimmt sich zur Laufzeit ueber new Date().getFullYear() — waeren beide Zahlen gleich,
+  // verschwaende am 1. Januar schlagartig ein Jahr, das der Nutzer am 31. Dezember noch im
+  // Umschalter hatte. Und weil weekStats in dataJSON() steht, loest genau das einen PUSH aus:
+  // Ein einziges Geraet, das am Neujahrstag startet, kappt das Archiv auch in der Cloud und
+  // auf allen anderen Geraeten. Unwiederbringlich.
+  //
+  // Mit dem Puffer faellt am Stichtag nur ein Jahrgang, der bereits ein volles Jahr lang
+  // unsichtbar war. Es verschwindet also nie etwas, das gestern noch zu sehen war. Kostet
+  // rund 3,7 KB gegen CLOUD_DOC_MAX = 900000.
+  //
+  // ⚠️ Die ANZEIGE muss ihre Jahre ueber archivJahreZeigen() beziehen — nie ueber
+  // Object.keys(weekStats) und nie ueber ein aus dem Schluessel gerechnetes Datum. Sonst
+  // bietet der Umschalter das Pufferjahr mit an, und der Puffer ist keiner mehr.
+  //
+  // Funktionen statt const, und das ist kein Geschmack: sanitizeWeekStats() wird aus load()
+  // gerufen, und load() laeuft schon in `let state = load()` frueh im Script. Eine const an
+  // dieser Stelle waere dort noch in der temporalen Totzone — dieselbe Falle wie bei
+  // ING_UNITS und noConsent(), und sie hat hier am 29.08.2026 prompt wieder zugeschlagen.
+  // Funktionsdeklarationen werden komplett gehoistet.
+  function archivJahre(anzahl) {
+    const j = new Date().getFullYear(), out = [];
+    for (let i = 0; i < anzahl; i++) out.push(String(j - i));
+    return out;
+  }
+  function archivJahreBehalten() { return archivJahre(3); }   // was gespeichert bleibt
+  function archivJahreZeigen() { return archivJahre(2); }     // was angeboten wird (ab B7)
+  // Archiv saeubern: nur gueltige "YYYY-Www"-Eintraege, geklemmte Werte, hoechstens die
+  // Jahrgaenge aus archivJahreBehalten() — das Archiv soll nicht endlos wachsen.
   function sanitizeWeekStats(o) {
     const out = {};
     if (!o || typeof o !== "object") return out;
@@ -1279,10 +1306,8 @@
       // Uebertragungsfehler eine geloeschte Woche.
       if (typeof s.d === "string" && /^[01]{7}$/.test(s.d)) out[k].d = s.d;
     });
-    // Fenster: laufendes plus voriges Kalenderjahr (~106 Wochen, wenige KB gegen
-    // CLOUD_DOC_MAX). Bewusst grosszuegiger als der Rueckblick braucht, weil der Kalender
-    // ein volles Vorjahr zeigen koennen soll.
-    const jahr = new Date().getFullYear(), behalte = [String(jahr), String(jahr - 1)];
+    // Fenster: die juengsten Kalenderjahre — einer mehr, als der Umschalter anbietet.
+    const behalte = archivJahreBehalten();
     const trimmed = {};
     Object.keys(out).sort().forEach(k => { if (behalte.indexOf(k.slice(0, 4)) >= 0) trimmed[k] = out[k]; });
     return trimmed;
@@ -1346,7 +1371,7 @@
       }
     });
     // Aussen noch einmal sanitizen, und zwar wegen des Archivfensters: Die Vereinigung zweier
-    // Archive kann Wochen aus einem dritten Jahr einbringen, wenn ein Geraet lange nicht
+    // Archive kann Wochen aus einem zu alten Jahr einbringen, wenn ein Geraet lange nicht
     // geladen hat. Seit B3 ist das Fenster an Jahres-Praefixe gebunden, nicht mehr an eine
     // Anzahl - welche Woche der Vereinigung zuletzt eingehaengt wurde, spielt keine Rolle
     // mehr fuer das Ergebnis.

@@ -1184,9 +1184,9 @@ dasselbe wie `mergeWeekStats()` weiter unten — jenes führt zwei **Geräte** z
 Ziel, und eine Zieländerung schreibt die Bedeutung der gesamten Historie um. Trainings- und
 Ruhetage haben unterschiedliche Ziele, deshalb der Schnitt über die geplanten Tage.
 
-`sanitizeWeekStats()` klemmt alle Werte, hält das **laufende und das vorige Kalenderjahr**
-(siehe „Archivfenster" unten) und übernimmt `target` nur im plausiblen Bereich
-(500–20 000 kcal). Wochen ohne `target` sind vor B10 archiviert; der
+`sanitizeWeekStats()` klemmt alle Werte, hält die **drei jüngsten Kalenderjahre**
+(siehe „Archivfenster" unten — angeboten werden davon nur zwei) und übernimmt `target` nur
+im plausiblen Bereich (500–20 000 kcal). Wochen ohne `target` sind vor B10 archiviert; der
 Rückblick fällt dort auf das heutige Ziel zurück (`avgDailyTargetToday()`). Eine Migration
 gibt es nicht — der alte Zielstand ist nicht rekonstruierbar.
 
@@ -1231,32 +1231,58 @@ der frisch gerechnete Wert der aktuellere ist. `mergeWeekStats()` darf das nicht
 der Gleichstand richtungsunabhängig aufgelöst werden, sonst nimmt Gerät A den Wert von B und
 B gleichzeitig den von A. Wer die beiden vereinheitlicht, baut TROUBLESHOOTING 34/44 wieder ein.
 
-#### Archivfenster: laufendes plus voriges Kalenderjahr (seit 29.08.2026)
+#### Archivfenster: drei Jahre behalten, zwei anbieten (seit 29.08.2026)
 
 Vorher war es ein **rollendes halbes Jahr** (`slice(-26)`). Der Fortschritt-Kalender zeigt
 ganze Jahre — ein rollendes Fenster hätte ihm den Januar weggeschnitten, sobald der Juli da
 ist. Getrimmt wird nach dem **ISO-Jahr-Präfix des Schlüssels**, nicht nach echtem
 Kalenderdatum: `"2026-W01"` kann real im Dezember 2025 liegen.
 
-⚠️ **Die Anzeige muss dieselbe Regel benutzen.** Wer beim Kalender anfängt, den Schlüssel in
-ein Datum umzurechnen, lässt Trimmung und Darstellung auseinanderdriften: Wochen, die der
-Umschalter unter 2026 zeigt, wären unter 2025 weggeworfen worden.
+```javascript
+function archivJahre(anzahl) { … }                          // die eine Quelle
+function archivJahreBehalten() { return archivJahre(3); }   // was gespeichert bleibt
+function archivJahreZeigen()   { return archivJahre(2); }   // was angeboten wird (ab B7)
+```
 
-⚠️ **Offen: der Jahreswechsel löscht still, und zwar für alle Geräte.** Das Fenster
-bestimmt sich zur Laufzeit über `new Date().getFullYear()` — am 1. Januar verschwinden also
-schlagartig alle Wochen des dann vorvorigen Jahres, beim blossen Laden. Und weil `weekStats`
-in `dataJSON()` steht, löst genau das einen **Push** aus: Ein einziges Gerät, das am
-Jahreswechsel startet, kappt das Archiv auch in der Cloud und auf allen anderen Geräten.
-Denkbarer Ausweg: beim Trimmen grosszügiger sein als beim Anzeigen (etwa drei Jahre behalten,
-zwei anbieten). Das ist eine Produktentscheidung und noch nicht getroffen.
+⚠️ **Funktionen, nicht `const`** — und das ist kein Stil, sondern Pflicht:
+`sanitizeWeekStats()` hängt an `load()`, und `load()` läuft in `let state = load()` sehr
+früh auf Modulebene. Eine `const` an dieser Stelle wäre dort noch in der temporalen Totzone
+und brächte die App zum Stillstand — bei sauberem Syntax-Check. Passiert am 29.08.2026,
+`docs/TROUBLESHOOTING.md` Punkt 139.
+
+**Die beiden Zahlen sind mit Absicht verschieden — das ist der Kern.** Das Fenster bestimmt
+sich zur Laufzeit über `new Date().getFullYear()`. Wären sie gleich, verschwände am
+1. Januar schlagartig ein Jahrgang, den der Nutzer am 31. Dezember noch im Umschalter hatte
+— beim blossen Laden. Und weil `weekStats` in `dataJSON()` steht, löst genau das einen
+**Push** aus: Ein einziges Gerät, das am Neujahrstag startet, käppte das Archiv auch in der
+Cloud und auf allen anderen Geräten, unwiederbringlich.
+
+Mit dem Puffer fällt am Stichtag nur ein Jahrgang, der bereits **ein volles Jahr lang
+unsichtbar** war. Es verschwindet nie etwas, das gestern noch zu sehen war. Kosten: rund
+3,7 KB — ein Jahrgang à 53 Wochen à knapp 70 Byte.
+
+Verworfen wurde, gar nicht mehr zu trimmen (das Archiv wüchse unbegrenzt) und ein rollendes
+Wochenfenster (bringt das Januar-Problem zurück, deshalb schon am 25.08.2026 abgelehnt).
+
+⚠️ **Die Anzeige muss ihre Jahre über `archivJahreZeigen()` beziehen** — nie
+über `Object.keys(weekStats)` und nie über ein aus dem Schlüssel gerechnetes Datum. Beides
+höbe den Puffer wieder auf: Im ersten Fall bietet der Umschalter das Pufferjahr mit an, im
+zweiten driften Trimmung und Darstellung auseinander (Wochen, die der Umschalter unter 2026
+zeigt, wären unter 2025 weggeworfen worden).
+
+Belegt durch `tools/pruefstand-wochenmaske.py`, Abschnitt 6 — darunter die Zeile, die die
+Entscheidung selbst misst und dabei ohne Zeitreise auskommt: *Was der Umschalter heute
+anbietet, muss im morgigen Behalten-Fenster noch vorkommen.* Gegenprobe mit
+`archivJahreBehalten()` auf zwei Jahrgänge gestellt: vier Zeilen fallen durch, darunter
+„verloren: 2025".
 
 **Zwei Merge-Stellen, nicht eine.** `onRemote()` deckt den laufenden Betrieb ab; der
 Baseline-Merge in `startCloudSync()` den Start. Fehlt das Feld dort, ist die Vereinigung
 wirkungslos — der Baseline-Push läuft direkt danach und ersetzt das Cloud-Feld mit dem
 lokalen Stand. Siehe `docs/TROUBLESHOOTING.md` Punkt 115.
 
-Grössenordnung: rund 106 Wochen à knapp 70 Byte, also gut 6 KB — unkritisch gegen
-`CLOUD_DOC_MAX = 900000`.
+Grössenordnung: rund 159 Wochen (drei Jahrgänge) à knapp 70 Byte, also gut 10 KB —
+unkritisch gegen `CLOUD_DOC_MAX = 900000`.
 
 ### Merkmale eines Meals: `tags[]` und `mealPrep`
 

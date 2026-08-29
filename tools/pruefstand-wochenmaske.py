@@ -218,19 +218,41 @@ pr("offen", "Zahl statt String: Feld faellt weg", sz && !("d" in sz), sz && sz.d
 pr("offen", "d ohne days rettet die Woche nicht",
    Object.keys(sanitizeWeekStats({ "2026-W20": w(0, 0, 2000, 0, "1101100") })).length === 0);
 
-console.log("--- 6. Archivfenster: laufendes plus voriges Kalenderjahr ---");
+console.log("--- 6. Archivfenster: drei Jahre behalten, zwei anbieten ---");
+// Die Entscheidung vom 29.08.2026: BEHALTEN ist um eins groesser als ZEIGEN. Ohne diesen
+// Puffer verschwaende am 1. Januar ein Jahr, das der Nutzer am 31. Dezember noch im
+// Umschalter hatte - und zwar auf ALLEN Geraeten, weil das Trimmen einen Push ausloest.
 var J = new Date().getFullYear();
 function jahr(y, n, ab) {
   var o = {};
   for (var i = 0; i < n; i++) o[y + "-W" + String((ab || 1) + i).padStart(2, "0")] = w(5, 3, 2000, 2200);
   return o;
 }
-var gross = Object.assign({}, jahr(J - 2, 10), jahr(J - 1, 40), jahr(J, 40));
+var gross = Object.assign({}, jahr(J - 3, 10), jahr(J - 2, 40), jahr(J - 1, 40), jahr(J, 40));
 var getrimmt = sanitizeWeekStats(gross);
 function zaehle(y) { return Object.keys(getrimmt).filter(function (k) { return k.indexOf(y + "-W") === 0; }).length; }
 pr("offen", "laufendes Jahr bleibt vollstaendig", zaehle(J) === 40, zaehle(J) + " von 40");
 pr("offen", "voriges Jahr bleibt vollstaendig", zaehle(J - 1) === 40, zaehle(J - 1) + " von 40");
-pr("regr", "das Jahr davor faellt weg", zaehle(J - 2) === 0, zaehle(J - 2) + " uebrig");
+pr("offen", "das Pufferjahr bleibt auch", zaehle(J - 2) === 40, zaehle(J - 2) + " von 40");
+pr("regr", "das vierte Jahr faellt weg", zaehle(J - 3) === 0, zaehle(J - 3) + " uebrig");
+
+// Der eigentliche Beweis der Entscheidung - und er kommt ohne Zeitreise aus: Was der
+// Umschalter HEUTE anbietet, muss im MORGIGEN Behalten-Fenster noch vorkommen. Faellt diese
+// Zeile, verliert der Nutzer am Neujahrstag sichtbare Historie.
+var behalten = archivJahreBehalten(), zeigenHeute = archivJahreZeigen();
+pr("offen", "Puffer vorhanden: behalten hat einen Jahrgang mehr als zeigen",
+   behalten.length > zeigenHeute.length, behalten.length + " vs " + zeigenHeute.length);
+var behaltenMorgen = [];
+for (var bi = 0; bi < behalten.length; bi++) behaltenMorgen.push(String(J + 1 - bi));
+var verloren = zeigenHeute.filter(function (y) { return behaltenMorgen.indexOf(y) < 0; });
+pr("offen", "nichts heute Sichtbares faellt am 1. Januar weg", verloren.length === 0,
+   "verloren: " + (verloren.join(", ") || "-"));
+pr("offen", "archivJahre() liefert absteigende Jahres-Praefixe",
+   archivJahre(3).join(",") === [J, J - 1, J - 2].join(","), archivJahre(3).join(","));
+// Die Anzeige-Grenze ist eine echte Teilmenge der Speicher-Grenze. Waeren es zwei
+// unabhaengige Listen, koennte der Umschalter ein Jahr anbieten, das gar nicht mehr da ist.
+pr("offen", "die angebotenen Jahre sind eine Teilmenge der behaltenen",
+   zeigenHeute.every(function (y) { return behalten.indexOf(y) >= 0; }), zeigenHeute.join(","));
 
 console.log("--- 7. mergeWeekStats: Masken vereinigen, nicht 'mehr days gewinnt' ---");
 var mA = { "2026-W20": w(4, 3, 2000, 2200, "1111000") };
@@ -309,8 +331,8 @@ def main():
     tage = schneide(quelle, u"const DAYS = [", u"  ];")
     hasnut = schneide_zeile(quelle, u"function hasNut(s)")
     prune = schneide(quelle, u"function pruneWeeks(plans)", u"  // Verwaiste Barcode-Produkte", inklusive=False)
-    arch = schneide(quelle, u"function archiveWeek(wk, pl)", u"function sanitizeWeekStats(o)", inklusive=False)
-    san = schneide(quelle, u"function sanitizeWeekStats(o)", u"    return sanitizeWeekStats(out);") + u"\n  }\n"
+    arch = schneide(quelle, u"function archiveWeek(wk, pl)", u"function archivJahre(", inklusive=False)
+    san = schneide(quelle, u"function archivJahre(", u"    return sanitizeWeekStats(out);") + u"\n  }\n"
     canon = schneide(quelle, u"function canonValue(v)", u"function canonJSON(v)")
     # Gibt es heute noch nicht - Test 4 wird dann rot, statt den Lauf abzubrechen.
     maske = schneide(quelle, u"function weekMaskOf(", u"function maskDays(", pflicht=False) or u""

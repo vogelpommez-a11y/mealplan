@@ -2370,7 +2370,7 @@ verlangte, dass ohne `state.goal` archiviert wird; die Fassung von damals tat da
 (`if (!pl || !state.goal) return;`).
 
 **Stand 29.08.2026: B1–B5 sind umgesetzt, der Prüfstand ist vollständig grün** —
-48 `OFFEN`-Zeilen und 13 `REGRESSION`-Zeilen. Der Weg dorthin, weil die Zwischenstände die
+53 `OFFEN`-Zeilen und 13 `REGRESSION`-Zeilen. Der Weg dorthin, weil die Zwischenstände die
 eigentliche Aussage tragen:
 
 | Stand | `OFFEN` | Was fehlte |
@@ -2380,8 +2380,29 @@ eigentliche Aussage tragen:
 | 29.08., nach B3/B5 | 0 rot | — |
 
 **Die Gegenprobe gehört zum Ergebnis:** Derselbe Prüfstand gegen `9ae227d` gefahren
-(`git show HEAD:index.html > _gegenprobe.html`, dann als Argument übergeben) fällt mit
+(`git show 9ae227d:index.html > _gegenprobe.html`, dann als Argument übergeben) fällt mit
 **sieben roten `OFFEN`-Zeilen** durch. Ohne diesen Lauf wäre „grün" nur eine Behauptung.
+
+### Eine Gegenprobe, die kein alter Commit liefern kann
+
+Für das Archivfenster (Abschnitt 6, seit 29.08.2026) taugt der Vorgänger-Commit **nicht** als
+Gegenprobe: Dort gibt es `archivJahre()` gar nicht, der Schnitt bricht
+also mit „Marker nicht gefunden" ab — ein Abbruch ist kein roter Test. Die Gegenprobe läuft
+deshalb über eine **verstellte Kopie**:
+
+```powershell
+sed 's/archivJahreBehalten() { return archivJahre(3); }/archivJahreBehalten() { return archivJahre(2); }/' index.html > _ohne_puffer.html
+python tools/pruefstand-wochenmaske.py _ohne_puffer.html
+python tools/pruefstand-weekstats-sync.py _ohne_puffer.html
+```
+
+Ergebnis: vier rote Zeilen, darunter „nichts heute Sichtbares fällt am 1. Januar weg →
+verloren: 2025". Genau die Aussage, um die es bei der Entscheidung ging — und sie ist damit
+gemessen statt behauptet. Danach `_ohne_puffer.html` wieder löschen.
+
+Die Zeile selbst kommt **ohne Zeitreise** aus: Sie vergleicht die heutigen Anzeige-Jahre mit
+dem Behalten-Fenster von morgen, statt die Systemuhr zu stellen. Ein Test, der `Date`
+ersetzt, prüft am Ende die Attrappe.
 
 **Seit dem 29.08.2026 bestimmen wieder BEIDE Gruppen den Rückgabewert** (`GESAMT 0 rot`).
 Während des Umbaus durfte das nur die `REGRESSION`-Gruppe — danach wäre es eine Bremse

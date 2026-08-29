@@ -5132,3 +5132,44 @@ statt eines `Object.assign`, fällt alles Neue lautlos heraus.
 
 **Belegt durch:** `tools/pruefstand-wochenmaske.py` (48 `OFFEN`-Zeilen grün, Gegenprobe
 gegen `9ae227d` fällt mit sieben roten durch) und `tools/pruefstand-weekstats-sync.py`.
+
+---
+
+## 139. `const` auf Modulebene: die App startet nicht, der Syntax-Check sagt nichts
+
+**Datum:** 29.08.2026 · **Symptom:** `Uncaught ReferenceError: Cannot access
+'ARCHIV_JAHRE_BEHALTEN' before initialization`. `#view` bleibt leer, die Seite liefert
+HTTP 200, und `python syntax-check.py --alles` meldet alles sauber — es ist kein
+Syntaxfehler, sondern die **temporale Totzone** (Temporal Dead Zone).
+
+`index.html` ruft `load()` sehr frueh auf Modulebene auf:
+
+```javascript
+let state = load();          // Zeile ~1053
+```
+
+Alles, was `load()` in seiner Kette braucht, muss zu diesem Zeitpunkt **schon existieren**.
+Funktionsdeklarationen werden vollstaendig gehoistet und sind sicher. Ein `const` oder `let`
+weiter unten im Script ist es **nicht** — es existiert dort zwar, ist aber noch nicht
+initialisiert, und jeder Zugriff wirft. Das beendet das gesamte App-Script.
+
+**Dieselbe Falle, drittes Mal:**
+
+| Betroffen | Fix |
+|---|---|
+| `ING_UNITS` (Zutaten-Einheiten, über `sanitizeIng()`) | `const` ganz nach oben, vor `load()` |
+| Einwilligungs-Vorgabe (über `sanitizeConsent()`) | Funktion `noConsent()` statt `const` |
+| `ARCHIV_JAHRE_BEHALTEN` (über `sanitizeWeekStats()`) | Funktionen `archivJahreBehalten()` / `archivJahreZeigen()` |
+
+**Die Lehre:** Jede neue Konstante, die von einer `sanitize*`-Funktion gebraucht wird, ist
+verdächtig — diese Funktionen hängen alle an `load()`. Zwei sichere Wege: die Konstante ganz
+an den Anfang der IIFE (vor `let state = load()`), oder als **Funktionsdeklaration**
+schreiben. Die zweite Variante ist robuster, weil sie ueberlebt, wenn der Code später
+verschoben wird.
+
+**Und der Grund, warum es auffiel:** Nicht der Syntax-Check und nicht das Lesen des Diffs,
+sondern `python tools/alle-pruefstaende.py` — `pruefstand-einkaufsliste.py` fährt die echte
+App und meldete „kein JS-Fehler beim Start" als ersten von 34 Fehlschlägen. Ein Prüfstand,
+der eine ganz andere Funktion misst, findet so etwas mit, ein gezielter nicht. Der
+Smoke-Test hätte es ebenso gezeigt — er war zu diesem Zeitpunkt schlicht noch nicht
+gelaufen. **Deshalb steht er in Abschnitt 21 von `CLAUDE.md` vor dem Commit, nicht danach.**
