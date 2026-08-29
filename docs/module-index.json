@@ -1260,9 +1260,9 @@
       "zeilen": 246
     },
     {
-      "bytes": 197740,
+      "bytes": 198486,
       "pfad": "docs/TESTING.md",
-      "zeilen": 3341
+      "zeilen": 3352
     },
     {
       "bytes": 312873,
@@ -1746,9 +1746,9 @@
       "zeilen": 428
     },
     {
-      "bytes": 26213,
+      "bytes": 28247,
       "pfad": "tools/pruefstand-rezepttexte.py",
-      "zeilen": 540
+      "zeilen": 576
     },
     {
       "bytes": 9650,

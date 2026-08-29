@@ -328,7 +328,7 @@ _keine_
 | docs/RUNBOOK.md | 167 | 5665 |
 | docs/SECURITY.md | 356 | 19197 |
 | docs/STORE.md | 246 | 11876 |
-| docs/TESTING.md | 3341 | 197740 |
+| docs/TESTING.md | 3352 | 198486 |
 | docs/TROUBLESHOOTING.md | 5454 | 312873 |
 | docs/module-index.json | — | — (erzeugt) |
 | firestore.rules | 416 | 23714 |
@@ -440,7 +440,7 @@ _keine_
 | tools/pruefstand-rezeptbuch-ansicht.py | 188 | 10795 |
 | tools/pruefstand-rezeptbuch-filter.py | 222 | 10222 |
 | tools/pruefstand-rezeptbuch.py | 428 | 24044 |
-| tools/pruefstand-rezepttexte.py | 540 | 26213 |
+| tools/pruefstand-rezepttexte.py | 576 | 28247 |
 | tools/pruefstand-rueckblick-ziel.py | 221 | 9650 |
 | tools/pruefstand-sheet-repaint.py | 273 | 14644 |
 | tools/pruefstand-sync-abriss.py | 226 | 10106 |

@@ -20,6 +20,7 @@ WAS ER PRUEFT
   * `steps` ist nummeriert ("1. ", "2. " ...)                   -> REGRESSION, ohne Grundlinie
   * `steps` ist nicht leer                                      -> REGRESSION
   * `img` verweist auf eine Datei in img/library/               -> REGRESSION
+  * zu jedem Bild steht ein Herkunftsnachweis im Protokoll      -> REGRESSION
   * `id` ist eindeutig                                          -> REGRESSION
   * Ernaehrungsform-Tags passen zu den Zutaten                  -> REGRESSION, ohne Grundlinie
 
@@ -58,6 +59,7 @@ Aufrufe:
     python tools/pruefstand-rezepttexte.py --grundlinie  # Grundlinie neu ausgeben
 """
 
+import json
 import os
 import re
 import sys
@@ -415,8 +417,21 @@ def menge_im_schritt(zutat, steps):
     return re.search(muster, steps, re.I) is not None
 
 
+def protokoll_lesen():
+    """Der Herkunftsnachweis je Bild. Fehlt die Datei, ist das ein ABBRUCH und kein leeres
+    dict: Sonst meldete der Pruefstand 36 fehlende Nachweise, und die wahre Ursache - eine
+    verschwundene Datei - stuende nirgends."""
+    p = os.path.join(WURZEL, "img", "library", "bilder-protokoll.json")
+    if not os.path.isfile(p):
+        raise SystemExit("ABBRUCH: img/library/bilder-protokoll.json fehlt. Ohne sie laesst "
+                         "sich die Zusage im Impressum nicht pruefen.")
+    with open(p, encoding="utf-8") as f:
+        return json.load(f)
+
+
 def pruefen(pfad):
     rezepte = rezepte_lesen(pfad)
+    protokoll = protokoll_lesen()
     regression, offen, behoben = [], [], []
 
     gesehen = {}
@@ -473,10 +488,31 @@ def pruefen(pfad):
         for w in tag_widersprueche(r["tags"], r["zutaten"]):
             regression.append("%s: %s" % (rid, w))
 
-        # --- Bild ---
-        if r["img"]:
+        # --- Bild und sein Herkunftsnachweis ---
+        #
+        # Der zweite Teil ist eine RECHTLICHE Zusage, keine Ordnungsliebe: Das Impressum
+        # (data/rechtstexte.js) sagt zu, dass zu jedem Bild festgehalten ist, mit welcher
+        # Beschreibung und wann es entstanden ist. Eingeloest wird das von
+        # img/library/bilder-protokoll.json - und bis zum 29.08.2026 hat niemand geprueft,
+        # ob dort wirklich jedes Bild steht. Aufgefallen ist die Luecke dem Agenten `anwalt`
+        # im Pushcheck: Er konnte es nur stichprobenartig pruefen und hat genau das gemeldet.
+        # Ein Nachweis, den man einzeln nachzaehlen muss, ist auf Dauer keiner.
+        if not r["img"]:
+            regression.append(f'{rid}: kein Bild (img-Feld fehlt)')
+        else:
             if not os.path.isfile(os.path.join(WURZEL, "img", "library", r["img"])):
                 regression.append(f'{rid}: Bild fehlt - img/library/{r["img"]}')
+            eintrag = protokoll.get(r["img"])
+            if eintrag is None:
+                regression.append(
+                    f'{rid}: kein Herkunftsnachweis fuer {r["img"]} in '
+                    f'img/library/bilder-protokoll.json - das Impressum sagt einen zu')
+            else:
+                luecken = [f for f in ("prompt", "modell", "erzeugt") if not eintrag.get(f)]
+                if luecken:
+                    regression.append(
+                        f'{rid}: Herkunftsnachweis unvollstaendig ({", ".join(luecken)}) - '
+                        f'{r["img"]}')
 
     # Verwaiste Eintraege: Wird ein Rezept umbenannt oder entfernt, bleibt seine Zeile in
     # GRUNDLINIE bzw. UNNUMMERIERT_ALT stehen und deckt fuer immer eine id, die es nicht

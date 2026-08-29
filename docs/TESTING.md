@@ -350,6 +350,17 @@ ein und bewertet den Rückgabewert, die Registrierung passiert dadurch von selbs
 Er prüft, ob **jede Zutat aus `ingredients` in `steps` vorkommt**, ob die Anleitung
 nummeriert ist, ob `img` auf eine vorhandene Datei zeigt und ob `id` eindeutig ist.
 
+Seit dem 29.08.2026 außerdem der **Herkunftsnachweis je Bild**. Das Impressum sagt zu, dass
+zu jedem Rezeptbild festgehalten ist, mit welcher Beschreibung und wann es entstanden ist —
+eingelöst von `img/library/bilder-protokoll.json`. Bis dahin prüfte das **niemand**:
+`PHOTO_CREDITS` deckt die Katalogbilder bewusst nicht ab, und die Datei-Existenz allein sagt
+nichts über den Nachweis. Aufgefallen ist die Lücke dem Agenten `anwalt` im Pushcheck — er
+konnte es nur stichprobenartig prüfen und hat genau das gemeldet. **Ein Nachweis, den man
+einzeln nachzählen muss, ist auf Dauer keiner.**
+
+Fehlt die Protokolldatei ganz, bricht der Prüfstand ab, statt 36 fehlende Nachweise zu
+melden — sonst stünde die wahre Ursache nirgends.
+
 Seit dem 29.08.2026 außerdem die **Mengen**: Jede Zutat muss ein Objekt mit `grams` sein —
 ein Freitext-String (`"Oregano, Salz, Pfeffer"`) ist ein Befund. Und jede Zutat in `tl`/`el`
 muss ihre Menge auch in der Anleitung nennen, gesucht als `<Zahl> <Einheit> <Zutat>`
