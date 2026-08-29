@@ -13,7 +13,8 @@ WAS ER PRUEFT - am ECHTEN, ausgeschnittenen Code, nicht an einem Nachbau:
   * g/ml/st bleiben unveraendert - die Brueche gelten NUR fuer TL und EL
   * ingShowsNut() blendet Gewuerze aus (TL/EL unter 15 kcal), NICHT aber 1 EL Oel
   * pdfEsc() aus lib/pdf.js kann ¼ ½ ¾ - sonst druckt die Einkaufsliste "? TL Salz"
-  * roIngRowHtml() UND paintIngView() fragen beide ingShowsNut(), statt selbst zu entscheiden
+  * roIngRowHtml(), paintIngView() und buildShoppingList() fragen den gemeinsamen Helfer,
+    statt die Schwelle je dreimal auszuschreiben
 
 DER LETZTE PUNKT IST DER EIGENTLICHE GRUND FUER DIESEN PRUEFSTAND. Die ersten vier sieht
 man in der App sofort. Der PDF-Export ist der stille Weg: `pdfEsc()` ersetzt jedes Zeichen
@@ -75,7 +76,7 @@ def ohne_kommentare(code):
 
 
 FUNKTIONEN = ["nutNum", "ingObj", "ingUnit", "unitShort", "numLabel", "ingHasNut",
-              "ingContrib", "bruchLabel", "qtyLabel", "ingShowsNut"]
+              "ingContrib", "bruchLabel", "qtyLabel", "ingIsSeasoning", "ingShowsNut"]
 KONSTANTEN = ["ING_UNITS", "BRUCH", "ING_NUT_MIN_KCAL"]
 
 PRUEFUNGEN = u"""
@@ -118,6 +119,16 @@ PRUEFUNGEN = u"""
   var drunter = { name: "X", grams: 1, unit: "tl", kcal: 14.9, carbs: 0, protein: 0, fat: 0 };
   pruef("genau 15 kcal zeigt noch an",     ingShowsNut(grenze),  true);
   pruef("14,9 kcal zeigt nicht mehr an",   ingShowsNut(drunter), false);
+
+  // ---- ingIsSeasoning: derselbe Begriff, zweite Folge (Einkaufsliste) ----
+  pruef("Salz ist Wuerze",                 ingIsSeasoning(salz),  true);
+  pruef("Currypulver ist Wuerze",          ingIsSeasoning(curry), true);
+  pruef("1 EL Oel ist KEINE Wuerze",       ingIsSeasoning(oelEL), false);
+  pruef("100 g Gurke ist KEINE Wuerze",    ingIsSeasoning(gurke), false);
+  pruef("ohne Menge keine Wuerze",         ingIsSeasoning(ohneMenge), false);
+  // ingShowsNut muss die Umkehrung sein, sonst sind es doch wieder zwei Regeln.
+  pruef("Wuerze und Naehrwertzeile schliessen sich aus",
+        ingIsSeasoning(salz) === !ingShowsNut(salz), true);
 
   // ---- pdfEsc: die Brueche muessen den PDF-Export ueberleben ----
   pruef("Viertel im PDF",   pdfEsc("\\u00bc TL Salz").indexOf("?"), -1);
@@ -213,16 +224,17 @@ def main():
     # zurueckfallen und Gewuerze wieder mit "0 kcal · 0 KH 0 P 0 F" zeigen.
     quelle = io.open(INDEX, encoding="utf-8").read()
     schief = []
-    for name in ("roIngRowHtml", "paintIngView"):
+    for name, ruft in (("roIngRowHtml", "ingShowsNut"), ("paintIngView", "ingShowsNut"),
+                       ("buildShoppingList", "ingIsSeasoning")):
         s = schneide(quelle, name)
         if not s:
             schief.append("%s: nicht gefunden" % name)
-        elif "ingShowsNut(" not in ohne_kommentare(s):
-            schief.append("%s: entscheidet selbst, statt ingShowsNut() zu fragen" % name)
+        elif ruft + "(" not in ohne_kommentare(s):
+            schief.append("%s: entscheidet selbst, statt %s() zu fragen" % (name, ruft))
     for e in schief:
         print("  FEHL  " + e)
     if not schief:
-        print("  OK    roIngRowHtml und paintIngView fragen beide ingShowsNut()")
+        print("  OK    Leseansicht, Meal-Editor und Einkaufsliste fragen den gemeinsamen Helfer")
 
     ergebnisse = fahren(html)
     if not ergebnisse:

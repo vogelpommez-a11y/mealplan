@@ -340,6 +340,21 @@ genau 8 von 26 Prüfungen rot — die sieben Bruchfälle und der PDF-Fall für `
 
 Eine Gegenprobe, die nur „Funktion fehlt" meldet, ist keine.
 
+### Lauf F in `pruefstand-einkaufsliste.py`: Würze wird gezählt, nicht summiert
+
+Zwei Rezepte mit **verschiedenen** Salzmengen sind der Kern des Falls — ohne die
+Zusammenlegung stünden „½ TL Salz" und „¼ TL Salz" als zwei Zeilen da. Das Öl ist die
+Gegenprobe im selben Lauf: Ein Esslöffel Öl ist keine Würze und muss seine Menge behalten.
+
+**Der Zähler wird bewusst ohne feste Zahl geprüft.** Die aktuelle Woche zählt nur die Tage
+ab heute (`planDaysAhead`), der Wert hängt also vom Wochentag des Laufs ab — am Montag steht
+dort etwas anderes als am Freitag. Ein Prüfstand, der nur an manchen Tagen grün ist, wird
+beim ersten roten Montag als kaputt abgetan. Geprüft wird deshalb, was die Aussage trägt:
+Es ist **ein** Zähler, und er fasst mehr als ein Meal zusammen.
+
+Gegenprobe am 29.08.2026: `ingIsSeasoning()` in `buildShoppingList()` auf `false` gesetzt →
+„1½ TL Salz", drei Prüfungen rot, Rückgabewert 1.
+
 ## 2b. Datenprüfstand — `pruefstand-rezepttexte.py`
 
 Nicht jeder Prüfstand schneidet Code aus. `tools/pruefstand-rezepttexte.py` liest

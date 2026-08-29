@@ -3739,12 +3739,27 @@
   // liegen beide bei 12 kcal. Und ein ESSloeffel Oel sind 90 kcal; die gehoeren sichtbar,
   // auch wenn die Einheit dieselbe ist. Erst beides zusammen trifft die Gewuerze und nur sie.
   const ING_NUT_MIN_KCAL = 15;
+  // Was hier "Wuerze" heisst: eine Zutat in Loeffelmengen, die kaum Kalorien traegt - Salz,
+  // Pfeffer, Backpulver, getrocknete Kraeuter. Es ist EIN Begriff mit ZWEI Folgen, und
+  // deshalb steht er auch nur einmal da:
+  //   * ihre Naehrwertzeile entfaellt (ingShowsNut) - sie zeigte "0 kcal · 0 KH 0 P 0 F"
+  //   * in der Einkaufsliste zaehlt nur, DASS man sie braucht (buildShoppingList)
+  // Zwei getrennte Schwellen fuer dieselbe Frage wuerden auseinanderlaufen, sobald eine
+  // davon angefasst wird.
+  //
+  // Die Grenze steht bewusst NEBEN der Einheit statt allein auf den Kalorien: 1 TL
+  // Vanilleextrakt und 100 g Gurke liegen beide bei 12 kcal, und ein ESSloeffel Oel sind
+  // 90 kcal - Oel ist keine Wuerze, weder in der Anzeige noch beim Einkauf.
+  function ingIsSeasoning(i) {
+    const o = ingObj(i), u = ingUnit(o);
+    if (u !== "el" && u !== "tl") return false;
+    if (!nutNum(o.grams)) return false;
+    return !ingHasNut(o) || ingContrib(o).kcal < ING_NUT_MIN_KCAL;
+  }
   function ingShowsNut(i) {
     const o = ingObj(i);
     if (!ingHasNut(o) || !nutNum(o.grams)) return false;
-    const u = ingUnit(o);
-    if (u !== "el" && u !== "tl") return true;
-    return ingContrib(o).kcal >= ING_NUT_MIN_KCAL;
+    return !ingIsSeasoning(o);
   }
   // Brueche statt Dezimalstellen bei Loeffelmengen: "½ TL" ist die Schreibweise, in der
   // Rezepte dosiert werden - "0,5 TL" liest sich wie ein Messprotokoll.
@@ -8126,12 +8141,26 @@
       r.ingredients.forEach(i => {
         const o = ingObj(i);
         const name = String(o.name || "").trim();
-        const qty = nutNum(o.grams) * factor;
+        // WUERZE WIRD NICHT SUMMIERT. Man kauft eine Packung Salz, nicht "1¼ TL" - die
+        // Loeffelmenge ist beim Kochen die Information, im Laden ist sie Rauschen. Mit
+        // qty = 0 faellt der Eintrag in die vorhandene Darstellung fuer mengenlose Zutaten:
+        // nur der Name, dahinter "×N" fuer "in N Meals der Woche". Das gilt dadurch in einem
+        // Zug fuer Modal, Text-Export und PDF.
+        //
+        // Aufgekommen im Pushcheck vom 29.08.2026: Seit jede Zutat eine Menge traegt, stand
+        // dort "½ TL Salz" - vorher war es der Freitext "Kurkuma, Kreuzkuemmel, Salz", der
+        // sich mit nichts zusammenlegen liess. Beides half beim Einkaufen nicht.
+        const wuerze = ingIsSeasoning(o);
+        const qty = wuerze ? 0 : nutNum(o.grams) * factor;
         const unit = ingUnit(o);
-        // Ohne Menge zaehlt der ganze Text (Altbestand), sonst Name+Einheit als Schluessel
-        const norm = qty
-          ? name.toLowerCase() + "|" + unit
-          : ingLabel(i).toLowerCase().trim();
+        // Wuerze schluesselt allein ueber den Namen - sonst blieben ½ TL Salz aus dem einen
+        // und ¼ TL Salz aus dem anderen Rezept zwei Zeilen, und genau das soll hier weg.
+        // Ohne Menge zaehlt der ganze Text (Altbestand), sonst Name+Einheit als Schluessel.
+        const norm = wuerze
+          ? name.toLowerCase()
+          : qty
+            ? name.toLowerCase() + "|" + unit
+            : ingLabel(i).toLowerCase().trim();
         if (!norm || (!qty && !name)) return;
         const hit = map.get(norm);
         if (hit) { hit.count++; if (qty) { if (uids) hit.assignedQty += qty; else hit.sharedQty += qty; } }

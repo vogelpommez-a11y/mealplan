@@ -245,6 +245,16 @@ def main():
     ingu = zeile(quelle, u"function ingUnit(o)")
     ingo = zeile(quelle, u"function ingObj(i)")
     ingl = schneide(quelle, u"function ingLabel(i)", u"}", u"")
+    # buildShoppingList() fragt seit dem 29.08.2026 ingIsSeasoning() - Wuerze wird gezaehlt
+    # statt summiert. Ohne diese vier Ausschnitte wirft der ausgeschnittene Code
+    # "ingIsSeasoning is not defined", und dieser Pruefstand faellt aus, obwohl an SEINEM
+    # Thema (Gruppen-Einkauf) nichts kaputt ist. Der Reihenlauf hat das sofort gemeldet -
+    # ein Ausschneide-Pruefstand haengt an jeder Funktion, die sein Ausschnitt aufruft.
+    inghas = zeile(quelle, u"function ingHasNut(i)")
+    ingcon = schneide(quelle, u"function ingContrib(i)", u"return { kcal:", u"\n  }")
+    ingmin = zeile(quelle, u"const ING_NUT_MIN_KCAL")
+    ingwue = schneide(quelle, u"function ingIsSeasoning(i)",
+                      u"return !ingHasNut(o) || ingContrib(o).kcal", u"\n  }")
     shopsan = zeile(quelle, u"function sanitizeShopPersons(v)")
     zaehlt = schneide(quelle, u"function shopCountsMembers()",
                       u"return !!(syncGid && groupSetting", u"\n  }")
@@ -264,7 +274,8 @@ def main():
         io.open(seite, "w", encoding="utf-8").write(
             u"<script>\n" + tage + u"\n" + mahl + u"\n" + helfer + u"\n" + UMFELD +
             u"\n" + makeEmpty + u"\n" + unflat + u"\n" + nutnum + u"\n" + ingu + u"\n" + ingo +
-            u"\n" + ingl + u"\n" + shopsan + u"\n" + shoppers + u"\n" + zaehlt + u"\n" + tage2 +
+            u"\n" + ingl + u"\n" + inghas + u"\n" + ingcon + u"\n" + ingmin + u"\n" + ingwue +
+            u"\n" + shopsan + u"\n" + shoppers + u"\n" + zaehlt + u"\n" + tage2 +
             u"\n" + einkauf + u"\n" + vorkoch + u"\n" + TEST + u"\n</script>")
         p = subprocess.run(
             [EDGE, "--headless=new", "--disable-gpu", "--virtual-time-budget=6000",

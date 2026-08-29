@@ -5400,7 +5400,7 @@ Der Schaden lag an drei Stellen, und nur die erste war sichtbar:
 
 1. **Die Anleitung ließ raten.** `tools/pruefstand-rezepttexte.py` prüfte seit §141, ob eine
    Zutat in der Zubereitung *vorkommt*. Die Frage „wie viel davon" hat nie jemand gestellt.
-2. **Die Einkaufsliste war falsch.** `shoppingData()` schlüsselt eine Zutat ohne Menge über
+2. **Die Einkaufsliste war falsch.** `buildShoppingList()` schlüsselt eine Zutat ohne Menge über
    ihren **ganzen Text** (`ingLabel(i).toLowerCase().trim()`) — das ist für Altbestände
    richtig gedacht, machte aber aus `"Kurkuma, Kreuzkümmel, Salz"` eine einzige Zeile mit
    genau diesem Wortlaut. Sie ließ sich mit `"Kurkuma, Salz, Pfeffer, Schnittlauch"` aus

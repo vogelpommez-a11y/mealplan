@@ -388,8 +388,9 @@ MESS_E = u"""<script>
 </script>"""
 
 
-def lauf(mess=None, shop_seed=None):
-    u"""shop_seed: Vorbelegung fuer den Abhak-Speicher (Lauf B). None = leer starten."""
+def lauf(mess=None, shop_seed=None, zustand=None):
+    u"""shop_seed: Vorbelegung fuer den Abhak-Speicher (Lauf B). None = leer starten.
+    zustand:   abweichender STATE (Lauf F braucht andere Rezepte). None = der obige."""
     seite = pm_quelle.lade_seite(INDEX)
     # "__test"-Suffix: localKey() haengt es unter file:// an jeden Schluessel (isTestOrigin).
     extra = u""
@@ -403,7 +404,7 @@ def lauf(mess=None, shop_seed=None):
             u'["wochenkueche_profile_v1","wochenkueche_profile_v1__test"].forEach(function(k){localStorage.setItem(k, %s);});'
             u'%s'
             u'}catch(e){}</script>'
-            % (json.dumps(json.dumps(STATE)), json.dumps(json.dumps(PROFILE)), extra))
+            % (json.dumps(json.dumps(zustand or STATE)), json.dumps(json.dumps(PROFILE)), extra))
     if seite.count(ANKER) != 1:
         raise SystemExit("charset-Meta nicht genau einmal gefunden.")
     seite = seite.replace(ANKER, ANKER + seed, 1)
@@ -633,6 +634,119 @@ pruef(u"die Personenzahl ebenfalls",
 
 # ========================================================================================
 # Lauf E: der PDF-Kopf nennt denselben Zeitraum wie das Modal
+# ========================================================================================
+# LAUF F: Wuerze wird gezaehlt, nicht summiert
+#
+# Seit dem 29.08.2026 traegt jede Zutat eine Menge - auch Salz. Fuer die Einkaufsliste ist
+# die Loeffelmenge aber wertlos: Man kauft eine Packung Salz, nicht "1¼ TL". ingIsSeasoning()
+# nimmt solchen Zutaten deshalb dort die Menge, wodurch sie in die vorhandene Darstellung
+# fuer mengenlose Zutaten fallen: nur der Name, dahinter "×N" fuer "in N Meals der Woche".
+#
+# Zwei Rezepte mit VERSCHIEDENEN Salzmengen sind der Kern des Falls: Ohne die Zusammenlegung
+# stuenden "½ TL Salz" und "¼ TL Salz" als zwei Zeilen da. Das Oel ist die Gegenprobe im
+# selben Lauf - ein Essloeffel Oel ist keine Wuerze und MUSS seine Menge behalten.
+REZEPTE_F = [
+    {"id": "f-eins", "name": "Pfanne", "category": "Mittagessen",
+     "nutrition": {"kcal": 500, "carbs": 40, "protein": 30, "fat": 20},
+     "ingredients": [
+         {"name": "Hackfleisch", "grams": 150, "unit": "g", "kcal": 200, "carbs": 0, "protein": 20, "fat": 12},
+         {"name": "Salz", "grams": 0.5, "unit": "tl", "kcal": 0, "carbs": 0, "protein": 0, "fat": 0},
+         {"name": "Olivenöl", "grams": 1, "unit": "el", "kcal": 90, "carbs": 0, "protein": 0, "fat": 10},
+     ], "steps": "", "created": 1755000000000},
+    {"id": "f-zwei", "name": "Topf", "category": "Abendessen",
+     "nutrition": {"kcal": 480, "carbs": 45, "protein": 28, "fat": 16},
+     "ingredients": [
+         {"name": "Hackfleisch", "grams": 120, "unit": "g", "kcal": 200, "carbs": 0, "protein": 20, "fat": 12},
+         {"name": "Salz", "grams": 0.25, "unit": "tl", "kcal": 0, "carbs": 0, "protein": 0, "fat": 0},
+     ], "steps": "", "created": 1755000000000},
+]
+STATE_F = dict(STATE)
+STATE_F["recipes"] = REZEPTE_F
+STATE_F["plans"] = {KEY_CUR: plan("f-eins", "f-zwei"), KEY_NEXT: plan("f-eins", "f-zwei")}
+
+MESS_F = u"""<script>
+(function () {
+  var raus = {};
+  function ende() {
+    raus.fehler = (window.__fehler || []).join(" || ") || "keine";
+    var p = document.createElement("pre");
+    p.id = "messung"; p.textContent = JSON.stringify(raus);
+    document.documentElement.appendChild(p);
+  }
+  // Wie in MESS: erst der Plan-Reiter, dort steht der Einkaufs-Knopf. Ohne diesen Schritt
+  // findet der Selektor nichts, und der Lauf meldet eine leere Liste statt eines Befundes.
+  var kette = [
+    function () { var t = document.querySelector('[data-tab="plan"]'); raus.planReiter = !!t; if (t) t.click(); },
+    function () {
+      var b = document.querySelector('[data-action="shopping"]');
+      raus.knopfDa = !!b;
+      if (b) b.click();
+    },
+    function () {
+      // Nur INNERHALB des Modals lesen - sonst faenge der Selektor auch Zeilen aus einer
+      // anderen Ansicht ein. Jede Zeile als "Label ||| Mengen-Chip"; der Chip traegt "×N".
+      var m = document.querySelector('.modal[aria-label^="Einkaufsliste"]');
+      raus.modalDa = !!m;
+      raus.zeilen = m ? [].map.call(m.querySelectorAll(".shop-item"), function (el) {
+        var l = el.querySelector(".lbl"), q = el.querySelector(".qty");
+        return (l ? l.textContent.trim() : "") + " ||| " + (q ? q.textContent.trim() : "");
+      }) : [];
+    },
+    ende
+  ];
+  var i = 0;
+  (function next() {
+    if (i >= kette.length) return;
+    var f = kette[i++];
+    try { f(); } catch (e) { raus.messfehler = (raus.messfehler || "") + " | " + e.message; }
+    setTimeout(next, 320);
+  })();
+})();
+</script>"""
+
+print(u"")
+print(u"--- Lauf F: Wuerze in der Einkaufsliste ---")
+rf = lauf(MESS_F, zustand=STATE_F)
+zeilen_f = rf.get("zeilen") or []
+
+print(u"")
+print(u"Gemessen:")
+for z in zeilen_f:
+    print(u"  " + z)
+print(u"")
+
+pruef(u"kein JS-Fehler beim Start (Lauf F)", rf.get("fehler") == "keine", str(rf.get("fehler")))
+if rf.get("messfehler"): pruef(u"Messung F lief durch", False, rf["messfehler"])
+pruef(u"der Einkaufs-Knopf existiert (Lauf F)", rf.get("knopfDa") is True)
+
+# RIEGEL ZUERST: Ohne Zeilen waeren alle Aussagen darunter froehlich gruen - eine leere
+# Liste enthaelt kein "TL Salz". Dieselbe Falle wie der pdf_lesbar-Riegel in Lauf E.
+pruef(u"die Liste ist ueberhaupt gefuellt", len(zeilen_f) >= 3,
+      u"%d Zeilen" % len(zeilen_f))
+
+salz = [z for z in zeilen_f if u"Salz" in z]
+oel = [z for z in zeilen_f if u"Olivenöl" in z]
+hack = [z for z in zeilen_f if u"Hackfleisch" in z]
+
+pruef(u"Salz steht genau einmal, nicht zweimal", len(salz) == 1, repr(salz))
+if salz:
+    pruef(u"Salz traegt KEINE Loeffelmenge", u"TL" not in salz[0], repr(salz[0]))
+    pruef(u"Salz heisst schlicht 'Salz'", salz[0].split(u"|||")[0].strip() == u"Salz",
+          repr(salz[0]))
+    # KEINE feste Zahl erwarten. Die aktuelle Woche zaehlt nur die Tage AB HEUTE
+    # (planDaysAhead), der Zaehler haengt also vom Wochentag des Laufs ab - am Montag
+    # steht dort etwas anderes als am Freitag. Ein Pruefstand, der nur an manchen Tagen
+    # gruen ist, wird beim ersten roten Montag als kaputt abgetan. Gemessen wird deshalb,
+    # was die Aussage traegt: Es ist EIN Zaehler, und er fasst mehr als ein Meal zusammen.
+    m_zaehler = re.search(u"×(\\d+)", salz[0])
+    pruef(u"Salz zaehlt die Meals statt Loeffel zu summieren",
+          bool(m_zaehler) and int(m_zaehler.group(1)) >= 2, repr(salz[0]))
+# Gegenprobe im selben Lauf: Oel ist keine Wuerze und behaelt seine Menge.
+if oel:
+    pruef(u"1 EL Oel behaelt seine Menge", u"EL" in oel[0], repr(oel[0]))
+# Und die gewoehnliche Zutat wird weiterhin summiert (150 g + 120 g je 7 Tage).
+pruef(u"Hackfleisch wird weiterhin summiert", bool(hack) and u"g" in hack[0], repr(hack))
+
 # ========================================================================================
 print(u"")
 print(u"--- Lauf E: PDF-Kopfzeile ---")

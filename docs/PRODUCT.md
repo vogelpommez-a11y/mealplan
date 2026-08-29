@@ -712,7 +712,7 @@ Das war kein Schönheitsfehler an einer Stelle, sondern an dreien:
   „wie viel davon?". Deshalb nennt die Zubereitung jetzt bei allem in TL/EL die Menge im
   Schritt — dort, wo man sie braucht. Bei 200 g Quark nicht: Die Zutatenliste steht in der
   App unmittelbar darüber, und eine zweite Nennung liest sich wie ein Formular.
-* **Die Einkaufsliste war falsch.** `shoppingData()` schlüsselt mengenlose Zutaten über ihren
+* **Die Einkaufsliste war falsch.** `buildShoppingList()` schlüsselt mengenlose Zutaten über ihren
   ganzen Text. `"Kurkuma, Kreuzkümmel, Salz"` wurde eine einzige Zeile mit genau diesem
   Wortlaut und ließ sich mit `"Kurkuma, Salz, Pfeffer, Schnittlauch"` aus einem anderen
   Rezept nicht zusammenlegen — wer beides plante, kaufte Kurkuma zweimal.

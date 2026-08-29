@@ -171,6 +171,16 @@ wenn die Einheit dieselbe ist. Erst beides zusammen trifft die Gewürze und nur 
 
 Das ist keine vierte Form, sondern das Weglassen der ersten. Die Menge und der Name bleiben.
 
+**Dieselbe Zutatengruppe hat eine zweite Folge — in der Einkaufsliste entfällt dort die
+Menge.** Man kauft eine Packung Salz, nicht „1¼ TL": Die Löffelmenge ist beim Kochen die
+Information, im Laden ist sie Rauschen. `buildShoppingList()` setzt für sie `qty = 0`,
+wodurch sie in die vorhandene Darstellung für mengenlose Zutaten fallen — nur der Name,
+dahinter `×N` für „in N Meals der Woche". Das gilt dadurch in einem Zug für Modal,
+Text-Export und PDF.
+
+Beides hängt an **einem** Begriff, `ingIsSeasoning()`. Zwei getrennte Schwellen für dieselbe
+Frage würden auseinanderlaufen, sobald eine davon angefasst wird.
+
 #### Mengen: Brüche bei Löffelmengen
 
 `qtyLabel()` schreibt Löffelmengen als Bruch — **½ TL**, nicht `0,5 TL`. So dosiert man in

@@ -68,7 +68,7 @@ Zutatenliste, ohne Menge, ohne Einheit, ohne Nährwert.
 
 * **Die Anleitung war unvollständig.** Die Prüfung „jede Zutat kommt vor" war erfüllt; die
   Frage „wie viel davon" hat nie jemand gestellt.
-* **Die Einkaufsliste war falsch.** `shoppingData()` schlüsselt mengenlose Zutaten über
+* **Die Einkaufsliste war falsch.** `buildShoppingList()` schlüsselt mengenlose Zutaten über
   ihren ganzen Text — aus `"Kurkuma, Kreuzkümmel, Salz"` wurde **eine** Zeile mit genau
   diesem Wortlaut, und die ließ sich mit `"Kurkuma, Salz, Pfeffer, Schnittlauch"` aus einem
   anderen Rezept nicht zusammenlegen. Wer beides plante, kaufte Kurkuma zweimal.
