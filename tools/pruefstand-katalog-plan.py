@@ -19,10 +19,17 @@ import io, os
 # Der Pfad ist ein Argument, kein fester Wert: Nur so laesst sich der Pruefstand gegen
 # einen ALTEN Stand fahren - und ohne Gegenprobe zaehlt kein Ergebnis (docs/TESTING.md).
 import sys
+
+# pm_quelle.lade_seite() statt io.open(): Der Produktionscode liegt inzwischen auf
+# mehrere Dateien verteilt (css/, data/, lib/). Ein Pruefstand schreibt seine Seite
+# nach tools/ - relative Verweise zeigten von dort ins Leere. quelle baut die eigenen
+# Dateien an Ort und Stelle wieder ein: derselbe Text, nur wieder in einer Datei.
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import quelle as pm_quelle
 SRC = os.path.abspath(sys.argv[1]) if len(sys.argv) > 1 else os.path.join(
     os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "index.html")
 OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "pruefstand-katalog-plan.html")
-lines = io.open(SRC, encoding="utf-8").read().split("\n")
+lines = pm_quelle.lade_seite(SRC).split("\n")
 
 
 def schnitt(sig):

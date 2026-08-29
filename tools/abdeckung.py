@@ -51,7 +51,26 @@ REGISTER = os.path.join("docs", "ABDECKUNG.md")
 # vendor/ steht BEWUSST nicht dabei: Fremdcode nennt Dutzende Hosts, die er nie kontaktiert,
 # und das Register waere binnen eines Updates unlesbar. Fuer vendor/ ist `lieferkette`
 # zustaendig - der Bereich steht als `pfad:vendor/` im Register und hat damit seinen Pruefer.
-QUELLEN_FUER_DOMAINS = ["index.html", "sw.js", os.path.join("worker", "og.js")]
+def _quellen_fuer_domains():
+    u"""Wo nach externen Verbindungen gesucht wird.
+
+    Seit der Aufteilung stehen die meisten URLs nicht mehr in index.html, sondern in
+    data/rechtstexte.js (Datenschutz) und data/bilder.js (Bildnachweise). Die Liste ist
+    deshalb dynamisch: eine neue Datei unter data/ oder lib/ wird automatisch mitgelesen.
+    Ohne das haette diese Pruefung nach dem Umzug zehn Domains als "verrottet" gemeldet
+    und ihre eigentliche Frage - gibt es fuer jede externe Verbindung einen Pruefer? -
+    stillschweigend nicht mehr beantwortet.
+    """
+    raus = ["index.html", "sw.js", os.path.join("worker", "og.js")]
+    for ordner in ("data", "lib"):
+        voll = os.path.join(WURZEL, ordner)
+        if os.path.isdir(voll):
+            raus += [os.path.join(ordner, n) for n in sorted(os.listdir(voll))
+                     if n.endswith(".js")]
+    return raus
+
+
+QUELLEN_FUER_DOMAINS = _quellen_fuer_domains()
 
 # Unterhalb dieser Zahl gilt das Register als kaputt statt als leer. Grosszuegig gewaehlt:
 # Es geht um "Format gebrochen", nicht um "eine Zeile geloescht".
@@ -90,7 +109,12 @@ def ist_zustand():
 
     # --- Pfade: erste Komponente. Verzeichnisse mit Schraegstrich, Dateien ohne. ---
     try:
-        roh = subprocess.run(["git", "ls-files"], capture_output=True, text=True,
+        # --others nimmt neu angelegte, noch nicht eingecheckte Dateien mit.
+        # Ohne das faellt ein frisch angelegter Produktbereich erst nach dem Commit
+        # auf - also genau dann nicht, wenn er entsteht. --exclude-standard haelt
+        # weiterhin alles draussen, was .gitignore ausschliesst.
+        roh = subprocess.run(["git", "ls-files", "--cached", "--others",
+                              "--exclude-standard"], capture_output=True, text=True,
                              timeout=60, cwd=WURZEL).stdout.split("\n")
     except Exception:
         roh = []

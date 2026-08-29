@@ -26,7 +26,7 @@ Geprüft wird das laufend durch den Agenten `store-check`.
 
 ## 1. Der Weg dorthin
 
-Die App ist heute eine Web-App: eine `index.html`, ausgeliefert über GitHub Pages unter
+Die App ist heute eine Web-App aus `index.html`, `css/`, `data/` und `lib/`, ausgeliefert über GitHub Pages unter
 `www.paddysmealplan.de`. Für die Stores wird sie mit **Capacitor** verpackt.
 
 **Der entscheidende Punkt beim Verpacken:** Die App muss **lokal** ausgeliefert werden und
@@ -53,7 +53,7 @@ nur die Gruppe; das war überholt:
 | Pro-Funktion | Wo durchgesetzt |
 |---|---|
 | **Gruppe gründen** und in der Gruppe planen | **In den Regeln.** `groupOwnerHasPro(gid)` bei `groups/{gid}/plans` und `groups/{gid}/recipes` (`firestore.rules:340`, `:347`) |
-| **Auto-Wochenplaner** — laut `docs/PRODUCT.md` „das entscheidende Pro-Feature" | **Nur im Client.** `if (!isPro() && !syncGid)` in `index.html:12567` |
+| **Auto-Wochenplaner** — laut `docs/PRODUCT.md` „das entscheidende Pro-Feature" | **Nur im Client.** `if (!isPro() && !syncGid)` in `index.html:8645` |
 
 Cloud-Sync selbst bleibt ausdrücklich gratis.
 
@@ -200,8 +200,8 @@ Rechtsrisiko, weil es eine Zusage gegenüber den Nutzenden ist.
 - **Funktioniert sie ohne Anmeldung sinnvoll?** Ein Login-Gate ohne Grund vor allem Inhalt
   ist ein Ablehnungsgrund. Der lokale Modus (`authMode = "local"`) deckt das ab.
 - **„Mit Apple anmelden" (Apple 4.8) — greift bereits.** Der Google-Login wird heute
-  bedingungslos angeboten (`index.html:14941`), während `APPLE_ENABLED = false` steht
-  (`index.html:14873`) und der Apple-Knopf dahinter verborgen ist (`:14942`). Apple verlangt
+  bedingungslos angeboten (`index.html:11109`), während `APPLE_ENABLED = false` steht
+  (`index.html:11041`) und der Apple-Knopf dahinter verborgen ist (`:11110`). Apple verlangt
   neben einem Drittanbieter-Login eine gleichwertige datensparsame Option; „Mit Apple
   anmelden" erfüllt sie, der Google-Login allein nicht. Die Einrichtung ist laut
   `FIREBASE-SETUP.md:178` vorbereitet — es fehlen der Apple-Developer-Account und das

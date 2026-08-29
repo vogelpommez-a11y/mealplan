@@ -1,0 +1,862 @@
+/* mobil.css - Paddy's Mealplan
+ *
+ * Alles ab der Marke 'Mobile / Smartphone' bis zum Ende des urspruenglichen <style>-Blocks - einschliesslich Wisch-Karussell, Onboarding, sehr schmale Geraete und den Gruppen-Dialog. Die Reihenfolge ist bewusst unveraendert: CSS ist kaskadierend, Umsortieren waere eine Verhaltensaenderung.
+ *
+ * Ausgeschnitten aus index.html (vormals Zeile 2401-3255), unveraendert.
+ * Regeln fuer diesen Ordner: css/CLAUDE.md
+ */
+  /* ---------- Mobile / Smartphone ---------- */
+  @media (max-width: 720px) {
+    .head-inner { gap: 10px 12px; padding: 11px 0; }
+    .brand h1 { font-size: 19px; }
+  }
+  /* Schmale Geraete: die Kopfzeile brach um und wurde dadurch 90px statt 41px hoch - das
+     Profil rutschte unter die Marke. Gemessen bei 360px: Marke und Profil brauchen
+     zusammen mehr, als die Zeile hergibt.
+     Statt umzubrechen darf die Marke jetzt schrumpfen (min-width: 0 ist fuer ein
+     Flex-Kind Pflicht, sonst schrumpft es nie unter seinen Inhalt). Zuerst weicht der
+     Slogan - er ist Zierde, die Marke selbst bleibt vollstaendig. Reicht das nicht,
+     kuerzt der Titel mit Auslassungspunkten, statt eine zweite Zeile zu oeffnen. */
+  @media (max-width: 400px) {
+    .head-inner { flex-wrap: nowrap; }
+    .brand { min-width: 0; }
+    .brand .slogan, .brand p { display: none; }
+    .brand h1 { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  }
+  /* Nur das schmale Band zwischen Handy-Balken (bis 680) und voller Breite: hier bleibt
+     die Leiste im Kopf und darf scrollen. Bewusst mit min-width abgegrenzt — ohne das
+     ueberschriebe dieser Block das Innenmass des unteren Balkens. */
+  @media (min-width: 681px) and (max-width: 720px) {
+    .tabs { width: 100%; overflow-x: auto; scrollbar-width: none; }
+    .tabs::-webkit-scrollbar { display: none; }
+    .tab { flex: none; white-space: nowrap; padding: 9px 12px; }
+  }
+  @media (max-width: 560px) {
+    .wrap {
+      padding-left: calc(14px + env(safe-area-inset-left, 0px));
+      padding-right: calc(14px + env(safe-area-inset-right, 0px));
+    }
+    main { padding: 20px 0 64px; }
+    /* Auf sehr schmalen Geraeten etwas naeher an den Rand — sonst wird die Kapsel innen eng. */
+    .tabs {
+      left: calc(10px + env(safe-area-inset-left, 0px));
+      right: calc(10px + env(safe-area-inset-right, 0px));
+    }
+    .row2 { grid-template-columns: 1fr; }
+    /* Drei Kennzahlen nebeneinander werden auf schmalen Geraeten eng - etwas kleinere
+       Zahlen und weniger Abstand halten sie in einer Zeile, statt sie umbrechen zu lassen. */
+    .wch-stats { gap: 12px; }
+    .wch-s b { font-size: 18px; }
+    /* Ohne diese Regel wickelt .wg-macros Protein+Kohlenhydrate in eine Zeile und
+       Fett allein in die naechste (flex-wrap trifft bei ~340-400px Breite genau diesen
+       ungleichen Schnitt) - auf dem Handy sieht das schief aus. Erzwingt stattdessen
+       immer einen Balken pro Zeile, wie es die schmale .wg-col-macros-Spalte ohnehin
+       schon macht. Betrifft sowohl die Tageskarten im Wochenplan als auch "Deine Ziele".
+       flex:0 0 auto ist zwingend noetig (siehe Kommentar bei .wg-col-macros): die
+       150px-Basis von .wg-macros .gm ist fuer Reihen (Breite) gedacht, in Spalten
+       wuerde sie sonst zur Hoehe und riesige Abstaende erzeugen. */
+    .wg-macros { flex-direction: column; }
+    .wg-macros .gm { flex: 0 0 auto; }
+    .brand p { display: none; }
+    .brand .mark { width: 38px; height: 38px; }
+    .section-head { margin-bottom: 18px; }
+    .section-head h2 { font-size: 22px; }
+    .section-head .btn { flex: 1; justify-content: center; }
+    /* Der Icon-Knopf (Woche leeren) bleibt quadratisch neben den Tabs -
+       ohne diese Ausnahme wuerde er durch die Regel darueber in die Breite gezogen. */
+    .plan-tools .icon-gh { flex: none; }
+    /* Der Planer-Knopf traegt .icon-gh und faellt damit unter die Regel darueber
+       (flex: none) - er wird also nicht in die Breite gezogen und braucht hier nichts
+       Eigenes mehr. Bis zum 16.08.2026 stand hier `flex: 1 0 100%`, das ihm eine eigene
+       Zeile gab; siehe die Begruendung bei .btn.icon-gh.plan-auto. */
+    .week { gap: 12px; }
+    .recipes { gap: 12px; }
+    .imgfield { flex-direction: column; align-items: stretch; }
+    .imgprev { width: 100%; }
+    /* Zutaten: Name volle Breite, Menge + Buttons in zweiter Zeile */
+    .ing-top { flex-wrap: wrap; }
+    .ing-nrow { flex: 1 0 100%; }
+    /* Auf sehr schmalen Geraeten (320 px) passen die vier Makro-Kuerzel nicht mehr neben
+       "Makros · je 100 g" - sie brechen dann rechtsbuendig in eine zweite Zeile, was dank
+       der 44 px Mindesthoehe von .ing-nsum keine zusaetzliche Hoehe kostet. Nur etwas
+       enger, NICHT kleiner: Zahlen, die man pruefen soll, bleiben lesbar. */
+    .ing-brief { font-size: 11px; gap: 8px; }
+    .ing-gwrap { flex: 1; width: auto; }
+    .ing-ic { width: 44px; height: 44px; }
+    .ing-barcode { height: 44px; padding: 0 13px; } /* Touch-Ziel */
+    .ing-nut input { padding: 8px 4px; }
+    .ing-ac-item { min-height: 44px; } /* Touch-Ziel */
+    .auth-card { padding: 26px 20px 22px; }
+    /* min-height gehoert hierher, nicht dem Zufall ueberlassen: Die Fuss-Buttons kamen
+       bisher nur deshalb ueber 44px, weil ihr Text auf schmalen Geraeten umbrach. Sobald
+       einer mehr Platz hat und einzeilig bleibt (z. B. im 2x2-Raster unten), faellt er
+       sonst auf 39px - gemessen bei 320-414px. */
+    .modal-foot .btn { flex: 1; justify-content: center; min-height: 44px; }
+    /* Meal-Ansicht: nur noch zwei Fuss-Buttons (Nachtrag Abnahme Phase 1). "Fertig" darf
+       die Zeile dominieren (flex:1 aus der allgemeinen Regel oben bleibt bestehen),
+       "Meal loeschen"/"Verwerfen" bleibt bewusst inhaltsbreit statt gleich schwer - sonst
+       waeren beide Aktionen optisch gleichrangig. nowrap haelt beide auf einer Zeile,
+       statt dass "Meal loeschen" bei wenig Platz in eine eigene Zeile faellt. */
+    .mealsheet .modal-foot { flex-wrap: nowrap; }
+    .mealsheet .modal-foot .ms-danger { flex: 0 1 auto; }
+    .foot-inner { flex-direction: column; gap: 8px; text-align: center; }
+    /* iOS zoomt Eingabefelder < 16px beim Fokus – das verhindern wir */
+    input[type="text"], input[type="number"], input[type="email"], input[type="password"], input[type="search"], select, textarea { font-size: 16px; }
+  }
+
+  /* Dieselbe Regel noch einmal, aber an der RICHTIGEN Bedingung: nicht an der Breite,
+     sondern am Zeigertyp.
+
+     Die Fassung im 560px-Block oben deckte nur das Hochformat ab. Gemessen am 25.08.2026:
+     Bei 720 px Viewport hatte das Suchfeld des Meal-Pickers 14 px – und **jedes iPhone im
+     Querformat** liegt zwischen 667 und 932 px CSS-Breite, also ausserhalb der 560er-Regel.
+     Wer dort ins Suchfeld tippt, bekommt den iOS-Auto-Zoom, den der Kommentar oben
+     ausdruecklich verhindern will. Auf dem iPad gilt dasselbe in jeder Lage.
+
+     `pointer: coarse` trifft genau die Geraete, um die es geht, und laesst den Rechner in
+     Ruhe – dasselbe Merkmal, an dem im Projekt schon der Zahlen-Picker haengt.
+
+     Belegt über `tools/cdp.py messen` (der Zeigertyp gilt nur in der offenen
+     CDP-Verbindung, deshalb dieser Weg und nicht `viewport`):
+       720 px mit Touch → 16 px · 720 px ohne Touch → 14 px · 560 px ohne Touch → 16 px
+     Die mittlere Zeile ist die eigentliche Gegenprobe: Am Rechner ändert sich nichts. */
+  @media (pointer: coarse) {
+    input[type="text"], input[type="number"], input[type="email"], input[type="password"], input[type="search"], select, textarea { font-size: 16px; }
+  }
+
+  /* ---------- Handy: Wochenplan und Wochenziele werden gewischt ----------
+     Untereinander ergaben die sieben Tageskarten auf dem Handy ein Band von weit
+     ueber 3.000 px Hoehe – Donnerstag erreichte man nur durch langes Scrollen, und
+     nach jedem Einplanen begann die Reise von vorn. Quer liegt jeder Tag auf einer
+     eigenen Bildschirmbreite und wird seitlich gewischt.
+     Die Knopfleiste darueber ist zweierlei zugleich: Anzeige, auf welcher Karte man
+     steht (ein Karussell ohne Anzeige verraet nicht, dass es weitergeht), und
+     Sprungziel. Deshalb 44 px hoch – sie ist Bedienelement, keine Dekoration.
+     Die beiden Leisten stehen ausserhalb der Handy-Abfrage auf display:none; im
+     Markup sind sie immer da, damit renderPlan() nicht zwei Faelle kennen muss. */
+  .daybar, .wgbar { display: none; }
+
+  @media (max-width: 680px) {
+    .daybar {
+      display: flex; gap: 2px;
+      position: sticky; top: var(--head-h, 70px); z-index: 20;
+      margin: 0 0 10px; padding: 4px;
+      /* Segmented Control wie .week-switch darueber: Flaeche auf dem Track, Pille
+         darauf. Deckend und BEWUSST ohne backdrop-filter: die Leiste klebt genau ueber
+         dem Streifen, der beim Scrollen in Bewegung ist. Ein Weichzeichner muesste den
+         Hintergrund dann in jedem Bild neu rechnen – auf dem Handy die haeufigste
+         Ursache fuer ruckelndes Scrollen. */
+      background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius);
+      box-shadow: 0 6px 12px -8px rgba(0, 0, 0, .45);
+    }
+    /* Gleitende Flaeche des aktiven Tages - 1:1 an scrollLeft gekoppelt, siehe
+       initCarousel()/syncIndicator(). Keine eigene Transition: der Wert ist eine reine
+       Funktion der Scrollposition, der native Sanftlauf des Inhalts liefert die Kurve
+       gleich mit (auch fuer prefers-reduced-motion, siehe Kommentar dort). */
+    .db-ind {
+      position: absolute; left: 4px; top: 4px; bottom: 4px; z-index: 0;
+      width: 0; border-radius: var(--radius-sm);
+      background: linear-gradient(135deg, var(--accent), var(--accent-strong));
+      box-shadow: 0 2px 8px color-mix(in srgb, var(--accent) 34%, transparent);
+      will-change: transform; pointer-events: none;
+    }
+    /* Trainings-Blau als eigene Schicht: Verlaeufe lassen sich nicht zuverlaessig
+       interpolieren, und die Transition MUSS auf dem Pseudo liegen - go() setzt beim
+       Mehrtages-Sprung inline die Kurzform "transition: transform ..." auf .db-ind und
+       wuerde jede dort notierte Farbtransition mit ueberschreiben. */
+    .db-ind::after {
+      content: ""; position: absolute; inset: 0; border-radius: inherit;
+      background: linear-gradient(135deg, var(--train), var(--train-strong));
+      opacity: 0; transition: opacity var(--dur-fast) var(--ease-out);
+    }
+    .daybar.is-train .db-ind::after { opacity: 1; }
+    /* Schatten springt hart um - box-shadow ist Paint, und .db-ind liegt wegen
+       will-change auf eigener Schicht. Bei 34% Alpha faellt der Sprung nicht auf,
+       weil die Flaeche darueber gleichzeitig ueberblendet. */
+    .daybar.is-train .db-ind { box-shadow: 0 2px 8px color-mix(in srgb, var(--train) 34%, transparent); }
+    .db-b {
+      position: relative; z-index: 1; flex: 1 1 0; min-width: 0; min-height: 44px;
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
+      font: inherit; font-family: var(--font-display); font-size: 13px; font-weight: 600;
+      letter-spacing: .04em; text-transform: uppercase; cursor: pointer;
+      color: var(--text-muted); background: transparent;
+      border: 1px solid transparent; border-radius: var(--radius-sm);
+      touch-action: manipulation; -webkit-tap-highlight-color: transparent;
+      /* var(--ease-out) zusaetzlich zur Kurzform: Label und Pille sollen im Gleichschritt
+         kippen, sonst gibt es Frames mit weisser Schrift auf halb blauer Flaeche (kurz
+         die 2,54:1-Situation, die --train-contrast eigentlich verhindert). transform
+         darf hier unter keinen Umstaenden rein - es haengt 1:1 an scrollLeft. */
+      transition: color var(--dur-fast) var(--ease-out), opacity var(--dur-fast);
+    }
+    /* Press-State bewusst opacity statt scale: die Pille liegt darunter und skaliert
+       nicht mit, ein schrumpfendes Label ueber einer stehenden Pille saehe falsch aus. */
+    .db-b:active { opacity: .62; }
+    /* „Heute" ist im Streifen bewusst nur ein Punkt: ohne Kopfzeile ist er mobil der
+       einzige SICHTBARE „heute"-Traeger, das Wort steckt nur noch im aria-label. */
+    .db-b .db-dot { width: 4px; height: 4px; border-radius: 50%; background: currentColor; opacity: 0; }
+    .db-b.is-today { color: var(--accent); }
+    .db-b.is-today .db-dot { opacity: 1; }
+    /* Muss NACH .is-today stehen, damit die aktive Farbe gewinnt, wenn heute zugleich
+       der aktive Tag ist. Die Flaeche liegt jetzt auf .db-ind, hier nur noch die Farbe. */
+    .db-b.active { color: var(--accent-contrast); }
+    /* Nach .db-b.active: sonst gewinnt dort #FFFFFF und im Dark-Theme steht Weiss auf
+       --train #60A5FA = 2,54:1, durchgefallen. --train-contrast ist gegen beide
+       Verlaufsenden (--train/--train-strong), Light UND Dark, gegen 4.5:1 gerechnet.
+       BEWUSST an .daybar.is-train gehaengt und NICHT an .db-b.is-train: die Pillenfarbe
+       haengt an genau dieser Klasse (setActive setzt sie). Zwei Bedingungen fuer eine
+       Wahrheit koennen auseinanderlaufen - und der Fehlerfall waere hier dunkler Text
+       auf ROTER Pille, also unlesbar. So teilen sich Flaeche und Schrift eine Quelle,
+       und faellt die Klasse aus, bleibt es weiss auf rot: harmlos. */
+    .daybar.is-train .db-b.active { color: var(--train-contrast); }
+
+    .db-mk { display: flex; align-items: center; gap: 3px; height: 8px; }
+    /* width:0 statt display:none, weil display nicht uebergangsfaehig ist: mit none
+       koennte die Einblendung gar nicht laufen, das Icon wuerde hart aufpoppen. Die
+       Breite springt trotzdem (sie ist bewusst NICHT in der Transition - eine
+       Breiten-Animation waere ein Layout pro Bild, genau waehrend gewischt wird); der
+       Punkt rutscht dadurch knapp 7px, was neben dem gleichzeitigen Farbwechsel nicht
+       auffaellt. Kein stroke-width setzen (gleiche Regel wie bei .day-head .dtrain svg). */
+    .db-mk svg {
+      width: 0; height: 11px; opacity: 0; overflow: hidden;
+      transition: opacity var(--dur-fast) var(--ease-out);
+    }
+    /* Reicht .active: das SVG steht ohnehin nur in Trainingstag-Knoepfen im Markup.
+       Faellt die JS-Klasse auf der Leiste aus, erscheint das Icon trotzdem - dann fehlt
+       nur das Blau, die Information selbst bleibt stehen. */
+    .db-b.active .db-mk svg { width: 13px; opacity: 1; }
+
+    /* Ueberschrift weg: die Reiterleiste unten sagt bereits "Plan", und im Sheet ist jede
+       Zeile Hoehe, die den Meals fehlt (CLAUDE.md §7). Der Wochenumschalter bleibt - er
+       ist eine Entscheidung, keine Beschriftung. */
+    .plan-head .title { display: none; }
+    /* "Aktuelle Woche"/"Naechste Woche" auf "Aktuelle"/"Naechste" kuerzen. Gemessen: die
+       Werkzeugzeile braucht mit beiden Icon-Knoepfen 346px, bei 360px Geraetebreite stehen
+       317px zur Verfuegung - sie brach also um und kostete 44px Hoehe, die im Sheet direkt
+       den Meals fehlten (bei 667px Geraet blieben nur noch 127px Scrollflaeche). Selbst bei
+       390px lag die Zeile mit 1px Rest an der Kante. Das Wort "Woche" traegt hier nichts:
+       darunter steht die MO-SO-Leiste, und der Reiter heisst Plan. Voller Text bleibt im
+       aria-label. */
+    .ws-w { display: none; }
+    /* Einkaufsknopf auf das Symbol zurueck - dieselbe Rechnung wie beim Wochenumschalter
+       darueber: die Werkzeugzeile ist bei 360px Geraetebreite bis auf wenige Pixel voll,
+       ein Wort mehr bricht sie um und kostet 44px, die den Meals fehlen. Das Symbol steht
+       neben dem Wochenumschalter und dem Muelleimer; der volle Text bleibt im aria-label.
+       Damit greift wieder .btn.icon-gh: 34px + 5px hitSlop = 44px Trefferflaeche. */
+    .btn.icon-gh.shop-ic { width: 34px; padding: 0; }
+    .sh-w { display: none; }
+    /* Dieselbe Rechnung fuer den Planer-Knopf: Wort weg, Symbol bleibt, 34px + 5px hitSlop
+       = 44px Trefferflaeche. Der volle Text steht im aria-label und im title. */
+    .btn.icon-gh.plan-auto { width: 34px; padding: 0; }
+    .pa-w { display: none; }
+
+    /* ---------- Kein zweiter Scroller im Wischstreifen ----------
+       Der Plan-Reiter war zwischenzeitlich eine Flaeche fester Hoehe, in der die
+       Mahlzeiten einer Karte fuer sich scrollten. Das hat das Wischen zwischen den Tagen
+       ABGESCHALTET: ein Scroll-Container im Snap-Streifen bekommt die Geste zuerst, und auf
+       Touch gibt er sie nicht mehr her (CLAUDE.md §11). Zwei Anlaeufe, das mit
+       touch-action und overscroll-behavior zu retten, haben es schlimmer gemacht - pan-y
+       verbietet die Achse fuer die ganze Trefferkette, contain unterbindet die Weitergabe.
+       Details in docs/TROUBLESHOOTING.md, Punkt 58.
+
+       Jetzt gibt es hier gar keinen zweiten Scroller mehr: die SEITE scrollt, wie vor dem
+       Umbau. Die Tagesleiste klebt weiter oben (position:sticky an .daybar), und den
+       Kalorienstand haelt eine eigene klebende Leiste unter dem Streifen sichtbar
+       (#day-bal) - die liegt AUSSERHALB von .week und kann deshalb kleben, was einer
+       Zeile innerhalb der Karte verwehrt bleibt (siehe Kommentar bei .week).
+
+       .plan-sheet ist damit nur noch eine Klammer ums Markup ohne eigene Wirkung. */
+    .plan-sheet > .daybar { margin-bottom: 10px; }
+
+    .week {
+      display: flex; gap: 12px;
+      scroll-snap-type: x mandatory;
+      /* Der Wisch darf nicht die Seite darunter mitziehen (Zurueck-Geste, Neuladen). */
+      overscroll-behavior-x: contain;
+      scrollbar-width: none;
+      /* Waagerecht scrollen heisst zwangslaeufig auch: senkrechter Scrollbehaelter.
+         overflow-y: clip waere die Ausnahme, aber die Spezifikation rechnet clip
+         neben overflow-x: auto zu hidden zurueck – im Pruefstand gemessen, nicht
+         vermutet. Folge: eine klebende Kopfzeile INNERHALB einer Tageskarte kann es
+         hier nicht geben, sie richtete sich an .week statt am Bildschirm aus und
+         bliebe einfach stehen. Den Wochentag fixiert deshalb die Tagesleiste
+         darueber – die haengt am Bildschirm und klebt zuverlaessig, und aus demselben
+         Grund steht die Tagesbilanz als #day-bal AUSSERHALB dieses Streifens.
+         Geklemmt wird nichts: .week ist so hoch wie die hoechste Karte (fixedHeight). */
+      overflow-x: auto; overflow-y: hidden;
+    }
+    .week::-webkit-scrollbar { display: none; }
+    /* flex-start: jede Karte behaelt ihre eigene Hoehe, ein leerer Tag bekommt unter
+       "Snacks" nicht die Leerflaeche des vollsten geschenkt. Die Hoehe des STREIFENS
+       setzt fitHeight() mit fixedHeight einmalig auf das Maximum aller Karten - einmalig
+       ist hier das Entscheidende: so schreibt niemand mehr waehrend einer laufenden
+       Wischgeste (TROUBLESHOOTING Ziffer 42). */
+    .week { align-items: flex-start; }
+    .week > .day { flex: 0 0 100%; scroll-snap-align: start; scroll-snap-stop: always; }
+
+    /* Die Karte scrollt NICHT fuer sich - das ist der Kern der Sache. Ein Scroll-Container
+       hier drin nimmt dem Snap-Streifen die Wischgeste ab und gibt sie nicht mehr her
+       (docs/TROUBLESHOOTING.md, Punkt 58). Gescrollt wird die Seite.
+       Deshalb steht hier bewusst KEIN overflow, KEIN touch-action und KEIN
+       overscroll-behavior. Wer hier etwas davon ergaenzt, schaltet das Wischen ab. */
+
+    /* Die Bilanz in der Karte ist mobil verdeckt: dort traegt sie die klebende Leiste
+       #day-bal unter dem Streifen. Am Rechner bleibt sie in der Karte, weil dort sieben
+       Spalten nebeneinander stehen und jede ihre eigene Bilanz braucht. */
+    .week > .day > .day-nut, .week > .day > .day-goals { display: none; }
+
+    /* Klebende Tagesbilanz. Sitzt ausserhalb von .week (dort koennte nichts kleben, siehe
+       oben) und haelt den Kalorienstand im Blick, waehrend die Seite scrollt - das war der
+       eigentliche Gewinn der aufgegebenen Sheet-Fassung und bleibt so erhalten.
+       Deckende Flaeche ist Pflicht: darunter laeuft der Meal-Text durch. Kein
+       backdrop-filter - der muesste beim Scrollen in jedem Bild neu rechnen (gleiche
+       Begruendung wie bei .daybar). */
+    .day-bal {
+      display: block;                 /* hebt das globale display:none auf */
+      position: sticky; z-index: 15;
+      /* Muss ueber der OBERKANTE der fixierten Fusszeile liegen. Deren eigener Abstand zur
+         Reiterleiste (10px) gehoert mit in die Rechnung - ohne ihn ueberlappten sich die
+         beiden um genau diese Differenz (gemessen: 2px). */
+      bottom: calc(var(--tabbar-h, 58px) + 10px + 8px + env(safe-area-inset-bottom, 0px));
+      margin-top: 10px;
+      /* Flaeche, Rahmen, Rundung kommen aus der gemeinsamen Regel weiter oben - hier steht
+         nur, was diese Leiste von der Mahlzeiten-Flaeche unterscheidet. */
+      box-shadow: 0 -6px 14px -10px rgba(0, 0, 0, .5);
+    }
+    /* Leerer Tag: dayNutHtml liefert nichts. Dann ganz weg statt als leerer Kasten stehen. */
+    .day-bal.is-empty { display: none; }
+    /* Innen traegt schon .day-goals/.day-nut seinen Innenabstand - hier nur den Rahmen
+       auflösen, damit nicht zwei Kanten uebereinanderliegen. */
+    .day-bal > .day-goals { border-top: 0; background: none; }
+    /* Auf dem Handy gibt es kein echtes Hover – beim Wischen setzt der Browser den
+       Zustand trotzdem auf die beruehrte Karte. Sie bliebe dann angehoben stehen,
+       und der weiche Schatten wuerde mitten im Scrollen ueber eine Uebergangszeit
+       neu gezeichnet: grosse Weichzeichnungsflaeche, jedes Bild neu – genau die
+       Art Arbeit, die das Scrollen stocken laesst. Hier also komplett aus. */
+    .week > .day:hover {
+      transform: none;
+      border-color: var(--border);
+      box-shadow: var(--shadow);
+    }
+    .week > .day.today:hover { border-color: color-mix(in srgb, var(--accent) 55%, var(--border)); }
+    .week > .day.training:hover { border-color: color-mix(in srgb, var(--train) 55%, var(--border)); }
+    .week > .day { transition: none; }
+    .week > .day > .day-head { display: none; }   /* eng gefasst, nicht global .day-head */
+
+    /* ---------- Listen-Optik statt Kacheln (mobil) ----------
+       Vorbild ist der Zutaten-Ruhezustand der Meal-Ansicht (.ing-view, weiter oben):
+       Abschnittsueberschrift, darunter eine Liste mit duennen Trennlinien. Der Wochenplan
+       spricht damit dieselbe Sprache wie die Meal-Ansicht.
+
+       Warum hier und nicht am Rechner: dort stehen sieben Karten NEBENEINANDER und
+       brauchen ihre Abgrenzung. Auf dem Handy ist immer nur ein Tag zu sehen, und die
+       Tagesleiste darueber zeigt Wochentag, Heute-Punkt und Trainingssymbol bereits -
+       Kartenrahmen und Mahlzeitenfarbe sagten dasselbe ein zweites Mal.
+
+       NICHT angefasst: display:flex und gap:8px auf .filled. Beide sind Teil der
+       Trefferflaechen-Rechnung fuer Stift und X (siehe .slot .filled .x::after weiter
+       oben): der gap liefert 8 der 16px, die zwei benachbarte 44px-Ziele brauchen.
+       Wer hier auf Grid umbaut, muss die Flaechen neu messen. */
+
+    /* Karte: Flaeche, Rahmen, Schatten und der rote Kopfstreifen weg. Die Karte ist
+       mobil kein Objekt mehr, sondern nur noch die Seite, auf der die Liste steht. */
+    .week > .day {
+      background: none; border: 0; border-radius: 0; box-shadow: none;
+    }
+    .week > .day::before { display: none; }        /* 4px-Streifen oben */
+    .week > .day:hover { border-color: transparent; box-shadow: none; }
+    .week > .day.today:hover, .week > .day.training:hover { border-color: transparent; }
+    /* Kein Kopfstreifen mehr, an den die Liste stossen koennte - der Innenabstand
+       richtet sich jetzt nach der Tagesleiste darueber.
+
+       Die 8px seitlich sind Pflicht, nicht Geschmack: das X am Zeilenende hat eine
+       unsichtbar vergroesserte Trefferflaeche (::after { inset: -8px }, siehe .slot .filled
+       .x weiter oben). Stand die Zeile buendig am Rand, ragte diese Flaeche 6px hinaus und
+       machte .slots waagerecht scrollbar (gemessen: scrollWidth 338 gegen clientWidth 332) -
+       und ein waagerechter Scroller hier drin schluckt die Wischgeste zum Nachbartag.
+       Der Abstand faengt die Flaeche auf, statt sie mit overflow-x: hidden abzuschneiden:
+       Abschneiden liesse das Ziel auf 42px schrumpfen, unter die 44px-Grenze.
+       Die Zeilen darin haben deshalb waagerecht keinen eigenen Abstand mehr - die
+       Trennlinien laufen so weit, wie die Liste reicht. */
+    /* Die Mahlzeiten stehen in EINEM Fenster - Flaeche, Rahmen und Rundung bewusst
+       identisch zur klebenden Bilanz darunter (.day-bal), damit die beiden als Paar
+       lesbar sind: oben der Plan, unten der Stand. Nicht vier einzelne Fenster: das waere
+       die Kachel-Optik zurueck, die hier zwei Runden zuvor abgeschafft wurde, und mit der
+       Bilanz laegen fuenf Kaesten auf einem Bildschirm.
+       Die Hoehe folgt dem INHALT, nicht dem Streifen: .week ist wegen fixedHeight so hoch
+       wie der vollste Tag, die Karte darin behaelt aber ihre eigene Hoehe
+       (align-items: flex-start). An einem leeren Tag bleibt der Kasten also klein. */
+    /* Flaeche, Rahmen und Rundung teilen sich die beiden Fenster EINE Regel. Zweimal
+       dieselben Werte hinzuschreiben liefe beim naechsten Anfassen auseinander - genau
+       darum geht es hier aber: die zwei sollen als Paar gelesen werden. */
+    .week > .day > .slots, .day-bal {
+      background: color-mix(in srgb, var(--surface-2) 92%, var(--bg));
+      border: 1px solid var(--border); border-radius: var(--radius);
+    }
+    .week > .day > .slots { padding: 4px 8px 8px; gap: 0; }
+    /* Die letzte Zeile im Fenster braucht keine Trennlinie - sie laege direkt auf dem
+       Rahmen. Trifft beide moeglichen Faelle: die Hinzufuegen-Zeile und, wo es sie nicht
+       gibt (Nur-Lese-Modus), die letzte Meal-Zeile. */
+    .week > .day > .slots > .slot:last-child > :last-child { border-bottom: 0; }
+
+    /* Slot: Einzug zurueck, der Streifen wandert in den Fensterrand (Regel unten). */
+    /* 18px statt 8px ueber jedem Abschnitt. Die Ueberschrift ist nur 1px groesser als der
+       Meal-Name darunter und dazu grau - mit acht Pixeln Luft eroeffnete sie keinen neuen
+       Abschnitt, sie schwamm mit. Raum ist hier das Mittel der Wahl, weil die Schriftform
+       (.sec-h) app-weit gilt und nicht angetastet werden soll.
+       Der erste Slot bleibt eng: er steht direkt unter der Fensterkante, dort waeren
+       18px eine Luecke statt einer Trennung. */
+    .week > .day .slot { padding: 18px 0 4px; }
+    .week > .day .slot:first-child { padding-top: 6px; }
+    /* Der Farbstreifen bleibt - er sagt dasselbe wie am Rechner und soll es auf beiden
+       Geraeten sagen. Er sitzt aber im 8px-Innenabstand von .slots, NICHT im Textfluss:
+       negatives left statt eines Einzugs an der Zeile. Sonst muessten die Zeilen einruecken
+       und die Trennlinien liefen nicht mehr durch (siehe Kommentar bei .slots oben).
+       -6px laesst 3px Luft zum Text und 2px zum Rahmen, etwa das Verhaeltnis, das der
+       Streifen am Rechner in seinen 12px Innenabstand hat.
+
+       Nach links gerichtetes Overflow erzeugt bei LTR keinen Scrollbereich, und der
+       Streifen bleibt ohnehin in der Padding-Box von .slots - ein waagerechter Scroller
+       hier drin wuerde die Wischgeste zum Nachbartag schlucken (gemessen, siehe
+       TROUBLESHOOTING). Wer die Werte anfasst, misst scrollWidth gegen clientWidth nach.
+
+       Senkrecht folgt er dem Innenabstand des Slots: ab der Ueberschrift (18px, beim
+       ersten Slot 6px) bis kurz vor die naechste. */
+    .week > .day .slot::before { left: -6px; top: 18px; bottom: 4px; }
+    .week > .day .slot:first-child::before { top: 6px; }
+
+    /* Zeile statt Kachel. Die Trennlinie ist der border-bottom der Zeile selbst -
+       deshalb kein border-radius und kein Aussenabstand, sonst wird aus der Liste
+       wieder ein Stapel. Gleiches Vorgehen wie bei .ing-view. */
+    .week > .day .slot .filled {
+      background: none; border: 0; border-radius: 0;
+      border-bottom: 1px solid var(--border);
+      align-items: center; padding: 9px 0;   /* seitlich 0, der Abstand sitzt an .slots */
+    }
+    .week > .day .slot .filled + .filled { margin-top: 0; }   /* die Linie trennt */
+    /* Der Textblock muss die freie Breite nehmen, sonst schrumpft er auf die Wortbreite
+       und das X klebt am Namen statt am Zeilenende zu stehen. In der Kachel-Optik war
+       das kaschiert, weil der Rahmen die Zeile begrenzte - in einer Liste ohne Rahmen
+       sieht man es sofort. min-width:0 dazu, damit ein langer Meal-Name umbricht statt
+       die Zeile aufzuweiten (Standard fuer Flex-Kinder). Gleiche Rolle wie die 1fr-Spalte
+       in .ing-view. */
+    .week > .day .slot .filled .r-body { flex: 1; min-width: 0; }
+
+    /* Hinzufuegen ebenfalls als Zeile: der gestrichelte Rahmen war die Einladung an eine
+       leere Kachel - in einer Liste uebernimmt das der Text mit seinem vorangestellten +. */
+    /* min-height 44px, nicht nur Innenabstand: der gestrichelte Rahmen liess die Flaeche
+       frueher groesser wirken als sie war - gemessen 37px, unter der Mindestgroesse von
+       Apple HIG und WCAG 2.5.5. Als flache Listenzeile faellt das noch mehr ins Gewicht,
+       weil nichts mehr die Grenze zeigt. flex + center, damit der Text in der groesseren
+       Flaeche mittig sitzt statt oben zu kleben. */
+    .week > .day .slot .add {
+      border: 0; border-bottom: 1px solid var(--border); border-radius: 0;
+      padding: 4px 0; font-size: 13px;      /* seitlich 0, der Abstand sitzt an .slots */
+      min-height: 44px; display: flex; align-items: center;
+    }
+    .week > .day .slot .filled + .add, .week > .day .slot .add + .filled { margin-top: 0; }
+    /* "+2 weitere"/"Weniger anzeigen" ist ebenfalls ein Knopf und braucht dieselbe
+       Mindestflaeche - kleiner sieht nur die Schrift aus, nicht das Ziel. */
+    .week > .day .slot .add.more { padding: 4px 0; min-height: 44px; }
+    /* Hover NUR bei echter Maus - auf Touch bliebe der Zustand nach dem Antippen kleben
+       (gleiche Begruendung wie bei .ing-view). Der Press-State unten traegt dort. */
+    .week > .day .slot .add:hover { background: none; border-color: var(--border); color: var(--text); }
+    @media (hover: hover) and (pointer: fine) {
+      .week > .day .slot .add:hover { background: color-mix(in srgb, var(--accent) 5%, transparent); color: var(--text); }
+    }
+    .week > .day .slot .add:active { background: color-mix(in srgb, var(--accent) 9%, transparent); }
+    .week > .day .slot .filled:active { background: color-mix(in srgb, var(--accent) 9%, transparent); }
+
+    /* Ziele der Woche: gleiches Muster mit zwei Karten (Heute / Diese Woche) UND derselben
+       gleitenden Pille wie .daybar (.db-ind, hier per initCarousel() ebenfalls gebunden) -
+       deshalb dieselbe Geometrie: position:relative + padding auf der Leiste, Flaeche und
+       Rahmen wie .daybar statt eigener Optik. */
+    .wgbar {
+      display: flex; gap: 2px; position: relative; margin: 0 0 10px; padding: 4px;
+      background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius);
+    }
+    .wg-b {
+      position: relative; z-index: 1;
+      flex: 1 1 0; min-width: 0; min-height: 44px; padding: 0 10px;
+      font: inherit; font-size: 12.5px; font-weight: 700; letter-spacing: .02em;
+      cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      color: var(--text-muted); background: transparent;
+      border: 1px solid transparent; border-radius: var(--radius-sm);
+      transition: color var(--dur-fast), opacity var(--dur-fast);
+    }
+    /* Press-State wie .db-b: opacity statt scale, die Pille darunter skaliert nicht mit. */
+    .wg-b:active { opacity: .62; }
+    /* Nur noch die Schriftfarbe - die Flaeche liegt jetzt auf .db-ind darunter. */
+    .wg-b.active { color: var(--accent-contrast); }
+    .wg-cols {
+      flex-direction: row; gap: 12px;
+      overflow-x: auto; overflow-y: hidden;
+      scroll-snap-type: x mandatory; overscroll-behavior-x: contain;
+      scrollbar-width: none;
+      /* Gegenteil von .week: hier SOLLEN beide Karten (Heute/Woche) gleich hoch wirken.
+         fitHeight() (initCarousel) setzt schon die Scroller-Hoehe aufs Maximum beider Karten -
+         ohne stretch behielt die kuerzere .wg-col trotzdem ihre eigene, kleinere Innenhoehe. */
+      align-items: stretch;
+    }
+    .wg-cols::-webkit-scrollbar { display: none; }
+    .wg-cols > .wg-col { flex: 0 0 100%; scroll-snap-align: start; scroll-snap-stop: always; }
+
+    /* "Ziele neu berechnen" wird hier zur flachen Aktionsflaeche ueber die volle Breite, in
+       derselben Optik wie die Zielkarten (.wg-col) - so gehoert der Knopf sichtbar zum
+       Ziele-Bereich, statt als schwebender Textlink darunter zu haengen. 44px, weil er das
+       einzige Bedienelement unter dem Streifen ist. Die Hover-Zeile muss sein: .btn.ghost:hover
+       ist eine Klasse spezifischer und wuerde die Flaeche sonst beim Beruehren wieder leeren. */
+    .wg-actions { margin-top: 12px; }
+    .wg-actions .wg-recalc {
+      flex: 1 1 auto; justify-content: center; min-height: 44px;
+      background: var(--surface-2); border-color: var(--border); color: var(--text);
+    }
+    .wg-actions .wg-recalc:hover { background: var(--surface-2); border-color: var(--accent); }
+  }
+
+  /* ---------- Sehr schmale Geraete: der vierte Knopf passt nicht mehr ----------
+     Gemessen am 16.08.2026: Bei 320px braucht die Werkzeugzeile 300px (Wochenumschalter 168
+     + drei Symbole a 34 + drei Abstaende a 10) und hat 277px. Sie bricht um, und die
+     Kopfzeile waechst von 42 auf 86px - genau die Hoehe, die im Sheet den Tageskarten fehlt
+     (TROUBLESHOOTING 60). Ab 360px passt es mit 32px Luft.
+
+     Unter 360px wandert der Planer deshalb ins Ueberlaufmenue, statt eine zweite Zeile
+     aufzumachen. Es bleibt bei EINEM sichtbaren Weg: Was hier erscheint, verschwindet oben.
+
+     DIESER BLOCK STEHT BEWUSST HINTER DEM 680px-BLOCK, nicht darin. Ein erster Anlauf hat ihn
+     mittendrin eingefuegt und dabei den 680px-Block vorzeitig geschlossen - alles Folgende
+     (Wischstreifen, Tagesleiste, Wochenziele) galt danach nur noch unter 360px, und auf dem
+     Handy stand die ganze App untereinander. Siehe TROUBLESHOOTING 97. */
+  @media (max-width: 359px) {
+    .plan-tools .plan-auto { display: none; }
+    .plan-menu .menu [data-mi="autoplan"] { display: flex; }
+  }
+
+  /* ---------- Erste Schritte (Onboarding) ----------
+     Eine Frage je Bildschirm. Waehrend der Einfuehrung ist die Reiterleiste weg, damit auf
+     dem Handy kein zweites Bedienelement um den unteren Rand konkurriert. Ohne gesetztes Ziel
+     ist der Ablauf bewusst nicht verlassbar (Schliessen erscheint erst, wenn ein Ziel
+     existiert). syncStickyOffsets() setzt
+     --tabbar-h dann von selbst auf 0, weil die ausgeblendete Leiste 0 hoch ist.
+     Alle Farben kommen aus den Tokens, damit Light und Dark ohne eigenen Block tragen. */
+  .app.onboarding .tabs { display: none; }
+  .onb { max-width: 560px; margin: 0 auto; }
+
+  /* Fortschritt: schlanke Schiene mit Glut am Ende statt eines dicken Balkens. Das Glimmen
+     ist derselbe Akzent, nur als Schein – es macht den Fortschritt spuerbar, ohne eine
+     zweite Farbe einzufuehren. */
+  .onb-top { margin-bottom: 24px; }
+  .onb-top .wg-progress-bar { height: 6px; }
+  .onb-top .wg-progress-bar > span { box-shadow: 0 0 12px color-mix(in srgb, var(--accent) 55%, transparent); }
+  .onb-count {
+    margin-top: 9px; font-family: var(--font-display); font-size: 12px; color: var(--text-muted);
+    letter-spacing: .14em; text-transform: uppercase;
+  }
+  /* Expo-out: startet schnell, laeuft weich aus – dieselbe Kurve wie bei den Karten der App. */
+  .onb-stage { animation: onbin .26s cubic-bezier(.16, 1, .3, 1); }
+  @keyframes onbin { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+  .onb-q {
+    display: block; font-family: var(--font-display); font-size: 30px; line-height: 1.08;
+    letter-spacing: -.005em; margin: 0 0 9px; color: var(--text); text-wrap: balance;
+  }
+  .onb-kicker {
+    margin: 0 0 6px; font-family: var(--font-display); font-size: 13px; letter-spacing: .16em;
+    text-transform: uppercase; color: var(--accent);
+  }
+  /* Der Fokus wandert beim Schrittwechsel programmatisch auf die Frage, damit ein
+     Screenreader sie vorliest. Sichtbar soll er dort NICHT sein: das Element traegt
+     tabindex="-1" und ist per Tastatur nie anwaehlbar – ein Rahmen um die Ueberschrift
+     sieht aus wie ein Eingabefeld. */
+  .onb-q:focus { outline: none; }
+  .onb-why { margin: 0 0 20px; color: var(--text-muted); font-size: 14.5px; line-height: 1.55; }
+  .onb-why b { color: var(--text); }
+  .onb-list { margin: 0; padding: 0; list-style: none; display: grid; gap: 10px; }
+  /* Akzentkante links: macht aus einer Aufzaehlung eine Liste mit Richtung. */
+  .onb-list li {
+    padding: 13px 15px; border: 1px solid var(--border); border-left: 3px solid var(--accent);
+    border-radius: var(--radius-sm); background: var(--surface-2);
+    font-size: 14px; line-height: 1.5; color: var(--text-muted);
+  }
+  .onb-list li b { color: var(--text); font-weight: 650; }
+
+  /* Hinweis bei starkem Defizit auf dem Ergebnis. Bewusst KEIN roter Alarmkasten:
+     --danger ist in diesem Theme auf --accent gelegt, ein roter Kasten ginge zwischen
+     den ohnehin roten Elementen unter — und die Marke hilft, sie bewertet nicht. Also
+     dieselbe ruhige Kante wie .onb-list li, nur mit Info-Zeichen davor. */
+  .onb-warn {
+    display: flex; gap: 10px; align-items: flex-start; margin: 14px 0 0;
+    padding: 12px 14px; border: 1px solid var(--border); border-left: 3px solid var(--accent);
+    border-radius: var(--radius-sm); background: var(--surface-2);
+    font-size: 13px; line-height: 1.5; color: var(--text-muted);
+  }
+  .onb-warn .ci { flex: none; width: 16px; height: 16px; margin-top: 1px; color: var(--accent); }
+  .onb-warn b { color: var(--text); font-weight: 650; }
+
+  /* Auswahlkacheln. Die Auswahl haengt nie allein an der Farbe – das Haekchen traegt sie
+     mit (sonst waere sie fuer Farbfehlsichtige nicht erkennbar). */
+  .onb-opts { display: grid; grid-template-columns: 1fr 1fr; gap: 11px; }
+  .onb-opts-1 { grid-template-columns: 1fr; }
+  /* Kacheln mit etwas Tiefe: leichter Verlauf statt einer flachen Flaeche, eine helle
+     Kante oben (Licht von oben) und beim Druecken ein Nachgeben. Gewaehlt heisst: Akzent-
+     Kante plus warmer Schein – die Tiefe macht den Unterschied, nicht eine neue Farbe. */
+  .onb-opt {
+    position: relative; display: flex; flex-direction: column; justify-content: center; gap: 3px;
+    min-height: 68px; padding: 15px 46px 15px 17px; text-align: left; cursor: pointer;
+    background: linear-gradient(180deg, var(--surface), var(--surface-2));
+    color: var(--text); border: 1.5px solid var(--border-strong); border-radius: var(--radius);
+    box-shadow: inset 0 1px 0 color-mix(in srgb, var(--text) 7%, transparent);
+    font: inherit; transition: border-color var(--dur-fast), box-shadow var(--dur-fast), transform var(--dur-fast);
+    opacity: 0; transform: translateY(6px); animation: onbin var(--dur-slow) var(--ease-out) forwards;
+  }
+  .onb-opt:nth-child(1) { animation-delay: 0ms; }
+  .onb-opt:nth-child(2) { animation-delay: 40ms; }
+  .onb-opt:nth-child(3) { animation-delay: 80ms; }
+  .onb-opt:nth-child(4) { animation-delay: 120ms; }
+  .onb-opt:nth-child(n+5) { animation-delay: 160ms; }
+  .onb-opt:hover { border-color: var(--text-muted); }
+  .onb-opt:active { transform: scale(.985); }
+  .onb-opt.on {
+    border-color: var(--accent);
+    background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 13%, var(--surface)), var(--surface));
+    box-shadow: 0 0 0 1px var(--accent), 0 6px 20px color-mix(in srgb, var(--accent) 20%, transparent);
+  }
+  .onb-opt:focus-visible { outline: none; box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 34%, transparent); }
+  .onb-opt-t { font-weight: 650; font-size: 16px; letter-spacing: .005em; }
+  .onb-opt-h { font-size: 12.5px; color: var(--text-muted); line-height: 1.4; }
+  .onb-tick { position: absolute; right: 15px; top: 50%; transform: translateY(-50%); width: 21px; height: 21px; color: var(--accent); }
+
+  /* Zahlenfelder. Frueher stand eines gross und allein auf seinem Bildschirm; jetzt
+     stehen drei nebeneinander (Alter/Groesse/Gewicht), also kleiner gesetzt und jedes
+     mit eigener Beschriftung – die Ueberschrift traegt die Bedeutung nicht mehr allein.
+     Die Einheit steht neben dem Feld, damit darin nur die Zahl steht (sonst stolpert die
+     Tastatur darueber). */
+  .onb-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-top: 15px; }
+  .onb-grid-1 { grid-template-columns: 1fr; max-width: 250px; }
+  .onb-f { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+  .onb-f-l { font-size: 12.5px; font-weight: 650; color: var(--text-muted); letter-spacing: .01em; }
+  .onb-f-opt { font-weight: 500; opacity: .75; }
+  .onb-f-in { display: flex; align-items: baseline; gap: 6px; min-width: 0; }
+  /* Zwei Klassen, nicht eine: die globale Regel fuer Eingabefelder trifft ueber
+     input[type="number"] und liegt damit (Attributselektor!) ueber einer einzelnen
+     Klasse – Breite und Schriftgroesse waeren sonst still ueberstimmt worden. */
+  .onb-f-in .onb-num {
+    width: 100%; min-width: 0; text-align: center; font-family: var(--font-display);
+    font-size: 24px; padding: 10px 6px; letter-spacing: .02em;
+    -moz-appearance: textfield;
+  }
+  .onb-num::-webkit-outer-spin-button, .onb-num::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+  .onb-f-u { flex: none; font-size: 13px; color: var(--text-muted); font-weight: 600; }
+
+  /* Zweite Frage auf demselben Bildschirm (Tempo unter dem Ziel, Haerte unter den
+     Trainingstagen). Eine feine Linie trennt sie, statt sie nur tiefer zu setzen. */
+  .onb-sub { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--border); }
+  /* Farbe ausdruecklich, nicht geerbt: die Textfarbe haengt sonst an .app weit oben im
+     Baum – eine Ueberschrift soll nicht davon abhaengen, wo sie eingehaengt wird. */
+  .onb-sub-q { font-family: var(--font-display); font-size: 17px; font-weight: 650; letter-spacing: .01em; color: var(--text); margin: 0 0 10px; }
+
+  /* Koerperfett: 2x2, damit alle vier Skizzen gleichzeitig zu sehen und damit
+     vergleichbar sind – untereinander ginge genau der Vergleich verloren, auf den die
+     Auswahl hinauslaeuft. Bleibt deshalb auch auf dem Handy zweispaltig. */
+  .onb-bf { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .onb-bf-o {
+    position: relative; display: flex; flex-direction: column; align-items: center; gap: 2px;
+    padding: 12px 10px 11px; cursor: pointer; font: inherit; text-align: center;
+    background: linear-gradient(180deg, var(--surface), var(--surface-2));
+    color: var(--text-muted); border: 1.5px solid var(--border-strong); border-radius: var(--radius);
+    box-shadow: inset 0 1px 0 color-mix(in srgb, var(--text) 7%, transparent);
+    transition: border-color var(--dur-fast), box-shadow var(--dur-fast), transform var(--dur-fast), color var(--dur-fast);
+    opacity: 0; transform: translateY(6px); animation: onbin var(--dur-slow) var(--ease-out) forwards;
+  }
+  .onb-bf-o:nth-child(1) { animation-delay: 0ms; }
+  .onb-bf-o:nth-child(2) { animation-delay: 40ms; }
+  .onb-bf-o:nth-child(3) { animation-delay: 80ms; }
+  .onb-bf-o:nth-child(4) { animation-delay: 120ms; }
+  .onb-bf-o:hover { border-color: var(--text-muted); }
+  .onb-bf-o:active { transform: scale(.985); }
+  .onb-bf-o.on {
+    border-color: var(--accent); color: var(--accent);
+    background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 13%, var(--surface)), var(--surface));
+    box-shadow: 0 0 0 1px var(--accent), 0 6px 20px color-mix(in srgb, var(--accent) 20%, transparent);
+  }
+  .onb-bf-o:focus-visible { outline: none; box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 34%, transparent); }
+  /* Die Skizze erbt ueber currentColor die Farbe der Kachel – hell/dunkel und der
+     gewaehlte Zustand stimmen damit ohne eine einzige eigene Regel. */
+  .onb-bf-fig { flex: none; width: 48px; height: 66px; margin-bottom: 2px; }
+  /* Die Spanne traegt die Kachel: Wer seinen Wert kennt, sucht genau danach und soll ihn
+     nicht aus dem Kleingedruckten fischen muessen. Ziffernbreite fest, damit die vier
+     Zahlen untereinander fluchten. */
+  .onb-bf-p {
+    font-family: var(--font-display); font-size: 16px; font-weight: 700;
+    color: var(--text); letter-spacing: .02em; font-variant-numeric: tabular-nums;
+  }
+  .onb-bf-t { font-size: 13px; font-weight: 650; color: var(--text); }
+  .onb-bf-h { font-size: 11px; line-height: 1.3; color: var(--text-muted); }
+  /* Das Haekchen sitzt hier oben in der Ecke, nicht mittig rechts wie auf einer
+     Textkachel – in der Mitte laege es sonst auf der Zeichnung. */
+  .onb-bf-o .onb-tick { top: 9px; right: 9px; transform: none; width: 17px; height: 17px; }
+  .onb-bf-skip { width: 100%; margin-top: 11px; justify-content: center; }
+  .onb-bf-skip.on { color: var(--accent); border-color: var(--accent); }
+
+  /* Textfeld (Name) – zwei Klassen aus demselben Grund wie beim Zahlenfeld: die globale
+     Regel trifft ueber input[type="text"] und liegt damit ueber einer einzelnen Klasse. */
+  .onb-stage .onb-text { width: 100%; font-size: 17px; padding: 13px 14px; }
+
+  /* Trainingstage: Mehrfachauswahl. .tdays bringt das Raster schon mit, hier nur die
+     Groesse fuer den Einstieg – sieben Knoepfe muessen auf 320 px Breite passen. */
+  .onb-tdays { margin-top: 4px; }
+  .onb-tdays button { min-height: 52px; font-size: 14px; }
+  /* Die frueher darunter stehende Zeile "Montag, Mittwoch, Freitag" (.onb-sel) ist
+     entfallen: Die hervorgehobenen Knoepfe sagen dasselbe schon. */
+
+  /* Ergebniskarte: der Moment, auf den der ganze Ablauf hinarbeitet. Deshalb ein Hauch
+     Buehne – ein Akzentschimmer von oben hinter der Zahl, sonst nichts Zusaetzliches. */
+  .onb-res {
+    position: relative; overflow: hidden;
+    border: 1px solid var(--border-strong); border-radius: var(--radius); background: var(--surface);
+    box-shadow: var(--shadow); padding: 26px 18px 22px; text-align: center;
+  }
+  .onb-res::before {
+    content: ""; position: absolute; inset: -60% 0 auto 0; height: 150px; pointer-events: none;
+    background: radial-gradient(ellipse at 50% 100%, color-mix(in srgb, var(--accent) 20%, transparent), transparent 70%);
+  }
+  .onb-res-k {
+    position: relative; font-family: var(--font-display); font-size: 58px; line-height: .95;
+    letter-spacing: -.02em; color: var(--accent); font-variant-numeric: tabular-nums;
+    text-shadow: 0 0 34px color-mix(in srgb, var(--accent) 38%, transparent);
+  }
+  .onb-res-k span {
+    display: block; margin-top: 9px; font-family: var(--font-display); font-size: 12px; font-weight: 600;
+    letter-spacing: .16em; text-transform: uppercase; color: var(--text-muted); text-shadow: none;
+  }
+  .onb-res-m { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; margin-top: 20px; padding-top: 18px; border-top: 1px solid var(--border); }
+  .onb-res-m > div + div { border-left: 1px solid var(--border); }
+  /* Dieselben Makrofarben wie ueberall sonst in der App (.macro, .nutfacts, .wg-macros) –
+     bewusst dieselben Tokens, nicht neu erfunden, damit Protein/KH/Fett app-weit auf
+     einen Blick zuzuordnen sind. Die Farbe ist dabei die schnellere, nicht die einzige
+     Spur: Das Label darunter nennt das Makro immer aus (siehe Token-Kommentar oben).
+     Einzige Stelle der App, an der eine Makro-Farbe als Schriftfarbe dient — deshalb
+     haengt an ihr die 3:1-Schwelle fuer grosse Schrift (21px/19px fett). */
+  .onb-res-m .t-prot { --tc: var(--prot); } .onb-res-m .t-carb { --tc: var(--carb); } .onb-res-m .t-fat { --tc: var(--fat); }
+  .onb-res-m b { display: block; font-family: var(--font-display); font-size: 21px; letter-spacing: -.01em; font-variant-numeric: tabular-nums; color: var(--tc, var(--text)); }
+  .onb-res-m span { display: flex; align-items: center; justify-content: center; gap: 5px; margin-top: 3px; font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--text-muted); }
+  .onb-res-m span::before { content: ""; width: 7px; height: 7px; border-radius: 50%; flex: none; background: var(--tc, var(--accent)); }
+  .onb-res-t {
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    margin-top: 18px; padding: 12px 14px; border-radius: var(--radius-sm);
+    background: color-mix(in srgb, var(--train) 12%, transparent);
+    text-align: left; font-size: 12.5px; color: var(--text-muted); line-height: 1.35;
+  }
+  .onb-res-t b { font-family: var(--font-display); font-size: 20px; color: var(--train); white-space: nowrap; font-variant-numeric: tabular-nums; }
+
+  .onb-hi { text-align: center; }
+  .onb-hi .onb-q { font-size: 34px; }
+  .onb-hi .onb-list { text-align: left; margin-top: 22px; }
+  /* Das Logo mit einem Schein dahinter statt nackt auf der Flaeche – gibt der Startseite
+     einen Mittelpunkt, ohne ein zusaetzliches Bild zu brauchen. */
+  .onb-mark {
+    position: relative; width: 88px; height: 88px; border-radius: 50%; margin: 6px auto 20px;
+    background: center / cover no-repeat var(--logo);
+    box-shadow: 0 0 0 6px color-mix(in srgb, var(--accent) 10%, transparent),
+                0 10px 34px color-mix(in srgb, var(--accent) 26%, transparent);
+  }
+  .onb-note { margin-top: 18px; }
+
+  /* Die Miniatur des Wochenplans (.onb-mock) sass auf dem eigenen Schritt "how" nach dem
+     Ergebnis. Der Schritt ist entfallen – zwei reine Textbildschirme nach dem Ergebnis
+     liessen den Hoehepunkt verpuffen –, damit auch seine Regeln. */
+
+  .onb-foot { margin-top: 28px; }
+  .onb-foot .onb-next {
+    width: 100%; justify-content: center; min-height: 52px;
+    font-family: var(--font-display); font-size: 18px; letter-spacing: .04em;
+    box-shadow: 0 6px 20px color-mix(in srgb, var(--accent) 30%, transparent);
+  }
+  .onb-foot .onb-next.is-off { box-shadow: none; }
+  .onb-foot2 { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; }
+  .onb-foot2 .btn { min-height: 44px; }
+
+  /* Einstellungen-Dialog: Zeilenliste im Modal. */
+  .setlist { display: grid; gap: 9px; }
+  .setrow {
+    display: flex; align-items: center; width: 100%; text-align: left; cursor: pointer;
+    padding: 13px 15px; background: var(--surface-2); color: var(--text);
+    border: 1px solid var(--border); border-radius: var(--radius-sm); font: inherit;
+  }
+  .setrow:hover { border-color: var(--border-strong); }
+  .setrow:focus-visible { outline: none; box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 26%, transparent); }
+  .setrow b { display: block; font-size: 14.5px; font-weight: 650; }
+  .setrow small { display: block; margin-top: 2px; font-size: 12.5px; color: var(--text-muted); }
+  /* Zeile mit Direktauswahl statt Sprungziel (Erscheinungsbild) — gleiche Huelle wie
+     .setrow, aber kein Knopf: die Auswahl steckt im .seg darunter. */
+  .setpick { padding: 13px 15px; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-sm); }
+  .setpick > b { display: block; font-size: 14.5px; font-weight: 650; margin-bottom: 9px; }
+  /* Die Knoepfe im Rechner sind zweizeilig (Label + Hinweis) und dadurch von selbst
+     hoch genug. Hier steht nur ein Wort, das ergaebe knapp 35 px — zu wenig zum
+     Treffen mit dem Daumen. Deshalb hier die 44 px erzwingen, nicht global in .seg. */
+  .setpick .seg button { min-height: 44px; }
+
+  /* ---------- Gemeinsam planen (Gruppe) ---------- */
+  /* Eine Zeile je Mitglied, gleiche Huelle wie .setrow - die Liste soll wie die uebrigen
+     Einstellungen lesen, nicht wie eine Nutzerverwaltung. */
+  .grp-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
+  .grp-m { display: flex; align-items: center; flex-wrap: wrap; gap: 10px 12px; padding: 10px 12px; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-sm); }
+  .grp-m .avatar { width: 34px; height: 34px; font-size: 13px; }
+  /* Basis 140px statt 0: mit `flex: 1` bekaeme der Name nur den REST, und die Rollenwahl
+     daneben quetschte ihn auf ein paar Pixel ("Anna Beispiel" wurde zu "M…"). Reicht der
+     Platz trotzdem nicht, bricht die Zeile um (flex-wrap oben) statt abzuschneiden. */
+  .grp-m .who { flex: 1 1 120px; min-width: 0; }
+  .grp-m .who b { display: block; font-size: 14px; font-weight: 620; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .grp-m .who small { display: block; font-size: 12px; color: var(--text-muted); }
+  /* Rollenwahl je Mitglied. Nur der Inhaber sieht sie; fuer alle anderen steht die Rolle
+     als reiner Text in .who small - ein ausgegrautes Bedienelement waere nur Rauschen.
+     Eigene Zeile unter dem Namen, eingerueckt um 46px (Avatar 34 + gap 12), damit sie
+     buendig darunter beginnt: neben dem Namen passte sie bei 390px nicht mehr mit dem
+     Entfernen-Knopf zusammen, und der rutschte dann allein in die zweite Zeile. */
+  .grp-m select { flex: 0 0 calc(100% - 46px); margin-left: 46px; width: auto; font: inherit; font-size: 13px; min-height: 44px; padding: 6px 8px; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--surface); color: var(--text); }
+  /* Die 13 px oben gelten NUR am Rechner. Auf Touch zoomt Safari beim Oeffnen eines
+     <select> unter 16 px hinein - genau das, was der pointer-coarse-Block weiter oben
+     (Fall 117) verhindern soll. Er greift hier aber nicht: `.grp-m select` ist
+     spezifischer UND steht spaeter, also gewinnt 13 px. Deshalb dieselbe Regel noch
+     einmal an dieser Stelle, hinter der Regel, die sie korrigiert.
+
+     Gemessen am 27.08.2026 ueber tools/pruefstand-grpm-zoom.py:
+       mit Touch ohne diesen Block: 13 px  ·  mit: 16 px  ·  ohne Touch: 13 px
+     Die letzte Zahl ist die Gegenprobe - am Rechner bleibt die Rollenwahl so schlank
+     wie der Name darueber (14 px). */
+  @media (pointer: coarse) {
+    .grp-m select { font-size: 16px; }
+  }
+  .grp-m .btn.icon-gh { flex: none; }
+  /* Der rechtliche Hinweis beim Gruppenstart gehoert hinter ein <details>: er ist Pflicht,
+     aber keine Information, die im Regelfall gebraucht wird. */
+  .grp-note { margin: 12px 0 0; font-size: 12.5px; color: var(--text-muted); }
+  .grp-note summary { cursor: pointer; font-weight: 600; color: var(--text); }
+  .grp-note p { margin: 8px 0 0; line-height: 1.55; }
+  /* Wartezustand: Statuszeile ueber dem QR, waehrend eine Einladung offen ist. */
+  .grp-wait { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; font-size: 14px; font-weight: 600; }
+  .grp-wait .avatar { width: 34px; height: 34px; font-size: 13px; }
+  /* QR-Traeger: IMMER hell, unabhaengig vom Theme - ein QR-Code auf dunklem Grund liest
+     kein Scanner zuverlaessig, und --surface ist im Dark Theme dunkel. */
+  .grp-qr { width: 200px; max-width: 100%; aspect-ratio: 1 / 1; margin: 0 auto 14px; padding: 12px; box-sizing: border-box; background: #fff; border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; }
+  .grp-qr svg { width: 100%; height: 100%; display: block; }
+  .grp-qr:empty { display: none; }
+
+  @media (max-width: 560px) {
+    /* Zwei Kacheln nebeneinander werden hier zu schmal fuer die Beschriftung. */
+    .onb-opts { grid-template-columns: 1fr; }
+    /* Ausnahme: "Weiblich"/"Männlich" ist kurz genug und steht auf dem Koerperdaten-
+       Bildschirm ueber drei Feldern – untereinander waere der Bildschirm zu hoch. */
+    .onb-opts-2 { grid-template-columns: 1fr 1fr; }
+    .onb-q { font-size: 26px; }
+    .onb-hi .onb-q { font-size: 29px; }
+    /* Drei Felder nebeneinander auf schmalem Schirm: Schrift und Innenabstand zurueck,
+       damit dreistellige Werte nicht abgeschnitten werden. */
+    .onb-grid { gap: 7px; }
+    .onb-f-in { gap: 4px; }
+    .onb-f-in .onb-num { font-size: 20px; padding: 10px 3px; }
+    .onb-f-u { font-size: 12px; }
+    .onb-bf-fig { width: 42px; height: 58px; }
+    .onb-bf-p { font-size: 15px; }
+    .onb-bf-h { font-size: 10.5px; }
+    .onb-res-k { font-size: 48px; }
+    .onb-res-m b { font-size: 19px; }
+  }

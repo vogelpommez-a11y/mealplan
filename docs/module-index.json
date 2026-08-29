@@ -1,0 +1,2045 @@
+{
+  "abdeckung": {
+    "lesbar": true,
+    "ohne_pruefer": [],
+    "registriert": [
+      "doku:docs/ABDECKUNG.md",
+      "doku:docs/ARCHITECTURES.md",
+      "doku:docs/DESIGN.md",
+      "doku:docs/MODULE.md",
+      "doku:docs/PRODUCT.md",
+      "doku:docs/RUNBOOK.md",
+      "doku:docs/SECURITY.md",
+      "doku:docs/STORE.md",
+      "doku:docs/TESTING.md",
+      "doku:docs/TROUBLESHOOTING.md",
+      "domain:commons.wikimedia.org",
+      "domain:creativecommons.org",
+      "domain:docs.github.com",
+      "domain:firestore.googleapis.com",
+      "domain:oauth2.googleapis.com",
+      "domain:openai.com",
+      "domain:opendatacommons.org",
+      "domain:policies.google.com",
+      "domain:schema.org",
+      "domain:stocksnap.io",
+      "domain:world.openfoodfacts.org",
+      "domain:www.flickr.com",
+      "domain:www.googleapis.com",
+      "domain:www.paddysmealplan.de",
+      "domain:www.rawpixel.com",
+      "pfad:.claude/",
+      "pfad:.gitattributes",
+      "pfad:.github/",
+      "pfad:.gitignore",
+      "pfad:CLAUDE.md",
+      "pfad:CNAME",
+      "pfad:FIREBASE-SETUP.md",
+      "pfad:LICENSE",
+      "pfad:README.md",
+      "pfad:SECURITY.md",
+      "pfad:apple-touch-icon.png",
+      "pfad:css/",
+      "pfad:data/",
+      "pfad:docs/",
+      "pfad:firestore.rules",
+      "pfad:icon-192.png",
+      "pfad:icon-512.png",
+      "pfad:icon-maskable-512.png",
+      "pfad:img/",
+      "pfad:index.html",
+      "pfad:lib/",
+      "pfad:manifest.webmanifest",
+      "pfad:og-image.png",
+      "pfad:robots.txt",
+      "pfad:sitemap.xml",
+      "pfad:sw.js",
+      "pfad:syntax-check.py",
+      "pfad:test-server.ps1",
+      "pfad:tools/",
+      "pfad:vendor/",
+      "pfad:worker/",
+      "reiter:home",
+      "reiter:plan",
+      "reiter:progress",
+      "reiter:recipes"
+    ]
+  },
+  "abhaengigkeiten": [
+    {
+      "definiert_in": [
+        "index.html"
+      ],
+      "name": "CloudAuth",
+      "shared": false,
+      "verbraucher": []
+    },
+    {
+      "definiert_in": [
+        "index.html"
+      ],
+      "name": "CloudEntitlement",
+      "shared": false,
+      "verbraucher": []
+    },
+    {
+      "definiert_in": [
+        "index.html"
+      ],
+      "name": "CloudGroup",
+      "shared": false,
+      "verbraucher": []
+    },
+    {
+      "definiert_in": [
+        "index.html"
+      ],
+      "name": "CloudShare",
+      "shared": false,
+      "verbraucher": []
+    },
+    {
+      "definiert_in": [
+        "index.html"
+      ],
+      "name": "CloudSync",
+      "shared": false,
+      "verbraucher": []
+    },
+    {
+      "definiert_in": [
+        "index.html"
+      ],
+      "name": "__onCloudAuth",
+      "shared": false,
+      "verbraucher": []
+    },
+    {
+      "definiert_in": [
+        "index.html"
+      ],
+      "name": "__onCloudWatchError",
+      "shared": false,
+      "verbraucher": []
+    },
+    {
+      "definiert_in": [
+        "index.html"
+      ],
+      "name": "noteError",
+      "shared": false,
+      "verbraucher": []
+    }
+  ],
+  "agenten": [
+    {
+      "datei": ".claude/agents/anwalt.md",
+      "modell": "sonnet",
+      "name": "anwalt",
+      "pfade": [
+        "data/bilder.js",
+        "data/rechtstexte.js",
+        "docs/MODULE.md",
+        "docs/PRODUCT.md",
+        "docs/STORE.md",
+        "firestore.rules",
+        "index.html",
+        "tools/meal-bilder.py",
+        "worker/og.js"
+      ],
+      "werkzeuge": [
+        "Read",
+        "Grep",
+        "Glob",
+        "Bash",
+        "WebSearch",
+        "WebFetch"
+      ],
+      "werkzeuge_offen": false
+    },
+    {
+      "datei": ".claude/agents/datenschutz-technik.md",
+      "modell": "sonnet",
+      "name": "datenschutz-technik",
+      "pfade": [
+        "worker/og.js"
+      ],
+      "werkzeuge": [
+        "Read",
+        "Grep",
+        "Glob",
+        "Bash",
+        "WebSearch",
+        "WebFetch"
+      ],
+      "werkzeuge_offen": false
+    },
+    {
+      "datei": ".claude/agents/doku-waechter.md",
+      "modell": "sonnet",
+      "name": "doku-waechter",
+      "pfade": [
+        "CLAUDE.md",
+        "data/rechtstexte.js",
+        "docs/ARCHITECTURES.md",
+        "docs/PRODUCT.md",
+        "docs/TESTING.md",
+        "docs/TROUBLESHOOTING.md"
+      ],
+      "werkzeuge": [
+        "Read",
+        "Grep",
+        "Glob",
+        "Bash"
+      ],
+      "werkzeuge_offen": false
+    },
+    {
+      "datei": ".claude/agents/kvp.md",
+      "modell": "haiku",
+      "name": "kvp",
+      "pfade": [
+        "css/mobil.css",
+        "css/tokens.css",
+        "index.html"
+      ],
+      "werkzeuge": [
+        "Read",
+        "Grep",
+        "Glob",
+        "Bash"
+      ],
+      "werkzeuge_offen": false
+    },
+    {
+      "datei": ".claude/agents/lieferkette.md",
+      "modell": "sonnet",
+      "name": "lieferkette",
+      "pfade": [
+        "./firebase-app.js",
+        "firebase-app.js",
+        "index.html",
+        "lib/barcode.js",
+        "package.json",
+        "sw.js",
+        "tools/firebase-vendor.py",
+        "vendor/HERKUNFT.md",
+        "vendor/zxing.min.js"
+      ],
+      "werkzeuge": [
+        "Read",
+        "Grep",
+        "Glob",
+        "Bash",
+        "WebSearch",
+        "WebFetch"
+      ],
+      "werkzeuge_offen": false
+    },
+    {
+      "datei": ".claude/agents/store-check.md",
+      "modell": "sonnet",
+      "name": "store-check",
+      "pfade": [
+        "FIREBASE-SETUP.md",
+        "docs/MODULE.md",
+        "docs/PRODUCT.md",
+        "docs/SECURITY.md",
+        "firestore.rules",
+        "index.html",
+        "manifest.webmanifest",
+        "sw.js"
+      ],
+      "werkzeuge": [
+        "Read",
+        "Grep",
+        "Glob",
+        "Bash",
+        "WebSearch",
+        "WebFetch"
+      ],
+      "werkzeuge_offen": false
+    },
+    {
+      "datei": ".claude/agents/ux-reviewer.md",
+      "modell": "haiku",
+      "name": "ux-reviewer",
+      "pfade": [
+        "css/CLAUDE.md",
+        "css/basis.css",
+        "css/komponenten.css",
+        "css/mobil.css",
+        "css/tokens.css",
+        "docs/DESIGN.md"
+      ],
+      "werkzeuge": [
+        "Read",
+        "Grep",
+        "Glob",
+        "Bash",
+        "Skill"
+      ],
+      "werkzeuge_offen": false
+    },
+    {
+      "datei": ".claude/agents/website-security.md",
+      "modell": "sonnet",
+      "name": "website-security",
+      "pfade": [
+        "FIREBASE-SETUP.md",
+        "data/rechtstexte.js",
+        "docs/MODULE.md",
+        "docs/SECURITY.md",
+        "firestore.rules",
+        "index.html",
+        "lib/barcode.js",
+        "sw.js",
+        "tools/firebase-vendor.py",
+        "worker/og.js"
+      ],
+      "werkzeuge": [
+        "Read",
+        "Grep",
+        "Glob",
+        "Bash"
+      ],
+      "werkzeuge_offen": false
+    }
+  ],
+  "bereiche": [
+    {
+      "bis": 224,
+      "datei": "css/basis.css",
+      "titel": "Header",
+      "von": 20,
+      "zeilen": 205
+    },
+    {
+      "bis": 230,
+      "datei": "css/basis.css",
+      "titel": "Section head",
+      "von": 225,
+      "zeilen": 6
+    },
+    {
+      "bis": 298,
+      "datei": "css/basis.css",
+      "titel": "Buttons",
+      "von": 231,
+      "zeilen": 68
+    },
+    {
+      "bis": 959,
+      "datei": "css/basis.css",
+      "titel": "Week grid",
+      "von": 299,
+      "zeilen": 661
+    },
+    {
+      "bis": 261,
+      "datei": "css/komponenten.css",
+      "titel": "Recipe grid",
+      "von": 8,
+      "zeilen": 254
+    },
+    {
+      "bis": 451,
+      "datei": "css/komponenten.css",
+      "titel": "Meal-Ansicht (openMealSheet)",
+      "von": 262,
+      "zeilen": 190
+    },
+    {
+      "bis": 457,
+      "datei": "css/komponenten.css",
+      "titel": "Empty state",
+      "von": 452,
+      "zeilen": 6
+    },
+    {
+      "bis": 782,
+      "datei": "css/komponenten.css",
+      "titel": "Modal",
+      "von": 458,
+      "zeilen": 325
+    },
+    {
+      "bis": 876,
+      "datei": "css/komponenten.css",
+      "titel": "Profil (Login) & Teilen",
+      "von": 783,
+      "zeilen": 94
+    },
+    {
+      "bis": 1073,
+      "datei": "css/komponenten.css",
+      "titel": "Profilbild-Zuschnitt (Kreis-Crop)",
+      "von": 877,
+      "zeilen": 197
+    },
+    {
+      "bis": 1107,
+      "datei": "css/komponenten.css",
+      "titel": "PDF / Druck",
+      "von": 1074,
+      "zeilen": 34
+    },
+    {
+      "bis": 796,
+      "datei": "css/mobil.css",
+      "titel": "Mobile / Smartphone",
+      "von": 8,
+      "zeilen": 789
+    },
+    {
+      "bis": 863,
+      "datei": "css/mobil.css",
+      "titel": "Gemeinsam planen (Gruppe)",
+      "von": 797,
+      "zeilen": 67
+    },
+    {
+      "bis": 134,
+      "datei": "data/bilder.js",
+      "titel": "Gerichtsfotos (eingebettet, nach Namen zugeordnet)",
+      "von": 11,
+      "zeilen": 124
+    },
+    {
+      "bis": 469,
+      "datei": "data/cookbook.js",
+      "titel": "Rezeptbuch",
+      "von": 11,
+      "zeilen": 459
+    },
+    {
+      "bis": 203,
+      "datei": "data/foods.js",
+      "titel": "Zutaten-Datenbank fuer die Suche",
+      "von": 11,
+      "zeilen": 193
+    },
+    {
+      "bis": 76,
+      "datei": "data/ikonen.js",
+      "titel": "Strich-Icons fuer die Kategorie-Ueberschriften",
+      "von": 11,
+      "zeilen": 66
+    },
+    {
+      "bis": 466,
+      "datei": "index.html",
+      "titel": "Cloud-Sync (Firestore): pro Nutzer ein Dokument users/{uid}",
+      "von": 433,
+      "zeilen": 34
+    },
+    {
+      "bis": 494,
+      "datei": "index.html",
+      "titel": "Fehlerbehandlung fuer onSnapshot",
+      "von": 467,
+      "zeilen": 28
+    },
+    {
+      "bis": 544,
+      "datei": "index.html",
+      "titel": "Pro-Berechtigung (D1): eigenes Dokument entitlements/{uid}, NUR lesbar",
+      "von": 495,
+      "zeilen": 50
+    },
+    {
+      "bis": 593,
+      "datei": "index.html",
+      "titel": "Rezepte: eigenes Dokument je Meal (users/{uid}/recipes/{id})",
+      "von": 545,
+      "zeilen": 49
+    },
+    {
+      "bis": 602,
+      "datei": "index.html",
+      "titel": "Teilen per Cloud-Link: öffentlich lesbare Snapshots in shared/{id}",
+      "von": 594,
+      "zeilen": 9
+    },
+    {
+      "bis": 655,
+      "datei": "index.html",
+      "titel": "Gemeinsam planen: groups/{gid} mit Mitgliedern, Wochenplan und Meals",
+      "von": 603,
+      "zeilen": 53
+    },
+    {
+      "bis": 685,
+      "datei": "index.html",
+      "titel": "Mitglieder: ein Dokument je Person, damit Rollenrechte pro Dokument gelten",
+      "von": 656,
+      "zeilen": 30
+    },
+    {
+      "bis": 726,
+      "datei": "index.html",
+      "titel": "Mitgliederlimit: Beitritt und Austritt sind ATOMAR",
+      "von": 686,
+      "zeilen": 41
+    },
+    {
+      "bis": 753,
+      "datei": "index.html",
+      "titel": "Wochenplan",
+      "von": 727,
+      "zeilen": 27
+    },
+    {
+      "bis": 786,
+      "datei": "index.html",
+      "titel": "Einladungscodes",
+      "von": 754,
+      "zeilen": 33
+    },
+    {
+      "bis": 854,
+      "datei": "index.html",
+      "titel": "Testumgebung von den echten Daten trennen",
+      "von": 787,
+      "zeilen": 68
+    },
+    {
+      "bis": 952,
+      "datei": "index.html",
+      "titel": "Aktivitaet und Training (Stammdaten des Kalorienrechners)",
+      "von": 855,
+      "zeilen": 98
+    },
+    {
+      "bis": 969,
+      "datei": "index.html",
+      "titel": "Merkmale eines Meals (Tags, Meal-Prep)",
+      "von": 953,
+      "zeilen": 17
+    },
+    {
+      "bis": 1036,
+      "datei": "index.html",
+      "titel": "Ernaehrungsprofil (state.goal.diet / state.goal.avoid)",
+      "von": 970,
+      "zeilen": 67
+    },
+    {
+      "bis": 1085,
+      "datei": "index.html",
+      "titel": "State",
+      "von": 1037,
+      "zeilen": 49
+    },
+    {
+      "bis": 1385,
+      "datei": "index.html",
+      "titel": "Wochen (aktuelle + naechste, an ISO-Kalenderwochen gebunden)",
+      "von": 1086,
+      "zeilen": 300
+    },
+    {
+      "bis": 1402,
+      "datei": "index.html",
+      "titel": "Gewichtsverlauf",
+      "von": 1386,
+      "zeilen": 17
+    },
+    {
+      "bis": 1548,
+      "datei": "index.html",
+      "titel": "B2: Der Verlauf rechnet in WOCHEN, nicht mehr in Monaten",
+      "von": 1403,
+      "zeilen": 146
+    },
+    {
+      "bis": 1596,
+      "datei": "index.html",
+      "titel": "Gedaechtnis des Auto-Planers (state.planned)",
+      "von": 1549,
+      "zeilen": 48
+    },
+    {
+      "bis": 1712,
+      "datei": "index.html",
+      "titel": "Grabsteine geloeschter Meals",
+      "von": 1597,
+      "zeilen": 116
+    },
+    {
+      "bis": 1802,
+      "datei": "index.html",
+      "titel": "Bilder in IndexedDB (Paket A3)",
+      "von": 1713,
+      "zeilen": 90
+    },
+    {
+      "bis": 1806,
+      "datei": "index.html",
+      "titel": "Cloud-Sync (Firestore)",
+      "von": 1803,
+      "zeilen": 4
+    },
+    {
+      "bis": 1855,
+      "datei": "index.html",
+      "titel": "Pro-Berechtigung (D1)",
+      "von": 1807,
+      "zeilen": 49
+    },
+    {
+      "bis": 1953,
+      "datei": "index.html",
+      "titel": "Gemeinsam planen: Gruppenmodus",
+      "von": 1856,
+      "zeilen": 98
+    },
+    {
+      "bis": 2441,
+      "datei": "index.html",
+      "titel": "Wochenplan flach <-> verschachtelt (fuer Gruppen-Dokumente)",
+      "von": 1954,
+      "zeilen": 488
+    },
+    {
+      "bis": 3034,
+      "datei": "index.html",
+      "titel": "Empfaenger fuer die Gruppe",
+      "von": 2442,
+      "zeilen": 593
+    },
+    {
+      "bis": 3052,
+      "datei": "index.html",
+      "titel": "Rezeptbuch: was zeigen, was ist schon uebernommen",
+      "von": 3035,
+      "zeilen": 18
+    },
+    {
+      "bis": 3113,
+      "datei": "index.html",
+      "titel": "Startmeals nach dem Onboarding",
+      "von": 3053,
+      "zeilen": 61
+    },
+    {
+      "bis": 3174,
+      "datei": "index.html",
+      "titel": "Einmalige Aufraeumung alter Dubletten (Teil 3 des Katalog-Umbaus, 17.08.2026)",
+      "von": 3114,
+      "zeilen": 61
+    },
+    {
+      "bis": 3253,
+      "datei": "index.html",
+      "titel": "Zahleneingabe: Rad am Handy, Tastatur am Rechner",
+      "von": 3175,
+      "zeilen": 79
+    },
+    {
+      "bis": 3354,
+      "datei": "index.html",
+      "titel": "Sicherheitsnetz fuer fremde Bilddaten",
+      "von": 3254,
+      "zeilen": 101
+    },
+    {
+      "bis": 3463,
+      "datei": "index.html",
+      "titel": "Bilder der kuratierten Bibliothek (img/library/)",
+      "von": 3355,
+      "zeilen": 109
+    },
+    {
+      "bis": 3568,
+      "datei": "index.html",
+      "titel": "Rendering",
+      "von": 3464,
+      "zeilen": 105
+    },
+    {
+      "bis": 3622,
+      "datei": "index.html",
+      "titel": "Nährwerte",
+      "von": 3569,
+      "zeilen": 54
+    },
+    {
+      "bis": 3713,
+      "datei": "index.html",
+      "titel": "Strukturierte Zutaten",
+      "von": 3623,
+      "zeilen": 91
+    },
+    {
+      "bis": 3803,
+      "datei": "index.html",
+      "titel": "Schnelleintrag: zaehlbare Lebensmittel",
+      "von": 3714,
+      "zeilen": 90
+    },
+    {
+      "bis": 4012,
+      "datei": "index.html",
+      "titel": "Kamerabild: Buehnenformat und Fokus",
+      "von": 3804,
+      "zeilen": 209
+    },
+    {
+      "bis": 4494,
+      "datei": "index.html",
+      "titel": "Trainingstage (Verbrauch je Einheit)",
+      "von": 4013,
+      "zeilen": 482
+    },
+    {
+      "bis": 4529,
+      "datei": "index.html",
+      "titel": "Merkmale: Anzeige (Nur-Lese-Zweig) und Eingabe (Bearbeiten-Zweig)",
+      "von": 4495,
+      "zeilen": 35
+    },
+    {
+      "bis": 4936,
+      "datei": "index.html",
+      "titel": "Handy-Karussell (Wochenplan, Wochenziele, Rechner)",
+      "von": 4530,
+      "zeilen": 407
+    },
+    {
+      "bis": 6033,
+      "datei": "index.html",
+      "titel": "„Ziele <Jahr>\": Gewichtsverlauf als Jahresdiagramm",
+      "von": 4937,
+      "zeilen": 1097
+    },
+    {
+      "bis": 6109,
+      "datei": "index.html",
+      "titel": "Zurueck-Taste (D5)",
+      "von": 6034,
+      "zeilen": 76
+    },
+    {
+      "bis": 6194,
+      "datei": "index.html",
+      "titel": "Modal",
+      "von": 6110,
+      "zeilen": 85
+    },
+    {
+      "bis": 6373,
+      "datei": "index.html",
+      "titel": "Wiegen",
+      "von": 6195,
+      "zeilen": 179
+    },
+    {
+      "bis": 6486,
+      "datei": "index.html",
+      "titel": "Ziel von Hand justieren (B4)",
+      "von": 6374,
+      "zeilen": 113
+    },
+    {
+      "bis": 6632,
+      "datei": "index.html",
+      "titel": "Bewegung: FLIP am Rechner, Bottom-Sheet am Handy",
+      "von": 6487,
+      "zeilen": 146
+    },
+    {
+      "bis": 6711,
+      "datei": "index.html",
+      "titel": "Nur-Lese-Zweig: keine Eingabefelder, kein Autosave, kein Loeschen",
+      "von": 6633,
+      "zeilen": 79
+    },
+    {
+      "bis": 6785,
+      "datei": "index.html",
+      "titel": "Bearbeiten-Zweig",
+      "von": 6712,
+      "zeilen": 74
+    },
+    {
+      "bis": 6993,
+      "datei": "index.html",
+      "titel": "Autosave: input mutiert nur lokal, change/blur committen, 1500ms Leerlauf-Timer als Netz",
+      "von": 6786,
+      "zeilen": 208
+    },
+    {
+      "bis": 7022,
+      "datei": "index.html",
+      "titel": "Foto: waehlen/aendern/entfernen, aktualisiert nur die offene Ansicht (photoDoneCb)",
+      "von": 6994,
+      "zeilen": 29
+    },
+    {
+      "bis": 7225,
+      "datei": "index.html",
+      "titel": "Zutaten-Zeilen (Name, Menge, Naehrwerte pro 100 g, Barcode-Scan)",
+      "von": 7023,
+      "zeilen": 203
+    },
+    {
+      "bis": 7555,
+      "datei": "index.html",
+      "titel": "Zutaten-Suche (ARIA-Combobox auf dem Namensfeld)",
+      "von": 7226,
+      "zeilen": 330
+    },
+    {
+      "bis": 7895,
+      "datei": "index.html",
+      "titel": "Picker",
+      "von": 7556,
+      "zeilen": 340
+    },
+    {
+      "bis": 8093,
+      "datei": "index.html",
+      "titel": "Shopping list",
+      "von": 7896,
+      "zeilen": 198
+    },
+    {
+      "bis": 8295,
+      "datei": "index.html",
+      "titel": "Vorkochen (C3)",
+      "von": 8094,
+      "zeilen": 202
+    },
+    {
+      "bis": 8380,
+      "datei": "index.html",
+      "titel": "Actions",
+      "von": 8296,
+      "zeilen": 85
+    },
+    {
+      "bis": 8413,
+      "datei": "index.html",
+      "titel": "Rechtstexte (Impressum / Datenschutz)",
+      "von": 8381,
+      "zeilen": 33
+    },
+    {
+      "bis": 8520,
+      "datei": "index.html",
+      "titel": "Auto-Wochenplaner (D2)",
+      "von": 8414,
+      "zeilen": 107
+    },
+    {
+      "bis": 8539,
+      "datei": "index.html",
+      "titel": "Wiederholung: was zuletzt dran war, rutscht nach hinten",
+      "von": 8521,
+      "zeilen": 19
+    },
+    {
+      "bis": 8546,
+      "datei": "index.html",
+      "titel": "Passt die Groesse zum Slot?",
+      "von": 8540,
+      "zeilen": 7
+    },
+    {
+      "bis": 8924,
+      "datei": "index.html",
+      "titel": "In der Gruppe: was zu MEHR Profilen passt, kommt weiter nach vorn",
+      "von": 8547,
+      "zeilen": 378
+    },
+    {
+      "bis": 8934,
+      "datei": "index.html",
+      "titel": "Toast",
+      "von": 8925,
+      "zeilen": 10
+    },
+    {
+      "bis": 8970,
+      "datei": "index.html",
+      "titel": "Toast mit Rueckgaengig (Paket B1)",
+      "von": 8935,
+      "zeilen": 36
+    },
+    {
+      "bis": 9170,
+      "datei": "index.html",
+      "titel": "Event delegation",
+      "von": 8971,
+      "zeilen": 200
+    },
+    {
+      "bis": 9232,
+      "datei": "index.html",
+      "titel": "Drag & drop between slots",
+      "von": 9171,
+      "zeilen": 62
+    },
+    {
+      "bis": 9264,
+      "datei": "index.html",
+      "titel": "Foto per Drag & Drop auf eine Meal-Karte (Desktop)",
+      "von": 9233,
+      "zeilen": 32
+    },
+    {
+      "bis": 9296,
+      "datei": "index.html",
+      "titel": "Foto per Strg+V auf eine Meal-Karte einfuegen",
+      "von": 9265,
+      "zeilen": 32
+    },
+    {
+      "bis": 9343,
+      "datei": "index.html",
+      "titel": "Profil (lokal) & Teilen",
+      "von": 9297,
+      "zeilen": 47
+    },
+    {
+      "bis": 9938,
+      "datei": "index.html",
+      "titel": "Kontowechsel auf demselben Geraet",
+      "von": 9344,
+      "zeilen": 595
+    },
+    {
+      "bis": 10029,
+      "datei": "index.html",
+      "titel": "Kalorienrechner (Baustein 1: Tages-/Wochenbedarf → state.goal)",
+      "von": 9939,
+      "zeilen": 91
+    },
+    {
+      "bis": 10103,
+      "datei": "index.html",
+      "titel": "Wiegen: speichern, loeschen, ans Ziel koppeln",
+      "von": 10030,
+      "zeilen": 74
+    },
+    {
+      "bis": 10815,
+      "datei": "index.html",
+      "titel": "Erste Schritte (Onboarding)",
+      "von": 10104,
+      "zeilen": 712
+    },
+    {
+      "bis": 10842,
+      "datei": "index.html",
+      "titel": "Erscheinungsbild",
+      "von": 10816,
+      "zeilen": 27
+    },
+    {
+      "bis": 10968,
+      "datei": "index.html",
+      "titel": "Einstellungen",
+      "von": 10843,
+      "zeilen": 126
+    },
+    {
+      "bis": 11044,
+      "datei": "index.html",
+      "titel": "Einstieg (D1b)",
+      "von": 10969,
+      "zeilen": 76
+    },
+    {
+      "bis": 11604,
+      "datei": "index.html",
+      "titel": "Cloud-Anmeldung (Firebase)",
+      "von": 11045,
+      "zeilen": 560
+    },
+    {
+      "bis": 12578,
+      "datei": "index.html",
+      "titel": "Gemeinsam planen (Gruppe)",
+      "von": 11605,
+      "zeilen": 974
+    },
+    {
+      "bis": 12612,
+      "datei": "index.html",
+      "titel": "Teilen ueber den nativen Dialog des Geraets (Web Share API)",
+      "von": 12579,
+      "zeilen": 34
+    },
+    {
+      "bis": 12852,
+      "datei": "index.html",
+      "titel": "Einkaufsliste als PDF (Paket B3)",
+      "von": 12613,
+      "zeilen": 240
+    },
+    {
+      "bis": 12871,
+      "datei": "index.html",
+      "titel": "Boot",
+      "von": 12853,
+      "zeilen": 19
+    },
+    {
+      "bis": 153,
+      "datei": "lib/barcode.js",
+      "titel": "Barcode-Scan (Open Food Facts)",
+      "von": 14,
+      "zeilen": 140
+    },
+    {
+      "bis": 32,
+      "datei": "lib/pdf.js",
+      "titel": "PDF selbst erzeugen (kein window.print, sandbox-sicher)",
+      "von": 14,
+      "zeilen": 19
+    },
+    {
+      "bis": 100,
+      "datei": "lib/pdf.js",
+      "titel": "Marken-Kopf fuer die PDFs (Logo, \"PADDY'S MEALPLAN\", Slogan)",
+      "von": 33,
+      "zeilen": 68
+    },
+    {
+      "bis": 235,
+      "datei": "lib/pdf.js",
+      "titel": "Echtes Logo-PNG fuer die PDFs vorbereiten (einmalig, async, gecacht)",
+      "von": 101,
+      "zeilen": 135
+    }
+  ],
+  "dateien": [
+    {
+      "bytes": 3793,
+      "pfad": ".claude/Skills/abnahme/SKILL.md",
+      "zeilen": 80
+    },
+    {
+      "bytes": 3653,
+      "pfad": ".claude/Skills/deploy/SKILL.md",
+      "zeilen": 101
+    },
+    {
+      "bytes": 5263,
+      "pfad": ".claude/Skills/pruefstand/SKILL.md",
+      "zeilen": 126
+    },
+    {
+      "bytes": 3368,
+      "pfad": ".claude/Skills/smoke/SKILL.md",
+      "zeilen": 82
+    },
+    {
+      "bytes": 15770,
+      "pfad": ".claude/agents/anwalt.md",
+      "zeilen": 273
+    },
+    {
+      "bytes": 9879,
+      "pfad": ".claude/agents/datenschutz-technik.md",
+      "zeilen": 174
+    },
+    {
+      "bytes": 5302,
+      "pfad": ".claude/agents/doku-waechter.md",
+      "zeilen": 105
+    },
+    {
+      "bytes": 9060,
+      "pfad": ".claude/agents/kvp.md",
+      "zeilen": 162
+    },
+    {
+      "bytes": 6016,
+      "pfad": ".claude/agents/lieferkette.md",
+      "zeilen": 124
+    },
+    {
+      "bytes": 8925,
+      "pfad": ".claude/agents/store-check.md",
+      "zeilen": 170
+    },
+    {
+      "bytes": 3776,
+      "pfad": ".claude/agents/ux-reviewer.md",
+      "zeilen": 71
+    },
+    {
+      "bytes": 10650,
+      "pfad": ".claude/agents/website-security.md",
+      "zeilen": 195
+    },
+    {
+      "bytes": 2657,
+      "pfad": ".claude/commands/pushcheck.md",
+      "zeilen": 70
+    },
+    {
+      "bytes": 7060,
+      "pfad": ".claude/hooks/commit-waechter.py",
+      "zeilen": 162
+    },
+    {
+      "bytes": 2838,
+      "pfad": ".claude/hooks/push-waechter.py",
+      "zeilen": 92
+    },
+    {
+      "bytes": 3856,
+      "pfad": ".claude/hooks/secrets-filter.py",
+      "zeilen": 93
+    },
+    {
+      "bytes": 3382,
+      "pfad": ".claude/hooks/syntax-nach-edit.py",
+      "zeilen": 94
+    },
+    {
+      "bytes": 5820,
+      "pfad": ".claude/hooks/wartung-erinnerung.py",
+      "zeilen": 142
+    },
+    {
+      "bytes": 1406,
+      "pfad": ".claude/settings.json",
+      "zeilen": 56
+    },
+    {
+      "bytes": 594,
+      "pfad": ".gitattributes",
+      "zeilen": 21
+    },
+    {
+      "bytes": 8066,
+      "pfad": ".github/workflows/pruefung.yml",
+      "zeilen": 188
+    },
+    {
+      "bytes": 4896,
+      "pfad": ".gitignore",
+      "zeilen": 112
+    },
+    {
+      "bytes": 27355,
+      "pfad": "CLAUDE.md",
+      "zeilen": 668
+    },
+    {
+      "bytes": 21,
+      "pfad": "CNAME",
+      "zeilen": 1
+    },
+    {
+      "bytes": 9363,
+      "pfad": "FIREBASE-SETUP.md",
+      "zeilen": 197
+    },
+    {
+      "bytes": 1364,
+      "pfad": "LICENSE",
+      "zeilen": 30
+    },
+    {
+      "bytes": 1990,
+      "pfad": "README.md",
+      "zeilen": 46
+    },
+    {
+      "bytes": 3006,
+      "pfad": "SECURITY.md",
+      "zeilen": 71
+    },
+    {
+      "bytes": 35163,
+      "pfad": "apple-touch-icon.png"
+    },
+    {
+      "bytes": 4167,
+      "pfad": "css/CLAUDE.md",
+      "zeilen": 92
+    },
+    {
+      "bytes": 69835,
+      "pfad": "css/basis.css",
+      "zeilen": 959
+    },
+    {
+      "bytes": 87302,
+      "pfad": "css/komponenten.css",
+      "zeilen": 1107
+    },
+    {
+      "bytes": 56353,
+      "pfad": "css/mobil.css",
+      "zeilen": 863
+    },
+    {
+      "bytes": 11084,
+      "pfad": "css/tokens.css",
+      "zeilen": 221
+    },
+    {
+      "bytes": 3865,
+      "pfad": "data/CLAUDE.md",
+      "zeilen": 102
+    },
+    {
+      "bytes": 14471,
+      "pfad": "data/bilder.js",
+      "zeilen": 134
+    },
+    {
+      "bytes": 35698,
+      "pfad": "data/cookbook.js",
+      "zeilen": 469
+    },
+    {
+      "bytes": 14489,
+      "pfad": "data/foods.js",
+      "zeilen": 203
+    },
+    {
+      "bytes": 8630,
+      "pfad": "data/ikonen.js",
+      "zeilen": 76
+    },
+    {
+      "bytes": 27303,
+      "pfad": "data/rechtstexte.js",
+      "zeilen": 162
+    },
+    {
+      "bytes": 10999,
+      "pfad": "docs/ABDECKUNG.md",
+      "zeilen": 186
+    },
+    {
+      "bytes": 164860,
+      "pfad": "docs/ARCHITECTURES.md",
+      "zeilen": 2631
+    },
+    {
+      "bytes": 11072,
+      "pfad": "docs/DESIGN.md",
+      "zeilen": 336
+    },
+    {
+      "erzeugt": true,
+      "pfad": "docs/MODULE.md"
+    },
+    {
+      "bytes": 73734,
+      "pfad": "docs/PRODUCT.md",
+      "zeilen": 1377
+    },
+    {
+      "bytes": 5665,
+      "pfad": "docs/RUNBOOK.md",
+      "zeilen": 167
+    },
+    {
+      "bytes": 19197,
+      "pfad": "docs/SECURITY.md",
+      "zeilen": 356
+    },
+    {
+      "bytes": 10993,
+      "pfad": "docs/STORE.md",
+      "zeilen": 232
+    },
+    {
+      "bytes": 186147,
+      "pfad": "docs/TESTING.md",
+      "zeilen": 3155
+    },
+    {
+      "bytes": 293039,
+      "pfad": "docs/TROUBLESHOOTING.md",
+      "zeilen": 5093
+    },
+    {
+      "erzeugt": true,
+      "pfad": "docs/module-index.json"
+    },
+    {
+      "bytes": 23714,
+      "pfad": "firestore.rules",
+      "zeilen": 416
+    },
+    {
+      "bytes": 45024,
+      "pfad": "icon-192.png"
+    },
+    {
+      "bytes": 184703,
+      "pfad": "icon-512.png"
+    },
+    {
+      "bytes": 135906,
+      "pfad": "icon-maskable-512.png"
+    },
+    {
+      "bytes": 18750,
+      "pfad": "img/beef.webp"
+    },
+    {
+      "bytes": 17180,
+      "pfad": "img/burger.webp"
+    },
+    {
+      "bytes": 12206,
+      "pfad": "img/cake.webp"
+    },
+    {
+      "bytes": 15062,
+      "pfad": "img/casserole.webp"
+    },
+    {
+      "bytes": 30690,
+      "pfad": "img/cheese.webp"
+    },
+    {
+      "bytes": 19368,
+      "pfad": "img/chicken.webp"
+    },
+    {
+      "bytes": 16304,
+      "pfad": "img/coffee.webp"
+    },
+    {
+      "bytes": 19488,
+      "pfad": "img/curry.webp"
+    },
+    {
+      "bytes": 7948,
+      "pfad": "img/drink.webp"
+    },
+    {
+      "bytes": 16352,
+      "pfad": "img/egg.webp"
+    },
+    {
+      "bytes": 18264,
+      "pfad": "img/fish.webp"
+    },
+    {
+      "bytes": 12870,
+      "pfad": "img/fruit.webp"
+    },
+    {
+      "bytes": 4984,
+      "pfad": "img/icecream.webp"
+    },
+    {
+      "bytes": 35192,
+      "pfad": "img/library/beeren-protein-shake-hafer.webp"
+    },
+    {
+      "bytes": 29528,
+      "pfad": "img/library/bilder-protokoll.json",
+      "zeilen": 240
+    },
+    {
+      "bytes": 57510,
+      "pfad": "img/library/blumenkohl-curry-tofu.webp"
+    },
+    {
+      "bytes": 65746,
+      "pfad": "img/library/chia-pudding-soja-beeren.webp"
+    },
+    {
+      "bytes": 55492,
+      "pfad": "img/library/chili-rinderhack-bohnen.webp"
+    },
+    {
+      "bytes": 56126,
+      "pfad": "img/library/dattel-nuss-bissen.webp"
+    },
+    {
+      "bytes": 37614,
+      "pfad": "img/library/edamame-sesam-snack.webp"
+    },
+    {
+      "bytes": 23720,
+      "pfad": "img/library/eiweissshake-mit-whey-und-milch.webp"
+    },
+    {
+      "bytes": 54210,
+      "pfad": "img/library/garnelen-zucchini-tomaten.webp"
+    },
+    {
+      "bytes": 33438,
+      "pfad": "img/library/gruener-smoothie-spinat.webp"
+    },
+    {
+      "bytes": 45294,
+      "pfad": "img/library/haehnchen-bowl-brokkoli.webp"
+    },
+    {
+      "bytes": 56092,
+      "pfad": "img/library/haehnchen-brokkoli-auflauf.webp"
+    },
+    {
+      "bytes": 52044,
+      "pfad": "img/library/haehnchen-mit-pute-und-reis.webp"
+    },
+    {
+      "bytes": 73242,
+      "pfad": "img/library/haehnchen-zucchini-feta.webp"
+    },
+    {
+      "bytes": 52688,
+      "pfad": "img/library/huettenkaese-vollkornbrot.webp"
+    },
+    {
+      "bytes": 47438,
+      "pfad": "img/library/kichererbsen-curry-spinat.webp"
+    },
+    {
+      "bytes": 50094,
+      "pfad": "img/library/linsen-bolognese-vollkorn.webp"
+    },
+    {
+      "bytes": 66632,
+      "pfad": "img/library/ofen-feta-kichererbsen.webp"
+    },
+    {
+      "bytes": 68612,
+      "pfad": "img/library/ofengemuese-blech.webp"
+    },
+    {
+      "bytes": 59954,
+      "pfad": "img/library/ofenlachs-suesskartoffel.webp"
+    },
+    {
+      "bytes": 38496,
+      "pfad": "img/library/overnight-oats-soja-beeren.webp"
+    },
+    {
+      "bytes": 35382,
+      "pfad": "img/library/protein-pancakes-skyr.webp"
+    },
+    {
+      "bytes": 56480,
+      "pfad": "img/library/protein-porridge-mit-beeren.webp"
+    },
+    {
+      "bytes": 70642,
+      "pfad": "img/library/putenpfanne-vollkornnudeln.webp"
+    },
+    {
+      "bytes": 40140,
+      "pfad": "img/library/quark-haferflocken-banane.webp"
+    },
+    {
+      "bytes": 54642,
+      "pfad": "img/library/quinoa-bowl-edamame.webp"
+    },
+    {
+      "bytes": 36304,
+      "pfad": "img/library/quinoa-salat-kichererbsen.webp"
+    },
+    {
+      "bytes": 55732,
+      "pfad": "img/library/rindersteak-mit-ofenkartoffeln.webp"
+    },
+    {
+      "bytes": 52576,
+      "pfad": "img/library/rotes-linsen-dal.webp"
+    },
+    {
+      "bytes": 43314,
+      "pfad": "img/library/ruehrei-avocadobrot.webp"
+    },
+    {
+      "bytes": 41272,
+      "pfad": "img/library/schoko-protein-quark.webp"
+    },
+    {
+      "bytes": 36140,
+      "pfad": "img/library/skyr-beeren-nuesse.webp"
+    },
+    {
+      "bytes": 34532,
+      "pfad": "img/library/thunfisch-quark-dip.webp"
+    },
+    {
+      "bytes": 64756,
+      "pfad": "img/library/tofu-gemuesepfanne.webp"
+    },
+    {
+      "bytes": 51236,
+      "pfad": "img/library/tofu-ruehrei-vollkornbrot.webp"
+    },
+    {
+      "bytes": 45014,
+      "pfad": "img/logo.png"
+    },
+    {
+      "bytes": 26267,
+      "pfad": "img/neutral.jpg"
+    },
+    {
+      "bytes": 17116,
+      "pfad": "img/noodle.webp"
+    },
+    {
+      "bytes": 9678,
+      "pfad": "img/pancake.webp"
+    },
+    {
+      "bytes": 15086,
+      "pfad": "img/pasta.webp"
+    },
+    {
+      "bytes": 25652,
+      "pfad": "img/pizza.jpg"
+    },
+    {
+      "bytes": 26250,
+      "pfad": "img/porridge.jpg"
+    },
+    {
+      "bytes": 26194,
+      "pfad": "img/potato.webp"
+    },
+    {
+      "bytes": 20660,
+      "pfad": "img/rice.webp"
+    },
+    {
+      "bytes": 30336,
+      "pfad": "img/salad.jpg"
+    },
+    {
+      "bytes": 24921,
+      "pfad": "img/sandwich.jpg"
+    },
+    {
+      "bytes": 31854,
+      "pfad": "img/seafood.webp"
+    },
+    {
+      "bytes": 20452,
+      "pfad": "img/soup.webp"
+    },
+    {
+      "bytes": 29984,
+      "pfad": "img/steak.webp"
+    },
+    {
+      "bytes": 17392,
+      "pfad": "img/stew.webp"
+    },
+    {
+      "bytes": 24348,
+      "pfad": "img/sushi.webp"
+    },
+    {
+      "bytes": 24782,
+      "pfad": "img/taco.webp"
+    },
+    {
+      "bytes": 15252,
+      "pfad": "img/toast.webp"
+    },
+    {
+      "bytes": 33496,
+      "pfad": "img/waffle.webp"
+    },
+    {
+      "bytes": 29160,
+      "pfad": "img/wrap.webp"
+    },
+    {
+      "bytes": 797128,
+      "pfad": "index.html",
+      "zeilen": 12871
+    },
+    {
+      "bytes": 8354,
+      "pfad": "lib/barcode.js",
+      "zeilen": 153
+    },
+    {
+      "bytes": 836,
+      "pfad": "lib/basis.js",
+      "zeilen": 21
+    },
+    {
+      "bytes": 12690,
+      "pfad": "lib/pdf.js",
+      "zeilen": 235
+    },
+    {
+      "bytes": 786,
+      "pfad": "manifest.webmanifest",
+      "zeilen": 22
+    },
+    {
+      "bytes": 299103,
+      "pfad": "og-image.png"
+    },
+    {
+      "bytes": 75,
+      "pfad": "robots.txt",
+      "zeilen": 5
+    },
+    {
+      "bytes": 173,
+      "pfad": "sitemap.xml",
+      "zeilen": 7
+    },
+    {
+      "bytes": 6210,
+      "pfad": "sw.js",
+      "zeilen": 141
+    },
+    {
+      "bytes": 16172,
+      "pfad": "syntax-check.py",
+      "zeilen": 382
+    },
+    {
+      "bytes": 2182,
+      "pfad": "test-server.ps1",
+      "zeilen": 66
+    },
+    {
+      "bytes": 13049,
+      "pfad": "tools/abdeckung.py",
+      "zeilen": 324
+    },
+    {
+      "bytes": 8920,
+      "pfad": "tools/alle-pruefstaende.py",
+      "zeilen": 216
+    },
+    {
+      "bytes": 11294,
+      "pfad": "tools/cdp.py",
+      "zeilen": 261
+    },
+    {
+      "bytes": 2957,
+      "pfad": "tools/firebase-vendor.py",
+      "zeilen": 75
+    },
+    {
+      "bytes": 24255,
+      "pfad": "tools/karte.py",
+      "zeilen": 605
+    },
+    {
+      "bytes": 20200,
+      "pfad": "tools/meal-bilder.py",
+      "zeilen": 417
+    },
+    {
+      "bytes": 8092,
+      "pfad": "tools/mobilprobe-rezeptbuch.html",
+      "zeilen": 146
+    },
+    {
+      "bytes": 63787,
+      "pfad": "tools/pruefstand-autoplaner.py",
+      "zeilen": 1157
+    },
+    {
+      "bytes": 8848,
+      "pfad": "tools/pruefstand-cache-reset.py",
+      "zeilen": 202
+    },
+    {
+      "bytes": 14923,
+      "pfad": "tools/pruefstand-einkauf-gruppe.py",
+      "zeilen": 294
+    },
+    {
+      "bytes": 32802,
+      "pfad": "tools/pruefstand-einkaufsliste.py",
+      "zeilen": 686
+    },
+    {
+      "bytes": 11518,
+      "pfad": "tools/pruefstand-einladung-verbrauch.py",
+      "zeilen": 232
+    },
+    {
+      "bytes": 8553,
+      "pfad": "tools/pruefstand-grpm-zoom.py",
+      "zeilen": 220
+    },
+    {
+      "bytes": 12273,
+      "pfad": "tools/pruefstand-gruppe-aufloesen.py",
+      "zeilen": 255
+    },
+    {
+      "bytes": 11335,
+      "pfad": "tools/pruefstand-gruppe-beitritt-cache.py",
+      "zeilen": 253
+    },
+    {
+      "bytes": 14800,
+      "pfad": "tools/pruefstand-gruppe-plan-mitbringen.py",
+      "zeilen": 318
+    },
+    {
+      "bytes": 17391,
+      "pfad": "tools/pruefstand-gruppe-verlassen-dubletten.py",
+      "zeilen": 342
+    },
+    {
+      "bytes": 11367,
+      "pfad": "tools/pruefstand-gruppenlimit.py",
+      "zeilen": 243
+    },
+    {
+      "bytes": 25271,
+      "pfad": "tools/pruefstand-katalog-plan.py",
+      "zeilen": 534
+    },
+    {
+      "bytes": 9393,
+      "pfad": "tools/pruefstand-kontowechsel.py",
+      "zeilen": 215
+    },
+    {
+      "bytes": 10795,
+      "pfad": "tools/pruefstand-rezeptbuch-ansicht.py",
+      "zeilen": 188
+    },
+    {
+      "bytes": 10028,
+      "pfad": "tools/pruefstand-rezeptbuch-filter.py",
+      "zeilen": 219
+    },
+    {
+      "bytes": 23920,
+      "pfad": "tools/pruefstand-rezeptbuch.py",
+      "zeilen": 426
+    },
+    {
+      "bytes": 9167,
+      "pfad": "tools/pruefstand-rueckblick-ziel.py",
+      "zeilen": 210
+    },
+    {
+      "bytes": 14644,
+      "pfad": "tools/pruefstand-sheet-repaint.py",
+      "zeilen": 273
+    },
+    {
+      "bytes": 10106,
+      "pfad": "tools/pruefstand-sync-abriss.py",
+      "zeilen": 226
+    },
+    {
+      "bytes": 10687,
+      "pfad": "tools/pruefstand-waise-uids.py",
+      "zeilen": 226
+    },
+    {
+      "bytes": 8817,
+      "pfad": "tools/pruefstand-weekstats-sync.py",
+      "zeilen": 192
+    },
+    {
+      "bytes": 7218,
+      "pfad": "tools/pruefstand-wochenbeschriftung.py",
+      "zeilen": 145
+    },
+    {
+      "bytes": 18104,
+      "pfad": "tools/pruefstand-wochenmaske.py",
+      "zeilen": 338
+    },
+    {
+      "bytes": 8679,
+      "pfad": "tools/pruefstand-ziel-undefined.py",
+      "zeilen": 183
+    },
+    {
+      "bytes": 16043,
+      "pfad": "tools/pruefstand-zurueck-taste.py",
+      "zeilen": 352
+    },
+    {
+      "bytes": 10378,
+      "pfad": "tools/pruefstand-zuweisung-loeschen.py",
+      "zeilen": 232
+    },
+    {
+      "bytes": 4894,
+      "pfad": "tools/pruefstand_lauf.py",
+      "zeilen": 113
+    },
+    {
+      "bytes": 6216,
+      "pfad": "tools/quelle.py",
+      "zeilen": 163
+    },
+    {
+      "bytes": 12049,
+      "pfad": "tools/rezept-makros.py",
+      "zeilen": 279
+    },
+    {
+      "bytes": 8236,
+      "pfad": "tools/smoke-mit-daten.py",
+      "zeilen": 145
+    },
+    {
+      "bytes": 7487,
+      "pfad": "tools/test-meal-bilder.py",
+      "zeilen": 143
+    },
+    {
+      "bytes": 22371,
+      "pfad": "tools/wartung-check.py",
+      "zeilen": 493
+    },
+    {
+      "bytes": 4621,
+      "pfad": "vendor/HERKUNFT.md",
+      "zeilen": 105
+    },
+    {
+      "bytes": 11358,
+      "pfad": "vendor/firebase/10.12.5/LICENSE",
+      "zeilen": 203
+    },
+    {
+      "bytes": 1063,
+      "pfad": "vendor/firebase/10.12.5/README.md",
+      "zeilen": 27
+    },
+    {
+      "bytes": 102248,
+      "pfad": "vendor/firebase/10.12.5/firebase-app.js",
+      "zeilen": 5122
+    },
+    {
+      "bytes": 150915,
+      "pfad": "vendor/firebase/10.12.5/firebase-auth.js",
+      "zeilen": 3
+    },
+    {
+      "bytes": 437972,
+      "pfad": "vendor/firebase/10.12.5/firebase-firestore.js",
+      "zeilen": 3
+    },
+    {
+      "bytes": 336008,
+      "pfad": "vendor/zxing.min.js",
+      "zeilen": 1
+    },
+    {
+      "bytes": 8916,
+      "pfad": "worker/og.js",
+      "zeilen": 191
+    }
+  ],
+  "daten": {
+    "firestore": [
+      "databases",
+      "entitlements",
+      "groups",
+      "invites",
+      "shared",
+      "users"
+    ],
+    "konstanten": [
+      {
+        "datei": "data/ikonen.js",
+        "name": "ACT_ICONS"
+      },
+      {
+        "datei": "data/ikonen.js",
+        "name": "CAT_ICON"
+      },
+      {
+        "datei": "data/bilder.js",
+        "name": "CAT_PHOTO"
+      },
+      {
+        "datei": "data/cookbook.js",
+        "name": "COOKBOOK"
+      },
+      {
+        "datei": "data/rechtstexte.js",
+        "name": "DATENSCHUTZ_HTML"
+      },
+      {
+        "datei": "data/foods.js",
+        "name": "FOODS"
+      },
+      {
+        "datei": "data/ikonen.js",
+        "name": "ICONS"
+      },
+      {
+        "datei": "data/ikonen.js",
+        "name": "ICON_DUMBBELL"
+      },
+      {
+        "datei": "data/ikonen.js",
+        "name": "ICON_FLAG"
+      },
+      {
+        "datei": "data/ikonen.js",
+        "name": "ICON_PEOPLE"
+      },
+      {
+        "datei": "data/rechtstexte.js",
+        "name": "IMPRESSUM_HTML_1"
+      },
+      {
+        "datei": "data/rechtstexte.js",
+        "name": "IMPRESSUM_HTML_2"
+      },
+      {
+        "datei": "data/ikonen.js",
+        "name": "MEAL_ICON"
+      },
+      {
+        "datei": "data/bilder.js",
+        "name": "PHOTOS"
+      },
+      {
+        "datei": "data/bilder.js",
+        "name": "PHOTO_CREDITS"
+      },
+      {
+        "datei": "data/bilder.js",
+        "name": "PHOTO_RULES"
+      },
+      {
+        "datei": "data/ikonen.js",
+        "name": "TOOL_ICONS"
+      }
+    ],
+    "localstorage": [
+      "wochenkueche",
+      "wochenkueche_lastprofile_v1",
+      "wochenkueche_lastuid_v1",
+      "wochenkueche_profile_v1",
+      "wochenkueche_shop_v1",
+      "wochenkueche_theme_v1",
+      "wochenkueche_v1"
+    ]
+  },
+  "dienste": [
+    "commons.wikimedia.org",
+    "creativecommons.org",
+    "docs.github.com",
+    "firestore.googleapis.com",
+    "oauth2.googleapis.com",
+    "openai.com",
+    "opendatacommons.org",
+    "policies.google.com",
+    "schema.org",
+    "stocksnap.io",
+    "world.openfoodfacts.org",
+    "www.flickr.com",
+    "www.googleapis.com",
+    "www.paddysmealplan.de",
+    "www.rawpixel.com"
+  ],
+  "hinweis": "Erzeugt von tools/karte.py. Nicht von Hand aendern. Enthaelt ausschliesslich den technischen Ist-Zustand - keine Roadmap, kein Backlog, keine Planung.",
+  "hooks": [
+    {
+      "ereignis": "PostToolUse",
+      "kommando": "python .claude/hooks/syntax-nach-edit.py",
+      "matcher": "Edit|Write"
+    },
+    {
+      "ereignis": "PreToolUse",
+      "kommando": "python .claude/hooks/commit-waechter.py",
+      "matcher": "Bash|PowerShell"
+    },
+    {
+      "ereignis": "PreToolUse",
+      "kommando": "python .claude/hooks/secrets-filter.py",
+      "matcher": "Bash|PowerShell"
+    },
+    {
+      "ereignis": "PreToolUse",
+      "kommando": "python .claude/hooks/push-waechter.py",
+      "matcher": "Bash|PowerShell"
+    },
+    {
+      "ereignis": "SessionStart",
+      "kommando": "python .claude/hooks/wartung-erinnerung.py",
+      "matcher": ""
+    }
+  ],
+  "ladereihenfolge": [
+    "css/tokens.css",
+    "css/basis.css",
+    "css/komponenten.css",
+    "css/mobil.css",
+    "lib/basis.js",
+    "data/ikonen.js",
+    "data/bilder.js",
+    "data/cookbook.js",
+    "data/foods.js",
+    "data/rechtstexte.js",
+    "lib/pdf.js",
+    "lib/barcode.js"
+  ],
+  "reiter": [
+    "home",
+    "plan",
+    "progress",
+    "recipes"
+  ],
+  "schema": 1,
+  "skills": [
+    {
+      "datei": ".claude/Skills/abnahme/SKILL.md",
+      "name": "abnahme",
+      "pfade": [
+        "docs/TESTING.md"
+      ],
+      "zweck": "Fährt eine Abnahme am echten Cloud-Konto über tools/cdp.py — sichtbarer Chrome per DevTools-Protokoll, der Nutzer meldet sich selbst an, danach liest und klickt das Skript. Verwenden für alles, was ei"
+    },
+    {
+      "datei": ".claude/Skills/deploy/SKILL.md",
+      "name": "deploy",
+      "pfade": [
+        ".claude/hooks/push-waechter.py",
+        "firestore.rules",
+        "sw.js"
+      ],
+      "zweck": "Bringt Paddy's Mealplan live — Push auf main, Verifikation, dass Remote und lokaler HEAD übereinstimmen, und die Prüfung, dass GitHub Pages die neue Fassung tatsächlich ausliefert. Enthält auch den Rü"
+    },
+    {
+      "datei": ".claude/Skills/pruefstand/SKILL.md",
+      "name": "pruefstand",
+      "pfade": [
+        "data/cookbook.js",
+        "docs/TESTING.md",
+        "index.html",
+        "tools/quelle.py"
+      ],
+      "zweck": "Baut einen Ausschneide-Prüfstand für Paddy's Mealplan — schneidet echten Code aus index.html, stubbt fehlende Helfer, fährt ihn headless und prüft mit Gegenprobe gegen den alten Stand. Verwenden, wenn"
+    },
+    {
+      "datei": ".claude/Skills/smoke/SKILL.md",
+      "name": "smoke",
+      "pfade": [
+        "dump.html"
+      ],
+      "zweck": "Führt den Standard-Startbeweis für Paddy's Mealplan aus — erst Syntax-Check, dann Edge headless, dann die Prüfung, ob #view tatsächlich App-Inhalt enthält. Verwenden nach jeder Änderung an index.html "
+    }
+  ]
+}

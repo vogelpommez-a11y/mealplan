@@ -6,7 +6,7 @@ Dieses Dokument beschreibt die technische Struktur, Datenflüsse, Persistenz und
 
 <!-- REGISTER-ANFANG (erzeugt aus den Ueberschriften, nicht von Hand pflegen) -->
 
-**Register — 24 Abschnitte.** Wo welcher Teil des Systems beschrieben ist.
+**Register — 25 Abschnitte.** Wo welcher Teil des Systems beschrieben ist.
 
 | # | Abschnitt |
 |---|---|
@@ -33,6 +33,7 @@ Dieses Dokument beschreibt die technische Struktur, Datenflüsse, Persistenz und
 | · | Zurück-Taste und Overlay-Stapel (D5, 23.08.2026) |
 | · | Meal-Ansicht: eine Oberfläche statt zweier (`openMealSheet`) |
 | · | Auto-Wochenplaner (D2, 16.08.2026) |
+| · | Einkaufsliste: der Abhak-Zustand hängt an der Woche (28.08.2026) |
 | · | Architekturprinzip |
 
 <!-- REGISTER-ENDE -->
@@ -66,17 +67,33 @@ Firebase wird vom CDN geladen.
 
 ## Struktur von `index.html`
 
-Die Zeilennummern sind nur grobe Orientierung und dürfen nicht als stabile API betrachtet werden.
+Seit dem 29.08.2026 ist die App **nicht mehr eine einzige Datei**. Ausgeliefert werden
+weiterhin statische Dateien ohne Build; der Code liegt nur auf mehrere davon verteilt.
 
-| Bereich                                  | Inhalt                           |
-| ---------------------------------------- | -------------------------------- |
-| `<head>` / CSS                           | Meta-Tags und gesamtes UI-System |
-| `<header>` / `<main id="view">` / Footer | statisches Grundgerüst           |
-| `type="module"`                          | Firebase und Cloud-Abstraktion   |
-| normales `<script>`                      | eigentliche App                  |
-| `PHOTO_CREDITS` / `PHOTOS`               | Foto-Metadaten                   |
+| Datei | Inhalt |
+|---|---|
+| `css/tokens.css` | Design-Tokens, alle vier Theme-Blöcke |
+| `css/basis.css`, `css/komponenten.css`, `css/mobil.css` | das übrige UI-System |
+| `lib/basis.js` | `window.PM` mit `esc()` und `el()` |
+| `data/*.js` | `ICONS`, `PHOTOS`/`PHOTO_CREDITS`, `COOKBOOK`, `FOODS`, Rechtstexte |
+| `lib/pdf.js`, `lib/barcode.js` | PDF-Schreiber und Barcode-Infrastruktur |
+| `index.html` → `type="module"` | Firebase und Cloud-Abstraktion |
+| `index.html` → normales `<script>` | Markup und der verwobene App-Kern (eine IIFE) |
 
-Bei Änderungen immer mit `Grep` nach konkreten Markern suchen.
+**Die Reihenfolge der Einbindung ist Architektur.** Es sind klassische Skripte, keine
+ES-Module: sie laufen synchron in Dokumentreihenfolge, sodass alle Konstanten und
+Fassaden bereitstehen, bevor die App-IIFE geparst wird. ES-Module scheiden aus, weil sie
+über `file://` nicht laden — und genau darauf bauen Smoke-Test und Prüfstände auf.
+
+**Warum der Kern zusammenbleibt:** `state`, Persistenz, Cloud-Sync, Views, Meal-Sheet,
+Einkaufsliste, Auto-Planer, Onboarding und Gruppe teilen sich `state`, `save()`,
+`render()`, `toast()` und die Sanitizer-Kette. Ausgelagert wurde nur, was **gemessen**
+keine Kernfunktion aufruft. Das ist eine Eigenschaft des Codes, keine Geschmacksfrage.
+
+Zeilennummern sind grobe Orientierung und keine stabile API. Die aktuelle Zuordnung von
+Bereich zu Datei und Zeilenbereich steht **erzeugt** in `docs/MODULE.md`
+(`python tools/karte.py`). Bei Änderungen immer mit `Grep` nach konkreten Markern suchen —
+und über **alle** Code-Dateien, nicht nur `index.html`.
 
 ## HTML-Grundgerüst
 
@@ -2141,7 +2158,9 @@ Ein Meal hatte früher drei getrennte Oberflächen: die Karte in der Liste, ein 
 originEl)` ersetzt beide Modals durch eine einzige Ansicht, die am Rechner aus der Karte (bzw.
 einem Wochenplan-Slot) per FLIP-Animation wächst, am Handy als Bottom-Sheet hochfährt, direkt
 bearbeitbar ist und automatisch speichert. Details und der ursprüngliche Plan stehen in
-`plans/MealAnsicht.MD` (Umbau abgeschlossen, Schritte 1–5).
+dem Planungsdokument zum Umbau (Schritte 1–5). Das Dokument selbst gibt es nicht mehr —
+umgesetzte Pläne werden gelöscht (`CLAUDE.md` §20); Code-Kommentare verweisen weiterhin
+darauf, weil sie die damalige Begründung festhalten.
 
 **Zwei Zweige, ein Einstiegs-Modus.** `openMealSheet(id, prefill, originEl, startInEdit)`:
 `canEdit()` entscheidet weiter allein über die **Berechtigung** (Rolle `view` bekommt immer den

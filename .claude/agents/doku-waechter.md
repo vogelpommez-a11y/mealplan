@@ -75,7 +75,7 @@ Eine Änderung darf mehrere Dateien betreffen. Das ist der Normalfall, kein Sond
   Befund — entweder ist die Änderung falsch, oder die Entscheidung wurde revidiert und der
   Text muss weg. Beides muss jemand entscheiden, nicht stillschweigend passieren.
 - **Rechtstexte.** Berührt die Änderung Sharing, Sync, Gruppen, Datenfelder oder Löschung?
-  Dann ist nicht die Doku, sondern `openDatenschutz()` in `index.html` betroffen — verweise
+  Dann ist nicht die Doku, sondern der Datenschutztext in `data/rechtstexte.js` betroffen — verweise
   auf die Agenten `anwalt` und `datenschutz-technik`, prüfe das nicht selbst.
 - **`ROADMAP.html`** (gitignored): Ist ein Feature fertig, das dort noch als offen steht?
 

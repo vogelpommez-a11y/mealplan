@@ -82,6 +82,9 @@ merkt.
 | Bereich | Kennung | Prüfer | Auslöser |
 |---|---|---|---|
 | Die App selbst | `pfad:index.html` | alle, je nach Änderung | siehe `CLAUDE.md` §19 |
+| Styles und Design-Tokens | `pfad:css/` | `ux-reviewer` (Tokens, Zustände), `kvp` (Mobile) | jede UI-Änderung |
+| Daten und Rechtstexte | `pfad:data/` | `anwalt` (Rechtstexte, Bildlizenzen), `kvp` (Katalog, Nährwerte) | neues Meal, neues Bild, geänderter Rechtstext |
+| Eigenständige Bibliotheken | `pfad:lib/` | `website-security` (Open Food Facts, Kamera), `lieferkette` (ZXing-Anbindung) | Änderung an Barcode, PDF oder den gemeinsamen Helfern |
 | Prüfsystem (Agenten, Hooks, Skills) | `pfad:.claude/` | `tools/wartung-check.py` | jede Änderung am Setup |
 | CI | `pfad:.github/` | `website-security` | Änderung am Workflow |
 | Dokumentation | `pfad:docs/` | `doku-waechter` | jede nicht-triviale Änderung |
@@ -162,6 +165,7 @@ Entscheidung mit Begründung, kein Versäumnis — und `tools/abdeckung.py` schw
 | Doku: Store | `doku:docs/STORE.md` | `store-check` liest sie ohnehin |
 | Doku: Datenschutz intern | `doku:docs/DATENSCHUTZ-INTERN.md` | `datenschutz-technik` liest sie ohnehin; gitignored |
 | Doku: Abdeckung | `doku:docs/ABDECKUNG.md` | diese Datei selbst |
+| Doku: Technische Landkarte | `doku:docs/MODULE.md` | erzeugt von `tools/karte.py`; `--pruefe` läuft in `wartung-check.py` und in der CI und schlägt an, sobald sie vom Ist-Zustand abweicht |
 
 ---
 

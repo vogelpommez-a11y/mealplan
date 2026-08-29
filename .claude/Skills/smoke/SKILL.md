@@ -13,7 +13,7 @@ sichtbar und `#view` leer — die Seite sieht auf den ersten Blick heil aus.
 ## Schritt 1: Syntax-Check, immer zuerst
 
 ```powershell
-python syntax-check.py
+python syntax-check.py --alles
 ```
 
 Rund eine Sekunde. Prüft jeden `<script>`-Block mit der V8-Engine von Edge, **ohne ihn

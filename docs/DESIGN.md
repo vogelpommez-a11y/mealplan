@@ -43,7 +43,10 @@ Neue Elemente müssen sich in das bestehende System einfügen.
 
 ### Bestehende CSS-Tokens verwenden
 
-Für Farben, Flächen, Typografie und Form bevorzugt die bestehenden CSS-Variablen aus `index.html` verwenden:
+Für Farben, Flächen, Typografie und Form bevorzugt die bestehenden CSS-Variablen aus
+`css/tokens.css` verwenden (dort stehen alle vier Theme-Blöcke; die Komponenten-Styles
+liegen in `css/basis.css`, `css/komponenten.css` und `css/mobil.css` — Regeln dazu in
+`css/CLAUDE.md`):
 
 ```text
 --font-display

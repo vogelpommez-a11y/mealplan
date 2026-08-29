@@ -33,9 +33,21 @@ Code-Kommentare, Dokumentation, Commit-Messages.
 
 Commit-Messages bewusst in ASCII: `geprueft`, `geaendert`, `aktualisiert`.
 
-**Paddy's Mealplan** ist ein deutschsprachiger Wochen-Essensplaner. Die App ist eine
-einzige Datei — `index.html` — mit HTML, CSS, JavaScript, Firebase-Anbindung, Meal-Daten,
-Fotos, Impressum und Datenschutzerklärung. Ausgeliefert ohne Build-Prozess.
+**Paddy's Mealplan** ist ein deutschsprachiger Wochen-Essensplaner. Ausgeliefert werden
+statische Dateien **ohne Build-Prozess**:
+
+| Ort | Inhalt |
+|---|---|
+| `index.html` | Markup, Firebase-Brücke und der verwobene App-Kern (eine IIFE) |
+| `css/` | Design-Tokens und Styles |
+| `data/` | Rezeptkatalog, Zutaten, Bilder, Icons, **Rechtstexte** — nur Daten, keine Logik |
+| `lib/` | gemeinsame Helfer (`window.PM`), PDF-Schreiber, Barcode-Infrastruktur |
+
+Die Dateien sind **klassische Skripte in Dokumentreihenfolge**, keine ES-Module: Module
+laufen nicht über `file://`, und genau darauf bauen Smoke-Test und Prüfstände auf.
+
+**Welche Datei welchen Bereich trägt, steht in `docs/MODULE.md`** — erzeugt, nicht
+gepflegt (`python tools/karte.py`).
 
 | Thema | Datei |
 |---|---|
@@ -48,6 +60,9 @@ Fotos, Impressum und Datenschutzerklärung. Ausgeliefert ohne Build-Prozess.
 | Store-Anforderungen | `docs/STORE.md` |
 | Wer prüft was | `docs/ABDECKUNG.md` |
 | Deploy, Rollback, Notfälle | `docs/RUNBOOK.md` |
+| Technische Landkarte (erzeugt) | `docs/MODULE.md` |
+| Regeln für Styles | `css/CLAUDE.md` |
+| Regeln für Daten und Rechtstexte | `data/CLAUDE.md` |
 | Datenschutz-Pflichten (gitignored) | `docs/DATENSCHUTZ-INTERN.md` |
 | Firebase-Einrichtung | `FIREBASE-SETUP.md` |
 
@@ -218,14 +233,19 @@ Python ist vorhanden und wird für Hilfs- und Testskripte verwendet.
 
 ---
 
-# 10. Lesen und Bearbeiten von `index.html`
+# 10. Lesen und Bearbeiten des Codes
 
-Die Datei ist ~1,1 MB groß, 16.700 Zeilen, einzelne Zeilen über 12.000 Zeichen lang.
+`index.html` ist ~0,76 MB groß und rund 12.860 Zeilen lang. Die früher über 4.000 Zeichen
+langen Zeilen sind mit den Rechtstexten nach `data/rechtstexte.js` gewandert.
 
 **Niemals die komplette Datei blind lesen.** Kein `cat`, keine überlangen Zeilen ungefiltert
 in den Kontext.
 
 Stattdessen: mit `Grep` die relevante Stelle suchen, nur diese mit Offset/Limit lesen.
+
+**Und immer über alle Code-Dateien suchen, nicht nur `index.html`.** Wer nur dort sucht,
+sucht seit der Aufteilung an Tokens, Rezeptkatalog, Rechtstexten, PDF und Barcode vorbei —
+und findet nichts, ohne dass das auffällt. `docs/MODULE.md` sagt, wo was liegt.
 
 Die Meal-Fotos liegen als 32 Dateien in `img/`, **nicht** mehr als Base64 in der Datei. Was
 noch als `data:image;base64` vorkommt, sind Bilder des Nutzers aus `localStorage`/Firestore —
@@ -242,7 +262,7 @@ Code aus `index.html` ausschneiden.
 **Nach jeder Änderung an JavaScript zuerst:**
 
 ```powershell
-python syntax-check.py
+python syntax-check.py --alles
 ```
 
 Rund eine Sekunde. Ein Syntaxfehler beendet das gesamte App-Script — die Seite liefert
@@ -421,7 +441,7 @@ In `.claude/settings.json`, Skripte unter `.claude/hooks/`. Sie greifen ohne Zut
 | `commit-waechter.py` | **Blockiert** `git commit`, wenn Nichtöffentliches im Index liegt |
 | `secrets-filter.py` | **Blockiert** Befehle, die `.env` ausgeben würden |
 | `push-waechter.py` | **Fragt nach** bei `git push`, wenn `/pushcheck` für diesen Stand fehlt |
-| `syntax-nach-edit.py` | Fährt `syntax-check.py` nach jeder Änderung an `index.html` |
+| `syntax-nach-edit.py` | Fährt `syntax-check.py` gezielt auf die geänderte Datei — `index.html`, `data/*.js`, `lib/*.js`, `sw.js` |
 | `wartung-erinnerung.py` | Meldet beim Sitzungsstart, wenn die Wartung überfällig ist |
 
 Zusätzlich läuft `.github/workflows/pruefung.yml` bei jedem Push: Syntax und Secret-Scan.
@@ -583,7 +603,7 @@ Bleibt in `.gitignore`. **Nie committen.**
 
 ## Danach
 
-1. `python syntax-check.py`, dann `/smoke`.
+1. `python syntax-check.py --alles`, dann `/smoke`.
 2. Isolierter Prüfstand, wenn die Funktion es erfordert — mit Gegenprobe.
 3. Bei UI: mobile, Light und Dark, A11y.
 4. Bei Cloud-/Sync-Änderungen: Sync-Szenarien, notfalls `/abnahme`.

@@ -566,9 +566,9 @@ Flugmodus).
 
 Festgehalten als bekannte Grenze in `docs/SECURITY.md`, Abschnitt 6 — nicht versteckt.
 
-### 4. Künftige Pro-Rezepte kommen aus Firestore, nicht aus `index.html`
+### 4. Künftige Pro-Rezepte kommen aus Firestore, nicht aus dem ausgelieferten Quelltext
 
-Die heutigen **34 Katalog-Rezepte** stehen als `const COOKBOOK` in `index.html` und werden
+Die heutigen **34 Katalog-Rezepte** stehen als `const COOKBOOK` in `data/cookbook.js` und werden
 an jeden ausgeliefert. Das bleibt so: Sie sind der **Gratis-Grundstock** und müssen offline
 verfügbar sein.
 
@@ -576,7 +576,7 @@ verfügbar sein.
 Regel im Sinne von `allow get: if hasPro(uid)`. Dann gibt der Server die Rezepte ohne Abo
 gar nicht erst heraus.
 
-Der Grund: Ein Pro-Rezept, das in `index.html` mitgeliefert wird, ist ab der Veröffentlichung
+Der Grund: Ein Pro-Rezept, das im ausgelieferten Quelltext mitgeliefert wird, ist ab der Veröffentlichung
 für jeden im Quelltext lesbar — auch für Leute, die nie bezahlt haben. Das Rezeptbuch wäre
 damit dauerhaft ein „Schild" statt eines Türstehers und als Kaufargument entsprechend weich.
 

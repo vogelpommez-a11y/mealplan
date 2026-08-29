@@ -102,7 +102,8 @@ Handlungsanweisung: Löschen ist eine Produktentscheidung.
 
 ## Vorgehen
 
-Lies `tools/firebase-vendor.py` — dort steht die Absicht. `Grep` in `index.html` nach
+Lies `tools/firebase-vendor.py` — dort steht die Absicht. `Grep` in `index.html` und
+`lib/barcode.js` (dort wird ZXing nachgeladen) nach
 `vendor/`, `zxing`, `import(` und `firebasejs`, um zu sehen, was tatsächlich geladen wird.
 Für Versionsstände und CVEs recherchiere im Netz; wenn keine Netzabfrage möglich ist,
 sag das ausdrücklich und liefere den Rest der Prüfung trotzdem.

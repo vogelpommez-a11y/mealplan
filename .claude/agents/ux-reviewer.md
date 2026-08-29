@@ -16,7 +16,9 @@ Du bist der UX-Reviewer für „Paddy's Mealplan". Du bewertest, ob eine geände
 2. **Dessen Empfehlungen auf die Projekt-Tokens mappen**, nicht dessen eigene Variablen
    übernehmen: `--accent`, `--bg`, `--surface`, `--surface-2`, `--text`, `--text-muted`,
    `--border`, `--radius`, `--shadow`, `--fr`/`--mi`/`--ab` (Kategorie-Farben) aus dem `:root`
-   von `index.html` — die vollständige Token-Liste und die drei erlaubten Makro-Formen
+   von **`css/tokens.css`** (dort stehen alle vier Token-Bloecke; Komponenten-Styles liegen in
+   `css/basis.css`, `css/komponenten.css` und `css/mobil.css`, Regeln in `css/CLAUDE.md`)
+   — die vollständige Token-Liste und die drei erlaubten Makro-Formen
    stehen in `docs/DESIGN.md`. Wenn `ui-ux-pro-max` einen neuen Farbwert oder eine neue Schriftgröße
    vorschlägt, für die es keinen passenden Token gibt: das als offene Design-Entscheidung
    melden, nicht selbst hartkodieren.

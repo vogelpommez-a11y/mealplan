@@ -19,7 +19,7 @@ permissions:
 
 jobs:
   syntax:
-    name: JavaScript-Syntax in index.html
+    name: JavaScript-Syntax der App
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -86,12 +86,35 @@ jobs:
                   print("FEHLER im <script>-Block ab Zeile %d von index.html:" % zeile)
                   print(lauf.stderr.strip())
 
+          # Seit der Aufteilung liegt ein Teil des App-Codes in eigenen Dateien.
+          # Ein Syntaxfehler dort beendet das App-Script genauso - sie muessen mit.
+          # vendor/ bleibt aussen vor: Fremdcode, den wir nicht schreiben.
+          extern = (sorted(pathlib.Path("data").glob("*.js"))
+                    + sorted(pathlib.Path("lib").glob("*.js"))
+                    + [pathlib.Path("sw.js")])
+          for pfad in extern:
+              if not pfad.is_file():
+                  continue
+              geprueft += 1
+              lauf = subprocess.run(["node", "--check", str(pfad)],
+                                    capture_output=True, text=True)
+              if lauf.returncode != 0:
+                  fehler += 1
+                  print("FEHLER in %s:" % pfad)
+                  print(lauf.stderr.strip())
+
           print("%d Script-Bloecke geprueft, %d fehlerhaft." % (geprueft, fehler))
           if geprueft == 0:
               print("KEIN einziger Block geprueft - das ist selbst ein Fehler.")
               sys.exit(1)
           sys.exit(1 if fehler else 0)
           PY
+
+      # Die Landkarte ist erhoben, nicht gepflegt. Laeuft sie hier nicht mit, veraltet
+      # sie genau dann, wenn jemand sie vergisst - und eine falsche Landkarte ist
+      # schlimmer als keine, weil man ihr glaubt.
+      - name: Technische Landkarte ist aktuell
+        run: python tools/karte.py --pruefe
 
   geheimnisse:
     name: Keine Geheimnisse im Repo

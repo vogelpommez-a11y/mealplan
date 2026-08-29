@@ -23,7 +23,7 @@ Deshalb kurz, in Schritten, ohne Erklärungen, die man dann nicht lesen will.
 Ausführlich als Skill: `/deploy`. Kurzform:
 
 ```powershell
-python syntax-check.py          # muss gruen sein
+python syntax-check.py --alles  # muss gruen sein
 git push origin main
 git ls-remote origin refs/heads/main    # muss...
 git rev-parse HEAD                      # ...hiermit uebereinstimmen
@@ -43,7 +43,7 @@ Das ist der häufigste Ernstfall und fast immer dieselbe Ursache.
 **Schritt 1 — eine Sekunde:**
 
 ```powershell
-python syntax-check.py
+python syntax-check.py --alles
 ```
 
 Ein Syntaxfehler beendet das gesamte App-Script. Der statische Header bleibt sichtbar,

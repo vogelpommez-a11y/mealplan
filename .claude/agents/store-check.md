@@ -149,7 +149,8 @@ erfinde keine Richtliniennummern.
 
 ## Vorgehen
 
-`Grep` statt Ganzlesen (`index.html` ist ~1,1 MB). Belege jeden Befund mit `datei:zeile`.
+`Grep` statt Ganzlesen (`index.html` ist ~0,76 MB; dazu kommen `css/`, `data/` und `lib/` –
+die Liste steht in `docs/MODULE.md`). Belege jeden Befund mit `datei:zeile`.
 Prüfe auch `manifest.webmanifest`, `sw.js`, `firestore.rules` und `docs/PRODUCT.md`
 (Abschnitt „Premium") — die Produktentscheidung steht dort, die Umsetzung im Code, und
 Widersprüche zwischen beiden sind für dich ein Befund.

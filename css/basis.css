@@ -1,0 +1,958 @@
+/* basis.css - Paddy's Mealplan
+ *
+ * Grundgeruest: Notch/safe-area, Header, Fusszeile, Buttons, Wochenraster, Trainingstag, Makrozeilen, Abschnittsueberschriften.
+ *
+ * Ausgeschnitten aus index.html (vormals Zeile 351-1301), unveraendert.
+ * Regeln fuer diesen Ordner: css/CLAUDE.md
+ */
+
+  /* Links/rechts die Notch-Aussparung mitrechnen (D6): Mit viewport-fit=cover reicht die
+     Seite im QUERFORMAT unter die Kamera-Insel und die abgerundeten Ecken. Ohne das
+     verschwinden dort die ersten Zeichen jeder Zeile — auf dem Startbildschirm genauso wie
+     im Wochenplan. Oben und unten war das laengst beruecksichtigt, links/rechts nicht.
+     Der Fallback 0px haelt jeden Browser ohne env() bei den bisherigen Werten. */
+  .wrap {
+    max-width: var(--maxw); margin: 0 auto;
+    padding-left: calc(20px + env(safe-area-inset-left, 0px));
+    padding-right: calc(20px + env(safe-area-inset-right, 0px));
+  }
+
+  /* ---------- Header ---------- */
+  /* Hintergrund und Weichzeichnung liegen bewusst auf dem Pseudo-Element, nicht auf
+     dem Kopf selbst: ein backdrop-filter auf einem Element macht dieses zum
+     Bezugsrahmen fuer ALLE fixierten Nachfahren. Die untere Reiterleiste (position:
+     fixed) klebte dadurch am unteren Rand des Kopfes statt am Bildschirm und
+     verdeckte Logo, Slogan und Profil. Auf dem Pseudo-Element hat der Filter
+     denselben optischen Effekt, ohne diese Nebenwirkung. */
+  header.site {
+    position: sticky; top: 0; z-index: 30;
+    border-bottom: 1px solid var(--border);
+    padding-top: env(safe-area-inset-top, 0px); /* Statusleiste/Notch bei viewport-fit=cover */
+  }
+  header.site::before {
+    content: ""; position: absolute; inset: 0; z-index: -1;
+    background: var(--glass-bg-strong);
+    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(180%);
+    backdrop-filter: blur(var(--glass-blur)) saturate(180%);
+  }
+  .head-inner { display: flex; align-items: center; gap: 18px; padding: 14px 0; flex-wrap: wrap; }
+  .brand { display: flex; align-items: center; gap: 12px; margin-right: auto; }
+  .brand .mark {
+    width: 44px; height: 44px; border-radius: 50%; flex: none;
+    overflow: hidden;
+    background: center / cover no-repeat var(--logo);
+  }
+  .brand h1 {
+    font-family: var(--font-display); font-weight: 700;
+    font-size: 26px; margin: 0; letter-spacing: .6px; line-height: 1;
+    text-transform: uppercase;
+  }
+  .brand h1 span { color: var(--accent); }
+  .brand p { margin: 0; font-size: 12.5px; color: var(--text-muted); }
+  /* Slogan in Schreibschrift (System-Fonts, kein externes Laden). Farbe folgt
+     dem Theme: im Dark quasi weiss, im Light dunkel – sonst waere er unlesbar. */
+  .brand .slogan { margin: 3px 0 0; font-family: "Segoe Script", "Bradley Hand", "Brush Script MT", "Snell Roundhand", cursive; font-size: 15.5px; font-weight: 400; color: var(--text); letter-spacing: .3px; line-height: 1.1; }
+  /* Kopfzeile: Brand + Profil in Zeile 1, Reiter in eigener Zeile darunter */
+  #profile-slot { order: 2; }
+  .navrow { order: 3; width: 100%; display: flex; }
+
+  .tabs { display: flex; gap: 4px; background: var(--surface-2); padding: 4px; border-radius: 999px; border: 1px solid var(--border); }
+  .tab {
+    font: inherit; font-size: 14px; font-weight: 550;
+    border: 0; background: transparent; color: var(--text-muted);
+    padding: 8px 18px; border-radius: 999px; cursor: pointer;
+    display: flex; align-items: center; gap: 7px; transition: color var(--dur-fast), background var(--dur-fast);
+  }
+  .tab:hover { color: var(--text); }
+  .tab[aria-selected="true"] { background: var(--surface); color: var(--accent-strong); box-shadow: var(--shadow); }
+  /* Nur mobil sichtbar (siehe 680px-Breakpoint) - am Rechner ist .tabs ein flex mit
+     unterschiedlich breiten Knoepfen (Meal-Zaehler aendert die Breite), dort bleibt die
+     bestehende Flaeche auf [aria-selected="true"]. */
+  .tab-ind { display: none; }
+  .tab .count { font-size: 11.5px; background: color-mix(in srgb, var(--accent) 16%, var(--surface)); color: var(--accent-strong); border-radius: 999px; padding: 1px 7px; font-variant-numeric: tabular-nums; }
+  .tab .ts { display: none; } /* Kurzform der Beschriftung, nur im unteren Balken */
+  /* Handy: aus der Reiterleiste im Kopf wird eine feste Leiste am unteren Rand, wie in
+     nativen Apps. Grund ist gemessen, nicht geschaetzt: schon vier Reiter brauchen mehr
+     Breite, als bei 360 px Bildschirmbreite zur Verfuegung steht — bisher waren
+     sie also nur durch seitliches Schieben erreichbar, ohne jeden Hinweis darauf.
+     Die Leiste wird per CSS versetzt und NICHT im Markup verdoppelt: sonst muessten
+     zwei Leisten synchron gehalten werden (aria-selected, Meal-Zaehler). */
+  @media (max-width: 680px) {
+    /* display:contents statt none — none wuerde die (fixierte) Leiste mit ausblenden */
+    .navrow { display: contents; }
+    /* Freistehende Kapsel statt Leiste am Rand: sie schwebt ueber dem Inhalt, der beim
+       Scrollen sichtbar dahinter durchwandert. Die Homebar-Freihaltung sitzt in `bottom`,
+       nicht im `padding` — sonst waere die Kapsel unten aufgeblaeht statt hochgeschoben. */
+    .tabs {
+      position: fixed; z-index: 50;
+      /* Wie bei .wrap: im Querformat laege der linke Rand sonst unter der Notch. Die Kapsel
+         ist fixiert und waechst nicht mit dem Seiteninhalt mit (D6). */
+      left: calc(12px + env(safe-area-inset-left, 0px));
+      right: calc(12px + env(safe-area-inset-right, 0px));
+      bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 0;
+      border: 1px solid var(--glass-edge); border-radius: 999px;
+      background: var(--glass-bg);
+      -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(180%);
+      backdrop-filter: blur(var(--glass-blur)) saturate(180%);
+      padding: 5px 6px;
+      box-shadow: var(--glass-shadow);
+    }
+    .tab {
+      flex: none; flex-direction: column; gap: 3px; padding: 6px 2px 5px;
+      font-size: 10.5px; font-weight: 600; line-height: 1.1; min-height: 46px;
+      justify-content: center; position: relative; z-index: 1; border-radius: 999px; white-space: nowrap;
+      /* Voller Textkontrast statt --text-muted: hinter dem Glas kann jederzeit ein Meal-Foto
+         liegen, und flaues Grau darauf kippt unter 4.5:1. Welcher Reiter aktiv ist, traegt
+         die gefuellte Pille — nicht ein Helligkeitsunterschied. */
+      color: var(--text);
+      transition: color var(--dur-fast), background var(--dur-fast), transform 120ms var(--ease-out);
+    }
+    .tab:active { transform: scale(.96); }
+    .tab svg { width: 20px; height: 20px; }
+    .tab .tl { display: none; }
+    .tab .ts { display: inline; }
+    /* Gleitende Pille (Schiebe-Schema): .tabs liegt ausserhalb von view.innerHTML und
+       ueberlebt jeden Neuaufbau, deshalb reicht hier eine echte CSS-transition (anders als
+       .week-switch, siehe Kommentar bei syncWeekSwitchPill()). Nur hier sichtbar: die drei
+       Spalten sind im Grid gleich breit (repeat(3, 1fr)), translateX(i * 100%) reicht also -
+       am Rechner sind die Tab-Knoepfe unterschiedlich breit (Meal-Zaehler), dort bleibt
+       [aria-selected="true"] auf der Flaeche.
+       Seit dem vierten Reiter ("Fortschritt", B8) sind es vier Spalten: Breite /4 und
+       repeat(4, 1fr) gehoeren zusammen. translateX(i * 100%) bleibt unveraendert richtig -
+       die 100 % beziehen sich auf die Breite der PILLE, nicht auf die der Leiste. */
+    .tab-ind {
+      display: block; position: absolute; z-index: 0;
+      top: 5px; bottom: 5px; left: 6px;
+      width: calc((100% - 12px) / 4);
+      border-radius: 999px;
+      background: var(--surface);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, .12);
+      transition: transform var(--dur-base) var(--ease-out);
+      pointer-events: none;
+    }
+    /* Die aktive Pille ist DECKEND, nicht getoent. Getoent auf Glas gerechnet: liegt hinter
+       der Kapsel eine helle Bildstelle (weisser Teller), faellt Akzentrot darauf auf ~1.8:1.
+       Deckend steht die Beschriftung auf definiertem Grund — 6:1 dunkel, 8:1 hell — und die
+       Pille hebt sich zugleich klarer von der Glasflaeche ab. Flaeche und Schatten liegen
+       jetzt auf .tab-ind, hier nur noch die Schriftfarbe. */
+    .tab[aria-selected="true"] {
+      /* background/box-shadow ausdruecklich leeren: die Basisregel (Z. 294) setzt beides
+         ohne Media-Query, dieselbe Selektor-Spezifitaet gewinnt sonst pro Eigenschaft und
+         die alte deckende Flaeche bliebe ueber der Pille liegen (z-index:1 vs. .tab-ind
+         z-index:0) - sichtbar eine zweite, unbewegte weisse Flaeche hinter der Pille. */
+      background: none; box-shadow: none;
+      color: var(--accent-strong);
+    }
+    /* Zaehler als Eckmarke am Symbol — neben dem Text ist in 66 px kein Platz.
+       3px statt 1px: in der gerundeten Kapsel sitzt er sonst auf der Oberkante. */
+    .tab .count { position: absolute; top: 3px; left: 50%; margin-left: 5px; font-size: 9.5px; padding: 0 5px; }
+    /* Inset am Seitenende, damit das letzte Element und die Fusszeile (Impressum,
+       Datenschutz) frei ueber der Kapsel stehen. Bewusst NICHT 0: dahinter durchwandern
+       soll der Inhalt beim Scrollen, dauerhaft verdeckt sein darf er nicht.
+       --tabbar-h misst syncStickyOffsets(); der Rueckfall 58px ist die gerechnete Hoehe
+       (5 + 46 + 5 Innenmass + 2 Rahmen) und haelt den ersten Bildaufbau ruhig. */
+    .app { padding-bottom: calc(var(--tabbar-h, 58px) + 20px + env(safe-area-inset-bottom, 0px)); }
+    #toast { bottom: calc(var(--tabbar-h, 58px) + 24px + env(safe-area-inset-bottom, 0px)); }
+
+    /* ---------- Fusszeile: auf dem Handy weg ----------
+       Impressum und Datenschutz stehen dort im Ausklappmenue oben rechts. Fuer mobile
+       Seiten ist ein klarer Menuepunkt der uebliche und empfohlene Weg - eine Fusszeile
+       muesste man erst ans Seitenende scrollen, und genau das gilt als riskant.
+
+       Zwischenzeitlich stand sie hier fest ueber der Reiterleiste. Das loeste zwar das
+       Scroll-Problem, kostete aber dauerhaft Platz und stoerte im Bild - zurueckgebaut.
+
+       Sie bleibt, solange NIEMAND angemeldet ist: das Menue gibt es erst danach, und das
+       Impressum darf nicht hinter das Auth-Gate wandern (CLAUDE.md §23). Waehrend der
+       ersten Schritte ebenfalls - dort ist die Reiterleiste ausgeblendet. */
+    .app:not(.authing):not(.onboarding) .site-foot { display: none; }
+  }
+  /* Rueckfall ohne Weichzeichner: halbtransparent OHNE Blur hiesse Text auf Text. Dann
+     lieber deckend. Gleiches gilt fuer "Transparenz reduzieren" im Betriebssystem. */
+  @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    header.site::before { background: color-mix(in srgb, var(--bg) 97%, var(--surface)); }
+    /* Nur die schwebende Kapsel: am Rechner steht die Leiste im Kopf und ist ohnehin deckend. */
+    @media (max-width: 680px) { .tabs { background: color-mix(in srgb, var(--surface) 96%, var(--bg)); } }
+  }
+  @media (prefers-reduced-transparency: reduce) {
+    header.site::before { -webkit-backdrop-filter: none; backdrop-filter: none; background: var(--bg); }
+    @media (max-width: 680px) {
+      .tabs { -webkit-backdrop-filter: none; backdrop-filter: none; background: color-mix(in srgb, var(--surface) 97%, var(--bg)); }
+    }
+  }
+
+  main { padding: 28px 0 80px; }
+
+  /* ---------- Footer (Rechtliches) ----------
+     In der laufenden App schrumpft die Fusszeile auf die zwei Woerter, die sie tragen muss:
+     "Impressum · Datenschutz". Der Copyright-Hinweis wandert ins Profilmenue, der
+     Innenabstand halbiert sich - aus 53px werden rund 33px. Im Wochenplan-Sheet fehlte
+     jeder dieser Pixel direkt den Mahlzeiten.
+
+     Warum nicht ganz weg: Der naheliegende Ersatz waeren Eintraege im Profilmenue - die
+     gab es kurz, und sie sind wieder raus. Zum einen standen die Rechtstexte damit doppelt
+     da, zum anderen beginnt dieser Weg an einem Knopf, der nur "Profilmenue" heisst; von
+     aussen ist nicht erkennbar, dass dahinter Pflichtangaben liegen. §5 DDG verlangt
+     "leicht erkennbar". Eine sichtbare Zeile mit dem Wort "Impressum" kostet 33px und
+     nimmt die Frage vom Tisch. Im Menue blieb nur der Copyright-Hinweis (.mfoot), der
+     nirgends sonst steht.
+
+     Unangetastet bleibt sie, solange NIEMAND angemeldet ist: das Profilmenue gibt es erst
+     nach der Anmeldung, das Impressum darf nicht hinter das Auth-Gate wandern
+     (CLAUDE.md §23). Waehrend der ersten Schritte ebenfalls - dort ist die Reiterleiste
+     ausgeblendet, und ein Weg weniger waere genau der falsche Moment. */
+  .site-foot { border-top: 1px solid var(--border); margin-top: auto; background: color-mix(in srgb, var(--surface-2) 40%, var(--bg)); }
+  .foot-inner { display: flex; align-items: center; justify-content: space-between; gap: 12px 18px; padding: 16px 0; flex-wrap: wrap; }
+  .foot-copy { font-size: 12.5px; color: var(--text-muted); }
+  .foot-nav { display: flex; align-items: center; gap: 8px; }
+  .foot-link { font: inherit; font-size: 12.5px; color: var(--text-muted); background: 0; border: 0; padding: 2px 2px; cursor: pointer; }
+  .foot-link:hover { color: var(--accent-strong); text-decoration: underline; }
+  .foot-sep { color: var(--border-strong); }
+  .app { display: flex; flex-direction: column; min-height: 100vh; }
+  .legal h4 { font-family: var(--font-display); font-size: 15.5px; font-weight: 600; margin: 18px 0 5px; }
+  .legal h4:first-child { margin-top: 0; }
+  .legal p { margin: 0 0 10px; font-size: 13.5px; line-height: 1.6; color: var(--text); }
+  .legal p.muted, .legal a { color: var(--text-muted); }
+  .credits { overflow-x: auto; margin: 0 0 10px; }
+  .credits table { border-collapse: collapse; width: 100%; min-width: 460px; font-size: 12px; }
+  .credits th, .credits td { text-align: left; padding: 5px 8px 5px 0; border-bottom: 1px solid var(--border); vertical-align: top; }
+  .credits th { color: var(--text-muted); font-weight: 650; white-space: nowrap; }
+  .credits td { color: var(--text); }
+  .legal a { color: var(--accent-strong); }
+  .legal-draft { font-size: 12.5px; line-height: 1.55; background: color-mix(in srgb, var(--fr) 12%, var(--surface)); border: 1px solid color-mix(in srgb, var(--fr) 30%, transparent); border-radius: var(--radius-sm); padding: 10px 12px; margin: 0 0 16px; color: var(--text); }
+
+  /* ---------- Section head ---------- */
+  .section-head { display: flex; align-items: flex-end; gap: 16px; margin-bottom: 22px; flex-wrap: wrap; }
+  .section-head .title { margin-right: auto; }
+  .section-head h2 { font-family: var(--font-display); font-weight: 600; font-size: 27px; margin: 0 0 2px; letter-spacing: .2px; }
+  .section-head .sub { color: var(--text-muted); font-size: 14px; }
+
+  /* ---------- Buttons ---------- */
+  .btn {
+    font: inherit; font-size: 14px; font-weight: 550; cursor: pointer;
+    border: 1px solid var(--border-strong); background: var(--surface); color: var(--text);
+    padding: 9px 15px; border-radius: var(--radius-sm);
+    display: inline-flex; align-items: center; gap: 8px; transition: border-color var(--dur-fast), background var(--dur-fast), transform var(--dur-fast);
+  }
+  .btn:hover { border-color: var(--accent); }
+  .btn:active { transform: translateY(1px); }
+  /* Gesperrte Knoepfe sahen bisher aus wie bedienbare – es gab gar keinen Stil dafuer.
+     Kein Zeiger, kein Hover, kein Anheben beim Druecken: der Knopf soll auch beim
+     Antippen erkennbar nicht reagieren. */
+  .btn:disabled { opacity: .45; cursor: default; box-shadow: none; }
+  .btn:disabled:hover { border-color: var(--border-strong); }
+  .btn.primary:disabled:hover { border-color: var(--accent); }
+  .btn:disabled:active { transform: none; }
+  /* Sieht gesperrt aus, ist es aber nicht: ein echtes disabled schluckt den Klick, und
+     dann liesse sich beim Antippen auch nicht sagen, WARUM es nicht weitergeht. Deshalb
+     nur die Optik plus aria-disabled – die Meldung kommt aus dem Klick-Handler. */
+  .btn.is-off { opacity: .45; box-shadow: none; }
+  .btn.is-off:active { transform: none; }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-contrast); }
+  .btn.primary:hover { background: var(--accent-strong); border-color: var(--accent-strong); }
+  .btn.ghost { background: transparent; border-color: transparent; color: var(--text-muted); }
+  .btn.ghost:hover { color: var(--text); background: var(--surface-2); border-color: transparent; }
+  .btn.danger { color: var(--accent); border-color: transparent; }
+  .btn.danger:hover { background: color-mix(in srgb, var(--accent) 13%, var(--surface)); border-color: transparent; color: var(--accent-strong); }
+  /* Löschen als Icon-Button (Meal-Karte) – dezent grau, Hover in Theme-Rot.
+     Sichtbar 34 px, Trefferflaeche per Pseudo-Element auf 44 × 44 erweitert
+     (hitSlop-Muster) – so bleibt die Button-Zeile niedrig und der Touch-Target konform.
+     Das Abruecken nach rechts (margin-left:auto) sitzt am Teilen-Button davor, nicht
+     hier - sonst klemmen bei vier Buttons drei links und nur einer isoliert rechts. */
+  .btn.del-ic { position: relative; width: 34px; height: 34px; padding: 0; justify-content: center; color: var(--text-muted); background: transparent; border-color: transparent; }
+  .btn.del-ic::after { content: ""; position: absolute; inset: -5px; }
+  .btn.del-ic svg { width: 17px; height: 17px; }
+  .btn.del-ic:hover { color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, var(--surface)); border-color: transparent; }
+  .btn svg { width: 16px; height: 16px; }
+  /* Icon-Button ohne Text, gleiches hitSlop-Muster wie .btn.del-ic, aber neutral statt
+     rot beim Hover - "Meal teilen"/"Woche leeren" sind keine Loeschaktionen. */
+  .btn.icon-gh { position: relative; width: 34px; height: 34px; padding: 0; justify-content: center; }
+  .btn.icon-gh::after { content: ""; position: absolute; inset: -5px; }
+  .btn.icon-gh svg { width: 17px; height: 17px; }
+  /* Favoriten-Herz: gleiches Groessen-/Hit-Slop-Muster wie .btn.del-ic. Ruhezustand grau,
+     aktiv gefuellt in --accent. Gold ist Pro vorbehalten. Skaliert nur beim Antippen (icon,
+     nicht der ganze Button) - hochfrequente Aktion, daher kurz und ohne Einschwingen. */
+  .btn.fav-ic { position: relative; width: 34px; height: 34px; padding: 0; justify-content: center;
+    color: var(--text-muted); background: transparent; border-color: transparent; }
+  .btn.fav-ic::after { content: ""; position: absolute; inset: -5px; }
+  .btn.fav-ic svg { width: 17px; height: 17px; transition: transform var(--dur-fast) var(--ease-out); }
+  .btn.fav-ic:hover { color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, var(--surface)); border-color: transparent; }
+  .btn.fav-ic.on { color: var(--accent); }
+  .btn.fav-ic.on svg { fill: currentColor; }
+  .btn.fav-ic:active svg { transform: scale(.85); }
+  /* Herz auf dem Meal-Foto (Meal-Karte, ersetzt das frueher dort sitzende Foto-"+"): liegt
+     auf einem Bild statt einer Flaeche und braucht deshalb eigenen Kontrast, sonst
+     verschwindet es auf hellen Fotos - gleiche dunkle Kreisflaeche wie die Icon-Knoepfe im
+     Meal-Ansicht-Kopf (.mealsheet .modal-head .icon-gh.on-photo). Position oben rechts,
+     Groesse und 44px-Trefferflaeche (::after, TROUBLESHOOTING #38) bleiben von .btn.fav-ic
+     unveraendert. */
+  .fav-ic.on-photo {
+    position: absolute; top: 10px; right: 10px; z-index: 3;
+    color: #fff; background: color-mix(in srgb, #0a0c07 50%, transparent);
+    box-shadow: 0 2px 8px rgba(0,0,0,.35);
+  }
+  .fav-ic.on-photo:hover { color: #fff; background: color-mix(in srgb, #0a0c07 68%, transparent); }
+  .fav-ic.on-photo.on { color: var(--accent); }
+  .btn.sm { padding: 6px 11px; font-size: 13px; }
+
+  /* ---------- Week grid ---------- */
+  /* Wochenplan-Kopf: Titel oben, Werkzeugleiste eine Zeile darunter */
+  .plan-head { flex-direction: column; align-items: stretch; gap: 16px; }
+  .plan-tools { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  /* Ankerpunkt fuer das Ueberlaufmenue (.menu ist position:absolute; right:0) - ohne ihn
+     haengt es an der ganzen Kopfzeile und rutscht an deren rechten Rand. Gleiches Muster
+     wie .wch-menu bei der Gewichtskarte. */
+  .plan-menu { position: relative; flex: none; }
+  /* Einstieg in die Einkaufsliste - EIN Knopf, auf beiden Geraeten an derselben Stelle
+     in der Werkzeugleiste. Vorher waren es zwei: ein breiter Gradient-Knopf unter dem Plan
+     am Rechner und dieses Symbol im Kopf auf dem Handy. Dieselbe Aktion an zwei Orten in
+     zwei Formen - man sucht sie am Rechner unten, findet sie auf dem Handy oben.
+
+     Er traegt .icon-gh (34px quadratisch + hitSlop), weil er ab 680px genau das ist. Am
+     Rechner ist Platz fuer das Wort, also wird die Breite hier freigegeben - gleiches
+     Vorgehen wie bei .ws-w im Wochenumschalter daneben, nur andersherum aufgeschrieben:
+     dort entfaellt mobil ein Wort, hier eine Breite.
+
+     Ghost und nicht gefuellt: die Wochen-Pille daneben traegt schon den Akzent-Gradienten,
+     zwei Akzentflaechen in einer Leiste konkurrieren. Das Symbol allein setzt das Signal.
+
+     Der Selektor MUSS .btn.icon-gh mitnehmen: dessen width:34px steht mit zwei Klassen da,
+     ein blosses .shop-ic verliert dagegen und der Knopf bliebe quadratisch mit
+     ueberlaufendem Text (gemessen). */
+  .btn.icon-gh.shop-ic { width: auto; padding: 0 12px; gap: 8px; font-size: 13px; font-weight: 600; }
+  .shop-ic svg { color: var(--accent); }
+  /* Auto-Wochenplaner (D2). Exakt dieselbe Bauart wie der Einkaufsknopf daneben: Ghost mit
+     Akzent-Symbol, nicht gefuellt - die Wochen-Pille in derselben Zeile traegt schon den
+     Akzent-Gradienten, zwei Akzentflaechen nebeneinander konkurrieren (siehe .shop-ic).
+
+     Und wie dort gilt: Der Selektor MUSS .btn.icon-gh mitnehmen, sonst gewinnt dessen
+     width:34px mit zwei Klassen und der Knopf bliebe quadratisch mit ueberlaufendem Text
+     (TROUBLESHOOTING 62).
+
+     Er trug bis zum 16.08.2026 auf dem Handy eine eigene, volle Zeile. Das kostete die
+     Kopfzeile rund 54px - Hoehe, die im Sheet fester Hoehe den Tageskarten fehlt, genau der
+     Fall aus TROUBLESHOOTING 60. Jetzt weicht stattdessen das Wort (.pa-w), wie beim
+     Einkaufsknopf: ein Muster fuer denselben Platzmangel, nicht zwei. */
+  .btn.icon-gh.plan-auto { width: auto; padding: 0 12px; gap: 8px; font-size: 13px; font-weight: 600; }
+  .plan-auto svg { color: var(--accent); }
+  /* Derselbe Befehl steht zusaetzlich im Ueberlaufmenue - aber nur auf sehr schmalen
+     Geraeten, siehe den 359px-Block. Im Regelfall ist er dort ausgeblendet, damit es nicht
+     zwei sichtbare Wege zu derselben Aktion gibt. */
+  .plan-menu .menu [data-mi="autoplan"] { display: none; }
+  /* Klebende Tagesbilanz: nur auf dem Handy. Am Rechner steht sie in jeder der sieben
+     Tageskarten - eine achte, gemeinsame Leiste waere dort sinnlos. Hier ist das
+     Nur-auf-einem-Geraet richtig, weil dieselbe INFORMATION am Rechner schon woanders
+     steht. Beim Einkaufsknopf darueber lag der Fall anders: dort war es dieselbe AKTION,
+     nur an zwei Orten - deshalb ist sie dort auf einen Ausloeser zusammengefuehrt. */
+  .day-bal { display: none; }
+  .week-switch { display: inline-flex; position: relative; background: var(--surface-2); border: 1px solid var(--border); border-radius: 999px; padding: 3px; gap: 2px; }
+  .ws-btn { position: relative; z-index: 1; font: inherit; font-size: 13px; font-weight: 600; letter-spacing: .01em; cursor: pointer; border: 0; background: transparent; color: var(--text-muted); padding: 7px 15px; border-radius: 999px; white-space: nowrap; transition: color var(--dur-fast), background var(--dur-fast), box-shadow var(--dur-fast); }
+  .ws-btn:hover { color: var(--text); }
+  .ws-btn.active { color: var(--accent-contrast); background: linear-gradient(135deg, var(--accent), var(--accent-strong)); box-shadow: 0 2px 8px color-mix(in srgb, var(--accent) 34%, transparent); }
+  /* Gleitende Pille (Schiebe-Schema) NUR dort, wo das Markup sie mitliefert (.ws-ind) -
+     der Jahres-Umschalter im Rueckblick teilt sich .week-switch/.ws-btn, hat aber
+     beliebig viele Knoepfe und bleibt bewusst bei der harten Umschaltung oben. */
+  .week-switch:has(.ws-ind) .ws-btn.active { background: none; box-shadow: none; }
+  .ws-ind {
+    position: absolute; top: 3px; bottom: 3px; left: 0; z-index: 0;
+    width: 0; border-radius: 999px; pointer-events: none;
+    background: linear-gradient(135deg, var(--accent), var(--accent-strong));
+    box-shadow: 0 2px 8px color-mix(in srgb, var(--accent) 34%, transparent);
+  }
+  .week { display: grid; grid-template-columns: repeat(auto-fill, minmax(232px, 1fr)); gap: 16px; }
+  .day {
+    position: relative;
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+    box-shadow: var(--shadow); overflow: hidden; display: flex; flex-direction: column;
+    transition: transform var(--dur-fast) ease, box-shadow var(--dur-fast) ease, border-color var(--dur-fast) ease;
+  }
+  .day::before {
+    content: ""; position: absolute; top: 0; left: 0; right: 0; height: 4px; z-index: 1;
+    background: linear-gradient(90deg, var(--accent), var(--accent-strong));
+  }
+  /* Nur bei echter Maus. Ein Touchscreen kennt kein Hover, setzt den Zustand beim Tippen
+     oder Wischen aber trotzdem - die Karte bliebe dann angehoben stehen. Fuer den mobilen
+     Karussell-Streifen faengt das weiter unten eine eigene Regel ab, die aber an der
+     Breite haengt (max-width: 680px): auf einem Tablet oder Touch-Notebook griff sie nie.
+     Am Eingabegeraet statt an der Breite gefragt, gilt es fuer jede Groesse - dasselbe
+     Vorgehen wie bei coarsePointer() im Skript. */
+  @media (hover: hover) and (pointer: fine) {
+    .day:hover {
+      transform: translateY(-3px);
+      border-color: color-mix(in srgb, var(--accent) 42%, var(--border));
+      box-shadow: 0 12px 30px color-mix(in srgb, var(--accent) 20%, transparent);
+    }
+  }
+  .day.today { border-color: color-mix(in srgb, var(--accent) 55%, var(--border)); box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 40%, transparent), var(--shadow); }
+  .day.today::before { height: 5px; }
+  .day > .day-head {
+    display: flex; align-items: center; justify-content: space-between; gap: 6px 8px;
+    flex-wrap: wrap; /* schmale Karte: das Ueberschreitungs-Zeichen darf umbrechen,
+                        statt den Heute-Chip aus der Karte zu draengen */
+    padding: 15px 15px 12px;
+    background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 12%, var(--surface)), var(--surface));
+    border-bottom: 1px solid var(--border);
+  }
+  .day-head .dname { font-family: var(--font-display); font-size: 18px; font-weight: 600; letter-spacing: .2px; }
+  .day-head .dtag {
+    font-size: 11px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase;
+    color: var(--text-muted); background: var(--surface-2); border: 1px solid var(--border);
+    padding: 3px 10px; border-radius: 999px;
+  }
+  .day.today .dtag {
+    color: var(--accent-contrast); border-color: transparent;
+    background: linear-gradient(135deg, var(--accent), var(--accent-strong));
+    box-shadow: 0 2px 8px color-mix(in srgb, var(--accent) 38%, transparent);
+  }
+  .day-head .dnum { font-size: 12px; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+  .day.over > .day-head { background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 20%, var(--surface)), var(--surface)); }
+
+  /* ---- Trainingstag ----
+     Rot und Blau sind fast gleich hell (1,07:1) und fuer Farbenblinde nicht zu trennen.
+     Die Markierung besteht deshalb aus drei Traegern, die je nach Breite wechseln: hier
+     auf der Karte Rand, Hantel-Icon UND dem Wort „Training"; in der mobilen Tagesleiste
+     Pillenfarbe, Hantel-Icon und das aria-label. Wer auf der Karte nur einen davon
+     entfernt, nimmt der Markierung ihre Zugaenglichkeit. */
+  .day.training { border-color: color-mix(in srgb, var(--train) 55%, var(--border)); }
+  .day.training::before { background: linear-gradient(90deg, var(--train), var(--train-strong)); }
+  /* Kopfzeile zieht mit — sonst steht ein blauer Rand ueber rosa Verlauf. Das :not(.over)
+     ist bewusst und nicht durch Reihenfolge ersetzbar: ueberschreitet der Tag sein Ziel,
+     muss die Warnung rot bleiben, egal ob trainiert wird. Die Kopfzeile gibt es nur noch
+     am Rechner - mobil ist sie ausgeblendet, hier gilt die Regel also nur dort noch. */
+  .day.training:not(.over) > .day-head {
+    background: linear-gradient(180deg, color-mix(in srgb, var(--train) 12%, var(--surface)), var(--surface));
+  }
+  @media (hover: hover) and (pointer: fine) {   /* Eingabegeraet statt Breite, siehe .day:hover */
+    .day.training:hover {
+      border-color: color-mix(in srgb, var(--train) 70%, var(--border));
+      box-shadow: 0 12px 30px color-mix(in srgb, var(--train) 20%, transparent);
+    }
+  }
+  /* Faellt „heute" auf einen Trainingstag, wird auch der Ring blau — sonst stossen roter
+     Ring und blauer Rand aneinander. Dass es heute ist, traegt weiter der rote Chip. */
+  .day.training.today { box-shadow: 0 0 0 1px color-mix(in srgb, var(--train) 45%, transparent), var(--shadow); }
+  .day-head .dtrain {
+    /* klebt am Tagesnamen und schiebt Ueberschreitungs-Zeichen + Tages-Chip nach rechts */
+    margin-right: auto;
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 10px; font-weight: 700; letter-spacing: .03em; text-transform: uppercase;
+    white-space: nowrap; color: var(--train-strong); padding: 3px 8px; border-radius: 999px;
+    background: color-mix(in srgb, var(--train) 14%, transparent);
+    border: 1px solid color-mix(in srgb, var(--train) 40%, transparent);
+  }
+  /* 13px. Kein stroke-width hier: das Icon bringt seine Staerken selbst mit, und eine
+     CSS-Regel wuerde das Praesentationsattribut im SVG ueberschreiben. */
+  .day-head .dtrain svg { width: 13px; height: 13px; flex: none; }
+  .wg-train { display: inline-flex; align-items: center; gap: 4px; color: var(--train-strong); }
+  .wg-train svg { width: 13px; height: 13px; flex: none; }
+  .slots { display: flex; flex-direction: column; gap: 2px; padding: 8px; flex: 1; }
+
+  /* Tages-Nährwerte (Fuß der Tageskarte) */
+  .day-nut { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 12px; padding: 9px 14px 12px; border-top: 1px dashed var(--border); background: color-mix(in srgb, var(--surface-2) 55%, var(--surface)); }
+  .day-nut .kcal { font-weight: 700; font-size: 13px; color: var(--accent); font-variant-numeric: tabular-nums; }
+  .day-nut .kcal small { font-weight: 600; color: var(--text-muted); }
+  .day-nut .macros { display: flex; gap: 9px; margin-left: auto; font-size: 12px; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+
+  /* Wochen-Gesamtübersicht: kein eigener Rahmen mehr - Heute/Woche stehen mit ihrer
+     eigenen Kartenoptik (.wg-col) direkt auf der Seite, ohne umschliessende zweite Karte
+     ("Deine Ziele" als Aussenrahmen war Karte-in-der-Karte und ist entfallen). Der Block
+     bleibt nur fuer den Abstand zum Wochenplan darunter bestehen. */
+  .week-nut { margin-bottom: 20px; }
+  /* Ohne Ziel gibt es nur noch die Kalorien-Kachel - die frueheren Makro-Kacheln sind
+     entfallen (siehe weekNutHtml), deshalb nur noch eine schmale Kachel statt Raster. */
+  /* Kein max-width mehr: eine schmale 220px-Kachel wirkte neben der breiten Ring-Ansicht
+     (sobald ein Ziel existiert) kleinlich und unfertig. Volle Breite wie die uebrigen
+     Karten dieser Ansicht. */
+  .wn-tiles { display: grid; grid-template-columns: 1fr; gap: 10px; }
+  .wn-tile { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px 14px; }
+  .wn-tile .val { font-family: var(--font-display); font-size: 24px; font-weight: 600; line-height: 1; font-variant-numeric: tabular-nums; }
+  .wn-tile .val .u { font-size: 13px; font-weight: 600; color: var(--text-muted); margin-left: 3px; font-family: var(--font-body); }
+  .wn-tile .lbl { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-muted); margin-top: 6px; }
+  .wn-tile .lbl::before { content: ""; width: 9px; height: 9px; border-radius: 50%; background: var(--tc, var(--accent)); }
+  .wn-tile.t-kcal { --tc: var(--accent); }
+  /* Ziel-Fortschritt: Balken gegen das im Kalorienrechner gespeicherte Tagesziel.
+     Ueberschreitung faerbt bernstein (--danger) – Rot ist bereits die Akzentfarbe. */
+  /* Zwei getrennte Farbachsen: --mc sagt WELCHES Makro (Punkt vor dem Label),
+     --sc sagt WIE es steht (Balken). Sonst wuerde die Kategoriefarbe die Warnung
+     ueberdecken – und der Zustand steht ohnehin zusaetzlich als Text da. */
+  /* „noch offen“ = gedaempftes Gruen: sichtbar, aber ohne die Aussage „geschafft“.
+     Anteil so gewaehlt, dass der Balken gegen die Rinne noch ≥3:1 steht. */
+  .gm { --mc: var(--accent); --sc: color-mix(in srgb, var(--ok) 55%, var(--surface-2)); --sc2: color-mix(in srgb, var(--ok) 40%, var(--surface-2)); margin-top: 9px; }
+  .gm-r { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; font-size: 11.5px; margin-bottom: 5px; }
+  .gm-n { color: var(--text-muted); font-weight: 600; }
+  .gm-n::before { content: ""; display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 5px; background: var(--mc); }
+  .gm-v { color: var(--text-muted); font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .gm-v b { color: var(--text); font-weight: 700; }
+  .gm-bar { height: 6px; border-radius: 999px; background: var(--surface-2); overflow: hidden; box-shadow: inset 0 0 0 1px var(--border); }
+  .gm-bar > span { display: block; height: 100%; border-radius: 999px; background: linear-gradient(90deg, var(--sc2), var(--sc)); transition: width var(--dur-slow) ease; }
+  .gm-left { font-size: 11px; color: var(--text-muted); font-weight: 600; margin-top: 5px; font-variant-numeric: tabular-nums; }
+  .gm.t-carb { --mc: var(--carb); } .gm.t-prot { --mc: var(--prot); } .gm.t-fat { --mc: var(--fat); }
+  /* Zustaende: noch offen (neutral) – im Ziel (gruen) – drueber (rot) */
+  .gm.is-ok   { --sc: var(--ok); --sc2: color-mix(in srgb, var(--ok) 72%, #000); }
+  .gm.is-over { --sc: var(--accent); --sc2: var(--accent-strong); }
+  .gm.is-ok .gm-left { color: var(--ok); }
+  .gm.is-over .gm-v b, .gm.is-over .gm-left { color: var(--accent); }
+  /* Ring + Kennzahlen-Liste statt Fortschrittsring mit Text daneben (Vorbild: schlichte
+     Fitness-App-Karte, siehe Nutzer-Screenshot "Beispiel"). Der Ring traegt keinen
+     Fortschritts-Bogen: farbig nach Zustand (is-ok gruen, is-over Akzent), Rest bleibt
+     zusaetzlich IMMER als Text da (Zahl + Wortwechsel "Verbleibend"/"Drüber" in .wg-c) -
+     die Farbe des Bogens verstaerkt nur, traegt die Information nicht allein.
+     Kein Prozentwert mehr - er stand nirgends in einer Handlung, "wie viel bleibt in
+     kcal" beantwortet die Frage direkter. */
+  /* Eyebrow-Zeile (Zeitraum + Kennzeichen) steht jetzt UEBER beiden Spalten, spannt die
+     volle Breite - vorher war sie Teil der linken Spalte, wodurch "Makros" rechts auf
+     Hoehe der Eyebrow-Zeile stand statt auf Hoehe von "Kalorien" (beide Ueberschriften
+     muessen gleich weit oben stehen, sonst wirkt es wie zwei verschieden hohe Karten). */
+  .wg { display: flex; flex-direction: column; gap: 10px; }
+  .wg-row { display: flex; flex-wrap: wrap; gap: 26px; align-items: flex-start; }
+  /* Zwei Spalten wie im Vorbild: links "Kalorien" (Ring+Kennzahlen), rechts "Makros"
+     (Balken). flex-wrap statt fester Breakpoint - auf schmalen Screens faellt die
+     Makro-Spalte von selbst darunter, sobald fuer beide nebeneinander kein Platz mehr ist. */
+  .wg-col-cal { flex: 2 1 320px; min-width: 0; }
+  .wg-col-macros { flex: 1 1 220px; min-width: 200px; }
+  /* Kleine Zeile ueber den grossen Ueberschriften: Zeitraum + Kennzeichen. */
+  .wg-lbl { display: flex; align-items: center; flex-wrap: wrap; gap: 7px; font-family: var(--font-display); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--text-muted); font-weight: 700; }
+  /* Grosse Ueberschrift "Kalorien"/"Makros" - traegt jetzt, was vorher eine kleine
+     Eyebrow-Zeile war. Normale Gross-/Kleinschreibung wie im Vorbild, nicht Versalien. */
+  .wg-h { font-family: var(--font-display); font-size: 21px; font-weight: 700; color: var(--text); margin: 0 0 14px; }
+  .wg-main { display: flex; align-items: center; gap: 22px; flex-wrap: wrap; }
+  .wg-ring { flex: none; position: relative; width: 118px; height: 118px; }
+  .wg-ring svg { transform: rotate(-90deg); }
+  /* --border-strong statt --surface-2: die Ring-Karte (.wg-col) hat selbst
+     --surface-2 als Hintergrund - bei 0% (kein farbiger Bogen sichtbar) war die Kontur
+     bislang exakt so dunkel wie die Flaeche dahinter und damit komplett unsichtbar. */
+  .wg-track { fill: none; stroke: var(--border-strong); stroke-width: 6; }
+  .wg-fill { fill: none; stroke: color-mix(in srgb, var(--ok) 55%, var(--surface-2)); stroke-width: 6; stroke-linecap: round; transition: stroke-dashoffset .5s ease; }
+  .wg.is-ok .wg-fill { stroke: var(--ok); }
+  .wg.is-over .wg-fill { stroke: var(--accent); }
+  /* Zahl in der Ringmitte bleibt IMMER neutral (--text/--text-muted), auch bei "Drüber" -
+     nur der Ring-Bogen faerbt sich nach Zustand (siehe .wg-fill oben). Zwei rote Elemente
+     an derselben Stelle (Bogen UND Zahl) wirkten zu einfarbig; das Wort "Drüber" traegt
+     den Zustand als Text bereits, dafuer muss die Zahl nicht auch noch rot werden. Genau
+     wie im Vorbild-Screenshot: Ring farbig, Zahl in der Mitte bleibt weiss. */
+  .wg-c { position: absolute; inset: 0; display: grid; place-content: center; gap: 2px; text-align: center; }
+  .wg-c b { font-family: var(--font-display); font-size: 25px; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; color: var(--text); }
+  .wg-c span { font-size: 10.5px; color: var(--text-muted); font-weight: 700; letter-spacing: .04em; }
+  /* Kennzahlen-Liste (Grundziel/Ernaehrung/Training): Icon in einer dezenten Kachel,
+     Label ueber dem Wert - wie im Vorbild, nicht Wert-dann-Label wie die uebrigen
+     Kacheln der App (.wn-tile), weil hier bewusst 1:1 nachgebaut wird. */
+  .wg-stats { display: flex; flex-direction: column; gap: 13px; flex: 1 1 150px; min-width: 140px; }
+  .wg-stat { display: flex; align-items: center; gap: 10px; }
+  .wg-stat-ic {
+    flex: none; width: 32px; height: 32px; border-radius: 9px;
+    display: grid; place-items: center; background: var(--surface-2);
+  }
+  .wg-stat-ic svg { width: 16px; height: 16px; }
+  .wg-stat.base .wg-stat-ic { color: var(--text-muted); }
+  .wg-stat.food .wg-stat-ic { color: var(--accent); }
+  .wg-stat.train .wg-stat-ic { color: var(--train); }
+  .wg-stat-txt { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+  .wg-stat-txt small { font-size: 11px; color: var(--text-muted); font-weight: 600; }
+  .wg-stat-txt b { font-family: var(--font-display); font-size: 15px; font-weight: 700; color: var(--text); font-variant-numeric: tabular-nums; }
+  /* Zwei flache Leisten untereinander (Tag, Woche). */
+  .wg-cols { display: flex; flex-direction: column; gap: 10px; }
+  .wg-col { position: relative; overflow: hidden; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 13px 16px; transition: border-color var(--dur-fast) ease; }
+  /* Zielaktion ("Ziele neu berechnen"): eine eigene Zeile UNTER beiden Karten, weil sie
+     beide betrifft - das Ziel gilt fuer Tag wie Woche. Vorher sass sie in der Kopfzeile nur
+     der Heute-Karte und machte deren Kopf rund 17px hoeher als den der Wochenkarte; auf dem
+     Handy sprang "Kalorien" samt Ring beim Wischen um genau diesen Betrag. Am Rechner
+     rechtsbuendig und dezent, auf dem Handy volle Breite (siehe Handy-Abfrage). */
+  /* gap seit B4 noetig: hier stehen jetzt ZWEI Knoepfe ("Anpassen" und "Neu berechnen").
+     Ohne ihn klebten sie aneinander - bei zwei Ghost-Knöpfen ohne Fläche sähe das aus wie
+     ein einziger. flex-wrap, damit sie auf sehr schmalen Geräten untereinander rutschen
+     statt ihren Text zu quetschen. */
+  .wg-actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; margin-top: 10px; }
+  .wg-recalc svg { width: 15px; height: 15px; }
+  /* Hinweis in der rechten Spalte, wo im Leerzustand sonst Makrobalken bzw. Fortschrittsbalken
+     saessen (dayRight/weekRight in weekGoalHtml). */
+  .wg-side-note { margin: 2px 0 0; font-size: 13.5px; line-height: 1.5; color: var(--text-muted); max-width: 34ch; }
+  /* Rueckblick (Paket C1): Streak + Mini-Trend + Ziel-Treffer. Gleiche Kartenoptik wie .wg-col. */
+  .rueck { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 14px 16px; margin-top: 10px; }
+  .rueck-streak { display: flex; align-items: center; gap: 8px; margin: 8px 0 2px; font-size: 14px; color: var(--text); }
+  .rueck-streak b { font-family: var(--font-display); font-size: 17px; color: var(--accent); font-variant-numeric: tabular-nums; }
+  .rueck-fl { width: 18px; height: 18px; flex: none; color: var(--accent); }
+  .rueck-note { font-size: 11.5px; color: var(--text-muted); margin: 6px 0 0; line-height: 1.45; }
+  /* Der Balken misst gegen das ZIEL der jeweiligen Woche, nicht gegen Min/Max der Reihe:
+     100 % Balkenhoehe entspraeche dem Ziel, gezeichnet wird bis 140 %. Genau deshalb kann
+     das Zielband eine feste waagerechte Flaeche sein, obwohl jede Woche ihr eigenes,
+     eingefrorenes Ziel hat (siehe archiveWeek, B10). Frueher zeigte dieselbe Grafik reine
+     Streuung und sah dabei wie Zielerreichung aus. */
+  .rueck-plot { position: relative; height: 74px; margin: 14px 0 0; }
+  .rueck-band {
+    position: absolute; left: 0; right: 0; bottom: 64.3%; height: 14.3%;
+    background: color-mix(in srgb, var(--accent) 11%, transparent);
+    border-top: 1px dashed color-mix(in srgb, var(--accent) 45%, transparent);
+    border-bottom: 1px dashed color-mix(in srgb, var(--accent) 25%, transparent);
+    border-radius: 2px; pointer-events: none;
+  }
+  .rueck-bandlbl { position: absolute; right: 0; bottom: 79%; font-size: 10px; letter-spacing: .04em; color: var(--text-muted); pointer-events: none; }
+  .rueck-bars { position: absolute; inset: 0; display: flex; align-items: flex-end; gap: 5px; }
+  .rueck-bar {
+    flex: 1 1 0; min-width: 0; display: flex; align-items: flex-end; height: 100%;
+    padding: 0; border: 0; background: transparent; cursor: pointer; border-radius: 4px;
+  }
+  .rueck-bar:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  /* Ausserhalb des Ziels bewusst gedaempft statt rot: die Marke bewertet nicht (CLAUDE.md §6). */
+  .rueck-bar i { display: block; width: 100%; border-radius: 4px 4px 2px 2px; background: var(--border-strong); transition: background var(--dur-fast); }
+  .rueck-bar.hit i { background: linear-gradient(180deg, var(--accent), var(--accent-strong)); }
+  .rueck-kws { display: flex; gap: 5px; margin-top: 5px; }
+  .rueck-kws span { flex: 1 1 0; min-width: 0; text-align: center; font-size: 10px; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+  .rueck-tip { min-height: 16px; margin: 8px 0 0; font-size: 12px; color: var(--text-muted); }
+  .rueck-foot { display: flex; gap: 22px; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); }
+  .rueck-s { display: flex; flex-direction: column; gap: 2px; }
+  .rueck-s small { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: .05em; }
+  .rueck-s b { font-family: var(--font-display); font-size: 18px; color: var(--text); font-variant-numeric: tabular-nums; }
+  .rueck-s b span { font-family: var(--font-body); font-size: 12px; font-weight: 400; color: var(--text-muted); margin-left: 3px; }
+  /* An Trainingstagen bekommt die "Heute"-Karte denselben blauen Rand + Kopfstreifen wie
+     die Tageskarten im Wochenplan (.day.training) - direkt beim App-Start sichtbar, ohne
+     erst die Wochenansicht durchsuchen zu muessen. Icon+Wort "Training" stehen bereits in
+     der Eyebrow-Zeile (dayTrain) - der Rand ist hier nur die zusaetzliche, schnell
+     erfassbare Verstaerkung, nicht der einzige Traeger der Information. */
+  .wg-col.wg-col-training { border-color: color-mix(in srgb, var(--train) 55%, var(--border)); }
+  .wg-col.wg-col-training::before {
+    content: ""; position: absolute; top: 0; left: 0; right: 0; height: 4px;
+    background: linear-gradient(90deg, var(--train), var(--train-strong));
+  }
+  /* Kennzeichen in der Titelzeile: Ziel-Modus bei „Heute“, Planungsstand bei der Woche.
+     Traegt den Kontext, ohne eine weitere Zeile aufzumachen. */
+  .wg-chip {
+    font-family: var(--font-body); font-size: 10px; font-weight: 700; letter-spacing: .06em;
+    padding: 3px 8px; border-radius: 999px; white-space: nowrap;
+    color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, transparent);
+    border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+  }
+  .wg-chip.plain { color: var(--text-muted); background: transparent; border-color: var(--border-strong); text-transform: none; letter-spacing: .02em; }
+  .wg-macros { display: flex; flex-wrap: wrap; gap: 12px 14px; min-width: 0; }
+  /* Eigene Spalte statt Zeile unter Ring+Liste (siehe .wg-col-macros oben) - betrifft
+     aktuell nur die "Heute"-Karte (dort stehen die Makros weiterhin rechts). "Diese
+     Woche" hat rechts stattdessen "Fortschritt" (siehe weekGoalHtml), keine Makros mehr.
+     Nur in dieser Spalte untereinander statt nebeneinander, weil die Spalte selbst schon
+     schmal ist (siehe .wg-col-macros) - die Tageskarten (.day-goals .wg-macros) bleiben
+     von dieser Regel unberuehrt.
+     WICHTIG: flex-basis 150px (unten, .wg-macros .gm) ist fuer die REIHEN-Anordnung
+     gedacht (Breite). In flex-direction:column wird dieselbe Basis zur Hoehe - jeder
+     Balken wollte dadurch 150px HOCH sein, was den riesigen Abstand zwischen Protein/
+     Kohlenhydrate/Fett verursacht hat. Deshalb hier auf auto zuruecksetzen. */
+  .wg-col-macros .wg-macros { flex-direction: column; }
+  .wg-col-macros .wg-macros .gm { flex: 0 0 auto; }
+  /* 150 px Basis ist die Untergrenze, bei der „Kohlenhydrate“ und der Wert noch
+     nebeneinander passen. Schmaler wuerde nur ein Teil der drei umbrechen und sie
+     stuenden versetzt — lieber einer pro Zeile als drei ausgefranste. */
+  .wg-macros .gm { margin-top: 0; flex: 1 1 150px; min-width: 0; }
+  /* Protein etwas breiter und kraeftiger als KH/Fett: beim Abnehmen ist es die
+     wichtigste Nebengroesse (Saettigung, Muskelerhalt) und intern schon als
+     Untergrenze modelliert — das darf man auch sehen. */
+  .wg-macros .gm.t-prot { flex-grow: 1.35; }
+  .wg-macros .gm.t-prot .gm-n { font-size: 12.5px; }
+  .wg-macros .gm.t-prot .gm-v b { font-size: 13px; }
+  .wg-macros .gm.t-prot .gm-bar { height: 8px; }
+  /* Restbudget fuer die noch ungeplanten Tage — beim Planen die gesuchte Zahl */
+  .wg-open {
+    margin-top: 11px; padding-top: 10px; border-top: 1px dashed var(--border);
+    font-size: 12px; color: var(--text-muted); font-variant-numeric: tabular-nums;
+  }
+  .wg-open b { color: var(--text); font-weight: 700; }
+  /* Fortschritt der Woche - rechte Spalte bei "Diese Woche" statt Makros (siehe
+     weekGoalHtml): wie viele der 7 Tage schon geplant sind. */
+  .wg-progress-txt { font-size: 13px; color: var(--text); font-weight: 600; margin-bottom: 8px; }
+  .wg-progress-bar { height: 8px; border-radius: 999px; background: var(--surface-2); overflow: hidden; box-shadow: inset 0 0 0 1px var(--border); }
+  .wg-progress-bar > span { display: block; height: 100%; border-radius: 999px; background: linear-gradient(90deg, var(--accent), var(--accent-strong)); transition: width var(--dur-slow) ease; }
+  .wg-macros .gm-r { gap: 8px; margin-bottom: 5px; }
+  .wg-macros .gm-n { font-weight: 700; color: var(--text); }
+  .wg-macros .gm-v { font-size: 11.5px; }
+
+  /* „Ziele <Jahr>" – Gewichtsverlauf. Sitzt in derselben Kartenschale wie die
+     Kalorien-Ringe (.wg-col), damit auf dem Startreiter eine Optik herrscht.
+     Alle Farben kommen aus Tokens: nur so stimmen Hell und Dunkel beide. */
+  /* overflow sichtbar (anders als .wg-col): sonst schneidet die Kartenkante das Menue
+     hinter dem Plus-Knopf ab. Geclippt werden muss hier nichts - das Diagramm-SVG
+     regelt seinen Ueberstand selbst. */
+  .wch { margin-top: 10px; overflow: visible; }
+  .wch-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+  /* Ankerpunkt fuer .menu (position:absolute; right:0) - ohne ihn haengt das Menue an
+     der ganzen Karte und rutscht an deren rechten Rand. */
+  .wch-menu { position: relative; flex: none; display: flex; align-items: center; gap: 4px; }
+  /* Ueberlaufmenue neben dem Plus (B1): Jahresziel und Widerruf sind seltene Aktionen und
+     standen bis 13.08.2026 im selben Menue wie das woechentliche Wiegen - das kostete
+     jedes Mal zwei zusaetzliche Taps fuer die haeufigste Handlung der Zielgruppe. */
+  .wch-more {
+    width: 36px; height: 36px; border: 1px solid var(--border); border-radius: 50%;
+    background: var(--surface-2); color: var(--text-muted); cursor: pointer; padding: 0;
+    display: grid; place-items: center; font-size: 18px; line-height: 1;
+    transition: color var(--dur-fast), border-color var(--dur-fast);
+  }
+  .wch-more:hover { color: var(--text); border-color: var(--border-strong); }
+  /* Gleiches Gradient-Rund-Button-Muster wie .avatar-edit-btn (Profilbild aendern), nur
+     groesser und im Fluss statt absolut: 36px sichtbar, Trefferflaeche per ::after auf 44px. */
+  .wch-add {
+    position: relative; width: 36px; height: 36px; border: 0; border-radius: 50%; cursor: pointer;
+    display: grid; place-items: center; font-size: 23px; line-height: 1; padding: 0;
+    color: var(--accent-contrast); background: linear-gradient(135deg, var(--accent), var(--accent-strong));
+    box-shadow: 0 2px 8px rgba(0,0,0,.35); transition: transform var(--dur-fast) ease;
+  }
+  .wch-add::after { content: ""; position: absolute; inset: -4px; border-radius: 50%; }
+  .wch-add:hover { transform: scale(1.12); }
+  .wch-head .wg-h { margin-bottom: 10px; }
+  .wch-stats { display: flex; gap: 16px; flex-wrap: wrap; }
+  .wch-s { display: flex; flex-direction: column; gap: 2px; }
+  .wch-s small { font-size: 10.5px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--text-muted); }
+  .wch-s b { font-family: var(--font-display); font-size: 21px; font-weight: 700; line-height: 1; color: var(--text); font-variant-numeric: tabular-nums; }
+  .wch-s b span { font-size: 11px; font-weight: 600; color: var(--text-muted); margin-left: 3px; font-family: var(--font-body); }
+  /* Richtung der Veraenderung: gruen heisst „naeher am Ziel", nicht „weniger" — wer
+     aufbaut, sieht eine Zunahme gruen (siehe zunahmeIstZiel in weightHtml). Das
+     Vorzeichen steht im Text daneben, die Farbe verstaerkt es nur. */
+  .wch-s b.is-toward { color: var(--ok); }
+  .wch-s b.is-away { color: var(--accent-strong); }
+  .wch .week-switch { margin: 2px 0 10px; }
+  .wch-plot { width: 100%; }
+  .wch-svg { display: block; max-width: 100%; overflow: visible; }
+  .wch-grid { stroke: var(--border); stroke-width: 1; }
+  .wch-ay { fill: var(--text-muted); font-size: 10px; text-anchor: end; font-family: var(--font-body); }
+  .wch-ax { fill: var(--text-muted); font-size: 10px; text-anchor: middle; font-family: var(--font-body); }
+  .wch-line { fill: none; stroke: var(--accent); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+  .wch-goal { stroke: var(--text-muted); stroke-width: 2; stroke-dasharray: 5 5; stroke-linecap: round; }
+  /* Gleitender 4-Wochen-Schnitt (B2): die Messkurve tritt dafuer zurueck (duenner,
+     halbdeckend), der Trend fuehrt. Die Rohwerte bleiben sichtbar - eine App, die nur
+     den geglaetteten Wert zeigt, versteckt, woraus er entsteht. */
+  .wch-avg { fill: none; stroke: var(--accent-strong); stroke-width: 2.5; stroke-linejoin: round; stroke-linecap: round; }
+  .wch-svg:has(.wch-avg) .wch-line { stroke-width: 1.5; opacity: .45; }
+  /* Hohl statt gefuellt: unterscheidet den Zielpunkt im Dezember auf einen Blick von
+     den gefuellten Messpunkten und beendet die Linie sichtbar, statt sie auslaufen
+     zu lassen. */
+  .wch-goal-dot { fill: var(--surface-2); stroke: var(--text-muted); stroke-width: 2; }
+  .wch-dot { fill: var(--accent); stroke: var(--surface); stroke-width: 2; }
+  /* Unsichtbare, aber grosse Trefferflaeche: der sichtbare Punkt ist 8px breit und
+     mit dem Finger sonst nicht zu treffen. */
+  .wch-hit { fill: transparent; }
+  .wch-pt { cursor: pointer; }
+  .wch-pt:focus { outline: none; }
+  .wch-pt.is-on .wch-dot, .wch-pt:focus-visible .wch-dot { r: 6; stroke: var(--accent-strong); }
+  .wch-leg { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 10px; font-size: 11.5px; color: var(--text-muted); }
+  .wch-leg span { display: inline-flex; align-items: center; gap: 6px; }
+  .wch-leg i { width: 16px; height: 0; border-top: 2px solid var(--accent); border-radius: 2px; }
+  .wch-leg i.k-goal { border-top-style: dashed; border-color: var(--text-muted); }
+  .wch-leg i.k-avg { border-top-width: 3px; border-color: var(--accent-strong); }
+  .wch-leg i.k-line { opacity: .5; }
+  .wch-tip { margin-top: 8px; font-size: 12px; color: var(--text-muted); font-variant-numeric: tabular-nums; min-height: 17px; }
+  .wch-empty { margin: 6px 0 0; font-size: 13.5px; color: var(--text-muted); }
+  /* Kennzahlenreihe als Fuss der Karte: Trennlinie setzt sie vom Diagramm ab. */
+  .wch-foot { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border); }
+  /* Verlaufsliste im Wiegen-Dialog */
+  .wl-row { display: flex; align-items: center; gap: 10px; padding: 8px 2px; border-top: 1px solid var(--border); font-variant-numeric: tabular-nums; }
+  .wl-row .wl-d { flex: 1; font-size: 13.5px; color: var(--text); }
+  .wl-row .wl-k { font-weight: 700; font-size: 14px; }
+  .wl-empty { font-size: 13px; color: var(--text-muted); margin: 8px 0 0; }
+
+  /* Kalorien breit, darunter die Makros (.wg-macros, wiederverwendet von "Ziele dieser
+     Woche" – siehe dayGoalsHtml). Die Tageskarte sitzt in einem auto-fill-Grid und wird
+     im Desktop-Raster nur ~232px breit; .wg-macros schrumpft dort von selbst auf ein
+     Makro pro Zeile (flex-wrap, siehe dort), statt Namen abzukuerzen. */
+  .day-goals { padding: 11px 14px 13px; border-top: 1px dashed var(--border); background: color-mix(in srgb, var(--surface-2) 55%, var(--surface)); }
+  /* Die Makros stehen UEBER der Kalorienzeile (siehe dayGoalsHtml), der Abstand gehoert
+     deshalb nach unten statt nach oben. */
+  .day-goals .wg-macros { margin-bottom: 12px; }
+
+  /* Aufklapper: die Kalorienzeile selbst. Frueher eine eigene Knopfzeile "Makros ›"
+     darunter - 41px Hoehe fuer ein Wort, im Sheet fester Hoehe zu teuer.
+
+     position:relative ist der Bezugspunkt fuer das aufgespannte ::after des Chevrons -
+     dadurch wird die ganze Zeile zur Trefferflaeche, obwohl nur der Pfeil ein Knopf ist. */
+  .gm-tap { position: relative; }
+  /* Haelt Wert und Chevron zusammen, damit .gm-r weiterhin nur zwei Kinder hat (sonst
+     verteilt space-between den Raum auf zwei Luecken und der Wert rutscht in die Mitte). */
+  .gm-vwrap { display: flex; align-items: baseline; gap: 6px; }
+  .gm-caret {
+    display: inline-flex; align-items: center; flex: none;
+    font: inherit; color: var(--text-muted); background: none; border: 0; padding: 0;
+    cursor: pointer; -webkit-tap-highlight-color: transparent;
+  }
+  /* Stretched Link: KEIN position:relative auf dem Knopf selbst - sonst bezoege sich das
+     ::after auf den 13px kleinen Pfeil und nur der waere anklickbar. Bezugspunkt muss
+     .gm-tap sein, genau wie .ing-view-name sich auf .ing-view bezieht. */
+  .gm-caret::after { content: ""; position: absolute; inset: 0; }
+  .gm-caret:focus-visible { outline: none; }
+  .gm-caret:focus-visible::after { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: var(--radius-sm); }
+  /* Hover nur mit echter Maus - auf Touch bliebe der Zustand nach dem Antippen kleben. */
+  @media (hover: hover) and (pointer: fine) {
+    .gm-caret:hover { color: var(--text); }
+  }
+  .gm-caret:active { opacity: .62; }
+  .gm-caret .caret { width: 13px; height: 13px; transition: transform var(--dur-fast); }
+  /* Zu = nach rechts (es geht noch etwas auf), offen = nach oben: die Makros liegen
+     oberhalb, der Pfeil zeigt dorthin, wo der Inhalt erscheint. */
+  .gm-caret .caret.open { transform: rotate(-90deg); }
+
+  /* Nährwerte in der Rezept-Detailansicht */
+  .nutfacts { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+  .nutfacts .nf { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 9px 11px; }
+  .nutfacts .nf .v { font-weight: 700; font-size: 16px; font-variant-numeric: tabular-nums; }
+  .nutfacts .nf .v .u { font-size: 11px; font-weight: 600; color: var(--text-muted); margin-left: 2px; }
+  .nutfacts .nf .k { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+  .nutfacts .nf .k::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--tc, var(--accent)); }
+  .nutfacts .nf.t-kcal { --tc: var(--accent); } .nutfacts .nf.t-carb { --tc: var(--carb); } .nutfacts .nf.t-prot { --tc: var(--prot); } .nutfacts .nf.t-fat { --tc: var(--fat); }
+  /* Kalorien etwas breiter - wegen des LABELS, nicht wegen der Zahl: "Kcal" ist mit Farbpunkt
+     deutlich breiter als "KH"/"P"/"F". Die Zahl braucht den Platz nicht (gemessen: "9999"
+     sind 31px bei 89px Feld). Bewusst KEINE 2-Spalten-Regel unter 560px - die vier Kacheln
+     stehen immer in einer Reihe (Nutzerentscheidung 08.08.2026). Den Platz dafuer gibt der
+     Innenabstand her, NICHT die Schriftgroesse: 16px in Eingabefeldern sind Pflicht, sonst
+     zoomt iOS beim Antippen hinein (CLAUDE.md §26). */
+  .nutfacts { grid-template-columns: 1.3fr 1fr 1fr 1fr; }
+  @media (max-width: 560px) {
+    .nutfacts { gap: 6px; }
+    .nutfacts .nf { padding: 8px 6px; }
+    .nutfacts .nf .k { gap: 4px; font-size: 10.5px; }
+    .nutfacts .nf .k::before { width: 7px; height: 7px; }
+  }
+
+  /* ---------- Makro-Kompaktzeile (macroLineHtml) ----------
+     Ein Farbsignal in der ganzen App: der Punkt traegt die Farbe, der Text bleibt in der
+     Farbe seiner Umgebung. Gleiches Muster wie .nutfacts .k oben - dadurch sprechen
+     Kompaktzeile und Kacheln dieselbe Sprache und unterscheiden sich nur in der Groesse.
+     Der Abstand liegt auf .mv + .mv statt auf einem Container-gap: die vier Aufrufer
+     (Karte, Zutatenzeile, Tagesbilanz, .ing-brief) sind unterschiedlich aufgebaut, teils
+     ohne flex. */
+  .mv { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
+  .mv + .mv { margin-left: 10px; }
+  .mv::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--tc, var(--accent)); flex: none; }
+  .mv.t-carb { --tc: var(--carb); }
+  .mv.t-prot { --tc: var(--prot); }
+  .mv.t-fat { --tc: var(--fat); }
+
+  /* ---------- Abschnittsueberschrift (.sec-h) ----------
+     Die EINE Abschnittsform der App. Sie stand vorher dreimal wortwoertlich identisch da
+     (.ms-ings h4, .nut-total > h4, .detail .dsec h4) - der Kommentar bei .nut-total sagte
+     sogar ausdruecklich "Abschnittsform wie Zutaten", die Werte waren trotzdem kopiert.
+     Neue Abschnitte bekommen diese Klasse, keine eigenen Werte.
+
+     font-weight gehoert HIERHER und nicht in die Aufrufer: die drei Altstellen sind <h4>
+     und trugen die 700 des Browsers, .mlabel im Wochenplan ist ein <div> und laege sonst
+     bei 400 - dieselbe Klasse saehe an zwei Orten verschieden aus.
+
+     Abstaende bleiben bewusst lokal: 22px oben in der Meal-Ansicht, 0 im Detailbereich,
+     3px unter der Slot-Ueberschrift. Der Abstand haengt am Ort, die Schrift nicht.
+
+     Bewusst NICHT angeglichen: .shop-cat (Einkaufsliste, eigene Display-Schrift und .06em)
+     und .modal-head .kicker (11.5px). Beide liegen knapp daneben, das ist gewollt - wer sie
+     spaeter "aufraeumt", aendert bestehende Ansichten sichtbar. */
+  .sec-h {
+    font-size: 12.5px; font-weight: 700; letter-spacing: .05em;
+    text-transform: uppercase; color: var(--text-muted);
+  }
+
+  .slot { position: relative; border-radius: var(--radius-sm); padding: 8px 10px 9px 12px; transition: background var(--dur-fast); }
+  .slot::before { content:""; position:absolute; left:5px; top:10px; bottom:10px; width:3px; border-radius:3px; background: var(--slot-c); opacity:.9; }
+  .slot[data-meal="fr"] { --slot-c: var(--fr); }
+  .slot[data-meal="mi"] { --slot-c: var(--mi); }
+  .slot[data-meal="ab"] { --slot-c: var(--ab); }
+  /* Snacks bewusst OHNE eigenen Farbton. Das Theme hat mit --accent, --ok, --train,
+     den drei Makro- und sechs Mitgliedsfarben keine freie Luecke mehr, die im Wochenplan
+     nicht schon gleichzeitig sichtbar waere - und der Streifen traegt keine Information,
+     die nicht danebenstuende: das Label schreibt die Mahlzeit aus. Neutral sagt hier
+     zusaetzlich das Richtige, Snacks sind die nachgeordnete Mahlzeit. Kein Alias-Token
+     dafuer, der Verweis ist die Aussage. */
+  .slot[data-meal="sn"] { --slot-c: var(--border-strong); }
+  /* Traegt .sec-h im Markup - dieselbe Abschnittsform wie "Zutaten" in der Meal-Ansicht.
+     Vorher eigene Werte (11px/650/.04em) und in der Slot-Farbe. Die Farbe ist weg, weil
+     das Wort danebensteht: "FRUEHSTUECK" in Amber sagt nichts, was "Fruehstueck" nicht
+     schon sagt. Den Mahlzeitenbezug traegt der Streifen links - auf beiden Geraeten,
+     mobil im Fensterrand statt im Textfluss (siehe 680px-Block). */
+  /* inline-flex, damit das Symbol auf einer Linie mit dem Wort sitzt statt auf der
+     Grundlinie zu haengen. Das Symbol ist aria-hidden (iconSvg) - das Wort steht daneben
+     und traegt die Aussage allein. */
+  .slot .mlabel { margin-bottom: 3px; display: inline-flex; align-items: center; gap: 6px; }
+  /* Das Symbol traegt die Mahlzeitenfarbe ebenfalls - als Wiedererkennung auf Wortebene,
+     ohne die Ueberschrift selbst einzufaerben. Es kam auf, als die Listen-Optik mobil den
+     Streifen genommen hatte; der Streifen ist inzwischen zurueck, das Symbol bleibt: die
+     beiden stoeren sich nicht, das eine faerbt den Rand, das andere die Zeile.
+     --slot-c steht schon je Slot, iconSvg() zeichnet mit currentColor - keine neue
+     Farbquelle noetig. Keine opacity: die Farbe soll tragen, nicht gedaempft werden. */
+  .slot .mlabel-ic { width: 15px; height: 15px; flex: none; color: var(--slot-c); }
+  /* Snacks hat bewusst keinen eigenen Farbton (--slot-c zeigt dort auf --border-strong).
+     Als Rahmenfarbe richtig, als 15px-Symbol auf der Fensterflaeche unsichtbar - im Dark
+     ist das #3A2F30. Deshalb hier ausdruecklich die Textfarbe. */
+  .slot[data-meal="sn"] .mlabel-ic { color: var(--text-muted); }
+  .slot .add {
+    font: inherit; font-size: 13px; width: 100%; text-align: left; cursor: pointer;
+    border: 1px dashed var(--border-strong); background: transparent; color: var(--text-muted);
+    padding: 7px 10px; border-radius: var(--radius-sm); transition: border-color var(--dur-fast), color var(--dur-fast), background var(--dur-fast);
+  }
+  .slot .add:hover { border-color: var(--slot-c); color: var(--text); background: color-mix(in srgb, var(--slot-c) 7%, transparent); }
+  .slot .add.more { font-size: 12px; padding: 5px 10px; opacity: .8; }
+  .slot .filled + .filled, .slot .filled + .add, .slot .add + .filled { margin-top: 4px; }
+  .slot .filled {
+    display: flex; align-items: flex-start; gap: 8px; position: relative;
+    background: color-mix(in srgb, var(--slot-c) 9%, var(--surface));
+    border: 1px solid color-mix(in srgb, var(--slot-c) 24%, var(--surface));
+    border-radius: var(--radius-sm); padding: 8px 8px 8px 10px; cursor: grab;
+  }
+  .slot .filled:active { cursor: grabbing; }
+  .slot .filled img.r-thumb { width: 28px; height: 28px; border-radius: 6px; object-fit: cover; flex: none; margin-top: 1px; }
+  .r-thumb-wrap { position: relative; flex: none; display: flex; }
+  /* Die Badges liegen als Reihe unten rechts auf der Miniatur, das erste ganz rechts
+     (row-reverse), die weiteren ueberlappen es nach links. Als Reihe statt je Position
+     einzeln absolut gesetzt: teilen sich zwei Mitglieder den Anfangsbuchstaben, wird ihr
+     Kuerzel zweistellig und damit breiter - feste right-Werte je nth-child haetten die
+     folgenden Badges dann verdeckt. */
+  .r-badges { position: absolute; right: -4px; bottom: -3px; display: flex; flex-direction: row-reverse; }
+  .r-badge {
+    width: 14px; height: 14px; border-radius: 50%;
+    background: var(--member-c, var(--accent)); color: var(--accent-contrast); font-size: 8.5px; font-weight: 700;
+    display: grid; place-items: center; border: 1.5px solid var(--surface); line-height: 1;
+  }
+  .r-badge + .r-badge { margin-right: -6px; }
+  .r-badge.wide, .r-badge.r-badge-more { width: auto; min-width: 14px; padding: 0 2px; border-radius: 999px; }
+  .r-badge.wide { font-size: 7.5px; letter-spacing: -.02em; }
+  .r-badge.r-badge-more { font-size: 7.5px; }
+  .slot .filled .r-name { font-size: 13.5px; font-weight: 550; line-height: 1.3; flex: 1; word-break: break-word; }
+  .slot .filled .r-meta { font-size: 11.5px; color: var(--text-muted); margin-top: 1px; }
+  .slot .filled .x, .slot .filled .pencil {
+    position: relative; flex: none; border: 0; background: transparent; color: var(--text-muted); cursor: pointer;
+    width: 32px; height: 32px; border-radius: var(--radius-sm); display: grid; place-items: center; line-height: 1;
+    touch-action: manipulation; -webkit-tap-highlight-color: transparent;
+  }
+  /* hitSlop wie .toast-undo::after: vergroessert die Trefferflaeche, ohne die sichtbare
+     Knopfgroesse zu aendern. Die Enge gilt NUR waagerecht zwischen Stift und X (8px
+     Abstand) - senkrecht ist der Platz frei, und rechts vom X liegt nur noch der
+     Kartenrand. Deshalb nicht ein einzelner kleiner Wert fuer alles, sondern je Seite
+     so viel wie moeglich: 32 + 8 + 8 = 48px hoch, ueber der von Apple HIG und WCAG 2.5.5
+     geforderten Mindestgroesse von 44px. */
+  .slot .filled .x::after, .slot .filled .pencil::after { content: ""; position: absolute; inset: -8px; }
+  /* Steht der Stift (jetzt Personen-Icon) daneben (nur im Gruppenmodus, ab zwei
+     Mitgliedern), reichen die 8px Abstand der Karte nicht fuer zwei volle Flaechen: jeder
+     Knopf will 8px hitSlop nach aussen, zwei benachbarte brauchen also 16px sichtbaren
+     Abstand zwischen sich - 8px liefert bereits der Flex-gap der Karte (.slot .filled),
+     die fehlenden 8px kommen von diesem Zuschlag. Rechnung ist bewusst UNABHAENGIG von
+     der Knopfgroesse (28px -> 32px, siehe oben): der hitSlop ist ein fester Wert, kein
+     Anteil der Knopfgroesse - deshalb musste dieser Wert bei der Groessenaenderung NICHT
+     neu hergeleitet werden (Gegenprobe gemacht). Nach wie vor: beide 44x44px+-Flaechen
+     liegen exakt aneinander, ohne sich zu ueberlappen. Kostet 8px Textbreite, aber nur im
+     Gruppenmodus; die Alternative waere ein dauerhaft zu schmales Ziel fuer eine der
+     beiden Aktionen. */
+  .slot .filled .pencil { margin-right: 8px; }
+  .slot .filled .x { font-size: 19px; }
+  .slot .filled .pencil svg { width: 18px; height: 18px; }
+  .slot .filled .x:hover { background: color-mix(in srgb, var(--danger) 14%, transparent); color: var(--danger); }
+  .slot .filled .pencil:hover { background: color-mix(in srgb, var(--accent) 14%, transparent); color: var(--accent); }
+  /* Touch kennt kein Hover: ohne Press-State bliebe der einzige Hinweis, dass getroffen
+     wurde, das Verschwinden der Karte selbst. MUSS nach den :hover-Zeilen stehen - gleiche
+     Spezifitaet, und ein Touchscreen laesst den Hover-Zustand nach dem Tippen haengen. */
+  .slot .filled .x:active { background: color-mix(in srgb, var(--danger) 20%, transparent); color: var(--danger); }
+  .slot .filled .pencil:active { background: color-mix(in srgb, var(--accent) 20%, transparent); color: var(--accent); }
+  /* .assign-chip ist ein .menu button (Basis-Layout/Groesse von dort, siehe .menu button
+     weiter unten) - hier nur die Mehrfachauswahl-Markierung ergaenzen. */
+  .menu .assign-chip.on { background: color-mix(in srgb, var(--accent) 12%, transparent); font-weight: 600; }
+  .menu .assign-chip .avatar { width: 22px; height: 22px; font-size: 10px; }
+  /* Seit dem 16.08.2026 fasst eine Gruppe hoechstens vier Personen - mit "Fuer alle" sind das
+     fuenf Chips, die ohnehin auf jeden Bildschirm passen. max-height bleibt als Netz fuer sehr
+     kleine Viewports (Querformat auf dem Handy) stehen, nicht mehr fuer grosse Gruppen. */
+  .assign-menu { max-height: 50vh; overflow-y: auto; }
+  /* Der "Fuer alle"-Chip hat keinen Avatar. Ohne Platzhalter staende sein Text rund 32 px
+     weiter links als die Namen darunter - eine Liste, die nicht fluchtet, liest sich wie ein
+     Fehler. Der Platzhalter ist genau so breit wie ein Avatar samt gap. */
+  .menu .assign-chip .avatar-spacer { width: 22px; height: 22px; flex: 0 0 22px; }
+  .menu .assign-sep { height: 1px; background: var(--border); margin: 4px 0; }
+  .slot.dragover { background: color-mix(in srgb, var(--accent) 12%, transparent); outline: 2px dashed var(--accent); outline-offset: -2px; }
+  .slot.nodrop { opacity: .4; cursor: not-allowed; }
+  .filled.dragging { opacity: .4; }
+

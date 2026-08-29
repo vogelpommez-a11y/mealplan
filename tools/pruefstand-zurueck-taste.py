@@ -19,26 +19,50 @@ zusaetzlich am Quelltext.
 """
 import io, os, re
 
+import sys
+# pm_quelle.lade_seite() statt io.open(): Der Produktionscode liegt inzwischen auf
+# mehrere Dateien verteilt (css/, data/, lib/). Ein Pruefstand schreibt seine Seite
+# nach tools/ - relative Verweise zeigten von dort ins Leere. quelle baut die eigenen
+# Dateien an Ort und Stelle wieder ein: derselbe Text, nur wieder in einer Datei.
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import quelle as pm_quelle
+
 BASIS = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 QUELLE = os.path.join(BASIS, "index.html")
 ZIEL = os.path.join(BASIS, "tools", "pruefstand-zurueck-taste.html")
 
-text = io.open(QUELLE, encoding="utf-8").read()
+text = pm_quelle.lade_seite(QUELLE)
 lines = text.split("\n")
 
-# ---- Schnitt: vom Zurueck-Block bis einschliesslich el() ----
+# ---- Schnitt: vom Zurueck-Block bis zum Ende von openModal ----
+# Frueher endete der Schnitt bei "function el(html)", das direkt hinter openModal stand.
+# Seit der Aufteilung liegt el() in lib/basis.js und wird VOR dem Kern eingebaut - ein
+# Schnittende dahinter gaebe es nicht mehr. Das Ende ist jetzt die schliessende Klammer
+# von openModal; el() wird unten gezielt dazugeholt.
 start = None
+offen = None
 ende = None
 for i, z in enumerate(lines):
     if start is None and "// ---------- Zurueck-Taste (D5) ----------" in z:
         start = i
-    if start is not None and z.startswith("  function el(html)"):
+    if start is not None and offen is None and z.startswith("  function openModal("):
+        offen = i
+    if offen is not None and i > offen and z == "  }":
         ende = i
         break
 if start is None or ende is None:
     raise SystemExit("Schnitt nicht gefunden - Marker in index.html geprueft?")
 
 KERN = "\n".join(lines[start:ende + 1])
+
+# el() stammt aus lib/basis.js und ist ueber pm_quelle bereits in `lines` eingebaut -
+# echter Produktionscode, nur an anderer Stelle der Seite.
+EL = next((z for z in lines if z.startswith("  function el(html)")), None)
+if EL is None:
+    raise SystemExit("el() nicht gefunden - liegt es noch in lib/basis.js?")
+# Abschliessender Zeilenumbruch: die beiden Gegenproben unten loesen ihre Funktion
+# per Regex heraus und erwarten hinter der schliessenden Klammer ein Zeilenende.
+KERN = EL + "\n" + KERN + "\n"
 
 for muss in ["function overlayOpened", "function overlayClosed", 'addEventListener("popstate"',
              "function closeModal", "function openModal", "ersetztOffenes"]:

@@ -48,6 +48,13 @@ Aufruf:  python tools/pruefstand-wochenmaske.py [pfad-zu-index.html]
 """
 import io, os, re, subprocess, sys, tempfile, shutil
 
+# pm_quelle.lade_seite() statt io.open(): Der Produktionscode liegt inzwischen auf
+# mehrere Dateien verteilt (css/, data/, lib/). Ein Pruefstand schreibt seine Seite
+# nach tools/ - relative Verweise zeigten von dort ins Leere. quelle baut die eigenen
+# Dateien an Ort und Stelle wieder ein: derselbe Text, nur wieder in einer Datei.
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import quelle as pm_quelle
+
 BASIS = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 INDEX = os.path.abspath(sys.argv[1]) if len(sys.argv) > 1 else os.path.join(BASIS, "index.html")
 EDGE = r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe"
@@ -286,7 +293,7 @@ console.log("ERGEBNIS REGRESSION " + regrOk + " gruen, " + regrBad + " rot");
 
 
 def main():
-    quelle = io.open(INDEX, encoding="utf-8").read().split(u"\n")
+    quelle = pm_quelle.lade_seite(INDEX).split(u"\n")
     # Produktionscode schneiden, nicht abtippen.
     tage = schneide(quelle, u"const DAYS = [", u"  ];")
     hasnut = schneide_zeile(quelle, u"function hasNut(s)")

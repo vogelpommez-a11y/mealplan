@@ -10,13 +10,16 @@ Sie ist ausdrücklich **kein Kalorien-Tracker**.
 
 ## Was hier liegt
 
-Die gesamte App ist eine einzige Datei: `index.html` — HTML, CSS, JavaScript,
-Firebase-Anbindung und Inhalte inline, ohne Build-Prozess. Was im Repo steht, ist
-unmittelbar das, was ausgeliefert wird.
+Die App wird **ohne Build-Prozess** ausgeliefert: Was im Repo steht, ist unmittelbar
+das, was im Browser läuft. Sie verteilt sich auf wenige klassische Dateien, die in
+Dokumentreihenfolge geladen werden — keine Module, kein Bundler.
 
 | Pfad | Inhalt |
 |---|---|
-| `index.html` | die vollständige App |
+| `index.html` | Markup, Firebase-Anbindung und der App-Kern |
+| `css/` | Design-Tokens und Styles |
+| `data/` | Rezeptkatalog, Zutaten, Bilder, Icons, Rechtstexte |
+| `lib/` | gemeinsame Helfer, PDF-Erzeugung, Barcode |
 | `firestore.rules` | Vorlage der Datenbank-Zugriffsregeln (wirksam ist der in der Firebase-Konsole veröffentlichte Stand) |
 | `sw.js` | Service Worker für Offline-Betrieb |
 | `worker/og.js` | Cloudflare Worker für die Linkvorschau geteilter Meals |

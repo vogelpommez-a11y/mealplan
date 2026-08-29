@@ -110,8 +110,11 @@ def pruefe_fakten():
                         gelb(bereich, "%s nennt Firebase-SDK %s, im Ordner liegt %s"
                              % (p, m.group(1), ", ".join(versionen)))
 
-    # Anzahl der Katalog-Rezepte gegen die Angaben in der Doku
-    ih = lies("index.html")
+    # Anzahl der Katalog-Rezepte gegen die Angaben in der Doku.
+    # COOKBOOK liegt seit der Aufteilung in data/cookbook.js; der Rueckfall auf
+    # index.html bleibt stehen, damit diese Pruefung auch gegen einen aelteren
+    # Stand laeuft, statt dort stillschweigend nichts zu pruefen.
+    ih = lies("data/cookbook.js") or lies("index.html")
     if "const COOKBOOK = [" in ih:
         i = ih.index("const COOKBOOK = [")
         tiefe, ende = 0, None
@@ -381,6 +384,27 @@ def pruefe_alter():
 
 
 # --------------------------------------------------------------------------- Lauf
+def pruefe_landkarte():
+    """Bildet docs/MODULE.md noch den tatsaechlichen Zustand ab?
+
+    Die Landkarte ist erhoben, nicht gepflegt - sie kann nur veralten, wenn niemand
+    nachsieht. Sie ist ausserdem die Grundlage, aus der spaeter ein Dashboard entsteht;
+    eine falsche Grundlage traegt jeden Fehler weiter, den sie enthaelt.
+    """
+    bereich = "Landkarte"
+    if not os.path.exists("tools/karte.py"):
+        return
+    try:
+        lauf = subprocess.run([sys.executable, "tools/karte.py", "--pruefe"],
+                              capture_output=True, text=True, timeout=180,
+                              encoding="utf-8", errors="replace")
+    except Exception as e:
+        gelb(bereich, "tools/karte.py nicht ausfuehrbar: %s" % e)
+        return
+    if lauf.returncode != 0:
+        gelb(bereich, "docs/MODULE.md weicht vom Ist-Zustand ab - einmal 'python tools/karte.py' laufen lassen")
+
+
 def pruefe_abdeckung():
     """Gibt es einen Bereich im Projekt, den niemand prueft?
 
@@ -436,7 +460,8 @@ def main():
         print("Wartungsdatum auf %s gesetzt.\n" % datetime.date.today().isoformat())
 
     for fn in (pruefe_fakten, pruefe_verweise, pruefe_agenten,
-               pruefe_hooks, pruefe_skills, pruefe_abdeckung, pruefe_alter):
+               pruefe_hooks, pruefe_skills, pruefe_abdeckung, pruefe_landkarte,
+               pruefe_alter):
         try:
             fn()
         except Exception as e:

@@ -22,6 +22,20 @@ Code kaputt ist — das ist schlimmer als kein Test.
 Mit `Grep` die Funktion suchen und zwei eindeutige Grenzen bestimmen — Funktionsanfang und
 das schließende `}` auf derselben Einrückungsebene. `index.html` **nie** am Stück lesen.
 
+**Die Seite immer über `tools/quelle.py` laden, nie mit `io.open(INDEX).read()`:**
+
+```python
+import quelle as pm_quelle
+text = pm_quelle.lade_seite(INDEX)      # baut css/, data/ und lib/ wieder ein
+CSS  = pm_quelle.css_gesamt(INDEX)      # alle vier Stylesheets in Ladereihenfolge
+```
+
+Grund: Ein Prüfstand schreibt seine Seite nach `tools/`. Ein relativer Verweis wie
+`data/cookbook.js` zeigt von dort ins Leere — die Seite lädt, das Skript fehlt, und der
+Prüfstand misst nichts mehr. `quelle` setzt denselben Text wieder an dieselbe Stelle;
+es bleibt echter Produktionscode, kein Nachbau. Den Modulnamen `pm_quelle` verwenden:
+mehrere Prüfstände benutzen `quelle` bereits als Variablennamen.
+
 ### 2. Per Python ausschneiden
 
 Ein Build-Skript unter `tools/pruefstand-<thema>.py`, das den Bereich aus `index.html`

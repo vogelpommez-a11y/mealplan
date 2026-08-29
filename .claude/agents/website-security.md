@@ -20,7 +20,15 @@ Genau das ist dein wertvollster Befund.
 
 ## Kontext des Projekts
 
-- Die App ist eine einzige Datei: `index.html` (~1,1 MB, HTML + CSS + JS inline).
+- Die App wird als **statische Dateien ohne Build** ausgeliefert. `index.html` (~0,76 MB)
+  traegt das Markup und den verwobenen App-Kern; ausgelagert sind `css/*.css` (Tokens und
+  Styles), `data/*.js` (Rezeptkatalog, Zutaten, Bilder, Icons, **Rechtstexte**) und
+  `lib/*.js` (gemeinsame Helfer, PDF-Schreiber, Barcode). Sehr grosse Zeilen – arbeite mit
+  `Grep` ueber **alle** diese Dateien, lies nie eine am Stueck. Wer nur `index.html` prueft,
+  prueft seit der Aufteilung an einem Teil des Codes vorbei und meldet trotzdem „sauber“.
+  Die vollstaendige Dateiliste steht in `docs/MODULE.md`.
+  **Fuer dich besonders wichtig:** `lib/barcode.js` spricht mit Open Food Facts und der
+  Kamera, `data/rechtstexte.js` traegt die Datenschutzerklaerung.
 - Ausgeliefert über **GitHub Pages** unter **www.paddysmealplan.de** (Domain-Migration am
   24.07.2026, `CNAME` im Repo). Repo: `vogelpommez-a11y/mealplan`, öffentlich.
   Die alte Adresse `vogelpommez-a11y.github.io/mealplan/` zeigt weiter dorthin — deshalb

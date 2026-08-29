@@ -6,9 +6,9 @@ Dieses Dokument enthält bekannte Fehlerquellen, historische Bugs und Probleme, 
 
 <!-- REGISTER-ANFANG (erzeugt aus den Ueberschriften, nicht von Hand pflegen) -->
 
-**Register — 135.** Chronologisch gewachsen: je hoeher die Nummer,
+**Register — 137.** Chronologisch gewachsen: je hoeher die Nummer,
 desto juenger der Fund. Wer eine Falle sucht, sucht hier zuerst; die Ueberschrift sagt
-jeweils, worum es geht. **Nicht die ganze Datei lesen** — sie ist ueber 200 KB gross.
+jeweils, worum es geht. **Nicht die ganze Datei lesen** — sie ist rund 286 KB gross.
 
 | # | Abschnitt |
 |---|---|
@@ -147,6 +147,8 @@ jeweils, worum es geht. **Nicht die ganze Datei lesen** — sie ist ueber 200 KB
 | 133 | Wer aus einer Gruppe entfernt wird, bleibt für immer daran hängen |
 | 134 | Der vergiftete Offline-Cache — Ursache der `permission-denied`-Phasen |
 | 135 | Der Home-Screen-Verweis auf dem iPhone ist ein zweites Gerät |
+| 136 | Ein `let` am Rand eines Schnitts: geteilter Zustand bricht die Aufteilung |
+| 137 | Ein Cache in einer Fassade ist eine Kopie, kein Cache |
 
 <!-- REGISTER-ENDE -->
 
@@ -222,7 +224,7 @@ Typisches Symptom:
 
 Lösung:
 
-* **zuerst `python syntax-check.py`** — benennt Fehlermeldung und Zeile in rund einer Sekunde,
+* **zuerst `python syntax-check.py --alles`** — benennt Fehlermeldung und Zeile in rund einer Sekunde,
   statt sie im leeren `#view` zu suchen (siehe `docs/TESTING.md`, Abschnitt 0)
 * `--dump-dom` verwenden
 * `#view` prüfen
@@ -260,7 +262,8 @@ Das PDF wird selbst erzeugt (`planPdfString` / `downloadPdf`) und verwendet Helv
 
 ## 7. Sehr lange Zeilen in `index.html` (früher: Base64-Fotos)
 
-`index.html` ist ~1,1 MB gross, 16.700 Zeilen, einzelne Zeilen über 12.000 Zeichen lang.
+`index.html` ist ~0,76 MB gross und rund 12.860 Zeilen lang; dazu kommen `css/`,
+`data/` und `lib/` (siehe `docs/MODULE.md`).
 
 Niemals:
 
@@ -1370,7 +1373,7 @@ Gilt sinngemäß für jede künftige Funktion, die eine dynamische Linkvorschau 
 
 ## 51. `onRecipesRemote()` ersetzt Rezept-Objekte statt sie zu mutieren — langlebige Ansichten müssen immer über `getRecipe(id)` zugreifen
 
-**Symptom (Risiko, das der Umbau in `plans/MealAnsicht.MD` bewusst verhindert):** Eine offene, langlebige Ansicht auf ein Meal hält eine JS-Referenz auf das Rezept-Objekt. Ein anderes Gerät ändert dasselbe Meal in der Cloud. Der lokale Sync-Listener zieht den neuen Stand — aber die offene Ansicht schreibt weiter in die alte, jetzt abgehängte Objekt-Referenz. Kein Absturz, keine Fehlermeldung, die Eingabe verschwindet einfach lautlos.
+**Symptom (Risiko, das der damalige Meal-Ansicht-Umbau bewusst verhindert):** Eine offene, langlebige Ansicht auf ein Meal hält eine JS-Referenz auf das Rezept-Objekt. Ein anderes Gerät ändert dasselbe Meal in der Cloud. Der lokale Sync-Listener zieht den neuen Stand — aber die offene Ansicht schreibt weiter in die alte, jetzt abgehängte Objekt-Referenz. Kein Absturz, keine Fehlermeldung, die Eingabe verschwindet einfach lautlos.
 
 **Ursache:** `onRecipesRemote()` (`index.html`, Firestore-Listener auf die `recipes`-Subcollection) **ersetzt** ein geändertes Rezept-Objekt im „modified"-Zweig (`state.recipes[idx] = incoming;`), es mutiert das bestehende Objekt nicht. Jede Referenz, die vor diesem Zeitpunkt gezogen wurde, zeigt danach auf ein Objekt, das nicht mehr Teil von `state.recipes` ist.
 
@@ -5023,3 +5026,67 @@ Der Hinweis aus Ziffer 129 („Cloud-Verbindung unterbrochen – lade die Seite 
 Leere**, wenn die Ursache der beschädigte Cache ist: Neuladen hilft dort nachweislich nicht.
 Er sollte stattdessen auf den Knopf zeigen, der wirklich hilft. Eine Textänderung, aber eine,
 die den Unterschied zwischen „App kaputt" und „ein Klick" ausmacht.
+
+## 136. Ein `let` am Rand eines Schnitts: geteilter Zustand bricht die Aufteilung
+
+**Datum:** 29.08.2026, bei der Aufteilung des Codes in `css/`, `data/` und `lib/`.
+
+**Symptom:** Nach dem Auslagern der Barcode-Infrastruktur nach `lib/barcode.js` fielen
+`pruefstand-einkaufsliste` und `pruefstand-sheet-repaint` durch:
+
+```
+Uncaught ReferenceError: liveScanStop is not defined
+```
+
+**Ursache:** Vor dem Schnitt wurde gemessen, welche Namen der Kern aus dem Block
+braucht. Die Messung zählte `function`-Deklarationen und GROSSGESCHRIEBENE Konstanten —
+und übersah dabei `let liveScanStop = null;`, eine kleingeschriebene Variable am Ende
+des Blocks. Sie wird von `scanBarcodeLive()` gesetzt (blieb im Kern) und von
+`closeModal()` gelesen (ebenfalls Kern). Der Schnitt lag damit **eine Zeile zu spät**:
+Er nahm den geteilten Zustand mit, ließ aber beide Nutzer zurück.
+
+**Behebung:** `liveScanStop` samt zugehörigem Kommentarblock zurück in den Kern, direkt
+vor `scanBarcodeLive()`. Die Fassade `PM.barcode` trägt nur noch Funktionen und
+unveränderliche Konstanten.
+
+**Die Lehre:** Beim Schneiden einer Datei ist nicht die Funktionsliste die kritische
+Größe, sondern **geteilter veränderlicher Zustand**. Eine Namensanalyse, die nur nach
+`function` und `CONST` sucht, findet ihn nicht — sie meldet einen sauberen Schnitt und
+liegt falsch. Prüfe vor jedem Schnitt zusätzlich auf `let`/`var` auf oberster Ebene und
+darauf, wer sie **schreibt**.
+
+## 137. Ein Cache in einer Fassade ist eine Kopie, kein Cache
+
+**Datum:** 29.08.2026, gleicher Umbau.
+
+**Symptom:** Der Marken-Kopf der PDFs wäre ohne Logo geblieben — still, ohne Fehler.
+
+**Ursache:** `logoPdfAsset` ist ein Cache: `prepareLogoForPdf()` füllt ihn einmal
+asynchron, `buildPrintable()` liest ihn später. Beim Auslagern des PDF-Schreibers nach
+`lib/pdf.js` wanderte die Variable mit, `buildPrintable()` blieb im Kern. Der
+naheliegende Weg wäre gewesen, sie in die Fassade zu legen:
+
+```javascript
+PM.pdf = { logoPdfAsset: logoPdfAsset, ... };   // FALSCH
+```
+
+Das legt eine **Kopie zum Ladezeitpunkt** ab — also `null`, für immer. Der Kern hätte
+nie das gefüllte Logo gesehen, und weil der Kopf ohne Logo trotzdem gezeichnet wird,
+wäre nichts aufgefallen außer einem fehlenden Bild im PDF.
+
+**Behebung:** Ein Zugriff statt eines Werts:
+
+```javascript
+function logoAsset() { return logoPdfAsset; }
+PM.pdf = { logoAsset: logoAsset, ... };
+// im Kern:  const logo = PM.pdf.logoAsset();
+```
+
+**Die Lehre:** In einer Fassade ist jeder **Wert** eine Momentaufnahme. Alles, was sich
+nach dem Laden noch ändert, gehört als Funktion hinein — sonst friert die Grenze den
+Zustand ein, und zwar lautlos. Das ist dieselbe Klasse von Fehler wie Ziffer 136, nur
+von der anderen Seite: dort wurde geteilter Zustand mitgenommen, hier eingefroren.
+
+**Wie beides gefunden wurde:** Nicht durch Lesen, sondern durch den Prüfstandslauf gegen
+die vorher festgehaltene Grundlinie. Ohne diese Grundlinie wäre nicht unterscheidbar
+gewesen, ob ein roter Prüfstand am Umbau liegt oder vorher schon rot war.

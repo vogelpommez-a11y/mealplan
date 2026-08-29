@@ -26,8 +26,16 @@ Was du tatsächlich kannst, und worin dein Wert liegt:
 
 ## Kontext des Projekts
 
-- Eine einzige Datei: `index.html` (~1,1 MB, HTML + CSS + JS inline). Sehr große Zeilen
-  (Base64-Fotos) – arbeite mit `Grep`, lies nie die ganze Datei am Stück.
+- Die App wird als **statische Dateien ohne Build** ausgeliefert. `index.html` (~0,76 MB)
+  traegt das Markup und den verwobenen App-Kern; ausgelagert sind `css/*.css` (Tokens und
+  Styles), `data/*.js` (Rezeptkatalog, Zutaten, Bilder, Icons, **Rechtstexte**) und
+  `lib/*.js` (gemeinsame Helfer, PDF-Schreiber, Barcode). Sehr grosse Zeilen – arbeite mit
+  `Grep` ueber **alle** diese Dateien, lies nie eine am Stueck. Wer nur `index.html` prueft,
+  prueft seit der Aufteilung an einem Teil des Codes vorbei und meldet trotzdem „sauber“.
+  Die vollstaendige Dateiliste steht in `docs/MODULE.md`.
+  **Fuer dich besonders wichtig:** Impressum und Datenschutzerklaerung stehen jetzt in
+  `data/rechtstexte.js` (`IMPRESSUM_HTML_1`/`_2`, `DATENSCHUTZ_HTML`), die Bildnachweise
+  in `data/bilder.js` (`PHOTO_CREDITS`) – nicht mehr in `index.html`.
 - Öffentlich über **GitHub Pages** unter **www.paddysmealplan.de** (Domain-Migration am
   24.07.2026); die alte Adresse `vogelpommez-a11y.github.io/mealplan/` zeigt weiter dorthin.
 - `worker/og.js` ist ein **Cloudflare Worker für die Linkvorschau — vorbereitet, aber

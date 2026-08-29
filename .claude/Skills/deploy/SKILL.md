@@ -10,7 +10,7 @@ Zwischenschritt und keine Freigabe. Entsprechend sorgfältig.
 
 ## Vorher
 
-1. `python syntax-check.py` — grün.
+1. `python syntax-check.py --alles` — grün.
 2. `/smoke` — `#view` gefüllt.
 3. `/pushcheck` — kein offenes 🔴.
 4. `git diff` gelesen, keine unbeabsichtigten Änderungen.
@@ -73,8 +73,9 @@ alten Cache nicht weg, und Nutzer bleiben auf dem alten Stand hängen.
 Ruhe. Es gibt keinen Build, deshalb ist der Rückweg kurz.
 
 **Zuerst feststellen, was gilt.** Ist die Seite leer (`#view` leer bei HTTP 200)? Dann ist
-es fast immer ein Syntaxfehler — `python syntax-check.py` sagt in einer Sekunde, welche
-Zeile.
+es fast immer ein Syntaxfehler — `python syntax-check.py --alles` sagt in einer Sekunde,
+welche Datei und welche Zeile. Ohne `--alles` bliebe ein Fehler in `data/` oder `lib/`
+unentdeckt.
 
 **Zurück auf den letzten heilen Stand:**
 

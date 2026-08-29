@@ -167,7 +167,7 @@ ohne die Entscheidung zu kennen:
 - **Pro-Gating ist zusätzlich clientseitig sichtbar.** Das ist Bequemlichkeit; die Grenze
   liegt in `groupOwnerHasPro()`.
 - **Der Auto-Wochenplaner ist bei Solo-Konten nur im Client Pro-gesperrt** (`isPro()` in
-  `index.html:12567`). Er rechnet auf dem Gerät und schreibt in `users/{uid}` — dort darf
+  `index.html:8645`). Er rechnet auf dem Gerät und schreibt in `users/{uid}` — dort darf
   der Nutzer ohnehin schreiben, und die Regel hat bewusst keine Pro-Prüfung
   (`firestore.rules:112-121`, Entscheidung vom 15.08.2026, damit Cloud-Sync frei bleibt).
   Den Regeln sieht ein fertiger Plan nicht an, wie er entstanden ist.
@@ -175,7 +175,7 @@ ohne die Entscheidung zu kennen:
   Netz abhängig machen — gegen die Offline-Zusage und gegen eine Store-Anforderung. Wer die
   Lücke nutzt, braucht Entwicklerwerkzeuge; fremde Daten sind nie betroffen, der Schaden
   ist entgangener Umsatz. Begründung: `docs/PRODUCT.md`, „Wie Pro verkauft wird".
-- **Die 34 Katalog-Rezepte in `index.html` sind für jeden lesbar.** Sie sind der
+- **Die 34 Katalog-Rezepte in `data/cookbook.js` sind für jeden lesbar.** Sie sind der
   Gratis-Grundstock, das ist gewollt. Künftige **Pro**-Rezepte kommen dagegen aus Firestore
   hinter `hasPro()` — sonst wären sie ab Veröffentlichung im Quelltext öffentlich.
 

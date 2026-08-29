@@ -1,8 +1,9 @@
 // Cloudflare Worker: Meal-Vorschau in geteilten Links (?s=<id>) + Bild-Ausgabe unter /og/<id>.jpg
 //
 // Deployment ausschliesslich ueber das Cloudflare-Dashboard (Route www.paddysmealplan.de/*).
-// Diese Datei liegt nur zur Nachvollziehbarkeit im Repo (siehe plans/TeilenVereinheitlichen.MD,
-// Teil B) - GitHub Pages liefert sie wie jede andere Repo-Datei als statisches Asset mit aus
+// Diese Datei liegt nur zur Nachvollziehbarkeit im Repo (das Planungsdokument dazu ist
+// nach der Umsetzung geloescht worden) - GitHub Pages liefert sie wie jede andere
+// Repo-Datei als statisches Asset mit aus
 // (z. B. unter /worker/og.js), die App laedt oder fuehrt sie aber nie aus. Keine Secrets in
 // dieser Datei, siehe unten.
 //

@@ -30,8 +30,10 @@ git status               # welche Dateien überhaupt
 
 Wenn der Nutzer etwas anderes nennt (ein Commit, ein Bereich, „die Einkaufsliste"), nimm das.
 Sieh dir immer auch den **umgebenden Code** an, nicht nur die Diff-Zeilen – ob etwas gut ist,
-entscheidet sich am Kontext. `index.html` ist ~1,05 MB mit riesigen Base64-Zeilen: arbeite mit
-`Grep`, lies nur Trefferstellen, **nie die ganze Datei**.
+entscheidet sich am Kontext. Der Code liegt in `index.html` (~0,76 MB, Markup und App-Kern)
+sowie in `css/`, `data/` und `lib/`; Zeilen koennen sehr gross sein. Arbeite mit `Grep` ueber
+alle diese Dateien, lies nur Trefferstellen, **nie eine Datei am Stueck**. Die Design-Tokens
+stehen in `css/tokens.css`, die mobilen Breakpoints in `css/mobil.css`.
 
 ## Prüfrichtungen
 

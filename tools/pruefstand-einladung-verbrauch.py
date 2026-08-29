@@ -17,11 +17,19 @@ dahin ist die Pruefung hier eine Bequemlichkeit. Siehe firestore.rules.
 """
 import io, os
 
+import sys
+# pm_quelle.lade_seite() statt io.open(): Der Produktionscode liegt inzwischen auf
+# mehrere Dateien verteilt (css/, data/, lib/). Ein Pruefstand schreibt seine Seite
+# nach tools/ - relative Verweise zeigten von dort ins Leere. quelle baut die eigenen
+# Dateien an Ort und Stelle wieder ein: derselbe Text, nur wieder in einer Datei.
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import quelle as pm_quelle
+
 BASIS = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 QUELLE = os.path.join(BASIS, "index.html")
 ZIEL = os.path.join(BASIS, "tools", "pruefstand-einladung-verbrauch.html")
 
-lines = io.open(QUELLE, encoding="utf-8").read().split("\n")
+lines = pm_quelle.lade_seite(QUELLE).split("\n")
 
 
 def schnitt(sig, tiefe=2):

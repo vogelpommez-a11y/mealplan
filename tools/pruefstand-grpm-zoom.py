@@ -51,13 +51,19 @@ EDGE = r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe"
 PORT = 9333
 PROFIL = os.path.join(os.environ.get("TEMP", "."), "mp-edge-grpm")
 
-text = io.open(QUELLE, encoding="utf-8").read()
+sys.path.insert(0, os.path.join(BASIS, "tools"))
+import quelle as pm_quelle
 
-# ---- Schnitt: der komplette <style>-Inhalt, echter Produktionscode ----
-m = re.search(r"<style[^>]*>(.*?)</style>", text, re.S)
-if not m:
-    raise SystemExit("Kein <style>-Block in index.html gefunden")
-CSS = m.group(1)
+# Ueber pm_quelle.lade_seite() statt direkt: seit das CSS in css/*.css liegt, gibt es
+# in index.html keinen <style>-Block mehr. quelle baut die eigenen Dateien an Ort
+# und Stelle wieder ein - derselbe Text, nur wieder in einer Datei. Kein Nachbau.
+text = pm_quelle.lade_seite(QUELLE)
+
+# ---- Schnitt: das komplette CSS, echter Produktionscode ----
+# Seit der Aufteilung sind es vier Dateien. pm_quelle.css_gesamt() liefert sie in
+# Ladereihenfolge als einen Text - nur den ersten Block zu nehmen hiesse, gegen
+# ein Viertel der Regeln zu messen und trotzdem ein Ergebnis zu melden.
+CSS = pm_quelle.css_gesamt(QUELLE)
 
 for muss in [".grp-m select", "@media (pointer: coarse)"]:
     if muss not in CSS:

@@ -1,0 +1,220 @@
+/* tokens.css - Paddy's Mealplan
+ *
+ * Design-Tokens und Themes. ACHTUNG: Tokens stehen in VIER Bloecken - :root, @media (prefers-color-scheme: dark), [data-theme=light] und [data-theme=dark]. Wer nur einen aendert, bricht die drei anderen.
+ *
+ * Ausgeschnitten aus index.html (vormals Zeile 138-350), unveraendert.
+ * Regeln fuer diesen Ordner: css/CLAUDE.md
+ */
+  :root {
+    /* Kondensierte, athletische Display-Schrift — nur System-Fonts (kein externes
+       Laden: Google-Fonts-CDN waere in DE ein Datenschutz-/Abmahnrisiko). */
+    --font-display: "Bahnschrift", "Arial Narrow", "Roboto Condensed", "Oswald", system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --font-body: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+
+    --bg: #F6F4F4;
+    --surface: #FFFFFF;
+    --surface-2: #F0ECEC;
+    --text: #1A1416;
+    --text-muted: #6B5F62;
+    --border: #E7E0E1;
+    --border-strong: #D6CCCE;
+
+    /* Glas: Kopfzeile und die schwebende Reiterleiste auf dem Handy. --glass-bg-strong ist
+       bewusst dichter als --glass-bg — im Kopf steht Text, unter dem Meal-Fotos durchscrollen,
+       waehrend die Leiste ein freistehendes Bedienelement ohne Hintergrundtext ist.
+       --glass-edge ist die Lichtkante, die eine echte Glasflaeche oben einfaengt. */
+    --glass-bg: color-mix(in srgb, var(--surface) 68%, transparent);
+    --glass-bg-strong: color-mix(in srgb, var(--surface) 82%, transparent);
+    --glass-edge: rgba(255, 255, 255, .72);
+    --glass-shadow: 0 8px 28px rgba(20, 24, 31, .16);
+    /* Nur hier, nicht je Theme: die Weichzeichnung ist in Hell und Dunkel gleich stark. */
+    --glass-blur: 22px;
+
+    --accent: #DC2626;
+    --accent-strong: #B01218;
+    --accent-contrast: #FFFFFF;
+    /* Rot als Vollflaeche hinter weisser Schrift. Getrennt von --accent, weil das
+       helle Dark-Rot mit Weiss nur 3,65:1 erreicht – zu wenig fuer Text (4,5:1). */
+    --accent-solid: #DC2626;
+
+    /* War frueher ein eigenes Orange, getrennt von --accent. Kein dokumentierter Token,
+       kein bewusst gewaehltes zweites Rot – nur ein Altlast-Wert. Fehler/Warnung/
+       destruktiv sind im Theme dasselbe Rot wie ueberall sonst, kein zweites Signal. */
+    --danger: var(--accent);
+    --ok: #1E9E57;   /* Sync ok / verbunden */
+    /* Gold ist AUSSCHLIESSLICH fuer Pro reserviert (D1) und kommt in der normalen UI nicht
+       vor - dort traegt es im Light-Theme ohnehin nicht als Flaeche. Zwei Werte, weil
+       dieselbe Goldtoenung als Schrift auf hellem und auf dunklem Grund nicht funktioniert:
+       --gold ist der Farbton (Rand, getoente Flaeche), --gold-ink die Schriftfarbe. */
+    --gold: #C9A227;
+    /* Gemessen, nicht geschaetzt: #8A6B1F kam auf der getoenten Flaeche nur auf 4,38:1 und
+       lag damit unter AA (4,5). Dieser Ton erreicht 5,17:1 (Dark: 7,93:1). */
+    --gold-ink: #7A5D18;   /* auf hellem Grund */
+
+    --fr: #A96E12;   /* Frühstück */
+    --mi: #2E7D6B;   /* Mittagessen */
+    --ab: #6E5A9E;   /* Abendessen */
+
+    /* Farbring/Initiale bei individuell zugewiesenen Gerichten (Gemeinsam planen).
+       Zyklische Zuordnung nach Mitglieds-Index, siehe memberColorSlot(). Bewusst von
+       --accent/--ok/--fr/--mi/--ab unterschieden. */
+    --member-1: #2454C7;
+    --member-2: #C2255C;
+    --member-3: #C2560C;
+    --member-4: #0C7A8C;
+    --member-5: #5B3DC2;
+    --member-6: #6B7A12;
+    /* Makro-Farben (Paket D1): bisher an 13 Stellen als Hex-Wert dupliziert, seit D1
+       zentral hier. Sie standen zunaechst in EINEM Theme-neutralen Block, weil Hell und
+       Dunkel denselben Wert trugen — das ging nicht mehr auf: Auf hellem --surface kam
+       das alte Amber #E9A03B nur auf 2,20:1 und das alte Blau #4AA8E0 auf 2,64:1, also
+       unter die 3:1-Schwelle fuer grosse Schrift. Jetzt wie --fr/--mi/--ab in ALLEN vier
+       Bloecken gepflegt (:root, @media dark, [data-theme=light], [data-theme=dark]).
+       Das ist Pflicht, nicht Fleissarbeit: Ohne den Eintrag in [data-theme=light] wuerde
+       auf einem System-dunklen Geraet mit manuell hellem Theme der Dark-Wert durchschlagen
+       (der @media-Block greift dort weiterhin, und was er setzt, ueberschreibt der
+       spezifischere Attribut-Block nur, wenn er dieselbe Eigenschaft nennt).
+       Hell: gemeinsames Kontrastband 4,46-4,56:1 auf --surface, damit alle drei Makros
+       gleich schwer wiegen. Der Farbton bleibt (Drift 1-2 Grad), nur die Helligkeit sinkt;
+       Saettigung sogar minimal hoeher, damit nichts schlammig wird.
+       Dunkel: unveraendert, dort war der Kontrast nie das Problem (7-8,6:1).
+       Achtung wie bei --train: Die drei sind untereinander praktisch luminanzgleich
+       (1,00-1,02:1). Sie duerfen deshalb NIE allein tragen — an jeder Fundstelle steht
+       zusaetzlich ein Text-Label (KH / F / Kohlenhydrate ...), geprueft.
+       Bekannt und bewusst in Kauf genommen: --carb liegt hell jetzt sehr nah an --fr
+       (#A96E12, Fruehstueck) — vorher trennte die Helligkeit, die dem Kontrast weichen
+       musste. Nebeneinander gerendert und fuer unkritisch befunden, weil die beiden nie
+       dieselbe Rolle spielen: --fr erscheint als blasser Tint hinter einem Chip, der
+       seine Kategorie ausschreibt, --carb als 7px-Punkt neben seinem Makro-Label.
+       Wer --carb kuenftig als grosse Flaeche einsetzt, muss das neu bewerten. */
+    --carb: #A26A11; /* Kohlenhydrate - hell 4,56:1 */
+    --prot: #C74B78; /* Protein      - hell 4,46:1, unveraendert */
+    --fat:  #1C7EB3; /* Fett         - hell 4,48:1 */
+
+    /* Trainingstag. Das einzige Blau im Theme und bewusst gesetzt: Rot ist hier die
+       Grundfarbe UND das Warnsignal ("drueber"), ein rot markierter Trainingstag waere
+       daher nicht als neutrale Eigenschaft lesbar. Blau ist der einzige Ton, der sich
+       von beidem absetzt. Achtung: Rot und Blau haben zueinander nur 1,07:1 Kontrast —
+       fuer Farbenblinde sind sie ununterscheidbar. Die Markierung traegt deshalb NIE
+       allein ueber die Farbe - die Traeger unterscheiden sich nach Breite: Karte Rand +
+       Hantel-Icon + Wort "Training", Tagesleiste Pillenfarbe + Hantel-Icon + aria-label. */
+    --train: #2563EB;
+    --train-strong: #1D4ED8;
+    /* Schrift auf blauer Vollflaeche. Eigener Token, weil sich Blau zwischen den
+       Themes UMKEHRT: hell ist es dunkelblau (weisse Schrift), dunkel ist es hellblau
+       (dunkle Schrift). Ein festes Weiss wie bei --accent-contrast waere im Dark-Theme
+       auf #93C5FD unlesbar (rund 1,9:1). */
+    --train-contrast: #FFFFFF;
+
+    --shadow: 0 1px 2px rgba(20,24,31,.06), 0 8px 24px rgba(20,24,31,.08);
+    --radius: 12px;
+    --radius-sm: 8px;
+    --maxw: 1120px;
+
+    /* Logo (Light-Standard); Dark-Variante über Theme-Blöcke */
+    /* Logo als eigene Datei statt Base64: 60 KB Base64 mitten im render-blocking CSS haben den ersten Paint fuer jeden Aufruf verzoegert, auch fuer die, die das Logo nie sehen. Der PDF-Export holt dieselbe Datei per fetch (prepareLogoForPdf). */
+    --logoL: url(img/logo.png);
+    --logoD: var(--logoL);
+    --logo: var(--logoL);
+
+    /* Motion-Tokens: gleich fuer Light/Dark, reine Zeit-/Kurven-Werte, kein Farbthema. */
+    --ease-out: cubic-bezier(.23, 1, .32, 1);
+    --ease-in-out: cubic-bezier(.77, 0, .175, 1);
+    --dur-fast: 160ms;
+    --dur-base: 200ms;
+    --dur-slow: 300ms;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --logo: var(--logoD);
+      --bg: #0C0A0B;
+      --surface: #141011;
+      --surface-2: #1C1718;
+      --text: #F4EFEE;
+      --text-muted: #A69B9D;
+      --border: #2A2223;
+      --border-strong: #3A2F30;
+
+      --glass-bg: color-mix(in srgb, var(--surface) 66%, transparent);
+      --glass-bg-strong: color-mix(in srgb, var(--surface) 80%, transparent);
+      --glass-edge: rgba(255, 255, 255, .10);
+      --glass-shadow: 0 8px 30px rgba(0, 0, 0, .55);
+
+      --accent: #FF3040;
+      --accent-strong: #FF5A66;
+      --accent-contrast: #FFFFFF;
+      --accent-solid: #E02234;
+
+      --danger: var(--accent);
+      --ok: #3DDC84;
+      --gold: #C9A227;
+      --gold-ink: #E8C86A;   /* auf dunklem Grund - derselbe Ton waere hier zu dunkel */
+
+      --fr: #E0A94A;
+      --mi: #58B49E;
+      --ab: #AC93E0;
+
+      --member-1: #3B6FE0;
+      --member-2: #E0417E;
+      --member-3: #E06A1E;
+      --member-4: #1C93A6;
+      --member-5: #7C5CE0;
+      --member-6: #8C9A1E;
+
+      /* Dunkel: die urspruenglichen Makro-Werte, hier unveraendert (7-8,6:1 auf --surface) */
+      --carb: #E9A03B;
+      --prot: #C74B78;
+      --fat: #4AA8E0;
+
+      --train: #60A5FA;
+      --train-strong: #93C5FD;
+      --train-contrast: #0C1220;
+
+      --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.35);
+    }
+  }
+  :root[data-theme="light"] {
+    --logo: var(--logoL);
+    --bg: #F6F4F4; --surface: #FFFFFF; --surface-2: #F0ECEC;
+    --text: #1A1416; --text-muted: #6B5F62; --border: #E7E0E1; --border-strong: #D6CCCE;
+    --glass-bg: color-mix(in srgb, var(--surface) 68%, transparent);
+    --glass-bg-strong: color-mix(in srgb, var(--surface) 82%, transparent);
+    --glass-edge: rgba(255, 255, 255, .72); --glass-shadow: 0 8px 28px rgba(20, 24, 31, .16);
+    --accent: #DC2626; --accent-strong: #B01218; --accent-contrast: #FFFFFF; --accent-solid: #DC2626; --danger: var(--accent); --ok: #1E9E57;
+    --gold: #C9A227; --gold-ink: #7A5D18;
+    --fr: #A96E12; --mi: #2E7D6B; --ab: #6E5A9E;
+    --member-1: #2454C7; --member-2: #C2255C; --member-3: #C2560C; --member-4: #0C7A8C; --member-5: #5B3DC2; --member-6: #6B7A12;
+    --carb: #A26A11; --prot: #C74B78; --fat: #1C7EB3;
+    --train: #2563EB; --train-strong: #1D4ED8; --train-contrast: #FFFFFF;
+    --shadow: 0 1px 2px rgba(20,24,31,.06), 0 8px 24px rgba(20,24,31,.08);
+  }
+  :root[data-theme="dark"] {
+    --logo: var(--logoD);
+    --bg: #0C0A0B; --surface: #141011; --surface-2: #1C1718;
+    --text: #F4EFEE; --text-muted: #A69B9D; --border: #2A2223; --border-strong: #3A2F30;
+    --glass-bg: color-mix(in srgb, var(--surface) 66%, transparent);
+    --glass-bg-strong: color-mix(in srgb, var(--surface) 80%, transparent);
+    --glass-edge: rgba(255, 255, 255, .10); --glass-shadow: 0 8px 30px rgba(0, 0, 0, .55);
+    --accent: #FF3040; --accent-strong: #FF5A66; --accent-contrast: #FFFFFF; --accent-solid: #E02234; --danger: var(--accent); --ok: #3DDC84;
+    --gold: #C9A227; --gold-ink: #E8C86A;
+    --fr: #E0A94A; --mi: #58B49E; --ab: #AC93E0;
+    --member-1: #3B6FE0; --member-2: #E0417E; --member-3: #E06A1E; --member-4: #1C93A6; --member-5: #7C5CE0; --member-6: #8C9A1E;
+    --carb: #E9A03B; --prot: #C74B78; --fat: #4AA8E0;
+    --train: #60A5FA; --train-strong: #93C5FD; --train-contrast: #0C1220;
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.35);
+  }
+
+  * { box-sizing: border-box; }
+  body { margin: 0; }
+
+  .app {
+    font-family: var(--font-body);
+    color: var(--text);
+    background:
+      radial-gradient(1200px 400px at 10% -8%, color-mix(in srgb, var(--accent) 9%, transparent), transparent),
+      var(--bg);
+    min-height: 100vh;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }

@@ -29,6 +29,14 @@ import sys
 import unicodedata
 from pathlib import Path
 
+import os
+# pm_quelle.lade_seite() statt io.open(): Der Produktionscode liegt inzwischen auf
+# mehrere Dateien verteilt (css/, data/, lib/). Ein Pruefstand schreibt seine Seite
+# nach tools/ - relative Verweise zeigten von dort ins Leere. quelle baut die eigenen
+# Dateien an Ort und Stelle wieder ein: derselbe Text, nur wieder in einer Datei.
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import quelle as pm_quelle
+
 WURZEL = Path(__file__).resolve().parent.parent
 QUELLE = WURZEL / "index.html"
 
@@ -74,7 +82,7 @@ def norm(s):
 
 
 def foods_laden():
-    text = io.open(QUELLE, encoding="utf-8").read()
+    text = pm_quelle.lade_seite(QUELLE)
     roh = js_array_lesen(text, "/*FOODS_START*/")
     # Die Tabelle ist reines JSON, sobald die Kommentarzeilen weg sind.
     ohne_kommentar = re.sub(r"//[^\n]*", "", roh)
@@ -94,7 +102,7 @@ def foods_laden():
 
 
 def cookbook_laden():
-    text = io.open(QUELLE, encoding="utf-8").read()
+    text = pm_quelle.lade_seite(QUELLE)
     roh = js_array_lesen(text, "const COOKBOOK = ")
     ohne_kommentar = re.sub(r"^\s*//[^\n]*$", "", roh, flags=re.M)
     ohne_kommentar = re.sub(r",(\s*[\]}])", r"\1", ohne_kommentar)
@@ -232,7 +240,7 @@ def main():
             print("\nABBRUCH: Es gibt noch Zutaten ohne Naehrwert. Erst die Luecken schliessen -")
             print("halbe Daten sind schlimmer als keine, weil die Summe dann still falsch ist.")
             return 1
-        text = io.open(QUELLE, encoding="utf-8").read()
+        text = pm_quelle.lade_seite(QUELLE)
         block = js_array_lesen(text, "const COOKBOOK = ")
         neu, ersetzt = block, 0
         # Nur im COOKBOOK-Block ersetzen - SEED und die Zutatenliste des Nutzers bleiben

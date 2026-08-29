@@ -1,12 +1,19 @@
 # Ausschneide-Pruefstand Rezeptbuch: Katalog, Profilfilter, Uebernahme und Bildwahl.
 import io, json, os, re, sys
 
+# pm_quelle.lade_seite() statt io.open(): Der Produktionscode liegt inzwischen auf
+# mehrere Dateien verteilt (css/, data/, lib/). Ein Pruefstand schreibt seine Seite
+# nach tools/ - relative Verweise zeigten von dort ins Leere. quelle baut die eigenen
+# Dateien an Ort und Stelle wieder ein: derselbe Text, nur wieder in einer Datei.
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import quelle as pm_quelle
+
 # Gegenprobe: Der Pruefstand nimmt wahlweise eine andere Datei entgegen, damit er gegen den
 # Stand VOR einer Aenderung laufen kann. Ohne diesen Lauf beweist er nichts.
 #   git show HEAD:index.html > alt.html && python tools/pruefstand-rezeptbuch.py alt.html
 SRC = os.path.abspath(sys.argv[1]) if len(sys.argv) > 1 else r"C:\Users\Paddy\Documents\Paddys Mealplan\index.html"
 OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "pruefstand-cookbook.html")
-lines = io.open(SRC, encoding="utf-8").read().split("\n")
+lines = pm_quelle.lade_seite(SRC).split("\n")
 
 def schnitt(sig):
     start = None

@@ -16,7 +16,7 @@ Die primäre Verifikation erfolgt deshalb über den Browser und gezielte isolier
 
 <!-- REGISTER-ANFANG (erzeugt aus den Ueberschriften, nicht von Hand pflegen) -->
 
-**Register — 45.** Vorne (0 bis 9) die geltenden Verfahren: Syntax-Check,
+**Register — 48.** Vorne (0 bis 9) die geltenden Verfahren: Syntax-Check,
 Smoke-Test, Ausschneide-Pruefstand, Sync-Tests. Dahinter das datierte Fallarchiv —
 einzelne Pruefstaende und was ihre Gegenprobe gezeigt hat.
 
@@ -71,6 +71,8 @@ Die Verfahren gibt es auch als Skill: `/smoke`, `/pruefstand`, `/abnahme`, `/dep
 | · | Ein Prüfstand, der nie lief: `pruefstand-katalog-plan.py` (28.08.2026) |
 | · | `tools/pruefstand-cache-reset.py` — was NICHT passieren darf (29.08.2026) |
 | · | `tools/pruefstand-kontowechsel.py` — eine Gegenprobe, die in die Schleife läuft (29.08.2026) |
+| · | Abnahme am echten Konto: Gruppen-Sync zu zweit (29.08.2026) |
+| · | Aufteilung des Codes: was sich am Prüfverfahren ändert (29.08.2026) |
 
 <!-- REGISTER-ENDE -->
 
@@ -91,7 +93,7 @@ Nicht automatisch den Test als defekt betrachten.
 ## 0. Syntax-Check (läuft zuerst, vor allem anderen)
 
 ```powershell
-python syntax-check.py
+python syntax-check.py --alles
 ```
 
 Rund **1 Sekunde**. Prüft jeden `<script>`-Block in `index.html`, **ohne ihn auszuführen**.
@@ -3093,3 +3095,60 @@ Durchlauf. Dafür bräuchte es ein Testkonto mit **eigenen** Startmeals.
 Der Auto-Planer in der Gruppe blieb ebenfalls aussen vor: Er füllt eine ganze Woche, und der
 Rückbau wäre größer als der Erkenntnisgewinn. Er ist über `tools/pruefstand-autoplaner.py`
 abgedeckt — 158 Prüfungen, die seit dem 28.08.2026 auch wirklich laufen (Ziffer 131).
+
+## Aufteilung des Codes: was sich am Prüfverfahren ändert (29.08.2026)
+
+Seit dem 29.08.2026 liegt ein Teil des Produktionscodes in `css/`, `data/` und `lib/`.
+Am Verfahren ändert das drei Dinge — jedes davon ist eine Falle, die still zuschlägt.
+
+**1. Der Syntax-Check braucht `--alles`.**
+
+```powershell
+python syntax-check.py --alles
+```
+
+Ohne das Argument prüft er nur `index.html` und meldet „sauber“, während ein
+Syntaxfehler in `data/foods.js` die App genauso zerlegt. Die Dateiliste kommt aus
+`tools/quelle.py`, damit sie nur an einer Stelle steht. `sw.js` wird seitdem mitgeprüft —
+vorher gar nicht.
+
+Der Hook `syntax-nach-edit.py` prüft die **geänderte** Datei gezielt und schweigt bei
+allem, was kein App-JavaScript ist. Er prüft bewusst nicht ersatzweise `index.html`: eine
+Prüfung, die etwas anderes ansieht als das Geänderte, meldet „sauber“ und beweist
+nichts.
+
+**2. Prüfstände laden die Seite über `tools/quelle.py`.**
+
+```python
+import quelle as pm_quelle
+text = pm_quelle.lade_seite(INDEX)      # baut css/, data/ und lib/ wieder ein
+CSS  = pm_quelle.css_gesamt(INDEX)      # alle vier Stylesheets in Ladereihenfolge
+```
+
+Ein Prüfstand schreibt seine Seite nach `tools/`. Ein relativer Verweis wie
+`data/cookbook.js` zeigt von dort in ein tools/data/ — ein Verzeichnis, das es nicht
+gibt. Die Seite lädt, das Skript fehlt, der Prüfstand misst nichts mehr. `quelle` setzt
+denselben Text an dieselbe Stelle zurück; es bleibt echter Produktionscode.
+
+Der Modulname ist `pm_quelle`, nicht `quelle`: mehrere Prüfstände benutzen `quelle`
+bereits als **Variablennamen**. Beim ersten Umbau überschattete die lokale Variable das
+Modul, und zwölf Prüfstände starben mit `UnboundLocalError`, bevor sie irgendetwas maßen.
+
+**3. Was der Umbau tatsächlich gefunden hat.** Zwei Fälle, die eine Sichtprüfung nicht
+gezeigt hätte — beide fielen erst im Prüfstandslauf auf:
+
+* `liveScanStop` war als `let` am Ende des Barcode-Blocks deklariert, wurde aber vom Kern
+  (`closeModal`) gesetzt und gelesen. Eine Analyse, die nur `function`-Deklarationen und
+  GROSSGESCHRIEBENE Konstanten zählt, übersieht so etwas.
+* `logoPdfAsset` ist ein Cache, den `prepareLogoForPdf()` füllt und `buildPrintable()`
+  liest. Als Wert in einer Fassade wäre es eine Kopie vom Ladezeitpunkt — also immer
+  `null`. Deshalb ein Zugriff (`PM.pdf.logoAsset()`) statt eines Werts.
+
+Die Lehre: **geteilter veränderlicher Zustand ist die Stelle, an der ein Schnitt bricht**
+— nicht die Funktionsliste.
+
+**Gegenprobe des Umbaus.** Ein absichtlicher Syntaxfehler in `data/foods.js` muss den Hook
+auslösen und die CI rot machen; ein absichtlich gebrochener Schnitt muss den betroffenen
+Prüfstand durchfallen lassen; `python tools/karte.py --pruefe` muss nach einer
+Strukturänderung ohne Neuerhebung mit Exit 1 abbrechen. Alle drei wurden gefahren und
+anschließend vollständig zurückgesetzt.

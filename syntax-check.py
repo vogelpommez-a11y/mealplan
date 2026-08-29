@@ -26,9 +26,17 @@ geparst immer scheitern. Solche Datenbloecke gehen nicht durch V8 — JSON-LD wi
 json.loads geprueft (ein Tippfehler dort bricht die Suchmaschinen-Auswertung, sonst nichts, und
 faellt daher nirgends sonst auf), alle anderen Nicht-JS-Typen werden ausgelassen.
 
+Seit CSS, Daten und zwei Bibliotheken in eigenen Dateien liegen, reicht "prueft index.html"
+nicht mehr: ein Syntaxfehler in data/foods.js beendet das App-Script genauso zuverlaessig,
+steht aber in keinem <script>-Block. Eine reine .js-Datei wird deshalb direkt als ein
+klassischer Block gestellt. --alles prueft index.html und alle eigenen JS-Dateien; die
+Liste kommt aus tools/quelle.py, damit es nur EINE Quelle dafuer gibt.
+
 Aufruf:
     python syntax-check.py                 # prueft index.html
-    python syntax-check.py pfad/zur.html   # prueft eine andere Datei
+    python syntax-check.py pfad/zur.html   # prueft eine andere HTML-Datei
+    python syntax-check.py data/foods.js   # prueft eine einzelne JS-Datei
+    python syntax-check.py --alles         # index.html + alle eigenen JS-Dateien
 
 Rueckgabe: 0 = alles sauber, 1 = Syntaxfehler, 2 = Pruefung selbst fehlgeschlagen.
 """
@@ -260,10 +268,17 @@ def run_check(path):
     with open(path, "r", encoding="utf-8") as f:
         html = f.read()
 
-    blocks, data = extract_blocks(html)
-    if not blocks:
-        print("FEHLER: keine Inline-<script>-Bloecke in " + path + " gefunden.", file=sys.stderr)
-        return 2
+    if path.lower().endswith(".js"):
+        # Eine reine JS-Datei hat kein <script>-Tag, das extract_blocks finden koennte.
+        # Sie ist genau ein klassischer Block und geht unveraendert durch dieselbe
+        # V8-Pruefung wie ein Inline-Block - gleiche Engine, gleiche Aussage.
+        blocks, data = [{"code": html, "module": False, "line": 1}], []
+    else:
+        blocks, data = extract_blocks(html)
+        if not blocks:
+            print("FEHLER: keine Inline-<script>-Bloecke in " + path + " gefunden.",
+                  file=sys.stderr)
+            return 2
 
     tmp = tempfile.mkdtemp(prefix="syncheck-")
     try:
@@ -329,8 +344,37 @@ def run_check(path):
     return 0
 
 
+def alle_ziele():
+    """index.html plus alle eigenen JS-Dateien.
+
+    Die Liste kommt bewusst aus tools/quelle.py und nicht aus einer zweiten Aufzaehlung
+    hier: eine neue Datei unter data/ oder lib/ soll geprueft werden, ohne dass jemand
+    daran denken muss.
+    """
+    hier = os.path.dirname(os.path.abspath(__file__))
+    sys.path.insert(0, os.path.join(hier, "tools"))
+    import quelle
+    return ["index.html"] + quelle.js_dateien(hier)
+
+
 if __name__ == "__main__":
-    target = sys.argv[1] if len(sys.argv) > 1 else "index.html"
+    args = [a for a in sys.argv[1:] if not a.startswith("--")]
+
+    if "--alles" in sys.argv:
+        ziele = alle_ziele()
+        schlimmster = 0
+        for z in ziele:
+            if not os.path.isfile(z):
+                print("FEHLER: %s nicht gefunden." % z, file=sys.stderr)
+                schlimmster = max(schlimmster, 2)
+                continue
+            print("== " + z)
+            schlimmster = max(schlimmster, run_check(z))
+        print("")
+        print("%d Datei(en) geprueft." % len(ziele))
+        sys.exit(schlimmster)
+
+    target = args[0] if args else "index.html"
     if not os.path.isfile(target):
         print("FEHLER: %s nicht gefunden." % target, file=sys.stderr)
         sys.exit(2)
