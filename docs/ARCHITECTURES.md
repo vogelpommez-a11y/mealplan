@@ -1264,6 +1264,14 @@ unsichtbar** war. Es verschwindet nie etwas, das gestern noch zu sehen war. Kost
 Verworfen wurde, gar nicht mehr zu trimmen (das Archiv wüchse unbegrenzt) und ein rollendes
 Wochenfenster (bringt das Januar-Problem zurück, deshalb schon am 25.08.2026 abgelehnt).
 
+ℹ️ **Wer das Fenster für zu gross hält, weil der Rückblick nur acht Balken zeichnet, irrt.**
+`rueckblickHtml()` zeigt acht Wochen (`zielKeys.slice(-8)`), aber die **Streak-Schleife
+unmittelbar davor läuft rückwärts durch das gesamte Archiv**, solange die Wochen lückenlos
+`STREAK_MIN_DAYS` erfüllen. Ein Nutzer mit zwei Jahren durchgehender Planung hat einen Streak
+von über 100 Wochen — ein kürzeres Fenster würde ihn schlicht kappen. Das Archiv wird also
+schon heute in seiner vollen Tiefe genutzt, nicht erst mit dem Kalender. Die datenschutz&shy;-
+rechtliche Einordnung dazu: `docs/DATENSCHUTZ-INTERN.md`, Abschnitt 2a.
+
 ⚠️ **Die Anzeige muss ihre Jahre über `archivJahreZeigen()` beziehen** — nie
 über `Object.keys(weekStats)` und nie über ein aus dem Schlüssel gerechnetes Datum. Beides
 höbe den Puffer wieder auf: Im ersten Fall bietet der Umschalter das Pufferjahr mit an, im

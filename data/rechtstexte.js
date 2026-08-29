@@ -121,7 +121,7 @@
       <h4>9. Verschlüsselung</h4>
       <p>Die Übertragung der Daten erfolgt verschlüsselt über HTTPS (SSL/TLS).</p>
       <h4>10. Speicherdauer &amp; Löschung</h4>
-      <p>Wir speichern deine Daten, solange dein Konto besteht. Eine Ausnahme: Einträge, die du
+      <p>Wir speichern deine Daten, solange dein Konto besteht – mit zwei Ausnahmen, die von selbst ablaufen. Erstens dein <strong>Wochenrückblick</strong>: Die Kennzahlen vergangener Kalenderwochen (Ziffer 3) bewahren wir nur für das laufende und die beiden vorangegangenen <strong>Kalenderjahre</strong> auf; Älteres entfernt die App automatisch, auch wenn dein Konto bestehen bleibt. Zweitens: Einträge, die du
          schnell in den Plan gelegt hast – per Barcode-Scan oder durch Antippen eines zählbaren
          Lebensmittels (z. B. ein Apfel) –, räumt die App nach etwa drei Wochen von selbst
          weg – aber nur, wenn sie in keiner deiner Wochen mehr eingeplant sind. Einmalig räumt die App außerdem
