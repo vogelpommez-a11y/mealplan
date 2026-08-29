@@ -1156,10 +1156,11 @@
   // Index 0 = Montag ... 6 = Sonntag, Position ueber den DAYS-Index, nie ueber
   // Wochentagsarithmetik.
   //
-  // GEMEINSAME QUELLE, und das ist der Zweck: archiveWeek() schreibt damit das Archiv,
-  // der Fortschritt-Kalender zeichnet damit die noch NICHT archivierten Wochen direkt
-  // aus state.plans. Zwei getrennte Fassungen wuerden sich in genau dem Moment
-  // widersprechen, in dem eine laufende Woche archiviert wird.
+  // Heute hat die Funktion GENAU EINEN Aufrufer: archiveWeek(). Sie steht trotzdem
+  // getrennt, weil der geplante Fortschritt-Kalender die noch NICHT archivierten Wochen
+  // direkt aus state.plans zeichnen muss - mit derselben Regel. Zwei getrennte Fassungen
+  // wuerden sich in genau dem Moment widersprechen, in dem eine laufende Woche archiviert
+  // wird. Kommt der Kalender nicht, gehoert die Funktion in archiveWeek zurueck.
   //
   // Festlaengen-String statt Zahl 0-127 mit Absicht: Jeder Unfall (Number("") -> 0,
   // parseInt auf Muell -> NaN) wuerde lautlos zu "nichts geplant" und waere von einer
@@ -1243,8 +1244,16 @@
     out.days = Math.max(alt.days || 0, neu.days || 0, maskDays(d));
     return out;
   }
-  // Archiv saeubern: nur gueltige "YYYY-Www"-Eintraege, geklemmte Werte, hoechstens die letzten
-  // 26 Wochen (halbes Jahr) — das Archiv soll nicht endlos wachsen.
+  // Archiv saeubern: nur gueltige "YYYY-Www"-Eintraege, geklemmte Werte, hoechstens das
+  // laufende und das vorige Kalenderjahr — das Archiv soll nicht endlos wachsen.
+  //
+  // Paket 6/B3: Das Fenster war vorher ein rollendes halbes Jahr (die letzten 26 Wochen).
+  // Der Kalender zeigt ganze Jahre, und ein rollendes Fenster haette ihm den Januar
+  // weggeschnitten, sobald der Juli da ist. Getrimmt wird nach dem ISO-Jahr-PRAEFIX des
+  // Schluessels, NICHT nach echtem Kalenderdatum ("2026-W01" kann real im Dezember 2025
+  // liegen). Das ist richtig — aber nur, solange die ANZEIGE dieselbe Regel benutzt. Wer
+  // beim Kalender anfaengt, den Schluessel in ein Datum umzurechnen, laesst Trimmung und
+  // Darstellung auseinanderdriften.
   function sanitizeWeekStats(o) {
     const out = {};
     if (!o || typeof o !== "object") return out;
@@ -1260,9 +1269,22 @@
       // archiviert, das ist ein Normalfall und keine Fehlerlage.
       const tgt = Math.round(Number(s.target) || 0);
       if (tgt >= 500 && tgt <= 20000) out[k].target = tgt;
+      // Tagesmaske (B3). `d` und `days` werden EINZELN validiert und korrigieren sich
+      // ausdruecklich nicht gegenseitig: sanitize laeuft auf Bestandsdaten, und `days`
+      // gegen die Maske zu ziehen zerlegt jede Woche, die vor der Maske archiviert wurde.
+      // Der Widerspruch bleibt gewollt stehen — `days` traegt den Rueckblick, `d` den
+      // Kalender (siehe mergeArchived).
+      //
+      // Ein kaputtes `d` kostet das FELD, nie den Datensatz. Sonst wuerde aus einem
+      // Uebertragungsfehler eine geloeschte Woche.
+      if (typeof s.d === "string" && /^[01]{7}$/.test(s.d)) out[k].d = s.d;
     });
+    // Fenster: laufendes plus voriges Kalenderjahr (~106 Wochen, wenige KB gegen
+    // CLOUD_DOC_MAX). Bewusst grosszuegiger als der Rueckblick braucht, weil der Kalender
+    // ein volles Vorjahr zeigen koennen soll.
+    const jahr = new Date().getFullYear(), behalte = [String(jahr), String(jahr - 1)];
     const trimmed = {};
-    Object.keys(out).sort().slice(-26).forEach(k => { trimmed[k] = out[k]; });
+    Object.keys(out).sort().forEach(k => { if (behalte.indexOf(k.slice(0, 4)) >= 0) trimmed[k] = out[k]; });
     return trimmed;
   }
   // Zwei Archive zusammenfuehren. Notwendig geworden, als weekStats in den Cloud-Sync kam:
@@ -1288,6 +1310,11 @@
   // aber Eindeutigkeit ist hier mehr wert als die Wahl des "richtigeren" Ziels: Ein Tiebreak,
   // der die Geraete uneinig laesst, kostet nicht eine Kennzahl, sondern erzeugt einen
   // Dauerkonflikt. Der Fall verlangt drei identische Werte und ist entsprechend selten.
+  //
+  // Die Tagesmaske `d` steht bewusst NICHT in weekStatRang(). Der Rang entscheidet, welche
+  // Seite ihre ZAHLEN durchsetzt; die Maske wird unabhaengig davon vereinigt. Naehme man sie
+  // in den Rang auf ("mehr Einsen gewinnt"), loeschte man genau die Tage, die nur ein Geraet
+  // kennt — der Fehler, gegen den das Feld ueberhaupt gebaut wurde.
   function weekStatRang(s) { return [s.days || 0, s.hit || 0, s.kcal || 0, s.target || 0]; }
   function mergeWeekStats(prim, sec) {
     const a = sanitizeWeekStats(sec), b = sanitizeWeekStats(prim);
@@ -1296,16 +1323,33 @@
       const alt = out[k];
       if (!alt) { out[k] = b[k]; return; }
       const ra = weekStatRang(alt), rb = weekStatRang(b[k]);
+      let sieger = alt;
       for (let i = 0; i < ra.length; i++) {
         if (rb[i] === ra[i]) continue;
-        if (rb[i] > ra[i]) out[k] = b[k];
-        return;
+        if (rb[i] > ra[i]) sieger = b[k];
+        break;
+      }
+      out[k] = Object.assign({}, sieger);
+      // Masken ODER-verknuepfen, danach `days` anheben — dieselben zwei Zeilen wie am Ende
+      // von mergeArchived(). Die beiden Funktionen sehen sich damit aehnlich und duerfen
+      // trotzdem NICHT zusammengelegt werden: mergeArchived() bevorzugt bei Gleichstand den
+      // neuen Lauf, mergeWeekStats() muss richtungsunabhaengig bleiben (siehe oben).
+      // Hat keine Seite eine Maske, entsteht auch keine — "0000000" waere eine erfundene
+      // Aussage ueber eine Woche, die vor der Maske archiviert wurde.
+      if (alt.d || b[k].d) {
+        let d = "";
+        for (let i = 0; i < 7; i++) {
+          d += (String(alt.d || "").charAt(i) === "1" || String(b[k].d || "").charAt(i) === "1") ? "1" : "0";
+        }
+        out[k].d = d;
+        out[k].days = Math.max(alt.days || 0, b[k].days || 0, maskDays(d));
       }
     });
-    // Aussen noch einmal sanitizen, und zwar wegen der 26-Wochen-Grenze: Die Vereinigung
-    // zweier je 26 Wochen langer Archive kann bis zu 52 Wochen ergeben. sanitizeWeekStats
-    // sortiert vor dem `slice(-26)` - nur deshalb bleiben die JUENGSTEN 26 stehen und nicht
-    // die, die Object.assign zufaellig zuletzt eingehaengt hat.
+    // Aussen noch einmal sanitizen, und zwar wegen des Archivfensters: Die Vereinigung zweier
+    // Archive kann Wochen aus einem dritten Jahr einbringen, wenn ein Geraet lange nicht
+    // geladen hat. Seit B3 ist das Fenster an Jahres-Praefixe gebunden, nicht mehr an eine
+    // Anzahl - welche Woche der Vereinigung zuletzt eingehaengt wurde, spielt keine Rolle
+    // mehr fuer das Ergebnis.
     //
     // Fuer den Push-Vergleich waere die Reihenfolge egal: dataJSON() laeuft ueber canonJSON,
     // und canonValue() sortiert Objektschluessel rekursiv. Die Sortierung hier ist also

@@ -54,7 +54,7 @@ Die Verfahren gibt es auch als Skill: `/smoke`, `/pruefstand`, `/abnahme`, `/dep
 | · | Ein Zweig, der nur bei leerem Bestand läuft: die Ganzdatei-Kopie (25.08.2026) |
 | · | Ein Escape-Fix beweist sich nur mit dem Vorher (25.08.2026) |
 | · | `tools/pruefstand-weekstats-sync.py` — und warum er den Fehler nicht fand (25.08.2026) |
-| · | `tools/pruefstand-wochenmaske.py` — ein Prüfstand, der absichtlich rot ist (26.08.2026) |
+| · | `tools/pruefstand-wochenmaske.py` — ein Prüfstand, der absichtlich rot war (26.–29.08.2026) |
 | · | Eine Zeile prüfen, indem man sie WEGNIMMT (25.08.2026) |
 | · | Mobile Abnahme fernsteuern: `cdp.py messen` (25.08.2026) |
 | · | `tools/pruefstand-rueckblick-ziel.py` — der Beweis, dass eine Woche fehlt (26.08.2026) |
@@ -2347,7 +2347,7 @@ die Schlüsselmenge gegen die Sicherung aus Schritt 1 prüfen.
 
 ---
 
-## `tools/pruefstand-wochenmaske.py` — ein Prüfstand, der absichtlich rot ist (26.08.2026)
+## `tools/pruefstand-wochenmaske.py` — ein Prüfstand, der absichtlich rot war (26.–29.08.2026)
 
 Zu Paket 6 (Fortschritt-Kalender) gehört die Tagesmaske `weekStats[wk].d`. Der Prüfstand dazu
 wurde **vor** dem Umbau angelegt und läuft gegen den Stand, den er noch gar nicht beschreibt.
@@ -2369,16 +2369,25 @@ wertlos — eine kaputte Regression ginge in 24 erwarteten Fehlschlägen unter.
 verlangte, dass ohne `state.goal` archiviert wird; die Fassung von damals tat das nicht
 (`if (!pl || !state.goal) return;`).
 
-**Stand 26.08.2026: B1 und B2 sind umgesetzt.** Der Ziel-Guard sitzt jetzt innen
-(`if (!pl) return;`), `archiveWeek()` archiviert ohne Ziel und schreibt die Maske —
-Abschnitt 1 ist **grün**. Offen und weiterhin absichtlich rot sind:
+**Stand 29.08.2026: B1–B5 sind umgesetzt, der Prüfstand ist vollständig grün** —
+48 `OFFEN`-Zeilen und 13 `REGRESSION`-Zeilen. Der Weg dorthin, weil die Zwischenstände die
+eigentliche Aussage tragen:
 
-* **Abschnitt 5** — `sanitizeWeekStats()` verwirft ein gültiges `d` (Schritt B3)
-* **Abschnitt 7** — `mergeWeekStats()` vereinigt die Masken nicht (Schritt B4)
-* zwei Zeilen zum Archivfenster (zwei Kalenderjahre statt 26 Wochen)
+| Stand | `OFFEN` | Was fehlte |
+|---|---|---|
+| 26.08., vor B1 | Abschnitt 1 rot | `archiveWeek()` stieg ohne Ziel aus |
+| 26.08., nach B2 | 7 rot | `d` überlebte `sanitizeWeekStats()` nicht, Masken wurden nicht vereinigt, Fenster noch 26 Wochen |
+| 29.08., nach B3/B5 | 0 rot | — |
 
-Sieben rote `OFFEN`-Zeilen, **null rote `REGRESSION`-Zeilen**. Genau so soll ein
-Zwischenstand aussehen: Das Neue ist noch nicht fertig, das Bestehende ist heil.
+**Die Gegenprobe gehört zum Ergebnis:** Derselbe Prüfstand gegen `9ae227d` gefahren
+(`git show HEAD:index.html > _gegenprobe.html`, dann als Argument übergeben) fällt mit
+**sieben roten `OFFEN`-Zeilen** durch. Ohne diesen Lauf wäre „grün" nur eine Behauptung.
+
+**Seit dem 29.08.2026 bestimmen wieder BEIDE Gruppen den Rückgabewert** (`GESAMT 0 rot`).
+Während des Umbaus durfte das nur die `REGRESSION`-Gruppe — danach wäre es eine Bremse
+gewesen, die nie mehr greift: Eine kaputte `OFFEN`-Zeile wäre ab sofort lautlos durchgelaufen.
+Die Trennung bleibt in der **Ausgabe** stehen, weil sie zeigt, was Umbau war und was schon
+vorher galt. Der Eintrag in `TEILWEISE` (siehe unten) ist damit entfallen.
 
 Wer diesen Absatz liest, während Abschnitt 1 rot ist, hat einen echten Rückschritt vor
 sich — dann lädt der Prüfstand nicht die echte `archiveWeek()`, und alles Folgende misst
@@ -2386,13 +2395,14 @@ nichts.
 
 ### Die Falle: grüne Zeilen aus dem falschen Grund
 
-Ein Teil der `OFFEN`-Zeilen ist schon jetzt grün, weil `sanitizeWeekStats()` das Feld `d` gar
-nicht kennt und deshalb **jedes** `d` wegwirft — kaputtes wie gültiges. „Kaputtes d: Feld fällt
-weg" und der komplette Determinismus-Abschnitt sind damit heute grün, ohne etwas zu beweisen;
-sie messen erst ab B3/B5.
+Während des Umbaus war ein Teil der `OFFEN`-Zeilen grün, und zwar aus dem falschen Grund:
+Solange `sanitizeWeekStats()` das Feld `d` gar nicht kannte, warf es **jedes** `d` weg —
+kaputtes wie gültiges. „Kaputtes d: Feld fällt weg" und der komplette Determinismus-Abschnitt
+waren damit grün, ohne etwas zu beweisen; sie messen erst seit B3/B5.
 
-Die jeweilige Gegenprobe steht daneben und ist rot („gültiges d überlebt", „Masken vereinigt").
+Die jeweilige Gegenprobe stand daneben und war rot („gültiges d überlebt", „Masken vereinigt").
 **Die Paare gehören zusammen gelesen** — wer nach B3 nur auf die Zähler schaut, verpasst es.
+Nachträglich geprüft: Seit B3 sind beide Hälften grün, die Paare messen also jetzt beide echt.
 Das ist dieselbe Klasse wie die naive Fassung in `pruefstand-weekstats-sync.py`, nur andersherum:
 Dort beweist ein erzwungener Fehlschlag, dass der Test misst; hier verrät ein zu früh grüner
 Treffer, dass er es noch nicht tut.
@@ -2571,6 +2581,12 @@ Satz dazu, was noch offen ist.
 
 **Die Lehre:** Ein Läufer, der falschen Alarm schlägt, wird abgeschaltet — und dann läuft
 gar nichts mehr. Lieber eine Zeile mehr Erklärung als ein Signal, dem niemand glaubt.
+
+**Und die Gegenrichtung, seit 29.08.2026:** `TEILWEISE` ist eine **Ausnahme auf Zeit**. Ist
+der Umbau fertig, gehören beide Gruppen wieder in den Rückgabewert und der Eintrag heraus —
+sonst bleibt genau die Hälfte der Zeilen dauerhaft zahnlos, und niemand bemerkt es je wieder.
+`pruefstand-wochenmaske.py` ist an dem Tag so zurückgestellt worden; die Liste ist seither
+leer und wartet auf den nächsten Umbau.
 
 ## `tools/pruefstand-grpm-zoom.py` — eine Behauptung über die CSS-Kaskade messen (27.08.2026)
 

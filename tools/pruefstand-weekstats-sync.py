@@ -100,19 +100,32 @@ var a2 = mergeWeekStats(b1, a1), b2 = mergeWeekStats(a1, b1);
 pr("Runde 2 aendert bei A nichts", canonJSON(a2) === canonJSON(a1));
 pr("Runde 2 aendert bei B nichts", canonJSON(b2) === canonJSON(b1));
 
-console.log("--- 6. 26-Wochen-Grenze haelt auch nach der Vereinigung ---");
-function viele(start, n) {
+// Das Fenster war bis zum 29.08.2026 ein rollendes halbes Jahr (die letzten 26 Wochen).
+// Seit Paket 6/B3 sind es das laufende und das vorige Kalenderjahr, getrimmt nach dem
+// Jahres-PRAEFIX des Schluessels - der Fortschritt-Kalender zeigt ganze Jahre, und ein
+// rollendes Fenster haette ihm den Januar weggeschnitten, sobald der Juli da ist.
+// Deshalb rechnet dieser Abschnitt mit dem echten laufenden Jahr, nicht mit "2026".
+console.log("--- 6. Archivfenster haelt auch nach der Vereinigung ---");
+var J6 = new Date().getFullYear();
+function viele(jahr, start, n) {
   var o = {};
   for (var i = 0; i < n; i++) {
-    o["2026-W" + String(start + i).padStart(2, "0")] = w(5,3,2000,2200);
+    o[jahr + "-W" + String(start + i).padStart(2, "0")] = w(5,3,2000,2200);
   }
   return o;
 }
-var gross = mergeWeekStats(viele(27, 26), viele(1, 26));
-var keys = Object.keys(gross).sort();
-pr("hoechstens 26 Wochen", keys.length === 26, keys.length + " Wochen");
-pr("es sind die JUENGSTEN 26", keys[0] === "2026-W27" && keys[keys.length-1] === "2026-W52",
-   keys[0] + " .. " + keys[keys.length-1]);
+function zaehle6(o, jahr) {
+  return Object.keys(o).filter(function (k) { return k.indexOf(jahr + "-W") === 0; }).length;
+}
+// Zwei Geraete, die je ein halbes Jahr kennen: zusammen ist das ein volles Jahr, und
+// nichts davon darf die Vereinigung kosten.
+var gross = mergeWeekStats(viele(J6, 27, 26), viele(J6, 1, 26));
+pr("Vereinigung schneidet das laufende Jahr nicht ab", zaehle6(gross, J6) === 52,
+   zaehle6(gross, J6) + " von 52");
+// Und ein Geraet, das lange nicht geladen hat, bringt kein drittes Jahr wieder herein.
+var alt3 = mergeWeekStats(viele(J6 - 2, 1, 10), viele(J6, 1, 10));
+pr("voriges Jahr bleibt", zaehle6(mergeWeekStats(viele(J6 - 1, 1, 10), viele(J6, 1, 10)), J6 - 1) === 10);
+pr("das Jahr davor faellt weg", zaehle6(alt3, J6 - 2) === 0, zaehle6(alt3, J6 - 2) + " uebrig");
 
 console.log("--- 7. Erstsync und Randfaelle ---");
 pr("Cloud kennt das Feld nicht -> lokal bleibt",

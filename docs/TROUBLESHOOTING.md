@@ -5090,3 +5090,45 @@ von der anderen Seite: dort wurde geteilter Zustand mitgenommen, hier eingefrore
 **Wie beides gefunden wurde:** Nicht durch Lesen, sondern durch den Prüfstandslauf gegen
 die vorher festgehaltene Grundlinie. Ohne diese Grundlinie wäre nicht unterscheidbar
 gewesen, ob ein roter Prüfstand am Umbau liegt oder vorher schon rot war.
+
+---
+
+## 138. Ein neues Sync-Feld braucht drei Stellen — die dritte wirft es beim eigenen Push weg
+
+**Datum:** 29.08.2026 · **Symptom:** Ein neues Feld am Wochenarchiv (`weekStats[wk].d`,
+die Tagesmaske) wurde geschrieben, war aber nach dem nächsten Sync verschwunden — auch mit
+nur **einem** Gerät. Kein Fehler, keine Meldung.
+
+Ziffer 115 hält fest, dass ein neues Sync-Feld **zwei** Merge-Stellen braucht (`onRemote()`
+und den Baseline-Merge in `startCloudSync()`). Das stimmt — ist hier aber nicht die Ursache
+gewesen. Die dritte Stelle ist:
+
+```javascript
+function sanitizeWeekStats(o) {
+  ...
+  out[k] = { kcal: ..., days: ..., hit: ... };   // baut das Objekt NEU auf
+  ...
+}
+```
+
+**Eine Bereinigungsfunktion, die jedes Objekt neu aufbaut, verliert alles Unbekannte.** Und
+`sanitizeWeekStats()` läuft in `dataJSON()` und in `pushNow()` — also auf dem **eigenen**
+Weg in die Cloud. Das Feld war damit schon weg, bevor irgendein zweites Gerät es hätte
+verlieren können. Wer nur die zwei Merge-Stellen prüft, sucht am falschen Ende.
+
+**Die Lehre:** Bei einem neuen synchronisierten Feld nicht nur nach `merge` greppen, sondern
+nach jeder Funktion, die ein **Objektliteral aus Einzelfeldern** zusammensetzt —
+`sanitize*`, `canon*`, jede Normalisierung. Faustregel: Wo ein `{ a: ..., b: ... }` steht
+statt eines `Object.assign`, fällt alles Neue lautlos heraus.
+
+**Zwei Regeln, die dabei mit festgehalten gehören:**
+
+* **Ein kaputter Wert kostet das Feld, nie den Datensatz.** `d: "abc"` darf nicht die ganze
+  Woche löschen — sonst wird aus einem Übertragungsfehler ein Datenverlust.
+* **Zwei Felder, die dieselbe Sache beschreiben, dürfen sich in der Bereinigung nicht
+  gegenseitig korrigieren.** `days` gegen die Maske `d` zu ziehen wäre naheliegend und
+  falsch: Die Funktion läuft auf Bestandsdaten, und jede vor der Maske archivierte Woche
+  hätte ihre Tage verloren. Beide einzeln validieren, den Widerspruch stehen lassen.
+
+**Belegt durch:** `tools/pruefstand-wochenmaske.py` (48 `OFFEN`-Zeilen grün, Gegenprobe
+gegen `9ae227d` fällt mit sieben roten durch) und `tools/pruefstand-weekstats-sync.py`.

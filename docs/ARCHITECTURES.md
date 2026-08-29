@@ -1157,16 +1157,22 @@ weekStats["2026-W29"] = { kcal, days, hit, target, d }
   leeren Woche nicht mehr zu unterscheiden. `/^[01]{7}$/` trifft oder trifft nicht. Dazu
   ist `"1101100"` in der Firestore-Konsole lesbar, `108` nicht.
 
-  ⚠️ **Stand 26.08.2026 (Paket 6, Schritt B1): `d` erreicht die Cloud noch nicht.**
-  `archiveWeek()` schreibt das Feld, aber `sanitizeWeekStats()` kennt es nicht und wirft es
-  **beim eigenen Push** wieder weg — nicht erst beim Zusammenführen zweier Geräte. Ebenso
-  vereinigt `mergeWeekStats()` die Masken noch nicht. Beides ist als Schritt B3/B4 offen und
-  im Prüfstand `tools/pruefstand-wochenmaske.py` als absichtlich roter `OFFEN`-Fall
-  festgehalten. **Bis dahin nichts bauen, das sich auf ein synchronisiertes `d` verlässt.**
+  **Seit 29.08.2026 (Paket 6, Schritte B3 und B5) läuft `d` durch den ganzen Sync.**
+  `sanitizeWeekStats()` validiert die Maske (`/^[01]{7}$/` auf einem String), und
+  `mergeWeekStats()` vereinigt sie über beide Geräte. Bis dahin schrieb `archiveWeek()` das
+  Feld zwar, aber `sanitizeWeekStats()` kannte es nicht und warf es **beim eigenen Push**
+  wieder weg — nicht erst beim Zusammenführen.
 
-  Das ist derselbe Fehlertyp wie in `docs/TROUBLESHOOTING.md` Punkt 115 („ein neues
-  Sync-Feld braucht zwei Merge-Stellen") — nur an einer dritten Stelle, weil
-  `sanitizeWeekStats()` jedes Objekt neu aufbaut und dabei alles Unbekannte verliert.
+  Das war derselbe Fehlertyp wie in `docs/TROUBLESHOOTING.md` Punkt 115 („ein neues
+  Sync-Feld braucht zwei Merge-Stellen") — nur an einer **dritten** Stelle, weil
+  `sanitizeWeekStats()` jedes Objekt neu aufbaut und dabei alles Unbekannte verliert. Als
+  eigener Punkt festgehalten in `docs/TROUBLESHOOTING.md` Punkt 138.
+
+  **Kaputtes `d` kostet das Feld, nie den Datensatz** — sonst würde aus einem
+  Übertragungsfehler eine gelöschte Woche. `d` und `days` korrigieren sich dabei ausdrücklich
+  **nicht** gegenseitig: `sanitizeWeekStats()` läuft auf Bestandsdaten, und `days` gegen die
+  Maske zu ziehen zerlegt jede Woche, die vor der Maske archiviert wurde. Der Widerspruch
+  bleibt gewollt stehen — `days` trägt den Rückblick, `d` den Kalender.
 
 `mergeArchived(alt, neu)` führt beim **lokalen** Archivieren den neu berechneten Datensatz
 mit einem schon gespeicherten zusammen, statt ihn zu überschreiben: Masken werden vereinigt
@@ -1178,8 +1184,9 @@ dasselbe wie `mergeWeekStats()` weiter unten — jenes führt zwei **Geräte** z
 Ziel, und eine Zieländerung schreibt die Bedeutung der gesamten Historie um. Trainings- und
 Ruhetage haben unterschiedliche Ziele, deshalb der Schnitt über die geplanten Tage.
 
-`sanitizeWeekStats()` klemmt alle Werte, hält höchstens 26 Wochen und übernimmt `target` nur
-im plausiblen Bereich (500–20 000 kcal). Wochen ohne `target` sind vor B10 archiviert; der
+`sanitizeWeekStats()` klemmt alle Werte, hält das **laufende und das vorige Kalenderjahr**
+(siehe „Archivfenster" unten) und übernimmt `target` nur im plausiblen Bereich
+(500–20 000 kcal). Wochen ohne `target` sind vor B10 archiviert; der
 Rückblick fällt dort auf das heutige Ziel zurück (`avgDailyTargetToday()`). Eine Migration
 gibt es nicht — der alte Zielstand ist nicht rekonstruierbar.
 
@@ -1208,16 +1215,48 @@ zuletzt schreibende hätte die Wochen des anderen gelöscht. Zusammengeführt wi
   von B und B gleichzeitig den von A — die beiden täuschten eine Runde lang. Wertbasiert kommen
   beide unabhängig zum selben Ergebnis. Belegt durch `tools/pruefstand-weekstats-sync.py`, das
   genau dafür `merge(A,B) === merge(B,A)` prüft.
-* Anschliessend läuft `sanitizeWeekStats()` über das Ergebnis: Die Vereinigung zweier je
-  26 Wochen langer Archive kann 52 ergeben, und `slice(-26)` braucht die Sortierung, um die
-  **jüngsten** zu behalten.
+* **Die Maske `d` steht bewusst nicht im Tiebreak.** Der Rang entscheidet, welche Seite ihre
+  *Zahlen* durchsetzt; `d` wird unabhängig davon ODER-verknüpft, und `days` steigt danach auf
+  `max(a.days, b.days, maskDays(d))`. Würde die Maske in den Rang eingehen („mehr Einsen
+  gewinnt"), löschte man genau die Tage, die nur ein Gerät kennt — der Fehler, gegen den das
+  Feld gebaut wurde. Hat keine Seite eine Maske, entsteht auch keine: `"0000000"` wäre eine
+  erfundene Aussage über eine vor der Maske archivierte Woche.
+* Anschliessend läuft `sanitizeWeekStats()` über das Ergebnis: Die Vereinigung kann Wochen
+  aus einem dritten Jahr einbringen, wenn ein Gerät lange nicht geladen hat.
+
+⚠️ **`mergeArchived()` und `mergeWeekStats()` sehen sich seit B5 sehr ähnlich — sie dürfen
+trotzdem nicht zusammengelegt werden.** Sie unterscheiden sich in genau einem Punkt, und der
+ist der ganze Sinn: `mergeArchived()` bevorzugt bei Gleichstand den **neuen** Lauf (`>=`), weil
+der frisch gerechnete Wert der aktuellere ist. `mergeWeekStats()` darf das nicht — dort muss
+der Gleichstand richtungsunabhängig aufgelöst werden, sonst nimmt Gerät A den Wert von B und
+B gleichzeitig den von A. Wer die beiden vereinheitlicht, baut TROUBLESHOOTING 34/44 wieder ein.
+
+#### Archivfenster: laufendes plus voriges Kalenderjahr (seit 29.08.2026)
+
+Vorher war es ein **rollendes halbes Jahr** (`slice(-26)`). Der Fortschritt-Kalender zeigt
+ganze Jahre — ein rollendes Fenster hätte ihm den Januar weggeschnitten, sobald der Juli da
+ist. Getrimmt wird nach dem **ISO-Jahr-Präfix des Schlüssels**, nicht nach echtem
+Kalenderdatum: `"2026-W01"` kann real im Dezember 2025 liegen.
+
+⚠️ **Die Anzeige muss dieselbe Regel benutzen.** Wer beim Kalender anfängt, den Schlüssel in
+ein Datum umzurechnen, lässt Trimmung und Darstellung auseinanderdriften: Wochen, die der
+Umschalter unter 2026 zeigt, wären unter 2025 weggeworfen worden.
+
+⚠️ **Offen: der Jahreswechsel löscht still, und zwar für alle Geräte.** Das Fenster
+bestimmt sich zur Laufzeit über `new Date().getFullYear()` — am 1. Januar verschwinden also
+schlagartig alle Wochen des dann vorvorigen Jahres, beim blossen Laden. Und weil `weekStats`
+in `dataJSON()` steht, löst genau das einen **Push** aus: Ein einziges Gerät, das am
+Jahreswechsel startet, kappt das Archiv auch in der Cloud und auf allen anderen Geräten.
+Denkbarer Ausweg: beim Trimmen grosszügiger sein als beim Anzeigen (etwa drei Jahre behalten,
+zwei anbieten). Das ist eine Produktentscheidung und noch nicht getroffen.
 
 **Zwei Merge-Stellen, nicht eine.** `onRemote()` deckt den laufenden Betrieb ab; der
 Baseline-Merge in `startCloudSync()` den Start. Fehlt das Feld dort, ist die Vereinigung
 wirkungslos — der Baseline-Push läuft direkt danach und ersetzt das Cloud-Feld mit dem
 lokalen Stand. Siehe `docs/TROUBLESHOOTING.md` Punkt 115.
 
-Grössenordnung: 26 Wochen à rund 60 Byte, also gut 1,5 KB — unkritisch gegen `CLOUD_DOC_MAX`.
+Grössenordnung: rund 106 Wochen à knapp 70 Byte, also gut 6 KB — unkritisch gegen
+`CLOUD_DOC_MAX = 900000`.
 
 ### Merkmale eines Meals: `tags[]` und `mealPrep`
 

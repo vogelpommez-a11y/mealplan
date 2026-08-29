@@ -2,18 +2,24 @@
 u"""
 Tagesmaske des Wochenarchivs: `archiveWeek()`, `sanitizeWeekStats()`, `mergeWeekStats()`.
 
-Dieser Pruefstand wird VOR dem Umbau angelegt (Paket 6, Schritt B1) und ist gegen den
-heutigen Stand ABSICHTLICH ROT. Ein Pruefstand, den die alte Fassung schon besteht, misst
+Dieser Pruefstand wurde VOR dem Umbau angelegt (Paket 6, Schritt B1) und war gegen den
+damaligen Stand ABSICHTLICH ROT. Ein Pruefstand, den die alte Fassung schon besteht, misst
 nichts (docs/TESTING.md) - deshalb ist "Ohne Ziel wird nicht archiviert" hier die
 Eingangsprobe: Wird sie gruen, ohne dass B2 gebaut wurde, laedt der Pruefstand nicht die
 echte Funktion.
 
-Zwei Gruppen, getrennt gezaehlt:
+**Seit dem 29.08.2026 ist er vollstaendig gruen (B3 und B5 sind gebaut)**, und seither
+bestimmen BEIDE Gruppen den Rueckgabewert. Die Gegenprobe dazu: gegen 9ae227d gefahren
+faellt er mit sieben roten OFFEN-Zeilen durch.
 
-  OFFEN       - beschreibt den Sollzustand nach B2-B5. Heute rot, das ist der Sinn.
-  REGRESSION  - beschreibt, was HEUTE schon gilt und beim Umbau nicht kaputtgehen darf.
-                Eine rote Zeile hier ist immer ein echter Schaden. Nur sie bestimmt den
-                Rueckgabewert.
+Zwei Gruppen, in der Ausgabe weiterhin getrennt gezaehlt:
+
+  OFFEN       - war der Sollzustand nach B2-B5, heute erfuellt.
+  REGRESSION  - was schon vor dem Umbau galt und dabei nicht kaputtgehen durfte.
+
+Waehrend des Umbaus bestimmte nur REGRESSION den Rueckgabewert - sonst waere der Pruefstand
+wochenlang rot und als Warnsignal wertlos gewesen. Wer die Trennung fuer den naechsten Umbau
+wieder braucht: die Zeile am Ende von main() auf "0 rot" statt "GESAMT 0 rot" zuruecksetzen.
 
 ## Zwei Entscheidungen, die dieser Pruefstand festschreibt
 
@@ -287,8 +293,13 @@ pr("regr", "pruneWeeks behaelt genau zwei Wochen", Object.keys(state.plans).leng
 pr("offen", "pruneWeeks archiviert die alte Woche auch ohne Ziel-Guard", !!rec("2026-W10"), JSON.stringify(state.weekStats));
 
 console.log("");
-console.log("OFFEN " + offenOk + " gruen, " + offenBad + " rot   (bis B2-B5 ist rot der Sollzustand)");
-console.log("ERGEBNIS REGRESSION " + regrOk + " gruen, " + regrBad + " rot");
+// Seit dem 29.08.2026 (B3/B5 fertig) zaehlen BEIDE Gruppen fuer den Rueckgabewert. Waehrend
+// des Umbaus durfte nur REGRESSION ihn bestimmen - sonst waere der Pruefstand wochenlang rot
+// und als Warnsignal wertlos gewesen. Jetzt ist der Sollzustand erreicht: Eine rote
+// OFFEN-Zeile ist ab hier ein Rueckschritt wie jeder andere. Die Trennung bleibt in der
+// AUSGABE stehen, weil sie zeigt, was Umbau war und was schon vorher galt.
+console.log("OFFEN " + offenOk + " gruen, " + offenBad + " rot");
+console.log("ERGEBNIS REGRESSION " + regrOk + " gruen, " + regrBad + " rot   /   GESAMT " + (offenBad + regrBad) + " rot");
 """
 
 
@@ -328,7 +339,7 @@ def main():
         for z in zeilen:
             print(z)
         letzte = [z for z in zeilen if z.startswith("ERGEBNIS REGRESSION")]
-        return 0 if letzte and letzte[-1].endswith("0 rot") else 1
+        return 0 if letzte and letzte[-1].endswith("GESAMT 0 rot") else 1
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
 

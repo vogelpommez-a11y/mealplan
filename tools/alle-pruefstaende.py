@@ -92,10 +92,11 @@ def hat_beleg(ausgabe):
 # Dieser Reihenlauf sieht nur den Rueckgabewert. Fuer die Pruefstaende hier unten heisst
 # "gruen" also NUR "keine Regression" - offene Punkte kann es trotzdem geben. Wer wissen
 # will, wie weit der Umbau ist, muss den Pruefstand einzeln fahren und seine Ausgabe lesen.
+#
+# Leer, seit pruefstand-wochenmaske.py am 29.08.2026 vollstaendig gruen wurde und wieder
+# beide Gruppen seinen Rueckgabewert bestimmen. Die Liste bleibt stehen: Der naechste
+# Pruefstand, der VOR seinem Umbau angelegt wird, gehoert genau hier hinein.
 TEILWEISE = {
-    "pruefstand-wochenmaske.py":
-        "Paket 6: gruen heisst nur 'keine Regression'. B3 und B5 sind offen, die OFFEN-Zeilen "
-        "sind weiterhin rot - einzeln fahren, um den Stand zu sehen.",
 }
 
 # Braucht ein Argument oder einen besonderen Aufbau - nicht fuer den Reihenlauf geeignet.
