@@ -34,6 +34,20 @@ ohne Netz starten. Ein Wrapper, der nur `www.paddysmealplan.de` in einem WebView
 trifft gleich zwei Ablehnungsgründe — Apple 4.2 („minimale Funktionalität", eine Website
 in einer Hülle) und 2.5.2 (Code aus dem Netz).
 
+**Seit dem 29.08.2026 liegt der Code auf mehreren Dateien** (`index.html`, `css/`,
+`data/`, `lib/`). Capacitor kopiert beim Verpacken **einen** Ordner ins App-Paket,
+konfiguriert über `webDir`. Zeigt der auf etwas, das nur `index.html` enthält, startet die
+native App mit **leerem `#view`** — bei völlig fehlerfreiem Build: die Seite lädt, die
+Skripte fehlen. Genau das Fehlerbild, das im Web HTTP 200 liefert und trotzdem nichts
+zeigt (`docs/TROUBLESHOOTING.md` §5 und §6).
+
+`webDir` muss deshalb so gesetzt sein, dass **alle vier** mitkommen. Die verbindliche
+Liste dessen, was geladen wird, steht erzeugt in `docs/MODULE.md` unter „Ladereihenfolge“ —
+sie ist die Prüfliste für den ersten Capacitor-Build.
+
+**Erste Prüfung im nativen Projekt:** App starten, `#view` muss gefüllt sein. Ist es leer,
+fehlt `css/`, `data/` oder `lib/` im Bundle — nichts anderes.
+
 ---
 
 ## 2. Bezahlung — Apple 3.1.1

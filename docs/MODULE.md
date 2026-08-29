@@ -325,7 +325,7 @@ _keine_
 | docs/PRODUCT.md | 1377 | 73734 |
 | docs/RUNBOOK.md | 167 | 5665 |
 | docs/SECURITY.md | 356 | 19197 |
-| docs/STORE.md | 232 | 10993 |
+| docs/STORE.md | 246 | 11876 |
 | docs/TESTING.md | 3155 | 186147 |
 | docs/TROUBLESHOOTING.md | 5093 | 293039 |
 | docs/module-index.json | — | — (erzeugt) |
