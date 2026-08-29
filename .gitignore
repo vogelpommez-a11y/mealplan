@@ -43,10 +43,12 @@ serviceAccount*.json
 !.claude/skills/smoke/
 !.claude/skills/abnahme/
 !.claude/skills/deploy/
+!.claude/skills/rezeptcharge/
 !.claude/Skills/pruefstand/
 !.claude/Skills/smoke/
 !.claude/Skills/abnahme/
 !.claude/Skills/deploy/
+!.claude/Skills/rezeptcharge/
 
 # Python-Bytecode. Entsteht automatisch, sobald ein tools/-Skript als Modul geladen wird
 # (der Pruefstand tut genau das). Binaerdateien in der Historie bringen nichts und erzeugen

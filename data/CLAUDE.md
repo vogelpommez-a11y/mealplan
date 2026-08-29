@@ -56,6 +56,40 @@ meldet in aller Regel nicht „kaputt", sondern „nichts gefunden".
 
 ---
 
+## Zubereitung
+
+> **Eine Zubereitung ist eine Anleitung für jemanden, der nicht kochen kann.**
+> Nicht die Erinnerungsstütze für jemanden, der das Gericht schon kennt.
+
+`steps` ist ein String; Schritte werden mit `\n` getrennt und nummeriert. Die Darstellung
+trägt das bereits (`.detail .steps { white-space: pre-wrap }`) — es braucht keine
+Code-Änderung.
+
+1. **Nummerierte Schritte**: `"1. …\n2. …"`.
+2. **Ein Schritt, eine Handlung.** Beginnt mit dem Verb im Imperativ.
+3. **Jede Zutat kommt vor** — auch Gewürze, auch „Prise Salz". Ein Sammelwort darf sie
+   decken („mit Kräutern würzen"), wenn es sie eindeutig meint.
+4. **Die Zutatenliste steht in der Reihenfolge ihrer Verwendung.**
+5. **Garpunkt sinnlich**, nie „bis fertig": *bis die Sauce bindet*, *bis die Ränder stocken*.
+6. **Zeiten als Von-bis**: „10–15 Min." — Herde sind verschieden.
+7. **Geräte und Vorbereitung zuerst.** Ofen vorheizen ist Schritt 1.
+8. **Kein Vorwissen voraussetzen.**
+9. **Markenstimme** (`CLAUDE.md` §6): freundlich, knapp, nicht belehrend.
+10. **Rezepte sind für eine Person gerechnet.** Keine Portionsangabe im Text.
+11. **Es klingt wie ein Kochbuch, nicht wie ein Sprachmodell.** Keine gleichlangen Schritte,
+    keine Füllwörter am Schrittanfang (*Zunächst, Anschließend, Nun*), höchstens **ein**
+    Erklärnachsatz pro Rezept, keine Dreierketten, keine werbenden Adjektive, keine
+    Schlussformel. Der Text endet beim Anrichten.
+
+Der Ablauf einer Charge steht im Skill **`/rezeptcharge`**, geprüft wird mit
+`python tools/pruefstand-rezepttexte.py`. Regel 4 kann der Prüfstand **nicht** messen — sie
+gilt trotzdem, siehe den Kopf des Skripts.
+
+Anlass war ein Rezept, dessen Zutatenliste „Vanille, Prise Salz" führte, während die
+Anleitung beides nie erwähnte: `docs/TROUBLESHOOTING.md` §141.
+
+---
+
 ## Nährwerte
 
 **Nie schätzen.** Vor jedem neuen Rezept gegenrechnen:

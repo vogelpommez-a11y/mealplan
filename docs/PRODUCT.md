@@ -317,7 +317,7 @@ Entscheidungen abnehmen statt sie zu verwalten.
 
 **Der eigene Bestand allein reicht nicht.** Nach dem Onboarding stehen dort fünf Startmeals —
 bei drei Haupt-Slots rotiert die Woche damit zwangsläufig auf denselben Gerichten. In der Praxis
-kam heraus: sechsmal derselbe Joghurt zum Mittag, während 34 kuratierte Rezepte danebenlagen.
+kam heraus: sechsmal derselbe Joghurt zum Mittag, während 35 kuratierte Rezepte danebenlagen.
 
 Der Planer zieht deshalb auch aus dem **Rezeptbuch** — gefiltert über `cookbookVisible()`, also
 **nur, was zur Ernährungsform passt**. Eigene und kuratierte Meals stehen gleichberechtigt im
@@ -568,7 +568,7 @@ Festgehalten als bekannte Grenze in `docs/SECURITY.md`, Abschnitt 6 — nicht ve
 
 ### 4. Künftige Pro-Rezepte kommen aus Firestore, nicht aus dem ausgelieferten Quelltext
 
-Die heutigen **34 Katalog-Rezepte** stehen als `const COOKBOOK` in `data/cookbook.js` und werden
+Die heutigen **35 Katalog-Rezepte** stehen als `const COOKBOOK` in `data/cookbook.js` und werden
 an jeden ausgeliefert. Das bleibt so: Sie sind der **Gratis-Grundstock** und müssen offline
 verfügbar sein.
 
@@ -593,6 +593,38 @@ die erste Pro-Charge ausgerollt wird. Ein späterer Umzug ist teurer.
 Im Meals-Reiter gibt es zwei Ansichten: **Meine Meals** und **Rezeptbuch** — ein kuratierter
 Katalog, aus dem man mit einem Tipp übernimmt. Was man übernimmt, ist eine **Kopie**: Sie
 gehört danach dem Nutzer und darf frei bearbeitet werden.
+
+### Die Zubereitung richtet sich an Kochanfänger (seit 29.08.2026)
+
+Ein Katalogrezept ist das Erste, was ein neuer Nutzer sieht — vor dem ersten eigenen Meal.
+Die Anleitung ist deshalb eine **nummerierte Schritt-für-Schritt-Führung**, in der **jede
+Zutat vorkommt**, nicht die Erinnerungsstütze für jemanden, der das Gericht schon kennt.
+
+Anlass war ein Rezept, dessen Zutatenliste „Vanille, Prise Salz" führte, während die
+Anleitung beides nie erwähnte — wer danach kochte, ließ es weg (`docs/TROUBLESHOOTING.md`
+§141). Der Fehler steckte in 18 von 34 Rezepten.
+
+Zwei Entscheidungen dazu:
+
+* **Der Ton bleibt Kochbuch, nicht Sprachmodell.** Ungleich lange Schritte, keine
+  Füllwörter am Schrittanfang, höchstens ein Erklärnachsatz pro Rezept, keine Schlussformel.
+  Eine Anleitung, der man ansieht, dass sie generiert wurde, beschädigt das Vertrauen in den
+  ganzen Katalog.
+* **Recherchiert wird nach Auslöser, nicht immer.** Bei Garpunkt und Sicherheit, roh
+  problematischen Zutaten, scheiternden Techniken, kulturellen Referenzen und allem noch nie
+  Gekochten — sonst reicht die eigene Idee. Recherchiert wird dabei die **Technik, nie der
+  Text**: Rezepttexte sind urheberrechtlich geschützt, Nährwerte nicht.
+
+Der Ablauf steht im Skill `/rezeptcharge`, die Regeln in `data/CLAUDE.md`, die mechanische
+Prüfung in `tools/pruefstand-rezepttexte.py`. Der Bestand wird schrittweise nachgezogen; bis
+dahin stehen zwei Darstellungen nebeneinander.
+
+**Ein Rezept ist an dieser Regel bereits gescheitert.** Die erste *Protein-Pizza mit
+Quarkboden* bestand am 29.08.2026 jede formale Prüfung — Nährwerte auf die Kalorie
+gegengerechnet, jede Zutat in der Anleitung, alle Prüfstände grün. Ihr Teigverhältnis lag
+trotzdem in der Lücke zwischen zwei Techniken, und ihr Schritt 4 sagte „ausrollen“, wo die
+Menge einen Gießteig ergab. Sie wurde **entfernt statt geflickt**
+(`docs/TROUBLESHOOTING.md` §141).
 
 **Das Ernährungsprofil ist ein vorbelegter Filter, keine Wand (seit 24.08.2026).**
 Wer vegan gewählt hat, sieht beim Öffnen vegane Meals — der Chip „Vegan" ist von selbst
@@ -626,8 +658,8 @@ angelegt, sie zu verstecken wäre Bevormundung. Vorschläge filtern, Eigenes nie
 
 ### Die 30 Rezepte (15.08.2026)
 
-Der Katalog ist vollständig: **34 Rezepte in allen sechs Kategorien** — 7 Frühstück,
-16 Hauptgerichte, 4 Snacks, 2 Desserts, 2 Beilagen, 3 Getränke. Die Aufteilung ist keine
+Der Katalog ist vollständig: **35 Rezepte in allen sechs Kategorien** — 7 Frühstück,
+17 Hauptgerichte, 4 Snacks, 2 Desserts, 2 Beilagen, 3 Getränke. Die Aufteilung ist keine
 Gleichverteilung, sondern folgt dem Wochenplan: Mittag und Abend sind vierzehn Slots pro Woche,
 Dessert und Getränk je einer.
 
@@ -646,16 +678,16 @@ macht den Snack-Slot eher besser.
 
 **Ausgerichtet auf Fitness und Meal-Prep, nicht auf Vielfalt um ihrer selbst willen:**
 
-* **21 von 34 sind zum Vorkochen geeignet** (`mealPrep`). Wer sonntags kocht, braucht Gerichte,
+* **21 von 35 sind zum Vorkochen geeignet** (`mealPrep`). Wer sonntags kocht, braucht Gerichte,
   die drei Tage im Kühlschrank überstehen — nicht Rührei.
-* **21 von 34 erreichen die Schwelle „Proteinreich"** (≥ 30 % der Kalorien aus Protein).
+* **22 von 35 erreichen die Schwelle „Proteinreich"** (≥ 30 % der Kalorien aus Protein).
 * Die Portionen liegen zwischen 207 kcal (Getränk) und 680 kcal (Hauptgericht) — planbar gegen
   ein Tagesziel, ohne dass ein einzelnes Meal die Bilanz sprengt.
-* **15 von 34 sind vegan, 24 vegetarisch**, und zwar in **jeder** Kategorie. Der Katalog wird
+* **15 von 35 sind vegan, 24 vegetarisch**, und zwar in **jeder** Kategorie. Der Katalog wird
   nach dem Profil gefiltert; wer vegan gewählt hat, darf nicht vor einer halb leeren Ansicht
   stehen.
 
-**Jedes der 34 Rezepte hat ein eigenes Bild** (`img/library/`, zusammen rund 1,6 MB, je 40–65 KB
+**Jedes der 35 Rezepte hat ein eigenes Bild** (`img/library/`, zusammen rund 1,6 MB, je 40–65 KB
 im Format 2,4:1). Sie sind KI-generiert, in einem einzigen eingefrorenen Stil: dunkles
 Nussbaumholz, helles mattes Steingut, 45-Grad-Seitenansicht. Das ist der sichtbarste Unterschied
 zu vorher — der Katalog lief bis dahin auf allgemeinen Stichwortfotos, auf denen zwei
@@ -736,7 +768,7 @@ hätte genau den überladenen Zustand wiederhergestellt, den B8 zwei Tage zuvor 
 Die Meal-Karte zeigt höchstens zwei gerechnete Badges („Proteinreich", „Low Carb", aus
 `macroBadges()`). Ein drittes für die Ernährungsform wurde geprüft und **verworfen**:
 
-* **Es hätte keine Trennschärfe.** 24 von 34 Rezepten sind vegetarisch, 15 vegan — ein Badge auf
+* **Es hätte keine Trennschärfe.** 24 von 35 Rezepten sind vegetarisch, 15 vegan — ein Badge auf
   drei Vierteln der Karten informiert nicht mehr, es wird Tapete. Badges leben von Seltenheit.
 * **Im Rezeptbuch wäre es meistens redundant.** Der Katalog ist beim Öffnen nach der
   Ernährungsform vorgefiltert; wer vegan gewählt hat, sieht zunächst ausschließlich vegane Meals.

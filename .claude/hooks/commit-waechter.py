@@ -41,19 +41,26 @@ VERBOTEN = [
     (".claude/skills/",  "dasselbe Verzeichnis, andere Schreibweise"),
 ]
 
-# Die AUSNAHME zu ".claude/Skills/": die vier selbst geschriebenen Projekt-Skills. Sie
-# liegen im selben Ordner wie die zugekauften und gehoeren ausdruecklich ins Repo - sie
-# sind dort seit dem 26.08.2026 getrackt. Ohne diese Liste blockierte der Waechter jede
-# Aenderung an /smoke, /pruefstand, /abnahme und /deploy, und zwar mit einer falschen
-# Begruendung ("fremde Inhalte ohne belegte Lizenz"). Am 27.08.2026 nachgetragen.
+# Die AUSNAHME zu ".claude/Skills/": die selbst geschriebenen Projekt-Skills. Sie liegen im
+# selben Ordner wie die zugekauften und gehoeren ausdruecklich ins Repo - sie sind dort seit
+# dem 26.08.2026 getrackt. Ohne diese Liste blockierte der Waechter jede Aenderung an
+# /smoke, /pruefstand, /abnahme und /deploy, und zwar mit einer falschen Begruendung
+# ("fremde Inhalte ohne belegte Lizenz"). Am 27.08.2026 nachgetragen.
 #
 # Beide Schreibweisen, aus demselben Grund wie in der .gitignore: welcher Ordnername bei
 # git ankommt, haengt an core.ignorecase des jeweiligen Rechners.
+#
+# WER EINEN EIGENEN SKILL ANLEGT, TRAEGT IHN AN DREI STELLEN NACH: hier, in der .gitignore
+# (auch dort in beiden Schreibweisen) und in der Skill-Tabelle in CLAUDE.md 11. Fehlt der
+# Eintrag hier, ist der Skill zwar getrackt, aber nicht mehr aenderbar - der Waechter
+# blockiert jeden Commit mit einer Begruendung, die nicht stimmt. Aufgefallen am
+# 29.08.2026 beim Anlegen von /rezeptcharge, gemeldet von tools/wartung-check.py.
 ERLAUBT = [
-    ".claude/Skills/smoke/",      ".claude/skills/smoke/",
-    ".claude/Skills/pruefstand/", ".claude/skills/pruefstand/",
-    ".claude/Skills/abnahme/",    ".claude/skills/abnahme/",
-    ".claude/Skills/deploy/",     ".claude/skills/deploy/",
+    ".claude/Skills/smoke/",        ".claude/skills/smoke/",
+    ".claude/Skills/pruefstand/",   ".claude/skills/pruefstand/",
+    ".claude/Skills/abnahme/",      ".claude/skills/abnahme/",
+    ".claude/Skills/deploy/",       ".claude/skills/deploy/",
+    ".claude/Skills/rezeptcharge/", ".claude/skills/rezeptcharge/",
 ]
 
 # Zusaetzlich: Dateiendungen, die nie ins Repo gehoeren.

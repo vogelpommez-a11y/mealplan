@@ -83,7 +83,7 @@ merkt.
 |---|---|---|---|
 | Die App selbst | `pfad:index.html` | alle, je nach Änderung | siehe `CLAUDE.md` §19 |
 | Styles und Design-Tokens | `pfad:css/` | `ux-reviewer` (Tokens, Zustände), `kvp` (Mobile) | jede UI-Änderung |
-| Daten und Rechtstexte | `pfad:data/` | `anwalt` (Rechtstexte, Bildlizenzen), `kvp` (Katalog, Nährwerte) | neues Meal, neues Bild, geänderter Rechtstext |
+| Daten und Rechtstexte | `pfad:data/` | `anwalt` (Rechtstexte, Bildlizenzen), `kvp` (Katalog, Nährwerte), `tools/pruefstand-rezepttexte.py` (Zubereitungen) | neues Meal, neues Bild, geänderter Rechtstext |
 | Eigenständige Bibliotheken | `pfad:lib/` | `website-security` (Open Food Facts, Kamera), `lieferkette` (ZXing-Anbindung) | Änderung an Barcode, PDF oder den gemeinsamen Helfern |
 | Prüfsystem (Agenten, Hooks, Skills) | `pfad:.claude/` | `tools/wartung-check.py` | jede Änderung am Setup |
 | CI | `pfad:.github/` | `website-security` | Änderung am Workflow |

@@ -5218,3 +5218,166 @@ Umgebung *abbricht*, ist ein Ärgernis. Ein Prüfer, der dabei *still Exit 0* li
 ein Schaden — er meldet „sauber", ohne gemessen zu haben (`CLAUDE.md` §18a). Wer ein
 Hook-Skript anfasst, prüft deshalb jeden `sys.exit(0)`-Zweig darauf, ob er eine Umgebung
 beschreibt oder einen Befund verschluckt.
+
+---
+
+## 141. Die Zutat, die in der Anleitung nie vorkommt
+
+**Gefunden am 29.08.2026 — nicht von einem Prüfstand, sondern beim Kochen.**
+
+Die Protein-Pancakes (`data/cookbook.js`, `protein-pancakes-skyr`) führen als Zutat den
+Freitext `"Backpulver, Vanille, Prise Salz"`. Die Zubereitung erwähnte nur das Backpulver:
+
+```js
+steps: "Haferflocken fein mahlen, mit Eiklar, Ei und Backpulver zu einem dickflüssigen
+Teig verrühren und 5 Min. quellen lassen. …"
+```
+
+Wer nach der Anleitung kocht und das Gericht nicht kennt, lässt Vanille und Salz weg. Genau
+das ist passiert. Der Fehler ist unsichtbar, solange man das Rezept nur liest — die
+Zutatenliste ist vollständig, die Anleitung klingt rund, und beide stehen in derselben
+Datei, nur zwei Zeilen auseinander.
+
+### Warum es niemandem auffiel
+
+Es gab für den Katalog **kein Verfahren und keinen Prüfer**. `docs/ABDECKUNG.md` nannte
+`kvp` als zuständig für „Katalog, Nährwerte" — `kvp` sieht aber nur den `git diff` und hat
+keine Regel, gegen die er eine Zubereitung prüfen könnte. `tools/rezept-makros.py` rechnet
+die Nährwerte nach und war zufrieden: Vanille und Salz haben keine.
+
+Eine Sondierung über alle 34 Rezepte fand denselben Fehler in **18** davon. Darunter echte
+Lücken: `linsen-bolognese-vollkorn` erwähnt den Knoblauch nicht, `ofengemuese-blech` weder
+Salz noch Pfeffer, `schoko-protein-quark` nicht die Zartbitterschokolade.
+
+### Fünf Fallen beim Bau des Prüfstands
+
+Bemerkenswert daran: **Vier der fünf sind falsche Negative.** Der Prüfstand blieb grün und
+maß nichts. Nur die letzte war Lärm — und die fiel sofort auf. Das ist die Regel, nicht der
+Zufall: Ein Fehlalarm meldet sich selbst, ein verschlucktes Ergebnis nie.
+
+**1. Der Kompositum-Rückfall fraß den Befund.** Damit „Olivenöl" von „mit Öl mischen"
+gedeckt ist, verglich der erste Entwurf auch kurze Wortenden — bis auf zwei Zeichen
+herunter. Damit galt „Erdnussbutter" als erwähnt, weil `er` in „Haferflocken" steckt.
+Dieselbe Teilwort-Kollision wie bei `eis` in `Rindfleisch` (`CLAUDE.md` §15). Die Grenze
+liegt jetzt bei vier Zeichen; kürzere Grundwörter stehen namentlich in `SAMMEL`.
+
+**2. Ohne Wortgrenze belegt sich jedes kurze Wort selbst.** `position("Reis", …)` fand einen
+Treffer in „P**reis**elbeeren", `position("Ei", …)` einen in „**ei**ne Schüssel". Für die
+beiden Ei-Rezepte war die Prüfung damit wirkungslos. Jeder Textvergleich verlangt jetzt eine
+Wortgrenze **vorn** — hinten ausdrücklich nicht, sonst fände „Zucchini" die
+„Zucchinischeiben" nicht mehr. Wörter unter vier Zeichen werden gar nicht mehr allgemein
+gesucht: Sie brauchen einen namentlichen Eintrag („Öl", „Ei"), sonst meldet der Prüfstand
+sie als fehlend — ein sichtbarer Fehlalarm statt eines stillen Durchwinkens.
+
+**3. Ein leerer Kopf ist ein Freifahrtschein.** Das Füllwort-Muster `frisch\w*` fraß bei
+„Frischkäse, light" das Grundwort mit; nach dem Komma-Schnitt blieb der leere String, und
+`position()` gab dafür `0` zurück — also „immer erwähnt". Die Zutat war damit dauerhaft von
+der Prüfung ausgenommen. `FUELLWORT` listet jetzt ausgeschriebene Formen, und `kopf()` fällt
+auf den ungekürzten Namen zurück, statt leer zu liefern.
+
+**4. Ein formatabhängiges Regex verliert Deckung, ohne es zu sagen.** Die Rezeptgrenzen
+werden aus dem Quelltext gelesen, nicht aus geparstem JavaScript. Ein Rezept mit einem
+Umbruch nach `{` fiel dadurch aus der Erkennung: **33 statt 34 geprüft, Ergebnis weiter
+grün.** Das Skript gleicht die erkannte Anzahl jetzt gegen die Zahl der `id:`-Felder ab und
+**bricht ab**, statt leise weniger zu prüfen.
+
+**5. Die Reihenfolge-Prüfung war Rauschen.** „Zutaten in der Reihenfolge ihrer Verwendung"
+ist die unumstößliche Regel des professionellen Rezeptlektorats — mechanisch geprüft meldete
+sie **24 von 34** Rezepten. Der Grund liegt im Auflöser: Ein Sammelwort („würzen" für Salz,
+„Öl" für Rapsöl) trifft früher, als die Zutat gebraucht wird, und verschiebt jede
+Reihenfolge. Die Prüfung wurde wieder entfernt. **Eine Prüfung, die bei 71 % anschlägt, wird
+überlesen — und eine überlesene Prüfung ist schlechter als keine.** Die Regel steht deshalb
+im Schreibstandard (`data/CLAUDE.md`), nicht im Skript.
+
+### Und die Verwaisung in der Gegenrichtung
+
+Wird ein Rezept umbenannt oder entfernt, bleibt seine Zeile in `GRUNDLINIE` bzw.
+`UNNUMMERIERT_ALT` stehen und deckt für immer eine `id`, die es nicht mehr gibt. Das fällt
+von allein nie auf — die Listen werden nur länger, und jede Zeile darin ist eine
+abgeschaltete Prüfung. Solche Zeilen melden sich jetzt als `BEHOBEN`.
+
+### Wie die vier stillen Fehler gefunden wurden
+
+Nicht vom Prüfstand selbst, sondern durch eine **Gegenprüfung in einer zweiten Sitzung**,
+die verstellte Kopien des Katalogs durch das Skript schickte: erfundene Zutat, leere `steps`,
+fehlendes Bild, behobener Grundlinienfall, umformatiertes Rezept, umbenanntes Rezept.
+
+Das ist der verbindliche Weg bei jedem neuen Prüfer, und §119 und §123 stehen als Mahnung
+daneben: **Ein Prüfer, den niemand geprüft hat, meldet „sauber" — und man glaubt ihm.**
+
+### Was daraus folgt
+
+* Zubereitungen sind nummerierte Schritt-für-Schritt-Anleitungen, in denen **jede Zutat
+  vorkommt** — Regeln in `data/CLAUDE.md`, Ablauf im Skill `/rezeptcharge`.
+* `tools/pruefstand-rezepttexte.py` prüft das mechanisch. Der Bestand steht als
+  **Grundlinie** darin und meldet sich als `OFFEN`; jedes neue Rezept mit fehlender Zutat
+  ist `REGRESSION`.
+* Der Katalog hat seit dem 29.08.2026 einen Eintrag in `docs/ABDECKUNG.md`, der ihn
+  namentlich einem Prüfer zuordnet.
+
+**Die allgemeine Lehre:** Der stärkste Prüfer war hier der Herd. Kein Skript und keine
+Recherche meldet, dass eine Anleitung *als Anleitung* nicht trägt. Deshalb endet
+`/rezeptcharge` mit der Liste der Rezepte, die noch niemand gekocht hat.
+
+---
+
+## 142. Ein fehlender Zeilenumbruch am Dateiende legt zwei Prüfstände lahm
+
+**Gefunden am 29.08.2026**, beim ersten Rezept, das über `/rezeptcharge` entstand.
+
+Nach dem Anlegen von `protein-pizza-quarkboden` in `data/cookbook.js` meldeten
+`pruefstand-rezeptbuch.py` und `pruefstand-rezeptbuch-filter.py` beide:
+
+```
+Kein ERGEBNIS - das Protokoll ist nicht fertig geworden.
+```
+
+Kein Befund, keine Zeile, nichts. `python syntax-check.py data/cookbook.js` sagte
+**„syntaktisch sauber"**, und `syntax-check.py` auf die *erzeugte* Prüfstandsseite ebenfalls.
+Erst ein `window.onerror`-Haken an einer Kopie der Seite nannte die Ursache:
+`Uncaught SyntaxError: Invalid or unexpected token`.
+
+### Die Kette
+
+Beim Schreiben der Datei fehlte der abschließende Zeilenumbruch — die letzte Zeile war
+`  ];` ohne `\n`. `tools/quelle.py` baut die ausgelagerten Dateien beim Zusammensetzen so
+wieder ein:
+
+```python
+u"<script%s>/* eingebaut aus %s */\n%s</script>" % (attrs, src, inhalt)
+```
+
+Ohne Umbruch klebt das schließende Tag an der letzten Zeile: aus `  ];` wird
+**`  ];</script>`**.
+
+Die Ausschneide-Prüfstände schneiden **zeilenweise**:
+
+```python
+def block(start_sig, end_sig):
+    ...
+    elif a is not None and z.startswith(end_sig): b = i; break
+```
+
+`"  ];</script>".startswith("  ];")` ist `True`. Das `</script>` wandert dadurch in den
+ausgeschnittenen Code, wird in die Prüfstandsseite eingesetzt und **beendet dort den
+Script-Block mitten im Code**. Alles danach — `DIETS`, `RECIPE_TAGS`, die Zusicherungen —
+steht als Text im HTML.
+
+### Warum das besonders unangenehm ist
+
+Die verursachende Datei ist **fehlerfrei**. JavaScript braucht keinen Umbruch am Ende, jeder
+Linter schweigt, `syntax-check.py` schweigt zu Recht. Der Schaden entsteht erst beim
+Zusammenbau, in einer anderen Datei, und äußert sich als ausbleibendes Protokoll — also
+genau als das Symptom, das man für einen kaputten Prüfstand hält, nicht für einen kaputten
+Datenstand.
+
+### Behoben an der Wurzel
+
+Nicht in `data/cookbook.js` — dort wäre es eine Reparatur, die beim nächsten Werkzeug wieder
+auffliegt. `tools/quelle.py` hängt den Umbruch jetzt selbst an (`_mit_umbruch()`), für
+Skripte **und** Stylesheets. Gegenprobe: Umbruch erneut entfernt, Prüfstand läuft
+durch — `ERGEBNIS 112 gruen`.
+
+**Die allgemeine Lehre:** Wer Dateien programmatisch schreibt, die später zusammengesetzt
+werden, beendet sie mit einem Zeilenumbruch. Und wer zeilenweise nach einer Endmarke
+schneidet, muss damit rechnen, dass an der Marke noch etwas klebt.

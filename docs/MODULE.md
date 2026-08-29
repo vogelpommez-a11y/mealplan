@@ -59,7 +59,7 @@ Erhoben aus den Abschnittsmarken im Code, nicht von Hand gepflegt.
 | css/mobil.css | Mobile / Smartphone | 8-796 | 789 |
 | css/mobil.css | Gemeinsam planen (Gruppe) | 797-863 | 67 |
 | data/bilder.js | Gerichtsfotos (eingebettet, nach Namen zugeordnet) | 11-134 | 124 |
-| data/cookbook.js | Rezeptbuch | 11-469 | 459 |
+| data/cookbook.js | Rezeptbuch | 11-491 | 481 |
 | data/foods.js | Zutaten-Datenbank fuer die Suche | 11-203 | 193 |
 | data/ikonen.js | Strich-Icons fuer die Kategorie-Ueberschriften | 11-76 | 66 |
 | index.html | Cloud-Sync (Firestore): pro Nutzer ein Dokument users/{uid} | 433-466 | 34 |
@@ -170,6 +170,7 @@ ausserhalb des Repositories und gehoeren nicht zu seinem Zustand.
 | abnahme | docs/TESTING.md |
 | deploy | .claude/hooks/push-waechter.py, firestore.rules, sw.js |
 | pruefstand | data/cookbook.js, docs/TESTING.md, index.html, tools/quelle.py |
+| rezeptcharge | CLAUDE.md, data/cookbook.js, data/foods.js, data/rechtstexte.js, docs/PRODUCT.md, docs/TROUBLESHOOTING.md, img/library/bilder-protokoll.json, pruefstand-rezepttexte.py, quelle.py, rezept-makros.py, syntax-check.py, tools/pruefstand-rezepttexte.py, tools/quelle.py |
 | smoke | dump.html |
 
 ## 6. Hooks
@@ -281,6 +282,7 @@ _keine_
 | .claude/Skills/abnahme/SKILL.md | 80 | 3793 |
 | .claude/Skills/deploy/SKILL.md | 101 | 3653 |
 | .claude/Skills/pruefstand/SKILL.md | 126 | 5263 |
+| .claude/Skills/rezeptcharge/SKILL.md | 419 | 22369 |
 | .claude/Skills/smoke/SKILL.md | 82 | 3368 |
 | .claude/agents/anwalt.md | 273 | 15770 |
 | .claude/agents/datenschutz-technik.md | 174 | 9879 |
@@ -291,7 +293,7 @@ _keine_
 | .claude/agents/ux-reviewer.md | 71 | 3776 |
 | .claude/agents/website-security.md | 195 | 10650 |
 | .claude/commands/pushcheck.md | 70 | 2657 |
-| .claude/hooks/commit-waechter.py | 167 | 7332 |
+| .claude/hooks/commit-waechter.py | 174 | 7835 |
 | .claude/hooks/push-waechter.py | 95 | 3107 |
 | .claude/hooks/secrets-filter.py | 93 | 3856 |
 | .claude/hooks/syntax-nach-edit.py | 100 | 3777 |
@@ -299,8 +301,8 @@ _keine_
 | .claude/settings.json | 56 | 1526 |
 | .gitattributes | 21 | 594 |
 | .github/workflows/pruefung.yml | 188 | 8066 |
-| .gitignore | 112 | 4896 |
-| CLAUDE.md | 673 | 27671 |
+| .gitignore | 114 | 4956 |
+| CLAUDE.md | 678 | 28029 |
 | CNAME | 1 | 21 |
 | FIREBASE-SETUP.md | 197 | 9363 |
 | LICENSE | 30 | 1364 |
@@ -312,22 +314,22 @@ _keine_
 | css/komponenten.css | 1107 | 87302 |
 | css/mobil.css | 863 | 56353 |
 | css/tokens.css | 221 | 11084 |
-| data/CLAUDE.md | 102 | 3865 |
+| data/CLAUDE.md | 136 | 5704 |
 | data/bilder.js | 134 | 14471 |
-| data/cookbook.js | 469 | 35698 |
+| data/cookbook.js | 491 | 37761 |
 | data/foods.js | 203 | 14489 |
 | data/ikonen.js | 76 | 8630 |
 | data/rechtstexte.js | 162 | 27732 |
-| docs/ABDECKUNG.md | 186 | 10999 |
+| docs/ABDECKUNG.md | 186 | 11050 |
 | docs/ARCHITECTURES.md | 2704 | 169847 |
 | docs/DESIGN.md | 336 | 11072 |
 | docs/MODULE.md | — | — (erzeugt) |
-| docs/PRODUCT.md | 1377 | 73734 |
+| docs/PRODUCT.md | 1409 | 75677 |
 | docs/RUNBOOK.md | 167 | 5665 |
 | docs/SECURITY.md | 356 | 19197 |
 | docs/STORE.md | 246 | 11876 |
-| docs/TESTING.md | 3197 | 188724 |
-| docs/TROUBLESHOOTING.md | 5221 | 300417 |
+| docs/TESTING.md | 3285 | 194057 |
+| docs/TROUBLESHOOTING.md | 5384 | 308876 |
 | docs/module-index.json | — | — (erzeugt) |
 | firestore.rules | 416 | 23714 |
 | icon-192.png | — | 45024 |
@@ -347,7 +349,7 @@ _keine_
 | img/fruit.webp | — | 12870 |
 | img/icecream.webp | — | 4984 |
 | img/library/beeren-protein-shake-hafer.webp | — | 35192 |
-| img/library/bilder-protokoll.json | 240 | 29528 |
+| img/library/bilder-protokoll.json | 248 | 30226 |
 | img/library/blumenkohl-curry-tofu.webp | — | 57510 |
 | img/library/chia-pudding-soja-beeren.webp | — | 65746 |
 | img/library/chili-rinderhack-bohnen.webp | — | 55492 |
@@ -368,6 +370,7 @@ _keine_
 | img/library/ofenlachs-suesskartoffel.webp | — | 59954 |
 | img/library/overnight-oats-soja-beeren.webp | — | 38496 |
 | img/library/protein-pancakes-skyr.webp | — | 35382 |
+| img/library/protein-pizza-schinken.webp | — | 64864 |
 | img/library/protein-porridge-mit-beeren.webp | — | 56480 |
 | img/library/putenpfanne-vollkornnudeln.webp | — | 70642 |
 | img/library/quark-haferflocken-banane.webp | — | 40140 |
@@ -413,7 +416,7 @@ _keine_
 | syntax-check.py | 382 | 16172 |
 | test-server.ps1 | 66 | 2182 |
 | tools/abdeckung.py | 324 | 13049 |
-| tools/alle-pruefstaende.py | 217 | 8974 |
+| tools/alle-pruefstaende.py | 220 | 9193 |
 | tools/cdp.py | 261 | 11294 |
 | tools/firebase-vendor.py | 75 | 2957 |
 | tools/karte.py | 605 | 24255 |
@@ -435,6 +438,7 @@ _keine_
 | tools/pruefstand-rezeptbuch-ansicht.py | 188 | 10795 |
 | tools/pruefstand-rezeptbuch-filter.py | 222 | 10222 |
 | tools/pruefstand-rezeptbuch.py | 428 | 24044 |
+| tools/pruefstand-rezepttexte.py | 499 | 24052 |
 | tools/pruefstand-rueckblick-ziel.py | 221 | 9650 |
 | tools/pruefstand-sheet-repaint.py | 273 | 14644 |
 | tools/pruefstand-sync-abriss.py | 226 | 10106 |
@@ -446,7 +450,7 @@ _keine_
 | tools/pruefstand-zurueck-taste.py | 352 | 16043 |
 | tools/pruefstand-zuweisung-loeschen.py | 232 | 10378 |
 | tools/pruefstand_lauf.py | 113 | 4894 |
-| tools/quelle.py | 163 | 6216 |
+| tools/quelle.py | 180 | 7137 |
 | tools/rezept-makros.py | 279 | 12049 |
 | tools/smoke-mit-daten.py | 145 | 8236 |
 | tools/test-meal-bilder.py | 144 | 7529 |

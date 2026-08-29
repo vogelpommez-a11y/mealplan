@@ -311,6 +311,94 @@ welche Zeile im Produktionscode als Nächstes drankam. Zusätzlich `window.onerr
 `unhandledrejection` in die Seite hängen, sonst verschluckt ein `catch` im Produktionscode den
 Fehler und der Prüfstand liefert wortlos nichts.
 
+## 2b. Datenprüfstand mit Grundlinie — `pruefstand-rezepttexte.py`
+
+Nicht jeder Prüfstand schneidet Code aus. `tools/pruefstand-rezepttexte.py` liest
+`data/cookbook.js` und rechnet — kein Browser, keine Stubs. Der `pruefstand-`-Präfix ist
+trotzdem richtig: `tools/alle-pruefstaende.py` sammelt per `glob("tools/pruefstand-*.py")`
+ein und bewertet den Rückgabewert, die Registrierung passiert dadurch von selbst.
+
+Er prüft, ob **jede Zutat aus `ingredients` in `steps` vorkommt**, ob die Anleitung
+nummeriert ist, ob `img` auf eine vorhandene Datei zeigt und ob `id` eindeutig ist.
+
+Seit dem 29.08.2026 zusätzlich: **passen die Ernährungsform-Tags zu den Zutaten?**
+`vegan`, `vegetarisch`, `glutenfrei` und `laktosefrei` waren bis dahin reine Behauptungen —
+`macroBadges()` deckt nur `highprotein` und `lowcarb` ab. Aufgefallen im zweiten Testlauf von
+`/rezeptcharge`: Ein frisch gebautes Rezept trug `laktosefrei` und enthielt Magerquark, und
+alle Prüfungen blieben grün. Diese Prüfung braucht **keine Grundlinie** — der Bestand ist
+sauber, jeder Treffer ist ein Befund.
+
+### Die Grundlinie — wie ein Prüfstand eingeführt wird, der von Anfang an Befunde hat
+
+Beim Bau meldete er 18 von 34 Rezepten. Ein Prüfstand, der ab Tag eins rot ist, blockiert
+die Suite und wird abgeschaltet — der Befund wäre damit teurer als sein Nutzen. Die Lösung
+ist eine **Grundlinie im Skript**, die den Bestand vom Einführungstag festhält:
+
+| Stufe | Bedeutung | Rückgabewert |
+|---|---|---|
+| `OFFEN` | steht in der Grundlinie — Bestand, bekannt, noch nicht nachgearbeitet | 0 |
+| `REGRESSION` | alles andere: neues Rezept mit fehlender Zutat, fehlende Nummerierung, **oder eine wachsende Fehlerliste an einem Bestandsrezept** | 1 |
+| `BEHOBEN` | ein Fall aus der Grundlinie ist verschwunden — Zeile streichen | 0 |
+
+`BEHOBEN` ist der Teil, den man leicht vergisst. Ohne ihn verrottet die Grundlinie: Sie
+enthielte irgendwann Fälle, die es nicht mehr gibt, und schaltete die Prüfung für diese
+Rezepte dauerhaft ab, ohne dass es je auffällt. Das ist derselbe Mechanismus wie eine
+Kennung in `docs/ABDECKUNG.md`, die nur eingetragen wird, damit Ruhe ist.
+
+„Grün" heißt hier **keine Regression**, nicht „fehlerfrei".
+
+### Gegenprobe
+
+```powershell
+git show HEAD:data/cookbook.js > alt.js
+python tools/pruefstand-rezepttexte.py alt.js
+```
+
+Zwei Läufe, sonst zählt das Ergebnis nicht — durchgeführt am 29.08.2026:
+
+1. Testfassung mit einem **neuen** Rezept, dessen Zutat in der Anleitung fehlt und dessen
+   Schritte nicht nummeriert sind → meldete beide Punkte als `REGRESSION`, Rückgabewert 1.
+2. Testfassung, in der `protein-pancakes-skyr` korrigiert und nummeriert ist → meldete
+   dreimal `BEHOBEN`, Rückgabewert 0.
+
+### Was der Auflöser leisten muss — und wo seine Grenze liegt
+
+Ein Wort-für-Wort-Vergleich meldet 31 von 34 Rezepten und ist damit wertlos: „Olivenöl"
+gegen „mit Öl und Kräutern mischen" ist kein Befund, sondern normales Deutsch. Es braucht
+drei Nachsichten — Wortstamm/Kompositum, Sammelwörter (`Beeren`, `Kräuter`, `Öl`) und
+Gewürze, die von „würzen"/„abschmecken" gedeckt sind.
+
+Fünf Fallen dabei, alle dokumentiert in `docs/TROUBLESHOOTING.md` §141 — **vier davon sind
+falsche Negative**, also Fälle, in denen der Prüfstand grün blieb und trotzdem nichts maß:
+
+* **Der Kompositum-Rückfall darf nicht zu kurz greifen.** Bis auf zwei Zeichen herunter galt
+  „Erdnussbutter" als erwähnt, weil `er` in „Haferflocken" steckt. Grenze jetzt vier
+  Zeichen; kurze Grundwörter wie „Öl" und „Ei" stehen namentlich in `SAMMEL`.
+* **Jeder Textvergleich braucht eine Wortgrenze vorn.** Ohne sie belegte `Reis` sich in
+  „**P**r**eis**elbeeren" und `Ei` in „**ei**ne" — die Kollision, die `CLAUDE.md` §15
+  namentlich nennt. Hinten darf keine Grenze stehen, sonst findet „Zucchini" die
+  „Zucchinischeiben" nicht mehr.
+* **Ein leerer Kopf ist ein Freifahrtschein.** `frisch\w*` als Füllwort fraß das Grundwort
+  von „Frischkäse, light" mit; übrig blieb der leere String, und der galt als „immer
+  erwähnt". `kopf()` gibt jetzt nie leer zurück.
+* **Ein formatabhängiges Regex verliert Deckung, ohne es zu sagen.** Ein Rezept mit einem
+  Umbruch nach `{` fiel aus der Erkennung: 33 statt 34 geprüft, Ergebnis weiter grün. Das
+  Skript gleicht die erkannte Anzahl jetzt gegen die Zahl der `id:`-Felder ab und **bricht
+  ab**, statt leise weniger zu prüfen.
+* **Die Reihenfolge der Zutatenliste ist nicht mechanisch prüfbar.** Der Versuch meldete
+  24 von 34. Die Regel gilt trotzdem, sie steht aber im Schreibstandard
+  (`data/CLAUDE.md`), nicht im Skript.
+
+Dazu die Verwaisung in der Gegenrichtung: Wird ein Rezept umbenannt oder entfernt, bleibt
+seine Zeile in `GRUNDLINIE` stehen und deckt für immer eine `id`, die es nicht mehr gibt.
+Der Prüfstand meldet solche Zeilen jetzt als `BEHOBEN`.
+
+**Wie die vier gefunden wurden:** nicht vom Prüfstand selbst, sondern durch eine
+Gegenprüfung in einer zweiten Sitzung, die verstellte Kopien des Katalogs durch das Skript
+schickte (erfundene Zutat, leere `steps`, fehlendes Bild, behobener Grundlinienfall). Das
+ist der Weg, der bei einem neuen Prüfer verbindlich ist: **Ein Prüfer, den niemand geprüft
+hat, meldet „sauber" — und man glaubt ihm** (`CLAUDE.md` §18b).
+
 ## 3. Ergebnisfortschritt
 
 Tests sollen nach jedem relevanten Schritt ein Ergebnis ausgeben.

@@ -277,6 +277,7 @@ Die Verfahren gibt es als Skill:
 | `/pruefstand` | Ausschneide-Prüfstand für Funktionen hinter Login, Modal oder komplexem State |
 | `/abnahme` | Abnahme am echten Cloud-Konto über `tools/cdp.py` |
 | `/deploy` | Push, Verifikation, Rollback |
+| `/rezeptcharge` | Neue Rezepte für `COOKBOOK` — Recherche, Nährwerte, Anleitung, Bilder |
 
 Für den Blick aufs Ganze vor einem größeren Commit:
 
@@ -385,6 +386,10 @@ Bei Stichwort-Matching auf Teilwort-Kollisionen achten: `eis` steckt in `Rindfle
 `reis` in `Preiselbeere`.
 
 **Nährwerte nie schätzen** — vor jedem neuen Rezept `tools/rezept-makros.py` gegenrechnen.
+
+**Katalogrezepte entstehen über `/rezeptcharge`**, nicht freihändig. Die Zubereitung ist eine
+nummerierte Schritt-für-Schritt-Anleitung, in der **jede Zutat vorkommt** — auch Gewürze.
+Regeln in `data/CLAUDE.md`, Prüfer `tools/pruefstand-rezepttexte.py`.
 
 ---
 

@@ -465,4 +465,26 @@
         "Eiswürfel"
       ],
       steps: "Milch, Proteinpulver, Banane und ein paar Eiswürfel in den Mixer geben und cremig mixen." },
+
+
+    // Gießteig, nicht Rollteig: Quark zu Mehl 200 : 44 = 4,55 - belegt durch die
+    // Protein-Pizza-Familie (4,5-7,7, gebunden mit zwei Eiern), NICHT durch den klassischen
+    // Quark-Öl-Teig (0,36-1,4, wird ausgerollt). Deshalb heißt es in Schritt 4
+    // "verstreichen" und nicht "ausrollen" - die beiden Familien vertragen sich nicht.
+    { id: "protein-pizza-schinken", name: "Protein-Pizza mit Schinken",
+      category: "Hauptgericht", time: 35, tags: ["highprotein"], mealPrep: false,
+      img: "protein-pizza-schinken.webp",
+      nutrition: { kcal: 643, carbs: 46, protein: 69, fat: 19 },
+      ingredients: [
+        { name: "Magerquark", grams: 200, kcal: 67, carbs: 4, protein: 12, fat: 0.3 },
+        { name: "Ei, Größe M", grams: 2, unit: "st", kcal: 80, carbs: 0.4, protein: 7, fat: 5.7 },
+        { name: "Weizenmehl Type 405", grams: 44, kcal: 348, carbs: 72, protein: 10, fat: 1 },
+        "Backpulver, Salz",
+        { name: "Passierte Tomaten", grams: 80, kcal: 32, carbs: 5, protein: 1.4, fat: 0.2 },
+        "Oregano",
+        { name: "Kochschinken", grams: 60, kcal: 110, carbs: 1, protein: 19, fat: 3 },
+        { name: "Mozzarella, light", grams: 60, kcal: 165, carbs: 1, protein: 22, fat: 8 },
+        { name: "Rucola", grams: 20, kcal: 25, carbs: 2, protein: 2.6, fat: 0.7 }
+      ],
+      steps: "1. Ofen auf 220 °C Ober-/Unterhitze vorheizen, ein Blech mit Backpapier auslegen.\n2. Magerquark mit den Eiern glatt rühren.\n3. Mehl, Backpulver und Salz unterrühren, bis ein dickflüssiger Teig entsteht.\n4. Teig auf dem Blech zu einem runden Boden verstreichen, etwa einen halben Zentimeter dick.\n5. Boden 10–12 Min. vorbacken, bis die Oberfläche trocken ist und der Rand bräunt – ohne diesen Schritt weicht der Quarkboden unter der Sauce durch.\n6. Passierte Tomaten daraufstreichen und mit Oregano bestreuen.\n7. Kochschinken in Streifen schneiden und auf der Sauce verteilen.\n8. Mozzarella darüberzupfen.\n9. Weitere 10–12 Min. backen, bis der Käse Farbe nimmt.\n10. Rucola nach dem Backen auflegen." },
   ];

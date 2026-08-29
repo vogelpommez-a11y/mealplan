@@ -406,11 +406,11 @@
       "zeilen": 124
     },
     {
-      "bis": 469,
+      "bis": 491,
       "datei": "data/cookbook.js",
       "titel": "Rezeptbuch",
       "von": 11,
-      "zeilen": 459
+      "zeilen": 481
     },
     {
       "bis": 203,
@@ -1032,6 +1032,11 @@
       "zeilen": 126
     },
     {
+      "bytes": 22369,
+      "pfad": ".claude/Skills/rezeptcharge/SKILL.md",
+      "zeilen": 419
+    },
+    {
       "bytes": 3368,
       "pfad": ".claude/Skills/smoke/SKILL.md",
       "zeilen": 82
@@ -1082,9 +1087,9 @@
       "zeilen": 70
     },
     {
-      "bytes": 7332,
+      "bytes": 7835,
       "pfad": ".claude/hooks/commit-waechter.py",
-      "zeilen": 167
+      "zeilen": 174
     },
     {
       "bytes": 3107,
@@ -1122,14 +1127,14 @@
       "zeilen": 188
     },
     {
-      "bytes": 4896,
+      "bytes": 4956,
       "pfad": ".gitignore",
-      "zeilen": 112
+      "zeilen": 114
     },
     {
-      "bytes": 27671,
+      "bytes": 28029,
       "pfad": "CLAUDE.md",
-      "zeilen": 673
+      "zeilen": 678
     },
     {
       "bytes": 21,
@@ -1186,9 +1191,9 @@
       "zeilen": 221
     },
     {
-      "bytes": 3865,
+      "bytes": 5704,
       "pfad": "data/CLAUDE.md",
-      "zeilen": 102
+      "zeilen": 136
     },
     {
       "bytes": 14471,
@@ -1196,9 +1201,9 @@
       "zeilen": 134
     },
     {
-      "bytes": 35698,
+      "bytes": 37761,
       "pfad": "data/cookbook.js",
-      "zeilen": 469
+      "zeilen": 491
     },
     {
       "bytes": 14489,
@@ -1216,7 +1221,7 @@
       "zeilen": 162
     },
     {
-      "bytes": 10999,
+      "bytes": 11050,
       "pfad": "docs/ABDECKUNG.md",
       "zeilen": 186
     },
@@ -1235,9 +1240,9 @@
       "pfad": "docs/MODULE.md"
     },
     {
-      "bytes": 73734,
+      "bytes": 75677,
       "pfad": "docs/PRODUCT.md",
-      "zeilen": 1377
+      "zeilen": 1409
     },
     {
       "bytes": 5665,
@@ -1255,14 +1260,14 @@
       "zeilen": 246
     },
     {
-      "bytes": 188724,
+      "bytes": 194057,
       "pfad": "docs/TESTING.md",
-      "zeilen": 3197
+      "zeilen": 3285
     },
     {
-      "bytes": 300417,
+      "bytes": 308876,
       "pfad": "docs/TROUBLESHOOTING.md",
-      "zeilen": 5221
+      "zeilen": 5384
     },
     {
       "erzeugt": true,
@@ -1342,9 +1347,9 @@
       "pfad": "img/library/beeren-protein-shake-hafer.webp"
     },
     {
-      "bytes": 29528,
+      "bytes": 30226,
       "pfad": "img/library/bilder-protokoll.json",
-      "zeilen": 240
+      "zeilen": 248
     },
     {
       "bytes": 57510,
@@ -1425,6 +1430,10 @@
     {
       "bytes": 35382,
       "pfad": "img/library/protein-pancakes-skyr.webp"
+    },
+    {
+      "bytes": 64864,
+      "pfad": "img/library/protein-pizza-schinken.webp"
     },
     {
       "bytes": 56480,
@@ -1618,9 +1627,9 @@
       "zeilen": 324
     },
     {
-      "bytes": 8974,
+      "bytes": 9193,
       "pfad": "tools/alle-pruefstaende.py",
-      "zeilen": 217
+      "zeilen": 220
     },
     {
       "bytes": 11294,
@@ -1728,6 +1737,11 @@
       "zeilen": 428
     },
     {
+      "bytes": 24052,
+      "pfad": "tools/pruefstand-rezepttexte.py",
+      "zeilen": 499
+    },
+    {
       "bytes": 9650,
       "pfad": "tools/pruefstand-rueckblick-ziel.py",
       "zeilen": 221
@@ -1783,9 +1797,9 @@
       "zeilen": 113
     },
     {
-      "bytes": 6216,
+      "bytes": 7137,
       "pfad": "tools/quelle.py",
-      "zeilen": 163
+      "zeilen": 180
     },
     {
       "bytes": 12049,
@@ -2032,6 +2046,26 @@
         "tools/quelle.py"
       ],
       "zweck": "Baut einen Ausschneide-Prüfstand für Paddy's Mealplan — schneidet echten Code aus index.html, stubbt fehlende Helfer, fährt ihn headless und prüft mit Gegenprobe gegen den alten Stand. Verwenden, wenn"
+    },
+    {
+      "datei": ".claude/Skills/rezeptcharge/SKILL.md",
+      "name": "rezeptcharge",
+      "pfade": [
+        "CLAUDE.md",
+        "data/cookbook.js",
+        "data/foods.js",
+        "data/rechtstexte.js",
+        "docs/PRODUCT.md",
+        "docs/TROUBLESHOOTING.md",
+        "img/library/bilder-protokoll.json",
+        "pruefstand-rezepttexte.py",
+        "quelle.py",
+        "rezept-makros.py",
+        "syntax-check.py",
+        "tools/pruefstand-rezepttexte.py",
+        "tools/quelle.py"
+      ],
+      "zweck": "Führt eine neue Charge Rezepte für das Rezeptbuch (COOKBOOK) von der Idee bis zur geprüften Datei. Verankert jedes Gericht in mehreren echten Quellen, statt ein plausibles zu erfinden — dazu Nährwerte"
     },
     {
       "datei": ".claude/Skills/smoke/SKILL.md",

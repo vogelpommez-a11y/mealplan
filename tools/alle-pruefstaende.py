@@ -93,10 +93,13 @@ def hat_beleg(ausgabe):
 # "gruen" also NUR "keine Regression" - offene Punkte kann es trotzdem geben. Wer wissen
 # will, wie weit der Umbau ist, muss den Pruefstand einzeln fahren und seine Ausgabe lesen.
 #
-# Leer, seit pruefstand-wochenmaske.py am 29.08.2026 vollstaendig gruen wurde und wieder
-# beide Gruppen seinen Rueckgabewert bestimmen. Die Liste bleibt stehen: Der naechste
-# Pruefstand, der VOR seinem Umbau angelegt wird, gehoert genau hier hinein.
+# Am 29.08.2026 mit pruefstand-rezepttexte.py wieder besetzt: Er kennt eine GRUNDLINIE des
+# Bestands, die sich als OFFEN meldet und den Rueckgabewert NICHT bestimmt. Nur neue Befunde
+# sind REGRESSION. "Gruen" heisst dort also wirklich nur "nichts dazugekommen".
 TEILWEISE = {
+    "pruefstand-rezepttexte.py":
+        "OFFEN ist der Katalog-Bestand vom 29.08.2026 (Grundlinie im Skript). "
+        "Rot wird er nur bei einem NEUEN Rezept mit fehlender Zutat oder ohne Nummerierung.",
 }
 
 # Braucht ein Argument oder einen besonderen Aufbau - nicht fuer den Reihenlauf geeignet.

@@ -61,6 +61,23 @@ def _lies(basis, pfad):
     return io.open(voll, encoding="utf-8").read()
 
 
+def _mit_umbruch(text):
+    u"""Sorgt dafuer, dass der eingebaute Inhalt auf einer eigenen Zeile endet.
+
+    WARUM DAS NOETIG IST (29.08.2026): Endet eine Datei ohne Zeilenumbruch, klebt das
+    schliessende `</script>` an ihrer letzten Zeile - aus `  ];` wird `  ];</script>`.
+    Die Ausschneide-Pruefstaende schneiden zeilenweise mit `startswith("  ];")`, ziehen das
+    `</script>` dadurch in den ausgeschnittenen Code und beenden den Script-Block MITTEN in
+    ihrer eigenen Seite. Ergebnis: "Uncaught SyntaxError", kein Protokoll, kein Ergebnis -
+    und die Ursache steht in einer Datei, die selbst syntaktisch tadellos ist.
+
+    Aufgefallen beim ersten Rezept, das ueber /rezeptcharge entstand: Ein fehlender Umbruch
+    am Ende von data/cookbook.js legte zwei Pruefstaende lahm. Siehe
+    docs/TROUBLESHOOTING.md 142.
+    """
+    return text if text.endswith("\n") else text + "\n"
+
+
 def _schuetze(js):
     u"""`</script` im Text wuerde den umgebenden Block beenden.
 
@@ -85,7 +102,7 @@ def lade_seite(index=None):
         href = m.group(1)
         if not _ist_eigen(href):
             return m.group(0)
-        return u"<style>/* eingebaut aus %s */\n%s</style>" % (href, _lies(basis, href))
+        return u"<style>/* eingebaut aus %s */\n%s</style>" % (href, _mit_umbruch(_lies(basis, href)))
 
     def script_ersetzen(m):
         vorn, src, hinten = m.group(1), m.group(2), m.group(3)
@@ -94,7 +111,7 @@ def lade_seite(index=None):
         attrs = (vorn + hinten).replace("\n", " ").strip()
         attrs = (" " + attrs) if attrs else ""
         return u"<script%s>/* eingebaut aus %s */\n%s</script>" % (
-            attrs, src, _schuetze(_lies(basis, src)))
+            attrs, src, _mit_umbruch(_schuetze(_lies(basis, src))))
 
     seite = _LINK.sub(link_ersetzen, seite)
     seite = _SCRIPT.sub(script_ersetzen, seite)
