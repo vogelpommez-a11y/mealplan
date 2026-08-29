@@ -149,8 +149,12 @@ def werte_fuer(zutat, eintrag):
     if einheit in ("st", "el", "tl"):
         # Naehrwert je Einheit. FOODS rechnet je 100 g, also ueber das Stueckgewicht.
         g = eintrag.get("je_stueck")
-        if einheit == "st" and eintrag["unit"] == "st":
-            f = 1.0                     # Eintrag ist bereits je Stueck (z. B. "Ei, Größe M")
+        if einheit == eintrag["unit"] and einheit in ("st", "el", "tl"):
+            # Eintrag ist bereits je Einheit erfasst - "Ei, Größe M" je Stueck, die
+            # getrockneten Gewuerze je Teeloeffel. Ohne diesen Zweig verlangte das Skript
+            # ein Stueckgewicht, das es bei einem Teeloeffel Salz nicht gibt, und meldete
+            # jede Gewuerz-Zutat als "nicht in FOODS" (29.08.2026).
+            f = 1.0
         elif g:
             f = g / 100.0
         else:

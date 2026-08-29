@@ -3728,10 +3728,41 @@
     const f = (u === "st" || u === "el" || u === "tl") ? nutNum(o.grams) : nutNum(o.grams) / 100;
     return { kcal: nutNum(o.kcal) * f, carbs: nutNum(o.carbs) * f, protein: nutNum(o.protein) * f, fat: nutNum(o.fat) * f };
   }
+  // Naehrwerte je Zutat nur dort, wo sie etwas aussagen.
+  //
+  // Eine Loeffelmenge Gewuerz traegt im Katalog zwischen 0 und 14 kcal bei - weniger als die
+  // Rundung des Rezepts selbst - und fuellt die Zeile mit "0 kcal · 0 KH 0 P 0 F". Das ist
+  // keine Information, sondern Rauschen an der Stelle, an der der Blick nach der Menge sucht.
+  //
+  // Die kcal-Grenze steht bewusst NEBEN der Einheit statt allein: Nach reinen Kalorien
+  // liesse sich nicht trennen, was zu trennen ist - 1 TL Vanilleextrakt und 100 g Gurke
+  // liegen beide bei 12 kcal. Und ein ESSloeffel Oel sind 90 kcal; die gehoeren sichtbar,
+  // auch wenn die Einheit dieselbe ist. Erst beides zusammen trifft die Gewuerze und nur sie.
+  const ING_NUT_MIN_KCAL = 15;
+  function ingShowsNut(i) {
+    const o = ingObj(i);
+    if (!ingHasNut(o) || !nutNum(o.grams)) return false;
+    const u = ingUnit(o);
+    if (u !== "el" && u !== "tl") return true;
+    return ingContrib(o).kcal >= ING_NUT_MIN_KCAL;
+  }
+  // Brueche statt Dezimalstellen bei Loeffelmengen: "½ TL" ist die Schreibweise, in der
+  // Rezepte dosiert werden - "0,5 TL" liest sich wie ein Messprotokoll.
+  //
+  // NUR Viertel und Halbe, und das ist keine Bequemlichkeit: ¼ ½ ¾ stehen in WinAnsi und
+  // ueberleben damit den PDF-Export der Einkaufsliste (WINANSI in lib/pdf.js). ⅓ und ⅔ tun
+  // das NICHT - sie wuerden dort als "?" landen, derselbe Fehler wie einst beim "×".
+  // Wer hier ein Zeichen ergaenzt, ergaenzt es auch dort.
+  const BRUCH = { 25: "¼", 50: "½", 75: "¾" };
+  function bruchLabel(n) {
+    const ganz = Math.floor(n), rest = BRUCH[Math.round((n - ganz) * 100)];
+    if (!rest) return null;              // krumme Menge (0,3 TL) bleibt dezimal
+    return ganz ? ganz + rest : rest;    // "1½", aber "½" statt "0½"
+  }
   // Menge lesbar machen: ab 1000 auf die grosse Einheit (2800 ml -> 2,8 L, 1500 g -> 1,5 kg).
   function qtyLabel(n, u) {
     if (u === "st") return numLabel(n) + "×"; // "35× Ei" liest sich besser als "35 Stück Ei"
-    if (u === "el" || u === "tl") return numLabel(n) + " " + unitShort(u);
+    if (u === "el" || u === "tl") return (bruchLabel(n) || numLabel(n)) + " " + unitShort(u);
     if (n >= 1000) return numLabel(Math.round(n / 10) / 100) + (u === "ml" ? " L" : " kg");
     return numLabel(n) + " " + u;
   }
@@ -7123,7 +7154,10 @@
       v.querySelector(".ing-view-qty").textContent = nutNum(o.grams) ? qtyLabel(nutNum(o.grams), ingUnit(o)) : "";
       v.querySelector(".ing-view-name").textContent = o.name;
       const kcalEl = v.querySelector(".ing-view-kcal"), macEl = v.querySelector(".ing-view-macros");
-      if (ingHasNut(o) && nutNum(o.grams)) {
+      // Dieselbe Entscheidung wie in roIngRowHtml() - bewusst ueber ingShowsNut() und nicht
+      // zweimal ausgeschrieben: Die beiden Ansichten zeigen dieselbe Zeile, und eine Regel
+      // an zwei Stellen laeuft auseinander, sobald sie sich einmal aendert.
+      if (ingShowsNut(o)) {
         const c = ingContrib(o);
         kcalEl.textContent = nfmt(c.kcal) + " kcal";
         macEl.innerHTML = macroLineHtml(c);
@@ -7337,7 +7371,7 @@
         acBox.innerHTML = acHits.map((f, n) =>
           `<li class="ing-ac-item" role="option" aria-selected="false" id="${acId}-${n}">` +
           `<span class="fname">${esc(f.name)}</span>` +
-          `<span class="fnut">${nfmt(f.kcal)} kcal · ${f.unit === "st" ? "je Stück" : "je 100 " + f.unit}</span></li>`).join("");
+          `<span class="fnut">${nfmt(f.kcal)} kcal ${ingPerLabel(f.unit)}</span></li>`).join("");
         acBox.hidden = false; acOpen = true;
         row.classList.add("ac-open");
         nameInp.setAttribute("aria-expanded", "true");
@@ -7616,7 +7650,7 @@
     const o = ingObj(i);
     const qty = nutNum(o.grams) ? qtyLabel(nutNum(o.grams), ingUnit(o)) : "";
     let kcalHtml = "", macHtml = "";
-    if (ingHasNut(o) && nutNum(o.grams)) {
+    if (ingShowsNut(o)) {
       const c = ingContrib(o);
       kcalHtml = `<span class="ing-view-kcal">${nfmt(c.kcal)} kcal</span>`;
       macHtml = `<span class="ing-view-macros">${macroLineHtml(c)}</span>`;
@@ -7976,13 +8010,13 @@
   // Wortmitte -- so schnappt "reis" nicht in "Preiselbeere", "eis" nicht in "Rindfleisch".
   // Erweitern: einfach Stichwoerter in die passende Liste eintragen (klein, ss statt ss/ß).
   const SHOP_CATS = [
-    { key: "gemuese", title: "Obst & Gemüse", icon: "🥬", kw: ["zwiebel","knoblauch","schalotte","paprika","tomate","tomaten","tomatenmark","karotte","möhre","moehre","zucchini","gurke","salat","rucola","spinat","brokkoli","blumenkohl","kartoffel","süsskartoffel","pilz","champignon","lauch","porree","sellerie","kohl","kürbis","kuerbis","aubergine","bohne","bohnen","erbse","erbsen","zuckerschote","zuckererbse","mais","avocado","ingwer","chili","kohlrabi","fenchel","spargel","radieschen","rettich","bete","kresse","apfel","äpfel","aepfel","banane","zitrone","limette","orange","clementine","mandarine","beere","beeren","himbeer","erdbeer","heidelbeer","blaubeer","brombeer","traube","trauben","birne","mango","pfirsich","nektarine","aprikose","ananas","melone","kiwi","pflaume","kirsche","feige","petersilie","basilikum","schnittlauch","koriander","minze"] },
+    { key: "gemuese", title: "Obst & Gemüse", icon: "🥬", kw: ["zwiebel","knoblauch","schalotte","paprika","tomate","tomaten","tomatenmark","karotte","möhre","moehre","zucchini","gurke","salat","rucola","spinat","brokkoli","blumenkohl","kartoffel","süsskartoffel","pilz","champignon","lauch","porree","sellerie","kohl","kürbis","kuerbis","aubergine","bohne","bohnen","erbse","erbsen","zuckerschote","zuckererbse","mais","avocado","ingwer","chili","kohlrabi","fenchel","spargel","radieschen","rettich","bete","kresse","apfel","äpfel","aepfel","banane","zitrone","limette","orange","clementine","mandarine","beere","beeren","himbeer","erdbeer","heidelbeer","blaubeer","brombeer","traube","trauben","birne","mango","pfirsich","nektarine","aprikose","ananas","melone","kiwi","pflaume","kirsche","feige","petersilie","basilikum","schnittlauch","koriander","minze","dill"] },
     { key: "fleisch", title: "Fleisch & Fisch", icon: "🥩", kw: ["hackfleisch","hack","fleisch","hähnchen","haehnchen","huhn","hühner","huehner","hühnchen","pute","puten","rind","schwein","kalb","lamm","schnitzel","gulasch","steak","filet","wurst","würstchen","wuerstchen","bratwurst","speck","schinken","salami","bacon","mett","hackbraten","frikadelle","bulette","geschnetzeltes","leberkäse","leberkaese","cabanossi","chorizo","lachs","thunfisch","garnele","garnelen","shrimp","scampi","fisch","forelle","kabeljau","dorsch","seelachs","hering","makrele","sardine","sardellen","muschel","surimi"] },
     { key: "milch", title: "Milchprodukte & Eier", icon: "🧀", kw: ["milch","butter","sahne","joghurt","jogurt","quark","käse","kaese","gouda","mozzarella","parmesan","feta","frischkäse","frischkaese","schmand","ei","eier","eiweiss","eigelb","margarine","buttermilch","mascarpone","ricotta","hüttenkäse","huettenkaese","emmentaler","cheddar","camembert","brie","whey","protein","casein","kasein"] },
     { key: "teig", title: "Teigwaren, Reis & Getreide", icon: "🍝", kw: ["nudel","nudeln","spaghetti","penne","fusilli","tagliatelle","makkaroni","lasagne","spätzle","spaetzle","gnocchi","tortellini","ravioli","farfalle","rigatoni","pasta","reis","basmati","risotto","couscous","bulgur","quinoa","polenta","griess","haferflocken","hafer","müsli","muesli","cornflakes","porridge"] },
-    { key: "backen", title: "Backen & Mehl", icon: "🧁", kw: ["mehl","zucker","puderzucker","vanillezucker","vanille","backpulver","hefe","kakao","schokolade","schoko","kuvertüre","kuvertuere","backaroma","speisestärke","speisestaerke","stärke","staerke","natron","marzipan","honig","sirup","nuss","nüsse","nuesse","mandel","mandeln","walnuss","haselnuss","erdnuss","cashew","pistazie","rosine","kokosraspel","gelatine"] },
-    { key: "vorrat", title: "Konserven & Vorrat", icon: "🥫", kw: ["dose","konserve","passierte","passata","kokosmilch","linsen","brühe","bruehe","fond","brühwürfel","bruehwuerfel","oliven","kapern","essiggurke","antipasti","instant","tütensuppe","tuetensuppe","suppe","backerbsen"] },
-    { key: "gewuerz", title: "Gewürze, Öle & Saucen", icon: "🧂", kw: ["salz","pfeffer","paprikapulver","curry","currypaste","kurkuma","kümmel","kuemmel","muskat","zimt","nelke","lorbeer","oregano","thymian","majoran","cayenne","essig","balsamico","öl","olivenöl","olivenoel","rapsöl","rapsoel","sonnenblumenöl","sesamöl","sesamoel","kokosöl","pflanzenöl","sojasauce","sojasosse","fischsauce","sauce","sosse","dressing","mayonnaise","mayo","ketchup","senf","pesto","tahini","brühpulver"] },
+    { key: "backen", title: "Backen & Mehl", icon: "🧁", kw: ["mehl","zucker","puderzucker","vanillezucker","vanille","backpulver","hefe","kakao","schokolade","schoko","kuvertüre","kuvertuere","backaroma","speisestärke","speisestaerke","stärke","staerke","natron","marzipan","honig","sirup","nuss","nüsse","nuesse","mandel","mandeln","walnuss","haselnuss","erdnuss","cashew","pistazie","rosine","kokosraspel","gelatine","sesam","leinsamen","chiasamen"] },
+    { key: "vorrat", title: "Konserven & Vorrat", icon: "🥫", kw: ["dose","konserve","passierte","passata","kokosmilch","linsen","brühe","bruehe","fond","brühwürfel","bruehwuerfel","oliven","kapern","essiggurke","antipasti","instant","tütensuppe","tuetensuppe","suppe","backerbsen","wein","weisswein","rotwein"] },
+    { key: "gewuerz", title: "Gewürze, Öle & Saucen", icon: "🧂", kw: ["salz","pfeffer","paprikapulver","curry","currypaste","kurkuma","kümmel","kuemmel","muskat","zimt","nelke","lorbeer","oregano","thymian","rosmarin","majoran","cayenne","essig","balsamico","öl","olivenöl","olivenoel","rapsöl","rapsoel","sonnenblumenöl","sesamöl","sesamoel","kokosöl","pflanzenöl","sojasauce","sojasosse","fischsauce","sauce","sosse","dressing","mayonnaise","mayo","ketchup","senf","pesto","tahini","brühpulver"] },
   ];
   const SHOP_OTHER = { key: "sonst", title: "Sonstiges", icon: "📦" };
   function shopCategory(label) {

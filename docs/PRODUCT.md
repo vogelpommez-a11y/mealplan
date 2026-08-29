@@ -568,7 +568,7 @@ Festgehalten als bekannte Grenze in `docs/SECURITY.md`, Abschnitt 6 — nicht ve
 
 ### 4. Künftige Pro-Rezepte kommen aus Firestore, nicht aus dem ausgelieferten Quelltext
 
-Die heutigen **35 Katalog-Rezepte** stehen als `const COOKBOOK` in `data/cookbook.js` und werden
+Die heutigen **36 Katalog-Rezepte** stehen als `const COOKBOOK` in `data/cookbook.js` und werden
 an jeden ausgeliefert. Das bleibt so: Sie sind der **Gratis-Grundstock** und müssen offline
 verfügbar sein.
 
@@ -658,8 +658,8 @@ angelegt, sie zu verstecken wäre Bevormundung. Vorschläge filtern, Eigenes nie
 
 ### Die 30 Rezepte (15.08.2026)
 
-Der Katalog ist vollständig: **35 Rezepte in allen sechs Kategorien** — 7 Frühstück,
-17 Hauptgerichte, 4 Snacks, 2 Desserts, 2 Beilagen, 3 Getränke. Die Aufteilung ist keine
+Der Katalog ist vollständig: **36 Rezepte in allen sechs Kategorien** — 7 Frühstück,
+18 Hauptgerichte, 4 Snacks, 2 Desserts, 2 Beilagen, 3 Getränke. Die Aufteilung ist keine
 Gleichverteilung, sondern folgt dem Wochenplan: Mittag und Abend sind vierzehn Slots pro Woche,
 Dessert und Getränk je einer.
 
@@ -678,22 +678,57 @@ macht den Snack-Slot eher besser.
 
 **Ausgerichtet auf Fitness und Meal-Prep, nicht auf Vielfalt um ihrer selbst willen:**
 
-* **21 von 35 sind zum Vorkochen geeignet** (`mealPrep`). Wer sonntags kocht, braucht Gerichte,
+* **21 von 36 sind zum Vorkochen geeignet** (`mealPrep`). Wer sonntags kocht, braucht Gerichte,
   die drei Tage im Kühlschrank überstehen — nicht Rührei.
-* **22 von 35 erreichen die Schwelle „Proteinreich"** (≥ 30 % der Kalorien aus Protein).
-* Die Portionen liegen zwischen 207 kcal (Getränk) und 680 kcal (Hauptgericht) — planbar gegen
+* **21 von 36 erreichen die Schwelle „Proteinreich"** (≥ 30 % der Kalorien aus Protein).
+* Die Portionen liegen zwischen 217 kcal (Getränk) und 724 kcal (Hauptgericht) — planbar gegen
   ein Tagesziel, ohne dass ein einzelnes Meal die Bilanz sprengt.
-* **15 von 35 sind vegan, 24 vegetarisch**, und zwar in **jeder** Kategorie. Der Katalog wird
+* **15 von 36 sind vegan, 25 vegetarisch**, und zwar in **jeder** Kategorie. Der Katalog wird
   nach dem Profil gefiltert; wer vegan gewählt hat, darf nicht vor einer halb leeren Ansicht
   stehen.
 
-**Jedes der 35 Rezepte hat ein eigenes Bild** (`img/library/`, zusammen rund 1,6 MB, je 40–65 KB
+**Jedes der 36 Rezepte hat ein eigenes Bild** (`img/library/`, zusammen rund 1,9 MB, je 40–65 KB
 im Format 2,4:1). Sie sind KI-generiert, in einem einzigen eingefrorenen Stil: dunkles
 Nussbaumholz, helles mattes Steingut, 45-Grad-Seitenansicht. Das ist der sichtbarste Unterschied
 zu vorher — der Katalog lief bis dahin auf allgemeinen Stichwortfotos, auf denen zwei
 verschiedene Gerichte dasselbe Bild trugen. Bei der Sichtprüfung fielen zwei durch und wurden neu
 gezogen: der Chia-Pudding (sachlich richtig grau) und der Eiweißshake (stand in einer Schüssel
 statt im Glas, weil die Kategorie „Snack" das Geschirr bestimmte).
+
+### Keine Zutat ohne Menge (29.08.2026)
+
+Bis zum 29.08.2026 trugen **32 der 35 Rezepte** eine Sammelzeile aus Freitext in der
+Zutatenliste: `"Backpulver, Salz"`, `"Kurkuma, Kreuzkümmel, Salz"`, `"Kräuter, Salz,
+Pfeffer"`. Ohne Menge, ohne Einheit, ohne Nährwert. Aufgefallen ist es beim Durchsehen der
+Protein-Pizza — ein Teelöffel Backpulver oder drei ist bei einem Quarkboden kein Detail.
+
+**Seitdem ist jeder Eintrag in `ingredients` ein Objekt mit `name` und `grams`.** Getrocknete
+Gewürze stehen je Teelöffel (`unit: "tl"`), frische Kräuter je 100 g. Sammelbegriffe sind
+aufgelöst: „Kräuter" ist keine Zutat, Rosmarin ist eine.
+
+Das war kein Schönheitsfehler an einer Stelle, sondern an dreien:
+
+* **Die Anleitung ließ raten.** Die bestehende Prüfung fragte „kommt die Zutat vor?", nie
+  „wie viel davon?". Deshalb nennt die Zubereitung jetzt bei allem in TL/EL die Menge im
+  Schritt — dort, wo man sie braucht. Bei 200 g Quark nicht: Die Zutatenliste steht in der
+  App unmittelbar darüber, und eine zweite Nennung liest sich wie ein Formular.
+* **Die Einkaufsliste war falsch.** `shoppingData()` schlüsselt mengenlose Zutaten über ihren
+  ganzen Text. `"Kurkuma, Kreuzkümmel, Salz"` wurde eine einzige Zeile mit genau diesem
+  Wortlaut und ließ sich mit `"Kurkuma, Salz, Pfeffer, Schnittlauch"` aus einem anderen
+  Rezept nicht zusammenlegen — wer beides plante, kaufte Kurkuma zweimal.
+* **Die Nährwerte rechneten daran vorbei.** `rezept-makros.py` überspringt Freitext
+  kommentarlos. Bei Salz stimmt das, bei 10 g Backkakao, einem Esslöffel Sojasoße oder
+  8 g Ingwer nicht — das Rote Linsen-Dal stand dadurch 30 kcal zu niedrig.
+
+**Drei Tags mussten dabei fallen oder umziehen**, weil sie auf den unvollständigen Makros
+beruhten: Der Edamame-Snack verliert `highprotein` (mit dem mitgerechneten Sesam sind es
+27,6 % statt 30 %) und trägt jetzt sichtbar „Fettreich"; der Thunfisch-Dip verliert `lowcarb`
+(15,9 % statt ≤ 15 %); das Blumenkohl-Curry hat statt eines gestrichenen Tags mehr Tofu
+bekommen (180 g statt 150 g, Kokosmilch 60 statt 80 ml) und bleibt „Proteinreich" — die
+Proteinquelle anzuheben ist in einem Fitness-Planer die richtige Richtung, ein Tag zu
+behalten, den die Zahlen nicht tragen, wäre es nicht.
+
+Durchgesetzt wird die Regel von `tools/pruefstand-rezepttexte.py`, **ohne Grundlinie**.
 
 ### Der erste Bestand kommt aus dem Katalog (15.08.2026)
 
@@ -768,7 +803,7 @@ hätte genau den überladenen Zustand wiederhergestellt, den B8 zwei Tage zuvor 
 Die Meal-Karte zeigt höchstens zwei gerechnete Badges („Proteinreich", „Low Carb", aus
 `macroBadges()`). Ein drittes für die Ernährungsform wurde geprüft und **verworfen**:
 
-* **Es hätte keine Trennschärfe.** 24 von 35 Rezepten sind vegetarisch, 15 vegan — ein Badge auf
+* **Es hätte keine Trennschärfe.** 25 von 36 Rezepten sind vegetarisch, 15 vegan — ein Badge auf
   drei Vierteln der Karten informiert nicht mehr, es wird Tapete. Badges leben von Seltenheit.
 * **Im Rezeptbuch wäre es meistens redundant.** Der Katalog ist beim Öffnen nach der
   Ernährungsform vorgefiltert; wer vegan gewählt hat, sieht zunächst ausschließlich vegane Meals.

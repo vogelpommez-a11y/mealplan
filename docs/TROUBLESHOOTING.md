@@ -5381,3 +5381,73 @@ durch — `ERGEBNIS 112 gruen`.
 **Die allgemeine Lehre:** Wer Dateien programmatisch schreibt, die später zusammengesetzt
 werden, beendet sie mit einem Zeilenumbruch. Und wer zeilenweise nach einer Endmarke
 schneidet, muss damit rechnen, dass an der Marke noch etwas klebt.
+
+---
+
+## 143. Die Zutat ohne Menge — und die drei Stellen, an denen sie schiefging
+
+**29.08.2026.** Beim Durchsehen der *Protein-Pizza mit Schinken* fiel auf, dass die
+Zutatenliste `"Backpulver, Salz"` und `"Oregano"` führt — **ohne jede Menge**. Wer danach
+kocht, rät. Bei einem Quarkboden ist ein Teelöffel Backpulver oder drei kein Detail.
+
+Es war kein Einzelfall: **32 der 35 Katalogrezepte** trugen mindestens eine solche
+Freitext-Sammelzeile. Der Grund ist historisch — `ingredients` erlaubt zwei Formen, ein
+Objekt mit Nährwerten und einen einfachen String, und der String war für Gewürze bequem.
+
+### Warum das mehr war als ein Schönheitsfehler
+
+Der Schaden lag an drei Stellen, und nur die erste war sichtbar:
+
+1. **Die Anleitung ließ raten.** `tools/pruefstand-rezepttexte.py` prüfte seit §141, ob eine
+   Zutat in der Zubereitung *vorkommt*. Die Frage „wie viel davon" hat nie jemand gestellt.
+2. **Die Einkaufsliste war falsch.** `shoppingData()` schlüsselt eine Zutat ohne Menge über
+   ihren **ganzen Text** (`ingLabel(i).toLowerCase().trim()`) — das ist für Altbestände
+   richtig gedacht, machte aber aus `"Kurkuma, Kreuzkümmel, Salz"` eine einzige Zeile mit
+   genau diesem Wortlaut. Sie ließ sich mit `"Kurkuma, Salz, Pfeffer, Schnittlauch"` aus
+   einem anderen Rezept **nicht** zusammenlegen. Wer beides plante, kaufte Kurkuma zweimal
+   und sah in der Liste zwei Zeilen, die keine Menge nannten.
+3. **Die Nährwerte rechneten daran vorbei.** `tools/rezept-makros.py` überspringt
+   Nicht-Objekte kommentarlos (`# Freitext traegt nichts bei`). Bei Salz stimmt das. Bei
+   8 g Ingwer, 5 g Knoblauch, 10 g Backkakao oder 15 ml Sojasoße nicht — das Rote Linsen-Dal
+   stand dadurch mit 636 statt 666 kcal im Katalog, und **jede** Prüfung war grün.
+
+Das ist das Muster aus §119 und §123 in neuer Form: Drei Werkzeuge waren einer Meinung, weil
+alle drei dieselbe Lücke hatten.
+
+### Die Falle beim Reparieren
+
+Die Gewürze mussten dafür in `FOODS`. Zwei Wege waren möglich, und der naheliegende ist
+falsch:
+
+* **Falsch:** dem Eintrag ein Stückgewicht (letztes Feld) geben, damit `rezept-makros.py`
+  von 100 g auf einen Teelöffel umrechnen kann. Das hebt den Eintrag über `pieceFoods()` in
+  den **Schnelleintrag des Wochenplans** — „1 Stück Salz" steht dann zur Auswahl.
+* **Richtig:** den Eintrag gleich **je Teelöffel** führen (`["Salz", 0, 0, 0, 0, "tl", …]`).
+  Die Rechenregel der App (`ingContrib`) nimmt bei `st`/`el`/`tl` den Nährwert direkt je
+  Einheit; ein Stückgewicht braucht es dann gar nicht.
+
+Dafür fehlte `rezept-makros.py` ein Zweig: Es kannte „Eintrag ist bereits je Stück"
+(`Ei, Größe M`), nicht „Eintrag ist bereits je Teelöffel" — und meldete jede Gewürz-Zutat als
+`LUECKE`. Ergänzt in `werte_fuer()`.
+
+Zwei kleinere Folgen fielen dabei mit an:
+
+* Die Zutaten-Autovervollständigung schrieb `je 100 tl` unter jeden neuen Eintrag; sie
+  benutzt jetzt `ingPerLabel()` wie der Rest der Oberfläche.
+* Vier der neuen Zutaten (Dill, Rosmarin, Sesam, Weißwein) fielen in der Einkaufsliste nach
+  „Sonstiges", weil sie in keiner `SHOP_CATS`-Stichwortliste standen.
+
+### Was jetzt gilt
+
+**Keine Zutat ohne Menge.** Jeder Eintrag in `ingredients` ist ein Objekt mit `name` und
+`grams` (`data/CLAUDE.md`, Skill `/rezeptcharge` Schritt 1). Zutaten in `tl`/`el` nennen ihre
+Menge zusätzlich im Schritt. `sanitizeIng()` lässt Strings weiterhin durch — fremde Daten aus
+Sync und Import können sie tragen —, aber im Katalog sind sie ein Befund.
+
+Geprüft von `tools/pruefstand-rezepttexte.py`, **ohne Grundlinie**. Gegenprobe gegen den
+Stand davor: 162 Regressionen, dagegen keine gegen den neuen Stand.
+
+**Die Lehre:** Eine Prüfung, die „kommt X vor?" fragt, beantwortet nicht „wie viel X?" — und
+sie sieht auch nicht, dass zwei andere Werkzeuge an derselben Stelle vorbeirechnen. Wenn eine
+Datenform zwei zulässige Gestalten hat, ist die bequemere irgendwann die, an der alles
+vorbeiläuft.

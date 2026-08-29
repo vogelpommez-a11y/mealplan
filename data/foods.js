@@ -192,6 +192,39 @@
     ["Speisestärke", 350, 88, 0.3, 0.1, "g", "Stärke Maisstärke"], ["Vanillezucker", 380, 95, 0, 0],
     ["Pesto", 450, 5, 5, 45], ["Currypaste, rot", 100, 10, 3, 6],
     ["Barbecue-Soße", 170, 38, 1, 0.5, "g", "BBQ-Soße"],
+    // Gewuerze, Kraeuter, Backzutaten
+    // Die getrockneten Gewuerze stehen JE TEELOEFFEL, nicht je 100 g: So werden sie in der
+    // Kueche dosiert, und so stehen sie im Rezeptbuch. Die Rechenregel der App (ingContrib)
+    // nimmt bei den Einheiten st/el/tl den Naehrwert direkt je Einheit - eine Umrechnung
+    // ueber ein Stueckgewicht entfaellt damit. Frische Kraeuter und alles, was man abwiegt
+    // (Kakao, Sesam), stehen weiter je 100 g.
+    // KEIN Stueckgewicht (letztes Feld) bei Gewuerzen: Das wuerde sie in den Schnelleintrag
+    // des Wochenplans heben (pieceFoods), und "1 Stueck Salz" ist dort Unsinn.
+    ["Salz", 0, 0, 0, 0, "tl", "Meersalz Speisesalz Prise"],
+    ["Pfeffer, gemahlen", 6, 1.5, 0.2, 0.1, "tl", "schwarzer Pfeffer"],
+    ["Oregano, getrocknet", 3, 0.7, 0.1, 0.1, "tl"],
+    ["Thymian, getrocknet", 3, 0.6, 0.1, 0.1, "tl"],
+    ["Rosmarin, getrocknet", 4, 0.8, 0.1, 0.2, "tl"],
+    ["Zimt, gemahlen", 6, 2.1, 0.1, 0.1, "tl"],
+    ["Kurkuma, gemahlen", 9, 2, 0.3, 0.1, "tl", "Gelbwurz"],
+    ["Kreuzkümmel, gemahlen", 8, 0.9, 0.4, 0.5, "tl", "Cumin Kumin"],
+    ["Paprikapulver", 6, 1.3, 0.3, 0.3, "tl", "Paprika edelsüß"],
+    ["Currypulver", 7, 1.2, 0.3, 0.3, "tl", "Curry"],
+    ["Chiliflocken", 6, 1.1, 0.2, 0.3, "tl", "Chili getrocknet Pepperoni"],
+    ["Muskat, gemahlen", 12, 1.1, 0.1, 0.8, "tl", "Muskatnuss"],
+    ["Backpulver", 4, 2.3, 0, 0, "tl"],
+    ["Vanilleextrakt", 12, 0.5, 0, 0, "tl", "Vanille Vanilleschote"],
+    ["Schnittlauch", 30, 1.9, 3.3, 0.7, "g", "Kräuter"],
+    ["Petersilie", 36, 3, 3, 0.8, "g", "Kräuter"],
+    ["Dill", 43, 3, 3.5, 1.1, "g", "Kräuter"],
+    ["Backkakao", 350, 11, 20, 21, "g", "Kakaopulver entölt"],
+    ["Sesam", 573, 12, 18, 50, "g", "Sesamsamen"],
+    ["Limette", 30, 3, 0.7, 0.2, "g", "Limetten"],
+    ["Zitronensaft", 22, 6, 0.4, 0.2, "ml", "Saft"],
+    ["Limettensaft", 25, 8, 0.4, 0.2, "ml", "Saft"],
+    ["Sojasoße, glutenfrei", 60, 5, 8, 0, "ml", "Tamari"],
+    ["Risottoreis, roh", 350, 77, 7, 0.9, "g", "Arborio Carnaroli Rundkornreis"],
+    ["Eiswürfel", 0, 0, 0, 0, "g", "Eis Wasser"],
     // Getränke
     ["Orangensaft", 45, 10, 0.7, 0.1, "ml"], ["Apfelsaft", 46, 11, 0.1, 0.1, "ml"],
     ["Cola", 42, 10.6, 0, 0, "ml"], ["Bier", 43, 3.6, 0.5, 0, "ml"],

@@ -175,7 +175,7 @@ ohne die Entscheidung zu kennen:
   Netz abhängig machen — gegen die Offline-Zusage und gegen eine Store-Anforderung. Wer die
   Lücke nutzt, braucht Entwicklerwerkzeuge; fremde Daten sind nie betroffen, der Schaden
   ist entgangener Umsatz. Begründung: `docs/PRODUCT.md`, „Wie Pro verkauft wird".
-- **Die 35 Katalog-Rezepte in `data/cookbook.js` sind für jeden lesbar.** Sie sind der
+- **Die 36 Katalog-Rezepte in `data/cookbook.js` sind für jeden lesbar.** Sie sind der
   Gratis-Grundstock, das ist gewollt. Künftige **Pro**-Rezepte kommen dagegen aus Firestore
   hinter `hasPro()` — sonst wären sie ab Veröffentlichung im Quelltext öffentlich.
 

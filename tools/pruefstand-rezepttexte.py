@@ -14,12 +14,26 @@ tools/alle-pruefstaende.py sammelt per glob("tools/pruefstand-*.py") ein und bew
 Rueckgabewert. Die Registrierung in der Suite passiert dadurch von selbst.
 
 WAS ER PRUEFT
+  * Jede Zutat traegt eine Menge (`grams`), kein Freitext       -> REGRESSION, ohne Grundlinie
+  * Zutaten in TL/EL nennen ihre Menge auch in `steps`          -> REGRESSION, ohne Grundlinie
   * Jede Zutat aus `ingredients` kommt in `steps` vor           -> REGRESSION
-  * `steps` ist nummeriert ("1. ", "2. " ...)                   -> REGRESSION, nur neue Rezepte
+  * `steps` ist nummeriert ("1. ", "2. " ...)                   -> REGRESSION, ohne Grundlinie
   * `steps` ist nicht leer                                      -> REGRESSION
   * `img` verweist auf eine Datei in img/library/               -> REGRESSION
   * `id` ist eindeutig                                          -> REGRESSION
   * Ernaehrungsform-Tags passen zu den Zutaten                  -> REGRESSION, ohne Grundlinie
+
+DIE MENGENPRUEFUNG - was sie deckt und was nicht
+Am 29.08.2026 fiel an der "Protein-Pizza mit Schinken" auf, dass Backpulver, Salz und
+Oregano als Freitext-String ohne jede Menge in der Zutatenliste standen. Wer danach kocht,
+raet. Der Katalog trug diese Form 32-mal. Seitdem gilt: keine Zutat ohne `grams`.
+
+GEMESSEN wird davon zweierlei: dass ueberhaupt eine Menge dasteht, und dass Zutaten in
+TL/EL ihre Menge auch im Schritt nennen ("1 TL Backpulver unterruehren"). Der Schreibstandard
+verlangt darueber hinaus die Menge bei allem, was man nicht sehen kann - Oel, Suesse, Kakao.
+Das steht hier bewusst NICHT drin: Bei einer Zutat in Gramm ist "10 g Backkakao" richtig und
+"Kakao" je nach Rezept auch, und eine Pruefung, die beides nicht unterscheiden kann, meldet
+Rauschen. TL und EL sind der harte Kern - dort ist die Menge nirgends sonst ablesbar.
 
 NICHT GEPRUEFT WIRD DIE ZUTATENREIHENFOLGE, obwohl sie die eine unumstoessliche Regel des
 professionellen Rezeptlektorats ist ("all ingredients must be listed, always, in the order
@@ -30,13 +44,13 @@ jede Reihenfolge. Eine Pruefung, die bei 71 Prozent anschlaegt, wird ueberlesen,
 ueberlesene Pruefung ist schlechter als keine. Die Regel steht deshalb im Schreibstandard
 (data/CLAUDE.md) und wird beim Schreiben durchgesetzt, nicht hier.
 
-DIE GRUNDLINIE - warum es sie gibt
-Ein Pruefstand, der ab Tag eins rot ist, blockiert die Suite und wird abgeschaltet. Der
-Bestand vom 29.08.2026 steht deshalb als GRUNDLINIE unten und meldet sich als OFFEN
-(Rueckgabewert 0). REGRESSION ist alles andere: ein neues Rezept mit fehlender Zutat, ein
-neues Rezept ohne Nummerierung, ein bestehendes Rezept, dessen Fehlerliste WAECHST.
-Verschwindet ein Fall, meldet sich das als BEHOBEN mit der Bitte, die Zeile zu streichen -
-sonst verrottet die Grundlinie still und schaltet die Pruefung unbemerkt ab.
+DIE GRUNDLINIE - warum sie leer ist
+Ein Pruefstand, der ab Tag eins rot ist, blockiert die Suite und wird abgeschaltet. Deshalb
+stand der Altbestand vom 29.08.2026 zunaechst als GRUNDLINIE unten und meldete sich als
+OFFEN. Am selben Tag wurde er vollstaendig nachgezogen, die Liste ist seitdem LEER und
+bleibt es: Jeder Treffer ist ein Befund. Die Mechanik dahinter bleibt erhalten (BEHOBEN
+erinnert daran, eine erledigte Zeile zu streichen), damit eine kuenftige, bewusst
+befristete Grundlinie nicht still verrottet.
 
 Aufrufe:
     python tools/pruefstand-rezepttexte.py
@@ -51,53 +65,23 @@ import sys
 WURZEL = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 # ------------------------------------------------------------------------------------------
-# GRUNDLINIE, Stand 29.08.2026 - der Bestand, BEVOR der Zubereitungs-Standard galt.
+# GRUNDLINIE - leer, und das ist Absicht.
 #
-# Jede Zeile ist eine Zutat, die in der Anleitung ihres Rezepts nicht vorkommt. Ein Teil
-# davon ist echt (Knoblauch fehlt in der Bolognese wirklich), ein Teil ist Nachsicht, die
-# der Aufloeser unten nicht leisten kann. Beurteilt und korrigiert wird das in der
-# Bestands-Nacharbeit, nicht hier - siehe docs/TROUBLESHOOTING.md 141.
+# Bis zum 29.08.2026 standen hier 18 Rezepte mit Zutaten, die in ihrer Anleitung nicht
+# vorkamen - der Bestand, BEVOR der Zubereitungs-Standard galt. Am selben Tag wurde der
+# ganze Katalog nachgezogen: jede Zutat als Objekt mit Menge, jede Anleitung nummeriert,
+# jede Zutat in den Schritten. Seitdem ist jeder Treffer ein Befund.
 #
-# WER EINEN FALL KORRIGIERT, STREICHT SEINE ZEILE. Der Pruefstand erinnert daran (BEHOBEN).
+# LEER LASSEN. Wer hier eine Zeile eintraegt, schaltet die Pruefung fuer dieses Rezept
+# dauerhaft ab, und niemand sieht es je wieder (CLAUDE.md 18b: "Falsch ist, eine Kennung
+# einzutragen, damit Ruhe ist"). Ein Rezept, das die Pruefung nicht besteht, wird
+# korrigiert - nicht eingetragen.
 # ------------------------------------------------------------------------------------------
-GRUNDLINIE = {
-    "haehnchen-bowl-brokkoli": ["Sesamöl"],
-    "ofen-feta-kichererbsen": ["Salz", "Pfeffer"],
-    "tofu-gemuesepfanne": ["Paprika", "Zuckerschoten"],
-    "haehnchen-zucchini-feta": ["Olivenöl"],
-    "protein-pancakes-skyr": ["Vanille", "Prise Salz"],
-    "tofu-ruehrei-vollkornbrot": ["Schnittlauch"],
-    "ofenlachs-suesskartoffel": ["Salz", "Pfeffer"],
-    "putenpfanne-vollkornnudeln": ["Putenbrustfilet", "Olivenöl"],
-    "chili-rinderhack-bohnen": ["Rinderhackfleisch, mager", "Rapsöl"],
-    "linsen-bolognese-vollkorn": ["Knoblauch", "Oregano", "Salz", "Pfeffer"],
-    "haehnchen-brokkoli-auflauf": ["Gouda, mittelalt"],
-    "kichererbsen-curry-spinat": ["Salz"],
-    "thunfisch-quark-dip": ["Dill"],
-    "schoko-protein-quark": ["Zartbitterschokolade 70 %", "Süße nach Geschmack"],
-    "ofengemuese-blech": ["Zucchini", "Paprika, rot", "Karotten", "Salz", "Pfeffer"],
-    "quinoa-salat-kichererbsen": ["Petersilie"],
-    "beeren-protein-shake-hafer": ["Hafermilch, ungesüßt", "Erbsenprotein-Pulver", "Leinsamen"],
-    "gruener-smoothie-spinat": ["Chiasamen"],
-}
+GRUNDLINIE = {}
 
-# Rezepte, deren Anleitung noch Fliesstext ist. Nur fuer sie ist die fehlende Nummerierung
-# kein Befund. Ein NEUES Rezept steht hier nicht drin und muss deshalb nummeriert sein.
-# Auch diese Liste schrumpft mit der Nacharbeit auf null.
-UNNUMMERIERT_ALT = {
-    "overnight-oats-soja-beeren", "rührei-avocadobrot", "rotes-linsen-dal",
-    "haehnchen-bowl-brokkoli", "ofen-feta-kichererbsen", "tofu-gemuesepfanne",
-    "haehnchen-zucchini-feta", "blumenkohl-curry-tofu", "skyr-beeren-nuesse",
-    "quark-haferflocken-banane", "protein-pancakes-skyr", "tofu-ruehrei-vollkornbrot",
-    "chia-pudding-soja-beeren", "ofenlachs-suesskartoffel", "putenpfanne-vollkornnudeln",
-    "chili-rinderhack-bohnen", "linsen-bolognese-vollkorn", "haehnchen-brokkoli-auflauf",
-    "garnelen-zucchini-tomaten", "kichererbsen-curry-spinat", "quinoa-bowl-edamame",
-    "huettenkaese-vollkornbrot", "edamame-sesam-snack", "thunfisch-quark-dip",
-    "schoko-protein-quark", "dattel-nuss-bissen", "ofengemuese-blech",
-    "quinoa-salat-kichererbsen", "beeren-protein-shake-hafer", "gruener-smoothie-spinat",
-    "protein-porridge-mit-beeren", "haehnchen-mit-pute-und-reis",
-    "rindersteak-mit-ofenkartoffeln", "eiweissshake-mit-whey-und-milch",
-}
+# Rezepte, deren Anleitung noch Fliesstext war. Ebenfalls leer seit dem 29.08.2026 - alle
+# 35 Anleitungen sind nummeriert. Auch diese Liste bleibt leer, aus demselben Grund.
+UNNUMMERIERT_ALT = set()
 
 # ------------------------------------------------------------------------------------------
 # Aufloeser: Wann gilt eine Zutat als erwaehnt?
@@ -235,27 +219,44 @@ def rezepte_lesen(pfad):
         rid = grenzen[k][1]
         block = arr[grenzen[k][0]:grenzen[k + 1][0]]
 
-        namen = []
+        # Zutaten als Saetze: name, menge, einheit. Freitext-Strings behalten ihre
+        # aufgeteilten Namen - sie sind seit dem 29.08.2026 ein Befund, muessen aber
+        # weiterhin gelesen werden koennen, um genau das melden zu koennen.
+        zutaten = []
         ing = re.search(r'ingredients:\s*\[(.*?)\n\s*\],', block, re.S)
         if ing:
             body = ing.group(1)
-            # Objekte und Freitext-Strings in der Reihenfolge, in der sie dastehen.
-            for m in re.finditer(r'\{\s*name: "([^"]+)"|^\s*"([^"]+)"\s*$', body, re.M):
-                if m.group(1):
-                    namen.append(m.group(1))
+            for m in re.finditer(r'\{([^{}]*)\}|^\s*"([^"]+)"\s*,?\s*$', body, re.M):
+                if m.group(1) is not None:
+                    feld = m.group(1)
+                    nm = re.search(r'name:\s*"([^"]+)"', feld)
+                    gr = re.search(r'grams:\s*([\d.]+)', feld)
+                    un = re.search(r'unit:\s*"([a-z]+)"', feld)
+                    if nm:
+                        zutaten.append({"name": nm.group(1),
+                                        "menge": float(gr.group(1)) if gr else None,
+                                        "einheit": un.group(1) if un else "g",
+                                        "freitext": False})
                 else:
                     for teil in m.group(2).split(","):
                         if teil.strip():
-                            namen.append(teil.strip())
+                            zutaten.append({"name": teil.strip(), "menge": None,
+                                            "einheit": None, "freitext": True})
+        namen = [z["name"] for z in zutaten]
 
         st = re.search(r'steps:\s*"((?:[^"\\]|\\.)*)"', block, re.S)
         steps = entpacke(st.group(1)) if st else ""
         im = re.search(r'img:\s*"([^"]+)"', block)
         tg = re.search(r'tags:\s*\[([^\]]*)\]', block)
         tags = re.findall(r'"([^"]+)"', tg.group(1)) if tg else []
-        out.append({"id": rid, "zutaten": namen, "steps": steps, "tags": tags,
-                    "img": im.group(1) if im else None})
+        out.append({"id": rid, "zutaten": namen, "eintraege": zutaten, "steps": steps,
+                    "tags": tags, "img": im.group(1) if im else None})
     return out
+
+
+def nummer(n):
+    """1.0 -> "1", 0.5 -> "0,5" - so, wie es in einer Meldung lesbar ist."""
+    return (str(int(n)) if float(n) == int(n) else str(n).replace(".", ",")) if n else "?"
 
 
 def kopf(zutat):
@@ -389,6 +390,31 @@ def position(zutat, steps):
     return min(treffer) if treffer else None
 
 
+# ------------------------------------------------------------------------------------------
+# MENGE IM SCHRITT
+#
+# Fuer Zutaten in TL/EL muss die Menge dort stehen, wo sie gebraucht wird. Gesucht wird die
+# Form "<Zahl> <Einheit> <Zutat>" - also "1 TL Backpulver", "1/2 TL Salz", "2 EL Sojasosse".
+# Zwischen Menge und Zutat duerfen ein paar Woerter stehen ("1 TL gemahlener Kreuzkuemmel"),
+# aber kein Satzende: Sonst deckte eine Menge am Anfang des Rezepts jede spaetere Zutat.
+BRUCH = r"(?:\d+[.,]?\d*|1/2|1/4|3/4|1/3|2/3|½|¼|¾|⅓|⅔)"
+EINHEIT_IM_TEXT = {"tl": r"TL|Teel[öo]ffel", "el": r"EL|Essl[öo]ffel"}
+
+
+def menge_im_schritt(zutat, steps):
+    """Steht die Menge dieser Zutat im Schritt? Nur fuer TL/EL - siehe Kopf."""
+    einheit = EINHEIT_IM_TEXT.get(zutat["einheit"])
+    if not einheit:
+        return True
+    h = kopf(zutat["name"])
+    # Der Kompositum-Rueckfall aus position() reicht hier nicht: Gesucht wird die Zutat
+    # unmittelbar hinter ihrer Menge, und dort steht sie ausgeschrieben. Ein kurzer Stamm
+    # genuegt trotzdem ("Kreuzkuemmel, gemahlen" -> "Kreuzkuemmel").
+    stamm = re.escape(h[:8] if len(h) > 8 else h)
+    muster = BRUCH + r"\s*(?:" + einheit + r")\b[^.\n]{0,30}?" + stamm
+    return re.search(muster, steps, re.I) is not None
+
+
 def pruefen(pfad):
     rezepte = rezepte_lesen(pfad)
     regression, offen, behoben = [], [], []
@@ -403,6 +429,21 @@ def pruefen(pfad):
         if not r["steps"].strip():
             regression.append(f'{rid}: keine Zubereitung')
             continue
+
+        # --- Jede Zutat traegt eine Menge ---
+        # Ohne Grundlinie: Der Bestand wurde am 29.08.2026 vollstaendig nachgezogen.
+        for z in r["eintraege"]:
+            if z["freitext"]:
+                regression.append(
+                    '%s: Zutat "%s" steht als Freitext ohne Menge - als Objekt mit '
+                    'grams/unit eintragen' % (rid, z["name"]))
+            elif not z["menge"]:
+                regression.append(
+                    '%s: Zutat "%s" hat keine Menge (grams)' % (rid, z["name"]))
+            elif not menge_im_schritt(z, r["steps"]):
+                regression.append(
+                    '%s: Menge von "%s" fehlt in der Anleitung - erwartet "%s %s ..."'
+                    % (rid, z["name"], nummer(z["menge"]), z["einheit"].upper()))
 
         # --- Zutaten gegen die Anleitung ---
         grund = set(GRUNDLINIE.get(rid, []))
@@ -490,7 +531,7 @@ def main():
     # erkennt, dass dieser Lauf ueberhaupt etwas gemessen hat (BELEG_MUSTER dort).
     # Ohne diese Zeile meldet der Reihenlauf "OHNE BELEG" statt gruen - genau die Falle
     # aus docs/TROUBLESHOOTING.md 131.
-    print("ERGEBNIS keine Regression (%d offen aus dem Bestand)" % len(offen))
+    print("ERGEBNIS keine Befunde (%d offen aus einer Grundlinie)" % len(offen))
     return 0
 
 

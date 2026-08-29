@@ -55,6 +55,32 @@ Gießteig-Familie (Quark zu Mehl 4,55) und mit „verstreichen“ statt „ausro
 **Ein Rezept, das in keiner belegten Familie steht, wird entfernt, nicht repariert** —
 eine Reparatur am Einzelfall lässt die Regel weich aussehen.
 
+## Und der dritte Fall: eine Zutat ohne Menge
+
+Am 29.08.2026 fiel beim Durchsehen der **Protein-Pizza mit Schinken** auf, dass die
+Zutatenliste `"Backpulver, Salz"` und `"Oregano"` führt — **ohne jede Menge**. Wer danach
+kocht, rät. Ein Teelöffel Backpulver oder drei ist bei einem Quarkboden kein Detail.
+
+Der Katalog trug diese Form 32-mal: Gewürze standen als Freitext-Sammelstring in der
+Zutatenliste, ohne Menge, ohne Einheit, ohne Nährwert.
+
+**Das hing an drei Stellen gleichzeitig schief:**
+
+* **Die Anleitung war unvollständig.** Die Prüfung „jede Zutat kommt vor" war erfüllt; die
+  Frage „wie viel davon" hat nie jemand gestellt.
+* **Die Einkaufsliste war falsch.** `shoppingData()` schlüsselt mengenlose Zutaten über
+  ihren ganzen Text — aus `"Kurkuma, Kreuzkümmel, Salz"` wurde **eine** Zeile mit genau
+  diesem Wortlaut, und die ließ sich mit `"Kurkuma, Salz, Pfeffer, Schnittlauch"` aus einem
+  anderen Rezept nicht zusammenlegen. Wer beides plante, kaufte Kurkuma zweimal.
+* **Die Nährwerte rechneten daran vorbei.** `rezept-makros.py` überspringt Nicht-Objekte
+  kommentarlos („Freitext trägt nichts bei"). Bei Salz stimmt das, bei 10 g Backkakao oder
+  einem Esslöffel Sojasoße nicht.
+
+**Die Regel, die daraus folgt:**
+
+> **Es gibt keine Zutat ohne Menge.** Jeder Eintrag in `ingredients` ist ein Objekt mit
+> `name` und `grams`. Freitext-Strings sind im Katalog nicht mehr zulässig.
+
 ---
 
 ## 1. Entwurf
@@ -69,12 +95,37 @@ Rezepte nach `data/cookbook.js`. Die Struktur:
   nutrition: { kcal: 636, carbs: 95, protein: 25, fat: 13 },
   ingredients: [
     { name: "Rote Linsen, roh", grams: 120, kcal: 340, carbs: 50, protein: 24, fat: 1.5 },
-    "Kurkuma, Kreuzkümmel, Salz"
+    { name: "Kurkuma, gemahlen", grams: 1, unit: "tl", kcal: 9, carbs: 2, protein: 0.3, fat: 0.1 }
   ],
   steps: "1. …\n2. …" },
 ```
 
-Vier Dinge, die hier leicht übersehen werden:
+### Jede Zutat trägt eine Menge
+
+**Ein Eintrag in `ingredients` ist immer ein Objekt.** Kein Freitext-String, keine
+Sammelzeile wie `"Kurkuma, Kreuzkümmel, Salz"` — auch nicht für Salz, auch nicht für eine
+Prise. `sanitizeIng()` lässt Strings weiterhin durch, weil fremde Daten aus Sync und Import
+sie tragen können; **im Katalog haben sie nichts zu suchen.**
+
+Die Einheit ist die, in der man das Zeug in der Küche dosiert:
+
+| Zutat | Einheit | Beispiel |
+|---|---|---|
+| Getrocknete Gewürze, Backpulver, Vanilleextrakt | `tl`, `el` | `grams: 1, unit: "tl"` |
+| Öl, Sojasoße, Zitronensaft, Brühe | `ml` | `grams: 10, unit: "ml"` |
+| Frische Kräuter, Knoblauch, Ingwer, Kakao, Sesam | `g` | `grams: 5` |
+| Ganze Stücke (Ei) | `st` | `grams: 2, unit: "st"` |
+
+Die getrockneten Gewürze stehen in `FOODS` **je Teelöffel**, nicht je 100 g — `ingContrib()`
+nimmt bei `st`/`el`/`tl` den Nährwert direkt je Einheit. Ein Stückgewicht tragen sie
+bewusst **nicht**: Das hübe sie in den Schnelleintrag des Wochenplans (`pieceFoods`), und
+„1 Stück Salz" ist dort Unsinn.
+
+**Sammelbegriffe werden aufgelöst.** `"Kräuter"` ist keine Zutat — Rosmarin ist eine.
+`"Süße nach Geschmack"` auch nicht: Entweder das Rezept braucht Honig, dann steht dort Honig
+mit einer Menge, oder es braucht ihn nicht.
+
+Vier weitere Dinge, die hier leicht übersehen werden:
 
 * **`id` ist unveränderlich.** Sie landet beim Übernehmen als `lib` an der Nutzerkopie und
   verbindet sie mit dem Original. Auch bei einer Namensänderung bleibt sie stehen.
@@ -227,23 +278,34 @@ Code-Änderung.
 1. **Nummerierte Schritte**: `"1. …\n2. …"`.
 2. **Ein Schritt, eine Handlung.** Nicht drei Verben in einem Satz. Beginnt mit dem Verb im
    Imperativ: *Mahlen, Verrühren, Anschwitzen, Backen.*
-3. **Jede Zutat kommt vor** — auch Gewürze, auch „Prise Salz". Ein Sammelwort darf sie
+3. **Jede Zutat kommt vor** — auch Gewürze, auch die Prise Salz. Ein Sammelwort darf sie
    decken („mit Kräutern würzen"), wenn es sie eindeutig meint.
-4. **Die Zutatenliste steht in der Reihenfolge ihrer Verwendung** (siehe Schritt 1).
-5. **Garpunkt sinnlich**, nie „bis fertig": *bis die Sauce bindet*, *bis die Ränder stocken*,
+4. **Kleine Mengen tragen ihre Menge im Schritt.** Alles, was in `tl` oder `el` gemessen
+   wird, dazu Öl, Süße und Kakao: „1 TL Backpulver unterrühren", nicht „Backpulver
+   unterrühren". Bei den großen Zutaten wird die Menge **nicht** wiederholt — die
+   Zutatenliste steht in der App unmittelbar über der Anleitung, und „200 g Magerquark mit
+   2 Eiern verrühren" liest sich wie ein Formular.
+   Die Grenze ist kein Geschmack: Bei 200 g Quark sieht man im Topf, ob es passt; bei einem
+   halben Teelöffel Salz sieht man gar nichts — und ein ganzer ist das Doppelte.
+   **Geschrieben wird der Bruch, nicht die Dezimalzahl** — `½ TL`, `¼ TL`, `¾ TL`. Genau so
+   setzt `qtyLabel()` die Menge in der Zutatenliste; zwei Schreibweisen für denselben Wert
+   waren der Anlass für die Umstellung. **Nur diese drei Zeichen**: ⅓ und ⅔ überleben den
+   PDF-Export der Einkaufsliste nicht (`docs/DESIGN.md`).
+5. **Die Zutatenliste steht in der Reihenfolge ihrer Verwendung** (siehe Schritt 1).
+6. **Garpunkt sinnlich**, nie „bis fertig": *bis die Sauce bindet*, *bis die Ränder stocken*,
    *bis die Linsen weich sind*.
    **Ausnahme bei Auslöser 1 (Sicherheit):** Dort ist ein Sinneseindruck zu wenig. Geflügel,
    Hackfleisch, Schwein und Fisch bekommen den **sicheren Garpunkt als Zahl** — Geflügel
    75 °C Kerntemperatur — **und** ein Zeichen, das ohne Thermometer funktioniert („kein
    rosa Fleisch mehr, der Saft tritt klar aus"). Beides, nicht eines von beiden: Die Zahl
    ist die Grenze, das Zeichen ist das, was die meisten tatsächlich benutzen.
-6. **Zeiten als Von-bis**: „10–15 Min.", nicht „12 Min." — Herde sind verschieden.
-7. **Geräte und Vorbereitung zuerst.** Ofen vorheizen, Blech auslegen, Mixer bereitstellen:
+7. **Zeiten als Von-bis**: „10–15 Min.", nicht „12 Min." — Herde sind verschieden.
+8. **Geräte und Vorbereitung zuerst.** Ofen vorheizen, Blech auslegen, Mixer bereitstellen:
    das ist Schritt 1.
-8. **Kein Vorwissen voraussetzen.** „Quinoa vor dem Kochen heiß abspülen" gehört hin, auch
+9. **Kein Vorwissen voraussetzen.** „Quinoa vor dem Kochen heiß abspülen" gehört hin, auch
    wenn es für Geübte selbstverständlich ist.
-9. **Markenstimme** (`CLAUDE.md` §6): freundlich, knapp, nicht belehrend.
-10. **Rezepte sind für eine Person gerechnet.** Keine Portionsangabe im Text — `portions`
+10. **Markenstimme** (`CLAUDE.md` §6): freundlich, knapp, nicht belehrend.
+11. **Rezepte sind für eine Person gerechnet.** Keine Portionsangabe im Text — `portions`
     wird von `sanitizeRecipe()` ohnehin entfernt, und eine Angabe könnte den Makros
     widersprechen.
 
@@ -286,8 +348,8 @@ verrühren und 5 Min. quellen lassen. Bei mittlerer Hitze kleine Pancakes backen
 und Beeren servieren."
 
 // nach dem Standard
-steps: "1. Haferflocken fein mahlen.\n2. Eiklar, Ei, Backpulver, Vanille und eine Prise Salz
-zugeben und zu einem dickflüssigen Teig verrühren.\n3. Teig 5 Min. quellen lassen.\n4. Pfanne
+steps: "1. Haferflocken fein mahlen.\n2. Eiklar, Ei, 1 TL Backpulver, 1 TL Vanilleextrakt
+und ½ TL Salz zugeben und zu einem dickflüssigen Teig verrühren.\n3. Teig 5 Min. quellen lassen.\n4. Pfanne
 bei mittlerer Hitze erhitzen und kleine Pancakes 2–3 Min. je Seite backen, bis die Ränder
 stocken – zu heiß und sie werden außen dunkel, bevor die Mitte fest ist.\n5. Mit Skyr und
 Heidelbeeren anrichten."
@@ -295,7 +357,8 @@ Heidelbeeren anrichten."
 
 **Zum Schluss dieses Schritts: die Zutatenliste von oben nach unten durchgehen und jede
 Zutat in der Anleitung zeigen.** Nicht überfliegen — zeigen. Genau hier ist der Fehler
-entstanden.
+entstanden. Bei allem in `tl`/`el` und bei Öl, Süße und Kakao muss dabei **die Menge**
+dastehen, nicht nur der Name.
 
 ## 5. Tags gegen die Badge-Schwellen
 
@@ -372,7 +435,7 @@ endgültigen Dateinamen geschlüsselt, verworfene Varianten stehen nicht darin.
 Impressum abgedeckt (`data/rechtstexte.js`, `IMPRESSUM_HTML_2`); der Nachweis je Bild steht
 im Protokoll. Das Werkzeug schlägt am Ende trotzdem eine `PHOTO_CREDITS`-Zeile vor — das ist
 ein Überbleibsel aus der Zeit vor dem Sammelhinweis. Nicht übernehmen, sonst steht ein
-einzelnes Bild in der Tabelle und 34 andere nicht.
+einzelnes Bild in der Tabelle und 35 andere nicht.
 
 `img` trägt den **Dateinamen**, nicht die `id`: Eine `id` darf einen Umlaut haben
 (`rührei-avocadobrot`), ein Dateiname nicht.

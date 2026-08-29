@@ -154,6 +154,37 @@ Fließtext ist von alldem ausgenommen: In ganzen Sätzen (z. B. der Onboarding-Z
 
 Eine vierte Form wird nicht erfunden. Passt ein neuer Ort in keine der drei, ist zuerst zu prüfen, ob er wirklich etwas anderes zeigt.
 
+#### Wann die Kompaktzeile ganz entfällt (29.08.2026)
+
+**Bei einer Zutat, die in TL oder EL dosiert wird und unter 15 kcal beiträgt, steht keine
+Nährwertzeile.** Ein halber Teelöffel Salz zeigte dort `0 kcal · 0 KH 0 P 0 F` — vier Zahlen,
+die nichts aussagen, an genau der Stelle, an der der Blick die Menge sucht.
+
+Die Entscheidung fällt in `ingShowsNut()`, **einmal** für beide Ansichten: die Leseansicht
+(`roIngRowHtml`) und den Ruhezustand einer Zeile im Meal-Editor (`paintIngView`). Die beiden
+zeigen dieselbe Zeile; eine Regel an zwei Stellen läuft auseinander, sobald sie sich ändert.
+
+Die Grenze steht bewusst **neben** der Einheit statt allein auf den Kalorien: Nach reinen
+Kalorien ließe sich nicht trennen, was zu trennen ist — 1 TL Vanilleextrakt und 100 g Gurke
+liegen beide bei 12 kcal. Und ein **Ess**löffel Öl sind 90 kcal; die gehören sichtbar, auch
+wenn die Einheit dieselbe ist. Erst beides zusammen trifft die Gewürze und nur sie.
+
+Das ist keine vierte Form, sondern das Weglassen der ersten. Die Menge und der Name bleiben.
+
+#### Mengen: Brüche bei Löffelmengen
+
+`qtyLabel()` schreibt Löffelmengen als Bruch — **½ TL**, nicht `0,5 TL`. So dosiert man in
+der Küche; die Dezimalform liest sich wie ein Messprotokoll und stand außerdem im
+Widerspruch zur Zubereitung, die „1/2 TL" sagt.
+
+**Nur ¼ ½ ¾, und das ist keine Bequemlichkeit:** Diese drei stehen in WinAnsi und überleben
+damit den PDF-Export der Einkaufsliste (`WINANSI` in `lib/pdf.js`). ⅓ und ⅔ tun das nicht —
+`pdfEsc()` ersetzt sie stumm durch `?`. Wer ein weiteres Bruchzeichen ergänzt, trägt es
+**dort ebenfalls** nach; `tools/pruefstand-mengenanzeige.py` fängt das Vergessen ab.
+
+Eine krumme Menge (0,3 TL) bleibt dezimal — ein Bruch wäre dort schlicht falsch. Gramm,
+Milliliter und Stück bleiben unverändert.
+
 ### Abschnittsüberschriften: `.sec-h`
 
 **Es gibt genau eine Abschnittsform in der App.** Sie steht als Klasse `.sec-h` an einer Stelle:

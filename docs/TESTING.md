@@ -311,7 +311,36 @@ welche Zeile im Produktionscode als Nächstes drankam. Zusätzlich `window.onerr
 `unhandledrejection` in die Seite hängen, sonst verschluckt ein `catch` im Produktionscode den
 Fehler und der Prüfstand liefert wortlos nichts.
 
-## 2b. Datenprüfstand mit Grundlinie — `pruefstand-rezepttexte.py`
+## 2a-2. Ausschneide-Prüfstand für reine Helfer — `pruefstand-mengenanzeige.py`
+
+Nicht jeder Ausschneide-Prüfstand muss die App starten. Geht es um **reine Funktionen**,
+genügt es, sie im Wortlaut aus `index.html` und `lib/pdf.js` zu schneiden und in einer
+leeren Seite aufzurufen — kein `state`, keine Stubs, kein Onboarding. `qtyLabel()`,
+`ingShowsNut()` und `pdfEsc()` sind solche Funktionen.
+
+Geschnitten wird über die **Klammerbilanz**, nicht über ein Regex bis zum Zeilenende. Und:
+**Eine nicht gefundene Funktion ist ein Befund, keine Ausnahme.** Ein Prüfstand, der eine
+fehlende Deklaration still überspringt, prüft danach nichts mehr und meldet trotzdem grün —
+dieselbe Falle wie die Deckungsprobe in `pruefstand-rezepttexte.py`.
+
+**Der eigentliche Grund für diesen Prüfstand ist der PDF-Export.** Die Brüche in der App
+sieht man sofort; `pdfEsc()` dagegen ersetzt jedes Zeichen außerhalb von WinAnsi stumm durch
+`?`, ohne Fehler und ohne Meldung. Die Einkaufslisten-PDF hätte „? TL Salz" gedruckt. Genau
+das ist dort schon einmal passiert, damals mit dem `×`. Deshalb prüft er beides zusammen —
+und mit einer Gegenprobe im Prüfstand selbst: `⅓` **muss** weiterhin als `?` durchfallen,
+sonst misst die Prüfung nur, dass `pdfEsc()` überhaupt etwas zurückgibt.
+
+### Gegenprobe (29.08.2026)
+
+Zwei Läufe. Der erste gegen den Stand vor der Änderung meldete lediglich „4 Bausteine nicht
+gefunden" — das beweist, dass die Funktionen neu sind, **nicht**, dass sie etwas tun. Der
+zweite ist der eigentliche Beleg: eine Kopie des neuen Stands, in der gezielt die
+Bruch-Zeile in `qtyLabel()` zurückgedreht und `½` aus `WINANSI` entfernt wurde. Ergebnis:
+genau 8 von 26 Prüfungen rot — die sieben Bruchfälle und der PDF-Fall für `½`, sonst keine.
+
+Eine Gegenprobe, die nur „Funktion fehlt" meldet, ist keine.
+
+## 2b. Datenprüfstand — `pruefstand-rezepttexte.py`
 
 Nicht jeder Prüfstand schneidet Code aus. `tools/pruefstand-rezepttexte.py` liest
 `data/cookbook.js` und rechnet — kein Browser, keine Stubs. Der `pruefstand-`-Präfix ist
@@ -321,6 +350,17 @@ ein und bewertet den Rückgabewert, die Registrierung passiert dadurch von selbs
 Er prüft, ob **jede Zutat aus `ingredients` in `steps` vorkommt**, ob die Anleitung
 nummeriert ist, ob `img` auf eine vorhandene Datei zeigt und ob `id` eindeutig ist.
 
+Seit dem 29.08.2026 außerdem die **Mengen**: Jede Zutat muss ein Objekt mit `grams` sein —
+ein Freitext-String (`"Oregano, Salz, Pfeffer"`) ist ein Befund. Und jede Zutat in `tl`/`el`
+muss ihre Menge auch in der Anleitung nennen, gesucht als `<Zahl> <Einheit> <Zutat>`
+(„1 TL Backpulver", „1/2 TL Salz").
+
+**Was diese Prüfung bewusst nicht deckt:** die Menge bei Zutaten in Gramm oder Millilitern.
+Der Schreibstandard verlangt sie dort, wo man sie nicht sehen kann — Öl, Süße, Kakao —, aber
+bei einer Gramm-Zutat ist sowohl „10 g Backkakao" richtig als auch „Kakao unterrühren", je
+nach Rezept. Eine Prüfung, die beides nicht unterscheiden kann, meldet Rauschen. TL und EL
+sind der harte Kern: Dort steht die Menge nirgends sonst.
+
 Seit dem 29.08.2026 zusätzlich: **passen die Ernährungsform-Tags zu den Zutaten?**
 `vegan`, `vegetarisch`, `glutenfrei` und `laktosefrei` waren bis dahin reine Behauptungen —
 `macroBadges()` deckt nur `highprotein` und `lowcarb` ab. Aufgefallen im zweiten Testlauf von
@@ -329,6 +369,10 @@ alle Prüfungen blieben grün. Diese Prüfung braucht **keine Grundlinie** — d
 sauber, jeder Treffer ist ein Befund.
 
 ### Die Grundlinie — wie ein Prüfstand eingeführt wird, der von Anfang an Befunde hat
+
+**Sie ist seit dem 29.08.2026 leer.** Der Mechanismus bleibt trotzdem beschrieben: Er ist die
+Antwort auf eine wiederkehrende Lage, und der nächste Prüfstand dieser Art wird sie wieder
+brauchen.
 
 Beim Bau meldete er 18 von 34 Rezepten. Ein Prüfstand, der ab Tag eins rot ist, blockiert
 die Suite und wird abgeschaltet — der Befund wäre damit teurer als sein Nutzen. Die Lösung
@@ -347,6 +391,13 @@ Kennung in `docs/ABDECKUNG.md`, die nur eingetragen wird, damit Ruhe ist.
 
 „Grün" heißt hier **keine Regression**, nicht „fehlerfrei".
 
+**Am selben Tag wurde der Bestand vollständig nachgearbeitet** — alle 35 Rezepte auf Zutaten
+mit Menge und nummerierte Anleitungen umgestellt. Damit sind `GRUNDLINIE` und
+`UNNUMMERIERT_ALT` leer, „grün" heißt bei diesem Prüfstand wieder „keine Befunde", und der
+Eintrag in `TEILWEISE` von `tools/alle-pruefstaende.py` ist entfallen. Wer dort oder in einer
+Grundlinie wieder etwas einträgt, schaltet die Prüfung für diesen Fall dauerhaft ab — das
+gehört begründet und wieder entfernt, sobald der Umbau durch ist.
+
 ### Gegenprobe
 
 ```powershell
@@ -360,6 +411,11 @@ Zwei Läufe, sonst zählt das Ergebnis nicht — durchgeführt am 29.08.2026:
    Schritte nicht nummeriert sind → meldete beide Punkte als `REGRESSION`, Rückgabewert 1.
 2. Testfassung, in der `protein-pancakes-skyr` korrigiert und nummeriert ist → meldete
    dreimal `BEHOBEN`, Rückgabewert 0.
+
+Für die Mengenprüfung am selben Tag noch einmal, gegen den Stand vor der Umstellung:
+`python tools/pruefstand-rezepttexte.py alt.js` meldete **162 Regressionen** (32 Rezepte mit
+Freitext-Zutaten, dazu die fehlenden Nummerierungen), derselbe Lauf gegen den neuen Stand
+**keine**. Ohne diesen Gegenlauf wäre nicht belegt, dass die Prüfung überhaupt greift.
 
 ### Was der Auflöser leisten muss — und wo seine Grenze liegt
 

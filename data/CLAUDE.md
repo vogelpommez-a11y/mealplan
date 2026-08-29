@@ -61,6 +61,14 @@ meldet in aller Regel nicht „kaputt", sondern „nichts gefunden".
 > **Eine Zubereitung ist eine Anleitung für jemanden, der nicht kochen kann.**
 > Nicht die Erinnerungsstütze für jemanden, der das Gericht schon kennt.
 
+**Keine Zutat ohne Menge.** Jeder Eintrag in `ingredients` ist ein Objekt mit `name` und
+`grams` — auch Salz, auch Backpulver, auch eine Prise. Freitext-Strings (`"Oregano, Salz,
+Pfeffer"`) sind im Katalog nicht mehr zulässig: Sie tragen keine Menge, fallen aus
+`rezept-makros.py` heraus („Freitext trägt nichts bei") und erzeugen in der Einkaufsliste
+eine Zeile, die sich mit keiner anderen zusammenlegen lässt. Getrocknete Gewürze stehen in
+`FOODS` je Teelöffel (`grams: 1, unit: "tl"`), frische Kräuter je 100 g. Sammelbegriffe
+werden aufgelöst — „Kräuter" ist keine Zutat, Rosmarin ist eine.
+
 `steps` ist ein String; Schritte werden mit `\n` getrennt und nummeriert. Die Darstellung
 trägt das bereits (`.detail .steps { white-space: pre-wrap }`) — es braucht keine
 Code-Änderung.
@@ -69,14 +77,18 @@ Code-Änderung.
 2. **Ein Schritt, eine Handlung.** Beginnt mit dem Verb im Imperativ.
 3. **Jede Zutat kommt vor** — auch Gewürze, auch „Prise Salz". Ein Sammelwort darf sie
    decken („mit Kräutern würzen"), wenn es sie eindeutig meint.
-4. **Die Zutatenliste steht in der Reihenfolge ihrer Verwendung.**
-5. **Garpunkt sinnlich**, nie „bis fertig": *bis die Sauce bindet*, *bis die Ränder stocken*.
-6. **Zeiten als Von-bis**: „10–15 Min." — Herde sind verschieden.
-7. **Geräte und Vorbereitung zuerst.** Ofen vorheizen ist Schritt 1.
-8. **Kein Vorwissen voraussetzen.**
-9. **Markenstimme** (`CLAUDE.md` §6): freundlich, knapp, nicht belehrend.
-10. **Rezepte sind für eine Person gerechnet.** Keine Portionsangabe im Text.
-11. **Es klingt wie ein Kochbuch, nicht wie ein Sprachmodell.** Keine gleichlangen Schritte,
+4. **Kleine Mengen tragen ihre Menge im Schritt** — alles in `tl`/`el`, dazu Öl, Süße und
+   Kakao: „1 TL Backpulver unterrühren". Bei großen Zutaten wird die Menge nicht wiederholt.
+   Als **Bruch**, wie `qtyLabel()` ihn setzt: `½ TL`, `¼ TL`, `¾ TL` — keine anderen Zeichen,
+   ⅓ und ⅔ überstehen den PDF-Export nicht.
+5. **Die Zutatenliste steht in der Reihenfolge ihrer Verwendung.**
+6. **Garpunkt sinnlich**, nie „bis fertig": *bis die Sauce bindet*, *bis die Ränder stocken*.
+7. **Zeiten als Von-bis**: „10–15 Min." — Herde sind verschieden.
+8. **Geräte und Vorbereitung zuerst.** Ofen vorheizen ist Schritt 1.
+9. **Kein Vorwissen voraussetzen.**
+10. **Markenstimme** (`CLAUDE.md` §6): freundlich, knapp, nicht belehrend.
+11. **Rezepte sind für eine Person gerechnet.** Keine Portionsangabe im Text.
+12. **Es klingt wie ein Kochbuch, nicht wie ein Sprachmodell.** Keine gleichlangen Schritte,
     keine Füllwörter am Schrittanfang (*Zunächst, Anschließend, Nun*), höchstens **ein**
     Erklärnachsatz pro Rezept, keine Dreierketten, keine werbenden Adjektive, keine
     Schlussformel. Der Text endet beim Anrichten.

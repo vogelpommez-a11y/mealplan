@@ -1355,7 +1355,7 @@ Ein **Katalog, kein Bestand.** Die kuratierten Meals liegen in der Konstanten `C
 **nicht** in `state.recipes`. Gezeigt werden sie im Meals-Reiter unter „Rezeptbuch"; erst beim
 Übernehmen entsteht eine Kopie im eigenen Konto.
 
-**Warum nicht der ganze Katalog direkt in die Sammlung:** 34 fremde Meals im eigenen Bestand
+**Warum nicht der ganze Katalog direkt in die Sammlung:** 36 fremde Meals im eigenen Bestand
 erdrücken die eigenen, kosten bei jedem Konto denselben Cloud-Speicher, und ein Veganer
 schleppt zwei Drittel mit, die er nie kocht. Der Katalog kostet nichts, bis jemand zugreift.
 
