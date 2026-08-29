@@ -449,6 +449,11 @@ Das ist die einzige Prüfung, die auch dann greift, wenn sie jemand vergisst.
 
 Wird ein Hook zum Hindernis, ist das ein Befund — melden, nicht umgehen.
 
+**Hooks nie relativ adressieren.** In `settings.json` gilt
+`python "$CLAUDE_PROJECT_DIR/.claude/hooks/…"`, im Skript wird die Projektwurzel aus
+`__file__` abgeleitet — sonst legt ein `cd` in einen Unterordner das Prüfsystem still oder,
+schlimmer, lässt es stumm durchlaufen (`docs/TROUBLESHOOTING.md` §140).
+
 ---
 
 # 18a. Wartung — das Prüfsystem prüft sich selbst

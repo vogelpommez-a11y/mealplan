@@ -6,7 +6,7 @@ Dieses Dokument enthält bekannte Fehlerquellen, historische Bugs und Probleme, 
 
 <!-- REGISTER-ANFANG (erzeugt aus den Ueberschriften, nicht von Hand pflegen) -->
 
-**Register — 137.** Chronologisch gewachsen: je hoeher die Nummer,
+**Register — 140.** Chronologisch gewachsen: je hoeher die Nummer,
 desto juenger der Fund. Wer eine Falle sucht, sucht hier zuerst; die Ueberschrift sagt
 jeweils, worum es geht. **Nicht die ganze Datei lesen** — sie ist rund 286 KB gross.
 
@@ -149,6 +149,9 @@ jeweils, worum es geht. **Nicht die ganze Datei lesen** — sie ist rund 286 KB 
 | 135 | Der Home-Screen-Verweis auf dem iPhone ist ein zweites Gerät |
 | 136 | Ein `let` am Rand eines Schnitts: geteilter Zustand bricht die Aufteilung |
 | 137 | Ein Cache in einer Fassade ist eine Kopie, kein Cache |
+| 138 | Ein neues Sync-Feld braucht drei Stellen — die dritte wirft es beim Push weg |
+| 139 | `const` auf Modulebene: die App startet nicht, der Syntax-Check sagt nichts |
+| 140 | Hooks mit relativem Pfad: ein `cd` legt das ganze Prüfsystem still |
 
 <!-- REGISTER-ENDE -->
 
@@ -5176,3 +5179,42 @@ App und meldete „kein JS-Fehler beim Start" als ersten von 34 Fehlschlägen. E
 der eine ganz andere Funktion misst, findet so etwas mit, ein gezielter nicht. Der
 Smoke-Test hätte es ebenso gezeigt — er war zu diesem Zeitpunkt schlicht noch nicht
 gelaufen. **Deshalb steht er in Abschnitt 21 von `CLAUDE.md` vor dem Commit, nicht danach.**
+
+---
+
+## 140. Hooks mit relativem Pfad: ein `cd` legt das ganze Prüfsystem still
+
+**Datum:** 29.08.2026 · **Symptom:** Jeder Bash- und PowerShell-Aufruf bricht ab mit
+`can't open file '…\plans\.claude\hooks\push-waechter.py': [Errno 2] No such file or
+directory`. Auslöser war ein harmloses `cd plans` in einem Suchbefehl.
+
+`.claude/settings.json` rief die fünf Hooks als `python .claude/hooks/<name>.py` auf —
+relativ zum Arbeitsverzeichnis der Shell. Das Arbeitsverzeichnis bleibt zwischen den
+Aufrufen bestehen. Ein einziges `cd` in einen Unterordner reicht also, und danach findet
+Python die Skripte nicht mehr. Weil der Hook **vor** dem Werkzeug läuft, ist ab diesem
+Moment keine Shell mehr benutzbar — auch nicht die, mit der man zurückwechseln würde.
+
+**Die gefährlichere Hälfte** war aber nicht der laute Abbruch, sondern das Stillbleiben:
+drei Skripte lasen ihre eigenen Pfade ebenfalls relativ und wären, einmal aus einem
+Unterordner gestartet, **fail-open** durchgelaufen.
+
+| Skript | Stelle | Was ohne Fix passiert wäre |
+|---|---|---|
+| `syntax-nach-edit.py` | `os.path.exists("syntax-check.py")` | Exit 0 ohne Prüfung — nach jedem Edit meldet niemand mehr einen Syntaxfehler |
+| `push-waechter.py` | `MARKER = .claude/.letzter-pushcheck` | Marker nicht gefunden → fragt bei **jedem** Push nach, auch beim geprüften Stand |
+| `wartung-erinnerung.py` | `os.path.exists("CLAUDE.md")`, `os.getcwd()/tools` | „nicht im Projektordner" → Wartung und Abdeckung melden nie wieder etwas |
+| `commit-waechter.py` | `git diff --cached` im Arbeitsverzeichnis | außerhalb des Repos `returncode != 0` → Exit 0, der Schutz vor `plans/` im Index entfällt |
+
+**Der Fix, zwei Ebenen — eine allein hätte nicht gereicht:**
+
+1. In `settings.json` steht jetzt `python "$CLAUDE_PROJECT_DIR/.claude/hooks/<name>.py"`.
+   Die Anführungszeichen sind Pflicht, der Projektpfad enthält ein Leerzeichen.
+2. Jedes Skript leitet seine Projektwurzel aus `os.path.abspath(__file__)` ab statt aus
+   dem Arbeitsverzeichnis, und `subprocess.run(...)` bekommt `cwd=WURZEL`. Damit prüft der
+   Hook auch dann das Richtige, wenn er aus einem beliebigen Ordner gestartet wird.
+
+**Die Lehre, die über die Hooks hinausgeht:** Ein Prüfer, der bei einer unerwarteten
+Umgebung *abbricht*, ist ein Ärgernis. Ein Prüfer, der dabei *still Exit 0* liefert, ist
+ein Schaden — er meldet „sauber", ohne gemessen zu haben (`CLAUDE.md` §18a). Wer ein
+Hook-Skript anfasst, prüft deshalb jeden `sys.exit(0)`-Zweig darauf, ob er eine Umgebung
+beschreibt oder einen Befund verschluckt.

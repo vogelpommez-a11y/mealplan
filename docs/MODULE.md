@@ -176,11 +176,11 @@ ausserhalb des Repositories und gehoeren nicht zu seinem Zustand.
 
 | Ereignis | Matcher | Kommando |
 |---|---|---|
-| PostToolUse | Edit|Write | `python .claude/hooks/syntax-nach-edit.py` |
-| PreToolUse | Bash|PowerShell | `python .claude/hooks/commit-waechter.py` |
-| PreToolUse | Bash|PowerShell | `python .claude/hooks/secrets-filter.py` |
-| PreToolUse | Bash|PowerShell | `python .claude/hooks/push-waechter.py` |
-| SessionStart | — | `python .claude/hooks/wartung-erinnerung.py` |
+| PostToolUse | Edit|Write | `python "$CLAUDE_PROJECT_DIR/.claude/hooks/syntax-nach-edit.py"` |
+| PreToolUse | Bash|PowerShell | `python "$CLAUDE_PROJECT_DIR/.claude/hooks/commit-waechter.py"` |
+| PreToolUse | Bash|PowerShell | `python "$CLAUDE_PROJECT_DIR/.claude/hooks/secrets-filter.py"` |
+| PreToolUse | Bash|PowerShell | `python "$CLAUDE_PROJECT_DIR/.claude/hooks/push-waechter.py"` |
+| SessionStart | — | `python "$CLAUDE_PROJECT_DIR/.claude/hooks/wartung-erinnerung.py"` |
 
 ## 7. Externe Dienste
 
@@ -291,16 +291,16 @@ _keine_
 | .claude/agents/ux-reviewer.md | 71 | 3776 |
 | .claude/agents/website-security.md | 195 | 10650 |
 | .claude/commands/pushcheck.md | 70 | 2657 |
-| .claude/hooks/commit-waechter.py | 162 | 7060 |
-| .claude/hooks/push-waechter.py | 92 | 2838 |
+| .claude/hooks/commit-waechter.py | 167 | 7332 |
+| .claude/hooks/push-waechter.py | 95 | 3107 |
 | .claude/hooks/secrets-filter.py | 93 | 3856 |
-| .claude/hooks/syntax-nach-edit.py | 94 | 3382 |
-| .claude/hooks/wartung-erinnerung.py | 142 | 5820 |
-| .claude/settings.json | 56 | 1406 |
+| .claude/hooks/syntax-nach-edit.py | 100 | 3777 |
+| .claude/hooks/wartung-erinnerung.py | 145 | 6088 |
+| .claude/settings.json | 56 | 1526 |
 | .gitattributes | 21 | 594 |
 | .github/workflows/pruefung.yml | 188 | 8066 |
 | .gitignore | 112 | 4896 |
-| CLAUDE.md | 668 | 27355 |
+| CLAUDE.md | 673 | 27671 |
 | CNAME | 1 | 21 |
 | FIREBASE-SETUP.md | 197 | 9363 |
 | LICENSE | 30 | 1364 |
@@ -327,7 +327,7 @@ _keine_
 | docs/SECURITY.md | 356 | 19197 |
 | docs/STORE.md | 246 | 11876 |
 | docs/TESTING.md | 3197 | 188724 |
-| docs/TROUBLESHOOTING.md | 5179 | 297576 |
+| docs/TROUBLESHOOTING.md | 5221 | 300417 |
 | docs/module-index.json | — | — (erzeugt) |
 | firestore.rules | 416 | 23714 |
 | icon-192.png | — | 45024 |

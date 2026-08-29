@@ -24,6 +24,11 @@ import os
 import subprocess
 import sys
 
+# Projektwurzel aus dem eigenen Ort ableiten, nicht aus dem Arbeitsverzeichnis:
+# sonst findet ein `cd` in einen Unterordner syntax-check.py nicht mehr - und der
+# Hook beendet sich still mit Exit 0, ohne dass jemand das Ausbleiben bemerkt.
+WURZEL = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 
 def main():
     try:
@@ -51,13 +56,14 @@ def main():
     else:
         sys.exit(0)
 
-    if not os.path.exists("syntax-check.py") or not os.path.exists(ziel):
+    pruefer = os.path.join(WURZEL, "syntax-check.py")
+    if not os.path.exists(pruefer) or not os.path.exists(os.path.join(WURZEL, ziel)):
         sys.exit(0)
 
     try:
         lauf = subprocess.run(
-            [sys.executable, "syntax-check.py", ziel],
-            capture_output=True, text=True, timeout=120,
+            [sys.executable, pruefer, ziel],
+            capture_output=True, text=True, timeout=120, cwd=WURZEL,
         )
     except Exception as e:
         print(json.dumps({
@@ -84,7 +90,7 @@ def main():
                 "irgendetwas anderes weitergeht."
             ),
         },
-        "systemMessage": "Syntax-Check rot - index.html hat einen Fehler.",
+        "systemMessage": "Syntax-Check rot - %s hat einen Fehler." % ziel,
     }))
     sys.exit(0)
 

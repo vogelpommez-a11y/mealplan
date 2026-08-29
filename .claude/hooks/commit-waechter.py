@@ -14,9 +14,14 @@ Aufruf: als PreToolUse-Hook auf Bash/PowerShell. Bekommt das Hook-JSON auf stdin
 Blockiert den Werkzeugaufruf ueber permissionDecision "deny".
 """
 import json
+import os
 import re
 import subprocess
 import sys
+
+# Projektwurzel aus dem eigenen Ort ableiten, nicht aus dem Arbeitsverzeichnis:
+# ein `cd` in einen Unterordner darf den Waechter weder brechen noch blind machen.
+WURZEL = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # Was niemals committet werden darf. Jeder Eintrag ist ein Praefix bzw. ein Dateiname,
 # geprueft gegen den Repo-relativen Pfad, den git ausgibt.
@@ -117,7 +122,7 @@ def main():
     try:
         roh = subprocess.run(
             ["git", "diff", "--cached", "--name-only"],
-            capture_output=True, text=True, timeout=15,
+            capture_output=True, text=True, timeout=15, cwd=WURZEL,
         )
     except Exception:
         sys.exit(0)  # git nicht erreichbar: der Hook darf die Arbeit nicht blockieren.

@@ -22,7 +22,10 @@ import re
 import subprocess
 import sys
 
-MARKER = os.path.join(".claude", ".letzter-pushcheck")
+# Projektwurzel aus dem eigenen Ort ableiten, nicht aus dem Arbeitsverzeichnis:
+# ein `cd` in einen Unterordner darf den Waechter weder brechen noch blind machen.
+WURZEL = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+MARKER = os.path.join(WURZEL, ".claude", ".letzter-pushcheck")
 
 
 def ist_push(befehl):
@@ -42,7 +45,7 @@ def main():
     try:
         head = subprocess.run(
             ["git", "rev-parse", "HEAD"],
-            capture_output=True, text=True, timeout=15,
+            capture_output=True, text=True, timeout=15, cwd=WURZEL,
         ).stdout.strip()
     except Exception:
         sys.exit(0)

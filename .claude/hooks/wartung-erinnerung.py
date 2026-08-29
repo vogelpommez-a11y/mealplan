@@ -30,7 +30,10 @@ import json
 import os
 import sys
 
-MARKER = os.path.join(".claude", ".letzte-wartung")
+# Projektwurzel aus dem eigenen Ort ableiten, nicht aus dem Arbeitsverzeichnis:
+# ein `cd` in einen Unterordner darf die Erinnerung nicht verstummen lassen.
+WURZEL = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+MARKER = os.path.join(WURZEL, ".claude", ".letzte-wartung")
 ABSTAND_TAGE = 30
 
 ABDECKUNG_TEXT = """EIN BEREICH OHNE PRUEFER
@@ -62,14 +65,14 @@ def main():
     except Exception:
         pass
 
-    if not os.path.exists("CLAUDE.md"):
+    if not os.path.exists(os.path.join(WURZEL, "CLAUDE.md")):
         sys.exit(0)  # Nicht im Projektordner - nichts zu melden.
 
     # Abdeckung zuerst erheben - sie ist unabhaengig vom Wartungsdatum und muss auch
     # dann gemeldet werden, wenn die Wartung frisch ist (unten wird frueh ausgestiegen).
     abdeckung = None
     try:
-        sys.path.insert(0, os.path.join(os.getcwd(), "tools"))
+        sys.path.insert(0, os.path.join(WURZEL, "tools"))
         import abdeckung as _abdeckung
         abdeckung = _abdeckung.kurzmeldung()
     except Exception:

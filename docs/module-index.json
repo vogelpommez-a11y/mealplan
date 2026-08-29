@@ -1082,14 +1082,14 @@
       "zeilen": 70
     },
     {
-      "bytes": 7060,
+      "bytes": 7332,
       "pfad": ".claude/hooks/commit-waechter.py",
-      "zeilen": 162
+      "zeilen": 167
     },
     {
-      "bytes": 2838,
+      "bytes": 3107,
       "pfad": ".claude/hooks/push-waechter.py",
-      "zeilen": 92
+      "zeilen": 95
     },
     {
       "bytes": 3856,
@@ -1097,17 +1097,17 @@
       "zeilen": 93
     },
     {
-      "bytes": 3382,
+      "bytes": 3777,
       "pfad": ".claude/hooks/syntax-nach-edit.py",
-      "zeilen": 94
+      "zeilen": 100
     },
     {
-      "bytes": 5820,
+      "bytes": 6088,
       "pfad": ".claude/hooks/wartung-erinnerung.py",
-      "zeilen": 142
+      "zeilen": 145
     },
     {
-      "bytes": 1406,
+      "bytes": 1526,
       "pfad": ".claude/settings.json",
       "zeilen": 56
     },
@@ -1127,9 +1127,9 @@
       "zeilen": 112
     },
     {
-      "bytes": 27355,
+      "bytes": 27671,
       "pfad": "CLAUDE.md",
-      "zeilen": 668
+      "zeilen": 673
     },
     {
       "bytes": 21,
@@ -1260,9 +1260,9 @@
       "zeilen": 3197
     },
     {
-      "bytes": 297576,
+      "bytes": 300417,
       "pfad": "docs/TROUBLESHOOTING.md",
-      "zeilen": 5179
+      "zeilen": 5221
     },
     {
       "erzeugt": true,
@@ -1958,27 +1958,27 @@
   "hooks": [
     {
       "ereignis": "PostToolUse",
-      "kommando": "python .claude/hooks/syntax-nach-edit.py",
+      "kommando": "python \"$CLAUDE_PROJECT_DIR/.claude/hooks/syntax-nach-edit.py\"",
       "matcher": "Edit|Write"
     },
     {
       "ereignis": "PreToolUse",
-      "kommando": "python .claude/hooks/commit-waechter.py",
+      "kommando": "python \"$CLAUDE_PROJECT_DIR/.claude/hooks/commit-waechter.py\"",
       "matcher": "Bash|PowerShell"
     },
     {
       "ereignis": "PreToolUse",
-      "kommando": "python .claude/hooks/secrets-filter.py",
+      "kommando": "python \"$CLAUDE_PROJECT_DIR/.claude/hooks/secrets-filter.py\"",
       "matcher": "Bash|PowerShell"
     },
     {
       "ereignis": "PreToolUse",
-      "kommando": "python .claude/hooks/push-waechter.py",
+      "kommando": "python \"$CLAUDE_PROJECT_DIR/.claude/hooks/push-waechter.py\"",
       "matcher": "Bash|PowerShell"
     },
     {
       "ereignis": "SessionStart",
-      "kommando": "python .claude/hooks/wartung-erinnerung.py",
+      "kommando": "python \"$CLAUDE_PROJECT_DIR/.claude/hooks/wartung-erinnerung.py\"",
       "matcher": ""
     }
   ],
