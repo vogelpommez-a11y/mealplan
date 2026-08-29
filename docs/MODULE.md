@@ -317,9 +317,9 @@ _keine_
 | data/cookbook.js | 469 | 35698 |
 | data/foods.js | 203 | 14489 |
 | data/ikonen.js | 76 | 8630 |
-| data/rechtstexte.js | 162 | 27409 |
+| data/rechtstexte.js | 162 | 27732 |
 | docs/ABDECKUNG.md | 186 | 10999 |
-| docs/ARCHITECTURES.md | 2696 | 169205 |
+| docs/ARCHITECTURES.md | 2704 | 169847 |
 | docs/DESIGN.md | 336 | 11072 |
 | docs/MODULE.md | — | — (erzeugt) |
 | docs/PRODUCT.md | 1377 | 73734 |

@@ -1211,7 +1211,7 @@
       "zeilen": 76
     },
     {
-      "bytes": 27409,
+      "bytes": 27732,
       "pfad": "data/rechtstexte.js",
       "zeilen": 162
     },
@@ -1221,9 +1221,9 @@
       "zeilen": 186
     },
     {
-      "bytes": 169205,
+      "bytes": 169847,
       "pfad": "docs/ARCHITECTURES.md",
-      "zeilen": 2696
+      "zeilen": 2704
     },
     {
       "bytes": 11072,
