@@ -27,6 +27,15 @@ import subprocess
 import sys
 import tempfile
 
+import os
+import sys
+# pm_quelle baut css/, data/ und lib/ wieder in die Seite ein - echter
+# Produktionscode, nur wieder in einer Datei.
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import quelle as pm_quelle
+
+BASIS = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
 WURZEL = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 os.chdir(WURZEL)
 
@@ -38,8 +47,10 @@ def quelle(commit=None):
         r = subprocess.run(["git", "show", "%s:index.html" % commit],
                            capture_output=True, timeout=60)
         return r.stdout.decode("utf-8", errors="replace")
-    with open("index.html", encoding="utf-8", errors="replace") as f:
-        return f.read()
+    # Ueber pm_quelle, damit auch Code gefunden wird, der inzwischen in css/,
+    # data/ oder lib/ liegt. Der Modulname ist bewusst pm_quelle: die Funktion,
+    # in der wir hier stehen, heisst selbst quelle().
+    return pm_quelle.lade_seite(os.path.join(BASIS, "index.html"))
 
 
 def schneide(text, start, ende, name):

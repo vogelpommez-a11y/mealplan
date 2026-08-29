@@ -6,7 +6,8 @@ import importlib.util, sys, io, json, tempfile
 from pathlib import Path
 from PIL import Image
 
-PFAD = Path(r"C:\Users\Paddy\Documents\Paddys Mealplan\tools\meal-bilder.py")
+# Nachbarskript im selben Ordner - kein fester Laufwerkspfad.
+PFAD = Path(__file__).resolve().parent / "meal-bilder.py"
 spec = importlib.util.spec_from_file_location("mb", PFAD)
 mb = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(mb)

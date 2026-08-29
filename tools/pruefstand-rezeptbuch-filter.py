@@ -17,7 +17,10 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import quelle as pm_quelle
 
-SRC = r"C:\Users\Paddy\Documents\Paddys Mealplan\index.html"
+# Relativ zum Skript, nicht absolut: ein fester Laufwerkspfad bindet den
+# Pruefstand an genau einen Rechner und an genau einen Ordnernamen.
+SRC = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                    "index.html")
 OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "pruefstand-cb-filter.html")
 lines = pm_quelle.lade_seite(SRC).split("\n")
 

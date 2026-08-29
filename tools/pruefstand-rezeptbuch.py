@@ -11,7 +11,9 @@ import quelle as pm_quelle
 # Gegenprobe: Der Pruefstand nimmt wahlweise eine andere Datei entgegen, damit er gegen den
 # Stand VOR einer Aenderung laufen kann. Ohne diesen Lauf beweist er nichts.
 #   git show HEAD:index.html > alt.html && python tools/pruefstand-rezeptbuch.py alt.html
-SRC = os.path.abspath(sys.argv[1]) if len(sys.argv) > 1 else r"C:\Users\Paddy\Documents\Paddys Mealplan\index.html"
+# Relativ zum Skript, nicht absolut - siehe die uebrigen Pruefstaende.
+SRC = os.path.abspath(sys.argv[1]) if len(sys.argv) > 1 else os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                    "index.html")
 OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "pruefstand-cookbook.html")
 lines = pm_quelle.lade_seite(SRC).split("\n")
 

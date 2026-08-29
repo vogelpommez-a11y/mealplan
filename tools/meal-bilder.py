@@ -403,7 +403,7 @@ def main():
         print("das ist der realistischste rechtliche Fallstrick, nicht das Motiv selbst.")
 
     if credits:
-        print("\n--- Fuer PHOTO_CREDITS in index.html (PHOTOS muss dieselben Schluessel haben) ---")
+        print("\n--- Fuer PHOTO_CREDITS in data/bilder.js (PHOTOS muss dieselben Schluessel haben) ---")
         for k, v in credits.items():
             print('    %s: { titel: "%s", urheber: "%s", lizenz: "%s", lizenzUrl: "%s", quelle: "%s" },'
                   % (k, v["titel"], v["urheber"], v["lizenz"], v["lizenzUrl"], v["quelle"]))
