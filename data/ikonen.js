@@ -73,3 +73,11 @@
   // Zwei-Personen-Icon fuer den "Zuweisung aendern"-Knopf einer geplanten Karte (ersetzt
   // den Stift, der wie "bearbeiten" liest, obwohl die Aktion "wer isst mit" bedeutet).
   const ICON_PEOPLE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8.5" cy="8" r="3"/><path d="M2.5 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><path d="M15.3 6.3a3 3 0 0 1 0 5.7"/><path d="M17 14.4c2.3.6 4 2.8 4 5.6"/></svg>';
+  // Haken fuer einen geplanten Tag im Monatsgitter des Fortschritt-Kalenders.
+  // Bewusst nur der Haken ohne Kreis darum: den Kreis zeichnet CSS (.kal-t.on .kal-sym),
+  // damit "geplant" Flaeche UND Symbol traegt und nicht allein an der Farbe haengt.
+  const ICON_CHECK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12.5 5 5 9-11"/></svg>';
+  // Die beiden Monatspfeile. Zwei Konstanten statt einer gedrehten: eine CSS-Spiegelung
+  // haette auch den Fokusring und den Press-State mitgedreht.
+  const ICON_CHEV_L = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 5-7 7 7 7"/></svg>';
+  const ICON_CHEV_R = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 5 7 7-7 7"/></svg>';

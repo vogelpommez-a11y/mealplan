@@ -26,6 +26,7 @@ In `CLAUDE.md` steht weiterhin die kurze Fassung: die Regel und der Zeiger hierh
 | Mehrstufige Abläufe | Progress-Bar, `initCarousel()` |
 | Schiebe-Schema | Ansichtswechsel, Bewegung, `MOTION`-Tokens |
 | Die ersten Schritte bewegen sich wie der Rest | Wizard: `slideIn()`, Höhenübergang, `.onb-still` |
+| Der Fortschritt-Kalender | zwei Gitter in einer Karte, `max-width: 420px`, Symbolsprache |
 
 ---
 
@@ -395,3 +396,38 @@ Seither gilt auch dort das Schiebe-Schema der App:
 jeder Änderung auf demselben Bildschirm. Wer eine Kachel antippt, hat den Bildschirm nicht
 gewechselt — dort steht die Bühne still (`.onb-still`). Beim vierten Tipp auf denselben
 Bildschirm ist dieselbe Animation, die beim ersten Mal lebendig wirkte, nur noch Unruhe.
+
+## Der Fortschritt-Kalender: zwei Gitter, eine Karte (seit 30.08.2026)
+
+Der Kalender hat zwei Ansichten in **einer** Karte — Monat (Standard) und Jahr. Warum
+beide nebeneinander stehen und warum es weder rotes X noch Tages-Ampel gibt, steht in
+`docs/PRODUCT.md`; hier stehen nur die Formregeln.
+
+**Bedienung: höchstens zwei Zeilen.** Der Umschalter `Monat | Jahr` sitzt im Kartenkopf
+(`.wch-head`) in der bestehenden `.week-switch` / `.ws-btn`-Optik — kein eigenes Muster für
+eine Aufgabe, für die es schon eines gibt. Darunter **genau eine** Zeitraumzeile: im Monat
+die Navigation `‹ August 2026 ›`, im Jahr die Jahresleiste. Nie beide. Drei Bedienzeilen
+übereinander sind mehr Steuerung als Inhalt.
+
+**Der Zustand hängt nie an der Farbe allein.** Ein geplanter Tag trägt Fläche *und* Symbol
+(Haken auf Akzentkreis), ein ungeplanter eine Kante (leerer Kreis), eine Woche ohne
+aufgezeichnete Tage einen neutral gefüllten Kreis. Ein Tag ohne jede Aussage bleibt leer —
+Zukunft und die Zeit vor der ersten Nutzung sehen absichtlich gleich aus. Dieselbe Regel
+wie im Band, nur in Symbolen statt in Flächen.
+
+**Die Maßregel, an der das Layout hängt: `max-width: 420px`.** Die Höhe der Tageszelle ist
+bei 56 px gedeckelt, die Breite folgt ohne Deckel der Karte — auf 1280 px standen die Tage
+dadurch als 168 × 56 px flache Balken da, ein Balkendiagramm statt eines Kalenders. Gitter
+(`.kal-grid.monat`), Navigation (`.kal-nav`) und Klartextzeile (`.kal-note.monat`) teilen
+sich deshalb dieselbe Maximalbreite und dieselbe Zentrierung. **Wer eine davon ändert,
+ändert alle drei** — sonst steht eine Zeile allein an der Kartenkante, während der Rest
+mittig sitzt.
+
+**Kein zweiter Scroll-Container**, auch hier nicht: sieben Spalten passen auf jeder Breite.
+Gemessen, nicht gerechnet — `tools/pruefstand-kalender-layout.py` fährt beide Ansichten bei
+360/390/768/1280 px in hell und dunkel.
+
+**Der Text bleibt kurz.** Die sichtbare Zeile unter der Navigation sagt „18 von 31 Tagen
+geplant" — den Monat nennt die Zeile darüber schon. Die `<caption>` für den Screenreader
+trägt ihn trotzdem („August 2026: 18 von 31 Tagen geplant"): Sie steht allein, ohne die
+Zeile darüber.

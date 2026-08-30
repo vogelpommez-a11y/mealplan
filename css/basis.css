@@ -652,6 +652,65 @@
   .kal-c:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
   .kal-tip { min-height: 16px; margin: 8px 0 0; font-size: 12px; color: var(--text-muted); }
 
+  /* ---------- Monatsgitter des Fortschritt-Kalenders ----------
+
+     Dieselbe <table> wie das Jahresband, nur sieben Spalten statt 53 - und damit rund
+     45 px je Zelle bei 360 px statt 5 px. Erst dadurch ist ein einzelner Tag lesbar und
+     antippbar; genau das war der Anlass fuer diese Ansicht.
+
+     Auch hier KEIN waagerechter Scroller (siehe Kommentar beim Band): sieben Spalten
+     passen auf jeder Breite, es gibt gar nichts zu scrollen. */
+  /* Dieselbe Breite und Zentrierung wie das Gitter darunter (.kal-grid.monat): Ohne sie
+     spannt die Zeile ueber die ganze Karte, und auf dem Rechner stehen die Pfeile
+     handbreit neben dem Kalender, den sie bedienen. */
+  .kal-nav { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 2px auto 10px; max-width: 420px; }
+  /* Die Klartextzeile teilt sich im Monat die Breite von Navigation und Gitter, sonst
+     steht sie als einzige Zeile linksbuendig an der Kartenkante und alles darueber und
+     darunter zentriert - das liest sich wie ein Versehen. */
+  .kal-note.monat { max-width: 420px; margin-inline: auto; }
+  .kal-nm { font: 600 14px/1 var(--font-display); color: var(--text); letter-spacing: .01em; }
+  /* 40 px Trefferflaeche, obwohl der Pfeil nur 20 px misst - unter 44 px wird das Blaettern
+     auf dem Handy zur Zielaufgabe. Optisch bleibt der Knopf ruhig: kein Rahmen, nur der
+     Pfeil, damit die Aufmerksamkeit auf dem Gitter liegt und nicht auf der Bedienung. */
+  .kal-nb { display: grid; place-items: center; width: 40px; height: 40px; padding: 0; border: 0; border-radius: 999px; background: transparent; color: var(--text-muted); cursor: pointer; transition: color var(--dur-fast), background var(--dur-fast), opacity var(--dur-fast); }
+  .kal-nb svg { width: 20px; height: 20px; }
+  .kal-nb:hover { color: var(--text); background: var(--surface-2); }
+  .kal-nb:active { opacity: .6; }
+  .kal-nb:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  /* Gesperrt statt versteckt: ein Pfeil, der am Jahresrand verschwindet, laesst die Zeile
+     springen und den Nutzer raten, ob er ihn uebersehen hat. */
+  .kal-nb[disabled] { opacity: .3; cursor: default; background: transparent; color: var(--text-muted); }
+
+  /* max-width ist hier kein Geschmack, sondern die Bedingung fuer quadratische Zellen:
+     Die Hoehe ist bei 56 px gedeckelt (siehe .kal-t), die Breite folgt ohne Deckel der
+     Karte. Auf 1280 px standen die Tage dadurch als 168 x 56 px flache Balken da - ein
+     Balkendiagramm, kein Kalender. Dieselbe Falle wie beim Band, nur andersherum.
+     Zentriert, damit die Karte darunter nicht linkslastig wird. */
+  .kal-grid.monat { table-layout: fixed; border-spacing: clamp(2px, .8vw, 6px); max-width: 420px; margin-inline: auto; }
+  .kal-wd { font-size: 11px; font-weight: 600; color: var(--text-muted); text-align: center; padding-bottom: 4px; line-height: 1; }
+  /* Quadratisch ueber aspect-ratio geht auf td nicht zuverlaessig (derselbe Grund wie beim
+     Band). Die Hoehe folgt deshalb gerechnet der Breite: je Spalte bleibt rund ein Siebtel
+     der Kartenbreite, gedeckelt, damit die Zellen auf dem Rechner nicht ins Riesenhafte
+     wachsen. Kein festes px - dann stuenden die Zellen hochkant oder quer. */
+  .kal-t { height: clamp(38px, 11.5vw, 56px); padding: 0; border-radius: var(--radius-sm); text-align: center; vertical-align: middle; line-height: 1.1; }
+  .kal-num { display: block; font-size: 12.5px; font-weight: 600; color: var(--text-muted); }
+  .kal-sym { display: grid; place-items: center; width: 18px; height: 18px; margin: 3px auto 0; border-radius: 999px; }
+  .kal-sym svg { width: 11px; height: 11px; }
+  /* Geplant traegt Flaeche UND Symbol, nichts-geplant traegt eine Kante - der Zustand
+     haengt nie an der Farbe allein (dieselbe Regel wie im Band). */
+  .kal-t.on { background: color-mix(in srgb, var(--accent) 12%, transparent); }
+  .kal-t.on .kal-num { color: var(--text); }
+  .kal-t.on .kal-sym { background: linear-gradient(180deg, var(--accent), var(--accent-strong)); color: var(--accent-contrast); }
+  .kal-t.off .kal-sym { border: 1.5px solid var(--border); }
+  /* Woche geplant, Tage unbekannt (vor dem 29.08.2026 archiviert). Neutral gefuellt, nicht
+     als "geplant" lesbar; den Unterschied benennt die Tipp-Zeile. */
+  .kal-t.unk .kal-sym { background: var(--border-strong); }
+  /* Ohne Datensatz bleibt die Zelle ganz leer: Zukunft und die Zeit vor der ersten Nutzung
+     sind beide "keine Aussage". Die Zahl steht trotzdem da - es ist ein Kalender. */
+  .kal-t.today { box-shadow: inset 0 0 0 1.5px var(--text); }
+  .kal-t:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .kal-t.pad { background: none; }
+
   /* An Trainingstagen bekommt die "Heute"-Karte denselben blauen Rand + Kopfstreifen wie
      die Tageskarten im Wochenplan (.day.training) - direkt beim App-Start sichtbar, ohne
      erst die Wochenansicht durchsuchen zu muessen. Icon+Wort "Training" stehen bereits in

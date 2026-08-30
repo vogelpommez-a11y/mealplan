@@ -89,7 +89,12 @@ var DAYS = [
   { key: "sat", label: "Samstag", short: "Sa" },
   { key: "sun", label: "Sonntag", short: "So" }
 ];
-var state = { plans: {}, weekStats: {}, weights: [], weightGoals: {}, viewYear: null };
+var state = { plans: {}, weekStats: {}, weights: [], weightGoals: {}, viewYear: null, kalMode: "jahr", kalMonth: 0 };
+// EINFACHE Anfuehrungszeichen: SEITE ist ein normaler Python-String - ein \" darin loest
+// Python zu " auf und zerlegt den JS-Block, ohne dass es auffaellt.
+var ICON_CHECK = '<svg viewBox="0 0 24 24"><path d="m5 12.5 5 5 9-11"/></svg>';
+var ICON_CHEV_L = '<svg viewBox="0 0 24 24"><path d="m15 5-7 7 7 7"/></svg>';
+var ICON_CHEV_R = '<svg viewBox="0 0 24 24"><path d="m9 5 7 7-7 7"/></svg>';
 function esc(s){ return String(s).replace(/[&<>"']/g, function(c){
   return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]; }); }
 function dayNutOf(pl, key){ return pl && pl[key] ? { kcal: 500 } : null; }
@@ -126,9 +131,18 @@ state.viewYear = jahr;
 for (var w = 1; w <= 53; w++) {
   state.weekStats[jahr + "-W" + String(w).padStart(2, "0")] = { kcal: 1900, days: 7, hit: 4, d: "1111111" };
 }
-var markup = kalenderHtml();
+// Beide Ansichten messen, nicht nur das Band: sieben Spalten stellen eine ANDERE
+// Layout-Frage als 53. Das Band kann zu eng werden, das Monatsgitter zu breit - die
+// Zelle traegt dort eine zweistellige Zahl und ein Symbol, keine 5-px-Flaeche.
+function markupFuer(modus){
+  state.kalMode = modus;
+  state.kalMonth = 0;                 // Januar: der Monat mit dem laengsten Namen im Kopf
+  return kalenderHtml();
+}
 
-function messe(breite, dunkel, kaputt, fertig){
+function messe(breite, dunkel, modus, kaputt, fertig){
+  var markup = markupFuer(modus);
+  var monat = modus === "monat";
   var f = document.createElement("iframe");
   f.style.cssText = "width:" + breite + "px;height:760px;border:0";
   // Die Karte sitzt in der App in einem Container mit Seitenpolsterung; 12 px je Seite ist
@@ -141,11 +155,11 @@ function messe(breite, dunkel, kaputt, fertig){
     var de = d.documentElement;
     var tab = d.querySelector(".kal-grid");
     var wrap = d.querySelector(".kal-wrap");
-    var zelle = d.querySelector("td.kal-c");
+    var zelle = d.querySelector(monat ? "td.kal-t:not(.pad)" : "td.kal-c");
     var ovx = d.defaultView.getComputedStyle(wrap).overflowX;
     var zb = zelle ? zelle.getBoundingClientRect().width : 0;
     fertig({
-      breite: breite, dunkel: dunkel,
+      breite: breite, dunkel: dunkel, monat: monat,
       dokUeber: de.scrollWidth - de.clientWidth,
       tabUeber: tab.scrollWidth - tab.clientWidth,
       ovx: ovx, zellBreite: Math.round(zb * 100) / 100,
@@ -162,7 +176,10 @@ function messe(breite, dunkel, kaputt, fertig){
 }
 
 var reihe = [];
-[360, 390, 768, 1280].forEach(function(b){ reihe.push([b, false]); reihe.push([b, true]); });
+[360, 390, 768, 1280].forEach(function(b){
+  reihe.push([b, false, "jahr"]); reihe.push([b, true, "jahr"]);
+  reihe.push([b, false, "monat"]); reihe.push([b, true, "monat"]);
+});
 // Der Schalter steht IN der Seite, nicht in der URL: eine Query an einer file://-URL
 // kam in Edge --headless nicht an, und die Gegenprobe lief dadurch als Normallauf
 // durch - sie war gruen und bewies nichts.
@@ -177,14 +194,23 @@ function weiter(){
     return;
   }
   var r = reihe[i++];
-  messe(r[0], r[1], kaputt, function(m){
+  messe(r[0], r[1], r[2], kaputt, function(m){
     melde("");
-    melde(m.breite + " px " + (m.dunkel ? "dunkel" : "hell") + "  (soll=" + m.breite + " ist=" + m.istBreite + ", Zelle " + m.zellBreite + " px)");
+    melde(m.breite + " px " + (m.dunkel ? "dunkel" : "hell") + " " + (m.monat ? "Monat" : "Jahr ") + "  (soll=" + m.breite + " ist=" + m.istBreite + ", Zelle " + m.zellBreite + " px)");
     pruefe("kein waagerechter Ueberlauf im Dokument", m.dokUeber <= 0, "ueber: " + m.dokUeber + " px");
     pruefe("Band passt in die Karte (wird nicht abgeschnitten)", m.ausKarte <= 0.5, "ueber die Karte hinaus: " + m.ausKarte + " px");
     pruefe("Tabelle laeuft nicht ueber ihre Zelle hinaus", m.tabUeber <= 0, "ueber: " + m.tabUeber + " px");
     pruefe("kein Scroll-Container (overflow-x)", m.ovx === "visible", "overflow-x: " + m.ovx);
-    pruefe("Zellen bleiben sichtbar (>= 2 px)", m.zellBreite >= 2, "Zellbreite: " + m.zellBreite + " px");
+    // Zwei Untergrenzen, weil zwei verschiedene Dinge unlesbar werden: im Band ist eine
+    // Spalte unter 2 px ein Strich, im Monatsgitter muss eine zweistellige Zahl samt
+    // Symbol hineinpassen - darunter liegt die Grenze ungleich hoeher.
+    var minZelle = m.monat ? 30 : 2;
+    pruefe("Zellen bleiben sichtbar (>= " + minZelle + " px)", m.zellBreite >= minZelle,
+           "Zellbreite: " + m.zellBreite + " px");
+    // Nach oben ebenfalls gedeckelt: ohne Grenze zoege das Gitter auf dem Rechner die
+    // ganze Kartenbreite auseinander und saehe aus wie ein Wandkalender.
+    if (m.monat) pruefe("Zellen bleiben handlich (<= 70 px)", m.zellBreite <= 70,
+                        "Zellbreite: " + m.zellBreite + " px");
     weiter();
   });
 }

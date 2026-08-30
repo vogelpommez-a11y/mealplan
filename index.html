@@ -1739,7 +1739,7 @@
       const plans = {}; plans[curKey] = makeEmptyPlan();
       // dedupeV1: bei einem leeren Bestand gibt es nichts aufzuraeumen - true von Anfang an,
       // damit die Migration hier nie unnoetig anlaeuft (siehe dedupeAgainstCatalog()).
-      return { recipes, plans, plan: plans[curKey], viewWeek: "cur", viewYear: new Date().getFullYear(), tab: "home", goal: null, shares: [], onboarded: false, weights: [], weightGoals: {}, weekStats: {}, profileImage: null, weightConsent: noConsent(), shopPersons: 1, groupId: "", pendingGroupId: "", pendingInviteUrl: "", inviteCodes: [], favs: [], planned: {}, deleted: {}, dedupeV1: true };
+      return { recipes, plans, plan: plans[curKey], viewWeek: "cur", viewYear: new Date().getFullYear(), kalMode: "monat", kalMonth: new Date().getMonth(), tab: "home", goal: null, shares: [], onboarded: false, weights: [], weightGoals: {}, weekStats: {}, profileImage: null, weightConsent: noConsent(), shopPersons: 1, groupId: "", pendingGroupId: "", pendingInviteUrl: "", inviteCodes: [], favs: [], planned: {}, deleted: {}, dedupeV1: true };
     }
     const recipes = sanitizeRecipes(data.recipes);
     const plans = {};
@@ -1752,7 +1752,7 @@
     // und braucht dafuer state (Ziel, Rezepte). Das laeuft noch nicht — state = load() ist gerade
     // erst am Entstehen. boot() ruft pruneWeeks(state.plans) direkt nach dem State-Aufbau nach.
     if (!plans[curKey]) plans[curKey] = makeEmptyPlan();
-    return { recipes, plans, plan: plans[curKey], viewWeek: "cur", viewYear: new Date().getFullYear(), tab: data.tab === "recipes" ? "recipes" : "home", goal: sanitizeGoal(data.goal), shares: Array.isArray(data.shares) ? data.shares : [], onboarded: data.onboarded === true, weights: sanitizeWeights(data.weights), weightGoals: sanitizeWeightGoals(data.weightGoals), weekStats: sanitizeWeekStats(data.weekStats), profileImage: typeof data.profileImage === "string" ? data.profileImage : null, weightConsent: sanitizeConsent(data.weightConsent), shopPersons: sanitizeShopPersons(data.shopPersons), groupId: typeof data.groupId === "string" ? data.groupId : "", pendingGroupId: typeof data.pendingGroupId === "string" ? data.pendingGroupId : "", pendingInviteUrl: typeof data.pendingInviteUrl === "string" ? data.pendingInviteUrl : "", inviteCodes: Array.isArray(data.inviteCodes) ? data.inviteCodes : [], favs: sanitizeFavs(data.favs), planned: sanitizePlanned(data.planned, recipes), deleted: sanitizeTombstones(data.deleted), dedupeV1: data.dedupeV1 === true };
+    return { recipes, plans, plan: plans[curKey], viewWeek: "cur", viewYear: new Date().getFullYear(), kalMode: "monat", kalMonth: new Date().getMonth(), tab: data.tab === "recipes" ? "recipes" : "home", goal: sanitizeGoal(data.goal), shares: Array.isArray(data.shares) ? data.shares : [], onboarded: data.onboarded === true, weights: sanitizeWeights(data.weights), weightGoals: sanitizeWeightGoals(data.weightGoals), weekStats: sanitizeWeekStats(data.weekStats), profileImage: typeof data.profileImage === "string" ? data.profileImage : null, weightConsent: sanitizeConsent(data.weightConsent), shopPersons: sanitizeShopPersons(data.shopPersons), groupId: typeof data.groupId === "string" ? data.groupId : "", pendingGroupId: typeof data.pendingGroupId === "string" ? data.pendingGroupId : "", pendingInviteUrl: typeof data.pendingInviteUrl === "string" ? data.pendingInviteUrl : "", inviteCodes: Array.isArray(data.inviteCodes) ? data.inviteCodes : [], favs: sanitizeFavs(data.favs), planned: sanitizePlanned(data.planned, recipes), deleted: sanitizeTombstones(data.deleted), dedupeV1: data.dedupeV1 === true };
   }
 
   // Schlaegt das lokale Speichern fehl (Speicher voll, privater Modus), darf das NICHT
@@ -5558,8 +5558,162 @@
     return { mask: null, tage: Math.max(0, Math.round(Number(s.days) || 0)) };
   }
 
+  // Zustand EINES Tages - die gemeinsame Lesart fuer Monatsgitter und Tages-Serie.
+  //
+  // Dieselben vier Faelle wie im Jahresband, nur tagweise adressiert statt ueber die
+  // Position in der Wochenschleife. Rueckgabe ist die CSS-Klasse bzw. null:
+  //   "on"   geplant
+  //   "off"  nichts geplant
+  //   "unk"  Woche bekannt, Tage nicht (vor dem 29.08.2026 archiviert)
+  //   null   ueber die Woche ist nichts bekannt - Zukunft und die Zeit vor der ersten
+  //          Nutzung sehen absichtlich gleich aus, beides ist "keine Aussage"
+  //
+  // Der Bit-Index ist (getDay()||7)-1, also Mo=0 wie in DAYS und wie in weekMaskOf(). Ueber
+  // den MONATSTAG zu greifen waere der naheliegende Fehler - dagegen laeuft die Gegenprobe
+  // in tools/pruefstand-kalender.py.
+  function kalTagStatus(d) {
+    const info = kalWoche(isoWeekKey(d));
+    if (!info) return null;
+    if (info.mask === null) return "unk";
+    return info.mask.charAt((d.getDay() || 7) - 1) === "1" ? "on" : "off";
+  }
+
+  // Monatsgitter (Yazio-Vorbild). Sieben Spalten, montagsbeginnend, eine Zeile je Woche.
+  //
+  // Warum es das NEBEN dem Jahresband gibt: Im Band ist eine Zelle rund 5 px gross - man
+  // sieht ein Muster, aber keinen Tag. Wer wissen will "habe ich den 17. geplant?", findet
+  // das dort nicht. Der Monat beantwortet genau diese Frage, das Band die nach dem Jahr.
+  //
+  // KEINE Bewertung: gruener Haken heisst "geplant", nicht "Ziel erreicht". Ein rotes X
+  // waere eine Note fuer den Nutzer (CLAUDE.md Abschnitt 6) - und die Daten dafuer gibt es
+  // ohnehin nur je WOCHE (`hit` in archiveWeek), nicht je Tag.
+  function kalMonatHtml(year, mon) {
+    const jahr = +year;
+    const erster = new Date(jahr, mon, 1);
+    const tage = new Date(jahr, mon + 1, 0).getDate();
+    const vorlauf = (erster.getDay() || 7) - 1;        // Mo=0: wie viele Leerzellen davor
+    const heute = new Date();
+    const heuteStr = heute.getFullYear() + "-" + String(heute.getMonth() + 1).padStart(2, "0") + "-" + String(heute.getDate()).padStart(2, "0");
+
+    // Erst die Daten, dann das Markup - gleiche Reihenfolge wie im Band, damit die
+    // Klartextzeile ueber demselben Bestand steht, den das Gitter zeichnet.
+    const zellen = [];
+    let geplant = 0;
+    for (let i = 0; i < vorlauf; i++) zellen.push(null);
+    for (let t = 1; t <= tage; t++) {
+      const d = new Date(jahr, mon, t);
+      const st = kalTagStatus(d);
+      if (st === "on") geplant++;
+      zellen.push({ t: t, st: st, iso: jahr + "-" + String(mon + 1).padStart(2, "0") + "-" + String(t).padStart(2, "0") });
+    }
+    while (zellen.length % 7 !== 0) zellen.push(null);
+
+    // ZWEI Fassungen desselben Satzes, und das ist keine Doppelung:
+    // `satz` steht in der <caption> und muss allein stehen koennen - wer die Tabelle nicht
+    // sieht, bekommt hier den ganzen Zusammenhang. `notiz` steht sichtbar direkt UNTER der
+    // Navigationszeile, die den Monat schon nennt; ihn dort zu wiederholen waere genau der
+    // Erklaersatz, den CLAUDE.md Abschnitt 6 nicht will.
+    const satz = geplant
+      ? `${KAL_MON_LANG[mon]} ${year}: ${geplant} von ${tage} Tagen geplant`
+      : `${KAL_MON_LANG[mon]} ${year}: noch kein geplanter Tag.`;
+    const notiz = geplant ? `${geplant} von ${tage} Tagen geplant` : "Noch kein geplanter Tag.";
+
+    // Der Einstieg fuer die Tastatur ist "heute"; liegt heute nicht in diesem Monat, der
+    // Monatserste. Genau EIN Tabstopp, in ihm bewegen die Pfeiltasten (initKalender).
+    const heuteImMonat = zellen.some(z => z && z.iso === heuteStr);
+    const einstieg = heuteImMonat ? heuteStr : (zellen.find(z => z) || {}).iso;
+
+    const kopf = DAYS.map(d =>
+      `<th scope="col" class="kal-wd"><span aria-hidden="true">${d.short}</span><span class="visually-hidden">${d.label}</span></th>`).join("");
+
+    let zeilen = "";
+    for (let i = 0; i < zellen.length; i += 7) {
+      zeilen += "<tr>" + zellen.slice(i, i + 7).map(z => {
+        // Fuellzellen vor dem Ersten und nach dem Letzten: leer, ohne Zahl, fuer den
+        // Screenreader gar nicht vorhanden. Sie tragen keinen Zustand - ein leerer Kreis
+        // waere hier die Aussage "nichts geplant" ueber einen Tag, den es im Monat nicht gibt.
+        if (!z) return `<td class="kal-t pad" aria-hidden="true"></td>`;
+        const wort = z.st === "on" ? "geplant" : z.st === "unk" ? "Tage nicht aufgezeichnet" : z.st === "off" ? "nichts geplant" : "keine Daten";
+        const ist = z.iso === heuteStr;
+        return `<td class="kal-t${z.st ? " " + z.st : ""}${ist ? " today" : ""}" data-d="${z.iso}"`
+          + ` tabindex="${z.iso === einstieg ? 0 : -1}"${ist ? ` aria-current="date"` : ""}>`
+          + `<span class="kal-num">${z.t}</span>`
+          + `<span class="kal-sym" aria-hidden="true">${z.st === "on" ? ICON_CHECK : ""}</span>`
+          + `<span class="visually-hidden">${wort}</span></td>`;
+      }).join("") + "</tr>";
+    }
+
+    return {
+      satz: satz,
+      notiz: notiz,
+      tabelle: `<table class="kal-grid monat" data-year="${year}" data-mon="${mon}" aria-describedby="kal-hilfe">
+            <caption class="visually-hidden">${esc(satz)}</caption>
+            <thead><tr>${kopf}</tr></thead>
+            <tbody>${zeilen}</tbody>
+          </table>`
+    };
+  }
+
+  // Monatsnavigation: ein Pfeil je Richtung, dazwischen der Zeitraum. Die Grenzen sind die
+  // Jahre aus weightYears() - weiter zu blaettern hiesse, in garantiert leere Monate zu
+  // laufen. Ein Schritt ueber die Jahresgrenze verstellt AUCH state.viewYear; Kalender und
+  // Gewichtskarte teilen sich dieses eine Jahr (siehe Kommentar bei weightYears).
+  function kalNavHtml(year, mon) {
+    const ys = weightYears();
+    const amAnfang = year === ys[0] && mon === 0;
+    const amEnde = year === ys[ys.length - 1] && mon === 11;
+    const knopf = (step, label, gesperrt) =>
+      `<button class="kal-nb" data-action="kalnav" data-step="${step}" aria-label="${label}"${gesperrt ? " disabled aria-disabled=\"true\"" : ""}>${step < 0 ? ICON_CHEV_L : ICON_CHEV_R}</button>`;
+    return `<div class="kal-nav">
+        ${knopf(-1, "Vorheriger Monat", amAnfang)}
+        <span class="kal-nm" aria-live="polite">${KAL_MON_LANG[mon]} ${year}</span>
+        ${knopf(1, "Nächster Monat", amEnde)}
+      </div>`;
+  }
+
+  // Der gezeigte Monat. Wie activeYear() eine Absicherung gegen einen unsinnigen Wert im
+  // State, nicht bloss ein Feldzugriff.
+  function activeMonth() {
+    const m = Number(state.kalMonth);
+    return (m >= 0 && m <= 11) ? Math.floor(m) : new Date().getMonth();
+  }
+
+  // Die Huelle: Kopf, Ansichtswahl, Zeitraumwahl, Klartextzeile, Gitter, Tipp-Zeile.
+  // Welches Gitter, entscheidet state.kalMode - beide liefern denselben { satz, tabelle }.
   function kalenderHtml() {
     const year = activeYear();
+    const monat = state.kalMode !== "jahr";
+    const mon = activeMonth();
+    const daten = monat ? kalMonatHtml(year, mon) : kalJahrHtml(year);
+
+    // Zwei Bedienzeilen sind das Maximum. In der Monatsansicht traegt die Navigation den
+    // Zeitraum, die Jahresleiste entfaellt deshalb dort - verloren geht sie nicht, die
+    // Gewichtskarte darunter baut sich ihre eigene (jahrLeisteHtml).
+    const zeitraum = monat ? kalNavHtml(year, mon) : jahrLeisteHtml(year);
+    const hilfe = monat
+      ? "Mit den Pfeiltasten zwischen den Tagen bewegen; Pos1 und Ende springen an den Anfang und das Ende der Woche."
+      : "Mit den Pfeiltasten zwischen den Tagen bewegen; Pos1 und Ende springen an den Anfang und das Ende des Jahres.";
+
+    return `<div class="wg-col kal">
+        <div class="wch-head">
+          <div>
+            ${monat ? "" : `<div class="wg-lbl">Jahr ${year}</div>`}
+            <h3 class="wg-h">Geplante Tage</h3>
+          </div>
+          <div class="week-switch" role="tablist" aria-label="Ansicht wählen">
+            <button class="ws-btn${monat ? " active" : ""}" data-action="kalmode" data-mode="monat" role="tab" aria-selected="${monat}">Monat</button>
+            <button class="ws-btn${monat ? "" : " active"}" data-action="kalmode" data-mode="jahr" role="tab" aria-selected="${!monat}">Jahr</button>
+          </div>
+        </div>
+        ${zeitraum}
+        <p class="kal-note${monat ? " monat" : ""}">${esc(daten.notiz || daten.satz)}</p>
+        <div class="kal-wrap">${daten.tabelle}</div>
+        <p class="kal-tip" aria-live="polite"></p>
+        <p id="kal-hilfe" class="visually-hidden">${hilfe}</p>
+      </div>`;
+  }
+
+  function kalJahrHtml(year) {
     const wochen = isoWochenImJahr(+year);
     const heuteWk = isoWeekKey(new Date());
     const heuteIdx = (new Date().getDay() || 7) - 1;      // Mo=0 ... So=6, wie DAYS
@@ -5629,25 +5783,17 @@
     // waere das Band per Tastatur gar nicht erreichbar. Die erste Zelle uebernimmt.
     const zeilenFertig = heuteGesehen ? zeilen : zeilen.replace('tabindex="-1"', 'tabindex="0"');
 
-    return `<div class="wg-col kal">
-        <div class="wch-head">
-          <div>
-            <div class="wg-lbl">Jahr ${year}</div>
-            <h3 class="wg-h">Geplante Tage</h3>
-          </div>
-        </div>
-        ${jahrLeisteHtml(year)}
-        <p class="kal-note">${esc(satz)}</p>
-        <div class="kal-wrap">
-          <table class="kal-grid" data-year="${year}" aria-describedby="kal-hilfe">
+    // Seit der Monatsansicht liefert diese Funktion nur noch Satz und Tabelle; Kopf,
+    // Umschalter und Tipp-Zeile baut die Huelle kalenderHtml(). Die Logik darueber ist
+    // unveraendert - was hier gezeichnet wird, ist Zeile fuer Zeile dasselbe Band.
+    return {
+      satz: satz,
+      tabelle: `<table class="kal-grid" data-year="${year}" aria-describedby="kal-hilfe">
             <caption class="visually-hidden">${esc(satz)}</caption>
             <thead><tr><td class="kal-corner"></td>${kopf}</tr></thead>
             <tbody>${zeilenFertig}</tbody>
-          </table>
-        </div>
-        <p class="kal-tip" aria-live="polite"></p>
-        <p id="kal-hilfe" class="visually-hidden">Mit den Pfeiltasten zwischen den Tagen bewegen; Pos1 und Ende springen an den Anfang und das Ende des Jahres.</p>
-      </div>`;
+          </table>`
+    };
   }
 
   // Jahr-Umschalter. Steht als eigener Helfer da, weil ihn seit B7 ZWEI Karten benutzen
@@ -5670,21 +5816,35 @@
     const tip = view.querySelector(".kal-tip");
     if (!tab || !tip) return;
     const year = tab.dataset.year;
+    // Im Monatsgitter ist bereits Spalte 0 ein Tag, im Jahresband steht dort der Zeilenkopf.
+    const monat = tab.classList.contains("monat");
+    const minSp = monat ? 0 : 1;
+    const zelle = monat ? "kal-t" : "kal-c";
+    const zustandVon = td => td.classList.contains("on") ? "geplant"
+      : td.classList.contains("unk") ? "Tage nicht aufgezeichnet"
+      : td.classList.contains("off") ? "nichts geplant"
+      : "keine Daten";
     const zeig = td => {
+      if (monat) {
+        // Datum aus data-d statt aus der Position: im Monat ist die Position wegen der
+        // Fuellzellen kein verlaesslicher Traeger, und 31 Attribute sind kein Ballast
+        // (im Band waeren es 371, siehe Kommentar dort).
+        const iso = td.dataset.d;
+        if (!iso) return;
+        const d = new Date(+iso.slice(0, 4), +iso.slice(5, 7) - 1, +iso.slice(8, 10));
+        tip.textContent = `${DAYS[(d.getDay() || 7) - 1].short}, ${iso.slice(8, 10)}.${iso.slice(5, 7)}.${iso.slice(0, 4)} · ${zustandVon(td)}`;
+        return;
+      }
       const tr = td.parentElement;
       const tag = DAYS[tr.sectionRowIndex];
       const wkNr = td.cellIndex;                 // Zelle 0 ist der Zeilenkopf
       if (!tag || wkNr < 1) return;
-      const zustand = td.classList.contains("on") ? "geplant"
-        : td.classList.contains("unk") ? "Tage nicht aufgezeichnet"
-        : td.classList.contains("off") ? "nichts geplant"
-        : "keine Daten";
-      tip.textContent = `KW ${wkNr} · ${tag.label} ${year} · ${zustand}`;
+      tip.textContent = `KW ${wkNr} · ${tag.label} ${year} · ${zustandVon(td)}`;
     };
     // Fokus zeigt denselben Tipp wie Klick und Hover - sonst haette die Tastatur zwar
     // einen Weg in die Tabelle, aber keine Antwort darin (gleiches Muster wie
     // initRueckblick und initWeightChart).
-    tab.querySelectorAll("td.kal-c").forEach(td => {
+    tab.querySelectorAll("td." + zelle + ":not(.pad)").forEach(td => {
       td.addEventListener("click", () => { setzeEinstieg(td); zeig(td); });
       td.addEventListener("mouseenter", () => zeig(td));
       td.addEventListener("focus", () => zeig(td));
@@ -5693,7 +5853,7 @@
     // Der Tabstopp wandert mit: Wer die Karte verlaesst und zurueckkommt, landet dort,
     // wo er war - nicht wieder am Anfang.
     function setzeEinstieg(td) {
-      const alt = tab.querySelector('td.kal-c[tabindex="0"]');
+      const alt = tab.querySelector("td." + zelle + '[tabindex="0"]');
       if (alt && alt !== td) alt.tabIndex = -1;
       td.tabIndex = 0;
     }
@@ -5702,20 +5862,28 @@
     // die Tastatur haette Zugang zu genau einem Tag des Jahres.
     tab.addEventListener("keydown", e => {
       const td = e.target;
-      if (!td.classList || !td.classList.contains("kal-c")) return;
+      if (!td.classList || !td.classList.contains(zelle)) return;
       const zeile = td.parentElement, koerper = zeile.parentElement;
       let z = zeile.sectionRowIndex, sp = td.cellIndex;
       const letzteSp = zeile.cells.length - 1;
-      if (e.key === "ArrowRight") sp++;
-      else if (e.key === "ArrowLeft") sp--;
+      let schritt = 0;
+      if (e.key === "ArrowRight") { sp++; schritt = 1; }
+      else if (e.key === "ArrowLeft") { sp--; schritt = -1; }
       else if (e.key === "ArrowDown") z++;
       else if (e.key === "ArrowUp") z--;
-      else if (e.key === "Home") sp = 1;
-      else if (e.key === "End") sp = letzteSp;
+      else if (e.key === "Home") { sp = minSp; schritt = 1; }
+      else if (e.key === "End") { sp = letzteSp; schritt = -1; }
       else return;
-      if (z < 0 || z >= koerper.rows.length || sp < 1 || sp > letzteSp) return;
-      const ziel = koerper.rows[z].cells[sp];
-      if (!ziel) return;
+      if (z < 0 || z >= koerper.rows.length || sp < minSp || sp > letzteSp) return;
+      let ziel = koerper.rows[z].cells[sp];
+      // Fuellzellen im Monatsgitter ueberspringen. Waagerecht laeuft die Bewegung weiter in
+      // ihre Richtung; senkrecht gibt es kein "weiter" - dort ist die Fuellzelle der Rand.
+      while (ziel && ziel.classList.contains("pad") && schritt) {
+        sp += schritt;
+        if (sp < minSp || sp > letzteSp) return;
+        ziel = koerper.rows[z].cells[sp];
+      }
+      if (!ziel || ziel.classList.contains("pad")) return;
       e.preventDefault();          // sonst scrollt die Seite unter der Bewegung weg
       setzeEinstieg(ziel);
       ziel.focus();
@@ -9560,6 +9728,18 @@
       }
     }
     else if (a === "wyear") { if (String(state.viewYear) !== t.dataset.year) { state.viewYear = +t.dataset.year; render(); } }
+    else if (a === "kalmode") { if (state.kalMode !== t.dataset.mode) { state.kalMode = t.dataset.mode; render(); } }
+    // Monat blaettern. Ueber die Jahresgrenze wandert das Jahr mit - und zwar state.viewYear,
+    // dasselbe, das die Gewichtskarte liest. Die Grenzen kommen aus weightYears(); ausserhalb
+    // gibt es garantiert nichts zu sehen, deshalb sind die Pfeile dort gesperrt.
+    else if (a === "kalnav") {
+      const ys = weightYears();
+      let y = +activeYear(), m = activeMonth() + (+t.dataset.step);
+      if (m < 0) { m = 11; y--; }
+      else if (m > 11) { m = 0; y++; }
+      if (ys.indexOf(String(y)) === -1) return;
+      state.viewYear = y; state.kalMonth = m; render();
+    }
     else if (a === "weigh") openWeighForm();
     else if (a === "weight-menu") toggleWeightMenu(t);
     else if (a === "weight-consent-in") weightConsentModal();

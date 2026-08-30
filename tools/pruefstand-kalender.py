@@ -70,6 +70,22 @@ NAIV = """  function kalWoche(wk) {
   }
 """
 
+# Die verstellte Fassung fuer die zweite Gegenprobe: das Tagesbit wird ueber den
+# MONATSTAG gegriffen statt ueber den Wochentag. Genau dieser Off-by-one ist im
+# Monatsgitter der naheliegende Fehler - beides sind kleine ganze Zahlen, und das
+# Ergebnis sieht noch immer wie ein plausibel gefuellter Kalender aus.
+#
+# Sie laesst die Zeilen 1-10 (Jahresband und Tages-Serie) BEWUSST gruen: die benutzen
+# kalTagStatus() gar nicht. Dass nur die Monatszeilen umkippen, ist der Beweis, dass
+# diese Zeilen tatsaechlich das Monatsgitter messen und nicht bloss mitlaufen.
+NAIV_MONAT = """  function kalTagStatus(d) {
+    const info = kalWoche(isoWeekKey(d));
+    if (!info) return null;
+    if (info.mask === null) return "unk";
+    return info.mask.charAt(d.getDate() - 1) === "1" ? "on" : "off";
+  }
+"""
+
 SEITE = """<!doctype html><meta charset="utf-8"><div id="view"></div><pre id="out"></pre><script>
 var out = [];
 function melde(t){ out.push(t); document.getElementById("out").textContent = out.join("\\n"); }
@@ -86,7 +102,9 @@ var DAYS = [
   { key: "sat", label: "Samstag", short: "Sa" },
   { key: "sun", label: "Sonntag", short: "So" }
 ];
-var state = { plans: {}, weekStats: {}, weights: [], weightGoals: {}, viewYear: null, goal: { kcal: 2000 } };
+// kalMode: "jahr" - die Zeilen unten messen das JAHRESBAND. Die Monatsansicht ist der
+// Standard der App und bekommt eigene Zeilen (offen, siehe plans/).
+var state = { plans: {}, weekStats: {}, weights: [], weightGoals: {}, viewYear: null, kalMode: "jahr", kalMonth: 0, goal: { kcal: 2000 } };
 // initKalender() sucht ueber view - hier ein echter Knoten im Dokument, damit focus()
 // wirklich fokussiert. Ein losgeloester Knoten nimmt keinen Fokus an.
 var view = document.createElement("div");
@@ -101,6 +119,15 @@ function hasNut(n){ return !!(n && n.kcal); }
 function weightYears(){ return ["2025", "2026"]; }
 function activeYear(){ return String(state.viewYear || new Date().getFullYear()); }
 var J_VOR = new Date().getFullYear() - 1;
+// Die drei Icons stehen in data/ikonen.js, nicht im ausgeschnittenen Block. Als
+// Attrappe genuegt ein erkennbarer Platzhalter - geprueft werden Zustaende und
+// Aufbau des Gitters, nicht die Pfaddaten eines SVG.
+// EINFACHE Anfuehrungszeichen: SEITE ist ein normaler Python-String, kein Raw-String -
+// ein \" darin loest Python zu " auf und zerlegt den JS-Block, ohne dass es auffaellt
+// (die Seite bleibt stumm, weil melde() dann gar nicht erst existiert).
+var ICON_CHECK = '<svg class="i-check"></svg>';
+var ICON_CHEV_L = '<svg class="i-chevl"></svg>';
+var ICON_CHEV_R = '<svg class="i-chevr"></svg>';
 melde("Attrappen geladen.");
 </script>
 
@@ -312,6 +339,138 @@ pruefe("die Tabelle verweist auf ihren Bedienhinweis",
 state.viewYear = heute.getFullYear();
 
 melde("");
+melde("11. Monatsgitter: der geplante Tag steht auf seinem WOCHENTAG");
+// Der Off-by-one, gegen den --gegenprobe-monat laeuft: das Bit gehoert an
+// (getDay()||7)-1, NICHT an den Monatstag. Beides ist eine kleine ganze Zahl, und eine
+// Verwechslung sieht im fertigen Gitter noch immer wie ein plausibler Kalender aus.
+state.kalMode = "monat";
+state.kalMonth = heute.getMonth();
+state.viewYear = heute.getFullYear();
+state.plans = {}; state.plans[curWk] = planMit([curIdx]);
+state.weekStats = {};
+view.innerHTML = kalenderHtml();
+var heuteIso = JAHR + "-" + String(heute.getMonth() + 1).padStart(2, "0") + "-" + String(heute.getDate()).padStart(2, "0");
+var onM = view.querySelectorAll("td.kal-t.on");
+pruefe("genau ein geplanter Tag im Monat", onM.length === 1, onM.length + " gefunden");
+pruefe("und zwar HEUTE", onM.length === 1 && onM[0].getAttribute("data-d") === heuteIso,
+       onM.length ? onM[0].getAttribute("data-d") + " statt " + heuteIso : "-");
+pruefe("er steht in der Spalte seines Wochentags", onM.length === 1 && onM[0].cellIndex === curIdx,
+       onM.length ? "Spalte " + onM[0].cellIndex + ", erwartet " + curIdx : "-");
+pruefe("heute ist markiert", view.querySelectorAll("td.kal-t.today").length === 1);
+pruefe("die Klartextzeile zaehlt den Tag mit", /1 von \d+ Tagen geplant/.test(view.innerHTML),
+       (view.innerHTML.match(/\d+ von \d+ Tagen geplant/) || ["-"])[0]);
+
+melde("");
+melde("12. Der Monat hat so viele Tageszellen, wie er Tage hat");
+var tageImMonat = new Date(heute.getFullYear(), heute.getMonth() + 1, 0).getDate();
+var tagZellen = view.querySelectorAll("td.kal-t:not(.pad)");
+pruefe("Zahl der Tageszellen stimmt", tagZellen.length === tageImMonat,
+       tagZellen.length + " statt " + tageImMonat);
+var ersterIdx = (new Date(heute.getFullYear(), heute.getMonth(), 1).getDay() || 7) - 1;
+var koerperM = view.querySelector(".kal-grid.monat tbody");
+var padVorn = 0;
+while (padVorn < 7 && koerperM.rows[0].cells[padVorn].classList.contains("pad")) padVorn++;
+pruefe("Fuellzellen vor dem Monatsersten", padVorn === ersterIdx, padVorn + " statt " + ersterIdx);
+var alleSieben = true;
+for (var r = 0; r < koerperM.rows.length; r++) if (koerperM.rows[r].cells.length !== 7) alleSieben = false;
+pruefe("jede Zeile hat sieben Spalten", alleSieben);
+pruefe("die erste Tageszelle traegt die 1",
+       koerperM.rows[0].cells[padVorn].querySelector(".kal-num").textContent === "1");
+// Fuellzellen duerfen keinen Zustand behaupten: ein leerer Kreis waere die Aussage
+// "nichts geplant" ueber einen Tag, den es in diesem Monat gar nicht gibt.
+var padMitZustand = view.querySelectorAll("td.kal-t.pad.on, td.kal-t.pad.off, td.kal-t.pad.unk");
+pruefe("keine Fuellzelle traegt einen Zustand", padMitZustand.length === 0, padMitZustand.length + " gefunden");
+
+melde("");
+melde("13. Auch im Monat: Woche ohne Maske wird nicht als 'nichts geplant' gezeichnet");
+state.plans = {};
+state.weekStats = {}; state.weekStats[curWk] = { kcal: 1900, days: 5, hit: 3 };
+view.innerHTML = kalenderHtml();
+pruefe("keine Zelle behauptet 'geplant'", view.querySelectorAll("td.kal-t.on").length === 0,
+       view.querySelectorAll("td.kal-t.on").length + " gefunden");
+var unkM = view.querySelectorAll("td.kal-t.unk").length;
+// Wie viele der sieben Tage im Monat liegen, haengt vom Datum ab - deshalb eine Spanne
+// statt einer festen Sieben. Null waere der Fehler: dann waere die Woche verschwunden.
+pruefe("die Woche ohne Maske ist sichtbar", unkM > 0 && unkM <= 7, unkM + " Zellen");
+
+melde("");
+melde("14. Ansichtswahl und Monatsnavigation");
+state.plans = {}; state.weekStats = {};
+view.innerHTML = kalenderHtml();
+// Ohne jede Planung darf der Monat keine stumme Flaeche sein: die Tageszahlen stehen
+// weiter da (es ist ein Kalender), und die Klartextzeile sagt, dass noch nichts geplant
+// ist. Ein leeres Gitter ohne Satz waere ein Zustand ohne Aussage.
+pruefe("der leere Monat traegt trotzdem alle Tageszahlen",
+       view.querySelectorAll("td.kal-t:not(.pad)").length ===
+       new Date(heute.getFullYear(), heute.getMonth() + 1, 0).getDate());
+pruefe("und sagt, dass noch nichts geplant ist",
+       /kein geplanter Tag/.test(view.querySelector(".kal-note").textContent),
+       view.querySelector(".kal-note").textContent);
+pruefe("Monat ist die aktive Ansicht",
+       view.querySelector('[data-mode="monat"]').classList.contains("active") &&
+       !view.querySelector('[data-mode="jahr"]').classList.contains("active"));
+// Zwei Bedienzeilen sind das Maximum: im Monat traegt die Navigation den Zeitraum, die
+// Jahresleiste entfaellt. Die Gewichtskarte darunter baut sich ihre eigene.
+pruefe("keine Jahresleiste in der Monatsansicht", !view.querySelector('[data-action="wyear"]'));
+pruefe("die Navigation nennt Monat und Jahr",
+       view.querySelector(".kal-nm").textContent.indexOf(String(heute.getFullYear())) > -1,
+       view.querySelector(".kal-nm").textContent);
+var ys = weightYears();
+state.viewYear = +ys[0]; state.kalMonth = 0;
+view.innerHTML = kalenderHtml();
+var pf = view.querySelectorAll(".kal-nb");
+pruefe("am Anfang des Archivs ist der Rueckwaertspfeil gesperrt", pf[0].disabled && !pf[1].disabled);
+state.viewYear = +ys[ys.length - 1]; state.kalMonth = 11;
+view.innerHTML = kalenderHtml();
+pf = view.querySelectorAll(".kal-nb");
+pruefe("am Ende ist es der Vorwaertspfeil", pf[1].disabled && !pf[0].disabled);
+state.kalMode = "jahr";
+state.viewYear = heute.getFullYear();
+view.innerHTML = kalenderHtml();
+pruefe("die Jahresansicht bringt die Jahresleiste zurueck", !!view.querySelector('[data-action="wyear"]'));
+pruefe("und zeichnet wieder das Band", !!view.querySelector("td.kal-c") && !view.querySelector("td.kal-t"));
+
+melde("");
+melde("15. Tastatur im Monatsgitter: Fuellzellen werden uebersprungen");
+state.kalMode = "monat"; state.kalMonth = heute.getMonth();
+view.innerHTML = kalenderHtml();
+initKalender();
+var e3 = view.querySelectorAll('td.kal-t[tabindex="0"]');
+pruefe("genau ein Tabstopp im Monat", e3.length === 1, e3.length + " gefunden");
+pruefe("der Einstieg ist HEUTE", e3.length === 1 && e3[0].getAttribute("data-d") === heuteIso,
+       e3.length ? e3[0].getAttribute("data-d") : "-");
+koerperM = view.querySelector(".kal-grid.monat tbody");
+var ersteEchte = koerperM.rows[0].querySelector("td.kal-t:not(.pad)");
+if (ersteEchte.cellIndex > 0) {
+  // Links vom Monatsersten stehen nur Fuellzellen. Der Fokus muss stehen bleiben, statt
+  // in einer leeren Zelle zu landen, aus der die Tipp-Zeile nichts zu sagen haette.
+  tasteAuf(ersteEchte, "ArrowLeft");
+  pruefe("links vom Monatsersten bleibt der Fokus stehen", aktiv() === ersteEchte,
+         "Spalte " + aktiv().cellIndex);
+  tasteAuf(ersteEchte, "Home");
+  pruefe("Home laeuft ueber die Fuellzellen hinweg auf den Ersten", aktiv() === ersteEchte,
+         "Spalte " + aktiv().cellIndex);
+} else {
+  pruefe("links vom Monatsersten bleibt der Fokus stehen (Monat beginnt am Montag)", true);
+  pruefe("Home laeuft ueber die Fuellzellen hinweg auf den Ersten (entfaellt)", true);
+}
+var zweiteZeile = koerperM.rows[1].cells[0];
+tasteAuf(zweiteZeile, "ArrowUp");
+// Senkrecht gibt es kein Weiterlaufen: ueber dem ersten Montag steht eine Fuellzelle,
+// dort ist der Rand. Beginnt der Monat am Montag, ist die Zelle darueber der 1.
+pruefe("senkrecht ist die Fuellzelle der Rand",
+       aktiv() === zweiteZeile || aktiv() === koerperM.rows[0].cells[0],
+       "Zeile " + aktiv().parentElement.sectionRowIndex + ", Spalte " + aktiv().cellIndex);
+tasteAuf(koerperM.rows[1].cells[2], "ArrowRight");
+pruefe("waagerecht bewegt sich der Fokus normal",
+       aktiv().cellIndex === 3 && aktiv().parentElement.sectionRowIndex === 1,
+       "Zeile " + aktiv().parentElement.sectionRowIndex + ", Spalte " + aktiv().cellIndex);
+view.querySelector("td.kal-t:not(.pad)").dispatchEvent(new MouseEvent("click", { bubbles: true }));
+pruefe("der Tipp nennt Datum und Zustand",
+       /\d{2}\.\d{2}\.\d{4} . (geplant|nichts geplant|keine Daten|Tage nicht aufgezeichnet)/.test(view.querySelector(".kal-tip").textContent),
+       view.querySelector(".kal-tip").textContent || "(leer)");
+
+melde("");
 melde(fehler === 0 ? "ERGEBNIS: alle Pruefungen gruen."
                    : "ERGEBNIS: " + fehler + " Pruefung(en) ROT.");
 melde("FEHLERZAHL=" + fehler);
@@ -319,7 +478,7 @@ melde("FEHLERZAHL=" + fehler);
 </script>"""
 
 
-def lauf(gegenprobe=False):
+def lauf(gegenprobe=None):
     text = pm_quelle.lade_seite(os.path.join(BASIS, "index.html"))
     # Wochenschluessel, Maske und Montagsrechnung liegen oben bei load().
     wochen = schneide(text, "  function isoWeekKey(date) {", "  function activeWeekKey()", "isoWeekKey")
@@ -337,10 +496,15 @@ def lauf(gegenprobe=False):
     if "function initKalender" not in kal:
         raise SystemExit("ABBRUCH: initKalender() steckt nicht im Ausschnitt.")
 
-    if gegenprobe:
+    if gegenprobe == "kalwoche":
         neu, n = re.subn(r"  function kalWoche\(wk\) \{.*?\n  \}\n", NAIV, kal, count=1, flags=re.S)
         if n != 1:
             raise SystemExit("ABBRUCH: kalWoche() nicht ersetzbar - Gegenprobe misst nichts.")
+        kal = neu
+    elif gegenprobe == "monat":
+        neu, n = re.subn(r"  function kalTagStatus\(d\) \{.*?\n  \}\n", NAIV_MONAT, kal, count=1, flags=re.S)
+        if n != 1:
+            raise SystemExit("ABBRUCH: kalTagStatus() nicht ersetzbar - Gegenprobe misst nichts.")
         kal = neu
 
     seite = SEITE.replace("__WOCHEN__", wochen).replace("__KAL__", kal)
@@ -370,14 +534,25 @@ def lauf(gegenprobe=False):
 
 
 if __name__ == "__main__":
-    gp = "--gegenprobe" in sys.argv
-    print("GEGENPROBE (kalWoche naiv) - diese Fassung MUSS durchfallen" if gp
-          else "Heutige Fassung - diese Fassung muss gruen sein")
+    # Zwei Gegenproben, weil zwei getrennte Aussagen zu sichern sind: --gegenprobe
+    # verstellt die gemeinsame Quelle (kalWoche) und muss Band UND Monat umwerfen,
+    # --gegenprobe-monat verstellt nur die Tageslesart und darf ausschliesslich die
+    # Monatszeilen treffen.
+    if "--gegenprobe-monat" in sys.argv:
+        gp = "monat"
+        kopf = "GEGENPROBE (kalTagStatus liest den Monatstag) - die MONATSZEILEN muessen durchfallen"
+    elif "--gegenprobe" in sys.argv:
+        gp = "kalwoche"
+        kopf = "GEGENPROBE (kalWoche naiv) - diese Fassung MUSS durchfallen"
+    else:
+        gp = None
+        kopf = "Heutige Fassung - diese Fassung muss gruen sein"
+    print(kopf)
     print("=" * 66)
     n = lauf(gp)
     print("=" * 66)
     if gp:
         print("Gegenprobe bestanden." if n > 0 else
-              "GEGENPROBE GESCHEITERT: Die naive Fassung ist gruen - der Test misst nichts.")
+              "GEGENPROBE GESCHEITERT: Die verstellte Fassung ist gruen - der Test misst nichts.")
         sys.exit(0 if n > 0 else 1)
     sys.exit(0 if n == 0 else 1)

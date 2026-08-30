@@ -3417,12 +3417,29 @@ hier ausgerechnet das, was geprüft wird.
 
 ## `tools/pruefstand-kalender.py` — die laufende Woche, die im Archiv fehlt (30.08.2026)
 
-**Was er prüft:** `kalenderHtml()` und `dayStreak()` (Paket 6, B7/B8) über `kalWoche()`.
+**Was er prüft:** `kalenderHtml()`, `kalJahrHtml()`, `kalMonatHtml()` und `dayStreak()`
+(Paket 6, B7/B8) über `kalWoche()` und `kalTagStatus()`.
 
 ```powershell
-python tools/pruefstand-kalender.py                # heute: alles grün
-python tools/pruefstand-kalender.py --gegenprobe   # naive Fassung: fällt durch
+python tools/pruefstand-kalender.py                      # heute: alles grün
+python tools/pruefstand-kalender.py --gegenprobe         # naive kalWoche: fällt durch
+python tools/pruefstand-kalender.py --gegenprobe-monat   # Monatstag statt Wochentag
 ```
+
+**Zwei Gegenproben, weil zwei getrennte Aussagen zu sichern sind.** `--gegenprobe`
+verstellt die gemeinsame Quelle und wirft Band **und** Monat um (12 rote Zeilen).
+`--gegenprobe-monat` verstellt nur `kalTagStatus()` so, dass es das Bit über den
+**Monatstag** statt den Wochentag greift — der naheliegende Off-by-one im Monatsgitter.
+Dabei fallen **ausschließlich** die Monatszeilen (4 rote), die Zeilen 1–10 bleiben grün.
+Genau das ist der Beweis, dass die Monatszeilen das Monatsgitter messen und nicht bloß
+mitlaufen: Eine Gegenprobe, die *alles* rot färbt, zeigt nur, dass irgendetwas kaputt ist.
+
+**Die Attrappen-Falle, die einen halben Prüflauf gekostet hat:** `SEITE` ist ein normaler
+Python-String, kein Raw-String. Ein `\"` in einer Attrappen-Zeile löst Python zu `"` auf
+und zerlegt damit den JS-Block — und weil `melde()` dann gar nicht erst existiert, gibt der
+Prüfstand **überhaupt keine Zeilen mehr aus**, nur Kopf und Fuß. Das sieht nicht nach
+einem Fehler aus, sondern nach einem leeren Lauf. In den Attrappen deshalb **einfache**
+Anführungszeichen für JS-Strings mit HTML darin.
 
 **Die Gegenprobe läuft nicht gegen einen Commit, sondern gegen eine verstellte Kopie.** Gegen
 `91c202b` bräche der Schnitt mit „Endmarker nicht gefunden" ab, weil `kalenderHtml()` dort
@@ -3472,18 +3489,28 @@ Dinge. Wer Fokus-Verhalten headless prüft, muss wissen, welches von beiden er m
 
 ## `tools/pruefstand-kalender-layout.py` — ein Überlauf, den niemand sieht (30.08.2026)
 
-**Was er prüft:** dass das Band bei 360, 390, 768 und 1280 px in hell **und** dunkel passt —
-ohne waagerechten Scroller, den es bewusst nicht bekommt (`docs/TROUBLESHOOTING.md` 58).
+**Was er prüft:** dass **beide Ansichten** bei 360, 390, 768 und 1280 px in hell **und**
+dunkel passen — ohne waagerechten Scroller, den sie bewusst nicht bekommen
+(`docs/TROUBLESHOOTING.md` 58).
 
 Gemessen im `srcdoc`-iframe mit echtem CSS (`quelle.css_gesamt()`) und echtem Markup. Ergebnis
 der Messung, die die Papierrechnung ersetzt:
 
-| Breite | Zellbreite |
-|---|---|
-| 360 px | 4,23 px |
-| 390 px | 4,80 px |
-| 768 px | 11,94 px |
-| 1280 px | 19,52 px |
+| Breite | Zellbreite Jahr | Zellbreite Monat |
+|---|---|---|
+| 360 px | 4,23 px | 40,84 px |
+| 390 px | 4,80 px | 44,00 px |
+| 768 px | 11,94 px | 53,14 px |
+| 1280 px | 19,52 px | 53,14 px |
+
+**Zwei Untergrenzen und eine Obergrenze, weil zwei verschiedene Dinge unlesbar werden.**
+Im Band ist eine Spalte unter 2 px ein Strich; im Monatsgitter muss eine zweistellige Zahl
+samt Symbol hineinpassen, dort liegt die Grenze bei 30 px. **Nach oben ist nur der Monat
+gedeckelt (70 px)** — und diese Zeile hat sofort einen echten Fehler gefangen: Die Höhe der
+Tageszelle ist bei 56 px gedeckelt, die Breite folgte ohne `max-width` der Karte. Auf
+1280 px standen die Tage dadurch als 168 × 56 px flache Balken da — ein Balkendiagramm,
+kein Kalender. Dieselbe Falle wie beim Band, nur andersherum; die Antwort ist
+`max-width: 420px` auf `.kal-grid.monat`, `.kal-nav` und `.kal-note.monat`.
 
 ### Die Lehre steckt in der Gegenprobe, nicht im Lauf
 

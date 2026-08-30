@@ -1351,12 +1351,44 @@ Belegt durch `tools/pruefstand-jahresumschalter.py`; die Gegenprobe gegen `91c20
 kurzen zur langen Sicht. **Kein fünfter Reiter** — der Kalender beantwortet dieselbe Frage
 wie der Rückblick („wie lief es bisher?"), nur über einen längeren Zeitraum.
 
-`kalenderHtml()` ist eine echte `<table>` mit `table-layout: fixed`, sieben Zeilen
+**Seit dem 30.08.2026 ist `kalenderHtml()` nur noch die Hülle** — Kopf, Ansichtswahl,
+Zeitraumwahl, Klartextzeile, Tipp-Zeile. Das Gitter selbst liefert je nach `state.kalMode`
+`kalJahrHtml(year)` oder `kalMonatHtml(year, mon)`; beide geben dasselbe
+`{ satz, notiz, tabelle }` zurück. Warum es zwei Ansichten gibt, steht in `docs/PRODUCT.md`.
+
+`kalJahrHtml()` ist eine echte `<table>` mit `table-layout: fixed`, sieben Zeilen
 (Wochentage) mal 52 oder 53 Spalten. **Kein Grid und kein `display: contents` auf
 Tabellenelementen**: das nimmt Screenreadern die Tabellenrollen, und genau die sind hier
 die ganze A11y-Antwort — 371 `aria-label` wären keine. Sichtbar beschriftet sind jeder
 zweite Monat (Drei-Buchstaben-Kürzel) und Mo/Mi/Fr/So; der volle Name steht in jeder Zelle
 als `.visually-hidden` daneben.
+
+`kalMonatHtml()` ist ebenfalls eine `<table>`, aus demselben Grund: sieben Spalten
+(montagsbeginnend), eine Zeile je Woche, Fülzellen (`.kal-t.pad`, `aria-hidden`) vor dem
+Ersten und nach dem Letzten. **Eine Fülzelle trägt nie einen Zustand** — ein leerer Kreis
+dort wäre die Aussage „nichts geplant" über einen Tag, den es im Monat gar nicht gibt.
+Anders als im Band trägt jede Zelle ihr Datum als `data-d`: bei 31 Zellen sind das keine
+15 KB Markup wie bei 371, und die Position ist wegen der Fülzellen kein verlässlicher
+Träger mehr.
+
+**`kalTagStatus(d)` liest ein einzelnes Datum** über dasselbe `kalWoche()` und gibt die
+CSS-Klasse zurück (`"on"` / `"off"` / `"unk"` / `null`). Der Bit-Index ist
+`(getDay()||7)-1` — der Wochentag, **nicht** der Monatstag. Beides sind kleine ganze
+Zahlen, und eine Verwechslung ergäbe noch immer einen plausibel aussehenden Kalender;
+dagegen läuft `tools/pruefstand-kalender.py --gegenprobe-monat`.
+
+**Ansichtszustand:** `state.kalMode` (`"monat"` | `"jahr"`) und `state.kalMonth` (0–11)
+werden wie `state.viewYear` behandelt — sie stehen im State-Objekt, werden aber **nicht aus
+den gespeicherten Daten übernommen** und damit weder persistiert noch gesynct. Ein
+Neuladen startet auf dem aktuellen Zeitraum. Das erspart Migration, Sanitize und jede
+Sync-Frage für eine reine Ansichtseinstellung.
+
+In der Monatsansicht entfällt die Jahresleiste: die Navigation (`kalNavHtml()`) trägt dort
+den Zeitraum, und drei Bedienzeilen übereinander wären zu viel. Verloren geht sie nicht —
+die Gewichtskarte darunter baut sich ihre eigene. **Ein Schritt über die Jahresgrenze
+verstellt `state.viewYear` mit**, weil beide Karten sich dieses eine Jahr teilen; die
+Pfeile sind an den Rändern von `weightYears()` gesperrt, weil es dahinter garantiert nichts
+zu sehen gibt.
 
 **`kalWoche(wk)` ist die eine Quelle für die Bits** und kennt drei Antworten:
 

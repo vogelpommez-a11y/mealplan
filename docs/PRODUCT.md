@@ -35,6 +35,7 @@ vergessen — wer es aendern will, aendert eine Entscheidung.
 | · | Bewusste Produktentscheidung: Vorkochen ist eine eigene Ansicht |
 | · | Bewusste Produktentscheidung: Der Wizard endet im Wochenplan |
 | · | Bewusste Produktentscheidung: Der Rückblick misst gegen das Ziel |
+| · | Bewusste Produktentscheidung: Der Kalender zeigt Planung, nicht Zensuren (30.08.2026) |
 | · | Bewusste Produktentscheidungen: Wochenplan |
 | · | Bewusste Produktentscheidungen: Gemeinsam planen |
 | · | Bewusste Produktentscheidung: Barcode-Schnellzugriff |
@@ -1052,6 +1053,32 @@ Zwei Regeln, die daraus folgen:
 
 Was der Rückblick weiterhin **nicht** tut: bewerten. Wochen außerhalb des Ziels sind gedämpft
 gezeichnet, nicht rot.
+
+## Bewusste Produktentscheidung: Der Kalender zeigt Planung, nicht Zensuren (30.08.2026)
+
+Der Fortschritt-Kalender hat seit dem 30.08.2026 **zwei Ansichten** — Monat (Standard) und
+Jahr —, umschaltbar in einer Karte. Anlass war ein Vorbild aus einer Tracker-App: Im
+Jahresband ist eine Zelle rund 5 px groß. Man sieht ein Muster, aber keinen Tag; auf die
+Frage „habe ich den 17. geplant?" antwortet es nicht. Das Monatsgitter beantwortet genau
+diese Frage, das Band die nach dem Jahr. Deshalb ersetzt das eine das andere nicht.
+
+**Drei Dinge aus dem Vorbild wurden bewusst nicht übernommen:**
+
+* **Kein rotes X an verfehlten Tagen.** Das ist eine Note für den Nutzer, und die Marke
+  bewertet ihn nicht — dieselbe Regel, nach der schon die Rückblick-Balken gedämpft statt
+  rot sind. Bei einem Planer käme dazu, dass die meisten Nutzer überwiegend rote Tage
+  sähen: Nicht jeder Tag *soll* geplant sein.
+* **Grün heißt „geplant", nicht „Ziel erreicht".** Die Daten für eine Tages-Ampel gibt es
+  nicht: `hit` wird je **Woche** archiviert, nicht je Tag. Eine Ampel wäre also entweder
+  erfunden oder erst ab Einführung verfügbar — und für die gesamte Vergangenheit leer.
+  Ein Symbol, das für alte Wochen etwas anderes bedeutet als für neue, ist schlimmer als
+  keines.
+* **Keine Statistik-Kacheln unter dem Gitter.** Serie und Ziel-Quote stehen bereits im
+  Rückblick über dem Kalender, das Gewicht in der Karte darunter. Dieselbe Zahl zweimal auf
+  einem Screen ist keine Information, sondern Dichte.
+
+Die Farbe ist der Projekt-Akzent, **nicht** das Grün des Vorbilds: eine fremde Farbpalette
+in eine bestehende einzusetzen, macht die Ansicht zum Fremdkörper (`docs/DESIGN.md`).
 
 **Zwei Serien, und die zweite ist ausdrücklich nicht dieselbe** (seit 30.08.2026). Neben
 „{n} Wochen in Folge geplant" steht jetzt „Am Stück · {n} Tage". Sie hat andere Regeln: Ein
