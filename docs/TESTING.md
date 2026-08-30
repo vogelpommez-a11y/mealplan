@@ -77,6 +77,7 @@ Die Verfahren gibt es auch als Skill: `/smoke`, `/pruefstand`, `/abnahme`, `/dep
 | · | `tools/pruefstand-kalender.py` — die laufende Woche, die im Archiv fehlt (30.08.2026) |
 | · | `tools/pruefstand-kalender-layout.py` — ein Überlauf, den niemand sieht (30.08.2026) |
 | · | `tools/probe-fortschritt.html` — die Abnahme in der echten App (30.08.2026) |
+| · | `tools/probe-onboarding.html` — wie weit der Weiter-Knopf springt (30.08.2026) |
 
 <!-- REGISTER-ENDE -->
 
@@ -3523,3 +3524,62 @@ Genau dafür ist die Abnahme da — die drei roten Zeilen des ersten Laufs:
 Der Umweg über den Worktree hat sich gelohnt — ohne ihn hätte die Zahl wie ein Befund dieser
 Änderung ausgesehen. **Wer einen Messwert nicht einordnen kann, misst denselben Wert am alten
 Stand.**
+
+
+## `tools/probe-onboarding.html` — wie weit der Weiter-Knopf springt (30.08.2026)
+
+**Was sie misst:** Paket 5 des Alltags-Plans beginnt ausdrücklich mit *messen*, nicht mit
+umbauen. Die Frage lautet: Wie weit wandert der Weiter-Knopf zwischen den Bildschirmen der
+ersten Schritte — und muss überhaupt einer scrollen?
+
+Gefahren wird die **echte App** im iframe. Der Wizard startet über „Neu berechnen"
+(`data-action="recalc-goal"`): Dann sind alle Felder aus dem vorhandenen Ziel vorbelegt, und
+man klickt durch, ohne Eingaben zu erfinden. Gemessen wird je Bildschirm die Höhe von
+`.onb-stage`, die Absolutposition von `.onb-next` und `scrollHeight - innerHeight`.
+
+```powershell
+powershell -NoProfile -File test-server.ps1
+# http://localhost:8000/tools/probe-onboarding.html            (Messung)
+# http://localhost:8000/tools/probe-onboarding.html?kaputt=1   (Gegenprobe)
+```
+
+### Das Ergebnis, auf dem Schritt 2 aufsetzt
+
+| Breite | größter Sprung des Weiter-Knopfes | Bildschirme, die scrollen |
+|---|---|---|
+| 390 px | **420 px** | 3 von 8 (bis 138 px) |
+| 768 px | 402 px | 3 von 8 |
+| 1280 px | 402 px | 3 von 8 |
+
+Die Bühne schwankt zwischen **64 px** („Da fehlt noch etwas") und **538 px** („Wie viel
+bewegst du dich?"). Der Knopf steht damit mal bei 251 px, mal bei 721 px — auf demselben
+Bildschirm, im selben Ablauf, zwei Klicks auseinander.
+
+**Zwei Dinge, die die Messung entscheidet:**
+
+* Das Problem ist **nicht mobil-spezifisch**. 402 px bei 1280 px Breite sind fast dasselbe
+  wie 420 px bei 390 px — eine reine Mobile-Korrektur würde daneben greifen.
+* Es gibt **Bildschirme, die auch bei 390 px scrollen müssen** (bis 138 px). Ein pauschaler
+  Deckel auf die Bühnenhöhe würde sie abschneiden; die Antwort ist der weiche Höhenübergang,
+  nicht die feste Höhe.
+
+### Die Gegenprobe misst die Lösung mit
+
+`?kaputt=1` gleicht alle Bühnen per `min-height: 620px` an. Der größte Sprung fällt damit von
+420 px auf **58 px** — die Messung trennt also nachweislich.
+
+Ein Aufschlag auf *alle* Bühnen (`padding-bottom: 200px`, wie zuerst geplant) hätte dagegen
+nichts bewiesen: Er verschiebt jeden Bildschirm gleich weit und lässt die Sprünge unverändert.
+**Eine Gegenprobe muss die gemessene Größe verändern, nicht irgendeine.**
+
+### Drei Fallen, die sie gekostet hat
+
+* **„Neu berechnen" sitzt auf Home**, an der Wochenziele-Karte (`weekGoalHtml`), nicht im
+  Plan-Reiter. Über den Plan gesucht, fand die erste Fassung den Knopf nur bei 1280 px — und
+  übersprang stillschweigend genau die beiden Breiten, auf die es ankommt.
+* **Der Zustand gehört vor jeden Rahmen gelegt, nicht einmal an den Anfang.** Der Wizard des
+  vorigen Laufs schreibt in denselben `localStorage`-Schlüssel; beim zweiten Rahmen fehlte
+  dadurch das Ziel, und ohne Ziel gibt es keine Zielkarte und keinen Einstieg.
+* **Der Fokus wandert 30 ms nach dem Zeichnen in die Frage** (`renderOnboardStep`) und
+  verschiebt dabei die Scrollposition. Vor jeder Messung abwarten, sonst misst man den
+  Fokussprung statt das Layout.

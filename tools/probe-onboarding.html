@@ -1,0 +1,190 @@
+<!doctype html><meta charset="utf-8">
+<title>Messung: Erste Schritte, Fenstergroesse</title>
+<pre id="out"></pre>
+<div id="host"></div>
+<script>
+// Messung zu Paket 5, Schritt 1 (plans/Neun_Befunde_Alltag.MD): WIE SEHR springt der
+// Weiter-Knopf zwischen den Bildschirmen der ersten Schritte?
+//
+// Erst messen, dann umbauen. Der Plan nennt drei Zahlen je Schritt und Breite:
+//   * Hoehe von .onb-stage
+//   * Absolutposition von .onb-next - die Zahl, um die es geht
+//   * scrollHeight - innerHeight als maxScrollY (gegen innerHeight, NICHT clientHeight:
+//     die klassische Scrollleiste im iframe verfaelscht clientHeight, docs/TESTING.md)
+//
+// Gefahren wird die ECHTE App im iframe. Der Wizard wird ueber "Neu berechnen"
+// (data-action="recalc-goal") gestartet: Dann sind alle Felder aus dem vorhandenen Ziel
+// vorbelegt, und man kann durchklicken, ohne Eingaben zu erfinden.
+//
+// Aufruf (Server muss laufen):
+//   http://localhost:8000/tools/probe-onboarding.html
+//   ...?kaputt=1  -> Gegenprobe: ein Schritt wird kuenstlich 200 px hoeher gemacht.
+var out = [];
+function melde(t){ out.push(t); document.getElementById("out").textContent = out.join("\n"); }
+window.onerror = function(m,s,l){ melde("SKRIPTFEHLER Zeile " + l + ": " + m); };
+
+function isoWeekKey(date){
+  var d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+  var day = d.getUTCDay() || 7;
+  d.setUTCDate(d.getUTCDate() + 4 - day);
+  var ys = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+  return d.getUTCFullYear() + "-W" + String(Math.ceil((((d - ys) / 864e5) + 1) / 7)).padStart(2, "0");
+}
+var heute = new Date(), curWk = isoWeekKey(heute), jahr = heute.getFullYear();
+var plan = {};
+["mon","tue","wed","thu","fri","sat","sun"].forEach(function(k){
+  plan[k] = { fr: [], mi: [{ id: "r1", g: 300 }], ab: [], sn: [] };
+});
+// Ein vollstaendiges Ziel: nur damit sind im Wizard alle Schritte vorbelegt und der
+// Weiter-Knopf ist ueberall aktiv.
+// Vor JEDEM Rahmen neu legen, nicht einmal am Anfang: Der Wizard des vorigen Laufs
+// schreibt in denselben Schluessel, und beim zweiten Rahmen fehlte dadurch das Ziel -
+// dann gibt es keine Zielkarte, keinen "Neu berechnen"-Knopf und keine Messung.
+function legeZustand(){
+localStorage.setItem("wochenkueche_v1__test", JSON.stringify({
+  tab: "home", onboarded: true,
+  goal: { mode: "cut", kcal: 1950, protein: 150, carbs: 180, fat: 60, activity: "pal14",
+          sex: "m", age: 34, height: 182, weight: 84, pace: "mod", bodyfat: null, training: [] },
+  recipes: [{ id: "r1", name: "Testmeal", cat: "Hauptgericht",
+              nutrition: { kcal: 400, protein: 30, carbs: 40, fat: 12 } }],
+  plans: (function(){ var p = {}; p[curWk] = plan; return p; })(),
+  weights: [], weightGoals: {}, weekStats: {}
+}));
+localStorage.setItem("wochenkueche_profile_v1__test", JSON.stringify({ name: "Messlauf", id: "lokal" }));
+}
+legeZustand();
+
+function warte(fn, ms){
+  return new Promise(function(res, rej){
+    var t0 = Date.now();
+    (function tick(){
+      var v; try { v = fn(); } catch (e) { v = null; }
+      if (v) return res(v);
+      if (Date.now() - t0 > (ms || 20000)) return rej(new Error("Zeit abgelaufen"));
+      setTimeout(tick, 100);
+    })();
+  });
+}
+function ruhe(ms){ return new Promise(function(r){ setTimeout(r, ms || 400); }); }
+
+var kaputt = location.search.indexOf("kaputt") > -1;
+var BREITEN = [390, 768, 1280];
+
+async function messeBreite(breite){
+  legeZustand();
+  var f = document.createElement("iframe");
+  f.style.cssText = "width:" + breite + "px;height:844px;border:0";
+  f.src = "/index.html";
+  document.getElementById("host").appendChild(f);
+
+  await warte(function(){ var d = f.contentDocument; return d && d.querySelector(".app:not(.authing)"); }, 25000);
+  melde("  [" + breite + "] App gestartet.");
+  var doc = f.contentDocument, win = f.contentWindow;
+
+  if (kaputt) {
+    // Gegenprobe. Sie gleicht alle Buehnen auf dieselbe Hoehe an - damit MUSS der
+    // gemessene Sprung auf nahezu null fallen. Ein Aufschlag auf alle Buehnen (etwa
+    // padding-bottom: 200px) taugt dafuer nicht: Der verschoebe jeden Bildschirm gleich
+    // weit und liesse die Spruenge unveraendert - eine Gegenprobe, die nichts trennt.
+    //
+    // Nebenbei ist das der Vorgriff auf die Loesung aus Schritt 2: Bleibt die Buehne
+    // hoehengleich, steht der Weiter-Knopf still.
+    var st = doc.createElement("style");
+    st.textContent = ".onb-stage { min-height: 620px; }";
+    doc.head.appendChild(st);
+  }
+
+  // Der Knopf "Neu berechnen" sitzt an der Wochenziele-Karte auf HOME (weekGoalHtml),
+  // nicht im Plan-Reiter. Ueber den Plan gesucht, fand ihn die erste Fassung nur bei
+  // 1280 px - und uebersprang die beiden Breiten, auf die es ankommt.
+  doc.querySelector('[data-tab="home"]').click();
+  melde("  [" + breite + "] Home-Reiter geklickt.");
+  await warte(function(){ return f.contentDocument.querySelector('[data-action="recalc-goal"]'); }, 8000)
+    .catch(function(e){ melde("  [" + breite + "] KEIN recalc-goal gefunden. Vorhandene data-action im Plan: " +
+      Array.prototype.slice.call(f.contentDocument.querySelectorAll("[data-action]")).slice(0, 12)
+        .map(function(el){ return el.dataset.action; }).join(", ")); throw e; });
+  f.contentDocument.querySelector('[data-action="recalc-goal"]').click();
+  await warte(function(){ return f.contentDocument.querySelector(".onb-stage"); }, 8000);
+
+  melde("");
+  melde("### " + breite + " px" + (kaputt ? "  (GEGENPROBE: alle Buehnen 620 px hoch)" : ""));
+  melde("    soll=" + breite + " ist=" + f.contentWindow.innerWidth);
+  melde("");
+  melde("    Schritt                Buehne   Weiter-Knopf   maxScrollY");
+  melde("    ---------------------------------------------------------");
+
+  var zeilen = [], vorher = null, groessterSprung = 0, sprungAn = "";
+  for (var n = 0; n < 14; n++) {
+    doc = f.contentDocument; win = f.contentWindow;
+    var stage = doc.querySelector(".onb-stage");
+    if (!stage) break;
+    // Der Fokus wandert 30 ms nach dem Zeichnen in die Frage (renderOnboardStep) und
+    // verschiebt dabei die Scrollposition. Vor der Messung abwarten, sonst misst der
+    // Test den Fokussprung statt das Layout.
+    await ruhe(260);
+    doc = f.contentDocument; win = f.contentWindow;
+    stage = doc.querySelector(".onb-stage");
+    var next = doc.querySelector(".onb-next");
+    if (!stage || !next) break;
+    var h = Math.round(stage.getBoundingClientRect().height);
+    var knopf = Math.round(next.getBoundingClientRect().top + win.scrollY);
+    var maxScroll = Math.max(0, Math.round(doc.documentElement.scrollHeight - win.innerHeight));
+    // Woran erkennt man den Schritt? An der Ueberschrift der Buehne.
+    var titel = (stage.querySelector("h2, h3, .onb-h") || {}).textContent || ("Schritt " + (n + 1));
+    titel = titel.trim().replace(/\s+/g, " ").slice(0, 20);
+    var sprung = vorher === null ? 0 : Math.abs(knopf - vorher);
+    if (sprung > groessterSprung) { groessterSprung = sprung; sprungAn = titel; }
+    melde("    " + (titel + "                    ").slice(0, 22) +
+          (h + " px      ").slice(0, 9) + (knopf + " px        ").slice(0, 15) + maxScroll + " px" +
+          (sprung ? "   (Sprung " + sprung + " px)" : ""));
+    zeilen.push({ titel: titel, h: h, knopf: knopf, scroll: maxScroll });
+    vorher = knopf;
+
+    var weiter = doc.querySelector(".onb-next");
+    // Ist Weiter gesperrt, fehlt eine Wahl auf diesem Bildschirm (z. B. die Einwilligung
+    // zum Gewichtsverlauf). Dann die erste angebotene Option nehmen - sonst endet die
+    // Messung mitten im Ablauf und die spaeteren Bildschirme bleiben ungemessen.
+    if (weiter && weiter.classList.contains("is-off")) {
+      var wahl = stage.querySelector("[data-opt], [data-consent], .onb-opt, button:not(.onb-next):not(.onb-back):not(.onb-skip)");
+      if (wahl) { wahl.click(); await ruhe(300); doc = f.contentDocument; weiter = doc.querySelector(".onb-next"); }
+    }
+    if (!weiter || weiter.classList.contains("is-off")) {
+      melde("    (Weiter bleibt gesperrt - hier endet der Lauf)");
+      break;
+    }
+    weiter.click();
+    await ruhe(420);
+    if (!f.contentDocument.querySelector(".onb-stage")) break;
+  }
+
+  melde("");
+  melde("    Groesster Sprung des Weiter-Knopfes: " + groessterSprung + " px  (bei \"" + sprungAn + "\")");
+  melde("    Schritte, die scrollen muessen: " + zeilen.filter(function(z){ return z.scroll > 0; }).length + " von " + zeilen.length);
+  f.remove();
+  return { breite: breite, sprung: groessterSprung, zeilen: zeilen };
+}
+
+(async function(){
+  try {
+    melde(kaputt ? "GEGENPROBE (alle Buehnen gleich hoch) - die Spruenge muessen verschwinden"
+                 : "MESSUNG (Paket 5, Schritt 1) - noch wird nichts geaendert");
+    var alle = [];
+    for (var i = 0; i < BREITEN.length; i++) {
+      try { alle.push(await messeBreite(BREITEN[i])); }
+      catch (e) { melde("  [" + BREITEN[i] + "] uebersprungen: " + e.message); }
+    }
+    melde("");
+    melde("ZUSAMMEN: " + alle.map(function(a){ return a.breite + "px -> " + a.sprung + "px"; }).join(", "));
+    var groesster = Math.max.apply(null, alle.map(function(a){ return a.sprung; }));
+    if (kaputt) {
+      melde(groesster < 60
+        ? "GEGENPROBE BESTANDEN: hoehengleiche Buehnen -> groesster Sprung nur noch " + groesster + " px."
+        : "GEGENPROBE GESCHEITERT: auch hoehengleich noch " + groesster + " px - die Messung trennt nicht.");
+    }
+    melde("FERTIG");
+  } catch (e) {
+    melde("ABBRUCH: " + (e && e.message));
+    melde("FERTIG");
+  }
+})();
+</script>
