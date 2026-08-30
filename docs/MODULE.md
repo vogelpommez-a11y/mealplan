@@ -321,7 +321,7 @@ _keine_
 | data/foods.js | 236 | 16584 |
 | data/ikonen.js | 76 | 8630 |
 | data/rechtstexte.js | 163 | 27890 |
-| docs/ABDECKUNG.md | 186 | 11050 |
+| docs/ABDECKUNG.md | 192 | 11427 |
 | docs/ARCHITECTURES.md | 2775 | 174377 |
 | docs/DESIGN.md | 377 | 13550 |
 | docs/MODULE.md | — | — (erzeugt) |
@@ -408,14 +408,14 @@ _keine_
 | img/toast.webp | — | 15252 |
 | img/waffle.webp | — | 33496 |
 | img/wrap.webp | — | 29160 |
-| index.html | 13273 | 821100 |
+| index.html | 13273 | 821128 |
 | lib/barcode.js | 153 | 8354 |
 | lib/basis.js | 21 | 836 |
 | lib/pdf.js | 241 | 13120 |
-| manifest.webmanifest | 22 | 786 |
+| manifest.webmanifest | 22 | 798 |
 | robots.txt | 5 | 75 |
 | sitemap.xml | 7 | 173 |
-| sw.js | 141 | 6210 |
+| sw.js | 141 | 6226 |
 | syntax-check.py | 382 | 16172 |
 | test-server.ps1 | 66 | 2182 |
 | tools/abdeckung.py | 324 | 13049 |

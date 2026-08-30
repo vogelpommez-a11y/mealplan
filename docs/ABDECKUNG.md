@@ -107,11 +107,17 @@ merkt.
 | Suchmaschinen | `pfad:sitemap.xml` | — statisch, keine Verarbeitung — | — |
 | Zeilenenden | `pfad:.gitattributes` | `tools/wartung-check.py` | — |
 | Ausschlüsse | `pfad:.gitignore` | `website-security` | jede neue Ausnahme |
-| App-Icons | `pfad:icon-192.png` | `store-check` | Icon-Wechsel |
-| App-Icons | `pfad:icon-512.png` | `store-check` | Icon-Wechsel |
-| App-Icons | `pfad:icon-maskable-512.png` | `store-check` | Icon-Wechsel |
-| App-Icons | `pfad:apple-touch-icon.png` | `store-check` | Icon-Wechsel |
-| Vorschaubild | `pfad:og-image.png` | `anwalt` (Bildrechte) | Bildwechsel |
+| App-Icons und Vorschaubild | `pfad:img/` | `store-check` (Icons), `anwalt` (Bildrechte) | Icon-Wechsel, Bildwechsel |
+
+ℹ️ **Warum die Icons keine eigenen Zeilen mehr haben (30.08.2026):** Sie lagen bis dahin
+in der Repo-Wurzel und waren dort je ein eigener Bereich. Seit dem Umzug nach `img/` sieht
+die Erhebung nur noch **einen** Bereich `pfad:img/` — fünf Einzelzeilen zeigten danach ins
+Leere, und die Prüfung meldete Verrottung.
+
+Zusammengefasst heißt hier **nicht** „nur noch ein Prüfer": Die Zeile nennt weiterhin beide.
+`store-check` für die Icons (Store-Anforderungen an Größen und Maskierbarkeit), `anwalt` für
+die Bildrechte. Wer die Zeile später kürzt, nimmt einem der beiden die Zuständigkeit —
+lautlos.
 
 ## 4. Reiter der App
 

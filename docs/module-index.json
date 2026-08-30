@@ -38,19 +38,14 @@
       "pfad:LICENSE",
       "pfad:README.md",
       "pfad:SECURITY.md",
-      "pfad:apple-touch-icon.png",
       "pfad:css/",
       "pfad:data/",
       "pfad:docs/",
       "pfad:firestore.rules",
-      "pfad:icon-192.png",
-      "pfad:icon-512.png",
-      "pfad:icon-maskable-512.png",
       "pfad:img/",
       "pfad:index.html",
       "pfad:lib/",
       "pfad:manifest.webmanifest",
-      "pfad:og-image.png",
       "pfad:robots.txt",
       "pfad:sitemap.xml",
       "pfad:sw.js",
@@ -1233,9 +1228,9 @@
       "zeilen": 163
     },
     {
-      "bytes": 11050,
+      "bytes": 11427,
       "pfad": "docs/ABDECKUNG.md",
-      "zeilen": 186
+      "zeilen": 192
     },
     {
       "bytes": 174377,
@@ -1592,7 +1587,7 @@
       "pfad": "img/wrap.webp"
     },
     {
-      "bytes": 821100,
+      "bytes": 821128,
       "pfad": "index.html",
       "zeilen": 13273
     },
@@ -1612,7 +1607,7 @@
       "zeilen": 241
     },
     {
-      "bytes": 786,
+      "bytes": 798,
       "pfad": "manifest.webmanifest",
       "zeilen": 22
     },
@@ -1627,7 +1622,7 @@
       "zeilen": 7
     },
     {
-      "bytes": 6210,
+      "bytes": 6226,
       "pfad": "sw.js",
       "zeilen": 141
     },
