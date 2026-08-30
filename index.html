@@ -11108,6 +11108,8 @@
   // NICHT bei jedem Schritt neu gebunden werden, sonst feuert ein Klick spaeter mehrfach.
   // Sie holen sich den aktuellen Schritt stattdessen zur Klickzeit.
   function onbBindShell() {
+    // onbNextClick() steht weiter unten, hinter renderOnboardStep() - dort steht auch,
+    // warum es ueberhaupt eine eigene Funktion ist.
     view.querySelector(".onb-next").addEventListener("click", onbNextClick);
     view.querySelector(".onb-back").addEventListener("click", () => onbGo(-1));
     // Der Schliessen-Knopf existiert immer, ist aber ohne gesetztes Ziel verborgen: Ohne
@@ -11145,6 +11147,10 @@
     // Buehne auf der Hoehe von gestern eingefroren und ein laengerer Schritt wird lautlos
     // abgeschnitten. Deshalb zwei Wege: das regulaere Ende UND ein Sicherheitstimer, falls
     // der Uebergang abgebrochen wird (Reiterwechsel, Hintergrund-Tab).
+    // Der Listener des vorigen Uebergangs kann noch haengen (er verschwindet erst mit
+    // seinem eigenen Feuern). Das ist unbedenklich, weil onbFreeHeight() idempotent ist:
+    // Ein zweiter Aufruf findet keine Hoehe mehr vor und tut nichts. Wer hier spaeter
+    // ansetzt, soll den doppelten Aufruf nicht fuer einen Fehler halten.
     const fertig = () => onbFreeHeight(wrap);
     wrap.addEventListener("transitionend", fertig, { once: true });
     clearTimeout(onbHeightTimer);

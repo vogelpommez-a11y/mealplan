@@ -56,8 +56,8 @@ Erhoben aus den Abschnittsmarken im Code, nicht von Hand gepflegt.
 | css/komponenten.css | Profil (Login) & Teilen | 783-876 | 94 |
 | css/komponenten.css | Profilbild-Zuschnitt (Kreis-Crop) | 877-1073 | 197 |
 | css/komponenten.css | PDF / Druck | 1074-1107 | 34 |
-| css/mobil.css | Mobile / Smartphone | 8-819 | 812 |
-| css/mobil.css | Gemeinsam planen (Gruppe) | 820-886 | 67 |
+| css/mobil.css | Mobile / Smartphone | 8-827 | 820 |
+| css/mobil.css | Gemeinsam planen (Gruppe) | 828-894 | 67 |
 | data/bilder.js | Gerichtsfotos (eingebettet, nach Namen zugeordnet) | 11-134 | 124 |
 | data/cookbook.js | Rezeptbuch | 11-569 | 559 |
 | data/foods.js | Zutaten-Datenbank fuer die Suche | 11-236 | 226 |
@@ -134,15 +134,15 @@ Erhoben aus den Abschnittsmarken im Code, nicht von Hand gepflegt.
 | index.html | Kontowechsel auf demselben Geraet | 9748-10342 | 595 |
 | index.html | Kalorienrechner (Baustein 1: Tages-/Wochenbedarf → state.goal) | 10343-10433 | 91 |
 | index.html | Wiegen: speichern, loeschen, ans Ziel koppeln | 10434-10507 | 74 |
-| index.html | Erste Schritte (Onboarding) | 10508-11350 | 843 |
-| index.html | Erscheinungsbild | 11351-11377 | 27 |
-| index.html | Einstellungen | 11378-11503 | 126 |
-| index.html | Einstieg (D1b) | 11504-11579 | 76 |
-| index.html | Cloud-Anmeldung (Firebase) | 11580-12139 | 560 |
-| index.html | Gemeinsam planen (Gruppe) | 12140-13113 | 974 |
-| index.html | Teilen ueber den nativen Dialog des Geraets (Web Share API) | 13114-13147 | 34 |
-| index.html | Einkaufsliste als PDF (Paket B3) | 13148-13387 | 240 |
-| index.html | Boot | 13388-13406 | 19 |
+| index.html | Erste Schritte (Onboarding) | 10508-11356 | 849 |
+| index.html | Erscheinungsbild | 11357-11383 | 27 |
+| index.html | Einstellungen | 11384-11509 | 126 |
+| index.html | Einstieg (D1b) | 11510-11585 | 76 |
+| index.html | Cloud-Anmeldung (Firebase) | 11586-12145 | 560 |
+| index.html | Gemeinsam planen (Gruppe) | 12146-13119 | 974 |
+| index.html | Teilen ueber den nativen Dialog des Geraets (Web Share API) | 13120-13153 | 34 |
+| index.html | Einkaufsliste als PDF (Paket B3) | 13154-13393 | 240 |
+| index.html | Boot | 13394-13412 | 19 |
 | lib/barcode.js | Barcode-Scan (Open Food Facts) | 14-153 | 140 |
 | lib/pdf.js | PDF selbst erzeugen (kein window.print, sandbox-sicher) | 14-38 | 25 |
 | lib/pdf.js | Marken-Kopf fuer die PDFs (Logo, "PADDY'S MEALPLAN", Slogan) | 39-106 | 68 |
@@ -313,7 +313,7 @@ _keine_
 | css/CLAUDE.md | 92 | 4167 |
 | css/basis.css | 1007 | 73558 |
 | css/komponenten.css | 1107 | 87302 |
-| css/mobil.css | 886 | 57993 |
+| css/mobil.css | 894 | 58645 |
 | css/tokens.css | 221 | 11084 |
 | data/CLAUDE.md | 148 | 6658 |
 | data/bilder.js | 134 | 14471 |
@@ -329,7 +329,7 @@ _keine_
 | docs/RUNBOOK.md | 167 | 5665 |
 | docs/SECURITY.md | 356 | 19197 |
 | docs/STORE.md | 246 | 11876 |
-| docs/TESTING.md | 3636 | 214853 |
+| docs/TESTING.md | 3663 | 216363 |
 | docs/TROUBLESHOOTING.md | 5538 | 317499 |
 | docs/module-index.json | — | — (erzeugt) |
 | firestore.rules | 416 | 23714 |
@@ -408,7 +408,7 @@ _keine_
 | img/toast.webp | — | 15252 |
 | img/waffle.webp | — | 33496 |
 | img/wrap.webp | — | 29160 |
-| index.html | 13406 | 828858 |
+| index.html | 13412 | 829337 |
 | lib/barcode.js | 153 | 8354 |
 | lib/basis.js | 21 | 836 |
 | lib/pdf.js | 241 | 13120 |
@@ -426,7 +426,7 @@ _keine_
 | tools/meal-bilder.py | 417 | 20204 |
 | tools/mobilprobe-rezeptbuch.html | 146 | 8092 |
 | tools/probe-fortschritt.html | 210 | 10834 |
-| tools/probe-onboarding-fluss.html | 199 | 9927 |
+| tools/probe-onboarding-fluss.html | 270 | 14119 |
 | tools/probe-onboarding.html | 191 | 9537 |
 | tools/pruefstand-autoplaner.py | 1160 | 63981 |
 | tools/pruefstand-cache-reset.py | 202 | 8848 |
@@ -441,7 +441,7 @@ _keine_
 | tools/pruefstand-gruppenlimit.py | 243 | 11367 |
 | tools/pruefstand-jahresumschalter.py | 234 | 9867 |
 | tools/pruefstand-kalender-layout.py | 252 | 11044 |
-| tools/pruefstand-kalender.py | 376 | 18039 |
+| tools/pruefstand-kalender.py | 384 | 18637 |
 | tools/pruefstand-katalog-plan.py | 534 | 25271 |
 | tools/pruefstand-kontowechsel.py | 215 | 9393 |
 | tools/pruefstand-mengenanzeige.py | 262 | 12448 |

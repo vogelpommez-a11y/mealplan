@@ -571,6 +571,14 @@
      Anteil an „laeuft nicht fluessig" getragen haben als der Hoehensprung. */
   .onb-stage.onb-still .onb-opt,
   .onb-stage.onb-still .onb-bf-o { animation: none; opacity: 1; transform: none; }
+  /* ⚠️ `hidden` allein genuegt hier NICHT. `.btn` setzt `display: inline-flex`, und eine
+     Autorenregel schlaegt das `[hidden] { display: none }` des Browsers - bei gleicher
+     Spezifitaet gewinnt die Autoren-Ebene, unabhaengig von der Reihenfolge. Ohne diese
+     Zeile stuende der Schliessen-Knopf sichtbar und klickbar da, obwohl noch kein Ziel
+     gesetzt ist, und die Regel „ohne Ziel ist der Ablauf nicht verlassbar"
+     (maybeStartOnboarding) waere ausgehebelt. Derselbe Fall wie `.ms-photobtn[hidden]`
+     in komponenten.css. Gemessen von tools/probe-onboarding-fluss.html, Abschnitt 5. */
+  .onb-skip[hidden] { display: none; }
   /* Die Einblendung der Buehne uebernimmt seit Paket 5 slideIn() (WAAPI, 16 px, gerichtet,
      Dauer und Kurve aus MOTION). Die frueher hier stehende Regel
      `.onb-stage { animation: onbin .26s ... }` ist damit entfallen - sie war hartkodiert

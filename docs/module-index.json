@@ -390,17 +390,17 @@
       "zeilen": 34
     },
     {
-      "bis": 819,
+      "bis": 827,
       "datei": "css/mobil.css",
       "titel": "Mobile / Smartphone",
       "von": 8,
-      "zeilen": 812
+      "zeilen": 820
     },
     {
-      "bis": 886,
+      "bis": 894,
       "datei": "css/mobil.css",
       "titel": "Gemeinsam planen (Gruppe)",
-      "von": 820,
+      "von": 828,
       "zeilen": 67
     },
     {
@@ -936,66 +936,66 @@
       "zeilen": 74
     },
     {
-      "bis": 11350,
+      "bis": 11356,
       "datei": "index.html",
       "titel": "Erste Schritte (Onboarding)",
       "von": 10508,
-      "zeilen": 843
+      "zeilen": 849
     },
     {
-      "bis": 11377,
+      "bis": 11383,
       "datei": "index.html",
       "titel": "Erscheinungsbild",
-      "von": 11351,
+      "von": 11357,
       "zeilen": 27
     },
     {
-      "bis": 11503,
+      "bis": 11509,
       "datei": "index.html",
       "titel": "Einstellungen",
-      "von": 11378,
+      "von": 11384,
       "zeilen": 126
     },
     {
-      "bis": 11579,
+      "bis": 11585,
       "datei": "index.html",
       "titel": "Einstieg (D1b)",
-      "von": 11504,
+      "von": 11510,
       "zeilen": 76
     },
     {
-      "bis": 12139,
+      "bis": 12145,
       "datei": "index.html",
       "titel": "Cloud-Anmeldung (Firebase)",
-      "von": 11580,
+      "von": 11586,
       "zeilen": 560
     },
     {
-      "bis": 13113,
+      "bis": 13119,
       "datei": "index.html",
       "titel": "Gemeinsam planen (Gruppe)",
-      "von": 12140,
+      "von": 12146,
       "zeilen": 974
     },
     {
-      "bis": 13147,
+      "bis": 13153,
       "datei": "index.html",
       "titel": "Teilen ueber den nativen Dialog des Geraets (Web Share API)",
-      "von": 13114,
+      "von": 13120,
       "zeilen": 34
     },
     {
-      "bis": 13387,
+      "bis": 13393,
       "datei": "index.html",
       "titel": "Einkaufsliste als PDF (Paket B3)",
-      "von": 13148,
+      "von": 13154,
       "zeilen": 240
     },
     {
-      "bis": 13406,
+      "bis": 13412,
       "datei": "index.html",
       "titel": "Boot",
-      "von": 13388,
+      "von": 13394,
       "zeilen": 19
     },
     {
@@ -1189,9 +1189,9 @@
       "zeilen": 1107
     },
     {
-      "bytes": 57993,
+      "bytes": 58645,
       "pfad": "css/mobil.css",
-      "zeilen": 886
+      "zeilen": 894
     },
     {
       "bytes": 11084,
@@ -1268,9 +1268,9 @@
       "zeilen": 246
     },
     {
-      "bytes": 214853,
+      "bytes": 216363,
       "pfad": "docs/TESTING.md",
-      "zeilen": 3636
+      "zeilen": 3663
     },
     {
       "bytes": 317499,
@@ -1588,9 +1588,9 @@
       "pfad": "img/wrap.webp"
     },
     {
-      "bytes": 828858,
+      "bytes": 829337,
       "pfad": "index.html",
-      "zeilen": 13406
+      "zeilen": 13412
     },
     {
       "bytes": 8354,
@@ -1678,9 +1678,9 @@
       "zeilen": 210
     },
     {
-      "bytes": 9927,
+      "bytes": 14119,
       "pfad": "tools/probe-onboarding-fluss.html",
-      "zeilen": 199
+      "zeilen": 270
     },
     {
       "bytes": 9537,
@@ -1753,9 +1753,9 @@
       "zeilen": 252
     },
     {
-      "bytes": 18039,
+      "bytes": 18637,
       "pfad": "tools/pruefstand-kalender.py",
-      "zeilen": 376
+      "zeilen": 384
     },
     {
       "bytes": 25271,

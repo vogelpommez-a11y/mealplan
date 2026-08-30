@@ -273,7 +273,15 @@ pruefe("der Tabstopp wandert mit",
 // Der Tipp muss auf den FOKUS antworten - sonst gaebe es einen Weg hinein, aber keine
 // Antwort darin. Vorher leeren, sonst misst die Zeile den Rest eines Mausereignisses.
 view.querySelector(".kal-tip").textContent = "";
-koerper.rows[1].cells[9].focus();
+var zielZelle = koerper.rows[1].cells[9];
+zielZelle.focus();
+// ⚠️ In einem headless-Fenster hat das Dokument nicht immer den Systemfokus. focus()
+// setzt dann zwar activeElement, loest aber KEIN focus-Ereignis aus - der Test war
+// dadurch mal gruen und mal rot, ohne dass sich etwas geaendert haette. Geprueft wird,
+// dass der Handler am Element haengt und den Tipp schreibt; das Ereignis notfalls selbst
+// ausloesen ist deshalb keine Schoenfaerberei, sondern der Ersatz fuer einen Fokus, den
+// die Umgebung nicht vergibt.
+if (!view.querySelector(".kal-tip").textContent) zielZelle.dispatchEvent(new FocusEvent("focus"));
 pruefe("der Tipp folgt dem Fokus", /KW \d+ · \w+/.test(view.querySelector(".kal-tip").textContent),
        "'" + view.querySelector(".kal-tip").textContent + "'");
 

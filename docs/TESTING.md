@@ -3452,12 +3452,23 @@ Eine Zeile davon war kurz **grün aus dem falschen Grund**: Die Prüfung „der 
 Fokus" lief nach einer Diagnosezeile, die per `mouseenter` denselben Tipp gesetzt hatte. Sie
 leert ihn jetzt vor der Messung.
 
-⚠️ **Einmal beobachtet, nicht reproduzierbar:** Direkt nach einer Änderung an diesem
-Prüfstand meldete der Reihenlauf für ihn `FEHLERZAHL=1`, während drei Einzelläufe
-unmittelbar davor und danach grün waren — und der Reihenlauf danach ebenfalls. Der
-Tastatur-Abschnitt fährt echte `focus()`-Aufrufe; ein Fokus, der im Wettlauf mit dem
-Seitenaufbau steht, ist der naheliegende Verdacht. **Notiert statt weggeklickt:** Kommt es
-wieder, ist die Stelle bekannt, und dann ist es keine Laune mehr, sondern ein Befund.
+### Der flackernde Test — und warum er flackerte
+
+Der Tastatur-Abschnitt meldete zunächst sporadisch `FEHLERZAHL=1`, während Einzelläufe
+davor und danach grün waren. Notiert statt weggeklickt — und beim nächsten Reihenlauf war es
+reproduzierbar: **„der Tipp folgt dem Fokus" schlug fehl, weil `focus()` kein Ereignis
+auslöste.**
+
+In einem headless-Fenster hat das Dokument nicht immer den Systemfokus. `element.focus()`
+setzt dann zwar `activeElement` — die Prüfung darauf war ja grün —, feuert aber **kein**
+`focus`-Ereignis. Der Handler lief nie, der Tipp blieb leer.
+
+Der Test löst das Ereignis jetzt selbst aus, wenn der Tipp nach `focus()` leer geblieben ist.
+Das ist keine Schönfärberei: Geprüft wird, dass der Handler am Element hängt und den Tipp
+schreibt. Der Systemfokus ist eine Eigenschaft der Umgebung, nicht des Produkts.
+
+**Die Lehre:** `activeElement` und ein gefeuertes `focus`-Ereignis sind zwei verschiedene
+Dinge. Wer Fokus-Verhalten headless prüft, muss wissen, welches von beiden er misst.
 
 ## `tools/pruefstand-kalender-layout.py` — ein Überlauf, den niemand sieht (30.08.2026)
 
@@ -3605,10 +3616,26 @@ Die zweite Probe misst deshalb vier Dinge, die eine Endpositions-Messung nicht s
 4. **Ist ein Klick auf „Weiter" genau ein Schritt?** Die Fuß-Knöpfe überleben jetzt — würden
    ihre Handler weiter je Schritt gebunden, wäre ein Klick zwei Schritte.
 
+### Abschnitt 5 fand einen Fehler, den der `kvp`-Agent zuerst nur vermutet hatte
+
+**Ohne Ziel darf es keinen Ausgang geben** (`maybeStartOnboarding`). Seit der
+Schließen-Knopf immer gebaut und nur per `hidden` gesteuert wird, hängt diese Regel an einer
+CSS-Frage: `.btn` setzt `display: inline-flex`, und eine **Autorenregel schlägt das
+`[hidden] { display: none }` des Browsers** — bei gleicher Spezifität gewinnt die
+Autoren-Ebene, unabhängig von der Reihenfolge.
+
+Gemessen: `display: flex`, `offsetParent` gesetzt. Der Ausgang wäre sichtbar und klickbar
+gewesen, ohne dass ein Ziel existiert. Behoben mit `.onb-skip[hidden] { display: none; }` —
+derselbe Fall wie `.ms-photobtn[hidden]` in `komponenten.css`, den es dort seit Längerem gibt.
+
+**Ein übersprungener Abschnitt ist keine grüne Zeile.** Abschnitt 4 lief zunächst mal mit,
+mal nicht — je nachdem, ob die Abschnitte davor auf einem Bildschirm mit Pflichtfeld
+endeten. Er bekommt jetzt einen eigenen, frischen Rahmen.
+
 ### Gegenprobe
 
-Gegen den Stand vor dem Umbau (`git worktree` auf `b7017f3`, zweiter Server auf Port 8002):
-**11 rote Zeilen**, gegen den neuen Stand **null**. Damit die Bilanz ehrlich bleibt, bricht die
+Gegen den Stand vor dem Umbau (`git worktree` auf `b7017f3`, zweiter Server auf eigenem
+Port): **11 rote Zeilen**, gegen den neuen Stand **null**. Damit die Bilanz ehrlich bleibt, bricht die
 Probe ohne Gerüst nicht ab, sondern zählt die nicht messbaren Abschnitte als rot — ein Abbruch
 wäre kein roter Test.
 

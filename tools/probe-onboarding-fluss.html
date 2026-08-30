@@ -127,6 +127,31 @@ function ruhe(ms){ return new Promise(function(r){ setTimeout(r, ms || 400); });
     pruefe("die Uebergangsklasse ist weg", !danach.classList.contains("is-moving"));
 
     melde("");
+    melde("2b. Zwei Wechsel kurz hintereinander lassen nichts stehen");
+    // Der Randfall: Der transitionend-Listener des ERSTEN Uebergangs feuert moeglicherweise
+    // mitten im zweiten und raeumt dessen Hoehe ab. Bleibt danach eine Hoehe stehen oder
+    // passt sie nicht zum Inhalt, ist die Buehne abgeschnitten - lautlos.
+    doc = f.contentDocument;
+    var w0 = doc.querySelector(".onb-next");
+    if (w0 && !w0.classList.contains("is-off")) {
+      w0.click();
+      await ruhe(60);                       // mitten im ersten Uebergang
+      var w1 = f.contentDocument.querySelector(".onb-next");
+      if (w1 && !w1.classList.contains("is-off")) w1.click();
+      await ruhe(1200);
+      var wr = f.contentDocument.querySelector(".onb-stage-wrap");
+      pruefe("keine Hoehe bleibt stehen", !wr.getAttribute("style"),
+             'style="' + (wr.getAttribute("style") || "") + '"');
+      var st = f.contentDocument.querySelector(".onb-stage");
+      var hWrap = Math.round(wr.getBoundingClientRect().height);
+      var hStage = Math.round(st.getBoundingClientRect().height);
+      pruefe("die Buehne ist nicht abgeschnitten", Math.abs(hWrap - hStage) <= 2,
+             "Wrapper " + hWrap + " px, Buehne " + hStage + " px");
+    } else {
+      melde("  (Weiter gesperrt - Abschnitt uebersprungen)");
+    }
+
+    melde("");
     melde("3. Eine Kachel antippen ist KEIN Bildschirmwechsel");
     // Auf einen Bildschirm mit Kacheln gehen (Ziel/Bewegung haben welche).
     doc = f.contentDocument;
@@ -161,31 +186,77 @@ function ruhe(ms){ return new Promise(function(r){ setTimeout(r, ms || 400); });
     melde("4. Ein Klick auf Weiter ist genau EIN Schritt");
     melde("      (der Fuss ueberlebt den Wechsel - ein zweites Binden je Schritt waere hier");
     melde("       ein doppelter Handler und damit zwei Schritte auf einen Klick)");
-    doc = f.contentDocument;
+    // Eigener, frischer Rahmen. Im ersten haben die Abschnitte davor den Ablauf schon
+    // weit getrieben, und ob dort gerade ein Pflichtfeld offen ist, haengt vom Weg ab -
+    // der Abschnitt wurde mal gemessen und mal uebersprungen. Ein uebersprungener
+    // Abschnitt ist eine stille Luecke, keine gruene Zeile.
+    legeZustand();
+    var f4 = document.createElement("iframe");
+    f4.style.cssText = "width:390px;height:844px;border:0";
+    f4.src = "/index.html";
+    document.getElementById("host").appendChild(f4);
+    await warte(function(){ var d = f4.contentDocument; return d && d.querySelector(".app:not(.authing)"); }, 25000);
+    f4.contentDocument.querySelector('[data-tab="home"]').click();
+    await warte(function(){ return f4.contentDocument.querySelector('[data-action="recalc-goal"]'); }, 8000);
+    f4.contentDocument.querySelector('[data-action="recalc-goal"]').click();
+    await warte(function(){ return f4.contentDocument.querySelector(".onb-stage"); }, 8000);
+    await ruhe(500);
     // Gemessen wird aria-valuenow, NICHT der sichtbare Zaehler: Der laeuft 700 ms lang
     // animiert von der alten zur neuen Zahl (animateOnbProgress) und zeigt zwischendurch
     // Werte, die nie ein Schritt waren. aria-valuenow steht dagegen sofort richtig - es
-    // muss es auch, sonst laege der Screenreader 700 ms lang daneben.
-    function schrittJetzt(){
-      var b = f.contentDocument.querySelector(".onb-top .wg-progress-bar");
+    // muss es auch, sonst laege ein Screenreader 700 ms lang daneben.
+    function schritt4(){
+      var b = f4.contentDocument.querySelector(".onb-top .wg-progress-bar");
       return b ? +b.getAttribute("aria-valuenow") : -1;
     }
-    var vorher = schrittJetzt();
-    var w2 = doc.querySelector(".onb-next");
-    if (w2 && !w2.classList.contains("is-off")) {
-      w2.click();
-      await ruhe(600);
-      var nachher = schrittJetzt();
-      pruefe("genau ein Schritt weiter", nachher === vorher + 1, "von " + vorher + " nach " + nachher);
-      if (rahmenFehler.length) melde("  [diag] Fehler im Rahmen: " + rahmenFehler.join(" | "));
-      // Zurueck haengt am selben Geruest und muss ebenso genau einen Schritt zuruecknehmen.
-      f.contentDocument.querySelector(".onb-back").click();
-      await ruhe(600);
-      pruefe("Zurueck nimmt genau einen Schritt zurueck", schrittJetzt() === vorher,
-             "von " + nachher + " nach " + schrittJetzt());
-    } else {
-      melde("  (Weiter gesperrt - Abschnitt uebersprungen)");
+    var vorher = schritt4();
+    var w4 = f4.contentDocument.querySelector(".onb-next");
+    pruefe("Weiter ist am Anfang bedienbar", w4 && !w4.classList.contains("is-off"),
+           w4 ? w4.className : "kein Knopf");
+    w4.click();
+    await ruhe(600);
+    var nachher = schritt4();
+    pruefe("genau ein Schritt weiter", nachher === vorher + 1, "von " + vorher + " nach " + nachher);
+    f4.contentDocument.querySelector(".onb-back").click();
+    await ruhe(600);
+    pruefe("Zurueck nimmt genau einen Schritt zurueck", schritt4() === vorher,
+           "von " + nachher + " nach " + schritt4());
+    if (rahmenFehler.length) melde("  [diag] Fehler im Rahmen: " + rahmenFehler.join(" | "));
+    f4.remove();
+
+    melde("");
+    melde("5. Ohne Ziel gibt es keinen Ausgang");
+    // Die Regel steht so im Code (maybeStartOnboarding): Wer kein Ziel hat, kann die ersten
+    // Schritte nicht verlassen. Seit der Schliessen-Knopf IMMER gebaut und nur per [hidden]
+    // gesteuert wird, haengt sie an einer CSS-Frage: `.btn { display: inline-flex }` ist eine
+    // Autorenregel und schlaegt das [hidden] des Browsers. Ohne eigene Regel bliebe der
+    // Ausgang sichtbar und klickbar.
+    localStorage.setItem("wochenkueche_v1__test", JSON.stringify({
+      tab: "home", onboarded: false, goal: null, recipes: [], plans: {},
+      weights: [], weightGoals: {}, weekStats: {}
+    }));
+    localStorage.setItem("wochenkueche_profile_v1__test", JSON.stringify({ name: "Ohne Ziel", id: "lokal" }));
+    var f2 = document.createElement("iframe");
+    f2.style.cssText = "width:390px;height:844px;border:0";
+    f2.src = "/index.html";
+    document.getElementById("host").appendChild(f2);
+    await warte(function(){ var d = f2.contentDocument; return d && d.querySelector(".onb-stage"); }, 25000);
+    await ruhe(500);
+    var d5 = f2.contentDocument, skip = d5.querySelector(".onb-skip");
+    pruefe("der Schliessen-Knopf ist im DOM", !!skip);
+    if (skip) {
+      var disp = f2.contentWindow.getComputedStyle(skip).display;
+      pruefe("er ist wirklich unsichtbar", disp === "none",
+             "display: " + disp + " - [hidden] wird von .btn ueberstimmt");
+      pruefe("und nicht fokussierbar", skip.offsetParent === null,
+             "offsetParent ist gesetzt, der Knopf steht im Layout");
     }
+    // Der Fortschritt steht auf Schritt 0 im DOM, darf aber nicht zu sehen sein.
+    var top5 = d5.querySelector(".onb-top");
+    pruefe("der Fortschritt ist auf Schritt 1 verborgen",
+           top5 && f2.contentWindow.getComputedStyle(top5).display === "none",
+           top5 ? "display: " + f2.contentWindow.getComputedStyle(top5).display : "kein .onb-top");
+    f2.remove();
 
     melde("");
     melde(fehler === 0 ? "ERGEBNIS: alle Pruefungen gruen." : "ERGEBNIS: " + fehler + " ROT.");
