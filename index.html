@@ -5552,7 +5552,7 @@
     if (/^[01]{7}$/.test(s.d || "")) return { mask: s.d, tage: maskDays(s.d) };
     // Datensatz ohne Maske: die Woche WURDE geplant (days steht fest), nur an welchen Tagen
     // ist unbekannt. Sie als sieben Nullen zu zeichnen waere eine Aussage, die niemand
-    // erhoben hat - deshalb ein eigener, gestrichelter Zustand statt einer stillen Luege.
+    // erhoben hat - deshalb ein eigener, neutral gefuellter Zustand statt einer stillen Luege.
     return { mask: null, tage: Math.max(0, Math.round(Number(s.days) || 0)) };
   }
 
@@ -5594,6 +5594,7 @@
 
     // Sichtbar beschriftet sind Mo, Mi, Fr, So - sieben Kuerzel uebereinander waeren bei
     // 5 px Zeilenhoehe unlesbar. Der volle Wochentag steht in jeder Zeile, nur verborgen.
+    let heuteGesehen = false;
     const zeilen = DAYS.map((d, i) => {
       const zellen = daten.map((info, wi) => {
         const wkNr = wi + 1;
@@ -5606,7 +5607,12 @@
         // die Zeit vor der ersten Nutzung sehen absichtlich gleich aus; beides ist "keine
         // Aussage", und ein Unterschied waere eine erfundene.
         const heute = wk === heuteWk && i === heuteIdx;
-        return `<td class="${klasse}${heute ? " today" : ""}"${heute ? ` aria-current="date"` : ""}>${txt}</td>`;
+        // Roving tabindex: GENAU EINE Zelle ist per Tab erreichbar, in ihr bewegen die
+        // Pfeiltasten den Fokus (initKalender). 371 Tabstopps waeren das Gegenteil von
+        // barrierefrei - wer die Karte nur ueberspringen will, drueckte 371-mal Tab.
+        // Der Einstieg ist "heute"; gibt es das im gezeigten Jahr nicht, die erste Zelle.
+        if (heute) heuteGesehen = true;
+        return `<td class="${klasse}${heute ? " today" : ""}" tabindex="${heute ? 0 : -1}"${heute ? ` aria-current="date"` : ""}>${txt}</td>`;
       }).join("");
       return `<tr><th scope="row" class="kal-d">${i % 2 === 0 ? `<span aria-hidden="true">${d.short}</span>` : ""}<span class="visually-hidden">${d.label}</span></th>${zellen}</tr>`;
     }).join("");
@@ -5616,6 +5622,10 @@
     const satz = geplanteWochen
       ? `${year}: ${geplanteWochen} von ${wochen} Wochen geplant · ${geplanteTage} Tage`
       : `${year}: noch keine geplante Woche.`;
+
+    // Im Vorjahr (oder einem Jahr ohne heutigen Tag) traegt keine Zelle tabindex 0 - dann
+    // waere das Band per Tastatur gar nicht erreichbar. Die erste Zelle uebernimmt.
+    const zeilenFertig = heuteGesehen ? zeilen : zeilen.replace('tabindex="-1"', 'tabindex="0"');
 
     return `<div class="wg-col kal">
         <div class="wch-head">
@@ -5630,7 +5640,7 @@
           <table class="kal-grid" data-year="${year}">
             <caption class="visually-hidden">${esc(satz)}</caption>
             <thead><tr><td class="kal-corner"></td>${kopf}</tr></thead>
-            <tbody>${zeilen}</tbody>
+            <tbody>${zeilenFertig}</tbody>
           </table>
         </div>
         <p class="kal-tip" aria-live="polite"></p>
@@ -5668,9 +5678,44 @@
         : "keine Daten";
       tip.textContent = `KW ${wkNr} · ${tag.label} ${year} · ${zustand}`;
     };
+    // Fokus zeigt denselben Tipp wie Klick und Hover - sonst haette die Tastatur zwar
+    // einen Weg in die Tabelle, aber keine Antwort darin (gleiches Muster wie
+    // initRueckblick und initWeightChart).
     tab.querySelectorAll("td.kal-c").forEach(td => {
-      td.addEventListener("click", () => zeig(td));
+      td.addEventListener("click", () => { setzeEinstieg(td); zeig(td); });
       td.addEventListener("mouseenter", () => zeig(td));
+      td.addEventListener("focus", () => zeig(td));
+    });
+
+    // Der Tabstopp wandert mit: Wer die Karte verlaesst und zurueckkommt, landet dort,
+    // wo er war - nicht wieder am Anfang.
+    function setzeEinstieg(td) {
+      const alt = tab.querySelector('td.kal-c[tabindex="0"]');
+      if (alt && alt !== td) alt.tabIndex = -1;
+      td.tabIndex = 0;
+    }
+
+    // Pfeiltasten im Gitter. Ohne sie waere die Zelle zwar fokussierbar, aber nur EINE -
+    // die Tastatur haette Zugang zu genau einem Tag des Jahres.
+    tab.addEventListener("keydown", e => {
+      const td = e.target;
+      if (!td.classList || !td.classList.contains("kal-c")) return;
+      const zeile = td.parentElement, koerper = zeile.parentElement;
+      let z = zeile.sectionRowIndex, sp = td.cellIndex;
+      const letzteSp = zeile.cells.length - 1;
+      if (e.key === "ArrowRight") sp++;
+      else if (e.key === "ArrowLeft") sp--;
+      else if (e.key === "ArrowDown") z++;
+      else if (e.key === "ArrowUp") z--;
+      else if (e.key === "Home") sp = 1;
+      else if (e.key === "End") sp = letzteSp;
+      else return;
+      if (z < 0 || z >= koerper.rows.length || sp < 1 || sp > letzteSp) return;
+      const ziel = koerper.rows[z].cells[sp];
+      if (!ziel) return;
+      e.preventDefault();          // sonst scrollt die Seite unter der Bewegung weg
+      setzeEinstieg(ziel);
+      ziel.focus();
     });
   }
 

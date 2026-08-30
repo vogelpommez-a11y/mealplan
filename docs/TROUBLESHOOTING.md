@@ -154,7 +154,8 @@ jeweils, worum es geht. **Nicht die ganze Datei lesen** — sie ist rund 286 KB 
 | 140 | Hooks mit relativem Pfad: ein `cd` legt das ganze Prüfsystem still |
 | 141 | Die Zutat, die in der Anleitung nie vorkommt |
 | 142 | Ein fehlender Zeilenumbruch am Dateiende legt zwei Prüfstände lahm |
-| 143 | Die Karte schneidet ab, statt überzulaufen — und der Layout-Prüfstand sieht nichts |
+| 143 | Die Zutat ohne Menge — und die drei Stellen, an denen sie schiefging |
+| 144 | Die Karte schneidet ab, statt überzulaufen — und der Layout-Prüfstand sieht nichts |
 
 <!-- REGISTER-ENDE -->
 
@@ -5456,7 +5457,7 @@ Datenform zwei zulässige Gestalten hat, ist die bequemere irgendwann die, an de
 vorbeiläuft.
 
 
-## 143. Die Karte schneidet ab, statt überzulaufen — und der Layout-Prüfstand sieht nichts
+## 144. Die Karte schneidet ab, statt überzulaufen — und der Layout-Prüfstand sieht nichts
 
 **Aufgefallen am:** 30.08.2026, beim Fortschritt-Kalender (Paket 6, B7).
 

@@ -48,7 +48,7 @@ Erhoben aus den Abschnittsmarken im Code, nicht von Hand gepflegt.
 | css/basis.css | Header | 20-224 | 205 |
 | css/basis.css | Section head | 225-230 | 6 |
 | css/basis.css | Buttons | 231-298 | 68 |
-| css/basis.css | Week grid | 299-997 | 699 |
+| css/basis.css | Week grid | 299-1007 | 709 |
 | css/komponenten.css | Recipe grid | 8-261 | 254 |
 | css/komponenten.css | Meal-Ansicht (openMealSheet) | 262-451 | 190 |
 | css/komponenten.css | Empty state | 452-457 | 6 |
@@ -103,46 +103,46 @@ Erhoben aus den Abschnittsmarken im Code, nicht von Hand gepflegt.
 | index.html | Merkmale: Anzeige (Nur-Lese-Zweig) und Eingabe (Bearbeiten-Zweig) | 4618-4652 | 35 |
 | index.html | Handy-Karussell (Wochenplan, Wochenziele, Rechner) | 4653-5059 | 407 |
 | index.html | „Ziele <Jahr>": Gewichtsverlauf als Jahresdiagramm | 5060-5517 | 458 |
-| index.html | Fortschritt-Kalender (Paket 6, B7) | 5518-6372 | 855 |
-| index.html | Zurueck-Taste (D5) | 6373-6448 | 76 |
-| index.html | Modal | 6449-6533 | 85 |
-| index.html | Wiegen | 6534-6712 | 179 |
-| index.html | Ziel von Hand justieren (B4) | 6713-6825 | 113 |
-| index.html | Bewegung: FLIP am Rechner, Bottom-Sheet am Handy | 6826-6971 | 146 |
-| index.html | Nur-Lese-Zweig: keine Eingabefelder, kein Autosave, kein Loeschen | 6972-7050 | 79 |
-| index.html | Bearbeiten-Zweig | 7051-7124 | 74 |
-| index.html | Autosave: input mutiert nur lokal, change/blur committen, 1500ms Leerlauf-Timer als Netz | 7125-7332 | 208 |
-| index.html | Foto: waehlen/aendern/entfernen, aktualisiert nur die offene Ansicht (photoDoneCb) | 7333-7361 | 29 |
-| index.html | Zutaten-Zeilen (Name, Menge, Naehrwerte pro 100 g, Barcode-Scan) | 7362-7567 | 206 |
-| index.html | Zutaten-Suche (ARIA-Combobox auf dem Namensfeld) | 7568-7897 | 330 |
-| index.html | Picker | 7898-8237 | 340 |
-| index.html | Shopping list | 8238-8449 | 212 |
-| index.html | Vorkochen (C3) | 8450-8651 | 202 |
-| index.html | Actions | 8652-8736 | 85 |
-| index.html | Rechtstexte (Impressum / Datenschutz) | 8737-8769 | 33 |
-| index.html | Auto-Wochenplaner (D2) | 8770-8876 | 107 |
-| index.html | Wiederholung: was zuletzt dran war, rutscht nach hinten | 8877-8895 | 19 |
-| index.html | Passt die Groesse zum Slot? | 8896-8902 | 7 |
-| index.html | In der Gruppe: was zu MEHR Profilen passt, kommt weiter nach vorn | 8903-9280 | 378 |
-| index.html | Toast | 9281-9290 | 10 |
-| index.html | Toast mit Rueckgaengig (Paket B1) | 9291-9326 | 36 |
-| index.html | Event delegation | 9327-9526 | 200 |
-| index.html | Drag & drop between slots | 9527-9588 | 62 |
-| index.html | Foto per Drag & Drop auf eine Meal-Karte (Desktop) | 9589-9620 | 32 |
-| index.html | Foto per Strg+V auf eine Meal-Karte einfuegen | 9621-9652 | 32 |
-| index.html | Profil (lokal) & Teilen | 9653-9699 | 47 |
-| index.html | Kontowechsel auf demselben Geraet | 9700-10294 | 595 |
-| index.html | Kalorienrechner (Baustein 1: Tages-/Wochenbedarf → state.goal) | 10295-10385 | 91 |
-| index.html | Wiegen: speichern, loeschen, ans Ziel koppeln | 10386-10459 | 74 |
-| index.html | Erste Schritte (Onboarding) | 10460-11171 | 712 |
-| index.html | Erscheinungsbild | 11172-11198 | 27 |
-| index.html | Einstellungen | 11199-11324 | 126 |
-| index.html | Einstieg (D1b) | 11325-11400 | 76 |
-| index.html | Cloud-Anmeldung (Firebase) | 11401-11960 | 560 |
-| index.html | Gemeinsam planen (Gruppe) | 11961-12934 | 974 |
-| index.html | Teilen ueber den nativen Dialog des Geraets (Web Share API) | 12935-12968 | 34 |
-| index.html | Einkaufsliste als PDF (Paket B3) | 12969-13208 | 240 |
-| index.html | Boot | 13209-13227 | 19 |
+| index.html | Fortschritt-Kalender (Paket 6, B7) | 5518-6417 | 900 |
+| index.html | Zurueck-Taste (D5) | 6418-6493 | 76 |
+| index.html | Modal | 6494-6578 | 85 |
+| index.html | Wiegen | 6579-6757 | 179 |
+| index.html | Ziel von Hand justieren (B4) | 6758-6870 | 113 |
+| index.html | Bewegung: FLIP am Rechner, Bottom-Sheet am Handy | 6871-7016 | 146 |
+| index.html | Nur-Lese-Zweig: keine Eingabefelder, kein Autosave, kein Loeschen | 7017-7095 | 79 |
+| index.html | Bearbeiten-Zweig | 7096-7169 | 74 |
+| index.html | Autosave: input mutiert nur lokal, change/blur committen, 1500ms Leerlauf-Timer als Netz | 7170-7377 | 208 |
+| index.html | Foto: waehlen/aendern/entfernen, aktualisiert nur die offene Ansicht (photoDoneCb) | 7378-7406 | 29 |
+| index.html | Zutaten-Zeilen (Name, Menge, Naehrwerte pro 100 g, Barcode-Scan) | 7407-7612 | 206 |
+| index.html | Zutaten-Suche (ARIA-Combobox auf dem Namensfeld) | 7613-7942 | 330 |
+| index.html | Picker | 7943-8282 | 340 |
+| index.html | Shopping list | 8283-8494 | 212 |
+| index.html | Vorkochen (C3) | 8495-8696 | 202 |
+| index.html | Actions | 8697-8781 | 85 |
+| index.html | Rechtstexte (Impressum / Datenschutz) | 8782-8814 | 33 |
+| index.html | Auto-Wochenplaner (D2) | 8815-8921 | 107 |
+| index.html | Wiederholung: was zuletzt dran war, rutscht nach hinten | 8922-8940 | 19 |
+| index.html | Passt die Groesse zum Slot? | 8941-8947 | 7 |
+| index.html | In der Gruppe: was zu MEHR Profilen passt, kommt weiter nach vorn | 8948-9325 | 378 |
+| index.html | Toast | 9326-9335 | 10 |
+| index.html | Toast mit Rueckgaengig (Paket B1) | 9336-9371 | 36 |
+| index.html | Event delegation | 9372-9571 | 200 |
+| index.html | Drag & drop between slots | 9572-9633 | 62 |
+| index.html | Foto per Drag & Drop auf eine Meal-Karte (Desktop) | 9634-9665 | 32 |
+| index.html | Foto per Strg+V auf eine Meal-Karte einfuegen | 9666-9697 | 32 |
+| index.html | Profil (lokal) & Teilen | 9698-9744 | 47 |
+| index.html | Kontowechsel auf demselben Geraet | 9745-10339 | 595 |
+| index.html | Kalorienrechner (Baustein 1: Tages-/Wochenbedarf → state.goal) | 10340-10430 | 91 |
+| index.html | Wiegen: speichern, loeschen, ans Ziel koppeln | 10431-10504 | 74 |
+| index.html | Erste Schritte (Onboarding) | 10505-11216 | 712 |
+| index.html | Erscheinungsbild | 11217-11243 | 27 |
+| index.html | Einstellungen | 11244-11369 | 126 |
+| index.html | Einstieg (D1b) | 11370-11445 | 76 |
+| index.html | Cloud-Anmeldung (Firebase) | 11446-12005 | 560 |
+| index.html | Gemeinsam planen (Gruppe) | 12006-12979 | 974 |
+| index.html | Teilen ueber den nativen Dialog des Geraets (Web Share API) | 12980-13013 | 34 |
+| index.html | Einkaufsliste als PDF (Paket B3) | 13014-13253 | 240 |
+| index.html | Boot | 13254-13272 | 19 |
 | lib/barcode.js | Barcode-Scan (Open Food Facts) | 14-153 | 140 |
 | lib/pdf.js | PDF selbst erzeugen (kein window.print, sandbox-sicher) | 14-38 | 25 |
 | lib/pdf.js | Marken-Kopf fuer die PDFs (Logo, "PADDY'S MEALPLAN", Slogan) | 39-106 | 68 |
@@ -266,7 +266,7 @@ Verbraucher.
 | __onCloudAuth | index.html | — | nein |
 | __onCloudWatchError | index.html | — | nein |
 | noteError | index.html | — | nein |
-| onerror | tools/probe-fortschritt.html | — | nein |
+| onerror | tools/probe-fortschritt.html, tools/sicht-dunkel.html, tools/sicht-hell.html | — | nein |
 
 ## 10. Pruefabdeckung
 
@@ -311,7 +311,7 @@ _keine_
 | README.md | 46 | 1990 |
 | SECURITY.md | 71 | 3006 |
 | css/CLAUDE.md | 92 | 4167 |
-| css/basis.css | 997 | 72754 |
+| css/basis.css | 1007 | 73558 |
 | css/komponenten.css | 1107 | 87302 |
 | css/mobil.css | 863 | 56353 |
 | css/tokens.css | 221 | 11084 |
@@ -322,15 +322,15 @@ _keine_
 | data/ikonen.js | 76 | 8630 |
 | data/rechtstexte.js | 163 | 27890 |
 | docs/ABDECKUNG.md | 186 | 11050 |
-| docs/ARCHITECTURES.md | 2764 | 173601 |
+| docs/ARCHITECTURES.md | 2775 | 174377 |
 | docs/DESIGN.md | 377 | 13550 |
 | docs/MODULE.md | — | — (erzeugt) |
-| docs/PRODUCT.md | 1458 | 79146 |
+| docs/PRODUCT.md | 1458 | 79147 |
 | docs/RUNBOOK.md | 167 | 5665 |
 | docs/SECURITY.md | 356 | 19197 |
 | docs/STORE.md | 246 | 11876 |
-| docs/TESTING.md | 3505 | 207044 |
-| docs/TROUBLESHOOTING.md | 5495 | 315254 |
+| docs/TESTING.md | 3519 | 208012 |
+| docs/TROUBLESHOOTING.md | 5496 | 315335 |
 | docs/module-index.json | — | — (erzeugt) |
 | firestore.rules | 416 | 23714 |
 | img/apple-touch-icon.png | — | 35163 |
@@ -408,7 +408,7 @@ _keine_
 | img/toast.webp | — | 15252 |
 | img/waffle.webp | — | 33496 |
 | img/wrap.webp | — | 29160 |
-| index.html | 13227 | 818546 |
+| index.html | 13272 | 820907 |
 | lib/barcode.js | 153 | 8354 |
 | lib/basis.js | 21 | 836 |
 | lib/pdf.js | 241 | 13120 |
@@ -425,7 +425,7 @@ _keine_
 | tools/karte.py | 605 | 24255 |
 | tools/meal-bilder.py | 417 | 20204 |
 | tools/mobilprobe-rezeptbuch.html | 146 | 8092 |
-| tools/probe-fortschritt.html | 210 | 10824 |
+| tools/probe-fortschritt.html | 210 | 10834 |
 | tools/pruefstand-autoplaner.py | 1160 | 63981 |
 | tools/pruefstand-cache-reset.py | 202 | 8848 |
 | tools/pruefstand-einkauf-gruppe.py | 305 | 15777 |
@@ -439,7 +439,7 @@ _keine_
 | tools/pruefstand-gruppenlimit.py | 243 | 11367 |
 | tools/pruefstand-jahresumschalter.py | 234 | 9867 |
 | tools/pruefstand-kalender-layout.py | 252 | 11044 |
-| tools/pruefstand-kalender.py | 294 | 13250 |
+| tools/pruefstand-kalender.py | 370 | 17605 |
 | tools/pruefstand-katalog-plan.py | 534 | 25271 |
 | tools/pruefstand-kontowechsel.py | 215 | 9393 |
 | tools/pruefstand-mengenanzeige.py | 262 | 12448 |
@@ -460,6 +460,8 @@ _keine_
 | tools/pruefstand_lauf.py | 113 | 4894 |
 | tools/quelle.py | 180 | 7137 |
 | tools/rezept-makros.py | 283 | 12324 |
+| tools/sicht-dunkel.html | 212 | 10951 |
+| tools/sicht-hell.html | 212 | 10950 |
 | tools/smoke-mit-daten.py | 145 | 8236 |
 | tools/test-meal-bilder.py | 144 | 7529 |
 | tools/wartung-check.py | 493 | 22371 |

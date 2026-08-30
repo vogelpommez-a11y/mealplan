@@ -627,19 +627,29 @@
   .kal-d, .kal-corner { width: 22px; }
   .kal-d { text-align: right; padding-right: 3px; font-size: 9.5px; font-weight: 600; color: var(--text-muted); line-height: 1; }
   .kal-mon { font-size: 9.5px; font-weight: 600; color: var(--text-muted); text-align: left; padding-bottom: 3px; line-height: 1; letter-spacing: .02em; }
-  /* Hoehe entkoppelt von der Breite: die Spaltenbreite ergibt sich aus der Tabelle, die
-     Zeilenhoehe darf am breiten Bildschirm nicht mitwachsen - sonst waere das Band dort
-     ein Block statt eines Streifens. */
-  .kal-c { height: clamp(5px, 1.35vw, 12px); padding: 0; border-radius: 2px; }
+  /* Die Zeilenhoehe folgt der Spaltenbreite, damit die Zellen QUADRATISCH sind.
+     `aspect-ratio` hilft hier nicht (auf td unzuverlaessig), also wird die Breite
+     nachgerechnet: je Spalte bleibt (Viewport - Seitenrand - Kartenpolster - Zeilenkopf
+     - Abstaende) / 53, das ist rund 1,85vw - 2,2px. Mit einer festen Hoehe daneben
+     standen die Zellen hochkant und das Band las sich als Balkendiagramm statt als
+     Kalender - im Screenshot gesehen, nicht gerechnet. */
+  .kal-c { height: clamp(4px, calc(1.85vw - 2.2px), 20px); padding: 0; border-radius: 2px; }
   /* Geplant traegt Farbe UND Flaeche, leer traegt Kante - der Zustand haengt nie an der
      Farbe allein. Ohne Datensatz bleibt die Zelle transparent: Zukunft und die Zeit vor
      der ersten Nutzung sind beide "keine Aussage". */
   .kal-c.on { background: linear-gradient(180deg, var(--accent), var(--accent-strong)); }
   .kal-c.off { background: var(--surface); border: 1px solid var(--border); }
-  /* Woche geplant, Tage unbekannt (vor dem 29.08.2026 archiviert, kein `d`). Gestrichelt
-     statt gefuellt: die App weiss, DASS geplant wurde, aber nicht an welchen Tagen. */
-  .kal-c.unk { border: 1px dashed var(--border-strong); }
+  /* Woche geplant, Tage unbekannt (vor dem 29.08.2026 archiviert, kein `d`). Neutral
+     GEFUELLT, nicht gestrichelt: Bei rund 5 px Zellbreite ist eine Strichlung schlicht
+     unsichtbar - die Woche verschwand damit optisch, obwohl geplant wurde. Grau statt
+     Akzent, damit sie nicht als "geplant" gelesen wird; den Unterschied benennt die
+     Tipp-Zeile ("Tage nicht aufgezeichnet"). */
+  .kal-c.unk { background: var(--border-strong); }
   .kal-c.today { box-shadow: 0 0 0 1.5px var(--text); }
+  /* Der Fokusring muss AUSSERHALB der Zelle liegen: eine 5-px-Zelle hat innen keinen
+     Platz fuer einen sichtbaren Ring. outline-offset schafft ihn, ohne das Raster zu
+     verschieben. Gleiche Optik wie .rueck-bar:focus-visible. */
+  .kal-c:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
   .kal-tip { min-height: 16px; margin: 8px 0 0; font-size: 12px; color: var(--text-muted); }
 
   /* An Trainingstagen bekommt die "Heute"-Karte denselben blauen Rand + Kopfstreifen wie

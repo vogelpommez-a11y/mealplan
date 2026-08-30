@@ -14,7 +14,7 @@ Die vier Aussagen, auf die es ankommt
    Sinn von `pruneWeeks()`, und ein Kalender, der die aktuelle Woche verschweigt, waere
    fuer den taeglichen Gebrauch wertlos.
 2. **Eine Woche mit Datensatz, aber ohne Maske** (vor dem 29.08.2026 archiviert) wird NICHT
-   als sieben leere Tage gezeichnet. Sie bekommt einen eigenen, gestrichelten Zustand, und
+   als sieben leere Tage gezeichnet. Sie bekommt einen eigenen, neutral gefuellten Zustand, und
    `dayStreak()` bricht an ihr ab statt sie als Nullen zu lesen.
 3. **Das heutige Bit bricht die Serie nicht.** Wer am Vormittag noch nicht geplant hat,
    verliert seine Serie nicht - die Zaehlung beginnt dann bei gestern.
@@ -87,6 +87,10 @@ var DAYS = [
   { key: "sun", label: "Sonntag", short: "So" }
 ];
 var state = { plans: {}, weekStats: {}, weights: [], weightGoals: {}, viewYear: null, goal: { kcal: 2000 } };
+// initKalender() sucht ueber view - hier ein echter Knoten im Dokument, damit focus()
+// wirklich fokussiert. Ein losgeloester Knoten nimmt keinen Fokus an.
+var view = document.createElement("div");
+document.body.appendChild(view);
 function esc(s){ return String(s).replace(/[&<>"']/g, function(c){
   return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]; }); }
 // Ein Tag gilt als beplant, wenn im Plan an diesem Tag ueberhaupt etwas mit Naehrwerten
@@ -96,6 +100,7 @@ function dayNutOf(pl, key){ return pl && pl[key] ? { kcal: 500 } : null; }
 function hasNut(n){ return !!(n && n.kcal); }
 function weightYears(){ return ["2025", "2026"]; }
 function activeYear(){ return String(state.viewYear || new Date().getFullYear()); }
+var J_VOR = new Date().getFullYear() - 1;
 melde("Attrappen geladen.");
 </script>
 
@@ -148,7 +153,7 @@ melde("2. Woche mit Datensatz, aber ohne Maske: eigener Zustand statt sieben Nul
 state.plans = {};
 state.weekStats = {}; state.weekStats[wkVon(tagVor(21))] = { kcal: 1900, days: 5, hit: 3 };
 html = kalenderHtml();
-pruefe("sieben gestrichelte Zellen", (html.match(/class="kal-c unk/g) || []).length === 7,
+pruefe("sieben eigene Zellen fuer die Woche ohne Maske", (html.match(/class="kal-c unk/g) || []).length === 7,
        (html.match(/class="kal-c unk/g) || []).length + " gefunden");
 pruefe("keine als 'nichts geplant' behauptete Zelle in dieser Woche",
        (html.match(/class="kal-c on/g) || []).length === 0);
@@ -225,6 +230,74 @@ var n8 = dayStreak();
 pruefe("Serie bleibt endlich und <= 400", n8 > 0 && n8 <= 400, "gezaehlt: " + n8);
 
 melde("");
+melde("9. Das Band ist mit der Tastatur bedienbar");
+// Ein Band mit 371 Tabstopps waere das Gegenteil von barrierefrei: Wer die Karte nur
+// ueberspringen will, drueckte 371-mal Tab. Also genau EIN Einstieg, Pfeiltasten darin.
+state.plans = {}; state.weekStats = {};
+state.plans[curWk] = planMit([curIdx]);
+view.innerHTML = kalenderHtml();
+initKalender();
+var zellen = view.querySelectorAll("td.kal-c");
+var einstiege = view.querySelectorAll('td.kal-c[tabindex="0"]');
+pruefe("genau ein Tabstopp im ganzen Band", einstiege.length === 1,
+       einstiege.length + " Zellen mit tabindex 0 bei " + zellen.length + " Zellen");
+pruefe("der Einstieg ist HEUTE", einstiege[0] && einstiege[0].classList.contains("today"),
+       einstiege[0] ? einstiege[0].className : "-");
+
+// Pfeiltasten. Der Start ist bewusst eine feste Zelle in der Mitte des Bandes und NICHT
+// "heute": Faellt heute auf einen Sonntag, ist das die letzte Zeile - dann geht ArrowDown
+// zu Recht nicht, und der Test misst den Wochentag statt die Bedienung. Genau darauf ist
+// die erste Fassung am 30.08. (einem Sonntag) hereingefallen.
+var koerper = view.querySelector("tbody");
+function tasteAuf(el, k){ el.focus(); el.dispatchEvent(new KeyboardEvent("keydown", { key: k, bubbles: true })); }
+function aktiv(){ return view.ownerDocument.activeElement; }
+
+var mitte = koerper.rows[2].cells[5];
+tasteAuf(mitte, "ArrowRight");
+pruefe("ArrowRight geht eine Woche weiter", aktiv().cellIndex === 6 && aktiv().parentElement.sectionRowIndex === 2,
+       "Zeile " + aktiv().parentElement.sectionRowIndex + ", Spalte " + aktiv().cellIndex);
+tasteAuf(koerper.rows[2].cells[5], "ArrowDown");
+pruefe("ArrowDown geht einen Wochentag tiefer", aktiv().parentElement.sectionRowIndex === 3 && aktiv().cellIndex === 5,
+       "Zeile " + aktiv().parentElement.sectionRowIndex + ", Spalte " + aktiv().cellIndex);
+tasteAuf(koerper.rows[2].cells[5], "ArrowUp");
+pruefe("ArrowUp geht einen Wochentag zurueck", aktiv().parentElement.sectionRowIndex === 1);
+tasteAuf(koerper.rows[2].cells[5], "Home");
+pruefe("Home springt in die erste Woche", aktiv().cellIndex === 1);
+tasteAuf(koerper.rows[2].cells[5], "End");
+pruefe("End springt in die letzte Woche", aktiv().cellIndex === koerper.rows[2].cells.length - 1);
+
+pruefe("der Tabstopp wandert mit",
+       view.querySelectorAll('td.kal-c[tabindex="0"]').length === 1 &&
+       view.querySelector('td.kal-c[tabindex="0"]') === aktiv());
+
+// Der Tipp muss auf den FOKUS antworten - sonst gaebe es einen Weg hinein, aber keine
+// Antwort darin. Vorher leeren, sonst misst die Zeile den Rest eines Mausereignisses.
+view.querySelector(".kal-tip").textContent = "";
+koerper.rows[1].cells[9].focus();
+pruefe("der Tipp folgt dem Fokus", /KW \d+ · \w+/.test(view.querySelector(".kal-tip").textContent),
+       "'" + view.querySelector(".kal-tip").textContent + "'");
+
+// An den Raendern darf nichts passieren - und vor allem nichts abstuerzen.
+var links = koerper.rows[0].cells[1];
+tasteAuf(links, "ArrowLeft");
+pruefe("am linken Rand bleibt der Fokus stehen", aktiv() === links);
+tasteAuf(koerper.rows[0].cells[1], "ArrowUp");
+pruefe("in der obersten Zeile bleibt er ebenfalls", aktiv() === koerper.rows[0].cells[1]);
+var rechts = koerper.rows[0].cells[koerper.rows[0].cells.length - 1];
+tasteAuf(rechts, "ArrowRight");
+pruefe("am rechten Rand bleibt der Fokus stehen", aktiv() === rechts);
+
+melde("");
+melde("10. Ein Jahr ohne heutigen Tag bleibt erreichbar");
+// Im Vorjahr traegt keine Zelle "today" - ohne Nachbesserung haette das Band dort gar
+// keinen Tabstopp und waere per Tastatur unerreichbar.
+state.viewYear = J_VOR;
+view.innerHTML = kalenderHtml();
+var e2 = view.querySelectorAll('td.kal-c[tabindex="0"]');
+pruefe("auch dort genau ein Tabstopp", e2.length === 1, e2.length + " gefunden");
+state.viewYear = heute.getFullYear();
+
+melde("");
 melde(fehler === 0 ? "ERGEBNIS: alle Pruefungen gruen."
                    : "ERGEBNIS: " + fehler + " Pruefung(en) ROT.");
 melde("FEHLERZAHL=" + fehler);
@@ -240,12 +313,15 @@ def lauf(gegenprobe=False):
     wochen += schneide(text, "  function weekNumOf(s)", "  // Bewusst `function` und keine const-Arrow", "weekMonday")
     # Kalender und Tages-Serie.
     kal = schneide(text, "  const STREAK_MIN_DAYS = 5;", "  function rueckblickHtml() {", "dayStreak")
-    kal += schneide(text, "  // ---------- Fortschritt-Kalender", "  // Werte per Tipp statt per Titel-Attribut", "kalenderHtml")
+    # Bis EINSCHLIESSLICH initKalender(): Abschnitt 9 fuehrt die Tastatur im echten DOM.
+    kal += schneide(text, "  // ---------- Fortschritt-Kalender", "  // Zeichnet das Diagramm in der gemessenen Breite", "kalenderHtml")
 
     if "function weekMonday" not in wochen or "function weekMaskOf" not in wochen:
         raise SystemExit("ABBRUCH: Wochenhelfer stecken nicht im Ausschnitt.")
     if "function kalenderHtml" not in kal or "function dayStreak" not in kal:
         raise SystemExit("ABBRUCH: kalenderHtml()/dayStreak() stecken nicht im Ausschnitt.")
+    if "function initKalender" not in kal:
+        raise SystemExit("ABBRUCH: initKalender() steckt nicht im Ausschnitt.")
 
     if gegenprobe:
         neu, n = re.subn(r"  function kalWoche\(wk\) \{.*?\n  \}\n", NAIV, kal, count=1, flags=re.S)

@@ -1064,7 +1064,7 @@ Monate, die Tagesserie macht die laufende Woche sichtbar, in der man gerade stec
 Reiter „Fortschritt" kennt je Tag genau **ein Bit**: geplant oder nicht. Keine
 Intensitätsabstufung, keine Farbskala nach Kalorien — die App plant, sie bewertet nicht, wie
 viel geplant wurde. Wochen, deren Tage nicht aufgezeichnet wurden (alles vor dem 29.08.2026),
-erscheinen gestrichelt statt leer: Sie wurden geplant, nur an welchen Tagen weiß niemand mehr.
+erscheinen neutral grau statt leer: Sie wurden geplant, nur an welchen Tagen weiß niemand mehr.
 Ein leeres Feld hieße dort „nichts getan" — und das wäre schlicht falsch.
 
 **Der Rückblick gehört zum Konto, nicht zum Gerät** (seit 25.08.2026). Bis dahin lag das

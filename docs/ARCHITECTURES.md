@@ -934,7 +934,7 @@ TAB_ORDER = ["home", "plan", "recipes", "progress"]
 * `renderHome()` — `appHeroHtml()` + `weekNutHtml()`
 * `renderPlan(sameTab)`
 * `renderRecipes()`
-* `renderProgress()` — `rueckblickHtml()` + `weightHtml()` (seit 13.08.2026, B8)
+* `renderProgress()` — `rueckblickHtml()` + `kalenderHtml()` + `weightHtml()` (seit 30.08.2026, B7)
 
 `renderProgress()` braucht kein `initCarousel()` (kein `.wg-cols`), aber `initWeightChart()`
 und `initRueckblick()` — beide messen bzw. binden erst nach dem Einsetzen des Markups.
@@ -1322,7 +1322,7 @@ als `.visually-hidden` daneben.
 | Rückgabe | Bedeutung | Darstellung |
 |---|---|---|
 | `{ mask: "1101100", tage: 4 }` | Tage bekannt — aus `state.plans` (laufende Wochen, über `weekMaskOf()`) oder aus `weekStats[..].d` | gefüllt bzw. leer mit Kante |
-| `{ mask: null, tage: n }` | Woche geplant, Tage unbekannt (vor dem 29.08.2026 archiviert, kein `d`) | gestrichelt |
+| `{ mask: null, tage: n }` | Woche geplant, Tage unbekannt (vor dem 29.08.2026 archiviert, kein `d`) | neutral gefüllt (grau) |
 | `null` | über die Woche ist nichts bekannt | transparent, ohne Kante |
 
 Die mittlere Zeile ist die inhaltlich wichtige: Eine solche Woche als sieben Nullen zu
@@ -1338,6 +1338,17 @@ unangetastet: andere Einheit, andere Aussage, und die Flamme gehört ihr allein.
 
 Die Doppelung zwischen beiden Zählweisen wird über den geteilten Maskenzugriff vermieden,
 **nicht** über gemeinsame Streak-Logik — die Regeln sind verschieden.
+
+**Tastatur: ein Tabstopp, Pfeiltasten darin** (roving `tabindex`). Genau eine Zelle trägt
+`tabindex="0"` — bevorzugt *heute*, im Vorjahr die erste; die übrigen `-1`. `initKalender()`
+bewegt den Fokus mit den Pfeiltasten sowie `Home`/`End` und zieht den Tabstopp mit, sodass
+man beim Zurückkommen dort landet, wo man war. Der `focus`-Handler zeigt denselben Tipp wie
+Klick und Hover.
+
+371 fokussierbare Zellen wären das Gegenteil von barrierefrei: Wer die Karte nur
+überspringen will, drückte 371-mal Tab. Umgekehrt wäre eine rein mausbediente Zelle für
+sehende Tastaturnutzer eine echte Lücke — die Tabellensemantik hilft nur, wer ohnehin einen
+Screenreader benutzt. Gemessen in `tools/pruefstand-kalender.py`, Abschnitt 9 und 10.
 
 ⚠️ **Die Kartenschale `.wg-col` hat `overflow: hidden`.** Ein zu breites Band läuft deshalb
 nicht über das Dokument, es wird lautlos abgeschnitten. Wer Layoutfehler am Dokument misst,

@@ -124,7 +124,7 @@ document.getElementById("host").appendChild(f);
       return tr.cells[kwNr] && tr.cells[kwNr].classList.contains("on");
     }).length;
     pruefe("laufende Woche ist gefuellt (7 Tage)", spalte === 7, spalte + " von 7 Zellen");
-    pruefe("Altwoche ohne Maske ist gestrichelt", tab.querySelectorAll("td.kal-c.unk").length === 7,
+    pruefe("Altwoche ohne Maske hat ihren eigenen Zustand", tab.querySelectorAll("td.kal-c.unk").length === 7,
            tab.querySelectorAll("td.kal-c.unk").length + " gestrichelte Zellen");
     pruefe("heute ist markiert", tab.querySelectorAll("td.kal-c.today").length === 1);
 

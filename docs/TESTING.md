@@ -3435,6 +3435,20 @@ werden damit rot; alles Übrige bleibt grün.
   und war grün, während die laufende Woche leer war. Jetzt zählt sie die Spalte dieser Woche.
 * Alle Daten entstehen relativ zu *heute*. Ein fest eingetragenes Datum wäre ab morgen eine
   andere Probe, und der Kalender ist die eine Ansicht, in der das Datum die Aussage ist.
+* **Und genau daran ist der Tastatur-Abschnitt zuerst gescheitert:** Er startete die
+  Pfeilprobe auf der *heutigen* Zelle. Am 30.08.2026 — einem Sonntag — ist das die letzte
+  Zeile, `ArrowDown` geht dort zu Recht nicht, und der Test maß den Wochentag statt die
+  Bedienung. Er startet jetzt auf einer festen Zelle in der Mitte des Bandes. **Relativ zu
+  heute rechnen heißt nicht, von heute aus zu messen.**
+
+Die Abschnitte 9 und 10 führen die Tastatur im echten DOM (`view` ist ein Knoten *im*
+Dokument — ein losgelöstes Element nimmt keinen Fokus an) und prüfen: genau ein Tabstopp,
+Pfeiltasten und `Home`/`End`, wanderndender Tabstopp, Tipp am Fokus, die drei Ränder, und
+dass auch ein Jahr ohne heutigen Tag einen Einstieg hat.
+
+Eine Zeile davon war kurz **grün aus dem falschen Grund**: Die Prüfung „der Tipp folgt dem
+Fokus" lief nach einer Diagnosezeile, die per `mouseenter` denselben Tipp gesetzt hatte. Sie
+leert ihn jetzt vor der Messung.
 
 ## `tools/pruefstand-kalender-layout.py` — ein Überlauf, den niemand sieht (30.08.2026)
 
