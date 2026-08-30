@@ -132,9 +132,7 @@
     },
     {
       "definiert_in": [
-        "tools/probe-fortschritt.html",
-        "tools/sicht-dunkel.html",
-        "tools/sicht-hell.html"
+        "tools/probe-fortschritt.html"
       ],
       "name": "onerror",
       "shared": false,
@@ -1851,16 +1849,6 @@
       "bytes": 12324,
       "pfad": "tools/rezept-makros.py",
       "zeilen": 283
-    },
-    {
-      "bytes": 10951,
-      "pfad": "tools/sicht-dunkel.html",
-      "zeilen": 212
-    },
-    {
-      "bytes": 10950,
-      "pfad": "tools/sicht-hell.html",
-      "zeilen": 212
     },
     {
       "bytes": 8236,

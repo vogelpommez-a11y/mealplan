@@ -266,7 +266,7 @@ Verbraucher.
 | __onCloudAuth | index.html | — | nein |
 | __onCloudWatchError | index.html | — | nein |
 | noteError | index.html | — | nein |
-| onerror | tools/probe-fortschritt.html, tools/sicht-dunkel.html, tools/sicht-hell.html | — | nein |
+| onerror | tools/probe-fortschritt.html | — | nein |
 
 ## 10. Pruefabdeckung
 
@@ -460,8 +460,6 @@ _keine_
 | tools/pruefstand_lauf.py | 113 | 4894 |
 | tools/quelle.py | 180 | 7137 |
 | tools/rezept-makros.py | 283 | 12324 |
-| tools/sicht-dunkel.html | 212 | 10951 |
-| tools/sicht-hell.html | 212 | 10950 |
 | tools/smoke-mit-daten.py | 145 | 8236 |
 | tools/test-meal-bilder.py | 144 | 7529 |
 | tools/wartung-check.py | 493 | 22371 |
