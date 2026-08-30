@@ -6,9 +6,9 @@ Dieses Dokument enthält bekannte Fehlerquellen, historische Bugs und Probleme, 
 
 <!-- REGISTER-ANFANG (erzeugt aus den Ueberschriften, nicht von Hand pflegen) -->
 
-**Register — 140.** Chronologisch gewachsen: je hoeher die Nummer,
+**Register — 144.** Chronologisch gewachsen: je hoeher die Nummer,
 desto juenger der Fund. Wer eine Falle sucht, sucht hier zuerst; die Ueberschrift sagt
-jeweils, worum es geht. **Nicht die ganze Datei lesen** — sie ist rund 286 KB gross.
+jeweils, worum es geht. **Nicht die ganze Datei lesen** — sie ist rund 310 KB gross.
 
 | # | Abschnitt |
 |---|---|
