@@ -295,6 +295,12 @@ state.viewYear = J_VOR;
 view.innerHTML = kalenderHtml();
 var e2 = view.querySelectorAll('td.kal-c[tabindex="0"]');
 pruefe("auch dort genau ein Tabstopp", e2.length === 1, e2.length + " gefunden");
+// Der Hinweis auf die Pfeiltasten muss ANGESAGT werden - wer die Tabelle nicht sieht,
+// weiss sonst nicht, dass sie eine eigene Navigation hat (Befund des kvp-Agenten).
+pruefe("die Tabelle verweist auf ihren Bedienhinweis",
+       view.querySelector(".kal-grid").getAttribute("aria-describedby") === "kal-hilfe" &&
+       !!view.querySelector("#kal-hilfe"),
+       view.querySelector(".kal-grid").getAttribute("aria-describedby"));
 state.viewYear = heute.getFullYear();
 
 melde("");

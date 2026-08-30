@@ -3450,6 +3450,13 @@ Eine Zeile davon war kurz **grün aus dem falschen Grund**: Die Prüfung „der 
 Fokus" lief nach einer Diagnosezeile, die per `mouseenter` denselben Tipp gesetzt hatte. Sie
 leert ihn jetzt vor der Messung.
 
+⚠️ **Einmal beobachtet, nicht reproduzierbar:** Direkt nach einer Änderung an diesem
+Prüfstand meldete der Reihenlauf für ihn `FEHLERZAHL=1`, während drei Einzelläufe
+unmittelbar davor und danach grün waren — und der Reihenlauf danach ebenfalls. Der
+Tastatur-Abschnitt fährt echte `focus()`-Aufrufe; ein Fokus, der im Wettlauf mit dem
+Seitenaufbau steht, ist der naheliegende Verdacht. **Notiert statt weggeklickt:** Kommt es
+wieder, ist die Stelle bekannt, und dann ist es keine Laune mehr, sondern ein Befund.
+
 ## `tools/pruefstand-kalender-layout.py` — ein Überlauf, den niemand sieht (30.08.2026)
 
 **Was er prüft:** dass das Band bei 360, 390, 768 und 1280 px in hell **und** dunkel passt —

@@ -5637,13 +5637,14 @@
         ${jahrLeisteHtml(year)}
         <p class="kal-note">${esc(satz)}</p>
         <div class="kal-wrap">
-          <table class="kal-grid" data-year="${year}">
+          <table class="kal-grid" data-year="${year}" aria-describedby="kal-hilfe">
             <caption class="visually-hidden">${esc(satz)}</caption>
             <thead><tr><td class="kal-corner"></td>${kopf}</tr></thead>
             <tbody>${zeilenFertig}</tbody>
           </table>
         </div>
         <p class="kal-tip" aria-live="polite"></p>
+        <p id="kal-hilfe" class="visually-hidden">Mit den Pfeiltasten zwischen den Tagen bewegen; Pos1 und Ende springen an den Anfang und das Ende des Jahres.</p>
       </div>`;
   }
 
