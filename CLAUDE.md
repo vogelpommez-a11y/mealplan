@@ -235,7 +235,7 @@ Python ist vorhanden und wird für Hilfs- und Testskripte verwendet.
 
 # 10. Lesen und Bearbeiten des Codes
 
-`index.html` ist ~0,80 MB groß und rund 13.270 Zeilen lang. Die früher über 4.000 Zeichen
+`index.html` ist **gut 0,8 MB groß und weit über 13.000 Zeilen lang** — bewusst ohne genaue Zahl, sie wäre nach dem nächsten Commit wieder falsch. Die früher über 4.000 Zeichen
 langen Zeilen sind mit den Rechtstexten nach `data/rechtstexte.js` gewandert.
 
 **Niemals die komplette Datei blind lesen.** Kein `cat`, keine überlangen Zeilen ungefiltert

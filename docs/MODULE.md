@@ -304,7 +304,7 @@ _keine_
 | .gitattributes | 21 | 594 |
 | .github/workflows/pruefung.yml | 188 | 8066 |
 | .gitignore | 114 | 4956 |
-| CLAUDE.md | 678 | 28029 |
+| CLAUDE.md | 678 | 28121 |
 | CNAME | 1 | 21 |
 | FIREBASE-SETUP.md | 197 | 9363 |
 | LICENSE | 30 | 1364 |
