@@ -78,6 +78,7 @@ Die Verfahren gibt es auch als Skill: `/smoke`, `/pruefstand`, `/abnahme`, `/dep
 | · | `tools/pruefstand-kalender-layout.py` — ein Überlauf, den niemand sieht (30.08.2026) |
 | · | `tools/probe-fortschritt.html` — die Abnahme in der echten App (30.08.2026) |
 | · | `tools/probe-onboarding.html` — wie weit der Weiter-Knopf springt (30.08.2026) |
+| · | `tools/probe-onboarding-fluss.html` — den Weg messen, nicht das Ziel (30.08.2026) |
 
 <!-- REGISTER-ENDE -->
 
@@ -3583,3 +3584,52 @@ nichts bewiesen: Er verschiebt jeden Bildschirm gleich weit und lässt die Sprü
 * **Der Fokus wandert 30 ms nach dem Zeichnen in die Frage** (`renderOnboardStep`) und
   verschiebt dabei die Scrollposition. Vor jeder Messung abwarten, sonst misst man den
   Fokussprung statt das Layout.
+
+
+## `tools/probe-onboarding-fluss.html` — den Weg messen, nicht das Ziel (30.08.2026)
+
+**Warum es eine zweite Probe braucht.** `probe-onboarding.html` misst Endpositionen. Nach dem
+Umbau von Paket 5 liefert sie **exakt dieselben Zahlen** wie davor — 420 px bei 390 px, 402 px
+bei 1280 px. Das ist kein Fehlschlag, sondern richtig: Der Übergang ändert den *Weg* zur neuen
+Position, nicht die Position. Wer nur diese Probe fährt, hält den Umbau für wirkungslos.
+
+Die zweite Probe misst deshalb vier Dinge, die eine Endpositions-Messung nicht sehen kann:
+
+1. **Überlebt das Gerüst?** Bühne, Fuß und Fortschritts-`<span>` müssen nach einem
+   Bildschirmwechsel **dieselben Knoten** sein — sonst kann nichts weich übergehen.
+2. **Wird die Höhe gehalten und wieder freigegeben?** Während des Übergangs muss
+   `style.height` stehen, danach muss `getAttribute("style")` leer sein. Bliebe sie stehen,
+   wäre die Bühne auf der Höhe von gestern eingefroren.
+3. **Steht der Bildschirm still, wenn man nur eine Kachel antippt?** Geprüft über
+   `getComputedStyle(kachel).animationName === "none"`.
+4. **Ist ein Klick auf „Weiter" genau ein Schritt?** Die Fuß-Knöpfe überleben jetzt — würden
+   ihre Handler weiter je Schritt gebunden, wäre ein Klick zwei Schritte.
+
+### Gegenprobe
+
+Gegen den Stand vor dem Umbau (`git worktree` auf `b7017f3`, zweiter Server auf Port 8002):
+**11 rote Zeilen**, gegen den neuen Stand **null**. Damit die Bilanz ehrlich bleibt, bricht die
+Probe ohne Gerüst nicht ab, sondern zählt die nicht messbaren Abschnitte als rot — ein Abbruch
+wäre kein roter Test.
+
+### Zwei Fehler, die erst diese Probe gefunden hat
+
+* **„Schritt −54 von 8".** `animateOnbProgress()` läuft 700 ms in `requestAnimationFrame`.
+  Solange `#view` bei jedem Schritt ersetzt wurde, schrieb eine noch laufende Schleife in
+  einen abgehängten Knoten — wirkungslos. Seit der Knoten überlebt, überholen sich mehrere
+  Schleifen gegenseitig. Behoben mit einer **Laufmarke**: Nur der jüngste Lauf zeichnet.
+* **„Schritt −66 von 8", und das war ein Bestandsfehler.** Beide rAF-Schleifen der App
+  klemmten ihren Fortschritt nur nach **oben** (`Math.min(1, …)`). Ist `now` kleiner als `t0`
+  — unter virtueller Zeit im Prüfstand regelmäßig, bei einer zurückgestellten Uhr auch auf
+  echten Geräten —, wird `p` negativ, und die Kurve `1-(1-p)³` verstärkt das kräftig. Jetzt
+  steht `Math.max(0, Math.min(1, …))` in beiden Schleifen.
+
+### Die Lehre für den nächsten Prüfstand: nicht die animierte Zahl messen
+
+Abschnitt 4 war zweimal rot, ohne dass etwas kaputt war: Er las den **sichtbaren** Zähler
+(„Schritt 3 von 8"), und der läuft 700 ms lang animiert von der alten zur neuen Zahl. Gemessen
+wird jetzt `aria-valuenow` an der Progress-Bar — der Wert steht sofort richtig, und er **muss**
+es, sonst läge ein Screenreader 700 ms lang daneben.
+
+**Eine animierte Anzeige ist kein Messpunkt.** Wo eine Animation den sichtbaren Wert langsam
+nachzieht, gehört die Messung an die Stelle, die den Zustand sofort trägt.

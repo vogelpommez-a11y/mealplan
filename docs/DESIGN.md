@@ -25,6 +25,7 @@ In `CLAUDE.md` steht weiterhin die kurze Fassung: die Regel und der Zeiger hierh
 | Design-Skills | Reihenfolge und Mapping-Regel |
 | Mehrstufige Abläufe | Progress-Bar, `initCarousel()` |
 | Schiebe-Schema | Ansichtswechsel, Bewegung, `MOTION`-Tokens |
+| Die ersten Schritte bewegen sich wie der Rest | Wizard: `slideIn()`, Höhenübergang, `.onb-still` |
 
 ---
 
@@ -374,3 +375,23 @@ Siehe `docs/TROUBLESHOOTING.md`, Punkt 58.
 `initCarousel()` ist die gemeinsame Quelle für die scroll-gekoppelte Pille (`.db-ind`, in `.daybar` und `.wgbar`). `slideIn(el, dir)` ist der gemeinsame Enter-Helfer für gerichtete Inhaltswechsel (Wochenwechsel, Tab-Wechsel). `.week-switch` braucht eine eigene WAAPI-Pille (`syncWeekSwitchPill()`), weil ihr Markup bei jedem `render()` per `view.innerHTML` neu gebaut wird — eine CSS-`transition` würde dort nie greifen, siehe `docs/TROUBLESHOOTING.md`.
 
 ---
+
+## Die ersten Schritte bewegen sich wie der Rest der App (seit 30.08.2026)
+
+Der Wizard hatte seine eigene Bewegungssprache: eine hartkodierte Keyframe-Animation
+(`onbin`, 260 ms, 10 px senkrecht), unabhängig von den `MOTION`-Tokens und ohne Richtung —
+obwohl es „Zurück" gibt.
+
+Seither gilt auch dort das Schiebe-Schema der App:
+
+* **Wechsel**: `slideIn(el, dir)` — 16 px waagerecht, Richtung aus `onbGo(delta)`, Dauer und
+  Kurve aus `MOTION`, unter `reducedMotion()` eine reine Überblendung.
+* **Höhe**: eine CSS-Transition am `.onb-stage-wrap` (`var(--dur-base)`, `var(--ease-out)`),
+  die unter „weniger Bewegung" von der globalen Regel abgeschaltet wird.
+* **Was bleibt**: die gestaffelte Einblendung der Kacheln (`.onb-opt`, `.onb-bf-o`) und die
+  rAF-Animation des Fortschrittsbalkens. Beide sind der Teil, der sich lebendig anfühlt.
+
+**Die Regel, die dabei entstanden ist:** Eine Einblendung gehört zum *Wechsel*, nicht zu
+jeder Änderung auf demselben Bildschirm. Wer eine Kachel antippt, hat den Bildschirm nicht
+gewechselt — dort steht die Bühne still (`.onb-still`). Beim vierten Tipp auf denselben
+Bildschirm ist dieselbe Animation, die beim ersten Mal lebendig wirkte, nur noch Unruhe.

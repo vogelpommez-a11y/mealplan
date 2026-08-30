@@ -128,6 +128,7 @@
     {
       "definiert_in": [
         "tools/probe-fortschritt.html",
+        "tools/probe-onboarding-fluss.html",
         "tools/probe-onboarding.html"
       ],
       "name": "onerror",
@@ -389,17 +390,17 @@
       "zeilen": 34
     },
     {
-      "bis": 796,
+      "bis": 819,
       "datei": "css/mobil.css",
       "titel": "Mobile / Smartphone",
       "von": 8,
-      "zeilen": 789
+      "zeilen": 812
     },
     {
-      "bis": 863,
+      "bis": 886,
       "datei": "css/mobil.css",
       "titel": "Gemeinsam planen (Gruppe)",
-      "von": 797,
+      "von": 820,
       "zeilen": 67
     },
     {
@@ -690,311 +691,311 @@
       "zeilen": 209
     },
     {
-      "bis": 4617,
+      "bis": 4619,
       "datei": "index.html",
       "titel": "Trainingstage (Verbrauch je Einheit)",
       "von": 4136,
-      "zeilen": 482
+      "zeilen": 484
     },
     {
-      "bis": 4652,
+      "bis": 4654,
       "datei": "index.html",
       "titel": "Merkmale: Anzeige (Nur-Lese-Zweig) und Eingabe (Bearbeiten-Zweig)",
-      "von": 4618,
+      "von": 4620,
       "zeilen": 35
     },
     {
-      "bis": 5059,
+      "bis": 5061,
       "datei": "index.html",
       "titel": "Handy-Karussell (Wochenplan, Wochenziele, Rechner)",
-      "von": 4653,
+      "von": 4655,
       "zeilen": 407
     },
     {
-      "bis": 5517,
+      "bis": 5519,
       "datei": "index.html",
       "titel": "„Ziele <Jahr>\": Gewichtsverlauf als Jahresdiagramm",
-      "von": 5060,
+      "von": 5062,
       "zeilen": 458
     },
     {
-      "bis": 6418,
+      "bis": 6420,
       "datei": "index.html",
       "titel": "Fortschritt-Kalender (Paket 6, B7)",
-      "von": 5518,
+      "von": 5520,
       "zeilen": 901
     },
     {
-      "bis": 6494,
+      "bis": 6496,
       "datei": "index.html",
       "titel": "Zurueck-Taste (D5)",
-      "von": 6419,
+      "von": 6421,
       "zeilen": 76
     },
     {
-      "bis": 6579,
+      "bis": 6581,
       "datei": "index.html",
       "titel": "Modal",
-      "von": 6495,
+      "von": 6497,
       "zeilen": 85
     },
     {
-      "bis": 6758,
+      "bis": 6760,
       "datei": "index.html",
       "titel": "Wiegen",
-      "von": 6580,
+      "von": 6582,
       "zeilen": 179
     },
     {
-      "bis": 6871,
+      "bis": 6873,
       "datei": "index.html",
       "titel": "Ziel von Hand justieren (B4)",
-      "von": 6759,
+      "von": 6761,
       "zeilen": 113
     },
     {
-      "bis": 7017,
+      "bis": 7019,
       "datei": "index.html",
       "titel": "Bewegung: FLIP am Rechner, Bottom-Sheet am Handy",
-      "von": 6872,
+      "von": 6874,
       "zeilen": 146
     },
     {
-      "bis": 7096,
+      "bis": 7098,
       "datei": "index.html",
       "titel": "Nur-Lese-Zweig: keine Eingabefelder, kein Autosave, kein Loeschen",
-      "von": 7018,
+      "von": 7020,
       "zeilen": 79
     },
     {
-      "bis": 7170,
+      "bis": 7172,
       "datei": "index.html",
       "titel": "Bearbeiten-Zweig",
-      "von": 7097,
+      "von": 7099,
       "zeilen": 74
     },
     {
-      "bis": 7378,
+      "bis": 7380,
       "datei": "index.html",
       "titel": "Autosave: input mutiert nur lokal, change/blur committen, 1500ms Leerlauf-Timer als Netz",
-      "von": 7171,
+      "von": 7173,
       "zeilen": 208
     },
     {
-      "bis": 7407,
+      "bis": 7409,
       "datei": "index.html",
       "titel": "Foto: waehlen/aendern/entfernen, aktualisiert nur die offene Ansicht (photoDoneCb)",
-      "von": 7379,
+      "von": 7381,
       "zeilen": 29
     },
     {
-      "bis": 7613,
+      "bis": 7615,
       "datei": "index.html",
       "titel": "Zutaten-Zeilen (Name, Menge, Naehrwerte pro 100 g, Barcode-Scan)",
-      "von": 7408,
+      "von": 7410,
       "zeilen": 206
     },
     {
-      "bis": 7943,
+      "bis": 7945,
       "datei": "index.html",
       "titel": "Zutaten-Suche (ARIA-Combobox auf dem Namensfeld)",
-      "von": 7614,
+      "von": 7616,
       "zeilen": 330
     },
     {
-      "bis": 8283,
+      "bis": 8285,
       "datei": "index.html",
       "titel": "Picker",
-      "von": 7944,
+      "von": 7946,
       "zeilen": 340
     },
     {
-      "bis": 8495,
+      "bis": 8497,
       "datei": "index.html",
       "titel": "Shopping list",
-      "von": 8284,
+      "von": 8286,
       "zeilen": 212
     },
     {
-      "bis": 8697,
+      "bis": 8699,
       "datei": "index.html",
       "titel": "Vorkochen (C3)",
-      "von": 8496,
+      "von": 8498,
       "zeilen": 202
     },
     {
-      "bis": 8782,
+      "bis": 8784,
       "datei": "index.html",
       "titel": "Actions",
-      "von": 8698,
+      "von": 8700,
       "zeilen": 85
     },
     {
-      "bis": 8815,
+      "bis": 8817,
       "datei": "index.html",
       "titel": "Rechtstexte (Impressum / Datenschutz)",
-      "von": 8783,
+      "von": 8785,
       "zeilen": 33
     },
     {
-      "bis": 8922,
+      "bis": 8924,
       "datei": "index.html",
       "titel": "Auto-Wochenplaner (D2)",
-      "von": 8816,
+      "von": 8818,
       "zeilen": 107
     },
     {
-      "bis": 8941,
+      "bis": 8943,
       "datei": "index.html",
       "titel": "Wiederholung: was zuletzt dran war, rutscht nach hinten",
-      "von": 8923,
+      "von": 8925,
       "zeilen": 19
     },
     {
-      "bis": 8948,
+      "bis": 8950,
       "datei": "index.html",
       "titel": "Passt die Groesse zum Slot?",
-      "von": 8942,
+      "von": 8944,
       "zeilen": 7
     },
     {
-      "bis": 9326,
+      "bis": 9328,
       "datei": "index.html",
       "titel": "In der Gruppe: was zu MEHR Profilen passt, kommt weiter nach vorn",
-      "von": 8949,
+      "von": 8951,
       "zeilen": 378
     },
     {
-      "bis": 9336,
+      "bis": 9338,
       "datei": "index.html",
       "titel": "Toast",
-      "von": 9327,
+      "von": 9329,
       "zeilen": 10
     },
     {
-      "bis": 9372,
+      "bis": 9374,
       "datei": "index.html",
       "titel": "Toast mit Rueckgaengig (Paket B1)",
-      "von": 9337,
+      "von": 9339,
       "zeilen": 36
     },
     {
-      "bis": 9572,
+      "bis": 9574,
       "datei": "index.html",
       "titel": "Event delegation",
-      "von": 9373,
+      "von": 9375,
       "zeilen": 200
     },
     {
-      "bis": 9634,
+      "bis": 9636,
       "datei": "index.html",
       "titel": "Drag & drop between slots",
-      "von": 9573,
+      "von": 9575,
       "zeilen": 62
     },
     {
-      "bis": 9666,
+      "bis": 9668,
       "datei": "index.html",
       "titel": "Foto per Drag & Drop auf eine Meal-Karte (Desktop)",
-      "von": 9635,
+      "von": 9637,
       "zeilen": 32
     },
     {
-      "bis": 9698,
+      "bis": 9700,
       "datei": "index.html",
       "titel": "Foto per Strg+V auf eine Meal-Karte einfuegen",
-      "von": 9667,
+      "von": 9669,
       "zeilen": 32
     },
     {
-      "bis": 9745,
+      "bis": 9747,
       "datei": "index.html",
       "titel": "Profil (lokal) & Teilen",
-      "von": 9699,
+      "von": 9701,
       "zeilen": 47
     },
     {
-      "bis": 10340,
+      "bis": 10342,
       "datei": "index.html",
       "titel": "Kontowechsel auf demselben Geraet",
-      "von": 9746,
+      "von": 9748,
       "zeilen": 595
     },
     {
-      "bis": 10431,
+      "bis": 10433,
       "datei": "index.html",
       "titel": "Kalorienrechner (Baustein 1: Tages-/Wochenbedarf → state.goal)",
-      "von": 10341,
+      "von": 10343,
       "zeilen": 91
     },
     {
-      "bis": 10505,
+      "bis": 10507,
       "datei": "index.html",
       "titel": "Wiegen: speichern, loeschen, ans Ziel koppeln",
-      "von": 10432,
+      "von": 10434,
       "zeilen": 74
     },
     {
-      "bis": 11217,
+      "bis": 11350,
       "datei": "index.html",
       "titel": "Erste Schritte (Onboarding)",
-      "von": 10506,
-      "zeilen": 712
+      "von": 10508,
+      "zeilen": 843
     },
     {
-      "bis": 11244,
+      "bis": 11377,
       "datei": "index.html",
       "titel": "Erscheinungsbild",
-      "von": 11218,
+      "von": 11351,
       "zeilen": 27
     },
     {
-      "bis": 11370,
+      "bis": 11503,
       "datei": "index.html",
       "titel": "Einstellungen",
-      "von": 11245,
+      "von": 11378,
       "zeilen": 126
     },
     {
-      "bis": 11446,
+      "bis": 11579,
       "datei": "index.html",
       "titel": "Einstieg (D1b)",
-      "von": 11371,
+      "von": 11504,
       "zeilen": 76
     },
     {
-      "bis": 12006,
+      "bis": 12139,
       "datei": "index.html",
       "titel": "Cloud-Anmeldung (Firebase)",
-      "von": 11447,
+      "von": 11580,
       "zeilen": 560
     },
     {
-      "bis": 12980,
+      "bis": 13113,
       "datei": "index.html",
       "titel": "Gemeinsam planen (Gruppe)",
-      "von": 12007,
+      "von": 12140,
       "zeilen": 974
     },
     {
-      "bis": 13014,
+      "bis": 13147,
       "datei": "index.html",
       "titel": "Teilen ueber den nativen Dialog des Geraets (Web Share API)",
-      "von": 12981,
+      "von": 13114,
       "zeilen": 34
     },
     {
-      "bis": 13254,
+      "bis": 13387,
       "datei": "index.html",
       "titel": "Einkaufsliste als PDF (Paket B3)",
-      "von": 13015,
+      "von": 13148,
       "zeilen": 240
     },
     {
-      "bis": 13273,
+      "bis": 13406,
       "datei": "index.html",
       "titel": "Boot",
-      "von": 13255,
+      "von": 13388,
       "zeilen": 19
     },
     {
@@ -1188,9 +1189,9 @@
       "zeilen": 1107
     },
     {
-      "bytes": 56353,
+      "bytes": 57993,
       "pfad": "css/mobil.css",
-      "zeilen": 863
+      "zeilen": 886
     },
     {
       "bytes": 11084,
@@ -1233,14 +1234,14 @@
       "zeilen": 192
     },
     {
-      "bytes": 174377,
+      "bytes": 177024,
       "pfad": "docs/ARCHITECTURES.md",
-      "zeilen": 2775
+      "zeilen": 2816
     },
     {
-      "bytes": 13550,
+      "bytes": 14871,
       "pfad": "docs/DESIGN.md",
-      "zeilen": 377
+      "zeilen": 398
     },
     {
       "erzeugt": true,
@@ -1267,14 +1268,14 @@
       "zeilen": 246
     },
     {
-      "bytes": 211685,
+      "bytes": 214853,
       "pfad": "docs/TESTING.md",
-      "zeilen": 3586
+      "zeilen": 3636
     },
     {
-      "bytes": 315335,
+      "bytes": 317499,
       "pfad": "docs/TROUBLESHOOTING.md",
-      "zeilen": 5496
+      "zeilen": 5538
     },
     {
       "erzeugt": true,
@@ -1587,9 +1588,9 @@
       "pfad": "img/wrap.webp"
     },
     {
-      "bytes": 821128,
+      "bytes": 828858,
       "pfad": "index.html",
-      "zeilen": 13273
+      "zeilen": 13406
     },
     {
       "bytes": 8354,
@@ -1675,6 +1676,11 @@
       "bytes": 10834,
       "pfad": "tools/probe-fortschritt.html",
       "zeilen": 210
+    },
+    {
+      "bytes": 9927,
+      "pfad": "tools/probe-onboarding-fluss.html",
+      "zeilen": 199
     },
     {
       "bytes": 9537,

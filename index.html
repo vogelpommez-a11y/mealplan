@@ -4587,7 +4587,9 @@
     }
     const dur = 700, t0 = performance.now();
     function frame(now) {
-      const p = Math.min(1, (now - t0) / dur);
+      // Nach unten geklemmt aus demselben Grund wie in animateOnbProgress: ein negatives
+      // p laesst den Zaehler unter null laufen.
+      const p = Math.max(0, Math.min(1, (now - t0) / dur));
       const eased = 1 - Math.pow(1 - p, 3); // --ease-out als JS-Aequivalent
       const cur = Math.round(from + (planned - from) * eased);
       txt.textContent = cur + " von 7 Tagen geplant";
@@ -10819,6 +10821,9 @@
     if (next < 0) return;
     if (next >= steps.length) { finishOnboarding(onb.first ? "Viel Erfolg!" : null, onb.first); return; }
     onb.i = next;
+    // Richtung merken, damit der Wechsel sie zeigen kann - vorwaerts von rechts,
+    // zurueck von links. Dasselbe Muster wie pendingWeekDir beim Wochenwechsel.
+    pendingOnbDir = Math.sign(delta);
     renderOnboardStep();
   }
 
@@ -11030,6 +11035,7 @@
   // Gleiches Prinzip wie animateProgressCount() auf Home: weich hochzaehlen (und beim
   // "Zurueck" ebenso weich runter), aber nur bei echtem Schrittwechsel - ein Re-Render
   // desselben Schritts (z.B. Trainingstage antippen) soll nicht erneut animieren.
+  let onbProgressLauf = 0;
   function animateOnbProgress() {
     const span = view.querySelector(".wg-progress-bar > span");
     const count = view.querySelector(".onb-count");
@@ -11038,13 +11044,27 @@
     const from = lastOnbStep == null ? Math.max(1, step - 1) : lastOnbStep;
     lastOnbStep = step;
     if (from === step || reducedMotion()) {
+      onbProgressLauf++;                            // eine laufende Schleife stilllegen
       span.style.width = Math.round(step / total * 100) + "%";
       if (count) count.textContent = `Schritt ${step} von ${total}`;
       return;
     }
+    // ⚠️ Laufmarke, seit das Geruest den Bildschirmwechsel ueberlebt (Paket 5): Vorher
+    // wurde bei jedem Schritt das ganze #view ersetzt, und eine noch laufende Schleife
+    // schrieb danach in einen abgehaengten Knoten - wirkungslos. Jetzt bleibt der Knoten
+    // stehen, also schreiben ALLE noch laufenden Schleifen weiter hinein und ueberholen
+    // sich gegenseitig. Gemessen kam dabei "Schritt -54 von 8" heraus.
+    // Nur der juengste Lauf darf zeichnen.
+    const lauf = ++onbProgressLauf;
     const dur = 700, t0 = performance.now();
     function frame(now) {
-      const p = Math.min(1, (now - t0) / dur);
+      if (lauf !== onbProgressLauf) return;         // ein neuerer Lauf hat uebernommen
+      // ⚠️ Nach UNTEN klemmen, nicht nur nach oben. Ist `now` kleiner als `t0` - unter
+      // virtueller Zeit im Pruefstand kommt das vor, und eine zurueckgestellte Uhr tut es
+      // auf echten Geraeten auch -, wird p negativ. Die Kurve 1-(1-p)^3 verstaerkt das
+      // kraeftig, und der Zaehler zeigte "Schritt -66 von 8". Gefunden von
+      // tools/probe-onboarding-fluss.html, nicht durch Nachdenken.
+      const p = Math.max(0, Math.min(1, (now - t0) / dur));
       const eased = 1 - Math.pow(1 - p, 3);
       const cur = from + (step - from) * eased;
       span.style.width = Math.round(cur / total * 100) + "%";
@@ -11055,7 +11075,101 @@
     requestAnimationFrame(frame);
   }
 
-  function renderOnboardStep() {
+  // Das Geruest der ersten Schritte (Paket 5). Es entsteht EINMAL je Durchlauf; danach
+  // wird nur noch die Buehne ausgetauscht.
+  //
+  // Warum ueberhaupt: Vorher baute jeder Schritt die ganze Ansicht neu, und weil jede
+  // Frage anders hoch ist, sprang der Weiter-Knopf mit. Gemessen (tools/probe-onboarding.html,
+  // 30.08.2026): bis zu 420 px bei 390 px Breite, und zwar auf JEDER Breite - bei 1280 px
+  // waren es 402. Der wichtigste Knopf des Ablaufs wanderte also unter dem Finger weg.
+  //
+  // ⚠️ .onb-top steht IMMER im DOM und wird nur per Klasse versteckt. Fehlte der Knoten auf
+  // Schritt 0 (so war es frueher), waere die Fortschritts-<span> auf Schritt 1 ein
+  // Neugeborenes - und eine Animation von einem Element, das es im Frame davor nicht gab,
+  // laeuft nicht (docs/TROUBLESHOOTING.md 39). animateOnbProgress() bliebe wirkungslos.
+  function onbShellHtml() {
+    return `<div class="onb">
+      <div class="onb-top" hidden>
+        <div class="wg-progress-bar" role="progressbar" aria-valuemin="1" aria-valuemax="1" aria-valuenow="1" aria-label="Fortschritt der Einführung"><span style="width:0%" data-step="1" data-total="1"></span></div>
+        <div class="onb-count"></div>
+      </div>
+      <div class="onb-stage-wrap"><div class="onb-stage"></div></div>
+      <div class="onb-foot">
+        <button type="button" class="btn primary onb-next"></button>
+        <div class="onb-foot2">
+          <button type="button" class="btn ghost sm onb-back">Zurück</button>
+          <button type="button" class="btn ghost sm onb-skip" hidden>Schließen</button>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  // Die Knoepfe im Fuss ueberleben den Bildschirmwechsel - ihre Handler duerfen deshalb
+  // NICHT bei jedem Schritt neu gebunden werden, sonst feuert ein Klick spaeter mehrfach.
+  // Sie holen sich den aktuellen Schritt stattdessen zur Klickzeit.
+  function onbBindShell() {
+    view.querySelector(".onb-next").addEventListener("click", onbNextClick);
+    view.querySelector(".onb-back").addEventListener("click", () => onbGo(-1));
+    // Der Schliessen-Knopf existiert immer, ist aber ohne gesetztes Ziel verborgen: Ohne
+    // Ziel ist der Ablauf nicht verlassbar (siehe maybeStartOnboarding).
+    view.querySelector(".onb-skip").addEventListener("click", () => finishOnboarding(null));
+  }
+
+  // Der Hoehenuebergang. Die Buehne entsteht bei jedem Schritt neu - eine Transition auf
+  // IHR haette keinen Vorher-Zustand, aus dem sie interpolieren koennte (TROUBLESHOOTING 39).
+  // Deshalb traegt der Wrapper die Hoehe: Er ueberlebt den Umbau.
+  //
+  // CSS-Transition und nicht WAAPI, und das ist kein Geschmack: Die globale
+  // reduced-motion-Regel erzwingt `transition-property: opacity, color, background-color,
+  // border-color, box-shadow`. Eine height-Transition ist damit unter "weniger Bewegung"
+  // kostenlos abgeschaltet - ohne eine Zeile Code. Mit WAAPI muesste dieser Zweig von Hand
+  // geschrieben und gepflegt werden.
+  function onbSwapStage(wrap, stage, html, dir, gleicherSchritt) {
+    const alt = wrap.getBoundingClientRect().height;
+    // .onb-still schaltet die gestaffelten Kachel-Animationen ab (siehe css/mobil.css).
+    // Sie sind der Teil, der sich lebendig anfuehlt - beim WECHSEL. Beim vierten Tipp auf
+    // denselben Bildschirm sind sie Unruhe.
+    stage.classList.toggle("onb-still", !!gleicherSchritt);
+    stage.innerHTML = html;
+    const neu = wrap.getBoundingClientRect().height;
+    // Kein Einfliegen, wenn der Bildschirm derselbe geblieben ist.
+    if (!gleicherSchritt) slideIn(stage, dir);
+    // Kein Uebergang beim ersten Bildschirm (alt === 0) und keiner, wenn sich nichts
+    // aendert - sonst flackerte der Einstieg.
+    if (!alt || Math.abs(neu - alt) < 2 || reducedMotion()) { onbFreeHeight(wrap); return; }
+    wrap.style.height = alt + "px";
+    void wrap.offsetHeight;                    // Reflow: sonst springt der Browser direkt auf neu
+    wrap.classList.add("is-moving");
+    wrap.style.height = neu + "px";
+    // ⚠️ Das Aufraeumen ist die eigentliche Falle. Bleibt die Hoehe inline stehen, ist die
+    // Buehne auf der Hoehe von gestern eingefroren und ein laengerer Schritt wird lautlos
+    // abgeschnitten. Deshalb zwei Wege: das regulaere Ende UND ein Sicherheitstimer, falls
+    // der Uebergang abgebrochen wird (Reiterwechsel, Hintergrund-Tab).
+    const fertig = () => onbFreeHeight(wrap);
+    wrap.addEventListener("transitionend", fertig, { once: true });
+    clearTimeout(onbHeightTimer);
+    onbHeightTimer = setTimeout(fertig, (parseFloat(MOTION.base) || 240) + 260);
+  }
+  let onbHeightTimer = 0;
+  function onbFreeHeight(wrap) {
+    if (!wrap) return;
+    clearTimeout(onbHeightTimer);
+    wrap.classList.remove("is-moving");
+    wrap.style.removeProperty("height");
+    if (!wrap.getAttribute("style")) wrap.removeAttribute("style");
+  }
+
+  // Richtung des naechsten Wechsels, gesetzt von onbGo() - dasselbe Muster wie
+  // pendingWeekDir beim Wochenwechsel. Ohne sie waere der Wechsel richtungslos, obwohl
+  // es "Zurueck" gibt.
+  let pendingOnbDir = 0;
+
+  // `gleicherSchritt` heisst: Es hat sich etwas AUF dem Bildschirm geaendert (eine Kachel
+  // gewaehlt, ein Trainingstag getippt), nicht der Bildschirm selbst. Der Unterschied ist
+  // der groesste Einzelbefund aus Paket 5: Vorher spielte jedes dieser Ereignisse die
+  // ganze Buehnenanimation und die gestaffelte Kachel-Einblendung erneut ab. Wer auf dem
+  // Trainingsschritt vier Tage antippt, sah den Bildschirm viermal komplett neu einfliegen.
+  function renderOnboardStep(gleicherSchritt) {
     const steps = onbSteps();
     const id = steps[onb.i];
     const last = onb.i === steps.length - 1;
@@ -11064,20 +11178,36 @@
     const nextLabel = id === "result" ? "Ziel übernehmen" : last ? (onb.first ? "Zum Wochenplan" : "Fertig") : "Weiter";
     const miss = onbMissing(id);
 
-    view.innerHTML = `<div class="onb">
-      ${showTop ? `<div class="onb-top">
-        <div class="wg-progress-bar" role="progressbar" aria-valuemin="1" aria-valuemax="${steps.length}" aria-valuenow="${onb.i + 1}" aria-label="Fortschritt der Einführung"><span style="width:${pct}%" data-step="${onb.i + 1}" data-total="${steps.length}"></span></div>
-        <div class="onb-count">Schritt ${onb.i + 1} von ${steps.length}</div>
-      </div>` : ""}
-      <div class="onb-stage">${onbStepHtml(id)}</div>
-      <div class="onb-foot">
-        <button type="button" class="btn primary onb-next${miss ? " is-off" : ""}"${miss ? ' aria-disabled="true"' : ""}>${nextLabel}</button>
-        <div class="onb-foot2">
-          <button type="button" class="btn ghost sm onb-back"${onb.i === 0 ? ' style="visibility:hidden"' : ""}>Zurück</button>
-          ${state.goal ? `<button type="button" class="btn ghost sm onb-skip">Schließen</button>` : ""}
-        </div>
-      </div>
-    </div>`;
+    // Geruest nur bauen, wenn es fehlt - beim ersten Schritt oder nachdem etwas anderes
+    // #view neu gezeichnet hat.
+    if (!view.querySelector(".onb-stage-wrap")) {
+      view.innerHTML = onbShellHtml();
+      onbBindShell();
+    }
+    const wrap = view.querySelector(".onb-stage-wrap");
+    const stage = view.querySelector(".onb-stage");
+    const dir = pendingOnbDir; pendingOnbDir = 0;
+    onbSwapStage(wrap, stage, onbStepHtml(id), dir, gleicherSchritt);
+
+    // Fortschritt an Ort und Stelle angleichen. Der Knoten bleibt stehen, nur seine
+    // Werte wechseln - genau darauf baut animateOnbProgress().
+    const top = view.querySelector(".onb-top");
+    top.hidden = !showTop;
+    const bar = top.querySelector(".wg-progress-bar");
+    bar.setAttribute("aria-valuemax", steps.length);
+    bar.setAttribute("aria-valuenow", onb.i + 1);
+    const span = bar.querySelector("span");
+    span.dataset.step = onb.i + 1;
+    span.dataset.total = steps.length;
+    if (!showTop) span.style.width = pct + "%";
+
+    // Fuss angleichen.
+    const nextBtn = view.querySelector(".onb-next");
+    nextBtn.textContent = nextLabel;
+    nextBtn.classList.toggle("is-off", !!miss);
+    if (miss) nextBtn.setAttribute("aria-disabled", "true"); else nextBtn.removeAttribute("aria-disabled");
+    view.querySelector(".onb-back").style.visibility = onb.i === 0 ? "hidden" : "";
+    view.querySelector(".onb-skip").hidden = !state.goal;
     animateOnbProgress();
 
     // Fokus auf die neue Frage: sonst bliebe er am Weiter-Knopf haengen und ein
@@ -11100,7 +11230,7 @@
     // Kein onbAutoNext: Wer eine Einschraenkung waehlt, will vielleicht noch eine zweite.
     view.querySelectorAll("[data-avoid]").forEach(b => b.addEventListener("click", () => {
       onb.cur.avoid = toggleAvoid(onb.cur.avoid, b.dataset.avoid);
-      renderOnboardStep();
+      renderOnboardStep(true);          // gleicher Bildschirm, nur eine Auswahl mehr
     }));
 
     view.querySelectorAll("[data-opt]").forEach(b => b.addEventListener("click", () => {
@@ -11122,7 +11252,7 @@
       // aus der Liste (frueher tat er das, weshalb sie erst nach der Haken-Pause
       // committet werden durfte – sonst sprang der Ablauf ohne sichtbaren Haken weiter).
       if (grp === "weightConsent") { setWeightConsent(b.dataset.v === "yes"); save(); }
-      renderOnboardStep();
+      renderOnboardStep(true);          // gleicher Bildschirm, nur eine Auswahl mehr
       // Weiterspringen statt einen zweiten Tipp zu verlangen – aber nur auf Bildschirmen,
       // die mit dieser einen Antwort fertig beantwortet sind. Kurz warten, damit die
       // Auswahl noch zu sehen ist; ohne Bewegungswunsch sofort.
@@ -11160,10 +11290,19 @@
       if (i === -1) onb.cur.tdays.push(k); else onb.cur.tdays.splice(i, 1);
       // In der Reihenfolge der Woche halten, nicht in der des Antippens.
       onb.cur.tdays = DAYS.filter(d => onb.cur.tdays.indexOf(d.key) !== -1).map(d => d.key);
-      renderOnboardStep();
+      renderOnboardStep(true);          // gleicher Bildschirm, nur ein Tag mehr
     });
 
-    view.querySelector(".onb-next").addEventListener("click", () => {
+    // Die Buehnen-Handler haengen an Knoten, die mit der Buehne neu entstehen - sie
+    // gehoeren hierher. Die drei Fuss-Knoepfe dagegen ueberleben und sind einmalig in
+    // onbBindShell() gebunden.
+  }
+
+  // Der Weiter-Knopf. Steht ausserhalb von renderOnboardStep(), weil er den Bildschirm
+  // ueberlebt: Er ermittelt seinen Schritt zur Klickzeit statt ihn einzuschliessen.
+  function onbNextClick() {
+      const id = onbSteps()[onb.i];
+      const textEl = view.querySelector("#onb-text");
       const m = onbMissing(id);
       if (m) {
         toast(m);
@@ -11207,12 +11346,6 @@
       // verschachtelten Feld laesst den Cloud-Push des ganzen Kontodokuments scheitern.
       if (id === "result") { state.goal = sanitizeGoal(computeGoal(onbGoalInput())); noteWeightFromGoal(); save(); }
       onbGo(1);
-    });
-    view.querySelector(".onb-back").addEventListener("click", () => onbGo(-1));
-    // Der Schliessen-Knopf existiert nur, wenn bereits ein Ziel gesetzt ist (ohne Ziel
-    // ist der Ablauf nicht verlassbar – siehe maybeStartOnboarding).
-    const sk = view.querySelector(".onb-skip");
-    if (sk) sk.addEventListener("click", () => finishOnboarding(null));
   }
 
   // ---------- Erscheinungsbild ----------

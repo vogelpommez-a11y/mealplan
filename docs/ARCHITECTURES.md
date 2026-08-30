@@ -1231,6 +1231,47 @@ der frisch gerechnete Wert der aktuellere ist. `mergeWeekStats()` darf das nicht
 der Gleichstand richtungsunabhängig aufgelöst werden, sonst nimmt Gerät A den Wert von B und
 B gleichzeitig den von A. Wer die beiden vereinheitlicht, baut TROUBLESHOOTING 34/44 wieder ein.
 
+### Erste Schritte: ein Gerüst, das den Bildschirmwechsel überlebt (seit 30.08.2026)
+
+Bis dahin baute `renderOnboardStep()` bei **jedem** Schritt die ganze Ansicht über
+`view.innerHTML` neu. Seither entsteht das Gerüst einmal je Durchlauf:
+
+```
+.onb > .onb-top + .onb-stage-wrap > .onb-stage + .onb-foot
+```
+
+`renderOnboardStep()` tauscht nur noch den Inhalt der Bühne und gleicht Fuß und Fortschritt
+an Ort und Stelle ab. Vier Dinge hängen daran:
+
+* **Der Höhenübergang** (`onbSwapStage()`): alte Höhe messen → am **Wrapper** fixieren →
+  Bühne tauschen → neue Höhe setzen. Am Wrapper, weil die Bühne bei jedem Schritt neu
+  entsteht und keinen Vorher-Zustand hätte (`docs/TROUBLESHOOTING.md` 39). Freigegeben wird
+  über `transitionend` **und** einen Sicherheitstimer — bleibt die Höhe inline stehen, ist
+  die Bühne auf der Höhe von gestern eingefroren und ein längerer Schritt wird lautlos
+  abgeschnitten.
+* **CSS statt WAAPI**, und das ist kein Geschmack: Die globale `reduced-motion`-Regel
+  erzwingt `transition-property: opacity, color, background-color, border-color, box-shadow`.
+  Eine `height`-Transition ist damit unter „weniger Bewegung" kostenlos abgeschaltet.
+* **Gerichteter Wechsel**: `onbGo(delta)` setzt `pendingOnbDir`, `renderOnboardStep()` reicht
+  es an `slideIn(stage, dir)` — 16 px, Dauer und Kurve aus `MOTION`, dasselbe Muster wie
+  Reiter- und Wochenwechsel. Die alte, hartkodierte und richtungslose `onbin`-Regel auf
+  `.onb-stage` ist entfallen; die Keyframes bleiben für die gestaffelten Kacheln.
+* **`renderOnboardStep(gleicherSchritt)`**: Eine Kachel antippen ist **kein**
+  Bildschirmwechsel. In diesem Fall kein `slideIn`, und `.onb-still` legt die gestaffelte
+  Kachel-Einblendung still. Vorher flog der ganze Bildschirm bei jedem Tipp neu ein — wer
+  auf dem Trainingsschritt vier Tage antippt, sah das viermal.
+
+⚠️ **Was der Umbau NICHT leistet:** Der Weiter-Knopf steht am Ende immer noch woanders — die
+Bildschirme sind unterschiedlich hoch, gemessen 64 bis 538 px. Er wandert jetzt weich statt
+zu springen. Ein wirklich stehender Knopf bräuchte einen fixierten Fuß; das ist eine eigene
+UX-Entscheidung und war in Paket 5 nicht vorgesehen.
+
+⚠️ **Zwei Knoten, die jetzt überleben, brauchen Schutz vor sich selbst:**
+`animateOnbProgress()` führt eine **Laufmarke** (`onbProgressLauf`). Solange `#view` bei
+jedem Schritt ersetzt wurde, schrieb eine noch laufende rAF-Schleife in einen abgehängten
+Knoten und war wirkungslos. Jetzt bleibt der Knoten stehen — ohne Laufmarke überholen sich
+mehrere Schleifen gegenseitig (gemessen: „Schritt −54 von 8").
+
 #### Archivfenster: drei Jahre behalten, zwei anbieten (seit 29.08.2026)
 
 Vorher war es ein **rollendes halbes Jahr** (`slice(-26)`). Der Fortschritt-Kalender zeigt

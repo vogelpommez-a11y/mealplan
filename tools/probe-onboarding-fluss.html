@@ -1,0 +1,198 @@
+<!doctype html><meta charset="utf-8">
+<title>Messung: Erste Schritte, Fluss</title>
+<pre id="out"></pre>
+<div id="host"></div>
+<script>
+// Paket 5, Schritt 2: Misst, was die Endpositions-Messung (probe-onboarding.html) NICHT
+// sehen kann - den Weg statt des Ziels.
+//
+// Vier Fragen:
+//   1. Ueberlebt das Geruest den Bildschirmwechsel? (Buehne, Fuss und Fortschritt muessen
+//      DIESELBEN Knoten bleiben - nur so kann ueberhaupt etwas weich uebergehen.)
+//   2. Wird die Hoehe waehrend des Uebergangs am Wrapper gehalten und danach WIEDER
+//      FREIGEGEBEN? Bleibt sie stehen, ist die Buehne auf der Hoehe von gestern
+//      eingefroren und ein laengerer Schritt wird lautlos abgeschnitten.
+//   3. Bleibt der Bildschirm stehen, wenn man nur eine Kachel antippt?
+//   4. Feuert ein Klick auf "Weiter" genau EINEN Schrittwechsel? (Die Fuss-Knoepfe
+//      ueberleben jetzt - ein zweites Binden je Schritt waere ein doppelter Handler.)
+//
+// Gegenprobe: Gegen den Stand vor dem Umbau muessen 1, 2 und 3 durchfallen.
+//   http://localhost:8000/tools/probe-onboarding-fluss.html
+var out = [];
+function melde(t){ out.push(t); document.getElementById("out").textContent = out.join("\n"); }
+window.onerror = function(m,s,l){ melde("SKRIPTFEHLER Zeile " + l + ": " + m); };
+var fehler = 0;
+function pruefe(name, bed, zusatz){
+  if (bed) melde("  OK      " + name);
+  else { fehler++; melde("  ROT     " + name + (zusatz ? "  -> " + zusatz : "")); }
+}
+
+function isoWeekKey(date){
+  var d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+  var day = d.getUTCDay() || 7;
+  d.setUTCDate(d.getUTCDate() + 4 - day);
+  var ys = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+  return d.getUTCFullYear() + "-W" + String(Math.ceil((((d - ys) / 864e5) + 1) / 7)).padStart(2, "0");
+}
+var curWk = isoWeekKey(new Date());
+var plan = {};
+["mon","tue","wed","thu","fri","sat","sun"].forEach(function(k){ plan[k] = { fr: [], mi: [{ id: "r1", g: 300 }], ab: [], sn: [] }; });
+function legeZustand(){
+  localStorage.setItem("wochenkueche_v1__test", JSON.stringify({
+    tab: "home", onboarded: true,
+    goal: { mode: "cut", kcal: 1950, protein: 150, carbs: 180, fat: 60, activity: "pal14",
+            sex: "m", age: 34, height: 182, weight: 84, pace: "mod", bodyfat: null, training: [] },
+    recipes: [{ id: "r1", name: "Testmeal", cat: "Hauptgericht",
+                nutrition: { kcal: 400, protein: 30, carbs: 40, fat: 12 } }],
+    plans: (function(){ var p = {}; p[curWk] = plan; return p; })(),
+    weights: [], weightGoals: {}, weekStats: {}
+  }));
+  localStorage.setItem("wochenkueche_profile_v1__test", JSON.stringify({ name: "Messlauf", id: "lokal" }));
+}
+function warte(fn, ms){
+  return new Promise(function(res, rej){
+    var t0 = Date.now();
+    (function tick(){
+      var v; try { v = fn(); } catch (e) { v = null; }
+      if (v) return res(v);
+      if (Date.now() - t0 > (ms || 20000)) return rej(new Error("Zeit abgelaufen"));
+      setTimeout(tick, 100);
+    })();
+  });
+}
+function ruhe(ms){ return new Promise(function(r){ setTimeout(r, ms || 400); }); }
+
+(async function(){
+  try {
+    legeZustand();
+    var f = document.createElement("iframe");
+    f.style.cssText = "width:390px;height:844px;border:0";
+    f.src = "/index.html";
+    document.getElementById("host").appendChild(f);
+    await warte(function(){ var d = f.contentDocument; return d && d.querySelector(".app:not(.authing)"); }, 25000);
+    // Fehler IM Rahmen sichtbar machen. Ohne das schluckt der iframe jede Ausnahme, und
+    // ein Klick, der ins Leere laeuft, sieht aus wie ein Klick, der nichts bewirkt.
+    var rahmenFehler = [];
+    f.contentWindow.addEventListener("error", function(e){ rahmenFehler.push(e.message + " @" + e.lineno); });
+    var doc = f.contentDocument;
+    doc.querySelector('[data-tab="home"]').click();
+    await warte(function(){ return f.contentDocument.querySelector('[data-action="recalc-goal"]'); }, 8000);
+    f.contentDocument.querySelector('[data-action="recalc-goal"]').click();
+    await warte(function(){ return f.contentDocument.querySelector(".onb-stage"); }, 8000);
+    await ruhe(400);
+    doc = f.contentDocument;
+
+    melde("1. Das Geruest ueberlebt den Bildschirmwechsel");
+    var stage1 = doc.querySelector(".onb-stage");
+    var foot1 = doc.querySelector(".onb-foot");
+    var wrap1 = doc.querySelector(".onb-stage-wrap");
+    var span1 = doc.querySelector(".wg-progress-bar > span");
+    pruefe("es gibt einen Buehnen-Wrapper", !!wrap1, "keiner - das Geruest fehlt");
+    pruefe("der Fortschritt steht von Anfang an im DOM", !!span1,
+           "fehlt - auf Schritt 1 waere er ein Neugeborenes (TROUBLESHOOTING 39)");
+    doc.querySelector(".onb-next").click();
+    await ruhe(500);
+    doc = f.contentDocument;
+    pruefe("die Buehne ist derselbe Knoten", doc.querySelector(".onb-stage") === stage1);
+    pruefe("der Fuss ist derselbe Knoten", doc.querySelector(".onb-foot") === foot1);
+    pruefe("die Fortschritts-span ist dieselbe", doc.querySelector(".wg-progress-bar > span") === span1);
+
+    melde("");
+    melde("2. Die Hoehe wird gehalten - und wieder freigegeben");
+    // Ohne Geruest gibt es nichts zu messen. Dann die Abschnitte ueberspringen statt
+    // abzubrechen: Ein Abbruch ist KEIN roter Test (docs/TESTING.md), und die Gegenprobe
+    // gegen den Stand davor soll eine ehrliche rote Bilanz liefern, keinen Absturz.
+    if (!doc.querySelector(".onb-stage-wrap")) {
+      fehler += 3;
+      melde("  ROT     kein Buehnen-Wrapper - Abschnitt 2 nicht messbar (3 Zeilen gelten als rot)");
+      melde("");
+      melde("3. Eine Kachel antippen ist KEIN Bildschirmwechsel");
+      fehler += 3;
+      melde("  ROT     ohne Geruest wird bei jedem Tipp alles neu gebaut (3 Zeilen gelten als rot)");
+      melde("");
+      melde("ERGEBNIS: " + fehler + " ROT.");
+      melde("FEHLERZAHL=" + fehler);
+      return;
+    }
+    // Direkt nach dem Klick muss eine Hoehe stehen ...
+    doc.querySelector(".onb-next").click();
+    await ruhe(40);
+    var waehrend = f.contentDocument.querySelector(".onb-stage-wrap").style.height;
+    pruefe("waehrend des Uebergangs steht eine Hoehe", !!waehrend, "style.height war leer");
+    // ... und danach keine mehr.
+    await ruhe(900);
+    var danach = f.contentDocument.querySelector(".onb-stage-wrap");
+    pruefe("danach ist die Hoehe wieder frei", !danach.getAttribute("style"),
+           'style="' + (danach.getAttribute("style") || "") + '"');
+    pruefe("die Uebergangsklasse ist weg", !danach.classList.contains("is-moving"));
+
+    melde("");
+    melde("3. Eine Kachel antippen ist KEIN Bildschirmwechsel");
+    // Auf einen Bildschirm mit Kacheln gehen (Ziel/Bewegung haben welche).
+    doc = f.contentDocument;
+    var versuch = 0;
+    while (versuch++ < 8 && !doc.querySelector(".onb-stage .onb-opt")) {
+      var w = doc.querySelector(".onb-next");
+      if (!w || w.classList.contains("is-off")) break;
+      w.click(); await ruhe(420); doc = f.contentDocument;
+    }
+    var opt = doc.querySelectorAll(".onb-stage .onb-opt");
+    if (!opt.length) {
+      melde("  (kein Bildschirm mit Kacheln erreicht - Abschnitt uebersprungen)");
+    } else {
+      var stageVor = doc.querySelector(".onb-stage");
+      opt[opt.length - 1].click();
+      await ruhe(60);
+      doc = f.contentDocument;
+      var stageNach = doc.querySelector(".onb-stage");
+      pruefe("die Buehne bleibt derselbe Knoten", stageNach === stageVor);
+      pruefe("die Buehne ist als 'steht still' markiert", stageNach.classList.contains("onb-still"),
+             'Klassen: "' + stageNach.className + '"');
+      // Der Beweis, auf den es ankommt: Die Kacheln fliegen NICHT neu ein.
+      var k = doc.querySelector(".onb-stage .onb-opt");
+      var an = f.contentWindow.getComputedStyle(k).animationName;
+      pruefe("die Kacheln starten keine Einblendung", an === "none", "animation-name: " + an);
+      // Manche Bildschirme springen nach einer Auswahl von selbst weiter (onbAutoNext,
+      // 260 ms). Abwarten, sonst misst der naechste Abschnitt mitten im Wechsel.
+      await ruhe(800);
+    }
+
+    melde("");
+    melde("4. Ein Klick auf Weiter ist genau EIN Schritt");
+    melde("      (der Fuss ueberlebt den Wechsel - ein zweites Binden je Schritt waere hier");
+    melde("       ein doppelter Handler und damit zwei Schritte auf einen Klick)");
+    doc = f.contentDocument;
+    // Gemessen wird aria-valuenow, NICHT der sichtbare Zaehler: Der laeuft 700 ms lang
+    // animiert von der alten zur neuen Zahl (animateOnbProgress) und zeigt zwischendurch
+    // Werte, die nie ein Schritt waren. aria-valuenow steht dagegen sofort richtig - es
+    // muss es auch, sonst laege der Screenreader 700 ms lang daneben.
+    function schrittJetzt(){
+      var b = f.contentDocument.querySelector(".onb-top .wg-progress-bar");
+      return b ? +b.getAttribute("aria-valuenow") : -1;
+    }
+    var vorher = schrittJetzt();
+    var w2 = doc.querySelector(".onb-next");
+    if (w2 && !w2.classList.contains("is-off")) {
+      w2.click();
+      await ruhe(600);
+      var nachher = schrittJetzt();
+      pruefe("genau ein Schritt weiter", nachher === vorher + 1, "von " + vorher + " nach " + nachher);
+      if (rahmenFehler.length) melde("  [diag] Fehler im Rahmen: " + rahmenFehler.join(" | "));
+      // Zurueck haengt am selben Geruest und muss ebenso genau einen Schritt zuruecknehmen.
+      f.contentDocument.querySelector(".onb-back").click();
+      await ruhe(600);
+      pruefe("Zurueck nimmt genau einen Schritt zurueck", schrittJetzt() === vorher,
+             "von " + nachher + " nach " + schrittJetzt());
+    } else {
+      melde("  (Weiter gesperrt - Abschnitt uebersprungen)");
+    }
+
+    melde("");
+    melde(fehler === 0 ? "ERGEBNIS: alle Pruefungen gruen." : "ERGEBNIS: " + fehler + " ROT.");
+    melde("FEHLERZAHL=" + fehler);
+  } catch (e) {
+    melde("ABBRUCH: " + (e && e.message));
+    melde("FEHLERZAHL=99");
+  }
+})();
+</script>

@@ -156,6 +156,7 @@ jeweils, worum es geht. **Nicht die ganze Datei lesen** — sie ist rund 310 KB 
 | 142 | Ein fehlender Zeilenumbruch am Dateiende legt zwei Prüfstände lahm |
 | 143 | Die Zutat ohne Menge — und die drei Stellen, an denen sie schiefging |
 | 144 | Die Karte schneidet ab, statt überzulaufen — und der Layout-Prüfstand sieht nichts |
+| 145 | Ein Knoten, der den Neuaufbau überlebt, sammelt Animationsschleifen |
 
 <!-- REGISTER-ENDE -->
 
@@ -5493,3 +5494,44 @@ strukturell unsichtbar.
   kaputte Variante lief ins Leere, und die Gegenprobe war ein zweiter Normallauf.
 * Die klassische Scrollleiste im `iframe` nimmt 15 px von `clientWidth`. Der Reiter meldete
   dadurch 16 px Überlauf — im alten Stand ganz genauso. Gegen `innerWidth` messen.
+
+
+## 145. Ein Knoten, der den Neuaufbau überlebt, sammelt Animationsschleifen
+
+**Aufgefallen am:** 30.08.2026, beim Umbau der ersten Schritte (Paket 5).
+
+Der Wizard baute bis dahin bei jedem Schritt die ganze Ansicht über `view.innerHTML` neu. Das
+war die Ursache des Höhensprungs — und zugleich eine unsichtbare Aufräumhilfe: Eine noch
+laufende `requestAnimationFrame`-Schleife schrieb danach in einen **abgehängten** Knoten und
+war damit folgenlos.
+
+Seit das Gerüst den Bildschirmwechsel überlebt, schreiben alle noch laufenden Schleifen weiter
+in denselben, sichtbaren Knoten. `animateOnbProgress()` läuft 700 ms; drei schnelle Klicks
+ergeben drei Schleifen, die sich gegenseitig überholen. Auf dem Bildschirm stand
+**„Schritt −54 von 8"**.
+
+### Was jetzt gilt
+
+* Wer einen Knoten am Leben lässt, der vorher bei jedem Zeichnen starb, muss **jede laufende
+  Animation auf ihn** beenden. `animateOnbProgress()` führt dafür eine Laufmarke
+  (`onbProgressLauf`): Jeder Start zählt hoch, jede Schleife bricht ab, sobald sie nicht mehr
+  die jüngste ist. Auch der Direktzweig (`from === step`, `reducedMotion()`) zählt hoch —
+  sonst zeichnet eine ältere Schleife über den gerade gesetzten Endwert.
+* Dasselbe gilt für Timer: `onbSwapStage()` hält genau einen `onbHeightTimer` und löscht ihn
+  vor jedem neuen Übergang.
+
+### Der zweite Fund am selben Nachmittag: negative Zeit
+
+Beide rAF-Schleifen der App klemmten ihren Fortschritt nur nach oben:
+
+```javascript
+const p = Math.min(1, (now - t0) / dur);        // vorher
+const p = Math.max(0, Math.min(1, (now - t0) / dur));   // jetzt
+```
+
+Ist `now` kleiner als `t0`, wird `p` negativ. Die Ease-out-Kurve `1-(1-p)³` verstärkt das
+kräftig — der Zähler zeigte „Schritt −66 von 8". Im Prüfstand passiert das unter virtueller
+Zeit regelmäßig; auf einem echten Gerät genügt eine Uhr, die zurückgestellt wird.
+
+**Beides fand `tools/probe-onboarding-fluss.html`, nicht das Nachdenken über den Code.** Der
+zweite Fehler steckte seit Monaten im Bestand und hätte ohne den Umbau weiter dort gelegen.

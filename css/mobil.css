@@ -551,8 +551,31 @@
     margin-top: 9px; font-family: var(--font-display); font-size: 12px; color: var(--text-muted);
     letter-spacing: .14em; text-transform: uppercase;
   }
-  /* Expo-out: startet schnell, laeuft weich aus – dieselbe Kurve wie bei den Karten der App. */
-  .onb-stage { animation: onbin .26s cubic-bezier(.16, 1, .3, 1); }
+  /* Die Buehne haelt ihre Hoehe, waehrend sie wechselt (Paket 5). Die Transition sitzt am
+     WRAPPER, nicht an der Buehne: Die Buehne entsteht bei jedem Schritt neu und hat damit
+     keinen Vorher-Zustand, aus dem sie interpolieren koennte (TROUBLESHOOTING 39).
+
+     Unter „weniger Bewegung" faellt sie von selbst weg - die globale Regel in
+     komponenten.css erzwingt `transition-property: opacity, color, background-color,
+     border-color, box-shadow`, und height steht nicht darin. Genau deshalb CSS und nicht
+     WAAPI: Dieser Zweig muss nicht von Hand gepflegt werden.
+
+     overflow: hidden nur WAEHREND des Uebergangs. Es ist unbedenklich - nur `auto` und
+     `scroll` fangen Gesten ab (TROUBLESHOOTING 58) -, aber dauerhaft gesetzt wuerde es ein
+     Fokus-Ringlein am Rand abschneiden. */
+  .onb-stage-wrap { transition: height var(--dur-base) var(--ease-out); }
+  .onb-stage-wrap.is-moving { overflow: hidden; }
+  /* Gleicher Bildschirm, nur eine Auswahl mehr: Dann bleiben die Kacheln stehen. Ohne das
+     lief die gestaffelte Einblendung bei JEDEM Tipp erneut - wer auf dem Trainingsschritt
+     vier Tage antippt, sah den Bildschirm viermal neu einfliegen. Das duerfte den groesseren
+     Anteil an „laeuft nicht fluessig" getragen haben als der Hoehensprung. */
+  .onb-stage.onb-still .onb-opt,
+  .onb-stage.onb-still .onb-bf-o { animation: none; opacity: 1; transform: none; }
+  /* Die Einblendung der Buehne uebernimmt seit Paket 5 slideIn() (WAAPI, 16 px, gerichtet,
+     Dauer und Kurve aus MOTION). Die frueher hier stehende Regel
+     `.onb-stage { animation: onbin .26s ... }` ist damit entfallen - sie war hartkodiert
+     und richtungslos, obwohl es "Zurueck" gibt. Die Keyframes bleiben: die gestaffelten
+     Kacheln (.onb-opt, .onb-bf-o) benutzen sie weiterhin. */
   @keyframes onbin { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
   .onb-q {
     display: block; font-family: var(--font-display); font-size: 30px; line-height: 1.08;
