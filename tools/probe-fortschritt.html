@@ -1,0 +1,209 @@
+<!doctype html><meta charset="utf-8">
+<title>Abnahme: Fortschritt-Reiter mit Kalender</title>
+<pre id="out"></pre>
+<div id="host"></div>
+<script>
+// Einmal-Abnahme (Paket 6, B7/B8): Laeuft der Kalender in der ECHTEN App?
+//
+// Die Pruefstaende messen ausgeschnittene Funktionen. Diese Seite laedt die vollstaendige
+// index.html in einem iframe (gleiche Origin ueber test-server.ps1), legt vorher einen
+// fertigen Zustand ins localStorage und klickt sich in den Fortschritt-Reiter.
+//
+// Der Testschluessel traegt "__test" (localKey/isTestOrigin) - echte Daten auf der
+// Live-Domain sind damit nicht beruehrt.
+var out = [];
+function melde(t){ out.push(t); document.getElementById("out").textContent = out.join("\n"); }
+window.onerror = function(m,s,l){ melde("SKRIPTFEHLER Zeile " + l + ": " + m); };
+
+function isoWeekKey(date){
+  var d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+  var day = d.getUTCDay() || 7;
+  d.setUTCDate(d.getUTCDate() + 4 - day);
+  var ys = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+  var w = Math.ceil((((d - ys) / 864e5) + 1) / 7);
+  return d.getUTCFullYear() + "-W" + String(w).padStart(2, "0");
+}
+var DAYKEYS = ["mon","tue","wed","thu","fri","sat","sun"];
+var heute = new Date();
+var curWk = isoWeekKey(heute);
+var jahr = heute.getFullYear();
+
+// Ein Zustand, wie ihn ein Konto nach ein paar Monaten hat: Ziel gesetzt, laufende Woche
+// beplant, Archiv mit Masken - und EINE Altwoche ohne Maske (vor dem 29.08.2026).
+var plan = {};
+// Ein Tag ist nach Mahlzeiten gegliedert (MEALS: fr/mi/ab/sn) - eine flache Liste je Tag
+// laesst dayNutOf() ins Leere greifen, und dann ist die laufende Woche still leer.
+DAYKEYS.forEach(function(k){ plan[k] = { fr: [], mi: [{ id: "r1", g: 300 }], ab: [{ id: "r1", g: 250 }], sn: [] }; });
+var weekStats = {};
+for (var i = 1; i <= 12; i++) {
+  var d = new Date(); d.setDate(d.getDate() - 7 * i);
+  weekStats[isoWeekKey(d)] = { kcal: 1900, days: 7, hit: 5, target: 1950, d: "1111111" };
+}
+var alt = new Date(); alt.setDate(alt.getDate() - 7 * 20);
+weekStats[isoWeekKey(alt)] = { kcal: 1800, days: 4, hit: 2, target: 1900 };   // ohne `d`
+// Eine Woche im Vorjahr - erst damit hat der Jahr-Umschalter ueberhaupt zwei Jahre.
+weekStats[(jahr - 1) + "-W44"] = { kcal: 1850, days: 6, hit: 4, target: 1900, d: "1111110" };
+
+var daten = {
+  tab: "home", onboarded: true,
+  goal: { mode: "cut", kcal: 1950, protein: 150, carbs: 180, fat: 60, activity: "pal14", training: [] },
+  // Naehrwerte liegen unter r.nutrition (recipeNut) - flach daneben geschrieben sind sie
+  // fuer die App nicht vorhanden, und dann ist jeder Tag still "nicht beplant".
+  recipes: [{ id: "r1", name: "Testmeal", cat: "Hauptgericht",
+              nutrition: { kcal: 400, protein: 30, carbs: 40, fat: 12 } }],
+  plans: (function(){ var p = {}; p[curWk] = plan; return p; })(),
+  weights: [{ m: jahr + "-W20", kg: 84 }, { m: jahr + "-W28", kg: 82 }],
+  weightGoals: (function(){ var g = {}; g[jahr] = 78; return g; })(),
+  weightConsent: { given: true, at: Date.now(), version: 1 },
+  weekStats: weekStats
+};
+localStorage.setItem("wochenkueche_v1__test", JSON.stringify(daten));
+localStorage.setItem("wochenkueche_profile_v1__test", JSON.stringify({ name: "Testlauf", id: "lokal" }));
+melde("Zustand gelegt: " + Object.keys(weekStats).length + " Archivwochen, laufende Woche mit 5 Tagen.");
+
+var fehler = 0;
+function pruefe(name, bed, zusatz){
+  if (bed) melde("  OK      " + name);
+  else { fehler++; melde("  ROT     " + name + (zusatz ? "  -> " + zusatz : "")); }
+}
+function warte(fn, ms){
+  return new Promise(function(res, rej){
+    var t0 = Date.now();
+    (function tick(){
+      var v; try { v = fn(); } catch (e) { v = null; }
+      if (v) return res(v);
+      if (Date.now() - t0 > (ms || 15000)) return rej(new Error("Zeit abgelaufen"));
+      setTimeout(tick, 120);
+    })();
+  });
+}
+
+var f = document.createElement("iframe");
+f.style.cssText = "width:390px;height:800px;border:0";
+f.src = "/index.html";
+document.getElementById("host").appendChild(f);
+
+(async function(){
+  try {
+    // Nicht auf readyState warten (about:blank meldet sofort "complete"), sondern auf ein
+    // Merkmal der App - und lange genug fuer den 6-Sekunden-Rueckfall in den lokalen Modus.
+    var d = await warte(function(){
+      var doc = f.contentDocument;
+      return doc && doc.querySelector(".app:not(.authing)") ? doc : null;
+    }, 20000);
+    melde("App ist im lokalen Modus gestartet.");
+
+    // Erst den Ueberlauf auf HOME messen. Ohne diesen Bezugswert waere ein Ueberlauf im
+    // Fortschritt-Reiter nicht einzuordnen: er koennte laengst bestehen und mit dem
+    // Kalender gar nichts zu tun haben.
+    // Gegen innerWidth, NICHT gegen clientWidth: im iframe nimmt die klassische
+    // Scrollleiste 15 px von clientWidth weg (390 -> 375), und jede Vollbreiten-Karte
+    // saehe damit nach 16 px Ueberlauf aus. Genau darauf ist dieser Test zuerst
+    // hereingefallen - der alte Stand meldete dieselben 16 px (docs/TESTING.md).
+    var deH = f.contentDocument.documentElement;
+    var homeUeber = deH.scrollWidth - f.contentWindow.innerWidth;
+    melde("Waagerechter Ueberlauf auf Home (Bezugswert): " + homeUeber + " px");
+
+    var reiter = await warte(function(){ return f.contentDocument.querySelector('[data-tab="progress"]'); });
+    reiter.click();
+    await warte(function(){ return f.contentDocument.querySelector(".kal-grid"); }, 8000);
+    var doc = f.contentDocument;
+    melde("");
+    melde("1. Der Kalender steht im Fortschritt-Reiter");
+    var tab = doc.querySelector(".kal-grid");
+    pruefe("Band vorhanden", !!tab);
+    pruefe("Reihenfolge: Rueckblick, Kalender, Gewicht", (function(){
+      var html = doc.querySelector("#view").innerHTML;
+      var a = html.indexOf('class="rueck'), b = html.indexOf("kal-grid"), c = html.indexOf("wch-plot");
+      return a > -1 && b > a && (c === -1 || c > b);
+    })(), "Positionen stimmen nicht");
+    // Gezaehlt wird die SPALTE der laufenden Woche, nicht alle gefuellten Zellen des Jahres.
+    // Die erste Fassung zaehlte alle - und war gruen, obwohl die laufende Woche leer war.
+    var kwNr = +curWk.slice(6, 8);
+    var spalte = Array.prototype.filter.call(tab.querySelectorAll("tbody tr"), function(tr){
+      return tr.cells[kwNr] && tr.cells[kwNr].classList.contains("on");
+    }).length;
+    pruefe("laufende Woche ist gefuellt (7 Tage)", spalte === 7, spalte + " von 7 Zellen");
+    pruefe("Altwoche ohne Maske ist gestrichelt", tab.querySelectorAll("td.kal-c.unk").length === 7,
+           tab.querySelectorAll("td.kal-c.unk").length + " gestrichelte Zellen");
+    pruefe("heute ist markiert", tab.querySelectorAll("td.kal-c.today").length === 1);
+
+    melde("");
+    melde("2. Kein waagerechter Ueberlauf bei 390 px");
+    var de = doc.documentElement;
+    var wrap = doc.querySelector(".kal-wrap");
+    pruefe("Band passt in die Karte", tab.scrollWidth - wrap.clientWidth <= 0.5,
+           "ueber: " + (tab.scrollWidth - wrap.clientWidth) + " px");
+    // Gegen den Bezugswert von Home pruefen, nicht gegen 0: ein Ueberlauf, den die App an
+    // dieser Breite ueberall hat, ist kein Befund dieser Aenderung.
+    var progUeber = de.scrollWidth - f.contentWindow.innerWidth;
+    var schuldZahl = 0;
+    doc.querySelectorAll("#view *").forEach(function(el){
+      if (el.getBoundingClientRect().right > f.contentWindow.innerWidth + 0.5) schuldZahl++;
+    });
+    if (schuldZahl || progUeber > 1) {
+      // Ohne den Namen des Uebeltaeters ist die Zahl wertlos. Alle Elemente durchgehen und
+      // die melden, die ueber die Dokumentbreite hinausragen.
+      var schuld = [];
+      doc.querySelectorAll("#view *").forEach(function(el){
+        var r = el.getBoundingClientRect();
+        if (r.right > f.contentWindow.innerWidth + 0.5) schuld.push(el.className || el.tagName);
+      });
+      melde("  ueber die Kante ragen: " + (schuld.slice(0, 6).join(" | ") || "nichts im #view") + (schuld.length > 6 ? " (+" + (schuld.length - 6) + ")" : ""));
+      // Und die Gegenprobe an Ort und Stelle: dieselbe Seite OHNE die Kalenderkarte. Bleibt
+      // der Ueberlauf, ist er nicht ihrer - dann trug ihn der Reiter schon vorher.
+      var kal = doc.querySelector(".kal");
+      kal.style.display = "none";
+      var ohne = de.scrollWidth - f.contentWindow.innerWidth;
+      kal.style.display = "";
+      melde("  derselbe Reiter OHNE Kalenderkarte: " + ohne + " px");
+    }
+    // Gegen 1 px Toleranz, nicht gegen den Home-Wert: Home scrollt gar nicht und hat
+    // deshalb keine senkrechte Leiste - die beiden Zahlen sind nicht vergleichbar
+    // (Home meldet -15). Die belastbare Aussage ist: kein Element ragt ueber die Kante.
+    pruefe("kein Element ragt ueber die Kante", schuldZahl === 0, schuldZahl + " Elemente");
+    pruefe("Reiter scrollt nicht seitwaerts", progUeber <= 1, "Ueberlauf " + progUeber + " px");
+
+    melde("");
+    melde("3. Die Tages-Serie steht im Rueckblick");
+    var foot = doc.querySelector(".rueck-foot");
+    pruefe("Kennzahl 'Am Stueck' vorhanden", !!foot && foot.textContent.indexOf("Am Stück") > -1,
+           foot ? foot.textContent.trim().replace(/\s+/g, " ") : "kein Fuss");
+    pruefe("die Flamme bleibt bei der Wochenserie",
+           doc.querySelectorAll(".rueck-streak .rueck-fl").length === 1 &&
+           doc.querySelectorAll(".rueck-foot .rueck-fl").length === 0);
+
+    melde("");
+    melde("4. Der Jahr-Umschalter bewegt beide Karten");
+    var btns = doc.querySelectorAll('.kal [data-action="wyear"]');
+    pruefe("Umschalter an der Kalenderkarte", btns.length >= 2, btns.length + " Knoepfe");
+    if (btns.length >= 2) {
+      var vorjahr = btns[0].dataset.year;
+      btns[0].click();
+      await warte(function(){
+        var t = f.contentDocument.querySelector(".kal-grid");
+        return t && t.dataset.year === vorjahr ? t : null;
+      }, 6000);
+      var doc2 = f.contentDocument;
+      pruefe("Kalender zeigt " + vorjahr, doc2.querySelector(".kal-grid").dataset.year === vorjahr);
+      var wlbl = doc2.querySelector(".wch .wg-lbl");
+      pruefe("Gewichtskarte folgt mit", !!wlbl && wlbl.textContent.indexOf(vorjahr) > -1,
+             wlbl ? wlbl.textContent : "keine Gewichtskarte");
+    }
+
+    melde("");
+    melde("5. Der Tipp antwortet auf einen Klick");
+    var z = f.contentDocument.querySelector("td.kal-c");
+    z.dispatchEvent(new f.contentWindow.MouseEvent("click", { bubbles: true }));
+    var tip = f.contentDocument.querySelector(".kal-tip");
+    pruefe("Tipp beschriftet", tip && /KW \d+ · \w+/.test(tip.textContent), tip ? tip.textContent : "-");
+
+    melde("");
+    melde(fehler === 0 ? "ERGEBNIS: alle Pruefungen gruen." : "ERGEBNIS: " + fehler + " ROT.");
+    melde("FEHLERZAHL=" + fehler);
+  } catch (e) {
+    melde("ABBRUCH: " + (e && e.message));
+    melde("FEHLERZAHL=99");
+  }
+})();
+</script>

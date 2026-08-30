@@ -73,6 +73,10 @@ Die Verfahren gibt es auch als Skill: `/smoke`, `/pruefstand`, `/abnahme`, `/dep
 | · | `tools/pruefstand-kontowechsel.py` — eine Gegenprobe, die in die Schleife läuft (29.08.2026) |
 | · | Abnahme am echten Konto: Gruppen-Sync zu zweit (29.08.2026) |
 | · | Aufteilung des Codes: was sich am Prüfverfahren ändert (29.08.2026) |
+| · | `tools/pruefstand-jahresumschalter.py` — ein Jahrgang, der nicht auftauchen darf (30.08.2026) |
+| · | `tools/pruefstand-kalender.py` — die laufende Woche, die im Archiv fehlt (30.08.2026) |
+| · | `tools/pruefstand-kalender-layout.py` — ein Überlauf, den niemand sieht (30.08.2026) |
+| · | `tools/probe-fortschritt.html` — die Abnahme in der echten App (30.08.2026) |
 
 <!-- REGISTER-ENDE -->
 
@@ -3364,3 +3368,137 @@ auslösen und die CI rot machen; ein absichtlich gebrochener Schnitt muss den be
 Prüfstand durchfallen lassen; `python tools/karte.py --pruefe` muss nach einer
 Strukturänderung ohne Neuerhebung mit Exit 1 abbrechen. Alle drei wurden gefahren und
 anschließend vollständig zurückgesetzt.
+
+
+## `tools/pruefstand-jahresumschalter.py` — ein Jahrgang, der nicht auftauchen darf (30.08.2026)
+
+**Was er prüft:** `weightYears()` speist ab Paket 6/B6 den Jahr-Umschalter **beider** Karten
+der Fortschritt-Seite — Gewicht und Kalender. Er muss deshalb die Jahre des Wochenarchivs
+kennen, ohne dabei das Pufferjahr zu verraten.
+
+```powershell
+python tools/pruefstand-jahresumschalter.py            # heute: alles grün
+python tools/pruefstand-jahresumschalter.py 91c202b    # davor:  fällt durch
+```
+
+**Der eigentliche Grund für diesen Prüfstand ist Abschnitt 2.** `sanitizeWeekStats()` behält
+mit `archivJahreBehalten()` **drei** Jahrgänge, angeboten werden mit `archivJahreZeigen()`
+nur **zwei** — die Differenz ist der Neujahrs-Puffer (`docs/ARCHITECTURES.md`,
+„Archivfenster"). Eine naheliegende Fassung, die über `Object.keys(state.weekStats)` geht,
+liefert dieselben Jahre wie die richtige, **solange keine Woche aus dem Pufferjahr existiert**
+— und hebt den Puffer in dem Moment auf, in dem eine existiert. Genau diese Woche legt der
+Prüfstand an.
+
+### Die Falle beim Lesen der Gegenprobe
+
+Beim alten Stand ist Abschnitt 2 **grün, aus dem falschen Grund**: Wo überhaupt kein
+Archivjahr angeboten wird, kann auch kein Pufferjahr durchrutschen. Rot sind dort nur die Zeilen,
+die ohne die Archivjahre gar nicht entstehen können.
+
+Dasselbe Muster wie bei `pruefstand-wochenmaske.py` vor B3 — und dieselbe Lehre: **Zeilen
+gehören paarweise gelesen.** Abschnitt 2 misst erst dann etwas, wenn Abschnitt 1 grün ist.
+Wer nur auf den Zähler schaut, hält eine wirkungslose Zeile für einen bestandenen Test.
+
+### Zwei Schnitte, weil die Funktionen weit auseinander liegen
+
+`archivJahre()`/`archivJahreZeigen()` stehen bei `load()`, `weightYears()`/`activeYear()`
+gut 3.800 Zeilen weiter bei der Gewichtskarte. Beide Bereiche werden **einzeln
+ausgeschnitten** und in getrennte `<script>`-Blöcke gelegt (Attrappen, Code, Prüfungen —
+siehe `pruefstand-rueckblick-ziel.py`). Der dritte Block bricht mit einer eigenen Meldung
+ab, wenn eine der beiden Funktionen fehlt: sonst wäre ein misslungener Schnitt von einem
+bestandenen Test nicht zu unterscheiden.
+
+**Kein festes Jahr im Prüfstand.** Alle Jahre werden im Test aus `new Date().getFullYear()`
+abgeleitet. Ein eingetragenes `"2026"` wäre am 1. Januar still falsch — und der Stichtag ist
+hier ausgerechnet das, was geprüft wird.
+
+
+## `tools/pruefstand-kalender.py` — die laufende Woche, die im Archiv fehlt (30.08.2026)
+
+**Was er prüft:** `kalenderHtml()` und `dayStreak()` (Paket 6, B7/B8) über `kalWoche()`.
+
+```powershell
+python tools/pruefstand-kalender.py                # heute: alles grün
+python tools/pruefstand-kalender.py --gegenprobe   # naive Fassung: fällt durch
+```
+
+**Die Gegenprobe läuft nicht gegen einen Commit, sondern gegen eine verstellte Kopie.** Gegen
+`91c202b` bräche der Schnitt mit „Endmarker nicht gefunden" ab, weil `kalenderHtml()` dort
+noch gar nicht existiert — und **ein Abbruch ist kein roter Test**. Stattdessen ersetzt
+`--gegenprobe` per Regex `kalWoche()` durch die naive Fassung, die nur ins Archiv schaut und
+einen Datensatz ohne Maske als sieben Nullen liest. Genau die Zeilen, die B7/B8 ausmachen,
+werden damit rot; alles Übrige bleibt grün.
+
+**Zwei Fallen, die er selbst getreten hat:**
+
+* Die erste Fassung zählte für „laufende Woche ist gefüllt" **alle** `on`-Zellen des Jahres —
+  und war grün, während die laufende Woche leer war. Jetzt zählt sie die Spalte dieser Woche.
+* Alle Daten entstehen relativ zu *heute*. Ein fest eingetragenes Datum wäre ab morgen eine
+  andere Probe, und der Kalender ist die eine Ansicht, in der das Datum die Aussage ist.
+
+## `tools/pruefstand-kalender-layout.py` — ein Überlauf, den niemand sieht (30.08.2026)
+
+**Was er prüft:** dass das Band bei 360, 390, 768 und 1280 px in hell **und** dunkel passt —
+ohne waagerechten Scroller, den es bewusst nicht bekommt (`docs/TROUBLESHOOTING.md` 58).
+
+Gemessen im `srcdoc`-iframe mit echtem CSS (`quelle.css_gesamt()`) und echtem Markup. Ergebnis
+der Messung, die die Papierrechnung ersetzt:
+
+| Breite | Zellbreite |
+|---|---|
+| 360 px | 4,23 px |
+| 390 px | 4,80 px |
+| 768 px | 11,94 px |
+| 1280 px | 19,52 px |
+
+### Die Lehre steckt in der Gegenprobe, nicht im Lauf
+
+Die erste Fassung maß `scrollWidth - clientWidth` **am Dokument** — und blieb grün, obwohl die
+Gegenprobe (`table-layout: auto`, 12 px Mindestbreite) das Band auf 407 px über die Karte
+hinaus trieb. Der Grund: **`.wg-col` hat `overflow: hidden`.** Ein zu breites Band läuft gar
+nicht über, es wird lautlos abgeschnitten — der Fehler, den der Prüfstand fangen sollte, war
+für die Zahl, die er maß, unsichtbar.
+
+Die tragende Zeile heißt jetzt `tab.scrollWidth <= wrap.clientWidth`. **Ein Prüfstand, dessen
+Gegenprobe grün bleibt, misst nicht das Falsche — er misst gar nichts.**
+
+Zweite Falle desselben Laufs: Der Schalter für die kaputte Variante hing zuerst an
+`location.search`. **Eine Query an einer `file://`-URL kam in Edge `--headless` nicht an**, die
+Gegenprobe lief als Normallauf durch und war folgerichtig grün. Der Schalter steht seither in
+der erzeugten Seite selbst.
+
+## `tools/probe-fortschritt.html` — die Abnahme in der echten App (30.08.2026)
+
+Prüfstände messen ausgeschnittene Funktionen. Diese Seite lädt die **vollständige** App in
+einem iframe, legt vorher einen fertigen Zustand ins `localStorage` und klickt sich in den
+Fortschritt-Reiter — Reihenfolge der Karten, gefüllte laufende Woche, Jahr-Umschalter über
+beide Karten, Tipp, Tages-Serie.
+
+```powershell
+powershell -NoProfile -File test-server.ps1
+& "C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe" --headless=new --disable-gpu `
+  --virtual-time-budget=45000 --user-data-dir="<scratchpad>\edge" --dump-dom `
+  http://localhost:8000/tools/probe-fortschritt.html > dump.html
+```
+
+Sie läuft **nicht** im Reihenlauf mit: Sie braucht einen Server. Das Zeitbudget muss über dem
+6-Sekunden-Rückfall in den lokalen Modus liegen — bei 30000 brach sie sporadisch mit
+„Zeit abgelaufen" ab, bei 45000 nicht mehr.
+
+### Drei Befunde, und zwei davon waren die Testdaten
+
+Genau dafür ist die Abnahme da — die drei roten Zeilen des ersten Laufs:
+
+* **Der Plan ist nach Mahlzeiten gegliedert** (`plan[tag][fr|mi|ab|sn]`), nicht flach je Tag.
+  Eine flache Liste lässt `dayNutOf()` ins Leere greifen: kein Fehler, keine Meldung — die
+  Woche ist einfach still leer.
+* **Nährwerte liegen unter `r.nutrition`**, nicht flach am Rezept. Flach daneben geschrieben
+  existieren sie für `recipeNut()` nicht, und jeder Tag gilt als unbeplant.
+* **Die 16 px, die keine waren.** Der Reiter meldete 16 px waagerechten Überlauf. Nachgemessen
+  mit einem `git worktree` auf `91c202b` und einem zweiten Server: **derselbe Wert im alten
+  Stand.** Es war die klassische Scrollleiste des iframe, die 15 px von `clientWidth` nimmt
+  (Abschnitt „Überlauf gegen `innerHeight` prüfen"). Gegen `innerWidth` gemessen: 0.
+
+Der Umweg über den Worktree hat sich gelohnt — ohne ihn hätte die Zahl wie ein Befund dieser
+Änderung ausgesehen. **Wer einen Messwert nicht einordnen kann, misst denselben Wert am alten
+Stand.**

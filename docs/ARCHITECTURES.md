@@ -1241,7 +1241,7 @@ Kalenderdatum: `"2026-W01"` kann real im Dezember 2025 liegen.
 ```javascript
 function archivJahre(anzahl) { … }                          // die eine Quelle
 function archivJahreBehalten() { return archivJahre(3); }   // was gespeichert bleibt
-function archivJahreZeigen()   { return archivJahre(2); }   // was angeboten wird (ab B7)
+function archivJahreZeigen()   { return archivJahre(2); }   // was angeboten wird (weightYears)
 ```
 
 ⚠️ **Funktionen, nicht `const`** — und das ist kein Stil, sondern Pflicht:
@@ -1283,6 +1283,66 @@ Entscheidung selbst misst und dabei ohne Zeitreise auskommt: *Was der Umschalter
 anbietet, muss im morgigen Behalten-Fenster noch vorkommen.* Gegenprobe mit
 `archivJahreBehalten()` auf zwei Jahrgänge gestellt: vier Zeilen fallen durch, darunter
 „verloren: 2025".
+
+**Wer die Jahre anbietet: `weightYears()` — ein Umschalter für beide Karten (seit
+30.08.2026, B6).** Die Fortschritt-Seite bekommt keinen zweiten Jahrwechsler für den
+Kalender; `weightYears()` liefert weiterhin die Jahre mit Messung oder Jahresziel plus das
+laufende Jahr, **zusätzlich die Archivjahre aus `archivJahreZeigen()`**. Damit hat auch ein
+Konto ohne eine einzige Wägung einen Umschalter, der sein Planungsjahr kennt, und beide
+Karten teilen sich `state.viewYear`.
+
+Zwei Feinheiten, die dabei zusammengehören:
+
+* Die Archivjahre werden **gefiltert** (`zeigen.indexOf(y) !== -1`), nicht aus den
+  Schlüsseln übernommen — sonst stünde das Pufferjahr im Umschalter, und der Puffer wäre
+  keiner mehr. Das Jahr kommt aus dem Schlüssel-Präfix, dieselbe Trimm-Regel wie oben.
+* **Die Gewichtsjahre bleiben ungefiltert.** Das Fenster gilt für `weekStats`; eine zehn
+  Jahre alte Messung ist ein eigenes Datum mit eigener Löschlogik und darf nicht
+  mitverschwinden.
+
+Belegt durch `tools/pruefstand-jahresumschalter.py`; die Gegenprobe gegen `91c202b` fällt durch.
+
+#### Die Ansicht: ein Band, zwei Leser (seit 30.08.2026, B7/B8)
+
+`renderProgress()` zeichnet seit dem 30.08.2026 drei Karten statt zwei —
+`rueckblickHtml() + kalenderHtml() + weightHtml()`, dazu `initKalender()` neben
+`initRueckblick()`. Reihenfolge: acht Wochen, dann das Jahr, dann das Gewicht; von der
+kurzen zur langen Sicht. **Kein fünfter Reiter** — der Kalender beantwortet dieselbe Frage
+wie der Rückblick („wie lief es bisher?"), nur über einen längeren Zeitraum.
+
+`kalenderHtml()` ist eine echte `<table>` mit `table-layout: fixed`, sieben Zeilen
+(Wochentage) mal 52 oder 53 Spalten. **Kein Grid und kein `display: contents` auf
+Tabellenelementen**: das nimmt Screenreadern die Tabellenrollen, und genau die sind hier
+die ganze A11y-Antwort — 371 `aria-label` wären keine. Sichtbar beschriftet sind jeder
+zweite Monat (Drei-Buchstaben-Kürzel) und Mo/Mi/Fr/So; der volle Name steht in jeder Zelle
+als `.visually-hidden` daneben.
+
+**`kalWoche(wk)` ist die eine Quelle für die Bits** und kennt drei Antworten:
+
+| Rückgabe | Bedeutung | Darstellung |
+|---|---|---|
+| `{ mask: "1101100", tage: 4 }` | Tage bekannt — aus `state.plans` (laufende Wochen, über `weekMaskOf()`) oder aus `weekStats[..].d` | gefüllt bzw. leer mit Kante |
+| `{ mask: null, tage: n }` | Woche geplant, Tage unbekannt (vor dem 29.08.2026 archiviert, kein `d`) | gestrichelt |
+| `null` | über die Woche ist nichts bekannt | transparent, ohne Kante |
+
+Die mittlere Zeile ist die inhaltlich wichtige: Eine solche Woche als sieben Nullen zu
+zeichnen wäre eine Aussage, die niemand erhoben hat. Zukunft und die Zeit vor der ersten
+Nutzung sehen dagegen absichtlich gleich aus — beides ist „keine Aussage", ein Unterschied
+wäre eine erfundene.
+
+**`dayStreak()`** zählt Tage am Stück über dieselbe Funktion. Ist heute noch nichts geplant,
+beginnt die Zählung bei gestern — der eine bewusste Off-by-one; ein Vormittag darf keine
+Serie abräumen. Eine Woche ohne Maske **beendet** den Lauf (unterschätzen statt lügen),
+Deckel bei 400, Anzeige ab zwei Tagen. Die Wochenserie (`STREAK_MIN_DAYS = 5`) bleibt
+unangetastet: andere Einheit, andere Aussage, und die Flamme gehört ihr allein.
+
+Die Doppelung zwischen beiden Zählweisen wird über den geteilten Maskenzugriff vermieden,
+**nicht** über gemeinsame Streak-Logik — die Regeln sind verschieden.
+
+⚠️ **Die Kartenschale `.wg-col` hat `overflow: hidden`.** Ein zu breites Band läuft deshalb
+nicht über das Dokument, es wird lautlos abgeschnitten. Wer Layoutfehler am Dokument misst,
+sieht davon nichts (`tools/pruefstand-kalender-layout.py`, gemessen wird
+`tab.scrollWidth <= wrap.clientWidth`).
 
 **Zwei Merge-Stellen, nicht eine.** `onRemote()` deckt den laufenden Betrieb ab; der
 Baseline-Merge in `startCloudSync()` den Start. Fehlt das Feld dort, ist die Vereinigung

@@ -152,6 +152,9 @@ jeweils, worum es geht. **Nicht die ganze Datei lesen** — sie ist rund 286 KB 
 | 138 | Ein neues Sync-Feld braucht drei Stellen — die dritte wirft es beim Push weg |
 | 139 | `const` auf Modulebene: die App startet nicht, der Syntax-Check sagt nichts |
 | 140 | Hooks mit relativem Pfad: ein `cd` legt das ganze Prüfsystem still |
+| 141 | Die Zutat, die in der Anleitung nie vorkommt |
+| 142 | Ein fehlender Zeilenumbruch am Dateiende legt zwei Prüfstände lahm |
+| 143 | Die Karte schneidet ab, statt überzulaufen — und der Layout-Prüfstand sieht nichts |
 
 <!-- REGISTER-ENDE -->
 
@@ -5451,3 +5454,41 @@ Stand davor: 162 Regressionen, dagegen keine gegen den neuen Stand.
 sie sieht auch nicht, dass zwei andere Werkzeuge an derselben Stelle vorbeirechnen. Wenn eine
 Datenform zwei zulässige Gestalten hat, ist die bequemere irgendwann die, an der alles
 vorbeiläuft.
+
+
+## 143. Die Karte schneidet ab, statt überzulaufen — und der Layout-Prüfstand sieht nichts
+
+**Aufgefallen am:** 30.08.2026, beim Fortschritt-Kalender (Paket 6, B7).
+
+Das Kalenderband trägt 52 oder 53 Spalten und bekommt bewusst **keinen** eigenen
+Scroll-Container (Ziffer 58: auf Touch gewinnt immer der innere Scroller). Ob 53 Spalten bei
+360 px passen, ist damit keine Geschmacksfrage mehr, sondern eine Messung — dafür entstand
+`tools/pruefstand-kalender-layout.py`.
+
+Er maß `scrollWidth - clientWidth` **am Dokument** und war grün. Auch in der Gegenprobe, die
+das Band mit `table-layout: auto` und 12 px Mindestbreite absichtlich auf mehr als das
+Doppelte der verfügbaren Breite trieb.
+
+**Der Grund steht eine Ebene höher:** `.wg-col` — die Kartenschale, die alle drei Karten des
+Reiters benutzen — hat `overflow: hidden`. Ein zu breites Kind läuft damit gar nicht über das
+Dokument; es wird lautlos abgeschnitten. Der Fehler war für die Zahl, die der Prüfstand maß,
+strukturell unsichtbar.
+
+### Was jetzt gilt
+
+* Layout-Überlauf **an dem Element messen, das clippt** — hier
+  `tab.scrollWidth <= wrap.clientWidth`. Die Dokumentzahl bleibt als zweite Zeile stehen, sie
+  ist aber nicht die tragende.
+* Wo eine Karte `overflow: hidden` trägt, ist ein abgeschnittener Inhalt **kein**
+  Scrollbalken, sondern verschwundene Information. Beides sieht im Screenshot ähnlich aus und
+  ist es nicht.
+* Und die allgemeine Lehre, die diesen Fall überdauert: **Eine Gegenprobe, die grün bleibt,
+  ist kein Nebenbefund — sie sagt, dass der Prüfstand nichts misst.** Nicht die Toleranz
+  nachjustieren, sondern fragen, ob die gemessene Größe den Fehler überhaupt berühren kann.
+
+**Zwei Nachbarfallen aus demselben Lauf**, beide in `docs/TESTING.md` ausführlich:
+
+* Eine Query an einer `file://`-URL kam in Edge `--headless` nicht an; der Schalter für die
+  kaputte Variante lief ins Leere, und die Gegenprobe war ein zweiter Normallauf.
+* Die klassische Scrollleiste im `iframe` nimmt 15 px von `clientWidth`. Der Reiter meldete
+  dadurch 16 px Überlauf — im alten Stand ganz genauso. Gegen `innerWidth` messen.

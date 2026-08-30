@@ -85,6 +85,12 @@ function weekKeyFor(){ return "2026-W99"; }        // aktuelle Woche: absichtlic
 function isoWeekKey(){ return "2026-W98"; }        // Streak laeuft damit ins Leere
 function dayNutOf(){ return null; }
 function hasNut(){ return false; }
+// dayStreak() (Paket 6, B8) liegt seit dem 30.08.2026 mit im Ausschnitt und liest die
+// Tagesbits ueber kalWoche() - eine Funktion, die weiter unten in index.html steht und
+// hier bewusst NICHT mitgeschnitten wird. Gemessen wird der Ziel-Filter der Grafik, nicht
+// die Serie: ohne Bits ist sie 0, und die zweite Kennzahl entfaellt. Wer die Serie messen
+// will, nimmt tools/pruefstand-kalender.py.
+function kalWoche(){ return null; }
 
 // HEUTIGES Ziel - genau der Wert, mit dem die alte Fassung faelschlich gemessen hat.
 var HEUTE_ZIEL = 2000;

@@ -1053,6 +1053,20 @@ Zwei Regeln, die daraus folgen:
 Was der Rückblick weiterhin **nicht** tut: bewerten. Wochen außerhalb des Ziels sind gedämpft
 gezeichnet, nicht rot.
 
+**Zwei Serien, und die zweite ist ausdrücklich nicht dieselbe** (seit 30.08.2026). Neben
+„{n} Wochen in Folge geplant" steht jetzt „Am Stück · {n} Tage". Sie hat andere Regeln: Ein
+noch unbeplantes Heute bricht sie nicht (gezählt wird dann ab gestern), sie erscheint erst ab
+zwei Tagen, und sie trägt **nicht die Flamme** — die gehört der Wochenserie. Der Grund für
+die zweite Zahl ist der Alltag der Zielgruppe: Die Wochenserie belohnt Planungsdisziplin über
+Monate, die Tagesserie macht die laufende Woche sichtbar, in der man gerade steckt.
+
+**Der Jahresüberblick zeigt Anwesenheit, nicht Leistung** (seit 30.08.2026). Das Band im
+Reiter „Fortschritt" kennt je Tag genau **ein Bit**: geplant oder nicht. Keine
+Intensitätsabstufung, keine Farbskala nach Kalorien — die App plant, sie bewertet nicht, wie
+viel geplant wurde. Wochen, deren Tage nicht aufgezeichnet wurden (alles vor dem 29.08.2026),
+erscheinen gestrichelt statt leer: Sie wurden geplant, nur an welchen Tagen weiß niemand mehr.
+Ein leeres Feld hieße dort „nichts getan" — und das wäre schlicht falsch.
+
 **Der Rückblick gehört zum Konto, nicht zum Gerät** (seit 25.08.2026). Bis dahin lag das
 Wochenarchiv nur im `localStorage`: Wer sich auf dem Handy anmeldete, sah dort Streak 0 und ein
 leeres Diagramm, obwohl Ziel, Gewichte und Plan längst ankamen. Das war keine Entscheidung,

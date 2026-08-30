@@ -1156,11 +1156,13 @@
   // Index 0 = Montag ... 6 = Sonntag, Position ueber den DAYS-Index, nie ueber
   // Wochentagsarithmetik.
   //
-  // Heute hat die Funktion GENAU EINEN Aufrufer: archiveWeek(). Sie steht trotzdem
-  // getrennt, weil der geplante Fortschritt-Kalender die noch NICHT archivierten Wochen
-  // direkt aus state.plans zeichnen muss - mit derselben Regel. Zwei getrennte Fassungen
-  // wuerden sich in genau dem Moment widersprechen, in dem eine laufende Woche archiviert
-  // wird. Kommt der Kalender nicht, gehoert die Funktion in archiveWeek zurueck.
+  // Seit dem 30.08.2026 (B7) hat die Funktion DREI Aufrufer: archiveWeek() sowie ueber
+  // kalWoche() der Fortschritt-Kalender und die Tages-Serie. Genau dafuer stand sie
+  // getrennt - der Kalender zeichnet die noch NICHT archivierten Wochen direkt aus
+  // state.plans, und zwar nach derselben Regel. Zwei getrennte Fassungen wuerden sich in
+  // genau dem Moment widersprechen, in dem eine laufende Woche archiviert wird. Der
+  // frueher hier stehende Vorbehalt ("kommt der Kalender nicht, gehoert sie zurueck in
+  // archiveWeek") ist damit erledigt.
   //
   // Festlaengen-String statt Zahl 0-127 mit Absicht: Jeder Unfall (Number("") -> 0,
   // parseInt auf Muell -> NaN) wuerde lautlos zu "nichts geplant" und waere von einer
@@ -1279,7 +1281,7 @@
     return out;
   }
   function archivJahreBehalten() { return archivJahre(3); }   // was gespeichert bleibt
-  function archivJahreZeigen() { return archivJahre(2); }     // was angeboten wird (ab B7)
+  function archivJahreZeigen() { return archivJahre(2); }     // was angeboten wird (weightYears)
   // Archiv saeubern: nur gueltige "YYYY-Www"-Eintraege, geklemmte Werte, hoechstens die
   // Jahrgaenge aus archivJahreBehalten() — das Archiv soll nicht endlos wachsen.
   function sanitizeWeekStats(o) {
@@ -5082,12 +5084,28 @@
     const d = weekMonday(k);
     return "KW " + weekNumOf(k) + " · " + String(d.getDate()).padStart(2, "0") + "." + String(d.getMonth() + 1).padStart(2, "0") + ".";
   }
-  // Jahre, die eine Ansicht verdienen: alles mit Messung oder Ziel, plus das laufende Jahr.
+  // Jahre, die eine Ansicht verdienen: alles mit Messung oder Ziel, plus das laufende Jahr —
+  // und seit B6 die Jahre des Wochenarchivs, damit Gewichtskarte und Kalender sich EINEN
+  // Umschalter und EIN state.viewYear teilen. Zwei Umschalter untereinander, die
+  // verschiedene Jahre anbieten, waeren die schlechtere Antwort.
   function weightYears() {
     const ys = {};
     (state.weights || []).forEach(e => { ys[e.m.slice(0, 4)] = 1; });
     Object.keys(state.weightGoals || {}).forEach(y => { ys[y] = 1; });
     ys[String(new Date().getFullYear())] = 1;
+    // ⚠️ Die Archivjahre kommen aus archivJahreZeigen(), NICHT aus Object.keys(state.weekStats)
+    // und nie aus einem gerechneten Datum. sanitizeWeekStats() BEHAELT einen Jahrgang mehr,
+    // als angeboten werden soll (archivJahreBehalten() = 3, archivJahreZeigen() = 2). Wer hier
+    // ueber die vorhandenen Schluessel ginge, boete das Pufferjahr mit an — und der Puffer
+    // waere keiner mehr. Begruendung am Fenster selbst, docs/ARCHITECTURES.md „Archivfenster".
+    // Das Jahr kommt aus dem SCHLUESSEL-PRAEFIX ("2026-W01" liegt real im Dezember 2025) —
+    // dieselbe Trimm-Regel wie in sanitizeWeekStats(), sonst zeigt der Umschalter Jahre an,
+    // die dort weggeworfen wurden.
+    const zeigen = archivJahreZeigen();
+    Object.keys(state.weekStats || {}).forEach(k => {
+      const y = k.slice(0, 4);
+      if (zeigen.indexOf(y) !== -1) ys[y] = 1;
+    });
     return Object.keys(ys).sort();
   }
   function activeYear() {
@@ -5238,7 +5256,6 @@
     const all = state.weights || [];
     const rows = all.filter(e => e.m.slice(0, 4) === year);
     const ziel = (state.weightGoals || {})[year];
-    const years = weightYears();
     const first = rows.length ? rows[0] : null;
     const last = rows.length ? rows[rows.length - 1] : null;
     const diff = first && last ? last.kg - first.kg : null;
@@ -5267,11 +5284,12 @@
 
     // Jahreswechsel nur zeigen, wenn es etwas zu wechseln gibt. Gleiche Knopfoptik wie
     // der Wochenwechsel im Plan (.week-switch/.ws-btn) statt eines zweiten Musters.
-    const yearBar = years.length > 1
-      ? `<div class="week-switch" role="tablist" aria-label="Jahr wählen">
-          ${years.map(y => `<button class="ws-btn${y === year ? " active" : ""}" data-action="wyear" data-year="${y}" role="tab" aria-selected="${y === year}">${y}</button>`).join("")}
-        </div>`
-      : "";
+    // Seit B7 baut ihn jahrLeisteHtml() - dieselbe Leiste traegt auch die Kalenderkarte,
+    // und beide lesen state.viewYear. Sie stehen bewusst je an ihrer Karte statt einmal
+    // ueber der Seite: ohne Gewichts-Einwilligung gibt es die untere Karte gar nicht, und
+    // eine Leiste, deren Wirkung erst zwei Karten weiter unten sichtbar wird, erklaert
+    // sich nicht selbst.
+    const yearBar = jahrLeisteHtml(year);
 
     let body;
     if (!rows.length) {
@@ -5338,10 +5356,14 @@
     // Kein eigener Leerzustand noetig: weightHtml() liefert immer eine Karte - ohne
     // Einwilligung die Einladung dazu (weightConsentHtml), ohne Messung den leeren Zustand
     // mit Handlung. Der Reiter ist also nie eine leere Flaeche.
-    view.innerHTML = `${rueckblickHtml()}${weightHtml()}`;
+    // Reihenfolge: acht Wochen, dann das Jahr, dann das Gewicht - von der kurzen zur
+    // langen Sicht. Kein fuenfter Reiter: der Kalender beantwortet dieselbe Frage wie der
+    // Rueckblick ("wie lief es bisher?"), nur ueber einen laengeren Zeitraum.
+    view.innerHTML = `${rueckblickHtml()}${kalenderHtml()}${weightHtml()}`;
     resetCarousels();
     initWeightChart();
     initRueckblick();
+    initKalender();
   }
 
   // Kurzform eines Wochenschluessels fuers Label: "2026-W29" -> "KW 29".
@@ -5360,6 +5382,36 @@
   // Eine Woche zaehlt fuer den Streak erst ab so vielen geplanten Tagen. Vorher genuegte
   // EINE Mahlzeit — ein Streak, den man nicht verlieren kann, motiviert niemanden.
   const STREAK_MIN_DAYS = 5;
+
+  // Zweite Serie: Tage am Stueck (Paket 6, B8).
+  //
+  // Sie steht NEBEN der Wochenserie, nicht an ihrer Stelle. "5 Wochen in Folge geplant"
+  // (STREAK_MIN_DAYS) ist eine festgehaltene Produktentscheidung (docs/PRODUCT.md) und
+  // bleibt unangetastet - andere Einheit, andere Aussage, deshalb auch nicht die Flamme:
+  // die gehoert der Wochenserie.
+  //
+  // Die Bits kommen aus kalWoche(), also aus derselben Quelle wie der Kalender. Die
+  // Doppelung zwischen beiden Zaehlweisen wird ueber diesen geteilten Maskenzugriff
+  // vermieden, nicht ueber eine gemeinsame Streak-Logik - die Regeln sind verschieden.
+  function dayStreak() {
+    // null = unbekannt. Nicht dasselbe wie 0: eine Woche MIT Datensatz aber OHNE Maske
+    // (vor dem 29.08.2026 archiviert) als lauter Nullen zu lesen waere eine Luege.
+    // Abbrechen unterschaetzt die Serie nur - das ist die harmlosere Richtung.
+    const bitAn = d => {
+      const info = kalWoche(isoWeekKey(d));
+      if (!info || info.mask === null) return null;
+      return info.mask.charAt((d.getDay() || 7) - 1) === "1" ? 1 : 0;
+    };
+    const cur = new Date();
+    // Der eine bewusste Off-by-one: Ist heute noch nichts geplant, beginnt die Zaehlung
+    // bei gestern. Ein Vormittag, an dem man noch nicht geplant hat, darf eine laufende
+    // Serie nicht abraeumen - das waere Bestrafung fuer den Tagesverlauf.
+    if (bitAn(cur) !== 1) cur.setDate(cur.getDate() - 1);
+    let n = 0, deckel = 400;                  // Deckel: das Archiv reicht ueber Jahre
+    while (deckel-- > 0 && bitAn(cur) === 1) { n++; cur.setDate(cur.getDate() - 1); }
+    return n;
+  }
+
   function rueckblickHtml() {
     if (!state.goal) return "";
     const stats = state.weekStats || {};
@@ -5390,6 +5442,9 @@
     const zielKeys = keys.filter(k => stats[k].target);
     const shownKeys = zielKeys.slice(-8);
     if (!shownKeys.length && !streak) return "";
+    // Erst ab zwei Tagen: "1 Tag am Stueck" ist keine Serie, sondern ein Dienstag.
+    const tage = dayStreak();
+    const tageS = tage >= 2 ? `<div class="rueck-s"><small>Am Stück</small><b>${tage}<span>Tage</span></b></div>` : "";
     let chart = "";
     if (shownKeys.length) {
       const bars = shownKeys.map(k => {
@@ -5422,8 +5477,12 @@
         <div class="rueck-foot">
           <div class="rueck-s"><small>&#216; pro Tag</small><b>${nfmt(avgKcal)}<span>kcal</span></b></div>
           <div class="rueck-s"><small>Ziel getroffen</small><b>${totHit}<span>/${totDays} Tage</span></b></div>
+          ${tageS}
         </div>`;
     }
+    // Ohne Grafik gibt es keinen Fuss, in den die Kennzahl koennte - dann traegt sie ihren
+    // eigenen. Wer ohne Ziel plant, hat trotzdem eine Serie (siehe archiveWeek, B2).
+    if (!chart && tageS) chart = `<div class="rueck-foot">${tageS}</div>`;
     const flame = `<svg class="rueck-fl" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M13.5 2c.4 3-1.6 4.2-2.9 5.6C9.2 9 8 10.4 8 12.6a4 4 0 0 0 8 .2c0-1.3-.5-2.3-1-3 .9.4 1.7 1.2 2.2 2.3.3-.7.5-1.6.5-2.6 0-3.4-2.3-5.4-4.2-7.5z"/></svg>`;
     const streakLine = streak
       ? `<div class="rueck-streak">${flame}<span><b>${streak}</b> Woche${streak === 1 ? "" : "n"} in Folge geplant</span></div>`
@@ -5453,6 +5512,165 @@
       // Attribut auch der einzige Hover-Weg entfallen war. Gleiches Muster wie
       // initWeightChart() - dort steht mouseenter seit jeher neben click und focus.
       b.addEventListener("mouseenter", show);
+    });
+  }
+
+  // ---------- Fortschritt-Kalender (Paket 6, B7) ----------
+  //
+  // Ein Jahr als Band: sieben Zeilen (Wochentage) mal 52 oder 53 Spalten (Kalenderwochen),
+  // je Zelle EIN Bit - an diesem Tag war etwas geplant oder nicht. Keine
+  // Intensitaetsabstufung: die App plant, sie bewertet nicht, WIE VIEL geplant wurde
+  // (CLAUDE.md Abschnitt 6 - die Marke bewertet den Nutzer nicht).
+  //
+  // Es ist eine echte <table>. 371 Zellen mit je einem aria-label waeren unbrauchbar; eine
+  // Tabelle liefert Zeilen- und Spaltennavigation umsonst, und der Screenreader sagt beim
+  // Hineinspringen von selbst "Mittwoch, Maerz, geplant".
+  const KAL_MON_KURZ = ["Jan", "Feb", "Mär", "Apr", "Mai", "Jun", "Jul", "Aug", "Sep", "Okt", "Nov", "Dez"];
+  const KAL_MON_LANG = ["Januar", "Februar", "März", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember"];
+
+  // Wie viele ISO-Wochen hat das Jahr? Der 28. Dezember liegt per ISO-Definition IMMER in
+  // der letzten Woche seines Jahres - damit braucht es keine Sonderregel fuer die
+  // 53-Wochen-Jahre und keine eigene Rechnung, die sich von isoWeekKey() unterscheiden kann.
+  function isoWochenImJahr(y) { return weekNumOf(isoWeekKey(new Date(y, 11, 28))); }
+
+  // Was ueber eine Woche bekannt ist - EINE Quelle fuer beide Faelle.
+  //
+  // Die laufende und die naechste Woche stehen NICHT in weekStats; das ist der Sinn von
+  // pruneWeeks(). Sie kommen direkt aus state.plans, und zwar ueber denselben weekMaskOf(),
+  // den auch archiveWeek() benutzt. Zwei getrennte Fassungen wuerden sich in genau dem
+  // Moment widersprechen, in dem eine laufende Woche archiviert wird.
+  //
+  // Rueckgabe:
+  //   { mask: "1101100", tage: 4 }   Tage bekannt
+  //   { mask: null, tage: n }        Woche bekannt, Tage nicht - vor B3 archiviert, kein `d`
+  //   null                           ueber die Woche ist nichts bekannt
+  function kalWoche(wk) {
+    const pl = state.plans && state.plans[wk];
+    if (pl) { const m = weekMaskOf(pl); return { mask: m, tage: maskDays(m) }; }
+    const s = (state.weekStats || {})[wk];
+    if (!s) return null;
+    if (/^[01]{7}$/.test(s.d || "")) return { mask: s.d, tage: maskDays(s.d) };
+    // Datensatz ohne Maske: die Woche WURDE geplant (days steht fest), nur an welchen Tagen
+    // ist unbekannt. Sie als sieben Nullen zu zeichnen waere eine Aussage, die niemand
+    // erhoben hat - deshalb ein eigener, gestrichelter Zustand statt einer stillen Luege.
+    return { mask: null, tage: Math.max(0, Math.round(Number(s.days) || 0)) };
+  }
+
+  function kalenderHtml() {
+    const year = activeYear();
+    const wochen = isoWochenImJahr(+year);
+    const heuteWk = isoWeekKey(new Date());
+    const heuteIdx = (new Date().getDay() || 7) - 1;      // Mo=0 ... So=6, wie DAYS
+
+    // Erst die Daten, dann das Markup. So steht die Klartextzeile ueber demselben Bestand,
+    // den das Raster zeichnet - sie kann nicht auseinanderlaufen.
+    const daten = [];
+    let geplanteWochen = 0, geplanteTage = 0;
+    for (let w = 1; w <= wochen; w++) {
+      const wk = year + "-W" + String(w).padStart(2, "0");
+      const info = kalWoche(wk);
+      daten.push(info);
+      if (info && info.tage > 0) { geplanteWochen++; geplanteTage += info.tage; }
+    }
+
+    // Monatsband: die Woche gehoert zu dem Monat, in dem ihr DONNERSTAG liegt - das ist die
+    // ISO-Regel, nach der auch die Wochennummer selbst vergeben wird. Ueber den Montag
+    // gerechnet laege die Jahreswechsel-Woche im falschen Monat.
+    const monatsSpalten = [];
+    for (let w = 1; w <= wochen; w++) {
+      const don = weekMonday(year + "-W" + String(w).padStart(2, "0"));
+      don.setDate(don.getDate() + 3);
+      const m = don.getMonth();
+      const letzte = monatsSpalten[monatsSpalten.length - 1];
+      if (letzte && letzte.m === m) letzte.n++;
+      else monatsSpalten.push({ m: m, n: 1 });
+    }
+    // Nur jeder zweite Monat traegt sein Kuerzel. Bei 360 px stehen je Spalte rund 5 px zur
+    // Verfuegung - zwoelf Kuerzel nebeneinander waeren Matsch. Drei Buchstaben, nicht einer:
+    // "J" gaebe es dreimal und "M" zweimal (derselbe Grund wie bei der Gewichtsachse).
+    // Der volle Name steht immer da, nur unsichtbar - der Screenreader liest ihn.
+    const kopf = monatsSpalten.map((g, i) =>
+      `<th scope="colgroup" colspan="${g.n}" class="kal-mon">${i % 2 === 0 ? `<span aria-hidden="true">${KAL_MON_KURZ[g.m]}</span>` : ""}<span class="visually-hidden">${KAL_MON_LANG[g.m]}</span></th>`).join("");
+
+    // Sichtbar beschriftet sind Mo, Mi, Fr, So - sieben Kuerzel uebereinander waeren bei
+    // 5 px Zeilenhoehe unlesbar. Der volle Wochentag steht in jeder Zeile, nur verborgen.
+    const zeilen = DAYS.map((d, i) => {
+      const zellen = daten.map((info, wi) => {
+        const wkNr = wi + 1;
+        const wk = year + "-W" + String(wkNr).padStart(2, "0");
+        let klasse = "kal-c", txt = "";
+        if (info && info.mask === null) { klasse += " unk"; }
+        else if (info && info.mask.charAt(i) === "1") { klasse += " on"; txt = `<span class="visually-hidden">geplant</span>`; }
+        else if (info) { klasse += " off"; }
+        // Sonst: ueber die Woche ist nichts bekannt - transparent, ohne Kante. Zukunft und
+        // die Zeit vor der ersten Nutzung sehen absichtlich gleich aus; beides ist "keine
+        // Aussage", und ein Unterschied waere eine erfundene.
+        const heute = wk === heuteWk && i === heuteIdx;
+        return `<td class="${klasse}${heute ? " today" : ""}"${heute ? ` aria-current="date"` : ""}>${txt}</td>`;
+      }).join("");
+      return `<tr><th scope="row" class="kal-d">${i % 2 === 0 ? `<span aria-hidden="true">${d.short}</span>` : ""}<span class="visually-hidden">${d.label}</span></th>${zellen}</tr>`;
+    }).join("");
+
+    // Die Klartextzeile ist die eigentliche Aussage, nicht das Raster: Wer die Tabelle nicht
+    // sehen kann, bekommt hier dieselbe Information in einem Satz.
+    const satz = geplanteWochen
+      ? `${year}: ${geplanteWochen} von ${wochen} Wochen geplant · ${geplanteTage} Tage`
+      : `${year}: noch keine geplante Woche.`;
+
+    return `<div class="wg-col kal">
+        <div class="wch-head">
+          <div>
+            <div class="wg-lbl">Jahr ${year}</div>
+            <h3 class="wg-h">Geplante Tage</h3>
+          </div>
+        </div>
+        ${jahrLeisteHtml(year)}
+        <p class="kal-note">${esc(satz)}</p>
+        <div class="kal-wrap">
+          <table class="kal-grid" data-year="${year}">
+            <caption class="visually-hidden">${esc(satz)}</caption>
+            <thead><tr><td class="kal-corner"></td>${kopf}</tr></thead>
+            <tbody>${zeilen}</tbody>
+          </table>
+        </div>
+        <p class="kal-tip" aria-live="polite"></p>
+      </div>`;
+  }
+
+  // Jahr-Umschalter. Steht als eigener Helfer da, weil ihn seit B7 ZWEI Karten benutzen
+  // (Kalender und Gewicht) und beide dasselbe state.viewYear lesen - ein Tipp bewegt
+  // sichtbar beide. Die Jahre kommen aus weightYears(), das die Archivjahre seinerseits
+  // ueber archivJahreZeigen() bezieht (docs/ARCHITECTURES.md, "Archivfenster").
+  function jahrLeisteHtml(year) {
+    const years = weightYears();
+    if (years.length < 2) return "";
+    return `<div class="week-switch" role="tablist" aria-label="Jahr wählen">
+        ${years.map(y => `<button class="ws-btn${y === year ? " active" : ""}" data-action="wyear" data-year="${y}" role="tab" aria-selected="${y === year}">${y}</button>`).join("")}
+      </div>`;
+  }
+
+  // Werte per Tipp statt per Titel-Attribut - dasselbe Muster wie initRueckblick(): auf dem
+  // Handy gibt es kein Hover. Woche und Wochentag kommen aus der Position in der Tabelle,
+  // nicht aus 371 data-Attributen; das spart bei jedem Zeichnen rund 15 KB Markup.
+  function initKalender() {
+    const tab = view.querySelector(".kal-grid");
+    const tip = view.querySelector(".kal-tip");
+    if (!tab || !tip) return;
+    const year = tab.dataset.year;
+    const zeig = td => {
+      const tr = td.parentElement;
+      const tag = DAYS[tr.sectionRowIndex];
+      const wkNr = td.cellIndex;                 // Zelle 0 ist der Zeilenkopf
+      if (!tag || wkNr < 1) return;
+      const zustand = td.classList.contains("on") ? "geplant"
+        : td.classList.contains("unk") ? "Tage nicht aufgezeichnet"
+        : td.classList.contains("off") ? "nichts geplant"
+        : "keine Daten";
+      tip.textContent = `KW ${wkNr} · ${tag.label} ${year} · ${zustand}`;
+    };
+    tab.querySelectorAll("td.kal-c").forEach(td => {
+      td.addEventListener("click", () => zeig(td));
+      td.addEventListener("mouseenter", () => zeig(td));
     });
   }
 

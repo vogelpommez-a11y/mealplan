@@ -599,11 +599,49 @@
   .rueck-kws { display: flex; gap: 5px; margin-top: 5px; }
   .rueck-kws span { flex: 1 1 0; min-width: 0; text-align: center; font-size: 10px; color: var(--text-muted); font-variant-numeric: tabular-nums; }
   .rueck-tip { min-height: 16px; margin: 8px 0 0; font-size: 12px; color: var(--text-muted); }
-  .rueck-foot { display: flex; gap: 22px; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); }
+  /* Seit B8 stehen hier bis zu DREI Kennzahlen (Schnitt, Ziel-Treffer, Tage am Stueck).
+     Ohne flex-wrap und mit 22 px Abstand draengen sie sich bei 360 px aus der Karte. */
+  .rueck-foot { display: flex; flex-wrap: wrap; gap: 10px 22px; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); }
   .rueck-s { display: flex; flex-direction: column; gap: 2px; }
   .rueck-s small { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: .05em; }
   .rueck-s b { font-family: var(--font-display); font-size: 18px; color: var(--text); font-variant-numeric: tabular-nums; }
   .rueck-s b span { font-family: var(--font-body); font-size: 12px; font-weight: 400; color: var(--text-muted); margin-left: 3px; }
+  /* Fortschritt-Kalender (Paket 6, B7): ein Jahr als Band, EIN Bit je Tag.
+
+     Es ist eine echte <table> mit table-layout: fixed - kein Grid auf einem <table>. Grid
+     oder display:contents auf Tabellenelementen nimmt Screenreadern die Tabellenrollen,
+     und genau die sind hier die ganze A11y-Antwort (371 aria-labels waeren keine).
+     table-layout: fixed verteilt die 52 bzw. 53 Spalten gleichmaessig, ohne dass eine
+     Zelle ihre Inhaltsbreite durchsetzen kann.
+
+     KEIN waagerechter Scroller. Auf Touch gewinnt immer der innere Scroller, und der
+     Reiterwechsel bewegt diese Ansicht per slideIn() (docs/TROUBLESHOOTING.md 58).
+     Es passt auch ohne: bei 360 px bleiben nach Polsterung und Zeilenkopf rund 270 px fuer
+     52 Spalten, also gut 5 px je Spalte - 4 px Zelle plus 1 px Abstand geht auf. */
+  .kal { margin-top: 10px; }
+  .kal-note { font-size: 11.5px; color: var(--text-muted); margin: 10px 0 8px; line-height: 1.45; }
+  .kal-grid { width: 100%; table-layout: fixed; border-collapse: separate; border-spacing: clamp(1px, .25vw, 3px); }
+  /* Der Zeilenkopf ist die einzige Spalte mit fester Breite; alles Uebrige teilt sich den
+     Rest. Ohne die feste Breite naehme er sich bei "Mo" mehr als bei einer leeren Zeile,
+     und die Spalten stuenden nicht mehr uebereinander. */
+  .kal-d, .kal-corner { width: 22px; }
+  .kal-d { text-align: right; padding-right: 3px; font-size: 9.5px; font-weight: 600; color: var(--text-muted); line-height: 1; }
+  .kal-mon { font-size: 9.5px; font-weight: 600; color: var(--text-muted); text-align: left; padding-bottom: 3px; line-height: 1; letter-spacing: .02em; }
+  /* Hoehe entkoppelt von der Breite: die Spaltenbreite ergibt sich aus der Tabelle, die
+     Zeilenhoehe darf am breiten Bildschirm nicht mitwachsen - sonst waere das Band dort
+     ein Block statt eines Streifens. */
+  .kal-c { height: clamp(5px, 1.35vw, 12px); padding: 0; border-radius: 2px; }
+  /* Geplant traegt Farbe UND Flaeche, leer traegt Kante - der Zustand haengt nie an der
+     Farbe allein. Ohne Datensatz bleibt die Zelle transparent: Zukunft und die Zeit vor
+     der ersten Nutzung sind beide "keine Aussage". */
+  .kal-c.on { background: linear-gradient(180deg, var(--accent), var(--accent-strong)); }
+  .kal-c.off { background: var(--surface); border: 1px solid var(--border); }
+  /* Woche geplant, Tage unbekannt (vor dem 29.08.2026 archiviert, kein `d`). Gestrichelt
+     statt gefuellt: die App weiss, DASS geplant wurde, aber nicht an welchen Tagen. */
+  .kal-c.unk { border: 1px dashed var(--border-strong); }
+  .kal-c.today { box-shadow: 0 0 0 1.5px var(--text); }
+  .kal-tip { min-height: 16px; margin: 8px 0 0; font-size: 12px; color: var(--text-muted); }
+
   /* An Trainingstagen bekommt die "Heute"-Karte denselben blauen Rand + Kopfstreifen wie
      die Tageskarten im Wochenplan (.day.training) - direkt beim App-Start sichtbar, ohne
      erst die Wochenansicht durchsuchen zu muessen. Icon+Wort "Training" stehen bereits in
