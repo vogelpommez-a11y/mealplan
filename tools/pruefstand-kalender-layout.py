@@ -101,7 +101,7 @@ var DAYS = [
   { key: "sat", label: "Samstag", short: "Sa" },
   { key: "sun", label: "Sonntag", short: "So" }
 ];
-var state = { plans: {}, weekStats: {}, weights: [], weightGoals: {}, viewYear: null, kalMode: "jahr", kalMonth: 0 };
+var state = { plans: {}, weekStats: {}, weights: [], weightGoals: {}, viewYear: null, kalMode: "jahr", kalMonth: 0, goal: { kcal: 1950 } };
 // EINFACHE Anfuehrungszeichen: SEITE ist ein normaler Python-String - ein \" darin loest
 // Python zu " auf und zerlegt den JS-Block, ohne dass es auffaellt.
 var ICON_CHECK = '<svg viewBox="0 0 24 24"><path d="m5 12.5 5 5 9-11"/></svg>';
@@ -149,7 +149,9 @@ function pruefe(name, bedingung, zusatz){
 var jahr = new Date().getFullYear();
 state.viewYear = jahr;
 for (var w = 1; w <= 53; w++) {
-  state.weekStats[jahr + "-W" + String(w).padStart(2, "0")] = { kcal: 1900, days: 7, hit: 4, d: "1111111" };
+  // MIT target: sonst faellt die Ziel-Quote aus dem Kartenfuss, und die Spaltenpruefung
+  // unten liefe ins Leere - sie greift erst ab vier Kennzahlen.
+  state.weekStats[jahr + "-W" + String(w).padStart(2, "0")] = { kcal: 1900, days: 7, hit: 4, target: 1950, d: "1111111" };
 }
 // Beide Ansichten messen, nicht nur das Band: sieben Spalten stellen eine ANDERE
 // Layout-Frage als 53. Das Band kann zu eng werden, das Monatsgitter zu breit - die
@@ -177,6 +179,8 @@ function messe(breite, dunkel, modus, kaputt, fertig){
     // einzelne Tabelle - eine davon zu messen sagte nichts ueber die Ansicht aus.
     var tab = d.querySelector(monat ? ".kal-grid" : ".kal-jahr") || d.querySelector(".kal-grid");
     var wrap = d.querySelector(".kal-wrap");
+    var zeit = d.querySelector(".zeitraum");
+    var fuss = d.querySelector(".kal-foot");
     // Seit dem 30.08.2026 tragen BEIDE Ansichten dieselbe Zellklasse. Vorher stand hier
     // im Jahr `td.kal-c` - die Zelle des Bandes. Nach dem Umbau griff der Selektor ins
     // Leere, mass 0 px und meldete rot; die vier Nachbarpruefungen meldeten dabei weiter
@@ -194,7 +198,24 @@ function messe(breite, dunkel, modus, kaputt, fertig){
       // Band laeuft deshalb NICHT ueber das Dokument, es wird still abgeschnitten. Wer nur
       // am Dokument misst, sieht davon nichts: genau daran ist die erste Fassung dieses
       // Pruefstands in der Gegenprobe gruen geblieben.
-      ausKarte: Math.round((tab.scrollWidth - wrap.clientWidth) * 100) / 100
+      ausKarte: Math.round((tab.scrollWidth - wrap.clientWidth) * 100) / 100,
+      // Die Wrapper UM das Gitter herum (seit 03.09.2026, Konzept G). Bis dahin mass
+      // dieser Pruefstand nur die Tabelle - die Zeitraumwahl und der Kartenfuss haetten
+      // ueberlaufen koennen, ohne dass eine Zeile rot wird. Befund des kvp-Agenten.
+      zeitBreite: zeit ? Math.round(zeit.scrollWidth - zeit.clientWidth) : 0,
+      fussBreite: fuss ? Math.round(fuss.scrollWidth - fuss.clientWidth) : 0,
+      // Der Kartenfuss soll auf schmalen Geraeten ein 2x2-Raster sein, kein zufaelliger
+      // Umbruch: Vier Kennzahlen brauchen bei 283 px Kartenbreite je rund 70 px, und
+      // "57/76 Tage" ist darin nicht mehr lesbar.
+      fussSpalten: fuss ? (function(){
+        var xs = {}, n = 0;
+        fuss.querySelectorAll('.kal-f').forEach(function(e){
+          var x = Math.round(e.getBoundingClientRect().left);
+          if (!xs[x]) { xs[x] = 1; n++; }
+        });
+        return n;
+      })() : 0,
+      fussFelder: fuss ? fuss.querySelectorAll('.kal-f').length : 0
     });
     f.remove();
   };
@@ -227,6 +248,15 @@ function weiter(){
     pruefe("Gitter passt in die Karte (wird nicht abgeschnitten)", m.ausKarte <= 0.5, "ueber die Karte hinaus: " + m.ausKarte + " px");
     pruefe("Tabelle laeuft nicht ueber ihre Zelle hinaus", m.tabUeber <= 0, "ueber: " + m.tabUeber + " px");
     pruefe("kein Scroll-Container (overflow-x)", m.ovx === "visible", "overflow-x: " + m.ovx);
+    // Zeitraumwahl und Kartenfuss duerfen ebenso wenig ueberlaufen wie das Gitter.
+    pruefe("Zeitraumwahl laeuft nicht ueber", m.zeitBreite <= 0, "ueber: " + m.zeitBreite + " px");
+    pruefe("Kartenfuss laeuft nicht ueber", m.fussBreite <= 0, "ueber: " + m.fussBreite + " px");
+    // Auf schmalen Geraeten ZWEI Spalten (gestaltetes 2x2), darueber alle nebeneinander.
+    if (m.fussFelder >= 4) {
+      var sollSp = m.breite <= 560 ? 2 : m.fussFelder;
+      pruefe("Kartenfuss hat " + sollSp + " Spalten", m.fussSpalten === sollSp,
+             m.fussSpalten + " Spalten bei " + m.fussFelder + " Kennzahlen");
+    }
     // Zwei Untergrenzen, weil in beiden Ansichten eine ZAHL lesbar bleiben muss - seit
     // dem Wegfall des Bandes liegen sie deshalb nah beieinander. Im Monatsgitter kommt
     // das Haken-Symbol neben die zweistellige Zahl, im Mini-Gitter traegt die Flaeche

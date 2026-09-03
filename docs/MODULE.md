@@ -56,8 +56,8 @@ Erhoben aus den Abschnittsmarken im Code, nicht von Hand gepflegt.
 | css/komponenten.css | Profil (Login) & Teilen | 783-876 | 94 |
 | css/komponenten.css | Profilbild-Zuschnitt (Kreis-Crop) | 877-1073 | 197 |
 | css/komponenten.css | PDF / Druck | 1074-1107 | 34 |
-| css/mobil.css | Mobile / Smartphone | 8-827 | 820 |
-| css/mobil.css | Gemeinsam planen (Gruppe) | 828-894 | 67 |
+| css/mobil.css | Mobile / Smartphone | 8-843 | 836 |
+| css/mobil.css | Gemeinsam planen (Gruppe) | 844-910 | 67 |
 | data/bilder.js | Gerichtsfotos (eingebettet, nach Namen zugeordnet) | 11-134 | 124 |
 | data/cookbook.js | Rezeptbuch | 11-569 | 559 |
 | data/foods.js | Zutaten-Datenbank fuer die Suche | 11-236 | 226 |
@@ -319,7 +319,7 @@ _keine_
 | css/CLAUDE.md | 92 | 4167 |
 | css/basis.css | 1139 | 83176 |
 | css/komponenten.css | 1107 | 87302 |
-| css/mobil.css | 894 | 58645 |
+| css/mobil.css | 910 | 59628 |
 | css/tokens.css | 221 | 11084 |
 | data/CLAUDE.md | 148 | 6658 |
 | data/bilder.js | 134 | 14471 |
@@ -328,14 +328,14 @@ _keine_
 | data/ikonen.js | 89 | 10187 |
 | data/rechtstexte.js | 163 | 27890 |
 | docs/ABDECKUNG.md | 192 | 11427 |
-| docs/ARCHITECTURES.md | 2903 | 182771 |
+| docs/ARCHITECTURES.md | 2905 | 182980 |
 | docs/DESIGN.md | 470 | 19615 |
 | docs/MODULE.md | — | — (erzeugt) |
 | docs/PRODUCT.md | 1540 | 84801 |
 | docs/RUNBOOK.md | 167 | 5665 |
 | docs/SECURITY.md | 356 | 19197 |
 | docs/STORE.md | 246 | 11876 |
-| docs/TESTING.md | 3777 | 223980 |
+| docs/TESTING.md | 3796 | 225045 |
 | docs/TROUBLESHOOTING.md | 5613 | 321931 |
 | docs/module-index.json | — | — (erzeugt) |
 | firestore.rules | 416 | 23714 |
@@ -446,7 +446,7 @@ _keine_
 | tools/pruefstand-gruppe-verlassen-dubletten.py | 342 | 17391 |
 | tools/pruefstand-gruppenlimit.py | 243 | 11367 |
 | tools/pruefstand-jahresumschalter.py | 234 | 9867 |
-| tools/pruefstand-kalender-layout.py | 305 | 14815 |
+| tools/pruefstand-kalender-layout.py | 336 | 16779 |
 | tools/pruefstand-kalender.py | 666 | 36474 |
 | tools/pruefstand-katalog-plan.py | 534 | 25271 |
 | tools/pruefstand-kontowechsel.py | 215 | 9393 |

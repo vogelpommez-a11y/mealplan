@@ -102,6 +102,22 @@
     .foot-inner { flex-direction: column; gap: 8px; text-align: center; }
     /* iOS zoomt Eingabefelder < 16px beim Fokus – das verhindern wir */
     input[type="text"], input[type="number"], input[type="email"], input[type="password"], input[type="search"], select, textarea { font-size: 16px; }
+
+    /* Kalenderfuss: ausdruecklich ZWEI Spalten statt vier (seit 03.09.2026).
+
+       Gemessen bei 360 px bleiben der Karte real 283 px - vier Kennzahlen nebeneinander
+       waeren dort rund 70 px breit, und "57/76 Tage" passt in 70 px nicht mehr lesbar.
+       Der Umbruch entstand ohnehin durch flex-wrap; hier wird er GESTALTET statt
+       zugelassen: ein sauberes 2x2-Raster mit gleicher Spaltenbreite, statt zweier
+       Zeilen, deren Spalten nicht untereinander stehen. */
+    .kal-foot { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 10px; }
+    .kal-f { min-width: 0; }
+
+    /* Der Stepper braucht bei 360 px etwas Luft: zwei Knoepfe a 54 px, die Zahl und
+       zweimal Fokusring wollen zusammen mehr als die Karte hergibt. Die Zahl bleibt mit
+       40 px weit ueber den 16 px, unter denen iOS beim Fokus zoomen wuerde - die Regel
+       oben fasst sie ohnehin nicht, weil das Feld kein type="number" traegt. */
+    .wg-sv { width: 118px; font-size: 40px; }
   }
 
   /* Dieselbe Regel noch einmal, aber an der RICHTIGEN Bedingung: nicht an der Breite,

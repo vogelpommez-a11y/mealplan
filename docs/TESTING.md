@@ -3548,6 +3548,25 @@ ohne `max-width` der Karte. Auf 1280 px standen die Tage dadurch als 168 × 56 p
 Balken da — ein Balkendiagramm, kein Kalender. Die Antwort ist `max-width: 420px` auf
 `.kal-grid.monat`, `.kal-nav` und `.kal-note.monat`.
 
+### Seit 03.09.2026: auch die Wrapper werden gemessen
+
+Der Prüfstand maß bis dahin **nur die Tabelle**. Mit Konzept G kamen zwei Elemente um sie
+herum dazu — die Zeitraumwahl (`.zeitraum`) und der Kartenfuß (`.kal-foot`). Beide hätten
+überlaufen können, ohne dass eine Zeile rot wird. Befund des `kvp`-Agenten im Pushcheck.
+
+Zusätzlich gemessen wird jetzt das **Raster des Kartenfußes**: Vier Kennzahlen brauchen bei
+den real verbleibenden 283 px Kartenbreite je rund 70 px, und „57/76 Tage“ ist darin nicht
+mehr lesbar. Unter 560 px müssen es deshalb **zwei Spalten** sein, darüber vier.
+
+⚠️ **Das ist ein gestaltetes 2×2-Raster, kein zugelassener `flex-wrap`-Umbruch.** Der
+Unterschied ist sichtbar: Beim Umbruch stehen die Spalten der zweiten Zeile nicht unter
+denen der ersten. Geprüft wird über die Zahl verschiedener `left`-Positionen.
+
+⚠️ **Die Testdaten brauchen `target`.** Ohne es fällt die Ziel-Quote aus dem Fuß, es
+bleiben drei Kennzahlen — und die Spaltenprüfung greift erst ab vier. Sie wäre stumm
+grün geblieben.
+
+
 ### Die Lehre steckt in der Gegenprobe, nicht im Lauf
 
 Die erste Fassung maß `scrollWidth - clientWidth` **am Dokument** — und blieb grün, obwohl die

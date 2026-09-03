@@ -390,17 +390,17 @@
       "zeilen": 34
     },
     {
-      "bis": 827,
+      "bis": 843,
       "datei": "css/mobil.css",
       "titel": "Mobile / Smartphone",
       "von": 8,
-      "zeilen": 820
+      "zeilen": 836
     },
     {
-      "bis": 894,
+      "bis": 910,
       "datei": "css/mobil.css",
       "titel": "Gemeinsam planen (Gruppe)",
-      "von": 828,
+      "von": 844,
       "zeilen": 67
     },
     {
@@ -1203,9 +1203,9 @@
       "zeilen": 1107
     },
     {
-      "bytes": 58645,
+      "bytes": 59628,
       "pfad": "css/mobil.css",
-      "zeilen": 894
+      "zeilen": 910
     },
     {
       "bytes": 11084,
@@ -1248,9 +1248,9 @@
       "zeilen": 192
     },
     {
-      "bytes": 182771,
+      "bytes": 182980,
       "pfad": "docs/ARCHITECTURES.md",
-      "zeilen": 2903
+      "zeilen": 2905
     },
     {
       "bytes": 19615,
@@ -1282,9 +1282,9 @@
       "zeilen": 246
     },
     {
-      "bytes": 223980,
+      "bytes": 225045,
       "pfad": "docs/TESTING.md",
-      "zeilen": 3777
+      "zeilen": 3796
     },
     {
       "bytes": 321931,
@@ -1762,9 +1762,9 @@
       "zeilen": 234
     },
     {
-      "bytes": 14815,
+      "bytes": 16779,
       "pfad": "tools/pruefstand-kalender-layout.py",
-      "zeilen": 305
+      "zeilen": 336
     },
     {
       "bytes": 36474,

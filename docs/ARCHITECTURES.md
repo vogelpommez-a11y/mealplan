@@ -934,10 +934,12 @@ TAB_ORDER = ["home", "plan", "recipes", "progress"]
 * `renderHome()` — `appHeroHtml()` + `weekNutHtml()`
 * `renderPlan(sameTab)`
 * `renderRecipes()`
-* `renderProgress()` — `rueckblickHtml()` + `kalenderHtml()` + `weightHtml()` (seit 30.08.2026, B7)
+* `renderProgress()` — `zeitraumHtml()` + `kalenderHtml()` + `weightHtml()` (seit 03.09.2026, Konzept G; bis dahin stand `rueckblickHtml()` an erster Stelle)
 
 `renderProgress()` braucht kein `initCarousel()` (kein `.wg-cols`), aber `initWeightChart()`
-und `initRueckblick()` — beide messen bzw. binden erst nach dem Einsetzen des Markups.
+und `initKalender()` — beide messen bzw. binden erst nach dem Einsetzen des Markups.
+**`initRueckblick()` wird seit dem 03.09.2026 nicht mehr aufgerufen**; die Funktion steht
+noch im Code, siehe „Die Ansicht: ein Gitter, zwei Dichten".
 
 Ein neuer Reiter berührt immer vier Stellen: Markup-Knopf, `TAB_ORDER`, die Verzweigung in
 `render()` und die Spaltenzahl der mobilen Kapsel (siehe `.tab-ind` weiter unten).
