@@ -412,8 +412,13 @@ die Navigation `‹ August 2026 ›`, im Jahr die Jahresleiste. Nie beide. Drei 
 **Der Zustand hängt nie an der Farbe allein.** Ein geplanter Tag trägt Fläche *und* Symbol
 (Haken auf Akzentkreis), ein ungeplanter eine Kante (leerer Kreis), eine Woche ohne
 aufgezeichnete Tage einen neutral gefüllten Kreis. Ein Tag ohne jede Aussage bleibt leer —
-Zukunft und die Zeit vor der ersten Nutzung sehen absichtlich gleich aus. Dieselbe Regel
-wie im Band, nur in Symbolen statt in Flächen.
+Zukunft und die Zeit vor der ersten Nutzung sehen absichtlich gleich aus.
+
+**In der Jahresansicht trägt die Fläche allein.** Bei rund 21–27 px je Zelle passt kein
+Symbol mehr neben die Zahl, deshalb steht der Zustand hinter ihr: gefüllt, umrandet oder
+gar nichts. Die Füllung ist dort **kräftiger** als im großen Gitter (32 % statt 12 %) — ohne
+den Haken daneben ist sie der einzige Träger, und 12 % auf 21 px sind aus einem halben Meter
+Abstand nicht mehr von „leer" zu unterscheiden.
 
 **Die Maßregel, an der das Layout hängt: `max-width: 420px`.** Die Höhe der Tageszelle ist
 bei 56 px gedeckelt, die Breite folgt ohne Deckel der Karte — auf 1280 px standen die Tage

@@ -606,51 +606,24 @@
   .rueck-s small { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: .05em; }
   .rueck-s b { font-family: var(--font-display); font-size: 18px; color: var(--text); font-variant-numeric: tabular-nums; }
   .rueck-s b span { font-family: var(--font-body); font-size: 12px; font-weight: 400; color: var(--text-muted); margin-left: 3px; }
-  /* Fortschritt-Kalender (Paket 6, B7): ein Jahr als Band, EIN Bit je Tag.
+  /* Fortschritt-Kalender (Paket 6, B7/B11): ein Monatsgitter gross oder zwoelf klein.
 
-     Es ist eine echte <table> mit table-layout: fixed - kein Grid auf einem <table>. Grid
-     oder display:contents auf Tabellenelementen nimmt Screenreadern die Tabellenrollen,
-     und genau die sind hier die ganze A11y-Antwort (371 aria-labels waeren keine).
-     table-layout: fixed verteilt die 52 bzw. 53 Spalten gleichmaessig, ohne dass eine
-     Zelle ihre Inhaltsbreite durchsetzen kann.
+     Es sind echte <table>-Elemente mit table-layout: fixed - kein Grid auf einem <table>.
+     Grid oder display:contents auf Tabellenelementen nimmt Screenreadern die
+     Tabellenrollen, und genau die sind hier die ganze A11y-Antwort. Das Raster fuer die
+     zwoelf Monate ist ein Grid, aber es liegt UM die Tabellen herum, nicht in ihnen.
 
-     KEIN waagerechter Scroller. Auf Touch gewinnt immer der innere Scroller, und der
-     Reiterwechsel bewegt diese Ansicht per slideIn() (docs/TROUBLESHOOTING.md 58).
-     Es passt auch ohne: bei 360 px bleiben nach Polsterung und Zeilenkopf rund 270 px fuer
-     52 Spalten, also gut 5 px je Spalte - 4 px Zelle plus 1 px Abstand geht auf. */
+     KEIN waagerechter Scroller, in keiner der beiden Ansichten. Auf Touch gewinnt immer
+     der innere Scroller, und der Reiterwechsel bewegt diese Ansicht per slideIn()
+     (docs/TROUBLESHOOTING.md 58). Sieben Spalten passen auf jeder Breite; belegt von
+     tools/pruefstand-kalender-layout.py, das beide Ansichten bei 360-1280 px misst. */
   .kal { margin-top: 10px; }
   .kal-note { font-size: 11.5px; color: var(--text-muted); margin: 10px 0 8px; line-height: 1.45; }
-  .kal-grid { width: 100%; table-layout: fixed; border-collapse: separate; border-spacing: clamp(1px, .25vw, 3px); }
-  /* Der Zeilenkopf ist die einzige Spalte mit fester Breite; alles Uebrige teilt sich den
-     Rest. Ohne die feste Breite naehme er sich bei "Mo" mehr als bei einer leeren Zeile,
-     und die Spalten stuenden nicht mehr uebereinander. */
-  .kal-d, .kal-corner { width: 22px; }
-  .kal-d { text-align: right; padding-right: 3px; font-size: 9.5px; font-weight: 600; color: var(--text-muted); line-height: 1; }
-  .kal-mon { font-size: 9.5px; font-weight: 600; color: var(--text-muted); text-align: left; padding-bottom: 3px; line-height: 1; letter-spacing: .02em; }
-  /* Die Zeilenhoehe folgt der Spaltenbreite, damit die Zellen QUADRATISCH sind.
-     `aspect-ratio` hilft hier nicht (auf td unzuverlaessig), also wird die Breite
-     nachgerechnet: je Spalte bleibt (Viewport - Seitenrand - Kartenpolster - Zeilenkopf
-     - Abstaende) / 53, das ist rund 1,85vw - 2,2px. Mit einer festen Hoehe daneben
-     standen die Zellen hochkant und das Band las sich als Balkendiagramm statt als
-     Kalender - im Screenshot gesehen, nicht gerechnet. */
-  .kal-c { height: clamp(4px, calc(1.85vw - 2.2px), 20px); padding: 0; border-radius: 2px; }
-  /* Geplant traegt Farbe UND Flaeche, leer traegt Kante - der Zustand haengt nie an der
-     Farbe allein. Ohne Datensatz bleibt die Zelle transparent: Zukunft und die Zeit vor
-     der ersten Nutzung sind beide "keine Aussage". */
-  .kal-c.on { background: linear-gradient(180deg, var(--accent), var(--accent-strong)); }
-  .kal-c.off { background: var(--surface); border: 1px solid var(--border); }
-  /* Woche geplant, Tage unbekannt (vor dem 29.08.2026 archiviert, kein `d`). Neutral
-     GEFUELLT, nicht gestrichelt: Bei rund 5 px Zellbreite ist eine Strichlung schlicht
-     unsichtbar - die Woche verschwand damit optisch, obwohl geplant wurde. Grau statt
-     Akzent, damit sie nicht als "geplant" gelesen wird; den Unterschied benennt die
-     Tipp-Zeile ("Tage nicht aufgezeichnet"). */
-  .kal-c.unk { background: var(--border-strong); }
-  .kal-c.today { box-shadow: 0 0 0 1.5px var(--text); }
-  /* Der Fokusring muss AUSSERHALB der Zelle liegen: eine 5-px-Zelle hat innen keinen
-     Platz fuer einen sichtbaren Ring. outline-offset schafft ihn, ohne das Raster zu
-     verschieben. Gleiche Optik wie .rueck-bar:focus-visible. */
-  .kal-c:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
   .kal-tip { min-height: 16px; margin: 8px 0 0; font-size: 12px; color: var(--text-muted); }
+  /* Gemeinsame Grundform beider Ansichten. `border-collapse: separate` ist Bedingung
+     dafuer, dass border-spacing ueberhaupt wirkt - ohne die Zeile stossen die Zellen
+     aneinander, und aus dem Gitter wird eine Flaeche. */
+  .kal-grid { width: 100%; table-layout: fixed; border-collapse: separate; }
 
   /* ---------- Monatsgitter des Fortschritt-Kalenders ----------
 
@@ -710,6 +683,38 @@
   .kal-t.today { box-shadow: inset 0 0 0 1.5px var(--text); }
   .kal-t:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
   .kal-t.pad { background: none; }
+
+  /* ---------- Jahresansicht: zwoelf Monatsgitter ----------
+
+     Ein Grid UM die Tabellen herum, nicht in ihnen - die Tabellenrollen bleiben unangetastet.
+
+     `auto-fill` mit 155 px Mindestbreite ergibt ueber die ganze Spanne eine erstaunlich
+     gleichmaessige Zelle: zwei Spalten auf dem Handy, vier auf dem Rechner, dazwischen
+     nichts Krummes. Der Deckel von 720 px ist der Grund dafuer - ohne ihn kaemen auf einem
+     breiten Schirm sechs oder sieben Monate nebeneinander, und die Zellen fielen unter die
+     Lesbarkeitsgrenze. Gemessen wird das, nicht geschaetzt (pruefstand-kalender-layout). */
+  .kal-jahr { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(155px, 100%), 1fr)); gap: 16px 12px; max-width: 720px; margin-inline: auto; }
+  /* Der Monatsname als sichtbare <caption> - der Ort, an den eine Tabellenueberschrift
+     gehoert. Im Monatsgitter bleibt dieselbe caption verborgen, weil die Navigationszeile
+     den Namen dort schon traegt. */
+  .kal-cap { caption-side: top; text-align: left; font: 600 12px/1.2 var(--font-display); color: var(--text); padding-bottom: 5px; letter-spacing: .01em; }
+  .kal-grid.mini { border-spacing: 2px; }
+  .kal-grid.mini .kal-wd { font-size: 9px; padding-bottom: 2px; }
+  /* Rund 21-27 px je Zelle. Ein Haken passt da nicht mehr neben die Zahl - deshalb traegt
+     hier die Flaeche HINTER der Zahl den Zustand (.kal-t.on unten gilt fuer beide
+     Ansichten). Der Unterschied bleibt trotzdem Form und nicht nur Farbe: gefuellt,
+     umrandet oder gar nichts. */
+  .kal-grid.mini .kal-t { height: clamp(20px, 3vw, 30px); border-radius: 5px; }
+  .kal-grid.mini .kal-num { font-size: 10.5px; font-weight: 500; }
+  /* Im Mini-Gitter gibt es kein Symbol - die Kante muss die Zelle selbst tragen, sonst
+     saehe "nichts geplant" aus wie "keine Daten". */
+  .kal-grid.mini .kal-t.off { box-shadow: inset 0 0 0 1px var(--border); }
+  .kal-grid.mini .kal-t.unk { background: color-mix(in srgb, var(--border-strong) 55%, transparent); }
+  /* Kraeftiger als im grossen Gitter (dort 12 %): Ohne den Haken daneben ist die Flaeche
+     hier der einzige Traeger, und 12 % auf 21 px sind aus einem halben Meter Abstand
+     nicht mehr von "leer" zu unterscheiden. */
+  .kal-grid.mini .kal-t.on { background: color-mix(in srgb, var(--accent) 32%, transparent); }
+  .kal-grid.mini .kal-t.on .kal-num { font-weight: 700; color: var(--text); }
 
   /* An Trainingstagen bekommt die "Heute"-Karte denselben blauen Rand + Kopfstreifen wie
      die Tageskarten im Wochenplan (.day.training) - direkt beim App-Start sichtbar, ohne

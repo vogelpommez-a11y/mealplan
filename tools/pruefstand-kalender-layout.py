@@ -13,16 +13,23 @@ damit, dass 53 Spalten bei 360 px tatsaechlich passen - eine Rechnung auf dem Pa
 Gemessen wird deshalb beides, wie im Plan verlangt:
 
   * `scrollWidth <= clientWidth` am Dokument UND an der Tabelle - laeuft etwas ueber?
-  * `tab.scrollWidth <= wrap.clientWidth` - passt das Band in die Karte?
+  * `tab.scrollWidth <= wrap.clientWidth` - passt das Gitter in die Karte?
   * `overflow-x` der Huelle - ist versehentlich doch ein Scroller entstanden?
 
 **Die dritte Zeile ist die, auf die es ankommt, und sie stand in der ersten Fassung nicht
-drin.** Die Kartenschale `.wg-col` hat `overflow: hidden`; ein zu breites Band laeuft damit
+drin.** Die Kartenschale `.wg-col` hat `overflow: hidden`; ein zu breites Gitter laeuft damit
 gar nicht ueber das Dokument, es wird lautlos abgeschnitten. Die Gegenprobe war deshalb
 zunaechst gruen - der Pruefstand mass eine Zahl, die dieser Fehler nie beruehrt.
 
-Dazu die Zellbreite: Spalten, die unter etwa 2 px fallen, sind kein Band mehr, sondern
-ein Strich. Das faenge eine reine Ueberlaufpruefung NICHT - deshalb steht sie daneben.
+Dazu die Zellbreite: In beiden Ansichten muss eine ZAHL lesbar bleiben - 30 px im
+Monatsgitter (Zahl plus Haken), 14 px im Mini-Gitter des Jahres (Zahl auf der Flaeche).
+Das faenge eine reine Ueberlaufpruefung NICHT - deshalb steht sie daneben.
+
+Seit dem 30.08.2026 ist die Jahresansicht kein 7x53-Band mehr, sondern zwoelf
+Monatsgitter in einem Grid (`.kal-jahr`). Der Pruefstand suchte dort bis dahin nach
+`td.kal-c`, der Zellklasse des Bandes - nach dem Umbau griff er ins Leere und mass 0 px,
+waehrend die Nachbarpruefungen weiter gruen ueber ein Band meldeten, das es nicht mehr
+gab. Genau der Fall aus CLAUDE.md Abschnitt 18a.
 
 Der iframe ist der Rahmen, nicht das Fenster
 --------------------------------------------
@@ -59,9 +66,14 @@ os.chdir(BASIS)
 EDGE = r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe"
 BREITEN = [360, 390, 768, 1280]
 
+# Die Gegenprobe erzeugt den Fehler, den der Pruefstand fangen soll - fuer BEIDE
+# Ansichten, seit die Jahresansicht kein Band mehr ist, sondern zwoelf Monatsgitter:
+# `table-layout: auto` plus Mindestbreite sprengt das grosse Gitter, das enge
+# Spaltenraster drueckt die Mini-Zellen unter die Lesbarkeitsgrenze.
 KAPUTT = """
   .kal-grid { table-layout: auto !important; }
-  .kal-c { min-width: 12px !important; }
+  .kal-t { min-width: 60px !important; }
+  .kal-jahr { grid-template-columns: repeat(4, 1fr) !important; }
 """
 
 
@@ -153,9 +165,15 @@ function messe(breite, dunkel, modus, kaputt, fertig){
   f.onload = function(){
     var d = f.contentDocument;
     var de = d.documentElement;
-    var tab = d.querySelector(".kal-grid");
+    // Im Jahr ist das breiteste Element das Grid UM die zwoelf Tabellen, nicht eine
+    // einzelne Tabelle - eine davon zu messen sagte nichts ueber die Ansicht aus.
+    var tab = d.querySelector(monat ? ".kal-grid" : ".kal-jahr") || d.querySelector(".kal-grid");
     var wrap = d.querySelector(".kal-wrap");
-    var zelle = d.querySelector(monat ? "td.kal-t:not(.pad)" : "td.kal-c");
+    // Seit dem 30.08.2026 tragen BEIDE Ansichten dieselbe Zellklasse. Vorher stand hier
+    // im Jahr `td.kal-c` - die Zelle des Bandes. Nach dem Umbau griff der Selektor ins
+    // Leere, mass 0 px und meldete rot; die vier Nachbarpruefungen meldeten dabei weiter
+    // gruen ueber ein Band, das es nicht mehr gab.
+    var zelle = d.querySelector("td.kal-t:not(.pad)");
     var ovx = d.defaultView.getComputedStyle(wrap).overflowX;
     var zb = zelle ? zelle.getBoundingClientRect().width : 0;
     fertig({
@@ -198,13 +216,15 @@ function weiter(){
     melde("");
     melde(m.breite + " px " + (m.dunkel ? "dunkel" : "hell") + " " + (m.monat ? "Monat" : "Jahr ") + "  (soll=" + m.breite + " ist=" + m.istBreite + ", Zelle " + m.zellBreite + " px)");
     pruefe("kein waagerechter Ueberlauf im Dokument", m.dokUeber <= 0, "ueber: " + m.dokUeber + " px");
-    pruefe("Band passt in die Karte (wird nicht abgeschnitten)", m.ausKarte <= 0.5, "ueber die Karte hinaus: " + m.ausKarte + " px");
+    pruefe("Gitter passt in die Karte (wird nicht abgeschnitten)", m.ausKarte <= 0.5, "ueber die Karte hinaus: " + m.ausKarte + " px");
     pruefe("Tabelle laeuft nicht ueber ihre Zelle hinaus", m.tabUeber <= 0, "ueber: " + m.tabUeber + " px");
     pruefe("kein Scroll-Container (overflow-x)", m.ovx === "visible", "overflow-x: " + m.ovx);
-    // Zwei Untergrenzen, weil zwei verschiedene Dinge unlesbar werden: im Band ist eine
-    // Spalte unter 2 px ein Strich, im Monatsgitter muss eine zweistellige Zahl samt
-    // Symbol hineinpassen - darunter liegt die Grenze ungleich hoeher.
-    var minZelle = m.monat ? 30 : 2;
+    // Zwei Untergrenzen, weil in beiden Ansichten eine ZAHL lesbar bleiben muss - seit
+    // dem Wegfall des Bandes liegen sie deshalb nah beieinander. Im Monatsgitter kommt
+    // das Haken-Symbol neben die zweistellige Zahl, im Mini-Gitter traegt die Flaeche
+    // hinter ihr den Zustand; dort genuegen 14 px. Vorher standen hier 2 px - die Grenze
+    // eines Bandstrichs, der keine Zahl zu tragen hatte.
+    var minZelle = m.monat ? 30 : 14;
     pruefe("Zellen bleiben sichtbar (>= " + minZelle + " px)", m.zellBreite >= minZelle,
            "Zellbreite: " + m.zellBreite + " px");
     // Nach oben ebenfalls gedeckelt: ohne Grenze zoege das Gitter auf dem Rechner die
@@ -229,7 +249,7 @@ def lauf(gegenprobe=False):
     kal = schneide(text, "  // ---------- Fortschritt-Kalender", "  // Werte per Tipp statt per Titel-Attribut", "kalenderHtml")
     if "function kalenderHtml" not in kal:
         raise SystemExit("ABBRUCH: kalenderHtml() steckt nicht im Ausschnitt.")
-    if ".kal-grid" not in css or ".kal-c" not in css:
+    if ".kal-grid" not in css or ".kal-t" not in css or ".kal-jahr" not in css:
         raise SystemExit("ABBRUCH: das Kalender-CSS fehlt im geladenen Stylesheet.")
 
     import json

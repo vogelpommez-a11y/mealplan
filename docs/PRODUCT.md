@@ -1057,10 +1057,15 @@ gezeichnet, nicht rot.
 ## Bewusste Produktentscheidung: Der Kalender zeigt Planung, nicht Zensuren (30.08.2026)
 
 Der Fortschritt-Kalender hat seit dem 30.08.2026 **zwei Ansichten** — Monat (Standard) und
-Jahr —, umschaltbar in einer Karte. Anlass war ein Vorbild aus einer Tracker-App: Im
+Jahr —, umschaltbar in einer Karte. Anlass war ein Vorbild aus einer Tracker-App: In dessen
 Jahresband ist eine Zelle rund 5 px groß. Man sieht ein Muster, aber keinen Tag; auf die
-Frage „habe ich den 17. geplant?" antwortet es nicht. Das Monatsgitter beantwortet genau
-diese Frage, das Band die nach dem Jahr. Deshalb ersetzt das eine das andere nicht.
+Frage „habe ich den 17. geplant?" antwortet es nicht.
+
+**Deshalb gibt es das Band hier nicht mehr** (seit 30.08.2026). Beide Ansichten sind
+dieselbe Grundform in zwei Dichten: ein Monatsgitter groß, oder zwölf davon klein. Die
+Jahresansicht beantwortet damit weiterhin „wie lief das Jahr?" — und zusätzlich die Frage,
+an der das Band scheiterte: **wann genau.** Ein Muster statt zweier, eine Zellart statt
+zweier, ein Weg von der Zelle zum Datum statt zweier.
 
 **Drei Dinge aus dem Vorbild wurden bewusst nicht übernommen:**
 
@@ -1087,7 +1092,7 @@ zwei Tagen, und sie trägt **nicht die Flamme** — die gehört der Wochenserie.
 die zweite Zahl ist der Alltag der Zielgruppe: Die Wochenserie belohnt Planungsdisziplin über
 Monate, die Tagesserie macht die laufende Woche sichtbar, in der man gerade steckt.
 
-**Der Jahresüberblick zeigt Anwesenheit, nicht Leistung** (seit 30.08.2026). Das Band im
+**Der Jahresüberblick zeigt Anwesenheit, nicht Leistung** (seit 30.08.2026). Der Kalender im
 Reiter „Fortschritt" kennt je Tag genau **ein Bit**: geplant oder nicht. Keine
 Intensitätsabstufung, keine Farbskala nach Kalorien — die App plant, sie bewertet nicht, wie
 viel geplant wurde. Wochen, deren Tage nicht aufgezeichnet wurden (alles vor dem 29.08.2026),

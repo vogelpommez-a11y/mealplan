@@ -3427,7 +3427,7 @@ python tools/pruefstand-kalender.py --gegenprobe-monat   # Monatstag statt Woche
 ```
 
 **Zwei Gegenproben, weil zwei getrennte Aussagen zu sichern sind.** `--gegenprobe`
-verstellt die gemeinsame Quelle und wirft Band **und** Monat um (12 rote Zeilen).
+verstellt die gemeinsame Quelle und wirft Jahr **und** Monat um (12 rote Zeilen).
 `--gegenprobe-monat` verstellt nur `kalTagStatus()` so, dass es das Bit über den
 **Monatstag** statt den Wochentag greift — der naheliegende Off-by-one im Monatsgitter.
 Dabei fallen **ausschließlich** die Monatszeilen (4 rote), die Zeilen 1–10 bleiben grün.
@@ -3457,13 +3457,24 @@ werden damit rot; alles Übrige bleibt grün.
 * **Und genau daran ist der Tastatur-Abschnitt zuerst gescheitert:** Er startete die
   Pfeilprobe auf der *heutigen* Zelle. Am 30.08.2026 — einem Sonntag — ist das die letzte
   Zeile, `ArrowDown` geht dort zu Recht nicht, und der Test maß den Wochentag statt die
-  Bedienung. Er startet jetzt auf einer festen Zelle in der Mitte des Bandes. **Relativ zu
+  Bedienung. Er startet jetzt auf einer festen, füllzellenfreien Zelle. **Relativ zu
   heute rechnen heißt nicht, von heute aus zu messen.**
+* **Dieselbe Falle, zweite Auflage (30.08.2026):** Nach dem Umbau prüfte `ArrowUp` aus
+  Zeile 1 heraus. Der 1. März 2026 ist ein Sonntag — Zeile 0 besteht dort fast nur aus
+  Füllzellen, der Fokus bleibt völlig zu Recht stehen, und die Zeile war rot, ohne dass
+  etwas kaputt war. Gemessen wird jetzt aus Zeile 2: Zeile 1 und 2 sind in **jedem** Monat
+  voll.
 
 Die Abschnitte 9 und 10 führen die Tastatur im echten DOM (`view` ist ein Knoten *im*
-Dokument — ein losgelöstes Element nimmt keinen Fokus an) und prüfen: genau ein Tabstopp,
-Pfeiltasten und `Home`/`End`, wanderndender Tabstopp, Tipp am Fokus, die drei Ränder, und
-dass auch ein Jahr ohne heutigen Tag einen Einstieg hat.
+Dokument — ein losgelöstes Element nimmt keinen Fokus an).
+
+⚠️ **Seit dem Wegfall des Bandes (30.08.2026) prüfen sie eine andere Zusicherung:** nicht
+mehr *einen* Tabstopp im ganzen Jahr, sondern **einen je Monatsgitter, also zwölf**. Das ist
+kein aufgeweichter Test — mit zwölf springt man gezielt in einen Monat, mit den 371 des
+Bandes käme man aus der Karte nicht mehr heraus. Ebenso gedreht: Im Band war eine Spalte
+eine *Woche*, im Monatsgitter ist sie ein *Tag* — `ArrowRight` geht einen Tag weiter,
+`ArrowDown` eine Woche tiefer. Und `Home` springt auf Spalte **0**; im Band stand dort der
+Zeilenkopf, weshalb die Grenze bei 1 lag.
 
 Eine Zeile davon war kurz **grün aus dem falschen Grund**: Die Prüfung „der Tipp folgt dem
 Fokus" lief nach einer Diagnosezeile, die per `mouseenter` denselben Tipp gesetzt hatte. Sie
@@ -3496,29 +3507,48 @@ dunkel passen — ohne waagerechten Scroller, den sie bewusst nicht bekommen
 Gemessen im `srcdoc`-iframe mit echtem CSS (`quelle.css_gesamt()`) und echtem Markup. Ergebnis
 der Messung, die die Papierrechnung ersetzt:
 
-| Breite | Zellbreite Jahr | Zellbreite Monat |
-|---|---|---|
-| 360 px | 4,23 px | 40,84 px |
-| 390 px | 4,80 px | 44,00 px |
-| 768 px | 11,94 px | 53,14 px |
-| 1280 px | 19,52 px | 53,14 px |
+Gemessen **nach** dem Wegfall des Bandes (30.08.2026) — die Jahresspalte trägt jetzt
+Mini-Monatsgitter, keine 5-px-Striche mehr:
+
+| Breite | Zellbreite Jahr | Zellbreite Monat | Monate nebeneinander |
+|---|---|---|---|
+| 360 px | 38,70 px | 40,84 px | 1 |
+| 390 px | 43,00 px | 44,00 px | 1 |
+| 768 px | 21,25 px | 53,14 px | 4 |
+| 1280 px | 22,14 px | 53,14 px | 4 |
+
+⚠️ **Die Jahresspalte ist nicht monoton** — bei 360 px ist eine Zelle *größer* als bei
+768 px. Das ist kein Messfehler: Unter der 155-px-Grenze des `auto-fill`-Rasters passt nur
+**ein** Monat nebeneinander, der dann die volle Breite bekommt. Ab zwei Spalten fällt die
+Zelle auf gut 21 px und bleibt dort, weil `max-width: 720px` verhindert, dass sechs oder
+sieben Monate nebeneinander rutschen. Wer hier eine monoton fallende Reihe erwartet, sucht
+einen Fehler, den es nicht gibt.
 
 **Zwei Untergrenzen und eine Obergrenze, weil zwei verschiedene Dinge unlesbar werden.**
-Im Band ist eine Spalte unter 2 px ein Strich; im Monatsgitter muss eine zweistellige Zahl
-samt Symbol hineinpassen, dort liegt die Grenze bei 30 px. **Nach oben ist nur der Monat
-gedeckelt (70 px)** — und diese Zeile hat sofort einen echten Fehler gefangen: Die Höhe der
-Tageszelle ist bei 56 px gedeckelt, die Breite folgte ohne `max-width` der Karte. Auf
-1280 px standen die Tage dadurch als 168 × 56 px flache Balken da — ein Balkendiagramm,
-kein Kalender. Dieselbe Falle wie beim Band, nur andersherum; die Antwort ist
-`max-width: 420px` auf `.kal-grid.monat`, `.kal-nav` und `.kal-note.monat`.
+In beiden Ansichten muss eine **Zahl** lesbar bleiben: 30 px im Monatsgitter (Zahl plus
+Haken), 14 px im Mini-Gitter (Zahl auf der Fläche, kein Symbol). Bis zum Wegfall des Bandes
+stand die zweite Grenze bei **2 px** — der Breite eines Strichs, der keine Zahl zu tragen
+hatte. **Nach oben ist nur der Monat gedeckelt (70 px)** — und diese Zeile hat sofort einen
+echten Fehler gefangen: Die Höhe der Tageszelle ist bei 56 px gedeckelt, die Breite folgte
+ohne `max-width` der Karte. Auf 1280 px standen die Tage dadurch als 168 × 56 px flache
+Balken da — ein Balkendiagramm, kein Kalender. Die Antwort ist `max-width: 420px` auf
+`.kal-grid.monat`, `.kal-nav` und `.kal-note.monat`.
 
 ### Die Lehre steckt in der Gegenprobe, nicht im Lauf
 
 Die erste Fassung maß `scrollWidth - clientWidth` **am Dokument** — und blieb grün, obwohl die
-Gegenprobe (`table-layout: auto`, 12 px Mindestbreite) das Band auf 407 px über die Karte
-hinaus trieb. Der Grund: **`.wg-col` hat `overflow: hidden`.** Ein zu breites Band läuft gar
+Gegenprobe (`table-layout: auto`, 12 px Mindestbreite) das Gitter auf 407 px über die Karte
+hinaus trieb. Der Grund: **`.wg-col` hat `overflow: hidden`.** Ein zu breites Gitter läuft gar
 nicht über, es wird lautlos abgeschnitten — der Fehler, den der Prüfstand fangen sollte, war
 für die Zahl, die er maß, unsichtbar.
+
+**Und ein drittes Mal dieselbe Lehre, am 30.08.2026:** Nach dem Umbau suchte der Prüfstand
+in der Jahresansicht weiter nach `td.kal-c`, der Zellklasse des Bandes. Der Selektor griff
+ins Leere, meldete 0 px und wurde rot — die **vier Nachbarprüfungen daneben meldeten
+weiterhin grün**, über ein Band, das es nicht mehr gab. Wäre die Zellbreitenprüfung nicht
+dabei gewesen, hätte der Prüfstand den Umbau schweigend durchgewinkt. Genau der Fall aus
+CLAUDE.md Abschnitt 18a: *Ein Prüfer mit veralteten Fakten prüft das Falsche und meldet
+trotzdem „sauber".*
 
 Die tragende Zeile heißt jetzt `tab.scrollWidth <= wrap.clientWidth`. **Ein Prüfstand, dessen
 Gegenprobe grün bleibt, misst nicht das Falsche — er misst gar nichts.**

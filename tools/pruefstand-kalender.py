@@ -163,16 +163,20 @@ function planMit(idxs){ var pl = {}; idxs.forEach(function(i){ pl[DAYS[i].key] =
 function maske(idxs){ var m = "0000000".split(""); idxs.forEach(function(i){ m[i] = "1"; }); return m.join(""); }
 
 melde("");
-melde("1. Die laufende Woche steht im Band (sie ist NICHT im Archiv)");
+melde("1. Die laufende Woche steht in der Jahresansicht (sie ist NICHT im Archiv)");
 var curWk = wkVon(heute), curIdx = idxVon(heute);
 state.plans = {}; state.plans[curWk] = planMit([curIdx]);
 state.weekStats = {};
 var html = kalenderHtml();
-var geplanteZellen = (html.match(/class="kal-c on/g) || []).length;
+// Seit dem 30.08.2026 tragen beide Ansichten dieselbe Zellklasse (.kal-t); das Band mit
+// seiner eigenen Klasse .kal-c ist entfallen.
+var geplanteZellen = (html.match(/class="kal-t on/g) || []).length;
 pruefe("genau eine geplante Zelle", geplanteZellen === 1, geplanteZellen + " gefunden");
-pruefe("Klartextzeile zaehlt sie mit", html.indexOf("1 von 5") > -1 || /1 von \\d+ Wochen geplant/.test(html),
-       (html.match(/\\d+ von \\d+ Wochen geplant[^<]*/) || ["-"])[0]);
-pruefe("heutige Zelle ist markiert", (html.match(/kal-c on today/g) || []).length === 1);
+// Gezaehlt werden TAGE, nicht mehr Wochen: eine Zelle ist ein Tag, und zwei Einheiten
+// fuer dieselbe Karte waeren nur verwirrend.
+pruefe("Klartextzeile zaehlt sie mit", /1 von \\d+ Tagen geplant/.test(html),
+       (html.match(/\\d+ von \\d+ Tagen geplant[^<]*/) || ["-"])[0]);
+pruefe("heutige Zelle ist markiert", (html.match(/kal-t on today/g) || []).length === 1);
 pruefe("aria-current gesetzt", (html.match(/aria-current="date"/g) || []).length === 1);
 
 melde("");
@@ -180,26 +184,33 @@ melde("2. Woche mit Datensatz, aber ohne Maske: eigener Zustand statt sieben Nul
 state.plans = {};
 state.weekStats = {}; state.weekStats[wkVon(tagVor(21))] = { kcal: 1900, days: 5, hit: 3 };
 html = kalenderHtml();
-pruefe("sieben eigene Zellen fuer die Woche ohne Maske", (html.match(/class="kal-c unk/g) || []).length === 7,
-       (html.match(/class="kal-c unk/g) || []).length + " gefunden");
+pruefe("sieben eigene Zellen fuer die Woche ohne Maske", (html.match(/class="kal-t unk/g) || []).length === 7,
+       (html.match(/class="kal-t unk/g) || []).length + " gefunden");
 pruefe("keine als 'nichts geplant' behauptete Zelle in dieser Woche",
-       (html.match(/class="kal-c on/g) || []).length === 0);
-pruefe("die Tage zaehlen trotzdem mit", /5 Tage/.test(html),
-       (html.match(/\\d+ von \\d+ Wochen geplant[^<]*/) || ["-"])[0]);
+       (html.match(/class="kal-t on/g) || []).length === 0);
+// Eine Woche OHNE Maske traegt keine geplanten TAGE - die neue Zaehlung kann sie deshalb
+// nicht mitzaehlen. Was bleibt: Die sieben Zellen stehen als eigener Zustand da (oben
+// geprueft) statt als sieben Behauptungen "nichts geplant".
+pruefe("kein Tag wird daraus erfunden", /0 von \\d+ Tagen geplant/.test(html) || /noch kein geplanter Tag/.test(html),
+       (html.match(/\\d+ von \\d+ Tagen geplant[^<]*/) || ["-"])[0]);
 
 melde("");
-melde("3. Das Band hat genau so viele Spalten, wie das Jahr Wochen hat");
+melde("3. Die Jahresansicht besteht aus zwoelf Monatsgittern");
+// Frueher stand hier die Spaltenzahl des Bandes (52 oder 53, ueber isoWochenImJahr).
+// Beides ist mit dem Band entfallen. Was an seine Stelle tritt, ist die Zusicherung, die
+// den neuen Aufbau traegt: zwoelf vollstaendige Monate, kein Monat doppelt, keiner fehlt.
 state.plans = {}; state.weekStats = {};
 html = kalenderHtml();
-var ersteZeile = (html.match(/<tr><th scope="row"[\\s\\S]*?<\\/tr>/) || [""])[0];
-var spalten = (ersteZeile.match(/<td/g) || []).length;
-var soll = isoWochenImJahr(+JAHR);
-pruefe("Spaltenzahl = " + soll, spalten === soll, spalten + " Spalten");
-pruefe("Monatsband deckt alle Spalten", (function(){
-  var sum = 0, re = /<th scope="colgroup" colspan="(\\d+)"/g, m;
-  while ((m = re.exec(html))) sum += +m[1];
-  return sum === soll;
-})(), "Summe der colspans");
+var tabellen = (html.match(/<table class="kal-grid mini"/g) || []).length;
+pruefe("zwoelf Tabellen", tabellen === 12, tabellen + " gefunden");
+var caps = (html.match(/<caption class="kal-cap">/g) || []).length;
+pruefe("jede traegt ihren Monatsnamen sichtbar", caps === 12, caps + " Beschriftungen");
+// Die Tagesmenge ist die eigentliche Vollstaendigkeitsprobe: 365 bzw. 366 echte Zellen.
+// Gezaehlt wird ueber data-d, nicht ueber die Klasse: Fuellzellen tragen dieselbe Klasse,
+// aber kein Datum - ueber die Klasse kaeme man auf gut 440.
+var tage = (html.match(/<td class="kal-t[^"]*" data-d=/g) || []).length;
+var sollTage = ((+JAHR % 4 === 0 && +JAHR % 100 !== 0) || +JAHR % 400 === 0) ? 366 : 365;
+pruefe("alle Tage des Jahres sind da (" + sollTage + ")", tage === sollTage, tage + " Zellen");
 pruefe("kein eigener Scroll-Container", html.indexOf("overflow") < 0);
 
 melde("");
@@ -236,12 +247,12 @@ var n6 = dayStreak();
 pruefe("Serie endet am Wochenanfang", n6 === curIdx + 1, "gezaehlt: " + n6 + ", erwartet " + (curIdx + 1));
 
 melde("");
-melde("7. Ohne jede Planung ist die Serie 0 und das Band leer");
+melde("7. Ohne jede Planung ist die Serie 0 und das Jahr leer");
 state.plans = {}; state.weekStats = {};
 pruefe("Serie = 0", dayStreak() === 0, "gezaehlt: " + dayStreak());
 html = kalenderHtml();
-pruefe("keine geplante Zelle", html.indexOf('class="kal-c on') < 0);
-pruefe("ehrlicher Leerzustand", html.indexOf("noch keine geplante Woche") > -1);
+pruefe("keine geplante Zelle", html.indexOf('class="kal-t on') < 0);
+pruefe("ehrlicher Leerzustand", html.indexOf("noch kein geplanter Tag") > -1);
 
 melde("");
 melde("8. Die Serie laeuft nicht ewig (Deckel)");
@@ -257,50 +268,77 @@ var n8 = dayStreak();
 pruefe("Serie bleibt endlich und <= 400", n8 > 0 && n8 <= 400, "gezaehlt: " + n8);
 
 melde("");
-melde("9. Das Band ist mit der Tastatur bedienbar");
-// Ein Band mit 371 Tabstopps waere das Gegenteil von barrierefrei: Wer die Karte nur
-// ueberspringen will, drueckte 371-mal Tab. Also genau EIN Einstieg, Pfeiltasten darin.
+melde("9. Die Jahresansicht ist mit der Tastatur bedienbar");
+// 371 Tabstopps waeren das Gegenteil von barrierefrei gewesen: Wer die Karte nur
+// ueberspringen will, drueckte 371-mal Tab. Zwoelf sind etwas anderes - einer je Monat,
+// mit dem man gezielt hineinspringt. Innerhalb eines Gitters bewegen die Pfeiltasten.
 state.plans = {}; state.weekStats = {};
 state.plans[curWk] = planMit([curIdx]);
 view.innerHTML = kalenderHtml();
 initKalender();
-var zellen = view.querySelectorAll("td.kal-c");
-var einstiege = view.querySelectorAll('td.kal-c[tabindex="0"]');
-pruefe("genau ein Tabstopp im ganzen Band", einstiege.length === 1,
+var zellen = view.querySelectorAll("td.kal-t");
+var einstiege = view.querySelectorAll('td.kal-t[tabindex="0"]');
+pruefe("genau ein Tabstopp JE MONAT (zwoelf)", einstiege.length === 12,
        einstiege.length + " Zellen mit tabindex 0 bei " + zellen.length + " Zellen");
-pruefe("der Einstieg ist HEUTE", einstiege[0] && einstiege[0].classList.contains("today"),
-       einstiege[0] ? einstiege[0].className : "-");
+// Im laufenden Monat muss der Einstieg auf HEUTE liegen, in den uebrigen auf der ersten
+// belegten Zelle - sonst waere ein Monat ohne "heute" per Tastatur gar nicht erreichbar.
+var heuteEinstieg = view.querySelectorAll('td.kal-t.today[tabindex="0"]');
+pruefe("im laufenden Monat ist der Einstieg HEUTE", heuteEinstieg.length === 1,
+       heuteEinstieg.length + " gefunden");
+pruefe("jedes Gitter hat genau einen", (function(){
+  var tabs = view.querySelectorAll("table.kal-grid"), ok = true;
+  for (var i = 0; i < tabs.length; i++) {
+    if (tabs[i].querySelectorAll('td.kal-t[tabindex="0"]').length !== 1) ok = false;
+  }
+  return tabs.length === 12 && ok;
+})(), "Gitter: " + view.querySelectorAll("table.kal-grid").length);
 
-// Pfeiltasten. Der Start ist bewusst eine feste Zelle in der Mitte des Bandes und NICHT
-// "heute": Faellt heute auf einen Sonntag, ist das die letzte Zeile - dann geht ArrowDown
-// zu Recht nicht, und der Test misst den Wochentag statt die Bedienung. Genau darauf ist
-// die erste Fassung am 30.08. (einem Sonntag) hereingefallen.
-var koerper = view.querySelector("tbody");
+// Pfeiltasten. Geprueft wird im MAERZ-Gitter (Index 2) und dort in der zweiten Woche:
+// Der Start ist bewusst eine feste, von Fuellzellen freie Zelle und NICHT "heute". Faellt
+// heute auf einen Sonntag, ist das die letzte Spalte - dann geht ArrowRight zu Recht
+// nicht, und der Test misst den Wochentag statt die Bedienung. Genau darauf ist die erste
+// Fassung am 30.08. (einem Sonntag) hereingefallen.
+//
+// Seit dem Umbau bewegen sich die Pfeile im MONATSGITTER: rechts ist ein Tag weiter,
+// unten eine Woche tiefer. Im Band war es umgekehrt - eine Spalte war eine Woche.
+var gitter = view.querySelectorAll("table.kal-grid")[2];
+var koerper = gitter.querySelector("tbody");
 function tasteAuf(el, k){ el.focus(); el.dispatchEvent(new KeyboardEvent("keydown", { key: k, bubbles: true })); }
 function aktiv(){ return view.ownerDocument.activeElement; }
 
-var mitte = koerper.rows[2].cells[5];
+// Zeile 1 ist im Maerz garantiert voll (der Monat beginnt spaetestens in Zeile 0).
+var mitte = koerper.rows[1].cells[3];
 tasteAuf(mitte, "ArrowRight");
-pruefe("ArrowRight geht eine Woche weiter", aktiv().cellIndex === 6 && aktiv().parentElement.sectionRowIndex === 2,
+pruefe("ArrowRight geht einen TAG weiter", aktiv().cellIndex === 4 && aktiv().parentElement.sectionRowIndex === 1,
        "Zeile " + aktiv().parentElement.sectionRowIndex + ", Spalte " + aktiv().cellIndex);
-tasteAuf(koerper.rows[2].cells[5], "ArrowDown");
-pruefe("ArrowDown geht einen Wochentag tiefer", aktiv().parentElement.sectionRowIndex === 3 && aktiv().cellIndex === 5,
+tasteAuf(koerper.rows[1].cells[3], "ArrowDown");
+pruefe("ArrowDown geht eine WOCHE tiefer", aktiv().parentElement.sectionRowIndex === 2 && aktiv().cellIndex === 3,
        "Zeile " + aktiv().parentElement.sectionRowIndex + ", Spalte " + aktiv().cellIndex);
-tasteAuf(koerper.rows[2].cells[5], "ArrowUp");
-pruefe("ArrowUp geht einen Wochentag zurueck", aktiv().parentElement.sectionRowIndex === 1);
-tasteAuf(koerper.rows[2].cells[5], "Home");
-pruefe("Home springt in die erste Woche", aktiv().cellIndex === 1);
-tasteAuf(koerper.rows[2].cells[5], "End");
-pruefe("End springt in die letzte Woche", aktiv().cellIndex === koerper.rows[2].cells.length - 1);
+// ArrowUp bewusst aus Zeile 2, nicht aus Zeile 1: Beginnt der Monat spaet in der Woche
+// (der 1. Maerz 2026 ist ein Sonntag), besteht Zeile 0 fast nur aus Fuellzellen - der
+// Fokus bliebe dann voellig zu Recht stehen, und der Test maesse den Kalender statt die
+// Bedienung. Zeile 1 und 2 sind in jedem Monat voll.
+tasteAuf(koerper.rows[2].cells[3], "ArrowUp");
+pruefe("ArrowUp geht eine Woche zurueck", aktiv().parentElement.sectionRowIndex === 1,
+       "gelandet in Zeile " + aktiv().parentElement.sectionRowIndex);
+tasteAuf(koerper.rows[1].cells[3], "Home");
+// Spalte 0 ist im Monatsgitter bereits ein Tag - im Band stand dort der Zeilenkopf.
+pruefe("Home springt an den Wochenanfang", aktiv().cellIndex === 0, "Spalte " + aktiv().cellIndex);
+tasteAuf(koerper.rows[1].cells[3], "End");
+pruefe("End springt ans Wochenende", aktiv().cellIndex === koerper.rows[1].cells.length - 1);
 
-pruefe("der Tabstopp wandert mit",
-       view.querySelectorAll('td.kal-c[tabindex="0"]').length === 1 &&
-       view.querySelector('td.kal-c[tabindex="0"]') === aktiv());
+// Der Tabstopp wandert INNERHALB seines Gitters - die anderen elf behalten ihren.
+pruefe("der Tabstopp wandert mit, aber nur im eigenen Gitter",
+       gitter.querySelectorAll('td.kal-t[tabindex="0"]').length === 1 &&
+       gitter.querySelector('td.kal-t[tabindex="0"]') === aktiv() &&
+       view.querySelectorAll('td.kal-t[tabindex="0"]').length === 12,
+       "im Gitter: " + gitter.querySelectorAll('td.kal-t[tabindex="0"]').length +
+       ", gesamt: " + view.querySelectorAll('td.kal-t[tabindex="0"]').length);
 
 // Der Tipp muss auf den FOKUS antworten - sonst gaebe es einen Weg hinein, aber keine
 // Antwort darin. Vorher leeren, sonst misst die Zeile den Rest eines Mausereignisses.
 view.querySelector(".kal-tip").textContent = "";
-var zielZelle = koerper.rows[1].cells[9];
+var zielZelle = koerper.rows[2].cells[2];
 zielZelle.focus();
 // ⚠️ In einem headless-Fenster hat das Dokument nicht immer den Systemfokus. focus()
 // setzt dann zwar activeElement, loest aber KEIN focus-Ereignis aus - der Test war
@@ -309,27 +347,42 @@ zielZelle.focus();
 // ausloesen ist deshalb keine Schoenfaerberei, sondern der Ersatz fuer einen Fokus, den
 // die Umgebung nicht vergibt.
 if (!view.querySelector(".kal-tip").textContent) zielZelle.dispatchEvent(new FocusEvent("focus"));
-pruefe("der Tipp folgt dem Fokus", /KW \d+ · \w+/.test(view.querySelector(".kal-tip").textContent),
+// Der Tipp nennt jetzt ein DATUM, keine Kalenderwoche - die Zelle ist ein Tag.
+pruefe("der Tipp folgt dem Fokus", /\w+, \d{2}\.\d{2}\.\d{4} · /.test(view.querySelector(".kal-tip").textContent),
        "'" + view.querySelector(".kal-tip").textContent + "'");
 
-// An den Raendern darf nichts passieren - und vor allem nichts abstuerzen.
-var links = koerper.rows[0].cells[1];
-tasteAuf(links, "ArrowLeft");
-pruefe("am linken Rand bleibt der Fokus stehen", aktiv() === links);
-tasteAuf(koerper.rows[0].cells[1], "ArrowUp");
-pruefe("in der obersten Zeile bleibt er ebenfalls", aktiv() === koerper.rows[0].cells[1]);
-var rechts = koerper.rows[0].cells[koerper.rows[0].cells.length - 1];
-tasteAuf(rechts, "ArrowRight");
-pruefe("am rechten Rand bleibt der Fokus stehen", aktiv() === rechts);
+// An den Raendern darf nichts passieren - und vor allem nichts abstuerzen. Gemessen wird
+// in der LETZTEN Zeile: dort stehen die Fuellzellen am Monatsende, und genau ueber sie
+// darf der Fokus nicht hinauslaufen.
+var letzte = koerper.rows[koerper.rows.length - 1];
+var linksZelle = koerper.rows[1].cells[0];
+tasteAuf(linksZelle, "ArrowLeft");
+pruefe("am linken Rand bleibt der Fokus stehen", aktiv() === linksZelle);
+tasteAuf(koerper.rows[0].cells[6], "ArrowUp");
+pruefe("in der obersten Zeile bleibt er ebenfalls", aktiv() === koerper.rows[0].cells[6]);
+var rechtsZelle = koerper.rows[1].cells[6];
+tasteAuf(rechtsZelle, "ArrowRight");
+pruefe("am rechten Rand bleibt der Fokus stehen", aktiv() === rechtsZelle);
+// Fuellzellen sind kein Ziel: Wer am Monatsende nach unten geht, bleibt stehen.
+var letzteEchte = null;
+for (var li = letzte.cells.length - 1; li >= 0; li--) {
+  if (!letzte.cells[li].classList.contains("pad")) { letzteEchte = letzte.cells[li]; break; }
+}
+if (letzteEchte) {
+  tasteAuf(letzteEchte, "ArrowDown");
+  pruefe("unter der letzten Zeile bleibt er stehen", aktiv() === letzteEchte,
+         "gelandet auf: " + (aktiv().className || "-"));
+}
 
 melde("");
 melde("10. Ein Jahr ohne heutigen Tag bleibt erreichbar");
-// Im Vorjahr traegt keine Zelle "today" - ohne Nachbesserung haette das Band dort gar
-// keinen Tabstopp und waere per Tastatur unerreichbar.
+// Im Vorjahr traegt keine Zelle "today" - ohne Nachbesserung haette die Ansicht dort gar
+// keinen Tabstopp und waere per Tastatur unerreichbar. Jedes der zwoelf Gitter braucht
+// seinen eigenen: haetten nur die Monate mit Daten einen, waeren leere Monate stumm.
 state.viewYear = J_VOR;
 view.innerHTML = kalenderHtml();
-var e2 = view.querySelectorAll('td.kal-c[tabindex="0"]');
-pruefe("auch dort genau ein Tabstopp", e2.length === 1, e2.length + " gefunden");
+var e2 = view.querySelectorAll('td.kal-t[tabindex="0"]');
+pruefe("auch dort einer je Monat", e2.length === 12, e2.length + " gefunden");
 // Der Hinweis auf die Pfeiltasten muss ANGESAGT werden - wer die Tabelle nicht sieht,
 // weiss sonst nicht, dass sie eine eigene Navigation hat (Befund des kvp-Agenten).
 pruefe("die Tabelle verweist auf ihren Bedienhinweis",
@@ -428,7 +481,12 @@ state.kalMode = "jahr";
 state.viewYear = heute.getFullYear();
 view.innerHTML = kalenderHtml();
 pruefe("die Jahresansicht bringt die Jahresleiste zurueck", !!view.querySelector('[data-action="wyear"]'));
-pruefe("und zeichnet wieder das Band", !!view.querySelector("td.kal-c") && !view.querySelector("td.kal-t"));
+// Beide Ansichten teilen sich seit dem 30.08.2026 die Zellklasse - die Unterscheidung
+// laeuft deshalb ueber die Zahl der Gitter, nicht mehr ueber zwei Klassen.
+pruefe("und zeichnet wieder zwoelf Monatsgitter",
+       view.querySelectorAll("table.kal-grid.mini").length === 12 &&
+       !view.querySelector("table.kal-grid.monat"),
+       view.querySelectorAll("table.kal-grid.mini").length + " Mini-Gitter");
 
 melde("");
 melde("15. Tastatur im Monatsgitter: Fuellzellen werden uebersprungen");

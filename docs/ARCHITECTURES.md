@@ -1343,7 +1343,7 @@ Zwei Feinheiten, die dabei zusammengehören:
 
 Belegt durch `tools/pruefstand-jahresumschalter.py`; die Gegenprobe gegen `91c202b` fällt durch.
 
-#### Die Ansicht: ein Band, zwei Leser (seit 30.08.2026, B7/B8)
+#### Die Ansicht: ein Gitter, zwei Dichten (seit 30.08.2026, B7/B8/B11)
 
 `renderProgress()` zeichnet seit dem 30.08.2026 drei Karten statt zwei —
 `rueckblickHtml() + kalenderHtml() + weightHtml()`, dazu `initKalender()` neben
@@ -1356,20 +1356,41 @@ Zeitraumwahl, Klartextzeile, Tipp-Zeile. Das Gitter selbst liefert je nach `stat
 `kalJahrHtml(year)` oder `kalMonatHtml(year, mon)`; beide geben dasselbe
 `{ satz, notiz, tabelle }` zurück. Warum es zwei Ansichten gibt, steht in `docs/PRODUCT.md`.
 
-`kalJahrHtml()` ist eine echte `<table>` mit `table-layout: fixed`, sieben Zeilen
-(Wochentage) mal 52 oder 53 Spalten. **Kein Grid und kein `display: contents` auf
-Tabellenelementen**: das nimmt Screenreadern die Tabellenrollen, und genau die sind hier
-die ganze A11y-Antwort — 371 `aria-label` wären keine. Sichtbar beschriftet sind jeder
-zweite Monat (Drei-Buchstaben-Kürzel) und Mo/Mi/Fr/So; der volle Name steht in jeder Zelle
-als `.visually-hidden` daneben.
+**Beide Ansichten sind dieselbe Grundform.** `kalGitterHtml(year, mon, mini)` baut ein
+Monatsgitter; `mini` unterscheidet nur die Dichte, nicht die Bedeutung. `kalMonatHtml()`
+ist der Aufruf mit `mini = false`, `kalJahrHtml()` ruft zwölfmal mit `mini = true` und legt
+die Tabellen in ein Grid (`.kal-jahr`).
 
-`kalMonatHtml()` ist ebenfalls eine `<table>`, aus demselben Grund: sieben Spalten
-(montagsbeginnend), eine Zeile je Woche, Fülzellen (`.kal-t.pad`, `aria-hidden`) vor dem
-Ersten und nach dem Letzten. **Eine Fülzelle trägt nie einen Zustand** — ein leerer Kreis
-dort wäre die Aussage „nichts geplant" über einen Tag, den es im Monat gar nicht gibt.
-Anders als im Band trägt jede Zelle ihr Datum als `data-d`: bei 31 Zellen sind das keine
-15 KB Markup wie bei 371, und die Position ist wegen der Fülzellen kein verlässlicher
-Träger mehr.
+Bis zum 30.08.2026 stand an der Stelle der Jahresansicht ein **7×53-Band** im Stil eines
+Beitragsdiagramms. Es ist ersatzlos entfallen: Eine 5-px-Zelle zeigt ein Muster, aber keinen
+Tag. Mit ihm sind `KAL_MON_KURZ` (Monatsband) und `isoWochenImJahr()` (Spaltenzahl)
+verschwunden — beide hatten außerhalb des Bandes keinen Aufrufer.
+
+Es sind echte `<table>`-Elemente mit `table-layout: fixed`. **Kein Grid und kein
+`display: contents` auf Tabellenelementen**: das nimmt Screenreadern die Tabellenrollen, und
+genau die sind hier die ganze A11y-Antwort. Das Raster für die zwölf Monate ist ein Grid,
+aber es liegt **um** die Tabellen herum, nicht in ihnen.
+
+Sieben Spalten (montagsbeginnend), eine Zeile je Woche, Fülzellen (`.kal-t.pad`,
+`aria-hidden`) vor dem Ersten und nach dem Letzten. **Eine Fülzelle trägt nie einen
+Zustand** — ein leerer Kreis dort wäre die Aussage „nichts geplant" über einen Tag, den es
+im Monat gar nicht gibt. Jede Zelle trägt ihr Datum als `data-d`: Die Position ist wegen der
+Fülzellen kein verlässlicher Träger, und 31 Attribute je Gitter sind kein Ballast (im
+früheren Band wären es 371 in **einer** Tabelle gewesen).
+
+Unterschiede der Mini-Dichte: Der Wochentag steht einbuchstabig statt zweibuchstabig, das
+Haken-Symbol entfällt (bei rund 21 px Zellbreite passt es nicht neben die Zahl) — den
+Zustand trägt dort die **Fläche hinter der Zahl**. Der Monatsname steht als sichtbare
+`<caption>`; im großen Gitter bleibt dieselbe `<caption>` verborgen, weil die
+Navigationszeile den Namen schon trägt.
+
+**Tabstopps:** Jedes Gitter trägt genau **einen** — in der Jahresansicht also zwölf, einen
+je Monat. Das ist Absicht und nicht dasselbe wie die 371 Tabstopps, gegen die das Band
+seinerzeit gebaut wurde: Mit zwölf springt man gezielt in einen Monat, mit 371 käme man aus
+der Karte nicht mehr heraus. Der Tabstopp wandert **innerhalb** seines Gitters mit; wanderte
+er über alle zwölf, hätten elf Monate zwischendurch gar keinen Einstieg mehr.
+
+Belegt durch `tools/pruefstand-kalender-layout.py`, das beide Ansichten bei 360–1280 px misst.
 
 **`kalTagStatus(d)` liest ein einzelnes Datum** über dasselbe `kalWoche()` und gibt die
 CSS-Klasse zurück (`"on"` / `"off"` / `"unk"` / `null`). Der Bit-Index ist
@@ -1412,18 +1433,19 @@ unangetastet: andere Einheit, andere Aussage, und die Flamme gehört ihr allein.
 Die Doppelung zwischen beiden Zählweisen wird über den geteilten Maskenzugriff vermieden,
 **nicht** über gemeinsame Streak-Logik — die Regeln sind verschieden.
 
-**Tastatur: ein Tabstopp, Pfeiltasten darin** (roving `tabindex`). Genau eine Zelle trägt
-`tabindex="0"` — bevorzugt *heute*, im Vorjahr die erste; die übrigen `-1`. `initKalender()`
-bewegt den Fokus mit den Pfeiltasten sowie `Home`/`End` und zieht den Tabstopp mit, sodass
-man beim Zurückkommen dort landet, wo man war. Der `focus`-Handler zeigt denselben Tipp wie
-Klick und Hover.
+**Tastatur: ein Tabstopp je Gitter, Pfeiltasten darin** (roving `tabindex`). Genau eine
+Zelle je Tabelle trägt `tabindex="0"` — bevorzugt *heute*, sonst die erste belegte; die
+übrigen `-1`. `initKalender()` bedient seit dem Umbau **1 oder 12 Tabellen derselben
+Bauart** und bewegt den Fokus mit den Pfeiltasten sowie `Home`/`End`. Der `focus`-Handler
+zeigt denselben Tipp wie Klick und Hover.
 
-371 fokussierbare Zellen wären das Gegenteil von barrierefrei: Wer die Karte nur
-überspringen will, drückte 371-mal Tab. Umgekehrt wäre eine rein mausbediente Zelle für
-sehende Tastaturnutzer eine echte Lücke — die Tabellensemantik hilft nur, wer ohnehin einen
+371 fokussierbare Zellen wären das Gegenteil von barrierefrei gewesen: Wer die Karte nur
+überspringen will, drückte 371-mal Tab. Zwölf sind etwas anderes — mit ihnen springt man
+gezielt in einen Monat. Umgekehrt wäre eine rein mausbediente Zelle für sehende
+Tastaturnutzer eine echte Lücke; die Tabellensemantik hilft nur, wer ohnehin einen
 Screenreader benutzt. Gemessen in `tools/pruefstand-kalender.py`, Abschnitt 9 und 10.
 
-⚠️ **Die Kartenschale `.wg-col` hat `overflow: hidden`.** Ein zu breites Band läuft deshalb
+⚠️ **Die Kartenschale `.wg-col` hat `overflow: hidden`.** Ein zu breites Gitter läuft deshalb
 nicht über das Dokument, es wird lautlos abgeschnitten. Wer Layoutfehler am Dokument misst,
 sieht davon nichts (`tools/pruefstand-kalender-layout.py`, gemessen wird
 `tab.scrollWidth <= wrap.clientWidth`).

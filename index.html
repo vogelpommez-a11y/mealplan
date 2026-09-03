@@ -5517,23 +5517,23 @@
     });
   }
 
-  // ---------- Fortschritt-Kalender (Paket 6, B7) ----------
+  // ---------- Fortschritt-Kalender (Paket 6, B7/B11) ----------
   //
-  // Ein Jahr als Band: sieben Zeilen (Wochentage) mal 52 oder 53 Spalten (Kalenderwochen),
-  // je Zelle EIN Bit - an diesem Tag war etwas geplant oder nicht. Keine
-  // Intensitaetsabstufung: die App plant, sie bewertet nicht, WIE VIEL geplant wurde
-  // (CLAUDE.md Abschnitt 6 - die Marke bewertet den Nutzer nicht).
+  // Zwei Ansichten aus EINER Grundform: ein Monatsgitter gross (Monatsansicht) oder
+  // zwoelf davon klein (Jahresansicht). Je Zelle EIN Bit - an diesem Tag war etwas
+  // geplant oder nicht. Keine Intensitaetsabstufung und keine Note: die App plant, sie
+  // bewertet nicht, WIE VIEL oder WIE GUT geplant wurde (CLAUDE.md Abschnitt 6).
   //
-  // Es ist eine echte <table>. 371 Zellen mit je einem aria-label waeren unbrauchbar; eine
-  // Tabelle liefert Zeilen- und Spaltennavigation umsonst, und der Screenreader sagt beim
-  // Hineinspringen von selbst "Mittwoch, Maerz, geplant".
-  const KAL_MON_KURZ = ["Jan", "Feb", "Mär", "Apr", "Mai", "Jun", "Jul", "Aug", "Sep", "Okt", "Nov", "Dez"];
+  // Es sind echte <table>-Elemente. Eine Tabelle liefert Zeilen- und Spaltennavigation
+  // umsonst, und der Screenreader sagt beim Hineinspringen von selbst "Mittwoch, Maerz,
+  // geplant". Ein Grid oder display:contents auf Tabellenelementen naehme ihm genau das.
+  //
+  // Bis zum 30.08.2026 stand hier ein 7x53-Band im Stil eines Beitragsdiagramms. Es ist
+  // dem Monatsgitter gewichen, weil eine 5-px-Zelle zwar ein Muster zeigt, aber keinen
+  // Tag - und "habe ich den 17. geplant?" ist die Frage, die man an einen Kalender hat.
+  // Mit ihm sind KAL_MON_KURZ (Monatsband) und isoWochenImJahr() (Spaltenzahl) entfallen;
+  // beide hatten ausserhalb des Bandes keinen Aufrufer.
   const KAL_MON_LANG = ["Januar", "Februar", "März", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember"];
-
-  // Wie viele ISO-Wochen hat das Jahr? Der 28. Dezember liegt per ISO-Definition IMMER in
-  // der letzten Woche seines Jahres - damit braucht es keine Sonderregel fuer die
-  // 53-Wochen-Jahre und keine eigene Rechnung, die sich von isoWeekKey() unterscheiden kann.
-  function isoWochenImJahr(y) { return weekNumOf(isoWeekKey(new Date(y, 11, 28))); }
 
   // Was ueber eine Woche bekannt ist - EINE Quelle fuer beide Faelle.
   //
@@ -5587,7 +5587,17 @@
   // KEINE Bewertung: gruener Haken heisst "geplant", nicht "Ziel erreicht". Ein rotes X
   // waere eine Note fuer den Nutzer (CLAUDE.md Abschnitt 6) - und die Daten dafuer gibt es
   // ohnehin nur je WOCHE (`hit` in archiveWeek), nicht je Tag.
-  function kalMonatHtml(year, mon) {
+  // EIN Monatsgitter - die gemeinsame Grundform beider Ansichten.
+  //
+  // `mini` unterscheidet die Dichte, nicht die Bedeutung:
+  //   false  Monatsansicht: grosse Zelle, Zahl UND Haken-Symbol, Wochentag zweibuchstabig
+  //   true   Jahresansicht: zwoelf davon nebeneinander, rund 20-30 px je Zelle. Dort passt
+  //          kein Symbol mehr neben die Zahl - den Zustand traegt die Flaeche HINTER ihr.
+  //
+  // In beiden Faellen haengt der Zustand nicht an der Farbe allein: "geplant" hat eine
+  // Flaeche, "nichts geplant" eine Kante, "keine Daten" gar nichts. Das ist dieselbe
+  // Staffelung wie im frueheren Jahresband, nur in Zellen statt in Punkten.
+  function kalGitterHtml(year, mon, mini) {
     const jahr = +year;
     const erster = new Date(jahr, mon, 1);
     const tage = new Date(jahr, mon + 1, 0).getDate();
@@ -5623,8 +5633,12 @@
     const heuteImMonat = zellen.some(z => z && z.iso === heuteStr);
     const einstieg = heuteImMonat ? heuteStr : (zellen.find(z => z) || {}).iso;
 
+    // Im Mini-Gitter ist die Spalte rund 20 px breit - "Mo" passt dort nicht mehr, ein
+    // Buchstabe schon. Mehrdeutig ist das nur ohne Zusammenhang: In einem Kalender mit
+    // sieben Spalten liest niemand "M D M D F S S" falsch. Der volle Wochentag steht in
+    // beiden Faellen unsichtbar daneben, und er ist es, den der Screenreader vorliest.
     const kopf = DAYS.map(d =>
-      `<th scope="col" class="kal-wd"><span aria-hidden="true">${d.short}</span><span class="visually-hidden">${d.label}</span></th>`).join("");
+      `<th scope="col" class="kal-wd"><span aria-hidden="true">${mini ? d.short.charAt(0) : d.short}</span><span class="visually-hidden">${d.label}</span></th>`).join("");
 
     let zeilen = "";
     for (let i = 0; i < zellen.length; i += 7) {
@@ -5638,21 +5652,34 @@
         return `<td class="kal-t${z.st ? " " + z.st : ""}${ist ? " today" : ""}" data-d="${z.iso}"`
           + ` tabindex="${z.iso === einstieg ? 0 : -1}"${ist ? ` aria-current="date"` : ""}>`
           + `<span class="kal-num">${z.t}</span>`
-          + `<span class="kal-sym" aria-hidden="true">${z.st === "on" ? ICON_CHECK : ""}</span>`
+          + (mini ? "" : `<span class="kal-sym" aria-hidden="true">${z.st === "on" ? ICON_CHECK : ""}</span>`)
           + `<span class="visually-hidden">${wort}</span></td>`;
       }).join("") + "</tr>";
     }
 
+    // Die <caption> ist der natuerliche Ort fuer den Monatsnamen - im Jahr SICHTBAR (zwoelf
+    // Gitter ohne Beschriftung waeren ein Raetsel), im Monat verborgen, weil die
+    // Navigationszeile ihn dort schon nennt. Beide Male traegt sie zusaetzlich den ganzen
+    // Satz fuer den Screenreader: Jede Tabelle muss allein stehen koennen.
+    const caption = mini
+      ? `<caption class="kal-cap"><span aria-hidden="true">${KAL_MON_LANG[mon]}</span><span class="visually-hidden">${esc(satz)}</span></caption>`
+      : `<caption class="visually-hidden">${esc(satz)}</caption>`;
+
     return {
       satz: satz,
       notiz: notiz,
-      tabelle: `<table class="kal-grid monat" data-year="${year}" data-mon="${mon}" aria-describedby="kal-hilfe">
-            <caption class="visually-hidden">${esc(satz)}</caption>
+      geplant: geplant,
+      tage: tage,
+      tabelle: `<table class="kal-grid${mini ? " mini" : " monat"}" data-year="${year}" data-mon="${mon}" aria-describedby="kal-hilfe">
+            ${caption}
             <thead><tr>${kopf}</tr></thead>
             <tbody>${zeilen}</tbody>
           </table>`
     };
   }
+
+  // Die Monatsansicht ist genau ein Gitter in voller Groesse.
+  function kalMonatHtml(year, mon) { return kalGitterHtml(year, mon, false); }
 
   // Monatsnavigation: ein Pfeil je Richtung, dazwischen der Zeitraum. Die Grenzen sind die
   // Jahre aus weightYears() - weiter zu blaettern hiesse, in garantiert leere Monate zu
@@ -5690,9 +5717,12 @@
     // Zeitraum, die Jahresleiste entfaellt deshalb dort - verloren geht sie nicht, die
     // Gewichtskarte darunter baut sich ihre eigene (jahrLeisteHtml).
     const zeitraum = monat ? kalNavHtml(year, mon) : jahrLeisteHtml(year);
-    const hilfe = monat
-      ? "Mit den Pfeiltasten zwischen den Tagen bewegen; Pos1 und Ende springen an den Anfang und das Ende der Woche."
-      : "Mit den Pfeiltasten zwischen den Tagen bewegen; Pos1 und Ende springen an den Anfang und das Ende des Jahres.";
+    // EIN Hilfetext fuer beide Ansichten, seit beide aus derselben Gitterform bestehen.
+    // Der Zusatz gilt nur im Jahr: dort ist jeder Monat ein eigenes Gitter mit eigenem
+    // Tabstopp, und wer das nicht weiss, sucht den Weg von Januar nach Februar mit den
+    // Pfeiltasten - vergeblich.
+    const hilfe = "Mit den Pfeiltasten zwischen den Tagen bewegen; Pos1 und Ende springen an den Anfang und das Ende der Woche."
+      + (monat ? "" : " Mit der Tabulatortaste zum nächsten Monat.");
 
     return `<div class="wg-col kal">
         <div class="wch-head">
@@ -5713,86 +5743,39 @@
       </div>`;
   }
 
+  // Die Jahresansicht: zwoelf Monatsgitter statt eines Bandes (seit 30.08.2026).
+  //
+  // Vorher stand hier ein 7x53-Band im Stil eines Beitragsdiagramms. Es zeigte viel auf
+  // einmal, aber eine Zelle war rund 5 px gross - man las ein Muster, keinen Tag. Zwoelf
+  // kleine Kalender beantworten dieselbe Frage ("wie lief das Jahr?") und obendrein die,
+  // an der das Band scheiterte: WANN genau. Es ist dieselbe Form wie in der Monatsansicht,
+  // nur dichter - ein Muster statt zweier.
+  //
+  // Die Jahreszahl steht NICHT an jedem Gitter: sie steht einmal im Umschalter darueber.
+  // Zwoelfmal "2026" waere Fuellung, kein Hinweis.
   function kalJahrHtml(year) {
-    const wochen = isoWochenImJahr(+year);
-    const heuteWk = isoWeekKey(new Date());
-    const heuteIdx = (new Date().getDay() || 7) - 1;      // Mo=0 ... So=6, wie DAYS
-
-    // Erst die Daten, dann das Markup. So steht die Klartextzeile ueber demselben Bestand,
-    // den das Raster zeichnet - sie kann nicht auseinanderlaufen.
-    const daten = [];
-    let geplanteWochen = 0, geplanteTage = 0;
-    for (let w = 1; w <= wochen; w++) {
-      const wk = year + "-W" + String(w).padStart(2, "0");
-      const info = kalWoche(wk);
-      daten.push(info);
-      if (info && info.tage > 0) { geplanteWochen++; geplanteTage += info.tage; }
+    let geplant = 0, tage = 0;
+    const gitter = [];
+    for (let m = 0; m < 12; m++) {
+      const g = kalGitterHtml(year, m, true);
+      geplant += g.geplant;
+      tage += g.tage;
+      gitter.push(g.tabelle);
     }
 
-    // Monatsband: die Woche gehoert zu dem Monat, in dem ihr DONNERSTAG liegt - das ist die
-    // ISO-Regel, nach der auch die Wochennummer selbst vergeben wird. Ueber den Montag
-    // gerechnet laege die Jahreswechsel-Woche im falschen Monat.
-    const monatsSpalten = [];
-    for (let w = 1; w <= wochen; w++) {
-      const don = weekMonday(year + "-W" + String(w).padStart(2, "0"));
-      don.setDate(don.getDate() + 3);
-      const m = don.getMonth();
-      const letzte = monatsSpalten[monatsSpalten.length - 1];
-      if (letzte && letzte.m === m) letzte.n++;
-      else monatsSpalten.push({ m: m, n: 1 });
-    }
-    // Nur jeder zweite Monat traegt sein Kuerzel. Bei 360 px stehen je Spalte rund 5 px zur
-    // Verfuegung - zwoelf Kuerzel nebeneinander waeren Matsch. Drei Buchstaben, nicht einer:
-    // "J" gaebe es dreimal und "M" zweimal (derselbe Grund wie bei der Gewichtsachse).
-    // Der volle Name steht immer da, nur unsichtbar - der Screenreader liest ihn.
-    const kopf = monatsSpalten.map((g, i) =>
-      `<th scope="colgroup" colspan="${g.n}" class="kal-mon">${i % 2 === 0 ? `<span aria-hidden="true">${KAL_MON_KURZ[g.m]}</span>` : ""}<span class="visually-hidden">${KAL_MON_LANG[g.m]}</span></th>`).join("");
+    // Gezaehlt werden TAGE, nicht mehr Wochen. Das Band rechnete in Wochen, weil eine
+    // Spalte eine Woche war; hier ist eine Zelle ein Tag, und zwei verschiedene Einheiten
+    // fuer dieselbe Karte waeren nur verwirrend. Der Monat sagt "18 von 31 Tagen", das
+    // Jahr sagt es im selben Vokabular.
+    const satz = geplant
+      ? `${year}: ${geplant} von ${tage} Tagen geplant`
+      : `${year}: noch kein geplanter Tag.`;
+    const notiz = geplant ? `${geplant} von ${tage} Tagen geplant` : "Noch kein geplanter Tag.";
 
-    // Sichtbar beschriftet sind Mo, Mi, Fr, So - sieben Kuerzel uebereinander waeren bei
-    // 5 px Zeilenhoehe unlesbar. Der volle Wochentag steht in jeder Zeile, nur verborgen.
-    let heuteGesehen = false;
-    const zeilen = DAYS.map((d, i) => {
-      const zellen = daten.map((info, wi) => {
-        const wkNr = wi + 1;
-        const wk = year + "-W" + String(wkNr).padStart(2, "0");
-        let klasse = "kal-c", txt = "";
-        if (info && info.mask === null) { klasse += " unk"; }
-        else if (info && info.mask.charAt(i) === "1") { klasse += " on"; txt = `<span class="visually-hidden">geplant</span>`; }
-        else if (info) { klasse += " off"; }
-        // Sonst: ueber die Woche ist nichts bekannt - transparent, ohne Kante. Zukunft und
-        // die Zeit vor der ersten Nutzung sehen absichtlich gleich aus; beides ist "keine
-        // Aussage", und ein Unterschied waere eine erfundene.
-        const heute = wk === heuteWk && i === heuteIdx;
-        // Roving tabindex: GENAU EINE Zelle ist per Tab erreichbar, in ihr bewegen die
-        // Pfeiltasten den Fokus (initKalender). 371 Tabstopps waeren das Gegenteil von
-        // barrierefrei - wer die Karte nur ueberspringen will, drueckte 371-mal Tab.
-        // Der Einstieg ist "heute"; gibt es das im gezeigten Jahr nicht, die erste Zelle.
-        if (heute) heuteGesehen = true;
-        return `<td class="${klasse}${heute ? " today" : ""}" tabindex="${heute ? 0 : -1}"${heute ? ` aria-current="date"` : ""}>${txt}</td>`;
-      }).join("");
-      return `<tr><th scope="row" class="kal-d">${i % 2 === 0 ? `<span aria-hidden="true">${d.short}</span>` : ""}<span class="visually-hidden">${d.label}</span></th>${zellen}</tr>`;
-    }).join("");
-
-    // Die Klartextzeile ist die eigentliche Aussage, nicht das Raster: Wer die Tabelle nicht
-    // sehen kann, bekommt hier dieselbe Information in einem Satz.
-    const satz = geplanteWochen
-      ? `${year}: ${geplanteWochen} von ${wochen} Wochen geplant · ${geplanteTage} Tage`
-      : `${year}: noch keine geplante Woche.`;
-
-    // Im Vorjahr (oder einem Jahr ohne heutigen Tag) traegt keine Zelle tabindex 0 - dann
-    // waere das Band per Tastatur gar nicht erreichbar. Die erste Zelle uebernimmt.
-    const zeilenFertig = heuteGesehen ? zeilen : zeilen.replace('tabindex="-1"', 'tabindex="0"');
-
-    // Seit der Monatsansicht liefert diese Funktion nur noch Satz und Tabelle; Kopf,
-    // Umschalter und Tipp-Zeile baut die Huelle kalenderHtml(). Die Logik darueber ist
-    // unveraendert - was hier gezeichnet wird, ist Zeile fuer Zeile dasselbe Band.
     return {
       satz: satz,
-      tabelle: `<table class="kal-grid" data-year="${year}" aria-describedby="kal-hilfe">
-            <caption class="visually-hidden">${esc(satz)}</caption>
-            <thead><tr><td class="kal-corner"></td>${kopf}</tr></thead>
-            <tbody>${zeilenFertig}</tbody>
-          </table>`
+      notiz: notiz,
+      tabelle: `<div class="kal-jahr">${gitter.join("")}</div>`
     };
   }
 
@@ -5809,84 +5792,87 @@
   }
 
   // Werte per Tipp statt per Titel-Attribut - dasselbe Muster wie initRueckblick(): auf dem
-  // Handy gibt es kein Hover. Woche und Wochentag kommen aus der Position in der Tabelle,
-  // nicht aus 371 data-Attributen; das spart bei jedem Zeichnen rund 15 KB Markup.
+  // Handy gibt es kein Hover.
+  //
+  // Seit die Jahresansicht aus zwoelf Monatsgittern besteht, bedient diese Funktion 1 oder
+  // 12 Tabellen DERSELBEN Bauart. Das ist der eigentliche Gewinn des Umbaus: Vorher gab es
+  // zwei Gitterarten mit zwei Zellklassen, zwei Spaltenzaehlungen (das Band hatte einen
+  // Zeilenkopf, das Monatsgitter nicht) und zwei Wegen, aus einer Zelle ihr Datum zu
+  // gewinnen. Jetzt gibt es einen.
+  //
+  // JEDES Gitter traegt genau EINEN Tabstopp - in der Jahresansicht also zwoelf, einen je
+  // Monat. Das ist Absicht und nicht dasselbe wie die 371 Tabstopps, gegen die das Band
+  // seinerzeit gebaut wurde: Mit zwoelf springt man gezielt in einen Monat, mit 371 kaeme
+  // man aus der Karte nicht mehr heraus.
   function initKalender() {
-    const tab = view.querySelector(".kal-grid");
+    const tabs = view.querySelectorAll(".kal-grid");
     const tip = view.querySelector(".kal-tip");
-    if (!tab || !tip) return;
-    const year = tab.dataset.year;
-    // Im Monatsgitter ist bereits Spalte 0 ein Tag, im Jahresband steht dort der Zeilenkopf.
-    const monat = tab.classList.contains("monat");
-    const minSp = monat ? 0 : 1;
-    const zelle = monat ? "kal-t" : "kal-c";
+    if (!tabs.length || !tip) return;
+
     const zustandVon = td => td.classList.contains("on") ? "geplant"
       : td.classList.contains("unk") ? "Tage nicht aufgezeichnet"
       : td.classList.contains("off") ? "nichts geplant"
       : "keine Daten";
+    // Das Datum kommt aus data-d, nicht aus der Position: Wegen der Fuellzellen ist die
+    // Spalte kein verlaesslicher Traeger. 31 Attribute je Gitter sind dabei kein Ballast -
+    // im frueheren Band waeren es 371 in EINER Tabelle gewesen.
     const zeig = td => {
-      if (monat) {
-        // Datum aus data-d statt aus der Position: im Monat ist die Position wegen der
-        // Fuellzellen kein verlaesslicher Traeger, und 31 Attribute sind kein Ballast
-        // (im Band waeren es 371, siehe Kommentar dort).
-        const iso = td.dataset.d;
-        if (!iso) return;
-        const d = new Date(+iso.slice(0, 4), +iso.slice(5, 7) - 1, +iso.slice(8, 10));
-        tip.textContent = `${DAYS[(d.getDay() || 7) - 1].short}, ${iso.slice(8, 10)}.${iso.slice(5, 7)}.${iso.slice(0, 4)} · ${zustandVon(td)}`;
-        return;
-      }
-      const tr = td.parentElement;
-      const tag = DAYS[tr.sectionRowIndex];
-      const wkNr = td.cellIndex;                 // Zelle 0 ist der Zeilenkopf
-      if (!tag || wkNr < 1) return;
-      tip.textContent = `KW ${wkNr} · ${tag.label} ${year} · ${zustandVon(td)}`;
+      const iso = td.dataset.d;
+      if (!iso) return;
+      const d = new Date(+iso.slice(0, 4), +iso.slice(5, 7) - 1, +iso.slice(8, 10));
+      tip.textContent = `${DAYS[(d.getDay() || 7) - 1].short}, ${iso.slice(8, 10)}.${iso.slice(5, 7)}.${iso.slice(0, 4)} · ${zustandVon(td)}`;
     };
-    // Fokus zeigt denselben Tipp wie Klick und Hover - sonst haette die Tastatur zwar
-    // einen Weg in die Tabelle, aber keine Antwort darin (gleiches Muster wie
-    // initRueckblick und initWeightChart).
-    tab.querySelectorAll("td." + zelle + ":not(.pad)").forEach(td => {
-      td.addEventListener("click", () => { setzeEinstieg(td); zeig(td); });
-      td.addEventListener("mouseenter", () => zeig(td));
-      td.addEventListener("focus", () => zeig(td));
-    });
 
-    // Der Tabstopp wandert mit: Wer die Karte verlaesst und zurueckkommt, landet dort,
-    // wo er war - nicht wieder am Anfang.
+    // Der Tabstopp wandert mit, aber nur INNERHALB seines Gitters: Wer im Mai war und
+    // zurueckkommt, landet im Mai. Wuerde er ueber alle zwoelf wandern, haetten elf
+    // Monate zwischendurch gar keinen Einstieg mehr.
     function setzeEinstieg(td) {
-      const alt = tab.querySelector("td." + zelle + '[tabindex="0"]');
+      const tab = td.closest("table");
+      const alt = tab.querySelector('td.kal-t[tabindex="0"]');
       if (alt && alt !== td) alt.tabIndex = -1;
       td.tabIndex = 0;
     }
 
-    // Pfeiltasten im Gitter. Ohne sie waere die Zelle zwar fokussierbar, aber nur EINE -
-    // die Tastatur haette Zugang zu genau einem Tag des Jahres.
-    tab.addEventListener("keydown", e => {
-      const td = e.target;
-      if (!td.classList || !td.classList.contains(zelle)) return;
-      const zeile = td.parentElement, koerper = zeile.parentElement;
-      let z = zeile.sectionRowIndex, sp = td.cellIndex;
-      const letzteSp = zeile.cells.length - 1;
-      let schritt = 0;
-      if (e.key === "ArrowRight") { sp++; schritt = 1; }
-      else if (e.key === "ArrowLeft") { sp--; schritt = -1; }
-      else if (e.key === "ArrowDown") z++;
-      else if (e.key === "ArrowUp") z--;
-      else if (e.key === "Home") { sp = minSp; schritt = 1; }
-      else if (e.key === "End") { sp = letzteSp; schritt = -1; }
-      else return;
-      if (z < 0 || z >= koerper.rows.length || sp < minSp || sp > letzteSp) return;
-      let ziel = koerper.rows[z].cells[sp];
-      // Fuellzellen im Monatsgitter ueberspringen. Waagerecht laeuft die Bewegung weiter in
-      // ihre Richtung; senkrecht gibt es kein "weiter" - dort ist die Fuellzelle der Rand.
-      while (ziel && ziel.classList.contains("pad") && schritt) {
-        sp += schritt;
-        if (sp < minSp || sp > letzteSp) return;
-        ziel = koerper.rows[z].cells[sp];
-      }
-      if (!ziel || ziel.classList.contains("pad")) return;
-      e.preventDefault();          // sonst scrollt die Seite unter der Bewegung weg
-      setzeEinstieg(ziel);
-      ziel.focus();
+    tabs.forEach(tab => {
+      // Fokus zeigt denselben Tipp wie Klick und Hover - sonst haette die Tastatur zwar
+      // einen Weg in die Tabelle, aber keine Antwort darin (gleiches Muster wie
+      // initRueckblick und initWeightChart).
+      tab.querySelectorAll("td.kal-t:not(.pad)").forEach(td => {
+        td.addEventListener("click", () => { setzeEinstieg(td); zeig(td); });
+        td.addEventListener("mouseenter", () => zeig(td));
+        td.addEventListener("focus", () => zeig(td));
+      });
+
+      // Pfeiltasten im Gitter. Ohne sie waere die Zelle zwar fokussierbar, aber nur EINE -
+      // die Tastatur haette Zugang zu genau einem Tag des Monats.
+      tab.addEventListener("keydown", e => {
+        const td = e.target;
+        if (!td.classList || !td.classList.contains("kal-t")) return;
+        const zeile = td.parentElement, koerper = zeile.parentElement;
+        let z = zeile.sectionRowIndex, sp = td.cellIndex;
+        const letzteSp = zeile.cells.length - 1;
+        let schritt = 0;
+        if (e.key === "ArrowRight") { sp++; schritt = 1; }
+        else if (e.key === "ArrowLeft") { sp--; schritt = -1; }
+        else if (e.key === "ArrowDown") z++;
+        else if (e.key === "ArrowUp") z--;
+        else if (e.key === "Home") { sp = 0; schritt = 1; }
+        else if (e.key === "End") { sp = letzteSp; schritt = -1; }
+        else return;
+        if (z < 0 || z >= koerper.rows.length || sp < 0 || sp > letzteSp) return;
+        let ziel = koerper.rows[z].cells[sp];
+        // Fuellzellen ueberspringen. Waagerecht laeuft die Bewegung weiter in ihre
+        // Richtung; senkrecht gibt es kein "weiter" - dort ist die Fuellzelle der Rand.
+        while (ziel && ziel.classList.contains("pad") && schritt) {
+          sp += schritt;
+          if (sp < 0 || sp > letzteSp) return;
+          ziel = koerper.rows[z].cells[sp];
+        }
+        if (!ziel || ziel.classList.contains("pad")) return;
+        e.preventDefault();          // sonst scrollt die Seite unter der Bewegung weg
+        setzeEinstieg(ziel);
+        ziel.focus();
+      });
     });
   }
 
