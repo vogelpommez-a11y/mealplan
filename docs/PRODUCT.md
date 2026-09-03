@@ -981,10 +981,14 @@ wie viele Taps kostet es sie?
 
 * **Wiegen ist wöchentlich, nicht monatlich.** Ein Trend, der erst nach Monaten sichtbar wird,
   hilft niemandem, der sein Defizit steuert. Taggenau bleibt trotzdem falsch: Wasser und
-  Mahlzeiten schwanken stärker als der Fortschritt einer Woche. Deshalb zusätzlich der
-  gleitende Durchschnitt über vier Messungen — er ist die Linie, die man liest, die Rohwerte
-  bleiben daneben sichtbar. Eine App, die nur den geglätteten Wert zeigt, versteckt, woraus er
-  entsteht.
+  Mahlzeiten schwanken stärker als der Fortschritt einer Woche.
+  ⚠️ **Der gleitende Durchschnitt über vier Messungen ist am 03.09.2026 entfallen.** Er stand
+  als zweite Linie neben der Messkurve und war dort gut begründet — genommen wurde er
+  trotzdem: Zusammen mit der Ziellinie führte das Diagramm drei Linien, davon zwei rote, die
+  sich nur in Stärke und Deckkraft unterschieden. Auf 375 px sind das keine zwei Serien,
+  sondern eine unscharfe. **Die Glättung geht dabei wirklich verloren** — das ist der Preis,
+  keine Nebenwirkung. Wer sie zurückholt, holt auch die Legende zurück und braucht dann eine
+  Form, die sich vom Rohwert unterscheidet, ohne eine zweite Farbe einzuführen.
 * **Das Ziel lässt sich direkt anpassen.** „100 kcal weniger" führte vorher durch den kompletten
   Rechner samt Alter, Größe und Trainingstagen. Der Rechner bleibt daneben — er ist der Weg,
   wenn sich die *Grundlagen* ändern, nicht die Feinjustierung.
@@ -1140,6 +1144,18 @@ Einträge. Das Ziel steht weiterhin als Zahl im Kartenfuß und als unterster Ach
 Monat vier Punkte, und eine auf sie gezoomte Achse ließe jede Wasserschwankung wie einen
 Trend aussehen. Der gewählte Monat wird hinterlegt, nicht herausgeschnitten.
 
+**Das Gewichtsdiagramm führt genau eine Linie** (seit 03.09.2026). Mit der Ziellinie ist auch
+der gleitende Vier-Wochen-Schnitt entfallen; die Legende damit ebenfalls, weil sie zu einer
+einzigen Kurve nur benennt, was ohnehin dasteht. Was das Bild trägt, sind jetzt die Achsen —
+und die hatte es vorher schon.
+
+**Der Umschalter Monat/Jahr ist eine eigene Form** (`.kal-seg`), nicht die `.week-switch` aus
+dem Wochenplan. Dort sitzen die Knöpfe an einer Karte und richten sich nach ihrer
+Beschriftung; hier steht die Wahl frei über dem ganzen Reiter, und eine binäre Wahl mit
+ungleich breiten Hälften lässt die längere wichtiger aussehen, als sie ist. Zwei gleich breite
+Hälften, dazwischen eine gleitende Pille — sie ist Dekoration, liegt unter den Knöpfen und
+fängt keinen Klick ab.
+
 **Wiegen ist ein Stepper statt eines Zahlenfelds.** Wer sich wöchentlich wiegt, ändert
 seinen Wert um wenige hundert Gramm; mit dem letzten Stand als Vorgabe sind das ein bis
 vier Tipps. Das Zahlenfeld davor zog auf dem Handy die Tastatur auf und verdeckte die
@@ -1148,6 +1164,14 @@ nach dem Urlaub wäre der Stepper Schikane. Das ist kein zweiter gleichwertiger 
 sondern ein Notausgang; zwei gleichrangige Bedienwege für dieselbe Sache waren der Fehler
 des Portionsfaktors. Der Verlauf steht nur noch im ⋯-Menü: Wer wiegen will, soll nicht an
 einer Löschliste vorbeiscrollen.
+
+**Dieselbe Eingabe setzt auch das Jahresziel.** Es ist dieselbe Aufgabe — ein Gewicht in
+Zehnteln einstellen — und zwei verschiedene Eingabearten dafür wären genau der Unterschied,
+den man sich merken muss, ohne etwas davon zu haben. Der **Startwert** ist ein anderer, und
+das ist der Punkt: Ohne gespeichertes Ziel steht dort der letzte gemessene Wert. Von ihm aus
+geht es in die Richtung, die man vorhat; eine Vorgabe wie 75 kg wäre geraten, und wer 95 kg
+wiegt, müsste sich erst zurückarbeiten. Die Zeile darunter sagt, was das Ziel **bedeutet**
+wie es gemeint ist, statt die Zahl zu wiederholen, die gross daneben steht.
 
 **Der Rückblick gehört zum Konto, nicht zum Gerät** (seit 25.08.2026). Bis dahin lag das
 Wochenarchiv nur im `localStorage`: Wer sich auf dem Handy anmeldete, sah dort Streak 0 und ein

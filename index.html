@@ -5212,21 +5212,18 @@
 
     const pts = rows.map(r => `${px(weekNumOf(r.m)).toFixed(1)},${py(r.kg).toFixed(1)}`).join(" ");
     const line = rows.length > 1 ? `<polyline class="wch-line" points="${pts}"/>` : "";
-    // Gleitender Durchschnitt ueber vier Wochen (B2). Erst er macht wochengenaues Wiegen
-    // brauchbar: eine einzelne Wiegung schwankt um mehr, als eine Woche Fortschritt
-    // ausmacht - die Rohkurve zeigt dann Zacken, die nichts bedeuten. Gerechnet ueber die
-    // letzten vier VORHANDENEN Messungen, nicht ueber vier Kalenderwochen: bei einer Luecke
-    // waere der Schnitt sonst leer, obwohl es Werte gibt. Ab vier Messungen, darunter
-    // gaebe es nichts zu glaetten.
-    let avgLine = "";
-    if (rows.length >= 4) {
-      const ap = rows.map((r, i) => {
-        const win = rows.slice(Math.max(0, i - 3), i + 1);
-        const avg = win.reduce((a, x) => a + x.kg, 0) / win.length;
-        return `${px(weekNumOf(r.m)).toFixed(1)},${py(avg).toFixed(1)}`;
-      }).join(" ");
-      avgLine = `<polyline class="wch-avg" points="${ap}"/>`;
-    }
+    // KEIN gleitender Vier-Wochen-Schnitt mehr (seit 03.09.2026).
+    //
+    // Er kam mit B2 und war dort gut begruendet: Eine einzelne Wiegung schwankt um mehr,
+    // als eine Woche Fortschritt ausmacht. Genommen wurde er trotzdem - zusammen mit der
+    // Ziellinie ist das Diagramm damit von drei Linien auf EINE zurueck. Was blieb, waren
+    // zwei rote Kurven, die sich nur in Staerke und Deckkraft unterschieden; auf 375 px
+    // sind das keine zwei Serien, sondern eine unscharfe.
+    //
+    // Die Glaettung geht dabei tatsaechlich verloren - das ist der Preis, keine Nebenwirkung.
+    // Wer sie zurueckholt, holt auch die Legende zurueck und braucht dann eine Form, die
+    // sich vom Rohwert unterscheidet, ohne eine zweite Farbe einzufuehren (docs/PRODUCT.md).
+    const avgLine = "";
     // Zwei Kreise je Messung: der sichtbare kleine und ein unsichtbarer grosser als
     // Trefferflaeche - ein 4-px-Punkt ist mit dem Finger nicht zu treffen. Der Radius
     // waechst mit dem Monatsabstand (eine SVG-Einheit = ein Bildschirmpunkt), bleibt
@@ -5315,14 +5312,10 @@
       // Der Plot bleibt hier leer: initWeightChart misst die tatsaechliche Breite und
       // zeichnet erst dann - nur so stimmt die Schriftgroesse auf jedem Bildschirm.
       body = `<div class="wch-plot"></div>`
-        // Legende NUR, wenn wirklich zwei Serien im Bild sind - also ab vier Messungen,
-        // wenn der gleitende Vier-Wochen-Schnitt dazukommt (B2). Der Eintrag "Ziel" ist
-        // mit der Ziellinie entfallen (03.09.2026): Eine Legende, die eine Linie erklaert,
-        // die es nicht gibt, ist schlimmer als keine. Bei nur einer Kurve erklaert sich
-        // das Bild selbst.
-        + (rows.length >= 4 ? `<div class="wch-leg">
-            <span><i class="k-line"></i>Gemessen</span><span><i class="k-avg"></i>Ø 4 Wochen</span>
-          </div>` : "")
+        // KEINE Legende mehr (seit 03.09.2026). Sie erklaerte zwei Serien; mit der
+        // Ziellinie und dem Vier-Wochen-Schnitt sind beide anderen Linien entfallen.
+        // Eine Legende zu EINER Kurve benennt, was ohnehin dasteht - und eine Legende zu
+        // einer Linie, die es nicht gibt, waere schlimmer als keine.
         // Ausgabefeld fuer den angetippten Punkt - ohne Bedienhinweis. Dass ein Punkt
         // antippbar ist, zeigt er selbst; ein Satz daneben waere genau die Erklaerung,
         // die die Textmenge-Vorgabe untersagt. Bei nur einer Messung steht hier der Wert,
@@ -5886,10 +5879,15 @@
     const knopf = (step, label, gesperrt) =>
       `<button class="kal-nb" data-action="zeitnav" data-step="${step}" aria-label="${esc(label)}"${gesperrt ? ` disabled aria-disabled="true"` : ""}>${step < 0 ? ICON_CHEV_L : ICON_CHEV_R}</button>`;
 
+    // Zwei gleich breite Haelften mit gleitender Pille - die Wahl ist binaer, und zwei
+    // Knoepfe unterschiedlicher Breite lassen die laengere wichtiger aussehen.
+    // Die Pille liegt UNTER den Knoepfen (z-index) und wandert per transform: Sie ist
+    // Dekoration, kein Bedienelement, und darf keinen Klick abfangen.
     return `<div class="zeitraum">
-        <div class="week-switch" role="tablist" aria-label="Zeitraum wählen">
-          <button class="ws-btn${monat ? " active" : ""}" data-action="kalmode" data-mode="monat" role="tab" aria-selected="${monat}">Monat</button>
-          <button class="ws-btn${monat ? "" : " active"}" data-action="kalmode" data-mode="jahr" role="tab" aria-selected="${!monat}">Jahr</button>
+        <div class="kal-seg" role="tablist" aria-label="Zeitraum wählen">
+          <span class="kal-pill" aria-hidden="true"${monat ? "" : ` style="transform:translateX(100%)"`}></span>
+          <button data-action="kalmode" data-mode="monat" role="tab" aria-selected="${monat}">Monat</button>
+          <button data-action="kalmode" data-mode="jahr" role="tab" aria-selected="${!monat}">Jahr</button>
         </div>
         <div class="kal-nav">
           ${knopf(-1, monat ? "Vorheriger Monat" : "Vorheriges Jahr", amAnfang)}
@@ -7079,10 +7077,26 @@
   function openWeightGoalForm() {
     const year = activeYear();
     const cur = (state.weightGoals || {})[year];
-    const node = el(`<div class="modal" role="dialog" aria-modal="true" aria-label="Jahresziel ${year}">
+    const last = latestWeight();
+    // Derselbe Stepper wie beim Wiegen (seit 03.09.2026) - es ist dieselbe Aufgabe: ein
+    // Gewicht in Zehnteln einstellen. Zwei verschiedene Eingabearten fuer eine Sache waeren
+    // genau die Sorte Unterschied, die man sich merken muss, ohne etwas davon zu haben.
+    //
+    // Der Startwert ist ein anderer als beim Wiegen, und das ist der Punkt: ohne
+    // gespeichertes Ziel steht hier der LETZTE GEMESSENE Wert. Von dort aus geht es in die
+    // Richtung, die man vorhat - eine Vorgabe wie 75 kg waere geraten, und wer 95 wiegt,
+    // muesste sich erst zurueckarbeiten.
+    const startKg = cur != null ? cur : (last ? last.kg : 75);
+    const node = el(`<div class="modal wiegen" role="dialog" aria-modal="true" aria-label="Jahresziel ${year}">
       <div class="modal-head"><h3>Ziel ${year}</h3><button class="btn ghost sm" data-close aria-label="Schließen">✕</button></div>
       <div class="modal-body">
-        <div class="field"><label for="wg-kg">Wunschgewicht zum Jahresende</label>${numField({ id: "wg-kg", min: KG_MIN, max: KG_MAX, step: 0.1, unit: "kg", placeholder: "kg", value: cur != null ? String(cur) : "" })}</div>
+        <div class="wg-step">
+          <button type="button" class="wg-sb" id="wg-minus" aria-label="0,1 Kilogramm weniger">−</button>
+          <input id="wg-kg" class="wg-sv" value="${kgfmt(startKg)}" inputmode="decimal" aria-label="Wunschgewicht in Kilogramm">
+          <span class="wg-su">kg</span>
+          <button type="button" class="wg-sb" id="wg-plus" aria-label="0,1 Kilogramm mehr">+</button>
+        </div>
+        <p class="wg-delta" id="wg-delta" aria-live="polite"></p>
       </div>
       <div class="modal-foot">
         ${cur != null ? `<button class="btn ghost" id="wg-del">Ziel entfernen</button>` : `<button class="btn ghost" data-close>Abbrechen</button>`}
@@ -7090,14 +7104,58 @@
       </div>
     </div>`);
     node.querySelectorAll("[data-close]").forEach(b => b.addEventListener("click", closeModal));
+
+    const kgEl = node.querySelector("#wg-kg");
+    const deltaEl = node.querySelector("#wg-delta");
+    let kgWert = startKg;
+
+    // Die Zeile darunter sagt, was das Ziel BEDEUTET - nicht was es ist. "78,0 kg" steht
+    // schon gross daneben; "4,4 kg unter deinem letzten Stand" ist die Zahl, die man beim
+    // Setzen eines Ziels wissen will. Ohne Messung entfaellt sie: Dann gibt es keinen Bezug.
+    function zeigeZielDelta() {
+      if (!deltaEl) return;
+      if (!last) { deltaEl.textContent = ""; return; }
+      const d = Math.round((kgWert - last.kg) * 10) / 10;
+      deltaEl.innerHTML = Math.abs(d) < 0.05
+        ? "entspricht deinem letzten Stand"
+        : `<b>${kgfmt(Math.abs(d))} kg</b> ${d < 0 ? "unter" : "über"} deinem letzten Stand`;
+    }
+    function setzeZiel(v) {
+      kgWert = Math.min(KG_MAX, Math.max(KG_MIN, Math.round(v * 10) / 10));
+      kgEl.value = kgfmt(kgWert);
+      zeigeZielDelta();
+    }
+    function schrittZiel(dir) { setzeZiel(kgWert + dir * 0.1); }
+
+    let zHaltT = null, zHaltI = null;
+    function zHalten(dir) {
+      schrittZiel(dir);
+      zHaltT = setTimeout(() => { zHaltI = setInterval(() => schrittZiel(dir), 70); }, 420);
+    }
+    function zLoslassen() { clearTimeout(zHaltT); clearInterval(zHaltI); }
+    [["#wg-minus", -1], ["#wg-plus", 1]].forEach(([sel, dir]) => {
+      const b = node.querySelector(sel);
+      b.addEventListener("pointerdown", e => { e.preventDefault(); zHalten(dir); });
+      ["pointerup", "pointerleave", "pointercancel"].forEach(ev => b.addEventListener(ev, zLoslassen));
+      b.addEventListener("keydown", e => {
+        if (e.key === "Enter" || e.key === " ") { e.preventDefault(); schrittZiel(dir); }
+      });
+    });
+    kgEl.addEventListener("change", () => {
+      const n = nutParse(kgEl.value);
+      if (n >= KG_MIN && n <= KG_MAX) setzeZiel(n); else setzeZiel(kgWert);
+    });
+    zeigeZielDelta();
+
     const del = node.querySelector("#wg-del");
     if (del) del.addEventListener("click", () => {
       delete state.weightGoals[year]; save(); closeModal(); render(); toast("Jahresziel entfernt");
     });
     node.querySelector("#wg-ok").addEventListener("click", () => {
-      const inp = node.querySelector("#wg-kg");
-      const kg = nutParse(inp.value);
-      if (!(kg >= KG_MIN && kg <= KG_MAX)) { inp.focus(); inp.style.borderColor = "var(--danger)"; toast("Bitte ein Gewicht zwischen " + KG_MIN + " und " + KG_MAX + " kg eintragen"); return; }
+      // Aus dem Feld lesen, nicht aus kgWert - wer tippt und direkt speichert, hat noch
+      // kein change-Ereignis ausgeloest (gleicher Grund wie beim Wiegen).
+      const kg = nutParse(kgEl.value);
+      if (!(kg >= KG_MIN && kg <= KG_MAX)) { kgEl.focus(); kgEl.classList.add("is-bad"); toast("Bitte ein Gewicht zwischen " + KG_MIN + " und " + KG_MAX + " kg eintragen"); return; }
       if (!state.weightGoals) state.weightGoals = {};
       state.weightGoals[year] = Math.round(kg * 10) / 10;
       save(); closeModal(); render(); toast("Ziel für " + year + " gespeichert");

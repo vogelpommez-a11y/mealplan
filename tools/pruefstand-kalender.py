@@ -470,12 +470,20 @@ pruefe("und sagt, dass noch nichts geplant ist",
 // ueber allen Karten (zeitraumHtml) und regiert auch die Gewichtskarte. Geprueft wird
 // beides getrennt: die Huelle hier, das Gitter darunter.
 view.innerHTML = zeitraumHtml() + kalenderHtml();
+// Der aktive Reiter haengt seit dem 03.09.2026 an aria-selected, nicht mehr an einer
+// Klasse "active". Das ist die belastbarere Quelle: Sie traegt den Zustand auch fuer
+// Screenreader, waehrend eine Klasse nur faerbt.
 pruefe("Monat ist die aktive Ansicht",
-       view.querySelector('[data-mode="monat"]').classList.contains("active") &&
-       !view.querySelector('[data-mode="jahr"]').classList.contains("active"));
+       view.querySelector('[data-mode="monat"]').getAttribute("aria-selected") === "true" &&
+       view.querySelector('[data-mode="jahr"]').getAttribute("aria-selected") === "false");
+// .kal-seg seit dem 03.09.2026 - eigene Optik mit gleitender Pille statt der
+// .week-switch aus dem Wochenplan (dort richten sich die Knoepfe nach ihrer
+// Beschriftung; hier sollen beide Haelften gleich breit sein).
 pruefe("die Zeitraumwahl steht GENAU EINMAL",
-       view.querySelectorAll(".week-switch").length === 1,
-       view.querySelectorAll(".week-switch").length + " Umschalter");
+       view.querySelectorAll(".kal-seg").length === 1,
+       view.querySelectorAll(".kal-seg").length + " Umschalter");
+// Die Pille ist Dekoration und darf keinen Klick abfangen.
+pruefe('die Pille liegt unter den Knoepfen', !!view.querySelector('.kal-pill[aria-hidden="true"]'));
 // Die alte Jahresleiste (data-action="wyear") gibt es nicht mehr - im Monat wie im Jahr
 // traegt dieselbe Navigation den Zeitraum, nur mit anderer Schrittweite.
 pruefe("keine getrennte Jahresleiste mehr", !view.querySelector('[data-action="wyear"]'));

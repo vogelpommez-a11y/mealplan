@@ -644,10 +644,54 @@
      was sie bedient, sieht sie auf dem Rechner aus, als gehoerte sie zur Seite und nicht
      zu den Karten. */
   .zeitraum { max-width: 420px; margin: 0 auto 14px; display: flex; flex-direction: column; gap: 8px; }
-  .zeitraum .week-switch { width: 100%; }
+
+  /* Der Umschalter: zwei gleich breite Haelften mit gleitender Pille.
+
+     Bewusst NICHT die .week-switch aus dem Wochenplan: Dort sitzen die Knoepfe an einer
+     Karte und richten sich nach ihrer Beschriftung. Hier steht die Wahl frei ueber dem
+     ganzen Reiter, und eine binaere Wahl mit ungleich breiten Haelften laesst die
+     laengere wichtiger aussehen, als sie ist.
+
+     Die Pille ist Dekoration: Sie liegt unter den Knoepfen und faengt keinen Klick ab. */
+  .kal-seg { display: flex; position: relative; background: var(--surface-2); border-radius: 999px; padding: 3px; }
+  .kal-seg button {
+    flex: 1; position: relative; z-index: 1; border: 0; background: none; cursor: pointer;
+    padding: 9px 0; border-radius: 999px; color: var(--text-muted);
+    font: 600 13px var(--font-body); transition: color var(--dur-base) var(--ease-out);
+  }
+  .kal-seg button[aria-selected="true"] { color: var(--text); }
+  .kal-seg button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .kal-pill {
+    position: absolute; z-index: 0; top: 3px; bottom: 3px; left: 3px;
+    width: calc((100% - 6px) / 2); border-radius: 999px;
+    background: var(--surface); box-shadow: 0 1px 4px rgba(0,0,0,.18);
+    transition: transform var(--dur-base) var(--ease-out);
+  }
+  /* MOTION-Tokens sind die einzige Quelle fuer Dauer und Kurve (docs/DESIGN.md); wer
+     Bewegung abbestellt hat, bekommt den Wechsel ohne Gleiten. */
+  @media (prefers-reduced-motion: reduce) {
+    .kal-pill, .kal-seg button { transition: none; }
+  }
   /* Im Zeitraum-Block traegt der Container die Abstaende - die eigene Aussenmarge der
      Navigation wuerde sich mit dem gap addieren. */
   .zeitraum .kal-nav { margin: 0; }
+  /* Im Zeitraum-Block sind die Pfeile kleine gerahmte Quadrate statt runder Flaechen:
+     Sie stehen dort neben einem Umschalter, der die volle Breite einnimmt - runde 40-px-
+     Flaechen ohne Kante saehen daneben aus wie ein zweiter, halb fertiger Umschalter.
+     44 px bleiben als Tastflaeche erhalten, sichtbar sind 30. */
+  .zeitraum .kal-nb {
+    width: 30px; height: 30px; border: 1px solid var(--border-strong);
+    border-radius: 9px; background: var(--surface); color: var(--text);
+  }
+  .zeitraum .kal-nb svg { width: 16px; height: 16px; }
+  .zeitraum .kal-nb:hover { background: var(--surface-2); }
+  .zeitraum .kal-nb[disabled] { opacity: .35; background: var(--surface); }
+  /* Die Tastflaeche bleibt 44 px, auch wenn der Knopf 30 px misst - unsichtbar nach
+     aussen erweitert, damit der Daumen nicht zielen muss. */
+  .zeitraum .kal-nb::after { content: ""; position: absolute; inset: -7px; }
+  .zeitraum .kal-nav { position: relative; }
+  .zeitraum .kal-nb { position: relative; }
+  .zeitraum .kal-nm { min-width: 128px; text-align: center; }
 
   /* Der Kartenfuss des Kalenders (seit 03.09.2026): die Kennzahlen des Zeitraums.
      Sie standen vorher im Rueckblick ueber der Karte - dieselben Zahlen ueber demselben
@@ -860,11 +904,10 @@
      Hinweis auf den Zeitraum, kein Wert. Im Akzent zoege er mehr Aufmerksamkeit als die
      Kurve, die er hinterlegt. */
   .wch-span { fill: color-mix(in srgb, var(--text) 7%, transparent); }
-  /* Gleitender 4-Wochen-Schnitt (B2): die Messkurve tritt dafuer zurueck (duenner,
-     halbdeckend), der Trend fuehrt. Die Rohwerte bleiben sichtbar - eine App, die nur
-     den geglaetteten Wert zeigt, versteckt, woraus er entsteht. */
-  .wch-avg { fill: none; stroke: var(--accent-strong); stroke-width: 2.5; stroke-linejoin: round; stroke-linecap: round; }
-  .wch-svg:has(.wch-avg) .wch-line { stroke-width: 1.5; opacity: .45; }
+  /* .wch-avg und die Ausduennung der Messkurve daneben sind am 03.09.2026 entfallen:
+     Der gleitende Vier-Wochen-Schnitt ist raus, und damit fuehrt wieder die Messkurve
+     selbst. Die Regel war an :has(.wch-avg) geknuepft und haette ohnehin nicht mehr
+     gegriffen - sie stand aber als Erklaerung fuer eine Duenne da, die es nicht gibt. */
   /* Hohl statt gefuellt: unterscheidet den Zielpunkt im Dezember auf einen Blick von
      den gefuellten Messpunkten und beendet die Linie sichtbar, statt sie auslaufen
      zu lassen. */
@@ -875,11 +918,8 @@
   .wch-pt { cursor: pointer; }
   .wch-pt:focus { outline: none; }
   .wch-pt.is-on .wch-dot, .wch-pt:focus-visible .wch-dot { r: 6; stroke: var(--accent-strong); }
-  .wch-leg { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 10px; font-size: 11.5px; color: var(--text-muted); }
-  .wch-leg span { display: inline-flex; align-items: center; gap: 6px; }
-  .wch-leg i { width: 16px; height: 0; border-top: 2px solid var(--accent); border-radius: 2px; }
-  .wch-leg i.k-avg { border-top-width: 3px; border-color: var(--accent-strong); }
-  .wch-leg i.k-line { opacity: .5; }
+  /* .wch-leg ist mit der letzten Nebenlinie entfallen - eine Legende zu EINER Kurve
+     benennt nur, was ohnehin dasteht. */
   .wch-tip { margin-top: 8px; font-size: 12px; color: var(--text-muted); font-variant-numeric: tabular-nums; min-height: 17px; }
   .wch-empty { margin: 6px 0 0; font-size: 13.5px; color: var(--text-muted); }
   /* Kennzahlenreihe als Fuss der Karte: Trennlinie setzt sie vom Diagramm ab. */
