@@ -633,6 +633,35 @@
 
      Auch hier KEIN waagerechter Scroller (siehe Kommentar beim Band): sieben Spalten
      passen auf jeder Breite, es gibt gar nichts zu scrollen. */
+  /* Die gemeinsame Zeitraumwahl ueber allen Karten (seit 03.09.2026).
+
+     Sie steht BEWUSST ausserhalb der Karten: Vorher trug jede Karte ihre eigene Wahl -
+     der Kalender einen Monat/Jahr-Schalter und (nur im Jahr) eine Jahresleiste, die
+     Gewichtskarte noch eine zweite Jahresleiste. Drei Bedienelemente fuer eine Frage,
+     und die mittlere wirkte auf beide Karten, ohne dass man ihr das ansah.
+
+     Dieselbe Maximalbreite wie das Monatsgitter darunter: Steht die Wahl breiter als das,
+     was sie bedient, sieht sie auf dem Rechner aus, als gehoerte sie zur Seite und nicht
+     zu den Karten. */
+  .zeitraum { max-width: 420px; margin: 0 auto 14px; display: flex; flex-direction: column; gap: 8px; }
+  .zeitraum .week-switch { width: 100%; }
+  /* Im Zeitraum-Block traegt der Container die Abstaende - die eigene Aussenmarge der
+     Navigation wuerde sich mit dem gap addieren. */
+  .zeitraum .kal-nav { margin: 0; }
+
+  /* Der Kartenfuss des Kalenders (seit 03.09.2026): die Kennzahlen des Zeitraums.
+     Sie standen vorher im Rueckblick ueber der Karte - dieselben Zahlen ueber demselben
+     Bestand, nur eine Karte hoeher. Dieselbe Maximalbreite wie Gitter und Navigation,
+     sonst steht der Fuss auf dem Rechner breiter als das, was er zusammenfasst. */
+  .kal-foot { display: flex; gap: 10px; max-width: 420px; margin: 12px auto 0; padding-top: 12px; border-top: 1px solid var(--border); flex-wrap: wrap; }
+  .kal-f { flex: 1; min-width: 84px; }
+  .kal-f small { display: block; font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; color: var(--text-muted); margin-bottom: 3px; }
+  .kal-f b { font: 700 17px/1 var(--font-display); color: var(--text); font-variant-numeric: tabular-nums; display: flex; align-items: baseline; gap: 3px; }
+  .kal-f b span { font: 400 11px var(--font-body); color: var(--text-muted); }
+  /* Die Flamme sitzt VOR der Zahl und teilt sich mit ihr die Grundlinie. */
+  .kal-serie { align-items: center; }
+  .kal-serie svg { width: 15px; height: 15px; color: var(--accent); flex: none; }
+
   /* Dieselbe Breite und Zentrierung wie das Gitter darunter (.kal-grid.monat): Ohne sie
      spannt die Zeile ueber die ganze Karte, und auf dem Rechner stehen die Pfeile
      handbreit neben dem Kalender, den sie bedienen. */
@@ -823,7 +852,14 @@
   .wch-ay { fill: var(--text-muted); font-size: 10px; text-anchor: end; font-family: var(--font-body); }
   .wch-ax { fill: var(--text-muted); font-size: 10px; text-anchor: middle; font-family: var(--font-body); }
   .wch-line { fill: none; stroke: var(--accent); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
-  .wch-goal { stroke: var(--text-muted); stroke-width: 2; stroke-dasharray: 5 5; stroke-linecap: round; }
+  /* .wch-goal/.wch-goal-dot sind am 03.09.2026 entfallen - die diagonale Ziellinie
+     stand neben dem gleitenden Schnitt, beide grau und ruhig, und auf 375 px waren sie
+     nicht auseinanderzuhalten. Das Ziel steht als Zahl im Kartenfuss und als unterster
+     Achsenwert. */
+  /* Der Ausschnitt-Streifen des gewaehlten Monats: NEUTRAL, nicht im Akzent - er ist ein
+     Hinweis auf den Zeitraum, kein Wert. Im Akzent zoege er mehr Aufmerksamkeit als die
+     Kurve, die er hinterlegt. */
+  .wch-span { fill: color-mix(in srgb, var(--text) 7%, transparent); }
   /* Gleitender 4-Wochen-Schnitt (B2): die Messkurve tritt dafuer zurueck (duenner,
      halbdeckend), der Trend fuehrt. Die Rohwerte bleiben sichtbar - eine App, die nur
      den geglaetteten Wert zeigt, versteckt, woraus er entsteht. */
@@ -832,7 +868,6 @@
   /* Hohl statt gefuellt: unterscheidet den Zielpunkt im Dezember auf einen Blick von
      den gefuellten Messpunkten und beendet die Linie sichtbar, statt sie auslaufen
      zu lassen. */
-  .wch-goal-dot { fill: var(--surface-2); stroke: var(--text-muted); stroke-width: 2; }
   .wch-dot { fill: var(--accent); stroke: var(--surface); stroke-width: 2; }
   /* Unsichtbare, aber grosse Trefferflaeche: der sichtbare Punkt ist 8px breit und
      mit dem Finger sonst nicht zu treffen. */
@@ -843,7 +878,6 @@
   .wch-leg { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 10px; font-size: 11.5px; color: var(--text-muted); }
   .wch-leg span { display: inline-flex; align-items: center; gap: 6px; }
   .wch-leg i { width: 16px; height: 0; border-top: 2px solid var(--accent); border-radius: 2px; }
-  .wch-leg i.k-goal { border-top-style: dashed; border-color: var(--text-muted); }
   .wch-leg i.k-avg { border-top-width: 3px; border-color: var(--accent-strong); }
   .wch-leg i.k-line { opacity: .5; }
   .wch-tip { margin-top: 8px; font-size: 12px; color: var(--text-muted); font-variant-numeric: tabular-nums; min-height: 17px; }
@@ -851,6 +885,40 @@
   /* Kennzahlenreihe als Fuss der Karte: Trennlinie setzt sie vom Diagramm ab. */
   .wch-foot { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border); }
   /* Verlaufsliste im Wiegen-Dialog */
+  /* ---------- Wiegen: Stepper statt Zahlenfeld (seit 03.09.2026) ----------
+     Der letzte Stand steht als Vorgabe da; woechentliches Wiegen aendert ihn um wenige
+     hundert Gramm. Das Zahlenfeld davor zog auf dem Handy die Tastatur auf und verdeckte
+     die halbe Flaeche samt Speichern-Knopf. */
+  .wg-step { display: flex; align-items: center; justify-content: center; gap: 12px; padding: 8px 0 2px; }
+  .wg-sb {
+    width: 54px; height: 54px; flex: none; border-radius: 50%; cursor: pointer;
+    border: 1px solid var(--border-strong); background: var(--surface-2); color: var(--text);
+    font: 300 26px/1 var(--font-body); display: grid; place-items: center;
+    transition: transform var(--dur-fast), background var(--dur-fast);
+    touch-action: manipulation;          /* sonst zoomt iOS beim schnellen Doppeltipp */
+  }
+  .wg-sb:active { transform: scale(.92); background: var(--border); }
+  .wg-sb:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  /* Die Zahl ist ein echtes Eingabefeld - der Notausgang fuer den grossen Sprung nach dem
+     Urlaub, wo der Stepper Schikane waere. 46 px liegen weit ueber den 16 px, unter denen
+     iOS beim Fokus zoomen wuerde. */
+  .wg-sv {
+    border: 0; background: none; color: var(--text); width: 142px; padding: 0;
+    font: 700 46px/1 var(--font-display); font-variant-numeric: tabular-nums; text-align: center;
+  }
+  .wg-sv:focus { outline: none; color: var(--accent); }
+  .wg-sv.is-bad { color: var(--danger); }
+  .wg-su { font: 400 15px var(--font-body); color: var(--text-muted); align-self: flex-end; padding-bottom: 7px; margin-left: -6px; }
+  .wg-delta { text-align: center; font-size: 12.5px; color: var(--text-muted); margin: 9px 0 0; min-height: 18px; }
+  .wg-delta b { color: var(--text); font-weight: 600; }
+  /* Die Woche ist fast immer die laufende - eingeklappt, aber im Klartext benannt. */
+  .wg-wk { margin-top: 14px; }
+  .wg-wk summary { list-style: none; cursor: pointer; text-align: center; font-size: 12.5px; color: var(--text-muted); padding: 7px; border-radius: 9px; }
+  .wg-wk summary::-webkit-details-marker { display: none; }
+  .wg-wk summary b { color: var(--text); font-weight: 600; }
+  .wg-wk summary::after { content: " ändern ▾"; font-size: 11.5px; }
+  .wg-wk[open] summary::after { content: " ▴"; }
+
   .wl-row { display: flex; align-items: center; gap: 10px; padding: 8px 2px; border-top: 1px solid var(--border); font-variant-numeric: tabular-nums; }
   .wl-row .wl-d { flex: 1; font-size: 13.5px; color: var(--text); }
   .wl-row .wl-k { font-weight: 700; font-size: 14px; }

@@ -5185,17 +5185,29 @@
       months += `<text class="wch-ax" x="${px(wx).toFixed(1)}" y="${g.H - 10}">${MON_LONG[m].slice(0, 3)}</text>`;
     }
 
-    // Ziellinie: vom ersten bekannten Stand des Jahres zum Wunschgewicht im Dezember.
-    // Gestrichelt und in gedaempfter Farbe - die Serien unterscheiden sich damit auch
-    // ohne Farbsehen, was eine reine Farbunterscheidung nicht leisten wuerde.
-    // Der hohle Endpunkt ist wichtig: ohne ihn lief die Linie am Bildrand einfach aus
-    // und sah aus, als ginge sie ins Unendliche weiter, statt im Dezember anzukommen.
-    let zielEl = "";
-    if (ziel != null && rows.length) {
-      const zx = px(52), zy = py(ziel);
-      zielEl = `<line class="wch-goal" x1="${px(weekNumOf(rows[0].m)).toFixed(1)}" y1="${py(rows[0].kg).toFixed(1)}"
-          x2="${zx.toFixed(1)}" y2="${zy.toFixed(1)}"/>
-        <circle class="wch-goal-dot" cx="${zx.toFixed(1)}" cy="${zy.toFixed(1)}" r="4.5"/>`;
+    // KEINE diagonale Ziellinie mehr (seit 03.09.2026, Konzept G).
+    //
+    // Sie lief vom ersten Stand des Jahres zum Wunschgewicht im Dezember - gestrichelt und
+    // gedaempft. Daneben liegt der gleitende Vier-Wochen-Schnitt, ebenfalls in einer
+    // zweiten, ruhigeren Linie: Auf 375 px waren beide nicht auseinanderzuhalten, und die
+    // Legende brauchte zwei fast gleiche Eintraege.
+    //
+    // Verloren geht dabei nichts: Das Ziel steht als Zahl im Kartenfuss ("Ziel 78,0") und
+    // als unterster Wert der Y-Achse - die Skala wird ueber lo/hi ausdruecklich so
+    // gespannt, dass das Ziel hineinfaellt. Der geglaettete Schnitt ist die informativere
+    // der beiden Linien, weil er zeigt, wohin es tatsaechlich geht.
+    const zielEl = "";
+    // Der gewaehlte Monat als ruhiger Streifen hinter der Kurve. Die Skala bleibt das
+    // ganze JAHR: Bei woechentlichem Wiegen hat ein Monat vier Punkte, und eine auf sie
+    // gezoomte Y-Achse liesse jede Wasserschwankung wie einen Trend aussehen. Neutral
+    // eingefaerbt, nicht im Akzent - er ist ein Hinweis auf den Zeitraum, kein Wert.
+    let spanEl = "";
+    if (state.kalMode !== "jahr") {
+      const mon = activeMonth();
+      const w1 = weekNumOf(weightKeyNow(new Date(+year, mon, 1)));
+      const w2 = weekNumOf(weightKeyNow(new Date(+year, mon + 1, 0)));
+      const x1 = px((mon === 0 && w1 > 50) ? 1 : w1), x2 = px(Math.max(w2, w1));
+      spanEl = `<rect class="wch-span" x="${Math.min(x1, x2).toFixed(1)}" y="${g.PT}" width="${Math.max(2, Math.abs(x2 - x1)).toFixed(1)}" height="${plotH.toFixed(1)}" rx="3"/>`;
     }
 
     const pts = rows.map(r => `${px(weekNumOf(r.m)).toFixed(1)},${py(r.kg).toFixed(1)}`).join(" ");
@@ -5235,7 +5247,7 @@
 
     return `<svg class="wch-svg" viewBox="0 0 ${g.W} ${g.H}" width="${g.W}" height="${g.H}"
         role="img" aria-label="Gewichtsverlauf ${year}, ${rows.length} Messung${rows.length === 1 ? "" : "en"}">
-        ${grid}${months}${zielEl}${line}${avgLine}${dots}
+        ${spanEl}${grid}${months}${zielEl}${line}${avgLine}${dots}
       </svg>`;
   }
 
@@ -5292,15 +5304,9 @@
         ${ziel != null ? `<div class="wch-s"><small>Ziel</small><b>${kgfmt(ziel)}<span>kg</span></b></div>` : ""}
       </div>` : "";
 
-    // Jahreswechsel nur zeigen, wenn es etwas zu wechseln gibt. Gleiche Knopfoptik wie
-    // der Wochenwechsel im Plan (.week-switch/.ws-btn) statt eines zweiten Musters.
-    // Seit B7 baut ihn jahrLeisteHtml() - dieselbe Leiste traegt auch die Kalenderkarte,
-    // und beide lesen state.viewYear. Sie stehen bewusst je an ihrer Karte statt einmal
-    // ueber der Seite: ohne Gewichts-Einwilligung gibt es die untere Karte gar nicht, und
-    // eine Leiste, deren Wirkung erst zwei Karten weiter unten sichtbar wird, erklaert
-    // sich nicht selbst.
-    const yearBar = jahrLeisteHtml(year);
-
+    // Keine eigene Jahresleiste mehr (seit 03.09.2026): Die Zeitraumwahl steht einmal ganz
+    // oben (zeitraumHtml) und regiert beide Karten. Vorher trug diese Karte eine zweite
+    // Leiste neben der des Kalenders - zwei Bedienelemente fuer dieselbe Frage.
     let body;
     if (!rows.length) {
       // Leerer Zustand mit Handlung statt leerer Flaeche.
@@ -5309,13 +5315,13 @@
       // Der Plot bleibt hier leer: initWeightChart misst die tatsaechliche Breite und
       // zeichnet erst dann - nur so stimmt die Schriftgroesse auf jedem Bildschirm.
       body = `<div class="wch-plot"></div>`
-        // Legende ist Pflicht, sobald zwei Serien im Bild sind.
-        // Nur "Ziel", nicht "Ziel 75,0 kg": die Zahl steht schon in der Kennzahlenreihe
-        // darueber - zweimal dieselbe Zahl im selben Bild ist Fuellung, keine Information.
-        // Ab vier Messungen kommt der 4-Wochen-Schnitt als eigene Serie dazu (B2) - dann
-        // braucht es die Legende auch ohne Jahresziel.
-        + ((ziel != null || rows.length >= 4) ? `<div class="wch-leg">
-            <span><i class="k-line"></i>Gemessen</span>${rows.length >= 4 ? `<span><i class="k-avg"></i>Ø 4 Wochen</span>` : ""}${ziel != null ? `<span><i class="k-goal"></i>Ziel</span>` : ""}
+        // Legende NUR, wenn wirklich zwei Serien im Bild sind - also ab vier Messungen,
+        // wenn der gleitende Vier-Wochen-Schnitt dazukommt (B2). Der Eintrag "Ziel" ist
+        // mit der Ziellinie entfallen (03.09.2026): Eine Legende, die eine Linie erklaert,
+        // die es nicht gibt, ist schlimmer als keine. Bei nur einer Kurve erklaert sich
+        // das Bild selbst.
+        + (rows.length >= 4 ? `<div class="wch-leg">
+            <span><i class="k-line"></i>Gemessen</span><span><i class="k-avg"></i>Ø 4 Wochen</span>
           </div>` : "")
         // Ausgabefeld fuer den angetippten Punkt - ohne Bedienhinweis. Dass ein Punkt
         // antippbar ist, zeigt er selbst; ein Satz daneben waere genau die Erklaerung,
@@ -5331,7 +5337,9 @@
     return `<div class="wg-col wch">
         <div class="wch-head">
           <div>
-            <div class="wg-lbl">Ziele ${year}</div>
+            <!-- Kein "Ziele {Jahr}" mehr (seit 03.09.2026): Der Zeitraum steht jetzt einmal
+                 ueber allen Karten. Das Jahr hier zu wiederholen waere Fuellung - und im
+                 Monat sogar irrefuehrend, weil die Karte dann einen Monat hervorhebt. -->
             <h3 class="wg-h">Gewicht</h3>
           </div>
           <div class="wch-menu">
@@ -5339,7 +5347,6 @@
             <button class="wch-add" data-action="weigh" aria-label="Gewicht eintragen">+</button>
           </div>
         </div>
-        ${yearBar}
         ${body}
         ${stats}
       </div>`;
@@ -5369,10 +5376,15 @@
     // Reihenfolge: acht Wochen, dann das Jahr, dann das Gewicht - von der kurzen zur
     // langen Sicht. Kein fuenfter Reiter: der Kalender beantwortet dieselbe Frage wie der
     // Rueckblick ("wie lief es bisher?"), nur ueber einen laengeren Zeitraum.
-    view.innerHTML = `${rueckblickHtml()}${kalenderHtml()}${weightHtml()}`;
+    // Zwei Karten, ein Zeitraum darueber (seit 03.09.2026).
+    //
+    // Der Rueckblick-Block ist entfallen: Er stand mit Serie, Ziel-Quote und Ø-Kalorien
+    // ueber demselben Bestand, den der Kalender darunter zeichnet - dieselben Zahlen
+    // zweimal auf einem Screen. Serie und Ziel-Quote stehen jetzt im Kalenderfuss, an dem
+    // Gitter, das sie zusammenfassen.
+    view.innerHTML = `${zeitraumHtml()}${kalenderHtml()}${weightHtml()}`;
     resetCarousels();
     initWeightChart();
-    initRueckblick();
     initKalender();
   }
 
@@ -5422,18 +5434,39 @@
     return n;
   }
 
-  function rueckblickHtml() {
-    if (!state.goal) return "";
+  // Die Wochenserie: aufeinanderfolgende Wochen rueckwaerts, die STREAK_MIN_DAYS erfuellen;
+  // die laufende zaehlt mit, sobald sie es ebenfalls tut.
+  //
+  // Eigene Funktion seit dem 03.09.2026: Sie stand in rueckblickHtml() und waere mit dem
+  // Rueckblick-Balken verschwunden. Die Serie ist aber eine Aussage fuer sich - sie haengt
+  // NICHT am gezeigten Zeitraum (eine Serie ist immer "bis heute") und steht deshalb im
+  // Kalenderfuss unverandert neben zeitraumabhaengigen Zahlen.
+  function wochenSerie() {
     const stats = state.weekStats || {};
-    const keys = Object.keys(stats).sort();
-    // Streak: aufeinanderfolgende Wochen rueckwaerts, die den Anspruch erfuellen; die
-    // aktuelle zaehlt mit, sobald sie ihn ebenfalls erfuellt.
-    const curKey = weekKeyFor("cur");
-    const curPlan = state.plans[curKey];
+    const curPlan = state.plans[weekKeyFor("cur")];
     const curDays = curPlan ? DAYS.filter(d => hasNut(dayNutOf(curPlan, d.key))).length : 0;
     let streak = 0; const dcur = new Date(); dcur.setDate(dcur.getDate() - 7);
     while (true) { const wk = isoWeekKey(dcur); if (stats[wk] && stats[wk].days >= STREAK_MIN_DAYS) { streak++; dcur.setDate(dcur.getDate() - 7); } else break; }
     if (curDays >= STREAK_MIN_DAYS) streak++;
+    return streak;
+  }
+
+  // ⚠️ OHNE AUFRUFER seit dem 03.09.2026 - bewusst noch nicht geloescht.
+  //
+  // Der Rueckblick-Block ist aus renderProgress() genommen (Konzept G): Serie und
+  // Ziel-Quote stehen jetzt im Kalenderfuss, wo sie an dem Gitter stehen, das sie
+  // zusammenfasst. Was mit ihm entfaellt, ist der 8-Wochen-Balken - die einzige Stelle,
+  // an der ein zeitlicher VERLAUF sichtbar war.
+  //
+  // Diese Funktion und initRueckblick() bleiben stehen, solange nicht entschieden ist, ob
+  // der Verlauf als kompakter Streifen unter den Kalenderfuss zurueckkehrt. Faellt die
+  // Entscheidung endgueltig gegen ihn, gehoeren beide geloescht - samt der .rueck-*-Regeln
+  // in css/basis.css und dem zugehoerigen Pruefstand.
+  function rueckblickHtml() {
+    if (!state.goal) return "";
+    const stats = state.weekStats || {};
+    const keys = Object.keys(stats).sort();
+    const streak = wochenSerie();
     if (!keys.length && !streak) return "";
     // ZWEI ABGELEITETE LISTEN AUS EINEM ARCHIV - bitte nicht "vereinfachen":
     //
@@ -5689,22 +5722,39 @@
   // Die Monatsansicht ist genau ein Gitter in voller Groesse.
   function kalMonatHtml(year, mon) { return kalGitterHtml(year, mon, false); }
 
-  // Monatsnavigation: ein Pfeil je Richtung, dazwischen der Zeitraum. Die Grenzen sind die
-  // Jahre aus weightYears() - weiter zu blaettern hiesse, in garantiert leere Monate zu
-  // laufen. Ein Schritt ueber die Jahresgrenze verstellt AUCH state.viewYear; Kalender und
-  // Gewichtskarte teilen sich dieses eine Jahr (siehe Kommentar bei weightYears).
-  function kalNavHtml(year, mon) {
-    const ys = weightYears();
-    const amAnfang = year === ys[0] && mon === 0;
-    const amEnde = year === ys[ys.length - 1] && mon === 11;
-    const knopf = (step, label, gesperrt) =>
-      `<button class="kal-nb" data-action="kalnav" data-step="${step}" aria-label="${label}"${gesperrt ? " disabled aria-disabled=\"true\"" : ""}>${step < 0 ? ICON_CHEV_L : ICON_CHEV_R}</button>`;
-    return `<div class="kal-nav">
-        ${knopf(-1, "Vorheriger Monat", amAnfang)}
-        <span class="kal-nm" aria-live="polite">${KAL_MON_LANG[mon]} ${year}</span>
-        ${knopf(1, "Nächster Monat", amEnde)}
-      </div>`;
+  // Ziel-Trefferquote fuer den gezeigten Zeitraum (seit 03.09.2026).
+  //
+  // ⚠️ `hit` wird je WOCHE archiviert, nicht je Tag - eine Woche laesst sich also nicht
+  // auf zwei Monate aufteilen. Zugeordnet wird eine Woche deshalb ueber ihren DONNERSTAG:
+  // Das ist dieselbe ISO-Regel, nach der auch die Wochennummer vergeben wird, und sie
+  // sorgt dafuer, dass jede Woche im Jahr GENAU EINMAL zaehlt. Ueber den Montag gerechnet
+  // laege die Jahreswechsel-Woche im falschen Monat und wuerde doppelt erfasst.
+  //
+  // Gezaehlt wird gegen die geplanten Tage DERSELBEN Wochen, nicht gegen die Tage des
+  // Monats: "18 von 22 geplanten Tagen im Ziel" ist eine Aussage, "18 von 30" waere
+  // eine Vermischung zweier Bezugsgroessen.
+  function zielQuote(year, mon, monat) {
+    const stats = state.weekStats || {};
+    let hit = 0, tage = 0;
+    Object.keys(stats).forEach(wk => {
+      if (wk.slice(0, 4) !== String(year)) return;
+      const s = stats[wk];
+      if (!s || !s.target) return;              // ohne damaliges Ziel keine Quote (B10)
+      if (monat) {
+        const don = weekMonday(wk);
+        if (!don) return;
+        don.setDate(don.getDate() + 3);         // Montag + 3 = Donnerstag
+        if (don.getMonth() !== mon) return;
+      }
+      hit += s.hit || 0;
+      tage += s.days || 0;
+    });
+    return { hit: hit, tage: tage };
   }
+
+  // kalNavHtml() ist am 03.09.2026 entfallen - die Monatsnavigation steckt jetzt in
+  // zeitraumHtml(), zusammen mit dem Monat/Jahr-Umschalter und der Jahreswahl. Sie hatte
+  // ausserhalb der Kalenderkarte keinen Aufrufer.
 
   // Der gezeigte Monat. Wie activeYear() eine Absicherung gegen einen unsinnigen Wert im
   // State, nicht bloss ein Feldzugriff.
@@ -5721,10 +5771,8 @@
     const mon = activeMonth();
     const daten = monat ? kalMonatHtml(year, mon) : kalJahrHtml(year);
 
-    // Zwei Bedienzeilen sind das Maximum. In der Monatsansicht traegt die Navigation den
-    // Zeitraum, die Jahresleiste entfaellt deshalb dort - verloren geht sie nicht, die
-    // Gewichtskarte darunter baut sich ihre eigene (jahrLeisteHtml).
-    const zeitraum = monat ? kalNavHtml(year, mon) : jahrLeisteHtml(year);
+    // Seit dem 03.09.2026 traegt die Karte KEINE eigene Zeitraumwahl mehr - die steht
+    // einmal ueber allen Karten (zeitraumHtml) und regiert auch das Gewicht darunter.
     // EIN Hilfetext fuer beide Ansichten, seit beide aus derselben Gitterform bestehen.
     // Der Zusatz gilt nur im Jahr: dort ist jeder Monat ein eigenes Gitter mit eigenem
     // Tabstopp, und wer das nicht weiss, sucht den Weg von Januar nach Februar mit den
@@ -5732,21 +5780,39 @@
     const hilfe = "Mit den Pfeiltasten zwischen den Tagen bewegen; Pos1 und Ende springen an den Anfang und das Ende der Woche."
       + (monat ? "" : " Mit der Tabulatortaste zum nächsten Monat.");
 
+    // Der Kartenfuss traegt die Kennzahlen des Zeitraums (seit 03.09.2026). Sie standen
+    // vorher im Rueckblick ueber dem Kalender - dieselben Zahlen ueber demselben Bestand,
+    // nur eine Karte hoeher und mit einem eigenen Diagramm daneben. Hier stehen sie an dem
+    // Gitter, das sie zusammenfassen.
+    //
+    // Die Serie haengt bewusst NICHT am Zeitraum: Wer im Januar blaettert, hat trotzdem
+    // seine heutige Serie. Eine Serie "im Maerz 2026" waere eine andere Zahl mit demselben
+    // Namen.
+    const serie = wochenSerie();
+    // ZWEI Serien, und die zweite ist ausdruecklich nicht dieselbe (docs/PRODUCT.md):
+    // Die Wochenserie belohnt Planungsdisziplin ueber Monate, die Tagesserie macht die
+    // laufende Woche sichtbar. Sie steht deshalb NEBEN der Wochenzahl, nicht an ihrer
+    // Stelle - und traegt die Flamme NICHT, die gehoert der Wochenserie.
+    // Erst ab zwei Tagen: "1 Tag am Stueck" ist keine Serie, sondern ein Dienstag.
+    const tage = dayStreak();
+    const q = state.goal ? zielQuote(year, mon, monat) : { hit: 0, tage: 0 };
+    const fuss = (daten.tage || q.tage || serie) ? `<div class="kal-foot">
+        <div class="kal-f"><small>Geplant</small><b>${nfmt(daten.geplant || 0)}<span>/${nfmt(daten.tage || 0)} Tage</span></b></div>
+        ${q.tage ? `<div class="kal-f"><small>Im Ziel</small><b>${nfmt(q.hit)}<span>/${nfmt(q.tage)} Tage</span></b></div>` : ""}
+        ${serie ? `<div class="kal-f"><small>Serie</small><b class="kal-serie">${ICON_FLAME}${serie}<span>Woche${serie === 1 ? "" : "n"}</span></b></div>` : ""}
+        ${tage >= 2 ? `<div class="kal-f"><small>Am Stück</small><b>${nfmt(tage)}<span>Tage</span></b></div>` : ""}
+      </div>` : "";
+
     return `<div class="wg-col kal">
         <div class="wch-head">
           <div>
-            ${monat ? "" : `<div class="wg-lbl">Jahr ${year}</div>`}
             <h3 class="wg-h">Geplante Tage</h3>
           </div>
-          <div class="week-switch" role="tablist" aria-label="Ansicht wählen">
-            <button class="ws-btn${monat ? " active" : ""}" data-action="kalmode" data-mode="monat" role="tab" aria-selected="${monat}">Monat</button>
-            <button class="ws-btn${monat ? "" : " active"}" data-action="kalmode" data-mode="jahr" role="tab" aria-selected="${!monat}">Jahr</button>
-          </div>
         </div>
-        ${zeitraum}
         <p class="kal-note${monat ? " monat" : ""}">${esc(daten.notiz || daten.satz)}</p>
         <div class="kal-wrap">${daten.tabelle}</div>
         <p class="kal-tip" aria-live="polite"></p>
+        ${fuss}
         <p id="kal-hilfe" class="visually-hidden">${hilfe}</p>
       </div>`;
   }
@@ -5783,6 +5849,11 @@
     return {
       satz: satz,
       notiz: notiz,
+      // geplant/tage MUESSEN mit heraus: Der Kartenfuss (seit 03.09.2026) liest sie, und
+      // ohne sie stuende dort im Jahr "0 von 0 Tagen", waehrend der Satz darueber die
+      // richtige Zahl nennt. kalGitterHtml liefert beide je Monat, hier ist die Summe.
+      geplant: geplant,
+      tage: tage,
       tabelle: `<div class="kal-jahr">${gitter.join("")}</div>`
     };
   }
@@ -5791,11 +5862,40 @@
   // (Kalender und Gewicht) und beide dasselbe state.viewYear lesen - ein Tipp bewegt
   // sichtbar beide. Die Jahre kommen aus weightYears(), das die Archivjahre seinerseits
   // ueber archivJahreZeigen() bezieht (docs/ARCHITECTURES.md, "Archivfenster").
-  function jahrLeisteHtml(year) {
-    const years = weightYears();
-    if (years.length < 2) return "";
-    return `<div class="week-switch" role="tablist" aria-label="Jahr wählen">
-        ${years.map(y => `<button class="ws-btn${y === year ? " active" : ""}" data-action="wyear" data-year="${y}" role="tab" aria-selected="${y === year}">${y}</button>`).join("")}
+  // ---------- Der eine Zeitraum fuer den ganzen Reiter (seit 03.09.2026) ----------
+  //
+  // Vorher trug JEDE Karte ihre eigene Zeitraumwahl: der Kalender einen Monat/Jahr-Schalter
+  // UND (nur im Jahr) eine Jahresleiste, die Gewichtskarte noch eine zweite Jahresleiste.
+  // Drei Bedienelemente fuer eine Frage - und die mittlere Leiste wirkte auf beide Karten,
+  // ohne dass man ihr das ansah.
+  //
+  // Jetzt steht die Wahl EINMAL ueber den Karten und regiert alles darunter. Das ist
+  // dieselbe Mechanik wie bisher (state.kalMode, state.viewYear, state.kalMonth), nur an
+  // einem Ort statt an dreien.
+  function zeitraumHtml() {
+    const year = activeYear();
+    const monat = state.kalMode !== "jahr";
+    const mon = activeMonth();
+    const ys = weightYears();
+
+    // Blaettern: im Monat Monat fuer Monat, im Jahr Jahr fuer Jahr. Die Grenzen sind die
+    // Jahre aus weightYears() - weiter zu blaettern hiesse, in garantiert leere Zeitraeume
+    // zu laufen.
+    const amAnfang = monat ? (year === ys[0] && mon === 0) : year === ys[0];
+    const amEnde = monat ? (year === ys[ys.length - 1] && mon === 11) : year === ys[ys.length - 1];
+    const knopf = (step, label, gesperrt) =>
+      `<button class="kal-nb" data-action="zeitnav" data-step="${step}" aria-label="${esc(label)}"${gesperrt ? ` disabled aria-disabled="true"` : ""}>${step < 0 ? ICON_CHEV_L : ICON_CHEV_R}</button>`;
+
+    return `<div class="zeitraum">
+        <div class="week-switch" role="tablist" aria-label="Zeitraum wählen">
+          <button class="ws-btn${monat ? " active" : ""}" data-action="kalmode" data-mode="monat" role="tab" aria-selected="${monat}">Monat</button>
+          <button class="ws-btn${monat ? "" : " active"}" data-action="kalmode" data-mode="jahr" role="tab" aria-selected="${!monat}">Jahr</button>
+        </div>
+        <div class="kal-nav">
+          ${knopf(-1, monat ? "Vorheriger Monat" : "Vorheriges Jahr", amAnfang)}
+          <span class="kal-nm" aria-live="polite">${monat ? KAL_MON_LANG[mon] + " " + year : year}</span>
+          ${knopf(1, monat ? "Nächster Monat" : "Nächstes Jahr", amEnde)}
+        </div>
       </div>`;
   }
 
@@ -6765,16 +6865,31 @@
     (state.weights || []).forEach(e => { yset[e.m.slice(0, 4)] = 1; });
     const years = Object.keys(yset).sort().reverse();
 
-    const node = el(`<div class="modal" role="dialog" aria-modal="true" aria-label="${manageOnly ? "Verlauf verwalten" : "Wiegen"}">
+    // Der Startwert ist der letzte gemessene: Wer sich woechentlich wiegt, aendert ihn um
+    // wenige hundert Gramm - dafuer reichen ein bis vier Tipps auf den Stepper. Ohne
+    // Vormessung ein Mittelwert, von dem aus beide Richtungen gleich weit sind.
+    const startKg = last ? last.kg : 75;
+    const startLbl = kgfmt(startKg);
+
+    const node = el(`<div class="modal wiegen" role="dialog" aria-modal="true" aria-label="${manageOnly ? "Verlauf verwalten" : "Wiegen"}">
       <div class="modal-head"><h3>${manageOnly ? "Verlauf verwalten" : "Wiegen"}</h3><button class="btn ghost sm" data-close aria-label="Schließen">✕</button></div>
       <div class="modal-body">
-        ${manageOnly ? "" : `<div class="field"><label for="w-kg">Gewicht</label>${numField({ id: "w-kg", min: KG_MIN, max: KG_MAX, step: 0.1, unit: "kg", placeholder: "kg", value: last ? String(last.kg) : "" })}</div>
-        <div class="row2">
-          <div class="field"><label for="w-m">Woche</label><select id="w-m"></select></div>
-          <div class="field"><label for="w-y">Jahr</label><select id="w-y">
-            ${years.map(y => `<option value="${y}"${y === startY ? " selected" : ""}>${y}</option>`).join("")}
-          </select></div>
-        </div>`}
+        ${manageOnly ? "" : `<div class="wg-step">
+          <button type="button" class="wg-sb" id="w-minus" aria-label="0,1 Kilogramm weniger">−</button>
+          <input id="w-kg" class="wg-sv" value="${startLbl}" inputmode="decimal" aria-label="Gewicht in Kilogramm">
+          <span class="wg-su">kg</span>
+          <button type="button" class="wg-sb" id="w-plus" aria-label="0,1 Kilogramm mehr">+</button>
+        </div>
+        <p class="wg-delta" id="w-delta" aria-live="polite"></p>
+        <details class="wg-wk">
+          <summary>Für <b id="w-wklbl">diese Woche</b></summary>
+          <div class="row2">
+            <div class="field"><label for="w-m">Woche</label><select id="w-m"></select></div>
+            <div class="field"><label for="w-y">Jahr</label><select id="w-y">
+              ${years.map(y => `<option value="${y}"${y === startY ? " selected" : ""}>${y}</option>`).join("")}
+            </select></div>
+          </div>
+        </details>`}
         <div id="w-list"></div>
       </div>
       <div class="modal-foot">${manageOnly ? `<button class="btn primary" data-close>Fertig</button>` : `<button class="btn ghost" data-close>Abbrechen</button><button class="btn primary" id="w-ok">Speichern</button>`}</div>
@@ -6803,8 +6918,76 @@
     fillWeeks();
     if (yEl) yEl.addEventListener("change", fillWeeks);
 
+    // ---------- Stepper (seit 03.09.2026) ----------
+    //
+    // Vorher stand hier ein Zahlenfeld, das die Tastatur aufzog und auf dem Handy die
+    // halbe Flaeche samt Speichern-Knopf verdeckte. Wer sich woechentlich wiegt, aendert
+    // seinen Wert um wenige hundert Gramm - mit dem letzten Stand als Startwert sind das
+    // ein bis vier Tipps. Die Zahl bleibt trotzdem antippbar: Fuer den grossen Sprung
+    // (nach dem Urlaub) waere der Stepper allein Schikane.
+    const kgEl = node.querySelector("#w-kg");
+    const deltaEl = node.querySelector("#w-delta");
+    const wkLbl = node.querySelector("#w-wklbl");
+    let kgWert = startKg;
+
+    function zeigeDelta() {
+      if (!deltaEl) return;
+      // Bezug ist die letzte MESSUNG, nicht das Ziel: "seit letzter Woche" ist die Zahl,
+      // die man beim Wiegen im Kopf hat.
+      if (!last) { deltaEl.textContent = "Deine erste Messung."; return; }
+      const d = Math.round((kgWert - last.kg) * 10) / 10;
+      deltaEl.innerHTML = Math.abs(d) < 0.05
+        ? "unverändert seit " + esc(weekKeyLabel(last.m))
+        : `<b>${d > 0 ? "+" : "−"}${kgfmt(Math.abs(d))} kg</b> seit ${esc(weekKeyLabel(last.m))}`;
+    }
+    function setzeKg(v) {
+      kgWert = Math.min(KG_MAX, Math.max(KG_MIN, Math.round(v * 10) / 10));
+      if (kgEl) kgEl.value = kgfmt(kgWert);
+      zeigeDelta();
+    }
+    function schritt(dir) { setzeKg(kgWert + dir * 0.1); }
+
+    // Gedrueckt halten beschleunigt - ohne das waeren drei Kilo dreissig Einzeltipps.
+    let haltT = null, haltI = null;
+    function halten(dir) {
+      schritt(dir);
+      haltT = setTimeout(() => { haltI = setInterval(() => schritt(dir), 70); }, 420);
+    }
+    function loslassen() { clearTimeout(haltT); clearInterval(haltI); }
+    [["#w-minus", -1], ["#w-plus", 1]].forEach(([sel, dir]) => {
+      const b = node.querySelector(sel);
+      if (!b) return;
+      b.addEventListener("pointerdown", e => { e.preventDefault(); halten(dir); });
+      ["pointerup", "pointerleave", "pointercancel"].forEach(ev => b.addEventListener(ev, loslassen));
+      // Ohne diesen Zweig waere der Stepper per Tastatur tot: pointerdown feuert dort nicht.
+      b.addEventListener("keydown", e => {
+        if (e.key === "Enter" || e.key === " ") { e.preventDefault(); schritt(dir); }
+      });
+    });
+    if (kgEl) {
+      kgEl.addEventListener("change", () => {
+        const n = nutParse(kgEl.value);
+        if (n >= KG_MIN && n <= KG_MAX) setzeKg(n); else setzeKg(kgWert);
+      });
+    }
+    // Die eingeklappte Zeile nennt die gewaehlte Woche im Klartext - sonst muesste man sie
+    // aufklappen, um zu sehen, wofuer man gerade eintraegt.
+    function zeigeWoche() {
+      if (!wkLbl || !mEl || !yEl) return;
+      const key = yEl.value + "-W" + mEl.value;
+      wkLbl.textContent = key === nowKey ? "diese Woche" : weekKeyLabel(key);
+    }
+    if (mEl) mEl.addEventListener("change", zeigeWoche);
+    if (yEl) yEl.addEventListener("change", () => setTimeout(zeigeWoche, 0));
+    zeigeWoche();
+    zeigeDelta();
+
     const listEl = node.querySelector("#w-list");
     function paintList() {
+      // Der Verlauf gehoert seit dem 03.09.2026 NUR noch in "Verlauf verwalten" (⋯-Menue).
+      // Neben der Eingabe stand er als zweite Aufgabe im selben Fenster: Wer wiegen will,
+      // scrollte an einer Loeschliste vorbei.
+      if (!manageOnly) { listEl.innerHTML = ""; return; }
       const rows = (state.weights || []).slice().reverse();
       listEl.innerHTML = rows.length
         ? `<h4 style="margin:18px 0 2px;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--text-muted)">Verlauf</h4>`
@@ -6839,10 +7022,12 @@
     if (manageOnly) { openModal(node); return; }
 
     node.querySelector("#w-ok").addEventListener("click", () => {
-      const kgEl = node.querySelector("#w-kg");
+      // Gelesen wird aus dem Feld, nicht aus kgWert: Wer die Zahl antippt und tippt, ohne
+      // das Feld zu verlassen, hat noch kein change-Ereignis ausgeloest - der Stepperwert
+      // waere dann der alte, und die Eingabe ginge stillschweigend verloren.
       // nutParse akzeptiert Komma wie Punkt - auf deutschen Tastaturen wird das Komma getippt.
       const kg = nutParse(kgEl.value);
-      if (!(kg >= KG_MIN && kg <= KG_MAX)) { kgEl.focus(); kgEl.style.borderColor = "var(--danger)"; toast("Bitte ein Gewicht zwischen " + KG_MIN + " und " + KG_MAX + " kg eintragen"); return; }
+      if (!(kg >= KG_MIN && kg <= KG_MAX)) { kgEl.focus(); kgEl.classList.add("is-bad"); toast("Bitte ein Gewicht zwischen " + KG_MIN + " und " + KG_MAX + " kg eintragen"); return; }
       const m = yEl.value + "-W" + mEl.value;
       // Zeichenkettenvergleich reicht: "2026-W07" < "2026-W33" stimmt, weil die Wochenzahl
       // zweistellig aufgefuellt ist - dieselbe Eigenschaft, auf der schon state.plans beruht.
@@ -9726,11 +9911,21 @@
     // Monat blaettern. Ueber die Jahresgrenze wandert das Jahr mit - und zwar state.viewYear,
     // dasselbe, das die Gewichtskarte liest. Die Grenzen kommen aus weightYears(); ausserhalb
     // gibt es garantiert nichts zu sehen, deshalb sind die Pfeile dort gesperrt.
-    else if (a === "kalnav") {
+    // Blaettern im gemeinsamen Zeitraum (seit 03.09.2026). Im Monat Monat fuer Monat, im
+    // Jahr Jahr fuer Jahr - derselbe Knopf, andere Schrittweite. Ein Schritt ueber die
+    // Jahresgrenze verstellt AUCH state.viewYear; Kalender und Gewichtskarte teilen sich
+    // dieses eine Jahr (siehe Kommentar bei weightYears).
+    else if (a === "zeitnav") {
       const ys = weightYears();
-      let y = +activeYear(), m = activeMonth() + (+t.dataset.step);
-      if (m < 0) { m = 11; y--; }
-      else if (m > 11) { m = 0; y++; }
+      const schritt = +t.dataset.step;
+      let y = +activeYear(), m = activeMonth();
+      if (state.kalMode === "jahr") {
+        y += schritt;
+      } else {
+        m += schritt;
+        if (m < 0) { m = 11; y--; }
+        else if (m > 11) { m = 0; y++; }
+      }
       if (ys.indexOf(String(y)) === -1) return;
       state.viewYear = y; state.kalMonth = m; render();
     }

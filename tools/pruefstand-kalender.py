@@ -118,6 +118,11 @@ function dayNutOf(pl, key){ return pl && pl[key] ? { kcal: 500 } : null; }
 function hasNut(n){ return !!(n && n.kcal); }
 function weightYears(){ return ["2025", "2026"]; }
 function activeYear(){ return String(state.viewYear || new Date().getFullYear()); }
+// Zahlformat wie im Kern (Math.round + de-DE). Der Kartenfuss des Kalenders nutzt es seit
+// dem 03.09.2026 fuer seine Kennzahlen; ohne die Attrappe bricht kalenderHtml() ab.
+function nfmt(n){ return Math.round(n).toLocaleString("de-DE"); }
+// Der Fuss zeigt die Ziel-Quote nur, wenn es archivierte Wochen MIT damaligem Ziel gibt -
+// echte Funktion, hier nicht gestubbt: sie liest dieselbe Quelle wie das Gitter.
 var J_VOR = new Date().getFullYear() - 1;
 // Die drei Icons stehen in data/ikonen.js, nicht im ausgeschnittenen Block. Als
 // Attrappe genuegt ein erkennbarer Platzhalter - geprueft werden Zustaende und
@@ -128,6 +133,8 @@ var J_VOR = new Date().getFullYear() - 1;
 var ICON_CHECK = '<svg class="i-check"></svg>';
 var ICON_CHEV_L = '<svg class="i-chevl"></svg>';
 var ICON_CHEV_R = '<svg class="i-chevr"></svg>';
+// Die Flamme der Wochenserie - seit dem 03.09.2026 im Kartenfuss statt im Rueckblick.
+var ICON_FLAME = '<svg class="i-flame"></svg>';
 melde("Attrappen geladen.");
 </script>
 
@@ -459,34 +466,76 @@ pruefe("der leere Monat traegt trotzdem alle Tageszahlen",
 pruefe("und sagt, dass noch nichts geplant ist",
        /kein geplanter Tag/.test(view.querySelector(".kal-note").textContent),
        view.querySelector(".kal-note").textContent);
+// ⚠️ Seit dem 03.09.2026 traegt die KARTE keine Zeitraumwahl mehr - sie steht einmal
+// ueber allen Karten (zeitraumHtml) und regiert auch die Gewichtskarte. Geprueft wird
+// beides getrennt: die Huelle hier, das Gitter darunter.
+view.innerHTML = zeitraumHtml() + kalenderHtml();
 pruefe("Monat ist die aktive Ansicht",
        view.querySelector('[data-mode="monat"]').classList.contains("active") &&
        !view.querySelector('[data-mode="jahr"]').classList.contains("active"));
-// Zwei Bedienzeilen sind das Maximum: im Monat traegt die Navigation den Zeitraum, die
-// Jahresleiste entfaellt. Die Gewichtskarte darunter baut sich ihre eigene.
-pruefe("keine Jahresleiste in der Monatsansicht", !view.querySelector('[data-action="wyear"]'));
+pruefe("die Zeitraumwahl steht GENAU EINMAL",
+       view.querySelectorAll(".week-switch").length === 1,
+       view.querySelectorAll(".week-switch").length + " Umschalter");
+// Die alte Jahresleiste (data-action="wyear") gibt es nicht mehr - im Monat wie im Jahr
+// traegt dieselbe Navigation den Zeitraum, nur mit anderer Schrittweite.
+pruefe("keine getrennte Jahresleiste mehr", !view.querySelector('[data-action="wyear"]'));
 pruefe("die Navigation nennt Monat und Jahr",
        view.querySelector(".kal-nm").textContent.indexOf(String(heute.getFullYear())) > -1,
        view.querySelector(".kal-nm").textContent);
 var ys = weightYears();
 state.viewYear = +ys[0]; state.kalMonth = 0;
-view.innerHTML = kalenderHtml();
+view.innerHTML = zeitraumHtml() + kalenderHtml();
 var pf = view.querySelectorAll(".kal-nb");
 pruefe("am Anfang des Archivs ist der Rueckwaertspfeil gesperrt", pf[0].disabled && !pf[1].disabled);
 state.viewYear = +ys[ys.length - 1]; state.kalMonth = 11;
-view.innerHTML = kalenderHtml();
+view.innerHTML = zeitraumHtml() + kalenderHtml();
 pf = view.querySelectorAll(".kal-nb");
 pruefe("am Ende ist es der Vorwaertspfeil", pf[1].disabled && !pf[0].disabled);
 state.kalMode = "jahr";
 state.viewYear = heute.getFullYear();
-view.innerHTML = kalenderHtml();
-pruefe("die Jahresansicht bringt die Jahresleiste zurueck", !!view.querySelector('[data-action="wyear"]'));
-// Beide Ansichten teilen sich seit dem 30.08.2026 die Zellklasse - die Unterscheidung
-// laeuft deshalb ueber die Zahl der Gitter, nicht mehr ueber zwei Klassen.
-pruefe("und zeichnet wieder zwoelf Monatsgitter",
+view.innerHTML = zeitraumHtml() + kalenderHtml();
+// Im Jahr blaettert derselbe Pfeil JAHRESWEISE - die Zeile nennt dann nur die Jahreszahl.
+pruefe("im Jahr nennt die Zeile nur das Jahr",
+       view.querySelector(".kal-nm").textContent.trim() === String(heute.getFullYear()),
+       view.querySelector(".kal-nm").textContent);
+pruefe("und zeichnet zwoelf Monatsgitter",
        view.querySelectorAll("table.kal-grid.mini").length === 12 &&
        !view.querySelector("table.kal-grid.monat"),
        view.querySelectorAll("table.kal-grid.mini").length + " Mini-Gitter");
+
+melde("");
+melde("14b. Der Kartenfuss traegt die Kennzahlen des Zeitraums");
+// Sie standen bis zum 03.09.2026 im Rueckblick ueber dem Kalender - dieselben Zahlen
+// ueber demselben Bestand, nur eine Karte hoeher und mit eigenem Diagramm daneben.
+state.kalMode = "monat"; state.kalMonth = heute.getMonth();
+state.viewYear = heute.getFullYear();
+state.plans = {}; state.plans[curWk] = planMit([curIdx]);
+state.weekStats = {};
+view.innerHTML = kalenderHtml();
+var fuss = view.querySelector(".kal-foot");
+pruefe("der Fuss ist da", !!fuss);
+pruefe("er nennt die geplanten Tage", /Geplant/.test(fuss.textContent) && /1/.test(fuss.textContent),
+       fuss.textContent.replace(/\s+/g, " ").trim());
+// Ohne archivierte Woche MIT damaligem Ziel gibt es keine Quote - dann darf sie auch
+// nicht dastehen. Eine erfundene Null waere schlimmer als eine fehlende Zahl (B10).
+pruefe("ohne Zieldaten keine Ziel-Quote", fuss.textContent.indexOf("Im Ziel") < 0,
+       fuss.textContent.replace(/\s+/g, " ").trim());
+state.weekStats[wkVon(tagVor(7))] = { kcal: 1900, days: 6, hit: 4, target: 1950, d: "1111110" };
+state.weekStats[wkVon(tagVor(14))] = { kcal: 1880, days: 5, hit: 3, target: 1950, d: "1111100" };
+// ⚠ Geprueft wird im JAHR, nicht im Monat: Eine Woche wird ueber ihren DONNERSTAG einem
+// Monat zugeordnet (ISO), und die beiden Wochen oben liegen je nach heutigem Datum im
+// Vormonat. Im Monat waere die Zeile dann zu Recht leer - der Test haenge am Kalender
+// statt an der Sache. Im Jahr zaehlen alle Wochen des Jahrgangs.
+state.kalMode = "jahr";
+view.innerHTML = kalenderHtml();
+fuss = view.querySelector(".kal-foot");
+pruefe("mit Zieldaten steht sie da", /Im Ziel/.test(fuss.textContent),
+       fuss.textContent.replace(/\s+/g, " ").trim());
+// Die Quote misst gegen die geplanten Tage DERSELBEN Wochen (4+3 Treffer von 6+5 Tagen),
+// nicht gegen die Tage des Zeitraums - sonst waeren zwei Bezugsgroessen vermischt.
+pruefe("sie zaehlt Treffer gegen geplante Tage", /7\D+11/.test(fuss.textContent),
+       fuss.textContent.replace(/\s+/g, " ").trim());
+state.kalMode = "monat";
 
 melde("");
 melde("15. Tastatur im Monatsgitter: Fuellzellen werden uebersprungen");

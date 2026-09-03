@@ -1078,9 +1078,11 @@ zweier, ein Weg von der Zelle zum Datum statt zweier.
   erfunden oder erst ab Einführung verfügbar — und für die gesamte Vergangenheit leer.
   Ein Symbol, das für alte Wochen etwas anderes bedeutet als für neue, ist schlimmer als
   keines.
-* **Keine Statistik-Kacheln unter dem Gitter.** Serie und Ziel-Quote stehen bereits im
-  Rückblick über dem Kalender, das Gewicht in der Karte darunter. Dieselbe Zahl zweimal auf
-  einem Screen ist keine Information, sondern Dichte.
+* **Keine Statistik-Kacheln unter dem Gitter** — ⚠️ **umgekehrt am 03.09.2026.** Die Regel
+  stimmte, solange es den Rückblick-Block gab: Serie und Ziel-Quote standen dort über dem
+  Kalender, ein zweites Mal darunter wäre Dichte gewesen. Mit Konzept G ist der Rückblick
+  entfallen — die Kacheln **ersetzen** ihn, sie doppeln ihn nicht mehr, und sie stehen an
+  dem Gitter, das sie zusammenfassen. Siehe den Abschnitt „Zwei Karten, ein Zeitraum“.
 
 Die Farbe ist der Projekt-Akzent, **nicht** das Grün des Vorbilds: eine fremde Farbpalette
 in eine bestehende einzusetzen, macht die Ansicht zum Fremdkörper (`docs/DESIGN.md`).
@@ -1098,6 +1100,54 @@ Intensitätsabstufung, keine Farbskala nach Kalorien — die App plant, sie bewe
 viel geplant wurde. Wochen, deren Tage nicht aufgezeichnet wurden (alles vor dem 29.08.2026),
 erscheinen neutral grau statt leer: Sie wurden geplant, nur an welchen Tagen weiß niemand mehr.
 Ein leeres Feld hieße dort „nichts getan" — und das wäre schlicht falsch.
+
+## Bewusste Produktentscheidung: Zwei Karten, ein Zeitraum (03.09.2026)
+
+Der Reiter „Fortschritt“ trug **drei Zeitraum-Bedienelemente für eine Frage**: einen
+Monat/Jahr-Umschalter im Kalenderkopf, eine Jahresleiste in derselben Karte (nur in der
+Jahresansicht sichtbar) und eine **zweite** Jahresleiste in der Gewichtskarte. Die
+mittlere wirkte auf beide Karten, ohne dass man ihr das ansah.
+
+Jetzt steht die Wahl **einmal über den Karten** und regiert alles darunter — dieselbe
+Mechanik wie vorher (`state.kalMode`, `state.viewYear`, `state.kalMonth`), nur an einem
+Ort statt an dreien. Im Monat blättern die Pfeile monatsweise, im Jahr jahresweise.
+
+**Der Rückblick-Block ist entfallen.** Er stand mit Serie, Ziel-Quote und Ø-Kalorien über
+demselben Bestand, den der Kalender darunter zeichnet. Serie und Ziel-Quote stehen jetzt
+im **Kalenderfuß**, an dem Gitter, das sie zusammenfasst.
+
+**Was dabei verloren geht, und warum das vertretbar ist:** Der 8-Wochen-Balken war die
+einzige Stelle, an der ein zeitlicher *Verlauf* sichtbar war — nicht nur ein Zustand. Die
+Kennzahl „18 von 22 geplanten Tagen im Ziel“ sagt, *wie viel*, nicht *wohin es geht*. Die
+Entscheidung fiel bewusst für den ruhigeren Screen; kommt der Verlauf zurück, dann als
+kompakter Streifen unter dem Kalenderfuß, nicht als eigene Karte darüber.
+
+**Beide Serien bleiben.** Die Wochenserie trägt die Flamme, die Tagesserie steht daneben
+— andere Einheit, andere Regeln (siehe oben). Sie ist beim Umbau einmal still
+verschwunden, weil sie nur im Rückblick stand; gefunden hat das die Abnahme in der echten
+App (`tools/probe-fortschritt.html`), nicht der Prüfstandslauf.
+
+**Die Ziel-Quote rechnet je Zeitraum, aber nur über Wochen mit eigenem Ziel.** Eine Woche
+wird über ihren **Donnerstag** einem Monat zugeordnet (ISO-Regel, dieselbe wie bei der
+Wochennummer) — so zählt jede Woche im Jahr genau einmal. Wochen ohne damaliges `target`
+bleiben außen vor; sie am heutigen Ziel zu messen wäre die falsche Aussage aus B10.
+
+**Das Gewichtsdiagramm hat seine diagonale Ziellinie verloren.** Sie lief gestrichelt und
+gedämpft neben dem gleitenden Vier-Wochen-Schnitt, der ebenfalls eine ruhige zweite Linie
+ist — auf 375 px nicht auseinanderzuhalten, und die Legende brauchte zwei fast gleiche
+Einträge. Das Ziel steht weiterhin als Zahl im Kartenfuß und als unterster Achsenwert. Die
+**Skala bleibt jährlich, auch in der Monatsansicht**: Bei wöchentlichem Wiegen hat ein
+Monat vier Punkte, und eine auf sie gezoomte Achse ließe jede Wasserschwankung wie einen
+Trend aussehen. Der gewählte Monat wird hinterlegt, nicht herausgeschnitten.
+
+**Wiegen ist ein Stepper statt eines Zahlenfelds.** Wer sich wöchentlich wiegt, ändert
+seinen Wert um wenige hundert Gramm; mit dem letzten Stand als Vorgabe sind das ein bis
+vier Tipps. Das Zahlenfeld davor zog auf dem Handy die Tastatur auf und verdeckte die
+halbe Fläche samt Speichern-Knopf. Die Zahl bleibt **antippbar** — für den großen Sprung
+nach dem Urlaub wäre der Stepper Schikane. Das ist kein zweiter gleichwertiger Weg,
+sondern ein Notausgang; zwei gleichrangige Bedienwege für dieselbe Sache waren der Fehler
+des Portionsfaktors. Der Verlauf steht nur noch im ⋯-Menü: Wer wiegen will, soll nicht an
+einer Löschliste vorbeiscrollen.
 
 **Der Rückblick gehört zum Konto, nicht zum Gerät** (seit 25.08.2026). Bis dahin lag das
 Wochenarchiv nur im `localStorage`: Wer sich auf dem Handy anmeldete, sah dort Streak 0 und ein

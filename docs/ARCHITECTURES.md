@@ -1345,11 +1345,18 @@ Belegt durch `tools/pruefstand-jahresumschalter.py`; die Gegenprobe gegen `91c20
 
 #### Die Ansicht: ein Gitter, zwei Dichten (seit 30.08.2026, B7/B8/B11)
 
-`renderProgress()` zeichnet seit dem 30.08.2026 drei Karten statt zwei —
-`rueckblickHtml() + kalenderHtml() + weightHtml()`, dazu `initKalender()` neben
-`initRueckblick()`. Reihenfolge: acht Wochen, dann das Jahr, dann das Gewicht; von der
-kurzen zur langen Sicht. **Kein fünfter Reiter** — der Kalender beantwortet dieselbe Frage
-wie der Rückblick („wie lief es bisher?"), nur über einen längeren Zeitraum.
+`renderProgress()` zeichnet seit dem 03.09.2026 **eine Zeitraumwahl und zwei Karten**:
+`zeitraumHtml() + kalenderHtml() + weightHtml()`, dazu `initKalender()` und
+`initWeightChart()`. Der Rückblick-Block ist entfallen — Serie und Ziel-Quote stehen im
+Kalenderfuß, an dem Gitter, das sie zusammenfasst (Begründung in `docs/PRODUCT.md`,
+„Zwei Karten, ein Zeitraum“). **Kein fünfter Reiter** — der Kalender beantwortet dieselbe
+Frage wie der frühere Rückblick („wie lief es bisher?“), nur über einen längeren Zeitraum.
+
+⚠️ **`rueckblickHtml()` und `initRueckblick()` stehen noch im Code, ohne Aufrufer.** Sie
+bleiben, solange nicht entschieden ist, ob der 8-Wochen-Balken als kompakter Streifen
+zurückkehrt — er war die einzige Stelle mit einem zeitlichen *Verlauf*. Fällt die
+Entscheidung endgültig gegen ihn, gehören beide gelöscht, samt der `.rueck-*`-Regeln in
+`css/basis.css`.
 
 **Seit dem 30.08.2026 ist `kalenderHtml()` nur noch die Hülle** — Kopf, Ansichtswahl,
 Zeitraumwahl, Klartextzeile, Tipp-Zeile. Das Gitter selbst liefert je nach `state.kalMode`
@@ -1404,12 +1411,38 @@ den gespeicherten Daten übernommen** und damit weder persistiert noch gesynct. 
 Neuladen startet auf dem aktuellen Zeitraum. Das erspart Migration, Sanitize und jede
 Sync-Frage für eine reine Ansichtseinstellung.
 
-In der Monatsansicht entfällt die Jahresleiste: die Navigation (`kalNavHtml()`) trägt dort
-den Zeitraum, und drei Bedienzeilen übereinander wären zu viel. Verloren geht sie nicht —
-die Gewichtskarte darunter baut sich ihre eigene. **Ein Schritt über die Jahresgrenze
-verstellt `state.viewYear` mit**, weil beide Karten sich dieses eine Jahr teilen; die
-Pfeile sind an den Rändern von `weightYears()` gesperrt, weil es dahinter garantiert nichts
-zu sehen gibt.
+**`zeitraumHtml()` ist seit dem 03.09.2026 die einzige Zeitraumwahl des Reiters.** Sie
+steht über den Karten und regiert beide. Vorher trug jede Karte ihre eigene: ein
+Monat/Jahr-Umschalter im Kalenderkopf, eine Jahresleiste in derselben Karte (nur im Jahr)
+und eine zweite in der Gewichtskarte — drei Bedienelemente für eine Frage, von denen das
+mittlere auf beide Karten wirkte, ohne dass man ihm das ansah.
+
+Mit ihr sind **`kalNavHtml()` und `jahrLeisteHtml()` entfallen**; beide hatten danach
+keinen Aufrufer mehr. Der Handler heißt jetzt `data-action="zeitnav"` (vorher `kalnav`)
+und blättert je nach `state.kalMode` monats- oder jahresweise. **Ein Schritt über die
+Jahresgrenze verstellt `state.viewYear` mit**, weil beide Karten sich dieses eine Jahr
+teilen; die Pfeile sind an den Rändern von `weightYears()` gesperrt, weil es dahinter
+garantiert nichts zu sehen gibt.
+
+**Der Kalenderfuß** (`.kal-foot`) trägt vier Kennzahlen, und sie hängen unterschiedlich am
+Zeitraum:
+
+| Kennzahl | Quelle | Zeitraumabhängig? |
+|---|---|---|
+| Geplant | `geplant`/`tage` aus `kalGitterHtml()` bzw. der Summe der zwölf | ja |
+| Im Ziel | `zielQuote(year, mon, monat)` über `weekStats` | ja |
+| Serie | `wochenSerie()` | **nein** — eine Serie ist immer „bis heute“ |
+| Am Stück | `dayStreak()` | **nein**, aus demselben Grund |
+
+⚠️ **`kalJahrHtml()` muss `geplant` und `tage` mit zurückgeben.** Es summiert beide über
+die zwölf Monate; ohne sie im Rückgabeobjekt stünde im Jahr „0 von 0 Tagen“, während der
+Satz darüber die richtige Zahl nennt. Genau das ist beim Bau passiert.
+
+**`zielQuote()` ordnet eine Woche über ihren DONNERSTAG einem Monat zu** — dieselbe
+ISO-Regel, nach der die Wochennummer vergeben wird. So zählt jede Woche im Jahr genau
+einmal; über den Montag gerechnet läge die Jahreswechsel-Woche im falschen Monat und würde
+doppelt erfasst. Wochen ohne damaliges `target` bleiben außen vor (B10) — gemessen wird
+gegen die geplanten Tage **derselben** Wochen, nicht gegen die Tage des Zeitraums.
 
 **`kalWoche(wk)` ist die eine Quelle für die Bits** und kennt drei Antworten:
 

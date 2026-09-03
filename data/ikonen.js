@@ -81,3 +81,8 @@
   // haette auch den Fokusring und den Press-State mitgedreht.
   const ICON_CHEV_L = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 5-7 7 7 7"/></svg>';
   const ICON_CHEV_R = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 5 7 7-7 7"/></svg>';
+  // Die Flamme der WOCHENSERIE - und nur dieser. Die Tagesserie traegt sie ausdruecklich
+  // nicht (docs/PRODUCT.md): andere Einheit, andere Aussage.
+  // Stand bis zum 03.09.2026 inline in rueckblickHtml() und waere mit dem Rueckblick-Balken
+  // verschwunden; seither steht die Serie im Kalenderfuss.
+  const ICON_FLAME = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M13.5 2c.4 3-1.6 4.2-2.9 5.6C9.2 9 8 10.4 8 12.6a4 4 0 0 0 8 .2c0-1.3-.5-2.3-1-3 .9.4 1.7 1.2 2.2 2.3.3-.7.5-1.6.5-2.6 0-3.4-2.3-5.4-4.2-7.5z"/></svg>';

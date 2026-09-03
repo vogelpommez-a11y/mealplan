@@ -2714,23 +2714,37 @@ entstehen solche Wochen regelmäßig. `rueckblickHtml()` fiel dafür auf
 `avgDailyTargetToday()` zurück — maß die Woche also am **heutigen** Ziel — und schrieb
 „0 von 5 Tagen im Ziel" für eine Woche, in der es gar kein Ziel gab.
 
-### Die Gegenprobe ist hier besonders aussagekräftig
+### ⚠️ Umgezogen am 03.09.2026: Er misst jetzt `zielQuote()`, nicht `rueckblickHtml()`
+
+Mit Konzept G ist der Rückblick-Block aus dem Reiter genommen; die Kennzahl steht im
+Kalenderfuß. **Die Zusicherung ist dieselbe geblieben — und genau deshalb wandert der
+Prüfstand mit, statt zu verschwinden:** Eine Woche ohne eigenes `target` darf nicht
+mitzählen, sonst wird sie am heutigen Ziel gemessen.
+
+Ein Prüfstand, der weiter `rueckblickHtml()` gemessen hätte, prüfte eine Funktion **ohne
+Aufrufer** — er wäre grün geblieben, während die angezeigte Zahl falsch sein könnte.
+Das ist die Falle aus `docs/TROUBLESHOOTING.md` 144, zum vierten Mal.
+
+**Auch die Gegenprobe musste umziehen.** Sie lief gegen den Commit `76d1120` — dort gibt
+es weder `zielQuote()` noch den Kalender, der Schnitt bricht mit „Startmarker nicht
+gefunden“ ab. **Ein Abbruch ist kein roter Test.** Sie läuft jetzt über eine verstellte
+Kopie (`NAIV_QUOTE`), der genau der `target`-Filter fehlt:
 
 ```powershell
-python tools/pruefstand-rueckblick-ziel.py            # heute: 9 von 9 grün
-python tools/pruefstand-rueckblick-ziel.py 76d1120    # davor:  7 von 9 ROT
+python tools/pruefstand-rueckblick-ziel.py               # heute: 7 von 7 grün
+python tools/pruefstand-rueckblick-ziel.py --gegenprobe  # ohne Filter: 3 ROT
 ```
 
 Der alte Stand fällt nicht einfach durch — er sagt auch **warum**:
 
 ```
-ROT  heutiges Ziel nicht als Massstab -> 'Ziel 2000' kommt 4x vor
-ROT  zeigt 10/12 Tage -> gefundene Fussnote: Ziel getroffen ... 10/23 Tage
+ROT  keine Bezugstage -> gezaehlt: 5
+ROT  und der Fuss zeigt sie nicht
 ```
 
-Viermal dasselbe Ziel für vier verschiedene Wochen, und eine Trefferquote über 23 Tage
-statt über die 12, für die es überhaupt ein Ziel gab. Ein Prüfstand, der beim Durchfallen
-den Fehler *benennt*, ist mehr wert als einer, der nur rot wird.
+Eine Trefferquote über 23 Tage statt über die 12, für die es überhaupt ein Ziel gab — und
+im leeren Fall eine Quote, die gar nicht dastehen dürfte. Ein Prüfstand, der beim
+Durchfallen den Fehler *benennt*, ist mehr wert als einer, der nur rot wird.
 
 ### Drei `<script>`-Blöcke statt einem — und warum das kein Schönheitsdetail ist
 
@@ -3557,6 +3571,49 @@ Zweite Falle desselben Laufs: Der Schalter für die kaputte Variante hing zuerst
 `location.search`. **Eine Query an einer `file://`-URL kam in Edge `--headless` nicht an**, die
 Gegenprobe lief als Normallauf durch und war folgerichtig grün. Der Schalter steht seither in
 der erzeugten Seite selbst.
+
+## Konzept G: was die Prüfstände dabei gelernt haben (03.09.2026)
+
+Der Umbau des Fortschritt-Reiters (ein Zeitraum, zwei Karten, Stepper beim Wiegen) hat
+vier Prüfstände berührt. Zwei Muster daraus sind allgemein:
+
+**Ein neuer Helfer im Ausschnitt braucht eine Attrappe — oder er reißt den Block ab.**
+`kalenderHtml()` ruft jetzt `nfmt()`, `wochenSerie()` und `dayStreak()`. In
+`pruefstand-kalender-layout.py` sind sie gestubbt (er misst **Breiten**, keine Zahlen —
+eine echte Serie würde nichts anderes messen, aber den Ausschnitt vergrößern), in
+`pruefstand-kalender.py` liegen sie im Schnitt. Fehlt einer, bricht der ganze
+JS-Block mit `ReferenceError` ab, und die Seite meldet gar nichts.
+
+**Was nicht mehr in der Karte steckt, muss die Hülle mitliefern.** Abschnitt 14 von
+`pruefstand-kalender.py` prüfte die Ansichtswahl über `kalenderHtml()`. Die steht seit G
+in `zeitraumHtml()`; der Prüfstand setzt beide zusammen (`zeitraumHtml() + kalenderHtml()`)
+und prüft zusätzlich, dass es **genau eine** Zeitraumwahl gibt — die eigentliche Zusage
+des Umbaus.
+
+### Die Falle, die nur die echte App gefunden hat
+
+Die **Tagesserie** („Am Stück · 9 Tage“) ist beim Umbau still verschwunden: Sie stand nur
+in `rueckblickHtml()`, und mit dem Block war sie weg. Alle 31 Prüfstände blieben grün —
+gefunden hat es `tools/probe-fortschritt.html`, weil die Seite die **vollständige App**
+fährt und nach der Kennzahl sucht statt nach einer Funktion.
+
+Sie ist eine eigene Produktentscheidung (`docs/PRODUCT.md`: andere Einheit, andere Regeln,
+trägt die Flamme nicht) und steht jetzt im Kalenderfuß neben der Wochenserie.
+
+⚠️ **Diese Probe läuft nicht in `alle-pruefstaende.py` mit** — sie ist eine Browser-Seite.
+Wer nur den Gesamtlauf ansieht, übersieht genau die Fehler, die erst im Zusammenspiel
+sichtbar werden. Nach jeder Änderung am Fortschritt-Reiter von Hand aufrufen.
+
+### Zwei Fallen der Vorschau selbst
+
+* **Der Testschlüssel.** Über `localhost` hängt die App an **jeden**
+  `localStorage`-Schlüssel ein `__test` (`localKey`/`isTestOrigin`) — damit Prüfstände
+  echte Daten nie anfassen. Wer in `wochenkueche_v1` schreibt statt in
+  `wochenkueche_v1__test`, startet auf einem leeren Konto und sucht den Fehler im Code.
+* **Der Browser-Cache.** Eine frisch geänderte `data/*.js` kommt im iframe aus dem Cache
+  eines früheren Besuchs. Symptom: `ICON_FLAME is not defined`, obwohl `curl` die neue
+  Datei liefert. Ein anderer Port erzeugt neue URLs und umgeht ihn zuverlässig; den
+  Service Worker abzumelden allein genügt **nicht**.
 
 ## `tools/probe-fortschritt.html` — die Abnahme in der echten App (30.08.2026)
 

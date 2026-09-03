@@ -5559,3 +5559,54 @@ Zeit regelmäßig; auf einem echten Gerät genügt eine Uhr, die zurückgestellt
 
 **Beides fand `tools/probe-onboarding-fluss.html`, nicht das Nachdenken über den Code.** Der
 zweite Fehler steckte seit Monaten im Bestand und hätte ohne den Umbau weiter dort gelegen.
+
+## 146. Eine Kennzahl verschwindet mit ihrem Container — und kein Prüfstand merkt es
+
+**Aufgefallen am:** 03.09.2026, beim Umbau des Fortschritt-Reiters (Konzept G).
+
+Der Rückblick-Block wurde aus `renderProgress()` genommen; Serie und Ziel-Quote zogen in
+den Kalenderfuß um. Übersehen: Die **Tagesserie** („Am Stück · 9 Tage“) stand ebenfalls
+nur dort. Sie ist keine Dopplung der Wochenserie, sondern eine eigene Produktentscheidung
+mit eigenen Regeln (`docs/PRODUCT.md`) — und war nach dem Umbau ersatzlos weg.
+
+**Alle 31 Prüfstände blieben grün.** Sie messen Funktionen: `dayStreak()` gab weiterhin
+die richtige Zahl zurück. Nur rief sie niemand mehr auf.
+
+Gefunden hat es `tools/probe-fortschritt.html` — die Abnahme, die die **vollständige App**
+fährt und nach der sichtbaren Kennzahl sucht statt nach einer Funktion. Sie läuft nicht im
+Gesamtlauf mit (sie ist eine Browser-Seite), war also fast übersehen worden.
+
+### Was jetzt gilt
+
+* **Wird ein Container entfernt, ist die Liste seines Inhalts Teil der Änderung.** Nicht
+  „was ruft diese Funktion auf?“, sondern „**was stand in diesem Block?**“. Ein `grep` auf
+  die Klassennamen des Blocks (`rueck-s`, `rueck-foot`) hätte die Zeile gefunden.
+* **Ein grüner Prüfstandslauf beweist nicht, dass etwas noch angezeigt wird.** Er beweist,
+  dass die Funktion dahinter noch richtig rechnet. Für „steht es auf dem Schirm?“ braucht
+  es eine Probe, die die echte App fährt.
+
+
+## 147. Die Vorschau zeigt ein leeres Konto und den Stand von gestern
+
+**Aufgefallen am:** 03.09.2026, beim Bau der Vorschau für Konzept G.
+
+Zwei Fallen, die beide wie ein Fehler im Code aussehen und keiner sind:
+
+**Der Testschlüssel.** Über `localhost` hängt die App an **jeden** `localStorage`-Schlüssel
+ein `__test` (`localKey()`/`isTestOrigin()`, `index.html` ~801). Das schützt echte Daten
+vor Prüfständen. Wer für eine Vorschau in `wochenkueche_v1` schreibt, legt seinen Zustand
+sauber ab — und die App startet daneben auf einem leeren Konto. Symptom: „Noch kein
+geplanter Tag“, obwohl der Zustand nachweislich im Speicher steht.
+
+**Der Browser-Cache.** Eine frisch geänderte `data/*.js` kommt im iframe aus dem Cache
+eines früheren Besuchs. Symptom hier: `ICON_FLAME is not defined`, während `curl` auf
+denselben Pfad die neue Datei mit der Konstante liefert — `index.html` war neu,
+`ikonen.js` nicht.
+
+⚠️ **Den Service Worker abzumelden genügt nicht.** Auch nach `unregister()` und geleertem
+`caches` lieferte der HTTP-Cache die alte Datei. Zuverlässig ist ein **anderer Port**: Er
+erzeugt neue URLs, und ein Cache greift pro URL.
+
+Nebenbefund derselben Sitzung: `const` auf oberster Ebene eines klassischen Skripts landet
+**nicht** auf `window`. `typeof w.ICON_CHECK` ist auch dann `"undefined"`, wenn die
+Konstante einwandfrei geladen ist — als Diagnose taugt der Zugriff über `window` nicht.

@@ -113,6 +113,14 @@ function dayNutOf(pl, key){ return pl && pl[key] ? { kcal: 500 } : null; }
 function hasNut(n){ return !!(n && n.kcal); }
 function weightYears(){ return ["2025", "2026"]; }
 function activeYear(){ return String(state.viewYear || new Date().getFullYear()); }
+// Seit dem 03.09.2026 traegt die Kalenderkarte einen Fuss mit Kennzahlen. Er braucht
+// nfmt() und wochenSerie(); beide liegen ausserhalb des ausgeschnittenen Blocks.
+// Hier genuegen Attrappen: Dieser Pruefstand misst BREITEN, keine Zahlen - eine echte
+// Serie wuerde nichts anderes messen, aber den Ausschnitt unnoetig vergroessern.
+var ICON_FLAME = '<svg viewBox="0 0 24 24"><path d="M13.5 2c.4 3-1.6 4.2-2.9 5.6"/></svg>';
+function nfmt(n){ return Math.round(n).toLocaleString("de-DE"); }
+function wochenSerie(){ return 3; }
+function dayStreak(){ return 9; }   // Tagesserie im Fuss, seit 03.09.2026
 melde("Attrappen geladen.");
 </script>
 

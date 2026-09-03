@@ -403,11 +403,18 @@ Der Kalender hat zwei Ansichten in **einer** Karte — Monat (Standard) und Jahr
 beide nebeneinander stehen und warum es weder rotes X noch Tages-Ampel gibt, steht in
 `docs/PRODUCT.md`; hier stehen nur die Formregeln.
 
-**Bedienung: höchstens zwei Zeilen.** Der Umschalter `Monat | Jahr` sitzt im Kartenkopf
-(`.wch-head`) in der bestehenden `.week-switch` / `.ws-btn`-Optik — kein eigenes Muster für
-eine Aufgabe, für die es schon eines gibt. Darunter **genau eine** Zeitraumzeile: im Monat
-die Navigation `‹ August 2026 ›`, im Jahr die Jahresleiste. Nie beide. Drei Bedienzeilen
-übereinander sind mehr Steuerung als Inhalt.
+**Die Zeitraumwahl steht über den Karten, nicht in ihnen** (seit 03.09.2026). Ein Block
+`.zeitraum` trägt den Umschalter `Monat | Jahr` in der bestehenden `.week-switch` /
+`.ws-btn`-Optik und darunter **genau eine** Zeitraumzeile `‹ September 2026 ›` bzw.
+`‹ 2026 ›`. Er regiert **beide** Karten darunter.
+
+Vorher trug jede Karte ihre eigene Wahl — ein Umschalter im Kalenderkopf, eine
+Jahresleiste in derselben Karte, eine zweite in der Gewichtskarte. Drei Bedienelemente
+für eine Frage, und das mittlere wirkte auf beides, ohne dass man ihm das ansah.
+
+`.zeitraum` teilt sich die **Maximalbreite 420 px** mit Gitter und Navigation darunter:
+Steht die Wahl breiter als das, was sie bedient, liest sie sich als Seiten-Steuerung
+statt als Karten-Steuerung. Wer eine der Breiten ändert, ändert alle.
 
 **Der Zustand hängt nie an der Farbe allein.** Ein geplanter Tag trägt Fläche *und* Symbol
 (Haken auf Akzentkreis), ein ungeplanter eine Kante (leerer Kreis), eine Woche ohne
@@ -419,6 +426,30 @@ Symbol mehr neben die Zahl, deshalb steht der Zustand hinter ihr: gefüllt, umra
 gar nichts. Die Füllung ist dort **kräftiger** als im großen Gitter (32 % statt 12 %) — ohne
 den Haken daneben ist sie der einzige Träger, und 12 % auf 21 px sind aus einem halben Meter
 Abstand nicht mehr von „leer" zu unterscheiden.
+
+**Der Kartenfuß trägt die Kennzahlen des Zeitraums** (`.kal-foot`, seit 03.09.2026).
+Vier Werte in einer Reihe, durch eine Trennlinie vom Gitter abgesetzt, in derselben
+Maximalbreite: Geplant · Im Ziel · Serie · Am Stück. Die Serie trägt die Flamme, die
+Tagesserie ausdrücklich **nicht** — andere Einheit, andere Aussage (`docs/PRODUCT.md`).
+Fehlt eine Zahl (keine Zieldaten, Serie unter zwei Tagen), entfällt die Spalte ganz
+statt eine Null zu zeigen.
+
+**Das Gewichtsdiagramm führt eine Linie, nicht drei.** Die diagonale Ziellinie
+(`.wch-goal`) ist entfallen: Sie lief gestrichelt und gedämpft neben dem gleitenden
+Vier-Wochen-Schnitt, der ebenfalls eine ruhige zweite Linie ist — auf 375 px nicht
+auseinanderzuhalten. Das Ziel steht als Zahl im Fuß und als unterster Achsenwert. Die
+Legende erscheint nur, wenn wirklich zwei Serien im Bild sind (ab vier Messungen).
+
+**Der gewählte Monat wird hinterlegt, nicht herausgeschnitten** (`.wch-span`). Die Skala
+bleibt das ganze Jahr — bei wöchentlichem Wiegen hat ein Monat vier Punkte, und eine auf
+sie gezoomte Achse ließe jede Wasserschwankung wie einen Trend aussehen. Der Streifen ist
+**neutral** eingefärbt (`--text` bei 7 %), nicht im Akzent: Er ist ein Hinweis auf den
+Zeitraum, kein Wert, und im Akzent zöge er mehr Aufmerksamkeit als die Kurve davor.
+
+**Wiegen ist ein Stepper** (`.wg-step`): zwei runde Knöpfe von 54 px um eine große,
+antippbare Zahl. Die 46 px der Zahl liegen weit über den 16 px, unter denen iOS beim
+Fokus zoomen würde. `touch-action: manipulation` verhindert den Doppeltipp-Zoom beim
+schnellen Zählen. Darunter die Differenz zur letzten Messung, dann die Woche eingeklappt.
 
 **Die Maßregel, an der das Layout hängt: `max-width: 420px`.** Die Höhe der Tageszelle ist
 bei 56 px gedeckelt, die Breite folgt ohne Deckel der Karte — auf 1280 px standen die Tage

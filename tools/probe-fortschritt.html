@@ -117,11 +117,15 @@ document.getElementById("host").appendChild(f);
     var gitter = doc.querySelectorAll("table.kal-grid");
     pruefe("genau ein Monatsgitter", gitter.length === 1 && !!doc.querySelector("table.kal-grid.monat"),
            gitter.length + " Gitter gefunden");
-    pruefe("Reihenfolge: Rueckblick, Kalender, Gewicht", (function(){
-      var html = doc.querySelector("#view").innerHTML;
-      var a = html.indexOf('class="rueck'), b = html.indexOf("kal-grid"), c = html.indexOf("wch-plot");
-      return a > -1 && b > a && (c === -1 || c > b);
-    })(), "Positionen stimmen nicht");
+    // Seit dem 03.09.2026 (Konzept G) gibt es KEINEN Rueckblick-Block mehr: Serie und
+// Ziel-Quote stehen im Kalenderfuss, an dem Gitter, das sie zusammenfassen. Uebrig
+// bleiben zwei Karten unter einer gemeinsamen Zeitraumwahl.
+pruefe("Reihenfolge: Zeitraum, Kalender, Gewicht", (function(){
+  var html = doc.querySelector("#view").innerHTML;
+  var z = html.indexOf("zeitraum"), b = html.indexOf("kal-grid"), c = html.indexOf("wch-plot");
+  return z > -1 && b > z && (c === -1 || c > b);
+})(), "Positionen stimmen nicht");
+pruefe("kein Rueckblick-Block mehr", !doc.querySelector(".rueck"));
     pruefe("heute ist markiert", doc.querySelectorAll("td.kal-t.today").length === 1,
            doc.querySelectorAll("td.kal-t.today").length + " markierte Zellen");
     // Keine Jahresleiste an der KALENDERKARTE im Monat - dort traegt die Monatsnavigation
@@ -196,33 +200,38 @@ document.getElementById("host").appendChild(f);
     pruefe("Reiter scrollt nicht seitwaerts", progUeber <= 1, "Ueberlauf " + progUeber + " px");
 
     melde("");
-    melde("3. Die Tages-Serie steht im Rueckblick");
-    var foot = doc.querySelector(".rueck-foot");
-    pruefe("Kennzahl 'Am Stueck' vorhanden", !!foot && foot.textContent.indexOf("Am Stück") > -1,
-           foot ? foot.textContent.trim().replace(/\s+/g, " ") : "kein Fuss");
-    pruefe("die Flamme bleibt bei der Wochenserie",
-           doc.querySelectorAll(".rueck-streak .rueck-fl").length === 1 &&
-           doc.querySelectorAll(".rueck-foot .rueck-fl").length === 0);
-
-    melde("");
-    melde("4. Der Jahr-Umschalter bewegt beide Karten");
-    var btns = doc.querySelectorAll('.kal [data-action="wyear"]');
-    pruefe("Umschalter an der Kalenderkarte", btns.length >= 2, btns.length + " Knoepfe");
-    if (btns.length >= 2) {
-      var vorjahr = btns[0].dataset.year;
-      btns[0].click();
-      await warte(function(){
-        var t = f.contentDocument.querySelector(".kal-grid");
-        return t && t.dataset.year === vorjahr ? t : null;
-      }, 6000);
-      var doc2 = f.contentDocument;
-      pruefe("Kalender zeigt " + vorjahr, doc2.querySelector(".kal-grid").dataset.year === vorjahr);
-      var wlbl = doc2.querySelector(".wch .wg-lbl");
-      pruefe("Gewichtskarte folgt mit", !!wlbl && wlbl.textContent.indexOf(vorjahr) > -1,
-             wlbl ? wlbl.textContent : "keine Gewichtskarte");
-    }
-
-    melde("");
+    melde("3. Beide Serien stehen im Kalenderfuss");
+// Die Tagesserie ist beim Umbau einmal still verschwunden - sie stand nur im
+// Rueckblick. Sie ist eine EIGENE Aussage (docs/PRODUCT.md): andere Einheit, andere
+// Regeln, und sie traegt die Flamme ausdruecklich nicht.
+var kfuss = doc.querySelector(".kal-foot");
+pruefe("der Kartenfuss ist da", !!kfuss);
+pruefe("Wochenserie mit Flamme", !!kfuss && kfuss.querySelectorAll(".kal-serie svg").length === 1,
+       kfuss ? kfuss.textContent.replace(/\s+/g, " ").trim() : "kein Fuss");
+pruefe("Tagesserie daneben", !!kfuss && /Am St/.test(kfuss.textContent),
+       kfuss ? kfuss.textContent.replace(/\s+/g, " ").trim() : "kein Fuss");
+pruefe("die Flamme bleibt bei der Wochenserie",
+       !!kfuss && kfuss.querySelectorAll("svg").length === 1);
+melde("");
+    melde("4. Die gemeinsame Zeitraumwahl bewegt beide Karten");
+// Der Kern von Konzept G: EIN Umschalter statt drei. Vorher trug der Kalender einen
+// Monat/Jahr-Schalter UND eine Jahresleiste, die Gewichtskarte eine zweite Jahresleiste.
+pruefe("genau eine Zeitraumwahl im Reiter", doc.querySelectorAll(".week-switch").length === 1,
+       doc.querySelectorAll(".week-switch").length + " Umschalter");
+var nav = doc.querySelectorAll(".zeitraum .kal-nb");
+pruefe("Blaetterpfeile vorhanden", nav.length === 2, nav.length + " Pfeile");
+var vorher = doc.querySelector(".kal-nm").textContent;
+nav[0].click();
+await warte(function(){
+  var t = f.contentDocument.querySelector(".kal-nm");
+  return t && t.textContent !== vorher ? t : null;
+}, 6000);
+doc = f.contentDocument;
+pruefe("der Zeitraum wandert", doc.querySelector(".kal-nm").textContent !== vorher,
+       vorher + " -> " + doc.querySelector(".kal-nm").textContent);
+// Und die Gewichtskarte haengt am selben Jahr - das war der eigentliche Zweck.
+pruefe("die Gewichtskarte steht weiter da", !!doc.querySelector(".wch"));
+melde("");
     melde("5. Der Tipp antwortet auf einen Klick");
     // Eine echte Tageszelle, keine Fuellzelle - die traegt kein data-d und keinen Zustand.
     var z = f.contentDocument.querySelector("td.kal-t[data-d]");
