@@ -5495,6 +5495,30 @@ strukturell unsichtbar.
 * Die klassische Scrollleiste im `iframe` nimmt 15 px von `clientWidth`. Der Reiter meldete
   dadurch 16 px Überlauf — im alten Stand ganz genauso. Gegen `innerWidth` messen.
 
+### ⚠️ Nachtrag vom selben Tag: das Band gibt es nicht mehr
+
+Wenige Stunden nach diesem Fund ist das oben beschriebene 52/53-Spalten-Band durch **zwölf
+Monatsgitter** ersetzt worden (`docs/ARCHITECTURES.md`, „Die Ansicht: ein Gitter, zwei
+Dichten"). Die Lehre — am clippenden Element messen, nicht am Dokument — gilt unverändert;
+die konkrete Spaltenzahl ist Geschichte.
+
+**Und derselbe Prüfstand ist prompt ein drittes Mal in dieselbe Grube gefallen.** Er suchte
+die Zellbreite weiter über `td.kal-c`, die Zellklasse des Bandes. Nach dem Umbau griff der
+Selektor ins Leere und meldete 0 px — was zufällig rot wurde, weil eine Untergrenze
+dagegenstand. **Die vier Nachbarprüfungen daneben meldeten weiter grün**, über ein Band, das
+es nicht mehr gab: „Band passt in die Karte", „kein Überlauf", „kein Scroll-Container" —
+alles OK, alles über nichts.
+
+Ohne die Zellbreitenzeile hätte der Prüfstand den ganzen Umbau schweigend durchgewinkt. Das
+ist wörtlich der Fall aus CLAUDE.md Abschnitt 18a: *Ein Prüfer mit veralteten Fakten prüft
+das Falsche und meldet trotzdem „sauber".*
+
+**Was daraus folgt, über diesen Fall hinaus:** Wird eine CSS-Klasse oder ein Selektor
+umbenannt oder entfernt, sind **die Prüfstände Teil der Änderung** — nicht ein späterer
+Aufräumschritt. Ein `grep` über `tools/` nach der alten Klasse gehört zum selben
+Arbeitsschritt wie die Umbenennung selbst. Beide Kalender-Prüfstände sind inzwischen auf
+`td.kal-t` umgestellt, Einzelheiten in `docs/TESTING.md`.
+
 
 ## 145. Ein Knoten, der den Neuaufbau überlebt, sammelt Animationsschleifen
 

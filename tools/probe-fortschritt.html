@@ -109,30 +109,61 @@ document.getElementById("host").appendChild(f);
     await warte(function(){ return f.contentDocument.querySelector(".kal-grid"); }, 8000);
     var doc = f.contentDocument;
     melde("");
-    melde("1. Der Kalender steht im Fortschritt-Reiter");
-    var tab = doc.querySelector(".kal-grid");
-    pruefe("Band vorhanden", !!tab);
+    melde("1. Der Kalender steht im Fortschritt-Reiter (Monat ist der Standard)");
+    // ⚠️ Diese Probe suchte bis zum 30.08.2026 nach `td.kal-c` UND ging davon aus, dass die
+    // Jahresansicht offen ist. Beides stimmt nicht mehr: Die Zellklasse heisst in beiden
+    // Ansichten .kal-t, und der Standard ist der MONAT. Sie prueft jetzt beide Ansichten
+    // nacheinander - erst den Monat, dann das Jahr (docs/TROUBLESHOOTING.md 144).
+    var gitter = doc.querySelectorAll("table.kal-grid");
+    pruefe("genau ein Monatsgitter", gitter.length === 1 && !!doc.querySelector("table.kal-grid.monat"),
+           gitter.length + " Gitter gefunden");
     pruefe("Reihenfolge: Rueckblick, Kalender, Gewicht", (function(){
       var html = doc.querySelector("#view").innerHTML;
       var a = html.indexOf('class="rueck'), b = html.indexOf("kal-grid"), c = html.indexOf("wch-plot");
       return a > -1 && b > a && (c === -1 || c > b);
     })(), "Positionen stimmen nicht");
-    // Gezaehlt wird die SPALTE der laufenden Woche, nicht alle gefuellten Zellen des Jahres.
-    // Die erste Fassung zaehlte alle - und war gruen, obwohl die laufende Woche leer war.
-    var kwNr = +curWk.slice(6, 8);
-    var spalte = Array.prototype.filter.call(tab.querySelectorAll("tbody tr"), function(tr){
-      return tr.cells[kwNr] && tr.cells[kwNr].classList.contains("on");
-    }).length;
-    pruefe("laufende Woche ist gefuellt (7 Tage)", spalte === 7, spalte + " von 7 Zellen");
-    pruefe("Altwoche ohne Maske hat ihren eigenen Zustand", tab.querySelectorAll("td.kal-c.unk").length === 7,
-           tab.querySelectorAll("td.kal-c.unk").length + " gestrichelte Zellen");
-    pruefe("heute ist markiert", tab.querySelectorAll("td.kal-c.today").length === 1);
+    pruefe("heute ist markiert", doc.querySelectorAll("td.kal-t.today").length === 1,
+           doc.querySelectorAll("td.kal-t.today").length + " markierte Zellen");
+    // Keine Jahresleiste an der KALENDERKARTE im Monat - dort traegt die Monatsnavigation
+    // den Zeitraum, und drei Bedienzeilen uebereinander waeren zu viel. Gesucht wird
+    // deshalb innerhalb von .kal: Die Gewichtskarte darunter baut sich ihre eigene Leiste,
+    // und die steht auch im Monat da (docs/ARCHITECTURES.md).
+    pruefe("keine Jahresleiste an der Kalenderkarte", !doc.querySelector('.kal [data-action="wyear"]'));
+
+    melde("");
+    melde("1b. Der Umschalter bringt die zwoelf Monatsgitter");
+    var zuJahr = doc.querySelector('[data-action="kalmode"][data-mode="jahr"]');
+    pruefe("Umschalter auf Jahr vorhanden", !!zuJahr);
+    zuJahr.click();
+    await warte(function(){ return f.contentDocument.querySelector("table.kal-grid.mini"); }, 8000);
+    doc = f.contentDocument;
+    var mini = doc.querySelectorAll("table.kal-grid.mini");
+    pruefe("zwoelf Monatsgitter", mini.length === 12, mini.length + " gefunden");
+    // Erst im Jahr sind ALLE Tage sichtbar - im Monatsgitter fehlen die Tage einer Woche,
+    // die ueber den Monatswechsel laeuft. Gezaehlt wird ueber das Datum, nicht ueber die
+    // Position: Fuellzellen machen die Spalte zu einem unzuverlaessigen Traeger.
+    var mo = new Date(heute.getFullYear(), heute.getMonth(), heute.getDate() - ((heute.getDay() || 7) - 1));
+    var tageDerWoche = 0;
+    for (var wi = 0; wi < 7; wi++) {
+      var dd = new Date(mo.getFullYear(), mo.getMonth(), mo.getDate() + wi);
+      var iso = dd.getFullYear() + "-" + String(dd.getMonth() + 1).padStart(2, "0") + "-" + String(dd.getDate()).padStart(2, "0");
+      var z = doc.querySelector('td.kal-t[data-d="' + iso + '"]');
+      if (z && z.classList.contains("on")) tageDerWoche++;
+    }
+    pruefe("laufende Woche ist gefuellt (7 Tage)", tageDerWoche === 7, tageDerWoche + " von 7 Zellen");
+    pruefe("Altwoche ohne Maske hat ihren eigenen Zustand", doc.querySelectorAll("td.kal-t.unk").length === 7,
+           doc.querySelectorAll("td.kal-t.unk").length + " neutrale Zellen");
+    // Ein Tabstopp je Gitter, nicht einer im ganzen Jahr - sonst waeren elf Monate per
+    // Tastatur nicht erreichbar.
+    pruefe("ein Tabstopp je Monat", doc.querySelectorAll('td.kal-t[tabindex="0"]').length === 12,
+           doc.querySelectorAll('td.kal-t[tabindex="0"]').length + " Tabstopps");
+    var tab = doc.querySelector(".kal-jahr") || mini[0];
 
     melde("");
     melde("2. Kein waagerechter Ueberlauf bei 390 px");
     var de = doc.documentElement;
     var wrap = doc.querySelector(".kal-wrap");
-    pruefe("Band passt in die Karte", tab.scrollWidth - wrap.clientWidth <= 0.5,
+    pruefe("Gitter passt in die Karte", tab.scrollWidth - wrap.clientWidth <= 0.5,
            "ueber: " + (tab.scrollWidth - wrap.clientWidth) + " px");
     // Gegen den Bezugswert von Home pruefen, nicht gegen 0: ein Ueberlauf, den die App an
     // dieser Breite ueberall hat, ist kein Befund dieser Aenderung.
@@ -193,10 +224,12 @@ document.getElementById("host").appendChild(f);
 
     melde("");
     melde("5. Der Tipp antwortet auf einen Klick");
-    var z = f.contentDocument.querySelector("td.kal-c");
+    // Eine echte Tageszelle, keine Fuellzelle - die traegt kein data-d und keinen Zustand.
+    var z = f.contentDocument.querySelector("td.kal-t[data-d]");
     z.dispatchEvent(new f.contentWindow.MouseEvent("click", { bubbles: true }));
     var tip = f.contentDocument.querySelector(".kal-tip");
-    pruefe("Tipp beschriftet", tip && /KW \d+ · \w+/.test(tip.textContent), tip ? tip.textContent : "-");
+    // Der Tipp nennt seit dem Umbau ein DATUM, keine Kalenderwoche: die Zelle ist ein Tag.
+    pruefe("Tipp beschriftet", tip && /\w+, \d{2}\.\d{2}\.\d{4} · /.test(tip.textContent), tip ? tip.textContent : "-");
 
     melde("");
     melde(fehler === 0 ? "ERGEBNIS: alle Pruefungen gruen." : "ERGEBNIS: " + fehler + " ROT.");

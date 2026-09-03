@@ -1752,6 +1752,14 @@
     // und braucht dafuer state (Ziel, Rezepte). Das laeuft noch nicht — state = load() ist gerade
     // erst am Entstehen. boot() ruft pruneWeeks(state.plans) direkt nach dem State-Aufbau nach.
     if (!plans[curKey]) plans[curKey] = makeEmptyPlan();
+    // ⚠️ viewWeek, viewYear, kalMode und kalMonth werden ABSICHTLICH nicht aus `data`
+    // gelesen, obwohl fast jedes Feld daneben es tut. Es sind reine Ansichtseinstellungen:
+    // Sie stehen im State, damit die UI sie einheitlich setzen kann (state.kalMode = "jahr";
+    // render()), aber ein Neuladen startet auf dem aktuellen Zeitraum. Das erspart
+    // Migration, Sanitize und jede Sync-Frage fuer eine reine Darstellungswahl - und
+    // niemand kommt auf einem zweiten Geraet im Maerz 2024 heraus, weil er dort zuletzt
+    // geblaettert hat. Sie fehlen aus demselben Grund in dataJSON(), pushNow() und
+    // onRemote(). Das ist kein Versehen, das man "reparieren" sollte.
     return { recipes, plans, plan: plans[curKey], viewWeek: "cur", viewYear: new Date().getFullYear(), kalMode: "monat", kalMonth: new Date().getMonth(), tab: data.tab === "recipes" ? "recipes" : "home", goal: sanitizeGoal(data.goal), shares: Array.isArray(data.shares) ? data.shares : [], onboarded: data.onboarded === true, weights: sanitizeWeights(data.weights), weightGoals: sanitizeWeightGoals(data.weightGoals), weekStats: sanitizeWeekStats(data.weekStats), profileImage: typeof data.profileImage === "string" ? data.profileImage : null, weightConsent: sanitizeConsent(data.weightConsent), shopPersons: sanitizeShopPersons(data.shopPersons), groupId: typeof data.groupId === "string" ? data.groupId : "", pendingGroupId: typeof data.pendingGroupId === "string" ? data.pendingGroupId : "", pendingInviteUrl: typeof data.pendingInviteUrl === "string" ? data.pendingInviteUrl : "", inviteCodes: Array.isArray(data.inviteCodes) ? data.inviteCodes : [], favs: sanitizeFavs(data.favs), planned: sanitizePlanned(data.planned, recipes), deleted: sanitizeTombstones(data.deleted), dedupeV1: data.dedupeV1 === true };
   }
 
