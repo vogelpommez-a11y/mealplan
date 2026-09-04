@@ -355,7 +355,7 @@ zielZelle.focus();
 // die Umgebung nicht vergibt.
 if (!view.querySelector(".kal-tip").textContent) zielZelle.dispatchEvent(new FocusEvent("focus"));
 // Der Tipp nennt jetzt ein DATUM, keine Kalenderwoche - die Zelle ist ein Tag.
-pruefe("der Tipp folgt dem Fokus", /\w+, \d{2}\.\d{2}\.\d{4} · /.test(view.querySelector(".kal-tip").textContent),
+pruefe("der Tipp folgt dem Fokus", /\\w+, \\d{2}\\.\\d{2}\\.\\d{4} · /.test(view.querySelector(".kal-tip").textContent),
        "'" + view.querySelector(".kal-tip").textContent + "'");
 
 // An den Raendern darf nichts passieren - und vor allem nichts abstuerzen. Gemessen wird
@@ -417,8 +417,8 @@ pruefe("und zwar HEUTE", onM.length === 1 && onM[0].getAttribute("data-d") === h
 pruefe("er steht in der Spalte seines Wochentags", onM.length === 1 && onM[0].cellIndex === curIdx,
        onM.length ? "Spalte " + onM[0].cellIndex + ", erwartet " + curIdx : "-");
 pruefe("heute ist markiert", view.querySelectorAll("td.kal-t.today").length === 1);
-pruefe("die Klartextzeile zaehlt den Tag mit", /1 von \d+ Tagen geplant/.test(view.innerHTML),
-       (view.innerHTML.match(/\d+ von \d+ Tagen geplant/) || ["-"])[0]);
+pruefe("die Klartextzeile zaehlt den Tag mit", /1 von \\d+ Tagen geplant/.test(view.innerHTML),
+       (view.innerHTML.match(/\\d+ von \\d+ Tagen geplant/) || ["-"])[0]);
 
 melde("");
 melde("12. Der Monat hat so viele Tageszellen, wie er Tage hat");
@@ -521,13 +521,15 @@ state.plans = {}; state.plans[curWk] = planMit([curIdx]);
 state.weekStats = {};
 view.innerHTML = kalenderHtml();
 var fuss = view.querySelector(".kal-foot");
-pruefe("der Fuss ist da", !!fuss);
-pruefe("er nennt die geplanten Tage", /Geplant/.test(fuss.textContent) && /1/.test(fuss.textContent),
-       fuss.textContent.replace(/\s+/g, " ").trim());
-// Ohne archivierte Woche MIT damaligem Ziel gibt es keine Quote - dann darf sie auch
-// nicht dastehen. Eine erfundene Null waere schlimmer als eine fehlende Zahl (B10).
-pruefe("ohne Zieldaten keine Ziel-Quote", fuss.textContent.indexOf("Im Ziel") < 0,
-       fuss.textContent.replace(/\s+/g, " ").trim());
+// Eine geplante Woche, kein Archiv: keine Quote, keine Serie, keine zwei Tage am Stueck.
+// Dann steht der Fuss GAR NICHT da - bis zum 04.09.2026 trug er hier noch die Kennzahl
+// "Geplant". Ein Kasten mit einer Ueberschrift und ohne Zahl waere schlechter als keiner.
+pruefe("ohne Kennzahlen kein Fuss", !fuss, fuss ? fuss.textContent.replace(/\\s+/g, " ").trim() : "");
+// Die Zahl selbst ist nicht verschwunden - sie steht als Klartext UEBER dem Gitter.
+// Genau das war der Grund, sie aus dem Fuss zu nehmen: Sie stand zweimal auf einem Schirm.
+var notiz = view.querySelector(".kal-note");
+pruefe("die geplanten Tage stehen ueber dem Gitter", !!notiz && /geplant/.test(notiz.textContent),
+       notiz ? notiz.textContent.replace(/\\s+/g, " ").trim() : "keine Notiz");
 state.weekStats[wkVon(tagVor(7))] = { kcal: 1900, days: 6, hit: 4, target: 1950, d: "1111110" };
 state.weekStats[wkVon(tagVor(14))] = { kcal: 1880, days: 5, hit: 3, target: 1950, d: "1111100" };
 // ⚠ Geprueft wird im JAHR, nicht im Monat: Eine Woche wird ueber ihren DONNERSTAG einem
@@ -538,11 +540,20 @@ state.kalMode = "jahr";
 view.innerHTML = kalenderHtml();
 fuss = view.querySelector(".kal-foot");
 pruefe("mit Zieldaten steht sie da", /Im Ziel/.test(fuss.textContent),
-       fuss.textContent.replace(/\s+/g, " ").trim());
+       fuss.textContent.replace(/\\s+/g, " ").trim());
 // Die Quote misst gegen die geplanten Tage DERSELBEN Wochen (4+3 Treffer von 6+5 Tagen),
 // nicht gegen die Tage des Zeitraums - sonst waeren zwei Bezugsgroessen vermischt.
-pruefe("sie zaehlt Treffer gegen geplante Tage", /7\D+11/.test(fuss.textContent),
-       fuss.textContent.replace(/\s+/g, " ").trim());
+pruefe("sie zaehlt Treffer gegen geplante Tage", /7\\D+11/.test(fuss.textContent),
+       fuss.textContent.replace(/\\s+/g, " ").trim());
+// Und sie SAGT, worauf sie sich bezieht (seit 04.09.2026). Neben ihr stand frueher
+// "Geplant 18/30 Tage" - zwei Brueche, beide auf "Tage" endend, mit verschiedenen
+// Nennern. Der Bezug steht jetzt im Bruch selbst, nicht im Kopf des Lesers.
+pruefe("und nennt ihren Bezug", /geplanten/.test(fuss.textContent),
+       fuss.textContent.replace(/\\s+/g, " ").trim());
+// Die Doppelung darf nicht zurueckkehren: Der Fuss zaehlt keine geplanten Tage mehr,
+// das tut die Zeile ueber dem Gitter.
+pruefe("keine zweite Geplant-Kennzahl im Fuss", !/Geplant/.test(fuss.textContent),
+       fuss.textContent.replace(/\\s+/g, " ").trim());
 state.kalMode = "monat";
 
 melde("");
@@ -582,7 +593,7 @@ pruefe("waagerecht bewegt sich der Fokus normal",
        "Zeile " + aktiv().parentElement.sectionRowIndex + ", Spalte " + aktiv().cellIndex);
 view.querySelector("td.kal-t:not(.pad)").dispatchEvent(new MouseEvent("click", { bubbles: true }));
 pruefe("der Tipp nennt Datum und Zustand",
-       /\d{2}\.\d{2}\.\d{4} . (geplant|nichts geplant|keine Daten|Tage nicht aufgezeichnet)/.test(view.querySelector(".kal-tip").textContent),
+       /\\d{2}\\.\\d{2}\\.\\d{4} . (geplant|nichts geplant|keine Daten|Tage nicht aufgezeichnet)/.test(view.querySelector(".kal-tip").textContent),
        view.querySelector(".kal-tip").textContent || "(leer)");
 
 melde("");

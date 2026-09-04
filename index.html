@@ -5670,9 +5670,16 @@
     // Erst ab zwei Tagen: "1 Tag am Stueck" ist keine Serie, sondern ein Dienstag.
     const tage = dayStreak();
     const q = state.goal ? zielQuote(year, mon, monat) : { hit: 0, tage: 0 };
-    const fuss = (daten.tage || q.tage || serie) ? `<div class="kal-foot">
-        <div class="kal-f"><small>Geplant</small><b>${nfmt(daten.geplant || 0)}<span>/${nfmt(daten.tage || 0)} Tage</span></b></div>
-        ${q.tage ? `<div class="kal-f"><small>Im Ziel</small><b>${nfmt(q.hit)}<span>/${nfmt(q.tage)} Tage</span></b></div>` : ""}
+    // Die Kennzahl "Geplant" ist am 04.09.2026 aus dem Fuss genommen. Sie stand woertlich
+    // schon in der Zeile UEBER dem Gitter ("18 von 30 Tagen geplant", .kal-note) - dieselbe
+    // Aussage zweimal auf einem Schirm, wenige Zentimeter auseinander.
+    //
+    // Und sie war der Grund, aus dem der Fuss missverstaendlich war: Neben ihr stand "Im
+    // Ziel 12/18 Tage" mit einem ANDEREN Bezug. Zwei Brueche nebeneinander, beide auf
+    // "Tage" endend, deren Nenner verschiedene Dinge zaehlen - der eine die Tage des
+    // Zeitraums, der andere die geplanten Tage in Wochen mit Ziel. Befund des ux-reviewer.
+    const fuss = (q.tage || serie || tage >= 2) ? `<div class="kal-foot">
+        ${q.tage ? `<div class="kal-f"><small>Im Ziel</small><b>${nfmt(q.hit)}<span>/${nfmt(q.tage)} geplanten</span></b></div>` : ""}
         ${serie ? `<div class="kal-f"><small>Serie</small><b class="kal-serie">${ICON_FLAME}${serie}<span>Woche${serie === 1 ? "" : "n"}</span></b></div>` : ""}
         ${tage >= 2 ? `<div class="kal-f"><small>Am Stück</small><b>${nfmt(tage)}<span>Tage</span></b></div>` : ""}
       </div>` : "";
@@ -5723,11 +5730,9 @@
     return {
       satz: satz,
       notiz: notiz,
-      // geplant/tage MUESSEN mit heraus: Der Kartenfuss (seit 03.09.2026) liest sie, und
-      // ohne sie stuende dort im Jahr "0 von 0 Tagen", waehrend der Satz darueber die
-      // richtige Zahl nennt. kalGitterHtml liefert beide je Monat, hier ist die Summe.
-      geplant: geplant,
-      tage: tage,
+      // geplant/tage sind hier am 04.09.2026 entfallen: Sie hatten nur einen Leser, den
+      // Kartenfuss, und dessen "Geplant"-Kennzahl gibt es nicht mehr. In kalGitterHtml
+      // bleiben beide - von dort liest sie diese Funktion je Monat fuer ihre eigene Summe.
       tabelle: `<div class="kal-jahr">${gitter.join("")}</div>`
     };
   }

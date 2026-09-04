@@ -259,11 +259,23 @@ function weiter(){
     pruefe("Zeitraumwahl laeuft nicht ueber", m.zeitBreite <= 0, "ueber: " + m.zeitBreite + " px");
     pruefe("Kartenfuss laeuft nicht ueber", m.fussBreite <= 0, "ueber: " + m.fussBreite + " px");
     // Auf schmalen Geraeten ZWEI Spalten (gestaltetes 2x2), darueber alle nebeneinander.
-    if (m.fussFelder >= 4) {
+    // Die Schwelle stand bis zum 04.09.2026 bei VIER - der Zahl der damaligen Kennzahlen.
+    // Mit dem Wegfall der "Geplant"-Kachel sind es hoechstens drei, und die Bedingung waere
+    // nie wieder wahr geworden: Die Pruefung haette sich still selbst abgeschaltet, ohne
+    // dass eine Zeile rot wird. Genau die Falle, gegen die dieser Pruefstand gebaut ist.
+    //
+    // Zwei statt einer Zahl: Ab zwei Kennzahlen ist eine Spaltenzahl ueberhaupt eine
+    // Aussage. Auf schmalen Geraeten sind es zwei Spalten (bei drei Feldern also 2 + 1),
+    // darueber alle nebeneinander.
+    if (m.fussFelder >= 2) {
       var sollSp = m.breite <= 560 ? 2 : m.fussFelder;
       pruefe("Kartenfuss hat " + sollSp + " Spalten", m.fussSpalten === sollSp,
              m.fussSpalten + " Spalten bei " + m.fussFelder + " Kennzahlen");
     }
+    // Und die Gegenprobe zur Gegenprobe: Die Kennzahl darf nicht einfach verschwinden.
+    // Ein Fuss ohne Felder wuerde die Spaltenpruefung oben ueberspringen und waere gruen.
+    pruefe("der Fuss traegt ueberhaupt Kennzahlen", m.fussFelder >= 1,
+           m.fussFelder + " Felder");
     // Zwei Untergrenzen, weil in beiden Ansichten eine ZAHL lesbar bleiben muss - seit
     // dem Wegfall des Bandes liegen sie deshalb nah beieinander. Im Monatsgitter kommt
     // das Haken-Symbol neben die zweistellige Zahl, im Mini-Gitter traegt die Flaeche

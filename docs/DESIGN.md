@@ -448,11 +448,22 @@ bleibt. Auf dem Handy ändert sich nichts — dort stand ohnehin ein Monat je Re
 je Zelle bei 360 px), die Anhebung greift erst ab 768 px.
 
 **Der Kartenfuß trägt die Kennzahlen des Zeitraums** (`.kal-foot`, seit 03.09.2026).
-Vier Werte in einer Reihe, durch eine Trennlinie vom Gitter abgesetzt, in derselben
-Maximalbreite: Geplant · Im Ziel · Serie · Am Stück. Die Serie trägt die Flamme, die
+Drei Werte in einer Reihe, durch eine Trennlinie vom Gitter abgesetzt, in derselben
+Maximalbreite: Im Ziel · Serie · Am Stück. Die Serie trägt die Flamme, die
 Tagesserie ausdrücklich **nicht** — andere Einheit, andere Aussage (`docs/PRODUCT.md`).
 Fehlt eine Zahl (keine Zieldaten, Serie unter zwei Tagen), entfällt die Spalte ganz
-statt eine Null zu zeigen.
+statt eine Null zu zeigen; fehlen alle, entfällt der Fuß.
+
+**„Geplant" stand hier bis zum 04.09.2026 als vierte Kachel — und stand damit zweimal auf
+dem Schirm.** Die Zeile über dem Gitter (`.kal-note`) sagt bereits „18 von 30 Tagen
+geplant". Sie war zugleich der Grund, aus dem der Fuß missverständlich war: Neben ihr stand
+„Im Ziel 12/18 Tage" mit einem **anderen** Bezug — zwei Brüche nebeneinander, beide auf
+„Tage" endend, deren Nenner Verschiedenes zählen (die Tage des Zeitraums bzw. die geplanten
+Tage in Wochen mit Ziel).
+
+**Ein Bruch nennt seinen Bezug, wenn er nicht selbsterklärend ist.** „Im Ziel 12/18
+geplanten" statt „12/18 Tage" — das Wort steht dort, wo der Leser die Frage stellt, und
+nicht in einem Erklärsatz darunter (`CLAUDE.md` §6).
 
 **Das Gewichtsdiagramm führt eine Linie, nicht drei.** Die diagonale Ziellinie
 (`.wch-goal`) ist entfallen: Sie lief gestrichelt und gedämpft neben dem gleitenden

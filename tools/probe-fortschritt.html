@@ -212,6 +212,14 @@ pruefe("Tagesserie daneben", !!kfuss && /Am St/.test(kfuss.textContent),
        kfuss ? kfuss.textContent.replace(/\s+/g, " ").trim() : "kein Fuss");
 pruefe("die Flamme bleibt bei der Wochenserie",
        !!kfuss && kfuss.querySelectorAll("svg").length === 1);
+// Seit dem 04.09.2026 zaehlt der Fuss KEINE geplanten Tage mehr - die Zahl stand woertlich
+// schon in der Zeile ueber dem Gitter. Hier faehrt die echte App, also ist das der Ort, an
+// dem sich eine zurueckgekehrte Doppelung wirklich zeigen wuerde.
+var knote = doc.querySelector(".kal-note");
+pruefe("die geplanten Tage stehen ueber dem Gitter", !!knote && /geplant/.test(knote.textContent),
+       knote ? knote.textContent.replace(/\s+/g, " ").trim() : "keine Notiz");
+pruefe("und nicht noch einmal im Fuss", !!kfuss && !/Geplant/.test(kfuss.textContent),
+       kfuss ? kfuss.textContent.replace(/\s+/g, " ").trim() : "kein Fuss");
 melde("");
     melde("4. Die gemeinsame Zeitraumwahl bewegt beide Karten");
 // Der Kern von Konzept G: EIN Umschalter statt drei. Vorher trug der Kalender einen

@@ -3575,9 +3575,17 @@ Der Prüfstand maß bis dahin **nur die Tabelle**. Mit Konzept G kamen zwei Elem
 herum dazu — die Zeitraumwahl (`.zeitraum`) und der Kartenfuß (`.kal-foot`). Beide hätten
 überlaufen können, ohne dass eine Zeile rot wird. Befund des `kvp`-Agenten im Pushcheck.
 
-Zusätzlich gemessen wird jetzt das **Raster des Kartenfußes**: Vier Kennzahlen brauchen bei
-den real verbleibenden 283 px Kartenbreite je rund 70 px, und „57/76 Tage“ ist darin nicht
-mehr lesbar. Unter 560 px müssen es deshalb **zwei Spalten** sein, darüber vier.
+Zusätzlich gemessen wird jetzt das **Raster des Kartenfußes**: Drei Kennzahlen brauchen bei
+den real verbleibenden 283 px Kartenbreite je rund 94 px, und „12/18 geplanten“ ist darin
+nicht mehr lesbar. Unter 560 px müssen es deshalb **zwei Spalten** sein (bei drei Feldern
+also 2 + 1), darüber alle nebeneinander.
+
+⚠️ **Die Schwelle dieser Prüfung stand bis zum 04.09.2026 bei `fussFelder >= 4`** — der
+Zahl der damaligen Kennzahlen. Mit dem Wegfall der „Geplant"-Kachel sind es höchstens drei:
+Die Bedingung wäre nie wieder wahr geworden, und die Prüfung hätte sich **still selbst
+abgeschaltet**, ohne dass eine Zeile rot wird. Sie steht jetzt bei `>= 2`, und daneben prüft
+eine eigene Zeile, dass der Fuß überhaupt Kennzahlen trägt — ein leerer Fuß hätte die
+Spaltenprüfung sonst einfach übersprungen und wäre grün geblieben.
 
 ⚠️ **Das ist ein gestaltetes 2×2-Raster, kein zugelassener `flex-wrap`-Umbruch.** Der
 Unterschied ist sichtbar: Beim Umbruch stehen die Spalten der zweiten Zeile nicht unter

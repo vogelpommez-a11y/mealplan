@@ -103,13 +103,18 @@
     /* iOS zoomt Eingabefelder < 16px beim Fokus – das verhindern wir */
     input[type="text"], input[type="number"], input[type="email"], input[type="password"], input[type="search"], select, textarea { font-size: 16px; }
 
-    /* Kalenderfuss: ausdruecklich ZWEI Spalten statt vier (seit 03.09.2026).
+    /* Kalenderfuss: ausdruecklich ZWEI Spalten (seit 03.09.2026).
 
-       Gemessen bei 360 px bleiben der Karte real 283 px - vier Kennzahlen nebeneinander
-       waeren dort rund 70 px breit, und "57/76 Tage" passt in 70 px nicht mehr lesbar.
+       Gemessen bei 360 px bleiben der Karte real 283 px - drei Kennzahlen nebeneinander
+       waeren dort rund 94 px breit, und "12/18 geplanten" passt darin nicht mehr lesbar.
        Der Umbruch entstand ohnehin durch flex-wrap; hier wird er GESTALTET statt
-       zugelassen: ein sauberes 2x2-Raster mit gleicher Spaltenbreite, statt zweier
-       Zeilen, deren Spalten nicht untereinander stehen. */
+       zugelassen: gleiche Spaltenbreite, statt zweier Zeilen, deren Spalten nicht
+       untereinander stehen.
+
+       Seit dem 04.09.2026 sind es hoechstens drei Kennzahlen (die "Geplant"-Kachel stand
+       woertlich schon ueber dem Gitter), aus dem 2x2 wird also ein 2 + 1. Die dritte Zelle
+       steht dann unter der ersten - gewollt: Sie richtet sich an derselben Kante aus wie
+       die Zeile darueber, statt mittig zu schweben. */
     .kal-foot { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 10px; }
     .kal-f { min-width: 0; }
 

@@ -1433,19 +1433,24 @@ Jahresgrenze verstellt `state.viewYear` mit**, weil beide Karten sich dieses ein
 teilen; die Pfeile sind an den Rändern von `weightYears()` gesperrt, weil es dahinter
 garantiert nichts zu sehen gibt.
 
-**Der Kalenderfuß** (`.kal-foot`) trägt vier Kennzahlen, und sie hängen unterschiedlich am
+**Der Kalenderfuß** (`.kal-foot`) trägt drei Kennzahlen, und sie hängen unterschiedlich am
 Zeitraum:
 
 | Kennzahl | Quelle | Zeitraumabhängig? |
 |---|---|---|
-| Geplant | `geplant`/`tage` aus `kalGitterHtml()` bzw. der Summe der zwölf | ja |
 | Im Ziel | `zielQuote(year, mon, monat)` über `weekStats` | ja |
 | Serie | `wochenSerie()` | **nein** — eine Serie ist immer „bis heute“ |
 | Am Stück | `dayStreak()` | **nein**, aus demselben Grund |
 
-⚠️ **`kalJahrHtml()` muss `geplant` und `tage` mit zurückgeben.** Es summiert beide über
-die zwölf Monate; ohne sie im Rückgabeobjekt stünde im Jahr „0 von 0 Tagen“, während der
-Satz darüber die richtige Zahl nennt. Genau das ist beim Bau passiert.
+Trägt keine von ihnen einen Wert, entfällt der Fuß ganz — ein Kasten mit Überschriften und
+ohne Zahlen wäre schlechter als keiner. Die Bedingung lautet deshalb
+`(q.tage || serie || tage >= 2)`.
+
+**Die vierte Kennzahl „Geplant" ist am 04.09.2026 entfallen** (Begründung in
+`docs/DESIGN.md`: Sie stand wörtlich schon in `.kal-note` über dem Gitter). Damit hat
+`kalJahrHtml()` seinen einzigen Leser für `geplant`/`tage` verloren — beide sind aus seinem
+Rückgabeobjekt entfernt. **In `kalGitterHtml()` bleiben sie**: Von dort liest `kalJahrHtml()`
+sie je Monat für seine eigene Summe und für die Klartextzeile.
 
 **`zielQuote()` ordnet eine Woche über ihren DONNERSTAG einem Monat zu** — dieselbe
 ISO-Regel, nach der die Wochennummer vergeben wird. So zählt jede Woche im Jahr genau

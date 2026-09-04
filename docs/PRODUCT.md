@@ -1119,6 +1119,13 @@ Ort statt an dreien. Im Monat blättern die Pfeile monatsweise, im Jahr jahreswe
 demselben Bestand, den der Kalender darunter zeichnet. Serie und Ziel-Quote stehen jetzt
 im **Kalenderfuß**, an dem Gitter, das sie zusammenfasst.
 
+**Dieselbe Zahl steht nur an einer Stelle** (seit 04.09.2026). Der Fuß trug zunächst auch
+die Kennzahl „Geplant" — die Zeile über dem Gitter sagt aber bereits „18 von 30 Tagen
+geplant". Zwei Zahlen mit derselben Aussage auf einem Schirm sind Dichte ohne Nutzen, und
+sie machten die Nachbarzahl mehrdeutig: „Im Ziel 12/18" zählt gegen die geplanten Tage in
+Wochen **mit** Ziel, nicht gegen die Tage des Zeitraums. Deshalb ist „Geplant" aus dem Fuß
+genommen, und der verbleibende Bruch nennt seinen Bezug selbst („12/18 geplanten").
+
 **Was dabei verloren geht, und warum das vertretbar ist:** Der 8-Wochen-Balken war die
 einzige Stelle, an der ein zeitlicher *Verlauf* sichtbar war — nicht nur ein Zustand. Die
 Kennzahl „18 von 22 geplanten Tagen im Ziel“ sagt, *wie viel*, nicht *wohin es geht*.
