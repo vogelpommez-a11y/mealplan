@@ -57,6 +57,39 @@ var daten = {
   weightConsent: { given: true, at: Date.now(), version: 1 },
   weekStats: weekStats
 };
+// ============================================================================
+// NOTBREMSE: Diese Probe darf NIE in einem Browserprofil laufen, in dem ein
+// Cloud-Konto angemeldet ist.
+//
+// Am 04.09.2026 ist genau das passiert. Die Probe legt ihren Zustand in
+// `wochenkueche_v1__test` - denselben Speicher, den die App auf localhost benutzt.
+// Der `__test`-Suffix trennt den LOKALEN Speicher vom Alltagsstand, aber NICHT die
+// Cloud: Ist ein Konto angemeldet, startet die App im Cloud-Modus, vereinigt den
+// erfundenen Zustand mit dem echten Dokument und pusht ihn. Ergebnis waren 14
+// erfundene Archivwochen und zwei erfundene Wiegungen im echten Konto.
+//
+// Der Abbruch steht VOR dem ersten Schreibzugriff. Er kostet einen Satz Erklaerung
+// und verhindert einen Datenschaden, den man nur mit einer Sicherung wieder loswird -
+// und die hat man in dem Moment noch nicht.
+var angemeldet = Object.keys(localStorage).filter(function (k) {
+  return k.indexOf("firebase:authUser") === 0;
+});
+if (angemeldet.length) {
+  melde("ABBRUCH: In diesem Browserprofil ist ein Cloud-Konto angemeldet.");
+  melde("");
+  melde("Diese Probe schreibt Testdaten in wochenkueche_v1__test. Der __test-Suffix");
+  melde("trennt nur den lokalen Speicher, NICHT die Cloud - die App wuerde den");
+  melde("erfundenen Zustand mit dem echten Konto vereinigen und pushen.");
+  melde("");
+  melde("Richtig ist ein Browserprofil OHNE Anmeldung:");
+  melde("  1. Chrome mit eigenem --user-data-dir starten (tools/cdp.py legt eines an)");
+  melde("  2. dort NICHT anmelden");
+  melde("  3. diese Probe erneut oeffnen");
+  melde("");
+  melde("FEHLERZAHL=99");
+  throw new Error("Cloud-Konto angemeldet - Probe abgebrochen");
+}
+
 localStorage.setItem("wochenkueche_v1__test", JSON.stringify(daten));
 localStorage.setItem("wochenkueche_profile_v1__test", JSON.stringify({ name: "Testlauf", id: "lokal" }));
 melde("Zustand gelegt: " + Object.keys(weekStats).length + " Archivwochen, laufende Woche mit 5 Tagen.");
@@ -105,8 +138,24 @@ document.getElementById("host").appendChild(f);
     melde("Waagerechter Ueberlauf auf Home (Bezugswert): " + homeUeber + " px");
 
     var reiter = await warte(function(){ return f.contentDocument.querySelector('[data-tab="progress"]'); });
-    reiter.click();
-    await warte(function(){ return f.contentDocument.querySelector(".kal-grid"); }, 8000);
+    // EINMAL klicken genuegt nicht. Die Reiterleiste steht im statischen Markup und ist
+    // deshalb da, BEVOR die App ihre Handler gebunden hat - ein Klick in dieses Fenster
+    // faellt ins Leere, und danach wartet die Probe vergeblich auf das Gitter.
+    //
+    // Aufgefallen ist das am 04.09.2026, und zwar auf dem unangenehmsten Weg: Im lokalen
+    // Modus lief die Probe in "Zeit abgelaufen", im Profil MIT angemeldetem Konto dagegen
+    // durch - dort dauert der Start laenger, und der Klick kam spaet genug. Sie schien also
+    // zu funktionieren, ausgerechnet in dem Profil, in dem sie gar nicht laufen darf.
+    //
+    // Deshalb wird geklickt, bis der Kalender da ist, statt einmal zu klicken und zu hoffen.
+    var gitter = await warte(function(){
+      var doc0 = f.contentDocument;
+      var g = doc0.querySelector(".kal-grid");
+      if (g) return g;
+      var r = doc0.querySelector('[data-tab="progress"]');
+      if (r) r.click();
+      return null;
+    }, 12000);
     var doc = f.contentDocument;
     melde("");
     melde("1. Der Kalender steht im Fortschritt-Reiter (Monat ist der Standard)");
@@ -224,8 +273,16 @@ melde("");
     melde("4. Die gemeinsame Zeitraumwahl bewegt beide Karten");
 // Der Kern von Konzept G: EIN Umschalter statt drei. Vorher trug der Kalender einen
 // Monat/Jahr-Schalter UND eine Jahresleiste, die Gewichtskarte eine zweite Jahresleiste.
-pruefe("genau eine Zeitraumwahl im Reiter", doc.querySelectorAll(".week-switch").length === 1,
-       doc.querySelectorAll(".week-switch").length + " Umschalter");
+//
+// Gesucht wird `.kal-seg` - seit dem 03.09.2026 die Optik dieses Umschalters. Bis zum
+// 04.09.2026 stand hier `.week-switch`, das Muster aus dem Wochenplan: Die Zeile meldete
+// "0 Umschalter" und damit ROT, obwohl der Umschalter einwandfrei dasteht. Ein Pruefer mit
+// veralteten Fakten (CLAUDE.md 18a) - hier ausnahmsweise der laute Fall, er faellt auf.
+pruefe("genau eine Zeitraumwahl im Reiter", doc.querySelectorAll(".kal-seg").length === 1,
+       doc.querySelectorAll(".kal-seg").length + " Umschalter");
+// Und sie traegt zwei Haelften, nicht mehr: Monat | Jahr.
+pruefe("mit genau zwei Haelften", doc.querySelectorAll(".kal-seg [role=tab]").length === 2,
+       doc.querySelectorAll(".kal-seg [role=tab]").length + " Knoepfe");
 var nav = doc.querySelectorAll(".zeitraum .kal-nb");
 pruefe("Blaetterpfeile vorhanden", nav.length === 2, nav.length + " Pfeile");
 var vorher = doc.querySelector(".kal-nm").textContent;
@@ -247,6 +304,40 @@ melde("");
     var tip = f.contentDocument.querySelector(".kal-tip");
     // Der Tipp nennt seit dem Umbau ein DATUM, keine Kalenderwoche: die Zelle ist ein Tag.
     pruefe("Tipp beschriftet", tip && /\w+, \d{2}\.\d{2}\.\d{4} · /.test(tip.textContent), tip ? tip.textContent : "-");
+
+    melde("");
+    melde("6. Der Verlauf ist auch MIT Einwilligung erreichbar");
+    // TROUBLESHOOTING 148: openWeighForm(true) - die Liste der Messungen samt
+    // Loeschknoepfen - hatte bis zum 04.09.2026 genau einen Aufrufer, und der stand in
+    // weightConsentHtml(), also im Zustand OHNE Einwilligung. Wer sie erteilt hatte (der
+    // Normalfall, sobald ueberhaupt gewogen wird), kam an seine Eintraege nicht mehr heran.
+    //
+    // Diese Probe ist der richtige Ort dafuer: Sie faehrt die VOLLE App mit erteilter
+    // Einwilligung (siehe weightConsent oben). Ein Ausschneide-Pruefstand haette den
+    // Menue-Aufbau nachbauen muessen - und genau das Nachbauen verdeckt den Fehler.
+    var dd = f.contentDocument;
+    var mehr = dd.querySelector('[data-action="weight-menu"]');
+    pruefe("der ⋯-Knopf ist da", !!mehr);
+    if (mehr) {
+      mehr.dispatchEvent(new f.contentWindow.MouseEvent("click", { bubbles: true }));
+      var eintraege = [].slice.call(dd.querySelectorAll(".menu [role=menuitem]"))
+        .map(function (b) { return b.textContent.replace(/\s+/g, " ").trim(); });
+      pruefe("das Menue nennt 'Verlauf verwalten'",
+             eintraege.some(function (t) { return /Verlauf verwalten/.test(t); }),
+             eintraege.join(" | ") || "kein Menue");
+      var mi = [].slice.call(dd.querySelectorAll(".menu [role=menuitem]"))
+        .filter(function (b) { return /Verlauf verwalten/.test(b.textContent); })[0];
+      if (mi) {
+        mi.dispatchEvent(new f.contentWindow.MouseEvent("click", { bubbles: true }));
+        var dlg = dd.querySelector(".modal.wiegen");
+        pruefe("und oeffnet die Liste", !!dlg && /Verlauf verwalten/.test(dlg.textContent),
+               dlg ? dlg.textContent.replace(/\s+/g, " ").trim().slice(0, 60) : "kein Dialog");
+        // Der Punkt der ganzen Uebung: Es muss LOESCHBAR sein, nicht nur sichtbar.
+        pruefe("mit einem Loeschknopf je Eintrag",
+               !!dlg && dlg.querySelectorAll("[data-del]").length === 2,
+               dlg ? dlg.querySelectorAll("[data-del]").length + " Loeschknoepfe" : "-");
+      }
+    }
 
     melde("");
     melde(fehler === 0 ? "ERGEBNIS: alle Pruefungen gruen." : "ERGEBNIS: " + fehler + " ROT.");

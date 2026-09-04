@@ -3722,6 +3722,29 @@ mit erteilter Einwilligung über die UI nicht erreichbar.**
 
 ## `tools/probe-fortschritt.html` — die Abnahme in der echten App (30.08.2026)
 
+> ⚠️ **Nur in einem Browserprofil OHNE angemeldetes Konto.** Die Probe legt ihren Zustand in
+> `wochenkueche_v1__test`. Der `__test`-Suffix trennt den **lokalen** Speicher, **nicht die
+> Cloud**: Ist ein Konto angemeldet, startet die App im Cloud-Modus und vereinigt den
+> erfundenen Zustand mit dem echten Dokument. Am 04.09.2026 sind so 14 erfundene
+> Archivwochen und zwei Wiegungen in ein echtes Konto gelangt
+> (`docs/TROUBLESHOOTING.md` 150). Seither bricht die Probe von selbst ab, wenn sie einen
+> `firebase:authUser`-Schlüssel findet — **vor** dem ersten Schreibzugriff.
+
+**Sie läuft im sichtbaren Browser, nicht headless.** Unter `--headless=new` mit
+`--virtual-time-budget` meldet sie „Zeit abgelaufen": Ihre Warteschleifen messen mit
+`Date.now()`, und die virtuelle Uhr läuft schneller, als die App startet. Der Weg ist
+`tools/cdp.py start` mit einem eigenen, konto-freien `--user-data-dir` und dann
+`python tools/cdp.py eval "document.querySelector('#out').textContent"`.
+
+**Sie klickt in der Warteschleife, nicht einmal.** Die Reiterleiste steht im statischen
+Markup und existiert, bevor die App ihre Handler gebunden hat — ein einzelner Klick fällt
+im lokalen Modus ins Leere. Genau daran ist sie wochenlang gescheitert, während sie im
+angemeldeten Profil durchlief; siehe TROUBLESHOOTING 150.
+
+**Abschnitt 6 sichert TROUBLESHOOTING 148** („Verlauf verwalten" im ⋯-Menü). Die Gegenprobe
+ist ein `git worktree` auf den Stand davor plus zweiter Server: Dort meldet genau diese
+Zeile rot und nennt den Grund — „Jahresziel setzen | Einwilligung widerrufen".
+
 Prüfstände messen ausgeschnittene Funktionen. Diese Seite lädt die **vollständige** App in
 einem iframe, legt vorher einen fertigen Zustand ins `localStorage` und klickt sich in den
 Fortschritt-Reiter — Reihenfolge der Karten, gefüllte laufende Woche, Jahr-Umschalter über

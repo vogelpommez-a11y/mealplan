@@ -5255,6 +5255,10 @@
     // Widerruf loescht keine Bestandsdaten (siehe weightConsentRevokeModal/Ziffer 3b) - das
     // Recht, sie einzusehen und einzeln zu loeschen, darf deshalb nicht an der Einwilligung
     // haengen. Nur "Gewicht eintragen" (neue Erfassung) ist an sie gebunden.
+    //
+    // Dieser Knopf ist der Weg OHNE Einwilligung. Mit Einwilligung fuehrt er ueber das
+    // ⋯-Menue (toggleWeightMenu) - bis zum 04.09.2026 fehlte er dort, und damit gab es den
+    // Zugang nur, solange man die Einwilligung NICHT erteilt hatte (TROUBLESHOOTING 148).
     const hasData = (state.weights || []).length > 0;
     return `<div class="wg-col wch">
         <div class="wch-head">
@@ -5523,12 +5527,19 @@
     // Erst die Daten, dann das Markup - gleiche Reihenfolge wie im Band, damit die
     // Klartextzeile ueber demselben Bestand steht, den das Gitter zeichnet.
     const zellen = [];
-    let geplant = 0;
+    let geplant = 0, ohneAngabe = 0;
     for (let i = 0; i < vorlauf; i++) zellen.push(null);
     for (let t = 1; t <= tage; t++) {
       const d = new Date(jahr, mon, t);
       const st = kalTagStatus(d);
       if (st === "on") geplant++;
+      // "unk" heisst: Die Woche WURDE geplant, nur an welchen Tagen ist nicht
+      // aufgezeichnet (vor dem 29.08.2026 archiviert, kein `d` im Datensatz). Diese Tage
+      // mitzuzaehlen waere falsch - sie zu verschweigen aber auch, und genau das tat die
+      // Klartextzeile bis zum 04.09.2026: Sie meldete "Noch kein geplanter Tag", waehrend
+      // das Gitter sieben graue Zellen zeigte und der Kartenfuss "Im Ziel 2/4 geplanten"
+      // (TROUBLESHOOTING 149). Deshalb eine eigene Zahl statt einer Aufrundung.
+      else if (st === "unk") ohneAngabe++;
       zellen.push({ t: t, st: st, iso: jahr + "-" + String(mon + 1).padStart(2, "0") + "-" + String(t).padStart(2, "0") });
     }
     while (zellen.length % 7 !== 0) zellen.push(null);
@@ -5538,10 +5549,17 @@
     // sieht, bekommt hier den ganzen Zusammenhang. `notiz` steht sichtbar direkt UNTER der
     // Navigationszeile, die den Monat schon nennt; ihn dort zu wiederholen waere genau der
     // Erklaersatz, den CLAUDE.md Abschnitt 6 nicht will.
-    const satz = geplant
-      ? `${KAL_MON_LANG[mon]} ${year}: ${geplant} von ${tage} Tagen geplant`
+    // Der Zusatz nennt die Tage, ueber die es einen Datensatz gibt, aber keine Tagesangabe.
+    // Er steht nur da, wenn es sie gibt - im Normalfall (alles seit dem 29.08.2026) bleibt
+    // die Zeile unveraendert kurz.
+    const zusatz = ohneAngabe ? `${ohneAngabe} Tage ohne Tagesangabe` : "";
+    const kern = geplant ? `${geplant} von ${tage} Tagen geplant` : "";
+    const satz = (kern || zusatz)
+      ? `${KAL_MON_LANG[mon]} ${year}: ${[kern, zusatz].filter(Boolean).join(" · ")}`
       : `${KAL_MON_LANG[mon]} ${year}: noch kein geplanter Tag.`;
-    const notiz = geplant ? `${geplant} von ${tage} Tagen geplant` : "Noch kein geplanter Tag.";
+    const notiz = (kern || zusatz)
+      ? [kern, zusatz].filter(Boolean).join(" · ")
+      : "Noch kein geplanter Tag.";
 
     // Der Einstieg fuer die Tastatur ist "heute"; liegt heute nicht in diesem Monat, der
     // Monatserste. Genau EIN Tabstopp, in ihm bewegen die Pfeiltasten (initKalender).
@@ -5584,6 +5602,7 @@
       satz: satz,
       notiz: notiz,
       geplant: geplant,
+      ohneAngabe: ohneAngabe,
       tage: tage,
       tabelle: `<table class="kal-grid${mini ? " mini" : " monat"}" data-year="${year}" data-mon="${mon}" aria-describedby="kal-hilfe">
             ${caption}
@@ -5720,11 +5739,12 @@
   // Die Jahreszahl steht NICHT an jedem Gitter: sie steht einmal im Umschalter darueber.
   // Zwoelfmal "2026" waere Fuellung, kein Hinweis.
   function kalJahrHtml(year) {
-    let geplant = 0, tage = 0;
+    let geplant = 0, tage = 0, ohneAngabe = 0;
     const gitter = [];
     for (let m = 0; m < 12; m++) {
       const g = kalGitterHtml(year, m, true);
       geplant += g.geplant;
+      ohneAngabe += g.ohneAngabe;
       tage += g.tage;
       gitter.push(g.tabelle);
     }
@@ -5733,10 +5753,17 @@
     // Spalte eine Woche war; hier ist eine Zelle ein Tag, und zwei verschiedene Einheiten
     // fuer dieselbe Karte waeren nur verwirrend. Der Monat sagt "18 von 31 Tagen", das
     // Jahr sagt es im selben Vokabular.
-    const satz = geplant
-      ? `${year}: ${geplant} von ${tage} Tagen geplant`
+    // Derselbe Zusatz wie im Monat (TROUBLESHOOTING 149): Tage, ueber die es einen
+    // Datensatz gibt, aber keine Tagesangabe. Im Jahr faellt er staerker ins Gewicht -
+    // wer seit 2025 plant, hat dort ganze Monate ohne Maske.
+    const zusatz = ohneAngabe ? `${ohneAngabe} Tage ohne Tagesangabe` : "";
+    const kern = geplant ? `${geplant} von ${tage} Tagen geplant` : "";
+    const satz = (kern || zusatz)
+      ? `${year}: ${[kern, zusatz].filter(Boolean).join(" · ")}`
       : `${year}: noch kein geplanter Tag.`;
-    const notiz = geplant ? `${geplant} von ${tage} Tagen geplant` : "Noch kein geplanter Tag.";
+    const notiz = (kern || zusatz)
+      ? [kern, zusatz].filter(Boolean).join(" · ")
+      : "Noch kein geplanter Tag.";
 
     return {
       satz: satz,
@@ -10532,14 +10559,27 @@
     const open = wrap.querySelector(".menu");
     if (open) { closeMenuNode(open); return; }
     const hatZiel = (state.weightGoals || {})[activeYear()] != null;
+    // "Verlauf verwalten" gehoert HIERHER - und stand bis zum 04.09.2026 nicht drin.
+    //
+    // Der Eintrag ist der einzige Weg zur Liste der Messungen samt Loeschknoepfen
+    // (openWeighForm(true)). Sein bis dahin einziger Aufrufer stand in
+    // weightConsentHtml(), also im Zustand OHNE Einwilligung - wer sie erteilt hatte,
+    // kam an seine Eintraege nicht mehr heran. Gefunden in der Browser-Abnahme,
+    // TROUBLESHOOTING 148.
+    //
+    // Nur mit Daten: Ein Menuepunkt, der eine leere Liste oeffnet, ist eine Sackgasse.
+    const hatDaten = (state.weights || []).length > 0;
     const menu = el(`<div class="menu" role="menu">
       <button data-mi="goal" role="menuitem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.5"/></svg>${hatZiel ? "Ziel ändern" : "Jahresziel setzen"}</button>
+      ${hatDaten ? `<button data-mi="manage" role="menuitem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>Verlauf verwalten</button>` : ""}
       <hr>
       <button data-mi="consent-out" class="destructive" role="menuitem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5M21 12H9"/></svg>Einwilligung widerrufen</button>
     </div>`);
     wrap.appendChild(menu);
     const close = attachMenuDismiss(menu, btn);
     menu.querySelector("[data-mi='goal']").addEventListener("click", () => { close(false); openWeightGoalForm(); });
+    const manageBtn = menu.querySelector("[data-mi='manage']");
+    if (manageBtn) manageBtn.addEventListener("click", () => { close(false); openWeighForm(true); });
     const outBtn = menu.querySelector("[data-mi='consent-out']");
     if (outBtn) outBtn.addEventListener("click", () => { close(false); weightConsentRevokeModal(); });
   }

@@ -5653,6 +5653,13 @@ ohne erreichbaren Einstieg zurück.
 Zielort auch entsteht — im **Zustand des Normalfalls**, nicht im Ausnahmezustand, in dem der
 alte Knopf noch steht.
 
+✅ **Behoben am 04.09.2026.** `toggleWeightMenu()` baut den Eintrag „Verlauf verwalten" jetzt
+selbst, sobald es Messungen gibt (`hatDaten`) — ein Menüpunkt auf eine leere Liste wäre eine
+Sackgasse. Gesichert durch `tools/probe-fortschritt.html` Abschnitt 6, der in der **echten
+App mit erteilter Einwilligung** das Menü öffnet, den Eintrag klickt und die Löschknöpfe
+zählt. Die Gegenprobe gegen den Stand davor meldet ihn wörtlich: „Jahresziel setzen |
+Einwilligung widerrufen".
+
 ## 149. Die Zeile über dem Gitter sagt „kein geplanter Tag", während der Fuß vier zählt
 
 **Gefunden am 04.09.2026** in derselben Abnahme, im April 2026 eines Testkontos mit einer
@@ -5676,3 +5683,54 @@ Unterschied bildet das Gitter mit dem neutralen Zustand ja bereits ab (`kalWoche
 
 **Betroffen ist jeder Bestandsnutzer**, der vor dem 29.08.2026 geplant hat — nicht ein
 Randfall der Testdaten.
+
+✅ **Behoben am 04.09.2026.** `kalGitterHtml()` zählt die neutralen Zellen jetzt als eigene
+Größe (`ohneAngabe`) und hängt sie an die Klartextzeile: „18 von 30 Tagen geplant · 7 Tage
+ohne Tagesangabe", bzw. allein, wenn es keine bekannten Tage gibt. `kalJahrHtml()` summiert
+sie über die zwölf Monate. **Nicht** zu `geplant` addiert — das wären erfundene Tage; gezählt
+wird, was das Gitter zeigt. Gesichert durch `pruefstand-kalender.py` Abschnitt 14c mit der
+dritten Gegenprobe `--gegenprobe-notiz`, die den Zusatz wieder entfernt und drei rote Zeilen
+liefert.
+
+## 150. Eine Probe im angemeldeten Browserprofil schreibt in ein echtes Konto
+
+**Passiert am 04.09.2026.** `tools/probe-fortschritt.html` wurde in dem Chrome-Profil
+gefahren, in dem ein echtes Cloud-Konto angemeldet war. Ergebnis: **14 erfundene
+Archivwochen und zwei erfundene Wiegungen im echten Firestore-Dokument.**
+
+**Warum das nicht offensichtlich ist.** Die Probe schreibt in `wochenkueche_v1__test`, und
+der `__test`-Suffix fühlt sich nach einer Sandbox an. Er trennt aber nur den **lokalen**
+Speicher der localhost-Herkunft vom Alltagsstand — **die Cloud trennt er nicht** (das steht
+so schon im Abschnitt zu `cdp.py`, und genau darüber bin ich trotzdem gestolpert). Ist ein
+Konto angemeldet, startet die App im Cloud-Modus und vereinigt den gelegten Zustand mit dem
+echten Dokument. `mergeWeekStats()` ist auf **Vereinigung** ausgelegt: Die erfundenen Wochen
+kamen zu den echten Daten hinzu, statt sie zu ersetzen — das ist der Grund, warum Ziel,
+Zielgewicht, Rezepte und Pläne unversehrt blieben.
+
+**Die Reparatur** lief über `CloudSync.save(uid, { weekStats, weights })`. Die Funktion
+schreibt mit `mergeFields` und rührt deshalb nur diese beiden Felder an. Erkennbar waren die
+Testdaten an ihrer Signatur (`kcal: 1900, days: 7, hit: 5, target: 1950` bzw. die Gewichte
+84/82 kg). Danach: lokal leeren, App neu laden, gegenlesen — was dann erscheint, kommt
+nachweislich aus der Cloud.
+
+**Was dabei nicht mehr zu beweisen war:** ob vor dem Vorfall echte Archivwochen existierten.
+Die Sicherung entstand erst **danach**. Dafür spricht nichts (die 14 Schlüssel entsprachen
+exakt dem Muster der Probe, dazwischen klaffte eine Lücke von sieben Wochen), aber ein Beweis
+ist das nicht. **Die Sicherung gehört vor den ersten Schreibzugriff, nicht hinter den ersten
+Verdacht.**
+
+**Die Notbremse steht jetzt in der Probe selbst.** Sie prüft vor dem ersten
+`localStorage.setItem`, ob ein `firebase:authUser`-Schlüssel existiert, und bricht mit einer
+Anleitung ab. Ein Kommentar allein hätte es nicht getan — der stand sinngemäß längst da.
+
+### Und der Grund, aus dem es überhaupt zu diesem Lauf kam
+
+Die Probe **brach im lokalen Modus ab** („Zeit abgelaufen") und lief ausgerechnet im
+angemeldeten Profil durch. Der Unterschied: Sie klickte den Reiter `[data-tab="progress"]`
+**einmal**, sobald er im DOM steht. Die Reiterleiste gehört zum statischen Markup und ist
+deshalb da, **bevor** die App ihre Handler gebunden hat — im lokalen Modus fällt der Klick
+ins Leere, im Cloud-Modus dauert der Start länger und er kommt spät genug.
+
+Eine Probe, die nur dort funktioniert, wo sie nicht laufen darf, ist eine Falle mit Anlauf.
+Sie klickt jetzt in der Warteschleife, bis das Gitter erscheint. **Ein `.click()` auf ein
+Element, das schon existiert, beweist nicht, dass es schon hört.**

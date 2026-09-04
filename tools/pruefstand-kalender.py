@@ -557,6 +557,43 @@ pruefe("keine zweite Geplant-Kennzahl im Fuss", !/Geplant/.test(fuss.textContent
 state.kalMode = "monat";
 
 melde("");
+melde("");
+melde("14c. Eine Woche OHNE Tagesmaske verschwindet nicht aus der Klartextzeile");
+// TROUBLESHOOTING 149: Bis zum 04.09.2026 meldete die Zeile ueber dem Gitter "Noch kein
+// geplanter Tag", waehrend darunter sieben graue Zellen standen und der Fuss "Im Ziel 2/4
+// geplanten" zeigte. kalGitterHtml() zaehlt ueber die Tagesbits - eine Woche ohne `d`
+// liefert dort nichts, obwohl ihr `days` bekannt ist.
+//
+// Geprueft wird im Monat des DONNERSTAGS jener Woche: Ueber ihn wird eine Woche einem
+// Monat zugeordnet (ISO), und eine Woche ueber der Monatsgrenze laege sonst je nach
+// heutigem Datum im Nachbarmonat - der Test haenge dann am Kalender statt an der Sache.
+var altWoche = tagVor(21);
+var don = new Date(altWoche); don.setDate(don.getDate() + (4 - (don.getDay() || 7)));
+state.plans = {};
+state.weekStats = {};
+state.weekStats[wkVon(altWoche)] = { kcal: 2200, days: 4, hit: 2, target: 2400 };  // kein d
+state.kalMode = "monat"; state.kalMonth = don.getMonth(); state.viewYear = don.getFullYear();
+view.innerHTML = kalenderHtml();
+var notiz = view.querySelector(".kal-note");
+var unk = view.querySelectorAll("td.kal-t.unk").length;
+pruefe("das Gitter zeichnet die Woche neutral", unk === 7, unk + " neutrale Zellen");
+pruefe("die Zeile behauptet NICHT 'kein geplanter Tag'", !/[Kk]ein geplanter Tag/.test(notiz.textContent),
+       notiz.textContent.replace(/\\s+/g, " ").trim());
+pruefe("sie nennt die Tage ohne Tagesangabe", /ohne Tagesangabe/.test(notiz.textContent),
+       notiz.textContent.replace(/\\s+/g, " ").trim());
+// Die Zahl darf nicht erfunden sein: gezaehlt werden die ZELLEN, ueber die es einen
+// Datensatz ohne Tagesangabe gibt - nicht `days` (4), das eine andere Aussage ist.
+pruefe("und zwar so viele, wie das Gitter zeigt", new RegExp(unk + " Tage ohne Tagesangabe").test(notiz.textContent),
+       notiz.textContent.replace(/\\s+/g, " ").trim());
+// Gegenprobe im selben Lauf: Ein Monat OHNE solche Woche bleibt bei der kurzen Zeile.
+state.weekStats = {};
+state.kalMonth = don.getMonth();
+view.innerHTML = kalenderHtml();
+pruefe("ohne solche Woche bleibt die Zeile kurz",
+       /[Kk]ein geplanter Tag/.test(view.querySelector(".kal-note").textContent)
+       && !/ohne Tagesangabe/.test(view.querySelector(".kal-note").textContent),
+       view.querySelector(".kal-note").textContent.replace(/\\s+/g, " ").trim());
+
 melde("15. Tastatur im Monatsgitter: Fuellzellen werden uebersprungen");
 state.kalMode = "monat"; state.kalMonth = heute.getMonth();
 view.innerHTML = kalenderHtml();
@@ -631,6 +668,14 @@ def lauf(gegenprobe=None):
         if n != 1:
             raise SystemExit("ABBRUCH: kalWoche() nicht ersetzbar - Gegenprobe misst nichts.")
         kal = neu
+    elif gegenprobe == "notiz":
+        # Stellt den Stand vor dem 04.09.2026 her: die Klartextzeile kennt nur die
+        # Tagesbits. Abschnitt 14c muss damit durchfallen, alles andere gruen bleiben.
+        neu, n = re.subn(r'const zusatz = ohneAngabe \? `\$\{ohneAngabe\} Tage ohne Tagesangabe` : "";',
+                         'const zusatz = "";', kal, count=2)
+        if n != 2:
+            raise SystemExit("ABBRUCH: zusatz nicht ersetzbar (%d von 2) - Gegenprobe misst nichts." % n)
+        kal = neu
     elif gegenprobe == "monat":
         neu, n = re.subn(r"  function kalTagStatus\(d\) \{.*?\n  \}\n", NAIV_MONAT, kal, count=1, flags=re.S)
         if n != 1:
@@ -668,7 +713,10 @@ if __name__ == "__main__":
     # verstellt die gemeinsame Quelle (kalWoche) und muss Band UND Monat umwerfen,
     # --gegenprobe-monat verstellt nur die Tageslesart und darf ausschliesslich die
     # Monatszeilen treffen.
-    if "--gegenprobe-monat" in sys.argv:
+    if "--gegenprobe-notiz" in sys.argv:
+        gp = "notiz"
+        kopf = "GEGENPROBE (Klartextzeile ohne Zusatz) - Abschnitt 14c MUSS durchfallen"
+    elif "--gegenprobe-monat" in sys.argv:
         gp = "monat"
         kopf = "GEGENPROBE (kalTagStatus liest den Monatstag) - die MONATSZEILEN muessen durchfallen"
     elif "--gegenprobe" in sys.argv:
