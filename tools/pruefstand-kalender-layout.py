@@ -21,8 +21,10 @@ drin.** Die Kartenschale `.wg-col` hat `overflow: hidden`; ein zu breites Gitter
 gar nicht ueber das Dokument, es wird lautlos abgeschnitten. Die Gegenprobe war deshalb
 zunaechst gruen - der Pruefstand mass eine Zahl, die dieser Fehler nie beruehrt.
 
-Dazu die Zellbreite: In beiden Ansichten muss eine ZAHL lesbar bleiben - 30 px im
-Monatsgitter (Zahl plus Haken), 14 px im Mini-Gitter des Jahres (Zahl auf der Flaeche).
+Dazu die Zellgroesse - Breite UND Hoehe. In beiden Ansichten muss eine ZAHL lesbar
+bleiben (30 px im Monatsgitter, Zahl plus Haken), und in beiden ist die Zelle ein
+Tastziel: sie nimmt Klick, Hover und Fokus an. Deshalb gilt im Jahr seit dem 04.09.2026
+die WCAG-2.5.8-Grenze von 24 x 24 px statt der frueheren 14 px Lesbarkeitsgrenze.
 Das faenge eine reine Ueberlaufpruefung NICHT - deshalb steht sie daneben.
 
 Seit dem 30.08.2026 ist die Jahresansicht kein 7x53-Band mehr, sondern zwoelf
@@ -188,11 +190,16 @@ function messe(breite, dunkel, modus, kaputt, fertig){
     var zelle = d.querySelector("td.kal-t:not(.pad)");
     var ovx = d.defaultView.getComputedStyle(wrap).overflowX;
     var zb = zelle ? zelle.getBoundingClientRect().width : 0;
+    // Die HOEHE gehoert dazu, seit die Zelle als Tastziel gemessen wird (04.09.2026):
+    // Ein Ziel von 31 x 23 px erfuellt WCAG 2.5.8 nicht, und die Breite allein haette
+    // das nie gezeigt - im Mini-Gitter ist die Hoehe die kleinere Kante.
+    var zh = zelle ? zelle.getBoundingClientRect().height : 0;
     fertig({
       breite: breite, dunkel: dunkel, monat: monat,
       dokUeber: de.scrollWidth - de.clientWidth,
       tabUeber: tab.scrollWidth - tab.clientWidth,
       ovx: ovx, zellBreite: Math.round(zb * 100) / 100,
+      zellHoehe: Math.round(zh * 100) / 100,
       istBreite: de.clientWidth,
       // Die entscheidende Zahl. Die Karte (.wg-col) hat overflow: hidden - ein zu breites
       // Band laeuft deshalb NICHT ueber das Dokument, es wird still abgeschnitten. Wer nur
@@ -243,7 +250,7 @@ function weiter(){
   var r = reihe[i++];
   messe(r[0], r[1], r[2], kaputt, function(m){
     melde("");
-    melde(m.breite + " px " + (m.dunkel ? "dunkel" : "hell") + " " + (m.monat ? "Monat" : "Jahr ") + "  (soll=" + m.breite + " ist=" + m.istBreite + ", Zelle " + m.zellBreite + " px)");
+    melde(m.breite + " px " + (m.dunkel ? "dunkel" : "hell") + " " + (m.monat ? "Monat" : "Jahr ") + "  (soll=" + m.breite + " ist=" + m.istBreite + ", Zelle " + m.zellBreite + " x " + m.zellHoehe + " px)");
     pruefe("kein waagerechter Ueberlauf im Dokument", m.dokUeber <= 0, "ueber: " + m.dokUeber + " px");
     pruefe("Gitter passt in die Karte (wird nicht abgeschnitten)", m.ausKarte <= 0.5, "ueber die Karte hinaus: " + m.ausKarte + " px");
     pruefe("Tabelle laeuft nicht ueber ihre Zelle hinaus", m.tabUeber <= 0, "ueber: " + m.tabUeber + " px");
@@ -260,11 +267,21 @@ function weiter(){
     // Zwei Untergrenzen, weil in beiden Ansichten eine ZAHL lesbar bleiben muss - seit
     // dem Wegfall des Bandes liegen sie deshalb nah beieinander. Im Monatsgitter kommt
     // das Haken-Symbol neben die zweistellige Zahl, im Mini-Gitter traegt die Flaeche
-    // hinter ihr den Zustand; dort genuegen 14 px. Vorher standen hier 2 px - die Grenze
-    // eines Bandstrichs, der keine Zahl zu tragen hatte.
-    var minZelle = m.monat ? 30 : 14;
+    // hinter ihr den Zustand.
+    //
+    // Im Jahr sind aus 14 px am 04.09.2026 24 px geworden - nicht wegen der Lesbarkeit,
+    // sondern weil jede Zelle ein TASTZIEL ist: Sie nimmt Klick, Hover und Fokus an und
+    // schreibt ihren Wert in die Tipp-Zeile. WCAG 2.5.8 (AA) verlangt dafuer 24 x 24 px.
+    // Gemessen wurde vorher auf 768 px eine Zelle von 21,25 x 23 px.
+    //
+    // BEIDE Kanten werden geprueft. Die Breite haengt an der Spaltenzahl des Grids, die
+    // Hoehe an einem eigenen clamp() - eine Aenderung an nur einer der beiden Stellen
+    // haette die andere Kante still unter die Grenze fallen lassen.
+    var minZelle = m.monat ? 30 : 24;
     pruefe("Zellen bleiben sichtbar (>= " + minZelle + " px)", m.zellBreite >= minZelle,
            "Zellbreite: " + m.zellBreite + " px");
+    pruefe("Zellen sind hoch genug zum Antippen (>= " + minZelle + " px)", m.zellHoehe >= minZelle,
+           "Zellhoehe: " + m.zellHoehe + " px");
     // Nach oben ebenfalls gedeckelt: ohne Grenze zoege das Gitter auf dem Rechner die
     // ganze Kartenbreite auseinander und saehe aus wie ein Wandkalender.
     if (m.monat) pruefe("Zellen bleiben handlich (<= 70 px)", m.zellBreite <= 70,

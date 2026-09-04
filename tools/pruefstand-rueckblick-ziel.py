@@ -1,13 +1,17 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Pruefstand: Wochen OHNE eigenes Ziel duerfen im Rueckblick nicht auftauchen.
+"""Pruefstand: Wochen OHNE eigenes Ziel duerfen in der Ziel-Quote nicht auftauchen.
 
 Der Fehler, gegen den er gebaut ist (Paket 6, B4)
 -------------------------------------------------
 Seit `archiveWeek()` auch ohne Ziel archiviert (B2), entstehen Archivwochen ohne `target`.
-`rueckblickHtml()` fiel dafuer auf `avgDailyTargetToday()` zurueck - mass eine zielfreie
+Der Rueckblick fiel dafuer auf `avgDailyTargetToday()` zurueck - mass eine zielfreie
 Woche also am HEUTIGEN Ziel - und schrieb "0 von 5 Tagen im Ziel" fuer eine Woche, in der
 es gar kein Ziel gab. Eine falsche Aussage, keine fehlende.
+
+Der Rueckblick selbst ist am 04.09.2026 geloescht (Konzept G, Stufe 2). Die ZUSICHERUNG
+ist geblieben und liegt heute in `zielQuote()`, deren Zahl im Kalenderfuss steht - deshalb
+wandert dieser Pruefstand mit, statt mit dem Balken zu verschwinden.
 
 Sichtbar auf dem normalen Weg: erst ein paar Wochen planen, spaeter das erste Ziel setzen.
 
@@ -79,7 +83,6 @@ var state = { weekStats: {}, plans: {}, goal: { kcal: 2000 } };
 function nfmt(n){ return String(Math.round(n)); }
 function esc(s){ return String(s).replace(/[&<>"']/g, function(c){
   return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]; }); }
-function weekKwLabel(k){ return "KW " + k.slice(-2); }
 function weekKeyFor(){ return "2026-W99"; }        // aktuelle Woche: absichtlich leer
 function isoWeekKey(){ return "2026-W98"; }        // Streak laeuft damit ins Leere
 function dayNutOf(){ return null; }
@@ -90,10 +93,16 @@ function hasNut(){ return false; }
 // die Serie: ohne Bits ist sie 0, und die zweite Kennzahl entfaellt. Wer die Serie messen
 // will, nimmt tools/pruefstand-kalender.py.
 function kalWoche(){ return null; }
+// dayStreak() lag bis zum 04.09.2026 im zweiten Schnitt (dem Rueckblick-Block) und
+// faellt seit dessen Loeschung unter die Attrappen. Ohne Bits ist die Tagesserie 0,
+// die Kennzahl "Am Stueck" entfaellt damit im Fuss - gemessen wird hier die Quote.
+function dayStreak(){ return 0; }
 
 // HEUTIGES Ziel - genau der Wert, mit dem die alte Fassung faelschlich gemessen hat.
+// Er steht hier weiter als Attrappe, obwohl avgDailyTargetToday() am 04.09.2026 mit dem
+// Rueckblick geloescht wurde: Der Fehler, gegen den dieser Pruefstand gebaut ist, war
+// genau dieser Rueckfall aufs heutige Ziel.
 var HEUTE_ZIEL = 2000;
-function avgDailyTargetToday(){ return HEUTE_ZIEL; }
 function goalTargetsForDay(){ return { kcal: HEUTE_ZIEL }; }
 // Seit dem 03.09.2026 laeuft die Pruefung ueber den Kartenfuss des Kalenders mit - dafuer
 // braucht kalenderHtml() diese Helfer. Alle stumm gehalten: Gemessen wird der Ziel-Filter,
@@ -119,8 +128,8 @@ __CODE__
 </script>
 
 <script>
-if (typeof rueckblickHtml !== "function") {
-  melde("ABBRUCH: rueckblickHtml() ist nicht definiert - der Codeblock hat nicht geladen.");
+if (typeof zielQuote !== "function") {
+  melde("ABBRUCH: zielQuote() ist nicht definiert - der Codeblock hat nicht geladen.");
   melde("FEHLERZAHL=99");
 } else {
 // ---- Pruefungen ------------------------------------------------------------------
@@ -204,25 +213,20 @@ def lauf(gegenprobe=False):
     text = quelle(None)
     # Seit dem 03.09.2026 liegt die Regel in zielQuote(), und der Kartenfuss zeigt sie -
     # deshalb wird der ganze Kalenderblock geschnitten statt des Rueckblicks.
+    # Ein Schnitt genuegt seit dem 04.09.2026: zielQuote() liegt im Kalenderblock, und
+    # der Rueckblick - aus dem der zweite Schnitt kam - ist geloescht. Ein Schnitt auf
+    # eine Funktion, die es nicht mehr gibt, braeche mit ABBRUCH ab, und ein Abbruch ist
+    # kein roter Test (docs/TESTING.md).
     code = schneide(text,
-                    "  function avgDailyTargetToday() {",
-                    "  function initRueckblick() {",
-                    "rueckblickHtml")
-    code += schneide(text,
-                     "  // ---------- Fortschritt-Kalender",
-                     "  // Werte per Tipp statt per Titel-Attribut",
-                     "kalenderHtml")
+                    "  // ---------- Fortschritt-Kalender",
+                    "  // Werte per Tipp statt per Titel-Attribut",
+                    "kalenderHtml")
 
     # Zusicherungen: hat der Schnitt wirklich das Richtige erwischt?
     if "function zielQuote" not in code:
         raise SystemExit("ABBRUCH: zielQuote() steckt nicht im Ausschnitt.")
     if "function kalenderHtml" not in code:
         raise SystemExit("ABBRUCH: kalenderHtml() steckt nicht im Ausschnitt.")
-
-    # Die Attrappe definiert avgDailyTargetToday selbst; die echte muss raus, sonst
-    # gewinnt die zweite Definition und der Test misst seine eigene Attrappe nicht.
-    code = re.sub(r"^  function avgDailyTargetToday\(\) \{.*?^  \}\n", "",
-                  code, count=1, flags=re.S | re.M)
 
     # Gegenprobe: die echte zielQuote() durch die naive ersetzen.
     if gegenprobe:

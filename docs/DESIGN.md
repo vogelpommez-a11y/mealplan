@@ -404,9 +404,17 @@ beide nebeneinander stehen und warum es weder rotes X noch Tages-Ampel gibt, ste
 `docs/PRODUCT.md`; hier stehen nur die Formregeln.
 
 **Die Zeitraumwahl steht über den Karten, nicht in ihnen** (seit 03.09.2026). Ein Block
-`.zeitraum` trägt den Umschalter `Monat | Jahr` in der bestehenden `.week-switch` /
-`.ws-btn`-Optik und darunter **genau eine** Zeitraumzeile `‹ September 2026 ›` bzw.
-`‹ 2026 ›`. Er regiert **beide** Karten darunter.
+`.zeitraum` trägt den Umschalter `Monat | Jahr` und darunter **genau eine** Zeitraumzeile
+`‹ September 2026 ›` bzw. `‹ 2026 ›`. Er regiert **beide** Karten darunter.
+
+Der Umschalter ist ein eigenes Segment (`.kal-seg`, seit 03.09.2026), **nicht** die
+`.week-switch`-Optik aus dem Wochenplan: Dort sitzen die Knöpfe an einer Karte und richten
+sich nach ihrer Beschriftung, hier steht die Wahl frei über dem ganzen Reiter. Eine binäre
+Wahl mit ungleich breiten Hälften ließe die längere wichtiger aussehen, als sie ist —
+deshalb zwei **gleich breite** Hälften und eine gleitende Pille (`.kal-pill`) dazwischen.
+Die Pille ist Dekoration: Sie liegt unter den Knöpfen, fängt keinen Klick ab, und bei
+`prefers-reduced-motion` gleitet sie nicht. Der aktive Zustand hängt an `aria-selected`,
+nicht an einer Klasse — dieselbe Quelle, die auch der Screenreader liest.
 
 Vorher trug jede Karte ihre eigene Wahl — ein Umschalter im Kalenderkopf, eine
 Jahresleiste in derselben Karte, eine zweite in der Gewichtskarte. Drei Bedienelemente
@@ -421,11 +429,23 @@ statt als Karten-Steuerung. Wer eine der Breiten ändert, ändert alle.
 aufgezeichnete Tage einen neutral gefüllten Kreis. Ein Tag ohne jede Aussage bleibt leer —
 Zukunft und die Zeit vor der ersten Nutzung sehen absichtlich gleich aus.
 
-**In der Jahresansicht trägt die Fläche allein.** Bei rund 21–27 px je Zelle passt kein
+**In der Jahresansicht trägt die Fläche allein.** Bei rund 24–31 px je Zelle passt kein
 Symbol mehr neben die Zahl, deshalb steht der Zustand hinter ihr: gefüllt, umrandet oder
 gar nichts. Die Füllung ist dort **kräftiger** als im großen Gitter (32 % statt 12 %) — ohne
-den Haken daneben ist sie der einzige Träger, und 12 % auf 21 px sind aus einem halben Meter
-Abstand nicht mehr von „leer" zu unterscheiden.
+den Haken daneben ist sie der einzige Träger, und 12 % auf einer 24-px-Zelle sind aus einem
+halben Meter Abstand nicht mehr von „leer" zu unterscheiden.
+
+**24 px sind die Untergrenze, und zwar an beiden Kanten** (seit 04.09.2026). Jede Zelle ist
+ein Tastziel — sie nimmt Klick, Hover und Fokus an und schreibt ihren Wert in die
+Tipp-Zeile —, und WCAG 2.5.8 verlangt dafür 24 × 24 px. Gemessen wurden vorher auf 768 px
+Viewport 21,25 × 23 px. Die Breite hängt an der Spaltenbreite des Grids (`.kal-jahr`,
+`minmax(min(200px, 100%), 1fr)`, vorher 155 px), die Höhe an einem eigenen `clamp(24px,
+3vw, 30px)` — wer nur eine der beiden Stellen ändert, lässt die andere Kante still unter die
+Grenze fallen. `tools/pruefstand-kalender-layout.py` misst deshalb beide.
+
+Der Preis sind **drei** Monate je Reihe statt vier auf dem Rechner; der Deckel von 720 px
+bleibt. Auf dem Handy ändert sich nichts — dort stand ohnehin ein Monat je Reihe (38,7 px
+je Zelle bei 360 px), die Anhebung greift erst ab 768 px.
 
 **Der Kartenfuß trägt die Kennzahlen des Zeitraums** (`.kal-foot`, seit 03.09.2026).
 Vier Werte in einer Reihe, durch eine Trennlinie vom Gitter abgesetzt, in derselben

@@ -5359,41 +5359,29 @@
     animateProgressCount();
   }
 
-  // Vierter Reiter: "wie lief es bisher?" - Rueckblick auf die vergangenen Wochen und der
-  // Gewichtsverlauf. Beide Bausteine sind unveraendert die aus renderHome(); umgezogen ist
-  // ihr Ort, nicht ihre Funktion.
+  // Vierter Reiter: "wie lief es bisher?" - der Kalender der geplanten Tage und der
+  // Gewichtsverlauf, darueber EIN Zeitraum, der beide regiert.
   function renderProgress() {
     // Kein eigener Leerzustand noetig: weightHtml() liefert immer eine Karte - ohne
     // Einwilligung die Einladung dazu (weightConsentHtml), ohne Messung den leeren Zustand
     // mit Handlung. Der Reiter ist also nie eine leere Flaeche.
-    // Reihenfolge: acht Wochen, dann das Jahr, dann das Gewicht - von der kurzen zur
-    // langen Sicht. Kein fuenfter Reiter: der Kalender beantwortet dieselbe Frage wie der
-    // Rueckblick ("wie lief es bisher?"), nur ueber einen laengeren Zeitraum.
-    // Zwei Karten, ein Zeitraum darueber (seit 03.09.2026).
     //
-    // Der Rueckblick-Block ist entfallen: Er stand mit Serie, Ziel-Quote und Ø-Kalorien
-    // ueber demselben Bestand, den der Kalender darunter zeichnet - dieselben Zahlen
-    // zweimal auf einem Screen. Serie und Ziel-Quote stehen jetzt im Kalenderfuss, an dem
-    // Gitter, das sie zusammenfassen.
+    // Der Rueckblick-Block ist am 03.09.2026 entfallen, seine Funktionen am 04.09.2026
+    // geloescht (Konzept G, Stufe 2). Er stand mit Serie, Ziel-Quote und Ø-Kalorien ueber
+    // demselben Bestand, den der Kalender darunter zeichnet - dieselben Zahlen zweimal auf
+    // einem Screen. Serie und Ziel-Quote stehen jetzt im Kalenderfuss, an dem Gitter, das
+    // sie zusammenfassen.
+    //
+    // Mit ihm ist der 8-Wochen-Balken gefallen, die einzige Stelle mit einem zeitlichen
+    // VERLAUF. Bewusste Entscheidung: Der Kalender zeigt denselben Zeitraum Zelle fuer
+    // Zelle und darueber hinaus - Zustand statt Trend, dafuer ueber Monate statt acht
+    // Wochen. Ein Streifen, der den Trend zurueckholt, ist verworfen, nicht vertagt.
     view.innerHTML = `${zeitraumHtml()}${kalenderHtml()}${weightHtml()}`;
     resetCarousels();
     initWeightChart();
     initKalender();
   }
 
-  // Kurzform eines Wochenschluessels fuers Label: "2026-W29" -> "KW 29".
-  function weekKwLabel(wk) { const m = /-W(\d+)$/.exec(wk); return m ? "KW " + Number(m[1]) : wk; }
-  // Paket C1: Rueckblick auf Home — Streak (Wochen in Folge geplant) + Mini-Trend der
-  // durchschnittlichen Tageskalorien der letzten Wochen + Ziel-Treffer-Quote. Quelle ist das
-  // schlanke Archiv state.weekStats (abgelaufene Wochen, siehe archiveWeek). Ohne Ziel oder ohne
-  // jede Historie/ Streak faellt der Block ganz weg (kein leerer Kasten fuer neue Nutzer).
-  // Mittleres Tagesziel nach dem HEUTIGEN Stand — Rueckfall fuer Wochen, die vor B10
-  // archiviert wurden und deshalb kein eingefrorenes `target` tragen.
-  function avgDailyTargetToday() {
-    let sum = 0, n = 0;
-    DAYS.forEach(d => { const t = goalTargetsForDay(d.key); if (t && t.kcal) { sum += t.kcal; n++; } });
-    return n ? Math.round(sum / n) : 0;
-  }
   // Eine Woche zaehlt fuer den Streak erst ab so vielen geplanten Tagen. Vorher genuegte
   // EINE Mahlzeit — ein Streak, den man nicht verlieren kann, motiviert niemanden.
   const STREAK_MIN_DAYS = 5;
@@ -5430,10 +5418,10 @@
   // Die Wochenserie: aufeinanderfolgende Wochen rueckwaerts, die STREAK_MIN_DAYS erfuellen;
   // die laufende zaehlt mit, sobald sie es ebenfalls tut.
   //
-  // Eigene Funktion seit dem 03.09.2026: Sie stand in rueckblickHtml() und waere mit dem
-  // Rueckblick-Balken verschwunden. Die Serie ist aber eine Aussage fuer sich - sie haengt
-  // NICHT am gezeigten Zeitraum (eine Serie ist immer "bis heute") und steht deshalb im
-  // Kalenderfuss unverandert neben zeitraumabhaengigen Zahlen.
+  // Eigene Funktion seit dem 03.09.2026: Sie stand im Rueckblick-Block und waere mit ihm
+  // verschwunden. Die Serie ist aber eine Aussage fuer sich - sie haengt NICHT am gezeigten
+  // Zeitraum (eine Serie ist immer "bis heute") und steht deshalb im Kalenderfuss
+  // unveraendert neben zeitraumabhaengigen Zahlen.
   function wochenSerie() {
     const stats = state.weekStats || {};
     const curPlan = state.plans[weekKeyFor("cur")];
@@ -5442,113 +5430,6 @@
     while (true) { const wk = isoWeekKey(dcur); if (stats[wk] && stats[wk].days >= STREAK_MIN_DAYS) { streak++; dcur.setDate(dcur.getDate() - 7); } else break; }
     if (curDays >= STREAK_MIN_DAYS) streak++;
     return streak;
-  }
-
-  // ⚠️ OHNE AUFRUFER seit dem 03.09.2026 - bewusst noch nicht geloescht.
-  //
-  // Der Rueckblick-Block ist aus renderProgress() genommen (Konzept G): Serie und
-  // Ziel-Quote stehen jetzt im Kalenderfuss, wo sie an dem Gitter stehen, das sie
-  // zusammenfasst. Was mit ihm entfaellt, ist der 8-Wochen-Balken - die einzige Stelle,
-  // an der ein zeitlicher VERLAUF sichtbar war.
-  //
-  // Diese Funktion und initRueckblick() bleiben stehen, solange nicht entschieden ist, ob
-  // der Verlauf als kompakter Streifen unter den Kalenderfuss zurueckkehrt. Faellt die
-  // Entscheidung endgueltig gegen ihn, gehoeren beide geloescht - samt der .rueck-*-Regeln
-  // in css/basis.css und dem zugehoerigen Pruefstand.
-  function rueckblickHtml() {
-    if (!state.goal) return "";
-    const stats = state.weekStats || {};
-    const keys = Object.keys(stats).sort();
-    const streak = wochenSerie();
-    if (!keys.length && !streak) return "";
-    // ZWEI ABGELEITETE LISTEN AUS EINEM ARCHIV - bitte nicht "vereinfachen":
-    //
-    // Der STREAK oben laeuft ueber ALLE Wochen. Er fragt nur "wurde geplant?" und braucht
-    // dafuer kein Ziel - wer ohne Ziel plant, hat trotzdem eine Serie.
-    //
-    // Die GRAFIK darunter zeigt dagegen Wochen GEGEN IHR ZIEL. Eine Woche ohne eigenes
-    // `target` gehoert dort nicht hinein. Seit archiveWeek() auch ohne Ziel archiviert
-    // (Paket 6, B2), entstehen solche Wochen regelmaessig - genau auf dem normalen Weg:
-    // erst ein paar Wochen planen, spaeter das erste Ziel setzen.
-    //
-    // Vorher fielen sie auf avgDailyTargetToday() zurueck, wurden also am HEUTIGEN Ziel
-    // gemessen - der Fehler, gegen den seinerzeit B10 gebaut wurde - und die Tippzeile
-    // behauptete "0 von 5 Tagen im Ziel" fuer eine Woche, in der es gar kein Ziel gab.
-    // Das ist keine fehlende Aussage, sondern eine falsche.
-    const zielKeys = keys.filter(k => stats[k].target);
-    const shownKeys = zielKeys.slice(-8);
-    if (!shownKeys.length && !streak) return "";
-    // Erst ab zwei Tagen: "1 Tag am Stueck" ist keine Serie, sondern ein Dienstag.
-    const tage = dayStreak();
-    const tageS = tage >= 2 ? `<div class="rueck-s"><small>Am Stück</small><b>${tage}<span>Tage</span></b></div>` : "";
-    let chart = "";
-    if (shownKeys.length) {
-      const bars = shownKeys.map(k => {
-        const s = stats[k];
-        const target = s.target;   // garantiert gesetzt, siehe Filter oben
-        // Verhaeltnis zum Ziel; gezeichnet wird bis 140 %, alles darueber laeuft an die
-        // Decke (der genaue Wert steht in der Tippzeile).
-        const ratio = s.kcal / target;
-        const h = Math.max(4, Math.min(100, Math.round(ratio / 1.4 * 100)));
-        const hit = Math.abs(s.kcal - target) <= target * 0.1;
-        const label = `${weekKwLabel(k)} · Ø ${nfmt(s.kcal)} kcal · Ziel ${nfmt(target)} · ${s.hit} von ${s.days} Tagen im Ziel`;
-        return `<button type="button" class="rueck-bar${hit ? " hit" : ""}" data-tip="${esc(label)}" aria-label="${esc(label)}"><i style="height:${h}%"></i></button>`;
-      }).join("");
-      const kws = shownKeys.map(k => `<span>${esc(weekKwLabel(k).replace("KW ", ""))}</span>`).join("");
-      const totDays = shownKeys.reduce((a, k) => a + stats[k].days, 0);
-      const totHit = shownKeys.reduce((a, k) => a + stats[k].hit, 0);
-      const vals = shownKeys.map(k => stats[k].kcal);
-      const avgKcal = Math.round(vals.reduce((a, v) => a + v, 0) / vals.length);
-      const lastKey = shownKeys[shownKeys.length - 1];
-      const lastS = stats[lastKey];
-      const lastTarget = lastS.target;
-      const firstTip = `${weekKwLabel(lastKey)} · Ø ${nfmt(lastS.kcal)} kcal · Ziel ${nfmt(lastTarget)} · ${lastS.hit} von ${lastS.days} Tagen im Ziel`;
-      chart = `<div class="rueck-plot">
-          <div class="rueck-band"></div>
-          <div class="rueck-bandlbl">Ziel ±10 %</div>
-          <div class="rueck-bars" role="group" aria-label="Wochen im Rückblick">${bars}</div>
-        </div>
-        <div class="rueck-kws" aria-hidden="true">${kws}</div>
-        <p class="rueck-tip" aria-live="polite">${esc(firstTip)}</p>
-        <div class="rueck-foot">
-          <div class="rueck-s"><small>&#216; pro Tag</small><b>${nfmt(avgKcal)}<span>kcal</span></b></div>
-          <div class="rueck-s"><small>Ziel getroffen</small><b>${totHit}<span>/${totDays} Tage</span></b></div>
-          ${tageS}
-        </div>`;
-    }
-    // Ohne Grafik gibt es keinen Fuss, in den die Kennzahl koennte - dann traegt sie ihren
-    // eigenen. Wer ohne Ziel plant, hat trotzdem eine Serie (siehe archiveWeek, B2).
-    if (!chart && tageS) chart = `<div class="rueck-foot">${tageS}</div>`;
-    const flame = `<svg class="rueck-fl" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M13.5 2c.4 3-1.6 4.2-2.9 5.6C9.2 9 8 10.4 8 12.6a4 4 0 0 0 8 .2c0-1.3-.5-2.3-1-3 .9.4 1.7 1.2 2.2 2.3.3-.7.5-1.6.5-2.6 0-3.4-2.3-5.4-4.2-7.5z"/></svg>`;
-    const streakLine = streak
-      ? `<div class="rueck-streak">${flame}<span><b>${streak}</b> Woche${streak === 1 ? "" : "n"} in Folge geplant</span></div>`
-      : "";
-    // Die Klartextzeile ist kein Schmuck: ohne sie liest man die Grafik als Verlauf des
-    // tatsaechlich Gegessenen. Sie zeigt GEPLANTE Kalorien - das ist Absicht (Planer, kein
-    // Tracker), steht aber nirgends sonst.
-    return `<section class="rueck">
-        <div class="wg-lbl">Rückblick</div>
-        <p class="rueck-note">Ø geplante Kalorien je Tag, gegen dein Ziel.</p>
-        ${streakLine}
-        ${chart}
-      </section>`;
-  }
-  // Werte per Tipp statt nur im title-Attribut: auf dem Handy gibt es kein Hover, dort war
-  // die Grafik bisher vollstaendig unbeschriftet. Klick UND Fokus, damit die Tastatur
-  // denselben Weg hat (gleiches Muster wie initWeightChart).
-  function initRueckblick() {
-    const tip = view.querySelector(".rueck-tip");
-    if (!tip) return;
-    view.querySelectorAll(".rueck-bar").forEach(b => {
-      const show = () => { tip.textContent = b.dataset.tip || ""; };
-      b.addEventListener("click", show);
-      b.addEventListener("focus", show);
-      // Hover ergaenzt (Befund aus dem Pruefdurchgang): Am Rechner erwartet man Werte beim
-      // Darueberfahren. Ohne diese Zeile schwieg die Grafik dort, weil mit dem title-
-      // Attribut auch der einzige Hover-Weg entfallen war. Gleiches Muster wie
-      // initWeightChart() - dort steht mouseenter seit jeher neben click und focus.
-      b.addEventListener("mouseenter", show);
-    });
   }
 
   // ---------- Fortschritt-Kalender (Paket 6, B7/B11) ----------
@@ -5897,7 +5778,7 @@
       </div>`;
   }
 
-  // Werte per Tipp statt per Titel-Attribut - dasselbe Muster wie initRueckblick(): auf dem
+  // Werte per Tipp statt per Titel-Attribut - dasselbe Muster wie initWeightChart(): auf dem
   // Handy gibt es kein Hover.
   //
   // Seit die Jahresansicht aus zwoelf Monatsgittern besteht, bedient diese Funktion 1 oder
@@ -5942,7 +5823,7 @@
     tabs.forEach(tab => {
       // Fokus zeigt denselben Tipp wie Klick und Hover - sonst haette die Tastatur zwar
       // einen Weg in die Tabelle, aber keine Antwort darin (gleiches Muster wie
-      // initRueckblick und initWeightChart).
+      // initWeightChart).
       tab.querySelectorAll("td.kal-t:not(.pad)").forEach(td => {
         td.addEventListener("click", () => { setzeEinstieg(td); zeig(td); });
         td.addEventListener("mouseenter", () => zeig(td));

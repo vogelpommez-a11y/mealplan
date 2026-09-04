@@ -934,12 +934,12 @@ TAB_ORDER = ["home", "plan", "recipes", "progress"]
 * `renderHome()` — `appHeroHtml()` + `weekNutHtml()`
 * `renderPlan(sameTab)`
 * `renderRecipes()`
-* `renderProgress()` — `zeitraumHtml()` + `kalenderHtml()` + `weightHtml()` (seit 03.09.2026, Konzept G; bis dahin stand `rueckblickHtml()` an erster Stelle)
+* `renderProgress()` — `zeitraumHtml()` + `kalenderHtml()` + `weightHtml()` (seit 03.09.2026, Konzept G; bis dahin stand der Rückblick-Block an erster Stelle, seit 04.09.2026 ist er gelöscht)
 
 `renderProgress()` braucht kein `initCarousel()` (kein `.wg-cols`), aber `initWeightChart()`
 und `initKalender()` — beide messen bzw. binden erst nach dem Einsetzen des Markups.
-**`initRueckblick()` wird seit dem 03.09.2026 nicht mehr aufgerufen**; die Funktion steht
-noch im Code, siehe „Die Ansicht: ein Gitter, zwei Dichten".
+`initRueckblick()` gibt es seit dem 04.09.2026 nicht mehr, siehe „Die Ansicht: ein Gitter,
+zwei Dichten".
 
 Ein neuer Reiter berührt immer vier Stellen: Markup-Knopf, `TAB_ORDER`, die Verzweigung in
 `render()` und die Spaltenzahl der mobilen Kapsel (siehe `.tab-ind` weiter unten).
@@ -1174,7 +1174,7 @@ weekStats["2026-W29"] = { kcal, days, hit, target, d }
   Übertragungsfehler eine gelöschte Woche. `d` und `days` korrigieren sich dabei ausdrücklich
   **nicht** gegenseitig: `sanitizeWeekStats()` läuft auf Bestandsdaten, und `days` gegen die
   Maske zu ziehen zerlegt jede Woche, die vor der Maske archiviert wurde. Der Widerspruch
-  bleibt gewollt stehen — `days` trägt den Rückblick, `d` den Kalender.
+  bleibt gewollt stehen — `days` trägt die Ziel-Quote im Kalenderfuß, `d` das Gitter selbst.
 
 `mergeArchived(alt, neu)` führt beim **lokalen** Archivieren den neu berechneten Datensatz
 mit einem schon gespeicherten zusammen, statt ihn zu überschreiben: Masken werden vereinigt
@@ -1188,12 +1188,15 @@ Ruhetage haben unterschiedliche Ziele, deshalb der Schnitt über die geplanten T
 
 `sanitizeWeekStats()` klemmt alle Werte, hält die **drei jüngsten Kalenderjahre**
 (siehe „Archivfenster" unten — angeboten werden davon nur zwei) und übernimmt `target` nur
-im plausiblen Bereich (500–20 000 kcal). Wochen ohne `target` sind vor B10 archiviert; der
-Rückblick fällt dort auf das heutige Ziel zurück (`avgDailyTargetToday()`). Eine Migration
-gibt es nicht — der alte Zielstand ist nicht rekonstruierbar.
+im plausiblen Bereich (500–20 000 kcal). Wochen ohne `target` sind vor B10 archiviert; sie
+zählen für die Ziel-Quote schlicht **nicht mit** (`zielQuote()`). Bis zum 04.09.2026 fiel
+der Rückblick dort auf das heutige Ziel zurück — genau der Fehler, gegen den B4 gebaut
+wurde. Eine Migration gibt es nicht — der alte Zielstand ist nicht rekonstruierbar.
 
-Der Rückblick selbst (`rueckblickHtml()`) normiert jeden Balken auf **sein eigenes**
-Wochenziel und kann das ±10-%-Band deshalb als feste Fläche zeichnen. Siehe
+Die Ziel-Quote im Kalenderfuß (`zielQuote()`) überspringt Wochen ohne eigenes `target`
+vollständig, statt sie am heutigen Ziel zu messen — belegt durch
+`tools/pruefstand-rueckblick-ziel.py`. Bis zum 04.09.2026 trug diese Zusicherung der
+Rückblick-Balken, der jede Woche auf **ihr eigenes** Ziel normierte. Siehe
 `docs/TROUBLESHOOTING.md` Punkt 72 für den Zustand davor.
 
 #### Synchronisation (seit 25.08.2026)
@@ -1307,9 +1310,9 @@ unsichtbar** war. Es verschwindet nie etwas, das gestern noch zu sehen war. Kost
 Verworfen wurde, gar nicht mehr zu trimmen (das Archiv wüchse unbegrenzt) und ein rollendes
 Wochenfenster (bringt das Januar-Problem zurück, deshalb schon am 25.08.2026 abgelehnt).
 
-ℹ️ **Wer das Fenster für zu gross hält, weil der Rückblick nur acht Balken zeichnet, irrt.**
-`rueckblickHtml()` zeigt acht Wochen (`zielKeys.slice(-8)`), aber die **Streak-Schleife
-unmittelbar davor läuft rückwärts durch das gesamte Archiv**, solange die Wochen lückenlos
+ℹ️ **Wer das Fenster für zu gross hält, weil man nur einen Monat auf einmal sieht, irrt.**
+Der Kalender zeichnet den gewählten Zeitraum, aber die **Streak-Schleife in `wochenSerie()`
+läuft rückwärts durch das gesamte Archiv**, solange die Wochen lückenlos
 `STREAK_MIN_DAYS` erfüllen. Ein Nutzer mit zwei Jahren durchgehender Planung hat einen Streak
 von über 100 Wochen — ein kürzeres Fenster würde ihn schlicht kappen. Das Archiv wird also
 schon heute in seiner vollen Tiefe genutzt, nicht erst mit dem Kalender. Die datenschutz&shy;-
@@ -1354,11 +1357,15 @@ Kalenderfuß, an dem Gitter, das sie zusammenfasst (Begründung in `docs/PRODUCT
 „Zwei Karten, ein Zeitraum“). **Kein fünfter Reiter** — der Kalender beantwortet dieselbe
 Frage wie der frühere Rückblick („wie lief es bisher?“), nur über einen längeren Zeitraum.
 
-⚠️ **`rueckblickHtml()` und `initRueckblick()` stehen noch im Code, ohne Aufrufer.** Sie
-bleiben, solange nicht entschieden ist, ob der 8-Wochen-Balken als kompakter Streifen
-zurückkehrt — er war die einzige Stelle mit einem zeitlichen *Verlauf*. Fällt die
-Entscheidung endgültig gegen ihn, gehören beide gelöscht, samt der `.rueck-*`-Regeln in
-`css/basis.css`.
+**`rueckblickHtml()`, `initRueckblick()`, `avgDailyTargetToday()` und `weekKwLabel()` sind
+am 04.09.2026 gelöscht** (Konzept G, Stufe 2 abgeschlossen), samt der `.rueck-*`-Regeln in
+`css/basis.css`. Sie standen seit dem 03.09. ohne Aufrufer da, bis die Entscheidung über den
+8-Wochen-Balken gefallen war: Er kommt **nicht** zurück, auch nicht als Streifen. Der
+Kalender zeigt denselben Zeitraum Zelle für Zelle und darüber hinaus — Zustand statt Trend,
+dafür über Monate statt acht Wochen (Begründung in `docs/PRODUCT.md`).
+
+Was bleibt, ist `wochenSerie()`: Sie stand im Rückblick, ist aber eine Aussage für sich und
+liegt seit dem 03.09. als eigene Funktion im Kalenderfuß.
 
 **Seit dem 30.08.2026 ist `kalenderHtml()` nur noch die Hülle** — Kopf, Ansichtswahl,
 Zeitraumwahl, Klartextzeile, Tipp-Zeile. Das Gitter selbst liefert je nach `state.kalMode`

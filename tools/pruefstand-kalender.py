@@ -600,7 +600,11 @@ def lauf(gegenprobe=None):
     wochen += schneide(text, "  function weekMaskOf(pl) {", "  // Kennzahlen einer abgelaufenen Woche", "weekMaskOf")
     wochen += schneide(text, "  function weekNumOf(s)", "  // Bewusst `function` und keine const-Arrow", "weekMonday")
     # Kalender und Tages-Serie.
-    kal = schneide(text, "  const STREAK_MIN_DAYS = 5;", "  function rueckblickHtml() {", "dayStreak")
+    # Endmarker seit dem 04.09.2026 der Kalenderblock: rueckblickHtml() ist mit Konzept G
+    # Stufe 2 geloescht. Der Schnitt endet damit genau dort, wo der naechste beginnt -
+    # beide ergeben zusammen einen zusammenhaengenden Block, und wochenSerie() liegt
+    # jetzt mit darin (der Kartenfuss ruft sie).
+    kal = schneide(text, "  const STREAK_MIN_DAYS = 5;", "  // ---------- Fortschritt-Kalender", "dayStreak")
     # Bis EINSCHLIESSLICH initKalender(): Abschnitt 9 fuehrt die Tastatur im echten DOM.
     kal += schneide(text, "  // ---------- Fortschritt-Kalender", "  // Zeichnet das Diagramm in der gemessenen Breite", "kalenderHtml")
 

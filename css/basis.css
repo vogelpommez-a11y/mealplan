@@ -567,45 +567,10 @@
   /* Hinweis in der rechten Spalte, wo im Leerzustand sonst Makrobalken bzw. Fortschrittsbalken
      saessen (dayRight/weekRight in weekGoalHtml). */
   .wg-side-note { margin: 2px 0 0; font-size: 13.5px; line-height: 1.5; color: var(--text-muted); max-width: 34ch; }
-  /* Rueckblick (Paket C1): Streak + Mini-Trend + Ziel-Treffer. Gleiche Kartenoptik wie .wg-col. */
-  .rueck { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 14px 16px; margin-top: 10px; }
-  .rueck-streak { display: flex; align-items: center; gap: 8px; margin: 8px 0 2px; font-size: 14px; color: var(--text); }
-  .rueck-streak b { font-family: var(--font-display); font-size: 17px; color: var(--accent); font-variant-numeric: tabular-nums; }
-  .rueck-fl { width: 18px; height: 18px; flex: none; color: var(--accent); }
-  .rueck-note { font-size: 11.5px; color: var(--text-muted); margin: 6px 0 0; line-height: 1.45; }
-  /* Der Balken misst gegen das ZIEL der jeweiligen Woche, nicht gegen Min/Max der Reihe:
-     100 % Balkenhoehe entspraeche dem Ziel, gezeichnet wird bis 140 %. Genau deshalb kann
-     das Zielband eine feste waagerechte Flaeche sein, obwohl jede Woche ihr eigenes,
-     eingefrorenes Ziel hat (siehe archiveWeek, B10). Frueher zeigte dieselbe Grafik reine
-     Streuung und sah dabei wie Zielerreichung aus. */
-  .rueck-plot { position: relative; height: 74px; margin: 14px 0 0; }
-  .rueck-band {
-    position: absolute; left: 0; right: 0; bottom: 64.3%; height: 14.3%;
-    background: color-mix(in srgb, var(--accent) 11%, transparent);
-    border-top: 1px dashed color-mix(in srgb, var(--accent) 45%, transparent);
-    border-bottom: 1px dashed color-mix(in srgb, var(--accent) 25%, transparent);
-    border-radius: 2px; pointer-events: none;
-  }
-  .rueck-bandlbl { position: absolute; right: 0; bottom: 79%; font-size: 10px; letter-spacing: .04em; color: var(--text-muted); pointer-events: none; }
-  .rueck-bars { position: absolute; inset: 0; display: flex; align-items: flex-end; gap: 5px; }
-  .rueck-bar {
-    flex: 1 1 0; min-width: 0; display: flex; align-items: flex-end; height: 100%;
-    padding: 0; border: 0; background: transparent; cursor: pointer; border-radius: 4px;
-  }
-  .rueck-bar:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-  /* Ausserhalb des Ziels bewusst gedaempft statt rot: die Marke bewertet nicht (CLAUDE.md §6). */
-  .rueck-bar i { display: block; width: 100%; border-radius: 4px 4px 2px 2px; background: var(--border-strong); transition: background var(--dur-fast); }
-  .rueck-bar.hit i { background: linear-gradient(180deg, var(--accent), var(--accent-strong)); }
-  .rueck-kws { display: flex; gap: 5px; margin-top: 5px; }
-  .rueck-kws span { flex: 1 1 0; min-width: 0; text-align: center; font-size: 10px; color: var(--text-muted); font-variant-numeric: tabular-nums; }
-  .rueck-tip { min-height: 16px; margin: 8px 0 0; font-size: 12px; color: var(--text-muted); }
-  /* Seit B8 stehen hier bis zu DREI Kennzahlen (Schnitt, Ziel-Treffer, Tage am Stueck).
-     Ohne flex-wrap und mit 22 px Abstand draengen sie sich bei 360 px aus der Karte. */
-  .rueck-foot { display: flex; flex-wrap: wrap; gap: 10px 22px; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); }
-  .rueck-s { display: flex; flex-direction: column; gap: 2px; }
-  .rueck-s small { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: .05em; }
-  .rueck-s b { font-family: var(--font-display); font-size: 18px; color: var(--text); font-variant-numeric: tabular-nums; }
-  .rueck-s b span { font-family: var(--font-body); font-size: 12px; font-weight: 400; color: var(--text-muted); margin-left: 3px; }
+  /* Die .rueck-*-Regeln sind am 04.09.2026 mit dem Rueckblick-Block entfallen (Konzept G,
+     Stufe 2). Serie und Ziel-Quote stehen jetzt im Kalenderfuss (.kal-foot), der
+     8-Wochen-Balken ist ersatzlos gestrichen - der Kalender zeigt denselben Zeitraum
+     Zelle fuer Zelle. */
   /* Fortschritt-Kalender (Paket 6, B7/B11): ein Monatsgitter gross oder zwoelf klein.
 
      Es sind echte <table>-Elemente mit table-layout: fixed - kein Grid auf einem <table>.
@@ -761,12 +726,17 @@
 
      Ein Grid UM die Tabellen herum, nicht in ihnen - die Tabellenrollen bleiben unangetastet.
 
-     `auto-fill` mit 155 px Mindestbreite ergibt ueber die ganze Spanne eine erstaunlich
-     gleichmaessige Zelle: zwei Spalten auf dem Handy, vier auf dem Rechner, dazwischen
-     nichts Krummes. Der Deckel von 720 px ist der Grund dafuer - ohne ihn kaemen auf einem
-     breiten Schirm sechs oder sieben Monate nebeneinander, und die Zellen fielen unter die
-     Lesbarkeitsgrenze. Gemessen wird das, nicht geschaetzt (pruefstand-kalender-layout). */
-  .kal-jahr { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(155px, 100%), 1fr)); gap: 16px 12px; max-width: 720px; margin-inline: auto; }
+     Mindestbreite 200 px statt der frueheren 155 (04.09.2026). Der Grund ist das
+     Tastziel: Jede Tageszelle ist anklickbar (sie zeigt ihren Wert in der Tipp-Zeile), und
+     WCAG 2.5.8 verlangt dafuer 24x24 px. Gemessen ergaben 155 px auf 768 px Viewport eine
+     Zelle von 21,25 px - unter der Grenze, und ausgerechnet dort, wo das Geraet ein iPad
+     mit Finger ist. Mit 200 px bleiben rund 31 px.
+     Der Preis sind DREI Monate je Reihe statt vier auf dem Rechner. Auf dem Handy aendert
+     sich nichts: dort stand ohnehin ein Monat je Reihe (bei 360 px sind es 38,7 px je
+     Zelle), die Anhebung greift erst ab 768 px. Der Deckel von 720 px bleibt - ohne ihn
+     kaemen auf einem breiten Schirm fuenf Monate nebeneinander.
+     Gemessen wird das, nicht geschaetzt (pruefstand-kalender-layout). */
+  .kal-jahr { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(200px, 100%), 1fr)); gap: 16px 12px; max-width: 720px; margin-inline: auto; }
   /* Der Monatsname als sichtbare <caption> - der Ort, an den eine Tabellenueberschrift
      gehoert. Im Monatsgitter bleibt dieselbe caption verborgen, weil die Navigationszeile
      den Namen dort schon traegt. */
@@ -777,7 +747,9 @@
      hier die Flaeche HINTER der Zahl den Zustand (.kal-t.on unten gilt fuer beide
      Ansichten). Der Unterschied bleibt trotzdem Form und nicht nur Farbe: gefuellt,
      umrandet oder gar nichts. */
-  .kal-grid.mini .kal-t { height: clamp(20px, 3vw, 30px); border-radius: 5px; }
+  /* Untergrenze 24 px, nicht 20: die Zelle ist ein Tastziel (WCAG 2.5.8), und die Hoehe
+     ist die kleinere ihrer beiden Kanten. 3vw ergaben auf 768 px genau 23 px. */
+  .kal-grid.mini .kal-t { height: clamp(24px, 3vw, 30px); border-radius: 5px; }
   .kal-grid.mini .kal-num { font-size: 10.5px; font-weight: 500; }
   /* Im Mini-Gitter gibt es kein Symbol - die Kante muss die Zelle selbst tragen, sonst
      saehe "nichts geplant" aus wie "keine Daten". */

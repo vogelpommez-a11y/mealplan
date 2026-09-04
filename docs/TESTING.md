@@ -731,7 +731,7 @@ Laufzeitfehler, erst dann die eigentlichen Prüfungen lesen.
   Filtern selbst: unter sechs Meals **und** bei einem Bestand ganz ohne Merkmale entsteht keine
   Reihe, und in beiden Fällen werden aktive Filter geleert — ein Filter, dessen Chip nicht mehr
   sichtbar ist, würde sonst unsichtbar weiterfiltern und die Liste grundlos halb leer zeigen.
-* **Rückblick (B9/B10)**: `archiveWeek()`, `sanitizeWeekStats()` und `rueckblickHtml()` lassen
+* **Ziel-Quote (B9/B10)**: `archiveWeek()`, `sanitizeWeekStats()` und `zielQuote()` lassen
   sich mit einem winzigen Stub-State (DAYS, `dayNutOf`, `goalTargetsForDay`, `nfmt`) schneiden;
   geprüft wird am erzeugten Markup. 23 Prüfungen, alle grün. Der entscheidende Regressionstest
   ist **derselbe Balken in zwei Reihen**: Eine Woche mit 2000 kcal bei Ziel 2000 muss ihre Höhe
@@ -2327,7 +2327,7 @@ Wiegung im Zustand, abgelesen an `.wch-tip` und am `aria-label` des Diagrammpunk
 
 Zwei Dinge daran sind Absicht:
 
-* **Genau EINE Wiegung.** Bei mehreren lässt `rueckblickHtml()` die `.wch-tip` bewusst leer
+* **Genau EINE Wiegung.** Bei mehreren lässt `weightHtml()` die `.wch-tip` bewusst leer
   (dort steht dann der Vergleich statt des Einzelwerts) — der Text, um den es geht, wäre gar
   nicht da, und die Prüfung liefe ins Leere. Der erste Lauf hatte genau diesen Fehler.
 * **Die Hero-Zeile als Gegenprobe.** Die Zahl-Variante muss unverändert ihre eigene Form
@@ -2707,10 +2707,10 @@ siehe oben) und alles, was am Gerät „sich richtig anfühlen" muss.
 
 ## `tools/pruefstand-rueckblick-ziel.py` — der Beweis, dass eine Woche fehlt (26.08.2026)
 
-**Was er prüft:** Eine Archivwoche ohne eigenes `target` darf im Rückblick nicht auftauchen.
+**Was er prüft:** Eine Archivwoche ohne eigenes `target` darf in der Ziel-Quote nicht auftauchen.
 
 **Warum es ihn gibt:** Seit `archiveWeek()` auch ohne Ziel archiviert (Paket 6, B2),
-entstehen solche Wochen regelmäßig. `rueckblickHtml()` fiel dafür auf
+entstehen solche Wochen regelmäßig. Der Rückblick fiel dafür auf
 `avgDailyTargetToday()` zurück — maß die Woche also am **heutigen** Ziel — und schrieb
 „0 von 5 Tagen im Ziel" für eine Woche, in der es gar kein Ziel gab.
 
@@ -2724,6 +2724,13 @@ mitzählen, sonst wird sie am heutigen Ziel gemessen.
 Ein Prüfstand, der weiter `rueckblickHtml()` gemessen hätte, prüfte eine Funktion **ohne
 Aufrufer** — er wäre grün geblieben, während die angezeigte Zahl falsch sein könnte.
 Das ist die Falle aus `docs/TROUBLESHOOTING.md` 144, zum vierten Mal.
+
+**Nachtrag 04.09.2026:** Mit der Löschung des Rückblicks ist auch sein **Schnitt** ins
+Leere gelaufen (`avgDailyTargetToday()` … `initRueckblick()` — beide Marker weg). Ein
+Schnitt genügt seither, denn `zielQuote()` liegt im Kalenderblock; die Attrappen
+`weekKwLabel()` und `avgDailyTargetToday()` sind entfallen, `dayStreak()` ist dafür neu
+gestubbt — sie stand im gelöschten Bereich. `HEUTE_ZIEL` bleibt: Der Fehler, gegen den
+dieser Prüfstand gebaut ist, war genau dieser Rückfall aufs heutige Ziel.
 
 **Auch die Gegenprobe musste umziehen.** Sie lief gegen den Commit `76d1120` — dort gibt
 es weder `zielQuote()` noch den Kalender, der Schnitt bricht mit „Startmarker nicht
@@ -2758,8 +2765,9 @@ standen. Der Melder war tot, bevor er etwas melden konnte.
 
 **Die Regel daraus:** Attrappen (samt Fehlermelder), Produktionscode und Prüfungen gehören
 in **getrennte** `<script>`-Blöcke. Dann überlebt der Melder aus Block 1 einen Fehler in
-Block 2 — und der dritte Block prüft zuerst `typeof rueckblickHtml === "function"` und sagt
-im Zweifel „der Codeblock hat nicht geladen" statt gar nichts.
+Block 2 — und der dritte Block prüft zuerst `typeof zielQuote === "function"` (bis zum
+04.09.2026: `rueckblickHtml`) und sagt im Zweifel „der Codeblock hat nicht geladen" statt
+gar nichts.
 
 Das ist die praktische Anwendung von „Ablauf-Trace statt Raten" (Abschnitt 2): Ein
 Prüfstand muss auch dann sprechen, wenn er selbst kaputt ist.
@@ -3524,25 +3532,38 @@ der Messung, die die Papierrechnung ersetzt:
 Gemessen **nach** dem Wegfall des Bandes (30.08.2026) — die Jahresspalte trägt jetzt
 Mini-Monatsgitter, keine 5-px-Striche mehr:
 
-| Breite | Zellbreite Jahr | Zellbreite Monat | Monate nebeneinander |
+| Breite | Zelle Jahr (B × H) | Zellbreite Monat | Monate nebeneinander |
 |---|---|---|---|
-| 360 px | 38,70 px | 40,84 px | 1 |
-| 390 px | 43,00 px | 44,00 px | 1 |
-| 768 px | 21,25 px | 53,14 px | 4 |
-| 1280 px | 22,14 px | 53,14 px | 4 |
+| 360 px | 38,70 × 24,00 px | 40,84 px | 1 |
+| 390 px | 43,00 × 24,00 px | 44,00 px | 1 |
+| 768 px | 29,66 × 29,19 px | 53,14 px | 3 |
+| 1280 px | 30,84 × 36,39 px | 53,14 px | 3 |
 
-⚠️ **Die Jahresspalte ist nicht monoton** — bei 360 px ist eine Zelle *größer* als bei
-768 px. Das ist kein Messfehler: Unter der 155-px-Grenze des `auto-fill`-Rasters passt nur
+Stand 04.09.2026, nach der Anhebung auf `minmax(min(200px, 100%), 1fr)`. Davor: 21,25 px
+bei 768 px und 22,14 px bei 1280 px, jeweils vier Monate nebeneinander.
+
+⚠️ **Die Jahresspalte ist nicht monoton** — bei 360 px ist eine Zelle *breiter* als bei
+768 px. Das ist kein Messfehler: Unter der 200-px-Grenze des `auto-fill`-Rasters passt nur
 **ein** Monat nebeneinander, der dann die volle Breite bekommt. Ab zwei Spalten fällt die
-Zelle auf gut 21 px und bleibt dort, weil `max-width: 720px` verhindert, dass sechs oder
-sieben Monate nebeneinander rutschen. Wer hier eine monoton fallende Reihe erwartet, sucht
-einen Fehler, den es nicht gibt.
+Breite auf rund 30 px und bleibt dort, weil `max-width: 720px` verhindert, dass fünf Monate
+nebeneinander rutschen. Wer hier eine monoton fallende Reihe erwartet, sucht einen Fehler,
+den es nicht gibt.
 
 **Zwei Untergrenzen und eine Obergrenze, weil zwei verschiedene Dinge unlesbar werden.**
 In beiden Ansichten muss eine **Zahl** lesbar bleiben: 30 px im Monatsgitter (Zahl plus
-Haken), 14 px im Mini-Gitter (Zahl auf der Fläche, kein Symbol). Bis zum Wegfall des Bandes
-stand die zweite Grenze bei **2 px** — der Breite eines Strichs, der keine Zahl zu tragen
-hatte. **Nach oben ist nur der Monat gedeckelt (70 px)** — und diese Zeile hat sofort einen
+Haken), früher 14 px im Mini-Gitter (Zahl auf der Fläche, kein Symbol). Bis zum Wegfall des
+Bandes stand die zweite Grenze bei **2 px** — der Breite eines Strichs, der keine Zahl zu
+tragen hatte.
+
+**Seit dem 04.09.2026 steht sie bei 24 px, und gemessen werden beide Kanten.** Nicht wegen
+der Lesbarkeit, sondern weil die Zelle ein **Tastziel** ist: Sie nimmt Klick, Hover und
+Fokus an und schreibt ihren Wert in die Tipp-Zeile — WCAG 2.5.8 (AA) verlangt dafür
+24 × 24 px. Gemessen waren es vorher 21,25 × 23 px bei 768 px. Die Breite hängt an der
+Spaltenbreite des Grids, die Höhe an einem eigenen `clamp()`; eine Prüfung nur auf die
+Breite hätte eine Zelle von 31 × 23 px durchgewinkt. Die Gegenprobe gegen den CSS-Stand
+davor meldet **8 ROT** — vier davon die Höhe (alle Breiten), vier die Breite (ab 768 px).
+
+**Nach oben ist nur der Monat gedeckelt (70 px)** — und diese Zeile hat sofort einen
 echten Fehler gefangen: Die Höhe der Tageszelle ist bei 56 px gedeckelt, die Breite folgte
 ohne `max-width` der Karte. Auf 1280 px standen die Tage dadurch als 168 × 56 px flache
 Balken da — ein Balkendiagramm, kein Kalender. Die Antwort ist `max-width: 420px` auf

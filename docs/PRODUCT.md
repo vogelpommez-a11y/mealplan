@@ -1041,22 +1041,21 @@ Bewusst **kein** automatisch aufspringender Meal-Picker: Nach mehreren Schritten
 gleich das nächste Fenster zu öffnen, nimmt dem Nutzer die erste eigene Entscheidung ab, statt
 ihm Arbeit abzunehmen.
 
-## Bewusste Produktentscheidung: Der Rückblick misst gegen das Ziel
+## Bewusste Produktentscheidung: Der Fortschritt misst gegen das Ziel
 
-Der Rückblick zeigt **geplante** Kalorien, nicht gegessene — das ist die Planer-Identität und
-steht seit 13.08.2026 auch als Klartextzeile in der Sektion. Vorher stand es nirgends, und
-genau deshalb las man die Grafik als Ernährungsverlauf.
+Gezählt werden **geplante** Kalorien, nicht gegessene — das ist die Planer-Identität. Bis zum
+04.09.2026 trug diese Aussage der Rückblick-Balken samt Klartextzeile; heute trägt sie die
+Ziel-Quote im Kalenderfuß. Die Regeln sind dieselben geblieben:
 
-Zwei Regeln, die daraus folgen:
-
-* **Bezugsgröße ist immer das Ziel**, nie die Streuung der Nachbarwochen. Eine Grafik, die
-  Zielerreichung suggeriert, muss auch Zielerreichung zeigen.
+* **Bezugsgröße ist immer das Ziel**, nie die Streuung der Nachbarwochen. Eine Zahl, die
+  Zielerreichung suggeriert, muss auch Zielerreichung zeigen — und eine Woche **ohne**
+  eigenes Ziel zählt gar nicht mit, statt am heutigen gemessen zu werden (`zielQuote()`).
 * **Ein Streak muss verlierbar sein.** Er zählt eine Woche erst ab 5 von 7 geplanten Tagen.
   Vorher genügte eine einzige Mahlzeit; eine Serie ohne Anspruch motiviert niemanden und ist
   damit kein Produktnutzen, sondern Dekoration.
 
-Was der Rückblick weiterhin **nicht** tut: bewerten. Wochen außerhalb des Ziels sind gedämpft
-gezeichnet, nicht rot.
+Was der Fortschritt weiterhin **nicht** tut: bewerten. Ein Tag ohne Plan bleibt eine leere
+Zelle, kein rotes X.
 
 ## Bewusste Produktentscheidung: Der Kalender zeigt Planung, nicht Zensuren (30.08.2026)
 
@@ -1122,9 +1121,15 @@ im **Kalenderfuß**, an dem Gitter, das sie zusammenfasst.
 
 **Was dabei verloren geht, und warum das vertretbar ist:** Der 8-Wochen-Balken war die
 einzige Stelle, an der ein zeitlicher *Verlauf* sichtbar war — nicht nur ein Zustand. Die
-Kennzahl „18 von 22 geplanten Tagen im Ziel“ sagt, *wie viel*, nicht *wohin es geht*. Die
-Entscheidung fiel bewusst für den ruhigeren Screen; kommt der Verlauf zurück, dann als
-kompakter Streifen unter dem Kalenderfuß, nicht als eigene Karte darüber.
+Kennzahl „18 von 22 geplanten Tagen im Ziel“ sagt, *wie viel*, nicht *wohin es geht*.
+
+⚠️ **Entschieden am 04.09.2026: Der Balken kommt nicht zurück**, auch nicht als kompakter
+Streifen. Der Code (`rueckblickHtml()`, `initRueckblick()`, `avgDailyTargetToday()`, die
+`.rueck-*`-Regeln) ist gelöscht statt aufbewahrt. Grund: Der Kalender zeigt denselben
+Zeitraum Zelle für Zelle **und darüber hinaus** — er beantwortet „wie lief es bisher?" über
+Monate, wo der Balken acht Wochen konnte. Zustand statt Trend ist der bewusste Tausch, und
+toter Code, den ein Prüfstand weiter vermisst, ist gefährlicher als kein Code
+(`CLAUDE.md` §18a).
 
 **Beide Serien bleiben.** Die Wochenserie trägt die Flamme, die Tagesserie steht daneben
 — andere Einheit, andere Regeln (siehe oben). Sie ist beim Umbau einmal still

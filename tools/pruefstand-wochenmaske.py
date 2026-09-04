@@ -30,8 +30,9 @@ anderer "days = Anzahl der Einsen". Beides zusammen geht nur so:
 
 Damit ist `days` nie kleiner als die Maske hergibt und nie kleiner als ein frueher gemessener
 Wert. Fuer die Altwochen ohne `d` (der Normalfall) bleibt schlicht das Maximum wirksam. Der
-moegliche Widerspruch bleibt bewusst stehen: `days` gilt fuer den Rueckblick, `d` fuer den
-Kalender - so steht es im Plan.
+moegliche Widerspruch bleibt bewusst stehen: `days` traegt die Ziel-Quote im Kalenderfuss
+(zielQuote), `d` das Gitter selbst - so steht es im Plan. Bis zum 04.09.2026 hiess die
+erste Haelfte davon "Rueckblick"; der Block ist geloescht, die Zahl ist geblieben.
 
 **2. `kcal`/`hit`/`target` beim OR-Merge.** Der aermere Lauf gewinnt nicht. Nur wenn der neue
 Lauf mindestens so viele Tage gesehen hat wie der gespeicherte, ersetzt er die Zahlen -

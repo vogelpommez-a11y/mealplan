@@ -33,7 +33,7 @@ ANKER = '<meta charset="utf-8">'   # index.html hat kein <head>-Tag, siehe TROUB
 GOAL = {"kcal": 2200, "carbs": 220, "protein": 160, "fat": 65, "sex": "m", "age": 34,
         "height": 182, "weight": 88, "activity": "pal16", "mode": "lose", "pace": "moderate",
         "training": {}}
-# GENAU EINE Wiegung. Bei mehreren laesst rueckblickHtml() die .wch-tip absichtlich leer
+# GENAU EINE Wiegung. Bei mehreren laesst weightHtml() die .wch-tip absichtlich leer
 # (dort steht dann der Vergleich, nicht der Einzelwert) - der Text, um den es hier geht,
 # waere gar nicht da, und die Pruefung liefe ins Leere.
 STATE = {
