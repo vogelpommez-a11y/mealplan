@@ -1238,7 +1238,7 @@
       "zeilen": 89
     },
     {
-      "bytes": 27890,
+      "bytes": 27938,
       "pfad": "data/rechtstexte.js",
       "zeilen": 163
     },
@@ -1253,7 +1253,7 @@
       "zeilen": 2912
     },
     {
-      "bytes": 21130,
+      "bytes": 21142,
       "pfad": "docs/DESIGN.md",
       "zeilen": 490
     },
@@ -1282,9 +1282,9 @@
       "zeilen": 246
     },
     {
-      "bytes": 226415,
+      "bytes": 226416,
       "pfad": "docs/TESTING.md",
-      "zeilen": 3815
+      "zeilen": 3817
     },
     {
       "bytes": 321931,
@@ -1807,9 +1807,9 @@
       "zeilen": 576
     },
     {
-      "bytes": 13311,
+      "bytes": 13690,
       "pfad": "tools/pruefstand-rueckblick-ziel.py",
-      "zeilen": 278
+      "zeilen": 283
     },
     {
       "bytes": 14644,

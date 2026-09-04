@@ -326,16 +326,16 @@ _keine_
 | data/cookbook.js | 569 | 52083 |
 | data/foods.js | 236 | 16584 |
 | data/ikonen.js | 89 | 10187 |
-| data/rechtstexte.js | 163 | 27890 |
+| data/rechtstexte.js | 163 | 27938 |
 | docs/ABDECKUNG.md | 192 | 11427 |
 | docs/ARCHITECTURES.md | 2912 | 183556 |
-| docs/DESIGN.md | 490 | 21130 |
+| docs/DESIGN.md | 490 | 21142 |
 | docs/MODULE.md | — | — (erzeugt) |
 | docs/PRODUCT.md | 1569 | 87132 |
 | docs/RUNBOOK.md | 167 | 5665 |
 | docs/SECURITY.md | 356 | 19197 |
 | docs/STORE.md | 246 | 11876 |
-| docs/TESTING.md | 3815 | 226415 |
+| docs/TESTING.md | 3817 | 226416 |
 | docs/TROUBLESHOOTING.md | 5613 | 321931 |
 | docs/module-index.json | — | — (erzeugt) |
 | firestore.rules | 416 | 23714 |
@@ -455,7 +455,7 @@ _keine_
 | tools/pruefstand-rezeptbuch-filter.py | 222 | 10222 |
 | tools/pruefstand-rezeptbuch.py | 428 | 24044 |
 | tools/pruefstand-rezepttexte.py | 576 | 28247 |
-| tools/pruefstand-rueckblick-ziel.py | 278 | 13311 |
+| tools/pruefstand-rueckblick-ziel.py | 283 | 13690 |
 | tools/pruefstand-sheet-repaint.py | 273 | 14644 |
 | tools/pruefstand-sync-abriss.py | 226 | 10106 |
 | tools/pruefstand-waise-uids.py | 226 | 10687 |
