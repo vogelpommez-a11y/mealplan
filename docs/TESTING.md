@@ -2486,7 +2486,7 @@ belegt.
 
 Zum Cloud-Sync des Wochenarchivs gehört ein dauerhafter Prüfstand. Er schneidet
 `sanitizeWeekStats()`, `weekStatRang()`, `mergeWeekStats()` und `canonValue()/canonJSON()` aus
-`index.html` und fährt 24 Prüfungen headless. Exit-Code 0 nur bei „0 rot".
+`index.html` und fährt 27 Prüfungen headless (Stand 04.09.2026). Exit-Code 0 nur bei „0 rot".
 
 **Die Messgrösse ist nicht „kommt eine Woche an", sondern die Einigkeit zweier Geräte:**
 
@@ -2546,7 +2546,9 @@ verlangte, dass ohne `state.goal` archiviert wird; die Fassung von damals tat da
 (`if (!pl || !state.goal) return;`).
 
 **Stand 29.08.2026: B1–B5 sind umgesetzt, der Prüfstand ist vollständig grün** —
-53 `OFFEN`-Zeilen und 13 `REGRESSION`-Zeilen. Der Weg dorthin, weil die Zwischenstände die
+52 `OFFEN`-Zeilen und 13 `REGRESSION`-Zeilen (Stand 04.09.2026; die `kcal`-Prüfungen sind
+mit dem Feld entfallen bzw. in ihre Umkehrung übergegangen, TROUBLESHOOTING 151). Der Weg
+dorthin, weil die Zwischenstände die
 eigentliche Aussage tragen:
 
 | Stand | `OFFEN` | Was fehlte |

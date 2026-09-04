@@ -1227,7 +1227,8 @@ zuletzt schreibende hätte die Wochen des anderen gelöscht. Zusammengeführt wi
 
 * **Vereinigung, nie Ersetzen.** Eine Woche, die nur ein Gerät kennt, bleibt.
 * **Bei derselben Woche gewinnt der Eintrag mit mehr `days`** — wer mehr geplante Tage sah,
-  hatte den vollständigeren Plan. Danach entscheiden `hit`, `kcal`, `target`.
+  hatte den vollständigeren Plan. Danach entscheiden `hit`, dann `target` — bis zum
+  04.09.2026 stand `kcal` dazwischen, siehe den Kasten zu den vier Kennzahlen oben.
 * **Der Tiebreak ist rein wertbasiert und kennt kein „remote gewinnt".** Sonst nähme A den Wert
   von B und B gleichzeitig den von A — die beiden täuschten eine Runde lang. Wertbasiert kommen
   beide unabhängig zum selben Ergebnis. Belegt durch `tools/pruefstand-weekstats-sync.py`, das

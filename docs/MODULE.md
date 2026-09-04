@@ -77,74 +77,74 @@ Erhoben aus den Abschnittsmarken im Code, nicht von Hand gepflegt.
 | index.html | Merkmale eines Meals (Tags, Meal-Prep) | 953-969 | 17 |
 | index.html | Ernaehrungsprofil (state.goal.diet / state.goal.avoid) | 970-1036 | 67 |
 | index.html | State | 1037-1085 | 49 |
-| index.html | Wochen (aktuelle + naechste, an ISO-Kalenderwochen gebunden) | 1086-1482 | 397 |
-| index.html | Gewichtsverlauf | 1483-1499 | 17 |
-| index.html | B2: Der Verlauf rechnet in WOCHEN, nicht mehr in Monaten | 1500-1645 | 146 |
-| index.html | Gedaechtnis des Auto-Planers (state.planned) | 1646-1693 | 48 |
-| index.html | Grabsteine geloeschter Meals | 1694-1817 | 124 |
-| index.html | Bilder in IndexedDB (Paket A3) | 1818-1907 | 90 |
-| index.html | Cloud-Sync (Firestore) | 1908-1911 | 4 |
-| index.html | Pro-Berechtigung (D1) | 1912-1960 | 49 |
-| index.html | Gemeinsam planen: Gruppenmodus | 1961-2058 | 98 |
-| index.html | Wochenplan flach <-> verschachtelt (fuer Gruppen-Dokumente) | 2059-2546 | 488 |
-| index.html | Empfaenger fuer die Gruppe | 2547-3139 | 593 |
-| index.html | Rezeptbuch: was zeigen, was ist schon uebernommen | 3140-3157 | 18 |
-| index.html | Startmeals nach dem Onboarding | 3158-3218 | 61 |
-| index.html | Einmalige Aufraeumung alter Dubletten (Teil 3 des Katalog-Umbaus, 17.08.2026) | 3219-3279 | 61 |
-| index.html | Zahleneingabe: Rad am Handy, Tastatur am Rechner | 3280-3358 | 79 |
-| index.html | Sicherheitsnetz fuer fremde Bilddaten | 3359-3459 | 101 |
-| index.html | Bilder der kuratierten Bibliothek (img/library/) | 3460-3568 | 109 |
-| index.html | Rendering | 3569-3673 | 105 |
-| index.html | Nährwerte | 3674-3727 | 54 |
-| index.html | Strukturierte Zutaten | 3728-3864 | 137 |
-| index.html | Schnelleintrag: zaehlbare Lebensmittel | 3865-3954 | 90 |
-| index.html | Kamerabild: Buehnenformat und Fokus | 3955-4163 | 209 |
-| index.html | Trainingstage (Verbrauch je Einheit) | 4164-4647 | 484 |
-| index.html | Merkmale: Anzeige (Nur-Lese-Zweig) und Eingabe (Bearbeiten-Zweig) | 4648-4682 | 35 |
-| index.html | Handy-Karussell (Wochenplan, Wochenziele, Rechner) | 4683-5089 | 407 |
-| index.html | „Ziele <Jahr>": Gewichtsverlauf als Jahresdiagramm | 5090-5458 | 369 |
-| index.html | Fortschritt-Kalender (Paket 6, B7/B11) | 5459-5809 | 351 |
-| index.html | Der eine Zeitraum fuer den ganzen Reiter (seit 03.09.2026) | 5810-6632 | 823 |
-| index.html | Zurueck-Taste (D5) | 6633-6708 | 76 |
-| index.html | Modal | 6709-6793 | 85 |
-| index.html | Wiegen | 6794-6870 | 77 |
-| index.html | Stepper (seit 03.09.2026) | 6871-7117 | 247 |
-| index.html | Ziel von Hand justieren (B4) | 7118-7230 | 113 |
-| index.html | Bewegung: FLIP am Rechner, Bottom-Sheet am Handy | 7231-7376 | 146 |
-| index.html | Nur-Lese-Zweig: keine Eingabefelder, kein Autosave, kein Loeschen | 7377-7455 | 79 |
-| index.html | Bearbeiten-Zweig | 7456-7529 | 74 |
-| index.html | Autosave: input mutiert nur lokal, change/blur committen, 1500ms Leerlauf-Timer als Netz | 7530-7737 | 208 |
-| index.html | Foto: waehlen/aendern/entfernen, aktualisiert nur die offene Ansicht (photoDoneCb) | 7738-7766 | 29 |
-| index.html | Zutaten-Zeilen (Name, Menge, Naehrwerte pro 100 g, Barcode-Scan) | 7767-7972 | 206 |
-| index.html | Zutaten-Suche (ARIA-Combobox auf dem Namensfeld) | 7973-8302 | 330 |
-| index.html | Picker | 8303-8642 | 340 |
-| index.html | Shopping list | 8643-8854 | 212 |
-| index.html | Vorkochen (C3) | 8855-9056 | 202 |
-| index.html | Actions | 9057-9141 | 85 |
-| index.html | Rechtstexte (Impressum / Datenschutz) | 9142-9174 | 33 |
-| index.html | Auto-Wochenplaner (D2) | 9175-9281 | 107 |
-| index.html | Wiederholung: was zuletzt dran war, rutscht nach hinten | 9282-9300 | 19 |
-| index.html | Passt die Groesse zum Slot? | 9301-9307 | 7 |
-| index.html | In der Gruppe: was zu MEHR Profilen passt, kommt weiter nach vorn | 9308-9685 | 378 |
-| index.html | Toast | 9686-9695 | 10 |
-| index.html | Toast mit Rueckgaengig (Paket B1) | 9696-9731 | 36 |
-| index.html | Event delegation | 9732-9953 | 222 |
-| index.html | Drag & drop between slots | 9954-10015 | 62 |
-| index.html | Foto per Drag & Drop auf eine Meal-Karte (Desktop) | 10016-10047 | 32 |
-| index.html | Foto per Strg+V auf eine Meal-Karte einfuegen | 10048-10079 | 32 |
-| index.html | Profil (lokal) & Teilen | 10080-10126 | 47 |
-| index.html | Kontowechsel auf demselben Geraet | 10127-10734 | 608 |
-| index.html | Kalorienrechner (Baustein 1: Tages-/Wochenbedarf → state.goal) | 10735-10825 | 91 |
-| index.html | Wiegen: speichern, loeschen, ans Ziel koppeln | 10826-10899 | 74 |
-| index.html | Erste Schritte (Onboarding) | 10900-11752 | 853 |
-| index.html | Erscheinungsbild | 11753-11779 | 27 |
-| index.html | Einstellungen | 11780-11905 | 126 |
-| index.html | Einstieg (D1b) | 11906-11981 | 76 |
-| index.html | Cloud-Anmeldung (Firebase) | 11982-12541 | 560 |
-| index.html | Gemeinsam planen (Gruppe) | 12542-13515 | 974 |
-| index.html | Teilen ueber den nativen Dialog des Geraets (Web Share API) | 13516-13549 | 34 |
-| index.html | Einkaufsliste als PDF (Paket B3) | 13550-13789 | 240 |
-| index.html | Boot | 13790-13808 | 19 |
+| index.html | Wochen (aktuelle + naechste, an ISO-Kalenderwochen gebunden) | 1086-1488 | 403 |
+| index.html | Gewichtsverlauf | 1489-1505 | 17 |
+| index.html | B2: Der Verlauf rechnet in WOCHEN, nicht mehr in Monaten | 1506-1651 | 146 |
+| index.html | Gedaechtnis des Auto-Planers (state.planned) | 1652-1699 | 48 |
+| index.html | Grabsteine geloeschter Meals | 1700-1823 | 124 |
+| index.html | Bilder in IndexedDB (Paket A3) | 1824-1913 | 90 |
+| index.html | Cloud-Sync (Firestore) | 1914-1917 | 4 |
+| index.html | Pro-Berechtigung (D1) | 1918-1966 | 49 |
+| index.html | Gemeinsam planen: Gruppenmodus | 1967-2064 | 98 |
+| index.html | Wochenplan flach <-> verschachtelt (fuer Gruppen-Dokumente) | 2065-2552 | 488 |
+| index.html | Empfaenger fuer die Gruppe | 2553-3145 | 593 |
+| index.html | Rezeptbuch: was zeigen, was ist schon uebernommen | 3146-3163 | 18 |
+| index.html | Startmeals nach dem Onboarding | 3164-3224 | 61 |
+| index.html | Einmalige Aufraeumung alter Dubletten (Teil 3 des Katalog-Umbaus, 17.08.2026) | 3225-3285 | 61 |
+| index.html | Zahleneingabe: Rad am Handy, Tastatur am Rechner | 3286-3364 | 79 |
+| index.html | Sicherheitsnetz fuer fremde Bilddaten | 3365-3465 | 101 |
+| index.html | Bilder der kuratierten Bibliothek (img/library/) | 3466-3574 | 109 |
+| index.html | Rendering | 3575-3679 | 105 |
+| index.html | Nährwerte | 3680-3733 | 54 |
+| index.html | Strukturierte Zutaten | 3734-3870 | 137 |
+| index.html | Schnelleintrag: zaehlbare Lebensmittel | 3871-3960 | 90 |
+| index.html | Kamerabild: Buehnenformat und Fokus | 3961-4169 | 209 |
+| index.html | Trainingstage (Verbrauch je Einheit) | 4170-4653 | 484 |
+| index.html | Merkmale: Anzeige (Nur-Lese-Zweig) und Eingabe (Bearbeiten-Zweig) | 4654-4688 | 35 |
+| index.html | Handy-Karussell (Wochenplan, Wochenziele, Rechner) | 4689-5095 | 407 |
+| index.html | „Ziele <Jahr>": Gewichtsverlauf als Jahresdiagramm | 5096-5464 | 369 |
+| index.html | Fortschritt-Kalender (Paket 6, B7/B11) | 5465-5815 | 351 |
+| index.html | Der eine Zeitraum fuer den ganzen Reiter (seit 03.09.2026) | 5816-6638 | 823 |
+| index.html | Zurueck-Taste (D5) | 6639-6714 | 76 |
+| index.html | Modal | 6715-6799 | 85 |
+| index.html | Wiegen | 6800-6876 | 77 |
+| index.html | Stepper (seit 03.09.2026) | 6877-7123 | 247 |
+| index.html | Ziel von Hand justieren (B4) | 7124-7236 | 113 |
+| index.html | Bewegung: FLIP am Rechner, Bottom-Sheet am Handy | 7237-7382 | 146 |
+| index.html | Nur-Lese-Zweig: keine Eingabefelder, kein Autosave, kein Loeschen | 7383-7461 | 79 |
+| index.html | Bearbeiten-Zweig | 7462-7535 | 74 |
+| index.html | Autosave: input mutiert nur lokal, change/blur committen, 1500ms Leerlauf-Timer als Netz | 7536-7743 | 208 |
+| index.html | Foto: waehlen/aendern/entfernen, aktualisiert nur die offene Ansicht (photoDoneCb) | 7744-7772 | 29 |
+| index.html | Zutaten-Zeilen (Name, Menge, Naehrwerte pro 100 g, Barcode-Scan) | 7773-7978 | 206 |
+| index.html | Zutaten-Suche (ARIA-Combobox auf dem Namensfeld) | 7979-8308 | 330 |
+| index.html | Picker | 8309-8648 | 340 |
+| index.html | Shopping list | 8649-8860 | 212 |
+| index.html | Vorkochen (C3) | 8861-9062 | 202 |
+| index.html | Actions | 9063-9147 | 85 |
+| index.html | Rechtstexte (Impressum / Datenschutz) | 9148-9180 | 33 |
+| index.html | Auto-Wochenplaner (D2) | 9181-9287 | 107 |
+| index.html | Wiederholung: was zuletzt dran war, rutscht nach hinten | 9288-9306 | 19 |
+| index.html | Passt die Groesse zum Slot? | 9307-9313 | 7 |
+| index.html | In der Gruppe: was zu MEHR Profilen passt, kommt weiter nach vorn | 9314-9691 | 378 |
+| index.html | Toast | 9692-9701 | 10 |
+| index.html | Toast mit Rueckgaengig (Paket B1) | 9702-9737 | 36 |
+| index.html | Event delegation | 9738-9959 | 222 |
+| index.html | Drag & drop between slots | 9960-10021 | 62 |
+| index.html | Foto per Drag & Drop auf eine Meal-Karte (Desktop) | 10022-10053 | 32 |
+| index.html | Foto per Strg+V auf eine Meal-Karte einfuegen | 10054-10085 | 32 |
+| index.html | Profil (lokal) & Teilen | 10086-10132 | 47 |
+| index.html | Kontowechsel auf demselben Geraet | 10133-10740 | 608 |
+| index.html | Kalorienrechner (Baustein 1: Tages-/Wochenbedarf → state.goal) | 10741-10831 | 91 |
+| index.html | Wiegen: speichern, loeschen, ans Ziel koppeln | 10832-10905 | 74 |
+| index.html | Erste Schritte (Onboarding) | 10906-11758 | 853 |
+| index.html | Erscheinungsbild | 11759-11785 | 27 |
+| index.html | Einstellungen | 11786-11911 | 126 |
+| index.html | Einstieg (D1b) | 11912-11987 | 76 |
+| index.html | Cloud-Anmeldung (Firebase) | 11988-12547 | 560 |
+| index.html | Gemeinsam planen (Gruppe) | 12548-13521 | 974 |
+| index.html | Teilen ueber den nativen Dialog des Geraets (Web Share API) | 13522-13555 | 34 |
+| index.html | Einkaufsliste als PDF (Paket B3) | 13556-13795 | 240 |
+| index.html | Boot | 13796-13814 | 19 |
 | lib/barcode.js | Barcode-Scan (Open Food Facts) | 14-153 | 140 |
 | lib/pdf.js | PDF selbst erzeugen (kein window.print, sandbox-sicher) | 14-38 | 25 |
 | lib/pdf.js | Marken-Kopf fuer die PDFs (Logo, "PADDY'S MEALPLAN", Slogan) | 39-106 | 68 |
@@ -328,15 +328,15 @@ _keine_
 | data/ikonen.js | 89 | 10187 |
 | data/rechtstexte.js | 163 | 27882 |
 | docs/ABDECKUNG.md | 192 | 11427 |
-| docs/ARCHITECTURES.md | 2938 | 185394 |
+| docs/ARCHITECTURES.md | 2939 | 185486 |
 | docs/DESIGN.md | 501 | 21889 |
 | docs/MODULE.md | — | — (erzeugt) |
 | docs/PRODUCT.md | 1576 | 87681 |
 | docs/RUNBOOK.md | 167 | 5665 |
 | docs/SECURITY.md | 356 | 19197 |
 | docs/STORE.md | 246 | 11876 |
-| docs/TESTING.md | 3905 | 232262 |
-| docs/TROUBLESHOOTING.md | 5737 | 329614 |
+| docs/TESTING.md | 3907 | 232409 |
+| docs/TROUBLESHOOTING.md | 5776 | 331964 |
 | docs/module-index.json | — | — (erzeugt) |
 | firestore.rules | 416 | 23714 |
 | img/apple-touch-icon.png | — | 35163 |
@@ -414,7 +414,7 @@ _keine_
 | img/toast.webp | — | 15252 |
 | img/waffle.webp | — | 33496 |
 | img/wrap.webp | — | 29160 |
-| index.html | 13808 | 851986 |
+| index.html | 13814 | 852479 |
 | lib/barcode.js | 153 | 8354 |
 | lib/basis.js | 21 | 836 |
 | lib/pdf.js | 241 | 13120 |

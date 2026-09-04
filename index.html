@@ -1240,7 +1240,7 @@
   //   Ein Rest-Widerspruch bleibt moeglich (`days` groesser als die Maske, wenn die alte
   //   Woche vor Einfuehrung der Maske archiviert wurde) und ist gewollt: `days` traegt den
   //   Rueckblick, `d` den Kalender.
-  // * `kcal`/`hit`/`target` kommen vom Lauf, der MEHR Tage gesehen hat. Der aermere Lauf
+  // * `hit`/`target` kommen vom Lauf, der MEHR Tage gesehen hat. Der aermere Lauf
   //   gewinnt nicht — derselbe wertbasierte Gedanke wie im Tiebreak von mergeWeekStats().
   function mergeArchived(alt, neu) {
     if (!alt) return neu;
@@ -1308,7 +1308,12 @@
       if (!days) return;
       // `kcal` wird bewusst NICHT uebernommen (04.09.2026): Bestandsdaten aus der Zeit der
       // fuenf Kennzahlen verlieren das Feld hier beim Laden und damit beim naechsten Push.
-      // Das ist der Loeschweg fuer ein Feld, das keinen Zweck mehr hat - kein Vergessen.
+      //
+      // ⚠️ Das ist der Loeschweg fuer AKTIVE Konten - und nur fuer die. Diese Funktion laeuft
+      // aus load(), also erst, wenn ein Geraet die App oeffnet. Ein Konto, das nie wieder
+      // geoeffnet wird, behaelt `kcal` in Firestore. Eine serverseitige Bereinigung braeuchte
+      // eine Cloud Function und damit den Blaze-Tarif; dieselbe Luecke besteht bereits fuer
+      // ganze inaktive Konten (docs/DATENSCHUTZ-INTERN.md 2a). Befund `datenschutz-technik`.
       out[k] = { days: days, hit: Math.max(0, Math.min(days, Math.round(Number(s.hit) || 0))) };
       // Eingefrorenes Tagesziel (B10). Nur uebernehmen, wenn es plausibel ist — sonst lieber
       // gar keins: der Rueckblick faellt dann auf das heutige Ziel zurueck, statt einen
@@ -1346,10 +1351,11 @@
   //
   // Mehr `days` gewinnt, weil das Geraet mit mehr geplanten Tagen den vollstaendigeren Plan
   // gesehen hat (ein Handy, das zwei Wochen aus war, archiviert dieselbe Woche duenner).
-  // Danach `hit`, `kcal`, `target` - nur als Entscheider bei Gleichstand, damit das Ergebnis
-  // eindeutig ist und nicht von der Reihenfolge abhaengt.
+  // Danach `hit`, dann `target` - nur als Entscheider bei Gleichstand, damit das Ergebnis
+  // eindeutig ist und nicht von der Reihenfolge abhaengt. (`kcal` stand hier bis zum
+  // 04.09.2026 zwischen beiden und ist mit dem Feld entfallen, TROUBLESHOOTING 151.)
   //
-  // Bekanntes Limit, bewusst in Kauf genommen: Sind days/hit/kcal identisch und nur die
+  // Bekanntes Limit, bewusst in Kauf genommen: Sind days und hit identisch und nur die
   // eingefrorenen Ziele verschieden (der Nutzer hat zwischen den beiden Archivierungen sein
   // Ziel geaendert), gewinnt schlicht das hoehere `target`. Das ist fachlich willkuerlich -
   // aber Eindeutigkeit ist hier mehr wert als die Wahl des "richtigeren" Ziels: Ein Tiebreak,
