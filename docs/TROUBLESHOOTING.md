@@ -5610,3 +5610,69 @@ erzeugt neue URLs, und ein Cache greift pro URL.
 Nebenbefund derselben Sitzung: `const` auf oberster Ebene eines klassischen Skripts landet
 **nicht** auf `window`. `typeof w.ICON_CHECK` ist auch dann `"undefined"`, wenn die
 Konstante einwandfrei geladen ist — als Diagnose taugt der Zugriff über `window` nicht.
+
+## 148. „Verlauf verwalten" hat nur einen Aufrufer — und der steht im falschen Zustand
+
+**Gefunden am 04.09.2026** in der Browser-Abnahme des Fortschritt-Reiters, nicht von einem
+Prüfstand. Belegt an `index.html`.
+
+`openWeighForm(true)` (`manageOnly`) ist der einzige Weg zur Liste der Messungen mit ihren
+Löschknöpfen. Aufgerufen wird sie über `data-action="weight-manage"` — und dieses Markup
+entsteht **ausschließlich** in `weightConsentHtml()`, also im Zustand **ohne** Einwilligung:
+
+```js
+const hasData = (state.weights || []).length > 0;
+…
+${hasData ? `<button … data-action="weight-manage">Bestehende Einträge verwalten</button>` : ""}
+```
+
+`weightHtml()` steigt eine Zeile vorher aus (`if (!hasWeightConsent()) return weightConsentHtml();`).
+Wer die Einwilligung erteilt hat — der Normalfall, sobald überhaupt gewogen wird — sieht den
+Knopf also nie. Und `toggleWeightMenu()` baut genau zwei Einträge: „Ziel ändern/Jahresziel
+setzen" und „Einwilligung widerrufen". **Kein „Verlauf verwalten".**
+
+**Der Kommentar im Code behauptet das Gegenteil.** In `paintList()` steht seit dem
+03.09.2026: „Der Verlauf gehoert seit dem 03.09.2026 NUR noch in ‚Verlauf verwalten'
+(⋯-Menue)." Der erste Teil wurde umgesetzt (der Verlauf ist aus dem Wiegen-Fenster raus),
+der zweite nicht. Eine halb umgesetzte Verschiebung, die sich als ganze liest.
+
+**Die Folge ist mehr als Bequemlichkeit.** Eine einzelne Fehlmessung ist nicht mehr
+löschbar, ohne vorher die Einwilligung zu widerrufen — und der Widerruf löscht laut
+Datenschutzerklärung Ziffer 3b ausdrücklich **keine** Bestandsdaten. Der Kommentar bei
+`weightConsentHtml()` nennt genau diesen Grundsatz: „Das Recht, sie einzusehen und einzeln zu
+löschen, darf nicht an der Einwilligung hängen." Faktisch hängt es umgekehrt daran — es
+besteht nur, solange die Einwilligung **nicht** erteilt ist.
+
+**Warum kein Prüfstand das findet:** Sie messen, was eine Funktion tut, wenn man sie
+aufruft. `openWeighForm(true)` tut das Richtige. Dass niemand sie aufruft, ist eine Aussage
+über das **Markup im anderen Zustand** — dieselbe Klasse Fehler wie Ziffer 146, nur
+andersherum: Dort verschwand eine Kennzahl mit ihrem Container, hier bleibt eine Funktion
+ohne erreichbaren Einstieg zurück.
+
+**Die Regel daraus:** Wird ein Einstieg *verschoben*, gehört der Beweis dazu, dass er am
+Zielort auch entsteht — im **Zustand des Normalfalls**, nicht im Ausnahmezustand, in dem der
+alte Knopf noch steht.
+
+## 149. Die Zeile über dem Gitter sagt „kein geplanter Tag", während der Fuß vier zählt
+
+**Gefunden am 04.09.2026** in derselben Abnahme, im April 2026 eines Testkontos mit einer
+Archivwoche **ohne** Tagesmaske (`d` fehlt — alles, was vor dem 29.08.2026 archiviert wurde).
+
+Auf einem Schirm stehen dann drei Aussagen:
+
+* Zeile über dem Gitter: **„Noch kein geplanter Tag."**
+* Gitter: sieben neutrale Zellen, jede mit „Tage nicht aufgezeichnet"
+* Kartenfuß: **„Im Ziel 2/4 geplanten"** — es gab also vier geplante Tage
+
+**Die Ursache** ist eine unterschiedliche Zählweise für dieselbe Frage. `kalGitterHtml()`
+zählt `geplant` über die Tagesbits (`st === "on"`) — eine Woche ohne Maske liefert dort
+nichts, obwohl ihr `days` bekannt ist. `zielQuote()` dagegen rechnet mit `s.days` aus dem
+Archiv und weiß deshalb von den vier Tagen.
+
+Beide Zahlen sind für sich richtig; falsch ist nur der Satz **„Noch kein geplanter Tag"**,
+denn die App weiß, dass geplant wurde — sie weiß nur nicht, an welchen Tagen. Genau diesen
+Unterschied bildet das Gitter mit dem neutralen Zustand ja bereits ab (`kalWoche()` gibt
+`{ mask: null, tage: n }`), die Klartextzeile nicht.
+
+**Betroffen ist jeder Bestandsnutzer**, der vor dem 29.08.2026 geplant hat — nicht ein
+Randfall der Testdaten.

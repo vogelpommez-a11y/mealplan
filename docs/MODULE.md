@@ -335,8 +335,8 @@ _keine_
 | docs/RUNBOOK.md | 167 | 5665 |
 | docs/SECURITY.md | 356 | 19197 |
 | docs/STORE.md | 246 | 11876 |
-| docs/TESTING.md | 3825 | 227004 |
-| docs/TROUBLESHOOTING.md | 5613 | 321931 |
+| docs/TESTING.md | 3882 | 230668 |
+| docs/TROUBLESHOOTING.md | 5679 | 325726 |
 | docs/module-index.json | — | — (erzeugt) |
 | firestore.rules | 416 | 23714 |
 | img/apple-touch-icon.png | — | 35163 |

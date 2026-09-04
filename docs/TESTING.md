@@ -3663,6 +3663,63 @@ sichtbar werden. Nach jeder Änderung am Fortschritt-Reiter von Hand aufrufen.
   Datei liefert. Ein anderer Port erzeugt neue URLs und umgeht ihn zuverlässig; den
   Service Worker abzumelden allein genügt **nicht**.
 
+## Abnahme des Fortschritt-Reiters im Browser (04.09.2026)
+
+**Ausgangsstand:** `71787b1`. **Endstand:** unverändert — die Abnahme hat keinen
+Produktionscode angefasst, nur Befunde erzeugt.
+
+**Aufbau:** `python -m http.server 8000` statt `test-server.ps1` (die Execution Policy
+sperrt PowerShell-Skripte auf diesem Rechner), dazu `tools/cdp.py start`. Im
+Abnahme-Chrome war ein **echtes Cloud-Konto** angemeldet; erfundene Datenlagen hätten in
+echte Firestore-Daten geschrieben. Deshalb: Profilordner `%TEMP%\mp-chrome-abnahme`
+beiseitegelegt, mit frischem Profil ohne Konto im **lokalen Modus** geprüft, danach
+zurückgespielt. `localhost` trennt nur den lokalen Speicher (`__test`), **nicht die Cloud** —
+das Beiseitelegen des Profils ist die einzige verlässliche Trennung.
+
+**Datenlage** (in `wochenkueche_v1__test` gesetzt, dann `location.reload()`): 14 Wochen mit
+eigenem `target`, **3 Wochen ohne** `target`, eine Altwoche **ohne Maske** (`d` fehlt), eine
+Woche im Vorjahr, 17 Gewichtseinträge.
+
+### Drei Messfallen, die hier Zeit gekostet haben
+
+**`.click()` ist am Stepper kein Test.** Die Wiegen-Knöpfe hängen an `pointerdown`; ein
+synthetischer Klick lässt den Wert unverändert und sieht aus wie ein Fehler. Echte Ereignisse
+über `Input.dispatchMouseEvent` (Press + Release auf die Mitte des Elements) — erst damit
+zählt der Stepper. Dasselbe gilt für Menüs: Ein Klick auf Koordinaten **außerhalb des
+Viewports** trifft nichts, ohne zu scheitern; vorher `scrollIntoView({block:'center'})`.
+
+**Direkt nach `location.reload()` gemessene Breiten sind wertlos.** Eine Messung meldete
+16 px waagerechten Überlauf bei 360 px; stabil gemessen sind es 0. Wer das ungeprüft meldet,
+jagt ein Layoutproblem, das es nicht gibt.
+
+**`Emulation.setEmulatedMedia` als Einzelaufruf ist wirkungslos** — es gilt nur, solange die
+Verbindung offen ist (steht so im Abschnitt zu `cdp.py messen`, und ist mir trotzdem
+passiert). Das Light-Theme wurde deshalb über `python tools/cdp.py messen 390 800 light "…"`
+geprüft: Label `#6B5F62`, Wert `#1A1416`, Trennlinie `#E7E0E1` — greift.
+
+### Was nachweislich funktioniert
+
+| Geprüft | Ergebnis |
+|---|---|
+| Leerzustand | kein Fuß, Notiz „Noch kein geplanter Tag." |
+| Ziel-Quote im Jahr | „Im Ziel 55/72 geplanten" — **gegengerechnet**, entspricht exakt den Testdaten |
+| Zusicherung B10 | die 3 zielfreien Wochen (15 Tage) sind **nicht** im Nenner — in der echten App belegt, nicht nur im Prüfstand |
+| Monatsblättern | September → August → Mai; Pfeile am Archivrand gesperrt |
+| Jahreswechsel | 2025 zeigt „Im Ziel 5/6 geplanten", „Nächstes Jahr" am Rand gesperrt |
+| Altwoche ohne Maske | 7 neutrale Zellen, `<span class="visually-hidden">Tage nicht aufgezeichnet</span>` |
+| Tastatur im Gitter | ein Tabstopp (heute), Pfeile, Home/End = Wochenanfang/-ende, Rand blockiert, Tipp-Zeile folgt dem Fokus |
+| Wiegen-Stepper | Maus **und** Tastatur (Enter/Space), Differenzzeile aktualisiert live |
+| Speichern | Eintrag steht in `state.weights`, Kartenfuß rechnet mit, Ziel wird neu berechnet (2.451 → 2.545 kcal) mit sichtbarer Begründung |
+| Jahresziel | derselbe Stepper, Startwert = letzter Stand, Einordnungszeile „10,1 kg unter deinem letzten Stand" |
+| Escape / Zurück-Taste | schließen den Dialog, der Reiter bleibt stehen |
+| Mobil 360 px | Zelle **38,19 × 24 px** (die 24-px-Untergrenze greift), kein Überlauf, Fuß als 2 + 1 |
+| Light-Theme | greift, Kontraste stehen |
+
+### Was dabei aufgefallen ist
+
+Die Befunde stehen in `docs/TROUBLESHOOTING.md` — der wichtigste: **„Verlauf verwalten" ist
+mit erteilter Einwilligung über die UI nicht erreichbar.**
+
 ## `tools/probe-fortschritt.html` — die Abnahme in der echten App (30.08.2026)
 
 Prüfstände messen ausgeschnittene Funktionen. Diese Seite lädt die **vollständige** App in
