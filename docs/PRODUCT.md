@@ -1573,3 +1573,19 @@ Keine Features hinzufügen, nur weil sie:
 * die Oberfläche mit Optionen anreichern
 
 Die App gewinnt nicht durch Funktionsmenge, sondern durch weniger Aufwand für den Nutzer.
+
+## Bewusst verworfen: der Plan-gegen-Waage-Abgleich (03.09.2026)
+
+Beim Entwurf von Konzept G stand die Idee im Raum, den **geplanten** Verlauf gegen den
+**gemessenen** zu stellen: „Dein Plan zielt auf −0,5 kg pro Woche, die Waage sagt −0,2."
+
+**Vom Nutzer verworfen.** Die Begründung ist nicht überliefert — festgehalten ist die
+Entscheidung selbst, damit sie nicht in einem halben Jahr erneut vorgeschlagen wird.
+
+**Die technische Folge ist der eigentliche Grund, das hier aufzuschreiben:** Der Abgleich
+hätte je archivierter Woche zwei weitere Felder gebraucht (`mode` und `pace` — Zielart und
+Tempo zum damaligen Zeitpunkt). Das Archiv führt deshalb **vier** Kennzahlen und nicht
+sechs. Wer den Abgleich später doch bauen will, erweitert damit das Datenmodell, den Sync
+und die Datenschutzerklärung — und braucht dafür einen Zweck, der die Aufbewahrung trägt
+(siehe `docs/TROUBLESHOOTING.md` 151: Ein Feld ohne anzeigenden Leser ist genau der Fall,
+der uns dort eingeholt hat).
