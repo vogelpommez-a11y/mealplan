@@ -170,7 +170,12 @@ melde("");
 melde("2. Die Quote steht auch im Kartenfuss");
 var fuss = kalenderHtml();
 pruefe("Fuss nennt 10", /10/.test(fuss), "kein Treffer im Markup");
-pruefe("Fuss nennt 12 als Bezug", /12\s*<\/span>|\/12 Tage|>12</.test(fuss.replace(/&nbsp;/g, " ")),
+// Die Escape-Sequenzen sind doppelt geschrieben: SEITE ist KEIN Raw-String (es traegt
+// den Zeilenumbruch fuer melde() als doppelt geschriebenes n). Einfach geschrieben waeren
+// sie fuer Python ungueltige Escapes - er laesst sie zwar stehen, warnt aber bei JEDEM
+// Lauf, und eine Warnung ueber der Ausgabe verdeckt die Befunde, um die es geht
+// (Befund kvp, 04.09.2026).
+pruefe("Fuss nennt 12 als Bezug", /12\\s*<\\/span>|\\/12 Tage|>12</.test(fuss.replace(/&nbsp;/g, " ")),
        "Bezugsgroesse fehlt");
 
 melde("");
