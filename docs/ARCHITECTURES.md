@@ -1372,6 +1372,15 @@ Zeitraumwahl, Klartextzeile, Tipp-Zeile. Das Gitter selbst liefert je nach `stat
 `kalJahrHtml(year)` oder `kalMonatHtml(year, mon)`; beide geben dasselbe
 `{ satz, notiz, tabelle }` zurück. Warum es zwei Ansichten gibt, steht in `docs/PRODUCT.md`.
 
+⚠️ **Derselbe Vertrag ist eine Zusage, keine Beobachtung.** `kalGitterHtml()` liefert
+zusätzlich `geplant`/`tage`; `kalMonatHtml()` **beschneidet** die Rückgabe deshalb
+ausdrücklich auf die drei Felder, statt sie durchzureichen. Beide brauchte nur der
+Kartenfuß, und der zählt seit dem 04.09.2026 keine geplanten Tage mehr — `kalJahrHtml()`
+gab sie ab da nicht mehr zurück, der Monat schon. Ein späterer Aufrufer, der sich in
+`kalenderHtml()` auf `daten.geplant` stützt, hätte im Monat einen Wert und im Jahr
+`undefined` bekommen. `kalJahrHtml()` liest `geplant`/`tage` direkt aus `kalGitterHtml()`,
+je Monat — nicht über `kalMonatHtml()`.
+
 **Beide Ansichten sind dieselbe Grundform.** `kalGitterHtml(year, mon, mini)` baut ein
 Monatsgitter; `mini` unterscheidet nur die Dichte, nicht die Bedeutung. `kalMonatHtml()`
 ist der Aufruf mit `mini = false`, `kalJahrHtml()` ruft zwölfmal mit `mini = true` und legt

@@ -5594,7 +5594,18 @@
   }
 
   // Die Monatsansicht ist genau ein Gitter in voller Groesse.
-  function kalMonatHtml(year, mon) { return kalGitterHtml(year, mon, false); }
+  // Die Rueckgabe wird bewusst auf { satz, notiz, tabelle } beschnitten - denselben
+  // Vertrag, den kalJahrHtml() erfuellt. kalGitterHtml() liefert zusaetzlich geplant/tage;
+  // die braucht dort nur kalJahrHtml(), das die Funktion je Monat direkt aufruft.
+  //
+  // Wuerde der Monat sie durchreichen, haetten die beiden Zwillinge verschiedene Vertraege,
+  // und ein spaeterer Aufrufer koennte sich in kalenderHtml() auf `daten.geplant` stuetzen -
+  // im Monat da, im Jahr undefined. Genau diese stille Asymmetrie ist am 04.09.2026
+  // entstanden, als die "Geplant"-Kennzahl aus dem Fuss fiel (Befund des kvp).
+  function kalMonatHtml(year, mon) {
+    const g = kalGitterHtml(year, mon, false);
+    return { satz: g.satz, notiz: g.notiz, tabelle: g.tabelle };
+  }
 
   // Ziel-Trefferquote fuer den gezeigten Zeitraum (seit 03.09.2026).
   //
