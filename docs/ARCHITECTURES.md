@@ -1145,10 +1145,9 @@ verworfen wird, sichert `archiveWeek()` ihre Kennzahlen — bewusst **nur Zahlen
 Meal-Referenzen und keine Fotos:
 
 ```
-weekStats["2026-W29"] = { kcal, days, hit, target, d }
+weekStats["2026-W29"] = { days, hit, target, d }
 ```
 
-* `kcal` — Ø geplante Tageskalorien über die geplanten Tage
 * `days` — Anzahl geplanter Tage (1–7)
 * `hit` — Tage innerhalb ±10 % des Tagesziels
 * `d` — **7-Zeichen-Maske** wie `"1101100"`, Index 0 = Montag bis 6 = Sonntag: welche
@@ -1160,6 +1159,19 @@ weekStats["2026-W29"] = { kcal, days, hit, target, d }
   ist `"1101100"` in der Firestore-Konsole lesbar, `108` nicht.
 
   **Seit 29.08.2026 (Paket 6, Schritte B3 und B5) läuft `d` durch den ganzen Sync.**
+
+⚠️ **Vier Kennzahlen, nicht mehr fünf** (seit 04.09.2026). `kcal` — der Ø der geplanten
+Tageskalorien — ist entfallen. Es hatte seit dem Wegfall des Rückblick-Balkens keinen
+Leser mehr, der es **anzeigt**; gelesen wurde es nur noch von `weekStatRang()` als
+Tiebreaker beim Zusammenführen zweier Geräte. Ein personenbezogener Wert, der bis zu drei
+Kalenderjahre aufbewahrt und über die Cloud verteilt wird, aber niemandem etwas zeigt, ist
+von der Zweckbindung nicht gedeckt (Art. 5 Abs. 1 lit. b/c DSGVO; Fund des Agenten
+`anwalt`). `weekStatRang()` rangiert seither über `[days, hit, target]`.
+
+**Der Löschweg für Bestandsdaten ist `sanitizeWeekStats()`**: Die Funktion übernimmt `kcal`
+nicht mehr, wirft es also beim Laden weg — beim nächsten Push verschwindet es aus dem
+Cloud-Dokument. Ein Gerät mit noch offener alter Fassung schreibt es bis zum Neuladen
+weiter; die Stände unterscheiden sich dann in einem Feld, das der Rang nicht mehr liest.
   `sanitizeWeekStats()` validiert die Maske (`/^[01]{7}$/` auf einem String), und
   `mergeWeekStats()` vereinigt sie über beide Geräte. Bis dahin schrieb `archiveWeek()` das
   Feld zwar, aber `sanitizeWeekStats()` kannte es nicht und warf es **beim eigenen Push**

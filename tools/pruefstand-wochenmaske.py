@@ -34,7 +34,7 @@ moegliche Widerspruch bleibt bewusst stehen: `days` traegt die Ziel-Quote im Kal
 (zielQuote), `d` das Gitter selbst - so steht es im Plan. Bis zum 04.09.2026 hiess die
 erste Haelfte davon "Rueckblick"; der Block ist geloescht, die Zahl ist geblieben.
 
-**2. `kcal`/`hit`/`target` beim OR-Merge.** Der aermere Lauf gewinnt nicht. Nur wenn der neue
+**2. `hit`/`target` beim OR-Merge.** Der aermere Lauf gewinnt nicht. Nur wenn der neue
 Lauf mindestens so viele Tage gesehen hat wie der gespeicherte, ersetzt er die Zahlen -
 derselbe wertbasierte Gedanke wie im Tiebreak von `mergeWeekStats()`.
 
@@ -144,7 +144,11 @@ archiveWeek("2026-W20", planAus("1101100"));
 var r1 = rec("2026-W20");
 pr("offen", "ohne Ziel entsteht ein Datensatz", !!r1, "state.weekStats = " + JSON.stringify(state.weekStats));
 pr("offen", "days wird gezaehlt", r1 && r1.days === 4, r1 && r1.days);
-pr("offen", "kcal wird gerechnet", r1 && r1.kcal === 2000, r1 && r1.kcal);
+// Seit dem 04.09.2026 fuehrt das Archiv VIER Kennzahlen. `kcal` (Ø geplante Tageskalorien)
+// hatte seit dem Wegfall des Rueckblick-Balkens keinen Leser mehr, der es anzeigt, und ist
+// als personenbezogener Wert ohne Zweck entfallen (Befund `anwalt`, TROUBLESHOOTING 151).
+// Die Zeile prueft die Umkehrung ihrer selbst: Sie hiess bis dahin "kcal wird gerechnet".
+pr("offen", "kcal entsteht NICHT mehr", !r1 || !("kcal" in r1), r1 && JSON.stringify(r1));
 pr("offen", "ohne Ziel kein target", !r1 || !("target" in r1), r1 && r1.target);
 pr("offen", "ohne Ziel keine Treffer", !r1 || r1.hit === 0, r1 && r1.hit);
 
@@ -172,7 +176,6 @@ state.weekStats = { "2026-W20": w(6, 4, 2100, 2200) };
 archiveWeek("2026-W20", planAus("1000000"));    // Geraet war offline, sieht nur einen Tag
 var r3 = rec("2026-W20");
 pr("offen", "aermerer Lauf zerstoert days nicht", r3 && r3.days === 6, r3 && r3.days);
-pr("offen", "aermerer Lauf zerstoert kcal nicht", r3 && r3.kcal === 2100, r3 && r3.kcal);
 pr("offen", "aermerer Lauf zerstoert hit nicht", r3 && r3.hit === 4, r3 && r3.hit);
 pr("offen", "Maske entsteht trotzdem", r3 && r3.d === "1000000", r3 && r3.d);
 
@@ -187,7 +190,7 @@ frisch(true);
 state.weekStats = { "2026-W20": w(2, 1, 1800, 2200, "1100000") };
 archiveWeek("2026-W20", planAus("1111100"));
 var r5 = rec("2026-W20");
-pr("offen", "reicherer Lauf ersetzt die Zahlen", r5 && r5.days === 5 && r5.kcal === 2000, r5 && JSON.stringify(r5));
+pr("offen", "reicherer Lauf ersetzt die Zahlen", r5 && r5.days === 5 && r5.hit === 5, r5 && JSON.stringify(r5));
 
 console.log("--- 4. weekMaskOf() als gemeinsame Quelle ---");
 pr("offen", "weekMaskOf existiert", typeof weekMaskOf === "function", typeof weekMaskOf);
@@ -260,7 +263,7 @@ var mA = { "2026-W20": w(4, 3, 2000, 2200, "1111000") };
 var mB = { "2026-W20": w(3, 2, 1900, 2200, "0000111") };
 var mm = mergeWeekStats(mB, mA)["2026-W20"];
 pr("offen", "Masken vereinigt", mm && mm.d === "1111111", mm && mm.d);
-pr("offen", "Zahlen folgen dem Tiebreak (mehr days)", mm && mm.kcal === 2000 && mm.hit === 3, JSON.stringify(mm));
+pr("offen", "Zahlen folgen dem Tiebreak (mehr days)", mm && mm.days === 7 && mm.hit === 3, JSON.stringify(mm));
 var mm2 = mergeWeekStats(mA, mB)["2026-W20"];
 pr("offen", "Richtung egal: Maske", mm2 && mm2.d === "1111111", mm2 && mm2.d);
 pr("offen", "Richtung egal: Zahlen", mm2 && canonJSON(mm2) === canonJSON(mm), canonJSON(mm2) + " vs " + canonJSON(mm));

@@ -5734,3 +5734,42 @@ ins Leere, im Cloud-Modus dauert der Start länger und er kommt spät genug.
 Eine Probe, die nur dort funktioniert, wo sie nicht laufen darf, ist eine Falle mit Anlauf.
 Sie klickt jetzt in der Warteschleife, bis das Gitter erscheint. **Ein `.click()` auf ein
 Element, das schon existiert, beweist nicht, dass es schon hört.**
+
+## 151. Ein Feld, das nur noch sich selbst sortiert
+
+**Gefunden am 04.09.2026** vom Agenten `anwalt`, beim Gegenlesen einer ganz anderen Änderung.
+
+`archiveWeek()` speicherte je vergangener Woche **fünf** Kennzahlen, darunter `kcal` — den
+Durchschnitt der geplanten Tageskalorien. Mit dem Wegfall des Rückblick-Balkens (Konzept G)
+verlor dieser Wert seinen letzten **anzeigenden** Leser. Übrig blieb genau einer:
+
+```js
+function weekStatRang(s) { return [s.days || 0, s.hit || 0, s.kcal || 0, s.target || 0]; }
+```
+
+— der Tiebreaker, mit dem `mergeWeekStats()` entscheidet, welcher von zwei Geräteständen
+gewinnt. Das Feld sortierte also nur noch sich selbst.
+
+**Warum das mehr ist als toter Code:** Es ist ein personenbezogener Wert, der bis zu drei
+Kalenderjahre aufbewahrt und über die Cloud auf alle Geräte verteilt wird. Für gespeicherte
+Daten braucht es einen Zweck (Art. 5 Abs. 1 lit. b) und sie müssen auf das Notwendige
+beschränkt sein (lit. c). „Wird beim Zusammenführen als drittes Sortierkriterium gelesen"
+trägt das nicht — zumal `[days, hit, target]` dieselbe Entscheidung trifft.
+
+**Was daraus folgte:** `kcal` entfällt in `archiveWeek()`, `sanitizeWeekStats()` und
+`weekStatRang()`. Die Datenschutzerklärung nennt in Ziffer 3 seither **vier** Kennzahlen.
+
+**Der Löschweg ist `sanitizeWeekStats()`.** Sie übernimmt das Feld nicht mehr, wirft es also
+beim Laden weg; beim nächsten Push verschwindet es aus dem Cloud-Dokument. Es braucht keine
+Migration — der Bereinigungspfad, den jede Woche ohnehin durchläuft, ist der Migrationspfad.
+
+⚠️ **Eine Prüfung wurde dabei still schwächer, und das fiel nur auf, weil sie mitlief.**
+`pruefstand-weekstats-sync.py` prüft mit drei Fällen, ob eine naive Merge-Fassung
+(„Remote gewinnt bei Gleichstand") auffliegt. Fall 3 unterschied sich **nur in `kcal`** —
+ohne das Feld waren beide Stände identisch, die naive Fassung fiel nur noch in zwei von drei
+Fällen durch. Die Gegenprobe hätte weiter „bestanden" gemeldet, aber weniger gemessen als
+zuvor. Der Fall trennt jetzt über die **Tagesmaske**: gleiche Zahlen, andere Tage.
+
+**Die Lehre:** Wer ein Feld entfernt, muss auch prüfen, ob eine **Gegenprobe** davon lebte.
+Ein Prüfstand, der grün bleibt, während seine Gegenprobe schwächer wird, ist die leiseste
+Form von Verfall (vgl. Ziffer 144).

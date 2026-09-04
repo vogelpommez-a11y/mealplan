@@ -548,7 +548,11 @@ pruefe("sie zaehlt Treffer gegen geplante Tage", /7\\D+11/.test(fuss.textContent
 // Und sie SAGT, worauf sie sich bezieht (seit 04.09.2026). Neben ihr stand frueher
 // "Geplant 18/30 Tage" - zwei Brueche, beide auf "Tage" endend, mit verschiedenen
 // Nennern. Der Bezug steht jetzt im Bruch selbst, nicht im Kopf des Lesers.
-pruefe("und nennt ihren Bezug", /geplanten/.test(fuss.textContent),
+//
+// Gesucht wird "mit Ziel", nicht "geplanten": Der Nenner zaehlt die geplanten Tage in
+// Wochen MIT damaligem Ziel (B10), also im Uebergangsfall weniger als die geplanten Tage
+// des Zeitraums. "Geplanten" war dort schlicht falsch.
+pruefe("und nennt ihren Bezug", /mit Ziel/.test(fuss.textContent),
        fuss.textContent.replace(/\\s+/g, " ").trim());
 // Die Doppelung darf nicht zurueckkehren: Der Fuss zaehlt keine geplanten Tage mehr,
 // das tut die Zeile ueber dem Gitter.

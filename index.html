@@ -1187,22 +1187,36 @@
   // und der Kalender waere fuer ihn dauerhaft leer geblieben. Geschuetzt gehoert nur der
   // goalTargetsForDay()-Aufruf, nicht die ganze Funktion: `days`/`kcal`/`d` sind vom Ziel
   // unabhaengig, `hit`/`target` sind es nicht.
+  // ⚠️ Das Archiv fuehrt seit dem 04.09.2026 VIER Kennzahlen, nicht mehr fuenf.
+  //
+  // Die durchschnittlich geplanten Tageskalorien (`kcal`) sind entfallen. Sie hatten seit
+  // dem Wegfall des Rueckblick-Balkens keinen Leser mehr, der sie ANZEIGT - nur noch
+  // weekStatRang() als Tiebreaker beim Zusammenfuehren zweier Geraete. Ein personenbezogener
+  // Wert, der bis zu drei Kalenderjahre aufbewahrt und ueber die Cloud verteilt wird, aber
+  // niemandem mehr etwas zeigt, ist nicht mehr von der Zweckbindung gedeckt (Art. 5 Abs. 1
+  // lit. b/c DSGVO; Befund des Agenten `anwalt`). Datenschutzerklaerung Ziffer 3 nennt
+  // seither vier Kennzahlen.
+  //
+  // ÜBERGANG: sanitizeWeekStats() wirft `kcal` beim Laden weg - Bestandsdaten verschwinden
+  // damit beim naechsten Push von selbst. Ein Geraet, auf dem noch die alte Fassung offen
+  // steht, schreibt es bis zum naechsten Neuladen weiter; die beiden Staende unterscheiden
+  // sich dann in einem Feld, das weekStatRang() nicht mehr liest. Nach dem Neuladen ist Ruhe.
   function archiveWeek(wk, pl) {
     if (!pl) return;
     const mask = weekMaskOf(pl);                // eine Quelle fuer "welcher Tag ist beplant"
-    let sum = 0, days = 0, hit = 0, tsum = 0, tdays = 0;
+    let days = 0, hit = 0, tsum = 0, tdays = 0;
     DAYS.forEach((d, i) => {
       if (mask.charAt(i) !== "1") return;
       const n = dayNutOf(pl, d.key);
-      days++; sum += n.kcal;
+      days++;
       if (!state.goal) return;
       const t = goalTargetsForDay(d.key);
       if (t && t.kcal) { tsum += t.kcal; tdays++; }
       if (t && t.kcal && Math.abs(n.kcal - t.kcal) <= t.kcal * 0.1) hit++;
     });
-    if (!days) return;                          // leere Woche hat keinen Rueckblick-Wert
+    if (!days) return;                          // leere Woche hat nichts zu archivieren
     if (!state.weekStats) state.weekStats = {};
-    const rec = { kcal: Math.round(sum / days), days: days, hit: hit, d: mask };
+    const rec = { days: days, hit: hit, d: mask };
     if (tdays) rec.target = Math.round(tsum / tdays);
     state.weekStats[wk] = mergeArchived(state.weekStats[wk], rec);
   }
@@ -1292,7 +1306,10 @@
       const s = o[k]; if (!s || typeof s !== "object") return;
       const days = Math.max(0, Math.min(7, Math.round(Number(s.days) || 0)));
       if (!days) return;
-      out[k] = { kcal: Math.max(0, Math.round(Number(s.kcal) || 0)), days: days, hit: Math.max(0, Math.min(days, Math.round(Number(s.hit) || 0))) };
+      // `kcal` wird bewusst NICHT uebernommen (04.09.2026): Bestandsdaten aus der Zeit der
+      // fuenf Kennzahlen verlieren das Feld hier beim Laden und damit beim naechsten Push.
+      // Das ist der Loeschweg fuer ein Feld, das keinen Zweck mehr hat - kein Vergessen.
+      out[k] = { days: days, hit: Math.max(0, Math.min(days, Math.round(Number(s.hit) || 0))) };
       // Eingefrorenes Tagesziel (B10). Nur uebernehmen, wenn es plausibel ist — sonst lieber
       // gar keins: der Rueckblick faellt dann auf das heutige Ziel zurueck, statt einen
       // kaputten Wert als Messlatte zu zeichnen. Woche ohne `target` = vor dieser Aenderung
@@ -1343,7 +1360,10 @@
   // Seite ihre ZAHLEN durchsetzt; die Maske wird unabhaengig davon vereinigt. Naehme man sie
   // in den Rang auf ("mehr Einsen gewinnt"), loeschte man genau die Tage, die nur ein Geraet
   // kennt — der Fehler, gegen den das Feld ueberhaupt gebaut wurde.
-  function weekStatRang(s) { return [s.days || 0, s.hit || 0, s.kcal || 0, s.target || 0]; }
+  // Reihenfolge = Aussagekraft: mehr geplante Tage schlaegt mehr Treffer schlaegt ein
+  // eingefrorenes Ziel. `kcal` stand hier bis zum 04.09.2026 an dritter Stelle und ist mit
+  // dem Feld entfallen - ein Tiebreaker allein rechtfertigt keine Aufbewahrung.
+  function weekStatRang(s) { return [s.days || 0, s.hit || 0, s.target || 0]; }
   // ⚠️ NICHT mit mergeArchived() zusammenlegen, so aehnlich die beiden inzwischen aussehen.
   // Der Unterschied ist genau einer und er ist der ganze Sinn: mergeArchived() bevorzugt bei
   // Gleichstand den NEUEN Lauf (>=), weil der frisch gerechnete Wert der aktuellere ist.
@@ -5708,8 +5728,16 @@
     // Ziel 12/18 Tage" mit einem ANDEREN Bezug. Zwei Brueche nebeneinander, beide auf
     // "Tage" endend, deren Nenner verschiedene Dinge zaehlen - der eine die Tage des
     // Zeitraums, der andere die geplanten Tage in Wochen mit Ziel. Befund des ux-reviewer.
+    //
+    // Der Nenner heisst "mit Ziel", nicht "geplanten" (seit 04.09.2026, zweiter Anlauf).
+    // "Geplanten" war nur im Normalfall wahr: Wer erst spaeter sein erstes Ziel gesetzt hat,
+    // sah im Browser "21 von 31 Tagen geplant" ueber dem Gitter und "Im Ziel 4/6 geplanten"
+    // darunter - die 15 Tage aus zielfreien Wochen fehlen zu Recht im Nenner (B10), aber
+    // das Wort behauptete, es seien ALLE geplanten Tage. "Mit Ziel" ist in beiden Faellen
+    // wahr und kuerzer. Gefunden in der Browser-Abnahme mit einer Datenlage, die kein
+    // Pruefstand aufbaut.
     const fuss = (q.tage || serie || tage >= 2) ? `<div class="kal-foot">
-        ${q.tage ? `<div class="kal-f"><small>Im Ziel</small><b>${nfmt(q.hit)}<span>/${nfmt(q.tage)} geplanten</span></b></div>` : ""}
+        ${q.tage ? `<div class="kal-f"><small>Im Ziel</small><b>${nfmt(q.hit)}<span>/${nfmt(q.tage)} mit Ziel</span></b></div>` : ""}
         ${serie ? `<div class="kal-f"><small>Serie</small><b class="kal-serie">${ICON_FLAME}${serie}<span>Woche${serie === 1 ? "" : "n"}</span></b></div>` : ""}
         ${tage >= 2 ? `<div class="kal-f"><small>Am Stück</small><b>${nfmt(tage)}<span>Tage</span></b></div>` : ""}
       </div>` : "";
@@ -10881,7 +10909,11 @@
   // Startseite fuer "Mein Ziel behalten".
   function goalSummaryHtml(g) {
     if (!g) return "";
-    return `<b>${g.kcal.toLocaleString("de-DE")} kcal</b> am Tag · ${g.protein} g Eiweiß · ${g.fat} g Fett · ${g.carbs} g Kohlenhydrate`;
+    // Reihenfolge kcal → KH → P → F, wie ueberall sonst (docs/DESIGN.md). Hier stand bis
+    // zum 04.09.2026 kcal · P · F · KH - eine eigene Reihenfolge "weil es hier besser
+    // passt" ist ausdruecklich ausgeschlossen, und die Zeile steht an zwei sichtbaren
+    // Stellen: am Ende des Onboardings und auf der Startseite bei "Mein Ziel behalten".
+    return `<b>${g.kcal.toLocaleString("de-DE")} kcal</b> am Tag · ${g.carbs} g Kohlenhydrate · ${g.protein} g Eiweiß · ${g.fat} g Fett`;
   }
 
   // Reihenfolge der Bildschirme. Verwandte Fragen stehen zusammen auf EINEM Bildschirm:
@@ -11359,8 +11391,8 @@
         <div class="onb-res">
           <div class="onb-res-k">${g.kcal.toLocaleString("de-DE")}<span>kcal / ${hatT ? "Ruhetag" : "Tag"}</span></div>
           <div class="onb-res-m">
-            <div class="t-prot"><b>${g.protein} g</b><span>Eiweiß</span></div>
             <div class="t-carb"><b>${g.carbs} g</b><span>Kohlenhydrate</span></div>
+            <div class="t-prot"><b>${g.protein} g</b><span>Eiweiß</span></div>
             <div class="t-fat"><b>${g.fat} g</b><span>Fett</span></div>
           </div>
           ${hatT ? `<div class="onb-res-t">

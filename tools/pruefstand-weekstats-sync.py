@@ -53,9 +53,14 @@ function pr(name, bedingung, extra) {
   if (bedingung) { ok++; console.log("  OK   " + name); }
   else { bad++; console.log("  FAIL " + name + (extra ? "  -> " + extra : "")); }
 }
-function w(days, hit, kcal, target) {
+// `kcal` bleibt als Argument stehen, obwohl das Feld am 04.09.2026 aus dem Archiv
+// entfallen ist: Die Faelle bilden damit weiter Bestandsdaten aus der Zeit der fuenf
+// Kennzahlen nach - sanitizeWeekStats() wirft es beim Laden weg, und genau das soll
+// geprueft sein.
+function w(days, hit, kcal, target, d) {
   var o = { kcal: kcal, days: days, hit: hit };
   if (target) o.target = target;
+  if (d) o.d = d;
   return o;
 }
 
@@ -64,7 +69,10 @@ var A = { "2026-W20": w(6,4,2100,2200), "2026-W21": w(5,3,2050,2200) };
 var B = { "2026-W22": w(7,5,2150,2200) };
 var m = mergeWeekStats(B, A);
 pr("alle drei Wochen da", Object.keys(m).length === 3, JSON.stringify(Object.keys(m)));
-pr("A-Woche unveraendert", m["2026-W20"].kcal === 2100);
+// Geprueft wird `hit`, nicht mehr `kcal`: Das Feld ist am 04.09.2026 aus dem Archiv
+// entfallen (vier Kennzahlen statt fuenf). sanitizeWeekStats() wirft es beim Laden weg.
+pr("A-Woche unveraendert", m["2026-W20"].hit === 4, JSON.stringify(m["2026-W20"]));
+pr("und kcal ist dabei entfallen", !("kcal" in m["2026-W20"]), JSON.stringify(m["2026-W20"]));
 pr("B-Woche uebernommen", m["2026-W22"].days === 7);
 
 console.log("--- 2. Gegenprobe zum Aufbau: blosses Ersetzen verliert etwas ---");
@@ -81,7 +89,11 @@ console.log("--- 4. Determinismus - die eigentliche Messgroesse ---");
 var faelle = [
   [{ "2026-W20": w(5,3,2000,2200) }, { "2026-W20": w(5,3,2000,2200) }],
   [{ "2026-W20": w(5,3,2000,2200) }, { "2026-W20": w(5,2,2000,2200) }],
-  [{ "2026-W20": w(5,3,2000,2200) }, { "2026-W20": w(5,3,2400,2200) }],
+  // Frueher unterschied sich dieser Fall NUR in `kcal`. Seit das Feld weg ist, waeren
+  // beide Staende identisch - die Gegenprobe unten haette die naive Fassung dann nur
+  // noch in zwei von drei Faellen entlarvt, also stiller gemessen als vorher. Jetzt
+  // trennt sie die TAGESMASKE: gleiche Zahlen, andere Tage.
+  [{ "2026-W20": w(5,3,2000,2200,"1111100") }, { "2026-W20": w(5,3,2000,2200,"0011111") }],
   [{ "2026-W20": w(5,3,2000,2200) }, { "2026-W20": w(5,3,2000,1800) }],
   [{ "2026-W20": w(4,2,1900) },      { "2026-W21": w(6,5,2300,2200) }]
 ];
@@ -174,12 +186,16 @@ def main():
     # Produktionscode schneiden, nicht abtippen.
     kern = schneide(quelle, u"function archivJahre(", u"    return sanitizeWeekStats(out);") + u"\n  }\n"
     canon = schneide(quelle, u"function canonValue(v)", u"function canonJSON(v)")
+    # maskDays() gehoert seit dem 04.09.2026 dazu: Die Faelle unterscheiden sich jetzt
+    # in der TAGESMASKE (vorher in `kcal`, das es nicht mehr gibt), und mergeWeekStats()
+    # ruft den Helfer beim Vereinigen der Masken. Ausgeschnitten statt gestubbt.
+    maske = schneide(quelle, u"function maskDays(m)", u"// Kennzahlen einer abgelaufenen Woche")
 
     tmp = tempfile.mkdtemp(prefix="mp-weekstats-")
     try:
         seite = os.path.join(tmp, "pruefstand.html")
         io.open(seite, "w", encoding="utf-8").write(
-            u"<script>\n" + kern + u"\n" + canon + u"\n" + TEST + u"\n</script>")
+            u"<script>\n" + kern + u"\n" + canon + u"\n" + maske + u"\n" + TEST + u"\n</script>")
         p = subprocess.run(
             [EDGE, "--headless=new", "--disable-gpu", "--virtual-time-budget=5000",
              "--user-data-dir=" + os.path.join(tmp, "profil"),
