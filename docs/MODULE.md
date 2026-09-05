@@ -48,7 +48,7 @@ Erhoben aus den Abschnittsmarken im Code, nicht von Hand gepflegt.
 | css/basis.css | Header | 20-224 | 205 |
 | css/basis.css | Section head | 225-230 | 6 |
 | css/basis.css | Buttons | 231-298 | 68 |
-| css/basis.css | Week grid | 299-1277 | 979 |
+| css/basis.css | Week grid | 299-1281 | 983 |
 | css/komponenten.css | Recipe grid | 8-261 | 254 |
 | css/komponenten.css | Meal-Ansicht (openMealSheet) | 262-451 | 190 |
 | css/komponenten.css | Empty state | 452-457 | 6 |
@@ -317,7 +317,7 @@ _keine_
 | README.md | 46 | 1990 |
 | SECURITY.md | 71 | 3006 |
 | css/CLAUDE.md | 92 | 4167 |
-| css/basis.css | 1277 | 91084 |
+| css/basis.css | 1281 | 91419 |
 | css/komponenten.css | 1101 | 86616 |
 | css/mobil.css | 1001 | 65479 |
 | css/tokens.css | 221 | 11084 |
@@ -328,12 +328,12 @@ _keine_
 | data/ikonen.js | 89 | 10187 |
 | data/rechtstexte.js | 163 | 27882 |
 | docs/ABDECKUNG.md | 192 | 11427 |
-| docs/ARCHITECTURES.md | 2970 | 187411 |
+| docs/ARCHITECTURES.md | 2983 | 187944 |
 | docs/DESIGN.md | 660 | 31631 |
 | docs/MODULE.md | — | — (erzeugt) |
 | docs/PRODUCT.md | 1622 | 90928 |
 | docs/RUNBOOK.md | 167 | 5665 |
-| docs/SECURITY.md | 356 | 19197 |
+| docs/SECURITY.md | 392 | 21684 |
 | docs/STORE.md | 246 | 11876 |
 | docs/TESTING.md | 3960 | 236209 |
 | docs/TROUBLESHOOTING.md | 5776 | 331964 |
@@ -414,7 +414,7 @@ _keine_
 | img/toast.webp | — | 15252 |
 | img/waffle.webp | — | 33496 |
 | img/wrap.webp | — | 29160 |
-| index.html | 13820 | 851835 |
+| index.html | 13820 | 851884 |
 | lib/barcode.js | 153 | 8354 |
 | lib/basis.js | 21 | 836 |
 | lib/pdf.js | 241 | 13120 |

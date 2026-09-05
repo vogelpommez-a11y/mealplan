@@ -334,11 +334,11 @@
       "zeilen": 68
     },
     {
-      "bis": 1277,
+      "bis": 1281,
       "datei": "css/basis.css",
       "titel": "Week grid",
       "von": 299,
-      "zeilen": 979
+      "zeilen": 983
     },
     {
       "bis": 261,
@@ -1193,9 +1193,9 @@
       "zeilen": 92
     },
     {
-      "bytes": 91084,
+      "bytes": 91419,
       "pfad": "css/basis.css",
-      "zeilen": 1277
+      "zeilen": 1281
     },
     {
       "bytes": 86616,
@@ -1248,9 +1248,9 @@
       "zeilen": 192
     },
     {
-      "bytes": 187411,
+      "bytes": 187944,
       "pfad": "docs/ARCHITECTURES.md",
-      "zeilen": 2970
+      "zeilen": 2983
     },
     {
       "bytes": 31631,
@@ -1272,9 +1272,9 @@
       "zeilen": 167
     },
     {
-      "bytes": 19197,
+      "bytes": 21684,
       "pfad": "docs/SECURITY.md",
-      "zeilen": 356
+      "zeilen": 392
     },
     {
       "bytes": 11876,
@@ -1602,7 +1602,7 @@
       "pfad": "img/wrap.webp"
     },
     {
-      "bytes": 851835,
+      "bytes": 851884,
       "pfad": "index.html",
       "zeilen": 13820
     },
