@@ -931,7 +931,35 @@ Reihenfolge in der Leiste und die Richtung des Schiebe-Übergangs vor:
 TAB_ORDER = ["home", "plan", "recipes", "progress"]
 ```
 
-* `renderHome()` — `appHeroHtml()` + `weekNutHtml()`
+* `renderHome()` — `weekNutHtml()` (bis 05.09.2026 zusätzlich `appHeroHtml()`, siehe unten)
+
+**`renderHome()` braucht kein `initCarousel()` mehr** (05.09.2026). Der Startreiter trug bis
+dahin zwei Zielkarten in einem Wisch-Streifen (`.wgbar` + `.wg-cols`); er trägt jetzt **eine
+Karte**. `resetCarousels()` bleibt trotzdem stehen — es räumt die Beobachter des *vorherigen*
+Reiters ab, und der kann ein Karussell gehabt haben.
+
+Der Aufbau der Karte, von oben:
+
+| Baustein | Funktion | Was er zeigt |
+|---|---|---|
+| Bilddeckel | `nextMealHtml()` → `nextMealOfDay()` | das nächste anstehende Meal von **heute** |
+| Kalorien + Makros | `goalRingHtml()` | Ring, Grundbedarf/Ernährung/Training, drei Makrobalken |
+| Kartenfuß | `weekFootHtml()` | Woche, sieben Tagespunkte, `x von 7 Tagen` und kcal |
+| Knopfzeile | `.wg-actions` | `tune-goal`, `recalc-goal` |
+
+`nextMealOfDay()` sucht nach Uhrzeit: vor 10 Uhr ab Frühstück, vor 14:30 ab Mittag, vor 20:30
+ab Abend, sonst ab Snack. Die Grenzen entscheiden nur, **wo die Suche beginnt** — findet sich
+ab dort kein belegter Slot, wird der erste offene gezeigt, und danach fängt die Suche vorne an.
+Die Karte trägt dadurch immer einen Deckel.
+
+**Gerechnet wird gegen den Plan der aktuellen Woche**, nicht gegen `state.plan`: „Heute“ bleibt
+heute, auch wenn der Wochenplan gerade auf nächste Woche zeigt. Aus demselben Grund setzt
+`weekFootHtml()` die Markierung „heute“ **nur** bei `state.viewWeek !== "next"` — ein Rahmen um
+einen Wochentag in einer Woche, die noch nicht ist, wäre eine Behauptung.
+
+Der leere Slot führt über `data-action="tab" data-tab="plan"` in den Wochenplan und **nicht**
+in den Picker: Der schreibt in `state.plan`, also in die *angezeigte* Woche — ein Meal für
+„heute“ landete dort sieben Tage daneben.
 * `renderPlan(sameTab)`
 * `renderRecipes()`
 * `renderProgress()` — `zeitraumHtml()` + `kalenderHtml()` + `weightHtml()` (seit 03.09.2026, Konzept G; bis dahin stand der Rückblick-Block an erster Stelle, seit 04.09.2026 ist er gelöscht)
@@ -965,7 +993,8 @@ Hilfsfunktionen: `weightKeyNow(dt)`, `validWeightKey(s)`, `weekNumOf(s)`, `weekM
 `"KW 33 · 10.08."`.
 
 **`weekKeyLabel`, nicht `weekLabel`** (24.08.2026): Der Name kollidierte mit einer zweiten
-Top-Level-Funktion, die einen Wochen-**Offset** als Zahl erwartet (`appHeroHtml()`). Durch
+Top-Level-Funktion, die einen Wochen-**Offset** als Zahl erwartet (heute `weekGoalHtml()`,
+bis 05.09.2026 `appHeroHtml()`). Durch
 Hoisting gewann die spätere für alle Aufrufer, und der Gewichtsverlauf zeigte live
 „Woche NaN · NaN. undefined". Siehe `docs/TROUBLESHOOTING.md` 112.
 
@@ -2199,8 +2228,9 @@ Tageskarte pro Bildschirmbreite) mit einer klebenden Tagesleiste darüber.
 ### `initCarousel(scroller, bar, panelList, onChange, opts)`
 
 Koppelt Streifen und Leiste über `scrollLeft` — bewusst nicht über `scrollIntoView`, das die
-Seite auch senkrecht verschieben würde. Zwei Aufrufer: der Wochenplan (`.week` + `.daybar`) und
-die Wochenziele auf der Startseite (`.wg-cols` + `.wgbar`, `{fixedHeight: true}`).
+Seite auch senkrecht verschieben würde. **Seit dem 05.09.2026 gibt es nur noch einen Aufrufer:**
+den Wochenplan (`.week` + `.daybar`). Der zweite war die Startseite (`.wg-cols` + `.wgbar`,
+`{fixedHeight: true}`); sie trägt jetzt eine Karte statt zweier im Streifen.
 
 Alles, was pro Bild gebraucht wird, misst `measure()` **einmal** in einem Batch
 (`lefts`, `widths`, `heights`, `maxScroll`, `clientW`, `step`). Der Scroll-Pfad liest danach nur
@@ -2352,8 +2382,9 @@ Alle Wechsel zwischen gleichrangigen Ansichten (Wochentage, Home „Heute/Diese 
 Control mit gleitender Pille plus gerichteter Enter-Bewegung des Inhalts. Drei Bausteine, je
 nach DOM-Lebensdauer der Leiste:
 
-* **`initCarousel()` / `.db-ind`** — für `.daybar` und `.wgbar`. Die Pille ist eine reine
-  Funktion von `scrollLeft` (siehe oben), keine eigene Transition nötig.
+* **`initCarousel()` / `.db-ind`** — für `.daybar` (bis 05.09.2026 auch für `.wgbar` auf der
+  Startseite). Die Pille ist eine reine Funktion von `scrollLeft` (siehe oben), keine eigene
+  Transition nötig.
 * **`slideIn(el, dir)`** — gemeinsamer Enter-Helfer (WAAPI) für gerichtete Inhaltswechsel.
   Enter-only: der `innerHTML`-Austausch IST der Exit, eine Ausblendung davor wäre nur
   künstliche Latenz. `dir` ist das Vorzeichen der Richtung; `reducedMotion()` behält die

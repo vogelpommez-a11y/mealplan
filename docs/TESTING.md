@@ -1874,8 +1874,9 @@ Fünf Fallen, die dabei Zeit gekostet haben:
 CSS-Eingriff in der Werkzeugleiste hatte den 680px-Block zerlegt und damit die komplette mobile
 Ansicht abgeschaltet (TROUBLESHOOTING §97) — während jede Prüfung zum Knopf selbst grün blieb.
 Neu je Breite: `.daybar` sichtbar, `.week` mit `overflow-x: auto` und `scroll-snap-type: x`,
-`scrollWidth > clientWidth`, dasselbe für `.wg-cols` auf der Startseite, und am Rechner die
-Gegenrichtung (`display: grid`, Tagesleiste aus).
+`scrollWidth > clientWidth` — bis zum 05.09.2026 dasselbe für `.wg-cols` auf der Startseite,
+die seither eine Karte ohne Streifen trägt — und am Rechner die Gegenrichtung
+(`display: grid`, Tagesleiste aus).
 
 Das Skript kennt dafür einen **Sabotage-Schalter** (`--sabotage`), der genau diesen Fehler in der
 Prüfkopie nachbaut. Er gehört zur Prüfung dazu: Ohne ihn ist nicht belegt, dass die neue Gruppe
@@ -2318,6 +2319,55 @@ eigener Einheit, eines mit vollen Nährwerten und eines ganz ohne. Der erste Ent
 Fehler frei: `macroOverridden` (siehe `docs/TROUBLESHOOTING.md` 110). Der Hinweis kam vom
 `kvp`-Agenten — **ein leerer Sonderfall ist kein Testfall.**
 
+### `tools/pruefstand-home-eine-seite.py` — passt Home auf einen Bildschirm?
+
+Seit dem 05.09.2026 ist „der Startreiter scrollt nicht“ eine **Zusage** (`docs/DESIGN.md`) —
+und Zusagen, die niemand misst, halten genau bis zur nächsten Zeile Text. Am 27-Zoll-Monitor
+ist immer Platz; das Problem fällt beim Bauen nicht auf.
+
+**Der Kniff: `<iframe>` statt `--window-size`.** Die Media Queries eines Rahmens richten sich
+nach *seiner* Breite, nicht nach der des Fensters — so lässt sich ein iPhone-Viewport auf
+einem Desktop-Browser wirklich herstellen. Der Umweg über `--window-size` taugt dafür nicht:
+Headless liefert eine andere CSS-Breite als angefordert (gemessen: 390 angefordert, 489
+bekommen). Wer das übersieht, misst am Handy vorbei und hält es für grün.
+
+Geprüft werden sechs Geräte — iPhone SE, iPhone 13/14/15, Pixel 7, iPhone 14 Pro Max, iPad
+hochkant, Notebook 1440×900 — mit dem **CSS-Viewport ohne Browserleisten**, nicht mit der
+Bildschirmdiagonale. Je Gerät fünf Fragen: passt es ohne Scrollen, scrollt nichts quer, ist
+`#view` gefüllt, stehen Ring, **drei** Makrobalken und die Wochenangabe da, und ist kein
+Tippziel zu klein.
+
+Drei Entscheidungen darin sind Absicht:
+
+* **Gemessen wird der höchste Zustand, nicht irgendeiner.** Der Plan entsteht im Browser, nicht
+  im Skript: Er muss den *heutigen* Tag treffen, und an welchem Wochentag jemand den Prüfstand
+  fährt, weiß das Skript nicht. Heute ist geplant (→ drei Makrobalken statt eines Hinweissatzes)
+  **und** ein anderer Tag ist offen (→ die Zeile „Für die N offenen Tage bleiben …“). Ein leerer
+  Plan wäre die bequemste Messung und die nutzloseste.
+* **Die Tippziel-Grenze hängt am Breakpoint, nicht an der Meinung.** Unter 681 px fährt die App
+  ihr Touch-Layout und `css/mobil.css` sagt dort `min-height: 44px` ausdrücklich zu; darüber
+  gilt WCAG 2.2 (2.5.8) mit 24×24. Eine einzige Zahl für beides wäre am Rechner unsinnig
+  streng oder auf dem Handy zu lasch.
+* **Das iPhone SE steht als `OFFEN` drin, nicht als grün.** Es scrollt dort (Stand 05.09.2026:
+  83 px, `SE_DECKEL = 90`); der Rückgabewert hängt nicht daran, wohl aber daran, dass es nicht
+  *schlechter* wird. Der Deckel wurde am 05.09.2026 von 60 auf 90 angehoben, weil der Reiter
+  einen **Bilddeckel** dazubekommen hat — ein Zugewinn, kein Nachlassen. Wer ihn weiter erhöht,
+  schreibt den Grund dazu; „sonst ist es rot“ ist keiner.
+  Deshalb steht der Prüfstand in `TEILWEISE` von `tools/alle-pruefstaende.py` — sein „grün“
+  heißt dort nur „keine Regression“.
+
+**Zwei Fallen, in die der Prüfstand selbst gelaufen ist — beide hätten ihn stumm gemacht:**
+
+1. Das Messskript stand im `<head>`, `document.body` war beim Ausführen noch `null`. Ein
+   `appendChild` darauf wirft — und dann misst gar nichts mehr. Jetzt in `DOMContentLoaded`.
+2. Die erste Gegenprobe fiel durch, aber am **falschen** Kriterium: Der alte Stand kennt
+   `.wg-week` noch nicht, also scheiterte er an der Inhaltsprüfung, nicht an der Höhe. Sie
+   war grün, ohne je etwas über das Scrollen gesagt zu haben. In der Gegenprobe fällt diese
+   eine Bedingung deshalb weg (`alt=True`); jetzt fällt der alte Stand auf allen sechs
+   Geräten an der Höhe durch, zwischen +107 und +512 px.
+
+Genau die Sorte Fehler, vor der Ziffer 119 und 123 in `docs/TROUBLESHOOTING.md` stehen.
+
 ### `tools/pruefstand-wochenbeschriftung.py` — Verifikation VOR dem Fix
 
 Der Plan verlangte hier ausdrücklich, den Befund erst zu beweisen. Zu Recht: Die Klammerbilanz
@@ -2330,9 +2380,12 @@ Zwei Dinge daran sind Absicht:
 * **Genau EINE Wiegung.** Bei mehreren lässt `weightHtml()` die `.wch-tip` bewusst leer
   (dort steht dann der Vergleich statt des Einzelwerts) — der Text, um den es geht, wäre gar
   nicht da, und die Prüfung liefe ins Leere. Der erste Lauf hatte genau diesen Fehler.
-* **Die Hero-Zeile als Gegenprobe.** Die Zahl-Variante muss unverändert ihre eigene Form
+* **Die Wochenangabe als Gegenprobe.** Die Zahl-Variante muss unverändert ihre eigene Form
   behalten (`"Woche 35 · 24.–30. August"`). Ohne sie beweist der Test nur, dass irgendetwas
-  anders geworden ist.
+  anders geworden ist. Abgelesen wird sie an **`.wg-week`** in der Kopfzeile der Wochenkarte;
+  bis zum 05.09.2026 stand sie als `.eyebrow` im Intro-Hero und wurde dort gemessen. Der
+  Wegfall des Hero hätte den Prüfstand stumm gemacht — er hätte `(keine .eyebrow)` gelesen und
+  wäre rot geworden, statt still durchzulaufen. Genau dafür ist der Text-Vergleich da.
 
 ### `tools/pruefstand-rezeptbuch.py` — erweitert und wieder scharf
 

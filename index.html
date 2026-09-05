@@ -3620,13 +3620,15 @@
     const prevTab = lastRenderTab;
     lastRenderTab = state.tab;
     const keepY = sameTab ? window.scrollY : 0;
-    const weekEl = view.querySelector(".week"), wgEl = view.querySelector(".wg-cols");
+    const weekEl = view.querySelector(".week");
     // pendingWeekX statt einer lokalen Konstante: renderPlan() muss die Position noch VOR
     // resetCarousels()/initCarousel() zuruecksetzen (siehe Deklaration oben), also VOR dem
     // Punkt, an dem render() selbst wieder zu Wort kaeme. Deshalb hier nur merken, nicht mehr
     // selbst schreiben.
     pendingWeekX = sameTab && weekEl ? weekEl.scrollLeft : 0;
-    const keepWgX = sameTab && wgEl ? wgEl.scrollLeft : 0;
+    // Die Home-Karten lagen bis zum 05.09.2026 in einem zweiten Wisch-Streifen (.wg-cols),
+    // dessen Position hier ueber den Neuaufbau gerettet wurde. Der Startreiter traegt jetzt
+    // EINE Karte - es gibt nichts mehr zu retten.
     // Caches nur fuer die Dauer dieses Durchlaufs aufspannen; finally stellt sicher,
     // dass sie auch bei einem Fehler nicht als veraltete Kopie zurueckbleiben.
     recipeIndex = new Map(state.recipes.map(r => [r.id, r]));
@@ -3652,8 +3654,6 @@
     // Ohne Sanftlauf: das hier ist Wiederherstellen, keine Bewegung, die jemand sehen soll.
     // ".week" faehrt hier NICHT mehr mit - renderPlan() hat die Position schon direkt nach
     // view.innerHTML gesetzt (siehe pendingWeekX oben), lange bevor initCarousel() misst.
-    const newWg = view.querySelector(".wg-cols");
-    if (keepWgX && newWg) newWg.scrollLeft = keepWgX;
     window.scrollTo(0, keepY);
     // Gleitende Pille der unteren Tab-Leiste (Schiebe-Schema): .tabs liegt ausserhalb von
     // view.innerHTML und ueberlebt den Neuaufbau, deshalb reicht hier eine CSS-transition
@@ -4492,147 +4492,148 @@
       </div>`;
   }
 
-  // Zwei flache Leisten untereinander: heutiger Tag und ganze Woche, beide mit
-  // Kalorienring UND Makros. Untereinander statt nebeneinander, weil jede Leiste so
-  // die volle Breite nutzt — die Makros passen dann rechts daneben statt darunter,
-  // und der ganze Block bleibt flach.
+  // Der Startreiter ist EINE Karte (05.09.2026): Bilddeckel mit dem naechsten Meal, darunter
+  // links die Kalorien und rechts die Makros, im Kartenfuss die Woche. Davor waren es zwei
+  // gleich grosse Zielkarten in einem Wisch-Streifen - die zweite trug einen eigenen
+  // Kalorienring fuer die ganze Woche. "Verbleibend 9.464 kcal diese Woche" ist aber keine
+  // Zahl, nach der jemand handelt: Entschieden wird auf Tagesebene. Was von der Woche zaehlt,
+  // ist WIE VIELE TAGE schon geplant sind - und das ist eine Zeile, kein Ring.
+  //
+  // Der Aufbau links/rechts kommt unveraendert aus goalRingHtml(): Es baut genau diese
+  // Zeile (.wg-col-cal + .wg-col-macros). Deshalb ist der Umbau hier klein geblieben.
   function weekGoalHtml(w, t) {
     const d = DAYS.filter(x => x.key === todayDayKey())[0] || DAYS[0];
     const day = goalTargetsForDay(d.key);
     // Immer gegen den Plan der AKTUELLEN Woche rechnen, auch wenn state.plan gerade
     // auf die naechste Woche zeigt - "heute" bleibt heute, unabhaengig von der
     // gewaehlten Ansicht (siehe dayNutOf-Kommentar).
-    const s = state.viewWeek === "next" ? dayNutOf(state.plans[weekKeyFor("cur")] || makeEmptyPlan(), d.key) : dayNut(d.key);
-    // Leerzustand je Karte getrennt: die Heute-Karte zeigt ihren Makro-Hinweis, solange HEUTE
-    // kein Meal hat (nicht schon, wenn irgendein anderer Wochentag geplant ist); die
-    // Diese-Woche-Karte wird zum Erklaerpanel, solange die ganze Woche leer ist.
+    const curPlan = state.plans[weekKeyFor("cur")] || makeEmptyPlan();
+    const s = state.viewWeek === "next" ? dayNutOf(curPlan, d.key) : dayNut(d.key);
     const dayEmpty = !hasNut(s);
-    const weekEmpty = !hasNut(w);
-    const dayHead = `Deine Ziele für Heute · ${esc(d.label)}`;
-    const plannedKeys = DAYS.filter(x => hasNut(dayNut(x.key))).map(x => x.key);
-    const planned = plannedKeys.length;
-    const open = 7 - planned;
-    // Grundziel/Training fuer goalRingHtml aufgeteilt statt fertig addiert (siehe dort).
-    // Bewusst gegen ALLE sieben Tage gerechnet (t, aus weekNutHtml uebergeben), nicht nur
-    // die mit bereits eingeplanten Meals: Trainingstage sind eine Eigenschaft des
-    // gespeicherten Ziels (state.goal.training), keine des Wochenplans - ein Trainingstag
-    // zaehlt sein Kalorien-Plus auch dann, wenn dafuer noch kein Meal eingetragen ist.
-    // Vorher haengte das an "geplanten" Tagen (goalTargetsForDays(plannedKeys)) - dadurch
-    // fehlte der Trainings-Zuschlag fuer jeden Trainingstag ohne Meal komplett (zeigte
-    // faelschlich "Training: 0"), und Grundziel war zu niedrig. rest1 ist garantiert nicht
-    // null: weekGoalHtml laeuft nur, wenn ein Ziel existiert (siehe Aufrufer in weekNutHtml).
-    const rest1 = goalTargets(1);
-    const weekGrund = rest1.kcal * 7;
-    const weekTrainAdd = t.kcal - weekGrund;
-    // Trainings-Kennzeichen auch in der Tagesspalte der Uebersicht — sonst erklaert
-    // sich das abweichende Kohlenhydrat-Ziel dort nicht. Ohne den kcal-Aufschlag im
-    // Badge selbst: der steht jetzt schon in der Training-Zeile der Kennzahlenliste
-    // (goalRingHtml) - hier direkt daneben noch einmal waere dieselbe Zahl doppelt.
     const dayTrainAdd = isTrainingDay(d.key) ? dayTrainKcal(d.key) : 0;
+    const trLbl = esc(trainLevel((goalTraining()[d.key] || {}).level).label);
     const dayTrain = isTrainingDay(d.key)
-      ? `<span class="wg-train" title="Trainingstag: ${esc(trainLevel((goalTraining()[d.key] || {}).level).label)}">${ICON_DUMBBELL}Training</span>` : "";
-    const dayHeadHtml = `${dayHead}${dayTrain}`;
-    const weekLbl = state.viewWeek === "next" ? "Nächste Woche" : "Diese Woche";
-    // Eyebrow der Karte laenger/erklaerender als die kurze Wisch-Tab-Beschriftung (weekLbl bleibt
-    // dafuer unveraendert). Der fruehere "X geplante Tage"-Chip ist raus: dieselbe Information
-    // steht bereits rechts im Fortschritt-Balken ("x von 7 Tagen geplant") - Dopplung entfernt.
-    const weekHeadHtml = state.viewWeek === "next" ? "Deine Ziele für nächste Woche" : "Deine Ziele für diese Woche";
-    // Was bleibt fuer die noch leeren Tage? Das ist beim Planen die eigentlich
-    // gesuchte Zahl — der blosse Wochenrest sagt nicht, wie viel pro Tag noch geht.
-    const restKcal = t.kcal - w.kcal;
-    const perOpen = open > 0 && restKcal > 0
-      ? `<div class="wg-open">Für die ${open} offenen Tage bleiben ⌀ <b>${nfmt(restKcal / open)} kcal</b> pro Tag</div>`
-      : "";
-    // Rechte Spalte der Wochenkarte: Fortschritt statt Makros (Wochenmakros interessieren
-    // niemanden - Makro-Entscheidungen fallen auf Tagesebene, siehe dayGoalsHtml/Kommentar
-    // in weekNutHtml). Zeigt, wie viele der 7 Tage schon geplant sind, plus das Budget
-    // fuer die restigen Tage (perOpen) - beides war ohnehin schon berechnet.
-    const planPct = Math.round(planned / 7 * 100);
-    const weekProgressHtml = `
-      <h3 class="wg-h">Fortschritt</h3>
-      <div class="wg-progress">
-        <div class="wg-progress-txt" data-planned="${planned}">${planned} von 7 Tagen geplant</div>
-        <div class="wg-progress-bar" role="progressbar" aria-valuenow="${planned}" aria-valuemin="0" aria-valuemax="7" aria-label="Tage geplant"><span style="width:${planPct}%"></span></div>
-        ${perOpen}
-      </div>`;
-    // Rechte Spalte der Heute-Karte: im Leerzustand stehen die Makrobalken alle auf 0/Ziel und
-    // sagen nichts - daher stattdessen ein kurzer Hinweis, was hier erscheint. Die Ueberschrift
-    // "Makros" bleibt als Kontext. Ring + Grundbedarf/Ernaehrung/Training bleiben, die zeigen die
-    // Ziele auch ohne geplantes Meal. Bewusst ein eigener, Makro-bezogener Satz (nicht der der
-    // Diese-Woche-Karte), damit er auf dem Rechner nicht doppelt untereinander steht.
+      ? `<span class="wg-train" title="Trainingstag: ${trLbl}" aria-label="Trainingstag: ${trLbl}">${ICON_DUMBBELL}Training</span>` : "";
+    const dayHeadHtml = `Deine Ziele für Heute · ${esc(d.label)}${dayTrain}`;
+    // Grundziel/Training aufgeteilt statt fertig addiert (siehe goalRingHtml).
+    const rest1 = goalTargets(1);
+    // Rechte Spalte: die Makros. Im Leerzustand stehen alle Balken auf 0/Ziel und sagen
+    // nichts - dann stattdessen ein Satz, was hier erscheint. Ring und Kennzahlen bleiben,
+    // die zeigen die Ziele auch ohne geplantes Meal.
     const dayRight = dayEmpty
       ? `<h3 class="wg-h">Makros</h3><p class="wg-side-note">Trage für heute ein Meal ein, dann erscheinen hier deine Makros: Proteine, Kohlenhydrate und Fett.</p>`
       : `<h3 class="wg-h">Makros</h3>${goalMacrosHtml(s, day)}`;
-    // Rechte Spalte der Diese-Woche-Karte: gleiches Muster wie dayRight — die Ueberschrift
-    // "Fortschritt" bleibt als Kontext stehen, nur der Inhalt darunter wechselt. So haben beide
-    // Karten immer Ring + Grundbedarf/Ernaehrung/Training UND dieselbe Form/Hoehe, auch auf dem
-    // Handy im Wisch-Karussell (vorher wurde die ganze Karte zu einem separaten Panel ohne Ring).
-    const weekRight = weekEmpty
-      ? `<h3 class="wg-h">Fortschritt</h3><p class="wg-side-note">Plane deine Woche — hier siehst du dann Kalorien, Ernährung, Training und Makros auf einen Blick.</p>`
-      : weekProgressHtml;
-    // Der "Neu berechnen"-Knopf steht AUSSERHALB beider Karten, in einer eigenen Zeile unter
-    // dem Wischstreifen. Zwei Gruende: Die Aktion betrifft das Ziel insgesamt (Tag UND Woche),
-    // gehoert also an eine Stelle, die zu beiden gehoert - und in der Kopfzeile nur der
-    // Heute-Karte machte er genau diese Kopfzeile rund 17px hoeher als die der Wochenkarte,
-    // wodurch "Kalorien" samt Ring beim Wischen um diesen Betrag sprang. Zudem war er auf der
-    // Wochenkarte gar nicht mehr zu sehen, weil er mit weggewischt wurde. Vormals in der
-    // Wochenplan-Werkzeugleiste, dort konzeptionell falsch einsortiert (neben Teilen/Leeren
-    // DIESER Woche).
     // Zwei Wege nebeneinander (B4): "Anpassen" korrigiert die Zahlen direkt, "Neu berechnen"
-    // fuehrt durch den Rechner. Der Direktweg steht zuerst, weil er der haeufigere ist -
-    // die Grundlagen (Alter, Groesse, Aktivitaet) aendern sich selten, das Defizit oft.
+    // fuehrt durch den Rechner. Der Direktweg steht zuerst, weil er der haeufigere ist.
+    //
+    // Bewusst NUR diese zwei: Ein Durchgang durch alle vier Reiter am 05.09.2026 hat gezeigt,
+    // dass "Einkaufsliste" und "Woche planen" in der Werkzeugleiste des WOCHENPLANS stehen
+    // (data-action shopping/auto-plan) und ein "..."-Menue dort, an der Gewichtskarte und im
+    // Profil bereits existiert. Home hat damit keine Primaeraktion - und das ist richtig:
+    // Der Reiter beantwortet "wie steht meine Woche?", geplant wird im Wochenplan.
     const recalcLink = `<button type="button" class="btn ghost sm wg-recalc" data-action="tune-goal" title="Ziel anpassen" aria-label="Ziel anpassen">${ACT_ICONS.edit}<span>Anpassen</span></button>`
       + `<button type="button" class="btn ghost sm wg-recalc" data-action="recalc-goal" title="Ziele neu berechnen" aria-label="Ziele neu berechnen">${TOOL_ICONS.recalc}<span>Neu berechnen</span></button>`;
-    // Auf dem Handy liegen die beiden Leisten nebeneinander und werden gewischt
-    // (siehe CSS) – die Knopfleiste sagt, welche gerade zu sehen ist. Am Rechner
-    // ist sie ausgeblendet, dort stehen beide untereinander wie bisher.
-    // .wg-actions liegt bewusst weder in .wgbar noch in .wg-cols: initCarousel liest die
-    // Kinder der Leiste als Sprungziele und die des Streifens als Karten - ein Knopf in
-    // einem der beiden waere ein dritter, toter Slide-Schalter.
-    return `<div class="wgbar" role="group" aria-label="Zielansicht wählen">
-        <span class="db-ind" aria-hidden="true"></span>
-        <button type="button" class="wg-b">Heute</button>
-        <button type="button" class="wg-b">${weekLbl}</button>
-      </div>
-      <div class="wg-cols">
-        <div class="wg-col${isTrainingDay(d.key) ? " wg-col-training" : ""}">${goalRingHtml(s.kcal, rest1.kcal, dayTrainAdd, dayHeadHtml, dayRight, "Grundbedarf")}</div>
-        <div class="wg-col">${goalRingHtml(w.kcal, weekGrund, weekTrainAdd, weekHeadHtml, weekRight, "Grundbedarf")}</div>
+    return `<div class="hm-card${isTrainingDay(d.key) ? " is-train" : ""}">
+        ${nextMealHtml(curPlan, d)}
+        <div class="hm-body">${goalRingHtml(s.kcal, rest1.kcal, dayTrainAdd, dayHeadHtml, dayRight, "Grundbedarf")}</div>
+        ${weekFootHtml(w, t)}
       </div>
       <div class="wg-actions">${recalcLink}</div>`;
   }
 
-  // Zaehlt "X von 7 Tagen geplant" weich hoch statt den Endwert sofort hinzustellen -
-  // aber nur, wenn sich die Zahl seit dem letzten Anzeigen wirklich veraendert hat. Sonst
-  // wuerde jeder blosse Tab-Wechsel zurueck zu Home dieselbe Animation erneut abspulen,
-  // und genau das soll bei einer haeufig besuchten Seite nicht passieren (siehe
-  // apple-design/emil-design-eng: Animation nur, wo sie etwas zeigt, nicht bei jedem Blick).
-  let lastShownPlanned = null; // nur fuer die laufende Sitzung, kein State-Feld noetig
-  function animateProgressCount() {
-    const txt = view.querySelector(".wg-progress-txt");
-    const bar = view.querySelector(".wg-progress-bar > span");
-    if (!txt) return; // Leerzustand (weekEmpty) hat keinen Fortschrittsbalken
-    const planned = +txt.dataset.planned || 0;
-    const from = lastShownPlanned == null ? 0 : lastShownPlanned;
-    lastShownPlanned = planned;
-    if (from === planned || reducedMotion()) {
-      txt.textContent = planned + " von 7 Tagen geplant";
-      if (bar) bar.style.width = Math.round(planned / 7 * 100) + "%";
-      return;
+  // Der Bilddeckel: das naechste anstehende Meal von HEUTE.
+  //
+  // Die Uhrzeitgrenzen sind bewusst grob und nicht einstellbar - sie entscheiden nur, WO die
+  // Suche beginnt, nie was moeglich ist. Findet sich ab dort kein belegter Slot, wird der
+  // erste OFFENE gezeigt; ist auch der nicht da, faengt die Suche vorne an. So traegt die
+  // Karte immer einen Deckel, egal wie der Tag steht.
+  function nextMealOfDay(plan, dayKey) {
+    const day = (plan && plan[dayKey]) || {};
+    const jetzt = new Date();
+    const h = jetzt.getHours() + jetzt.getMinutes() / 60;
+    const ab = h < 10 ? 0 : h < 14.5 ? 1 : h < 20.5 ? 2 : 3;
+    const reihen = [];
+    for (let i = ab; i < MEALS.length; i++) reihen.push(i);
+    for (let i = 0; i < ab; i++) reihen.push(i);
+    for (const i of reihen) {
+      const ids = day[MEALS[i].key] || [];
+      for (const id of ids) { const r = getRecipe(id); if (r) return { meal: MEALS[i], r: r, vor: i >= ab }; }
     }
-    const dur = 700, t0 = performance.now();
-    function frame(now) {
-      // Nach unten geklemmt aus demselben Grund wie in animateOnbProgress: ein negatives
-      // p laesst den Zaehler unter null laufen.
-      const p = Math.max(0, Math.min(1, (now - t0) / dur));
-      const eased = 1 - Math.pow(1 - p, 3); // --ease-out als JS-Aequivalent
-      const cur = Math.round(from + (planned - from) * eased);
-      txt.textContent = cur + " von 7 Tagen geplant";
-      if (bar) bar.style.width = Math.round(cur / 7 * 100) + "%";
-      if (p < 1) requestAnimationFrame(frame); else { txt.textContent = planned + " von 7 Tagen geplant"; if (bar) bar.style.width = Math.round(planned / 7 * 100) + "%"; }
-    }
-    requestAnimationFrame(frame);
+    for (const i of reihen) if (!(day[MEALS[i].key] || []).length) return { meal: MEALS[i], r: null, vor: i >= ab };
+    return null;
   }
 
+  function nextMealHtml(plan, d) {
+    const n = nextMealOfDay(plan, d.key);
+    if (!n) return "";
+    const r = n.r;
+    // Leerer Slot: der Deckel fuehrt in den WOCHENPLAN, nicht direkt in den Picker. Der
+    // Picker schreibt in state.plan - das ist die ANGEZEIGTE Woche, und die kann gerade die
+    // naechste sein. Ein Meal fuer "heute" landete dann sieben Tage daneben.
+    const ziel = r ? `data-action="view" data-id="${r.id}"` : `data-action="tab" data-tab="plan"`;
+    const bild = r ? photoFor(r) : PHOTOS.neutral;
+    const nut = r ? recipeNut(r) : null;
+    // Makros in der Kompaktform - ohne "g", genau wie macroLineHtml() es ueberall tut
+    // (docs/DESIGN.md, "Die drei erlaubten Formen").
+    const fakten = r
+      ? `<span class="hm-kcal"><b>${nfmt(nut.kcal)}</b> kcal</span>`
+        + `<span class="hm-mak"><b>${nfmt(nut.carbs)}</b> KH</span><span class="hm-mak"><b>${nfmt(nut.protein)}</b> P</span><span class="hm-mak"><b>${nfmt(nut.fat)}</b> F</span>`
+        + (r.time ? `<span class="hm-mak"><b>${nfmt(r.time)}</b> Min.</span>` : "")
+      : `<span class="hm-kcal">Im Wochenplan eintragen</span>`;
+    return `<button type="button" class="hm-cover" ${ziel}>
+          <img src="${bild}" alt="${r ? esc(r.name) : ""}">
+          <span class="hm-veil">
+            <span class="hm-eyebrow"><span class="hm-dot t-${n.meal.key}"></span>${n.vor ? "Als Nächstes" : "Heute"} · ${esc(n.meal.label)}</span>
+            <span class="hm-name">${r ? esc(r.name) : esc(n.meal.label) + " noch offen"}</span>
+            <span class="hm-facts">${fakten}</span>
+          </span>
+        </button>`;
+  }
+
+  // Der Kartenfuss: die Woche. Sieben Punkte statt eines Fortschrittsbalkens - "5 von 7"
+  // liest man ohne zu zaehlen, die Punkte sagen zusaetzlich, WELCHE fehlen.
+  //
+  // Die Bildsprache ist die des Fortschritt-Kalenders: Akzentfarbe gefuellt heisst geplant,
+  // leerer Ring heisst offen, ein heller Rahmen heisst heute. Ein zweites Vokabular fuer
+  // dieselbe Aussage waere genau der Fehler, den docs/DESIGN.md fuer die Makros verbietet.
+  // Die Unterscheidung liegt in der FORM (gefuellt gegen leer), nicht allein in der Farbe -
+  // sonst waere sie bei 9 px mit einer Rot-Gruen-Schwaeche nicht zu treffen (WCAG 1.4.1).
+  //
+  // Trainingstage sind ein ZWEITER Kanal, die Schriftfarbe. Beides in eine Farbe zu legen
+  // waere bei sieben 9-px-Punkten nicht mehr lesbar.
+  //
+  // Bewusst keine Knoepfe: Der Startreiter zeigt, der Wochenplan bearbeitet.
+  //
+  // Die SERIE steht hier NICHT. Sie hat ihren Platz im Kalenderfuss des Fortschritt-Reiters,
+  // an dem Gitter, das sie zusammenfasst - hier waere sie eine Kopie.
+  function weekFootHtml(w, t) {
+    // "Heute" gibt es nur in der laufenden Woche. Zeigt der Reiter die NAECHSTE, waere der
+    // Rahmen um den Wochentag eine Behauptung ueber einen Tag, der noch nicht ist - und die
+    // Punkte daneben zaehlen dann ohnehin einen anderen Zeitraum.
+    const heute = state.viewWeek === "next" ? null : todayDayKey();
+    const geplant = {};
+    DAYS.forEach(x => { geplant[x.key] = hasNut(dayNut(x.key)); });
+    const anzahl = DAYS.filter(x => geplant[x.key]).length;
+    const offen = DAYS.filter(x => !geplant[x.key]).map(x => x.label);
+    const tage = DAYS.map(x => {
+      const kl = ["hm-day"];
+      if (geplant[x.key]) kl.push("is-on");
+      if (isTrainingDay(x.key)) kl.push("is-train");
+      if (x.key === heute) kl.push("is-today");
+      const tt = `${x.label} – ${geplant[x.key] ? "geplant" : "offen"}${isTrainingDay(x.key) ? ", Trainingstag" : ""}`;
+      return `<span class="${kl.join(" ")}" title="${esc(tt)}"><i></i>${esc(x.short)}</span>`;
+    }).join("");
+    const lbl = `Diese Woche: ${anzahl} von 7 Tagen geplant${offen.length ? ", offen sind " + offen.join(" und ") : ""}`;
+    return `<div class="hm-foot">
+          <div class="hm-foot-h"><span class="wg-week">${weekLabel(state.viewWeek === "next" ? 1 : 0)}</span></div>
+          <div class="hm-days" role="group" aria-label="${esc(lbl)}">${tage}</div>
+          <div class="hm-zahl"><b>${anzahl} von 7 Tagen</b> · <b>${nfmt(w.kcal)}</b> / ${nfmt(t.kcal)} kcal</div>
+        </div>`;
+  }
+  // animateProgressCount() und lastShownPlanned sind am 05.09.2026 entfallen. Sie zaehlten
+  // "X von 7 Tagen geplant" im Fortschrittsbalken der frueheren Wochen-Zielkarte weich hoch.
+  // Mit der Karte ist der Balken weg: Der Kartenfuss zeigt die sieben Tage jetzt als Punkte,
+  // und eine Zahl, die man ohne Zaehlen liest, braucht keine Zaehlanimation.
   // Wochentag von heute – geteilt von der Uebersicht und der „Heute“-Markierung im Plan.
   function todayDayKey() { return ["sun", "mon", "tue", "wed", "thu", "fri", "sat"][new Date().getDay()]; }
 
@@ -4730,7 +4731,7 @@
   function initCarousel(scroller, bar, panelList, onChange, opts) {
     if (!scroller || !bar) return null;
     const panels = panelList || Array.prototype.slice.call(scroller.children);
-    // Gleitende Pille des Segmented Control (Schritt 3) - in .daybar UND .wgbar vorhanden
+    // Gleitende Pille des Segmented Control (Schritt 3) - in .daybar vorhanden
     // (gleiches Schema fuer beide Handy-Karussells, siehe CSS). Aus bar.children
     // ausgeklammert, sonst zaehlte sie als zusaetzlicher Knopf mit.
     const ind = bar.querySelector(".db-ind");
@@ -4744,7 +4745,7 @@
         b.classList.toggle("active", on);
         if (on) b.setAttribute("aria-current", "true"); else b.removeAttribute("aria-current");
       });
-      // Bleibt generisch: die .wgbar (Home, "Ziele der Woche") hat keine .is-train-Knoepfe,
+      // Bleibt generisch: nicht jede Leiste hat .is-train-Knoepfe,
       // dort ist der Ausdruck immer false und die Zeile folgenlos.
       bar.classList.toggle("is-train", !!(btns[idx] && btns[idx].classList.contains("is-train")));
       if (idx !== activeIdx) { activeIdx = idx; if (onChange) onChange(idx); }
@@ -5375,18 +5376,25 @@
       </div>`;
   }
 
-  // Startreiter: Begruessungs-Hero + Kalorien-Uebersicht (Heute/Woche-Ringe), beide vormals
-  // oben im Wochenplan. Dort war es voll, bevor man ueberhaupt beim Tagesraster war - jetzt
-  // eigene Landingpage, der Wochenplan startet direkt mit "Dein Wochenplan".
+  // Startreiter: die Kalorien-Uebersicht (Heute/Woche-Ringe), vormals oben im Wochenplan.
+  // Dort war es voll, bevor man ueberhaupt beim Tagesraster war - jetzt eigene Landingpage,
+  // der Wochenplan startet direkt mit "Dein Wochenplan".
   // Seit B8 beantwortet jeder Reiter genau eine Frage. Home: "wie steht meine Woche?" -
-  // Hero und Wochenziele. Rueckblick und Gewicht sind in den Reiter "Fortschritt" gezogen;
+  // die Wochenziele. Rueckblick und Gewicht sind in den Reiter "Fortschritt" gezogen;
   // sie beantworten "wie lief es bisher?" und hatten auf einer Startseite, die vier Themen
   // gleichzeitig zeigte, den UX-Grundsatz "ein Screen, ein Problem" gebrochen.
+  //
+  // Der Begruessungs-Hero ist am 05.09.2026 entfallen (Begruendung unten bei weekLabel und
+  // in docs/DESIGN.md): Der Reiter passt damit ohne Scrollen auf einen Bildschirm. Wer hier
+  // etwas hinzufuegt, nimmt an anderer Stelle etwas weg.
   function renderHome() {
-    view.innerHTML = `${appHeroHtml()}${weekNutHtml()}`;
+    view.innerHTML = weekNutHtml();
+    // Kein initCarousel() mehr: Der Reiter traegt seit dem 05.09.2026 EINE Karte statt
+    // zweier Zielkarten in einem Wisch-Streifen. resetCarousels() bleibt trotzdem - es
+    // raeumt die Beobachter des VORHERIGEN Reiters ab, und der kann ein Karussell gehabt
+    // haben (Wochenplan, Tagesleiste). Ohne diesen Aufruf blieben sie am toten Markup
+    // haengen.
     resetCarousels();
-    initCarousel(view.querySelector(".wg-cols"), view.querySelector(".wgbar"), null, null, { fixedHeight: true });
-    animateProgressCount();
   }
 
   // Vierter Reiter: "wie lief es bisher?" - der Kalender der geplanten Tage und der
@@ -11434,7 +11442,7 @@
     </div>`;
   }
 
-  // Gleiches Prinzip wie animateProgressCount() auf Home: weich hochzaehlen (und beim
+  // Weich hochzaehlen (und beim
   // "Zurueck" ebenso weich runter), aber nur bei echtem Schrittwechsel - ein Re-Render
   // desselben Schritts (z.B. Trainingstage antippen) soll nicht erneut animieren.
   let onbProgressLauf = 0;
@@ -11897,17 +11905,15 @@
     return `Woche ${week} · ${range}`;
   }
 
-  // Intro-Hero über dem Wochenplan (nur im eingeloggten Bereich)
-  // Steht dauerhaft, nicht nur bei leerer Woche: der Startreiter braucht einen festen Kopf,
-  // sonst springt das Layout je nach Planungsstand. Der Text nennt beide Saeulen der App
-  // (Plan + Fortschritt) und deckt damit auch die Gewichtskarte darunter ab.
-  function appHeroHtml() {
-    return `<div class="app-hero">
-      <span class="eyebrow">${weekLabel(state.viewWeek === "next" ? 1 : 0)}</span>
-      <h2>Dein Plan. Dein <em>Fortschritt.</em></h2>
-      <p class="hero-sub">Sieben Tage im Blick, jede Mahlzeit geplant, jeder Fortschritt begleitet – dein Plan fürs Training und fürs Abnehmen.</p>
-    </div>`;
-  }
+  // Der Intro-Hero (Wochenzeile, "Dein Plan. Dein Fortschritt.", Beschreibungssatz) ist am
+  // 05.09.2026 entfallen. Er kostete rund 150 px über der Falz und sagte bei jedem Aufruf
+  // dasselbe: eine Ansage, die man beim zweiten Besuch nicht mehr liest, aber jedes Mal
+  // wegscrollen muss. Der Startreiter beginnt jetzt unmittelbar mit den Zielkarten.
+  //
+  // Erhalten geblieben ist die einzige Information des Hero, die sich ändert: WELCHE Woche
+  // gerade gezeigt wird. Sie steht in der Kopfzeile der Wochenkarte (weekGoalHtml), also an
+  // der Karte, deren Zahlen sie datiert - und damit auch dort, wo "Nächste Woche" sichtbar
+  // wird, ohne dass man dafür in den Wochenplan wechseln muss.
 
   // ---------- Einstieg (D1b) ----------
   // Bis 13.08.2026 fuehrte das Auth-Gate zuerst in die Cloud: Wer die App zum ersten Mal

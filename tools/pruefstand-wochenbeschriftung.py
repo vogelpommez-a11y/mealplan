@@ -55,13 +55,15 @@ MESS = u'''<script>setTimeout(function () {
     raus.tip = tip ? tip.textContent.trim() : "(keine .wch-tip)";
     var pt = document.querySelector(".wch-pt");
     raus.punktLabel = pt ? (pt.getAttribute("aria-label") || "") : "(kein .wch-pt)";
-    // Der zweite Aufrufer: die Zeile ueber dem Hero erwartet eine ZAHL (Wochen-Offset).
-    // Sie muss unveraendert richtig bleiben - sie ist ja die Deklaration, die gewinnt.
-    // Sie steht auf HOME, nicht im Plan-Reiter (appHeroHtml laeuft in renderHome).
+    // Der zweite Aufrufer: die Wochenangabe erwartet eine ZAHL (Wochen-Offset). Sie muss
+    // unveraendert richtig bleiben - sie ist ja die Deklaration, die gewinnt. Sie steht auf
+    // HOME, nicht im Plan-Reiter (weekGoalHtml laeuft ueber renderHome). Bis zum 05.09.2026
+    // stand sie im Intro-Hero (.eyebrow); mit dessen Wegfall ist sie in die Kopfzeile der
+    // Wochenkarte gewandert (.wg-week) - derselbe Aufruf, nur ein anderer Ort.
     var home = document.querySelector('[data-tab="home"]');
     if (home) home.click();
-    var eyebrow = document.querySelector(".eyebrow");
-    raus.planLabel = eyebrow ? eyebrow.textContent.trim() : "(keine .eyebrow)";
+    var wk = document.querySelector(".wg-week");
+    raus.planLabel = wk ? wk.textContent.trim() : "(keine .wg-week)";
   } catch (e) { raus.messfehler = e.message; }
   raus.fehler = (window.__fehler || []).join(" || ") || "keine";
   var p = document.createElement("pre");
@@ -117,7 +119,7 @@ print(u"")
 print(u"Gemessen:")
 print(u"  Gewichtskarte (.wch-tip)   " + repr(r.get("tip")))
 print(u"  Diagrammpunkt (aria-label) " + repr(r.get("punktLabel")))
-print(u"  Home-Hero    (.eyebrow)    " + repr(r.get("planLabel")))
+print(u"  Wochenkarte  (.wg-week)    " + repr(r.get("planLabel")))
 print(u"")
 
 pruef(u"kein JS-Fehler beim Start", r.get("fehler") == "keine", str(r.get("fehler")))
@@ -136,7 +138,7 @@ pruef(u"der Diagrammpunkt zeigt kein NaN", "NaN" not in punkt, punkt)
 pruef(u"die Gewichtskarte nutzt die KW-Form", tip.startswith(u"KW "), tip)
 pruef(u"der Diagrammpunkt nutzt die KW-Form", punkt.startswith(u"KW "), punkt)
 # Die Gegenprobe: der ZAHL-Aufrufer muss unveraendert seine eigene Form behalten.
-pruef(u"die Hero-Zeile nutzt weiter die Woche-Form", plan.startswith(u"Woche "), plan)
+pruef(u"die Wochenangabe nutzt weiter die Woche-Form", plan.startswith(u"Woche "), plan)
 pruef(u"und zeigt dort kein NaN", "NaN" not in plan, plan)
 
 print(u"")

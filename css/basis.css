@@ -459,6 +459,117 @@
      ("Deine Ziele" als Aussenrahmen war Karte-in-der-Karte und ist entfallen). Der Block
      bleibt nur fuer den Abstand zum Wochenplan darunter bestehen. */
   .week-nut { margin-bottom: 20px; }
+
+  /* ---- Der Startreiter passt auf einen Bildschirm (05.09.2026) ----
+     Nach dem Wegfall des Intro-Hero fehlten dafuer noch rund 120 px. Sie kommen NICHT aus
+     einer weggelassenen Aussage - jede Zahl, jeder Balken und jeder Knopf steht unveraendert
+     da -, sondern aus totem Raum: dem 80-px-Fuss von <main>, dem Abstand unter dem letzten
+     Element und den Innenabstaenden der beiden Zielkarten.
+
+     Alles ausser der <main>-Regel haengt an .week-nut. Dieselben Bauteile (.wg-h, .gm,
+     .wg-macros) stehen im Wochenplan in den Tageskarten; dort ist die Seite ohnehin lang,
+     dort aendert sich nichts.
+
+     :has() statt einer Markierungsklasse aus dem JS: faellt es aus, bleibt schlicht der
+     alte Fussabstand stehen - der Reiter scrollt dann wieder ein Stueck, nichts bricht.
+     Erst ab 681px, darunter braucht die klebende Tagesbilanz den Fuss weiterhin. */
+  @media (min-width: 681px) {
+    main:has(.week-nut) { padding-bottom: 24px; }
+    main:has(.week-nut) .week-nut { margin-bottom: 0; }
+    .week-nut .wg { gap: 8px; }
+    .week-nut .wg-h { font-size: 19px; margin-bottom: 10px; }
+    .week-nut .wg-macros { gap: 6px 14px; }
+    .week-nut .wg-macros .gm-r { margin-bottom: 4px; }
+    .week-nut .wg-macros .gm-left { margin-top: 3px; }
+    .week-nut .wg-actions { margin-top: 8px; }
+  }
+
+  /* ---------- Die Karte des Startreiters (seit 05.09.2026) ----------
+     EIN Rahmen: Bilddeckel oben, darunter links die Kalorien und rechts die Makros
+     (die Zeile baut goalRingHtml aus .wg-col-cal + .wg-col-macros), im Fuss die Woche.
+
+     Davor lagen hier zwei gleich grosse Zielkarten in einem Wisch-Streifen. Die zweite
+     trug einen eigenen Kalorienring fuer die WOCHE - eine Zahl, nach der niemand handelt.
+     Mit ihr sind .wgbar, .wg-b, .wg-cols, .wg-progress und .wg-open entfallen; .wg-col
+     bleibt, die Gewichtskarte und der Kalender im Fortschritt-Reiter benutzen sie. */
+  .hm-card { position: relative; overflow: hidden; background: var(--surface-2);
+    border: 1px solid var(--border); border-radius: var(--radius); }
+  /* Trainingstag: derselbe blaue Faden wie an der Tageskarte im Wochenplan
+     (.wg-col-training) - keine zweite Erfindung fuer dieselbe Aussage. */
+  .hm-card.is-train { border-color: color-mix(in srgb, var(--train) 45%, var(--border)); }
+
+  .hm-cover { position: relative; display: block; width: 100%; padding: 0; border: 0;
+    background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+  /* object-position etwas tiefer als die Mitte: In den Meal-Fotos sitzt der Teller
+     unterhalb der Bildmitte, bei 118 px Hoehe zeigte "center" vor allem Tischplatte. */
+  .hm-cover img { display: block; width: 100%; height: 118px; object-fit: cover;
+    object-position: center 42%; transition: opacity var(--dur-fast) ease; }
+  /* Hover NUR mit Zeigegeraet - auf Touch bleibt der Zustand nach dem Tippen haengen
+     (dieselbe Falle wie bei .rcard, siehe css/komponenten.css). */
+  @media (hover: hover) and (pointer: fine) {
+    .hm-cover:hover .hm-veil { background: linear-gradient(180deg, transparent, rgba(10,8,9,.5) 34%, rgba(10,8,9,.95)); }
+  }
+  /* Der Deckel ist die groesste antippbare Flaeche des Reiters. Nicht stauchen wie einen
+     Knopf - ein Foto zu skalieren wirkt wackelig -, sondern kurz abdunkeln. */
+  .hm-cover:active img { opacity: .86; }
+
+  /* Die Abdunklung ist bewusst NICHT tokenisiert und in beiden Themes gleich: Sie stellt
+     den Kontrast zum BILD her, nicht zum Hintergrund der Seite. Ein helles Token im
+     Light-Theme machte den weissen Text auf einem hellen Gericht unlesbar. */
+  .hm-veil { position: absolute; inset: auto 0 0 0; padding: 34px 16px 10px; color: #fff;
+    background: linear-gradient(180deg, transparent, rgba(10,8,9,.55) 38%, rgba(10,8,9,.92)); }
+  .hm-eyebrow { display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+    font-family: var(--font-display); font-size: 10.5px; letter-spacing: .14em;
+    text-transform: uppercase; font-weight: 700; color: rgba(255,255,255,.78); margin-bottom: 4px; }
+  /* Der Punkt traegt die Farbe des Slots - dieselbe wie der Streifen an der Tageskarte
+     im Wochenplan (.slot). Snacks haben keine eigene Farbe, dort bleibt er neutral. */
+  .hm-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--border-strong); flex: none; }
+  .hm-dot.t-fr { background: var(--fr); }
+  .hm-dot.t-mi { background: var(--mi); }
+  .hm-dot.t-ab { background: var(--ab); }
+  .hm-name { display: block; font-family: var(--font-display); font-weight: 700;
+    font-size: clamp(18px, 2.2vw, 24px); line-height: 1.1; margin-bottom: 4px;
+    color: #fff; text-wrap: balance; }
+  /* Kompaktzeile: kcal, dann KH/P/F OHNE Einheit - so schreibt es macroLineHtml()
+     ueberall (docs/DESIGN.md, "Die drei erlaubten Formen"). */
+  .hm-facts { display: flex; gap: 12px; flex-wrap: wrap; font-size: 12px; font-weight: 600;
+    color: rgba(255,255,255,.85); font-variant-numeric: tabular-nums; }
+  .hm-facts b { color: #fff; font-weight: 700; }
+
+  .hm-body { padding: 13px 16px; }
+
+  /* Der Kartenfuss: ruhiger als der Inhalt darueber - dunklerer Grund, Trennlinie,
+     kleinere Schrift. Untergeordnet, nicht versteckt. */
+  .hm-foot { display: flex; align-items: center; gap: 6px 14px; flex-wrap: wrap;
+    padding: 8px 16px; background: var(--surface); border-top: 1px solid var(--border); }
+  .hm-foot-h { font-family: var(--font-display); font-size: 10.5px; letter-spacing: .1em;
+    text-transform: uppercase; color: var(--text-muted); font-weight: 700; }
+  .hm-zahl { font-size: 12.5px; color: var(--text-muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .hm-zahl b { color: var(--text); font-weight: 700; }
+
+  /* Die Tagesreihe. Bildsprache des Fortschritt-Kalenders: Akzentfarbe gefuellt heisst
+     geplant, leerer Ring heisst offen, ein heller Rahmen heisst heute. Ein zweites
+     Vokabular fuer dieselbe Aussage waere genau der Fehler, den DESIGN.md fuer die
+     Makros verbietet.
+
+     Die Unterscheidung liegt in der FORM (gefuellt gegen leer), nicht allein in der
+     Farbe - sonst waere sie bei 9 px mit einer Rot-Gruen-Schwaeche nicht zu treffen
+     (WCAG 1.4.1).
+
+     Trainingstage sind ein ZWEITER Kanal, die Schriftfarbe. Beides in eine Farbe zu
+     legen waere bei sieben 9-px-Punkten nicht mehr lesbar.
+
+     Bewusst keine Knoepfe: Der Startreiter zeigt, der Wochenplan bearbeitet. */
+  .hm-days { display: flex; align-items: center; gap: 10px; flex: 1 1 250px; min-width: 200px; }
+  .hm-day { display: flex; align-items: center; gap: 5px; flex: 1 1 0; min-width: 0;
+    font-family: var(--font-display); font-size: 10.5px; font-weight: 700;
+    letter-spacing: .04em; text-transform: uppercase; color: var(--text-muted); }
+  .hm-day i { flex: none; width: 9px; height: 9px; border-radius: 50%;
+    background: transparent; box-shadow: inset 0 0 0 2px var(--border-strong); }
+  .hm-day.is-on { color: var(--text); }
+  .hm-day.is-on i { background: var(--accent); box-shadow: none; }
+  .hm-day.is-today i { box-shadow: 0 0 0 2px var(--surface), 0 0 0 3.5px var(--text); }
+  .hm-day.is-train { color: var(--train-strong); }
   /* Ohne Ziel gibt es nur noch die Kalorien-Kachel - die frueheren Makro-Kacheln sind
      entfallen (siehe weekNutHtml), deshalb nur noch eine schmale Kachel statt Raster. */
   /* Kein max-width mehr: eine schmale 220px-Kachel wirkte neben der breiten Ring-Ansicht
@@ -513,6 +624,14 @@
   .wg-col-macros { flex: 1 1 220px; min-width: 200px; }
   /* Kleine Zeile ueber den grossen Ueberschriften: Zeitraum + Kennzeichen. */
   .wg-lbl { display: flex; align-items: center; flex-wrap: wrap; gap: 7px; font-family: var(--font-display); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--text-muted); font-weight: 700; }
+  /* Die Wochenangabe in derselben Zeile, abgesetzt durch Farbe statt durch eine eigene
+     Zeile: sie datiert die Karte, sie ueberschreibt sie nicht. Erbt Groesse und Versalien
+     von .wg-lbl - eine zweite Schriftgroesse hier waere eine dritte Hierarchiestufe in
+     einer 11-px-Zeile. */
+  /* Der Trenner davor ist am 05.09.2026 entfallen: Die Wochenangabe stand damals HINTER
+     "Deine Ziele fuer diese Woche" und brauchte ihn. Sie steht jetzt allein im Kartenfuss -
+     dort setzte er einen fuehrenden Punkt an den Zeilenanfang. */
+  .wg-week { color: var(--accent-strong); letter-spacing: .12em; }
   /* Grosse Ueberschrift "Kalorien"/"Makros" - traegt jetzt, was vorher eine kleine
      Eyebrow-Zeile war. Normale Gross-/Kleinschreibung wie im Vorbild, nicht Versalien. */
   .wg-h { font-family: var(--font-display); font-size: 21px; font-weight: 700; color: var(--text); margin: 0 0 14px; }
@@ -551,7 +670,6 @@
   .wg-stat-txt small { font-size: 11px; color: var(--text-muted); font-weight: 600; }
   .wg-stat-txt b { font-family: var(--font-display); font-size: 15px; font-weight: 700; color: var(--text); font-variant-numeric: tabular-nums; }
   /* Zwei flache Leisten untereinander (Tag, Woche). */
-  .wg-cols { display: flex; flex-direction: column; gap: 10px; }
   .wg-col { position: relative; overflow: hidden; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 13px 16px; transition: border-color var(--dur-fast) ease; }
   /* Zielaktion ("Ziele neu berechnen"): eine eigene Zeile UNTER beiden Karten, weil sie
      beide betrifft - das Ziel gilt fuer Tag wie Woche. Vorher sass sie in der Kopfzeile nur
@@ -562,7 +680,15 @@
      Ohne ihn klebten sie aneinander - bei zwei Ghost-Knöpfen ohne Fläche sähe das aus wie
      ein einziger. flex-wrap, damit sie auf sehr schmalen Geräten untereinander rutschen
      statt ihren Text zu quetschen. */
-  .wg-actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; margin-top: 10px; }
+  /* Linksbuendig seit dem 05.09.2026. Die Zeile stand jahrelang rechts, ohne dass dafuer
+     ein Grund notiert war - sie war das einzige Element des Reiters, das aus der linken
+     Kante ausbrach: Ring, Ueberschriften und Wochenzeile stehen alle links. Rechtsbuendig
+     ist in diesem Projekt Dialog-Grammatik (.modal-foot, .ing-done-row): ein Knopf am Ende
+     eines abgeschlossenen Vorgangs. Home ist kein Dialog, und die Werkzeugleiste des
+     Wochenplans - die naechstverwandte Leiste - steht ebenfalls links.
+     Auf dem Handy spielt es keine Rolle: dort fuellen die beiden Knoepfe die volle Breite
+     (css/mobil.css, .wg-actions .wg-recalc). */
+  .wg-actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-start; margin-top: 10px; }
   .wg-recalc svg { width: 15px; height: 15px; }
   /* Hinweis in der rechten Spalte, wo im Leerzustand sonst Makrobalken bzw. Fortschrittsbalken
      saessen (dayRight/weekRight in weekGoalHtml). */

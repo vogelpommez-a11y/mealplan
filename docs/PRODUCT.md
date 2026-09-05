@@ -966,6 +966,36 @@ Vorher trug Home vier Themen gleichzeitig (Hero, Wochenziele, Rückblick, Gewich
 damit gegen den eigenen UX-Grundsatz „jeder Screen löst möglichst genau ein Problem". Rückblick
 und Gewichtskarte sind unverändert umgezogen — der Ort hat sich geändert, nicht die Funktion.
 
+**Der Hero ist am 05.09.2026 ganz entfallen.** Damit trug Home nur noch die Zielkarten — und
+passte auf einen Bildschirm, ohne zu scrollen (`docs/DESIGN.md`). Am selben Tag wurden aus den
+zwei Karten eine, siehe unten. Die Begrüßung „Dein Plan. Dein
+Fortschritt." war eine Ansage an den ersten Besuch, die jeder weitere Besuch mitbezahlen musste:
+150 px über der Falz, jedes Mal derselbe Satz. Ein Startreiter, der bei jedem Aufruf zuerst
+erklärt, wofür die App gut ist, sagt nichts über die Woche, die man gerade plant.
+
+**Der zweite Kalorienring ist am 05.09.2026 gefallen.** Home trug bis dahin zwei gleich große
+Zielkarten — „Heute“ und „Diese Woche“ —, jede mit eigenem Ring. „Verbleibend 9.464 kcal diese
+Woche“ ist aber keine Zahl, nach der jemand handelt: Entschieden wird auf Tagesebene, nie
+„diese Woche insgesamt“. Was von der Woche zählt, ist **wie viele Tage schon geplant sind** —
+und das ist eine Zeile, kein Ring. Die Summe selbst ist nicht verschwunden; sie steht als
+`9.694 / 19.158 kcal` im Kartenfuß.
+
+**Dafür beantwortet der Startreiter jetzt eine Frage, die er nie beantwortet hat: „Was esse ich
+als Nächstes?“** Ein Bilddeckel zeigt das nächste anstehende Meal des Tages mit Foto, Namen und
+Nährwerten. Das ist der größte Unterschied zu einem Kalorien-Tracker: Der schaut zurück, dieser
+Reiter nach vorne — und er nutzt endlich die Meal-Fotos, die es längst gibt.
+
+**Home hat bewusst keine Primäraktion.** Ein Durchgang durch alle vier Reiter am 05.09.2026 hat
+gezeigt: „Einkaufsliste“ und „Woche planen“ stehen in der Werkzeugleiste des *Wochenplans*, ein
+„⋯“-Menü gibt es dort, an der Gewichtskarte und im Profil. Auf Home bleiben die zwei Aktionen,
+die es nur dort gibt: „Anpassen“ und „Neu berechnen“. Der Reiter beantwortet „wie steht meine
+Woche?“ — geplant wird im Wochenplan. **Zeigen, nicht handeln.**
+
+Was daran veranlagt war zu bleiben, ist geblieben: die **Wochenangabe**. Sie ist die einzige
+Zeile des Hero, die sich änderte, und sie steht jetzt in der Kopfzeile der Wochenkarte — dort
+datiert sie die Zahlen, zu denen sie gehört, und zeigt auch „nächste Woche“ an, ohne dass man
+dafür in den Wochenplan wechseln muss.
+
 Die Navigationsmechanik bleibt, wie sie war: gleitende Pille, gerichteter Inhaltswechsel,
 untere Kapsel auf dem Handy. Der vierte Reiter ist eine Spalte mehr, kein neues Prinzip.
 

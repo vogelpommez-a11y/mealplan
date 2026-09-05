@@ -373,7 +373,7 @@ Lässt sich ein innerer Scroller nicht vermeiden, ist das Einzige, was zählt: `
 
 Siehe `docs/TROUBLESHOOTING.md`, Punkt 58.
 
-`initCarousel()` ist die gemeinsame Quelle für die scroll-gekoppelte Pille (`.db-ind`, in `.daybar` und `.wgbar`). `slideIn(el, dir)` ist der gemeinsame Enter-Helfer für gerichtete Inhaltswechsel (Wochenwechsel, Tab-Wechsel). `.week-switch` braucht eine eigene WAAPI-Pille (`syncWeekSwitchPill()`), weil ihr Markup bei jedem `render()` per `view.innerHTML` neu gebaut wird — eine CSS-`transition` würde dort nie greifen, siehe `docs/TROUBLESHOOTING.md`.
+`initCarousel()` ist die gemeinsame Quelle für die scroll-gekoppelte Pille (`.db-ind`, in `.daybar`; bis 05.09.2026 auch in `.wgbar` auf der Startseite). `slideIn(el, dir)` ist der gemeinsame Enter-Helfer für gerichtete Inhaltswechsel (Wochenwechsel, Tab-Wechsel). `.week-switch` braucht eine eigene WAAPI-Pille (`syncWeekSwitchPill()`), weil ihr Markup bei jedem `render()` per `view.innerHTML` neu gebaut wird — eine CSS-`transition` würde dort nie greifen, siehe `docs/TROUBLESHOOTING.md`.
 
 ---
 
@@ -498,3 +498,162 @@ Gemessen, nicht gerechnet — `tools/pruefstand-kalender-layout.py` fährt beide
 geplant" — den Monat nennt die Zeile darüber schon. Die `<caption>` für den Screenreader
 trägt ihn trotzdem („August 2026: 18 von 31 Tagen geplant"): Sie steht allein, ohne die
 Zeile darüber.
+
+## Der Startreiter passt auf einen Bildschirm (seit 05.09.2026)
+
+**Home scrollt nicht.** Bei einem 1440 × 900 großen Fenster steht alles zwischen Kopf- und
+Fußzeile: die Heute-Karte, die Wochenkarte und die Aktionszeile. Das ist eine Zusage an das
+Layout, keine Beobachtung — wer dem Reiter etwas hinzufügt, nimmt dafür an anderer Stelle
+etwas weg oder macht es kompakter.
+
+Zwei Dinge haben den Platz geschaffen:
+
+**Der Intro-Hero ist entfallen.** Er trug eine Wochenzeile, die Überschrift „Dein Plan. Dein
+Fortschritt." und einen Beschreibungssatz — zusammen rund 150 px über der Falz, die bei jedem
+Aufruf dasselbe sagten. Eine Ansage, die man beim zweiten Besuch nicht mehr liest, aber jedes
+Mal wegscrollen muss. Erhalten geblieben ist seine einzige veränderliche Information, die
+Wochenangabe: Sie steht jetzt als `.wg-week` in der Kopfzeile der Wochenkarte, an den Zahlen,
+die sie datiert.
+
+**Der Rest kommt aus totem Raum, nicht aus weggelassenen Aussagen.** Jede Zahl, jeder Balken
+und jeder Knopf steht unverändert da. Verkleinert wurden der 80-px-Fuß von `<main>`, der
+Abstand unter dem letzten Element und die Innenabstände der damals **zwei** Zielkarten
+(`css/basis.css`, Block hinter `.week-nut`). Seit dem Umbau am selben Tag ist es **eine** Karte —
+siehe den Abschnitt „Der Startreiter ist eine Karte“ weiter unten.
+
+Drei Regeln dazu, die zusammengehören:
+
+* Die Kompaktierung hängt an **`.week-nut`** und gilt erst ab **681 px**. Dieselben Bauteile
+  (`.wg-h`, `.gm`, `.wg-macros`) stehen im Wochenplan in den Tageskarten — dort ist die Seite
+  ohnehin lang, dort ändert sich nichts. Und unterhalb von 681 px braucht die klebende
+  Tagesbilanz den Fuß von `<main>` weiterhin.
+* Der Fußabstand hängt an **`main:has(.week-nut)`**, nicht an einer Klasse aus dem JS. Fällt
+  `:has()` aus, bleibt schlicht der alte Abstand stehen: Der Reiter scrollt dann wieder ein
+  Stück, nichts bricht.
+* **Auf dem Handy gilt dieselbe Zusage** (05.09.2026, zweiter Schritt). Damals lagen die beiden
+  Zielkarten dort im Wisch-Streifen (`.wg-cols`) — eine Karte auf einmal, die Höhe kam von
+  `initCarousel()`; **beides ist mit dem dritten Schritt desselben Tages entfallen.** Schmal
+  stapeln sich Ring, Kennzahlen **und** die drei Makrobalken untereinander statt nebeneinander;
+  damit fehlten nach dem Desktop-Schritt noch rund 100 px auf einem iPhone 14. Woher sie kamen,
+  steht unten.
+
+### Mobil: woher der Platz kam
+
+**Der Fuß von `<main>` war doppelt vergeben.** `.app` hält bereits 77 px für die feste
+Tab-Kapsel frei; die 64 px in `main` reservieren die klebende Tagesbilanz `#day-bal` — die es
+**nur im Wochenplan gibt**. Auf Home standen dadurch 141 px Leere unter dem letzten Knopf.
+Gekürzt wird deshalb nur dort (`main:has(.week-nut)`), im Plan bleibt alles unverändert.
+
+**Der Makrobalken steht auf zwei Zeilen statt auf drei.** Die Restzeile („99 g übrig“) rückt
+neben den Wert, statt eine eigene dritte Zeile zu belegen: 51 px je Balken werden 29. Das ist
+**keine vierte Darstellungsform** — es bleibt die Balkenform, es bleiben die ausgeschriebenen
+Namen (`Kohlenhydrate`, nicht `KH`), es bleibt die Reihenfolge, es bleibt jede Zahl. Technisch
+löst `display: contents` auf `.gm-r` die Zwischenverpackung auf; die Rasterplätze stehen
+**explizit** da, weil die Auto-Platzierung den Balken sonst in Zeile 1, Spalte 3 setzt.
+
+**Ring und Kennzahlen tauschen die Führung.** Die drei Kennzahlen neben dem Ring waren mit
+150 px höher als der Ring selbst (118) und bestimmten damit die Höhe der ganzen Zeile. Enger
+gesetzt geben sie die Führung an den Ring zurück — ab da kostet jede weitere Kürzung dort
+nichts mehr. **Wer eines von beiden ändert, muss das andere mitdenken.**
+
+**Ein zweiter Block hängt an der Höhe, nicht an der Breite:**
+`@media (max-width: 680px) and (max-height: 620px)`. Ein iPhone SE hat rund 553 px CSS-Höhe,
+gut 110 weniger als ein iPhone 14 — und ein breites, aber flaches Fenster (Querformat,
+geteilter Bildschirm) hat dasselbe Problem. Dort weicht zuerst der Slogan, wie schon im
+400-px-Block; die Marke selbst bleibt vollständig.
+
+### Die eine dokumentierte Ausnahme
+
+**Auf einem iPhone SE (375×553) steht der Reiter rund 40 px über dem Bildschirm.** Was fehlt,
+ist ungefähr die Knopfzeile „Anpassen / Neu berechnen“. Sie weiter zu kürzen hieße unter die
+44 px für ein Tippziel zu gehen, und die ist nicht verhandelbar. Die Ausnahme wird **gemessen
+und ausgewiesen**, nicht verschwiegen: `tools/pruefstand-home-eine-seite.py` führt das Gerät
+als `OFFEN` und schlägt an, sobald der Wert **größer** wird.
+
+### Die Zusage wird gemessen, nicht geglaubt
+
+`tools/pruefstand-home-eine-seite.py` fährt die echte App in `<iframe>`s fester Größe — sechs
+Geräte vom iPhone SE bis zum Notebook — und prüft je Gerät: passt es ohne Scrollen, scrollt
+nichts quer, ist `#view` gefüllt, stehen Ring, drei Makrobalken und Wochenangabe da, und ist
+kein Tippziel zu klein. Mit `--gegenprobe`.
+
+## Der Startreiter ist eine Karte (seit 05.09.2026)
+
+**Ein Rahmen statt zweier.** Bilddeckel oben, darunter links die Kalorien und rechts die
+Makros, im Kartenfuß die Woche, darunter die Knopfzeile. Vorher lagen hier zwei gleich große
+Zielkarten in einem Wisch-Streifen (`.wgbar` + `.wg-cols`); beide sind entfallen, ebenso
+`.wg-b`, `.wg-progress` und `.wg-open`. **`.wg-col` bleibt** — Gewichtskarte und Kalender im
+Fortschritt-Reiter benutzen sie.
+
+Die Zeile links/rechts baut unverändert `goalRingHtml()` aus `.wg-col-cal` und
+`.wg-col-macros`. Deshalb ist der Umbau im Code klein geblieben.
+
+### Der Bilddeckel
+
+Die Abdunklung über dem Foto ist **bewusst nicht tokenisiert** und in beiden Themes gleich:
+Sie stellt den Kontrast zum *Bild* her, nicht zum Hintergrund der Seite. Ein helles Token im
+Light-Theme machte den weißen Text auf einem hellen Gericht unlesbar — dieselbe Überlegung wie
+bei `.wg-c`, das seine Farbe auch nicht vom Ring bezieht.
+
+`object-position: center 42%`: In den Meal-Fotos sitzt der Teller unterhalb der Bildmitte, bei
+118 px Höhe zeigte `center` vor allem Tischplatte.
+
+**Hover nur mit Zeigegerät** (`@media (hover: hover) and (pointer: fine)`) — auf Touch bleibt
+der Zustand nach dem Tippen hängen, dieselbe Falle wie bei `.rcard`. Und der Deckel hat einen
+**Press-State**: Er ist die größte antippbare Fläche des Reiters. Nicht stauchen wie einen Knopf
+— ein Foto zu skalieren wirkt wackelig —, sondern kurz abdunkeln (`opacity: .86`).
+
+Die Nährwerte im Deckel stehen in der **Kompaktform ohne „g“**, genau wie `macroLineHtml()` sie
+überall schreibt. Auf dem Handy bleiben davon die Kalorien; KH/P/F weichen. **Sie ganz zu
+streichen wäre falsch:** Die Balken darunter zeigen den *Tag*, der Deckel dieses *eine Gericht*.
+Zwei verschiedene Zahlen — die eine ersetzt die andere nicht.
+
+### Die Tagesreihe im Kartenfuß
+
+**Sieben Punkte statt eines Fortschrittsbalkens.** „5 von 7“ liest man ohne zu zählen; die
+Punkte sagen zusätzlich, *welche* fehlen. Sie **ergänzen** die Zahl, sie ersetzen sie nicht —
+ein erster Entwurf ließ die Zahl weg und stand damit sehend schlechter da als vorher.
+
+**Die Bildsprache ist die des Fortschritt-Kalenders:** Akzentfarbe gefüllt heißt geplant,
+leerer Ring heißt offen, ein heller Rahmen heißt heute. Ein zweites Vokabular für dieselbe
+Aussage wäre genau der Fehler, den dieses Dokument für die Makros verbietet. Die
+Unterscheidung liegt in der **Form** (gefüllt gegen leer), nicht allein in der Farbe — sonst
+wäre sie bei 9 px mit einer Rot-Grün-Schwäche nicht zu treffen (WCAG 1.4.1).
+
+**Trainingstage sind ein zweiter Kanal, die Schriftfarbe** (`--train-strong`). Der Punkt sagt
+„geplant oder offen“, die Schrift sagt „Trainingstag“. Beides in eine Farbe zu legen wäre bei
+sieben 9-px-Punkten nicht mehr lesbar.
+
+**Bewusst keine Knöpfe:** Der Startreiter zeigt, der Wochenplan bearbeitet.
+
+**Die Serie steht hier nicht.** Sie hat ihren Platz im Kalenderfuß des Fortschritt-Reiters, an
+dem Gitter, das sie zusammenfasst — auf Home wäre sie eine Kopie.
+
+### Trainingstag an der Karte
+
+Drei Kennzeichen, alle aus dem Bestand: das Badge `.wg-train` in der Kopfzeile (mit
+`aria-label`, denn `title` liest der Screenreader nicht), der blaue Faden an der Kartenkante
+wie bei `.wg-col-training` im Wochenplan, und der Zuschlag in der Kennzahlenliste.
+
+### Die Knopfzeile steht links
+
+`.wg-actions` war jahrelang `justify-content: flex-end`, **ohne dass dafür ein Grund notiert
+war**. Sie ist am 05.09.2026 nach links gerückt. Drei Gründe:
+
+* Sie war das einzige Element des Reiters, das aus der linken Kante ausbrach — Ring,
+  Überschriften und Wochenzeile stehen alle links. Der Blick liest die Karte von links nach
+  unten und musste am Ende nach rechts springen.
+* Rechtsbündig ist in diesem Projekt **Dialog-Grammatik** (`.modal-foot`, `.ing-done-row`):
+  ein Knopf am Ende eines abgeschlossenen Vorgangs. Der Startreiter ist kein Dialog.
+* Die nächstverwandte Leiste — die Werkzeugleiste des Wochenplans — steht ebenfalls links.
+
+Auf dem Handy spielt es keine Rolle: Dort füllen die beiden Knöpfe die volle Breite
+(`css/mobil.css`, `.wg-actions .wg-recalc`), je 44 px hoch.
+
+### Die Zusage gilt weiter
+
+`tools/pruefstand-home-eine-seite.py` misst unverändert: 0 px Überstand auf 390×664, 412×719,
+430×745, 768×954 und 1440×790. Auf dem iPhone SE (375×553) sind es **83 px** — der
+`SE_DECKEL` im Prüfstand wurde deshalb von 60 auf 90 angehoben. **Der Grund ist ein Zugewinn,
+kein Nachlassen:** Der Reiter trägt jetzt einen Bilddeckel. Wer diesen Wert weiter erhöht, muss
+dazuschreiben *warum* — „sonst ist es rot“ ist kein Grund.

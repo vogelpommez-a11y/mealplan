@@ -100,6 +100,16 @@ def hat_beleg(ausgabe):
 # Pruefstand meldet dauerhaft OFFENes, das den Rueckgabewert nicht bestimmt - das gehoert
 # begruendet und wieder entfernt, sobald der Umbau durch ist.
 TEILWEISE = {
+    # Seit 05.09.2026. Der Pruefstand weist auf dem iPhone SE (375x553) dauerhaft einen
+    # OFFEN-Punkt aus: Dort steht der Startreiter rund 40 px ueber dem Bildschirm. Was
+    # fehlt, ist genau die Knopfzeile "Anpassen / Neu berechnen"; sie weiter zu kuerzen
+    # hiesse unter die 44-px-Grenze fuer Tippziele zu gehen, und die ist nicht
+    # verhandelbar. Der Rueckgabewert haengt deshalb NICHT an diesem Geraet - wohl aber
+    # daran, dass es nicht SCHLECHTER wird (SE_DECKEL im Pruefstand). Der Eintrag hier
+    # verschwindet, sobald die Knopfzeile entschieden ist (Entwuerfe in
+    # plans/home-varianten/ legen sie in ein "..."-Menue).
+    "pruefstand-home-eine-seite.py":
+        u"iPhone SE steht ~83px ueber - bekannte Ausnahme, siehe SE_DECKEL",
 }
 
 # Braucht ein Argument oder einen besonderen Aufbau - nicht fuer den Reihenlauf geeignet.

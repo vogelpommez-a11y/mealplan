@@ -884,12 +884,6 @@
   .crop-zoom { display: flex; align-items: center; justify-content: center; gap: 14px; margin-top: 16px; }
 
   .auth { min-height: calc(100vh - 170px); display: grid; place-items: center; padding: 16px 0 60px; }
-  /* Intro-Hero über dem Wochenplan */
-  .app-hero { margin: 2px 0 22px; }
-  .app-hero .eyebrow { display: inline-block; font-family: var(--font-display); text-transform: uppercase; letter-spacing: .22em; font-size: 12px; font-weight: 600; color: var(--accent-strong); margin-bottom: 8px; }
-  .app-hero h2 { font-family: var(--font-display); font-weight: 700; text-transform: uppercase; font-size: clamp(30px, 4.4vw, 50px); line-height: .96; letter-spacing: .5px; margin: 0; text-wrap: balance; }
-  .app-hero h2 em { color: var(--accent); font-style: normal; }
-  .app-hero .hero-sub { color: var(--text-muted); font-size: 15.5px; line-height: 1.5; margin: 12px 0 0; max-width: 60ch; }
 
   .row3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
   /* Segmented control (Geschlecht/Ziel) im Stil der Wochen-Umschalter */
