@@ -947,10 +947,22 @@ Der Aufbau der Karte, von oben:
 | Kartenfuß | `weekFootHtml()` | Woche, sieben Tagespunkte, `x von 7 Tagen` und kcal |
 | Knopfzeile | `.wg-actions` | `tune-goal`, `recalc-goal` |
 
-`nextMealOfDay()` sucht nach Uhrzeit: vor 10 Uhr ab Frühstück, vor 14:30 ab Mittag, vor 20:30
-ab Abend, sonst ab Snack. Die Grenzen entscheiden nur, **wo die Suche beginnt** — findet sich
+`nextMealOfDay()` sucht nach Uhrzeit — die Grenzen stehen hier, damit sie nicht nur im Code
+zu finden sind:
+
+| Uhrzeit | Suche beginnt bei |
+|---|---|
+| vor 10:00 | Frühstück |
+| 10:00–14:30 | Mittagessen |
+| 14:30–20:30 | Abendessen |
+| ab 20:30 | Snacks | Die Grenzen entscheiden nur, **wo die Suche beginnt** — findet sich
 ab dort kein belegter Slot, wird der erste offene gezeigt, und danach fängt die Suche vorne an.
 Die Karte trägt dadurch immer einen Deckel.
+
+**Die Rückwärtssuche bleibt im heutigen Tag** — sie springt nie auf morgen. Deshalb sagt das
+Etikett `vor` die Wahrheit: `true` heißt „Als Nächstes“ (steht noch an), `false` heißt „Heute“
+(war schon). Um 22 Uhr mit leeren Snacks und belegtem Frühstück steht dort also
+„Heute · Frühstück“, und das ist richtig: Es ist das Frühstück von heute.
 
 **Gerechnet wird gegen den Plan der aktuellen Woche**, nicht gegen `state.plan`: „Heute“ bleibt
 heute, auch wenn der Wochenplan gerade auf nächste Woche zeigt. Aus demselben Grund setzt
@@ -2377,8 +2389,9 @@ Wiederherstellung wie bisher in `render()`, nach dem jeweiligen `render*()`-Aufr
 
 ### Schiebe-Schema für gleichrangige Ansichtswechsel
 
-Alle Wechsel zwischen gleichrangigen Ansichten (Wochentage, Home „Heute/Diese Woche",
-„Aktuelle/Nächste Woche", untere Tab-Leiste) folgen derselben Bewegungssprache: Segmented
+Alle Wechsel zwischen gleichrangigen Ansichten (Wochentage, „Aktuelle/Nächste Woche",
+untere Tab-Leiste; bis 05.09.2026 auch Home „Heute/Diese Woche") folgen derselben
+Bewegungssprache: Segmented
 Control mit gleitender Pille plus gerichteter Enter-Bewegung des Inhalts. Drei Bausteine, je
 nach DOM-Lebensdauer der Leiste:
 

@@ -353,3 +353,39 @@ Der Secret-Scan in der eigenen CI ist damit eine **zweite** Schicht, nicht die e
 
 Dependabot ist deaktiviert — folgerichtig, weil es ohne `package.json` nichts zu prüfen
 gäbe. Diese Rolle hat der Agent `lieferkette`.
+
+## Rezept-IDs aus dem Gruppen-Sync (gefunden 05.09.2026)
+
+**Die Dokument-ID eines Firestore-Rezepts landet ungeprüft in `r.id`.** `onRecipesRemote()`
+baut das Rezept als `sanitizeRecipe(Object.assign({}, c.data, { id: c.id }))` — und
+`sanitizeRecipe()` prüft `image`, `category`, `ingredients`, `tags` und `portions`, **aber
+nicht die `id`**. `firestore.rules` schränkt `match /groups/{gid}/recipes/{recipeId}` ebenfalls
+nicht ein: Jede als Dokument-ID zulässige Zeichenkette wird angenommen.
+
+Damit konnte ein Gruppenmitglied mit Schreibrecht eine ID wie `x" onmouseover="…` anlegen. Sie
+wurde an fünf Stellen unescaped in ein `data-id`/`data-rid`-Attribut geschrieben — ein
+Attribut-Ausbruch und damit Skriptausführung im Kontext jedes anderen Mitglieds, sobald das
+Rezept synchronisiert und angezeigt wird. Genau der Angreifer aus dem Bedrohungsmodell:
+angemeldet, in der Gruppe, mit DevTools.
+
+**Sofort behoben:** alle fünf Ausgabestellen escapen jetzt (`data-id="${esc(r.id)}"`). Das
+schließt den Ausbruch vollständig — `esc()` ersetzt `"` durch `&quot;`, und `dataset.id` liefert
+beim Auslesen wieder den Originalwert, die Zuordnung bricht also nicht.
+
+Dazu zwei **Attributselektoren** in `toggle-fav`: `.rcard[data-rid="${id}"]` hätte bei einem `"`
+in der ID einen Selektor-Syntaxfehler ergeben, `querySelectorAll` geworfen und das Umschalten
+**vor** dem `save()` abgebrochen — kein Datenverlust, aber ein Knopf, der stumm nichts tut. Beide
+laufen jetzt über `CSS.escape(id)`. Kein Sicherheitsloch, aber derselbe blinde Fleck: eine ID,
+der man ansieht, dass sie „harmlos“ ist.
+
+**Noch offen, an der Wurzel:** `sanitizeRecipe()` sollte die `id` auf das Format zwängen, das
+`uid()` erzeugt, und `firestore.rules` sollte `recipeId` einschränken. Beides ist die eigentliche
+Verteidigungslinie — ohne sie wiederholt die nächste `data-id`-Stelle denselben Fehler. Bewusst
+**nicht** im selben Zug erledigt: Eine Formatprüfung greift in den Sync-Abgleich ein (lokale ID
+gegen Dokument-ID) und gehört getestet, nicht kurz vor einen Push geschoben.
+
+**Die Lehre:** Nicht nur der sichtbare Text einer fremden Quelle braucht `esc()`, sondern
+**jeder Wert, der in ein Attribut geht** — auch eine ID, die „doch nur“ aus einem Schlüssel
+besteht. Der Weg dorthin war unauffällig: `uid()` erzeugt harmlose IDs, also sah die Stelle
+jahrelang harmlos aus. Der Angreifer schreibt die ID aber nicht über `uid()`, sondern über den
+Dokumentnamen in Firestore.

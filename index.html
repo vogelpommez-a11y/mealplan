@@ -4570,7 +4570,7 @@
     // Leerer Slot: der Deckel fuehrt in den WOCHENPLAN, nicht direkt in den Picker. Der
     // Picker schreibt in state.plan - das ist die ANGEZEIGTE Woche, und die kann gerade die
     // naechste sein. Ein Meal fuer "heute" landete dann sieben Tage daneben.
-    const ziel = r ? `data-action="view" data-id="${r.id}"` : `data-action="tab" data-tab="plan"`;
+    const ziel = r ? `data-action="view" data-id="${esc(r.id)}"` : `data-action="tab" data-tab="plan"`;
     const bild = r ? photoFor(r) : PHOTOS.neutral;
     const nut = r ? recipeNut(r) : null;
     // Makros in der Kompaktform - ohne "g", genau wie macroLineHtml() es ueberall tut
@@ -6115,7 +6115,7 @@
           // Badges sind aria-hidden (rein dekorativ) - wer das Gericht isst, muss deshalb
           // im Titel stehen, sonst bleibt die Zuweisung fuer Screenreader unsichtbar.
           const assignNote = uids ? " – nur für " + uids.map(u => (memberByUid(u) ? firstName(memberByUid(u).name) : null) || "Jemanden").join(", ") : "";
-          html += `<div class="filled"${drag ? ` draggable="true"` : ""} data-action="view" data-id="${r.id}" data-slot-src="${d.key}:${m.key}:${idx}" title="${esc(r.name)}${esc(assignNote)}${drag ? " – ziehen zum Verschieben" : ""}">
+          html += `<div class="filled"${drag ? ` draggable="true"` : ""} data-action="view" data-id="${esc(r.id)}" data-slot-src="${d.key}:${m.key}:${idx}" title="${esc(r.name)}${esc(assignNote)}${drag ? " – ziehen zum Verschieben" : ""}">
               <span class="r-thumb-wrap">${thumbHtml(r, "r-thumb", true)}${badge}</span>
               <div class="r-body"><div class="r-name">${esc(r.name)}</div>${recipeNut(r).kcal ? `<div class="r-meta">${nfmt(recipeNut(r).kcal)} kcal</div>` : ""}</div>
               ${showPencil ? `<button class="pencil" data-action="assign" data-slot-src="${d.key}:${m.key}:${idx}" aria-label="Zuweisung ändern" title="Zuweisung ändern">${ICON_PEOPLE}</button>` : ""}
@@ -6622,15 +6622,15 @@
       // eigenstaendig klickbar - "kein Button im Button". Tab-Reihenfolge: Titel -> Herz.
       const statsInner = cardStatsHtml(r);
       const authorHtml = recipeAuthorHtml(r);
-      html += `<article class="rcard" data-rid="${r.id}">
+      html += `<article class="rcard" data-rid="${esc(r.id)}">
         ${cardImageHtml(r)}
-        <button type="button" class="btn fav-ic on-photo${isFav(r.id) ? " on" : ""}" data-action="toggle-fav" data-id="${r.id}"
+        <button type="button" class="btn fav-ic on-photo${isFav(r.id) ? " on" : ""}" data-action="toggle-fav" data-id="${esc(r.id)}"
                 aria-pressed="${isFav(r.id)}"
                 title="${isFav(r.id) ? "Aus Favoriten entfernen" : "Zu Favoriten hinzufügen"}"
                 aria-label="${isFav(r.id) ? "Aus Favoriten entfernen" : "Zu Favoriten hinzufügen"}">${iconSvg("heart", "")}</button>
         <div class="rbody">
         <div class="top">
-          <h3><button type="button" class="rcard-open" data-action="view" data-id="${r.id}">${esc(r.name)}</button></h3>
+          <h3><button type="button" class="rcard-open" data-action="view" data-id="${esc(r.id)}">${esc(r.name)}</button></h3>
         </div>
         <div class="rstats">
           ${statsInner || `<p class="ms-empty-ings">Noch keine Nährwerte</p>`}
@@ -9853,7 +9853,7 @@
         const g = view.querySelector("#r-groups .catgroup:not(.favgroup)");
         return g ? g.getBoundingClientRect().top : null;
       };
-      const before = cardTop(view.querySelectorAll(`.rcard[data-rid="${id}"]`));
+      const before = cardTop(view.querySelectorAll(`.rcard[data-rid="${CSS.escape(id)}"]`));
       const beforeGroup = groupTop();
       const hadFocus = t === document.activeElement;
 
@@ -9862,7 +9862,7 @@
       save();               // persistiert + scheduleCloudPush()
       paintRecipeGroups();  // nur die Liste neu zeichnen, sonst faellt der Fokus aus dem Suchfeld
 
-      const post = view.querySelectorAll(`.rcard[data-rid="${id}"]`);
+      const post = view.querySelectorAll(`.rcard[data-rid="${CSS.escape(id)}"]`);
       const anchor = post.length ? post[post.length - 1] : null;
       const shift = anchor && before !== null
         ? anchor.getBoundingClientRect().top - before
