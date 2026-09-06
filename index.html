@@ -2525,6 +2525,23 @@
         // Ansicht schliesst sich selbst, mit einem Toast statt eines abgebrochenen Autosaves.
         if (c.id === openSheetId && openSheetRemovedCb) { const cb = openSheetRemovedCb; openSheetRemovedCb = null; cb(); }
       } else {
+        // In der Gruppe ist die Dokument-ID die Meal-id und stammt von einem anderen
+        // Mitglied (siehe validRecipeId). Ein Dokument mit abweichender ID kommt gar nicht
+        // erst herein - weder als Karte noch, ueber normalizePlan(), als Planverweis.
+        // Folgenlos fuer den Sync: die ID landet nie in lastPushedRecipes, und syncRecipes()
+        // zieht seine delIds nur aus dieser Baseline - das fremde Dokument bleibt unberuehrt
+        // liegen, statt in eine Loesch-Schreib-Schleife zu geraten.
+        //
+        // Die Pruefung steht bewusst HIER und nicht vor der Verzweigung nach c.type: Der
+        // "removed"-Zweig darf sie nicht sehen. Laege aus der Zeit vor dieser Haertung noch
+        // ein Meal mit abweichender ID im lokalen Bestand, waere sein Loeschen durch ein
+        // anderes Mitglied sonst lautlos wirkungslos - die Karteileiche bliebe fuer immer
+        // stehen. Aufraeumen ist immer erwuenscht, und der Zweig wirkt ohnehin nur auf IDs,
+        // die lokal schon vorhanden sind.
+        //
+        // AUSSERHALB der Gruppe wird gar nicht geprueft: dort schreibt nur das eigene
+        // Geraet, und ein Fehlurteil ueber eine alte eigene ID waere ein verschwundenes Meal.
+        if (syncGid && !validRecipeId(c.id)) return;
         const incoming = sanitizeRecipe(Object.assign({}, c.data, { id: c.id }));
         // Baseline bewusst NICHT mitgepflegt (kein lastPushedRecipes.set weiter unten,
         // return VOR dieser Zeile): dadurch gilt unser lokaler Stand beim naechsten
@@ -2756,7 +2773,11 @@
       // ist die Gruppe die Wahrheit. Wuerde gemergt, saehe jeder zusaetzlich seine alten
       // Meals, die die anderen gar nicht haben - der Plan waere nicht mehr gemeinsam
       // lesbar. Die eigenen Meals sind beim Beitritt in die Gruppe kopiert worden.
-      const gRecipes = sanitizeRecipes(await window.CloudSync.loadRecipes(["groups", gid]));
+      // validRecipeId() wie im Live-Listener (onRecipesRemote): der Erstabgleich ist der
+      // zweite und letzte Weg, auf dem eine fremdbestimmte Dokument-ID in den Bestand
+      // kaeme. Die Planverweise raeumt normalizePlan() gleich darunter mit auf, es
+      // filtert die Slots gegen genau dieses state.recipes.
+      const gRecipes = sanitizeRecipes(await window.CloudSync.loadRecipes(["groups", gid])).filter(r => validRecipeId(r.id));
       state.recipes = gRecipes;
       // canonJSON, nicht JSON.stringify: syncRecipes() vergleicht gleich darauf kanonisch gegen
       // diese Baseline. Wird sie roh geseedet, weicht der erste Vergleich fast immer ab und die
@@ -3118,6 +3139,28 @@
   }
 
   function uid() { return "r" + Math.random().toString(36).slice(2, 9) + Date.now().toString(36).slice(-3); }
+  // Gegenstueck zu uid(): Traegt eine Meal-id die Form, die diese App vergibt?
+  //
+  // Gebraucht wird das NUR in der Gruppe, dort an zwei Stellen: im Live-Listener
+  // (onRecipesRemote) und im Erstabgleich (enterGroupSync). Dort ist die id die
+  // Firestore-Dokument-ID und stammt damit von einem anderen Mitglied, das sie frei
+  // waehlen kann. Ueberall sonst vergibt die App die id selbst: der Teilen-Import
+  // (applySharedData) legt eine frische uid() an und biegt die Planverweise mit,
+  // und im persoenlichen Konto schreibt nur das eigene Geraet.
+  //
+  // Deshalb steht die Pruefung NICHT in sanitizeRecipe(). Die laeuft auch auf den
+  // Katalog (kopieEntsprichtKatalog uebergibt Slugs wie "ruehrei-avocadobrot") und auf
+  // den eigenen Altbestand aus dem localStorage - dort waere ein Fehlurteil Datenverlust
+  // an eigenen Daten, hier ist es nur ein fremdes Meal weniger.
+  //
+  // Die Laenge ist bewusst grosszuegig statt exakt {10}. uid() liefert praktisch immer
+  // "r" + 10 Zeichen, aber der Zufallsteil KANN kuerzer ausfallen: bei einem
+  // Math.random(), dessen base36-Darstellung frueh endet, liefert .slice(2, 9) weniger
+  // als sieben Zeichen ((0.5).toString(36) ist "0.i"). Das passiert mit einer
+  // Wahrscheinlichkeit von 2^-39 - der Schutz haengt ohnehin an der ZEICHENMENGE, nicht
+  // an der Laenge, und ein Fehlalarm liesse ein echtes Meal fuer die ganze Gruppe
+  // unauffindbar verschwinden. Also lieber vier Zeichen Spielraum.
+  function validRecipeId(id) { return typeof id === "string" && /^r[a-z0-9]{3,14}$/.test(id); }
   // Waehrend eines Render-Durchlaufs wird sehr oft nach Rezepten gesucht (jeder Slot,
   // jede Tagesbilanz). Der Index macht daraus einen Map-Zugriff statt einer linearen
   // Suche. Er lebt bewusst NUR innerhalb von render(): dort mutiert state.recipes nicht,

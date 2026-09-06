@@ -3543,9 +3543,16 @@ erzeugt genau das Vertrauen, das die vierte durchrutschen lässt. `grep` auf das
 (`data-[a-z]*="\${` ohne `esc`) kostet eine Sekunde und findet so etwas zuverlässiger als das
 Lesen der geänderten Zeilen.
 
-Nicht angefasst und bewusst offen: `sanitizeRecipe()` prüft die `id` weiterhin nicht. Escaping
-bei der **Ausgabe** ist der richtige Ort dafür; eine Formatprüfung beim Einlesen träfe auch
-Bestandsdaten und Katalogschlüssel und wäre ein eigener Umbau.
+Damals bewusst offen gelassen: `sanitizeRecipe()` prüft die `id` weiterhin nicht — und das
+bleibt so. Dort liefe die Prüfung auch über Katalog-Slugs (`kopieEntsprichtKatalog()`) und über
+den eigenen Altbestand, wo ein Fehlurteil eigene Daten kostet statt fremde abzuwehren.
+
+**Nachtrag 06.09.2026:** Für die eine tatsächlich fremdbestimmte Quelle — den Gruppen-Sync, wo
+die Firestore-Dokument-ID die Meal-id **ist** — ist die Formatprüfung beim Einlesen doch
+gekommen: `validRecipeId(id)`, angewandt genau an den zwei Stellen, an denen eine fremde ID
+hereinkommt (`onRecipesRemote()` bei gesetztem `syncGid`, Erstabgleich in `enterGroupSync()`),
+dazu `recipeId.matches(...)` in den Regeln. Sie **ersetzt** das Escaping nicht, sie kommt davor.
+Details: `docs/SECURITY.md`, Abschnitt „Rezept-IDs aus dem Gruppen-Sync".
 
 ---
 

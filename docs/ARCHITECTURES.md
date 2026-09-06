@@ -481,6 +481,31 @@ Zwei Werte gehören **nie roh** in einen Push, auch wenn sie inhaltlich stimmen:
   überschreiben, das danach beim äußeren Sanitize-Durchlauf herausgefiltert würde — das Ziel wäre
   verloren, nicht nur unsortiert. `mergeTombstones()` sortiert ebenfalls seine eigene Rückgabe.
 
+### Die Meal-id in der Gruppe ist eine fremde Eingabe (06.09.2026)
+
+Außerhalb der Gruppe vergibt die App jede Meal-id selbst — `uid()` beim Anlegen, und der
+Teilen-Import (`applySharedData()`) legt für ein fremdes Meal ausdrücklich eine **frische**
+`uid()` an und biegt die Planverweise über `idMap` mit. In der Gruppe geht das nicht: Dort
+**ist** die Firestore-Dokument-ID die Meal-id, und geschrieben hat sie ein anderes Mitglied.
+
+`validRecipeId(id)` (direkt neben `uid()`) prüft deshalb die Form `^r[a-z0-9]{3,14}$`, und
+zwar an den zwei Stellen, an denen eine solche ID hereinkommt: `onRecipesRemote()` — dort
+**nur bei gesetztem `syncGid`** — und dem Erstabgleich in `enterGroupSync()`. Der Schutz
+sitzt bewusst **nicht** in `sanitizeRecipe()`: die läuft auch auf Katalog-Slugs
+(`kopieEntsprichtKatalog()`) und auf den eigenen localStorage-Bestand, wo ein Fehlurteil
+eigene Daten kostet statt fremde abzuwehren.
+
+In `onRecipesRemote()` sitzt die Prüfung im `else`-Zweig, **nicht** vor der Verzweigung
+nach `c.type`: Der `"removed"`-Zweig darf sie nicht sehen, sonst ließe sich ein Meal mit
+abweichender ID aus der Zeit vor der Härtung nie wieder löschen.
+
+Ein abgelehntes Dokument hinterlässt **keine** Spur im Sync: Es kommt nicht in
+`state.recipes`, sein Planverweis fällt über `normalizePlan()` weg (das filtert Slots gegen
+die bekannten IDs), und es landet nie in `lastPushedRecipes` — woraus `syncRecipes()` seine
+`delIds` **allein** bildet. Es bleibt also unberührt in der Cloud liegen, statt in eine
+Schreib-Lösch-Schleife zu geraten. Begründung und Bedrohungsmodell: `docs/SECURITY.md`,
+Prüfstand: `tools/pruefstand-rezept-id-format.py`.
+
 ## Gruppenmodus
 
 Wenn `syncGid` gesetzt ist, stammen:

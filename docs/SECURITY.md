@@ -354,7 +354,7 @@ Der Secret-Scan in der eigenen CI ist damit eine **zweite** Schicht, nicht die e
 Dependabot ist deaktiviert — folgerichtig, weil es ohne `package.json` nichts zu prüfen
 gäbe. Diese Rolle hat der Agent `lieferkette`.
 
-## Rezept-IDs aus dem Gruppen-Sync (gefunden 05.09.2026)
+## Rezept-IDs aus dem Gruppen-Sync (gefunden 05.09.2026, Wurzel geschlossen 06.09.2026)
 
 **Die Dokument-ID eines Firestore-Rezepts landet ungeprüft in `r.id`.** `onRecipesRemote()`
 baut das Rezept als `sanitizeRecipe(Object.assign({}, c.data, { id: c.id }))` — und
@@ -378,11 +378,47 @@ in der ID einen Selektor-Syntaxfehler ergeben, `querySelectorAll` geworfen und d
 laufen jetzt über `CSS.escape(id)`. Kein Sicherheitsloch, aber derselbe blinde Fleck: eine ID,
 der man ansieht, dass sie „harmlos“ ist.
 
-**Noch offen, an der Wurzel:** `sanitizeRecipe()` sollte die `id` auf das Format zwängen, das
-`uid()` erzeugt, und `firestore.rules` sollte `recipeId` einschränken. Beides ist die eigentliche
-Verteidigungslinie — ohne sie wiederholt die nächste `data-id`-Stelle denselben Fehler. Bewusst
-**nicht** im selben Zug erledigt: Eine Formatprüfung greift in den Sync-Abgleich ein (lokale ID
-gegen Dokument-ID) und gehört getestet, nicht kurz vor einen Push geschoben.
+**An der Wurzel geschlossen (06.09.2026).** `validRecipeId(id)` steht als Gegenstück direkt
+neben `uid()` und prüft die Form `^r[a-z0-9]{3,14}$`. Angewandt wird sie an den **zwei**
+Stellen, an denen eine fremdbestimmte ID überhaupt hereinkommt — beide in der Gruppe:
+`onRecipesRemote()` (Live-Listener) und der Erstabgleich in `enterGroupSync()`. In den
+Regeln steht sie als `recipeId.matches('^r[a-z0-9]{3,14}$')` bei `create`/`update` unter
+`match /groups/{gid}/recipes/{recipeId}`.
+
+Drei Entscheidungen, die dabei anders ausfielen als ursprünglich notiert:
+
+* **Nicht in `sanitizeRecipe()`.** Die läuft auch auf den Katalog (`kopieEntsprichtKatalog()`
+  übergibt Slugs wie `ruehrei-avocadobrot`) und auf den eigenen Altbestand aus dem
+  localStorage. Ein Fehlurteil wäre dort Datenverlust an **eigenen** Daten — in der Gruppe
+  ist es nur ein fremdes Meal weniger. Der Teilen-Import brauchte ohnehin nie eine Prüfung:
+  `applySharedData()` vergibt eine frische `uid()` und biegt die Planverweise über `idMap` mit.
+* **Nicht im persönlichen Konto** (`mergeRemoteRecipes()`, `!inGroup`-Zweig): dort schreibt
+  nur das eigene Gerät, es gibt keine fremde Quelle — aber sehr wohl alte eigene IDs.
+* **Längenspanne statt exakt `{10}`.** `uid()` liefert praktisch immer `"r"` + 10 Zeichen, der
+  Zufallsteil kann aber kürzer ausfallen: `(0.5).toString(36)` ist `"0.i"`, `.slice(2, 9)`
+  liefert dann ein Zeichen statt sieben. Wahrscheinlichkeit 2⁻³⁹ — der Schutz hängt ohnehin
+  an der Zeichenmenge, nicht an der Länge, und ein Fehlalarm ließe ein echtes Meal für die
+  ganze Gruppe unauffindbar verschwinden.
+
+**Die Prüfung steht im `else`-Zweig, nicht vor der Verzweigung nach `c.type`** — ein Fund
+des Agenten `website-security` beim Push-Check. Vor der Verzweigung träfe sie auch den
+`"removed"`-Zweig: Läge aus der Zeit vor dieser Härtung noch ein Meal mit abweichender ID
+im lokalen Bestand, wäre sein Löschen durch ein anderes Mitglied lautlos wirkungslos und
+die Karteileiche bliebe für immer stehen. Aufräumen ist immer erwünscht, und der Zweig
+wirkt ohnehin nur auf IDs, die lokal schon vorhanden sind. Der Prüfstand belegt das mit
+einer **zweiten** Gegenprobe, die genau diese naheliegende Fehlplatzierung herstellt.
+
+**Was mit einem abgelehnten Meal geschieht** — die Frage, wegen der das eine eigene Sitzung
+bekam: Es kommt gar nicht erst in `state.recipes`, sein Planverweis fällt über
+`normalizePlan()` gleich mit weg (das filtert Slots gegen die bekannten IDs), und der
+Sync bleibt ruhig — die ID landet nie in `lastPushedRecipes`, und `syncRecipes()` bildet
+seine `delIds` **nur** aus dieser Baseline. Das fremde Dokument bleibt also in der Cloud
+liegen, statt in eine Schreib-Lösch-Schleife zu geraten. Belegt mit Gegenprobe:
+`tools/pruefstand-rezept-id-format.py`.
+
+⚠️ **Die Regel ist im Repo nur eine Vorlage.** Verbindlich ist der in der Firebase-Konsole
+veröffentlichte Stand; von hier aus ist er nicht abrufbar. Solange sie dort nicht
+veröffentlicht ist, wirkt allein die Client-Prüfung — und die ist keine Sicherheitsgrenze.
 
 **Die Lehre:** Nicht nur der sichtbare Text einer fremden Quelle braucht `esc()`, sondern
 **jeder Wert, der in ein Attribut geht** — auch eine ID, die „doch nur“ aus einem Schlüssel

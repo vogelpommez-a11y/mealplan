@@ -342,9 +342,26 @@ service cloud.firestore {
     }
 
     // ---- Gemeinsame Meals: gleiche Struktur wie users/{uid}/recipes ----
+    //
+    // Der EINE Unterschied zu users/: Hier ist die Dokument-ID zugleich die Meal-id im
+    // Datenmodell, und sie wird von einem ANDEREN Mitglied gewählt. Sie muss deshalb die
+    // Form tragen, die uid() in index.html vergibt ("r" + 10 Zeichen aus [a-z0-9]) -
+    // sonst schreibt ein Mitglied seinen Mitplanern eine frei erfundene Zeichenkette in
+    // den Bestand, die dort in Selektoren und Ausgabestellen weiterläuft.
+    //
+    // Der Client lehnt so ein Dokument seit dem 06.09.2026 ohnehin ab (validRecipeId),
+    // aber der Client ist keine Sicherheitsgrenze - die Regeln sind es (CLAUDE.md 12).
+    // Die Längenspanne ist bewusst weiter als {10}: Begründung bei validRecipeId().
+    //
+    // Gilt NICHT für users/{uid}/recipes: dort schreibt nur der Eigentümer selbst, und
+    // eine ältere eigene id, die durchfällt, wäre ein Meal, das sich nicht mehr
+    // aktualisieren lässt.
     match /groups/{gid}/recipes/{recipeId} {
       allow get, list: if isMember(gid);
-      allow create, update: if canWrite(gid) && groupOwnerHasPro(gid);
+      allow create, update: if canWrite(gid) && groupOwnerHasPro(gid)
+                            && recipeId.matches('^r[a-z0-9]{3,14}$');
+      // Löschen bewusst OHNE Formatprüfung: Läge aus der Zeit vor dieser Regel noch ein
+      // Dokument mit abweichender ID in einer Gruppe, muss es entfernt werden können.
       allow delete: if canWrite(gid);
     }
 

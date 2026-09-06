@@ -4041,3 +4041,64 @@ es, sonst läge ein Screenreader 700 ms lang daneben.
 
 **Eine animierte Anzeige ist kein Messpunkt.** Wo eine Animation den sichtbaren Wert langsam
 nachzieht, gehört die Messung an die Stelle, die den Zustand sofort trägt.
+
+---
+
+## `tools/pruefstand-rezept-id-format.py` — die Härtung darf nicht mehr kaputtmachen als sie schützt (06.09.2026)
+
+Der Prüfstand zur Wurzel-Härtung der Rezept-IDs (`docs/SECURITY.md`, Abschnitt „Rezept-IDs
+aus dem Gruppen-Sync"). Interessant ist an ihm nicht die Abwehr, sondern das Verhältnis
+seiner Messgrößen: **eine misst den Schutz, vier messen den Schaden, den der Schutz selbst
+anrichten könnte.**
+
+| # | Messgröße | Was sie verhindert |
+|---|---|---|
+| 1 | `abwehr` | Kunst-ID kommt in der Gruppe nicht in `state.recipes` |
+| 2 | `durchlass` | Overblocking: eine echte `uid()` kommt weiterhin an |
+| 3 | `eigeneAltdaten` | Ohne Gruppe kommt auch eine abweichende ID an — dort schreibt nur das eigene Gerät |
+| 4 | `nichtInBaseline`, `nichtGeloescht`, `nichtGeschrieben` | Das abgelehnte Dokument gerät in keine Schreib-Lösch-Schleife |
+| 5 | `planSauber` | Der Planverweis auf die abgelehnte ID fällt über `normalizePlan()` mit weg |
+| 6 | `leicheLoeschbar` | Ein Alt-Meal mit abweichender ID lässt sich weiterhin löschen |
+
+Die Frage, die die Aufgabe überhaupt zu einer eigenen Sitzung machte, war ja nicht „hält der
+Filter", sondern „was passiert mit einem Meal, dessen ID verworfen wird — verschwindet es,
+wird es dupliziert, was sieht das andere Gruppenmitglied?". Ein Prüfstand, der nur Messgröße 1
+kennt, hätte diese Frage nicht einmal gestellt.
+
+### Gegenprobe
+
+Der Prüfstand entfernt die eine neue Zeile (`if (syncGid && !validRecipeId(c.id)) return;`)
+per Regex aus dem geschnittenen Code und misst noch einmal — `re.subn` muss dabei **genau
+einen** Treffer melden, sonst bricht er ab, statt eine Gegenprobe vorzutäuschen, die nichts
+entfernt hat. Der alte Stand fällt an drei Stellen durch (`abwehr`, `nichtInBaseline`,
+`planSauber`).
+
+**Und eine zweite Gegenprobe, die den eigentlichen Entwurfsfehler abfängt.** Messgröße 6
+kam durch einen Fund des Agenten `website-security` dazu: Die Guard-Zeile stand zunächst
+**vor** der Verzweigung nach `c.type` und traf damit auch den `"removed"`-Zweig — eine
+Karteileiche aus der Zeit vor der Härtung wäre unlöschbar geworden. Der Prüfstand stellt
+diese Fehlplatzierung jetzt selbst her (Zeile entfernen, hinter `if (c.pending) return;`
+wieder einsetzen) und verlangt, dass `leicheLoeschbar` dann **rot** wird. Alle anderen
+Messgrößen bleiben dabei grün — genau deshalb wäre der Fehler ohne diese zweite Probe
+unsichtbar geblieben: **Die Abwehr sieht in beiden Fassungen identisch aus.**
+
+### Zwei Fallen beim Bauen, beide aus derselben Wurzel: stiller Ausfall
+
+* **Ein Endmarker, der zu früh trifft.** Der übliche Helfer `schneide(zeilen, start, "  }")`
+  schneidet bis zur nächsten Zeile, die `"  }"` *enthält*. In `normalizePlan()` ist das
+  `    }));` — mitten in der Funktion. Der geschnittene Code war syntaktisch kaputt.
+  Ersetzt durch `block()`: Ende ist die Zeile, die **genau** aus der Einrückung der
+  Startzeile plus `}` besteht.
+* **Ein Syntaxfehler im geschnittenen Code meldet sich nicht.** Der `<script>`-Block wird
+  dann still gar nicht ausgeführt, die Seite bleibt auf ihrem Platzhalter stehen und der
+  Prüfstand sagt nur „lief nicht" — ohne Grund. Deshalb steht der `window.onerror`-Melder
+  jetzt in einem **eigenen, vorangehenden** Block, und das Umfeld in einem zweiten: Nur so
+  überlebt der Melder den Fehler, den er melden soll, und nur so ist die Fehlermeldung die
+  echte statt eines Folgefehlers („state is not defined").
+
+### Und der Läufer hat funktioniert
+
+`tools/alle-pruefstaende.py` meldete den frischen Prüfstand beim ersten Reihenlauf als
+**AUFFAELLIG — „Rückgabewert 0, aber keine Ergebniszeile"**. Genau dafür ist die weiße Liste
+`BELEG_MUSTER` da (§131): Ein neuer Prüfstand, der nichts belegt, soll auffallen, statt
+durchzurutschen. Die Schlusszeile heißt jetzt `ERGEBNIS n gruen, 0 rot`.
