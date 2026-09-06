@@ -81,7 +81,7 @@ selbst tragen — geprüft und bestätigt am 26.08.2026.
 
 ## 4. Was die Firestore-Regeln tatsächlich durchsetzen
 
-Stand der Vorlage: 15.08.2026. **Wirksam ist allein der in der Firebase-Konsole
+Stand der Vorlage: 06.09.2026. **Wirksam ist allein der in der Firebase-Konsole
 veröffentlichte Stand** (siehe Abschnitt 7).
 
 ### Der wichtigste Unterschied im ganzen Regelwerk: `get` ist nicht `read`
@@ -186,6 +186,16 @@ ohne die Entscheidung zu kennen:
 Jede rein lokale Prüfung endet hier. **Mit Browser-Zugang zur Konsole ist einiges davon
 sehr wohl prüfbar** — der Abschnitt sagt deshalb beides: was lokal nicht geht, und was
 zuletzt tatsächlich nachgesehen wurde.
+
+### Am 06.09.2026 in der Konsole gegengeprüft
+
+| Punkt | Ergebnis |
+|---|---|
+| **Veröffentlichter Regelstand** | Die Fassung mit `recipeId.matches(...)` ist veröffentlicht und wirksam. Der Stand **davor** war mit `firestore.rules` im Repo **zeichengenau identisch** — 415 Zeilen, gleiche SHA-256 über den normalisierten Text. Repo und Konsole sind also nie auseinandergelaufen. Einzige verbliebene Abweichung: der **Kommentarblock** am Kopf, der in der Konsole noch die alte Fassung trägt. |
+| **Gruppen-Rezept-IDs im Bestand** | Zwei Gruppen stichprobenartig durchgesehen, alle IDs im Muster `r` + 10 Zeichen. Keine vollständige Sichtung. |
+
+Das ist ein **punktueller** Beleg, keine Aufhebung der Regel oben: Zwischen zwei solchen
+Nachschauen bleibt der Live-Stand unbelegt.
 
 ### Am 26.08.2026 in der Konsole gegengeprüft
 
@@ -420,8 +430,11 @@ liegen, statt in eine Schreib-Lösch-Schleife zu geraten. Belegt mit Gegenprobe:
 (`recipeId.matches(...)` steht im Editor der Konsole, Zeile 362).
 
 Beim Veröffentlichen fiel ein Befund ab, den dieses Dokument bisher als *nicht prüfbar*
-führte: **Der zuvor veröffentlichte Stand vom 15.08.2026 war mit `firestore.rules` im Repo
-zeichengenau identisch** — 415 Zeilen, gleiche SHA-256 über den normalisierten Text.
+führte: **Der zuvor veröffentlichte Stand war mit `firestore.rules` im Repo zeichengenau
+identisch** — 415 Zeilen, gleiche SHA-256 über den normalisierten Text. (Dessen Kopf
+datiert sich selbst auf den 15.08.2026; veröffentlicht wurde er am 17.08.2026 um 20:46,
+siehe die Tabelle in Abschnitt 7. Beides steht nicht im Widerspruch — die Datierung im
+Text ist nicht der Zeitpunkt der Veröffentlichung.)
 Repo und Konsole sind also nie auseinandergelaufen. Das ersetzt die Regel aus Abschnitt 7
 nicht (der Live-Stand bleibt von außen unbelegbar), aber für diesen Zeitpunkt ist es belegt.
 
@@ -429,8 +442,9 @@ Vor dem Veröffentlichen wurden zwei Gruppen stichprobenartig durchgesehen: alle
 im Muster. Ein Bestandsdokument mit abweichender ID wäre ohnehin kein Schaden — es ließe
 sich nur nicht mehr ändern, wohl aber löschen.
 
-⚠️ Eine Abweichung bleibt bewusst stehen: Die vier **Kommentarzeilen** am Kopf der Regeln
-tragen in der Konsole noch ihre alte Fassung. Der Regeltext selbst ist identisch.
+⚠️ Eine Abweichung bleibt bewusst stehen: Der **Kommentarblock** am Kopf der Regeln steht
+in der Konsole noch in seiner alten Fassung. Der Regeltext selbst ist identisch — der
+Unterschied ändert nichts an dem, was durchgesetzt wird.
 
 **Die Lehre:** Nicht nur der sichtbare Text einer fremden Quelle braucht `esc()`, sondern
 **jeder Wert, der in ein Attribut geht** — auch eine ID, die „doch nur“ aus einem Schlüssel

@@ -9,12 +9,13 @@ rules_version = '2';
 // Stand: 2026-09-06 — DIESE FASSUNG IST SEIT DEM 06.09.2026 VEROEFFENTLICHT UND WIRKSAM.
 //
 // Im Regel-Editor gegengeprueft, diesmal nicht per Augenschein: Der zuvor veroeffentlichte
-// Stand vom 15.08.2026 war mit dieser Datei ZEICHENGENAU identisch - 415 Zeilen, gleiche
-// SHA-256 ueber den normalisierten Text. Repo und Konsole waren also nie auseinander.
+// Stand war mit dieser Datei ZEICHENGENAU identisch - 415 Zeilen, gleiche SHA-256 ueber den
+// normalisierten Text. Repo und Konsole waren also nie auseinander. (Jener Kopf datierte
+// sich selbst auf den 15.08.2026, veroeffentlicht wurde er am 17.08.2026 um 20:46.)
 // Neu ist allein die Formatpruefung der recipeId weiter unten.
 //
-// EINE bekannte Abweichung, bewusst stehen gelassen: Diese vier Kommentarzeilen selbst
-// stehen in der Konsole noch in ihrer alten Fassung ("Stand: 2026-08-15"). Der REGELTEXT
+// EINE bekannte Abweichung, bewusst stehen gelassen: Dieser Kommentarblock selbst
+// steht in der Konsole noch in seiner alten, kuerzeren Fassung ("Stand: 2026-08-15"). Der REGELTEXT
 // ist identisch - der Unterschied ist reiner Kommentar und aendert nichts an dem, was
 // durchgesetzt wird. Beim naechsten Veroeffentlichen mit nachziehen.
 //
