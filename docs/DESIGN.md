@@ -638,9 +638,36 @@ dem Gitter, das sie zusammenfasst — auf Home wäre sie eine Kopie.
 
 ### Trainingstag an der Karte
 
-Drei Kennzeichen, alle aus dem Bestand: das Badge `.wg-train` in der Kopfzeile (mit
-`aria-label`, denn `title` liest der Screenreader nicht), der blaue Faden an der Kartenkante
-wie bei `.wg-col-training` im Wochenplan, und der Zuschlag in der Kennzahlenliste.
+**Drei Kennzeichen, nicht mehr vier (06.09.2026).** Geblieben sind: der blaue Faden an der
+Kartenkante (`.hm-card.is-train`, wie `.wg-col-training` im Wochenplan), die Wochentage im
+Kartenfuß (`.hm-day.is-train`) und der Zuschlag in der Kennzahlenliste.
+
+**Das Badge `.wg-train` in der Kopfzeile ist entfallen** — mit seinem einzigen Aufrufer und
+seinen CSS-Regeln. Es war der einzige der vier Kanäle, der **nichts Eigenes** beitrug: Die
+Kennzahl sagt dasselbe und nennt zusätzlich den Wert. Dazu saß es am Ende einer reinen
+Zeitangabe („Deine Ziele für Heute · Sonntag") und hatte dort keinen inhaltlichen Nachbarn —
+ein blaues Wort allein am Zeilenende, während die Zahl, um die es geht, 170 px weiter unten
+stand. Ursache und Wirkung waren getrennt.
+
+**Die Kennzahl trägt die Aussage jetzt selbst:** An Trainingstagen färbt sich ihr Label
+(`.wg-stat.train.is-on`) und die Zahl bekommt ein Vorzeichen — `+440` statt `440`. Das Plus
+ist dabei kein Schmuck, sondern der zweite Kanal neben der Farbe (WCAG 1.4.1) **und** die
+Antwort auf eine Frage, die vorher nirgends beantwortet war: was der Wert überhaupt tut. Er
+erhöht das Budget; die Rechnung lautet Grundbedarf + Training − Ernährung = Ring.
+
+An Ruhetagen bleibt die Zeile grau bei `0`. **Eine Null, die sich blau färbt, wäre eine
+Auszeichnung für nichts.**
+
+**Die Trainingsstufe lebt im `aria-label` weiter.** Das Badge trug sie im `title`
+(„Trainingstag: moderat"); sichtbar steht jetzt nur die Zahl. Sie ersatzlos fallen zu lassen
+hätte Screenreader-Nutzern etwas genommen, das Sehende dem gefärbten Label entnehmen — also
+wandert sie als siebter Parameter von `goalRingHtml()` ins Label: „Trainingstag (moderat),
+Zuschlag 440 kcal", an Ruhetagen „Kein Training heute". Dass die Variable `trLbl` nach dem
+Entfernen des Badges verwaist dastand, war der Hinweis darauf — gefunden im `/pushcheck`.
+
+Gemessen nach der Änderung: Auf **320 px Breite** steht `+440` vollständig und ohne Umbruch;
+der Tint am Icon (`--train` zu 22 % in `--surface-2`) trägt in Light **und** Dark. 16 % waren
+zu defensiv, um die Zeile auf hellem Grund erkennbar zu machen.
 
 ### Die Knopfzeile steht links
 

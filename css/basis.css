@@ -449,8 +449,9 @@
   /* 13px. Kein stroke-width hier: das Icon bringt seine Staerken selbst mit, und eine
      CSS-Regel wuerde das Praesentationsattribut im SVG ueberschreiben. */
   .day-head .dtrain svg { width: 13px; height: 13px; flex: none; }
-  .wg-train { display: inline-flex; align-items: center; gap: 4px; color: var(--train-strong); }
-  .wg-train svg { width: 13px; height: 13px; flex: none; }
+  /* .wg-train (der Trainings-Badge in der Kopfzeile) ist am 06.09.2026 entfallen - mit
+     seinem einzigen Aufrufer. Die Aussage traegt jetzt die Kennzahl selbst, siehe
+     .wg-stat.train.is-on weiter unten. */
   .slots { display: flex; flex-direction: column; gap: 2px; padding: 8px; flex: 1; }
 
   /* Tages-Nährwerte (Fuß der Tageskarte) */
@@ -761,6 +762,12 @@
   .wg-stat.base .wg-stat-ic { color: var(--text-muted); }
   .wg-stat.food .wg-stat-ic { color: var(--accent); }
   .wg-stat.train .wg-stat-ic { color: var(--train); }
+  /* Trainingstag: Das Label faerbt sich, der Grund dafuer steht als Zahl direkt darunter.
+     Die Farbe ist NICHT der einzige Kanal - das "+" vor der Zahl sagt dasselbe und bleibt
+     auch bei einer Rot-Gruen-Schwaeche lesbar (WCAG 1.4.1). An Ruhetagen bleibt die Zeile
+     grau bei 0: eine Null, die sich blau faerbt, waere eine Auszeichnung fuer nichts. */
+  .wg-stat.train.is-on .wg-stat-ic { background: color-mix(in srgb, var(--train) 22%, var(--surface-2)); }
+  .wg-stat.train.is-on .wg-stat-txt small { color: var(--train-strong); }
   .wg-stat-txt { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
   .wg-stat-txt small { font-size: 11px; color: var(--text-muted); font-weight: 600; }
   .wg-stat-txt b { font-family: var(--font-display); font-size: 15px; font-weight: 700; color: var(--text); font-variant-numeric: tabular-nums; }

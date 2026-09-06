@@ -4443,7 +4443,11 @@
   // gefuehrt, dass "Tagesziel: 2.200" gelesen wird, obwohl das tatsaechliche Budget an dem
   // Tag 2.200 + Trainingszuschlag ist - "Grundbedarf" macht das "ohne Training" explizit.
   const RING_C = 201; // Umfang bei r=32 (2 × π × 32)
-  function goalRingHtml(ist, grundziel, trainingAdd, headHtml, rightColHtml, grundzielLbl) {
+  // `trainLbl` ist der Name der Trainingsstufe ("moderat"), nur fuer Screenreader. Er kam
+  // bis zum 06.09.2026 aus dem Badge in der Kopfzeile; als der wegfiel, waere die Stufe
+  // sonst ersatzlos verschwunden - sichtbar steht dort nur noch die Zahl. Leerer String
+  // heisst "keine Stufe nennen" (Wochenansicht, Ruhetag).
+  function goalRingHtml(ist, grundziel, trainingAdd, headHtml, rightColHtml, grundzielLbl, trainLbl) {
     const ziel = grundziel + trainingAdd;
     const rest = Math.round(ziel - ist);
     const st = goalState(ist, ziel);
@@ -4468,7 +4472,7 @@
               <div class="wg-stats">
                 <div class="wg-stat base" role="group" aria-label="${grundzielLbl}: ${nfmt(grundziel)} kcal"><span class="wg-stat-ic">${ICON_FLAG}</span><span class="wg-stat-txt"><small>${grundzielLbl}</small><b>${nfmt(grundziel)}</b></span></div>
                 <div class="wg-stat food" role="group" aria-label="Ernährung: ${nfmt(ist)} kcal"><span class="wg-stat-ic">${iconSvg("utensils", "")}</span><span class="wg-stat-txt"><small>Ernährung</small><b>${nfmt(ist)}</b></span></div>
-                <div class="wg-stat train" role="group" aria-label="Training: ${nfmt(trainingAdd)} kcal"><span class="wg-stat-ic">${ICON_DUMBBELL}</span><span class="wg-stat-txt"><small>Training</small><b>${nfmt(trainingAdd)}</b></span></div>
+                <div class="wg-stat train${trainingAdd > 0 ? " is-on" : ""}" role="group" aria-label="${trainingAdd > 0 ? `Trainingstag${trainLbl ? ` (${trainLbl})` : ""}, Zuschlag ${nfmt(trainingAdd)} kcal` : "Kein Training heute"}"><span class="wg-stat-ic">${ICON_DUMBBELL}</span><span class="wg-stat-txt"><small>Training</small><b>${trainingAdd > 0 ? "+" : ""}${nfmt(trainingAdd)}</b></span></div>
               </div>
             </div>
           </div>
@@ -4512,9 +4516,13 @@
     const dayEmpty = !hasNut(s);
     const dayTrainAdd = isTrainingDay(d.key) ? dayTrainKcal(d.key) : 0;
     const trLbl = esc(trainLevel((goalTraining()[d.key] || {}).level).label);
-    const dayTrain = isTrainingDay(d.key)
-      ? `<span class="wg-train" title="Trainingstag: ${trLbl}" aria-label="Trainingstag: ${trLbl}">${ICON_DUMBBELL}Training</span>` : "";
-    const dayHeadHtml = `Deine Ziele für Heute · ${esc(d.label)}${dayTrain}`;
+    // Der Trainings-Badge stand bis zum 06.09.2026 hier, am Ende der Kopfzeile. Er ist in
+    // die Kennzahl gewandert (siehe goalRingHtml): Training war auf diesem Reiter VIERMAL
+    // dargestellt - Kartenrahmen, Badge, Kennzahl und die Wochentage im Fuss. Der Badge war
+    // der einzige der vier, der nichts Eigenes beitrug; die Kennzahl sagt dasselbe und
+    // nennt zusaetzlich den Wert. Dazu stand er am Ende einer reinen Zeitangabe
+    // ("Deine Ziele fuer Heute · Sonntag") und hatte dort keinen inhaltlichen Nachbarn.
+    const dayHeadHtml = `Deine Ziele für Heute · ${esc(d.label)}`;
     // Grundziel/Training aufgeteilt statt fertig addiert (siehe goalRingHtml).
     const rest1 = goalTargets(1);
     // Rechte Spalte: die Makros. Im Leerzustand stehen alle Balken auf 0/Ziel und sagen
@@ -4535,7 +4543,7 @@
       + `<button type="button" class="btn ghost sm wg-recalc" data-action="recalc-goal" title="Ziele neu berechnen" aria-label="Ziele neu berechnen">${TOOL_ICONS.recalc}<span>Neu berechnen</span></button>`;
     return `<div class="hm-card${isTrainingDay(d.key) ? " is-train" : ""}">
         ${nextMealHtml(curPlan, d)}
-        <div class="hm-body">${goalRingHtml(s.kcal, rest1.kcal, dayTrainAdd, dayHeadHtml, dayRight, "Grundbedarf")}</div>
+        <div class="hm-body">${goalRingHtml(s.kcal, rest1.kcal, dayTrainAdd, dayHeadHtml, dayRight, "Grundbedarf", dayTrainAdd > 0 ? trLbl : "")}</div>
         ${weekFootHtml(w, t)}
       </div>
       <div class="wg-actions">${recalcLink}</div>`;
