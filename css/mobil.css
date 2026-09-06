@@ -614,10 +614,43 @@
     .week-nut .wg-macros { gap: 6px; }
     .week-nut .wg-macros .gm-bar { height: 6px; }
     .week-nut .wg-actions { margin-top: 6px; }
-    .hm-cover img { height: 78px; }
-    .hm-veil { padding: 22px 12px 7px; }
+    .hm-veil { padding: 16px 12px 6px; }
     .hm-body { padding: 8px 11px; }
     .hm-foot { padding: 4px 11px; }
+
+    /* ---- Flache Geraete, zweite Runde (06.09.2026) ----
+       Seit der Startreiter den Bildschirm FUELLT statt ihn nur nicht zu ueberschreiten,
+       zaehlt hier jeder Pixel doppelt: Was der Inhalt zu viel verlangt, quillt nicht mehr
+       in eine Scrollflaeche, sondern hinter die fixierte Tabbar - und ist damit weg.
+       Gemessen auf 390x556 (iPhone 13 MIT Adressleiste, der Normalfall beim Aufruf):
+       47px zu viel. Sie kommen hier zusammen, ohne dass eine Aussage verschwindet -
+       jede Zahl, jeder Balken und beide Knoepfe stehen unveraendert da.
+
+       Die 44px der Knopfzeile sind nicht dabei und werden es nie: Tippziele sind keine
+       Reserve, aus der man sich bedient. */
+    .week-nut .hm-cover { flex: 1 1 72px; min-height: 66px; }
+    .week-nut .hm-body { padding-block: 6px; }
+    .week-nut .hm-foot { padding-block: 4px; }
+    /* "Deine Ziele fuer heute · Samstag" faellt hier weg - als einzige Aussage im
+       ganzen Sparpaket. Sie ist an dieser Stelle die entbehrlichste: Dass es um heute
+       geht, sagt der Reiter selbst, und WELCHER Tag heute ist, steht 5 Zeilen tiefer
+       im Kartenfuss - dort ist SA hell umrandet. Die Zeile wiederholt also, was das
+       Gitter darunter ohnehin zeigt.
+       Nur unter 620px Hoehe. Ueberall sonst steht sie unveraendert da. */
+    .week-nut .wg-lbl { display: none; }
+    .week-nut .wg-h { font-size: 15px; margin-bottom: 3px; }
+    .week-nut .wg-row { gap: 10px; }
+    .week-nut .wg-stats { gap: 5px; }
+    .week-nut .wg-macros { gap: 4px; }
+    .week-nut .wg-col-macros { margin-top: 4px; padding-top: 4px; }
+    .week-nut .wg-actions { margin-top: 4px; }
+    main:has(.week-nut) { padding-top: 6px; padding-bottom: 6px; }
+    /* 12px, nicht 6. Die Kapsel schwebt gemessen 10px ueber dem unteren Rand - ein
+       Freiraum von nur 6px laesst die Knopfzeile also zwangslaeufig 4px darunter
+       verschwinden, und zwar auch dann noch, wenn man bis ans Ende gescrollt hat.
+       Genau so gemessen auf 390x450 und 320x420. Der Abstand der Kapsel vom Rand ist
+       die Untergrenze, nicht der Startwert zum Sparen. */
+    .app:has(.week-nut .hm-card) { padding-bottom: calc(var(--tabbar-h, 58px) + 12px + env(safe-area-inset-bottom, 0px)); }
   }
 
   /* ---------- Sehr schmale Geraete: der vierte Knopf passt nicht mehr ----------

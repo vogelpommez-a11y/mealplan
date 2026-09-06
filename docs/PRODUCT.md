@@ -968,7 +968,8 @@ und Gewichtskarte sind unverändert umgezogen — der Ort hat sich geändert, ni
 
 **Der Hero ist am 05.09.2026 ganz entfallen.** Damit trug Home nur noch die Zielkarten — und
 passte auf einen Bildschirm, ohne zu scrollen (`docs/DESIGN.md`). Am selben Tag wurden aus den
-zwei Karten eine, siehe unten. Die Begrüßung „Dein Plan. Dein
+zwei Karten eine, siehe unten. **Seit dem 06.09.2026 füllt er den Bildschirm auch aus** — die
+feste Höhe ließ am Rechner bis zu 351 px Leere stehen und reichte auf dem Handy nicht. Die Begrüßung „Dein Plan. Dein
 Fortschritt." war eine Ansage an den ersten Besuch, die jeder weitere Besuch mitbezahlen musste:
 150 px über der Falz, jedes Mal derselbe Satz. Ein Startreiter, der bei jedem Aufruf zuerst
 erklärt, wofür die App gut ist, sagt nichts über die Woche, die man gerade plant.

@@ -2319,10 +2319,11 @@ eigener Einheit, eines mit vollen Nährwerten und eines ganz ohne. Der erste Ent
 Fehler frei: `macroOverridden` (siehe `docs/TROUBLESHOOTING.md` 110). Der Hinweis kam vom
 `kvp`-Agenten — **ein leerer Sonderfall ist kein Testfall.**
 
-### `tools/pruefstand-home-eine-seite.py` — passt Home auf einen Bildschirm?
+### `tools/pruefstand-home-eine-seite.py` — füllt Home den Bildschirm?
 
-Seit dem 05.09.2026 ist „der Startreiter scrollt nicht“ eine **Zusage** (`docs/DESIGN.md`) —
-und Zusagen, die niemand misst, halten genau bis zur nächsten Zeile Text. Am 27-Zoll-Monitor
+Seit dem 05.09.2026 ist „der Startreiter scrollt nicht“ eine **Zusage** (`docs/DESIGN.md`),
+seit dem 06.09.2026 lautet sie „er füllt den Bildschirm“ — und Zusagen, die niemand misst,
+halten genau bis zur nächsten Zeile Text. Am 27-Zoll-Monitor
 ist immer Platz; das Problem fällt beim Bauen nicht auf.
 
 **Der Kniff: `<iframe>` statt `--window-size`.** Die Media Queries eines Rahmens richten sich
@@ -2331,11 +2332,45 @@ einem Desktop-Browser wirklich herstellen. Der Umweg über `--window-size` taugt
 Headless liefert eine andere CSS-Breite als angefordert (gemessen: 390 angefordert, 489
 bekommen). Wer das übersieht, misst am Handy vorbei und hält es für grün.
 
-Geprüft werden sechs Geräte — iPhone SE, iPhone 13/14/15, Pixel 7, iPhone 14 Pro Max, iPad
-hochkant, Notebook 1440×900 — mit dem **CSS-Viewport ohne Browserleisten**, nicht mit der
-Bildschirmdiagonale. Je Gerät fünf Fragen: passt es ohne Scrollen, scrollt nichts quer, ist
-`#view` gefüllt, stehen Ring, **drei** Makrobalken und die Wochenangabe da, und ist kein
-Tippziel zu klein.
+Geprüft werden **zehn** Geräte vom iPhone SE bis 1920×1080. Je Gerät acht Fragen: passt es
+ohne Scrollen, scrollt nichts quer, ist `#view` gefüllt, stehen Ring, **drei** Makrobalken und
+die Wochenangabe da, ist kein Tippziel zu klein, liegt die Knopfzeile frei vor der Kapsel,
+trägt `<main>` den Notausgang, und bleibt unter der Knopfzeile weniger als 60 px Leere.
+
+**Dazu eine zweite Liste, `NOTFALL`** — fünf Viewports, bei denen es ausdrücklich *nicht*
+passen muss: zwei im Querformat (ein gedrehtes Handy hat rund 390 px Höhe, das ist kein
+Kunstfall) und drei sehr flache. Dort wird die andere Hälfte der Zusage geprüft: bis ans Ende
+scrollen, dann nachsehen, ob die Knopfzeile vollständig im Bild liegt **und** frei vor der
+Kapsel.
+
+Der Unterschied ist nicht akademisch. Vorher stand dort nur „`<main>` hat `overflow-y: auto`" —
+eine Aussage über CSS, nicht über Erreichbarkeit. Bei zu kleinem Fenster lag die Knopfzeile
+trotz `auto` hinter der Tabbar, weil der freigehaltene Rand 4 px zu schmal war. **Wer eine
+Eigenschaft prüft statt der Wirkung, findet so etwas nie.**
+
+> ### Der Fehler, den dieser Prüfstand selbst gemacht hat (06.09.2026)
+>
+> Er stand zehn Tage lang auf grün, während der Reiter auf einem echten iPhone **scrollte**.
+> Der Grund: Er maß gegen die CSS-Höhe **ohne** Browserleisten (`lvh`, 664 px beim iPhone 14).
+> Die sieht man dort aber erst *nach* dem Scrollen — beim Aufruf sind es rund 556 px. Der
+> Prüfstand rechnete mit derselben falschen Zahl wie das CSS (`100vh`) und bestätigte damit
+> genau den Fehler, den er finden sollte.
+>
+> Deshalb steht **jedes Handy jetzt zweimal** in `GERAETE`: einmal `svh` (mit Adressleiste,
+> der Zustand beim Aufruf) und einmal `lvh` (nach dem Scrollen). Beide müssen passen.
+>
+> Die Lehre ist allgemeiner als dieser eine Prüfstand: **Ein Messwert, den der Prüfling und
+> der Prüfer aus derselben Quelle nehmen, prüft nichts.** Die Geräteliste kam aus derselben
+> Vorstellung von „Viewporthöhe“ wie das CSS. Wo das passiert, bestätigt die Messung die
+> Annahme, statt sie zu testen.
+>
+> Zwei weitere Lücken kamen bei derselben Gelegenheit heraus:
+>
+> * **„Passt auf den Bildschirm“ ist nicht „ist bedienbar“.** Die Tabbar klebt fix am unteren
+>   Rand. Inhalt, der in ihren Bereich quillt, steht im Dokument und ist trotzdem weg — so lag
+>   die komplette Knopfzeile unsichtbar darunter, während die Höhenmessung `+0` meldete.
+> * **„Scrollt nicht“ ist nicht „nutzt den Platz“.** Am Desktop standen 351 px Leere unter der
+>   Knopfzeile, und der Prüfstand fand das in Ordnung, weil nichts überstand. Ein halber Prüfer.
 
 Drei Entscheidungen darin sind Absicht:
 
@@ -2348,13 +2383,12 @@ Drei Entscheidungen darin sind Absicht:
   ihr Touch-Layout und `css/mobil.css` sagt dort `min-height: 44px` ausdrücklich zu; darüber
   gilt WCAG 2.2 (2.5.8) mit 24×24. Eine einzige Zahl für beides wäre am Rechner unsinnig
   streng oder auf dem Handy zu lasch.
-* **Das iPhone SE steht als `OFFEN` drin, nicht als grün.** Es scrollt dort (Stand 05.09.2026:
-  83 px, `SE_DECKEL = 90`); der Rückgabewert hängt nicht daran, wohl aber daran, dass es nicht
-  *schlechter* wird. Der Deckel wurde am 05.09.2026 von 60 auf 90 angehoben, weil der Reiter
-  einen **Bilddeckel** dazubekommen hat — ein Zugewinn, kein Nachlassen. Wer ihn weiter erhöht,
-  schreibt den Grund dazu; „sonst ist es rot“ ist keiner.
-  Deshalb steht der Prüfstand in `TEILWEISE` von `tools/alle-pruefstaende.py` — sein „grün“
-  heißt dort nur „keine Regression“.
+* **Der `SE_DECKEL` ist ersatzlos entfallen (06.09.2026).** Hier stand, dass das iPhone SE als
+  `OFFEN` geführt wird, weil es 83 px übersteht. Gemessen sind es jetzt **0 px**: Die Ausnahme
+  war nie eine Eigenschaft des Geräts, sondern die Folge einer festen Höhe. Sie stehen zu
+  lassen, wäre ab jetzt eine stille Erlaubnis für den Rückfall gewesen — deshalb steht der SE
+  auf `muss passen`, und der Prüfstand ist aus `TEILWEISE` in
+  `tools/alle-pruefstaende.py` heraus. Der Läufer meldet seitdem **0 offene Punkte**.
 
 **Zwei Fallen, in die der Prüfstand selbst gelaufen ist — beide hätten ihn stumm gemacht:**
 

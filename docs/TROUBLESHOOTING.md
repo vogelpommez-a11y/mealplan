@@ -5773,3 +5773,71 @@ zuvor. Der Fall trennt jetzt über die **Tagesmaske**: gleiche Zahlen, andere Ta
 **Die Lehre:** Wer ein Feld entfernt, muss auch prüfen, ob eine **Gegenprobe** davon lebte.
 Ein Prüfstand, der grün bleibt, während seine Gegenprobe schwächer wird, ist die leiseste
 Form von Verfall (vgl. Ziffer 144).
+
+## 152. `100vh` ist auf dem Handy nicht die Höhe, die man sieht
+
+**Symptom:** Der Startreiter scrollte auf einem echten iPhone, obwohl der Prüfstand grün war
+und am Rechner alles passte.
+
+**Ursache:** `100vh` meint auf iOS die Höhe **ohne** Browserleisten. Die sieht man erst *nach*
+dem Scrollen; beim Aufruf sind rund 100 px weniger da (iPhone 14: 556 statt 664). `.app` trug
+`min-height: 100vh` und rechnete damit mit einer Höhe, die es in dem Moment gar nicht gab.
+
+**Lösung:** `100dvh` — die *dynamische* Viewporthöhe, also die tatsächlich sichtbare. Die
+`vh`-Zeile bleibt als Rückfall davor stehen.
+
+**Warum es niemand merkte:** Der Prüfstand nahm dieselbe Zahl aus derselben Vorstellung. Ein
+Messwert, den Prüfling und Prüfer aus derselben Quelle nehmen, bestätigt die Annahme, statt
+sie zu testen. Jetzt steht jedes Handy dort zweimal, `svh` und `lvh`.
+
+## 153. `min-height: 0` macht `min-content` wertlos — und damit den Notausgang
+
+**Symptom:** Ein Notausgang, der nie ausgelöst hat. `.app` bekam `height: 100dvh` (damit die
+Flex-Kette überhaupt Schrumpfdruck erzeugt) und zusätzlich `min-height: min-content`, damit
+die Seite bei zu wenig Platz wieder wächst und scrollt. Mit 2000 px Testinhalt gemessen:
+`.app` blieb auf 664 px stehen, nichts scrollte, der Inhalt wäre unerreichbar gewesen.
+
+**Ursache:** Ein Flex-Kind mit `min-height: 0` trägt **null** zum `min-content` seines
+Elternteils bei. Genau diese Zeile braucht man aber an jedem Glied, damit die Kette schrumpfen
+darf. Die Zeile, die das Schrumpfen erlaubt, hebt den Notausgang also auf.
+
+**Lösung:** Der Notausgang gehört nicht ans Dokument, sondern an den Inhaltsbereich:
+`overflow-y: auto` auf `<main>`. Im Normalfall sieht man nie eine Leiste; passt es nicht,
+scrollt der Inhalt, während Kopfzeile und Kapsel stehen bleiben.
+
+**Nebenbei gelernt:** Ein leeres `<div style="height:2000px">` taugt nicht als Testinhalt in
+einer Flexbox — es ist selbst ein Flex-Item und wird schlicht gestaucht, ohne Overflow zu
+erzeugen. Der ehrliche Test ist ein **zu kleiner Viewport**, nicht künstlich viel Inhalt.
+
+## 154. `overflow: hidden` schneidet ab, wo man Scrollen erwartet
+
+**Symptom:** Auf 390×556 fehlten im Startreiter der Fett-Balken und der komplette Kartenfuß.
+Keine Fehlermeldung, keine Scrollleiste — die Zeilen waren einfach nicht da.
+
+**Ursache:** `.hm-card` trägt `overflow: hidden` (für die runden Ecken über dem Foto). Ihre
+Kinder `.hm-body` und `.hm-foot` waren normale Flex-Items, also schrumpfbar (`flex: 0 1 auto`).
+Unter Platzdruck wurden sie kleiner als ihr Inhalt, und `overflow: hidden` hat den Rest
+weggeschnitten, statt ihn scrollbar zu machen.
+
+**Lösung:** `flex: none` auf beide — nur der Bilddeckel gibt nach. Dazu `min-height: min-content`
+statt `min-height: 0` auf der Karte selbst: Sie darf schrumpfen, aber nie unter ihren Inhalt.
+
+**Die Regel dahinter:** In einer Flexbox mit `overflow: hidden` ist „zu wenig Platz" kein
+sichtbarer Fehler, sondern ein stiller Verlust. Was eine Aussage trägt, gehört dort auf
+`flex: none`.
+
+## 155. Der Abstand einer fixierten Leiste ist eine Untergrenze, kein Sparposten
+
+**Symptom:** Die Knopfzeile lag hinter der Tabbar — und blieb dort auch, nachdem der
+Inhaltsbereich bis ans Ende gescrollt war. Betroffen waren 390×450 und 320×420, jeweils exakt
+4 px.
+
+**Ursache:** `.app` hält unten Platz für die Kapsel frei, gerechnet als
+`--tabbar-h + Xpx`. Beim Sparen auf flachen Geräten war X auf 6 px gesetzt. Die Kapsel schwebt
+aber gemessen **10 px** über dem unteren Rand — die Differenz ist genau die Überlappung.
+
+**Lösung:** Auf flachen Geräten `--tabbar-h + 12px`. Wer hier spart, muss den tatsächlichen
+Abstand der Kapsel vom Rand kennen und darf ihn nicht unterschreiten.
+
+**Verwandt:** Punkt 58 (feste Höhe im Wochenplan) und die Abschnitte zum Startreiter in
+`docs/DESIGN.md`.

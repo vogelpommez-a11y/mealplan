@@ -501,6 +501,10 @@ Zeile darüber.
 
 ## Der Startreiter passt auf einen Bildschirm (seit 05.09.2026)
 
+> **Diese Zusage ist am 06.09.2026 verschärft worden: Der Reiter *füllt* den Bildschirm.**
+> Der Abschnitt hier beschreibt den Weg dorthin und gilt weiter; was sich geändert hat,
+> steht unten unter „Der Startreiter füllt den Bildschirm“.
+
 **Home scrollt nicht.** Bei einem 1440 × 900 großen Fenster steht alles zwischen Kopf- und
 Fußzeile: die Heute-Karte, die Wochenkarte und die Aktionszeile. Das ist eine Zusage an das
 Layout, keine Beobachtung — wer dem Reiter etwas hinzufügt, nimmt dafür an anderer Stelle
@@ -562,20 +566,23 @@ gut 110 weniger als ein iPhone 14 — und ein breites, aber flaches Fenster (Que
 geteilter Bildschirm) hat dasselbe Problem. Dort weicht zuerst der Slogan, wie schon im
 400-px-Block; die Marke selbst bleibt vollständig.
 
-### Die eine dokumentierte Ausnahme
+### Die eine dokumentierte Ausnahme — am 06.09.2026 entfallen
 
-**Auf einem iPhone SE (375×553) steht der Reiter rund 40 px über dem Bildschirm.** Was fehlt,
-ist ungefähr die Knopfzeile „Anpassen / Neu berechnen“. Sie weiter zu kürzen hieße unter die
-44 px für ein Tippziel zu gehen, und die ist nicht verhandelbar. Die Ausnahme wird **gemessen
-und ausgewiesen**, nicht verschwiegen: `tools/pruefstand-home-eine-seite.py` führt das Gerät
-als `OFFEN` und schlägt an, sobald der Wert **größer** wird.
+Hier stand, dass der Reiter auf einem iPhone SE rund 40 px über dem Bildschirm steht und das
+als `OFFEN` geführt wird. **Das gilt nicht mehr: Gemessen sind es 0 px.**
+
+Die Ausnahme war nie eine Eigenschaft des Geräts, sondern die Folge einer *festen* Höhe.
+Seit der Reiter sich dem Fenster anpasst, statt eine Größe mitzubringen, passt er auch auf
+553 px — ohne dass ein Tippziel unter 44 px gerutscht wäre. `SE_DECKEL` ist ersatzlos aus
+dem Prüfstand entfernt; das Gerät steht dort jetzt auf `muss passen`.
 
 ### Die Zusage wird gemessen, nicht geglaubt
 
-`tools/pruefstand-home-eine-seite.py` fährt die echte App in `<iframe>`s fester Größe — sechs
-Geräte vom iPhone SE bis zum Notebook — und prüft je Gerät: passt es ohne Scrollen, scrollt
-nichts quer, ist `#view` gefüllt, stehen Ring, drei Makrobalken und Wochenangabe da, und ist
-kein Tippziel zu klein. Mit `--gegenprobe`.
+`tools/pruefstand-home-eine-seite.py` fährt die echte App in `<iframe>`s fester Größe — seit
+dem 06.09.2026 **zehn** Geräte statt sechs — und prüft je Gerät: passt es ohne Scrollen,
+scrollt nichts quer, ist `#view` gefüllt, stehen Ring, drei Makrobalken und Wochenangabe da,
+ist kein Tippziel zu klein, **liegt die Knopfzeile frei vor der Kapsel, bleibt der Notausgang
+offen und wird der Platz auch genutzt**. Mit `--gegenprobe`.
 
 ## Der Startreiter ist eine Karte (seit 05.09.2026)
 
@@ -652,8 +659,57 @@ Auf dem Handy spielt es keine Rolle: Dort füllen die beiden Knöpfe die volle B
 
 ### Die Zusage gilt weiter
 
-`tools/pruefstand-home-eine-seite.py` misst unverändert: 0 px Überstand auf 390×664, 412×719,
-430×745, 768×954 und 1440×790. Auf dem iPhone SE (375×553) sind es **83 px** — der
-`SE_DECKEL` im Prüfstand wurde deshalb von 60 auf 90 angehoben. **Der Grund ist ein Zugewinn,
-kein Nachlassen:** Der Reiter trägt jetzt einen Bilddeckel. Wer diesen Wert weiter erhöht, muss
-dazuschreiben *warum* — „sonst ist es rot“ ist kein Grund.
+Zum Stand 05.09.2026 maß der Prüfstand 0 px Überstand auf 390×664, 412×719, 430×745, 768×954
+und 1440×790, auf dem iPhone SE dagegen 83 px (`SE_DECKEL = 90`). **Beides ist seit dem
+06.09.2026 überholt** — der Deckel ist weg, der SE steht auf 0. Siehe unten.
+
+## Der Startreiter füllt den Bildschirm (seit 06.09.2026)
+
+**„Scrollt nicht“ und „passt“ sind nicht dasselbe.** Der Reiter hatte eine feste Höhe von
+636 px. War das Fenster größer, blieb darunter Leere stehen — gemessen 114 px am Notebook,
+351 px auf 1920×1080 —, weil `.site-foot` per `margin-top: auto` an den unteren Rand gedrückt
+wurde. War es kleiner, stand er über. Zwei Symptome, eine Ursache: eine Höhe, die nicht zuhört.
+
+### Warum es auf dem Handy trotz grünem Prüfstand scrollte
+
+`100vh` ist auf iOS die Höhe **ohne** Browserleisten — die sieht man erst nach dem Scrollen.
+Beim Aufruf sind rund 100 px weniger da. Der Prüfstand rechnete mit derselben falschen Zahl
+und meldete deshalb grün, während das Gerät in der Hand scrollte. Beides steht jetzt auf
+`100dvh`, und der Prüfstand führt jedes Handy **zweimal**: mit Adressleiste (svh) und ohne (lvh).
+
+### Wie das Füllen gebaut ist
+
+Die Kette `.app → main → .wrap → .week-nut → .hm-card` trägt durchgehend `flex: 1` und
+`min-height: 0`; die Karte gibt den Rest an den Bilddeckel weiter. Vier Punkte, die dabei
+nicht verhandelbar sind, jeder von ihnen mit einem Messwert bezahlt:
+
+* **`.app` bekommt `height`, nicht `min-height`** — und nur auf diesem Reiter
+  (`:has(.week-nut .hm-card)`). `flex: 1` verteilt nur *überschüssigen* Platz; ohne feste
+  Höhe wächst der Container einfach mit und niemand wird zum Schrumpfen gezwungen. Ohne diese
+  Zeile wurde die Karte sogar **höher** als vorher.
+* **Der Deckel startet klein und wächst über `grow`**, `flex: 1 1 84px`. Eine mitwachsende
+  `flex-basis` (`clamp(96px, 20dvh, 300px)`) stand hier zuerst und war ein Denkfehler: Die
+  Basis geht in die `min-content`-Höhe der Karte ein, und unter die darf die Karte nicht.
+  Auf 390×556 blieb der Deckel dadurch auf 111 px stehen, obwohl 72 gereicht hätten.
+* **`.hm-body` und `.hm-foot` sind `flex: none`.** Als schrumpfbare Items wurden sie von
+  `overflow: hidden` der Karte lautlos abgeschnitten — auf 390×556 fehlten der Fett-Balken
+  und der komplette Kartenfuß. Nur der Deckel gibt nach.
+* **Der Notausgang ist `overflow-y: auto` auf `<main>`** — und er gehört genau dorthin.
+  Zuerst stand ein `min-height: min-content` auf `.app` dafür da; es tat nichts, weil ein
+  Glied mit `min-height: 0` **null** zum `min-content` seines Elternteils beiträgt. Die Zeile,
+  die das Schrumpfen erlaubt, macht `min-content` damit wertlos.
+
+### Der Abstand der Kapsel ist eine Untergrenze
+
+`.app` hält unten Platz für die Tabbar frei. Die Kapsel schwebt gemessen **10 px** über dem
+Rand — ein Freiraum von nur 6 px lässt die Knopfzeile also zwangsläufig darunter verschwinden,
+und zwar auch dann noch, wenn man bis ans Ende gescrollt hat. Auf flachen Geräten stehen
+deshalb `--tabbar-h + 12px`. **Dieser Wert ist kein Sparposten.**
+
+### Was auf flachen Geräten weicht
+
+Unter 620 px Höhe (`@media (max-width: 680px) and (max-height: 620px)`) fehlten 47 px. Sie
+kommen aus Abständen, Ringgröße und Deckelhöhe — mit **einer** Ausnahme, die eine Aussage
+kostet: „Deine Ziele für heute · Samstag“ entfällt dort. Sie ist die entbehrlichste im Block,
+weil der Wochentag fünf Zeilen tiefer im Kartenfuß hell umrandet steht. Überall sonst bleibt
+sie. Die 44 px der Knopfzeile waren nie Teil der Rechnung.

@@ -45,10 +45,10 @@ Erhoben aus den Abschnittsmarken im Code, nicht von Hand gepflegt.
 
 | Datei | Bereich | Zeilen | Umfang |
 |---|---|---|---|
-| css/basis.css | Header | 20-224 | 205 |
-| css/basis.css | Section head | 225-230 | 6 |
-| css/basis.css | Buttons | 231-298 | 68 |
-| css/basis.css | Week grid | 299-1281 | 983 |
+| css/basis.css | Header | 20-229 | 210 |
+| css/basis.css | Section head | 230-235 | 6 |
+| css/basis.css | Buttons | 236-303 | 68 |
+| css/basis.css | Week grid | 304-1372 | 1069 |
 | css/komponenten.css | Recipe grid | 8-261 | 254 |
 | css/komponenten.css | Meal-Ansicht (openMealSheet) | 262-451 | 190 |
 | css/komponenten.css | Empty state | 452-457 | 6 |
@@ -56,8 +56,8 @@ Erhoben aus den Abschnittsmarken im Code, nicht von Hand gepflegt.
 | css/komponenten.css | Profil (Login) & Teilen | 783-876 | 94 |
 | css/komponenten.css | Profilbild-Zuschnitt (Kreis-Crop) | 877-1067 | 191 |
 | css/komponenten.css | PDF / Druck | 1068-1101 | 34 |
-| css/mobil.css | Mobile / Smartphone | 8-934 | 927 |
-| css/mobil.css | Gemeinsam planen (Gruppe) | 935-1001 | 67 |
+| css/mobil.css | Mobile / Smartphone | 8-967 | 960 |
+| css/mobil.css | Gemeinsam planen (Gruppe) | 968-1034 | 67 |
 | data/bilder.js | Gerichtsfotos (eingebettet, nach Namen zugeordnet) | 11-134 | 124 |
 | data/cookbook.js | Rezeptbuch | 11-569 | 559 |
 | data/foods.js | Zutaten-Datenbank fuer die Suche | 11-236 | 226 |
@@ -279,9 +279,11 @@ Verbraucher.
 Gelesen aus `docs/ABDECKUNG.md` - dort wird sie gepflegt, hier nur
 angezeigt.
 
-Bereiche ohne Pruefer: **0**
+Bereiche ohne Pruefer: **1**
 
-_keine_
+| Ohne Pruefer |
+|---|
+| pfad:__design_training.txt |
 
 ## 11. Dateien
 
@@ -316,11 +318,12 @@ _keine_
 | LICENSE | 30 | 1364 |
 | README.md | 46 | 1990 |
 | SECURITY.md | 71 | 3006 |
+| __design_training.txt | 34 | 2178 |
 | css/CLAUDE.md | 92 | 4167 |
-| css/basis.css | 1281 | 91419 |
+| css/basis.css | 1372 | 97891 |
 | css/komponenten.css | 1101 | 86616 |
-| css/mobil.css | 1001 | 65479 |
-| css/tokens.css | 221 | 11084 |
+| css/mobil.css | 1034 | 67674 |
+| css/tokens.css | 229 | 11648 |
 | data/CLAUDE.md | 148 | 6658 |
 | data/bilder.js | 134 | 14471 |
 | data/cookbook.js | 569 | 52083 |
@@ -329,14 +332,14 @@ _keine_
 | data/rechtstexte.js | 163 | 27882 |
 | docs/ABDECKUNG.md | 192 | 11427 |
 | docs/ARCHITECTURES.md | 2983 | 187944 |
-| docs/DESIGN.md | 660 | 31631 |
+| docs/DESIGN.md | 716 | 35241 |
 | docs/MODULE.md | — | — (erzeugt) |
-| docs/PRODUCT.md | 1622 | 90928 |
+| docs/PRODUCT.md | 1623 | 91083 |
 | docs/RUNBOOK.md | 167 | 5665 |
 | docs/SECURITY.md | 392 | 21684 |
 | docs/STORE.md | 246 | 11876 |
-| docs/TESTING.md | 3960 | 236209 |
-| docs/TROUBLESHOOTING.md | 5776 | 331964 |
+| docs/TESTING.md | 3994 | 238472 |
+| docs/TROUBLESHOOTING.md | 5844 | 335841 |
 | docs/module-index.json | — | — (erzeugt) |
 | firestore.rules | 416 | 23714 |
 | img/apple-touch-icon.png | — | 35163 |
@@ -425,7 +428,7 @@ _keine_
 | syntax-check.py | 382 | 16172 |
 | test-server.ps1 | 66 | 2182 |
 | tools/abdeckung.py | 324 | 13049 |
-| tools/alle-pruefstaende.py | 230 | 9992 |
+| tools/alle-pruefstaende.py | 226 | 9699 |
 | tools/cdp.py | 261 | 11294 |
 | tools/firebase-vendor.py | 75 | 2957 |
 | tools/karte.py | 605 | 24255 |
@@ -445,7 +448,7 @@ _keine_
 | tools/pruefstand-gruppe-plan-mitbringen.py | 318 | 14800 |
 | tools/pruefstand-gruppe-verlassen-dubletten.py | 342 | 17391 |
 | tools/pruefstand-gruppenlimit.py | 243 | 11367 |
-| tools/pruefstand-home-eine-seite.py | 275 | 14307 |
+| tools/pruefstand-home-eine-seite.py | 364 | 19768 |
 | tools/pruefstand-jahresumschalter.py | 234 | 9867 |
 | tools/pruefstand-kalender-layout.py | 365 | 18822 |
 | tools/pruefstand-kalender.py | 741 | 41592 |

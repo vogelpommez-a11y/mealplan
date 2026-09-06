@@ -206,7 +206,10 @@
   }
 
   * { box-sizing: border-box; }
-  body { margin: 0; }
+  /* Grundfarbe auch auf dem body: Auf dem Startreiter hat .app eine feste Hoehe.
+     Ragt der Inhalt in einem Notfall darueber hinaus, endete sonst der Hintergrund
+     mitten auf der Seite. */
+  body { margin: 0; background: var(--bg); }
 
   .app {
     font-family: var(--font-body);
@@ -214,7 +217,12 @@
     background:
       radial-gradient(1200px 400px at 10% -8%, color-mix(in srgb, var(--accent) 9%, transparent), transparent),
       var(--bg);
+    /* dvh statt vh: Auf iOS ist 100vh die Hoehe OHNE Browserleisten - die sieht man
+       erst NACH dem Scrollen. Beim Aufruf sind rund 100px weniger da, und genau die
+       standen ueber. 100dvh ist die Hoehe, die WIRKLICH sichtbar ist. Die vh-Zeile
+       bleibt als Rueckfall fuer Browser ohne dvh davor stehen. */
     min-height: 100vh;
+    min-height: 100dvh;
     line-height: 1.55;
     -webkit-font-smoothing: antialiased;
   }

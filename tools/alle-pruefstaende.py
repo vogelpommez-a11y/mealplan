@@ -101,15 +101,11 @@ def hat_beleg(ausgabe):
 # begruendet und wieder entfernt, sobald der Umbau durch ist.
 TEILWEISE = {
     # Seit 05.09.2026. Der Pruefstand weist auf dem iPhone SE (375x553) dauerhaft einen
-    # OFFEN-Punkt aus: Dort steht der Startreiter rund 40 px ueber dem Bildschirm. Was
-    # fehlt, ist genau die Knopfzeile "Anpassen / Neu berechnen"; sie weiter zu kuerzen
-    # hiesse unter die 44-px-Grenze fuer Tippziele zu gehen, und die ist nicht
-    # verhandelbar. Der Rueckgabewert haengt deshalb NICHT an diesem Geraet - wohl aber
-    # daran, dass es nicht SCHLECHTER wird (SE_DECKEL im Pruefstand). Der Eintrag hier
-    # verschwindet, sobald die Knopfzeile entschieden ist (Entwuerfe in
-    # plans/home-varianten/ legen sie in ein "..."-Menue).
-    "pruefstand-home-eine-seite.py":
-        u"iPhone SE steht ~83px ueber - bekannte Ausnahme, siehe SE_DECKEL",
+    # Zurzeit leer - und das ist ein Ergebnis, kein Versehen: Der einzige Eintrag betraf
+    # den Startreiter auf dem iPhone SE (83px Ueberstand als bekannte Ausnahme). Seit der
+    # Reiter den Bildschirm fuellt statt eine feste Hoehe mitzubringen, sind es dort 0px.
+    # Eine Ausnahme, die keine mehr ist, stehen zu lassen waere eine stille Erlaubnis fuer
+    # den Rueckfall.
 }
 
 # Braucht ein Argument oder einen besonderen Aufbau - nicht fuer den Reihenlauf geeignet.

@@ -32,30 +32,62 @@ EDGE = r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe"
 ANKER = '<meta charset="utf-8">'
 GEGENPROBE_COMMIT = "HEAD"   # der Stand VOR dem Umbau liegt im letzten Commit
 
-# Name, Breite, Hoehe des CSS-Viewports (ohne Browserleisten), muss-passen
+# Name, Breite, Hoehe des CSS-Viewports, muss-passen
+#
+# ACHTUNG, hier lag der Fehler: Bis zum 06.09.2026 standen hier nur die Hoehen OHNE
+# Browserleisten (lvh). Die sieht man auf dem Handy aber erst NACH dem Scrollen - beim
+# Aufruf sind rund 100px weniger da. Der Pruefstand meldete deshalb gruen, waehrend der
+# Reiter auf einem echten iPhone scrollte. Ein Pruefstand, der die falsche Zahl fuer die
+# richtige haelt, ist schlimmer als keiner.
+#
+# Jetzt steht jedes Handy ZWEIMAL drin: einmal mit Adressleiste (svh, der Zustand beim
+# Aufruf) und einmal ohne (lvh, nach dem Scrollen). Beide muessen passen.
 GERAETE = [
-    (u"iPhone SE (2022)",   375, 553, False),   # bekannte Ausnahme, siehe unten
-    (u"iPhone 13/14/15",    390, 664, True),
-    (u"Pixel 7",            412, 719, True),
-    (u"iPhone 14 Pro Max",  430, 745, True),
-    (u"iPad hochkant",      768, 954, True),
+    (u"iPhone SE",           375, 553, True),
+    (u"iPhone 13/14/15 svh", 390, 556, True),
+    (u"iPhone 13/14/15 lvh", 390, 664, True),
+    (u"Pixel 7 svh",         412, 616, True),
+    (u"Pixel 7 lvh",         412, 719, True),
+    (u"ProMax svh",          430, 643, True),
+    (u"ProMax lvh",          430, 745, True),
+    (u"iPad hochkant",       768, 954, True),
     (u"Notebook 1440x900",  1440, 790, True),
+    (u"Desktop 1920x1080",  1920, 969, True),
 ]
 
-# Die eine dokumentierte Ausnahme: Auf einem iPhone SE (553 px CSS-Hoehe) bleibt der
-# Reiter ueber dem Bildschirm. Was fehlt, ist ungefaehr die Knopfzeile "Anpassen /
-# Neu berechnen" (44 px + Abstand). Solange sie dort steht, ist die Zusage auf diesem
-# Geraet nicht zu halten, ohne unter die 44-px-Grenze fuer Tippziele zu gehen - und die
-# ist nicht verhandelbar. Der Wert wird trotzdem gemessen und ausgewiesen, damit eine
-# VERSCHLECHTERUNG auffaellt.
+# Die andere Haelfte der Zusage. Bei den Geraeten oben MUSS es passen; hier darf es das
+# ausdruecklich nicht - und genau deshalb stehen sie da: Sie pruefen den NOTAUSGANG.
 #
-# 05.09.2026 von 60 auf 90 angehoben. Der Grund ist ein ZUGEWINN, nicht ein Nachlassen:
-# Der Startreiter traegt seither einen Bilddeckel mit dem naechsten Meal (78 px auf
-# flachen Geraeten). Gemessen sind es jetzt 83 px Ueberstand; die 90 lassen sieben Pixel
-# Reserve und schlagen bei jeder weiteren Verschlechterung an.
+# Ohne sie war er nur strukturell abgesichert ("<main> hat overflow-y:auto"). Das ist eine
+# Aussage ueber CSS, nicht ueber Erreichbarkeit: Bei zu kleinem Fenster lag die Knopfzeile
+# trotz auto hinter der fixierten Tabbar, weil der freigehaltene Rand 4px zu schmal war.
+# Eine Eigenschaft zu pruefen, statt der Wirkung, haette das nie gefunden.
 #
-# Wer diesen Wert erhoeht, muss dazuschreiben WARUM - "sonst ist es rot" ist kein Grund.
-SE_DECKEL = 90
+# Gemessen wird deshalb die Wirkung: bis ans Ende scrollen, dann nachsehen, ob die
+# Knopfzeile vollstaendig im Bild liegt UND frei vor der Kapsel.
+#
+# Querformat ist hier kein Kunstfall - ein gedrehtes Handy hat rund 390px Hoehe.
+NOTFALL = [
+    (u"iPhone quer",   844, 390),
+    (u"Pixel quer",    915, 412),
+    (u"sehr flach",    390, 450),
+    (u"extrem flach",  390, 380),
+    (u"schmal+flach",  320, 420),
+]
+
+# Wieviel Leerraum unter der Knopfzeile noch als Abstand durchgeht und ab wann er ein
+# Loch ist. 60px ist grosszuegig: Der normale Abstand zum Fuss betraegt gemessen 24px,
+# das Loch von vorher 114 bis 351. Dazwischen liegt kein Grenzfall, ueber den man streiten
+# muesste - der Wert muss nur beide Seiten sicher trennen.
+LEERE_MAX = 60
+
+# Der SE-Deckel ist am 06.09.2026 ERSATZLOS entfallen, und zwar nach oben: Seit der
+# Startreiter den Bildschirm fuellt statt ihn nur nicht zu ueberschreiten, passt er auch
+# auf einem iPhone SE vollstaendig - gemessen 0px Ueberstand, vorher 83.
+#
+# Die Ausnahme war nie eine Eigenschaft des Geraets, sondern eine Folge der festen Hoehe.
+# Sie als "bekannte Ausnahme" stehen zu lassen, waere ab jetzt eine Erlaubnis fuer eine
+# Verschlechterung, die niemand mehr bemerkt.
 
 # Zustand mit Ziel und teilweise geplanter Woche - der Normalfall, und der hoechste:
 # Mit Ziel zeigt die Heute-Karte drei Makrobalken, ohne Ziel faellt der halbe Reiter weg.
@@ -112,7 +144,7 @@ def seite_bauen(quelltext):
 RAHMEN = u"""<!doctype html><meta charset="utf-8"><title>Messung</title>
 <style>html,body{margin:0;background:#000}iframe{border:0;display:block}</style>
 <script>
-var GERAETE = __GERAETE__;
+var GERAETE = __GERAETE__.concat(__NOTFALL__);
 var offen = GERAETE.length, raus = [];
 // Erst wenn <body> existiert. Das Skript steht im Kopf; ein appendChild auf ein noch
 // nicht geparstes document.body wirft, und dann misst gar nichts mehr - der Pruefstand
@@ -124,9 +156,9 @@ GERAETE.forEach(function (g) {
   document.body.appendChild(f);
   f.addEventListener("load", function () {
     setTimeout(function () {
-      var e = {name: g[0], w: g[1], h: g[2], muss: g[3]};
+      var e = {name: g[0], w: g[1], h: g[2], muss: g[3], notfall: g[3] === null};
       try {
-        var d = f.contentDocument, D = d.documentElement;
+        var d = f.contentDocument, D = d.documentElement, W2 = f.contentWindow;
         e.doc = D.scrollHeight; e.ueber = D.scrollHeight - g[2];
         e.quer = D.scrollWidth - g[1];
         var v = d.getElementById("view");
@@ -148,6 +180,47 @@ GERAETE.forEach(function (g) {
           if (r.height > 0 && r.height < grenze) klein.push(b.textContent.trim().slice(0, 18) + "=" + Math.round(r.height));
         });
         e.kleineZiele = klein;
+        // Die zweite Luecke dieses Pruefstands: "passt auf den Bildschirm" heisst nicht
+        // "ist bedienbar". Die Kapsel klebt fix am unteren Rand; Inhalt, der in ihren
+        // Bereich quillt, steht im Dokument und ist trotzdem weg. Genau so lag am
+        // 06.09.2026 die komplette Knopfzeile unsichtbar darunter, waehrend die
+        // Hoehenmessung +0 meldete.
+        var kap = d.querySelector(".tabs"), akt = d.querySelector(".wg-actions");
+        e.verdeckt = 0;
+        if (kap && akt) {
+          var kr = kap.getBoundingClientRect(), ar = akt.getBoundingClientRect();
+          // Nur wenn die Kapsel unten klebt - am Rechner sitzt sie oben und deckt nichts zu.
+          if (kr.top > g[2] / 2 && ar.bottom > kr.top) e.verdeckt = Math.round(ar.bottom - kr.top);
+        }
+        // Der Notausgang: Passt es doch einmal nicht, muss <main> scrollen koennen.
+        var mn = d.querySelector("main");
+        e.mainOverflow = mn ? W2.getComputedStyle(mn).overflowY : "?";
+        // Notfall: bis ans Ende scrollen und DANN nachsehen. Vorher gemessen hiesse
+        // pruefen, ob es zufaellig sichtbar ist - nicht, ob man hinkommt.
+        if (e.notfall && mn && akt) {
+          mn.scrollTop = mn.scrollHeight;
+          var ar3 = akt.getBoundingClientRect();
+          var kr3 = kap ? kap.getBoundingClientRect() : null;
+          e.imBild = ar3.top >= -1 && ar3.bottom <= g[2] + 1;
+          e.freiVonKapsel = (!kr3 || kr3.top < g[2] / 2) ? true : ar3.bottom <= kr3.top + 1;
+          e.erreichbar = e.imBild && e.freiVonKapsel;
+          e.scrollWeg = Math.round(mn.scrollHeight - mn.clientHeight);
+        }
+        // Und die andere Haelfte der Zusage: NICHT scrollen ist nur die eine Bedingung,
+        // den Platz auch NUTZEN die andere. Bis zum 06.09.2026 hatte der Reiter eine feste
+        // Hoehe und der Fuss wurde per margin:auto nach unten gedrueckt - dazwischen stand
+        // Leere: gemessen 114px am Notebook und 351px auf 1920x1080. Die Hoehenmessung
+        // fand das in Ordnung, weil nichts uebersteht. Ein halber Pruefer.
+        // Der Footer ist auf dem Handy display:none, steht aber im DOM und liefert dann
+        // ein Null-Rechteck bei top=0. Wer ihn ungeprueft nimmt, misst dort immer 0 Leere
+        // und haelt jeden mobilen Abstand fuer richtig.
+        var fu = d.querySelector("footer");
+        var unten = (fu && fu.getBoundingClientRect().height > 0) ? fu : kap;
+        e.leere = 0;
+        if (akt && unten) {
+          var ur = unten.getBoundingClientRect(), ar2 = akt.getBoundingClientRect();
+          if (ur.top >= ar2.bottom) e.leere = Math.round(ur.top - ar2.bottom);
+        }
       } catch (ex) { e.fehler = ex.message; }
       raus.push(e);
       if (--offen === 0) {
@@ -167,7 +240,9 @@ def lauf(index_pfad):
     tmp = tempfile.mkdtemp(prefix="home-eine-seite-")
     try:
         io.open(os.path.join(tmp, "app.html"), "w", encoding="utf-8").write(seite_bauen(quelle_txt))
+        # Notfall-Geraete tragen None als "muss" - daran erkennt sie das Messskript.
         rahmen = RAHMEN.replace("__GERAETE__", json.dumps([list(g) for g in GERAETE]))
+        rahmen = rahmen.replace("__NOTFALL__", json.dumps([[n, w, h, None] for n, w, h in NOTFALL]))
         io.open(os.path.join(tmp, "mess.html"), "w", encoding="utf-8").write(rahmen)
         dump = os.path.join(tmp, "dump.html")
         with io.open(dump, "wb") as f:
@@ -204,12 +279,23 @@ def bewerte(messungen, titel, alt=False):
     print(u"")
     print(titel)
     print(u"-" * 70)
-    for e in sorted(messungen, key=lambda x: x["w"]):
+    for e in sorted(messungen, key=lambda x: (x.get("notfall", False), x["w"])):
         marke = "%-20s %4dx%-4d" % (e["name"], e["w"], e["h"])
+        if e.get("notfall"):
+            if e.get("fehler"):
+                print(u"  FEHLER  " + marke + u"  Messfehler: " + e["fehler"]); bad += 1; continue
+            if e.get("erreichbar"):
+                print(u"  OK      " + marke + u"  passt nicht (soll es nicht) - aber nach"
+                      u" %dpx Scrollen voll erreichbar" % e.get("scrollWeg", 0)); ok += 1
+            else:
+                print(u"  FEHLER  " + marke + u"  NOTAUSGANG DEFEKT: Knopfzeile auch nach dem"
+                      u" Scrollen nicht erreichbar (im Bild=%s, frei von Kapsel=%s)"
+                      % (e.get("imBild"), e.get("freiVonKapsel"))); bad += 1
+            continue
         if e.get("fehler"):
             print(u"  FEHLER  " + marke + u"  Messfehler: " + e["fehler"]); bad += 1; continue
         u_ = e["ueber"]
-        zusatz = u"doc=%d  ueber=%+d  quer=%+d" % (e["doc"], u_, e["quer"])
+        zusatz = u"doc=%d  ueber=%+d  quer=%+d  leer=%d" % (e["doc"], u_, e["quer"], e.get("leere", 0))
         if not e["viewGefuellt"]:
             print(u"  FEHLER  " + marke + u"  #view ist leer - die App startet gar nicht"); bad += 1; continue
         if not (e["hatRing"] and e["hatMakros"] == 3 and (alt or e["hatWoche"])):
@@ -220,16 +306,18 @@ def bewerte(messungen, titel, alt=False):
                   % (e.get("grenze", 44), ", ".join(e["kleineZiele"]))); bad += 1; continue
         if e["quer"] > 0:
             print(u"  FEHLER  " + marke + u"  scrollt QUER  " + zusatz); bad += 1; continue
-        if e["muss"]:
-            if u_ <= 0: print(u"  OK      " + marke + u"  " + zusatz); ok += 1
-            else:       print(u"  FEHLER  " + marke + u"  scrollt  " + zusatz); bad += 1
-        else:
-            if u_ <= 0:
-                print(u"  OK      " + marke + u"  passt sogar  " + zusatz); ok += 1
-            elif u_ <= SE_DECKEL:
-                print(u"  OFFEN   " + marke + u"  bekannte Ausnahme (<=%d)  %s" % (SE_DECKEL, zusatz)); offen += 1
-            else:
-                print(u"  FEHLER  " + marke + u"  Ausnahme ueberschritten (>%d)  %s" % (SE_DECKEL, zusatz)); bad += 1
+        if e.get("verdeckt"):
+            print(u"  FEHLER  " + marke + u"  Knopfzeile liegt %dpx hinter der Kapsel  %s"
+                  % (e["verdeckt"], zusatz)); bad += 1; continue
+        if e["w"] <= 680 and e.get("mainOverflow") != "auto":
+            print(u"  FEHLER  " + marke + u"  <main> ohne overflow-y:auto (%s) - ohne den"
+                  u" Notausgang waere zu viel Inhalt unerreichbar" % e.get("mainOverflow"))
+            bad += 1; continue
+        if e.get("leere", 0) > LEERE_MAX:
+            print(u"  FEHLER  " + marke + u"  %dpx ungenutzte Leere unter der Knopfzeile"
+                  u" (erlaubt %d)  %s" % (e["leere"], LEERE_MAX, zusatz)); bad += 1; continue
+        if u_ <= 0: print(u"  OK      " + marke + u"  " + zusatz); ok += 1
+        else:       print(u"  FEHLER  " + marke + u"  scrollt  " + zusatz); bad += 1
     return ok, bad, offen
 
 
@@ -241,9 +329,10 @@ if __name__ == "__main__":
 
     if not gegen:
         print(u"Datei: " + index)
-        ok, bad, offen = bewerte(lauf(index), u"Passt Home ohne Scrollen?")
+        ok, bad, offen = bewerte(lauf(index),
+                                 u"Fuellt Home den Bildschirm - und bleibt sonst alles erreichbar?")
         print(u"")
-        print(u"ERGEBNIS %d gruen, %d rot, %d offen (dokumentierte Ausnahme)" % (ok, bad, offen))
+        print(u"ERGEBNIS %d gruen, %d rot" % (ok, bad))
         print(u"Gegenprobe mit --gegenprobe: der Stand davor MUSS durchfallen.")
         sys.exit(1 if bad else 0)
 
