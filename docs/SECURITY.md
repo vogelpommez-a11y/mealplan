@@ -416,9 +416,21 @@ seine `delIds` **nur** aus dieser Baseline. Das fremde Dokument bleibt also in d
 liegen, statt in eine Schreib-Lösch-Schleife zu geraten. Belegt mit Gegenprobe:
 `tools/pruefstand-rezept-id-format.py`.
 
-⚠️ **Die Regel ist im Repo nur eine Vorlage.** Verbindlich ist der in der Firebase-Konsole
-veröffentlichte Stand; von hier aus ist er nicht abrufbar. Solange sie dort nicht
-veröffentlicht ist, wirkt allein die Client-Prüfung — und die ist keine Sicherheitsgrenze.
+**Veröffentlicht am 06.09.2026** — die Regel ist damit wirksam, nicht nur Vorlage
+(`recipeId.matches(...)` steht im Editor der Konsole, Zeile 362).
+
+Beim Veröffentlichen fiel ein Befund ab, den dieses Dokument bisher als *nicht prüfbar*
+führte: **Der zuvor veröffentlichte Stand vom 15.08.2026 war mit `firestore.rules` im Repo
+zeichengenau identisch** — 415 Zeilen, gleiche SHA-256 über den normalisierten Text.
+Repo und Konsole sind also nie auseinandergelaufen. Das ersetzt die Regel aus Abschnitt 7
+nicht (der Live-Stand bleibt von außen unbelegbar), aber für diesen Zeitpunkt ist es belegt.
+
+Vor dem Veröffentlichen wurden zwei Gruppen stichprobenartig durchgesehen: alle Rezept-IDs
+im Muster. Ein Bestandsdokument mit abweichender ID wäre ohnehin kein Schaden — es ließe
+sich nur nicht mehr ändern, wohl aber löschen.
+
+⚠️ Eine Abweichung bleibt bewusst stehen: Die vier **Kommentarzeilen** am Kopf der Regeln
+tragen in der Konsole noch ihre alte Fassung. Der Regeltext selbst ist identisch.
 
 **Die Lehre:** Nicht nur der sichtbare Text einer fremden Quelle braucht `esc()`, sondern
 **jeder Wert, der in ein Attribut geht** — auch eine ID, die „doch nur“ aus einem Schlüssel

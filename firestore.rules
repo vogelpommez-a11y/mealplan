@@ -6,8 +6,17 @@ rules_version = '2';
 // Firebase-Konsole unter Firestore Database -> Regeln eingefügt und VERÖFFENTLICHT wird.
 // Sie liegt hier im Repo, damit nachvollziehbar ist, was gelten soll.
 //
-// Stand: 2026-08-15 — DIESE FASSUNG IST SEIT DEM 15.08.2026 VEROEFFENTLICHT UND WIRKSAM.
-// (Im Regel-Editor gegengeprueft. Repo-Stand und Konsole sind damit identisch.)
+// Stand: 2026-09-06 — DIESE FASSUNG IST SEIT DEM 06.09.2026 VEROEFFENTLICHT UND WIRKSAM.
+//
+// Im Regel-Editor gegengeprueft, diesmal nicht per Augenschein: Der zuvor veroeffentlichte
+// Stand vom 15.08.2026 war mit dieser Datei ZEICHENGENAU identisch - 415 Zeilen, gleiche
+// SHA-256 ueber den normalisierten Text. Repo und Konsole waren also nie auseinander.
+// Neu ist allein die Formatpruefung der recipeId weiter unten.
+//
+// EINE bekannte Abweichung, bewusst stehen gelassen: Diese vier Kommentarzeilen selbst
+// stehen in der Konsole noch in ihrer alten Fassung ("Stand: 2026-08-15"). Der REGELTEXT
+// ist identisch - der Unterschied ist reiner Kommentar und aendert nichts an dem, was
+// durchgesetzt wird. Beim naechsten Veroeffentlichen mit nachziehen.
 //
 // Bewusst in Kauf genommen: Zum Zeitpunkt der Veroeffentlichung gab es acht Gruppen, aber
 // nur EIN entitlements-Dokument. Die uebrigen sieben Gruppen koennen seitdem nicht mehr
