@@ -978,12 +978,26 @@ erklärt, wofür die App gut ist, sagt nichts über die Woche, die man gerade pl
 Zielkarten — „Heute“ und „Diese Woche“ —, jede mit eigenem Ring. „Verbleibend 9.464 kcal diese
 Woche“ ist aber keine Zahl, nach der jemand handelt: Entschieden wird auf Tagesebene, nie
 „diese Woche insgesamt“. Was von der Woche zählt, ist **wie viele Tage schon geplant sind** —
-und das ist eine Zeile, kein Ring. Die Summe selbst ist nicht verschwunden; sie steht als
-`9.694 / 19.158 kcal` im Kartenfuß.
+und das ist eine Zeile, kein Ring.
+
+**Am 06.09.2026 ist auch diese Zeile gefallen** — mit dem ganzen Kartenfuß. Die Summe
+`9.694 / 19.158 kcal` stand dort als letzter Rest der Wochenkarte und war dieselbe Zahl ohne
+Handlung, nur kleiner gesetzt. Und „welcher Tag ist noch offen?“ beantwortet der
+Fortschritt-Reiter mit dem Monatsgitter „Geplante Tage“ über Monate statt über sieben Punkte.
+Der Anlass war Übersichtlichkeit: Der Fuß trug drei Aussagen gleichzeitig — Zeitraum, offene
+Tage, Wochenbilanz — und war damit der überladenste Teil eines Reiters, der zeigen soll.
 
 **Dafür beantwortet der Startreiter jetzt eine Frage, die er nie beantwortet hat: „Was esse ich
-als Nächstes?“** Ein Bilddeckel zeigt das nächste anstehende Meal des Tages mit Foto, Namen und
-Nährwerten. Das ist der größte Unterschied zu einem Kalorien-Tracker: Der schaut zurück, dieser
+als Nächstes?“** Ein Bilddeckel zeigt das nächste anstehende Meal mit Foto, Namen und
+Nährwerten — **und ab 20:30 das von morgen**, am Sonntag also den Montag der nächsten Woche.
+Das ist der Unterschied zwischen „nach vorne schauen" und „den Tag protokollieren": Abends ist
+die nützliche Antwort auf „was esse ich als Nächstes?" nicht das Abendessen, das man gerade
+hatte.
+
+**Ist für heute gar nichts geplant, nennt die Karte keine Mahlzeit.** Sie sagt „Noch nichts
+geplant" und führt in den Wochenplan. Vorher schlug sie den ersten offenen Slot vor — wer nie
+frühstückt, las dort jeden Morgen „Frühstück noch offen", eine Aufforderung zu etwas, das er
+nie tut. Die App kann nicht wissen, welche Mahlzeit jemand will, **also behauptet sie keine**. Das ist der größte Unterschied zu einem Kalorien-Tracker: Der schaut zurück, dieser
 Reiter nach vorne — und er nutzt endlich die Meal-Fotos, die es längst gibt.
 
 **Home hat bewusst keine Primäraktion.** Ein Durchgang durch alle vier Reiter am 05.09.2026 hat
@@ -993,9 +1007,11 @@ die es nur dort gibt: „Anpassen“ und „Neu berechnen“. Der Reiter beantwo
 Woche?“ — geplant wird im Wochenplan. **Zeigen, nicht handeln.**
 
 Was daran veranlagt war zu bleiben, ist geblieben: die **Wochenangabe**. Sie ist die einzige
-Zeile des Hero, die sich änderte, und sie steht jetzt in der Kopfzeile der Wochenkarte — dort
+Zeile des Hero, die sich änderte, und sie steht jetzt rechts in der Kopfzeile der Karte — dort
 datiert sie die Zahlen, zu denen sie gehört, und zeigt auch „nächste Woche“ an, ohne dass man
-dafür in den Wochenplan wechseln muss.
+dafür in den Wochenplan wechseln muss. Sie hat beide Umbauten überlebt, und das mit Absicht:
+Ohne sie stünde der Reiter mit Zahlen da, von denen niemand sagen kann, für welche Woche sie
+gelten.
 
 Die Navigationsmechanik bleibt, wie sie war: gleitende Pille, gerichteter Inhaltswechsel,
 untere Kapsel auf dem Handy. Der vierte Reiter ist eine Spalte mehr, kein neues Prinzip.

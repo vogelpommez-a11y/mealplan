@@ -2376,9 +2376,9 @@ Drei Entscheidungen darin sind Absicht:
 
 * **Gemessen wird der höchste Zustand, nicht irgendeiner.** Der Plan entsteht im Browser, nicht
   im Skript: Er muss den *heutigen* Tag treffen, und an welchem Wochentag jemand den Prüfstand
-  fährt, weiß das Skript nicht. Heute ist geplant (→ drei Makrobalken statt eines Hinweissatzes)
-  **und** ein anderer Tag ist offen (→ die Zeile „Für die N offenen Tage bleiben …“). Ein leerer
-  Plan wäre die bequemste Messung und die nutzloseste.
+  fährt, weiß das Skript nicht. Heute ist geplant (→ drei Makrobalken statt eines
+  Hinweissatzes) **und** ein anderer Tag ist offen. Ein leerer Plan wäre die bequemste
+  Messung und die nutzloseste.
 * **Die Tippziel-Grenze hängt am Breakpoint, nicht an der Meinung.** Unter 681 px fährt die App
   ihr Touch-Layout und `css/mobil.css` sagt dort `min-height: 44px` ausdrücklich zu; darüber
   gilt WCAG 2.2 (2.5.8) mit 24×24. Eine einzige Zahl für beides wäre am Rechner unsinnig
@@ -2389,6 +2389,26 @@ Drei Entscheidungen darin sind Absicht:
   lassen, wäre ab jetzt eine stille Erlaubnis für den Rückfall gewesen — deshalb steht der SE
   auf `muss passen`, und der Prüfstand ist aus `TEILWEISE` in
   `tools/alle-pruefstaende.py` heraus. Der Läufer meldet seitdem **0 offene Punkte**.
+
+* **Der Ringinhalt wird gegen den Ring gemessen (06.09.2026).** Zahl und Wort in der
+  Ringmitte dürfen nicht breiter sein als der nutzbare Innenraum. Zwei Dinge sind daran
+  Absicht: Gemessen wird der **Text** über eine `Range`, nicht sein Kasten — `.wg-c b` ist
+  ein Grid-Kind und damit immer so breit wie die Zelle; wer den Kasten misst, bekommt für
+  jede Zahl dieselbe Breite und merkt nie etwas. Und der Innenraum wird **aus dem SVG
+  gerechnet** (`r=32` in einer viewBox von 78, minus Strichbreite, skaliert), nicht als
+  Konstante eingetragen — eine hier notierte Zahl wäre genau der Fehler aus dem Kasten
+  oben: Sollwert und Prüfling aus derselben Quelle. Gegenprobe gefahren: Mit dem alten Wert
+  (9,5 px, `.04em`) schlägt der Punkt auf iPhone SE und iPhone 390×556 mit exakt den 4 px
+  an, die von Hand gemessen wurden.
+* **`GEGENPROBE_COMMIT` ist ein fester Hash, ausdrücklich nicht `"HEAD"` (06.09.2026).**
+  Dort stand er zunächst, und das hielt genau bis zum nächsten Commit: Danach zeigte `HEAD`
+  auf den bereits reparierten Stand, die Gegenprobe lief grün durch und meldete „der alte
+  Stand kommt durch“. Der Prüfstand hatte seine eigene Kontrolle verloren, ohne dass es
+  jemandem auffiel — gefunden erst beim nächsten Umbau. Jetzt steht dort `36aa97c`, der
+  Commit **vor** „Der Startreiter füllt den Bildschirm“; dort hat die Karte noch ihre feste
+  Höhe von 636 px und lässt am Desktop die 351 px Leere stehen, an denen `LEERE_MAX` sie
+  scheitern lässt. **Ein relativer Verweis auf HEAD ist in einer Gegenprobe immer falsch:
+  Sie soll gegen einen bestimmten Zustand messen, nicht gegen „vorhin“.**
 
 **Zwei Fallen, in die der Prüfstand selbst gelaufen ist — beide hätten ihn stumm gemacht:**
 
@@ -2401,6 +2421,36 @@ Drei Entscheidungen darin sind Absicht:
    Geräten an der Höhe durch, zwischen +107 und +512 px.
 
 Genau die Sorte Fehler, vor der Ziffer 119 und 123 in `docs/TROUBLESHOOTING.md` stehen.
+
+### `tools/pruefstand-als-naechstes.py` — eine Matrix statt eines Blicks (06.09.2026)
+
+Prüft `nextMealOfDay()`, also welche Mahlzeit im Bilddeckel des Startreiters steht. Der
+Prüfstand existiert wegen einer Eigenschaft, die diese Funktion von fast allem anderen
+unterscheidet: **Sie hängt an der Uhrzeit.** Wer sie um 14 Uhr ansieht, sieht nie, was sie um
+21 Uhr tut — und genau dort lag der Fehler (`docs/TROUBLESHOOTING.md` 158): Ab dem Nachmittag
+zeigte die Karte Vergangenes, in 11 von 36 geprüften Feldern.
+
+Gemessen wird deshalb die **vollständige Matrix** aus sieben Planzuständen × sechs Uhrzeiten
+gegen eine Sollwert-Tabelle, nicht ein Einzelfall. Die Uhrzeit kommt aus einem `Date`-Ersatz.
+
+Drei Dinge sind daran Absicht:
+
+* **Ausgeschnitten, nicht nachgebaut.** `schneide()` holt die Funktion über Klammerzählung
+  wörtlich aus `index.html`. Ein Nachbau prüft nur, ob man denselben Fehler zweimal schreibt.
+* **Die Sollwerte stehen als Tabelle da, nicht als Regel im Code.** Eine Sollwert-*Berechnung*
+  wäre dieselbe Logik ein zweites Mal — und damit blind für Denkfehler in der Logik selbst.
+* **Ein Sollwert wurde beim Aufstellen korrigiert, nicht der Code.** Für „nur Snacks geplant"
+  stand dort zuerst „Frühstück offen"; richtig ist, dass Schritt 1 die geplanten Snacks zeigt.
+  Eine geplante Mahlzeit zu verschweigen, um einen leeren Slot vorzuschlagen, wäre schlechter
+  als die Unschärfe in der Reihenfolge. Der Snack-Ausschluss gilt nur für den *Vorschlag* eines
+  leeren Slots.
+
+Gegenprobe (`--gegenprobe`) gegen den festen Hash `9a31f1c`: Der alte Stand fällt mit 25
+von 42 Feldern durch. **Auch hier ausdrücklich kein `HEAD`** — beim Schreiben stand dort
+zuerst genau das, und der Fehler wäre exakt derselbe gewesen wie beim Schwesterprüfstand
+einen Absatz weiter unten: nach dem nächsten Commit vergleicht sich der Stand mit sich
+selbst. Gefunden hat es der Agent `doku-waechter`, der den Widerspruch zur Regel im selben
+Diff bemerkte.
 
 ### `tools/pruefstand-wochenbeschriftung.py` — Verifikation VOR dem Fix
 

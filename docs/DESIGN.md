@@ -516,8 +516,9 @@ Zwei Dinge haben den Platz geschaffen:
 Fortschritt." und einen Beschreibungssatz — zusammen rund 150 px über der Falz, die bei jedem
 Aufruf dasselbe sagten. Eine Ansage, die man beim zweiten Besuch nicht mehr liest, aber jedes
 Mal wegscrollen muss. Erhalten geblieben ist seine einzige veränderliche Information, die
-Wochenangabe: Sie steht jetzt als `.wg-week` in der Kopfzeile der Wochenkarte, an den Zahlen,
-die sie datiert.
+Wochenangabe: Sie steht als `.wg-week` weiterhin da — erst in der Kopfzeile der damaligen
+Wochenkarte, vom 05. bis zum 06.09.2026 im Kartenfuß der zusammengelegten Karte, seither in
+deren Kopfzeile, an den Zahlen, die sie datiert.
 
 **Der Rest kommt aus totem Raum, nicht aus weggelassenen Aussagen.** Jede Zahl, jeder Balken
 und jeder Knopf steht unverändert da. Verkleinert wurden der 80-px-Fuß von `<main>`, der
@@ -587,7 +588,8 @@ offen und wird der Platz auch genutzt**. Mit `--gegenprobe`.
 ## Der Startreiter ist eine Karte (seit 05.09.2026)
 
 **Ein Rahmen statt zweier.** Bilddeckel oben, darunter links die Kalorien und rechts die
-Makros, im Kartenfuß die Woche, darunter die Knopfzeile. Vorher lagen hier zwei gleich große
+Makros, darunter die Knopfzeile. Der Kartenfuß mit der Woche ist am 06.09.2026 wieder
+entfallen (siehe unten). Vorher lagen hier zwei gleich große
 Zielkarten in einem Wisch-Streifen (`.wgbar` + `.wg-cols`); beide sind entfallen, ebenso
 `.wg-b`, `.wg-progress` und `.wg-open`. **`.wg-col` bleibt** — Gewichtskarte und Kalender im
 Fortschritt-Reiter benutzen sie.
@@ -615,32 +617,105 @@ Die Nährwerte im Deckel stehen in der **Kompaktform ohne „g“**, genau wie `
 streichen wäre falsch:** Die Balken darunter zeigen den *Tag*, der Deckel dieses *eine Gericht*.
 Zwei verschiedene Zahlen — die eine ersetzt die andere nicht.
 
-### Die Tagesreihe im Kartenfuß
+### Der Kartenfuß ist wieder entfallen (06.09.2026)
 
-**Sieben Punkte statt eines Fortschrittsbalkens.** „5 von 7“ liest man ohne zu zählen; die
-Punkte sagen zusätzlich, *welche* fehlen. Sie **ergänzen** die Zahl, sie ersetzen sie nicht —
-ein erster Entwurf ließ die Zahl weg und stand damit sehend schlechter da als vorher.
+**Er trug drei Aussagen gleichzeitig** — Zeitraum, welche Tage offen sind, Wochenbilanz in
+Kalorien — und war damit der überladenste Teil eines Reiters, der zeigen und nicht reden soll.
+Entfallen sind `weekFootHtml()`, die Tagesreihe (`.hm-days`, `.hm-day`) und die Zeile
+„X von 7 Tagen · 12.600 / 19.158 kcal“ (`.hm-zahl`), dazu `.hm-foot` und `.hm-foot-h`.
 
-**Die Bildsprache ist die des Fortschritt-Kalenders:** Akzentfarbe gefüllt heißt geplant,
-leerer Ring heißt offen, ein heller Rahmen heißt heute. Ein zweites Vokabular für dieselbe
-Aussage wäre genau der Fehler, den dieses Dokument für die Makros verbietet. Die
-Unterscheidung liegt in der **Form** (gefüllt gegen leer), nicht allein in der Farbe — sonst
-wäre sie bei 9 px mit einer Rot-Grün-Schwäche nicht zu treffen (WCAG 1.4.1).
+**Die Wochen-Kalorienbilanz fällt aus demselben Grund wie zuvor der zweite Kalorienring:**
+Entschieden wird auf Tagesebene. „12.600 von 19.158 kcal diese Woche“ ist keine Zahl, nach
+der jemand handelt.
 
-**Trainingstage sind ein zweiter Kanal, die Schriftfarbe** (`--train-strong`). Der Punkt sagt
-„geplant oder offen“, die Schrift sagt „Trainingstag“. Beides in eine Farbe zu legen wäre bei
-sieben 9-px-Punkten nicht mehr lesbar.
+**„Welcher Tag ist noch offen?“ beantwortet der Fortschritt-Reiter besser.** Sein Monatsgitter
+„Geplante Tage“ zeigt geplant/offen über Monate statt über sieben Punkte, und geplant wird
+ohnehin im Wochenplan. Die Tagesreihe war der Versuch, dieselbe Frage ein zweites Mal zu
+beantworten — nur kleiner.
 
-**Bewusst keine Knöpfe:** Der Startreiter zeigt, der Wochenplan bearbeitet.
+**Die Wochenangabe ist nicht mit entfallen.** Sie steht jetzt rechts in der Kopfzeile der
+Karte (`.wg-lbl`), links davon die Tagesangabe: zwei Zeitangaben in einer Zeile, getrennt
+durch **Abstand** (`margin-left: auto`) — nicht durch ein Zeichen und nicht durch Farbe. Auf
+schmalen Geräten bricht sie in eine eigene Zeile um und steht dort linksbündig.
 
-**Die Serie steht hier nicht.** Sie hat ihren Platz im Kalenderfuß des Fortschritt-Reiters, an
-dem Gitter, das sie zusammenfasst — auf Home wäre sie eine Kopie.
+⚠️ **Sie trägt `--text-muted`, nicht `--accent-strong`.** Bis zum 06.09.2026 stand sie in der
+Akzentfarbe; der `ux-reviewer` hat das als überladen gemeldet, und der Vergleich im Browser
+gab ihm recht: Zwei Zeitangaben, von denen eine in der Warn- und Akzentfarbe der App steht,
+konkurrieren um die Aufmerksamkeit — und die wichtigere von beiden ist die linke.
+
+**Verworfen wurde dabei die naheliegende Gegenmaßnahme**, sie in eine eigene kleinere Zeile
+mit Trennlinie zu setzen (der Gegenvorschlag des Prüfers). Am Handy war das die ruhigste
+Fassung, am Rechner läuft die Linie quer über die ganze Karte und liest sich wie ein
+Abschnittstrenner, obwohl sie nur ein Datum abtrennt — und sie kostet rund 30 px, die dem
+Bilddeckel abgehen. Drei Entwürfe standen dafür unter `plans/kopf-varianten/` zum Durchschalten
+im Browser nebeneinander.
+
+⚠️ **Keine `opacity` auf dieser Zeile.** Im Entwurf stand `.75`, und das war messbar falsch:
+Der Kontrast fällt damit auf **3,18:1** im Light-Theme (Dark 4,25) — unter die 4,5:1, die
+WCAG AA für Text unter 18,66 px fett verlangt. Ohne sie sind es 5,21:1 und 6,58:1. Eine
+Deckkraft ist kein Gestaltungsmittel für Text, der schon in einer gedämpften Farbe steht. **Sie muss bleiben**, und zwar aus drei Gründen: Der Reiter zeigt je nach
+`state.viewWeek` die laufende *oder* die nächste Woche; sie ist der einzige Aufrufer der
+Zahl-Variante von `weekLabel()`, an dem `tools/pruefstand-wochenbeschriftung.py` seine
+Gegenprobe abliest; und `tools/pruefstand-home-eine-seite.py` prüft `.wg-week` ausdrücklich.
+
+⚠️ **Das Leerzeichen vor `<span class="wg-week">` ist Absicht.** Ohne es stoßen die beiden
+Angaben im Textinhalt direkt aneinander, und eine Vorlesesoftware liest „SonntagWoche 37“.
+Reiner Leerraum zwischen Flex-Elementen wird nicht gerendert — am Layout ändert er nichts.
+
+**Auf flachen Geräten steht die Kopfzeile wieder da.** Sie war dort ausgeblendet, begründet
+damit, dass der Wochentag „5 Zeilen tiefer im Kartenfuß“ hell umrandet stehe. Mit dem Fuß ist
+diese Begründung entfallen — ohne die Zeile nennt der Reiter dort weder Tag noch Woche. Der
+Platz kommt aus derselben Änderung: Der Fuß gab auf 390×556 gemessene 47 px frei, die Zeile
+kostet 17.
+
+### Mobil: eine Kante statt drei (06.09.2026)
+
+**Beobachtung am Gerät:** Ring, Kennzahlen und beide Kopfzeilen klebten alle an der linken
+Kante, rechts daneben stand ein leeres Drittel. Die Kennzahlenspalte war zwar breit
+(`flex: 1`), ihr *Inhalt* aber kurz und linksbündig — „Grundbedarf" mit der Zahl darunter.
+
+**Zentrieren wäre die naheliegende Antwort gewesen und die schlechtere.** Die Makrobalken
+darunter laufen über die volle Breite; ein zentrierter Block darüber hätte zwei verschiedene
+Kanten erzeugt — im Vergleich nebeneinander sofort sichtbar. Genauso eine zentrierte
+Kopfzeile über linksbündigem Körper.
+
+**Stattdessen sprechen die Kennzahlen jetzt dieselbe Sprache wie die Balken:** Name links,
+Wert rechts, über die volle Breite (`.wg-stat` mit `justify-content: space-between`, der
+Textblock von Spalte auf Zeile). Die rechte Kante läuft dadurch durch die ganze Karte —
+`2.586` steht genau über `99 g übrig`. Nebenwirkung, die keine ist: einzeilig statt
+zweizeilig spart zusätzlich Höhe.
+
+**Nur mobil.** Am Rechner steht die Kennzahlenspalte *neben* dem Ring in einer Zeile, die
+sie sich mit den Makros teilt — dort wäre dieselbe Regel eine zweite Kante mitten im
+Kartenkörper.
+
+**Die Wochenangabe steht mobil links**, nicht rechts. Sie bricht dort ohnehin in eine eigene
+Zeile um, und `margin-left: auto` hätte sie als einziges Element dieser Zeile nach rechts
+gezogen — eine dritte Kante, direkt unter einer linksbündigen.
+
+### Der Ringinhalt muss in den Ring passen
+
+Bei 80 px Ring bleiben innen 59 px nutzbar, bei 72 px noch 54 (`r=32` in einer viewBox von
+78, abzüglich der Strichbreite). „Verbleibend" war mit 9,5 px und `.04em` Sperrung **58 px**
+breit — auf 80er-Ringen bündig ohne Reserve, auf 72er 4 px zu breit, links wie rechts über
+den Bogen hinaus.
+
+⚠️ **Gemeldet wurde das als „der Text wandert bei vierstelligen Zahlen in den Ring“ — die
+Zahl war es nicht.** `2.586` misst dort 40 px und hat 14 px Reserve. Es war immer das Wort,
+auch bei dreistelligen Zahlen; der vierstellige Fall hat es nur auffällig gemacht, weil dann
+oben und unten gleichzeitig eng aussieht. **Wer den gemeldeten Verdacht ungeprüft übernimmt,
+vergrößert hier den Ring und behebt nichts.**
+
+Jetzt 9 px ohne Sperrung: 51 px, also 8 px Reserve auf 80er- und 3 px auf 72er-Ringen.
+Kleiner geht nicht — der Zustand *muss* als Wort dastehen, der Bogen sagt ihn nur zusätzlich
+in Farbe. `tools/pruefstand-home-eine-seite.py` hält das seitdem nach.
 
 ### Trainingstag an der Karte
 
-**Drei Kennzeichen, nicht mehr vier (06.09.2026).** Geblieben sind: der blaue Faden an der
-Kartenkante (`.hm-card.is-train`, wie `.wg-col-training` im Wochenplan), die Wochentage im
-Kartenfuß (`.hm-day.is-train`) und der Zuschlag in der Kennzahlenliste.
+**Zwei Kennzeichen (Stand 06.09.2026).** Geblieben sind: der blaue Faden an der
+Kartenkante (`.hm-card.is-train`, wie `.wg-col-training` im Wochenplan) und der Zuschlag in
+der Kennzahlenliste. Das Badge `.wg-train` ist am selben Tag entfallen (unten), die
+Wochentage im Kartenfuß (`.hm-day.is-train`) mit dem Fuß selbst.
 
 **Das Badge `.wg-train` in der Kopfzeile ist entfallen** — mit seinem einzigen Aufrufer und
 seinen CSS-Regeln. Es war der einzige der vier Kanäle, der **nichts Eigenes** beitrug: Die
@@ -718,9 +793,17 @@ nicht verhandelbar sind, jeder von ihnen mit einem Messwert bezahlt:
   `flex-basis` (`clamp(96px, 20dvh, 300px)`) stand hier zuerst und war ein Denkfehler: Die
   Basis geht in die `min-content`-Höhe der Karte ein, und unter die darf die Karte nicht.
   Auf 390×556 blieb der Deckel dadurch auf 111 px stehen, obwohl 72 gereicht hätten.
-* **`.hm-body` und `.hm-foot` sind `flex: none`.** Als schrumpfbare Items wurden sie von
-  `overflow: hidden` der Karte lautlos abgeschnitten — auf 390×556 fehlten der Fett-Balken
-  und der komplette Kartenfuß. Nur der Deckel gibt nach.
+* **`.hm-body` ist `flex: none`.** Als schrumpfbares Item wurde es von `overflow: hidden`
+  der Karte lautlos abgeschnitten — auf 390×556 fehlten der Fett-Balken und der Kartenfuß
+  (den es inzwischen nicht mehr gibt). Nur der Deckel gibt nach.
+* **`.wrap` braucht `width: 100%`** — der fünfte Punkt, nachgetragen am 06.09.2026. `.wrap`
+  trägt `margin-inline: auto`, und ein Flex-Item mit einer Auto-Margin in der **Quer**achse
+  wird nicht gestreckt: Die Margin frisst den freien Platz zuerst. Seit `main` `display: flex`
+  trägt, war `#view` damit `fit-content` statt `max-width: 1120px`. Die Breite der Karte kam
+  also vom längsten unumbrechbaren Text darin, und das war ausgerechnet die Zahlenzeile des
+  Kartenfußes (`.hm-zahl`, `white-space: nowrap`) — gemessen **753 px statt 1080**. Beim
+  Wegfall des Fußes wären daraus 541 px geworden, mit den Makros unter statt neben den
+  Kalorien. **Eine Kartenbreite darf nicht am Wortlaut einer Fußzeile hängen.**
 * **Der Notausgang ist `overflow-y: auto` auf `<main>`** — und er gehört genau dorthin.
   Zuerst stand ein `min-height: min-content` auf `.app` dafür da; es tat nichts, weil ein
   Glied mit `min-height: 0` **null** zum `min-content` seines Elternteils beiträgt. Die Zeile,
@@ -736,7 +819,12 @@ deshalb `--tabbar-h + 12px`. **Dieser Wert ist kein Sparposten.**
 ### Was auf flachen Geräten weicht
 
 Unter 620 px Höhe (`@media (max-width: 680px) and (max-height: 620px)`) fehlten 47 px. Sie
-kommen aus Abständen, Ringgröße und Deckelhöhe — mit **einer** Ausnahme, die eine Aussage
-kostet: „Deine Ziele für heute · Samstag“ entfällt dort. Sie ist die entbehrlichste im Block,
-weil der Wochentag fünf Zeilen tiefer im Kartenfuß hell umrandet steht. Überall sonst bleibt
-sie. Die 44 px der Knopfzeile waren nie Teil der Rechnung.
+kommen aus Abständen, Ringgröße und Deckelhöhe — **ohne dass eine Aussage weicht**. Die 44 px
+der Knopfzeile waren nie Teil der Rechnung.
+
+**Die Kopfzeile war hier einmal ausgeblendet und ist am 06.09.2026 zurückgekehrt.** Begründet
+war ihr Wegfall damit, dass der Wochentag „fünf Zeilen tiefer im Kartenfuß“ hell umrandet
+stehe. Mit dem Kartenfuß ist diese Begründung entfallen: Ohne die Zeile nennt der Reiter auf
+flachen Geräten weder den Tag noch die Woche. Der Platz kommt aus derselben Änderung — der
+Fuß gab dort gemessene 47 px frei, die Zeile kostet 17. **Wer hier wieder kürzen muss, nimmt
+es nicht von dieser Zeile:** Sie ist die einzige Zeitangabe des Reiters.

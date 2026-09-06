@@ -943,9 +943,13 @@ Der Aufbau der Karte, von oben:
 | Baustein | Funktion | Was er zeigt |
 |---|---|---|
 | Bilddeckel | `nextMealHtml()` → `nextMealOfDay()` | das nächste anstehende Meal von **heute** |
-| Kalorien + Makros | `goalRingHtml()` | Ring, Grundbedarf/Ernährung/Training, drei Makrobalken |
-| Kartenfuß | `weekFootHtml()` | Woche, sieben Tagespunkte, `x von 7 Tagen` und kcal |
+| Kalorien + Makros | `goalRingHtml()` | Kopfzeile (Tag **und Woche**), Ring, Grundbedarf/Ernährung/Training, drei Makrobalken |
 | Knopfzeile | `.wg-actions` | `tune-goal`, `recalc-goal` |
+
+**Drei Bausteine, nicht mehr vier.** Der Kartenfuß (`weekFootHtml()`) mit Tagespunkten und
+`x von 7 Tagen · kcal` ist am 06.09.2026 entfallen — warum, steht in `docs/DESIGN.md`. Die
+Wochenangabe ist dabei in die Kopfzeile gewandert und bleibt damit der einzige Aufrufer der
+Zahl-Variante von `weekLabel()`.
 
 `nextMealOfDay()` sucht nach Uhrzeit — die Grenzen stehen hier, damit sie nicht nur im Code
 zu finden sind:
@@ -955,19 +959,43 @@ zu finden sind:
 | vor 10:00 | Frühstück |
 | 10:00–14:30 | Mittagessen |
 | 14:30–20:30 | Abendessen |
-| ab 20:30 | Snacks | Die Grenzen entscheiden nur, **wo die Suche beginnt** — findet sich
-ab dort kein belegter Slot, wird der erste offene gezeigt, und danach fängt die Suche vorne an.
-Die Karte trägt dadurch immer einen Deckel.
+| ab 20:30 | Snacks |
 
-**Die Rückwärtssuche bleibt im heutigen Tag** — sie springt nie auf morgen. Deshalb sagt das
-Etikett `vor` die Wahrheit: `true` heißt „Als Nächstes“ (steht noch an), `false` heißt „Heute“
-(war schon). Um 22 Uhr mit leeren Snacks und belegtem Frühstück steht dort also
-„Heute · Frühstück“, und das ist richtig: Es ist das Frühstück von heute.
+Die Grenzen entscheiden nur, **wo die Suche beginnt**, nie was möglich ist. Danach laufen vier
+Schritte, jeder mit eigenem Grund (Stand 06.09.2026):
+
+| # | Bedingung | Ergebnis |
+|---|---|---|
+| 1 | heute ab der Uhrzeit vorwärts | die erste **belegte** Mahlzeit → `wann: "heute"` |
+| 2 | heute ist etwas geplant, ab jetzt aber nichts mehr | der nächste **offene** Slot (ohne Snacks) |
+| 3 | heute ist **gar nichts** geplant, der Tag läuft noch | `meal: null` → „Noch nichts geplant" |
+| 4 | der Tag ist durch (ab 20:30) | die erste geplante Mahlzeit von **morgen** → `wann: "morgen"` |
+
+Die Funktion gibt bei vorhandenem Plan **nie `null`** zurück: Der Deckel ist die größte Fläche
+der Karte, er bleibt immer gefüllt. Der Rückfall ist derselbe Leerzustand wie Schritt 3.
+
+**Es gibt keine Rückwärtssuche mehr.** Bis zum 06.09.2026 suchte die Funktion ab der Uhrzeit
+vorwärts und danach *wieder von vorne*. Das klang harmlos und hieß in der Praxis: Ab dem
+Nachmittag zeigte die Karte Vergangenes — bei „nur Frühstück geplant" ab 11 Uhr den ganzen Tag
+das Frühstück von heute Morgen. Mit ihr ist auch das Etikett `vor` entfallen; an seine Stelle
+tritt `wann` (`"heute"` / `"morgen"` / `"leer"`), das die drei Zeilen des Bilddeckels steuert.
+
+**Snacks werden nie als offener Slot vorgeschlagen** (Schritt 2). Sie sind ein Zusatz, keine
+Lücke — und „Snacks noch offen" um 21 Uhr ist in einer App fürs Abnehmen keine Empfehlung.
+Sind Snacks *geplant*, zeigt Schritt 1 sie ganz normal.
+
+⚠️ **Plan und Tag von morgen kommen vom Aufrufer**, die Funktion rät sie nicht. Am Sonntag
+liegt „morgen" im Plan der **nächsten Woche**, und nur der Aufrufer (`weekGoalHtml`) weiß,
+welcher Wochenplan dazugehört: `DAYS` läuft Montag bis Sonntag, der Übertrag ist genau der
+letzte Eintrag.
+
+Nachgehalten wird die ganze Matrix Uhrzeit × Planzustand von
+`tools/pruefstand-als-naechstes.py`.
 
 **Gerechnet wird gegen den Plan der aktuellen Woche**, nicht gegen `state.plan`: „Heute“ bleibt
-heute, auch wenn der Wochenplan gerade auf nächste Woche zeigt. Aus demselben Grund setzt
-`weekFootHtml()` die Markierung „heute“ **nur** bei `state.viewWeek !== "next"` — ein Rahmen um
-einen Wochentag in einer Woche, die noch nicht ist, wäre eine Behauptung.
+heute, auch wenn der Wochenplan gerade auf nächste Woche zeigt. Die Wochenangabe in der
+Kopfzeile zieht dagegen sehr wohl mit (`weekLabel(state.viewWeek === "next" ? 1 : 0)`) — sie
+datiert die angezeigte Woche, nicht den heutigen Tag.
 
 Der leere Slot führt über `data-action="tab" data-tab="plan"` in den Wochenplan und **nicht**
 in den Picker: Der schreibt in `state.plan`, also in die *angezeigte* Woche — ein Meal für

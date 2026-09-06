@@ -18,8 +18,8 @@ Aufruf:
     python tools/pruefstand-home-eine-seite.py [pfad-zu-index.html]
     python tools/pruefstand-home-eine-seite.py --gegenprobe   # gegen den Stand VOR dem Umbau
 
-Die Gegenprobe faehrt denselben Messaufbau gegen HEAD~ (bzw. gegen den in
-GEGENPROBE_COMMIT genannten Stand) und MUSS durchfallen. Tut sie das nicht, misst der
+Die Gegenprobe faehrt denselben Messaufbau gegen den in GEGENPROBE_COMMIT genannten
+Stand - einen FESTEN Hash, nie HEAD - und MUSS durchfallen. Tut sie das nicht, misst der
 Pruefstand nicht das, was er zu messen vorgibt.
 """
 import io, json, os, re, shutil, subprocess, sys, tempfile
@@ -30,7 +30,14 @@ import quelle as pm_quelle
 
 EDGE = r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe"
 ANKER = '<meta charset="utf-8">'
-GEGENPROBE_COMMIT = "HEAD"   # der Stand VOR dem Umbau liegt im letzten Commit
+# Fester Hash, ausdruecklich NICHT "HEAD". Dort stand er bis zum 06.09.2026, und das
+# hielt genau bis zum naechsten Commit: Danach zeigte "HEAD" auf den bereits
+# reparierten Stand, die Gegenprobe lief gruen durch und meldete "der alte Stand
+# kommt durch" - der Pruefstand hatte seine eigene Kontrolle verloren, ohne dass es
+# jemandem auffiel. 36aa97c ist der Commit VOR "Der Startreiter fuellt den
+# Bildschirm": dort hat die Karte noch ihre feste Hoehe von 636px und laesst am
+# Desktop die 351px Leere stehen, an denen LEERE_MAX ihn scheitern laesst.
+GEGENPROBE_COMMIT = "36aa97c"
 
 # Name, Breite, Hoehe des CSS-Viewports, muss-passen
 #
@@ -166,6 +173,37 @@ GERAETE.forEach(function (g) {
         e.hatRing = !!d.querySelector(".wg-ring");
         e.hatMakros = d.querySelectorAll(".wg-macros .gm").length;
         e.hatWoche = !!d.querySelector(".wg-week");
+        // Passt der Inhalt des Rings ueberhaupt in den Ring?
+        //
+        // Der Bogen ist nur die Verstaerkung - die Aussage sind die Zahl und das Wort in
+        // seiner Mitte. Stehen sie ueber, ist das kein Schoenheitsfehler, sondern eine
+        // unlesbare Aussage auf einem gemusterten Grund.
+        //
+        // Gemessen wird der TEXT, nicht sein Kasten: .wg-c b ist ein Grid-Kind und damit
+        // immer so breit wie die Zelle - wer den Kasten misst, bekommt fuer jede Zahl
+        // dieselbe Breite und merkt nie etwas. Eine Range um den Textknoten liefert die
+        // tatsaechliche Laufweite.
+        //
+        // Der nutzbare Innenraum kommt aus dem SVG, nicht aus einer Konstante: r=32 in
+        // einer viewBox von 78, abzueglich der halben Strichbreite auf jeder Seite,
+        // skaliert auf die dargestellte Groesse. Eine hier eingetragene Zahl waere genau
+        // der Fehler, den dieser Pruefstand am 06.09.2026 schon einmal gemacht hat -
+        // Sollwert und Prueflich aus derselben Quelle.
+        var rg = d.querySelector(".wg-ring"), rb = d.querySelector(".wg-c b"),
+            rs = d.querySelector(".wg-c span"), rf = d.querySelector(".wg-fill");
+        e.ringUeber = 0; e.ringWas = "";
+        if (rg && rb && rs && rf) {
+          var rw = rg.getBoundingClientRect().width;
+          var sw = parseFloat(W2.getComputedStyle(rf).strokeWidth) || 8;
+          var innen = (64 - sw) / 78 * rw;
+          var breite = function (el) {
+            var r = d.createRange(); r.selectNodeContents(el);
+            return r.getBoundingClientRect().width;
+          };
+          var bz = breite(rb), bs = breite(rs);
+          if (bz - innen > e.ringUeber) { e.ringUeber = Math.round(bz - innen); e.ringWas = rb.textContent; }
+          if (bs - innen > e.ringUeber) { e.ringUeber = Math.round(bs - innen); e.ringWas = rs.textContent; }
+        }
         // Tippziele. Die Grenze haengt am Breakpoint, nicht an der Meinung:
         // Unter 681 px faehrt die App ihr Touch-Layout und css/mobil.css sagt dort
         // min-height:44px ausdruecklich zu - das wird hier nachgehalten. Darueber liegt
@@ -301,6 +339,9 @@ def bewerte(messungen, titel, alt=False):
         if not (e["hatRing"] and e["hatMakros"] == 3 and (alt or e["hatWoche"])):
             print(u"  FEHLER  " + marke + u"  Inhalt fehlt: Ring=%s Makrobalken=%d Wochenangabe=%s"
                   % (e["hatRing"], e["hatMakros"], e["hatWoche"])); bad += 1; continue
+        if e.get("ringUeber", 0) > 0:
+            print(u"  FEHLER  " + marke + u"  \"%s\" steht %dpx breiter als der Ring innen"
+                  u" Platz hat" % (e.get("ringWas", "?"), e["ringUeber"])); bad += 1; continue
         if e["kleineZiele"]:
             print(u"  FEHLER  " + marke + u"  Tippziel unter %dpx: %s"
                   % (e.get("grenze", 44), ", ".join(e["kleineZiele"]))); bad += 1; continue

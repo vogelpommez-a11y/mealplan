@@ -543,20 +543,32 @@
        streichen waere falsch: Die Balken darunter zeigen den TAG, nicht dieses Gericht. */
     .hm-facts .hm-mak { display: none; }
     .hm-body { padding: 8px 12px; }
-    .hm-foot { padding: 4px 12px; gap: 5px 8px; }
-    .hm-foot-h { display: none; }
-    /* Die sieben Tage rutschen unter die Zahl - zusammen sind das dieselben zwei Zeilen,
-       die vorher Text und Fortschrittsbalken belegten. */
-    .hm-days { gap: 6px; min-width: 0; flex: 1 1 100%; order: 2; }
-    .hm-day { gap: 4px; font-size: 9.5px; }
-    .hm-day i { width: 8px; height: 8px; box-shadow: inset 0 0 0 1.5px var(--border-strong); }
-    .hm-day.is-on i { box-shadow: none; }
-    .hm-day.is-today i { box-shadow: 0 0 0 1.5px var(--surface), 0 0 0 3px var(--text); }
-    .hm-zahl { order: 1; flex: 1 1 auto; font-size: 11.5px; }
     /* Die drei Kennzahlen neben dem Ring waren mit 150px hoeher als der Ring selbst (118)
        und bestimmten damit die Hoehe der ganzen Zeile. Enger gesetzt geben sie die Fuehrung
        an den Ring zurueck - ab da kostet jede weitere Kuerzung hier nichts mehr. */
     .week-nut .wg-stats { gap: 4px; }
+    /* Name links, Wert rechts - statt Wert UNTER dem Namen (06.09.2026).
+       Der Anlass war eine Beobachtung am Geraet: Ring, Kennzahlen und beide Kopfzeilen
+       klebten alle an der linken Kante, rechts daneben stand ein leeres Drittel. Die
+       Kennzahlenspalte war zwar breit (flex:1), ihr INHALT aber kurz und linksbuendig.
+
+       Zentrieren waere die naheliegende Antwort gewesen und die schlechtere: Die
+       Makrobalken darunter laufen ueber die volle Breite, ein zentrierter Block
+       darueber haette zwei verschiedene Kanten erzeugt. Stattdessen sprechen die
+       Kennzahlen jetzt DIESELBE Sprache wie die Balken - Name links, Zahl rechts,
+       durchgehende rechte Kante ueber die ganze Karte.
+
+       Nebenwirkung, die keine ist: einzeilig statt zweizeilig spart zusaetzlich Hoehe.
+       Nur mobil. Am Rechner steht die Spalte NEBEN dem Ring in einer Zeile, die von den
+       Makros geteilt wird - dort waere dieselbe Regel eine zweite Kante mitten im
+       Kartenkoerper. */
+    .week-nut .wg-stat { justify-content: space-between; gap: 8px; }
+    .week-nut .wg-stat-txt { flex: 1; display: flex; flex-direction: row;
+      align-items: baseline; justify-content: space-between; gap: 10px; }
+    /* Und die Wochenangabe wieder linksbuendig: Sie bricht hier ohnehin in eine eigene
+       Zeile um, und margin-left:auto haette sie dort als einziges Element nach rechts
+       gezogen - eine dritte Kante, direkt unter einer linksbuendigen Zeile. */
+    .week-nut .wg-week { margin-left: 0; }
     .week-nut .wg-stat-ic { width: 26px; height: 26px; border-radius: 8px; }
     .week-nut .wg-stat-ic svg { width: 15px; height: 15px; }
     .week-nut .wg-stat-txt small { font-size: 10.5px; line-height: 1.2; }
@@ -565,7 +577,18 @@
        kuerzer geworden sind. Die Zahl in der Mitte zieht mit, sonst stoesst sie an. */
     .week-nut .wg-ring, .week-nut .wg-ring svg { width: 80px; height: 80px; }
     .week-nut .wg-c b { font-size: 18px; }
-    .week-nut .wg-c span { font-size: 9.5px; }
+    /* Der Zustand als Wort MUSS in den Bogen passen - er ist die Aussage, die Farbe
+       verstaerkt sie nur (siehe .wg in css/basis.css).
+       Gemessen: Bei 80px Ring bleiben innen 59px, bei 72px noch 54. "Verbleibend" war
+       mit 9,5px und .04em Sperrung 58px breit - also auf 80px bündig ohne Reserve und
+       auf 72px 4px zu breit, links wie rechts ueber den Bogen hinaus.
+       Gemeldet wurde das als "der Text wandert bei vierstelligen Zahlen in den Ring".
+       Die ZAHL war es nicht: "2.586" misst hier 40px und hat 14px Reserve. Es war immer
+       das Wort, auch bei dreistelligen Zahlen - vierstellig fiel es nur auf, weil dann
+       oben und unten gleichzeitig eng aussieht.
+       9px ohne Sperrung ergeben 51px: 8px Reserve auf 80er-Ringen, 3px auf 72er.
+       tools/pruefstand-home-eine-seite.py haelt das jetzt nach. */
+    .week-nut .wg-c span { font-size: 9px; letter-spacing: 0; }
     .week-nut .wg-actions { margin-top: 4px; }
 
     /* Der Makrobalken auf zwei Zeilen statt drei. Es ist KEINE vierte Darstellungsform
@@ -616,7 +639,6 @@
     .week-nut .wg-actions { margin-top: 6px; }
     .hm-veil { padding: 16px 12px 6px; }
     .hm-body { padding: 8px 11px; }
-    .hm-foot { padding: 4px 11px; }
 
     /* ---- Flache Geraete, zweite Runde (06.09.2026) ----
        Seit der Startreiter den Bildschirm FUELLT statt ihn nur nicht zu ueberschreiten,
@@ -630,14 +652,13 @@
        Reserve, aus der man sich bedient. */
     .week-nut .hm-cover { flex: 1 1 72px; min-height: 66px; }
     .week-nut .hm-body { padding-block: 6px; }
-    .week-nut .hm-foot { padding-block: 4px; }
-    /* "Deine Ziele fuer heute · Samstag" faellt hier weg - als einzige Aussage im
-       ganzen Sparpaket. Sie ist an dieser Stelle die entbehrlichste: Dass es um heute
-       geht, sagt der Reiter selbst, und WELCHER Tag heute ist, steht 5 Zeilen tiefer
-       im Kartenfuss - dort ist SA hell umrandet. Die Zeile wiederholt also, was das
-       Gitter darunter ohnehin zeigt.
-       Nur unter 620px Hoehe. Ueberall sonst steht sie unveraendert da. */
-    .week-nut .wg-lbl { display: none; }
+    /* Die Kopfzeile stand hier bis zum 06.09.2026 auf display:none - begruendet damit,
+       dass WELCHER Tag heute ist "5 Zeilen tiefer im Kartenfuss" stehe, dort hell
+       umrandet. Mit dem Kartenfuss ist diese Begruendung entfallen: Ohne die Zeile
+       naeme der Reiter auf flachen Geraeten weder den Tag noch die Woche in den Mund.
+       Der Platz dafuer ist da, und zwar aus derselben Aenderung - der Fuss gab auf
+       390x556 gemessene 47px frei, die Zeile kostet 17. Wer hier wieder kuerzen muss,
+       nimmt es nicht von dieser Zeile: Sie ist die einzige Zeitangabe des Reiters. */
     .week-nut .wg-h { font-size: 15px; margin-bottom: 3px; }
     .week-nut .wg-row { gap: 10px; }
     .week-nut .wg-stats { gap: 5px; }

@@ -5826,6 +5826,10 @@ statt `min-height: 0` auf der Karte selbst: Sie darf schrumpfen, aber nie unter 
 sichtbarer Fehler, sondern ein stiller Verlust. Was eine Aussage trägt, gehört dort auf
 `flex: none`.
 
+*`.hm-foot` gibt es seit dem 06.09.2026 nicht mehr — der Kartenfuß ist entfallen (siehe
+Ziffer 156 und `docs/DESIGN.md`). Die Lehre gilt unverändert für `.hm-body` und für jedes
+Geschwister-Item, das dort einmal dazukommt.*
+
 ## 155. Der Abstand einer fixierten Leiste ist eine Untergrenze, kein Sparposten
 
 **Symptom:** Die Knopfzeile lag hinter der Tabbar — und blieb dort auch, nachdem der
@@ -5841,3 +5845,87 @@ Abstand der Kapsel vom Rand kennen und darf ihn nicht unterschreiten.
 
 **Verwandt:** Punkt 58 (feste Höhe im Wochenplan) und die Abschnitte zum Startreiter in
 `docs/DESIGN.md`.
+
+## 156. Ein Flex-Item mit Auto-Margin wird nicht gestreckt — die Breite kam vom längsten Text
+
+**Symptom:** Der Startreiter sah am Rechner richtig aus, war aber nur **753 px** breit statt
+der 1080, die `max-width: 1120px` hergibt. Aufgefallen ist es erst beim Entfernen des
+Kartenfußes: Danach schrumpfte die Karte auf **541 px**, die Makros rutschten unter die
+Kalorien und die Karte wurde 100 px höher. Ein Ausblenden per `display: none` reichte, um es
+auszulösen — die Vermutung „mein Messaufbau ist kaputt“ lag deshalb nahe und war falsch.
+
+**Ursache:** `.wrap` trägt `margin-inline: auto` zum Zentrieren. Seit `main` auf diesem Reiter
+`display: flex; flex-direction: column` ist, ist `.wrap` ein **Flex-Item**, und ein Flex-Item
+mit einer Auto-Margin in der **Quer**achse wird nicht gestreckt: Die Auto-Margin nimmt den
+freien Platz zuerst. `#view` war damit `fit-content`. Die Breite der Karte kam also vom
+längsten unumbrechbaren Text darin — und das war ausgerechnet `.hm-zahl` mit
+`white-space: nowrap` („6 von 7 Tagen · 12.600 / 19.158 kcal“).
+
+**Lösung:** `main:has(.week-nut) > .wrap { width: 100%; }`. `max-width` und die Auto-Margin
+wirken weiter, die Zentrierung bleibt.
+
+**Die Regel dahinter:** Ein zentrierter Container, der in einem Flex-Elternteil landet, hört
+auf zu strecken — ohne dass eine Zeile CSS an ihm geändert wurde. Wer `display: flex` an
+einem Elternteil einführt, prüft alle Kinder mit `margin: … auto` auf ihre Breite. Und die
+allgemeinere: **Eine Breite, die vom Wortlaut eines Textes abhängt, sieht so lange richtig
+aus, bis jemand den Text ändert.**
+
+**Verwandt:** Punkt 153 (`min-height: 0` macht `min-content` wertlos) und die Abschnitte zum
+Startreiter in `docs/DESIGN.md`.
+
+
+## 157. Der gemeldete Verdacht war falsch — nicht die Zahl stand über, das Wort
+
+**Symptom:** Gemeldet als „ab einer vierstelligen Zahl wandert der Text in den Ring hinein“.
+Auf dem Startreiter stehen in der Ringmitte die Restkalorien und darunter der Zustand als
+Wort („Verbleibend“ / „Drüber“).
+
+**Was die Messung ergab:** Die Zahl passt überall. `2.586` misst auf einem 72-px-Ring 40 px
+bei 54 px nutzbarem Innenraum — 14 px Reserve. Übergestanden ist immer **„Verbleibend“**:
+58 px bei 9,5 px Schrift und `.04em` Sperrung, also 4 px zu breit, links wie rechts über den
+Bogen hinaus. Und zwar unabhängig von der Zahl — auch bei dreistelligen. Der vierstellige
+Fall hat es nur auffällig gemacht, weil dann oben und unten gleichzeitig eng aussieht.
+
+**Lösung:** 9 px ohne Sperrung (51 px). Nicht: den Ring vergrößern — das hätte Höhe gekostet
+und den eigentlichen Überstand nicht beseitigt.
+
+**Warum die erste Messung nichts fand:** Sie nahm `getBoundingClientRect()` des `<b>`. Das
+ist ein Grid-Kind und damit immer so breit wie seine Zelle — für jede Zahl derselbe Wert.
+Erst eine `Range` um den Textknoten liefert die tatsächliche Laufweite.
+
+**Die Regel dahinter:** Ein Fehlerbericht nennt ein **Symptom**, keine Ursache. Wer den
+mitgelieferten Verdacht ungeprüft übernimmt, baut hier einen größeren Ring und behebt nichts
+— der Text stünde weiter über. Nachgehalten wird es seitdem in
+`tools/pruefstand-home-eine-seite.py`.
+
+**Verwandt:** Ziffer 156 (Breite am längsten Text) und `docs/DESIGN.md`, „Der Ringinhalt muss
+in den Ring passen“.
+
+
+## 158. Eine Karte namens „Als Nächstes“, die rückwärts zeigte
+
+**Symptom:** Der Bilddeckel des Startreiters zeigte ab dem Nachmittag Vergangenes. Bei „nur
+Frühstück geplant“ stand ab 11 Uhr den ganzen Tag „Heute · Frühstück“ — das Frühstück von
+heute Morgen. Bei vollem Plan ab 21 Uhr dasselbe. Zusätzlich schlug die Karte bei leerem Tag
+ab 20:30 **Snacks** vor.
+
+**Ursache:** `nextMealOfDay()` suchte ab der Uhrzeit vorwärts und danach *wieder von vorne*
+(`for (i = ab..) ; for (i = 0..ab)`). Der zweite Durchgang war als „die Karte trägt immer
+einen Deckel“ gedacht und dokumentiert — was er tatsächlich tat, stand nirgends: Er griff auf
+den Rest des Tages zurück, also auf Vergangenes.
+
+**Warum es niemandem auffiel:** Die Funktion hängt an der Uhrzeit. Wer sie um 14 Uhr ansieht,
+sieht nie, was sie um 21 Uhr tut. Gefunden wurde es erst, als die Matrix Uhrzeit × Planzustand
+einmal vollständig ausgerechnet wurde — 11 von 36 Feldern zeigten Vergangenes.
+
+**Lösung:** Keine Rückwärtssuche mehr. Stattdessen: heute vorwärts → offener Slot (ohne
+Snacks) → bei ganz leerem Tag *keine* Mahlzeit nennen → nach 20:30 die erste Mahlzeit von
+morgen. Nachgehalten von `tools/pruefstand-als-naechstes.py`.
+
+**Die Regel dahinter:** **Zeitabhängige Anzeigen brauchen eine Tabelle, keinen Blick.** Solange
+man sie nur zum Entwicklungszeitpunkt betrachtet, prüft man genau eine Spalte von vielen. Und:
+Ein Kommentar, der die *Absicht* eines Zweigs beschreibt („trägt immer einen Deckel“), ersetzt
+nicht die Frage, was der Zweig in jedem Zustand tatsächlich liefert.
+
+**Verwandt:** Ziffer 157 (der gemeldete Verdacht war nicht die Ursache) — auch hier war der
+gemeldete Fall („wer nie frühstückt“) nur ein Sonderfall eines größeren Fehlers.

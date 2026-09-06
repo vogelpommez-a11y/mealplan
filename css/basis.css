@@ -524,7 +524,15 @@
      der Container einfach mit - gemessen wurde die Karte dadurch sogar hoeher als vorher. */
   .app:has(.week-nut .hm-card) { height: 100dvh; }
   main:has(.week-nut) { flex: 1; display: flex; flex-direction: column; min-height: 0; overflow-y: auto; }
-  main:has(.week-nut) > .wrap { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+  /* width:100% ist Pflicht, keine Zierde. .wrap traegt margin-inline:auto, und ein
+     Flex-Item mit einer Auto-Margin in der QUERachse wird nicht gestreckt - die Margin
+     frisst den freien Platz zuerst. Seit main display:flex traegt, war #view damit
+     fit-content statt max-width:1120px: Die Breite der Karte kam vom laengsten
+     unumbrechbaren Text darin, und das war ausgerechnet die Zahlenzeile des Kartenfusses
+     (.hm-zahl, white-space:nowrap). Gemessen 753px statt 1080 - und beim Wegfall des
+     Fusses am 06.09.2026 waeren daraus 541px geworden, mit den Makros unter statt neben
+     den Kalorien. Eine Kartenbreite darf nicht am Wortlaut einer Fusszeile haengen. */
+  main:has(.week-nut) > .wrap { flex: 1; display: flex; flex-direction: column; min-height: 0; width: 100%; }
   .week-nut:has(.hm-card) { display: flex; flex-direction: column; flex: 1; min-height: 0; }
   /* min-content statt 0: Die Karte darf schrumpfen, aber NIE unter ihren eigenen
      Inhalt. Mit min-height:0 tat sie genau das - und weil .hm-card overflow:hidden
@@ -533,9 +541,9 @@
      also das Gegenteil des Notausgangs.
      Reicht der Platz nicht, ragt die Karte jetzt heraus und das Dokument scrollt. */
   .week-nut .hm-card { display: flex; flex-direction: column; flex: 1 1 auto; min-height: min-content; }
-  /* Nur der Deckel gibt nach. Zahlen und Wochenzeile sind die Aussage des Reiters -
-     sie schrumpfen nicht, sie bleiben. */
-  .week-nut .hm-body, .week-nut .hm-foot { flex: none; }
+  /* Nur der Deckel gibt nach. Die Zahlen sind die Aussage des Reiters - sie schrumpfen
+     nicht, sie bleiben. */
+  .week-nut .hm-body { flex: none; }
 
   /* Der Deckel nimmt, was die Zahlen uebrig lassen - und NUR das.
      Die flex-basis ist bewusst klein und fest. Ein clamp(96px, 20dvh, 300px) stand hier
@@ -558,7 +566,6 @@
      Ein Vierwert-padding hier haette sie ueberschrieben und die Karte auf dem Handy
      seitlich aufgeblasen. */
   .week-nut .hm-body { padding-block: clamp(8px, 1.7dvh, 28px); }
-  .week-nut .hm-foot { padding-block: clamp(5px, 1.1dvh, 18px); }
   .week-nut .wg-ring,
   .week-nut .wg-ring svg { width: clamp(92px, 15dvh, 176px); height: clamp(92px, 15dvh, 176px); }
   .week-nut .wg-c b { font-size: clamp(19px, 3.2dvh, 38px); }
@@ -634,38 +641,6 @@
 
   .hm-body { padding: 13px 16px; }
 
-  /* Der Kartenfuss: ruhiger als der Inhalt darueber - dunklerer Grund, Trennlinie,
-     kleinere Schrift. Untergeordnet, nicht versteckt. */
-  .hm-foot { display: flex; align-items: center; gap: 6px 14px; flex-wrap: wrap;
-    padding: 8px 16px; background: var(--surface); border-top: 1px solid var(--border); }
-  .hm-foot-h { font-family: var(--font-display); font-size: 10.5px; letter-spacing: .1em;
-    text-transform: uppercase; color: var(--text-muted); font-weight: 700; }
-  .hm-zahl { font-size: 12.5px; color: var(--text-muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
-  .hm-zahl b { color: var(--text); font-weight: 700; }
-
-  /* Die Tagesreihe. Bildsprache des Fortschritt-Kalenders: Akzentfarbe gefuellt heisst
-     geplant, leerer Ring heisst offen, ein heller Rahmen heisst heute. Ein zweites
-     Vokabular fuer dieselbe Aussage waere genau der Fehler, den DESIGN.md fuer die
-     Makros verbietet.
-
-     Die Unterscheidung liegt in der FORM (gefuellt gegen leer), nicht allein in der
-     Farbe - sonst waere sie bei 9 px mit einer Rot-Gruen-Schwaeche nicht zu treffen
-     (WCAG 1.4.1).
-
-     Trainingstage sind ein ZWEITER Kanal, die Schriftfarbe. Beides in eine Farbe zu
-     legen waere bei sieben 9-px-Punkten nicht mehr lesbar.
-
-     Bewusst keine Knoepfe: Der Startreiter zeigt, der Wochenplan bearbeitet. */
-  .hm-days { display: flex; align-items: center; gap: 10px; flex: 1 1 250px; min-width: 200px; }
-  .hm-day { display: flex; align-items: center; gap: 5px; flex: 1 1 0; min-width: 0;
-    font-family: var(--font-display); font-size: 10.5px; font-weight: 700;
-    letter-spacing: .04em; text-transform: uppercase; color: var(--text-muted); }
-  .hm-day i { flex: none; width: 9px; height: 9px; border-radius: 50%;
-    background: transparent; box-shadow: inset 0 0 0 2px var(--border-strong); }
-  .hm-day.is-on { color: var(--text); }
-  .hm-day.is-on i { background: var(--accent); box-shadow: none; }
-  .hm-day.is-today i { box-shadow: 0 0 0 2px var(--surface), 0 0 0 3.5px var(--text); }
-  .hm-day.is-train { color: var(--train-strong); }
   /* Ohne Ziel gibt es nur noch die Kalorien-Kachel - die frueheren Makro-Kacheln sind
      entfallen (siehe weekNutHtml), deshalb nur noch eine schmale Kachel statt Raster. */
   /* Kein max-width mehr: eine schmale 220px-Kachel wirkte neben der breiten Ring-Ansicht
@@ -720,14 +695,34 @@
   .wg-col-macros { flex: 1 1 220px; min-width: 200px; }
   /* Kleine Zeile ueber den grossen Ueberschriften: Zeitraum + Kennzeichen. */
   .wg-lbl { display: flex; align-items: center; flex-wrap: wrap; gap: 7px; font-family: var(--font-display); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--text-muted); font-weight: 700; }
-  /* Die Wochenangabe in derselben Zeile, abgesetzt durch Farbe statt durch eine eigene
-     Zeile: sie datiert die Karte, sie ueberschreibt sie nicht. Erbt Groesse und Versalien
-     von .wg-lbl - eine zweite Schriftgroesse hier waere eine dritte Hierarchiestufe in
-     einer 11-px-Zeile. */
-  /* Der Trenner davor ist am 05.09.2026 entfallen: Die Wochenangabe stand damals HINTER
-     "Deine Ziele fuer diese Woche" und brauchte ihn. Sie steht jetzt allein im Kartenfuss -
-     dort setzte er einen fuehrenden Punkt an den Zeilenanfang. */
-  .wg-week { color: var(--accent-strong); letter-spacing: .12em; }
+  /* Die Wochenangabe in derselben Zeile wie die Tagesangabe, abgesetzt durch ABSTAND -
+     nicht durch Farbe und nicht durch eine eigene Zeile. Sie datiert die Karte, sie
+     ueberschreibt sie nicht. Groesse und Versalien erbt sie von .wg-lbl; eine zweite
+     Schriftgroesse waere eine dritte Hierarchiestufe in einer 11-px-Zeile.
+
+     Bis zum 06.09.2026 stand sie hier in --accent-strong. Der ux-reviewer hat das als
+     ueberladen gemeldet, und der Vergleich im Browser gab ihm recht: Zwei Zeitangaben,
+     von denen eine in der Warn- und Akzentfarbe der App steht, konkurrieren um die
+     Aufmerksamkeit - und die wichtigere von beiden ist die linke.
+
+     Verworfen wurde dabei die naheliegende Gegenmassnahme, sie in eine eigene kleinere
+     Zeile mit Trennlinie zu setzen: Am Rechner laeuft diese Linie quer ueber die ganze
+     Karte und liest sich wie ein Abschnittstrenner, obwohl sie nur ein Datum abtrennt -
+     und sie kostet rund 30px, die dem Bilddeckel abgehen.
+
+     KEINE opacity. Im Entwurf stand hier .75, und das war messbar falsch: Der Kontrast
+     faellt damit auf 3,18:1 im Light-Theme (Dark 4,25) - unter die 4,5:1, die WCAG AA
+     fuer Text unter 18,66px fett verlangt. Ohne sie sind es 5,21:1 und 6,58:1. */
+  /* Kein ::before-Trenner. Er stammte aus der Zeit, als die Wochenangabe HINTER
+     "Deine Ziele fuer diese Woche" stand; im Kartenfuss stand sie dann allein und er
+     setzte einen fuehrenden Punkt an den Zeilenanfang. Seit dem 06.09.2026 steht sie
+     wieder in einer Zeile mit einer Tagesangabe - getrennt wird jetzt aber durch
+     Abstand, nicht durch ein Zeichen. */
+  /* margin-left:auto schiebt die Wochenangabe an das rechte Ende der Kopfzeile (.wg-lbl
+     ist ein Flex-Container). Links steht der Tag, rechts die Woche - zwei Zeitangaben in
+     einer Zeile, aber nicht ineinander. Bricht die Zeile um (schmale Karte), landet sie
+     als eigene Zeile darunter, die Margin stoert dort nicht. */
+  .wg-week { color: var(--text-muted); letter-spacing: .12em; margin-left: auto; }
   /* Grosse Ueberschrift "Kalorien"/"Makros" - traegt jetzt, was vorher eine kleine
      Eyebrow-Zeile war. Normale Gross-/Kleinschreibung wie im Vorbild, nicht Versalien. */
   .wg-h { font-family: var(--font-display); font-size: 21px; font-weight: 700; color: var(--text); margin: 0 0 14px; }

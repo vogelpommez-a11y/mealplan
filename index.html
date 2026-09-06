@@ -4405,7 +4405,9 @@
     // Wochenziel = Summe aller sieben Tagesziele. Bewusst summiert statt „Tagesziel x 7“:
     // mit Carb-Cycling unterscheiden sich Kohlenhydrate und Fett je Tagestyp, die Woche
     // haengt dann davon ab, WELCHE Tage Trainingstage sind. Dass ein Teil davon noch
-    // ungeplant ist, sagt das Kennzeichen „x von 7 Tagen geplant“.
+    // ungeplant sein kann, sagte bis zum 06.09.2026 das Kennzeichen „x von 7 Tagen geplant“
+    // im Kartenfuss. Das ist mit ihm entfallen; welche Tage offen sind, zeigt jetzt das
+    // Monatsgitter „Geplante Tage“ im Fortschritt-Reiter (siehe docs/DESIGN.md).
     const t = goalTargetsForDays(DAYS.map(d => d.key));
     // Nur noch Kalorien fuer die Woche - Kohlenhydrate/Protein/Fett ueber sieben Tage
     // aufsummiert war eine Zahl ohne Handlung: entschieden wird immer auf Tagesebene,
@@ -4420,7 +4422,7 @@
     // Meal. Der leere Zustand (keine Naehrwerte in der Woche) wird an weekGoalHtml durchgereicht;
     // die Diese-Woche-Karte wird dann zum Erklaerpanel statt zum Datenring, die Heute-Karte zeigt
     // bei Verzehr 0 die Ziele (Ring "Verbleibend" = volles Tagesziel, Makrobalken 0/Ziel).
-    if (t) return `<div class="week-nut">${weekGoalHtml(w, t)}</div>`;
+    if (t) return `<div class="week-nut">${weekGoalHtml()}</div>`;
     // Randfall ohne gespeichertes Ziel (die App fuehrt sonst ins Onboarding): nur bei
     // vorhandenen Naehrwerten die Kalorien-Kachel, sonst faellt der Bereich ganz weg.
     if (!hasNut(w)) return "";
@@ -4505,7 +4507,7 @@
   //
   // Der Aufbau links/rechts kommt unveraendert aus goalRingHtml(): Es baut genau diese
   // Zeile (.wg-col-cal + .wg-col-macros). Deshalb ist der Umbau hier klein geblieben.
-  function weekGoalHtml(w, t) {
+  function weekGoalHtml() {
     const d = DAYS.filter(x => x.key === todayDayKey())[0] || DAYS[0];
     const day = goalTargetsForDay(d.key);
     // Immer gegen den Plan der AKTUELLEN Woche rechnen, auch wenn state.plan gerade
@@ -4522,7 +4524,24 @@
     // der einzige der vier, der nichts Eigenes beitrug; die Kennzahl sagt dasselbe und
     // nennt zusaetzlich den Wert. Dazu stand er am Ende einer reinen Zeitangabe
     // ("Deine Ziele fuer Heute · Sonntag") und hatte dort keinen inhaltlichen Nachbarn.
-    const dayHeadHtml = `Deine Ziele für Heute · ${esc(d.label)}`;
+    // Die Wochenangabe stand bis zum 06.09.2026 im Kartenfuss (.hm-foot-h). Mit dessen
+    // Wegfall waere sie ersatzlos verschwunden - und das waere gleich dreifach falsch
+    // gewesen: Der Reiter zeigt je nach state.viewWeek die laufende ODER die naechste
+    // Woche, ohne die Angabe waere nicht zu sehen welche. Dazu ist dies der EINZIGE
+    // Aufrufer der Zahl-Variante von weekLabel(), an dem
+    // tools/pruefstand-wochenbeschriftung.py seine Gegenprobe zu TROUBLESHOOTING 112
+    // abliest - ohne ihn prueft der Pruefstand nur noch die halbe Funktion und meldet
+    // trotzdem gruen.
+    //
+    // Die Kopfzeile ist ihr richtiger Ort: Dort steht ohnehin die Zeitangabe des Reiters
+    // ("Heute · Sonntag"), die Woche ist dieselbe Sorte Information eine Stufe groeber.
+    //
+    // Das Leerzeichen vor dem span ist kein Schoenheitsfehler: Sichtbar trennt margin-left
+    // die beiden Angaben, im Textinhalt aber stiessen sie ohne es direkt aneinander -
+    // eine Vorlesesoftware las "Sonntag Woche 37" als "SonntagWoche 37". Reiner Leerraum
+    // zwischen Flex-Elementen wird nicht gerendert, das Layout aendert sich also nicht.
+    const dayHeadHtml = `Deine Ziele für Heute · ${esc(d.label)} `
+      + `<span class="wg-week">${weekLabel(state.viewWeek === "next" ? 1 : 0)}</span>`;
     // Grundziel/Training aufgeteilt statt fertig addiert (siehe goalRingHtml).
     const rest1 = goalTargets(1);
     // Rechte Spalte: die Makros. Im Leerzustand stehen alle Balken auf 0/Ziel und sagen
@@ -4541,43 +4560,90 @@
     // Der Reiter beantwortet "wie steht meine Woche?", geplant wird im Wochenplan.
     const recalcLink = `<button type="button" class="btn ghost sm wg-recalc" data-action="tune-goal" title="Ziel anpassen" aria-label="Ziel anpassen">${ACT_ICONS.edit}<span>Anpassen</span></button>`
       + `<button type="button" class="btn ghost sm wg-recalc" data-action="recalc-goal" title="Ziele neu berechnen" aria-label="Ziele neu berechnen">${TOOL_ICONS.recalc}<span>Neu berechnen</span></button>`;
+    // Morgen - und am Sonntag ist das der Montag der NAECHSTEN Woche. DAYS laeuft von
+    // Montag bis Sonntag, der Uebertrag ist also genau der letzte Eintrag.
+    const dIdx = DAYS.findIndex(x => x.key === d.key);
+    const morgenKey = DAYS[(dIdx + 1) % DAYS.length].key;
+    const morgenPlan = dIdx === DAYS.length - 1
+      ? (state.plans[weekKeyFor("next")] || makeEmptyPlan())
+      : curPlan;
     return `<div class="hm-card${isTrainingDay(d.key) ? " is-train" : ""}">
-        ${nextMealHtml(curPlan, d)}
+        ${nextMealHtml(curPlan, d, morgenPlan, morgenKey)}
         <div class="hm-body">${goalRingHtml(s.kcal, rest1.kcal, dayTrainAdd, dayHeadHtml, dayRight, "Grundbedarf", dayTrainAdd > 0 ? trLbl : "")}</div>
-        ${weekFootHtml(w, t)}
       </div>
       <div class="wg-actions">${recalcLink}</div>`;
   }
 
-  // Der Bilddeckel: das naechste anstehende Meal von HEUTE.
+  // Der Bilddeckel: was als Naechstes ansteht.
   //
-  // Die Uhrzeitgrenzen sind bewusst grob und nicht einstellbar - sie entscheiden nur, WO die
-  // Suche beginnt, nie was moeglich ist. Findet sich ab dort kein belegter Slot, wird der
-  // erste OFFENE gezeigt; ist auch der nicht da, faengt die Suche vorne an. So traegt die
-  // Karte immer einen Deckel, egal wie der Tag steht.
-  function nextMealOfDay(plan, dayKey) {
+  // Bis zum 06.09.2026 suchte die Funktion ab der Uhrzeit vorwaerts und danach WIEDER VON
+  // VORNE. Das klang harmlos und hiess in der Praxis: Ab dem Nachmittag zeigte die Karte
+  // Vergangenes. Wer nur ein Fruehstueck geplant hatte, sah ab 11 Uhr den ganzen Tag
+  // "Heute - Fruehstueck" - das Fruehstueck von heute Morgen. Bei vollem Plan stand ab
+  // 21 Uhr dasselbe. Eine Karte, die "Als Naechstes" ueberschrieben ist, darf nicht
+  // rueckwaerts zeigen.
+  //
+  // Die Reihenfolge jetzt, und jeder Schritt hat einen Grund:
+  //
+  //   1. heute ab der Uhrzeit vorwaerts: die erste BELEGTE Mahlzeit.
+  //   2. ist heute schon etwas geplant, aber ab jetzt nichts mehr: der naechste OFFENE
+  //      Slot. Das ist eine sinnvolle Aufforderung - der Tag ist angefangen, hier fehlt
+  //      noch etwas. Snacks sind davon ausgenommen: Sie sind ein Zusatz, keine Luecke.
+  //   3. ist fuer heute GAR NICHTS geplant, wird KEINE Mahlzeit genannt. Das war der
+  //      gemeldete Fall: Wer nie fruehstueckt, sah morgens dauerhaft "Fruehstueck noch
+  //      offen" - eine Aufforderung zu etwas, das er nie tut. Die App kann nicht wissen,
+  //      welche Mahlzeit er will, also behauptet sie keine.
+  //   4. ist der Tag zeitlich durch (ab 20:30), zeigt die Karte die erste geplante
+  //      Mahlzeit von MORGEN. Am Sonntag ist das der Montag der NAECHSTEN Woche - deshalb
+  //      bekommt die Funktion Plan und Tag von morgen uebergeben statt sie selbst zu
+  //      raten; nur der Aufrufer weiss, welcher Wochenplan dazugehoert.
+  //
+  // Ab 20:30 faellt Schritt 2 bewusst weg (`ab < 3`): Ein noch offenes Abendessen wird
+  // dann nicht mehr angeboten, die Karte schaut auf morgen. Das ist eine Abwaegung und
+  // keine Selbstverstaendlichkeit - wer spaet trainiert, isst auch spaet zu Abend, und
+  // fuer den waere "Abendessen noch offen" um 21 Uhr nuetzlicher als "Morgen -
+  // Fruehstueck". Dagegen steht: Ab dieser Uhrzeit ist die Mahlzeit in aller Regel
+  // gegessen oder faellt aus, und eine Aufforderung, jetzt noch das Abendessen zu planen,
+  // waere in einer App fuers Abnehmen die schlechtere Empfehlung. Wer das anders
+  // entscheidet, aendert diese eine Bedingung - und muss dann auch den Startpunkt der
+  // Schleife zuruecksetzen, sonst sucht sie ab den Snacks und findet nichts.
+  //   5. sonst der Leerzustand. Die Funktion gibt nie null zurueck, wenn ein Plan da ist:
+  //      Die Karte traegt immer einen Deckel, er ist ihre groesste Flaeche.
+  //
+  // Die Uhrzeitgrenzen sind bewusst grob und nicht einstellbar - sie entscheiden nur, WO
+  // die Suche beginnt, nie was moeglich ist.
+  function nextMealOfDay(plan, dayKey, morgenPlan, morgenKey) {
     const day = (plan && plan[dayKey]) || {};
     const jetzt = new Date();
     const h = jetzt.getHours() + jetzt.getMinutes() / 60;
     const ab = h < 10 ? 0 : h < 14.5 ? 1 : h < 20.5 ? 2 : 3;
-    const reihen = [];
-    for (let i = ab; i < MEALS.length; i++) reihen.push(i);
-    for (let i = 0; i < ab; i++) reihen.push(i);
-    for (const i of reihen) {
+    for (let i = ab; i < MEALS.length; i++) {
       const ids = day[MEALS[i].key] || [];
-      for (const id of ids) { const r = getRecipe(id); if (r) return { meal: MEALS[i], r: r, vor: i >= ab }; }
+      for (const id of ids) { const r = getRecipe(id); if (r) return { meal: MEALS[i], r: r, wann: "heute" }; }
     }
-    for (const i of reihen) if (!(day[MEALS[i].key] || []).length) return { meal: MEALS[i], r: null, vor: i >= ab };
-    return null;
+    const tagHatWas = MEALS.some(m => (day[m.key] || []).length);
+    if (tagHatWas && ab < 3) {
+      for (let i = ab; i < MEALS.length; i++) {
+        if (MEALS[i].key === "sn") continue;
+        if (!(day[MEALS[i].key] || []).length) return { meal: MEALS[i], r: null, wann: "heute" };
+      }
+    }
+    if (!tagHatWas && ab < 3) return { meal: null, r: null, wann: "leer" };
+    const md = (morgenPlan && morgenPlan[morgenKey]) || {};
+    for (let i = 0; i < MEALS.length; i++) {
+      const ids = md[MEALS[i].key] || [];
+      for (const id of ids) { const r = getRecipe(id); if (r) return { meal: MEALS[i], r: r, wann: "morgen" }; }
+    }
+    return { meal: null, r: null, wann: "leer" };
   }
 
-  function nextMealHtml(plan, d) {
-    const n = nextMealOfDay(plan, d.key);
+  function nextMealHtml(plan, d, morgenPlan, morgenKey) {
+    const n = nextMealOfDay(plan, d.key, morgenPlan, morgenKey);
     if (!n) return "";
     const r = n.r;
-    // Leerer Slot: der Deckel fuehrt in den WOCHENPLAN, nicht direkt in den Picker. Der
-    // Picker schreibt in state.plan - das ist die ANGEZEIGTE Woche, und die kann gerade die
-    // naechste sein. Ein Meal fuer "heute" landete dann sieben Tage daneben.
+    // Leerer Slot ODER gar nichts geplant: der Deckel fuehrt in den WOCHENPLAN, nicht in
+    // den Picker. Der schreibt in state.plan - das ist die ANGEZEIGTE Woche, und die kann
+    // gerade die naechste sein. Ein Meal fuer "heute" landete dann sieben Tage daneben.
     const ziel = r ? `data-action="view" data-id="${esc(r.id)}"` : `data-action="tab" data-tab="plan"`;
     const bild = r ? photoFor(r) : PHOTOS.neutral;
     const nut = r ? recipeNut(r) : null;
@@ -4588,60 +4654,44 @@
         + `<span class="hm-mak"><b>${nfmt(nut.carbs)}</b> KH</span><span class="hm-mak"><b>${nfmt(nut.protein)}</b> P</span><span class="hm-mak"><b>${nfmt(nut.fat)}</b> F</span>`
         + (r.time ? `<span class="hm-mak"><b>${nfmt(r.time)}</b> Min.</span>` : "")
       : `<span class="hm-kcal">Im Wochenplan eintragen</span>`;
+    // Drei Zustaende, drei Zeilen. Der Punkt traegt die Farbe des Slots; ohne Slot gibt es
+    // keinen Punkt - er faerbte sonst eine Aussage ein, die keine Mahlzeit meint.
+    const eyebrow = !n.meal
+      ? `Heute`
+      : `<span class="hm-dot t-${n.meal.key}"></span>${n.wann === "morgen" ? "Morgen" : "Als Nächstes"} · ${esc(n.meal.label)}`;
+    const titel = !n.meal
+      ? "Noch nichts geplant"
+      : (r ? esc(r.name) : esc(n.meal.label) + " noch offen");
     return `<button type="button" class="hm-cover" ${ziel}>
           <img src="${bild}" alt="${r ? esc(r.name) : ""}">
           <span class="hm-veil">
-            <span class="hm-eyebrow"><span class="hm-dot t-${n.meal.key}"></span>${n.vor ? "Als Nächstes" : "Heute"} · ${esc(n.meal.label)}</span>
-            <span class="hm-name">${r ? esc(r.name) : esc(n.meal.label) + " noch offen"}</span>
+            <span class="hm-eyebrow">${eyebrow}</span>
+            <span class="hm-name">${titel}</span>
             <span class="hm-facts">${fakten}</span>
           </span>
         </button>`;
   }
 
-  // Der Kartenfuss: die Woche. Sieben Punkte statt eines Fortschrittsbalkens - "5 von 7"
-  // liest man ohne zu zaehlen, die Punkte sagen zusaetzlich, WELCHE fehlen.
+  // Der Kartenfuss ist am 06.09.2026 entfallen - mit ihm weekFootHtml(), die Tagesreihe
+  // (.hm-days) und die Zeile "X von 7 Tagen · 12.600 / 19.158 kcal" (.hm-zahl).
   //
-  // Die Bildsprache ist die des Fortschritt-Kalenders: Akzentfarbe gefuellt heisst geplant,
-  // leerer Ring heisst offen, ein heller Rahmen heisst heute. Ein zweites Vokabular fuer
-  // dieselbe Aussage waere genau der Fehler, den docs/DESIGN.md fuer die Makros verbietet.
-  // Die Unterscheidung liegt in der FORM (gefuellt gegen leer), nicht allein in der Farbe -
-  // sonst waere sie bei 9 px mit einer Rot-Gruen-Schwaeche nicht zu treffen (WCAG 1.4.1).
+  // Der Grund ist nicht Platz, sondern Ueberladung: Auf dem Reiter standen damit vier
+  // Bausteine uebereinander, und der unterste trug drei Aussagen gleichzeitig (Zeitraum,
+  // welche Tage offen sind, Wochenbilanz in Kalorien).
   //
-  // Trainingstage sind ein ZWEITER Kanal, die Schriftfarbe. Beides in eine Farbe zu legen
-  // waere bei sieben 9-px-Punkten nicht mehr lesbar.
+  // Die Wochen-Kalorienbilanz faellt aus demselben Grund wie zuvor der zweite Kalorienring:
+  // Entschieden wird auf Tagesebene, "12.600 von 19.158 kcal diese Woche" ist keine Zahl,
+  // nach der jemand handelt. Und "welcher Tag ist noch offen?" beantwortet der
+  // Fortschritt-Reiter mit dem Monatsgitter "Geplante Tage" staerker, weil ueber Monate
+  // statt ueber sieben Punkte - geplant wird ohnehin im Wochenplan, nicht hier.
   //
-  // Bewusst keine Knoepfe: Der Startreiter zeigt, der Wochenplan bearbeitet.
+  // Die Wochenangabe ist NICHT mit entfallen, sie steht jetzt in der Kopfzeile der Karte
+  // (siehe dayHeadHtml in weekGoalHtml) - warum, steht dort.
   //
-  // Die SERIE steht hier NICHT. Sie hat ihren Platz im Kalenderfuss des Fortschritt-Reiters,
-  // an dem Gitter, das sie zusammenfasst - hier waere sie eine Kopie.
-  function weekFootHtml(w, t) {
-    // "Heute" gibt es nur in der laufenden Woche. Zeigt der Reiter die NAECHSTE, waere der
-    // Rahmen um den Wochentag eine Behauptung ueber einen Tag, der noch nicht ist - und die
-    // Punkte daneben zaehlen dann ohnehin einen anderen Zeitraum.
-    const heute = state.viewWeek === "next" ? null : todayDayKey();
-    const geplant = {};
-    DAYS.forEach(x => { geplant[x.key] = hasNut(dayNut(x.key)); });
-    const anzahl = DAYS.filter(x => geplant[x.key]).length;
-    const offen = DAYS.filter(x => !geplant[x.key]).map(x => x.label);
-    const tage = DAYS.map(x => {
-      const kl = ["hm-day"];
-      if (geplant[x.key]) kl.push("is-on");
-      if (isTrainingDay(x.key)) kl.push("is-train");
-      if (x.key === heute) kl.push("is-today");
-      const tt = `${x.label} – ${geplant[x.key] ? "geplant" : "offen"}${isTrainingDay(x.key) ? ", Trainingstag" : ""}`;
-      return `<span class="${kl.join(" ")}" title="${esc(tt)}"><i></i>${esc(x.short)}</span>`;
-    }).join("");
-    const lbl = `Diese Woche: ${anzahl} von 7 Tagen geplant${offen.length ? ", offen sind " + offen.join(" und ") : ""}`;
-    return `<div class="hm-foot">
-          <div class="hm-foot-h"><span class="wg-week">${weekLabel(state.viewWeek === "next" ? 1 : 0)}</span></div>
-          <div class="hm-days" role="group" aria-label="${esc(lbl)}">${tage}</div>
-          <div class="hm-zahl"><b>${anzahl} von 7 Tagen</b> · <b>${nfmt(w.kcal)}</b> / ${nfmt(t.kcal)} kcal</div>
-        </div>`;
-  }
-  // animateProgressCount() und lastShownPlanned sind am 05.09.2026 entfallen. Sie zaehlten
-  // "X von 7 Tagen geplant" im Fortschrittsbalken der frueheren Wochen-Zielkarte weich hoch.
-  // Mit der Karte ist der Balken weg: Der Kartenfuss zeigt die sieben Tage jetzt als Punkte,
-  // und eine Zahl, die man ohne Zaehlen liest, braucht keine Zaehlanimation.
+  // animateProgressCount() und lastShownPlanned sind schon am 05.09.2026 entfallen. Sie
+  // zaehlten "X von 7 Tagen geplant" im Fortschrittsbalken der frueheren Wochen-Zielkarte
+  // weich hoch; erst wurde daraus eine Punktreihe, jetzt gibt es die Aussage auf diesem
+  // Reiter gar nicht mehr.
   // Wochentag von heute – geteilt von der Uebersicht und der „Heute“-Markierung im Plan.
   function todayDayKey() { return ["sun", "mon", "tue", "wed", "thu", "fri", "sat"][new Date().getDay()]; }
 
