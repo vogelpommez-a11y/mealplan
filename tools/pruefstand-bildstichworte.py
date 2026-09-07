@@ -72,6 +72,7 @@ teile = [
     # erscheinen, sonst behauptet die App etwas Falsches ueber dessen Bild.
     schnitt(seite, "  function istEigenesFoto("),
     schnitt(seite, "  function bildHinweisHtml("),
+    schnitt(seite, "  function bildAlt("),
     schnitt(seite, "  function syncBildHinweis("),
 ]
 code = "\n\n".join(teile)
@@ -308,6 +309,14 @@ function fuer(name, kategorie) {
   syncBildHinweis(attrappe, { name: "Schnitzel" });
   pruef("Foto entfernen holt ihn zurueck",
     attrappe.querySelector(".ms-bildhinweis").hidden, false);
+
+  // Der Alt-Text traegt dieselbe Auskunft - sonst erfaehrt sie nur, wer sehen kann.
+  pruef("Alt-Text eines mitgelieferten Bildes nennt Symbolbild und KI",
+    bildAlt({ name: "Schnitzel mit Pommes" }), "Schnitzel mit Pommes (Symbolbild, KI-generiert)");
+  pruef("Alt-Text beim eigenen Foto bleibt der blosse Name",
+    bildAlt({ name: "Mein Abendessen", image: EIGENES }), "Mein Abendessen");
+  pruef("ohne Namen bleibt der Alt-Text trotzdem aussagekraeftig",
+    bildAlt({}), "Symbolbild, KI-generiert");
   // Ein Bild, das safeImage verwirft, ist kein gueltiges eigenes Foto - dann zeigt die
   // Ansicht wieder eines von uns, und der Hinweis muss zurueckkommen.
   pruef("ein verworfenes eigenes Bild bekommt den Hinweis zurueck",

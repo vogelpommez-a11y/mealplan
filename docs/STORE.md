@@ -250,12 +250,24 @@ gleich:
   überwiegend zur Kennzeichnung geraten. **Hier ist die Antwort offen**, und sie wird
   wichtiger, sobald Rezepte hinter Pro liegen.
 
+**Was die Wettbewerbszentrale dazu sagt** — und die ist hier die praktisch wichtigste
+Stimme, weil sie nicht bewertet, sondern abmahnt: Sie rät, „abstrakt ähnliche
+Darstellungen“ zu kennzeichnen, „wenn betrachtende Personen sie für authentisch halten
+könnten“, und zwar ausdrücklich „bis zur gerichtlichen Klärung“. Fotorealistische
+Produktbilder nennt sie als Beispiel. Unsere Bilder sind fotorealistisch.
+
+**Das ist der eigentliche Grund für die Kennzeichnung** — nicht das Bußgeld. Ein Verstoß
+gegen Art. 50 gilt überwiegend zugleich als Verstoß gegen eine Marktverhaltensregel nach
+§ 3a UWG. Dann können **Mitbewerber und Wirtschaftsverbände abmahnen**, ohne dass je eine
+Behörde tätig wird. Höchstrichterlich geklärt ist auch das noch nicht.
+
 Beide tragen denselben Hinweis — die Unterscheidung ändert nichts an der Umsetzung, wohl
 aber daran, wie sicher die Begründung ist. Wer hier später etwas weglässt, sollte wissen,
 dass er es beim zweiten Fall auf einer dünneren Grundlage tut.
 
 **Trotzdem wird gekennzeichnet**, sichtbar an der großen Meal-Ansicht:
-`Symbolbild · KI-generiert` (`bildHinweisHtml()` in `index.html`). Zwei Gründe:
+`Symbolbild · KI-generiert` (`bildHinweisHtml()`) — und im **Alt-Text** des Bildes
+(`bildAlt()`), damit die Auskunft nicht nur bekommt, wer sehen kann. Zwei Gründe:
 
 1. **Falls** ein Gericht „Gegenständen“ weiter auslegt, ist die Pflicht bereits erfüllt —
    und zwar am richtigen Ort. Art. 50 Abs. 5 verlangt die Angabe „klar und eindeutig,

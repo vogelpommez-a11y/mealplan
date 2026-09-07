@@ -3573,9 +3573,17 @@
   // Nach einem Fotowechsel im Bearbeiten-Zweig: Das Bild tauscht, ohne dass die Ansicht
   // neu gebaut wird - der Hinweis muss mit. Dieselbe Bedingung wie oben, damit die beiden
   // nicht auseinander laufen koennen.
+  // Der Alt-Text eines grossen Bildes. Bei einem mitgelieferten Bild traegt er dieselbe
+  // Auskunft wie der sichtbare Hinweis - sonst erfaehrt sie nur, wer sehen kann.
+  function bildAlt(r) {
+    const n = esc(r.name || "");
+    return istEigenesFoto(r) ? n : (n ? n + " (Symbolbild, KI-generiert)" : "Symbolbild, KI-generiert");
+  }
   function syncBildHinweis(node, r) {
     const p = node.querySelector(".ms-bildhinweis");
     if (p) p.hidden = istEigenesFoto(r);
+    const bild = node.querySelector(".ms-photo img");
+    if (bild) bild.alt = bildAlt(r);
   }
   // Bewertet die Makro-Verteilung ueber den Kalorienanteil (Protein/Kohlenhydrate x4,
   // Fett x9) und liefert 0 bis 2 Badges fuer die Meal-Karte: ein Haupt-Badge fuer das
@@ -3610,7 +3618,7 @@
       : "";
     // Keine Kategorie-Chip mehr im Bild: die Karten stehen bereits unter ihrer
     // Kategorie-Ueberschrift gruppiert - die Angabe war doppelt.
-    return `<div class="rimg has-photo">${badges}<img class="rphoto" src="${photoFor(r)}" alt="${esc(r.name)}" loading="lazy"></div>`;
+    return `<div class="rimg has-photo">${badges}<img class="rphoto" src="${photoFor(r)}" alt="${bildAlt(r)}" loading="lazy"></div>`;
   }
   // eager: NUR der Plan-Slot uebergibt true (siehe renderPlan()) - dort sind es hoechstens
   // 21 winzige Thumbnails, alle sofort im Blickfeld. loading="lazy" verschiebt dort selbst
@@ -7600,7 +7608,7 @@
           ${ausBuch ? "" : `<button type="button" class="btn ghost icon-gh on-photo" data-share title="Meal teilen" aria-label="Meal teilen">${TOOL_ICONS.share}</button>`}
           <button type="button" class="btn ghost icon-gh on-photo" data-close aria-label="Schließen">✕</button>
         </div>
-        <div class="ms-photo has-photo"><img src="${photoFor(r)}" alt="${esc(r.name)}"></div>
+        <div class="ms-photo has-photo"><img src="${photoFor(r)}" alt="${bildAlt(r)}"></div>
         <div class="modal-body">
           ${bildHinweisHtml(r)}
           <div class="ms-head"><h3 class="ms-title">${esc(r.name)}</h3><span class="chip ${cls}">${esc(r.category || "Gericht")}</span></div>
@@ -7665,7 +7673,7 @@
         <button type="button" class="btn ghost icon-gh on-photo" data-close aria-label="Schließen">✕</button>
       </div>
       <div class="ms-photo has-photo">
-        <img src="${photoFor(initial)}" alt="${esc(initial.name || "")}">
+        <img src="${photoFor(initial)}" alt="${bildAlt(initial)}">
         <div class="ms-photobar">
           <button type="button" class="ms-photobtn" data-photo-remove${isOwnPhoto ? "" : " hidden"}>Foto entfernen</button>
           <button type="button" class="ms-photobtn" data-photo>${isOwnPhoto ? "Foto ändern" : "Foto wählen"}</button>
