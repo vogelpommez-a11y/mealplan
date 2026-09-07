@@ -771,11 +771,13 @@ Vorsichtsmaßnahme: Ein Rezept **als solches** ist ohnehin nicht urheberrechtlic
 Zubereitungstexts. Die Texte hier sind kurz und zweckgebunden und erreichen das nicht.
 Gerichtsnamen sind bewusst **beschreibend** und nennen keine Marken.
 
-**Das Risiko liegt bei den Bildern, nicht bei den Texten** — dafür gelten `PHOTO_CREDITS` und
-`CLAUDE.md` §22 unverändert weiter. Die 30 Bilder des Rezeptbuchs sind KI-generiert und im
-Impressum als solche gekennzeichnet; zu jedem ist in `img/library/bilder-protokoll.json`
-festgehalten, mit welcher Beschreibung, welchem Modell und wann es entstanden ist. Das ist der
-Beleg, dass nichts von fremden Seiten übernommen wurde. Kommt eine künftige Charge Rezepte aus einer fremden
+**Das Risiko liegt bei den Bildern, nicht bei den Texten.** Seit dem 07.09.2026 sind
+**alle** mitgelieferten Gerichtsfotos KI-generiert und im Impressum als solche
+gekennzeichnet — die 36 des Rezeptbuchs wie die 44 hinter den Stichwortregeln. Zu jedem ist
+im jeweiligen `bilder-protokoll.json` festgehalten, mit welcher Beschreibung, welchem Modell
+und wann es entstanden ist. Das ist der Beleg, dass nichts von fremden Seiten übernommen
+wurde. Bis dahin waren die Stichwortbilder CC0-Stockfotos mit Einzelnachweisen; diese
+Konstante (`PHOTO_CREDITS`) gibt es nicht mehr. Kommt eine künftige Charge Rezepte aus einer fremden
 Quelle, ist das eine **andere** Rechtslage als diese hier; siehe auch die Entscheidung gegen
 Scraping für die Pro-Bibliothek.
 

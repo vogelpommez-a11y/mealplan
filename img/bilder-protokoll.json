@@ -1,0 +1,310 @@
+{
+  "pasta.webp": {
+    "gericht": "Spaghetti Bolognese",
+    "prompt": "Spaghetti Bolognese, with Spaghetti, Tomatensauce, Rinderhackfleisch, Parmesan, on a plate, the plate is exactly centered in the frame with equal space on the left and right, the dish fills the middle of the frame, generous empty margin at top and bottom, nothing important near the upper or lower edge, moody food photography, 45 degree side angle view, matte light ceramic plate, dark walnut wood table, soft directional side light from the left, gentle shadows, shallow depth of field, warm and appetizing, no text, no logos, no hands, no cutlery in frame",
+    "modell": "gpt-image-2",
+    "groesse": "1536x1024",
+    "erzeugt": "2026-09-07T15:38:54+00:00"
+  },
+  "curry.webp": {
+    "gericht": "Haehnchencurry mit Reis",
+    "prompt": "Haehnchencurry mit Reis, with Basmatireis, Haehnchenbrust, Kokosmilch, Currysauce, in a bowl, the plate is exactly centered in the frame with equal space on the left and right, the dish fills the middle of the frame, generous empty margin at top and bottom, nothing important near the upper or lower edge, moody food photography, 45 degree side angle view, matte light ceramic plate, dark walnut wood table, soft directional side light from the left, gentle shadows, shallow depth of field, warm and appetizing, no text, no logos, no hands, no cutlery in frame",
+    "modell": "gpt-image-2",
+    "groesse": "1536x1024",
+    "erzeugt": "2026-09-07T15:39:21+00:00"
+  },
+  "salad.jpg": {
+    "gericht": "Bunter Blattsalat mit Kirschtomaten",
+    "prompt": "Bunter Blattsalat mit Kirschtomaten, with Blattsalat, Kirschtomaten, Gurke, Olivenoel, vegetarian, no meat, no fish, in a bowl, the plate is exactly centered in the frame with equal space on the left and right, the dish fills the middle of the frame, generous empty margin at top and bottom, nothing important near the upper or lower edge, moody food photography, 45 degree side angle view, matte light ceramic plate, dark walnut wood table, soft directional side light from the left, gentle shadows, shallow depth of field, warm and appetizing, no text, no logos, no hands, no cutlery in frame",
+    "modell": "gpt-image-2",
+    "groesse": "1536x1024",
+    "erzeugt": "2026-09-07T15:39:39+00:00"
+  },
+  "porridge.jpg": {
+    "gericht": "Haferporridge mit Beeren und Mandeln",
+    "prompt": "Haferporridge mit Beeren und Mandeln, with Milch, Haferflocken, Heidelbeeren, Mandelblaettchen, vegetarian, no meat, no fish, in a bowl, the plate is exactly centered in the frame with equal space on the left and right, the dish fills the middle of the frame, generous empty margin at top and bottom, nothing important near the upper or lower edge, moody food photography, 45 degree side angle view, matte light ceramic plate, dark walnut wood table, soft directional side light from the left, gentle shadows, shallow depth of field, warm and appetizing, no text, no logos, no hands, no cutlery in frame",
+    "modell": "gpt-image-2",
+    "groesse": "1536x1024",
+    "erzeugt": "2026-09-07T15:39:55+00:00"
+  },
+  "pizza.jpg": {
+    "gericht": "Pizza Margherita",
+    "prompt": "Pizza Margherita, with Pizzateig, Tomatensauce, Mozzarella, Basilikum, vegetarian, no meat, no fish, on a plate, the plate is exactly centered in the frame with equal space on the left and right, the dish fills the middle of the frame, generous empty margin at top and bottom, nothing important near the upper or lower edge, moody food photography, 45 degree side angle view, matte light ceramic plate, dark walnut wood table, soft directional side light from the left, gentle shadows, shallow depth of field, warm and appetizing, no text, no logos, no hands, no cutlery in frame",
+    "modell": "gpt-image-2",
+    "groesse": "1536x1024",
+    "erzeugt": "2026-09-07T15:40:14+00:00"
+  },
+  "burger.webp": {
+    "gericht": "Cheeseburger mit Salat und Tomate",
+    "prompt": "Cheeseburger mit Salat und Tomate, with Rinderpatty, Burgerbroetchen, Tomate, Cheddar, on a plate, the plate is exactly centered in the frame with equal space on the left and right, the dish fills the middle of the frame, generous empty margin at top and bottom, nothing important near the upper or lower edge, moody food photography, 45 degree side angle view, matte light ceramic plate, dark walnut wood table, soft directional side light from the left, gentle shadows, shallow depth of field, warm and appetizing, no text, no logos, no hands, no cutlery in frame",
+    "modell": "gpt-image-2",
+    "groesse": "1536x1024",
+    "erzeugt": "2026-09-07T15:40:35+00:00"
+  },
+  "chicken.webp": {
+    "gericht": "Gegrillte Haehnchenbrust mit Kraeutern",
+    "prompt": "Gegrillte Haehnchenbrust mit Kraeutern, with Haehnchenbrust, Zitrone, Olivenoel, Rosmarin, on a plate, the plate is exactly centered in the frame with equal space on the left and right, the dish fills the middle of the frame, generous empty margin at top and bottom, nothing important near the upper or lower edge, moody food photography, 45 degree side angle view, matte light ceramic plate, dark walnut wood table, soft directional side light from the left, gentle shadows, shallow depth of field, warm and appetizing, no text, no logos, no hands, no cutlery in frame",
+    "modell": "gpt-image-2",
+    "groesse": "1536x1024",
+    "erzeugt": "2026-09-07T15:40:59+00:00"
+  },
+  "beef.webp": {
+    "gericht": "Rindergeschnetzeltes in dunkler Sauce",
+    "prompt": "Rindergeschnetzeltes in dunkler Sauce, with Rinderstreifen, Bratensauce, Zwiebel, Petersilie, on a plate, the plate is exactly centered in the frame with equal space on the left and right, the dish fills the middle of the frame, generous empty margin at top and bottom, nothing important near the upper or lower edge, moody food photography, 45 degree side angle view, matte light ceramic plate, dark walnut wood table, soft directional side light from the left, gentle shadows, shallow depth of field, warm and appetizing, no text, no logos, no hands, no cutlery in frame",
+    "modell": "gpt-image-2",
+    "groesse": "1536x1024",
+    "erzeugt": "2026-09-07T15:41:18+00:00"
+  },
+  "fish.webp": {
+    "gericht": "Gebratenes Lachsfilet mit Zitrone",
+    "prompt": "Gebratenes Lachsfilet mit Zitrone, with Lachsfilet, Zitrone, Olivenoel, Dill, on a plate, the plate is exactly centered in the frame with equal space on the left and right, the dish fills the middle of the frame, generous empty margin at top and bottom, nothing important near the upper or lower edge, moody food photography, 45 degree side angle view, matte light ceramic plate, dark walnut wood table, soft directional side light from the left, gentle shadows, shallow depth of field, warm and appetizing, no text, no logos, no hands, no cutlery in frame",
+    "modell": "gpt-image-2",
+    "groesse": "1536x1024",
+    "erzeugt": "2026-09-07T15:41:47+00:00"
+  },
+  "soup.webp": {
+    "gericht": "Cremige Kuerbissuppe",
+    "prompt": "Cremige Kuerbissuppe, with Kuerbis, Gemuesebruehe, Sahne, Kuerbiskerne, vegetarian, no meat, no fish, in a bowl, the plate is exactly centered in the frame with equal space on the left and right, the dish fills the middle of the frame, generous empty margin at top and bottom, nothing important near the upper or lower edge, moody food photography, 45 degree side angle view, matte light ceramic plate, dark walnut wood table, soft directional side light from the left, gentle shadows, shallow depth of field, warm and appetizing, no text, no logos, no hands, no cutlery in frame",
+    "modell": "gpt-image-2",
+    "groesse": "1536x1024",
+    "erzeugt": "2026-09-07T15:42:05+00:00"
+  },
+  "rice.webp": {
+    "gericht": "Reispfanne mit Gemuese",
+    "prompt": "Reispfanne mit Gemuese, with Basmatireis, Paprika, Erbsen, Sojasauce, strictly vegan, no meat, no fish, no eggs, no dairy, no cheese, in a bowl, the plate is exactly centered in the frame with equal space on the left and right, the dish fills the middle of the frame, generous empty margin at top and bottom, nothing important near the upper or lower edge, moody food photography, 45 degree side angle view, matte light ceramic plate, dark walnut wood table, soft directional side light from the left, gentle shadows, shallow depth of field, warm and appetizing, no text, no logos, no hands, no cutlery in frame",
+    "modell": "gpt-image-2",
+    "groesse": "1536x1024",
+    "erzeugt": "2026-09-07T15:42:28+00:00"
+  },
+  "pancake.webp": {
+    "gericht": "Pancakes mit Ahornsirup und Beeren",
+    "prompt": "Pancakes mit Ahornsirup und Beeren, with Pancakes, Himbeeren, Ahornsirup, Butter, vegetarian, no meat, no fish, on a plate, the plate is exactly centered in the frame with equal space on the left and right, the dish fills the middle of the frame, generous empty margin at top and bottom, nothing important near the upper or lower edge, moody food photography, 45 degree side angle view, matte light ceramic plate, dark walnut wood table, soft directional side light from the left, gentle shadows, shallow depth of field, warm and appetizing, no text, no logos, no hands, no cutlery in frame",
+    "modell": "gpt-image-2",
+    "groesse": "1536x1024",
+    "erzeugt": "2026-09-07T15:42:47+00:00"
+  },
+  "noodle.webp": {
+    "gericht": "Ramen mit Ei und Fruehlingszwiebeln",
+    "prompt": "Ramen mit Ei und Fruehlingszwiebeln, with Bruehe, Ramennudeln, Ei, Fruehlingszwiebel, in a bowl, the plate is exactly centered in the frame with equal space on the left and right, the dish fills the middle of the frame, generous empty margin at top and bottom, nothing important near the upper or lower edge, moody food photography, 45 degree side angle view, matte light ceramic plate, dark walnut wood table, soft directional side light from the left, gentle shadows, shallow depth of field, warm and appetizing, no text, no logos, no hands, no cutlery in frame",
+    "modell": "gpt-image-2",
+    "groesse": "1536x1024",
+    "erzeugt": "2026-09-07T15:43:03+00:00"
+  },
+  "egg.webp": {
+    "gericht": "Ruehrei mit Schnittlauch",
+    "prompt": "Ruehrei mit Schnittlauch, with Eier, Butter, Schnittlauch, vegetarian, no meat, no fish, on a plate, the plate is exactly centered in the frame with equal space on the left and right, the dish fills the middle of the frame, generous empty margin at top and bottom, nothing important near the upper or lower edge, moody food photography, 45 degree side angle view, matte light ceramic plate, dark walnut wood table, soft directional side light from the left, gentle shadows, shallow depth of field, warm and appetizing, no text, no logos, no hands, no cutlery in frame",
+    "modell": "gpt-image-2",
+    "groesse": "1536x1024",
+    "erzeugt": "2026-09-07T15:43:30+00:00"
+  },
+  "cake.webp": {
+    "gericht": "Stueck Schokoladenkuchen",
+    "prompt": "Stueck Schokoladenkuchen, with Schokoladenkuchen, Schokoladenglasur, Sahne, vegetarian, no meat, no fish, on a plate, the plate is exactly centered in the frame with equal space on the left and right, the dish fills the middle of the frame, generous empty margin at top and bottom, nothing important near the upper or lower edge, moody food photography, 45 degree side angle view, matte light ceramic plate, dark walnut wood table, soft directional side light from the left, gentle shadows, shallow depth of field, warm and appetizing, no text, no logos, no hands, no cutlery in frame",
+    "modell": "gpt-image-2",
+    "groesse": "1536x1024",
+    "erzeugt": "2026-09-07T15:43:53+00:00"
+  },
+  "sandwich.jpg": {
+    "gericht": "Belegtes Sandwich mit Kaese und Tomate",
+    "prompt": "Belegtes Sandwich mit Kaese und Tomate, with Vollkornbrot, Tomate, Kaese, Salatblatt, vegetarian, no meat, no fish, on a plate, the plate is exactly centered in the frame with equal space on the left and right, the dish fills the middle of the frame, generous empty margin at top and bottom, nothing important near the upper or lower edge, moody food photography, 45 degree side angle view, matte light ceramic plate, dark walnut wood table, soft directional side light from the left, gentle shadows, shallow depth of field, warm and appetizing, no text, no logos, no hands, no cutlery in frame",
+    "modell": "gpt-image-2",
+    "groesse": "1536x1024",
+    "erzeugt": "2026-09-07T15:44:16+00:00"
+  },
+  "potato.webp": {
+    "gericht": "Ofenkartoffeln mit Rosmarin",
+    "prompt": "Ofenkartoffeln mit Rosmarin, with Kartoffeln, Olivenoel, Rosmarin, Meersalz, strictly vegan, no meat, no fish, no eggs, no dairy, no cheese, on a plate, the plate is exactly centered in the frame with equal space on the left and right, the dish fills the middle of the frame, generous empty margin at top and bottom, nothing important near the upper or lower edge, moody food photography, 45 degree side angle view, matte light ceramic plate, dark walnut wood table, soft directional side light from the left, gentle shadows, shallow depth of field, warm and appetizing, no text, no logos, no hands, no cutlery in frame",
+    "modell": "gpt-image-2",
+    "groesse": "1536x1024",
+    "erzeugt": "2026-09-07T15:44:37+00:00"
+  },
+  "drink.webp": {
+    "gericht": "Erdbeer-Smoothie",
+    "prompt": "Erdbeer-Smoothie, with Erdbeeren, Joghurt, Milch, Honig, vegetarian, no meat, no fish, in a glass, the plate is exactly centered in the frame with equal space on the left and right, the dish fills the middle of the frame, generous empty margin at top and bottom, nothing important near the upper or lower edge, moody food photography, 45 degree side angle view, matte light ceramic plate, dark walnut wood table, soft directional side light from the left, gentle shadows, shallow depth of field, warm and appetizing, no text, no logos, no hands, no cutlery in frame",
+    "modell": "gpt-image-2",
+    "groesse": "1536x1024",
+    "erzeugt": "2026-09-07T15:45:02+00:00"
+  },
+  "fruit.webp": {
+    "gericht": "Obstschale mit frischen Fruechten",
+    "prompt": "Obstschale mit frischen Fruechten, with Erdbeeren, Trauben, Melone, Minze, strictly vegan, no meat, no fish, no eggs, no dairy, no cheese, in a small bowl, the plate is exactly centered in the frame with equal space on the left and right, the dish fills the middle of the frame, generous empty margin at top and bottom, nothing important near the upper or lower edge, moody food photography, 45 degree side angle view, matte light ceramic plate, dark walnut wood table, soft directional side light from the left, gentle shadows, shallow depth of field, warm and appetizing, no text, no logos, no hands, no cutlery in frame",
+    "modell": "gpt-image-2",
+    "groesse": "1536x1024",
+    "erzeugt": "2026-09-07T15:45:28+00:00"
+  },
+  "neutral.jpg": {
+    "gericht": "Leer gedeckter Platz mit Teller und Leinenserviette, kein Essen",
+    "prompt": "Leer gedeckter Platz mit Teller und Leinenserviette, kein Essen, on a plate, the plate is exactly centered in the frame with equal space on the left and right, the dish fills the middle of the frame, generous empty margin at top and bottom, nothing important near the upper or lower edge, moody food photography, 45 degree side angle view, matte light ceramic plate, dark walnut wood table, soft directional side light from the left, gentle shadows, shallow depth of field, warm and appetizing, no text, no logos, no hands, no cutlery in frame",
+    "modell": "gpt-image-2",
+    "groesse": "1536x1024",
+    "erzeugt": "2026-09-07T15:45:44+00:00"
+  },
+  "wrap.webp": {
+    "gericht": "Wrap mit Haehnchen und Salat",
+    "prompt": "Wrap mit Haehnchen und Salat, with Haehnchenstreifen, Weizentortilla, Salat, Joghurtsauce, on a plate, the plate is exactly centered in the frame with equal space on the left and right, the dish fills the middle of the frame, generous empty margin at top and bottom, nothing important near the upper or lower edge, moody food photography, 45 degree side angle view, matte light ceramic plate, dark walnut wood table, soft directional side light from the left, gentle shadows, shallow depth of field, warm and appetizing, no text, no logos, no hands, no cutlery in frame",
+    "modell": "gpt-image-2",
+    "groesse": "1536x1024",
+    "erzeugt": "2026-09-07T15:45:59+00:00"
+  },
+  "taco.webp": {
+    "gericht": "Tacos mit Rinderhack und Salsa",
+    "prompt": "Tacos mit Rinderhack und Salsa, with Rinderhackfleisch, Maistortillas, Salsa, Koriander, on a plate, the plate is exactly centered in the frame with equal space on the left and right, the dish fills the middle of the frame, generous empty margin at top and bottom, nothing important near the upper or lower edge, moody food photography, 45 degree side angle view, matte light ceramic plate, dark walnut wood table, soft directional side light from the left, gentle shadows, shallow depth of field, warm and appetizing, no text, no logos, no hands, no cutlery in frame",
+    "modell": "gpt-image-2",
+    "groesse": "1536x1024",
+    "erzeugt": "2026-09-07T15:46:14+00:00"
+  },
+  "toast.webp": {
+    "gericht": "Avocadobrot mit Sesam",
+    "prompt": "Avocadobrot mit Sesam, with Avocado, Vollkorntoast, Limette, Sesam, strictly vegan, no meat, no fish, no eggs, no dairy, no cheese, on a plate, the plate is exactly centered in the frame with equal space on the left and right, the dish fills the middle of the frame, generous empty margin at top and bottom, nothing important near the upper or lower edge, moody food photography, 45 degree side angle view, matte light ceramic plate, dark walnut wood table, soft directional side light from the left, gentle shadows, shallow depth of field, warm and appetizing, no text, no logos, no hands, no cutlery in frame",
+    "modell": "gpt-image-2",
+    "groesse": "1536x1024",
+    "erzeugt": "2026-09-07T15:46:47+00:00"
+  },
+  "sushi.webp": {
+    "gericht": "Sushi-Platte mit Maki und Nigiri",
+    "prompt": "Sushi-Platte mit Maki und Nigiri, with Sushireis, Lachs, Nori, Ingwer, on a plate, the plate is exactly centered in the frame with equal space on the left and right, the dish fills the middle of the frame, generous empty margin at top and bottom, nothing important near the upper or lower edge, moody food photography, 45 degree side angle view, matte light ceramic plate, dark walnut wood table, soft directional side light from the left, gentle shadows, shallow depth of field, warm and appetizing, no text, no logos, no hands, no cutlery in frame",
+    "modell": "gpt-image-2",
+    "groesse": "1536x1024",
+    "erzeugt": "2026-09-07T15:47:13+00:00"
+  },
+  "seafood.webp": {
+    "gericht": "Gebratene Garnelen mit Knoblauch",
+    "prompt": "Gebratene Garnelen mit Knoblauch, with Garnelen, Olivenoel, Knoblauch, Petersilie, on a plate, the plate is exactly centered in the frame with equal space on the left and right, the dish fills the middle of the frame, generous empty margin at top and bottom, nothing important near the upper or lower edge, moody food photography, 45 degree side angle view, matte light ceramic plate, dark walnut wood table, soft directional side light from the left, gentle shadows, shallow depth of field, warm and appetizing, no text, no logos, no hands, no cutlery in frame",
+    "modell": "gpt-image-2",
+    "groesse": "1536x1024",
+    "erzeugt": "2026-09-07T15:47:28+00:00"
+  },
+  "steak.webp": {
+    "gericht": "Rindersteak medium mit Kraeuterbutter",
+    "prompt": "Rindersteak medium mit Kraeuterbutter, with Rumpsteak, Kraeuterbutter, Thymian, Meersalz, on a plate, the plate is exactly centered in the frame with equal space on the left and right, the dish fills the middle of the frame, generous empty margin at top and bottom, nothing important near the upper or lower edge, moody food photography, 45 degree side angle view, matte light ceramic plate, dark walnut wood table, soft directional side light from the left, gentle shadows, shallow depth of field, warm and appetizing, no text, no logos, no hands, no cutlery in frame",
+    "modell": "gpt-image-2",
+    "groesse": "1536x1024",
+    "erzeugt": "2026-09-07T15:47:49+00:00"
+  },
+  "icecream.webp": {
+    "gericht": "Eiskugeln mit Minze",
+    "prompt": "Eiskugeln mit Minze, with Vanilleeis, Schokoladeneis, Schokostreusel, Minze, vegetarian, no meat, no fish, in a small bowl, the plate is exactly centered in the frame with equal space on the left and right, the dish fills the middle of the frame, generous empty margin at top and bottom, nothing important near the upper or lower edge, moody food photography, 45 degree side angle view, matte light ceramic plate, dark walnut wood table, soft directional side light from the left, gentle shadows, shallow depth of field, warm and appetizing, no text, no logos, no hands, no cutlery in frame",
+    "modell": "gpt-image-2",
+    "groesse": "1536x1024",
+    "erzeugt": "2026-09-07T15:48:14+00:00"
+  },
+  "waffle.webp": {
+    "gericht": "Waffel mit Puderzucker und Beeren",
+    "prompt": "Waffel mit Puderzucker und Beeren, with Waffel, Erdbeeren, Sahne, Puderzucker, vegetarian, no meat, no fish, on a plate, the plate is exactly centered in the frame with equal space on the left and right, the dish fills the middle of the frame, generous empty margin at top and bottom, nothing important near the upper or lower edge, moody food photography, 45 degree side angle view, matte light ceramic plate, dark walnut wood table, soft directional side light from the left, gentle shadows, shallow depth of field, warm and appetizing, no text, no logos, no hands, no cutlery in frame",
+    "modell": "gpt-image-2",
+    "groesse": "1536x1024",
+    "erzeugt": "2026-09-07T15:48:34+00:00"
+  },
+  "coffee.webp": {
+    "gericht": "Milchkaffee mit Milchschaum",
+    "prompt": "Milchkaffee mit Milchschaum, with Milch, Espresso, Kakaopulver, vegetarian, no meat, no fish, in a glass, the plate is exactly centered in the frame with equal space on the left and right, the dish fills the middle of the frame, generous empty margin at top and bottom, nothing important near the upper or lower edge, moody food photography, 45 degree side angle view, matte light ceramic plate, dark walnut wood table, soft directional side light from the left, gentle shadows, shallow depth of field, warm and appetizing, no text, no logos, no hands, no cutlery in frame",
+    "modell": "gpt-image-2",
+    "groesse": "1536x1024",
+    "erzeugt": "2026-09-07T15:48:52+00:00"
+  },
+  "casserole.webp": {
+    "gericht": "Nudelauflauf mit Kaesekruste",
+    "prompt": "Nudelauflauf mit Kaesekruste, with Nudeln, Bechamelsauce, Kaese, Tomate, vegetarian, no meat, no fish, on a plate, the plate is exactly centered in the frame with equal space on the left and right, the dish fills the middle of the frame, generous empty margin at top and bottom, nothing important near the upper or lower edge, moody food photography, 45 degree side angle view, matte light ceramic plate, dark walnut wood table, soft directional side light from the left, gentle shadows, shallow depth of field, warm and appetizing, no text, no logos, no hands, no cutlery in frame",
+    "modell": "gpt-image-2",
+    "groesse": "1536x1024",
+    "erzeugt": "2026-09-07T15:49:16+00:00"
+  },
+  "stew.webp": {
+    "gericht": "Herzhafter Eintopf mit Gemuese und Rindfleisch",
+    "prompt": "Herzhafter Eintopf mit Gemuese und Rindfleisch, with Bruehe, Rindfleisch, Kartoffeln, Karotten, in a bowl, the plate is exactly centered in the frame with equal space on the left and right, the dish fills the middle of the frame, generous empty margin at top and bottom, nothing important near the upper or lower edge, moody food photography, 45 degree side angle view, matte light ceramic plate, dark walnut wood table, soft directional side light from the left, gentle shadows, shallow depth of field, warm and appetizing, no text, no logos, no hands, no cutlery in frame",
+    "modell": "gpt-image-2",
+    "groesse": "1536x1024",
+    "erzeugt": "2026-09-07T15:49:42+00:00"
+  },
+  "cheese.webp": {
+    "gericht": "Kaeseplatte mit Trauben und Nuessen",
+    "prompt": "Kaeseplatte mit Trauben und Nuessen, with Hartkaese, Weichkaese, Trauben, Walnuesse, vegetarian, no meat, no fish, on a plate, the plate is exactly centered in the frame with equal space on the left and right, the dish fills the middle of the frame, generous empty margin at top and bottom, nothing important near the upper or lower edge, moody food photography, 45 degree side angle view, matte light ceramic plate, dark walnut wood table, soft directional side light from the left, gentle shadows, shallow depth of field, warm and appetizing, no text, no logos, no hands, no cutlery in frame",
+    "modell": "gpt-image-2",
+    "groesse": "1536x1024",
+    "erzeugt": "2026-09-07T15:50:19+00:00"
+  },
+  "schnitzel.webp": {
+    "gericht": "Paniertes Schnitzel mit Zitronenscheibe",
+    "prompt": "Paniertes Schnitzel mit Zitronenscheibe, with Schweineschnitzel, Semmelbroesel, Zitrone, Petersilie, on a plate, the plate is exactly centered in the frame with equal space on the left and right, the dish fills the middle of the frame, generous empty margin at top and bottom, nothing important near the upper or lower edge, moody food photography, 45 degree side angle view, matte light ceramic plate, dark walnut wood table, soft directional side light from the left, gentle shadows, shallow depth of field, warm and appetizing, no text, no logos, no hands, no cutlery in frame",
+    "modell": "gpt-image-2",
+    "groesse": "1536x1024",
+    "erzeugt": "2026-09-07T15:50:37+00:00"
+  },
+  "wurst.webp": {
+    "gericht": "Bratwurst mit Senf",
+    "prompt": "Bratwurst mit Senf, with Bratwurst, Senf, Petersilie, on a plate, the plate is exactly centered in the frame with equal space on the left and right, the dish fills the middle of the frame, generous empty margin at top and bottom, nothing important near the upper or lower edge, moody food photography, 45 degree side angle view, matte light ceramic plate, dark walnut wood table, soft directional side light from the left, gentle shadows, shallow depth of field, warm and appetizing, no text, no logos, no hands, no cutlery in frame",
+    "modell": "gpt-image-2",
+    "groesse": "1536x1024",
+    "erzeugt": "2026-09-07T15:50:56+00:00"
+  },
+  "braten.webp": {
+    "gericht": "Schweinebraten in Scheiben mit dunkler Sauce",
+    "prompt": "Schweinebraten in Scheiben mit dunkler Sauce, with Schweinebraten, Bratensauce, Karotte, Thymian, on a plate, the plate is exactly centered in the frame with equal space on the left and right, the dish fills the middle of the frame, generous empty margin at top and bottom, nothing important near the upper or lower edge, moody food photography, 45 degree side angle view, matte light ceramic plate, dark walnut wood table, soft directional side light from the left, gentle shadows, shallow depth of field, warm and appetizing, no text, no logos, no hands, no cutlery in frame",
+    "modell": "gpt-image-2",
+    "groesse": "1536x1024",
+    "erzeugt": "2026-09-07T15:51:23+00:00"
+  },
+  "hack.webp": {
+    "gericht": "Hackbaellchen in Tomatensauce",
+    "prompt": "Hackbaellchen in Tomatensauce, with Hackbaellchen, Tomatensauce, Parmesan, Basilikum, on a plate, the plate is exactly centered in the frame with equal space on the left and right, the dish fills the middle of the frame, generous empty margin at top and bottom, nothing important near the upper or lower edge, moody food photography, 45 degree side angle view, matte light ceramic plate, dark walnut wood table, soft directional side light from the left, gentle shadows, shallow depth of field, warm and appetizing, no text, no logos, no hands, no cutlery in frame",
+    "modell": "gpt-image-2",
+    "groesse": "1536x1024",
+    "erzeugt": "2026-09-07T15:51:43+00:00"
+  },
+  "tofu.webp": {
+    "gericht": "Gebratener Tofu mit Sesam und Fruehlingszwiebeln",
+    "prompt": "Gebratener Tofu mit Sesam und Fruehlingszwiebeln, with Tofu, Fruehlingszwiebel, Sojasauce, Sesam, strictly vegan, no meat, no fish, no eggs, no dairy, no cheese, on a plate, the plate is exactly centered in the frame with equal space on the left and right, the dish fills the middle of the frame, generous empty margin at top and bottom, nothing important near the upper or lower edge, moody food photography, 45 degree side angle view, matte light ceramic plate, dark walnut wood table, soft directional side light from the left, gentle shadows, shallow depth of field, warm and appetizing, no text, no logos, no hands, no cutlery in frame",
+    "modell": "gpt-image-2",
+    "groesse": "1536x1024",
+    "erzeugt": "2026-09-07T15:51:58+00:00"
+  },
+  "legumes.webp": {
+    "gericht": "Kichererbsen und rote Linsen mit Petersilie",
+    "prompt": "Kichererbsen und rote Linsen mit Petersilie, with Kichererbsen, Rote Linsen, Tomate, Petersilie, strictly vegan, no meat, no fish, no eggs, no dairy, no cheese, in a bowl, the plate is exactly centered in the frame with equal space on the left and right, the dish fills the middle of the frame, generous empty margin at top and bottom, nothing important near the upper or lower edge, moody food photography, 45 degree side angle view, matte light ceramic plate, dark walnut wood table, soft directional side light from the left, gentle shadows, shallow depth of field, warm and appetizing, no text, no logos, no hands, no cutlery in frame",
+    "modell": "gpt-image-2",
+    "groesse": "1536x1024",
+    "erzeugt": "2026-09-07T15:52:22+00:00"
+  },
+  "bowl.webp": {
+    "gericht": "Protein-Bowl mit Haehnchen, Reis, Brokkoli und Avocado",
+    "prompt": "Protein-Bowl mit Haehnchen, Reis, Brokkoli und Avocado, with Basmatireis, Haehnchenbrust, Brokkoli, Avocado, in a bowl, the plate is exactly centered in the frame with equal space on the left and right, the dish fills the middle of the frame, generous empty margin at top and bottom, nothing important near the upper or lower edge, moody food photography, 45 degree side angle view, matte light ceramic plate, dark walnut wood table, soft directional side light from the left, gentle shadows, shallow depth of field, warm and appetizing, no text, no logos, no hands, no cutlery in frame",
+    "modell": "gpt-image-2",
+    "groesse": "1536x1024",
+    "erzeugt": "2026-09-07T15:52:45+00:00"
+  },
+  "veggiepan.webp": {
+    "gericht": "Ofengemuese vom Blech mit Zucchini, Paprika und Brokkoli",
+    "prompt": "Ofengemuese vom Blech mit Zucchini, Paprika und Brokkoli, with Zucchini, Paprika, Brokkoli, Olivenoel, strictly vegan, no meat, no fish, no eggs, no dairy, no cheese, on a plate, the plate is exactly centered in the frame with equal space on the left and right, the dish fills the middle of the frame, generous empty margin at top and bottom, nothing important near the upper or lower edge, moody food photography, 45 degree side angle view, matte light ceramic plate, dark walnut wood table, soft directional side light from the left, gentle shadows, shallow depth of field, warm and appetizing, no text, no logos, no hands, no cutlery in frame",
+    "modell": "gpt-image-2",
+    "groesse": "1536x1024",
+    "erzeugt": "2026-09-07T15:53:03+00:00"
+  },
+  "skyr.webp": {
+    "gericht": "Skyr mit Beeren und Leinsamen",
+    "prompt": "Skyr mit Beeren und Leinsamen, with Skyr, Heidelbeeren, Himbeeren, Leinsamen, vegetarian, no meat, no fish, in a small bowl, the plate is exactly centered in the frame with equal space on the left and right, the dish fills the middle of the frame, generous empty margin at top and bottom, nothing important near the upper or lower edge, moody food photography, 45 degree side angle view, matte light ceramic plate, dark walnut wood table, soft directional side light from the left, gentle shadows, shallow depth of field, warm and appetizing, no text, no logos, no hands, no cutlery in frame",
+    "modell": "gpt-image-2",
+    "groesse": "1536x1024",
+    "erzeugt": "2026-09-07T15:53:18+00:00"
+  },
+  "nuts.webp": {
+    "gericht": "Nussmischung mit Datteln",
+    "prompt": "Nussmischung mit Datteln, with Mandeln, Walnuesse, Datteln, Cashewkerne, strictly vegan, no meat, no fish, no eggs, no dairy, no cheese, in a small bowl, the plate is exactly centered in the frame with equal space on the left and right, the dish fills the middle of the frame, generous empty margin at top and bottom, nothing important near the upper or lower edge, moody food photography, 45 degree side angle view, matte light ceramic plate, dark walnut wood table, soft directional side light from the left, gentle shadows, shallow depth of field, warm and appetizing, no text, no logos, no hands, no cutlery in frame",
+    "modell": "gpt-image-2",
+    "groesse": "1536x1024",
+    "erzeugt": "2026-09-07T15:53:39+00:00"
+  },
+  "shake.webp": {
+    "gericht": "Proteinshake mit Whey und Milch",
+    "prompt": "Proteinshake mit Whey und Milch, with Milch, Banane, Wheypulver, vegetarian, no meat, no fish, in a glass, the plate is exactly centered in the frame with equal space on the left and right, the dish fills the middle of the frame, generous empty margin at top and bottom, nothing important near the upper or lower edge, moody food photography, 45 degree side angle view, matte light ceramic plate, dark walnut wood table, soft directional side light from the left, gentle shadows, shallow depth of field, warm and appetizing, no text, no logos, no hands, no cutlery in frame",
+    "modell": "gpt-image-2",
+    "groesse": "1536x1024",
+    "erzeugt": "2026-09-07T15:53:59+00:00"
+  },
+  "grain.webp": {
+    "gericht": "Quinoa mit Couscous und Kraeutern",
+    "prompt": "Quinoa mit Couscous und Kraeutern, with Quinoa, Couscous, Tomate, Petersilie, strictly vegan, no meat, no fish, no eggs, no dairy, no cheese, in a bowl, the plate is exactly centered in the frame with equal space on the left and right, the dish fills the middle of the frame, generous empty margin at top and bottom, nothing important near the upper or lower edge, moody food photography, 45 degree side angle view, matte light ceramic plate, dark walnut wood table, soft directional side light from the left, gentle shadows, shallow depth of field, warm and appetizing, no text, no logos, no hands, no cutlery in frame",
+    "modell": "gpt-image-2",
+    "groesse": "1536x1024",
+    "erzeugt": "2026-09-07T15:54:20+00:00"
+  }
+}

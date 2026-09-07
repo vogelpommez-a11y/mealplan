@@ -3553,6 +3553,24 @@
     if (byCat && PHOTOS[byCat]) return PHOTOS[byCat];
     return PHOTOS.neutral;
   }
+  // Zeigt die Ansicht ein MITGELIEFERTES Bild - oder das eigene Foto des Nutzers?
+  // Dieselbe Bedingung wie der erste Zweig von photoFor(), damit beide nicht auseinander
+  // laufen koennen: Nur wenn dort kein eigenes Bild gewinnt, kommt eines von uns.
+  function istEigenesFoto(r) { return !!(r.image && safeImage(r.image)); }
+  // Der Hinweis unter dem grossen Foto. Zwei Dinge in einer Zeile, weil beide gebraucht
+  // werden und keines einen eigenen Satz wert ist:
+  //   "Symbolbild"   - es zeigt nicht DIESES Gericht, sondern die Art von Gericht. Das ist
+  //                    die Aussage, auf die es bei Irrefuehrung ankommt (UWG).
+  //   "KI-generiert" - die Offenlegung nach dem AI Act, dort wo das Bild zu sehen ist und
+  //                    nicht erst im Impressum (Art. 50 Abs. 5: "klar und eindeutig,
+  //                    spaetestens zum Zeitpunkt der ersten Aussetzung").
+  // Bewusst NUR an der grossen Ansicht: Auf den Karten laege der Text sonst auf jeder
+  // Kachel und konkurrierte mit den Makro-Badges. Bei eigenen Fotos des Nutzers erscheint
+  // er nie - die sind weder Symbolbild noch KI.
+  function bildHinweisHtml(r) {
+    if (istEigenesFoto(r)) return "";
+    return `<p class="ms-bildhinweis">Symbolbild · KI-generiert</p>`;
+  }
   // Bewertet die Makro-Verteilung ueber den Kalorienanteil (Protein/Kohlenhydrate x4,
   // Fett x9) und liefert 0 bis 2 Badges fuer die Meal-Karte: ein Haupt-Badge fuer das
   // dominante Makro und optional "Low Carb" als Zusatz. Ausgewogene Gerichte bekommen
@@ -7578,6 +7596,7 @@
         </div>
         <div class="ms-photo has-photo"><img src="${photoFor(r)}" alt="${esc(r.name)}"></div>
         <div class="modal-body">
+          ${bildHinweisHtml(r)}
           <div class="ms-head"><h3 class="ms-title">${esc(r.name)}</h3><span class="chip ${cls}">${esc(r.category || "Gericht")}</span></div>
           ${mealFlagsHtml(r)}
           ${statsHtml}
@@ -9313,24 +9332,13 @@
     openModal(node);
   }
   function openImpressum() {
-    legalModal("Impressum", IMPRESSUM_HTML_1 + creditsHtml() + IMPRESSUM_HTML_2);
+    legalModal("Impressum", IMPRESSUM_HTML_1 + IMPRESSUM_HTML_2);
   }
-  // Belegt die Herkunft der mitgelieferten Fotos direkt auf der Seite.
-  function creditsHtml() {
-    const rows = Object.keys(PHOTO_CREDITS).map(k => {
-      const c = PHOTO_CREDITS[k];
-      return `<tr>
-        <td>${esc(c.titel)}</td>
-        <td>${esc(c.urheber)}</td>
-        <td><a href="${esc(c.lizenzUrl)}" target="_blank" rel="noopener noreferrer">${esc(c.lizenz)}</a></td>
-        <td><a href="${esc(c.quelle)}" target="_blank" rel="noopener noreferrer">Fundstelle</a></td>
-      </tr>`;
-    }).join("");
-    return `<div class="credits"><table>
-      <thead><tr><th>Titel</th><th>Urheber</th><th>Lizenz</th><th>Quelle</th></tr></thead>
-      <tbody>${rows}</tbody>
-    </table></div>`;
-  }
+  // Die Tabelle der Bildnachweise stand hier bis zum 07.09.2026: je ein Eintrag aus
+  // PHOTO_CREDITS mit Titel, Urheber, Lizenz und Fundstelle. Sie ist mit dem Bildsatz
+  // entfallen - die mitgelieferten Gerichtsfotos sind seither selbst erzeugt, es gibt
+  // keinen fremden Urheber mehr zu nennen. An ihre Stelle ist ein Sammelhinweis im
+  // Impressumstext getreten (data/rechtstexte.js).
   function openDatenschutz() {
     legalModal("Datenschutzerklärung", DATENSCHUTZ_HTML);
   }
@@ -11131,7 +11139,7 @@
   // einem weiblichen und einem maennlichen Koerper deutlich verschieden aus, eine
   // gemeinsame Zeichnung waere fuer die Haelfte der Nutzer die falsche Vorlage.
   // Selbst gezeichnet: fremde Vorlagen kaemen mit einer Lizenzfrage, die dieses Projekt
-  // bei Bildern konsequent vermeidet (siehe PHOTO_CREDITS).
+  // bei Bildern konsequent vermeidet (siehe data/bilder.js, Kopf).
   //
   // Innerhalb eines Satzes bleibt die Schulterbreite gleich, damit allein Taille und
   // Bauchzeichnung den Unterschied tragen. Zwischen den Saetzen unterscheiden sie sich:

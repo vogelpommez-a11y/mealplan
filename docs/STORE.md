@@ -207,6 +207,82 @@ Rechtsrisiko, weil es eine Zusage gegenüber den Nutzenden ist.
 
 ---
 
+## 7a. KI-generierte Inhalte
+
+Stand der Recherche vom **07.09.2026**. **Keine Rechtsberatung** — die Bewertung gehört
+einem Anwalt vorgelegt, bevor bezahlte Inhalte entstehen.
+
+**Was die App tut:** Alle 80 mitgelieferten Gerichtsfotos sind KI-generiert (OpenAI,
+`gpt-image-2`), **vorab** erzeugt und als Dateien ausgeliefert. **Zur Laufzeit ruft die App
+keine KI**, und es gehen **keine Nutzerdaten** an OpenAI — der Schlüssel liegt nur lokal in
+`.env` und wird nur von `tools/meal-bilder.py` benutzt.
+
+Das ist der Unterschied, an dem in beiden Stores fast alles hängt: Paddy's Mealplan ist
+**keine KI-App**, sondern eine App mit KI-erzeugten Bildern.
+
+### EU AI Act (Verordnung 2024/1689), Art. 50 — seit 02.08.2026 anwendbar
+
+| | Adressat | Trifft uns? |
+|---|---|---|
+| **Abs. 2** — maschinenlesbare Markierung der Ausgabe | **Anbieter** des KI-Systems (Art. 3 Nr. 3) | **Nein.** Das ist OpenAI. |
+| **Abs. 4** — sichtbare Offenlegung | **Betreiber** (Art. 3 Nr. 4) | Nur bei **Deepfakes**. |
+
+**Deepfake** nach Art. 3 Nr. 60 ist Inhalt, der „wirklichen Personen, **Gegenständen**,
+Orten, Einrichtungen oder Ereignissen ähnelt und einer Person fälschlicherweise als echt
+oder wahrheitsgemäß erscheinen würde“. Das Wort **Gegenständen** ist der Grund, warum die
+Frage nicht so trivial ist, wie sie klingt — ein Teller Essen ist ein Gegenstand.
+
+Die **finalen Leitlinien der Kommission** (20.07.2026) lösen das über **drei kumulative**
+Kriterien: hohe Ähnlichkeit zu einem simulierten Subjekt, das Dargestellte muss
+**existieren oder plausibel existieren**, und das Material muss **fälschlich als echt
+erscheinen**. Rein generische Bilder ohne Bezug zu etwas Bestimmtem fallen danach
+typischerweise **nicht** darunter.
+
+Ein Bild für die Kategorie „Schnitzel“ bildet kein bestimmtes Gericht ab und behauptet das
+auch nicht — nach diesen Kriterien kein Deepfake.
+
+**Trotzdem wird gekennzeichnet**, sichtbar an der großen Meal-Ansicht:
+`Symbolbild · KI-generiert` (`bildHinweisHtml()` in `index.html`). Zwei Gründe:
+
+1. **Falls** ein Gericht „Gegenständen“ weiter auslegt, ist die Pflicht bereits erfüllt —
+   und zwar am richtigen Ort. Art. 50 Abs. 5 verlangt die Angabe „klar und eindeutig,
+   spätestens zum Zeitpunkt der ersten Aussetzung“; ein Hinweis, den man erst im Impressum
+   findet, genügt dafür vermutlich nicht.
+2. **Unabhängig vom AI Act: Irreführung nach UWG.** Das Wort *Symbolbild* sagt genau das,
+   worauf es ankommt — das Gericht sieht beim Nachkochen nicht zwingend so aus. Das wird
+   scharf, sobald Inhalte bezahlt sind (Pro).
+
+Die Rückwirkungs-Ausnahme der Leitlinien (Inhalte von **vor** dem 02.08.2026 müssen nicht
+nachträglich gekennzeichnet werden) hilft **nicht**: Die Bibliotheksbilder stammen vom
+15.08.2026, die Stichwortbilder vom 07.09.2026.
+
+### Google Play
+
+Die Offenlegungspflicht für KI-Inhalte zielt auf Apps, die **zur Laufzeit** Inhalte
+erzeugen (Chatbots, Bildgeneratoren) — das tut diese App nicht. Verlangt wird, dass Nutzer
+ohne eigene Nachforschung erkennen können, dass KI im Spiel ist; der sichtbare Hinweis
+erfüllt das. Im Store-Eintrag ist die Angabe ebenfalls zu machen, wenn zutreffend.
+
+### Apple
+
+Guideline **5.1.2(i)** (Stand 13.11.2025) verlangt ausdrückliche Einwilligung, wenn
+**personenbezogene Daten an Dritt-KI-Anbieter** gehen. Trifft uns nicht: Es gehen keine
+Nutzerdaten an OpenAI. **Diese Aussage muss stimmen bleiben** — sobald ein Feature zur
+Laufzeit eine KI ruft, kippt sie, und dann sind Einwilligung, Nennung des Anbieters und
+Widerruf Pflicht (dazu `docs/DATENSCHUTZ-INTERN.md`: OpenAI wäre dann Auftragsverarbeiter).
+
+### Nutzungsrechte an den Bildern
+
+OpenAI tritt die Rechte am Output ab („OpenAI hereby assigns to you all its right, title and
+interest in and to Output“), unter dem Vorbehalt der Einhaltung der Bedingungen. Maßgeblich
+sind die **Business Terms** (API-Nutzung), nicht die Consumer-„Terms of use“ von ChatGPT —
+das Impressum verlinkt seit 07.09.2026 die richtigen.
+
+**Offen:** Die Business Terms enthalten in Abschnitt 10 eine Freistellung („Copyright
+Shield“) für API-Kunden, mit Ausnahmen. Deren Reichweite war nicht zu belegen —
+`openai.com/policies/` weist maschinelle Abrufe mit HTTP 403 ab. **Im OpenAI-Konto
+nachsehen und hier nachtragen.**
+
 ## 8. Technische Mindestanforderungen
 
 - **Startet die App ohne Netz?** Store-Prüfer testen offline. Der Service Worker und die

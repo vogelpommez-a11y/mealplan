@@ -22,7 +22,7 @@ Der Kern greift auf die Namen zu, ohne dass ein Import das sichtbar machen würd
 |---|---|
 | `cookbook.js` | `COOKBOOK` — der Rezeptkatalog |
 | `foods.js` | `FOODS` — Zutaten- und Nährwerttabelle |
-| `bilder.js` | `PHOTO_CREDITS`, `PHOTOS`, `PHOTO_RULES`, `CAT_PHOTO` |
+| `bilder.js` | `PHOTOS`, `PHOTO_RULES`, `CAT_PHOTO` |
 | `ikonen.js` | `ICONS`, `CAT_ICON`, `MEAL_ICON`, `ACT_ICONS`, Einzel-Icons |
 | `rechtstexte.js` | Impressum und Datenschutzerklärung als Markup |
 
@@ -32,7 +32,7 @@ und beendet das gesamte App-Script - die Seite liefert weiter HTTP 200 und `#vie
 leer. Vergeben sind heute:
 
 ```
-COOKBOOK  FOODS  PHOTOS  PHOTO_CREDITS  PHOTO_RULES  CAT_PHOTO
+COOKBOOK  FOODS  PHOTOS  PHOTO_RULES  CAT_PHOTO
 ICONS  CAT_ICON  MEAL_ICON  ACT_ICONS  TOOL_ICONS
 ICON_DUMBBELL  ICON_FLAG  ICON_PEOPLE
 IMPRESSUM_HTML_1  IMPRESSUM_HTML_2  DATENSCHUTZ_HTML
@@ -47,8 +47,7 @@ steht erzeugt in `docs/MODULE.md` unter „Datenbereiche“.
 
 ```
 /*FOODS_START*/  /*FOODS_END*/     tools/rezept-makros.py schneidet dazwischen
-/*PHOTOS_END*/                     Ende der Foto-Zuordnung
-/*CREDITS_START*/                  Beginn der Bildnachweise
+/*PHOTOS_START*/ /*PHOTOS_END*/    Anfang und Ende der Foto-Zuordnung
 ```
 
 Werkzeuge suchen danach. Verschwindet eine Marke, findet das Werkzeug nichts mehr — und
@@ -120,12 +119,26 @@ Bei Stichwort-Regeln in `bilder.js` auf **Teilwort-Kollisionen** achten: `eis` s
 
 ## Bilder und Lizenzen
 
-`PHOTOS` und `PHOTO_CREDITS` müssen **deckungsgleich** bleiben.
+**Jedes mitgelieferte Gerichtsfoto ist selbst erzeugt.** Bis zum 07.09.2026 waren die 32
+Stichwortbilder CC0-Stockfotos mit je einem Nachweis in `PHOTO_CREDITS`; diese Konstante
+gibt es nicht mehr, es ist kein fremder Urheber mehr zu nennen. Im Impressum steht
+stattdessen ein Sammelhinweis.
 
-Neue Bilder nur mit belegter freier Lizenz: Lizenz prüfen, Quelle dokumentieren,
-`PHOTO_CREDITS` mit Titel, Urheber, Lizenz und Fundstelle ergänzen. Ein Bild ohne
-Lizenznachweis ist ein rechtliches Risiko — und die Nachweise werden im Impressum
-tatsächlich angezeigt (`creditsHtml()` erzeugt sie aus `PHOTO_CREDITS`).
+Neue Bilder entstehen über `python tools/meal-bilder.py --rezepte
+tools/bildsatz-stichworte.json --out img`. Diese Steuerdatei ist **kein Rezeptkatalog**:
+Ihre Zahlen sind Bildbeschreibung, ihre `category` steuert nur das Geschirr. Deshalb liegt
+sie unter `tools/` und nicht hier.
+
+Zwei Dinge, die nicht verhandelbar sind:
+
+* **Kein fremdes Bild ohne belegte freie Lizenz.** Käme je eines dazu, bräuchte es
+  wieder einen Einzelnachweis im Impressum — der Sammelhinweis deckt nur Eigenes.
+* **Dateinamen und Endungen bleiben.** `img/salad.jpg` heißt `.jpg`, weil dieser Pfad in
+  verschickten Sharing-Links steckt; `img/neutral.jpg` steht zusätzlich fest in
+  `worker/og.js`. Beim Austausch `VERSION` in `sw.js` hochziehen — Bilder kommen
+  cache-first.
+
+Reihenfolge und Treffer der Stichwortregeln prüft `tools/pruefstand-bildstichworte.py`.
 
 ---
 
@@ -137,9 +150,9 @@ dass jemand den Text angefasst hat.
 
 * Jede Änderung hier braucht den Agenten `anwalt`; bei neuen Datenfeldern, Diensten,
   Sharing- oder Löschwegen zusätzlich `datenschutz-technik`.
-* Der Text ist zweigeteilt, weil im Impressum der Bildnachweis eingesetzt wird:
-  `IMPRESSUM_HTML_1 + creditsHtml() + IMPRESSUM_HTML_2`. Wer die Teile zusammenzieht,
-  verliert die Nachweise.
+* Der Text ist zweigeteilt: `IMPRESSUM_HTML_1 + IMPRESSUM_HTML_2`. Dazwischen stand
+  bis zum 07.09.2026 die aus `PHOTO_CREDITS` erzeugte Nachweistabelle. Die Teilung bleibt
+  — sie hält den Text frei von Logik und den Platz für einen künftigen Einschub offen.
 * Der Footer muss **auch ohne Anmeldung** erreichbar bleiben — das Impressum darf nicht
   hinter das Auth-Gate.
 

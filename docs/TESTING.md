@@ -373,9 +373,10 @@ nummeriert ist, ob `img` auf eine vorhandene Datei zeigt und ob `id` eindeutig i
 
 Seit dem 29.08.2026 außerdem der **Herkunftsnachweis je Bild**. Das Impressum sagt zu, dass
 zu jedem Rezeptbild festgehalten ist, mit welcher Beschreibung und wann es entstanden ist —
-eingelöst von `img/library/bilder-protokoll.json`. Bis dahin prüfte das **niemand**:
-`PHOTO_CREDITS` deckt die Katalogbilder bewusst nicht ab, und die Datei-Existenz allein sagt
-nichts über den Nachweis. Aufgefallen ist die Lücke dem Agenten `anwalt` im Pushcheck — er
+eingelöst von `img/library/bilder-protokoll.json` — und seit dem 07.09.2026 ebenso von
+`img/bilder-protokoll.json` für die Stichwortbilder. Bis dahin prüfte das **niemand**: die
+damalige Konstante `PHOTO_CREDITS` deckte die Katalogbilder bewusst nicht ab, und die
+Datei-Existenz allein sagt nichts über den Nachweis. Aufgefallen ist die Lücke dem Agenten `anwalt` im Pushcheck — er
 konnte es nur stichprobenartig prüfen und hat genau das gemeldet. **Ein Nachweis, den man
 einzeln nachzählen muss, ist auf Dauer keiner.**
 
@@ -486,6 +487,69 @@ Gegenprüfung in einer zweiten Sitzung, die verstellte Kopien des Katalogs durch
 schickte (erfundene Zutat, leere `steps`, fehlendes Bild, behobener Grundlinienfall). Das
 ist der Weg, der bei einem neuen Prüfer verbindlich ist: **Ein Prüfer, den niemand geprüft
 hat, meldet „sauber" — und man glaubt ihm** (`CLAUDE.md` §18b).
+
+## 2c. Bildstichworte — `pruefstand-bildstichworte.py`
+
+Angelegt am 07.09.2026, zusammen mit dem Austausch der Stichwortbilder gegen eigene.
+
+**Warum es ihn braucht.** Die Zuordnung Gerichtname → Foto ist eine Liste von
+Teilwort-Treffern, bei der der **erste gewinnt**. Ob sie richtig ist, sieht man dem Code
+nicht an — man sieht es erst, wenn man echte Gerichtnamen hindurchschickt. Genau das hatte
+nie jemand getan. Beim ersten Lauf gegen den alten Stand fielen **35 Namen** durch:
+
+| Name | lag auf | gehört auf |
+|---|---|---|
+| Schnitzel mit Pommes | `beef` (Ribeye-Steak) | `schnitzel` |
+| Currywurst mit Fritten | `burger` | `wurst` |
+| Tofu-Gemuesepfanne | `salad` (Blattsalat) | `tofu` |
+| Skyr mit Beeren | `fruit` (Obstschale) | `skyr` |
+| Edamame, Proteinriegel, Tempeh, Mandeln | `neutral` | eigene Schlüssel |
+
+Der Fitness-Bereich war am dünnsten besetzt — die Liste ist älter als das Rezeptbuch.
+
+**Was er prüft**, mit `PHOTOS`, `PHOTO_RULES`, `CAT_PHOTO` aus `data/bilder.js` und
+`COOKBOOK`, `LIB_IMG`/`libPhoto()`, `photoFor()`, `safeImage()` aus `index.html`
+ausgeschnitten — `safeImage()` ausdrücklich **nicht** gestubbt, es entscheidet mit über
+die Rangfolge:
+
+1. Jeder Schlüssel aus `PHOTO_RULES` und `CAT_PHOTO` steht in `PHOTOS`.
+2. Jede Datei aus `PHOTOS` liegt wirklich in `img/` — die Liste kommt aus dem
+   Dateisystem, weil der Browser das unter `file://` nicht nachsehen kann. Ein Tippfehler
+   im Dateinamen ergibt in der App sonst eine leere Bildfläche und sonst nichts.
+   Dazu: die fünf `.jpg`-Pfade sind unverändert (sie stecken in verschickten
+   Sharing-Links, `img/neutral.jpg` zusätzlich fest in `worker/og.js`).
+3. **Kein Stichwort wird von einer früheren Regel verdeckt.** Stünde `curry` vor
+   `currywurst`, wäre das zweite Wort unerreichbar, ohne dass das je auffällt.
+4. **66 echte Gerichtnamen treffen ihr Bild** — die reparierten Fälle, die Stellen, an
+   denen die Reihenfolge die Aussage trägt (`Nudeln mit Hackfleisch` → `pasta`,
+   `Gebratener Reis` → `rice`, `Erdnussbutter-Brot` → `sandwich`), und die Fälle, die
+   schon immer stimmten und nicht kippen dürfen.
+5. Die Rangfolge von `photoFor()` selbst, bis hinunter zu „ein manipuliertes eigenes Bild
+   wird verworfen".
+6. **Der KI-Hinweis unter dem großen Foto** (`bildHinweisHtml()`, seit 07.09.2026). Er ist
+   eine rechtliche Offenlegung nach AI Act Art. 50 und zugleich der Schutz gegen
+   Irreführung — deshalb steht er unter Zusage und nicht nur im Code. Geprüft wird, dass
+   er bei mitgelieferten Bildern erscheint, bei einem **eigenen Foto des Nutzers nicht**
+   (dort wäre er schlicht falsch), bei einem von `safeImage()` verworfenen Bild wieder
+   zurückkommt — und dass er **derselben Bedingung folgt wie `photoFor()`**. Liefen die
+   beiden auseinander, stünde „KI-generiert" unter dem Foto eines Nutzers.
+   **Warum unter Zusage:** Fällt der Hinweis still weg, merkt das niemand beim Draufsehen —
+   das Bild bleibt ja da.
+
+Punkt 4 fand beim Bauen sofort einen Fehler in der neuen Liste: `Seitan-Geschnetzeltes`
+landete auf `beef`, weil der Name das Rindfleisch-Wort *geschnetzeltes* trägt und die
+`tofu`-Regel dahinter stand. Die Verdeckungsprüfung aus Punkt 3 hätte das **nicht**
+gefunden — sie sieht nur Stichwörter, nicht ganze Namen. Beide Prüfungen zusammen
+ergeben das Netz, keine allein.
+
+**Gegenprobe** (Pflicht, sonst misst er nichts):
+
+```powershell
+git show HEAD:data/bilder.js > alt-bilder.js
+python tools/pruefstand-bildstichworte.py alt-bilder.js
+```
+
+Muss mit den 35 Namen durchfallen. Tut er das nicht, prüft er die falsche Datei.
 
 ## 3. Ergebnisfortschritt
 

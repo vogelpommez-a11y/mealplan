@@ -97,6 +97,18 @@ with tempfile.TemporaryDirectory() as tmp:
         pruef("roter Rand oben ist weggeschnitten", oben[0] < 200, True)
         pruef("gruene Mitte ist erhalten", mitte[1] > 150, True)
 
+    # Die fuenf mitgelieferten Stichwortbilder heissen seit jeher .jpg, und ihre Pfade
+    # stecken in bereits verschickten Sharing-Links und fest in worker/og.js. Das Format
+    # muss deshalb der Endung folgen, nicht einem Standardwert. Die WebP-Pruefung oben ist
+    # die Gegenprobe dazu: Beide Zweige werden hier tatsaechlich unterschieden.
+    zielj = Path(tmp) / "test.jpg"
+    groessej = mb.speichere_webp(puffer.getvalue(), zielj)
+    with Image.open(zielj) as ej:
+        pruef("Endung .jpg ergibt JPEG", ej.format, "JPEG")
+        pruef("JPEG wird genauso zugeschnitten", round(ej.width / ej.height, 2), mb.ZUSCHNITT)
+        pruef("JPEG auf Zielbreite verkleinert", ej.width, mb.ZIEL_BREITE)
+    pruef("JPEG unter 150 KB", groessej < 150 * 1024, True)
+
     # Kleines Bild darf NICHT hochskaliert werden
     klein = Image.new("RGB", (400, 300), (10, 10, 10))
     pk = io.BytesIO(); klein.save(pk, "PNG")

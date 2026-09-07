@@ -1,0 +1,1060 @@
+{
+  "_hinweis": "Steuerdatei fuer tools/meal-bilder.py --rezepte. KEIN Rezeptkatalog: die Zahlen sind Bildbeschreibung, keine Naehrwerte - deshalb liegt die Datei unter tools/ und nicht unter data/. 'id' ist der Schluessel in PHOTOS (data/bilder.js) und zugleich der Dateiname. 'category' steuert hier ausschliesslich das Geschirr (KAT_GESCHIRR): Hauptgericht=Teller, Fruehstueck=Schuessel, Snack=kleine Schale, Getraenk=Glas. 'endung' haelt die fuenf Bilder bei .jpg, deren Pfade in bereits verschickten Sharing-Links und in worker/og.js stehen.",
+  "recipes": [
+    {
+      "id": "pasta",
+      "name": "Spaghetti Bolognese",
+      "category": "Hauptgericht",
+      "ingredients": [
+        {
+          "name": "Spaghetti",
+          "grams": 200
+        },
+        {
+          "name": "Tomatensauce",
+          "grams": 150
+        },
+        {
+          "name": "Rinderhackfleisch",
+          "grams": 120
+        },
+        {
+          "name": "Parmesan",
+          "grams": 20
+        }
+      ]
+    },
+    {
+      "id": "curry",
+      "name": "Haehnchencurry mit Reis",
+      "category": "Frühstück",
+      "ingredients": [
+        {
+          "name": "Basmatireis",
+          "grams": 180
+        },
+        {
+          "name": "Haehnchenbrust",
+          "grams": 150
+        },
+        {
+          "name": "Kokosmilch",
+          "grams": 100
+        },
+        {
+          "name": "Currysauce",
+          "grams": 80
+        }
+      ]
+    },
+    {
+      "id": "salad",
+      "name": "Bunter Blattsalat mit Kirschtomaten",
+      "category": "Frühstück",
+      "ingredients": [
+        {
+          "name": "Blattsalat",
+          "grams": 120
+        },
+        {
+          "name": "Kirschtomaten",
+          "grams": 80
+        },
+        {
+          "name": "Gurke",
+          "grams": 60
+        },
+        {
+          "name": "Olivenoel",
+          "grams": 10
+        }
+      ],
+      "tags": [
+        "vegetarisch"
+      ],
+      "endung": "jpg"
+    },
+    {
+      "id": "porridge",
+      "name": "Haferporridge mit Beeren und Mandeln",
+      "category": "Frühstück",
+      "ingredients": [
+        {
+          "name": "Haferflocken",
+          "grams": 80
+        },
+        {
+          "name": "Milch",
+          "grams": 200
+        },
+        {
+          "name": "Heidelbeeren",
+          "grams": 60
+        },
+        {
+          "name": "Mandelblaettchen",
+          "grams": 15
+        }
+      ],
+      "tags": [
+        "vegetarisch"
+      ],
+      "endung": "jpg"
+    },
+    {
+      "id": "pizza",
+      "name": "Pizza Margherita",
+      "category": "Hauptgericht",
+      "ingredients": [
+        {
+          "name": "Pizzateig",
+          "grams": 250
+        },
+        {
+          "name": "Tomatensauce",
+          "grams": 100
+        },
+        {
+          "name": "Mozzarella",
+          "grams": 100
+        },
+        {
+          "name": "Basilikum",
+          "grams": 5
+        }
+      ],
+      "tags": [
+        "vegetarisch"
+      ],
+      "endung": "jpg"
+    },
+    {
+      "id": "burger",
+      "name": "Cheeseburger mit Salat und Tomate",
+      "category": "Hauptgericht",
+      "ingredients": [
+        {
+          "name": "Burgerbroetchen",
+          "grams": 90
+        },
+        {
+          "name": "Rinderpatty",
+          "grams": 150
+        },
+        {
+          "name": "Cheddar",
+          "grams": 30
+        },
+        {
+          "name": "Tomate",
+          "grams": 40
+        }
+      ]
+    },
+    {
+      "id": "chicken",
+      "name": "Gegrillte Haehnchenbrust mit Kraeutern",
+      "category": "Hauptgericht",
+      "ingredients": [
+        {
+          "name": "Haehnchenbrust",
+          "grams": 200
+        },
+        {
+          "name": "Zitrone",
+          "grams": 30
+        },
+        {
+          "name": "Rosmarin",
+          "grams": 5
+        },
+        {
+          "name": "Olivenoel",
+          "grams": 8
+        }
+      ]
+    },
+    {
+      "id": "beef",
+      "name": "Rindergeschnetzeltes in dunkler Sauce",
+      "category": "Hauptgericht",
+      "ingredients": [
+        {
+          "name": "Rinderstreifen",
+          "grams": 180
+        },
+        {
+          "name": "Bratensauce",
+          "grams": 100
+        },
+        {
+          "name": "Zwiebel",
+          "grams": 50
+        },
+        {
+          "name": "Petersilie",
+          "grams": 5
+        }
+      ]
+    },
+    {
+      "id": "fish",
+      "name": "Gebratenes Lachsfilet mit Zitrone",
+      "category": "Hauptgericht",
+      "ingredients": [
+        {
+          "name": "Lachsfilet",
+          "grams": 180
+        },
+        {
+          "name": "Zitrone",
+          "grams": 30
+        },
+        {
+          "name": "Dill",
+          "grams": 5
+        },
+        {
+          "name": "Olivenoel",
+          "grams": 8
+        }
+      ]
+    },
+    {
+      "id": "soup",
+      "name": "Cremige Kuerbissuppe",
+      "category": "Frühstück",
+      "ingredients": [
+        {
+          "name": "Kuerbis",
+          "grams": 300
+        },
+        {
+          "name": "Gemuesebruehe",
+          "grams": 200
+        },
+        {
+          "name": "Sahne",
+          "grams": 30
+        },
+        {
+          "name": "Kuerbiskerne",
+          "grams": 10
+        }
+      ],
+      "tags": [
+        "vegetarisch"
+      ]
+    },
+    {
+      "id": "rice",
+      "name": "Reispfanne mit Gemuese",
+      "category": "Frühstück",
+      "ingredients": [
+        {
+          "name": "Basmatireis",
+          "grams": 200
+        },
+        {
+          "name": "Paprika",
+          "grams": 80
+        },
+        {
+          "name": "Erbsen",
+          "grams": 60
+        },
+        {
+          "name": "Sojasauce",
+          "grams": 10
+        }
+      ],
+      "tags": [
+        "vegan"
+      ]
+    },
+    {
+      "id": "pancake",
+      "name": "Pancakes mit Ahornsirup und Beeren",
+      "category": "Hauptgericht",
+      "ingredients": [
+        {
+          "name": "Pancakes",
+          "grams": 180
+        },
+        {
+          "name": "Ahornsirup",
+          "grams": 30
+        },
+        {
+          "name": "Himbeeren",
+          "grams": 50
+        },
+        {
+          "name": "Butter",
+          "grams": 10
+        }
+      ],
+      "tags": [
+        "vegetarisch"
+      ]
+    },
+    {
+      "id": "noodle",
+      "name": "Ramen mit Ei und Fruehlingszwiebeln",
+      "category": "Frühstück",
+      "ingredients": [
+        {
+          "name": "Ramennudeln",
+          "grams": 180
+        },
+        {
+          "name": "Bruehe",
+          "grams": 250
+        },
+        {
+          "name": "Ei",
+          "grams": 60
+        },
+        {
+          "name": "Fruehlingszwiebel",
+          "grams": 20
+        }
+      ]
+    },
+    {
+      "id": "egg",
+      "name": "Ruehrei mit Schnittlauch",
+      "category": "Hauptgericht",
+      "ingredients": [
+        {
+          "name": "Eier",
+          "grams": 180
+        },
+        {
+          "name": "Butter",
+          "grams": 10
+        },
+        {
+          "name": "Schnittlauch",
+          "grams": 5
+        }
+      ],
+      "tags": [
+        "vegetarisch"
+      ]
+    },
+    {
+      "id": "cake",
+      "name": "Stueck Schokoladenkuchen",
+      "category": "Hauptgericht",
+      "ingredients": [
+        {
+          "name": "Schokoladenkuchen",
+          "grams": 120
+        },
+        {
+          "name": "Schokoladenglasur",
+          "grams": 30
+        },
+        {
+          "name": "Sahne",
+          "grams": 20
+        }
+      ],
+      "tags": [
+        "vegetarisch"
+      ]
+    },
+    {
+      "id": "sandwich",
+      "name": "Belegtes Sandwich mit Kaese und Tomate",
+      "category": "Hauptgericht",
+      "ingredients": [
+        {
+          "name": "Vollkornbrot",
+          "grams": 120
+        },
+        {
+          "name": "Kaese",
+          "grams": 40
+        },
+        {
+          "name": "Tomate",
+          "grams": 40
+        },
+        {
+          "name": "Salatblatt",
+          "grams": 15
+        }
+      ],
+      "tags": [
+        "vegetarisch"
+      ],
+      "endung": "jpg"
+    },
+    {
+      "id": "potato",
+      "name": "Ofenkartoffeln mit Rosmarin",
+      "category": "Hauptgericht",
+      "ingredients": [
+        {
+          "name": "Kartoffeln",
+          "grams": 300
+        },
+        {
+          "name": "Olivenoel",
+          "grams": 15
+        },
+        {
+          "name": "Rosmarin",
+          "grams": 5
+        },
+        {
+          "name": "Meersalz",
+          "grams": 2
+        }
+      ],
+      "tags": [
+        "vegan"
+      ]
+    },
+    {
+      "id": "drink",
+      "name": "Erdbeer-Smoothie",
+      "category": "Getränk",
+      "ingredients": [
+        {
+          "name": "Erdbeeren",
+          "grams": 150
+        },
+        {
+          "name": "Joghurt",
+          "grams": 120
+        },
+        {
+          "name": "Milch",
+          "grams": 80
+        },
+        {
+          "name": "Honig",
+          "grams": 10
+        }
+      ],
+      "tags": [
+        "vegetarisch"
+      ]
+    },
+    {
+      "id": "fruit",
+      "name": "Obstschale mit frischen Fruechten",
+      "category": "Snack",
+      "ingredients": [
+        {
+          "name": "Erdbeeren",
+          "grams": 80
+        },
+        {
+          "name": "Trauben",
+          "grams": 60
+        },
+        {
+          "name": "Melone",
+          "grams": 60
+        },
+        {
+          "name": "Minze",
+          "grams": 3
+        }
+      ],
+      "tags": [
+        "vegan"
+      ]
+    },
+    {
+      "id": "neutral",
+      "name": "Leer gedeckter Platz mit Teller und Leinenserviette, kein Essen",
+      "category": "Hauptgericht",
+      "ingredients": [],
+      "endung": "jpg"
+    },
+    {
+      "id": "wrap",
+      "name": "Wrap mit Haehnchen und Salat",
+      "category": "Hauptgericht",
+      "ingredients": [
+        {
+          "name": "Weizentortilla",
+          "grams": 90
+        },
+        {
+          "name": "Haehnchenstreifen",
+          "grams": 120
+        },
+        {
+          "name": "Salat",
+          "grams": 50
+        },
+        {
+          "name": "Joghurtsauce",
+          "grams": 30
+        }
+      ]
+    },
+    {
+      "id": "taco",
+      "name": "Tacos mit Rinderhack und Salsa",
+      "category": "Hauptgericht",
+      "ingredients": [
+        {
+          "name": "Maistortillas",
+          "grams": 90
+        },
+        {
+          "name": "Rinderhackfleisch",
+          "grams": 120
+        },
+        {
+          "name": "Salsa",
+          "grams": 50
+        },
+        {
+          "name": "Koriander",
+          "grams": 5
+        }
+      ]
+    },
+    {
+      "id": "toast",
+      "name": "Avocadobrot mit Sesam",
+      "category": "Hauptgericht",
+      "ingredients": [
+        {
+          "name": "Vollkorntoast",
+          "grams": 80
+        },
+        {
+          "name": "Avocado",
+          "grams": 90
+        },
+        {
+          "name": "Sesam",
+          "grams": 5
+        },
+        {
+          "name": "Limette",
+          "grams": 10
+        }
+      ],
+      "tags": [
+        "vegan"
+      ]
+    },
+    {
+      "id": "sushi",
+      "name": "Sushi-Platte mit Maki und Nigiri",
+      "category": "Hauptgericht",
+      "ingredients": [
+        {
+          "name": "Sushireis",
+          "grams": 180
+        },
+        {
+          "name": "Lachs",
+          "grams": 80
+        },
+        {
+          "name": "Nori",
+          "grams": 10
+        },
+        {
+          "name": "Ingwer",
+          "grams": 10
+        }
+      ]
+    },
+    {
+      "id": "seafood",
+      "name": "Gebratene Garnelen mit Knoblauch",
+      "category": "Hauptgericht",
+      "ingredients": [
+        {
+          "name": "Garnelen",
+          "grams": 180
+        },
+        {
+          "name": "Knoblauch",
+          "grams": 10
+        },
+        {
+          "name": "Petersilie",
+          "grams": 5
+        },
+        {
+          "name": "Olivenoel",
+          "grams": 10
+        }
+      ]
+    },
+    {
+      "id": "steak",
+      "name": "Rindersteak medium mit Kraeuterbutter",
+      "category": "Hauptgericht",
+      "ingredients": [
+        {
+          "name": "Rumpsteak",
+          "grams": 220
+        },
+        {
+          "name": "Kraeuterbutter",
+          "grams": 20
+        },
+        {
+          "name": "Thymian",
+          "grams": 3
+        },
+        {
+          "name": "Meersalz",
+          "grams": 2
+        }
+      ]
+    },
+    {
+      "id": "icecream",
+      "name": "Eiskugeln mit Minze",
+      "category": "Snack",
+      "ingredients": [
+        {
+          "name": "Vanilleeis",
+          "grams": 100
+        },
+        {
+          "name": "Schokoladeneis",
+          "grams": 60
+        },
+        {
+          "name": "Schokostreusel",
+          "grams": 5
+        },
+        {
+          "name": "Minze",
+          "grams": 3
+        }
+      ],
+      "tags": [
+        "vegetarisch"
+      ]
+    },
+    {
+      "id": "waffle",
+      "name": "Waffel mit Puderzucker und Beeren",
+      "category": "Hauptgericht",
+      "ingredients": [
+        {
+          "name": "Waffel",
+          "grams": 120
+        },
+        {
+          "name": "Erdbeeren",
+          "grams": 60
+        },
+        {
+          "name": "Sahne",
+          "grams": 25
+        },
+        {
+          "name": "Puderzucker",
+          "grams": 8
+        }
+      ],
+      "tags": [
+        "vegetarisch"
+      ]
+    },
+    {
+      "id": "coffee",
+      "name": "Milchkaffee mit Milchschaum",
+      "category": "Getränk",
+      "ingredients": [
+        {
+          "name": "Milch",
+          "grams": 150
+        },
+        {
+          "name": "Espresso",
+          "grams": 60
+        },
+        {
+          "name": "Kakaopulver",
+          "grams": 2
+        }
+      ],
+      "tags": [
+        "vegetarisch"
+      ]
+    },
+    {
+      "id": "casserole",
+      "name": "Nudelauflauf mit Kaesekruste",
+      "category": "Hauptgericht",
+      "ingredients": [
+        {
+          "name": "Nudeln",
+          "grams": 200
+        },
+        {
+          "name": "Bechamelsauce",
+          "grams": 150
+        },
+        {
+          "name": "Kaese",
+          "grams": 60
+        },
+        {
+          "name": "Tomate",
+          "grams": 50
+        }
+      ],
+      "tags": [
+        "vegetarisch"
+      ]
+    },
+    {
+      "id": "stew",
+      "name": "Herzhafter Eintopf mit Gemuese und Rindfleisch",
+      "category": "Frühstück",
+      "ingredients": [
+        {
+          "name": "Bruehe",
+          "grams": 200
+        },
+        {
+          "name": "Rindfleisch",
+          "grams": 150
+        },
+        {
+          "name": "Kartoffeln",
+          "grams": 120
+        },
+        {
+          "name": "Karotten",
+          "grams": 80
+        }
+      ]
+    },
+    {
+      "id": "cheese",
+      "name": "Kaeseplatte mit Trauben und Nuessen",
+      "category": "Hauptgericht",
+      "ingredients": [
+        {
+          "name": "Hartkaese",
+          "grams": 80
+        },
+        {
+          "name": "Weichkaese",
+          "grams": 60
+        },
+        {
+          "name": "Trauben",
+          "grams": 50
+        },
+        {
+          "name": "Walnuesse",
+          "grams": 20
+        }
+      ],
+      "tags": [
+        "vegetarisch"
+      ]
+    },
+    {
+      "id": "schnitzel",
+      "name": "Paniertes Schnitzel mit Zitronenscheibe",
+      "category": "Hauptgericht",
+      "ingredients": [
+        {
+          "name": "Schweineschnitzel",
+          "grams": 180
+        },
+        {
+          "name": "Semmelbroesel",
+          "grams": 40
+        },
+        {
+          "name": "Zitrone",
+          "grams": 30
+        },
+        {
+          "name": "Petersilie",
+          "grams": 5
+        }
+      ]
+    },
+    {
+      "id": "wurst",
+      "name": "Bratwurst mit Senf",
+      "category": "Hauptgericht",
+      "ingredients": [
+        {
+          "name": "Bratwurst",
+          "grams": 150
+        },
+        {
+          "name": "Senf",
+          "grams": 20
+        },
+        {
+          "name": "Petersilie",
+          "grams": 3
+        }
+      ]
+    },
+    {
+      "id": "braten",
+      "name": "Schweinebraten in Scheiben mit dunkler Sauce",
+      "category": "Hauptgericht",
+      "ingredients": [
+        {
+          "name": "Schweinebraten",
+          "grams": 200
+        },
+        {
+          "name": "Bratensauce",
+          "grams": 100
+        },
+        {
+          "name": "Karotte",
+          "grams": 50
+        },
+        {
+          "name": "Thymian",
+          "grams": 3
+        }
+      ]
+    },
+    {
+      "id": "hack",
+      "name": "Hackbaellchen in Tomatensauce",
+      "category": "Hauptgericht",
+      "ingredients": [
+        {
+          "name": "Hackbaellchen",
+          "grams": 180
+        },
+        {
+          "name": "Tomatensauce",
+          "grams": 120
+        },
+        {
+          "name": "Parmesan",
+          "grams": 15
+        },
+        {
+          "name": "Basilikum",
+          "grams": 5
+        }
+      ]
+    },
+    {
+      "id": "tofu",
+      "name": "Gebratener Tofu mit Sesam und Fruehlingszwiebeln",
+      "category": "Hauptgericht",
+      "ingredients": [
+        {
+          "name": "Tofu",
+          "grams": 200
+        },
+        {
+          "name": "Fruehlingszwiebel",
+          "grams": 25
+        },
+        {
+          "name": "Sojasauce",
+          "grams": 15
+        },
+        {
+          "name": "Sesam",
+          "grams": 5
+        }
+      ],
+      "tags": [
+        "vegan"
+      ]
+    },
+    {
+      "id": "legumes",
+      "name": "Kichererbsen und rote Linsen mit Petersilie",
+      "category": "Frühstück",
+      "ingredients": [
+        {
+          "name": "Kichererbsen",
+          "grams": 150
+        },
+        {
+          "name": "Rote Linsen",
+          "grams": 100
+        },
+        {
+          "name": "Tomate",
+          "grams": 50
+        },
+        {
+          "name": "Petersilie",
+          "grams": 5
+        }
+      ],
+      "tags": [
+        "vegan"
+      ]
+    },
+    {
+      "id": "bowl",
+      "name": "Protein-Bowl mit Haehnchen, Reis, Brokkoli und Avocado",
+      "category": "Frühstück",
+      "ingredients": [
+        {
+          "name": "Basmatireis",
+          "grams": 150
+        },
+        {
+          "name": "Haehnchenbrust",
+          "grams": 140
+        },
+        {
+          "name": "Brokkoli",
+          "grams": 90
+        },
+        {
+          "name": "Avocado",
+          "grams": 60
+        }
+      ]
+    },
+    {
+      "id": "veggiepan",
+      "name": "Ofengemuese vom Blech mit Zucchini, Paprika und Brokkoli",
+      "category": "Hauptgericht",
+      "ingredients": [
+        {
+          "name": "Zucchini",
+          "grams": 120
+        },
+        {
+          "name": "Paprika",
+          "grams": 100
+        },
+        {
+          "name": "Brokkoli",
+          "grams": 90
+        },
+        {
+          "name": "Olivenoel",
+          "grams": 12
+        }
+      ],
+      "tags": [
+        "vegan"
+      ]
+    },
+    {
+      "id": "skyr",
+      "name": "Skyr mit Beeren und Leinsamen",
+      "category": "Snack",
+      "ingredients": [
+        {
+          "name": "Skyr",
+          "grams": 200
+        },
+        {
+          "name": "Heidelbeeren",
+          "grams": 60
+        },
+        {
+          "name": "Himbeeren",
+          "grams": 40
+        },
+        {
+          "name": "Leinsamen",
+          "grams": 10
+        }
+      ],
+      "tags": [
+        "vegetarisch"
+      ]
+    },
+    {
+      "id": "nuts",
+      "name": "Nussmischung mit Datteln",
+      "category": "Snack",
+      "ingredients": [
+        {
+          "name": "Mandeln",
+          "grams": 40
+        },
+        {
+          "name": "Walnuesse",
+          "grams": 30
+        },
+        {
+          "name": "Cashewkerne",
+          "grams": 30
+        },
+        {
+          "name": "Datteln",
+          "grams": 30
+        }
+      ],
+      "tags": [
+        "vegan"
+      ]
+    },
+    {
+      "id": "shake",
+      "name": "Proteinshake mit Whey und Milch",
+      "category": "Getränk",
+      "ingredients": [
+        {
+          "name": "Milch",
+          "grams": 300
+        },
+        {
+          "name": "Wheypulver",
+          "grams": 30
+        },
+        {
+          "name": "Banane",
+          "grams": 60
+        }
+      ],
+      "tags": [
+        "vegetarisch"
+      ]
+    },
+    {
+      "id": "grain",
+      "name": "Quinoa mit Couscous und Kraeutern",
+      "category": "Frühstück",
+      "ingredients": [
+        {
+          "name": "Quinoa",
+          "grams": 120
+        },
+        {
+          "name": "Couscous",
+          "grams": 100
+        },
+        {
+          "name": "Tomate",
+          "grams": 50
+        },
+        {
+          "name": "Petersilie",
+          "grams": 8
+        }
+      ],
+      "tags": [
+        "vegan"
+      ]
+    }
+  ]
+}

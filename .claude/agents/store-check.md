@@ -122,8 +122,8 @@ Kamera (Barcode-Scanner) ist die einzige heikle. Prüfe:
 - Bei Gesundheits-/Fitness-Bezug: keine medizinischen Heilversprechen. Die App ist
   ausdrücklich **kein** Medizinprodukt und darf sich nicht so darstellen. Prüfe UI-Texte
   und Store-Beschreibung auf Formulierungen, die als medizinische Aussage lesbar wären.
-- Kein Store-Name/Logo Dritter ohne Recht daran; Fotos mit belegter Lizenz
-  (`PHOTO_CREDITS`).
+- Kein Store-Name/Logo Dritter ohne Recht daran; Gerichtsfotos sind alle selbst erzeugt
+  und in `bilder-protokoll.json` belegt.
 
 ### 7. Technische Mindestanforderungen
 

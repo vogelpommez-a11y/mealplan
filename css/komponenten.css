@@ -286,6 +286,13 @@
   }
   .ms-photobtn:hover { background: color-mix(in srgb, #0a0c07 72%, transparent); }
   .ms-photobtn[hidden] { display: none; }
+  /* Der Herkunftshinweis unter dem Foto. Leise gehalten - er ist eine Fussnote, keine
+     Aussage ueber das Gericht - aber mit --text-muted noch klar lesbar, weil er eine
+     Offenlegung traegt und keine Verzierung ist. */
+  .ms-bildhinweis {
+    margin: 0 0 10px; font-size: 11.5px; line-height: 1.4;
+    color: var(--text-muted); letter-spacing: .01em;
+  }
   .ms-head { display: flex; align-items: center; gap: 10px; margin: 14px 0; }
   .ms-title { font-family: var(--font-display); font-size: 21px; font-weight: 700; margin: 0; flex: 1; min-width: 0; }
   .ms-name {

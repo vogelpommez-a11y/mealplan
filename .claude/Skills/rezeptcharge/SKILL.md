@@ -431,11 +431,11 @@ Dann die gewählte Variante auf `<id>.webp` umbenennen, die andere löschen **un
 Schlüssel in `img/library/bilder-protokoll.json` mitziehen** — das Protokoll ist nach dem
 endgültigen Dateinamen geschlüsselt, verworfene Varianten stehen nicht darin.
 
-**Kein Eintrag in `PHOTO_CREDITS`.** Die Rezeptbuch-Bilder sind über einen Sammelhinweis im
-Impressum abgedeckt (`data/rechtstexte.js`, `IMPRESSUM_HTML_2`); der Nachweis je Bild steht
-im Protokoll. Das Werkzeug schlägt am Ende trotzdem eine `PHOTO_CREDITS`-Zeile vor — das ist
-ein Überbleibsel aus der Zeit vor dem Sammelhinweis. Nicht übernehmen, sonst steht ein
-einzelnes Bild in der Tabelle und 35 andere nicht.
+**Kein Bildnachweis je Bild.** Alle mitgelieferten Gerichtsfotos sind über einen
+Sammelhinweis im Impressum abgedeckt (`data/rechtstexte.js`, `IMPRESSUM_HTML_2`); der
+Nachweis je Bild steht im Protokoll. Die Konstante `PHOTO_CREDITS`, in die solche Zeilen
+früher wanderten, gibt es seit dem 07.09.2026 nicht mehr — das Werkzeug schlägt am Ende
+trotzdem eine vor. Nicht übernehmen, sie hat kein Ziel mehr.
 
 `img` trägt den **Dateinamen**, nicht die `id`: Eine `id` darf einen Umlaut haben
 (`rührei-avocadobrot`), ein Dateiname nicht.

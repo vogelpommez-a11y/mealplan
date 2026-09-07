@@ -219,11 +219,6 @@
   .legal h4:first-child { margin-top: 0; }
   .legal p { margin: 0 0 10px; font-size: 13.5px; line-height: 1.6; color: var(--text); }
   .legal p.muted, .legal a { color: var(--text-muted); }
-  .credits { overflow-x: auto; margin: 0 0 10px; }
-  .credits table { border-collapse: collapse; width: 100%; min-width: 460px; font-size: 12px; }
-  .credits th, .credits td { text-align: left; padding: 5px 8px 5px 0; border-bottom: 1px solid var(--border); vertical-align: top; }
-  .credits th { color: var(--text-muted); font-weight: 650; white-space: nowrap; }
-  .credits td { color: var(--text); }
   .legal a { color: var(--accent-strong); }
   .legal-draft { font-size: 12.5px; line-height: 1.55; background: color-mix(in srgb, var(--fr) 12%, var(--surface)); border: 1px solid color-mix(in srgb, var(--fr) 30%, transparent); border-radius: var(--radius-sm); padding: 10px 12px; margin: 0 0 16px; color: var(--text); }
 

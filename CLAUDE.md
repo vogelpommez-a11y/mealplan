@@ -374,16 +374,26 @@ verschickten Sharing-Links. Eine Umbenennung bricht beides.
 
 # 15. Bilder und Lizenzen
 
-`photoFor(r)` verwendet die Priorität: eigenes Bild → Stichwort/`PHOTO_RULES` →
+`photoFor(r)` verwendet die Priorität: eigenes Bild → Bibliotheksbild aus
+`img/library/` → kuratierter Schlüssel `r.photo` → Stichwort/`PHOTO_RULES` →
 Kategorie/`CAT_PHOTO` → `PHOTOS.neutral`. Keine alten Emoji-/Gradient-Fallbacks wieder
 einführen.
 
-`PHOTOS` und `PHOTO_CREDITS` müssen deckungsgleich bleiben. Neue Bilder nur mit belegter
-freier Lizenz: Lizenz prüfen, Quelle dokumentieren, `PHOTO_CREDITS` aktualisieren.
-Ein Bild ohne Lizenznachweis ist ein rechtliches Risiko.
+**Alle mitgelieferten Gerichtsfotos sind selbst erzeugt** — seit dem 07.09.2026 auch die
+44 Stichwortbilder in `img/`, nicht mehr nur die Katalogbilder in `img/library/`. Neue
+Bilder entstehen über `tools/meal-bilder.py`, nie von Hand und nie aus fremden Quellen;
+die Motive stehen in `tools/bildsatz-stichworte.json`, die Herkunft je Datei im
+`bilder-protokoll.json` daneben. Der Stil-Baustein im Werkzeug ist **eingefroren**.
+Fremde Bilder bräuchten wieder einen Einzelnachweis — heute reicht ein Sammelhinweis
+im Impressum.
+
+Dateinamen in `PHOTOS` **nie ändern**, Endung inklusive: Die Pfade stehen in bereits
+verschickten Sharing-Links, und `img/neutral.jpg` steht fest in `worker/og.js`.
+Wird ein Bild ausgetauscht, muss `VERSION` in `sw.js` hoch — Bilder kommen cache-first.
 
 Bei Stichwort-Matching auf Teilwort-Kollisionen achten: `eis` steckt in `Rindfleisch`,
-`reis` in `Preiselbeere`.
+`reis` in `Preiselbeere`, `braten` in `gebratener Reis`. Prüfer:
+`tools/pruefstand-bildstichworte.py`.
 
 **Nährwerte nie schätzen** — vor jedem neuen Rezept `tools/rezept-makros.py` gegenrechnen.
 

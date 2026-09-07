@@ -393,15 +393,18 @@ Das verhindert redundante personenbezogene Daten und vereinfacht Löschvorgänge
 
 ## 14. Foto-Credits
 
-`PHOTOS` und `PHOTO_CREDITS` müssen deckungsgleich sein.
+**Überholt seit dem 07.09.2026.** Bis dahin waren die 32 Stichwortbilder CC0-Stockfotos,
+und `PHOTOS` musste mit einer Konstante `PHOTO_CREDITS` deckungsgleich bleiben, aus der
+das Impressum eine Nachweistabelle erzeugte. Seit alle mitgelieferten Gerichtsfotos selbst
+erzeugt sind, gibt es keinen fremden Urheber mehr zu nennen: `PHOTO_CREDITS` und
+`creditsHtml()` sind entfallen, im Impressum steht ein Sammelhinweis.
 
-Ein Foto ohne passenden Lizenznachweis ist ein relevantes rechtliches Risiko.
+Die Falle dahinter bleibt trotzdem bestehen und hat nur ihre Form gewechselt:
 
-Neue Fotos nur hinzufügen, wenn:
-
-1. Lizenz geprüft wurde
-2. Quelle dokumentiert wurde
-3. `PHOTO_CREDITS` ergänzt wurde
+**Ein Foto ohne belegte Herkunft ist ein rechtliches Risiko.** Der Beleg ist heute der
+Eintrag in `img/bilder-protokoll.json` bzw. `img/library/bilder-protokoll.json` — Prompt,
+Modell und Datum. Ein Bild in `img/`, das dort nicht steht, ist von woanders gekommen; genau
+danach sucht der Agent `anwalt`.
 
 ## 15. Teilwort-Matching
 
@@ -411,8 +414,21 @@ Beispiele:
 
 * `eis` steckt in `Rindfleisch`
 * `reis` steckt in `Preiselbeere`
+* `braten` steckt in `gebratener Reis` — deshalb steht dieses Wort **nicht** in der
+  `braten`-Regel, nur die spezifischen (`schweinebraten`, `rollbraten`, …)
+* `curry` steckt in `Currywurst`, `wiener` in `Wiener Schnitzel` — hier entscheidet die
+  Reihenfolge: `schnitzel` steht vor `wurst`, `wurst` vor `curry`
 
-Bei Änderungen an `PHOTO_RULES` deshalb immer auf Teilwort-Kollisionen achten.
+Bei Änderungen an `PHOTO_RULES` deshalb immer auf Teilwort-Kollisionen achten — und
+`python tools/pruefstand-bildstichworte.py` fahren. Der prüft beides: dass kein Stichwort
+von einer früheren Regel verdeckt wird (dann wäre es unerreichbar, ohne dass das je
+auffiele), und dass 66 echte Gerichtnamen ihr Bild treffen.
+
+Was diese Prüfung am 07.09.2026 zutage förderte, als es sie zum ersten Mal gab:
+`Schnitzel mit Pommes` lag auf einem Ribeye-Steak, `Currywurst` auf einem Burger, jede
+`Gemuesepfanne` auf Blattsalat, `Skyr mit Beeren` auf einer Obstschale — und `Edamame`,
+`Proteinriegel` oder `Tempeh` auf dem neutralen Bild. 35 Namen insgesamt. Kein Test hatte
+das je gemeldet, weil keiner die Zuordnung als Ganzes angesehen hatte.
 
 ## 16. `initCarousel()` und Progress-Bar
 

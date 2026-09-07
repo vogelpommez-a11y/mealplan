@@ -148,11 +148,6 @@ Alles, was nach draußen geht, ist entweder eine **Verarbeitung** (Datenschutz) 
 | Google-Datenschutz | `domain:policies.google.com` | `anwalt` | Rechtstext-Verweis |
 | Open Food Facts | `domain:world.openfoodfacts.org` | `anwalt` | Lizenzverweis |
 | ODbL-Lizenz | `domain:opendatacommons.org` | `anwalt` | Lizenzverweis |
-| Creative Commons | `domain:creativecommons.org` | `anwalt` | Bildlizenz |
-| Wikimedia Commons | `domain:commons.wikimedia.org` | `anwalt` | Bildquelle |
-| Flickr | `domain:www.flickr.com` | `anwalt` | Bildquelle |
-| Rawpixel | `domain:www.rawpixel.com` | `anwalt` | Bildquelle |
-| StockSnap | `domain:stocksnap.io` | `anwalt` | Bildquelle |
 
 ## 6. Bewusst ohne Prüfer
 

@@ -16,12 +16,43 @@ einklagen wuerde.
 
 Rechtlich zu wissen:
   * KI-Bilder haben in der EU keinen Urheberrechtsschutz (kein menschlicher Schoepfer).
-    Massgeblich sind allein die Nutzungsbedingungen des Anbieters - bei OpenAI ist die
-    kommerzielle Nutzung erlaubt.
-  * Eine Kennzeichnungspflicht besteht NICHT: Der EU AI Act (Art. 50 Abs. 4, in Kraft seit
-    02.08.2026) verlangt Offenlegung nur bei Deep Fakes - also Inhalten, die realen Personen,
-    Orten oder Ereignissen aehneln. Ein generiertes Steak ist keiner.
-    Gekennzeichnet wird trotzdem, in PHOTO_CREDITS - es kostet eine Zeile.
+    Massgeblich sind allein die Nutzungsbedingungen des Anbieters. OpenAI tritt die Rechte
+    am Output ab ("OpenAI hereby assigns to you all its right, title and interest in and to
+    Output"), unter dem Vorbehalt, dass man die Bedingungen einhaelt - die kommerzielle
+    Nutzung ist damit gedeckt.
+    ACHTUNG, hier wird leicht das Falsche zitiert: Dieses Skript nutzt die API, und dafuer
+    gelten die BUSINESS TERMS, nicht die Consumer-"Terms of use" von ChatGPT. In den
+    Business Terms steckt auch die Freistellung ("Copyright Shield", Abschnitt 10), die
+    ChatGPT-Gratisnutzer nicht haben - mit Ausnahmen, deren Reichweite am 07.09.2026 nicht
+    zu belegen war, weil openai.com/policies/ maschinelle Abrufe mit 403 abweist.
+  * Kennzeichnungspflicht - der Stand nach der Recherche vom 07.09.2026, KEINE Rechtsberatung:
+    Art. 50 Abs. 2 KI-VO (maschinenlesbare Markierung) trifft den ANBIETER des KI-Systems,
+    also OpenAI - nicht den, der die Bilder danach verwendet (Art. 3 Nr. 3 gegen Nr. 4).
+    Den BETREIBER trifft Abs. 4, aber nur fuer Deepfakes. Und deren Legaldefinition in
+    Art. 3 Nr. 60 lautet: Inhalt, der "wirklichen Personen, GEGENSTAENDEN, Orten,
+    EINRICHTUNGEN oder Ereignissen aehnelt und einer Person faelschlicherweise als echt
+    oder wahrheitsgemaess erscheinen wuerde".
+
+    Hier stand frueher, das verlange Offenlegung "nur bei Inhalten, die realen Personen,
+    Orten oder Ereignissen aehneln - ein generiertes Steak ist keiner". Das liess
+    "Gegenstaenden" weg, und ein Teller Essen IST ein Gegenstand. Die Verkuerzung machte
+    die Frage einfacher, als sie ist.
+
+    Was dafuer spricht, dass es trotzdem keine sind: Erwaegungsgrund 134 und die
+    Fachliteratur ziehen die Grenze beim Bezug auf etwas BESTIMMTES Wirkliches. Ein
+    generisches Symbolbild fuer die Kategorie "Schnitzel" bildet kein bestimmtes Gericht
+    ab und behauptet das auch nicht. Was dagegen spricht: Fuer KI-PRODUKTfotos wird
+    ueberwiegend Kennzeichnung empfohlen, und die Bilder in img/library/ illustrieren ein
+    konkret angebotenes Rezept - das liegt naeher am Produktfoto als am Symbolbild.
+
+    Daneben, und vom AI Act unabhaengig: Irrefuehrung nach UWG, wenn ein Bild suggeriert,
+    das Gericht saehe beim Nachkochen so aus. Wird relevant, sobald Inhalte bezahlt sind.
+
+    Deshalb WIRD gekennzeichnet - als Sammelhinweis im Impressum, dazu Prompt, Modell und
+    Datum je Bild im bilder-protokoll.json neben den Dateien. Offen bleibt, ob das
+    Impressum der richtige ORT ist: Art. 50 Abs. 5 verlangt die Angabe "klar und
+    eindeutig" spaetestens bei der ersten Aussetzung. Das gehoert einem Anwalt vorgelegt,
+    bevor Bilder in bezahlte Inhalte wandern.
 
 Keine neuen Abhaengigkeiten (CLAUDE.md §12): nur die Standardbibliothek und Pillow, das
 ohnehin installiert ist. Absichtlich kein `requests`.
@@ -247,11 +278,18 @@ def generiere(key, prompt, anzahl):
 
 
 def speichere_webp(roh, ziel):
-    """Mittig auf das Zielverhaeltnis beschneiden, dann als WebP verkleinern.
+    """Mittig auf das Zielverhaeltnis beschneiden, dann verkleinert speichern.
 
     Der Zuschnitt passiert HIER und nicht in der App: object-fit: cover wuerde denselben
     Bereich wegschneiden, aber das Bild vorher vollstaendig laden - also mehrere hundert
     Kilobyte fuer Pixel, die niemand sieht. Ladezeit ist in dieser App ein Produktwert.
+
+    Das Format kommt aus der ENDUNG des Zielpfads, nicht aus einem Schalter. Grund: Fuenf
+    der mitgelieferten Stichwortbilder heissen seit jeher .jpg (img/salad.jpg,
+    porridge.jpg, pizza.jpg, sandwich.jpg, neutral.jpg). Diese Pfade stehen in bereits
+    verschickten Sharing-Links (index.html, og.img) und - im Fall von neutral.jpg - fest
+    in worker/og.js. Wer sie beim Neuerzeugen auf .webp umstellt, bricht beides. Also
+    darf der Aufrufer die Endung vorgeben, und das Format folgt ihr.
     """
     from PIL import Image
     bild = Image.open(BytesIO(roh)).convert("RGB")
@@ -263,7 +301,11 @@ def speichere_webp(roh, ziel):
         h = round(bild.height * ZIEL_BREITE / bild.width)
         bild = bild.resize((ZIEL_BREITE, h), Image.LANCZOS)
     ziel.parent.mkdir(parents=True, exist_ok=True)
-    bild.save(ziel, "WEBP", quality=82, method=6)
+    if ziel.suffix.lower() in (".jpg", ".jpeg"):
+        # optimize statt method: JPEG kennt Pillows method-Parameter nicht.
+        bild.save(ziel, "JPEG", quality=82, optimize=True, progressive=True)
+    else:
+        bild.save(ziel, "WEBP", quality=82, method=6)
     return ziel.stat().st_size
 
 
@@ -302,6 +344,10 @@ def main():
     p.add_argument("--varianten", type=int, default=2,
                    help="Bilder je Gericht (Standard 2 - rechne mit 30-50 %% Ausschuss)")
     p.add_argument("--out", default="img/library", help="Zielordner (Standard img/library)")
+    p.add_argument("--endung", default="webp", choices=["webp", "jpg"],
+                   help="Dateiendung und damit das Format (Standard webp). Ein Eintrag aus "
+                        "--rezepte darf sie mit einem eigenen Feld \"endung\" ueberschreiben - "
+                        "die fuenf mitgelieferten .jpg-Stichwortbilder muessen .jpg bleiben.")
     p.add_argument("--dry-run", action="store_true", help="Nur die Prompts zeigen, nichts aufrufen")
     p.add_argument("--probe", action="store_true", help="Ein einziges Testbild erzeugen")
     p.add_argument("--stil", help="NUR fuer den einmaligen Stilvergleich: ueberschreibt den "
@@ -325,7 +371,8 @@ def main():
                 "id": r.get("id"),
                 "zutaten": haupt_zutaten(r),
                 "kategorie": r.get("category"),
-                "tags": r.get("tags") or []
+                "tags": r.get("tags") or [],
+                "endung": r.get("endung")
             })
     if args.probe:
         auftraege = [{"name": "Rindersteak mit Ofenkartoffeln"}]
@@ -333,10 +380,16 @@ def main():
     if not auftraege:
         p.error("Keine Gerichte angegeben (--meals, --datei, --rezepte oder --probe)")
 
+    # Eine einzige Stelle entscheidet ueber die Endung. Sonst suchte --nur-ohne-bild nach
+    # salad.webp, waehrend der Schreibpfad salad.jpg anlegt - und erzeugte das Bild jedes
+    # Mal neu, ohne dass das auffiele.
+    def endung_von(a):
+        return (a.get("endung") or args.endung).lstrip(".").lower()
+
     if args.nur_ohne_bild:
         vorher = len(auftraege)
         auftraege = [a for a in auftraege
-                     if not (WURZEL / args.out / (dateiname(a) + ".webp")).exists()]
+                     if not (WURZEL / args.out / (dateiname(a) + "." + endung_von(a))).exists()]
         if vorher != len(auftraege):
             print("%d von %d haben schon ein Bild und werden uebersprungen.\n"
                   % (vorher - len(auftraege), vorher))
@@ -384,7 +437,7 @@ def main():
             print("  FEHLER %s: %s" % (e.code, e.read().decode("utf-8", "replace")[:300]))
             continue
         for i, roh in enumerate(bilder, 1):
-            datei = "%s%s.webp" % (key, "" if len(bilder) == 1 else "-%d" % i)
+            datei = "%s%s.%s" % (key, "" if len(bilder) == 1 else "-%d" % i, endung_von(a))
             ziel = ziel_ordner / datei
             groesse = speichere_webp(roh, ziel)
             print("  %s  (%.0f KB)" % (ziel.relative_to(WURZEL), groesse / 1024))
@@ -403,10 +456,13 @@ def main():
         print("das ist der realistischste rechtliche Fallstrick, nicht das Motiv selbst.")
 
     if credits:
-        print("\n--- Fuer PHOTO_CREDITS in data/bilder.js (PHOTOS muss dieselben Schluessel haben) ---")
-        for k, v in credits.items():
-            print('    %s: { titel: "%s", urheber: "%s", lizenz: "%s", lizenzUrl: "%s", quelle: "%s" },'
-                  % (k, v["titel"], v["urheber"], v["lizenz"], v["lizenzUrl"], v["quelle"]))
+        print("\n--- Nachweis ---")
+        print("Kein Eintrag je Bild noetig: %s," % CREDIT_VORLAGE["urheber"])
+        print("%s. Das Impressum deckt das mit einem" % CREDIT_VORLAGE["lizenz"])
+        print("Sammelhinweis ab (data/rechtstexte.js), der Beleg je Datei steht oben im Protokoll.")
+        print("%d Bild(er): %s" % (len(credits), ", ".join(sorted(credits))))
+        print("\nBei einem NEUEN Schluessel: Zeile in PHOTOS (data/bilder.js) ergaenzen, Stichwoerter")
+        print("in PHOTO_RULES einsortieren und tools/pruefstand-bildstichworte.py fahren.")
         print("\nDie Bilder gehoeren NICHT in SHELL_ASSETS des Service Workers - sie kommen")
         print("cache-first bei Bedarf (sonst waechst das Precache um mehrere MB).")
     return 0

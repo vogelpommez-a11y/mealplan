@@ -19,11 +19,21 @@ AUSNAHMEN - Bestandteile mit eigener Lizenz:
 
   vendor/firebase/     Firebase JavaScript SDK, Google LLC, Apache License 2.0
   vendor/zxing.min.js  ZXing / @zxing/library, Apache License 2.0
-  Fotos in der App     CC0 1.0 bzw. Public Domain Mark 1.0
-                       Herkunft je Bild: PHOTO_CREDITS in index.html, ausgewiesen
-                       im Impressum unter "Bildnachweise"
 
 Fuer diese Bestandteile gelten ausschliesslich deren jeweilige Lizenzbedingungen,
 nicht die obige Einschraenkung.
+
+GERICHTSFOTOS - keine Ausnahme mehr:
+
+Alle mitgelieferten Gerichtsfotos sind selbst erzeugt (OpenAI, Modell gpt-image-2) und
+fallen damit unter die obige Einschraenkung wie der uebrige Inhalt. Zu jedem Bild ist in
+img/bilder-protokoll.json bzw. img/library/bilder-protokoll.json festgehalten, mit
+welcher Beschreibung, welchem Modell und wann es entstanden ist; im Impressum steht dazu
+ein Sammelhinweis.
+
+Bis zum 07.09.2026 waren die Bilder hinter den Stichwortregeln CC0 1.0 bzw. Public Domain
+Mark 1.0 und standen deshalb als Ausnahme hier - mit Einzelnachweisen in einer Konstante
+PHOTO_CREDITS. Die gibt es nicht mehr. Wer sich auf eine CC0-Freigabe berufen will, findet
+die alten Dateien nur noch in der Git-Historie vor diesem Datum.
 
 Kontakt: siehe Impressum unter https://www.paddysmealplan.de

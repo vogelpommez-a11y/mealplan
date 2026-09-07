@@ -6,9 +6,12 @@
  * technische Zusagen. Eine Aenderung am Verhalten der App kann sie inhaltlich
  * falsch machen - jede Aenderung hier braucht den Agenten `anwalt`.
  *
- * Das Impressum ist zweigeteilt, weil dort der Bildnachweis eingesetzt wird, den
- * creditsHtml() im Kern aus PHOTO_CREDITS erzeugt. Der Text selbst ist dadurch
- * reine Zeichenkette geblieben - kein Template mit Logik.
+ * Das Impressum ist zweigeteilt. Bis zum 07.09.2026 wurde dazwischen eine Tabelle
+ * mit den Nachweisen der CC0-Stockfotos eingesetzt (creditsHtml() aus PHOTO_CREDITS).
+ * Seit alle mitgelieferten Gerichtsfotos selbst erzeugt sind, gibt es keinen fremden
+ * Urheber mehr zu nennen; an die Stelle der Tabelle ist ein Sammelhinweis getreten.
+ * Die Zweiteilung bleibt bestehen - der Text ist dadurch reine Zeichenkette geblieben,
+ * kein Template mit Logik, und ein kuenftiger Einschub hat wieder seinen Platz.
  *
  * Regeln fuer diesen Ordner: data/CLAUDE.md
  */
@@ -25,17 +28,16 @@
       <p>Unser Angebot enthält ggf. Links zu externen Websites Dritter, auf deren Inhalte wir keinen Einfluss haben. Für diese fremden Inhalte kann keine Gewähr übernommen werden. Für die Inhalte der verlinkten Seiten ist stets der jeweilige Anbieter oder Betreiber verantwortlich.</p>
       <h4>Urheberrecht</h4>
       <p>Die durch den Seitenbetreiber erstellten Inhalte und Werke auf diesen Seiten unterliegen dem deutschen Urheberrecht. Beiträge Dritter sind als solche gekennzeichnet.</p>
-      <h4>Bildnachweise</h4>
-      <p>Die mitgelieferten Gerichtsfotos stehen unter <strong>CC0 1.0</strong> bzw. <strong>Public Domain Mark 1.0</strong>
-         und dürfen ohne Namensnennung kommerziell genutzt werden. Die Nennung erfolgt freiwillig als Herkunftsnachweis.
-         Die Bilder wurden mittig zugeschnitten, sonst nicht verändert. Von Nutzenden selbst hochgeladene Fotos
-         sind hier nicht erfasst – dafür ist die jeweilige Person verantwortlich.</p>
       `;
 
   const IMPRESSUM_HTML_2 = `
-      <p>Die Gerichtsfotos im <strong>Rezeptbuch</strong> sind <strong>KI-generiert</strong> (OpenAI, Modell <code>gpt-image-2</code>).
-         Die kommerzielle Nutzung ist nach den <a href="https://openai.com/policies/terms-of-use" target="_blank" rel="noopener noreferrer">OpenAI-Nutzungsbedingungen</a> erlaubt.
-         Sie zeigen keine realen Personen, Orte oder Ereignisse; zu jedem Bild ist festgehalten, mit welcher Beschreibung und wann es entstanden ist.</p>
+      <h4>Bildnachweise</h4>
+      <p>Alle mitgelieferten Gerichtsfotos sind <strong>KI-generiert</strong> (OpenAI, Modell <code>gpt-image-2</code>) und in der Meal-Ansicht als solche gekennzeichnet.
+         Es sind <strong>Symbolbilder</strong>: Sie zeigen die Art des Gerichts, nicht das Ergebnis deiner Zubereitung.
+         Erzeugt über die OpenAI-API; die kommerzielle Nutzung der Ausgabe ist nach den
+         <a href="https://openai.com/policies/business-terms" target="_blank" rel="noopener noreferrer">OpenAI Business Terms</a> erlaubt, die dafür gelten.
+         Sie zeigen keine realen Personen, Orte oder Ereignisse; zu jedem Bild ist festgehalten, mit welcher Beschreibung und wann es entstanden ist.
+         Von Nutzenden selbst hochgeladene Fotos sind hier nicht erfasst – dafür ist die jeweilige Person verantwortlich.</p>
       <h4>Nährwertdaten</h4>
       <p>Die Nährwerte der Rezepte im <strong>Rezeptbuch</strong> – und damit auch der Meals, die zu Beginn passend zu deiner Auswahl in deine Sammlung gelegt werden – sind aus den Zutatenmengen anhand allgemeiner Nährwerttabellen <strong>berechnet</strong>. Es sind <strong>Richtwerte</strong>: Sorte, Reifegrad, Zubereitung und Garverluste verändern die tatsächlichen Werte. Sie sind nicht laborgeprüft und ersetzen keine ernährungsmedizinische Beratung.</p>
       <p>Die Produktdaten beim Barcode-Scan stammen von <strong>Open Food Facts</strong>

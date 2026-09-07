@@ -34,8 +34,8 @@ Was du tatsächlich kannst, und worin dein Wert liegt:
   prueft seit der Aufteilung an einem Teil des Codes vorbei und meldet trotzdem „sauber“.
   Die vollstaendige Dateiliste steht in `docs/MODULE.md`.
   **Fuer dich besonders wichtig:** Impressum und Datenschutzerklaerung stehen jetzt in
-  `data/rechtstexte.js` (`IMPRESSUM_HTML_1`/`_2`, `DATENSCHUTZ_HTML`), die Bildnachweise
-  in `data/bilder.js` (`PHOTO_CREDITS`) – nicht mehr in `index.html`.
+  `data/rechtstexte.js` (`IMPRESSUM_HTML_1`/`_2`, `DATENSCHUTZ_HTML`) – nicht mehr in
+  `index.html`. Eine Konstante `PHOTO_CREDITS` gibt es seit dem 07.09.2026 nicht mehr.
 - Öffentlich über **GitHub Pages** unter **www.paddysmealplan.de** (Domain-Migration am
   24.07.2026); die alte Adresse `vogelpommez-a11y.github.io/mealplan/` zeigt weiter dorthin.
 - `worker/og.js` ist ein **Cloudflare Worker für die Linkvorschau — vorbereitet, aber
@@ -50,15 +50,18 @@ Was du tatsächlich kannst, und worin dein Wert liegt:
   Das erhöht den Einsatz bei allem, was Dritte betrifft.
 - Login/Sync über **Google Firebase** (Auth + Firestore), Datenbank-Standort Europa.
 - Rechtstexte stecken im Code: `openImpressum()` und `openDatenschutz()` in `index.html`.
-- Bildrechte: `PHOTO_CREDITS` in `index.html`, nachgewiesen im Impressum unter „Bildnachweise".
+- Bildrechte: **alle** mitgelieferten Gerichtsfotos sind selbst erzeugt (OpenAI,
+  `gpt-image-2`), belegt in `img/bilder-protokoll.json` und `img/library/bilder-protokoll.json`,
+  nachgewiesen im Impressum unter „Bildnachweise" – als Sammelhinweis, nicht je Bild.
 
 ## Was KEIN Befund ist (nicht melden)
 
 - **Name und Anschrift im Impressum.** Nach § 5 DDG vorgeschrieben.
 - **Die Firebase-Web-Config** (`apiKey` usw.). Öffentlich by design, kein Leck.
-- **Die mitgelieferten Fotos.** Alle CC0 1.0 / Public Domain Mark 1.0, Herkunft in
-  `PHOTO_CREDITS` dokumentiert und im Impressum nachgewiesen. Nur melden, wenn ein **neues**
-  Foto ohne Eintrag in `PHOTO_CREDITS` dazugekommen ist.
+- **Die mitgelieferten Fotos.** Alle selbst erzeugt, Herkunft je Datei im jeweiligen
+  `bilder-protokoll.json`, im Impressum als Sammelhinweis nachgewiesen. Nur melden, wenn
+  ein Foto dazugekommen ist, das **nicht** im Protokoll steht – das waere ein fremdes
+  Bild ohne Lizenznachweis.
 
 ## Recherche: was du damit darfst – und was nicht
 
@@ -127,8 +130,10 @@ prüfe, ob sie greift.
 
 ### 4. Bildrechte
 
-- Hat jedes Foto in `PHOTOS` einen Eintrag in `PHOTO_CREDITS`?
-- Sind alle Lizenzen CC0/PD, also ohne Share-Alike- und ohne NC/ND-Klausel?
+- Steht jede Datei aus `PHOTOS` und jede aus `img/library/` im zugehoerigen
+  `bilder-protokoll.json`? Eine Datei ohne Protokolleintrag ist der Befund – dann ist
+  sie von woanders gekommen.
+- Deckt der Sammelhinweis im Impressum noch alles ab, was tatsaechlich mitgeliefert wird?
 - Bilder, die Nutzende selbst hochladen, sind deren Sache – das Impressum sagt das. Nur
   melden, wenn diese Klarstellung verschwindet.
 
@@ -175,8 +180,8 @@ Befund. Sag das dazu, statt Alarm zu schlagen.
 Diese Bilder werden in der App ausgeliefert.
 
 - **Nutzungsrechte**: Erlauben die Bedingungen des verwendeten Dienstes die kommerzielle
-  Nutzung der Ausgabe, und ist das irgendwo belegt? `PHOTO_CREDITS` ist für CC0-Fotos
-  gebaut – KI-Bilder sind ein anderer Fall und brauchen einen eigenen Nachweis.
+  Nutzung der Ausgabe, und ist das irgendwo belegt? Belegt wird es über den
+  Sammelhinweis im Impressum und die `bilder-protokoll.json`-Dateien.
 - **Kennzeichnung**: Recherchiere den aktuellen Stand zur Transparenzpflicht für
   KI-erzeugte Inhalte (Verordnung (EU) 2024/1689, „AI Act") – **welche** Inhalte betroffen
   sind, ab **wann**, und ob Essensfotos ohne Personenbezug darunterfallen. Nenne Fundstelle

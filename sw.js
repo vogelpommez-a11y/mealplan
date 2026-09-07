@@ -19,7 +19,7 @@
  * die App auf dem Root von www.paddysmealplan.de liegt - und es haelt den Capacitor-Weg offen.
  * Die Versionsnummer bei jedem inhaltlichen SW-Wechsel erhoehen -> activate raeumt Altes weg.
  */
-const VERSION = "pm-v8";
+const VERSION = "pm-v9";
 const SHELL_CACHE = "shell-" + VERSION;
 
 // Kern-Assets, die die App-Huelle offline tragen. index.html liegt zusaetzlich im Cache,

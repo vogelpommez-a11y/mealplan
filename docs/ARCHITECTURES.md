@@ -75,7 +75,7 @@ weiterhin statische Dateien ohne Build; der Code liegt nur auf mehrere davon ver
 | `css/tokens.css` | Design-Tokens, alle vier Theme-Blöcke |
 | `css/basis.css`, `css/komponenten.css`, `css/mobil.css` | das übrige UI-System |
 | `lib/basis.js` | `window.PM` mit `esc()` und `el()` |
-| `data/*.js` | `ICONS`, `PHOTOS`/`PHOTO_CREDITS`, `COOKBOOK`, `FOODS`, Rechtstexte |
+| `data/*.js` | `ICONS`, `PHOTOS`/`PHOTO_RULES`, `COOKBOOK`, `FOODS`, Rechtstexte |
 | `lib/pdf.js`, `lib/barcode.js` | PDF-Schreiber und Barcode-Infrastruktur |
 | `index.html` → `type="module"` | Firebase und Cloud-Abstraktion |
 | `index.html` → normales `<script>` | Markup und der verwobene App-Kern (eine IIFE) |
@@ -2274,14 +2274,21 @@ Alte Daten und Teilen-Links müssen kompatibel bleiben.
 
 `photoFor(r)` verwendet diese Reihenfolge:
 
-1. eigenes Bild
-2. `PHOTO_RULES`
-3. `CAT_PHOTO`
-4. `PHOTOS.neutral`
+1. eigenes Bild (`r.image`, durch `safeImage()`)
+2. Bibliotheksbild (`libPhoto(r)` → `img/library/<datei>`)
+3. kuratierter Schlüssel `r.photo`
+4. `PHOTO_RULES`
+5. `CAT_PHOTO`
+6. `PHOTOS.neutral`
 
-`PHOTOS` und `PHOTO_CREDITS` müssen dieselben Schlüssel besitzen.
+**Alle 44 Bilder hinter `PHOTOS` sind selbst erzeugt** (seit 07.09.2026; davor
+CC0-Stockfotos mit Einzelnachweisen in einer Konstante `PHOTO_CREDITS`, die es nicht mehr
+gibt). Neue entstehen über `tools/meal-bilder.py`, die Motive stehen in
+`tools/bildsatz-stichworte.json`. Dateinamen und Endungen bleiben, wie sie sind — sie
+stecken in verschickten Sharing-Links, und `img/neutral.jpg` steht fest in `worker/og.js`.
 
-Neue Bilder nur mit belegter freier Lizenz.
+Geprüft von `tools/pruefstand-bildstichworte.py`: Existenz jeder Datei, Vollständigkeit
+jedes Schlüssels, Verdeckung zwischen Regeln und 66 echte Gerichtnamen.
 
 ### `thumbHtml(r, cls, eager)`
 
