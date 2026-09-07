@@ -3568,8 +3568,14 @@
   // Kachel und konkurrierte mit den Makro-Badges. Bei eigenen Fotos des Nutzers erscheint
   // er nie - die sind weder Symbolbild noch KI.
   function bildHinweisHtml(r) {
-    if (istEigenesFoto(r)) return "";
-    return `<p class="ms-bildhinweis">Symbolbild · KI-generiert</p>`;
+    return `<p class="ms-bildhinweis"${istEigenesFoto(r) ? " hidden" : ""}>Symbolbild · KI-generiert</p>`;
+  }
+  // Nach einem Fotowechsel im Bearbeiten-Zweig: Das Bild tauscht, ohne dass die Ansicht
+  // neu gebaut wird - der Hinweis muss mit. Dieselbe Bedingung wie oben, damit die beiden
+  // nicht auseinander laufen koennen.
+  function syncBildHinweis(node, r) {
+    const p = node.querySelector(".ms-bildhinweis");
+    if (p) p.hidden = istEigenesFoto(r);
   }
   // Bewertet die Makro-Verteilung ueber den Kalorienanteil (Protein/Kohlenhydrate x4,
   // Fett x9) und liefert 0 bis 2 Badges fuer die Meal-Karte: ein Haupt-Badge fuer das
@@ -7666,6 +7672,7 @@
         </div>
       </div>
       <div class="modal-body">
+        ${bildHinweisHtml(initial)}
         <div class="ms-head">
           <input type="text" id="f-name" class="ms-name" placeholder="Name des Meals" value="${esc(initial.name || "")}" maxlength="80">
           <select id="f-cat" class="ms-cat">${opts}</select>
@@ -7929,6 +7936,7 @@
         fotoGeaendert = true;   // sheetSig() laesst image bewusst aus - siehe dort
         commitNow();
         photoImg.src = photoFor(target);
+        syncBildHinweis(node, target);   // eigenes Foto: kein "Symbolbild - KI-generiert"
         photoBtn.textContent = "Foto ändern";
         photoRemoveBtn.hidden = false;
         toast("Foto übernommen");
@@ -7942,6 +7950,7 @@
       fotoGeaendert = true;   // wie beim Setzen: sheetSig() sieht image nicht
       commitNow();
       photoImg.src = photoFor(target);
+      syncBildHinweis(node, target);   // wieder eines von uns: Hinweis zurueck
       photoBtn.textContent = "Foto wählen";
       photoRemoveBtn.hidden = true;
     });

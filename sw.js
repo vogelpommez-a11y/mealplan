@@ -130,11 +130,26 @@ self.addEventListener("fetch", (event) => {
   }
 
   // Uebrige eigene Assets: erst Cache, sonst Netz (und ins Cache nachlegen).
+  //
+  // cache:"reload" beim Netz-Zweig, und das ist kein Detail: Ohne ihn holt der Browser
+  // die Datei aus SEINEM eigenen HTTP-Cache, und der ueberlebt den VERSION-Wechsel.
+  // Am 07.09.2026 gemessen, nachdem alle Gerichtsfotos ausgetauscht waren: Service Worker
+  // abgemeldet, alle Caches geloescht, Strg+Shift+R - und img/porridge.jpg kam trotzdem
+  // weiter mit 460x300 statt 1100x458. Erst eine Anfrage mit Cache-Buster brachte die
+  // neue Datei. Ein wiederkehrender Nutzer haette nach dem Deploy also alte und neue
+  // Bilder gemischt gesehen, ohne dass ihm zu helfen gewesen waere.
+  //
+  // Es kostet nichts: Der Zweig laeuft nur, wenn im SHELL_CACHE nichts liegt - also genau
+  // einmal je Datei nach einem VERSION-Wechsel. Danach kommt alles wieder aus dem Cache.
+  // Faellt "reload" aus (aeltere Browser kennen die Option nicht), greift der normale
+  // fetch als Rueckfall.
   event.respondWith(
-    caches.match(req).then((hit) => hit || fetch(req).then((res) => {
-      const copy = res.clone();
-      caches.open(SHELL_CACHE).then((c) => c.put(req, copy)).catch(() => {});
-      return res;
-    }).catch(() => hit))
+    caches.match(req).then((hit) => hit || fetch(req, { cache: "reload" })
+      .catch(() => fetch(req))
+      .then((res) => {
+        const copy = res.clone();
+        caches.open(SHELL_CACHE).then((c) => c.put(req, copy)).catch(() => {});
+        return res;
+      }).catch(() => hit))
   );
 });

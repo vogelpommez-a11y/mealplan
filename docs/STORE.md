@@ -238,8 +238,21 @@ Kriterien: hohe Ähnlichkeit zu einem simulierten Subjekt, das Dargestellte muss
 erscheinen**. Rein generische Bilder ohne Bezug zu etwas Bestimmtem fallen danach
 typischerweise **nicht** darunter.
 
-Ein Bild für die Kategorie „Schnitzel“ bildet kein bestimmtes Gericht ab und behauptet das
-auch nicht — nach diesen Kriterien kein Deepfake.
+**Hier muss man die beiden Bildsorten auseinanderhalten** — sie stehen rechtlich nicht
+gleich:
+
+* Die **44 Stichwortbilder** (`data/bilder.js`) sind generisch. `schnitzel.webp` springt für
+  jedes Gericht ein, dessen Name das Wort trägt; es bildet kein bestimmtes Gericht ab und
+  behauptet das auch nicht. Nach den drei Kriterien: **kein Deepfake.**
+* Die **36 Bibliotheksbilder** (`img/library/`) gehören je einem **konkret angebotenen
+  Rezept**. Das liegt näher am Produktfoto — und die Leitlinien erstrecken „Gegenstände“
+  ausdrücklich auf Produkte, die ein Unternehmen verkauft. Für KI-Produktfotos wird
+  überwiegend zur Kennzeichnung geraten. **Hier ist die Antwort offen**, und sie wird
+  wichtiger, sobald Rezepte hinter Pro liegen.
+
+Beide tragen denselben Hinweis — die Unterscheidung ändert nichts an der Umsetzung, wohl
+aber daran, wie sicher die Begründung ist. Wer hier später etwas weglässt, sollte wissen,
+dass er es beim zweiten Fall auf einer dünneren Grundlage tut.
 
 **Trotzdem wird gekennzeichnet**, sichtbar an der großen Meal-Ansicht:
 `Symbolbild · KI-generiert` (`bildHinweisHtml()` in `index.html`). Zwei Gründe:

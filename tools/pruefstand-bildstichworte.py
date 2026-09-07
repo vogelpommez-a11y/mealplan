@@ -72,6 +72,7 @@ teile = [
     # erscheinen, sonst behauptet die App etwas Falsches ueber dessen Bild.
     schnitt(seite, "  function istEigenesFoto("),
     schnitt(seite, "  function bildHinweisHtml("),
+    schnitt(seite, "  function syncBildHinweis("),
 ]
 code = "\n\n".join(teile)
 
@@ -82,6 +83,19 @@ BILD_ORDNER = os.path.join(WURZEL, "img")
 vorhanden = sorted(f for f in os.listdir(BILD_ORDNER)
                    if os.path.isfile(os.path.join(BILD_ORDNER, f))) if os.path.isdir(BILD_ORDNER) else []
 code += "\n\nvar DATEIEN = " + json.dumps(vorhanden) + ";"
+
+# Jede Stelle, die ein grosses Foto rendert, muss den Hinweis tragen. Gezaehlt wird im
+# Quelltext, nicht im Browser: Die zweite Ansicht steckt hinter "Neues Meal" und liesse
+# sich nur ueber einen kompletten Formular-Ablauf erreichen.
+grosse_ansichten = seite.count('<div class="ms-photo has-photo">')
+hinweis_aufrufe = seite.count("${bildHinweisHtml(")
+if grosse_ansichten != hinweis_aufrufe:
+    print("FEHL  %d grosse Foto-Ansichten, aber %d Hinweis-Aufrufe in index.html"
+          % (grosse_ansichten, hinweis_aufrufe))
+    print("      Jede Ansicht mit `.ms-photo has-photo` braucht ${bildHinweisHtml(...)} im")
+    print("      modal-body - sonst zeigt eine davon ein KI-Bild ohne Kennzeichnung.")
+    raise SystemExit(1)
+print("OK    alle %d grossen Foto-Ansichten tragen den KI-Hinweis" % grosse_ansichten)
 
 HTML = u"""<!doctype html><meta charset="utf-8"><title>Pruefstand Bildstichworte</title>
 <pre id="log"></pre>
@@ -278,8 +292,22 @@ function fuer(name, kategorie) {
     bildHinweisHtml({ name: "Schnitzel mit Pommes", category: "Hauptgericht" }).indexOf("Symbolbild") >= 0, true);
   pruef("ein Bibliotheksbild traegt ihn ebenfalls",
     bildHinweisHtml({ name: "X", lib: COOKBOOK[0].id }).indexOf("KI-generiert") >= 0, true);
-  pruef("das EIGENE Foto des Nutzers traegt ihn NICHT",
-    bildHinweisHtml({ name: "Mein Abendessen", image: EIGENES }), "");
+  // Der Absatz steht jetzt IMMER im Markup und wird nur versteckt - sonst muesste ihn der
+  // Fotowechsel im Bearbeiten-Zweig nachtraeglich erzeugen und wieder entfernen.
+  pruef("beim EIGENEN Foto des Nutzers ist er versteckt",
+    bildHinweisHtml({ name: "Mein Abendessen", image: EIGENES }).indexOf("hidden") >= 0, true);
+  pruef("beim mitgelieferten Bild ist er sichtbar",
+    bildHinweisHtml({ name: "Schnitzel" }).indexOf("hidden") >= 0, false);
+  // Und der Fotowechsel im Bearbeiten-Zweig schaltet ihn mit. Ohne das stuende
+  // "KI-generiert" unter dem gerade hochgeladenen Foto des Nutzers.
+  var attrappe = document.createElement("div");
+  attrappe.innerHTML = bildHinweisHtml({ name: "Schnitzel" });
+  syncBildHinweis(attrappe, { name: "Schnitzel", image: EIGENES });
+  pruef("Fotowechsel zu eigenem Bild versteckt den Hinweis",
+    attrappe.querySelector(".ms-bildhinweis").hidden, true);
+  syncBildHinweis(attrappe, { name: "Schnitzel" });
+  pruef("Foto entfernen holt ihn zurueck",
+    attrappe.querySelector(".ms-bildhinweis").hidden, false);
   // Ein Bild, das safeImage verwirft, ist kein gueltiges eigenes Foto - dann zeigt die
   // Ansicht wieder eines von uns, und der Hinweis muss zurueckkommen.
   pruef("ein verworfenes eigenes Bild bekommt den Hinweis zurueck",
