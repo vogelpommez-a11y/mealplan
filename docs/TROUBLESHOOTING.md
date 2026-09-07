@@ -5936,3 +5936,73 @@ nicht die Frage, was der Zweig in jedem Zustand tatsächlich liefert.
 
 **Verwandt:** Ziffer 157 (der gemeldete Verdacht war nicht die Ursache) — auch hier war der
 gemeldete Fall („wer nie frühstückt“) nur ein Sonderfall eines größeren Fehlers.
+
+
+## 159. Der Bilddeckel, der einen ganzen Tag lang auf morgen zeigte
+
+**Symptom:** Am Montag, 07.09.2026 stand auf Home den ganzen Tag „Morgen · Abendessen ·
+Spaghetti Bolognese“ — obwohl für Montag Frühstück, Mittag **und** Abendessen geplant waren.
+Auch ein frisches Neuladen änderte nichts.
+
+**Ursache:** Ein Slot-Eintrag ist seit „Gemeinsam planen“ entweder eine ID **oder** ein Objekt
+`{id, uids}`. `nextMealOfDay()` reichte den rohen Eintrag an `getRecipe()` weiter, und das
+vergleicht mit `===` — ein Objekt findet dort nie ein Rezept. Alle drei Montagseinträge waren
+Objekte, also fand Schritt 1 nichts. Schritt 2 (offenen Slot vorschlagen) fand ebenfalls
+nichts, denn die Slots *waren* ja belegt. Also fiel die Funktion bis auf Schritt 4 durch und
+zeigte morgen. Der einzige Eintrag, den sie auflösen konnte, war der eine String-Eintrag am
+Dienstagabend — daher ausgerechnet die Bolognese.
+
+Der Rest der App macht es richtig: An 7 anderen Stellen steht `getRecipe(entryId(e))` bzw.
+`getRecipe(entryId(entry))`. Der
+Bilddeckel war am 06.09.2026 neu geschrieben worden und hat das `entryId()` nicht mitbekommen.
+
+**Warum es niemandem auffiel:** `tools/pruefstand-als-naechstes.py` deckte die Matrix
+Uhrzeit × Planzustand vollständig ab — aber ausschließlich mit **String**-Einträgen, und sein
+`getRecipe`-Stub lautete `return id ? {...} : null`, löste also jede Wahrheit auf. Er konnte
+die Objektform gar nicht sehen und meldete 42 von 42 Feldern grün, während die Karte im
+echten Konto falsch stand.
+
+**Lösung:** `getRecipe(entryId(e))` an beiden Schleifen. Der Prüfstand fährt jeden Fall
+seitdem in **beiden** Eintragsformen, schneidet `entryId()` mit aus statt es zu stubben, und
+sein `getRecipe`-Stub sucht wie das echte mit `===` in einer Liste. Die Feldzahl steht
+bewusst nur an einer Stelle — `docs/TESTING.md`, Abschnitt zu
+`tools/pruefstand-als-naechstes.py`: Am selben Tag kamen zwei weitere Achsen dazu, und eine
+zweite gepflegte Zahl wäre schon nach Stunden veraltet gewesen.
+
+**Die Regel dahinter:** **Ein Stub, der großzügiger ist als die echte Funktion, macht den
+Fehler unsichtbar, den er finden soll.** Der alte Stub sagte „jede ID löst auf“ — das echte
+`getRecipe()` sagt „genau diese Werte lösen auf“. Genau in der Lücke saß der Fehler. Wo ein
+Datenfeld zwei Formen haben kann, ist die Form eine **Achse der Prüfung**, kein Detail.
+
+**Verwandt:** Ziffer 158 (dieselbe Funktion, andere Achse) und Ziffer 152 (Prüfling und
+Prüfer aus derselben Quelle) — auch dort bestätigte der Prüfstand den Fehler, statt ihn zu
+finden.
+
+
+## 160. Der leere Filter, der ohne Konto alles fremd machte
+
+**Symptom:** Nachdem der Bilddeckel gelernt hatte, fremd zugewiesene Meals zu überspringen,
+meldete er im lokalen Modus „Mittagessen noch offen" — über einem Mittagessen, das dastand und
+dem Nutzer gehörte.
+
+**Ursache:** Der Filter lautete `u.indexOf(syncUid) !== -1`. Ohne Konto ist `syncUid` der leere
+String, und `["u1"].indexOf("") === -1` erklärt damit **jeden** zugewiesenen Eintrag für fremd.
+Ohne Konto gibt es aber gar keine Mitplaner — eine Zuweisung ist dort gegenstandslos. Behoben
+mit einem `if (!syncUid) return true;` vorweg.
+
+**Warum es niemandem auffiel:** Der Prüfstand setzte `syncUid` fest auf `"u1"`. Er konnte den
+leeren Fall nicht sehen — dieselbe Sorte blinder Fleck wie der zu großzügige `getRecipe`-Stub
+in Ziffer 159, nur eine Achse weiter. Gefunden wurde es im Browser, im lokalen Modus, weil dort
+`syncUid` von selbst leer ist.
+
+**Lösung:** `syncUid` ist im Prüfstand jetzt eine **Achse**, keine Konstante: Die Form
+„ohne Konto" fährt dieselben Einträge mit leerem `syncUid` und muss exakt die Sollwerte der
+blanken ID treffen. Dazu eine eigene Mutations-Gegenprobe — die Mutation für den Filter allein
+lässt diese Form grün, denn dort *ist* alles meins.
+
+**Die Regel dahinter:** **Was ein Prüfstand fest setzt, kann er nicht prüfen.** Jede Konstante
+im Aufbau ist eine stillschweigende Annahme; wo der Produktionscode sie variabel kennt, gehört
+sie auf eine Achse. Und: Ein Filter mit zwei Aussagen braucht zwei Gegenproben — eine, die nur
+die eine entschärft, meldet für die andere „bestanden".
+
+**Verwandt:** Ziffer 159 (dieselbe Funktion, die Achse davor) und Ziffer 152.

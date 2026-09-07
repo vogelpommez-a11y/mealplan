@@ -994,6 +994,16 @@ Das ist der Unterschied zwischen „nach vorne schauen" und „den Tag protokoll
 die nützliche Antwort auf „was esse ich als Nächstes?" nicht das Abendessen, das man gerade
 hatte.
 
+**Die Karte zeigt nur, was du auch isst.** Wer gemeinsam plant, kann ein Meal einer
+bestimmten Person zuweisen. Ein Meal, das ausdrücklich jemand anderem gehört, erscheint hier
+nicht — die Frage lautet „was esse *ich* als Nächstes?", und die Kalorienzeile derselben Karte
+filtert seit jeher genauso. Vorher widersprach sich die Karte selbst: oben das Meal der
+Mitplanerin, direkt darunter „Ernährung 0".
+
+Ist der Tag geplant, aber nichts davon deins, sagt die Karte **„Für dich ist nichts geplant"** —
+nicht „Noch nichts geplant". Der allgemeine Satz wäre dort schlicht falsch: Es *ist* etwas
+geplant, nur nicht für dich.
+
 **Ist für heute gar nichts geplant, nennt die Karte keine Mahlzeit.** Sie sagt „Noch nichts
 geplant" und führt in den Wochenplan. Vorher schlug sie den ersten offenen Slot vor — wer nie
 frühstückt, las dort jeden Morgen „Frühstück noch offen", eine Aufforderung zu etwas, das er

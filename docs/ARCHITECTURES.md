@@ -813,6 +813,33 @@ Popover abschneiden würde.
 „für alle“-Form sauber durchlief. `dropRecipeIds()` und `rewritePlanIds()` müssen über
 dieselben Einträge dieselbe Menge treffen; `docs/TROUBLESHOOTING.md` 127.
 
+**Und ebenso wenig darf ein LESEZUGRIFF auf den rohen Eintrag zeigen.** Der Satz oben nennt
+nur Vergleiche, und genau in dieser Lücke saß der Fehler vom 07.09.2026: `nextMealOfDay()`
+rief `getRecipe(e)` statt `getRecipe(entryId(e))`. `getRecipe()` vergleicht intern mit `===`,
+ein Objekt `{id, uids}` findet dort nie ein Rezept — der Bilddeckel auf Home zeigte deshalb
+einen ganzen Tag lang „Morgen“, obwohl für heute alles geplant war. Merksatz: **Nach
+`asIdList()` gehört der rohe Eintrag in gar keine Funktion, die eine ID erwartet** — weder in
+einen Vergleich noch in einen Nachschlag. `docs/TROUBLESHOOTING.md` 159.
+
+**Wer die Einträge eines Slots ANZEIGT, filtert zusätzlich nach Zuweisung.** Das Muster ist
+überall dasselbe — `dayNutOf()`, `slotOpenForMe()` und seit dem 07.09.2026 auch
+`nextMealOfDay()`:
+
+```js
+const u = entryUids(e);
+if (u && u.indexOf(syncUid) === -1) return;   // gehoert jemand anderem
+```
+
+Mit einer Ergänzung, die `nextMealOfDay()` als erste trägt: **Ohne Konto ist `syncUid` leer
+und jede Zuweisung gegenstandslos** (`if (!syncUid) return true;`). Ohne diesen Vorbehalt
+erklärt `indexOf("") === -1` im lokalen Modus jeden zugewiesenen Eintrag für fremd;
+`docs/TROUBLESHOOTING.md` 160 beschreibt, wie sich das äußerte. `dayNutOf()` hat denselben
+Vorbehalt **nicht** — dort ist er bislang folgenlos, weil ohne Konto keine `uids` entstehen.
+
+`slotOpenForMe()` ist trotz gleicher Frage **nicht wiederverwendbar**: Es rechnet gegen
+`state.plan`, also gegen die ANGEZEIGTE Woche. Der Startreiter rechnet immer gegen die
+laufende — ein Aufruf von dort holte sich den Wochen-Versatz ins Haus.
+
 **Der Orphan-Schutz gilt auf BEIDEN Wegen** — seit dem 28.08.2026 auch eingehend.
 `unflattenWeek()` liess `{ id, uids: [] }` durch (`uids ? … : …` — ein leeres Array ist
 truthy) und erzeugte es aus einer nur mit Nicht-Strings gefüllten Liste sogar selbst. Ein
@@ -987,14 +1014,24 @@ zu finden sind:
 | ab 20:30 | Snacks |
 
 Die Grenzen entscheiden nur, **wo die Suche beginnt**, nie was möglich ist. Danach laufen vier
-Schritte, jeder mit eigenem Grund (Stand 06.09.2026):
+Schritte, jeder mit eigenem Grund (Stand 07.09.2026):
+
+**Vor allen vieren steht ein Filter:** `meins(e)` überspringt Einträge, die per `uids`
+ausdrücklich jemand anderem gehören — „belegt" heißt in der ganzen Tabelle also **„für mich
+belegt"**. Siehe den Absatz „Wer die Einträge eines Slots ANZEIGT, filtert zusätzlich nach
+Zuweisung" weiter oben.
 
 | # | Bedingung | Ergebnis |
 |---|---|---|
 | 1 | heute ab der Uhrzeit vorwärts | die erste **belegte** Mahlzeit → `wann: "heute"` |
 | 2 | heute ist etwas geplant, ab jetzt aber nichts mehr | der nächste **offene** Slot (ohne Snacks) |
-| 3 | heute ist **gar nichts** geplant, der Tag läuft noch | `meal: null` → „Noch nichts geplant" |
+| 3a | heute ist **gar nichts** geplant, der Tag läuft noch | `meal: null`, `wann: "leer"` → „Noch nichts geplant" |
+| 3b | heute ist geplant, aber **nichts davon meins** | `meal: null`, `wann: "fremd"` → „Für dich ist nichts geplant" |
 | 4 | der Tag ist durch (ab 20:30) | die erste geplante Mahlzeit von **morgen** → `wann: "morgen"` |
+
+Schritt 3 hat seit dem 07.09.2026 **zwei** Ausprägungen, und sie auseinanderzuhalten ist der
+ganze Punkt: „Noch nichts geplant" wäre bei 3b eine Unwahrheit — es *ist* etwas geplant, nur
+nicht für mich.
 
 Die Funktion gibt bei vorhandenem Plan **nie `null`** zurück: Der Deckel ist die größte Fläche
 der Karte, er bleibt immer gefüllt. Der Rückfall ist derselbe Leerzustand wie Schritt 3.
@@ -1003,7 +1040,8 @@ der Karte, er bleibt immer gefüllt. Der Rückfall ist derselbe Leerzustand wie 
 vorwärts und danach *wieder von vorne*. Das klang harmlos und hieß in der Praxis: Ab dem
 Nachmittag zeigte die Karte Vergangenes — bei „nur Frühstück geplant" ab 11 Uhr den ganzen Tag
 das Frühstück von heute Morgen. Mit ihr ist auch das Etikett `vor` entfallen; an seine Stelle
-tritt `wann` (`"heute"` / `"morgen"` / `"leer"`), das die drei Zeilen des Bilddeckels steuert.
+tritt `wann` (`"heute"` / `"morgen"` / `"leer"` / `"fremd"`), das die drei Zeilen des
+Bilddeckels steuert.
 
 **Snacks werden nie als offener Slot vorgeschlagen** (Schritt 2). Sie sind ein Zusatz, keine
 Lücke — und „Snacks noch offen" um 21 Uhr ist in einer App fürs Abnehmen keine Empfehlung.

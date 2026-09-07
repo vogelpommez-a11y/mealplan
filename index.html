@@ -4655,29 +4655,74 @@
   //
   // Die Uhrzeitgrenzen sind bewusst grob und nicht einstellbar - sie entscheiden nur, WO
   // die Suche beginnt, nie was moeglich ist.
+  //
+  // entryId(e), NICHT e: Ein Slot-Eintrag ist seit "Gemeinsam planen" entweder eine ID
+  // ODER ein Objekt {id, uids}. getRecipe() vergleicht mit ===, ein Objekt findet dort nie
+  // ein Rezept. Genau das ist am 07.09.2026 aufgetreten: Der Nutzer hatte Fruehstueck,
+  // Mittag und Abend geplant - alle drei als Objekt-Eintraege. Schritt 1 fand nichts,
+  // Schritt 2 fand keinen leeren Slot (alle waren ja belegt), und so zeigte die Karte den
+  // ganzen Montag "Morgen - Abendessen". Der einzige Eintrag, den sie aufloesen konnte,
+  // war der eine String-Eintrag am Dienstagabend.
+  //
+  // Der Fehler kam durch, weil der Pruefstand ausschliesslich String-Eintraege einspeiste
+  // und getRecipe() so stubbte, dass jede Wahrheit aufloest. Er konnte die Objektform
+  // nicht sehen und meldete gruen. Seitdem faehrt er jeden Fall in BEIDEN Eintragsformen.
+  //
+  // Gezeigt wird nur, was MIR gehoert (07.09.2026). Ein Eintrag, der per uids ausdruecklich
+  // jemand anderem zugewiesen ist, gehoert nicht in eine Karte, deren Auftrag laut
+  // docs/PRODUCT.md "Was esse ICH als Naechstes?" lautet. Vorher widersprach sich die Karte
+  // selbst: oben "Als Naechstes - Garnelen, 349 kcal", direkt darunter "Ernaehrung 0" -
+  // denn dayNutOf() filtert seit jeher. Dazu haelt slotOpenForMe() denselben Slot fuer frei
+  // und der Auto-Planer plant hinein.
+  //
+  // Daraus folgt ein vierter Zustand: Der Tag ist geplant, aber nichts davon ist meins.
+  // "Noch nichts geplant" waere dort schlicht falsch - es IST etwas geplant. Deshalb
+  // wann: "fremd", das nextMealHtml() in einen eigenen Satz uebersetzt.
   function nextMealOfDay(plan, dayKey, morgenPlan, morgenKey) {
     const day = (plan && plan[dayKey]) || {};
     const jetzt = new Date();
     const h = jetzt.getHours() + jetzt.getMinutes() / 60;
     const ab = h < 10 ? 0 : h < 14.5 ? 1 : h < 20.5 ? 2 : 3;
+    // uids === null heisst "fuer alle", sonst muss ich drinstehen - wie in dayNutOf().
+    // BEWUSST nicht slotOpenForMe() - das rechnet gegen state.plan, also gegen die ANGEZEIGTE
+    // Woche, und die kann die naechste sein. Der Deckel rechnet immer gegen die laufende.
+    //
+    // Der `!syncUid`-Zweig ist kein Sonderfall fuer den Notfall, sondern der Normalfall ohne
+    // Konto: Dort ist syncUid leer, und `["u1"].indexOf("") === -1` machte JEDEN zugewiesenen
+    // Eintrag zu einem fremden - der Deckel meldete "Mittagessen noch offen" ueber einem
+    // Mittagessen, das dem Nutzer gehoerte. Ohne Konto gibt es keine Mitplaner, also ist eine
+    // Zuweisung dort gegenstandslos. Gefunden im Browser am 07.09.2026, nicht im Pruefstand:
+    // der setzt syncUid fest und konnte den leeren Fall nicht sehen.
+    const meins = e => {
+      if (!syncUid) return true;
+      const u = entryUids(e);
+      return !u || u.indexOf(syncUid) !== -1;
+    };
     for (let i = ab; i < MEALS.length; i++) {
-      const ids = day[MEALS[i].key] || [];
-      for (const id of ids) { const r = getRecipe(id); if (r) return { meal: MEALS[i], r: r, wann: "heute" }; }
-    }
-    const tagHatWas = MEALS.some(m => (day[m.key] || []).length);
-    if (tagHatWas && ab < 3) {
-      for (let i = ab; i < MEALS.length; i++) {
-        if (MEALS[i].key === "sn") continue;
-        if (!(day[MEALS[i].key] || []).length) return { meal: MEALS[i], r: null, wann: "heute" };
+      const eintraege = day[MEALS[i].key] || [];
+      for (const e of eintraege) {
+        if (!meins(e)) continue;
+        const r = getRecipe(entryId(e)); if (r) return { meal: MEALS[i], r: r, wann: "heute" };
       }
     }
-    if (!tagHatWas && ab < 3) return { meal: null, r: null, wann: "leer" };
+    const tagHatMeins = MEALS.some(m => (day[m.key] || []).some(meins));
+    const tagHatFremdes = MEALS.some(m => (day[m.key] || []).length);
+    if (tagHatMeins && ab < 3) {
+      for (let i = ab; i < MEALS.length; i++) {
+        if (MEALS[i].key === "sn") continue;
+        if (!(day[MEALS[i].key] || []).some(meins)) return { meal: MEALS[i], r: null, wann: "heute" };
+      }
+    }
+    if (!tagHatMeins && ab < 3) return { meal: null, r: null, wann: tagHatFremdes ? "fremd" : "leer" };
     const md = (morgenPlan && morgenPlan[morgenKey]) || {};
     for (let i = 0; i < MEALS.length; i++) {
-      const ids = md[MEALS[i].key] || [];
-      for (const id of ids) { const r = getRecipe(id); if (r) return { meal: MEALS[i], r: r, wann: "morgen" }; }
+      const eintraege = md[MEALS[i].key] || [];
+      for (const e of eintraege) {
+        if (!meins(e)) continue;
+        const r = getRecipe(entryId(e)); if (r) return { meal: MEALS[i], r: r, wann: "morgen" };
+      }
     }
-    return { meal: null, r: null, wann: "leer" };
+    return { meal: null, r: null, wann: (tagHatFremdes && !tagHatMeins) ? "fremd" : "leer" };
   }
 
   function nextMealHtml(plan, d, morgenPlan, morgenKey) {
@@ -4702,8 +4747,11 @@
     const eyebrow = !n.meal
       ? `Heute`
       : `<span class="hm-dot t-${n.meal.key}"></span>${n.wann === "morgen" ? "Morgen" : "Als Nächstes"} · ${esc(n.meal.label)}`;
+    // Drei Leerzustaende, nicht zwei: "fremd" heisst, der Tag ist geplant - nur nicht fuer
+    // mich. Der allgemeine Satz waere dort eine Unwahrheit, und die Karte stuende im
+    // Widerspruch zur Kalorienzeile darunter, die denselben Tag mit 0 ausweist.
     const titel = !n.meal
-      ? "Noch nichts geplant"
+      ? (n.wann === "fremd" ? "Für dich ist nichts geplant" : "Noch nichts geplant")
       : (r ? esc(r.name) : esc(n.meal.label) + " noch offen");
     return `<button type="button" class="hm-cover" ${ziel}>
           <img src="${bild}" alt="${r ? esc(r.name) : ""}">

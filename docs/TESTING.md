@@ -2422,35 +2422,55 @@ Drei Entscheidungen darin sind Absicht:
 
 Genau die Sorte Fehler, vor der Ziffer 119 und 123 in `docs/TROUBLESHOOTING.md` stehen.
 
-### `tools/pruefstand-als-naechstes.py` — eine Matrix statt eines Blicks (06.09.2026)
+### `tools/pruefstand-als-naechstes.py` — vier Achsen (06./07.09.2026)
 
-Prüft `nextMealOfDay()`, also welche Mahlzeit im Bilddeckel des Startreiters steht. Der
-Prüfstand existiert wegen einer Eigenschaft, die diese Funktion von fast allem anderen
-unterscheidet: **Sie hängt an der Uhrzeit.** Wer sie um 14 Uhr ansieht, sieht nie, was sie um
-21 Uhr tut — und genau dort lag der Fehler (`docs/TROUBLESHOOTING.md` 158): Ab dem Nachmittag
-zeigte die Karte Vergangenes, in 11 von 36 geprüften Feldern.
+Prüft `nextMealOfDay()`, also welche Mahlzeit im Bilddeckel des Startreiters steht. Die
+Funktion hat mehr Eingänge, als man ihr ansieht — jeder davon ist eine eigene Achse:
 
-Gemessen wird deshalb die **vollständige Matrix** aus sieben Planzuständen × sechs Uhrzeiten
-gegen eine Sollwert-Tabelle, nicht ein Einzelfall. Die Uhrzeit kommt aus einem `Date`-Ersatz.
+| Achse | Werte | Warum sie eine Achse ist |
+|---|---|---|
+| Uhrzeit × Planzustand | 6 Stunden × 7 Planzustände | Die Funktion hängt an der Uhrzeit. Wer sie um 14 Uhr ansieht, sieht nie, was sie um 21 Uhr tut (§158). |
+| Eintragsform | `"id"` / `{id, uids}` | Beide Formen schreibt die App im Normalbetrieb. Am Ergebnis darf die Form nichts ändern (§159). |
+| Zuweisung | mir / jemand anderem | Ein fremdes Meal gehört nicht in eine Karte, die „was esse *ich*?" beantwortet. Eigene Sollwerte. |
+| Konto | `syncUid` gesetzt / leer | Ohne Konto gibt es keine Mitplaner — eine Zuweisung ist gegenstandslos (§160). |
 
-Drei Dinge sind daran Absicht:
+Zusammen **168 Felder** gegen zwei Sollwert-Tabellen (`SOLL`, `SOLL_FREMD`). Die Uhrzeit wird
+über einen `Date`-Ersatz gesetzt, `syncUid` je Form.
 
-* **Ausgeschnitten, nicht nachgebaut.** `schneide()` holt die Funktion über Klammerzählung
-  wörtlich aus `index.html`. Ein Nachbau prüft nur, ob man denselben Fehler zweimal schreibt.
-* **Die Sollwerte stehen als Tabelle da, nicht als Regel im Code.** Eine Sollwert-*Berechnung*
-  wäre dieselbe Logik ein zweites Mal — und damit blind für Denkfehler in der Logik selbst.
-* **Ein Sollwert wurde beim Aufstellen korrigiert, nicht der Code.** Für „nur Snacks geplant"
-  stand dort zuerst „Frühstück offen"; richtig ist, dass Schritt 1 die geplanten Snacks zeigt.
-  Eine geplante Mahlzeit zu verschweigen, um einen leeren Slot vorzuschlagen, wäre schlechter
-  als die Unschärfe in der Reihenfolge. Der Snack-Ausschluss gilt nur für den *Vorschlag* eines
-  leeren Slots.
+**Vier Gegenproben, eine je Achse.** Für die ersten beiden gibt es feste alte Commits. Für
+Zuweisung und Konto gibt es keine — Filter und Achse entstehen im selben Commit. Dort wird
+stattdessen der echte Code gezielt **zurückgebaut** (Muster wie in
+`pruefstand-home-eine-seite.py`):
 
-Gegenprobe (`--gegenprobe`) gegen den festen Hash `9a31f1c`: Der alte Stand fällt mit 25
-von 42 Feldern durch. **Auch hier ausdrücklich kein `HEAD`** — beim Schreiben stand dort
-zuerst genau das, und der Fehler wäre exakt derselbe gewesen wie beim Schwesterprüfstand
-einen Absatz weiter unten: nach dem nächsten Commit vergleicht sich der Stand mit sich
-selbst. Gefunden hat es der Agent `doku-waechter`, der den Widerspruch zur Regel im selben
-Diff bemerkte.
+```powershell
+python tools/pruefstand-als-naechstes.py
+python tools/pruefstand-als-naechstes.py --gegenprobe   # alle vier MUESSEN durchfallen
+```
+
+| Gegenprobe | Art | Was sie beweist |
+|---|---|---|
+| `9a31f1c` | Commit | der Stand vor dem Umbau fällt an der Uhrzeit durch |
+| `258e072` | Commit | Uhrzeit komplett grün, **nur** die Objektform fällt durch |
+| `MUTATION_FILTER` | Rückbau | ohne Zuweisungsfilter kommen fremde Meals durch |
+| `MUTATION_OHNE_KONTO` | Rückbau | ohne `!syncUid`-Zweig wird im lokalen Modus alles fremd |
+
+Greift eine Ersetzung nicht mehr, bricht `lauf()` ab. Eine Gegenprobe, die ins Leere ersetzt,
+würde sonst stillschweigend „bestanden" melden — der Fehler, vor dem §119 und §123 stehen.
+
+**Drei Lehren, die dieser eine Prüfstand an einem Tag geliefert hat:**
+
+> **Ein Stub, der großzügiger ist als die echte Funktion, macht den Fehler unsichtbar, den er
+> finden soll.** Beim Stubben ist nicht die Frage „was braucht der Prüfling?", sondern „wo sagt
+> das Original Nein?". Deshalb werden `entryId()` und `entryUids()` **mitgeschnitten**, nicht
+> gestubbt, und `getRecipe` sucht mit `===` in einer Liste wie das Original.
+
+> **Was ein Prüfstand fest setzt, kann er nicht prüfen.** `syncUid` war eine Konstante — genau
+> deshalb blieb §160 unentdeckt, bis es im Browser auffiel.
+
+> **Ein Filter mit zwei Aussagen braucht zwei Gegenproben.** Die Mutation „alles gehört mir"
+> lässt die Achse „ohne Konto" grün, denn dort ist alles meins. Sie kann diese Achse gar nicht
+> prüfen.
+
 
 ### `tools/pruefstand-wochenbeschriftung.py` — Verifikation VOR dem Fix
 
