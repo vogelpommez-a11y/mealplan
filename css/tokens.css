@@ -151,6 +151,9 @@
       --accent-strong: #FF5A66;
       --accent-contrast: #FFFFFF;
       --accent-solid: #E02234;
+      /* Absichtlich derselbe Ton, kein Kopierfehler: ein zweites Verlaufsende muesste
+         ebenfalls ueber 4,5:1 gegen Weiss liegen, und zwischen 4,72:1 und 4,52:1 ist kein
+         Verlauf mehr zu sehen. Nicht "reparieren". Begruendung oben bei --accent-solid. */
       --accent-solid-strong: #E02234;
 
       --danger: var(--accent);
@@ -203,7 +206,7 @@
     --glass-bg: color-mix(in srgb, var(--surface) 66%, transparent);
     --glass-bg-strong: color-mix(in srgb, var(--surface) 80%, transparent);
     --glass-edge: rgba(255, 255, 255, .10); --glass-shadow: 0 8px 30px rgba(0, 0, 0, .55);
-    --accent: #FF3040; --accent-strong: #FF5A66; --accent-contrast: #FFFFFF; --accent-solid: #E02234; --accent-solid-strong: #E02234; --danger: var(--accent); --ok: #3DDC84;
+    --accent: #FF3040; --accent-strong: #FF5A66; --accent-contrast: #FFFFFF; --accent-solid: #E02234; --accent-solid-strong: #E02234; /* gleicher Ton, Absicht - siehe oben */ --danger: var(--accent); --ok: #3DDC84;
     --gold: #C9A227; --gold-ink: #E8C86A;
     --fr: #E0A94A; --mi: #58B49E; --ab: #AC93E0;
     --member-1: #3B6FE0; --member-2: #E0417E; --member-3: #E06A1E; --member-4: #1C93A6; --member-5: #7C5CE0; --member-6: #8C9A1E;

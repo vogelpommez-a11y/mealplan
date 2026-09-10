@@ -1092,7 +1092,7 @@ Küchen-App; hier geht es um die Frage, was in welcher Menge auf die Liste kommt
 Der Abschlussknopf der ersten Schritte heißt „Zum Wochenplan" — er landete bis 13.08.2026
 trotzdem auf **Home**, und Home zeigt einem frisch angelegten Konto vor allem leere Ringe. Der
 Wochenplan ist der Ort, an dem etwas zu tun ist: An jedem Slot steht „+ Meal wählen", und die
-vier Beispiel-Meals liegen bereit. Mobil startet er am heutigen Tag.
+fünf Startmeals liegen bereit. Mobil startet er am heutigen Tag.
 
 Wer nur sein Ziel neu berechnet, kennt die App und geht wie bisher zurück auf Home.
 

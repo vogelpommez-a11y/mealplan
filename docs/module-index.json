@@ -311,31 +311,31 @@
   ],
   "bereiche": [
     {
-      "bis": 224,
+      "bis": 229,
       "datei": "css/basis.css",
       "titel": "Header",
       "von": 20,
-      "zeilen": 205
+      "zeilen": 210
     },
     {
-      "bis": 230,
+      "bis": 235,
       "datei": "css/basis.css",
       "titel": "Section head",
-      "von": 225,
+      "von": 230,
       "zeilen": 6
     },
     {
-      "bis": 298,
+      "bis": 308,
       "datei": "css/basis.css",
       "titel": "Buttons",
-      "von": 231,
-      "zeilen": 68
+      "von": 236,
+      "zeilen": 73
     },
     {
-      "bis": 1369,
+      "bis": 1379,
       "datei": "css/basis.css",
       "titel": "Week grid",
-      "von": 299,
+      "von": 309,
       "zeilen": 1071
     },
     {
@@ -388,17 +388,17 @@
       "zeilen": 34
     },
     {
-      "bis": 988,
+      "bis": 994,
       "datei": "css/mobil.css",
       "titel": "Mobile / Smartphone",
       "von": 8,
-      "zeilen": 981
+      "zeilen": 987
     },
     {
-      "bis": 1055,
+      "bis": 1061,
       "datei": "css/mobil.css",
       "titel": "Gemeinsam planen (Gruppe)",
-      "von": 989,
+      "von": 995,
       "zeilen": 67
     },
     {
@@ -1191,24 +1191,24 @@
       "zeilen": 92
     },
     {
-      "bytes": 98037,
+      "bytes": 98958,
       "pfad": "css/basis.css",
-      "zeilen": 1369
+      "zeilen": 1379
     },
     {
-      "bytes": 86978,
+      "bytes": 87062,
       "pfad": "css/komponenten.css",
       "zeilen": 1108
     },
     {
-      "bytes": 69451,
+      "bytes": 69933,
       "pfad": "css/mobil.css",
-      "zeilen": 1055
+      "zeilen": 1061
     },
     {
-      "bytes": 11648,
+      "bytes": 12231,
       "pfad": "css/tokens.css",
-      "zeilen": 229
+      "zeilen": 236
     },
     {
       "bytes": 7408,
@@ -1246,21 +1246,21 @@
       "zeilen": 187
     },
     {
-      "bytes": 194105,
+      "bytes": 194441,
       "pfad": "docs/ARCHITECTURES.md",
-      "zeilen": 3081
+      "zeilen": 3085
     },
     {
-      "bytes": 43281,
+      "bytes": 44996,
       "pfad": "docs/DESIGN.md",
-      "zeilen": 831
+      "zeilen": 862
     },
     {
       "erzeugt": true,
       "pfad": "docs/MODULE.md"
     },
     {
-      "bytes": 93156,
+      "bytes": 93153,
       "pfad": "docs/PRODUCT.md",
       "zeilen": 1651
     },
@@ -1280,14 +1280,14 @@
       "zeilen": 347
     },
     {
-      "bytes": 250568,
+      "bytes": 254561,
       "pfad": "docs/TESTING.md",
-      "zeilen": 4189
+      "zeilen": 4270
     },
     {
-      "bytes": 347635,
+      "bytes": 351662,
       "pfad": "docs/TROUBLESHOOTING.md",
-      "zeilen": 6025
+      "zeilen": 6094
     },
     {
       "erzeugt": true,
@@ -1653,7 +1653,7 @@
       "pfad": "img/wurst.webp"
     },
     {
-      "bytes": 864451,
+      "bytes": 864452,
       "pfad": "index.html",
       "zeilen": 13994
     },
@@ -1776,6 +1776,11 @@
       "bytes": 8848,
       "pfad": "tools/pruefstand-cache-reset.py",
       "zeilen": 202
+    },
+    {
+      "bytes": 3572,
+      "pfad": "tools/pruefstand-css-pfade.py",
+      "zeilen": 95
     },
     {
       "bytes": 15777,

@@ -2300,7 +2300,11 @@ Picker-Liste bleiben bei `lazy` — dort können deutlich mehr Bilder gleichzeit
 
 ### Das Logo ist eine Datei, kein Base64
 
-`--logoL` verweist auf `img/logo.png` (220×220 RGBA, 45 KB). Bis zum 10.08.2026 stand das Bild
+`--logoL` verweist auf `../img/logo.png` (220×220 RGBA, 45 KB) — der Pfad ist relativ zu
+`css/tokens.css` zu lesen, nicht zum Dokument. Das `fetch("img/logo.png")` in `lib/pdf.js`
+holt dieselbe Datei und sieht trotzdem anders aus, weil JavaScript gegen `index.html`
+auflöst. Genau diese Ungleichheit hat das Logo vier Monate lang unsichtbar gemacht, siehe
+`docs/TROUBLESHOOTING.md` Ziffer 161. Bis zum 10.08.2026 stand das Bild
 als 60-KB-Base64 direkt in der CSS-Variablen — also im render-blocking `<style>`-Block, den jeder
 Aufruf vollständig parsen muss, bevor das erste Pixel erscheint. Der CSS-Block ist dadurch von
 264 KB auf 204 KB gefallen, `index.html` von 933 KB auf 860 KB.
