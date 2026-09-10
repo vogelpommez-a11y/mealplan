@@ -551,6 +551,87 @@ python tools/pruefstand-bildstichworte.py alt-bilder.js
 
 Muss mit den 35 Namen durchfallen. Tut er das nicht, prüft er die falsche Datei.
 
+## 2d. Dateipfade im CSS — `pruefstand-css-pfade.py`
+
+Angelegt am 10.09.2026, nach dem Logo, das seit der Dateiaufteilung nirgends mehr geladen
+wurde (`docs/TROUBLESHOOTING.md` Ziffer 161).
+
+**Warum es ihn braucht.** Ein `url()` im CSS, das ins Leere zeigt, wirft **keinen Fehler**.
+Die Fläche bleibt leer, das Layout stimmt weiter, der Syntax-Check ist grün, der
+Smoke-Test ist grün. Es gibt keinen Melder — nur einen Menschen, dem irgendwann auffällt,
+dass da nichts ist. Vier Monate lang fiel es niemandem auf.
+
+Der Prüfstand löst jeden Verweis **so auf, wie der Browser es tut**: relativ zur CSS-Datei,
+nicht zum Dokument. Genau dieser Unterschied war der Fehler.
+
+**Gegenprobe:** `--gegenprobe` schickt den bekannten falschen Pfad (`url(img/logo.png)` aus
+`css/tokens.css`) durch dieselbe Prüfung, **ohne eine Datei anzufassen**. Sie muss darauf
+anschlagen.
+
+```powershell
+python tools/pruefstand-css-pfade.py --gegenprobe
+```
+
+---
+
+## 2e. Geräteabnahme im emulierten Gerät — `tools/cdp.py` + Emulation
+
+Seit dem 10.09.2026 das **verbindliche** Verfahren für alles, was „am Handy“ geprüft wird.
+
+**Der Aufbau.** `Emulation.setDeviceMetricsOverride` setzt den CSS-Viewport,
+`setTouchEmulationEnabled` bringt echtes `pointer: coarse`, `setEmulatedMedia` das
+Farbschema. Wischgesten laufen über `Input.dispatchTouchEvent` mit **vielen**
+Zwischenschritten — ohne die erkennt ein Snap-Streifen keine Bewegung und der Browser
+vergibt keinen Schwung. Alles in **einer** Verbindung, weil Touch und Farbschema an die
+Verbindung gebunden sind (siehe `messen()` in `tools/cdp.py`).
+
+**Zwei Wege, die nicht genügen** — beide am 10.09.2026 durchgefallen:
+
+* Die **Fenstergröße** ändern. Der CSS-Viewport blieb bei 851 px, obwohl 300 angefordert
+  waren. Die Breakpoints wurden nie erreicht, die Messung sah trotzdem plausibel aus.
+* Ein **`<iframe>`** fester Breite. Trifft die Breakpoints, liefert aber `pointer: fine`
+  und kennt keine Wischgesten.
+
+**Zwei Fallen im Werkzeug selbst:**
+
+* Ohne `Page.enable` und `Page.bringToFront` **vor jedem Bild** liefert der Renderer keinen
+  Frame mehr, sobald das Fenster in den Hintergrund gerät — `Page.captureScreenshot` läuft
+  dann in den Timeout und sieht aus wie eine hängende App.
+* `scrollIntoView` vor einem Tipp verschiebt einen **waagerechten** Snap-Streifen. Der Tipp
+  landet danach auf einem anderen Tag. Nur antippen, was ohnehin im Bild steht.
+
+**Was die Emulation nicht kann** und deshalb beim Menschen bleibt: Kamera und Autofokus,
+echte Gerätedrehung, Haptik, die tatsächliche Fingergröße.
+
+---
+
+## 2f. Kontrast messen: CSS-Farbe plus Pixel-Grund
+
+Gebaut am 10.09.2026 für die Geräteabnahme. Drei Anläufe, weil die ersten beiden
+nachweislich falsch lagen — das ist der eigentliche Merksatz:
+
+| Verfahren | Fehler |
+|---|---|
+| Grundfarbe über die **CSS-Elternkette** | Kennt Pseudo-Elemente nicht. Meldete den aktiven Tag „Do“ mit **1,17** — im Bild klar lesbares Weiß auf Rot. |
+| Vorder- **und** Grundfarbe aus **Pixeln** | Bei 13 px dünner Schrift erreicht kaum ein Pixel die volle Textfarbe. Meldete „+ Meal wählen“ mit **2,74** statt der echten **5,25**. |
+| **Textfarbe aus dem CSS, Grund aus dem Bild** | Trägt. |
+
+Der Grund wird dabei aus einem **Ring um den Textkasten** gelesen, nicht aus dem Kasten
+selbst: Bei fetten Versalien stellt die Schrift sonst die Mehrheit der Pixel und käme als
+„Grund“ heraus — Kontrast rechnerisch 1,0.
+
+Zwei weitere Fehlalarme, die dazugehören:
+
+* Ein Element mit `opacity: 0` (ein Toast in Ruhe) ergibt rechnerisch **1,0**. Wer die
+  Deckkraft nicht prüft, meldet jeden ruhenden Toast als schweren Verstoss.
+* Ein `:hover`-Zustand ist am Handy **kein Zustand**. Nach einem Tipp bleibt der Zeiger
+  stehen; gemessen wird dann `--accent-strong` statt `--accent`.
+
+**Die Gegenprobe** ist Pflicht und billig: einem Element im laufenden Bild eine bekannt zu
+blasse Farbe geben und prüfen, dass der Messstand darauf anschlägt.
+
+---
+
 ## 3. Ergebnisfortschritt
 
 Tests sollen nach jedem relevanten Schritt ein Ergebnis ausgeben.

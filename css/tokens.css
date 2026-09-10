@@ -34,8 +34,14 @@
     --accent-strong: #B01218;
     --accent-contrast: #FFFFFF;
     /* Rot als Vollflaeche hinter weisser Schrift. Getrennt von --accent, weil das
-       helle Dark-Rot mit Weiss nur 3,65:1 erreicht – zu wenig fuer Text (4,5:1). */
+       helle Dark-Rot mit Weiss nur 3,65:1 erreicht – zu wenig fuer Text (4,5:1).
+       --accent-solid-strong ist das zweite Ende der Verlaeufe (135deg): im Light das
+       gewohnte dunkle Rot, im Dark bewusst DERSELBE Ton wie --accent-solid. Ein Verlauf
+       braucht dort zwei Enden ueber 4,5:1, und zwischen 4,72:1 und 4,52:1 liegt kein
+       sichtbarer Verlauf mehr - also lieber ehrlich Vollton als ein Ende, das durchfaellt.
+       Beide Paare am 10.09.2026 gegen Weiss gerechnet: Light 4,83/7,18, Dark 4,72/4,72. */
     --accent-solid: #DC2626;
+    --accent-solid-strong: #B01218;
 
     /* War frueher ein eigenes Orange, getrennt von --accent. Kein dokumentierter Token,
        kein bewusst gewaehltes zweites Rot – nur ein Altlast-Wert. Fehler/Warnung/
@@ -113,7 +119,7 @@
 
     /* Logo (Light-Standard); Dark-Variante über Theme-Blöcke */
     /* Logo als eigene Datei statt Base64: 60 KB Base64 mitten im render-blocking CSS haben den ersten Paint fuer jeden Aufruf verzoegert, auch fuer die, die das Logo nie sehen. Der PDF-Export holt dieselbe Datei per fetch (prepareLogoForPdf). */
-    --logoL: url(img/logo.png);
+    --logoL: url(../img/logo.png);
     --logoD: var(--logoL);
     --logo: var(--logoL);
 
@@ -145,6 +151,7 @@
       --accent-strong: #FF5A66;
       --accent-contrast: #FFFFFF;
       --accent-solid: #E02234;
+      --accent-solid-strong: #E02234;
 
       --danger: var(--accent);
       --ok: #3DDC84;
@@ -181,7 +188,7 @@
     --glass-bg: color-mix(in srgb, var(--surface) 68%, transparent);
     --glass-bg-strong: color-mix(in srgb, var(--surface) 82%, transparent);
     --glass-edge: rgba(255, 255, 255, .72); --glass-shadow: 0 8px 28px rgba(20, 24, 31, .16);
-    --accent: #DC2626; --accent-strong: #B01218; --accent-contrast: #FFFFFF; --accent-solid: #DC2626; --danger: var(--accent); --ok: #1E9E57;
+    --accent: #DC2626; --accent-strong: #B01218; --accent-contrast: #FFFFFF; --accent-solid: #DC2626; --accent-solid-strong: #B01218; --danger: var(--accent); --ok: #1E9E57;
     --gold: #C9A227; --gold-ink: #7A5D18;
     --fr: #A96E12; --mi: #2E7D6B; --ab: #6E5A9E;
     --member-1: #2454C7; --member-2: #C2255C; --member-3: #C2560C; --member-4: #0C7A8C; --member-5: #5B3DC2; --member-6: #6B7A12;
@@ -196,7 +203,7 @@
     --glass-bg: color-mix(in srgb, var(--surface) 66%, transparent);
     --glass-bg-strong: color-mix(in srgb, var(--surface) 80%, transparent);
     --glass-edge: rgba(255, 255, 255, .10); --glass-shadow: 0 8px 30px rgba(0, 0, 0, .55);
-    --accent: #FF3040; --accent-strong: #FF5A66; --accent-contrast: #FFFFFF; --accent-solid: #E02234; --danger: var(--accent); --ok: #3DDC84;
+    --accent: #FF3040; --accent-strong: #FF5A66; --accent-contrast: #FFFFFF; --accent-solid: #E02234; --accent-solid-strong: #E02234; --danger: var(--accent); --ok: #3DDC84;
     --gold: #C9A227; --gold-ink: #E8C86A;
     --fr: #E0A94A; --mi: #58B49E; --ab: #AC93E0;
     --member-1: #3B6FE0; --member-2: #E0417E; --member-3: #E06A1E; --member-4: #1C93A6; --member-5: #7C5CE0; --member-6: #8C9A1E;

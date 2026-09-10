@@ -177,7 +177,7 @@
     .db-ind {
       position: absolute; left: 4px; top: 4px; bottom: 4px; z-index: 0;
       width: 0; border-radius: var(--radius-sm);
-      background: linear-gradient(135deg, var(--accent), var(--accent-strong));
+      background: linear-gradient(135deg, var(--accent-solid), var(--accent-solid-strong));
       box-shadow: 0 2px 8px color-mix(in srgb, var(--accent) 34%, transparent);
       will-change: transform; pointer-events: none;
     }
@@ -836,6 +836,12 @@
     -moz-appearance: textfield;
   }
   .onb-num::-webkit-outer-spin-button, .onb-num::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+  /* Eine Hoehe fuer alle drei Felder der Zeile. Ohne sie rechnet <select> aus 20px
+     Schrift 43px und <input> aus 24px Schrift 52px - nebeneinander sichtbar ungleich,
+     und die 43px verfehlen zugleich die 44px-Trefferflaeche. Feste Hoehe statt
+     min-height, weil min-height das zu hohe Feld nicht kuerzen wuerde.
+     Gemessen bei der Geraeteabnahme am 10.09.2026 (390 und 360 px). */
+  .onb-f-in select, .onb-f-in .onb-num { height: 48px; padding-block: 0; }
   .onb-f-u { flex: none; font-size: 13px; color: var(--text-muted); font-weight: 600; }
 
   /* Zweite Frage auf demselben Bildschirm (Tempo unter dem Ziel, Haerte unter den

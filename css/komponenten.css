@@ -320,7 +320,7 @@
   .mtags button:hover { color: var(--text); border-color: var(--border-strong); }
   .mtags button[aria-pressed="true"] {
     color: var(--accent-contrast); border-color: transparent;
-    background: linear-gradient(135deg, var(--accent), var(--accent-strong));
+    background: linear-gradient(135deg, var(--accent-solid), var(--accent-solid-strong));
     box-shadow: 0 2px 8px color-mix(in srgb, var(--accent) 32%, transparent);
   }
   /* Nur-Lese-Zweig: dieselben Merkmale, aber als ruhige Marken ohne Knopf-Optik -
@@ -644,7 +644,7 @@
   .detail ul { margin: 0; padding-left: 18px; line-height: 1.6; }
   .detail .steps { white-space: pre-wrap; line-height: 1.6; font-size: 14px; }
   .shop-head { display: flex; align-items: center; gap: 13px; }
-  .shop-head .cart { flex: none; width: 42px; height: 42px; border-radius: 12px; display: grid; place-items: center; color: var(--accent-contrast); background: linear-gradient(150deg, var(--accent), var(--accent-strong)); box-shadow: var(--shadow); }
+  .shop-head .cart { flex: none; width: 42px; height: 42px; border-radius: 12px; display: grid; place-items: center; color: var(--accent-contrast); background: linear-gradient(150deg, var(--accent-solid), var(--accent-solid-strong)); box-shadow: var(--shadow); }
   /* Personenanzahl: Flaeche, Rahmen und Rundung bewusst identisch zum Listenfenster
      darunter, damit die beiden als Paar lesen - oben die Einstellung, unten das Ergebnis.
      Gleiches Vorgehen wie bei .slots/.day-bal im Wochenplan. Vorher war sie im Stil einer
@@ -792,7 +792,7 @@
   .profile { position: relative; display: flex; align-items: center; }
   .profile-btn { display: flex; align-items: center; gap: 9px; font: inherit; cursor: pointer; background: var(--surface); border: 1px solid var(--border); border-radius: 999px; padding: 4px 12px 4px 4px; color: var(--text); transition: border-color var(--dur-fast); }
   .profile-btn:hover { border-color: var(--accent); }
-  .avatar { width: 30px; height: 30px; border-radius: 50%; flex: none; display: grid; place-items: center; font-size: 12.5px; font-weight: 700; color: var(--accent-contrast); background: linear-gradient(150deg, var(--accent), var(--accent-strong)); overflow: hidden; }
+  .avatar { width: 30px; height: 30px; border-radius: 50%; flex: none; display: grid; place-items: center; font-size: 12.5px; font-weight: 700; color: var(--accent-contrast); background: linear-gradient(150deg, var(--accent-solid), var(--accent-solid-strong)); overflow: hidden; }
   .avatar img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; display: block; }
   .profile-btn .pname { font-size: 13.5px; font-weight: 550; max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   /* Mitglieder der Gruppe, links neben dem eigenen Avatar. Ueberlappend statt in einer
@@ -867,12 +867,12 @@
      Optik wie der Header-Avatar, nur groesser. Rund-Button zum Aendern in derselben
      Gradient-Optik wie .wch-add, hier relativ zum Vorschau-Kreis positioniert. */
   .avatar-edit-row { display: flex; align-items: center; gap: 16px; margin-bottom: 18px; }
-  .avatar-edit { position: relative; width: 76px; height: 76px; border-radius: 50%; flex: none; display: grid; place-items: center; font-size: 24px; font-weight: 700; color: var(--accent-contrast); background: linear-gradient(150deg, var(--accent), var(--accent-strong)); }
+  .avatar-edit { position: relative; width: 76px; height: 76px; border-radius: 50%; flex: none; display: grid; place-items: center; font-size: 24px; font-weight: 700; color: var(--accent-contrast); background: linear-gradient(150deg, var(--accent-solid), var(--accent-solid-strong)); }
   .avatar-edit img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; display: block; }
   .avatar-edit-btn {
     position: absolute; bottom: -2px; right: -2px; width: 28px; height: 28px; border: 2px solid var(--surface);
     border-radius: 50%; cursor: pointer; display: grid; place-items: center; padding: 0;
-    color: var(--accent-contrast); background: linear-gradient(135deg, var(--accent), var(--accent-strong));
+    color: var(--accent-contrast); background: linear-gradient(135deg, var(--accent-solid), var(--accent-solid-strong));
     box-shadow: 0 2px 8px rgba(0,0,0,.35); transition: transform var(--dur-fast) ease;
   }
   /* Sichtbar bleiben 28px - die Trefferflaeche wird per Pseudo-Element auf 44x44 erweitert,
@@ -897,7 +897,7 @@
   .seg { display: flex; background: var(--surface-2); border: 1px solid var(--border); border-radius: 999px; padding: 3px; gap: 2px; }
   .seg button { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; border: 0; background: transparent; color: var(--text-muted); padding: 9px 8px; border-radius: 999px; white-space: nowrap; transition: color var(--dur-fast), background var(--dur-fast), box-shadow var(--dur-fast); }
   .seg button:hover { color: var(--text); }
-  .seg button.on { color: var(--accent-contrast); background: linear-gradient(135deg, var(--accent), var(--accent-strong)); box-shadow: 0 2px 8px color-mix(in srgb, var(--accent) 32%, transparent); }
+  .seg button.on { color: var(--accent-contrast); background: linear-gradient(135deg, var(--accent-solid), var(--accent-solid-strong)); box-shadow: 0 2px 8px color-mix(in srgb, var(--accent) 32%, transparent); }
   .seg .seg-hint { font-weight: 500; font-size: 10.5px; opacity: .82; }
   /* Aktivität als vertikale Knopf-Liste (Label links, Hinweis rechts) */
   /* Trainingstage: sieben Umschalter, Mehrfachauswahl. Bewusst NICHT .seg, obwohl es
@@ -914,7 +914,7 @@
      Statusfarbe im Wochenplan vorbehalten, wo es einen Tag als Trainingstag markiert —
      hier waere es nur ein zweiter Akzent ohne eigene Bedeutung. */
   .tdays button[aria-pressed="true"] {
-    color: var(--accent-contrast); background: linear-gradient(135deg, var(--accent), var(--accent-strong));
+    color: var(--accent-contrast); background: linear-gradient(135deg, var(--accent-solid), var(--accent-solid-strong));
     box-shadow: 0 2px 8px color-mix(in srgb, var(--accent) 32%, transparent);
   }
   .tdays-note { font-size: 11.5px; color: var(--text-muted); margin: 8px 0 15px; line-height: 1.45; }

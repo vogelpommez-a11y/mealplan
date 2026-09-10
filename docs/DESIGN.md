@@ -56,6 +56,8 @@ liegen in `css/basis.css`, `css/komponenten.css` und `css/mobil.css` — Regeln 
 
 --accent
 --accent-strong
+--accent-solid
+--accent-solid-strong
 
 --bg
 --surface
@@ -98,11 +100,40 @@ Kein externes Font-CDN.
 
 Akzent:
 
-`--accent`
+`--accent` · `--accent-strong` · `--accent-solid` · `--accent-solid-strong`
 
 Rot ist der zentrale Akzent.
 
 Light- und Dark-Werte immer berücksichtigen.
+
+#### Die Regel für Rot hinter weißer Schrift
+
+**Steht `--accent-contrast` (Weiß) auf einer roten Fläche, trägt die Fläche
+`--accent-solid` bzw. das Verlaufspaar `--accent-solid` → `--accent-solid-strong`.
+Niemals `--accent`/`--accent-strong`.**
+
+Der Grund ist gemessen, nicht Geschmack. Im Dark-Theme ist das Akzentrot bewusst hell
+(`#FF3040`), und Weiß darauf erreicht nur **3,65:1** — verlangt sind 4,5:1 für Text. Bei
+`--accent-strong` (`#FF5A66`) sind es sogar nur 3,04:1. `--accent-solid` (`#E02234`)
+erreicht 4,72:1.
+
+Im **Light-Theme ändert die Regel nichts**: dort sind `--accent-solid` und `--accent`
+derselbe Wert, `--accent-solid-strong` und `--accent-strong` ebenso. Die Umstellung ist
+dort ein reiner Umbenennung ohne sichtbare Wirkung.
+
+Im Dark-Theme sind beide Vollton-Token **derselbe Ton**. Das ist Absicht: Ein Verlauf
+bräuchte zwei Enden über 4,5:1, und zwischen 4,72:1 und 4,52:1 liegt kein sichtbarer
+Verlauf mehr. Lieber ehrlich Vollton als ein Verlaufsende, das durchfällt.
+
+**Balken, Füllstände und Fortschrittsanzeigen behalten den hellen Verlauf** — sie tragen
+keinen Text. Für grafische Elemente verlangt WCAG 3:1, und das erreicht auch das helle
+Rot.
+
+Am 10.09.2026 bei einer Geräteabnahme gefunden: Zehn Flächen trugen weiße Schrift auf dem
+hellen Verlauf — Primärknopf, Profil-Avatar, aktiver Wochentag, aktive Umschalter, das
+Kalender-Symbol und der Einkaufswagen. `--accent-solid` existierte zu diesem Zeitpunkt
+bereits **mit genau dieser Begründung im Kommentar**, wurde aber an keiner einzigen Stelle
+verwendet. Ein Token anzulegen genügt nicht.
 
 ### Theme
 

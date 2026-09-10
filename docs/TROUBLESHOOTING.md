@@ -6022,3 +6022,72 @@ sie auf eine Achse. Und: Ein Filter mit zwei Aussagen braucht zwei Gegenproben �
 die eine entschärft, meldet für die andere „bestanden".
 
 **Verwandt:** Ziffer 159 (dieselbe Funktion, die Achse davor) und Ziffer 152.
+
+
+## 161. Das Logo, das seit der Dateiaufteilung nirgends mehr geladen wurde
+
+**Symptom:** Auf dem Willkommensschirm klaffte über der Überschrift eine leere Fläche von
+116 px, in der Kopfzeile fehlte das runde Markenzeichen, und im Onboarding fehlte der
+Logo-Kreis mit dem Schein. Keine Fehlermeldung, kein leeres `#view`, nichts in der Konsole.
+
+**Ursache:** In `css/tokens.css` stand `--logoL: url(img/logo.png)`. **Relative URLs in einer
+CSS-Datei lösen gegen die CSS-Datei auf, nicht gegen das Dokument.** Der Browser suchte also
+`css/img/logo.png`; die Datei liegt in `img/logo.png`. Entstanden ist das bei `ac04a75`, als
+das CSS aus `index.html` in eigene Dateien wanderte — dort *war* der Pfad richtig.
+
+**Warum es niemandem auffiel:** Ein fehlendes Hintergrundbild wirft keinen Fehler. Die Fläche
+bleibt leer, das Layout stimmt weiter, jeder Prüfstand bleibt grün. Und die Falle ist
+doppelbödig: **Derselbe Pfad ist in JavaScript richtig.** In `lib/pdf.js` steht
+`fetch("img/logo.png")`, und das funktioniert, weil `fetch` gegen `index.html` auflöst. Der
+Kommentar über dem Token verwies sogar auf genau diese Zeile — als Beleg, dass beide dieselbe
+Datei holen.
+
+**Lösung:** `url(../img/logo.png)`. Dazu `tools/pruefstand-css-pfade.py`, der jede `url()`
+in `css/` gegen das Dateisystem prüft — mit Gegenprobe gegen genau diesen Pfad.
+
+**Gefunden** bei der Geräteabnahme vom 10.09.2026 im emulierten Handy-Viewport, nicht durch
+einen Prüfstand.
+
+**Die Regel dahinter:** Ein Fehler, der nur **Abwesenheit** erzeugt, hat keinen Melder. Beim
+Verschieben von Dateien sind relative Pfade der erste Ort, an dem man nachsieht — und die
+Auflösungsbasis unterscheidet sich zwischen CSS und JavaScript.
+
+**Verwandt:** Ziffer 140 (relativ adressierte Hooks, die still durchliefen).
+
+
+## 162. Das Token, das genau für diesen Fall angelegt und nie benutzt wurde
+
+**Symptom:** Weiße Schrift auf roter Fläche erreichte im Dark-Theme nur 3,04–3,65:1 statt
+der geforderten 4,5:1. Betroffen waren zehn Stellen: Primärknopf und sein Hover,
+Profil-Avatar (klein und groß), aktiver Wochentag, Wochen-Umschalter, Meals-Umschalter,
+Segment-Schalter, Kalender-Symbol und der Einkaufswagen. Im Light-Theme war dieselbe
+Oberfläche durchgängig konform.
+
+**Ursache:** `--accent` ist im Dark-Theme bewusst hell (`#FF3040`), damit Rot auf dunklem
+Grund leuchtet. Als Fläche **hinter** weißem Text ist genau diese Helligkeit das Problem.
+
+**Das eigentlich Bemerkenswerte:** `--accent-solid` existierte längst — mit einem
+Kommentar, der die Lage exakt beschrieb: „Rot als Vollflaeche hinter weisser Schrift.
+Getrennt von --accent, weil das helle Dark-Rot mit Weiss nur 3,65:1 erreicht – zu wenig
+fuer Text (4,5:1)." Der Wert war richtig gerechnet. **Verwendet wurde er an keiner
+einzigen Stelle.**
+
+Nebenan lässt sich sehen, wie es aussieht, wenn es funktioniert: Für das Trainingsblau
+gibt es `--train-contrast`, gegen beide Verlaufsenden in Light und Dark gerechnet, und der
+Kommentar dort hält sogar den Fehlerfall fest. Für Rot endete dieselbe Überlegung mit
+„bleibt es weiss auf rot: harmlos".
+
+**Lösung:** `--accent-solid-strong` als zweites Verlaufsende ergänzt und die zehn Flächen
+umgestellt. Die Regel steht in `docs/DESIGN.md`: **Wo `--accent-contrast` drauf steht,
+trägt die Fläche das Vollton-Paar.** Balken und Füllstände ohne Text behalten den hellen
+Verlauf — für Grafik genügen 3:1.
+
+**Die Regel dahinter:** **Ein angelegtes Token ist keine umgesetzte Entscheidung.** Wer
+einen Wert samt Begründung anlegt und die Verwendung auf später vertagt, hinterlässt eine
+Notiz, die aussieht wie eine Lösung. Beim nächsten Blick auf die Datei steht dort ein
+konformer Wert — und niemand prüft, ob ihn irgendwer benutzt.
+
+**Gefunden** bei der Geräteabnahme vom 10.09.2026, über eine Kontrastmessung an den Pixeln
+(`docs/TESTING.md` 2f). Drei Anläufe brauchte die Messung selbst, bis sie stimmte.
+
+**Verwandt:** Ziffer 161 (dieselbe Abnahme, ebenfalls ein Fehler ohne Melder).
