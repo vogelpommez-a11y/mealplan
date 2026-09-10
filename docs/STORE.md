@@ -308,6 +308,39 @@ Shield“) für API-Kunden, mit Ausnahmen. Deren Reichweite war nicht zu belegen
 `openai.com/policies/` weist maschinelle Abrufe mit HTTP 403 ab. **Im OpenAI-Konto
 nachsehen und hier nachtragen.**
 
+## 7b. Barrierefreiheit — BFSG
+
+**Offen, und die Frage muss vor der Einreichung beantwortet sein.** Festgehalten am
+10.09.2026 nach einem Lauf des Agenten `anwalt`.
+
+Das Barrierefreiheitsstärkungsgesetz gilt seit dem 28.06.2025 und setzt die EU-Richtlinie
+2019/882 um. Ob es für Paddy's Mealplan greift, hängt an **einer** Einordnung:
+
+* Ist die App eine **Dienstleistung**, greift voraussichtlich die
+  Kleinstunternehmer-Ausnahme (weniger als 10 Beschäftigte, höchstens 2 Mio. € Umsatz
+  oder Bilanzsumme).
+* Wird sie über den Vertrieb im App Store und bei Google Play als **Produkt** eingeordnet,
+  greift diese Ausnahme nach den gefundenen Quellen **nicht** — sie gilt ausdrücklich nur
+  für Dienstleistungen.
+
+Greift das Gesetz, braucht es eine **Barrierefreiheitserklärung** als eigenes Dokument
+neben Impressum und Datenschutzerklärung. In `data/rechtstexte.js` steht heute keine.
+
+**Das ist eine Rechtsfrage, keine Codefrage.** Sie hängt zudem an derselben Unklarheit wie
+Abschnitt 2: wer bei In-App-Käufen über die Stores Verkäufer ist.
+
+⚠️ Die Paragraphenverweise, die dazu kursieren (§ 2 Nr. 17, § 3 Abs. 3, Anlage 3 zu
+§§ 14, 28 BFSG), stammen aus nicht-amtlichen Quellen und waren am 10.09.2026 **nicht am
+Primaertext prüfbar** — `gesetze-im-internet.de/bfsg/` lieferte 404. Vor Verlass darauf am
+amtlichen Text nachsehen.
+
+**Was auf der Codeseite bereits getan ist** (10.09.2026, `341a528`): Textkontrast erreicht
+in Light und Dark durchgängig 4,5:1, Trefferflächen liegen bei 44 px und mehr. Das ist
+**kein** Nachweis der Barrierefreiheit — Tastaturbedienbarkeit, Screenreader und
+Alternativtexte sind dafür nicht geprüft.
+
+---
+
 ## 8. Technische Mindestanforderungen
 
 - **Startet die App ohne Netz?** Store-Prüfer testen offline. Der Service Worker und die
@@ -341,6 +374,7 @@ nachsehen und hier nachtragen.**
 | **Kaufbeleg serverseitig prüfen** | 🔴 zu bauen — Cloud Function, setzt den Blaze-Wechsel voraus |
 | Nutrition Labels / Data Safety | 🟡 Datengrundlage steht (Abschnitt 5), Formulare nicht ausgefüllt |
 | `NSCameraUsageDescription` | 🟡 zu prüfen, sobald das Capacitor-Projekt existiert |
+| **Barrierefreiheit (BFSG)** | 🔴 **ungeklärt, ob das Gesetz greift** — Dienstleistung oder Produkt? Erklärung fehlt. Abschnitt 7b |
 
 **Nicht aus diesem Repo prüfbar:** alles, was in App Store Connect, der Play Console oder
 im Capacitor-Projekt steht.
