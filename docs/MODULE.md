@@ -324,7 +324,7 @@ _keine_
 | data/rechtstexte.js | 165 | 28069 |
 | docs/ABDECKUNG.md | 187 | 11084 |
 | docs/ARCHITECTURES.md | 3105 | 195844 |
-| docs/DESIGN.md | 885 | 46365 |
+| docs/DESIGN.md | 890 | 46697 |
 | docs/MODULE.md | — | — (erzeugt) |
 | docs/PRODUCT.md | 1651 | 93153 |
 | docs/RUNBOOK.md | 167 | 5665 |
@@ -422,7 +422,7 @@ _keine_
 | img/waffle.webp | — | 52546 |
 | img/wrap.webp | — | 43594 |
 | img/wurst.webp | — | 54064 |
-| index.html | 14236 | 877743 |
+| index.html | 14236 | 877746 |
 | lib/barcode.js | 153 | 8354 |
 | lib/basis.js | 21 | 836 |
 | lib/pdf.js | 241 | 13120 |

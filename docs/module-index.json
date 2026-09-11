@@ -1258,9 +1258,9 @@
       "zeilen": 3105
     },
     {
-      "bytes": 46365,
+      "bytes": 46697,
       "pfad": "docs/DESIGN.md",
-      "zeilen": 885
+      "zeilen": 890
     },
     {
       "erzeugt": true,
@@ -1660,7 +1660,7 @@
       "pfad": "img/wurst.webp"
     },
     {
-      "bytes": 877743,
+      "bytes": 877746,
       "pfad": "index.html",
       "zeilen": 14236
     },
