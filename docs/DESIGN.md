@@ -887,3 +887,29 @@ Trennlinie: Eine schwebende Karte hat keinen Nachbarn, von dem sie trennt. Sie f
 1:1 und bekommt deshalb **keine** Transition — die tragen nur die ausweichenden Nachbarn
 (`.ing-row.shift`). `prefers-reduced-motion` schaltet beide ab; das Zurückfedern beim Loslassen
 läuft über `MOTION`.
+
+## Die Schnellauswahl bekommt Symbole (seit 11.09.2026)
+
+Bis dahin trug jeder Eintrag im Schnellbereich des Pickers **dasselbe** Fruchtsymbol — auch das
+Brötchen und das Ei. Jetzt gibt es vier Gruppen, alle aus dem vorhandenen Strich-Icon-Satz:
+
+| Gruppe | Symbol |
+|---|---|
+| Obst aus der Hand | `fruit` |
+| rohes Gemüse | `salad` |
+| Backware vom Bäcker | `bread` |
+| Süßgebäck (Berliner, Donut, Muffin) | `cake` |
+| Ei | `egg`, **neu** |
+
+**Das Ei-Symbol ist der einzige Neuzugang** — acht Strich-Icons gab es, keines passte. Es wurde
+zweimal gezeichnet: Die erste Fassung war ein gleichmäßiges Oval und las sich bei 19 px wie der
+Buchstabe O. Die zweite hat unten einen echten Kreisbogen und oben eine schlanke Spitze; erst
+dadurch ist sie neben dem Brot eindeutig. Geprüft wurde am Gerät in der echten Liste, nicht in
+einer Icon-Galerie — dieselbe Regel, die schon am Trinkglas steht: **wer einen Pfad ändert, sieht
+ihn sich in seiner echten Größe neben einem Nachbarsymbol an, nicht bei 64 px.**
+
+Die Zuordnung steht als Liste von Namen in `FOOD_ICON` (`data/ikonen.js`), nicht als
+Stichwortregel. Bei 36 Einträgen ist die Liste überschaubar, und eine Stichwortregel liefe
+genau in die Teilwort-Falle, die dieses Projekt schon kennt. Ein Eintrag ohne Zuordnung fällt auf
+`fruit` zurück — also auf den Zustand von vorher — und `tools/pruefstand-stueckliste.py` sagt,
+welcher das ist.

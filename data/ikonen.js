@@ -25,6 +25,36 @@
     // 16 px halb so breit wie Topf und Besteck - sie las sich als Becher, nicht als Glas.
     // Wer den Pfad aendert, prueft ihn bei 16 px gegen ein Nachbaricon, nicht bei 64 px.
     drink:    '<path d="M4.5 4h15l-1.5 15.3a2 2 0 0 1-2 1.7H8a2 2 0 0 1-2-1.7Z"/><path d="M5.2 9.5h13.6"/>',
+    // Ei fuer die Schnellauswahl. Oben deutlich schmaler als unten - bei 16 px ist das der
+    // einzige Unterschied zum Apfel, ein gleichmaessiges Oval liest sich als Kartoffel.
+    egg:      '<path d="M12 2.8C8.8 2.8 5.6 8.4 5.6 13a6.4 6.4 0 0 0 12.8 0c0-4.6-3.2-10.2-6.4-10.2Z"/>',
+  };
+  // ---------- Symbole fuer die Schnellauswahl im Picker ----------
+  // Bis zum 11.09.2026 trugen dort ALLE Eintraege dasselbe Fruchtsymbol - auch das
+  // Broetchen und das Ei. Die Zuordnung steht bewusst als Liste von NAMEN und nicht als
+  // Stichwortregel: Bei 36 Eintraegen ist die Liste ueberschaubar, und eine Stichwortregel
+  // liefe genau in die Teilwort-Falle, die dieses Projekt schon kennt - "ei" steckt in
+  // "Eisbergsalat", "feige" in nichts, aber "birne" in "Erdbirne".
+  //
+  // Wer einen Eintrag umbenennt, laesst hier eine tote Zuordnung zurueck. Das ist kein
+  // stiller Fehler: tools/pruefstand-stueckliste.py meldet sie.
+  const FOOD_ICON = {
+    // Obst, das man aus der Hand isst
+    "Apfel": "fruit", "Banane": "fruit", "Orange": "fruit", "Birne": "fruit",
+    "Mandarine": "fruit", "Kiwi": "fruit", "Pfirsich": "fruit", "Nektarine": "fruit",
+    "Pflaumen": "fruit", "Zwetschge": "fruit", "Kirschen": "fruit", "Erdbeeren": "fruit",
+    "Feigen, frisch": "fruit", "Mango": "fruit", "Kaki": "fruit", "Grapefruit": "fruit",
+    // rohes Gemuese
+    "Karotten": "salad", "Paprika, rot": "salad", "Snackpaprika": "salad", "Tomaten": "salad",
+    "Kirschtomaten": "salad", "Snackgurke": "salad", "Radieschen": "salad", "Avocado": "salad",
+    "Oliven, grün": "salad",
+    // Backware vom Baecker
+    "Weizenbrötchen": "bread", "Vollkornbrötchen": "bread", "Laugenbrezel": "bread",
+    "Croissant": "bread", "Reiswaffeln": "bread",
+    // Suessgebaeck
+    "Berliner": "cake", "Donut": "cake", "Muffin": "cake",
+    // Ei
+    "Ei, Größe S": "egg", "Ei, Größe M": "egg", "Ei, Größe L": "egg",
   };
   const CAT_ICON = { "Frühstück": "bread", "Hauptgericht": "utensils", "Snack": "fruit", "Dessert": "cake", "Beilage": "salad", "Getränk": "drink" };
   // Dieselben Symbole an den Slot-Ueberschriften des Wochenplans, damit Plan und

@@ -4359,11 +4359,21 @@ Sie nimmt dem Apfel im Speicher das Stückgewicht weg, ohne die Datei anzufassen
 `PIECE_TOP`-Prüfung für den Apfel **rot** werden und der Apfel in der Durchsehliste auftauchen.
 Genau das tut sie: 78 grün, 1 rot statt 81 grün, 0 rot.
 
+### Seit dem 11.09.2026 prüft er auch die Symbole
+
+Die Schnellauswahl trug vorher überall dasselbe Fruchtsymbol; jetzt ordnet `FOOD_ICON` jedem
+Eintrag eines zu. Damit gibt es zwei neue Arten, es kaputtzumachen, und beide sind still:
+ein Name in der Zuordnung, den es in `FOODS` nicht (mehr) gibt, und ein Symbol, das in `ICONS`
+fehlt. In beiden Fällen fällt `foodIcon()` auf `fruit` zurück — es sieht dann genau aus wie
+vorher, und niemand merkt etwas. Der Prüfstand macht beides rot und berichtet daneben, welcher
+zählbare Eintrag noch kein eigenes Symbol hat.
+
 ### Was er nicht kann
 
 Er liest Daten, keine Oberfläche. Dass die neuen Einträge im Picker wirklich ankommen, wurde am
 laufenden Chrome geprüft: Suche nach „Kaki", „Croissant", „Radiesch", „Zwetschge", „Snackgurke",
-„Kirsche" und „Olive" liefert je den erwarteten Treffer samt Werten je Stück.
+„Kirsche" und „Olive" liefert je den erwarteten Treffer samt Werten je Stück. Die Symbole wurden
+dort ebenfalls in Augenschein genommen — in der echten Zeile bei 19 px, nicht in einer Galerie.
 
 ## `tools/pruefstand-scan-packung.py` — eine umgedrehte Regel festhalten (11.09.2026)
 

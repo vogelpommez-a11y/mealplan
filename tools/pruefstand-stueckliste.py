@@ -16,8 +16,12 @@ Was es HART prueft (rot, wenn es nicht stimmt):
   3. Jedes Gramm-je-Stueck-Feld ist eine plausible Zahl (groesser 0, hoechstens 1000 g)
      und sitzt an der richtigen Stelle (achtes Feld, Einheit davor gesetzt).
   4. Kein Name kommt doppelt vor - eine Dublette waere im Picker nicht unterscheidbar.
+  5. FOOD_ICON (data/ikonen.js) zeigt nur auf Namen, die es in FOODS gibt, und nur auf
+     Symbole, die es in ICONS gibt. Beides faellt sonst nicht auf: foodIcon() faellt still
+     auf das Fruchtsymbol zurueck, so wie es vor dem 11.09.2026 ueberall aussah.
 
-Was es BERICHTET, ohne rot zu werden: welche Eintraege aus Obst, Gemuese und Backwaren noch
+Was es BERICHTET, ohne rot zu werden: welche stueckweise zaehlbaren Eintraege noch kein
+eigenes Symbol haben, und welche Eintraege aus Obst, Gemuese und Backwaren noch
 kein Gewicht je Stueck haben. Das ist bewusst kein Fehler - Spinat und Rucola brauchen keins.
 Es ist die Durchsehliste fuer den naechsten Ausbau.
 
@@ -68,6 +72,23 @@ def stueckgewicht(e):
     if len(f) >= 7 and re.match(r"^-?[\d.]+$", f[6]):
         return float(f[6])
     return None
+
+
+def lies_food_icon():
+    u"""FOOD_ICON aus data/ikonen.js - die Zuordnung Lebensmittel -> Symbol."""
+    t = io.open(os.path.join(BASIS, "data", "ikonen.js"), encoding="utf-8").read()
+    m = re.search(r"const FOOD_ICON = \{(.*?)\n  \};", t, re.S)
+    if not m:
+        raise SystemExit("FOOD_ICON nicht gefunden - der Pruefstand misst sonst gegen nichts.")
+    return dict(re.findall(r'"([^"]+)"\s*:\s*"([^"]+)"', m.group(1)))
+
+
+def lies_icons():
+    t = io.open(os.path.join(BASIS, "data", "ikonen.js"), encoding="utf-8").read()
+    m = re.search(r"const ICONS = \{(.*?)\n  \};", t, re.S)
+    if not m:
+        raise SystemExit("ICONS nicht gefunden.")
+    return set(re.findall(r"^\s*([a-zA-Z_][\w]*)\s*:", m.group(1), re.M))
 
 
 def lies_piece_top():
@@ -131,6 +152,20 @@ def main():
         einheit = f[4].strip('"') if len(f) > 4 else ""
         p(u"Einheit vor dem Gewicht gesetzt: " + e["name"], einheit in ("g", "ml"), einheit)
 
+    # --- Symbole: FOOD_ICON ---
+    # Bis zum 11.09.2026 trug jeder Eintrag dasselbe Fruchtsymbol. Seither gibt es eine
+    # Zuordnung - und damit zwei neue Arten, sie kaputt zu machen: ein Name, den es nicht
+    # (mehr) gibt, und ein Symbol, das nicht existiert. Beides faellt sonst nicht auf, weil
+    # foodIcon() still auf "fruit" zurueckfaellt.
+    icons = lies_icons()
+    zuordnung = lies_food_icon()
+    p("FOOD_ICON ist nicht leer", len(zuordnung) > 0)
+    tote = [n for n in zuordnung if n not in nach_name]
+    p("Keine tote Zuordnung in FOOD_ICON", not tote, ", ".join(tote))
+    fremde = sorted(set(v for v in zuordnung.values() if v not in icons))
+    p("Jedes zugeordnete Symbol gibt es in ICONS", not fremde, ", ".join(fremde))
+    ohne_icon = [n for n in zaehlbar if n not in zuordnung]
+
     # --- Bericht: was in den Stueck-Kategorien noch fehlt ---
     luecken = []
     kategorien_gefunden = set()
@@ -154,6 +189,13 @@ def main():
 
     print("")
     print("Stueckweise zaehlbar: %d Eintraege" % len(zaehlbar))
+    print("")
+    if ohne_icon:
+        print("Ohne eigenes Symbol (faellt auf das Fruchtsymbol zurueck):")
+        for n in ohne_icon:
+            print("      " + n)
+    else:
+        print("Jeder stueckweise zaehlbare Eintrag hat ein eigenes Symbol.")
     print("")
     print("Ohne Gewicht je Stueck - zum Durchsehen, KEIN Fehler:")
     letzte = None

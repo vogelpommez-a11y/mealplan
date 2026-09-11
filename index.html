@@ -3966,6 +3966,11 @@
     return pieceIdx;
   }
   function pieceSearch(q, max) { return rankFoods(pieceFoods(), q, max); }
+  // Symbol je Lebensmittel (FOOD_ICON in data/ikonen.js). Der Rueckfall auf "fruit" ist der
+  // Zustand von vor dem 11.09.2026 - ein neuer Eintrag ohne Zuordnung sieht dadurch aus wie
+  // frueher, statt gar kein Symbol zu haben. Welcher das ist, meldet
+  // tools/pruefstand-stueckliste.py.
+  function foodIcon(name) { return (typeof FOOD_ICON === "object" && FOOD_ICON[name]) || "fruit"; }
   // Vorschlag ohne Suchbegriff: kurze, feste Auswahl statt der ganzen Liste - sonst laeuft
   // der Schnellbereich der Meal-Liste im Picker den Rang ab. Namen muessen exakt so in FOODS
   // stehen; der Pruefstand (docs/TESTING.md) faengt Tippfehler ab, hier wird still uebergangen,
@@ -8892,7 +8897,7 @@
         const nz = v => (Math.round(v * 10) / 10).toLocaleString("de-DE");
         if (pqShow) html += pieces.map((f, i) => `
           <button class="pitem pq" data-piece="${i}">
-            <span class="pqi" aria-hidden="true">${iconSvg("fruit", "")}</span>
+            <span class="pqi" aria-hidden="true">${iconSvg(foodIcon(f.name), "")}</span>
             <span class="pqb">
               <span class="pn">${esc(f.name)}</span>
               <span class="pqs">1 Stück${f.grams ? " · " + f.grams + " g" : ""}</span>
