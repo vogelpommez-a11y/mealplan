@@ -1562,6 +1562,13 @@ einzige Weg aus dem Slot heraus.
 eine natürliche Portion ist. Keine Scheiben, keine Handvoll: „1 Stück Brot" ist schlicht falsch,
 und jedes eigene Mengenwort wäre eine neue Sonderregel in einer Liste, die vom Ablesen lebt.
 
+**Was hineingehört, entscheidet der Strichcode (11.09.2026).** Die Schnellauswahl ist für
+Lebensmittel, die **keinen** Barcode haben: Obst, rohes Gemüse aus der Hand, das Ei, die Backware
+vom Bäcker. Alles Verpackte deckt der Scan ab, und zwar besser — er kennt die Marke, die Liste
+kennt nur den Durchschnitt. Riegel, Schokolade, Joghurtbecher und Portionskäse stehen deshalb
+bewusst **nicht** drin. Und was erst gekocht werden muss, gehört ohnehin in die Gramm-Suche:
+Niemand isst eine Knoblauchzehe aus der Hand.
+
 **Ein Tipp = ein Stück.** Zwei Bananen sind zwei Antipper und zwei Karten im Slot. Ein
 Mengen-Regler hätte jede Zeile um zwei Knöpfe und einen Bestätigungsschritt verlängert — für den
 Regelfall (ein Stück) wäre das teurer geworden, und die Einkaufsliste fasst „2× Banane" von selbst

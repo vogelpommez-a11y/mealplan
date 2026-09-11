@@ -80,6 +80,7 @@ Die Verfahren gibt es auch als Skill: `/smoke`, `/pruefstand`, `/abnahme`, `/dep
 | · | `tools/probe-onboarding.html` — wie weit der Weiter-Knopf springt (30.08.2026) |
 | · | `tools/probe-onboarding-fluss.html` — den Weg messen, nicht das Ziel (30.08.2026) |
 | · | Zwei Prüfstände für eine Geste: was headless nicht kann (11.09.2026) |
+| · | `tools/pruefstand-stueckliste.py` — die Lücke sichtbar machen (11.09.2026) |
 
 <!-- REGISTER-ENDE -->
 
@@ -4327,3 +4328,36 @@ der 8-px-Schwelle ändert nichts. Geprüft wird sie headless, wo es kein `pointe
   nimmt ihm den Fokus, und `focusout` schreibt den Entwurf. Das zählte jeder Fall als
   zusätzlichen Schreibvorgang, ohne dass jemand sortiert hätte. Der Aufbau löst den Fokus jetzt
   ausdrücklich, bevor gezählt wird.
+
+## `tools/pruefstand-stueckliste.py` — die Lücke sichtbar machen (11.09.2026)
+
+Beim Erweitern der Schnellauswahl sind vier Einträge übersehen worden: Kirsche, Erdbeere, Mango
+und die grüne Olive standen längst in `FOODS`, nur ohne Gewicht je Stück. Der Grund war nicht
+Nachlässigkeit, sondern **fehlende Sichtbarkeit** — niemand konnte sagen, was noch fehlt, ohne 318
+Zeilen von Hand durchzusehen.
+
+Der Prüfstand trennt deshalb zwei Dinge, die oft vermischt werden:
+
+* **Hart geprüft, rot bei Verstoß:** Jeder Name in `PIECE_TOP` löst in `FOODS` auf und ist
+  stückweise zählbar. Das ist die gefährlichste Stelle der ganzen Funktion, weil `pieceTop()` mit
+  `.filter(Boolean)` arbeitet: Ein Tippfehler im Namen lässt den Vorschlag **still** verschwinden.
+  Dazu Format und Plausibilität jedes Stückgewichts und die Suche nach doppelten Namen.
+* **Nur berichtet, nie rot:** welche Einträge aus Obst, Gemüse und Backwaren noch kein Gewicht je
+  Stück haben. Ein Prüfstand, der Spinat und Rucola anmahnt, wäre Lärm — und Lärm liest niemand.
+  Es ist die Durchsehliste für den nächsten Ausbau, mehr nicht.
+
+### Die Gegenprobe
+
+```powershell
+python tools/pruefstand-stueckliste.py --gegenprobe
+```
+
+Sie nimmt dem Apfel im Speicher das Stückgewicht weg, ohne die Datei anzufassen. Danach muss die
+`PIECE_TOP`-Prüfung für den Apfel **rot** werden und der Apfel in der Durchsehliste auftauchen.
+Genau das tut sie: 78 grün, 1 rot statt 81 grün, 0 rot.
+
+### Was er nicht kann
+
+Er liest Daten, keine Oberfläche. Dass die neuen Einträge im Picker wirklich ankommen, wurde am
+laufenden Chrome geprüft: Suche nach „Kaki", „Croissant", „Radiesch", „Zwetschge", „Snackgurke",
+„Kirsche" und „Olive" liefert je den erwarteten Treffer samt Werten je Stück.
