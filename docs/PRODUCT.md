@@ -1578,6 +1578,22 @@ kennt nur den Durchschnitt. Riegel, Schokolade, Joghurtbecher und Portionskäse 
 bewusst **nicht** drin. Und was erst gekocht werden muss, gehört ohnehin in die Gramm-Suche:
 Niemand isst eine Knoblauchzehe aus der Hand.
 
+**Bewusst verworfen: Fotos in der Schnellauswahl (11.09.2026).** Geplant war, jedem Eintrag ein
+eigenes Lebensmittelfoto zu geben. Der Grund dahinter war optisch: In derselben Liste stehen oben
+Meals mit Fotos, darunter wirkte die Schnellauswahl wie ein unfertiger Anhang. Diese Ausgangslage
+gibt es nicht mehr — seit die Zeilen Symbole je Gruppe tragen, ist der Zweck erfüllt.
+
+Was dazu kam, als man genauer hinsah: Bei 38 × 28 px sind ein Apfel und eine Birne als Foto kaum
+zu unterscheiden, der Gewinn gegenüber dem Symbol ist an dieser Stelle klein. Und man kommt fast
+nie über die Liste, sondern über die Suche — wer „ban" tippt, hat einen Treffer. Fotos helfen beim
+Wiedererkennen in langen Listen, und genau die gibt es hier nicht.
+
+Dagegen stünde ein dauerhafter Preis: ein zweites Bildwerkzeug mit eigenem eingefrorenem Stil,
+36 Dateien, ein zweites Bildprotokoll (das Impressum sagt zu, dass zu jedem Bild Beschreibung und
+Entstehungsdatum festgehalten sind) und damit eine Zusage mehr, die falsch werden kann. Nach der
+Feature-Regel fällt das durch: Es spart keine Zeit, reduziert keine Entscheidung und verkürzt
+keinen Weg. **Es sähe nur besser aus.**
+
 **Ein Tipp = ein Stück.** Zwei Bananen sind zwei Antipper und zwei Karten im Slot. Ein
 Mengen-Regler hätte jede Zeile um zwei Knöpfe und einen Bestätigungsschritt verlängert — für den
 Regelfall (ein Stück) wäre das teurer geworden, und die Einkaufsliste fasst „2× Banane" von selbst
