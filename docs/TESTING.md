@@ -81,6 +81,7 @@ Die Verfahren gibt es auch als Skill: `/smoke`, `/pruefstand`, `/abnahme`, `/dep
 | · | `tools/probe-onboarding-fluss.html` — den Weg messen, nicht das Ziel (30.08.2026) |
 | · | Zwei Prüfstände für eine Geste: was headless nicht kann (11.09.2026) |
 | · | `tools/pruefstand-stueckliste.py` — die Lücke sichtbar machen (11.09.2026) |
+| · | `tools/pruefstand-scan-packung.py` — eine umgedrehte Regel festhalten (11.09.2026) |
 
 <!-- REGISTER-ENDE -->
 
@@ -955,9 +956,11 @@ Laufzeitfehler, erst dann die eigentlichen Prüfungen lesen.
   "2 Scheiben (30g)", "4 Riegel à 40 g") liefert `{grams, count}` mit `grams` = **ein** Stück,
   leerer/fehlender Text, fehlende Einheit ("1 Portion") und "0 g" liefern `null`. Wichtigster
   Regressionsfall: reines Gewicht darf **nie** `count` setzen, sonst schaltet `applyBarcode()`
-  eine Mehltüte fälschlich auf „Stück" um. Zweiter Regressionsfall: `serving` muss `false` sein,
-  wenn der Wert aus `quantity` kam — sonst legt `quickAddByBarcode()` eine ganze Packung als
-  Portion an (siehe `docs/TROUBLESHOOTING.md` Ziffer 41). Kommas als Dezimaltrennzeichen
+  eine Mehltüte fälschlich auf „Stück" um. Zweiter Regressionsfall, **seit 11.09.2026 umgedreht**: `serving`
+  sagt weiterhin, woher der Wert kam, aber `quickAddByBarcode()` legt auch bei einer reinen
+  Packungsgröße still an — geprüft von `tools/pruefstand-scan-packung.py`
+  (`docs/TROUBLESHOOTING.md` Ziffer 41 samt Nachtrag). Neu in der Fallliste: `unit` ist `"ml"`
+  bei Volumen und `"g"` bei Gewicht, auch nach dem Hochrechnen von `"1 l"` und `"1 kg"`. Kommas als Dezimaltrennzeichen
   ("32,5 g", "1,5 l (1,58 kg)" — mehr als eines im selben Text) gehören in die Fallliste.
 * **`quickAddByBarcode()`** (Barcode-Schnellzugriff aus dem Wochenplan) mit gestubbtem
   `scanBarcodeLive()`/`fetchOffNutrition()`: vollständige OFF-Daten (Name, alle vier Nährwerte,
@@ -4361,3 +4364,39 @@ Genau das tut sie: 78 grün, 1 rot statt 81 grün, 0 rot.
 Er liest Daten, keine Oberfläche. Dass die neuen Einträge im Picker wirklich ankommen, wurde am
 laufenden Chrome geprüft: Suche nach „Kaki", „Croissant", „Radiesch", „Zwetschge", „Snackgurke",
 „Kirsche" und „Olive" liefert je den erwarteten Treffer samt Werten je Stück.
+
+## `tools/pruefstand-scan-packung.py` — eine umgedrehte Regel festhalten (11.09.2026)
+
+Der Barcode-Schnellzugriff übernimmt seit dem 11.09.2026 auch eine reine Packungsgröße als
+Portion. Das ist die **Umkehr** einer Schutzregel, die aus einem echten Befund stammt
+(`docs/TROUBLESHOOTING.md` 41): „500 g" Nudeln ergeben still ein Meal mit 1750 Kalorien.
+
+Eine umgedrehte Regel braucht einen Prüfstand, der **beide Seiten** festhält — dass die Menge
+übernommen wird, und dass sie sichtbar und änderbar bleibt. Sonst hätte man nur die bequeme
+Hälfte der Entscheidung abgesichert.
+
+Ausgeschnitten wird echter Code: `quickAddByBarcode()` aus `index.html`, `offServingSize()` aus
+`lib/barcode.js`, dazu `qtyLabel()` samt Helfern. Gestubbt ist nur, was von außen kommt — der
+Scan, der Abruf bei Open Food Facts, `render`/`toast` und der Zustand.
+
+Sechs Fälle, 20 Messgrößen: die reine Packung, der Liter (wird zu 1000 ml und heißt im Toast
+„1 L"), die Mehrfachpackung (ein Riegel, nicht die Schachtel), die echte Portionsangabe, fehlende
+Nährwerte (Formular statt Raten) und der Zweitscan (kein zweites Rezept, aber zweimal eingeplant).
+
+### Die Gegenproben
+
+```powershell
+python tools/pruefstand-scan-packung.py --rueckbau alteregel   # 13 Messgroessen werden rot
+python tools/pruefstand-scan-packung.py --rueckbau ohnezutat   # 6 Messgroessen werden rot
+```
+
+`alteregel` stellt den Stand vor der Entscheidung wieder her: Die Packung führt wieder ins
+Formular. `ohnezutat` nimmt dem Meal die Zutat — die Nährwerte stimmen dann immer noch, aber die
+Menge ist nicht mehr änderbar. **Genau das ist die Hälfte, die ohne diese zweite Gegenprobe
+unbemerkt hätte wegfallen können.**
+
+### Eine Falle beim Schneiden
+
+`block()` schneidet bis zur schließenden Klammer **auf der Einrückung der Startzeile**, nicht bis
+zur nächsten Zeile, die `  }` enthält. In `quickAddByBarcode()` wäre das `    }, syncGid ? ...` —
+mitten in der Funktion, und der Schnitt wäre syntaktisch kaputt.

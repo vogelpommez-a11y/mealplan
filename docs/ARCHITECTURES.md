@@ -2177,22 +2177,31 @@ Darauf setzen drei Helfer auf:
   wie `.cathead` / `.cathead.static` im Rezeptbuch.
 
 `offServingSize(p)` (neben `fetchOffNutrition()`) wertet OFF's `serving_size`/`quantity`-Feld
-aus und liefert `{grams, count, serving}` oder `null`:
+aus und liefert `{grams, count, serving, unit}` oder `null`:
 
 * `grams`: das Gewicht **einer** Einheit — bei „1 Stück (65 g)" und „6 x 65 g" das eines
   einzelnen Stücks, bei reinem „500 g" das der ganzen Packung.
 * `count`: nur bei erkannter Stückzahl gesetzt, sonst `null`.
 * `serving`: `true`, wenn der Wert aus `serving_size` (echte Portionsangabe) stammt, `false`
   bei `quantity` (Packungsgröße). `serving_size` hat Vorrang.
+* `unit`: `"g"` oder `"ml"`, nur für die Beschriftung. Nach dem Hochrechnen von „1 l" und
+  „1 kg" fällt sie auf die kleine Einheit zurück — gerechnet wird immer mit `grams`.
 
 Genutzt an zwei Stellen: `applyBarcode()` (Zutatenzeile im Meal-Formular) schaltet bei erkannter
 Stückzahl die Einheit auf „Stück" und rechnet die vier Nährwerte auf je-Stück um;
-`quickAddByBarcode()` rechnet auf **eine Portion** hoch (`ss.grams`, gegen 100 g) und akzeptiert
-dafür nur `count || serving` — eine reine Packungsgröße („500 g" Nudeln, „1 l" Milch) ist keine
-Portion und führt stattdessen in den Formular-Fallback, siehe `docs/TROUBLESHOOTING.md` Ziffer 41.
-Dieser Fallback (`openRecipeForm(null, prefill)`) nimmt die gefundenen Nährwerte als vorbefüllte
-Zutaten-Zeile (je 100 g, ohne Menge) mit — `updateMacroSum()` summiert die Meal-Nährwerte, sobald
-der Nutzer die Menge einträgt.
+`quickAddByBarcode()` rechnet auf **eine Portion** hoch (`ss.grams`, gegen 100 g).
+
+**Seit 11.09.2026 zählt dabei auch eine reine Packungsgröße als Portion** — der Becher, die
+Tüte, der Riegel. Vorher verlangte die Stelle `count || serving` und schickte „500 g" ins
+Formular (`docs/TROUBLESHOOTING.md` Ziffer 41 samt Nachtrag). Zwei Dinge tragen die Umkehr: Der
+Toast nennt die übernommene Menge über `qtyLabel(portion, portionUnit)`, und das stille Meal
+bekommt sie als **Zutat** (`ingredients[0].grams`) statt nur als fertige Nährwerte. Damit ist sie
+im Editor änderbar — `updateMacroSum()` rechnet nach — und `buildShoppingList()` kennt das
+Produkt überhaupt erst, weil es über `r.ingredients` läuft.
+
+Der Formular-Fallback (`openMealSheet(null, prefill)`) bleibt für den Fall, dass Name oder
+Nährwerte fehlen oder sich überhaupt keine Menge lesen lässt. Er nimmt die gefundenen Nährwerte
+als vorbefüllte Zutaten-Zeile (je 100 g, ohne Menge) mit.
 
 ### Live-Kamera: Bühnenformat und Fokus (`scanBarcodeLive()`)
 

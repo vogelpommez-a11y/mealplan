@@ -60,7 +60,7 @@ Erhoben aus den Abschnittsmarken im Code, nicht von Hand gepflegt.
 | css/mobil.css | Gemeinsam planen (Gruppe) | 995-1061 | 67 |
 | data/bilder.js | Gerichtsfotos (nach Namen zugeordnet) | 11-142 | 132 |
 | data/cookbook.js | Rezeptbuch | 11-569 | 559 |
-| data/foods.js | Zutaten-Datenbank fuer die Suche | 11-236 | 226 |
+| data/foods.js | Zutaten-Datenbank fuer die Suche | 11-244 | 234 |
 | data/ikonen.js | Strich-Icons fuer die Kategorie-Ueberschriften | 11-89 | 79 |
 | index.html | Cloud-Sync (Firestore): pro Nutzer ein Dokument users/{uid} | 433-466 | 34 |
 | index.html | Fehlerbehandlung fuer onSnapshot | 467-494 | 28 |
@@ -118,35 +118,35 @@ Erhoben aus den Abschnittsmarken im Code, nicht von Hand gepflegt.
 | index.html | Zutaten-Zeilen (Name, Menge, Naehrwerte pro 100 g, Barcode-Scan) | 7970-8179 | 210 |
 | index.html | Zutaten-Suche (ARIA-Combobox auf dem Namensfeld) | 8180-8303 | 124 |
 | index.html | Zutaten per Ziehen sortieren (Paket 3) | 8304-8743 | 440 |
-| index.html | Picker | 8744-9083 | 340 |
-| index.html | Shopping list | 9084-9295 | 212 |
-| index.html | Vorkochen (C3) | 9296-9497 | 202 |
-| index.html | Actions | 9498-9582 | 85 |
-| index.html | Rechtstexte (Impressum / Datenschutz) | 9583-9604 | 22 |
-| index.html | Auto-Wochenplaner (D2) | 9605-9711 | 107 |
-| index.html | Wiederholung: was zuletzt dran war, rutscht nach hinten | 9712-9730 | 19 |
-| index.html | Passt die Groesse zum Slot? | 9731-9737 | 7 |
-| index.html | In der Gruppe: was zu MEHR Profilen passt, kommt weiter nach vorn | 9738-10115 | 378 |
-| index.html | Toast | 10116-10125 | 10 |
-| index.html | Toast mit Rueckgaengig (Paket B1) | 10126-10161 | 36 |
-| index.html | Event delegation | 10162-10383 | 222 |
-| index.html | Drag & drop between slots | 10384-10445 | 62 |
-| index.html | Foto per Drag & Drop auf eine Meal-Karte (Desktop) | 10446-10477 | 32 |
-| index.html | Foto per Strg+V auf eine Meal-Karte einfuegen | 10478-10509 | 32 |
-| index.html | Profil (lokal) & Teilen | 10510-10556 | 47 |
-| index.html | Kontowechsel auf demselben Geraet | 10557-11164 | 608 |
-| index.html | Kalorienrechner (Baustein 1: Tages-/Wochenbedarf → state.goal) | 11165-11255 | 91 |
-| index.html | Wiegen: speichern, loeschen, ans Ziel koppeln | 11256-11329 | 74 |
-| index.html | Erste Schritte (Onboarding) | 11330-12182 | 853 |
-| index.html | Erscheinungsbild | 12183-12209 | 27 |
-| index.html | Einstellungen | 12210-12333 | 124 |
-| index.html | Einstieg (D1b) | 12334-12409 | 76 |
-| index.html | Cloud-Anmeldung (Firebase) | 12410-12969 | 560 |
-| index.html | Gemeinsam planen (Gruppe) | 12970-13943 | 974 |
-| index.html | Teilen ueber den nativen Dialog des Geraets (Web Share API) | 13944-13977 | 34 |
-| index.html | Einkaufsliste als PDF (Paket B3) | 13978-14217 | 240 |
-| index.html | Boot | 14218-14236 | 19 |
-| lib/barcode.js | Barcode-Scan (Open Food Facts) | 14-153 | 140 |
+| index.html | Picker | 8744-9098 | 355 |
+| index.html | Shopping list | 9099-9310 | 212 |
+| index.html | Vorkochen (C3) | 9311-9512 | 202 |
+| index.html | Actions | 9513-9597 | 85 |
+| index.html | Rechtstexte (Impressum / Datenschutz) | 9598-9619 | 22 |
+| index.html | Auto-Wochenplaner (D2) | 9620-9726 | 107 |
+| index.html | Wiederholung: was zuletzt dran war, rutscht nach hinten | 9727-9745 | 19 |
+| index.html | Passt die Groesse zum Slot? | 9746-9752 | 7 |
+| index.html | In der Gruppe: was zu MEHR Profilen passt, kommt weiter nach vorn | 9753-10130 | 378 |
+| index.html | Toast | 10131-10140 | 10 |
+| index.html | Toast mit Rueckgaengig (Paket B1) | 10141-10176 | 36 |
+| index.html | Event delegation | 10177-10398 | 222 |
+| index.html | Drag & drop between slots | 10399-10460 | 62 |
+| index.html | Foto per Drag & Drop auf eine Meal-Karte (Desktop) | 10461-10492 | 32 |
+| index.html | Foto per Strg+V auf eine Meal-Karte einfuegen | 10493-10524 | 32 |
+| index.html | Profil (lokal) & Teilen | 10525-10571 | 47 |
+| index.html | Kontowechsel auf demselben Geraet | 10572-11179 | 608 |
+| index.html | Kalorienrechner (Baustein 1: Tages-/Wochenbedarf → state.goal) | 11180-11270 | 91 |
+| index.html | Wiegen: speichern, loeschen, ans Ziel koppeln | 11271-11344 | 74 |
+| index.html | Erste Schritte (Onboarding) | 11345-12197 | 853 |
+| index.html | Erscheinungsbild | 12198-12224 | 27 |
+| index.html | Einstellungen | 12225-12348 | 124 |
+| index.html | Einstieg (D1b) | 12349-12424 | 76 |
+| index.html | Cloud-Anmeldung (Firebase) | 12425-12984 | 560 |
+| index.html | Gemeinsam planen (Gruppe) | 12985-13958 | 974 |
+| index.html | Teilen ueber den nativen Dialog des Geraets (Web Share API) | 13959-13992 | 34 |
+| index.html | Einkaufsliste als PDF (Paket B3) | 13993-14232 | 240 |
+| index.html | Boot | 14233-14251 | 19 |
+| lib/barcode.js | Barcode-Scan (Open Food Facts) | 14-157 | 144 |
 | lib/pdf.js | PDF selbst erzeugen (kein window.print, sandbox-sicher) | 14-38 | 25 |
 | lib/pdf.js | Marken-Kopf fuer die PDFs (Logo, "PADDY'S MEALPLAN", Slogan) | 39-106 | 68 |
 | lib/pdf.js | Echtes Logo-PNG fuer die PDFs vorbereiten (einmalig, async, gecacht) | 107-241 | 135 |
@@ -319,19 +319,19 @@ _keine_
 | data/CLAUDE.md | 161 | 7408 |
 | data/bilder.js | 142 | 9143 |
 | data/cookbook.js | 569 | 52083 |
-| data/foods.js | 236 | 16584 |
+| data/foods.js | 244 | 17334 |
 | data/ikonen.js | 89 | 10187 |
 | data/rechtstexte.js | 165 | 28069 |
-| docs/ABDECKUNG.md | 187 | 11084 |
-| docs/ARCHITECTURES.md | 3105 | 195844 |
+| docs/ABDECKUNG.md | 187 | 11136 |
+| docs/ARCHITECTURES.md | 3114 | 196475 |
 | docs/DESIGN.md | 890 | 46697 |
 | docs/MODULE.md | — | — (erzeugt) |
-| docs/PRODUCT.md | 1651 | 93153 |
+| docs/PRODUCT.md | 1667 | 94319 |
 | docs/RUNBOOK.md | 167 | 5665 |
 | docs/SECURITY.md | 454 | 26176 |
 | docs/STORE.md | 381 | 19757 |
-| docs/TESTING.md | 4330 | 258084 |
-| docs/TROUBLESHOOTING.md | 6142 | 354704 |
+| docs/TESTING.md | 4403 | 262278 |
+| docs/TROUBLESHOOTING.md | 6165 | 356228 |
 | docs/module-index.json | — | — (erzeugt) |
 | firestore.rules | 443 | 25570 |
 | img/apple-touch-icon.png | — | 35163 |
@@ -422,8 +422,8 @@ _keine_
 | img/waffle.webp | — | 52546 |
 | img/wrap.webp | — | 43594 |
 | img/wurst.webp | — | 54064 |
-| index.html | 14236 | 877746 |
-| lib/barcode.js | 153 | 8354 |
+| index.html | 14251 | 878836 |
+| lib/barcode.js | 157 | 8756 |
 | lib/basis.js | 21 | 836 |
 | lib/pdf.js | 241 | 13120 |
 | manifest.webmanifest | 22 | 798 |
@@ -471,7 +471,9 @@ _keine_
 | tools/pruefstand-rezeptbuch.py | 428 | 24044 |
 | tools/pruefstand-rezepttexte.py | 576 | 28247 |
 | tools/pruefstand-rueckblick-ziel.py | 283 | 13690 |
+| tools/pruefstand-scan-packung.py | 291 | 11979 |
 | tools/pruefstand-sheet-repaint.py | 273 | 14644 |
+| tools/pruefstand-stueckliste.py | 177 | 6652 |
 | tools/pruefstand-sync-abriss.py | 226 | 10106 |
 | tools/pruefstand-waise-uids.py | 226 | 10687 |
 | tools/pruefstand-weekstats-sync.py | 224 | 11329 |

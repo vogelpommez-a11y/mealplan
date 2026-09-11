@@ -9007,10 +9007,18 @@
     const ss = p.servingSize;
     // Portionsgroesse fuer das stille Anlegen. Eine erkannte Stueckzahl meint IMMER ein
     // einzelnes Stueck - auch bei "6 x 65 g" ist der Riegel die Portion, nicht die ganze
-    // Schachtel. Sonst zaehlt nur eine echte serving_size: reines quantity ("500 g" Nudeln,
-    // "1 l" Milch) ist die Packungsgroesse und keine Portion - daraus stillschweigend ein
-    // Meal zu bauen waere geraten, und Kalorienkorrektheit ist das Kernversprechen.
-    const portion = ss && ss.grams > 0 && (ss.count || ss.serving) ? ss.grams : null;
+    // Schachtel.
+    //
+    // Seit dem 11.09.2026 zaehlt auch eine reine Packungsgroesse als Portion (Entscheidung
+    // des Nutzers). Der Becher Skyr, die Tuete, der einzelne Riegel SIND im Alltag eine
+    // Portion, und wer scannt, haelt sie gerade in der Hand. Frueher fuehrte genau dieser
+    // Fall ins Formular (TROUBLESHOOTING 41) - der sichere, aber teure Weg.
+    //
+    // Der Preis: Bei "500 g" Nudeln ist die Packung KEINE Portion. Dagegen stehen zwei Dinge
+    // statt einer geratenen Schwelle - der Toast nennt die uebernommene Menge, und sie haengt
+    // als Zutat am Meal: eine Zahl, die man aendert, statt eines Wertes, den man glauben muss.
+    const portion = ss && ss.grams > 0 ? ss.grams : null;
+    const portionUnit = (ss && ss.unit === "ml") ? "ml" : "g";
     const complete = p.name && portion && p.kcal != null && p.carbs != null && p.protein != null && p.fat != null;
     if (!complete) {
       toast("Ein paar Angaben fehlen – bitte kurz prüfen");
@@ -9033,7 +9041,13 @@
         protein: Math.round(p.protein * f * 10) / 10,
         fat: Math.round(p.fat * f * 10) / 10,
       },
-      ingredients: [],
+      // Die Menge haengt als Zutat am Meal, nicht nur in den fertigen Naehrwerten. Erst
+      // dadurch ist sie aenderbar: Wer die Gramm im Editor korrigiert, bekommt ueber
+      // updateMacroSum() sofort die richtigen Werte - dasselbe Muster wie beim
+      // Schnelleintrag (quickAddPiece). Die Einkaufsliste kennt das Produkt dadurch auch.
+      ingredients: [Object.assign({ name: p.name, grams: portion },
+        portionUnit === "ml" ? { unit: "ml" } : null,
+        { kcal: p.kcal, carbs: p.carbs, protein: p.protein, fat: p.fat })],
       steps: "",
       barcode: code,
       quick: true,
@@ -9044,7 +9058,8 @@
     state.recipes.push(recipe);
     state.plan[day][meal].push(slotIsShared(day, meal) ? recipe.id : makeEntry(recipe.id, [syncUid]));
     render();
-    toast("„" + p.name + "“ zum Plan hinzugefügt");
+    // Die Menge steht bewusst IM Toast: sie ist der einzige Wert, den niemand bestaetigt hat.
+    toast("„" + p.name + "“ · " + qtyLabel(portion, portionUnit) + " zum Plan hinzugefügt");
   }
 
   // Schnelleintrag: ein zaehlbares Lebensmittel (pieceFoods) in einen Slot legen. Genau

@@ -1025,6 +1025,29 @@ bestätigt hat. Deshalb trägt das Ergebnis ein `serving`-Flag (Wert stammt aus 
 und `quickAddByBarcode()` legt nur bei `count || serving` still an. Aus demselben Grund gilt bei
 Mehrfachpackungen („6 x 65 g") **ein** Stück als Portion, nicht die ganze Schachtel.
 
+### ⚠️ Nachtrag 11.09.2026: Die Regel ist umgedreht — bewusst
+
+**Eine reine Packungsgröße gilt jetzt als Portion.** Entscheidung des Nutzers. Der Becher Skyr,
+die Tüte, der einzelne Riegel *sind* im Alltag eine Portion, und wer scannt, hält sie gerade in
+der Hand. Der frühere Weg — Formular öffnen, Menge bestätigen — war sicher, aber teuer: Er
+verlangte genau dort einen Handgriff, wo der Schnellzugriff ihn sparen soll.
+
+**Die Sorge oben bleibt richtig.** Bei „500 g" Nudeln ist die Packung keine Portion, und das Meal
+trägt dann 1750 kcal. Dagegen stehen zwei Dinge, und ausdrücklich **keine** geratene Schwelle:
+
+* **Der Toast nennt die übernommene Menge** — „Testprodukt · 500 g zum Plan hinzugefügt". Sie ist
+  der einzige Wert, den niemand bestätigt hat, also wird sie ausgesprochen.
+* **Die Menge hängt als Zutat am Meal**, nicht nur in den fertigen Nährwerten. Wer sie im Editor
+  korrigiert, bekommt über `updateMacroSum()` sofort die richtigen Werte. Dasselbe Muster nutzt
+  der Schnelleintrag (`quickAddPiece`) seit jeher.
+
+**Eine Nebenwirkung, die keine ist:** `buildShoppingList()` läuft über `r.ingredients` der
+geplanten Meals. Weil das quick-Meal jetzt eine Zutat trägt, kennt die **Einkaufsliste** gescannte
+Produkte — vorher war die Liste dort leer und das Produkt fehlte ersatzlos.
+
+Gesichert durch `tools/pruefstand-scan-packung.py`, 20 Messgrößen, zwei Rückbauten. Der Rückbau
+`alteregel` stellt genau den Stand oben wieder her und macht 13 Messgrößen rot.
+
 **Und die Werte fallen dabei nicht unter den Tisch:** Der Formular-Fallback bekommt die
 OFF-Nährwerte als vorbefüllte Zutaten-Zeile (je 100 g, ohne Menge) mit. Der Nutzer trägt nur die
 Menge ein, `updateMacroSum()` rechnet den Rest — sonst würde der sichere Weg zur Strafarbeit.

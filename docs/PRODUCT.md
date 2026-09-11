@@ -1521,12 +1521,21 @@ nicht sehen). Sync, Einkaufsliste, Ziel-Ringe, Sharing bleiben dadurch unveränd
 bestehende Fallback-Kette in `photoFor()` (Stichwort → Kategorie → neutral) greift für
 Barcode-Meals automatisch, ganz ohne Codeänderung.
 
-**Unsicherer Fall geht nicht in einen Fehlwert.** Liefert Open Food Facts keine auswertbare
-**Portionsgröße** (eine bloße Packungsgröße wie „500 g" zählt nicht — sonst stünde eine ganze
-Tüte Nudeln als ein Meal im Plan) oder fehlen Name/Nährwerte, wird nicht geraten — der Scan
-öffnet stattdessen das normale Formular vorausgefüllt, samt der gefundenen Nährwerte als
-Zutaten-Zeile; einzutragen bleibt nur die Menge. Kalorienkorrektheit ist das Kernversprechen der
-App; ein zusätzlicher Bestätigungsklick in diesem Randfall wiegt das auf.
+**Die Packung ist die Portion (seit 11.09.2026).** Wer scannt, hält das Produkt in der Hand —
+den Becher, die Tüte, den Riegel. Genau das ist im Alltag eine Portion, und deshalb übernimmt der
+Scan auch eine reine Packungsgröße. Vorher führte dieser Fall ins Formular; das war sicher, aber
+es verlangte einen Handgriff genau dort, wo der Schnellzugriff ihn sparen soll.
+
+Bei einer 500-Gramm-Packung Nudeln stimmt das nicht. Dagegen stehen **zwei Dinge und keine
+geratene Schwelle**: Der Toast nennt die übernommene Menge — sie ist der einzige Wert, den
+niemand bestätigt hat, also wird sie ausgesprochen. Und die Menge hängt als **Zutat** am Meal,
+nicht nur in den fertigen Nährwerten: Wer sie im Editor korrigiert, bekommt sofort die richtigen
+Werte. Eine Zahl, die man ändert, statt eines Wertes, den man glauben muss.
+
+**Unsicherer Fall geht weiterhin nicht in einen Fehlwert.** Fehlen Name oder Nährwerte, oder
+lässt sich überhaupt keine Menge aus dem Text lesen, wird nicht geraten — der Scan öffnet das
+normale Formular vorausgefüllt, samt der gefundenen Nährwerte als Zutaten-Zeile; einzutragen
+bleibt nur die Menge. Kalorienkorrektheit ist das Kernversprechen der App.
 
 **Ein gescanntes Produkt ist flüchtig, kein Bestand.** Es gehört zu dem einen Tag, an dem man den
 Riegel isst — nicht in die Bibliothek und auch nicht in die Auswahlliste beim Planen. Aus dem
