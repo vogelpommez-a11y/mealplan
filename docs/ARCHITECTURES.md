@@ -2790,6 +2790,26 @@ Block sichtbar ist — das Formular-DOM bleibt für jede Zeile immer im Dokument
 `z-index` darüber. Ein „Fertig"-Knopf am Ende des aufgeklappten Bereichs ruft `closeIngRow(row)`
 als sichtbaren vierten Schließweg neben Enter, Fokusverlust und dem Öffnen einer anderen Zeile.
 
+**Zutaten sortieren: die Reihenfolge IST die DOM-Reihenfolge (Paket 3, 11.09.2026).**
+`collectIngs()` liest `.ing-row` in reiner Dokumentreihenfolge. Eine neue Reihenfolge braucht
+deshalb **kein Datenfeld und keine Indexpflege** — Umhängen im DOM plus `commitNow()` genügt,
+und für Bestandsdaten gibt es nichts zu migrieren. Drei Wege führen zum selben Ergebnis: auf
+dem Handy 400 ms halten (`HALTEN_MS`), am Rechner der Anfasser `.ing-grip`, mit der Tastatur
+`Alt+Pfeil` auf dem Namen-Knopf (`aria-keyshortcuts`, Ansage über die Live-Region
+`#ms-ing-live`). Bewusst **Pointer Events** statt HTML5-Drag&Drop wie im Wochenplan: Letzteres
+ist auf Touch unbrauchbar.
+
+Zwei Dinge, die die Geste am Sheet-Scroller ausrichten — beide gefunden in der Geräteabnahme
+vom 11.09.2026 (`docs/TROUBLESHOOTING.md` 163):
+
+* **Die Randzone ist im Moment der Aufnahme gesperrt** (`dg.randSperre`) und wird erst scharf,
+  wenn der Finger sie einmal verlassen hat. Sonst scrollt die Liste schon los, weil die
+  aufgenommene Zeile zufällig am unteren Rand stand.
+* **Schließt die Aufnahme eine offene Bearbeiten-Zeile**, zieht das die Liste unter dem Finger
+  weg. Der Scroller wird nachgeführt, soweit sein Weg reicht — nicht der Griffpunkt verschoben:
+  Das hielte die Zeile am Finger, verschöbe sie aber in der Reihenfolge, und wer nur aufnimmt
+  und wieder loslässt, darf nichts umsortiert vorfinden.
+
 ## Auto-Wochenplaner (D2, 16.08.2026)
 
 **Kein neues Datenfeld, kein neuer Speicherort.** Der Planer schreibt ausschließlich in

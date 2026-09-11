@@ -7701,6 +7701,10 @@
           <h4 class="sec-h">Zutaten</h4>
           <div id="f-ings"></div>
           <p class="ms-empty-ings" id="ms-ing-empty" hidden>Noch keine Zutaten</p>
+          <!-- Meldet die neue Position nach dem Verschieben per Alt+Pfeil. Ohne sie waere die
+               Reihenfolge fuer Screenreader-Nutzung unbelegbar: das Ergebnis der Taste ist rein
+               visuell. -->
+          <p class="visually-hidden" id="ms-ing-live" aria-live="polite"></p>
           <!-- #f-ing-add ist der alte, versteckte "+ Weitere Zutat"-Knopf: updateMacroSum()
                (unveraendert uebernommen) schaltet weiterhin dessen hidden-Attribut, das
                Element bleibt aber dauerhaft unsichtbar (siehe CSS) - #ms-ing-add ist der
@@ -7971,6 +7975,9 @@
     // die zusaetzliche .ing-view-Anzeigezeile im Markup, paintIngView()/openIngEdit()/
     // closeIngRow() fuer den Ruhezustand/Bearbeiten-Wechsel, und je eine zusaetzliche
     // Zeile an drei Stellen (.ing-del-Klick, "+ Zutat hinzufuegen", Zeilen-Fokusverlust).
+    // Anfasser zum Sortieren (Paket 3). Sechs Punkte statt Striche - dieselbe Form, die auf
+    // beiden Plattformen "hier anfassen" bedeutet; Striche lesen sich als Menue.
+    const GRIP_SVG = `<svg viewBox="0 0 16 16" fill="currentColor"><circle cx="6" cy="3.5" r="1.4"/><circle cx="10" cy="3.5" r="1.4"/><circle cx="6" cy="8" r="1.4"/><circle cx="10" cy="8" r="1.4"/><circle cx="6" cy="12.5" r="1.4"/><circle cx="10" cy="12.5" r="1.4"/></svg>`;
     const ingsWrap = node.querySelector("#f-ings");
     const barcodeInput = node.querySelector("#f-ing-barcode");
     let barcodeRow = null;
@@ -8033,8 +8040,9 @@
       // per Klick - siehe den Klick-Handler auf .ing-view-name weiter unten. Nicht entfernen.
       const row = el(`<div class="ing-row" tabindex="-1">
         <div class="ing-view">
+          <span class="ing-grip" aria-hidden="true" title="Ziehen zum Sortieren">${GRIP_SVG}</span>
           <span class="ing-view-qty"></span>
-          <button type="button" class="ing-view-name"></button>
+          <button type="button" class="ing-view-name" aria-keyshortcuts="Alt+ArrowUp Alt+ArrowDown"></button>
           <span class="ing-view-kcal" hidden></span>
           <span class="ing-view-macros" hidden></span>
           <button type="button" class="ing-view-del" title="Zutat entfernen" aria-label="Zutat entfernen">✕</button>
@@ -8292,6 +8300,240 @@
       return o;
     }
     function collectIngs() { return Array.from(ingsWrap.querySelectorAll(".ing-row")).map(rowData).filter(Boolean); }
+
+    // ---------- Zutaten per Ziehen sortieren (Paket 3) ----------
+    // collectIngs() liest die Zeilen in reiner DOM-Reihenfolge. Fuer eine neue Reihenfolge
+    // genuegt deshalb DOM-Umhaengen plus commitNow() - kein zweites Datenmodell, keine
+    // Indexpflege, keine Migration.
+    //
+    // Bewusst Pointer Events statt HTML5-DnD: das Drag&Drop des Wochenplans ist HTML5-DnD und
+    // auf Touch unbrauchbar. setPointerCapture() ist dasselbe Muster wie im Foto-Zuschnitt.
+    //
+    // Der Anfasser kostet im Ruhezustand keinen Platz (siehe CSS): am Rechner erscheint er
+    // beim Ueberfahren, auf dem Handy nimmt Halten die Zeile auf, und mit der Tastatur
+    // verschiebt Alt+Pfeil. Drei Wege, ein Ergebnis.
+    const ingLive = node.querySelector("#ms-ing-live");
+    const HALTEN_MS = 400;   // lang genug, dass ein Tipp zum Oeffnen nicht aufnimmt
+    const WACKEL = 8;        // bis hierhin gewinnt das Scrollen
+    const SCROLLRAND = 48;   // Zone am Rand des Sheets, in der mitgescrollt wird
+    function ingRows() { return Array.from(ingsWrap.querySelectorAll(".ing-row")); }
+    // Ohne diese Meldung waere das Ergebnis der Taste rein visuell und fuer
+    // Screenreader-Nutzung unbelegbar.
+    function meldeIngPosition(row) {
+      const rows = ingRows(), i = rows.indexOf(row);
+      if (i < 0) return;
+      const name = row.querySelector(".ing-name").value.trim() || "Zutat";
+      ingLive.textContent = `${name}: Position ${i + 1} von ${rows.length}`;
+    }
+    function verschiebeIng(row, dir) {
+      const rows = ingRows(), i = rows.indexOf(row), ziel = i + dir;
+      if (i < 0 || ziel < 0 || ziel >= rows.length) return false;
+      if (dir < 0) ingsWrap.insertBefore(row, rows[ziel]);
+      else ingsWrap.insertBefore(row, rows[ziel].nextSibling);
+      commitNow();
+      meldeIngPosition(row);
+      return true;
+    }
+    // Tastaturweg. Alt+Pfeil statt blossem Pfeil: der Fokus sitzt auf dem Namen-Knopf, und
+    // ein nackter Pfeil gehoert dort dem Blaettern durch die Seite. aria-keyshortcuts am
+    // Knopf sagt die Kombination an.
+    ingsWrap.addEventListener("keydown", e => {
+      if (!e.altKey || (e.key !== "ArrowUp" && e.key !== "ArrowDown")) return;
+      const btn = e.target.closest(".ing-view-name");
+      if (!btn) return;
+      e.preventDefault();
+      // insertBefore haengt das Element aus und wieder ein - der Fokus geht dabei verloren.
+      if (verschiebeIng(btn.closest(".ing-row"), e.key === "ArrowUp" ? -1 : 1)) btn.focus();
+    });
+
+    let dg = null;              // laufende Geste (auch vor der Aufnahme)
+    let dgKlickSperre = false;  // der Klick nach dem Ziehen darf die Zeile nicht oeffnen
+    // Das Meal-Sheet ist der Scroll-Container, nicht die Seite: ohne ihn waere die Zeile
+    // nicht ueber die sichtbare Liste hinaus bewegbar.
+    function ingScroller() {
+      for (let p = ingsWrap.parentElement; p; p = p.parentElement) {
+        const ov = getComputedStyle(p).overflowY;
+        if ((ov === "auto" || ov === "scroll") && p.scrollHeight > p.clientHeight + 1) return p;
+      }
+      return null;
+    }
+    function dgAufnehmen() {
+      if (!dg || dg.aktiv) return;
+      if (dg.timer) { clearTimeout(dg.timer); dg.timer = 0; }
+      // Eine offene Zeile zuerst zurueckschreiben: sie ist hoeher, und ein ausgeblendetes
+      // Element, das den Fokus haelt, loest focusout aus (TROUBLESHOOTING 52). Erst danach
+      // messen - closeIngRow() kann eine leere Zeile ganz entfernt haben.
+      if (openIngRowEl) closeIngRow(openIngRowEl);
+      if (!dg.row.isConnected) { dg = null; return; }
+      const rows = ingRows();
+      if (rows.length < 2) { dg = null; return; }
+      dg.scroller = ingScroller();
+      // Das Schliessen der offenen Zeile zieht die Liste unter dem Finger weg - die
+      // aufgenommene Zeile stuende auf einmal woanders als der Finger. Die Liste wird deshalb
+      // nachgefuehrt, soweit ihr Scrollweg reicht. Bewusst NICHT ueber den Griffpunkt geloest:
+      // das haelt zwar die Zeile am Finger, verschiebt sie aber in der Reihenfolge, und wer nur
+      // aufnimmt und wieder loslaesst, darf nichts umsortiert vorfinden.
+      if (dg.scroller) {
+        const b0 = dg.row.getBoundingClientRect();
+        dg.scroller.scrollTop += (b0.top + b0.height / 2) - (dg.y - dg.griffOff);
+      }
+      const wrapTop = ingsWrap.getBoundingClientRect().top;
+      dg.aktiv = true;
+      dg.rows = rows;
+      dg.von = rows.indexOf(dg.row);
+      dg.ziel = dg.von;
+      dg.h = dg.row.getBoundingClientRect().height;
+      // Alles relativ zu ingsWrap messen: der Bezugspunkt scrollt mit dem Inhalt mit, dadurch
+      // stimmen Zeigerweg und Ausweichbewegung auch waehrend des Mitscrollens.
+      dg.mitten = rows.map(r => { const b = r.getBoundingClientRect(); return b.top + b.height / 2 - wrapTop; });
+      // Der Greifpunkt ist der Moment der Aufnahme, nicht der des Aufsetzens - sonst
+      // springt die Zeile beim Loslassen um die Haltestrecke.
+      dg.startRel = dg.y - wrapTop;
+      // Wer eine Zutat aufnimmt, die schon am Rand des Sheets steht, hat sich noch nicht
+      // bewegt - der Autoscroll darf dort nicht sofort loslaufen. Er wird erst scharf, wenn
+      // der Finger die Randzone einmal verlassen hat (Geraeteabnahme 11.09.2026: sonst
+      // scrollte die Liste beim blossen Halten bis zum Anschlag durch und die Zutat landete
+      // am Listenende, ohne dass der Finger sich einen Pixel bewegt hatte).
+      dg.randSperre = dgInRandzone();
+      ingsWrap.classList.add("ings-sorting");
+      dg.row.classList.add("dragging");
+      try { dg.row.setPointerCapture(dg.id); } catch (_) {}
+      dgZeichne();
+    }
+    function dgAusweichen() {
+      dg.rows.forEach((r, i) => {
+        if (r === dg.row) return;
+        let v = 0;
+        if (dg.ziel > dg.von && i > dg.von && i <= dg.ziel) v = -dg.h;
+        else if (dg.ziel < dg.von && i >= dg.ziel && i < dg.von) v = dg.h;
+        r.classList.add("shift");
+        r.style.transform = v ? `translateY(${v}px)` : "";
+      });
+    }
+    function dgZeichne() {
+      if (!dg || !dg.aktiv) return;
+      const wrapTop = ingsWrap.getBoundingClientRect().top;
+      const dy = (dg.y - wrapTop) - dg.startRel;
+      // Die aufgenommene Zeile folgt 1:1 und bekommt deshalb KEINE Transition (siehe CSS).
+      dg.row.style.transform = `translateY(${dy}px)` + (reducedMotion() ? "" : " scale(1.015)");
+      const mitte = dg.mitten[dg.von] + dy;
+      let ziel = dg.ziel;
+      while (ziel > 0 && mitte < dg.mitten[ziel - 1]) ziel--;
+      while (ziel < dg.rows.length - 1 && mitte > dg.mitten[ziel + 1]) ziel++;
+      if (ziel !== dg.ziel) { dg.ziel = ziel; dgAusweichen(); }
+      dgAutoScroll();
+    }
+    function dgInRandzone() {
+      const sc = dg && dg.scroller;
+      if (!sc) return false;
+      const b = sc.getBoundingClientRect();
+      return dg.y < b.top + SCROLLRAND || dg.y > b.bottom - SCROLLRAND;
+    }
+    function dgAutoScroll() {
+      const sc = dg.scroller;
+      if (!sc) return;
+      // Die Sperre aus dem Moment der Aufnahme faellt, sobald der Finger die Randzone
+      // verlaesst - ab dann ist das Erreichen des Randes eine Absicht und kein Zufall.
+      if (dg.randSperre) {
+        if (dgInRandzone()) { dg.scrollV = 0; return; }
+        dg.randSperre = false;
+      }
+      const b = sc.getBoundingClientRect();
+      let ueber = 0;
+      if (dg.y < b.top + SCROLLRAND) ueber = dg.y - (b.top + SCROLLRAND);
+      else if (dg.y > b.bottom - SCROLLRAND) ueber = dg.y - (b.bottom - SCROLLRAND);
+      // Je tiefer in der Randzone, desto schneller - ein fester Wert waere am Rand zu traege
+      // und kurz davor zu ruppig.
+      dg.scrollV = Math.max(-18, Math.min(18, ueber / 3));
+      if (dg.scrollV && !dg.raf) dg.raf = requestAnimationFrame(dgScrollSchritt);
+    }
+    function dgScrollSchritt() {
+      if (!dg || !dg.aktiv) return;
+      dg.raf = 0;
+      if (!dg.scrollV) return;
+      const sc = dg.scroller, vor = sc.scrollTop;
+      sc.scrollTop = vor + dg.scrollV;
+      if (sc.scrollTop === vor) { dg.scrollV = 0; return; } // am Anschlag
+      dgZeichne();
+    }
+    function dgAbbrechen() {
+      if (!dg || dg.aktiv) return;
+      clearTimeout(dg.timer);
+      dg = null;
+    }
+    function dgLoslassen() {
+      if (!dg) return;
+      if (!dg.aktiv) { dgAbbrechen(); return; }
+      const g = dg;
+      dg = null;
+      if (g.raf) cancelAnimationFrame(g.raf);
+      // Vor dem Aufraeumen messen: das ist die Stelle, an der die Zeile GERADE steht.
+      const vorher = g.row.getBoundingClientRect().top;
+      if (g.ziel !== g.von) {
+        const nach = g.rows[g.ziel];
+        if (g.ziel > g.von) ingsWrap.insertBefore(g.row, nach.nextSibling);
+        else ingsWrap.insertBefore(g.row, nach);
+      }
+      g.rows.forEach(r => { r.classList.remove("shift"); r.style.transform = ""; });
+      g.row.classList.remove("dragging");
+      ingsWrap.classList.remove("ings-sorting");
+      try { g.row.releasePointerCapture(g.id); } catch (_) {}
+      // Von der Praesentationsposition zurueckfedern statt von der neuen Layoutposition -
+      // sonst springt die Zeile im Moment des Loslassens sichtbar an ihren Platz.
+      const nachher = g.row.getBoundingClientRect().top;
+      if (!reducedMotion() && g.row.animate && Math.abs(vorher - nachher) > 0.5) {
+        g.row.animate([{ transform: `translateY(${vorher - nachher}px)` }, { transform: "none" }],
+          { duration: parseFloat(MOTION.base) || 200, easing: MOTION.ease });
+      }
+      if (g.ziel !== g.von) { commitNow(); meldeIngPosition(g.row); }
+      // Der Klick, der auf das Loslassen folgt, wuerde sonst die Zeile aufklappen. Das
+      // Fenster ist bewusst laenger als ein Tick: iOS schiebt den Ersatzklick mit spuerbarem
+      // Abstand nach. Damit trotzdem kein spaeterer, gewollter Tipp verlorengeht, endet die
+      // Sperre mit dem ERSTEN geschluckten Klick - der Zeitgeber ist nur der Notausgang.
+      dgKlickSperre = true;
+      setTimeout(() => { dgKlickSperre = false; }, 400);
+    }
+    ingsWrap.addEventListener("pointerdown", e => {
+      if (dg || (e.button != null && e.button !== 0)) return;
+      const row = e.target.closest(".ing-row");
+      if (!row || row.classList.contains("editing")) return;
+      if (e.target.closest(".ing-view-del")) return;  // Loeschen ist kein Anfasser
+      if (ingRows().length < 2) return;               // eine einzelne Zutat hat keine Reihenfolge
+      // griffOff ist der Abstand des Fingers zur Zeilenmitte im Moment des Aufsetzens - der
+      // Bezugspunkt, an dem dgAufnehmen() erkennt, ob die Liste sich seitdem verschoben hat.
+      const b0 = row.getBoundingClientRect();
+      dg = { row, id: e.pointerId, x: e.clientX, y: e.clientY, startX: e.clientX, startY: e.clientY,
+             griffOff: e.clientY - (b0.top + b0.height / 2),
+             aktiv: false, timer: 0, raf: 0, scrollV: 0 };
+      // Am Anfasser sofort, sonst erst nach dem Halten: wer den Griff trifft, hat sich
+      // bereits entschieden.
+      if (e.target.closest(".ing-grip")) dgAufnehmen();
+      else dg.timer = setTimeout(dgAufnehmen, HALTEN_MS);
+    });
+    ingsWrap.addEventListener("pointermove", e => {
+      if (!dg || e.pointerId !== dg.id) return;
+      dg.x = e.clientX; dg.y = e.clientY;
+      // Vor der Aufnahme gewinnt das Scrollen: wer wischt, will die Liste bewegen, nicht
+      // eine Zutat aufnehmen.
+      if (!dg.aktiv) {
+        if (Math.hypot(e.clientX - dg.startX, e.clientY - dg.startY) > WACKEL) dgAbbrechen();
+        return;
+      }
+      dgZeichne();
+    });
+    ["pointerup", "pointercancel", "lostpointercapture"].forEach(ev =>
+      ingsWrap.addEventListener(ev, e => { if (dg && e.pointerId === dg.id) dgLoslassen(); }));
+    // touch-action allein reicht auf iOS nicht, wenn es erst mitten in der Geste gesetzt
+    // wird - und statisch gesetzt wuerde es das Scrollen der Liste dauerhaft verbieten
+    // (TROUBLESHOOTING: touch-action ist eine Erlaubnisliste, keine Weitergabe).
+    ingsWrap.addEventListener("touchmove", e => { if (dg && dg.aktiv) e.preventDefault(); }, { passive: false });
+    // Halten oeffnet auf Touch sonst das Kontextmenue statt die Zeile aufzunehmen.
+    ingsWrap.addEventListener("contextmenu", e => { if (dg) e.preventDefault(); });
+    ingsWrap.addEventListener("click", e => {
+      if (!dgKlickSperre) return;
+      dgKlickSperre = false;
+      e.stopPropagation(); e.preventDefault();
+    }, true);
     // Summe aller Zutaten (auf Menge hochgerechnet) → Makro-Felder; die Felder bleiben
     // dabei IMMER von Hand editierbar (frueher gesperrt, solange Zutaten Naehrwerte
     // hatten). Tippt der Nutzer selbst hinein, gilt sein Wert ab da als Uebersteuerung

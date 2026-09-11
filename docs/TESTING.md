@@ -79,6 +79,7 @@ Die Verfahren gibt es auch als Skill: `/smoke`, `/pruefstand`, `/abnahme`, `/dep
 | · | `tools/probe-fortschritt.html` — die Abnahme in der echten App (30.08.2026) |
 | · | `tools/probe-onboarding.html` — wie weit der Weiter-Knopf springt (30.08.2026) |
 | · | `tools/probe-onboarding-fluss.html` — den Weg messen, nicht das Ziel (30.08.2026) |
+| · | Zwei Prüfstände für eine Geste: was headless nicht kann (11.09.2026) |
 
 <!-- REGISTER-ENDE -->
 
@@ -4267,3 +4268,62 @@ unsichtbar geblieben: **Die Abwehr sieht in beiden Fassungen identisch aus.**
 **AUFFAELLIG — „Rückgabewert 0, aber keine Ergebniszeile"**. Genau dafür ist die weiße Liste
 `BELEG_MUSTER` da (§131): Ein neuer Prüfstand, der nichts belegt, soll auffallen, statt
 durchzurutschen. Die Schlusszeile heißt jetzt `ERGEBNIS n gruen, 0 rot`.
+
+## Zwei Prüfstände für eine Geste: was headless nicht kann (11.09.2026)
+
+Paket 3 (Zutaten per Ziehen sortieren) hat **zwei** Prüfer, und die Trennung zwischen ihnen ist
+keine Bequemlichkeit, sondern ein Messgrund.
+
+| Prüfer | Wo | Was er beweist |
+|---|---|---|
+| `tools/pruefstand-zutaten-sortieren.py` | headless Edge, `file://` | die **Reihenfolge**: acht Fälle, 34 Messgrößen, drei Rückbauten |
+| `tools/abnahme-zutaten-sortieren.py` | sichtbarer Chrome über CDP | die **Geste am Gerät**: fünf Fälle, 26 Messgrößen, zwei Rückbauten |
+
+### Der Grund: `requestAnimationFrame` ruht unter `--headless=new`
+
+Ein rAF-Zyklus, der sich selbst neu anmeldet, steht dort nach 900 ms virtueller Zeit auf **1**.
+Alles, was seine Arbeit über rAF wiederholt, tut headless also nichts — der Autoscroll am Rand
+des Sheets ist genau so gebaut. Ein Prüfstandsfall dazu wäre **dauerhaft grün, ohne etwas zu
+messen**; die Gegenprobe (Sperre versuchsweise ausbauen) schlug headless nicht an. Das ist die
+gefährlichere Sorte Prüfer: einer, dem man glaubt (`docs/TROUBLESHOOTING.md` 164).
+
+### Was der Geräte-Prüfstand anders macht
+
+* **Eine einzige offene CDP-Verbindung.** Zeigertyp und Farbschema gelten nur in der Verbindung,
+  die sie gesetzt hat. Wer je Kommando neu verbindet, misst `pointer: fine` und hält eine
+  Desktop-Messung für eine Handy-Abnahme.
+* **Echte Touch-Ereignisse** über `Input.dispatchTouchEvent`, keine synthetischen `PointerEvent`s
+  — nur so kommt `pointercancel` ins Spiel, und nur so scrollt das Sheet wirklich.
+* **Eigenes Chrome-Profil auf eigenem Port.** Das Profil von `tools/cdp.py` ist an einem echten
+  Konto angemeldet; Testdaten gehören dort nicht hinein (Ziffer 150).
+* **Rückbauten als eigene Datei neben `index.html`** (`_abnahme-rueckbau.html`, gitignored, wird
+  im `finally` gelöscht) — die relativen Pfade auf `css/`, `data/`, `lib/` stimmen nur auf dieser
+  Ebene.
+
+Er läuft **nicht** in `tools/alle-pruefstaende.py` mit: Er braucht den laufenden Server und einen
+sichtbaren Browser. Aufruf von Hand, Server vorausgesetzt:
+
+```powershell
+python tools/abnahme-zutaten-sortieren.py
+python tools/abnahme-zutaten-sortieren.py --rueckbau rand        # muss ROT werden
+python tools/abnahme-zutaten-sortieren.py --rueckbau autoscroll  # muss ROT werden
+```
+
+### Was die Gegenproben zeigten
+
+`--rueckbau rand` liefert genau den Befund, der die Abnahme ausgelöst hat: 484 px Scroll ohne
+Fingerbewegung, die Zutat am Listenende, ein Schreibvorgang zu viel. `--rueckbau autoscroll`
+dreht den Gegenfall um: Der Finger wandert bis an den Rand und die Liste bleibt stehen.
+
+**Für die Wischschwelle gibt es bewusst keine Gegenprobe am Gerät.** Chrome schickt
+`pointercancel`, sobald das Scrollen übernimmt — die Geste ist da schon beendet, und ein Rückbau
+der 8-px-Schwelle ändert nichts. Geprüft wird sie headless, wo es kein `pointercancel` gibt.
+
+### Zwei Fallen beim Bauen des Geräte-Prüfstands
+
+* **Ohne fertiges `goal` im Zustand zeigt die App den Willkommens-Assistenten** — die Meal-Karte,
+  an der die ganze Abnahme hängt, gibt es dann gar nicht.
+* **Der Weg ins Formular lässt ein Eingabefeld fokussiert zurück.** Der erste Tipp irgendwohin
+  nimmt ihm den Fokus, und `focusout` schreibt den Entwurf. Das zählte jeder Fall als
+  zusätzlichen Schreibvorgang, ohne dass jemand sortiert hätte. Der Aufbau löst den Fokus jetzt
+  ausdrücklich, bevor gezählt wird.

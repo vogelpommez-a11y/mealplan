@@ -220,7 +220,10 @@
   .ing-view:not(.ro):active { background: color-mix(in srgb, var(--accent) 9%, transparent); }
   /* Kein border-radius: die Trennlinie ist der border-bottom derselben Zeile, die wuerde an
      den Enden mitrunden. Die Liste bleibt dadurch eine Liste, kein Stapel Kacheln. */
-  .ing-view:not(.ro) { transition: background var(--dur-fast) var(--ease-out); }
+  /* padding-left liegt mit in der Transition: auf dem Handy entsteht der Einzug erst mit
+     dem Sortierzustand (.ings-sorting) und darf nicht springen. */
+  .ing-view:not(.ro) { transition: background var(--dur-fast) var(--ease-out), padding-left var(--dur-fast) var(--ease-out); }
+  @media (prefers-reduced-motion: reduce) { .ing-view:not(.ro) { transition: none; } }
   .ing-view-qty { grid-column: 1; grid-row: 1; font-variant-numeric: tabular-nums; color: var(--text-muted); font-size: 13px; padding-top: 2px; }
   /* Stretched-Link-Muster (Nachtrag Abnahme Phase 1, gleiches Vorbild wie .rcard-open in
      Schritt 3): der Stift ist weg, der Name uebernimmt seine Aufgabe UND macht die Zeile
@@ -250,6 +253,52 @@
      es ueber dem ::after der Anzeigezeile, das sonst die ganze Zeile ueberdeckt. */
   .ing-view-del::after { content: ""; position: absolute; inset: -5px; }
   .ing-view-del:hover { color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, transparent); }
+
+  /* ---------- Zutaten sortieren (Paket 3) ----------
+     Der Anfasser kostet im Ruhezustand KEINEN Platz: er liegt absolut im linken Rand, und
+     die Zeile rueckt nur dort ein, wo dafuer Platz ist - am Rechner dauerhaft
+     (hover: hover), auf dem Handy erst waehrend des Sortierens (.ings-sorting). Bei 360 px
+     hat die Zeile keine fuenfte Spalte uebrig: Menge, Name, kcal und Makros stehen dort
+     bereits gedraengt (plans/Neun_Befunde_Alltag.MD, Paket 3). */
+  .ing-grip {
+    position: absolute; left: 0; top: 7px; z-index: 2;
+    width: 20px; height: 30px; display: grid; place-items: center;
+    border: 0; padding: 0; background: none; color: var(--text-muted);
+    opacity: 0; pointer-events: none; cursor: grab; touch-action: none;
+    transition: opacity var(--dur-fast) var(--ease-out);
+  }
+  /* 44 px Tastflaeche in der SENKRECHTEN Achse (TROUBLESHOOTING 38: die Enge gilt nur in
+     einer Achse). Waagerecht ist der Anfasser nicht das einzige Ziel - auf dem Handy nimmt
+     das Halten die ganze Zeile auf. */
+  .ing-grip::after { content: ""; position: absolute; inset: -7px -12px; }
+  .ing-grip svg { width: 14px; height: 14px; }
+  .ing-view.ro .ing-grip { display: none; }
+  @media (hover: hover) {
+    /* Nur auf Zeigegeraeten: dort ist das Fenster breit genug fuer den Einzug, und nur dort
+       gibt es ueberhaupt ein Ueberfahren, das den Anfasser zeigen koennte. */
+    .ing-view:not(.ro) { padding-left: 22px; }
+    .ing-view:not(.ro):hover .ing-grip, .ing-grip:focus-visible { opacity: .8; pointer-events: auto; }
+  }
+  .ings-sorting .ing-view:not(.ro) { padding-left: 22px; }
+  .ings-sorting .ing-view:not(.ro) .ing-grip { opacity: .8; pointer-events: auto; }
+  /* Waehrend der Geste darf nichts markiert werden - sonst zieht iOS beim Halten die Lupe
+     auf, statt die Zeile aufzunehmen. */
+  .ings-sorting { user-select: none; -webkit-user-select: none; }
+  .ing-view:not(.ro) { -webkit-touch-callout: none; }
+  .ing-row.dragging { position: relative; z-index: 6; }
+  .ing-row.dragging .ing-grip { cursor: grabbing; opacity: 1; }
+  /* Die aufgenommene Zeile hebt sich ab: Flaeche, Schatten, Rundung. Die Trennlinie
+     verschwindet dabei - eine schwebende Karte hat keinen Nachbarn, von dem sie trennt. */
+  .ing-row.dragging .ing-view {
+    background: var(--surface-2); box-shadow: var(--shadow);
+    border-radius: var(--radius-sm); border-bottom-color: transparent;
+  }
+  /* .shift traegt nur die Ausweichbewegung der NICHT gezogenen Zeilen. Die gezogene Zeile
+     folgt dem Finger 1:1 und darf keine Transition haben. */
+  .ing-row.shift { transition: transform var(--dur-fast) var(--ease-out); }
+  @media (prefers-reduced-motion: reduce) {
+    .ing-grip, .ing-row.shift { transition: none; }
+  }
   .ms-ing-add { width: 100%; justify-content: center; margin-top: 10px; }
   .ms-empty-ings { color: var(--text-muted); font-size: 13.5px; padding: 10px 2px 0; margin: 0; }
   /* "Fertig" am Ende der aufgeklappten Zeile (Nachtrag Abnahme Phase 1) - bewusst NICHT

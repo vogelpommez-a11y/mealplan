@@ -111,3 +111,4 @@ docs/DATENSCHUTZ-INTERN.md
 # Datum der letzten Wartungspruefung (tools/wartung-check.py --setze). Rechnergebunden wie
 # der Pushcheck-Merker; im Repo waere es ein fremder, sofort falscher Stand.
 .claude/.letzte-wartung
+_abnahme-*.html

@@ -6091,3 +6091,51 @@ konformer Wert — und niemand prüft, ob ihn irgendwer benutzt.
 (`docs/TESTING.md` 2f). Drei Anläufe brauchte die Messung selbst, bis sie stimmte.
 
 **Verwandt:** Ziffer 161 (dieselbe Abnahme, ebenfalls ein Fehler ohne Melder).
+
+## 163. Die Zutat, die ans Listenende rutschte, weil der Finger stillhielt
+
+**Gefunden am 11.09.2026** in der Geräteabnahme von Paket 3 (Zutaten per Ziehen sortieren),
+bei 390 px mit echten Touch-Ereignissen über das DevTools-Protokoll.
+
+Wer eine Zutat aufnimmt, die im unteren Bereich des Meal-Sheets steht, und danach den Finger
+**nicht bewegt**, sieht die Liste losrasen: `scrollTop` lief in einem Fall von 0 bis 471 durch,
+die aufgenommene Zutat wanderte ans Listenende — und wurde dort gespeichert. Ohne jede
+Fingerbewegung, allein durchs Halten.
+
+**Die Ursache** ist der Autoscroll, der am Rand des Sheets mitziehen soll. Er fragt nur, ob der
+Finger im 48-px-Randstreifen liegt. Beim Aufnehmen liegt er dort, wenn die Zeile dort liegt —
+und dann gilt die Randzone schon, bevor der Nutzer irgendetwas getan hat.
+
+✅ **Behoben am 11.09.2026.** Die Randzone ist im Moment der Aufnahme **gesperrt**
+(`dg.randSperre`) und wird erst scharf, wenn der Finger sie einmal verlassen hat. Wer den
+Finger bewusst an den Rand führt, scrollt weiterhin mit.
+
+**Der Alltagsfall daneben:** War vorher eine Zeile zum Bearbeiten aufgeklappt, schließt die
+Aufnahme sie und zieht die ganze Liste unter dem Finger weg. Die aufgenommene Zeile stand dann
+154 px neben dem Finger. Die Liste wird jetzt nachgeführt, soweit ihr Scrollweg reicht. Bewusst
+**nicht** über den Griffpunkt gelöst: Das hielte zwar die Zeile am Finger, verschöbe sie aber in
+der Reihenfolge — und wer nur aufnimmt und wieder loslässt, darf nichts umsortiert vorfinden.
+
+**Kein Prüfstand konnte das melden**, siehe Ziffer 164.
+
+## 164. `requestAnimationFrame` feuert unter `--headless=new` genau einmal
+
+**Gemessen am 11.09.2026.** Im headless-Edge der Ausschneide-Prüfstände läuft ein
+`requestAnimationFrame`-Zyklus **nicht weiter**: Ein Zähler, der sich selbst neu anmeldet, steht
+nach 900 ms virtueller Zeit auf 1.
+
+**Die Folge ist keine Kleinigkeit.** Jeder Code, der seine Arbeit über rAF wiederholt —
+Autoscroll, Federn, Verfolgeranimationen —, tut headless schlicht nichts. Ein Prüfstandsfall
+dazu wäre **dauerhaft grün, ohne etwas zu messen**. Genau deshalb fiel Ziffer 163 keinem der
+34 Messgrößen des Prüfstands auf, und genau deshalb hat die Gegenprobe dort auch nicht
+angeschlagen, als die Sperre versuchsweise wieder ausgebaut wurde.
+
+**Was jetzt gilt:** rAF-Verhalten wird am Gerät geprüft, nicht headless —
+`tools/abnahme-zutaten-sortieren.py` ist das Muster dafür (sichtbarer Chrome, echte
+Geräte-Emulation, `Input.dispatchTouchEvent`, mit Rückbau-Gegenproben). Der headless-Prüfstand
+sagt es in seinem Kopf ausdrücklich dazu, statt so zu tun, als decke er es mit ab.
+
+**Zweiter Fund derselben Messung:** Am echten Gerät schickt Chrome `pointercancel`, sobald das
+Scrollen eine Geste übernimmt. Die Wischschwelle (`WACKEL`, 8 px) ist dort gar nicht die
+wirksame Bremse, sondern der Gürtel für Zeiger, die kein `pointercancel` schicken. Ein Rückbau
+der Schwelle ändert am Gerät nichts — geprüft wird sie deshalb headless.

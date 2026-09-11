@@ -859,3 +859,31 @@ stehe. Mit dem Kartenfuß ist diese Begründung entfallen: Ohne die Zeile nennt 
 flachen Geräten weder den Tag noch die Woche. Der Platz kommt aus derselben Änderung — der
 Fuß gab dort gemessene 47 px frei, die Zeile kostet 17. **Wer hier wieder kürzen muss, nimmt
 es nicht von dieser Zeile:** Sie ist die einzige Zeitangabe des Reiters.
+
+## Der Anfasser, der keinen Platz belegt (seit 11.09.2026)
+
+Zutaten lassen sich sortieren. Der Anfasser dafür (`.ing-grip`, sechs Punkte) kostet im
+Ruhezustand **keine Spalte**: Er liegt absolut im linken Rand, und die Zeile rückt nur dort ein,
+wo dafür Platz ist.
+
+| Umgebung | Was zu sehen ist |
+|---|---|
+| Rechner (`hover: hover`) | dauerhaft 22 px Einzug, der Anfasser erscheint beim Überfahren |
+| Handy, Ruhezustand | kein Einzug, kein Anfasser — `opacity: 0`, `pointer-events: none` |
+| Handy, während des Sortierens (`.ings-sorting`) | 22 px Einzug und Anfasser, mit Übergang |
+
+**Der Grund ist die Zeile selbst.** Bei 360 px stehen Menge, Name, kcal und Makros schon gedrängt;
+eine fünfte Spalte gibt es dort nicht. Deshalb sechs Punkte statt Striche (Striche lesen sich als
+Menü), deshalb 44 px Tastfläche nur in der **senkrechten** Achse — waagerecht ist der Anfasser
+nicht das einzige Ziel, auf dem Handy nimmt das Halten die ganze Zeile auf.
+
+**Der Kontrast ist gemessen, nicht geschätzt** (11.09.2026, nach dem Befund vom 10.09.): Bei
+`opacity: .8` auf `--surface` stehen die Punkte im Dark-Theme bei 4,88:1, im Light-Theme bei
+3,88:1. Maßstab ist WCAG 1.4.11 für grafische Objekte, also 3:1 — beide bestehen. Wer die
+Deckkraft oder `--text-muted` ändert, misst neu.
+
+Die aufgenommene Zeile hebt sich über Fläche, Schatten und Rundung ab und verliert ihre
+Trennlinie: Eine schwebende Karte hat keinen Nachbarn, von dem sie trennt. Sie folgt dem Finger
+1:1 und bekommt deshalb **keine** Transition — die tragen nur die ausweichenden Nachbarn
+(`.ing-row.shift`). `prefers-reduced-motion` schaltet beide ab; das Zurückfedern beim Loslassen
+läuft über `MOTION`.
