@@ -963,13 +963,20 @@ Laufzeitfehler, erst dann die eigentlichen Prüfungen lesen.
   bei Volumen und `"g"` bei Gewicht, auch nach dem Hochrechnen von `"1 l"` und `"1 kg"`. Kommas als Dezimaltrennzeichen
   ("32,5 g", "1,5 l (1,58 kg)" — mehr als eines im selben Text) gehören in die Fallliste.
 * **`quickAddByBarcode()`** (Barcode-Schnellzugriff aus dem Wochenplan) mit gestubbtem
-  `scanBarcodeLive()`/`fetchOffNutrition()`: vollständige OFF-Daten (Name, alle vier Nährwerte,
-  auswertbare `serving_size`) → Meal wird still angelegt (`quick: true`) und direkt eingeplant ·
-  nur `quantity` ohne Stückzahl ("500 g"), fehlende `serving_size` oder unvollständige Nährwerte →
-  `openRecipeForm(null, prefill)` öffnet sich vorausgefüllt (inkl. Zutaten-Zeile mit den
-  OFF-Nährwerten je 100 g, ohne Menge) statt zu raten · zweiter Scan desselben Barcodes → kein zweiter
-  `state.recipes`-Eintrag, die bestehende ID wird eingeplant (Dedupe über `r.barcode === code`) ·
-  OFF-Fetch wirft (offline) → Toast statt unbehandeltem Promise, kein Halbzustand im Plan.
+  `scanBarcodeLive()`/`fetchOffNutrition()`. **Seit dem 11.09.2026 gebaut als
+  `tools/pruefstand-scan-packung.py`** — die Beschreibung hier ist die Merkliste, der Prüfstand
+  die Umsetzung: vollständige OFF-Daten (Name, alle vier Nährwerte und **irgendeine** lesbare
+  Menge, echte `serving_size` **oder** reine Packungsgröße) → Meal wird still angelegt
+  (`quick: true`), direkt eingeplant, und die Menge hängt als Zutat daran · fehlender Name,
+  fehlende Nährwerte oder gar keine lesbare Menge → `openMealSheet(null, prefill)` öffnet sich
+  vorausgefüllt (inkl. Zutaten-Zeile mit den OFF-Nährwerten je 100 g, ohne Menge) statt zu raten ·
+  zweiter Scan desselben Barcodes → kein zweiter `state.recipes`-Eintrag, die bestehende ID wird
+  eingeplant (Dedupe über `r.barcode === code`) · OFF-Fetch wirft (offline) → Toast statt
+  unbehandeltem Promise, kein Halbzustand im Plan.
+
+  **Bis zum 11.09.2026 stand hier das Gegenteil:** eine reine Packungsgröße („500 g") führte ins
+  Formular. Diese Regel wurde bewusst umgedreht, `docs/TROUBLESHOOTING.md` Ziffer 41 samt
+  Nachtrag.
 * **`pieceFoods()` / `pieceSearch()` / `quickAddPiece()`** (Schnelleintrag für Stück-Artikel). Der
   `FOODS`-Block lässt sich sauber zwischen `/*FOODS_START*/` und `/*FOODS_END*/` ausschneiden. Zu
   prüfen: jeder zählbare Eintrag hat ein Stückgewicht > 0 (Ausnahme: die schon je Stück erfassten
