@@ -332,11 +332,11 @@
       "zeilen": 73
     },
     {
-      "bis": 1435,
+      "bis": 1440,
       "datei": "css/basis.css",
       "titel": "Week grid",
       "von": 309,
-      "zeilen": 1127
+      "zeilen": 1132
     },
     {
       "bis": 310,
@@ -1226,9 +1226,9 @@
       "zeilen": 92
     },
     {
-      "bytes": 102779,
+      "bytes": 103241,
       "pfad": "css/basis.css",
-      "zeilen": 1435
+      "zeilen": 1440
     },
     {
       "bytes": 92458,
@@ -1281,14 +1281,14 @@
       "zeilen": 187
     },
     {
-      "bytes": 199826,
+      "bytes": 199989,
       "pfad": "docs/ARCHITECTURES.md",
-      "zeilen": 3162
+      "zeilen": 3163
     },
     {
-      "bytes": 53851,
+      "bytes": 54376,
       "pfad": "docs/DESIGN.md",
-      "zeilen": 1011
+      "zeilen": 1018
     },
     {
       "erzeugt": true,
@@ -1315,9 +1315,9 @@
       "zeilen": 381
     },
     {
-      "bytes": 270072,
+      "bytes": 270215,
       "pfad": "docs/TESTING.md",
-      "zeilen": 4531
+      "zeilen": 4533
     },
     {
       "bytes": 358845,
@@ -1688,7 +1688,7 @@
       "pfad": "img/wurst.webp"
     },
     {
-      "bytes": 893065,
+      "bytes": 893035,
       "pfad": "index.html",
       "zeilen": 14502
     },
@@ -1743,9 +1743,9 @@
       "zeilen": 324
     },
     {
-      "bytes": 21184,
+      "bytes": 21478,
       "pfad": "tools/abnahme-plan-sortieren.py",
-      "zeilen": 477
+      "zeilen": 480
     },
     {
       "bytes": 20164,

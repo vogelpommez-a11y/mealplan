@@ -48,7 +48,7 @@ Erhoben aus den Abschnittsmarken im Code, nicht von Hand gepflegt.
 | css/basis.css | Header | 20-229 | 210 |
 | css/basis.css | Section head | 230-235 | 6 |
 | css/basis.css | Buttons | 236-308 | 73 |
-| css/basis.css | Week grid | 309-1435 | 1127 |
+| css/basis.css | Week grid | 309-1440 | 1132 |
 | css/komponenten.css | Recipe grid | 8-310 | 303 |
 | css/komponenten.css | Meal-Ansicht (openMealSheet) | 311-509 | 199 |
 | css/komponenten.css | Empty state | 510-515 | 6 |
@@ -318,7 +318,7 @@ _keine_
 | README.md | 46 | 1990 |
 | SECURITY.md | 71 | 3006 |
 | css/CLAUDE.md | 92 | 4167 |
-| css/basis.css | 1435 | 102779 |
+| css/basis.css | 1440 | 103241 |
 | css/komponenten.css | 1190 | 92458 |
 | css/mobil.css | 1064 | 70154 |
 | css/tokens.css | 239 | 12542 |
@@ -329,14 +329,14 @@ _keine_
 | data/ikonen.js | 168 | 19442 |
 | data/rechtstexte.js | 165 | 28069 |
 | docs/ABDECKUNG.md | 187 | 11136 |
-| docs/ARCHITECTURES.md | 3162 | 199826 |
-| docs/DESIGN.md | 1011 | 53851 |
+| docs/ARCHITECTURES.md | 3163 | 199989 |
+| docs/DESIGN.md | 1018 | 54376 |
 | docs/MODULE.md | — | — (erzeugt) |
 | docs/PRODUCT.md | 1729 | 98422 |
 | docs/RUNBOOK.md | 167 | 5665 |
 | docs/SECURITY.md | 454 | 26176 |
 | docs/STORE.md | 381 | 19757 |
-| docs/TESTING.md | 4531 | 270072 |
+| docs/TESTING.md | 4533 | 270215 |
 | docs/TROUBLESHOOTING.md | 6209 | 358845 |
 | docs/module-index.json | — | — (erzeugt) |
 | firestore.rules | 443 | 25570 |
@@ -428,7 +428,7 @@ _keine_
 | img/waffle.webp | — | 52546 |
 | img/wrap.webp | — | 43594 |
 | img/wurst.webp | — | 54064 |
-| index.html | 14502 | 893065 |
+| index.html | 14502 | 893035 |
 | lib/barcode.js | 157 | 8756 |
 | lib/basis.js | 21 | 836 |
 | lib/pdf.js | 241 | 13120 |
@@ -439,7 +439,7 @@ _keine_
 | syntax-check.py | 382 | 16172 |
 | test-server.ps1 | 66 | 2182 |
 | tools/abdeckung.py | 324 | 13049 |
-| tools/abnahme-plan-sortieren.py | 477 | 21184 |
+| tools/abnahme-plan-sortieren.py | 480 | 21478 |
 | tools/abnahme-zutaten-sortieren.py | 458 | 20164 |
 | tools/alle-pruefstaende.py | 226 | 9699 |
 | tools/bildsatz-stichworte.json | 1061 | 20704 |
