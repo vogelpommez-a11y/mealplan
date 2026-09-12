@@ -340,17 +340,25 @@ geplantes Rezeptbuch-Gericht wirklich in seine Sammlung holen und dort veränder
 weiterhin über den Übernehmen-Knopf (auch direkt aus der Meal-Ansicht eines Wochenplan-Slots
 heraus) — genau der Weg, den das Rezeptbuch ohnehin vorsieht.
 
-**Die Handauswahl schöpft aus derselben Menge wie der Planer.** Sobald der Bestand nicht mehr
-bei jedem Planerlauf mitwächst, fiele eine bis dahin kaum sichtbare Asymmetrie auf: Der
-Auto-Planer durfte aus dem gesamten Rezeptbuch wählen, wer einen Slot von Hand füllte, sah nur
-den eigenen Bestand. Die Meal-Auswahl eines Slots zeigt deshalb beides — eigene Meals zuerst,
-darunter der Abschnitt „Aus dem Rezeptbuch" (`pickerQuellen()`). Das spart den Umweg über
-Übernehmen und hält den Grundsatz ein, dass zwei Wege zum selben Ziel dieselbe Auswahl haben.
+**Die Handauswahl zeigt nur eigene Meals** (`pickerQuellen()`, Stand 12.09.2026).
 
-Bewusst **nicht** dieselbe Funktion wie beim Planer (`planKandidaten()`), obwohl die Quellen
-übereinstimmen: Der Planer muss rechnen und lässt Meals ohne Nährwerte weg. Von Hand darf man
-sehr wohl etwas ohne Nährwerte einplanen — dem Nutzer eigene Meals vorzuenthalten, weil der
-Planer mit ihnen nichts anfangen kann, wäre die falsche Sparsamkeit.
+Vom 17.08. bis zum 12.09.2026 stand dort zusätzlich das ganze Rezeptbuch, damit Handauswahl
+und Auto-Planer dieselbe Menge sehen. Am Gerät war der Preis größer als der Gewinn: Im
+Frühstücks-Slot standen vier eigene Meals gegen zehn Katalog-Rezepte, und wer seinen eigenen
+Bestand durchsehen wollte, scrollte durch fremde Gerichte. Ein Slot ist der Ort der **eigenen**
+Woche; das Rezeptbuch ist die Nachschlagequelle und bleibt über den Meals-Reiter samt
+Übernehmen erreichbar.
+
+**Die Asymmetrie zum Auto-Planer ist damit bewusst zurück:** Er schöpft weiter aus dem
+gesamten Katalog, von Hand geht das nicht mehr. Das ist der Preis für eine Auswahl, die man
+überblickt — und er wiegt leichter als eine Liste, in der das Eigene untergeht. Wer ein
+Katalog-Gericht selbst einplanen will, übernimmt es einmal; danach steht es dauerhaft in der
+Auswahl. Prüfer: `tools/pruefstand-picker-quellen.py`.
+
+Bewusst **nicht** dieselbe Funktion wie beim Planer (`planKandidaten()`): Der Planer muss
+rechnen und lässt Meals ohne Nährwerte weg. Von Hand darf man sehr wohl etwas ohne Nährwerte
+einplanen — dem Nutzer eigene Meals vorzuenthalten, weil der Planer mit ihnen nichts anfangen
+kann, wäre die falsche Sparsamkeit.
 
 ### Was er ist, und was er ausdrücklich nicht ist
 
@@ -644,8 +652,10 @@ Vorher war das Profil ein unsichtbarer Vorfilter. Das war aus zwei Gründen fals
   Kalorien und Makros da, nicht als Fernbedienung für eine Liste.
 
 **Die Automatik bleibt streng.** Durchlässig ist nur die **Ansicht**. Überall dort, wo die App
-statt des Menschen entscheidet, ist das Profil weiter eine harte Grenze — Startmeals,
-Picker-Vorschläge, Auto-Planer (alle über `cookbookVisible()`, unverändert). Das ist die Grenze
+statt des Menschen entscheidet, ist das Profil weiter eine harte Grenze — Startmeals und
+Auto-Planer (beide über `cookbookVisible()`, unverändert). Die Handauswahl im Wochenplan zeigt
+seit dem 12.09.2026 ohnehin kein Katalog-Rezept mehr, gefiltert oder nicht (siehe „Die
+Handauswahl zeigt nur eigene Meals" weiter oben). Das ist die Grenze
 zwischen „der Mensch entscheidet" und „die App entscheidet": Ein Veganer, dem die App von sich
 aus ein Steak einplant, ist ein Fehler. Ein Veganer, der bewusst nachsieht, was es sonst noch
 gibt, ist ein Nutzer.
@@ -1593,6 +1603,22 @@ Dagegen stünde ein dauerhafter Preis: ein zweites Bildwerkzeug mit eigenem eing
 Entstehungsdatum festgehalten sind) und damit eine Zusage mehr, die falsch werden kann. Nach der
 Feature-Regel fällt das durch: Es spart keine Zeit, reduziert keine Entscheidung und verkürzt
 keinen Weg. **Es sähe nur besser aus.**
+
+**Das Symbol reicht jetzt bis in den Plan (12.09.2026).** Bis dahin sah man es nur in der
+Auswahl: Sobald die Banane eingeplant war, zeigte die Karte ein geratenes Stichwortfoto — eine
+Obstschale, beim Ei ein Salatteller. Ein Lebensmittel ist kein Gericht, und ein Foto, das etwas
+anderes zeigt, ist schlechter als gar keines. Seither entscheidet `mealIcon()`, und dieselbe
+Banane trägt in Plan, Startreiter, Meal-Blatt, Auswahl und Vorkochliste dasselbe Bild.
+
+Dazu hat **jede unterscheidbare Form ihr eigenes Symbol** bekommen, statt der fünf
+Sammelsymbole von vorher. Bewusst nicht jeder Name ein eigenes: Orange, Mandarine und Grapefruit
+sind dieselbe Kugel mit Blatt, Pfirsich, Nektarine, Pflaume, Zwetschge und Kaki dieselbe
+Steinfrucht. Ein erfundener Unterschied ist bei 28 px nicht lesbar und nur eine weitere Stelle,
+die altert. Gescannte Produkte bekommen ein gemeinsames Packungssymbol — was in der Packung
+steckt, weiß die App nie.
+
+Das ist **kein** Widerruf des Absatzes darüber: Es sind weiterhin Striche, keine Fotos. Kein
+zweites Bildwerkzeug, keine 36 Dateien, kein zweites Bildprotokoll.
 
 **Ein Tipp = ein Stück.** Zwei Bananen sind zwei Antipper und zwei Karten im Slot. Ein
 Mengen-Regler hätte jede Zeile um zwei Knöpfe und einen Bestätigungsschritt verlängert — für den

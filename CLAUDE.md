@@ -379,6 +379,14 @@ verschickten Sharing-Links. Eine Umbenennung bricht beides.
 Kategorie/`CAT_PHOTO` → `PHOTOS.neutral`. Keine alten Emoji-/Gradient-Fallbacks wieder
 einführen.
 
+**Davor sitzt seit dem 12.09.2026 `mealIcon(r)`:** Schnelleinträge (`quick` + `qf`) und
+gescannte Produkte (`quick` + `barcode`) zeigen ein **Symbol** statt eines geratenen
+Stichwortfotos — in Plan, Startreiter, Meal-Blatt, Picker und Vorkochliste. Das eigene Foto
+des Nutzers gewinnt auch dort. `photoFor()` selbst bleibt unverändert: Das Teilen-Vorschaubild
+(`worker/og.js`) braucht eine Bild-URL. Wo ein Symbol steht, entfällt „Symbolbild ·
+KI-generiert" — ein Strichsymbol ist keines von beidem. Prüfer:
+`tools/pruefstand-meal-symbol.py`, Sichtprobe `tools/probe-symbole.html`.
+
 **Alle mitgelieferten Gerichtsfotos sind selbst erzeugt** — seit dem 07.09.2026 auch die
 44 Stichwortbilder in `img/`, nicht mehr nur die Katalogbilder in `img/library/`. Neue
 Bilder entstehen über `tools/meal-bilder.py`, nie von Hand und nie aus fremden Quellen;

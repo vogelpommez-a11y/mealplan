@@ -3567,8 +3567,11 @@
   // Bewusst NUR an der grossen Ansicht: Auf den Karten laege der Text sonst auf jeder
   // Kachel und konkurrierte mit den Makro-Badges. Bei eigenen Fotos des Nutzers erscheint
   // er nie - die sind weder Symbolbild noch KI.
+  // Der Hinweis gilt NUR fuer die mitgelieferten Fotos. Ein Strichsymbol (Schnelleintrag,
+  // gescanntes Produkt) ist weder ein Symbolbild noch KI-generiert - die Zeile waere dort
+  // schlicht unwahr, und bei Bildern ist das eine Kennzeichnungsfrage, keine Kosmetik.
   function bildHinweisHtml(r) {
-    return `<p class="ms-bildhinweis"${istEigenesFoto(r) ? " hidden" : ""}>Symbolbild · KI-generiert</p>`;
+    return `<p class="ms-bildhinweis"${istEigenesFoto(r) || mealIcon(r) ? " hidden" : ""}>Symbolbild · KI-generiert</p>`;
   }
   // Nach einem Fotowechsel im Bearbeiten-Zweig: Das Bild tauscht, ohne dass die Ansicht
   // neu gebaut wird - der Hinweis muss mit. Dieselbe Bedingung wie oben, damit die beiden
@@ -3577,11 +3580,15 @@
   // Auskunft wie der sichtbare Hinweis - sonst erfaehrt sie nur, wer sehen kann.
   function bildAlt(r) {
     const n = esc(r.name || "");
-    return istEigenesFoto(r) ? n : (n ? n + " (Symbolbild, KI-generiert)" : "Symbolbild, KI-generiert");
+    // Dieselbe Unterscheidung wie im sichtbaren Hinweis: Ein Symbol ist kein KI-Bild.
+    // Es steht ohnehin nie in einem <img>, die Zeile ist die Absicherung dagegen, dass
+    // eine kuenftige Ansicht den Alt-Text doch einmal fuer ein Symbol-Meal baut.
+    if (istEigenesFoto(r) || mealIcon(r)) return n;
+    return n ? n + " (Symbolbild, KI-generiert)" : "Symbolbild, KI-generiert";
   }
   function syncBildHinweis(node, r) {
     const p = node.querySelector(".ms-bildhinweis");
-    if (p) p.hidden = istEigenesFoto(r);
+    if (p) p.hidden = istEigenesFoto(r) || !!mealIcon(r);
     const bild = node.querySelector(".ms-photo img");
     if (bild) bild.alt = bildAlt(r);
   }
@@ -3626,7 +3633,54 @@
   // Neuaufbau (siehe pendingWeekX-Kommentar bei render()). Meal-Raster (cardImageHtml) und
   // die Picker-Liste bleiben bei lazy - dort koennen deutlich mehr Bilder auf einmal stehen.
   function thumbHtml(r, cls, eager) {
+    const sym = mealIcon(r);
+    if (sym) return `<span class="${cls} msym" aria-hidden="true">${iconSvg(sym, "")}</span>`;
     return `<img class="${cls}" src="${photoFor(r)}" alt=""${eager ? ` decoding="sync"` : ` loading="lazy"`}>`;
+  }
+
+  // ---------- Symbol statt Foto ----------
+  // Ein Schnelleintrag ist kein Gericht, sondern ein Lebensmittel: die Banane, das Ei, der
+  // gescannte Riegel. photoFor() raet fuer sie ueber PHOTO_RULES ein Stichwortbild, und das
+  // ging sichtbar daneben - die eingeplante Banane trug die Obstschale, das Ei ein
+  // Salatfoto. Ein Symbol sagt hier mehr als ein Foto, das etwas anderes zeigt.
+  //
+  // Dieselbe Zuordnung wie in der Schnellauswahl des Pickers (FOOD_ICON ueber foodIcon),
+  // damit Auswahl und Plan dasselbe Bild zeigen. Gescanntes hat keinen Listeneintrag und
+  // bekommt deshalb das gemeinsame Packungssymbol.
+  //
+  // Liefert einen ICONS-Schluessel oder null. null heisst: ganz normales Meal, Foto wie
+  // bisher. photoFor() bleibt bewusst unangetastet - das Teilen-Vorschaubild (worker/og.js)
+  // braucht eine Bild-URL und kann mit einem Inline-SVG nichts anfangen.
+  function mealIcon(r) {
+    if (!r || r.quick !== true) return null;
+    // Dieselbe erste Regel wie in photoFor(): Das eigene Foto des Nutzers gewinnt immer.
+    // Wer seinem gescannten Riegel ein Bild gegeben hat, soll es auch sehen.
+    if (istEigenesFoto(r)) return null;
+    if (r.qf) return foodIcon(r.name);
+    if (r.barcode) return "package";
+    return null;
+  }
+  // Die grosse Flaeche (Home-Deckel, Meal-Blatt). Gleiche Masse wie das Foto daneben, das
+  // Symbol sitzt mittig - die Groesse setzt CSS ueber .msym-big, nicht das Markup.
+  function mealIconCoverHtml(sym, cls) {
+    return `<span class="${cls} msym msym-big" aria-hidden="true">${iconSvg(sym, "")}</span>`;
+  }
+  // Der Inhalt der grossen Bildflaeche im Meal-Blatt - Symbol oder Foto, eine Quelle fuer
+  // beide Zweige (Ansehen und Bearbeiten).
+  function msPhotoInnerHtml(r) {
+    const sym = mealIcon(r);
+    return sym ? mealIconCoverHtml(sym, "ms-cover-sym") : `<img src="${photoFor(r)}" alt="${bildAlt(r)}">`;
+  }
+  // Nach "Foto gewaehlt"/"Foto entfernt" wechselt womoeglich die ART der Flaeche, nicht nur
+  // die Bildquelle: ein gescanntes Produkt ohne eigenes Foto zeigt wieder sein Symbol.
+  // Deshalb wird der Inhalt getauscht, nicht img.src gesetzt. Die Knopfleiste haengt im
+  // selben Element und wird bewusst herausgenommen und wieder angehaengt.
+  function msPhotoRefresh(node, r) {
+    const wrap = node.querySelector(".ms-photo");
+    if (!wrap) return;
+    const bar = wrap.querySelector(".ms-photobar");
+    wrap.innerHTML = msPhotoInnerHtml(r);
+    if (bar) wrap.appendChild(bar);
   }
   // read a file and downscale to <=640px JPEG data URL (keeps localStorage small)
   function readAndDownscale(file, cb) {
@@ -4770,6 +4824,10 @@
     // den Picker. Der schreibt in state.plan - das ist die ANGEZEIGTE Woche, und die kann
     // gerade die naechste sein. Ein Meal fuer "heute" landete dann sieben Tage daneben.
     const ziel = r ? `data-action="view" data-id="${esc(r.id)}"` : `data-action="tab" data-tab="plan"`;
+    // Symbol oder Foto - dieselbe Weiche wie im Plan (mealIcon), damit dieselbe Banane
+    // nicht zwei Reiter weiter ein anderes Bild traegt. Ohne Meal bleibt es beim
+    // neutralen Foto: da gibt es nichts zu symbolisieren.
+    const symbol = r ? mealIcon(r) : null;
     const bild = r ? photoFor(r) : PHOTOS.neutral;
     const nut = r ? recipeNut(r) : null;
     // Makros in der Kompaktform - ohne "g", genau wie macroLineHtml() es ueberall tut
@@ -4791,7 +4849,7 @@
       ? (n.wann === "fremd" ? "Für dich ist nichts geplant" : "Noch nichts geplant")
       : (r ? esc(r.name) : esc(n.meal.label) + " noch offen");
     return `<button type="button" class="hm-cover" ${ziel}>
-          <img src="${bild}" alt="${r ? esc(r.name) : ""}">
+          ${symbol ? mealIconCoverHtml(symbol, "hm-sym") : `<img src="${bild}" alt="${r ? esc(r.name) : ""}">`}
           <span class="hm-veil">
             <span class="hm-eyebrow">${eyebrow}</span>
             <span class="hm-name">${titel}</span>
@@ -7613,7 +7671,7 @@
           ${ausBuch ? "" : `<button type="button" class="btn ghost icon-gh on-photo" data-share title="Meal teilen" aria-label="Meal teilen">${TOOL_ICONS.share}</button>`}
           <button type="button" class="btn ghost icon-gh on-photo" data-close aria-label="Schließen">✕</button>
         </div>
-        <div class="ms-photo has-photo"><img src="${photoFor(r)}" alt="${bildAlt(r)}"></div>
+        <div class="ms-photo has-photo">${msPhotoInnerHtml(r)}</div>
         <div class="modal-body">
           ${bildHinweisHtml(r)}
           <div class="ms-head"><h3 class="ms-title">${esc(r.name)}</h3><span class="chip ${cls}">${esc(r.category || "Gericht")}</span></div>
@@ -7678,7 +7736,7 @@
         <button type="button" class="btn ghost icon-gh on-photo" data-close aria-label="Schließen">✕</button>
       </div>
       <div class="ms-photo has-photo">
-        <img src="${photoFor(initial)}" alt="${bildAlt(initial)}">
+        ${msPhotoInnerHtml(initial)}
         <div class="ms-photobar">
           <button type="button" class="ms-photobtn" data-photo-remove${isOwnPhoto ? "" : " hidden"}>Foto entfernen</button>
           <button type="button" class="ms-photobtn" data-photo>${isOwnPhoto ? "Foto ändern" : "Foto wählen"}</button>
@@ -7942,7 +8000,6 @@
     });
 
     // --- Foto: waehlen/aendern/entfernen, aktualisiert nur die offene Ansicht (photoDoneCb) ---
-    const photoImg = node.querySelector(".ms-photo img");
     const photoBtn = node.querySelector("[data-photo]");
     const photoRemoveBtn = node.querySelector("[data-photo-remove]");
     photoBtn.addEventListener("click", () => {
@@ -7952,7 +8009,7 @@
         target.image = dataUrl;
         fotoGeaendert = true;   // sheetSig() laesst image bewusst aus - siehe dort
         commitNow();
-        photoImg.src = photoFor(target);
+        msPhotoRefresh(node, target);
         syncBildHinweis(node, target);   // eigenes Foto: kein "Symbolbild - KI-generiert"
         photoBtn.textContent = "Foto ändern";
         photoRemoveBtn.hidden = false;
@@ -7966,7 +8023,7 @@
       target.image = null;
       fotoGeaendert = true;   // wie beim Setzen: sheetSig() sieht image nicht
       commitNow();
-      photoImg.src = photoFor(target);
+      msPhotoRefresh(node, target);
       syncBildHinweis(node, target);   // wieder eines von uns: Hinweis zurueck
       photoBtn.textContent = "Foto wählen";
       photoRemoveBtn.hidden = true;
@@ -8747,30 +8804,23 @@
     </div>`;
   }
   // ---------- Picker ----------
-  // Woraus die Handauswahl fuer einen Slot schoepft. Seit dem 17.08.2026 dieselbe Menge wie
-  // beim Auto-Planer: eigener Bestand PLUS Rezeptbuch. Vorher durfte der Planer aus 34
-  // Katalog-Rezepten waehlen und der Mensch nur aus dem eigenen Bestand - eine Asymmetrie,
-  // die mit dem Katalog-Umbau erst richtig auffiel, weil der Bestand seitdem nicht mehr bei
-  // jedem Planerlauf mitwaechst.
+  // Woraus die Handauswahl fuer einen Slot schoepft: NUR der eigene Bestand.
   //
-  // Bewusst NICHT planKandidaten() wiederverwendet, obwohl die Quellen dieselben sind: Der
-  // Planer muss rechnen und schliesst deshalb Meals ohne Naehrwerte aus. Von Hand darf man
-  // sehr wohl ein Meal ohne Naehrwerte einplanen - dieselbe Menge zu erzwingen hiesse, dem
-  // Nutzer eigene Meals vorzuenthalten, weil der Planer mit ihnen nichts anfangen kann.
+  // Vom 17.08.2026 bis zum 12.09.2026 stand hier zusaetzlich das ganze Rezeptbuch, damit
+  // Handauswahl und Auto-Planer dieselbe Menge sehen. Am Geraet war der Preis groesser als
+  // der Gewinn: Im Fruehstuecks-Slot standen vier eigene Meals gegen zehn Katalog-Rezepte,
+  // und wer seinen eigenen Bestand durchsehen wollte, scrollte durch fremde Gerichte.
+  // Der Slot ist der Ort der EIGENEN Woche - das Rezeptbuch ist die Nachschlagequelle und
+  // bleibt ueber den Meals-Reiter samt Uebernehmen erreichbar.
   //
-  // cookbookVisible() filtert ueber fitsDiet(), der Katalog kann hier also nichts anbieten,
-  // was der Ernaehrungsform widerspricht. isAdopted() haelt Dubletten heraus - ein
-  // uebernommenes Rezept steht schon im eigenen Bestand und kommt ueber die erste Quelle.
+  // Die Asymmetrie zum Auto-Planer (der weiter aus dem Katalog schoepft) ist damit bewusst
+  // zurueck; die Begruendung steht in docs/PRODUCT.md.
   //
-  // `__cb` sitzt an einer FLACHEN KOPIE, nie am Katalogeintrag selbst (gleiche Begruendung
-  // wie bei planKandidaten): COOKBOOK ist gemeinsamer Bestand, ein Feld daran verschmutzte
-  // die Rezeptbuch-Ansicht und jede spaetere Uebernahme mit.
+  // Bewusst NICHT planKandidaten() wiederverwendet: Der Planer muss rechnen und schliesst
+  // deshalb Meals ohne Naehrwerte aus. Von Hand darf man sehr wohl ein Meal ohne
+  // Naehrwerte einplanen.
   function pickerQuellen() {
-    const eigene = libraryRecipes();
-    const katalog = cookbookVisible()
-      .filter(r => !isAdopted(r.id))
-      .map(r => Object.assign({}, r, { __cb: true }));
-    return eigene.concat(katalog);
+    return libraryRecipes();
   }
 
   function openPicker(day, meal) {
@@ -8829,11 +8879,7 @@
       // Dieselbe Rangfolge wie in der Zutatenzeile (rankFoods), damit "ban" sich hier
       // nicht anders verhaelt als dort.
       const pieces = query.length >= 2 ? pieceSearch(query, 8) : pieceTop();
-      // Leer ist die Auswahl erst, wenn AUCH das Rezeptbuch nichts hergibt - sonst stuende
-      // "Noch keine Meals angelegt" ueber 34 verfuegbaren Gerichten.
       const libEmpty = pickerQuellen().length === 0;
-      // Ein Meal-Knopf, unabhaengig von der Quelle: der Umbau macht die Katalog-id zu einem
-      // gueltigen Plan-Verweis, zugewiesen wird also in beiden Faellen gleich (data-assign).
       const itemHtml = r => {
         const suggest = catSuggestsMeal(r.category, meal) ? " suggest" : "";
         const off = catFitsMeal(r.category, meal) ? "" : " offcat";
@@ -8859,15 +8905,7 @@
       } else if (list.length === 0) {
         html = `<p class="pempty">Kein passendes Meal gefunden.</p>${more}`;
       } else {
-        // Eigene Meals zuerst, das Rezeptbuch als eigener Abschnitt darunter - die Herkunft
-        // steht damit ueber der Gruppe statt als Marke an jeder einzelnen Zeile. `.sec-h` ist
-        // die EINE Abschnittsform der App und im Picker schon fuer "Schnell" in Gebrauch
-        // (CLAUDE.md, Ziffer 8) - keine neue Form, kein zusaetzlicher Erklaertext.
-        const eigene = list.filter(r => !r.__cb);
-        const ausBuch = list.filter(r => r.__cb);
-        html = eigene.map(itemHtml).join("");
-        if (ausBuch.length) html += `<div class="sec-h pq-h">Aus dem Rezeptbuch</div>` + ausBuch.map(itemHtml).join("");
-        html += more;
+        html = list.map(itemHtml).join("") + more;
       }
       if (pieces.length) {
         // Der Schnell-Bereich ist ein Aufklapper und beim Oeffnen zu. Er stand hier frueher

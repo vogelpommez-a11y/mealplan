@@ -27,6 +27,7 @@ In `CLAUDE.md` steht weiterhin die kurze Fassung: die Regel und der Zeiger hierh
 | Schiebe-Schema | Ansichtswechsel, Bewegung, `MOTION`-Tokens |
 | Die ersten Schritte bewegen sich wie der Rest | Wizard: `slideIn()`, Höhenübergang, `.onb-still` |
 | Der Fortschritt-Kalender | zwei Gitter in einer Karte, `max-width: 420px`, Symbolsprache |
+| Ein Symbol je Lebensmittel | die Symbolfläche `.msym`, zwei Größen, Lesbarkeit bei 28 px |
 
 ---
 
@@ -913,3 +914,56 @@ Stichwortregel. Bei 36 Einträgen ist die Liste überschaubar, und eine Stichwor
 genau in die Teilwort-Falle, die dieses Projekt schon kennt. Ein Eintrag ohne Zuordnung fällt auf
 `fruit` zurück — also auf den Zustand von vorher — und `tools/pruefstand-stueckliste.py` sagt,
 welcher das ist.
+---
+
+## Ein Symbol je Lebensmittel, und es reicht bis in den Plan (seit 12.09.2026)
+
+Die vier Gruppen oben waren richtig, solange das Symbol nur in der Auswahl stand. Seit dem
+12.09.2026 steht es auch im Wochenplan, auf dem Startreiter, im Meal-Blatt und in der
+Vorkochliste — und dort fällt „alles Obst sieht gleich aus" sofort auf. Deshalb hat jede
+**unterscheidbare Form** ihr eigenes Symbol: Banane, Birne, Kiwi, Erdbeere, Kirsche, Mango,
+Feige, Karotte, Paprika, Tomate, Gurke, Radieschen, Avocado, Olive, Brötchen, Brezel,
+Croissant, Reiswaffel, Donut, Berliner, Muffin.
+
+Bewusst **nicht** jeder Name ein eigenes: Orange, Mandarine und Grapefruit teilen sich `citrus`,
+Pfirsich, Nektarine, Pflaume, Zwetschge und Kaki teilen sich `stonefruit`. Ein erfundener
+Unterschied ist bei 28 px nicht lesbar und nur eine weitere Stelle, die altert. `fruit` bleibt
+der Apfel und der Rückfall; `salad`, `bread` und `cake` tragen weiter die
+Kategorie-Überschriften. Gescanntes bekommt `package` — was in der Packung steckt, weiß die
+App nie.
+
+**Vier Runden bis zur Lesbarkeit.** Die erste Fassung überzeugte groß und gab bei 28 px nichts
+her: Die Karotte las sich als Messer, das Radieschen als Schleife, die Kiwi als Zahnrad, die
+Brezel als Hasenkopf. Entschieden wurde jede Runde an `tools/probe-symbole.html`, die jedes
+Symbol in seiner echten Größe neben den Nachbarn zeigt. Die Regel vom Trinkglas gilt
+unverändert und ist hier vierfach bestätigt.
+
+### Die Symbolfläche `.msym`
+
+Wo ein Symbol steht, steht kein Bild. Die Fläche übernimmt die **Maße des Fotos**, das sie
+ersetzt — Breite, Höhe und Radius bleiben deshalb bei `.r-thumb`, `.pthumb`, `.bc-thumb`,
+`.hm-sym` und `.ms-cover-sym`; `.msym` trägt nur das Aussehen: `--surface-2` als Grund,
+`--text-muted` für den Strich, der Rand als **inset-Schatten**. Kein `border`: Ohne globales
+`box-sizing: border-box` bliese er die geerbten Maße um 2 px auf und verschöbe die Symbolzeile
+gegen die Fotozeile daneben.
+
+Drei Größen, alle gegengeprüft:
+
+| Ort | Fläche | Symbol |
+|---|---|---|
+| Plan, Picker, Vorkochliste | 28 px bzw. 38 × 28 px | 62 % der Fläche |
+| Meal-Blatt (`.msym-big`) | 220 px hoch | `min(88px, 62%)`, Strich 1,1 |
+| Startreiter (`.hm-sym`) | bis ~300 px hoch | `min(132px, 74%)`, Strich 0,8 |
+
+Die großen Werte haben eine **feste Obergrenze mit prozentualem Auffang**. Fest, weil die
+Flächen unterschiedlich hoch sind und ein reiner Prozentwert zwei verschieden große Symbole
+für dieselbe Sache ergäbe. Der Prozentteil fängt den flachen Fall ab: Die Startreiter-Karte
+schrumpft über flex, auf 390 × 556 war die Fläche nur 119 px hoch — ein starres 132-px-Symbol
+hätte dort nicht hineingepasst. Ein Foto wird an dieser Stelle von `object-fit` beschnitten,
+ein SVG nicht; deshalb trägt `.msym` zusätzlich `overflow: hidden` als Netz.
+
+Und der Strich geht mit der Größe **zurück** — auf dem 24er-Raster wären 1,5 bei 132 px ein
+8-px-Balken und damit fetter als jedes andere Icon der App.
+
+**Der Hinweis „Symbolbild · KI-generiert" entfällt an einer Symbolfläche.** Er gehört zu den
+mitgelieferten Fotos; ein Strichsymbol ist weder das eine noch das andere.

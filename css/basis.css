@@ -561,7 +561,7 @@
   .week-nut .hm-cover { flex: 1 1 84px; min-height: 72px; }
   /* absolut statt height:100%: Der Deckel bekommt seine Hoehe jetzt vom Flex-Layout,
      das Bild darf sie nicht mehr selbst mitbestimmen - sonst zieht es die Karte auf. */
-  .week-nut .hm-cover img { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .week-nut .hm-cover img, .week-nut .hm-cover .hm-sym { position: absolute; inset: 0; width: 100%; height: 100%; }
 
   /* "Alles waechst mit": Ring, Zahl und Innenabstaende haengen an der Fensterhoehe.
      dvh und nicht vh, damit auf dem Handy dieselbe Hoehe gilt, gegen die auch .app
@@ -608,6 +608,13 @@
      unterhalb der Bildmitte, bei 118 px Hoehe zeigte "center" vor allem Tischplatte. */
   .hm-cover img { display: block; width: 100%; height: 118px; object-fit: cover;
     object-position: center 42%; transition: opacity var(--dur-fast) ease; }
+  /* Symbolflaeche statt Foto (Schnelleintrag, gescanntes Produkt): gleiche Hoehe wie das
+     Bild daneben, damit der Deckel beim Wechsel der Mahlzeit nicht springt. */
+  .hm-cover .hm-sym { width: 100%; height: 118px; transition: opacity var(--dur-fast) ease; }
+  /* Der Deckel ist die groesste Flaeche des Reiters und wird im Kartenlayout bis ueber
+     290 px hoch. Ein 88-px-Symbol stand darin verloren - hier traegt es die Flaeche wie
+     sonst das Foto, mit entsprechend duennerem Strich. */
+  .hm-cover .hm-sym svg { width: auto; height: min(132px, 74%); stroke-width: .8; }
   /* Hover NUR mit Zeigegeraet - auf Touch bleibt der Zustand nach dem Tippen haengen
      (dieselbe Falle wie bei .rcard, siehe css/komponenten.css). */
   @media (hover: hover) and (pointer: fine) {
@@ -615,7 +622,7 @@
   }
   /* Der Deckel ist die groesste antippbare Flaeche des Reiters. Nicht stauchen wie einen
      Knopf - ein Foto zu skalieren wirkt wackelig -, sondern kurz abdunkeln. */
-  .hm-cover:active img { opacity: .86; }
+  .hm-cover:active img, .hm-cover:active .hm-sym { opacity: .86; }
 
   /* Die Abdunklung ist bewusst NICHT tokenisiert und in beiden Themes gleich: Sie stellt
      den Kontrast zum BILD her, nicht zum Hintergrund der Seite. Ein helles Token im
@@ -1307,7 +1314,9 @@
     border-radius: var(--radius-sm); padding: 8px 8px 8px 10px; cursor: grab;
   }
   .slot .filled:active { cursor: grabbing; }
-  .slot .filled img.r-thumb { width: 28px; height: 28px; border-radius: 6px; object-fit: cover; flex: none; margin-top: 1px; }
+  /* Ohne img-Praefix: Hier steht entweder das Foto oder die Symbolflaeche (span.msym).
+     object-fit wirkt nur auf das Bild, am span ist es wirkungslos. */
+  .slot .filled .r-thumb { width: 28px; height: 28px; border-radius: 6px; object-fit: cover; flex: none; margin-top: 1px; }
   .r-thumb-wrap { position: relative; flex: none; display: flex; }
   /* Die Badges liegen als Reihe unten rechts auf der Miniatur, das erste ganz rechts
      (row-reverse), die weiteren ueberlappen es nach links. Als Reihe statt je Position

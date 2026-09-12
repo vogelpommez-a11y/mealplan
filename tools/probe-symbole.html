@@ -1,0 +1,39 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Probe: Lebensmittel-Symbole</title>
+<!-- Sichtprobe fuer die Symbole der Schnellauswahl (FOOD_ICON in data/ikonen.js).
+     Zeigt jedes Symbol in der Groesse, in der es im Wochenplan steht (28 px), daneben
+     gross. Wer einen Pfad aendert, sieht hier sofort, ob er bei 28 px noch etwas darstellt.
+     Aufruf: http://localhost:8000/tools/probe-symbole.html -->
+<style>
+  body { margin: 0; padding: 18px; font: 13px/1.4 system-ui, sans-serif; background: #0C0A0B; color: #F4EFEE; }
+  body.hell { background: #F6F4F4; color: #1A1416; }
+  h1 { font-size: 15px; margin: 0 0 12px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(148px, 1fr)); gap: 10px; }
+  .z { display: flex; align-items: center; gap: 9px; padding: 7px 9px; border-radius: 8px; background: #1C1718; }
+  body.hell .z { background: #F0ECEC; }
+  .sym { display: grid; place-items: center; background: #1C1718; color: #A69B9D; box-shadow: inset 0 0 0 1px #2A2223; }
+  body.hell .sym { background: #F0ECEC; color: #6B5F62; box-shadow: inset 0 0 0 1px #E7E0E1; }
+  .k { width: 28px; height: 28px; border-radius: 6px; }
+  .k svg { width: 62%; height: 62%; }
+  .g { width: 56px; height: 56px; border-radius: 10px; }
+  .g svg { width: 40px; height: 40px; }
+  .n { font-size: 11.5px; }
+  .fehlt { color: #E5484D; }
+</style>
+<h1>Lebensmittel-Symbole – links 28 px wie im Plan, rechts gross</h1>
+<div class="grid" id="g"></div>
+<script src="../data/ikonen.js"></script>
+<script>
+  var svg = function (key) {
+    var d = ICONS[key];
+    if (!d) return '<span class="fehlt">?</span>';
+    return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">' + d + '</svg>';
+  };
+  var namen = Object.keys(FOOD_ICON).concat(["(gescannt)"]);
+  document.getElementById("g").innerHTML = namen.map(function (n) {
+    var key = n === "(gescannt)" ? "package" : FOOD_ICON[n];
+    return '<div class="z"><span class="sym k">' + svg(key) + '</span><span class="sym g">' + svg(key) + '</span><span class="n">' + n + '<br><small>' + key + '</small></span></div>';
+  }).join("");
+  document.addEventListener("click", function () { document.body.classList.toggle("hell"); });
+</script>

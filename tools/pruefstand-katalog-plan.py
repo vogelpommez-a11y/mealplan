@@ -338,10 +338,14 @@ function alleEintraege(plan) {
       JSON.stringify(state.recipes.map(function (r) { return r.id; }).sort()), standVorher);
   })();
 
-  // ---- Die Handauswahl sieht dieselbe Menge wie der Planer ----
-  // Ohne das duerfte der Auto-Planer aus dem Rezeptbuch waehlen und der Mensch nicht - eine
-  // Asymmetrie, die nach der Migration richtig weh taete: Der Bestand schrumpft dann auf das
-  // Selbstangelegte, waehrend 34 Katalog-Rezepte danebenliegen.
+  // ---- Die Handauswahl bietet NUR eigene Meals an ----
+  // NACHTRAG 12.09.2026: Bis hierher stand hier die Zusage "dieselbe Menge wie der Planer" -
+  // eigener Bestand PLUS Rezeptbuch. Sie ist bewusst zurueckgenommen worden, weil im
+  // Fruehstuecks-Slot vier eigene Meals gegen zehn Katalog-Rezepte standen. Der Auto-Planer
+  // schoepft weiter aus dem Katalog; die Asymmetrie ist der Preis und in docs/PRODUCT.md
+  // begruendet. Was BLEIBT, ist der Kern des Katalog-Umbaus: Eine Katalog-id ist ein
+  // gueltiger Plan-Verweis (der Planer setzt sie weiterhin), und eine Uebernahme steht genau
+  // einmal in der Auswahl.
   (function () {
     frisch();
     var eigenes = meal("mein-1", "Hauptgericht", 500, 40, [], false);
@@ -350,10 +354,10 @@ function alleEintraege(plan) {
     var quellen = pickerQuellen();
     pruef("die Handauswahl bietet das eigene Meal an",
       quellen.some(function (r) { return r.id === "mein-1"; }), true);
-    pruef("und zusaetzlich das gesamte sichtbare Rezeptbuch",
-      quellen.filter(function (r) { return r.__cb; }).length, cookbookVisible().length);
-    pruef("der Katalog-Kandidat traegt eine Katalog-id, ist also direkt einplanbar",
-      !!getRecipe(quellen.filter(function (r) { return r.__cb; })[0].id), true);
+    pruef("und KEIN Katalog-Rezept mehr",
+      quellen.filter(function (r) { return r.__cb; }).length, 0);
+    pruef("eine Katalog-id bleibt trotzdem ein gueltiger Plan-Verweis",
+      !!getRecipe(cookbookVisible()[0].id), true);
 
     // Uebernommen heisst: kommt ueber den eigenen Bestand, nicht doppelt.
     var vorlage = COOKBOOK[0];
@@ -364,7 +368,8 @@ function alleEintraege(plan) {
     pruef("und zwar als eigene Kopie, nicht als Katalogeintrag",
       nachher.filter(function (r) { return r.name === vorlage.name; })[0].__cb, undefined);
 
-    // Der Katalog selbst darf dabei nie eine Marke abbekommen.
+    // Der Katalog selbst darf nie eine Marke abbekommen - __cb sitzt seit dem Umbau nur noch
+    // an der flachen Kopie des Auto-Planers (planKandidaten).
     pruef("COOKBOOK bleibt unberuehrt - __cb sitzt nur an der flachen Kopie",
       COOKBOOK.some(function (r) { return r.__cb; }), false);
   })();

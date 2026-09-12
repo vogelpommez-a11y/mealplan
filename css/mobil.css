@@ -533,7 +533,7 @@
 
     /* Die Karte selbst. Der Bilddeckel schrumpft am staerksten - er ist Schmuck mit
        Aussage, die Zahlen darunter sind die Aussage selbst. */
-    .hm-cover img { height: 92px; }
+    .hm-cover img, .hm-cover .hm-sym { height: 92px; }
     .hm-veil { padding: 26px 12px 8px; }
     /* Der Name bleibt einzeilig: Zwei Zeilen ueber einem 92-px-Deckel schoben die
        Eyebrow-Zeile aus dem Bild heraus. */

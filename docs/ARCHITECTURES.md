@@ -1763,9 +1763,11 @@ daran sind bewusst so:
 Ein von Hand abgewählter Chip überlebt innerhalb der Sitzung jeden weiteren Aufbau; erst ein
 Profilwechsel belegt neu vor.
 
-**`cookbookVisible()` bleibt unverändert** und behält seine drei Aufrufer, bei denen das Profil
-eine **harte** Grenze ist: `addStarterMeals()` (`docs/TROUBLESHOOTING.md` 91), `pickerQuellen()`
-und der Auto-Planer. Durchlässig wird nur die Ansicht, nie die Automatik.
+**`cookbookVisible()` bleibt unverändert.** Aufrufer, bei denen das Profil eine **harte**
+Grenze ist: `addStarterMeals()` (`docs/TROUBLESHOOTING.md` 91) und der Auto-Planer.
+Durchlässig wird nur die Ansicht, nie die Automatik. (`pickerQuellen()` war bis zum
+12.09.2026 der dritte — die Handauswahl schöpft seither nur noch aus dem eigenen Bestand,
+siehe `docs/PRODUCT.md`.)
 
 **Klappbare Kategorien: nur die Textsuche schaltet sie ab.** `filtering` in `paintCookbook()`
 und `paintRecipeGroups()` hängt seither allein an der Suche (`!!q`), nicht mehr an aktiven Chips.

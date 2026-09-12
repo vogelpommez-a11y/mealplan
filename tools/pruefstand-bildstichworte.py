@@ -71,6 +71,12 @@ teile = [
     # AI Act, keine Verzierung - und er darf bei eigenen Fotos des Nutzers NICHT
     # erscheinen, sonst behauptet die App etwas Falsches ueber dessen Bild.
     schnitt(seite, "  function istEigenesFoto("),
+    # mealIcon() gehoert seit dem 12.09.2026 zur Bedingung des Hinweises: An einer
+    # Symbolflaeche (Schnelleintrag, gescanntes Produkt) waere "Symbolbild - KI-generiert"
+    # schlicht unwahr. Ausgeschnitten, nicht gestubbt - sie entscheidet mit.
+    block(seite, "  const FOOD_ICON = {", "  };"),
+    schnitt(seite, "  function foodIcon("),
+    schnitt(seite, "  function mealIcon("),
     schnitt(seite, "  function bildHinweisHtml("),
     schnitt(seite, "  function bildAlt("),
     schnitt(seite, "  function syncBildHinweis("),
@@ -317,6 +323,13 @@ function fuer(name, kategorie) {
     bildAlt({ name: "Mein Abendessen", image: EIGENES }), "Mein Abendessen");
   pruef("ohne Namen bleibt der Alt-Text trotzdem aussagekraeftig",
     bildAlt({}), "Symbolbild, KI-generiert");
+  // Ein Schnelleintrag zeigt gar kein Bild, sondern ein Strichsymbol - weder Symbolbild
+  // noch KI-generiert. Steht der Hinweis dort, behauptet die App etwas Falsches ueber
+  // eine Zeichnung (12.09.2026).
+  pruef("am Symbol eines Schnelleintrags steht kein KI-Hinweis",
+    bildHinweisHtml({ name: "Banane", quick: true, qf: "banane" }).indexOf("hidden") >= 0, true);
+  pruef("und der Alt-Text nennt ihn auch nicht",
+    bildAlt({ name: "Banane", quick: true, qf: "banane" }), "Banane");
   // Ein Bild, das safeImage verwirft, ist kein gueltiges eigenes Foto - dann zeigt die
   // Ansicht wieder eines von uns, und der Hinweis muss zurueckkommen.
   pruef("ein verworfenes eigenes Bild bekommt den Hinweis zurueck",

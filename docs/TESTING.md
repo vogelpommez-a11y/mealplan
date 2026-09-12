@@ -82,6 +82,9 @@ Die Verfahren gibt es auch als Skill: `/smoke`, `/pruefstand`, `/abnahme`, `/dep
 | · | Zwei Prüfstände für eine Geste: was headless nicht kann (11.09.2026) |
 | · | `tools/pruefstand-stueckliste.py` — die Lücke sichtbar machen (11.09.2026) |
 | · | `tools/pruefstand-scan-packung.py` — eine umgedrehte Regel festhalten (11.09.2026) |
+| · | `tools/pruefstand-meal-symbol.py` — Symbol statt geratenem Foto (12.09.2026) |
+| · | `tools/pruefstand-picker-quellen.py` — die Auswahl eines Slots (12.09.2026) |
+| · | `tools/probe-symbole.html` — 36 Symbole bei 28 px ansehen (12.09.2026) |
 
 <!-- REGISTER-ENDE -->
 
@@ -2121,10 +2124,12 @@ Merge):
    Versehen: Es bleibt bei zwei Portionen wie zuvor, der Nutzer entfernt eine von Hand. Geprüft
    wird nur, dass die Migration hier **keinen Eintrag verliert** und keiner ins Leere zeigt.
    Genau dieses Muster steckt in den echten Daten und fehlte in der ersten Fassung.
-8. **Die Handauswahl sieht dieselbe Menge wie der Planer** (`pickerQuellen()`): eigener Bestand
-   plus sichtbares Rezeptbuch, ein übernommenes Rezept genau einmal (als eigene Kopie, nicht als
-   Katalogeintrag) — und `COOKBOOK` trägt hinterher **kein** `__cb`, die Marke sitzt nur an der
-   flachen Kopie.
+8. **Die Handauswahl zeigt nur eigene Meals** (`pickerQuellen()`): kein Katalog-Rezept mehr,
+   ein übernommenes genau einmal (als eigene Kopie, nicht als Katalogeintrag) — und `COOKBOOK`
+   trägt hinterher **kein** `__cb`, die Marke sitzt nur an der flachen Kopie des Auto-Planers.
+   Bis zum 12.09.2026 stand hier die umgekehrte Zusage („dieselbe Menge wie der Planer"); sie
+   ist als Produktentscheidung zurückgenommen worden (`docs/PRODUCT.md`), und der Prüfstand
+   trägt den Nachtrag an Ort und Stelle.
 
 Zu 8 gehört eine Lehre über Prüfbarkeit: `pickerQuellen()` stand zuerst *innerhalb* von
 `openPicker()` und war damit für den Ausschneide-Prüfstand unerreichbar — der Extraktor schneidet
@@ -2731,9 +2736,12 @@ die Messgröße für TROUBLESHOOTING 34/44, und sie ist billiger als jede DOM-Be
 ## Ein Zweig, der nur bei leerem Bestand läuft: die Ganzdatei-Kopie (25.08.2026)
 
 Der Schnell-Bereich im Picker klappt in einem Fall zwingend auf: wenn es **kein einziges Meal**
-gibt (`libEmpty`) — zugeklappt wäre der Slot dann eine Sackgasse. Dieser Zweig ist am echten
-Konto nicht erreichbar: `pickerQuellen()` liefert eigene Meals **plus** die nicht übernommenen
-Katalogrezepte, und der Katalog ist nie leer.
+gibt (`libEmpty`) — zugeklappt wäre der Slot dann eine Sackgasse. Dieser Zweig war am echten
+Konto lange nicht erreichbar: `pickerQuellen()` lieferte eigene Meals **plus** die nicht
+übernommenen Katalogrezepte, und der Katalog ist nie leer. (Seit dem 12.09.2026 liefert die
+Funktion nur noch den eigenen Bestand — der Zweig ist damit wieder echt erreichbar. Das
+Verfahren unten bleibt trotzdem lesenswert: Es ist der billigere Weg für jeden Zweig, der an
+`paint()` und dem Modal hängt.)
 
 Ausschneiden ließ sich `paint()` schlecht — es hängt an elf Helfern, an `state` und am Modal.
 Der billigere Weg war die **Umkehrung des Prinzips**: nicht den Code aus der Datei schneiden,
@@ -4417,3 +4425,77 @@ unbemerkt hätte wegfallen können.**
 `block()` schneidet bis zur schließenden Klammer **auf der Einrückung der Startzeile**, nicht bis
 zur nächsten Zeile, die `  }` enthält. In `quickAddByBarcode()` wäre das `    }, syncGid ? ...` —
 mitten in der Funktion, und der Schnitt wäre syntaktisch kaputt.
+---
+
+## `tools/pruefstand-meal-symbol.py` — Symbol statt geratenem Foto (12.09.2026)
+
+Ein Schnelleintrag ist kein Gericht. `photoFor()` sucht trotzdem ein Stichwortbild, und das ging
+sichtbar daneben: die eingeplante Banane trug die Obstschale, das Ei ein Salatfoto. Seit dem
+12.09.2026 entscheidet `mealIcon()`, ob eine Ansicht ein Symbol oder ein Foto zeigt.
+
+Ausgeschnitten wird echter Code aus `index.html` (`mealIcon`, `thumbHtml`, `msPhotoInnerHtml`,
+`bildHinweisHtml`, `bildAlt`, `istEigenesFoto`, `foodIcon`, `iconSvg`) plus `ICONS` und
+`FOOD_ICON` aus `data/ikonen.js`. Gestubbt sind nur Randstücke: `photoFor()` (hängt über
+`LIB_IMG` am ganzen Rezeptbuch), `safeImage()` und `esc()`.
+
+25 Messgrößen, darunter drei, die leicht wegfallen:
+
+* **Das eigene Foto gewinnt auch am Schnelleintrag** — dieselbe erste Regel wie in `photoFor()`.
+* **Ein Eintrag ohne Zuordnung fällt auf `fruit` zurück**, statt ohne Symbol dazustehen.
+* **„Symbolbild · KI-generiert" verschwindet am Symbol** — auch im Alt-Text. Ein Strichsymbol
+  ist weder das eine noch das andere, und bei Bildern ist das eine Kennzeichnungsfrage.
+
+Dazu eine Quelltext-Prüfung: `thumbHtml()`, `nextMealHtml()` und `msPhotoInnerHtml()` müssen die
+Weiche auch **aufrufen**. Sie deckt die Ansichten ab, die sich nicht ausschneiden lassen — der
+Startreiter und das Meal-Blatt hängen an `state` und am Modal. Ohne sie könnte eine davon still
+auf `photoFor()` zurückfallen, während alle Messungen oben grün bleiben.
+
+### Die Gegenprobe
+
+```powershell
+python tools/pruefstand-meal-symbol.py "$env:TEMP/alt/index.html"
+```
+
+Gegen den Stand vor der Änderung meldet er `FEHLT im Quelltext: function mealIcon()` und bricht
+ab. Das ist die richtige Antwort und keine Schwäche: Wo die Weiche fehlt, gibt es nichts zu
+messen — und ein Prüfstand, der eine fehlende Funktion still überginge, wäre ab da blind.
+
+## `tools/pruefstand-picker-quellen.py` — die Auswahl eines Slots (12.09.2026)
+
+Was die Meal-Auswahl anbietet, ist eine **Produktentscheidung**, keine Implementierungsfrage —
+und sie ist schon einmal umgedreht worden (17.08.2026 hinein, 12.09.2026 wieder heraus). Genau
+deshalb steht sie jetzt in einem Prüfstand: Beim nächsten Umbau soll auffallen, dass hier
+entschieden wurde und nicht nur programmiert.
+
+Gemessen wird an `pickerQuellen()` und `libraryRecipes()`, gestubbt ist der Katalog: zwei
+Marker-Rezepte. Taucht eines davon in der Auswahl auf, ist das Rezeptbuch wieder drin. Dazu eine
+Quelltext-Prüfung, dass `openPicker()` den Abschnitt „Aus dem Rezeptbuch" nicht mehr baut — sonst
+könnte er an anderer Stelle zurückkommen, während die Messung grün bleibt.
+
+Der Schnelleintrag bleibt bewusst ebenfalls draußen: Er ist für **einen** Tag gedacht, und die
+Liste würde mit jedem gescannten Riegel wachsen.
+
+### Die Gegenprobe
+
+```powershell
+python tools/pruefstand-picker-quellen.py "$env:TEMP/alt/index.html"
+```
+
+Gegen den alten Stand werden 8 von 9 Prüfungen rot — beide Katalog-Marker stehen in der Auswahl,
+die Liste ist ohne eigene Meals nicht leer, und beide Quelltext-Prüfungen schlagen an.
+
+## `tools/probe-symbole.html` — 36 Symbole bei 28 px ansehen (12.09.2026)
+
+Keine Messung, eine **Sichtprobe**: Sie zeigt jedes Symbol aus `FOOD_ICON` zweimal — links in
+der Größe, in der es im Wochenplan steht (28 px Fläche, 62 % Symbol), rechts groß. Ein Klick
+schaltet zwischen hell und dunkel.
+
+Sie ist gebaut worden, weil die erste Fassung der Symbole am großen Bild überzeugte und bei
+28 px nichts mehr hergab: Die Karotte las sich als Messer, das Radieschen als Schleife, die
+Brezel als Hasenkopf. Vier Runden hat es gebraucht, jede über diese Seite entschieden. **Wer
+einen Pfad ändert, prüft ihn hier — nicht bei 64 px.**
+
+```powershell
+powershell -NoProfile -File test-server.ps1
+# dann http://localhost:8000/tools/probe-symbole.html
+```
