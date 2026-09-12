@@ -534,6 +534,9 @@
     /* Die Karte selbst. Der Bilddeckel schrumpft am staerksten - er ist Schmuck mit
        Aussage, die Zahlen darunter sind die Aussage selbst. */
     .hm-cover img, .hm-cover .hm-sym { height: 92px; }
+    /* Der Textblock im Deckel ist mobil flacher als am Rechner (68 statt 88 px) - siehe
+       die Begruendung an .hm-cover .hm-sym in css/basis.css. */
+    .hm-cover .hm-sym { padding-bottom: 68px; }
     .hm-veil { padding: 26px 12px 8px; }
     /* Der Name bleibt einzeilig: Zwei Zeilen ueber einem 92-px-Deckel schoben die
        Eyebrow-Zeile aus dem Bild heraus. */

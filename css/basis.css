@@ -609,12 +609,22 @@
   .hm-cover img { display: block; width: 100%; height: 118px; object-fit: cover;
     object-position: center 42%; transition: opacity var(--dur-fast) ease; }
   /* Symbolflaeche statt Foto (Schnelleintrag, gescanntes Produkt): gleiche Hoehe wie das
-     Bild daneben, damit der Deckel beim Wechsel der Mahlzeit nicht springt. */
-  .hm-cover .hm-sym { width: 100%; height: 118px; transition: opacity var(--dur-fast) ease; }
+     Bild daneben, damit der Deckel beim Wechsel der Mahlzeit nicht springt.
+     Das padding-bottom ist die Hoehe des TEXTBLOCKS im Schleier - nicht die des ganzen
+     Verlaufs (am Geraet gemessen: Verlauf ab 37 px, Text erst ab 63 px; oben ist der
+     Verlauf durchsichtig, dort darf das Symbol stehen). Es macht den Platz UEBER dem Text
+     zur Bezugsgroesse:
+     place-items zentriert das Symbol darin, und `height` in Prozent rechnet gegen dieselbe
+     Content-Hoehe. Ohne das lag die Banane auf einem 375x667-Geraet HINTER "Als Naechstes"
+     und dem Namen - bei 131 px Deckel bleiben ueber dem Schleier nur 37 px. Ein Foto
+     vertraegt die Ueberlagerung (sie ist dort Absicht), ein Strichsymbol nicht. */
+  .hm-cover .hm-sym { width: 100%; height: 118px; padding-bottom: 88px;
+    transition: opacity var(--dur-fast) ease; }
   /* Der Deckel ist die groesste Flaeche des Reiters und wird im Kartenlayout bis ueber
      290 px hoch. Ein 88-px-Symbol stand darin verloren - hier traegt es die Flaeche wie
-     sonst das Foto, mit entsprechend duennerem Strich. */
-  .hm-cover .hm-sym svg { width: auto; height: min(132px, 74%); stroke-width: .8; }
+     sonst das Foto, mit entsprechend duennerem Strich. Die Prozentgrenze greift, sobald
+     der Deckel schrumpft. */
+  .hm-cover .hm-sym svg { width: auto; height: max(24px, min(132px, 74%)); stroke-width: .8; }
   /* Hover NUR mit Zeigegeraet - auf Touch bleibt der Zustand nach dem Tippen haengen
      (dieselbe Falle wie bei .rcard, siehe css/komponenten.css). */
   @media (hover: hover) and (pointer: fine) {

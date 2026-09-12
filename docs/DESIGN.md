@@ -953,7 +953,7 @@ Drei Größen, alle gegengeprüft:
 |---|---|---|
 | Plan, Picker, Vorkochliste | 28 px bzw. 38 × 28 px | 62 % der Fläche |
 | Meal-Blatt (`.msym-big`) | 220 px hoch | `min(88px, 62%)`, Strich 1,1 |
-| Startreiter (`.hm-sym`) | bis ~300 px hoch | `min(132px, 74%)`, Strich 0,8 |
+| Startreiter (`.hm-sym`) | 72 bis ~380 px hoch | `max(24px, min(132px, 74%))`, Strich 0,8 |
 
 Die großen Werte haben eine **feste Obergrenze mit prozentualem Auffang**. Fest, weil die
 Flächen unterschiedlich hoch sind und ein reiner Prozentwert zwei verschieden große Symbole
@@ -964,6 +964,23 @@ ein SVG nicht; deshalb trägt `.msym` zusätzlich `overflow: hidden` als Netz.
 
 Und der Strich geht mit der Größe **zurück** — auf dem 24er-Raster wären 1,5 bei 132 px ein
 8-px-Balken und damit fetter als jedes andere Icon der App.
+
+### Der Deckel rechnet gegen den Platz über dem Text
+
+Am Startreiter liegt der Name der Mahlzeit **auf** der Fläche. Ein Foto verträgt das, die
+Überlagerung ist dort Absicht. Ein Strichsymbol nicht: Auf einem 375 × 667-Gerät ist der
+Deckel nur 131 px hoch, und die Banane lag hinter „Als Nächstes" und ihrem eigenen Namen.
+
+Deshalb trägt `.hm-sym` ein `padding-bottom` in Höhe des **Textblocks** — nicht des ganzen
+Verlaufs: Der Schleier beginnt bei 37 px, der Text erst bei 63 px, und im durchsichtigen
+Teil darf das Symbol stehen. 88 px am Rechner, 68 px mobil, beide am Gerät gemessen. Damit
+ist der freie Platz die Bezugsgröße: `place-items` zentriert das Symbol darin, und der
+Prozentwert rechnet gegen dieselbe Content-Höhe. `box-sizing: border-box` an `.msym` gehört
+dazu, sonst käme das Padding oben drauf, statt Platz abzugrenzen.
+
+Die Untergrenze von 24 px ist für den gestauchten Fall: Bei 72 px Deckelhöhe bliebe sonst
+ein 3-px-Krümel. Dort überlappt das Symbol den Text um wenige Pixel — bewusst, denn auf
+einer so flachen Karte ist jede andere Lösung schlechter.
 
 **Der Hinweis „Symbolbild · KI-generiert" entfällt an einer Symbolfläche.** Er gehört zu den
 mitgelieferten Fotos; ein Strichsymbol ist weder das eine noch das andere.

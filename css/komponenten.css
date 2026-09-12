@@ -643,7 +643,11 @@
      Symbolzeile gegen die Fotozeile daneben verschieben. */
   /* overflow als Sicherheitsnetz: Ein Foto wird von object-fit beschnitten, ein SVG nicht -
      ohne das raegte ein Symbol aus einer geschrumpften Flaeche heraus. */
-  .msym { display: grid; place-items: center; overflow: hidden;
+  /* box-sizing: Der Startreiter-Deckel setzt der Flaeche height:100%, und sie traegt dort
+     ein padding-bottom in Hoehe des Textschleiers. Ohne border-box kaeme das Padding oben
+     drauf, statt den Platz UEBER dem Text abzugrenzen - die Flaeche waere hoeher als der
+     Deckel und das Symbol saesse wieder hinter dem Text. */
+  .msym { display: grid; place-items: center; overflow: hidden; box-sizing: border-box;
     background: var(--surface-2); color: var(--text-muted);
     box-shadow: inset 0 0 0 1px var(--border); }
   .msym svg { width: 62%; height: 62%; }
