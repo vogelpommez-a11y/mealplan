@@ -1391,7 +1391,49 @@
      Fehler. Der Platzhalter ist genau so breit wie ein Avatar samt gap. */
   .menu .assign-chip .avatar-spacer { width: 22px; height: 22px; flex: 0 0 22px; }
   .menu .assign-sep { height: 1px; background: var(--border); margin: 4px 0; }
+  /* ---------- Meals im Plan sortieren ----------
+     Dieselbe Geste wie bei den Zutaten (siehe .ing-grip in komponenten.css), deshalb
+     dieselbe Bildsprache: der Anfasser kostet im Ruhezustand keinen Platz, die
+     aufgenommene Karte hebt sich ab, die Nachbarn weichen aus.
+
+     .nodrop gibt es seit dem 12.09.2026 nicht mehr: beim Ziehen ist jedes Fach erlaubt.
+     Die Kategorie entscheidet weiter darueber, was der Picker vorschlaegt - aber wer eine
+     Karte mit dem Finger irgendwohin zieht, hat sich entschieden. */
   .slot.dragover { background: color-mix(in srgb, var(--accent) 12%, transparent); outline: 2px dashed var(--accent); outline-offset: -2px; }
-  .slot.nodrop { opacity: .4; cursor: not-allowed; }
-  .filled.dragging { opacity: .4; }
+  .pm-grip {
+    position: absolute; left: -2px; top: 50%; margin-top: -15px; z-index: 2;
+    width: 14px; height: 30px; display: grid; place-items: center;
+    border: 0; padding: 0; background: none; color: var(--text-muted);
+    opacity: 0; pointer-events: none; cursor: grab; touch-action: none;
+    transition: opacity var(--dur-fast) var(--ease-out);
+  }
+  .pm-grip svg { width: 12px; height: 12px; }
+  /* Die Trefferflaeche waechst NUR senkrecht. Waagerecht ragte sie sonst aus der Karte
+     heraus, und am linken Rand der Tageskarte ist genau dort der Platz, den die
+     Wischgeste zum Nachbartag braucht (docs/TROUBLESHOOTING.md 58 und 61). Auf dem Handy
+     ist der Anfasser ohnehin nie erreichbar - dort nimmt das Halten die Karte auf. */
+  .pm-grip::after { content: ""; position: absolute; inset: -7px 0; }
+  @media (hover: hover) {
+    /* Nur auf Zeigegeraeten: nur dort gibt es ein Ueberfahren, das den Anfasser zeigen
+       koennte, und nur dort ist Platz fuer den Einzug. */
+    .slot .filled { padding-left: 20px; }
+    /* Volle Deckkraft, nicht .8 wie beim Zutaten-Anfasser: Die Meal-Karte hat eine leicht
+       eingefaerbte Flaeche (--slot-c auf --surface), und darauf kam --text-muted bei .8 im
+       Light-Theme nur auf 2,53:1 - unter den 3:1, die WCAG 1.4.11 fuer grafische Objekte
+       verlangt. Bei voller Deckkraft sind es 3,42:1 (Light) und 7,79:1 (Dark). Gemessen am
+       12.09.2026, nicht geschaetzt; wer --text-muted oder die Kartenfarbe aendert, misst neu. */
+    .slot .filled:hover .pm-grip, .pm-grip:focus-visible { opacity: 1; }
+  }
+  /* Waehrend der Geste darf nichts markiert werden - sonst zieht iOS beim Halten die Lupe
+     auf, statt die Karte aufzunehmen. */
+  .plan-sorting { user-select: none; -webkit-user-select: none; }
+  .slot .filled { -webkit-touch-callout: none; }
+  .filled.dragging { position: relative; z-index: 6; cursor: grabbing; box-shadow: var(--shadow); }
+  .filled.dragging .pm-grip { cursor: grabbing; opacity: 1; }
+  /* .shift traegt nur die Ausweichbewegung der NICHT gezogenen Karten. Die gezogene folgt
+     dem Finger 1:1 und darf keine Transition haben. */
+  .filled.shift { transition: transform var(--dur-fast) var(--ease-out); }
+  @media (prefers-reduced-motion: reduce) {
+    .pm-grip, .filled.shift { transition: none; }
+  }
 

@@ -889,6 +889,37 @@ Trennlinie: Eine schwebende Karte hat keinen Nachbarn, von dem sie trennt. Sie f
 (`.ing-row.shift`). `prefers-reduced-motion` schaltet beide ab; das Zurückfedern beim Loslassen
 läuft über `MOTION`.
 
+### Derselbe Anfasser im Wochenplan (seit 12.09.2026)
+
+Die Meal-Karten im Plan tragen dasselbe Bild: `.pm-grip`, dieselben sechs Punkte aus
+`ICON_GRIP`, derselbe Ruhezustand. Eine Geste, ein Zeichen — wer es im Meal-Blatt gelernt
+hat, erkennt es im Plan wieder.
+
+Zwei Unterschiede, beide aus der Karte heraus begründet:
+
+* **Der Anfasser sitzt senkrecht mittig**, nicht oben: Die Meal-Karte ist zweizeilig und
+  hat kein Feld, an dem sich eine obere Kante ausrichten ließe.
+* **Er ist schmaler (14 px statt 20)** und seine Tastfläche wächst **ausschließlich
+  senkrecht** (`inset: -7px 0`). Waagerecht ragte sie sonst aus der Karte heraus, und am
+  linken Rand der Tageskarte liegt genau der Platz, den die Wischgeste zum Nachbartag
+  braucht. Sechs unsichtbare Pixel haben diese Geste am 08.08.2026 schon einmal
+  ausgeschaltet (`docs/TROUBLESHOOTING.md` 58 und 61). Der Prüfstand misst den Überlauf
+  deshalb, statt ihn zu vermuten.
+
+**Auch hier ist der Kontrast gemessen, nicht geschätzt** (12.09.2026): Auf der leicht
+eingefärbten Kartenfläche (`--slot-c` auf `--surface`) kam `--text-muted` bei der Deckkraft
+`.8` des Zutaten-Anfassers im Light-Theme nur auf **2,53:1** — unter den 3:1, die WCAG
+1.4.11 für grafische Objekte verlangt. Im Plan steht der Anfasser deshalb bei voller
+Deckkraft: **3,42:1** im Light-, **7,79:1** im Dark-Theme. Dieselbe Farbe, andere Fläche,
+anderer Wert — wer `--text-muted` oder die Kartenfarbe ändert, misst neu.
+
+Auf dem Handy erscheint der Anfasser **gar nicht** — auch nicht während des Sortierens,
+anders als bei den Zutaten. Die Karte hat dort seitlich kein Innenmaß, ein Einzug würde die
+Liste beim Aufnehmen sichtbar verschieben. Aufgenommen wird durch Halten.
+
+Ohne Schreibrecht gibt es weder Anfasser noch Fokus: Die Einladung zu einer Geste, die nicht
+erlaubt ist, ist schlechter als keine.
+
 ## Die Schnellauswahl bekommt Symbole (seit 11.09.2026)
 
 Bis dahin trug jeder Eintrag im Schnellbereich des Pickers **dasselbe** Fruchtsymbol — auch das

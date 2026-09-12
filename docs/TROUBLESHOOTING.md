@@ -6162,3 +6162,47 @@ sagt es in seinem Kopf ausdrücklich dazu, statt so zu tun, als decke er es mit 
 Scrollen eine Geste übernimmt. Die Wischschwelle (`WACKEL`, 8 px) ist dort gar nicht die
 wirksame Bremse, sondern der Gürtel für Zeiger, die kein `pointercancel` schicken. Ein Rückbau
 der Schwelle ändert am Gerät nichts — geprüft wird sie deshalb headless.
+
+---
+
+## 165. Die Karte fiel in den Slot, den sie nur überquerte
+
+**Symptom (Geräteabnahme, 12.09.2026):** Im Wochenplan ließ sich ein Meal aufnehmen und
+innerhalb seines Fachs sauber umsortieren. Zog man es aber in ein anderes Fach, landete es
+nicht dort, sondern in dem, das auf dem Weg dazwischen lag — und das Zielfach wurde nie
+markiert. Headless war davon **nichts** zu sehen: dort lief derselbe Fall grün.
+
+**Ursache:** Beim Wechsel des Behälters wird die Karte wirklich umgehängt (`insertBefore`),
+damit die Nachbarn im neuen Fach ausweichen. Das nimmt sie für einen Moment aus dem
+Dokument, und genau dann verliert sie den Zeiger-Griff aus `setPointerCapture()`. Der
+Browser schickt `lostpointercapture` — und das stand in derselben Liste wie `pointerup` und
+`pointercancel`, die das Ende der Geste bedeuten. Die Geste endete also beim **ersten**
+Behälterwechsel, mitten im Zug.
+
+Bei den Zutaten konnte das nie auffallen: dort wird erst beim Loslassen umgehängt, lange
+nachdem der Griff keine Rolle mehr spielt.
+
+**Lösung:** Ein Fenster `dg.umhaengen` um das Umhängen, in dem `lostpointercapture` nicht
+als Ende zählt, und ein erneutes `setPointerCapture()` direkt danach. Gemessen vom Fall
+`kategorie` in `tools/abnahme-plan-sortieren.py`.
+
+> **Die Lehre gilt über diesen Fall hinaus:** Wer ein Element während einer laufenden
+> Zeigergeste im DOM verschiebt, verliert den Griff. Das ist kein Fehler des Browsers,
+> sondern die Spezifikation — und es tritt nur dort auf, wo während der Geste umgehängt
+> wird, also genau dort, wo synthetische Zeiger es nicht zeigen.
+
+### Zweiter Fund derselben Messung: die Randzone der Seite
+
+Der Autoscroll lief im Wochenplan überhaupt nicht an. Die Randzone wurde über
+`scroller.getBoundingClientRect()` bestimmt — beim Meal-Blatt ist das das Sheet und stimmt,
+beim Wochenplan ist der Scroller die **Seite**, und deren Rechteck reicht weit unter den
+Bildschirm hinaus. Der Finger lag damit nie in der unteren Randzone. `dgRahmen()` gibt für
+das Wurzelelement jetzt `{ top: 0, bottom: innerHeight }` zurück.
+
+### Dritter Fund: hängende Chrome-Instanzen sehen aus wie ein kaputter Prüfstand
+
+Beide Geräteabnahmen liefen mitten im Lauf in `WebSocketTimeoutException: Connection timed
+out` — auch die Zutaten-Abnahme, die unverändert war und kurz zuvor zweimal durchlief. Der
+Code war nicht schuld: Aus abgebrochenen Läufen standen elf `chrome.exe` offen und
+blockierten den Debug-Port. `taskkill /F /IM chrome.exe`, und beide Abnahmen waren wieder
+grün. Wer hier zuerst den eigenen Code verdächtigt, sucht lange an der falschen Stelle.

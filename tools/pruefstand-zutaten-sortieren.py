@@ -248,7 +248,12 @@ RUECKBAUTEN = {
                '/* rueckgebaut */'),
     "klick": ('if (!dgKlickSperre) return;\n      dgKlickSperre = false;\n      e.stopPropagation(); e.preventDefault();',
               'return;'),
-    "griff": ('if (e.target.closest(".ing-grip")) dgAufnehmen();\n      else dg.timer = setTimeout(dgAufnehmen, HALTEN_MS);',
+    # Seit dem Herausloesen der Geste (12.09.2026) steht hier opt.griff statt ".ing-grip" -
+    # der Anfasser ist ein Parameter geworden. Der Suchtext musste im selben Arbeitsschritt
+    # mitwandern, sonst faende er seine Stelle nicht mehr. Dass das auffiel, ist kein Glueck:
+    # Die Zaehlung unten bricht ab, wenn ein Rueckbau nicht genau einmal greift. Ohne sie
+    # waere die Gegenprobe still wirkungslos geblieben und der Fall dauerhaft gruen.
+    "griff": ('if (e.target.closest(opt.griff)) dgAufnehmen();\n      else dg.timer = setTimeout(dgAufnehmen, HALTEN_MS);',
               'dg.timer = setTimeout(dgAufnehmen, HALTEN_MS);'),
 }
 

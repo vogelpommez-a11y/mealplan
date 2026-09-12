@@ -954,7 +954,8 @@ Zusätzliche nicht-delegierte Pfade müssen ebenfalls berücksichtigt werden:
 * `photoInput.change`
 * Datei-Drop
 * Strg+V
-* `dragstart`
+* das Sortieren im Plan (`sortierGeste`, `darfGreifen: () => canEdit()`) — bis zum
+  12.09.2026 stand hier `dragstart`; das HTML5-Drag&Drop des Wochenplans gibt es nicht mehr
 
 **Die UI-Sperre ist keine Sicherheitsgrenze.**
 
@@ -2147,6 +2148,34 @@ Mengen werden nicht im Eintrag gezählt: zwei Bananen sind zwei Einträge im Slo
 arbeitet index-basiert (`data-slot-src="tag:slot:index"`), doppelte IDs in einem Slot sind
 deshalb unproblematisch, und die Einkaufsliste fasst sie ohnehin zusammen.
 
+### Meals im Plan sortieren (12.09.2026)
+
+Der Wochenplan benutzt dieselbe Geste wie die Zutaten (`sortierGeste`, siehe oben), mit den
+vier Slots eines Tages als Behälter. Bis dahin lag hier HTML5-Drag&Drop: es konnte nur
+zwischen Kategorien verschieben, hängte das Meal immer ans **Ende** des Ziels und tat auf
+dem Handy gar nichts — dort, wo dieser Reiter am meisten benutzt wird.
+
+Vier Festlegungen, jede mit einem Grund:
+
+* **Die Kategorie-Sperre gilt beim Ziehen nicht mehr.** `catFitsMeal()` entscheidet
+  unverändert, was der Picker vorschlägt und was der Auto-Planer nimmt. Wer dagegen eine
+  Karte mit dem Finger irgendwohin zieht, hat sich entschieden. Folge, bewusst in Kauf
+  genommen: Der Auto-Planer prüft vorhandene Einträge nie auf Slot-Passung und füllt neben
+  einem von Hand dorthin gezogenen Frühstück weiter auf, ohne den Widerspruch zu bemerken.
+* **Kein Tageswechsel per Ziehen.** Auf dem Handy ist der Nachbartag nie im Bild
+  (`flex: 0 0 100%` im Snap-Streifen) — ein Zug dorthin wäre ein Blindflug. Den Tag
+  wechselt weiterhin der Wisch.
+* **Der Zielindex kommt NIE aus der Position im Dokument**, sondern aus dem
+  `data-slot-src` der nächsten sichtbaren Karte darunter; folgt keine, geht es ans Ende des
+  Arrays. Ab dem vierten fremden Gericht blendet der Slot aus (`SLOT_OTHERS_MAX`), und eine
+  versteckte Karte kann zwischen zwei sichtbaren liegen. Wer die Anzeigeposition nimmt,
+  lässt das Meal die versteckten überholen.
+* **Ein Neuzeichnen während der Geste ist verriegelt.** Der Riegel sitzt im Eingang von
+  `render()` neben der Onboarding-Sperre, nicht an den Aufrufstellen: Vier Quellen von
+  außen — Rezept-Listener, Gruppenwoche, Pro-Status, Erstabgleich — wissen nichts von einem
+  gehaltenen Finger, und die nächste käme ungeschützt dazu. Anders als beim Onboarding wird
+  der aufgeschobene Aufbau beim Loslassen **nachgeholt**; von selbst täte es keine der vier.
+
 ### Zutaten-Datenbank `FOODS`
 
 Handgepflegte Rundwerte für generische Lebensmittel, bewusst kein Auszug aus einer fremden
@@ -2807,8 +2836,26 @@ deshalb **kein Datenfeld und keine Indexpflege** — Umhängen im DOM plus `comm
 und für Bestandsdaten gibt es nichts zu migrieren. Drei Wege führen zum selben Ergebnis: auf
 dem Handy 400 ms halten (`HALTEN_MS`), am Rechner der Anfasser `.ing-grip`, mit der Tastatur
 `Alt+Pfeil` auf dem Namen-Knopf (`aria-keyshortcuts`, Ansage über die Live-Region
-`#ms-ing-live`). Bewusst **Pointer Events** statt HTML5-Drag&Drop wie im Wochenplan: Letzteres
-ist auf Touch unbrauchbar.
+`#ms-ing-live`). Bewusst **Pointer Events** statt HTML5-Drag&Drop: Letzteres ist auf Touch
+unbrauchbar — der Wochenplan hat es aus genau diesem Grund am 12.09.2026 ebenfalls verloren.
+
+**Seit dem 12.09.2026 ist die Geste eine gemeinsame Funktion: `sortierGeste(opt)`.** Sie
+stand bis dahin komplett in `openMealSheet()` und war über feste Selektoren, feste Klassen
+und direkte Aufrufe an den Zutaten-Editor genagelt — ein zweiter Verwender hätte sie
+kopieren müssen. Jetzt bekommt sie Container, Selektoren und Rückrufe als Optionen;
+`MOTION` und `reducedMotion()` liest sie direkt aus dem App-Kern, deshalb steht sie dort
+und nicht unter `lib/`. Zwei Verwender: die Zutaten im Meal-Blatt und die Meals im
+Wochenplan (siehe unten).
+
+Drei Punkte, die beim Herauslösen Bestand hatten und es bleiben müssen:
+
+* **`opt.topf` ist der einzige echte Zuwachs.** Ohne ihn kennt die Geste genau eine Liste
+  und verhält sich wie zuvor; mit ihm darf die Zeile den Behälter wechseln.
+* **Die Ansage läuft VOR dem Ablegen.** Im Wochenplan zeichnet das Ablegen den ganzen
+  Reiter neu — die Zeile wäre danach nicht mehr im Dokument und nicht mehr zu befragen.
+* **Beim Behälterwechsel geht der Zeiger-Griff verloren.** Das Umhängen nimmt die Zeile
+  kurz aus dem Dokument, `lostpointercapture` feuert, und ohne das Fenster `dg.umhaengen`
+  endete die Geste beim ersten Wechsel mitten im Zug (`docs/TROUBLESHOOTING.md` 165).
 
 Zwei Dinge, die die Geste am Sheet-Scroller ausrichten — beide gefunden in der Geräteabnahme
 vom 11.09.2026 (`docs/TROUBLESHOOTING.md` 163):

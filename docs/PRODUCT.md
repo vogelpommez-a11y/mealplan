@@ -1267,6 +1267,26 @@ derselben Woche zählt der vollständigere Stand — nicht der zuletzt geschrieb
 
 ## Bewusste Produktentscheidungen: Wochenplan
 
+### Meals sortieren: der Finger entscheidet, nicht die Kategorie (12.09.2026)
+
+Ein Meal lässt sich im Plan mit gedrücktem Finger aufnehmen — innerhalb seines Fachs
+umsortieren oder in ein anderes Fach desselben Tages ziehen. Dieselbe Geste wie bei den
+Zutaten im Meal-Blatt: einmal gelernt, überall gültig.
+
+Drei Entscheidungen dahinter:
+
+* **Beim Ziehen ist jedes Fach erlaubt.** Vorher sperrte die Kategorie manche Ziele: ein
+  Frühstück durfte nicht ins Abendessen. Das ist als *Vorschlag* richtig und bleibt es auch
+  — der Picker und der Auto-Planer fragen weiter danach. Als *Verbot* war es falsch: Wer
+  eine Karte in der Hand hat und sie irgendwohin zieht, hat sich entschieden, und ein Ziel,
+  das sich beim Darüberziehen abblendet, wirkt wie ein Fehler. Bewusst hingenommen: Der
+  Auto-Planer bemerkt einen so entstandenen Widerspruch nicht und füllt daneben weiter auf.
+* **Der Tag bleibt, wie er ist.** Auf dem Handy ist der Nachbartag nie zu sehen; ein Zug
+  dorthin wäre ein Griff ins Ungewisse. Den Tag wechselt der Wisch — eine Geste, eine
+  Bedeutung.
+* **Reihenfolge ist eine echte Aussage.** Wer vier Meals am Abendessen hat, plant damit
+  auch, was zuerst drankommt. Bis dahin hängte jede Verschiebung das Meal ans Ende.
+
 ### Der angezeigte Tag folgt einer Anker-Regel
 
 „Aktuelle Woche" zeigt immer **heute**, „Nächste Woche" immer **Montag** — beim Betreten des

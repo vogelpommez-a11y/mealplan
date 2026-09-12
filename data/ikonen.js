@@ -161,3 +161,7 @@
   // Stand bis zum 03.09.2026 inline in rueckblickHtml() und waere mit dem Rueckblick-Balken
   // verschwunden; seither steht die Serie im Kalenderfuss.
   const ICON_FLAME = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M13.5 2c.4 3-1.6 4.2-2.9 5.6C9.2 9 8 10.4 8 12.6a4 4 0 0 0 8 .2c0-1.3-.5-2.3-1-3 .9.4 1.7 1.2 2.2 2.3.3-.7.5-1.6.5-2.6 0-3.4-2.3-5.4-4.2-7.5z"/></svg>';
+  // Der Anfasser zum Sortieren per Ziehen - sechs Punkte, das gelernte Bild dafuer.
+  // Stand bis zum 12.09.2026 nur im Meal-Blatt. Seit der Wochenplan dieselbe Geste
+  // benutzt, gibt es ihn genau einmal und an beiden Stellen.
+  const ICON_GRIP = '<svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><circle cx="6" cy="3.5" r="1.4"/><circle cx="10" cy="3.5" r="1.4"/><circle cx="6" cy="8" r="1.4"/><circle cx="10" cy="8" r="1.4"/><circle cx="6" cy="12.5" r="1.4"/><circle cx="10" cy="12.5" r="1.4"/></svg>';

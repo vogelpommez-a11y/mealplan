@@ -79,7 +79,7 @@ Die Verfahren gibt es auch als Skill: `/smoke`, `/pruefstand`, `/abnahme`, `/dep
 | · | `tools/probe-fortschritt.html` — die Abnahme in der echten App (30.08.2026) |
 | · | `tools/probe-onboarding.html` — wie weit der Weiter-Knopf springt (30.08.2026) |
 | · | `tools/probe-onboarding-fluss.html` — den Weg messen, nicht das Ziel (30.08.2026) |
-| · | Zwei Prüfstände für eine Geste: was headless nicht kann (11.09.2026) |
+| · | Zwei Gesten, vier Prüfstände: was headless nicht kann (11./12.09.2026) |
 | · | `tools/pruefstand-stueckliste.py` — die Lücke sichtbar machen (11.09.2026) |
 | · | `tools/pruefstand-scan-packung.py` — eine umgedrehte Regel festhalten (11.09.2026) |
 | · | `tools/pruefstand-meal-symbol.py` — Symbol statt geratenem Foto (12.09.2026) |
@@ -4288,15 +4288,25 @@ unsichtbar geblieben: **Die Abwehr sieht in beiden Fassungen identisch aus.**
 `BELEG_MUSTER` da (§131): Ein neuer Prüfstand, der nichts belegt, soll auffallen, statt
 durchzurutschen. Die Schlusszeile heißt jetzt `ERGEBNIS n gruen, 0 rot`.
 
-## Zwei Prüfstände für eine Geste: was headless nicht kann (11.09.2026)
+## Zwei Gesten, vier Prüfstände: was headless nicht kann (11./12.09.2026)
 
-Paket 3 (Zutaten per Ziehen sortieren) hat **zwei** Prüfer, und die Trennung zwischen ihnen ist
-keine Bequemlichkeit, sondern ein Messgrund.
+Paket 3 (Zutaten per Ziehen sortieren) und die Meals im Wochenplan teilen sich seit dem
+12.09.2026 dieselbe Geste (`sortierGeste`) — und haben trotzdem **je zwei eigene** Prüfer.
+Die Trennung zwischen Prüfstand und Geräteabnahme ist keine Bequemlichkeit, sondern ein
+Messgrund.
 
 | Prüfer | Wo | Was er beweist |
 |---|---|---|
 | `tools/pruefstand-zutaten-sortieren.py` | headless Edge, `file://` | die **Reihenfolge**: acht Fälle, 34 Messgrößen, drei Rückbauten |
 | `tools/abnahme-zutaten-sortieren.py` | sichtbarer Chrome über CDP | die **Geste am Gerät**: fünf Fälle, 26 Messgrößen, zwei Rückbauten |
+| `tools/pruefstand-plan-sortieren.py` | headless Edge, `file://` | dasselbe für die Meals im Wochenplan: neun Fälle, 33 Messgrößen, vier Rückbauten |
+| `tools/abnahme-plan-sortieren.py` | sichtbarer Chrome über CDP | Geste, Wischstreifen und Autoscroll im Plan: sechs Fälle, 24 Messgrößen, zwei Rückbauten |
+
+Seit dem 12.09.2026 teilen sich beide Bereiche eine Geste (`sortierGeste`). Das Paar aus
+Prüfstand und Abnahme gibt es trotzdem doppelt, und zwar mit Absicht: Der Wochenplan liegt
+in einem waagerechten Snap-Streifen, und **ob dort noch gewischt werden kann, misst kein
+Prüfstand headless.** Der Fall `gehalten` in der Plan-Abnahme prüft die Gegenrichtung — mit
+aufgenommener Karte darf derselbe Wisch den Tag gerade **nicht** wechseln.
 
 ### Der Grund: `requestAnimationFrame` ruht unter `--headless=new`
 
@@ -4499,3 +4509,24 @@ einen Pfad ändert, prüft ihn hier — nicht bei 64 px.**
 powershell -NoProfile -File test-server.ps1
 # dann http://localhost:8000/tools/probe-symbole.html
 ```
+
+### Was am 12.09.2026 nur die Gegenprobe gezeigt hat
+
+Drei Prüfungen im neuen Plan-Prüfstand waren zuerst **dauerhaft grün, ohne etwas zu
+messen**. Keine davon wäre beim Lesen aufgefallen:
+
+* **Der Klick nach dem Ziehen.** Der Ersatzklick ging an die alte Kartenreferenz. Das
+  Ablegen zeichnet den Plan-Reiter aber sofort neu, die Karte ist danach nicht mehr im
+  Dokument, und ein Klick auf einen losgelösten Knoten erreicht die Sperre gar nicht — er
+  war immer folgenlos. Richtig ist `document.elementFromPoint()` auf die Fingerposition.
+* **Der Zielindex bei versteckten Karten.** Der Zug ging auf Platz zwei, und dort ist die
+  Anzeigeposition zufällig gleich dem echten Index. Erst ein Zug ans **Ende** der sichtbaren
+  Liste trennt beides.
+* **Derselbe Rückbau am falschen Rückgabeweg.** Er ersetzte nur die Schleife; wer ans Ende
+  zieht, läuft über den zweiten `return`. Zurückgebaut wird jetzt die ganze Regel.
+
+Dazu ein vierter Fall aus dem Bestand: Der Rückbau `griff` in
+`tools/pruefstand-zutaten-sortieren.py` suchte `".ing-grip"` — nach dem Herauslösen der
+Geste heißt die Stelle `opt.griff`. **Dass das auffiel, ist kein Glück:** Beide Prüfer
+brechen ab, wenn ein Rückbau seine Stelle nicht genau einmal findet. Ohne diese Zählung
+wäre die Gegenprobe still wirkungslos geblieben.
