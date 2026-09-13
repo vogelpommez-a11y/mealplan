@@ -6240,6 +6240,14 @@ Dazu zieht `applyBarcode()` die Ruhezustands-Zeile per `paintIngView()` nach, f�
 mobilen Fall, in dem die Kamera-App ihr Bild erst liefert, wenn die Zeile längst zugeklappt
 ist. Prüfer: `tools/pruefstand-scan-zeile.py`, Gegenprobe `--rueckbau vorher`.
 
+**Nachtrag vom selben Tag:** Der Rückfokus nach Ablauf der Frist holte den Fokus bedingungslos
+in die Zeile — auch dann, wenn der Nutzer längst in einem anderen Feld tippte. Er fragt jetzt
+erst, ob der Fokus überhaupt noch frei ist (`document.activeElement` auf `<body>` oder leer).
+Gefunden wurde das **nicht** durch den Pushcheck-Befund selbst, sondern beim Gegenprüfen eines
+Befunds, der sich als Fehlalarm herausstellte: Die Annahme, `row.dataset.scanning` sperre die
+Zeile, deckt der Code nicht — die Markierung wird an genau einer Stelle gelesen. Die Prüfung
+dieser Annahme führte drei Zeilen weiter zu einem echten Fehler.
+
 > **Die Lehre:** Eine Wache, die einen Sonderfall still abfängt, wird gefährlich, sobald
 > jemand anderswo den Normalfall in diesen Sonderfall verwandelt. `if (!row.isConnected)
 > return;` war richtig — nur hat über einen Monat lang niemand bemerkt, dass diese

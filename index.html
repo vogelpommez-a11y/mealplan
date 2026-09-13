@@ -8958,7 +8958,13 @@
         setTimeout(() => {
           if (barcodeRow !== row) return; // Datei ist angekommen, change raeumt selbst auf
           delete row.dataset.scanning;
-          if (row.isConnected) row.focus({ preventScroll: true });
+          // Den Fokus nur holen, wenn ihn niemand hat. Zwischen Abbruch und Ablauf dieser
+          // Frist kann der Nutzer laengst woanders tippen - ihn dort wegzureissen waere
+          // schlimmer als der stehengebliebene Fokus auf <body>, den wir hier aufraeumen.
+          // Die Zeile wird bewusst NICHT zugeklappt: Liefert eine langsame Kamera-App ihr
+          // Bild doch noch, soll sie es finden. Sie klappt beim naechsten Fokuswechsel zu.
+          const frei = !document.activeElement || document.activeElement === document.body;
+          if (row.isConnected && frei) row.focus({ preventScroll: true });
         }, 1500);
       }, { once: true });
     }

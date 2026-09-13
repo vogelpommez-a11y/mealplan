@@ -23,12 +23,13 @@ paintIngView, applyBarcode, startBarcodeFlow, armBarcodeDialogAbort und der chan
 des Datei-Feldes aus index.html; esc/el aus lib/basis.js) - kein Nachbau. Gestubbt ist nur,
 was von aussen kommt: der Sucher, der OFF-Abruf, toast, die Sortiergeste und der Zustand.
 
-SIEBEN FAELLE:
+ACHT FAELLE:
   leer          leere, frische Zeile + Treffer -> Zeile lebt, Werte und Name stehen drin
   gefuellt      Zeile mit Namen + Treffer -> Werte drin UND die sichtbare Zeile zeigt sie
   abbruch       Sucher abgebrochen -> Zeile bleibt, Markierung ist wieder weg
   fotoweg       Ausweichen aufs Foto -> Datei kommt an, Werte landen in der Zeile
   fotoabbruch   Dateidialog abgebrochen -> Markierung faellt wieder, Zeile bleibt bedienbar
+  fokusfrei     Nutzer tippt waehrend der Frist woanders -> Rueckfokus reisst ihn nicht heraus
   spaetedatei   Kamera-App liefert spaet, Zeile laengst zugeklappt -> Anzeige wird nachgezogen
   geloescht     Zeile waehrend des Scans wirklich geloescht -> stiller Ausstieg, kein Fehler
 
@@ -36,6 +37,7 @@ Gegenproben - ohne sie zaehlt kein Ergebnis:
   python tools/pruefstand-scan-zeile.py --rueckbau vorher       # ganzer Stand von db2aea7
   python tools/pruefstand-scan-zeile.py --rueckbau altewache    # focusout ohne Scan-Schutz
   python tools/pruefstand-scan-zeile.py --rueckbau ohneanzeige  # kein paintIngView danach
+  python tools/pruefstand-scan-zeile.py --rueckbau rueckfokusimmer  # Rueckfokus ohne Ruecksicht
 
 "vorher" ist die Gegenprobe, auf die es ankommt: sie stellt den gemeldeten Fehler wieder her
 (leere Zeile weg, keine Werte, KEIN Toast). "altewache" und "ohneanzeige" zeigen, welche
@@ -66,6 +68,9 @@ _WAECHTER_NEU = """        setTimeout(() => {
         }, 0);"""
 _WAECHTER_ALT = """        setTimeout(() => { if (!row.contains(document.activeElement)) closeIngRow(row); }, 0);"""
 _ANZEIGE_NEU = '        if (!row.classList.contains("editing")) paintIngView(row);\n'
+_FREI_NEU = """          const frei = !document.activeElement || document.activeElement === document.body;
+          if (row.isConnected && frei) row.focus({ preventScroll: true });"""
+_FREI_ALT = """          if (row.isConnected) row.focus({ preventScroll: true });"""
 _FLOW_ALT = """    async function startBarcodeFlow(row) {
       const r = await scanBarcodeLive();
       if (!r || r.cancelled) return;
@@ -96,6 +101,9 @@ def rueckbauten(seite):
         "altewache": [(_WAECHTER_NEU, _WAECHTER_ALT)],
         # Ohne das Nachziehen der Ruhezustands-Zeile.
         "ohneanzeige": [(_ANZEIGE_NEU, "")],
+        # Der Rueckfokus nach einem abgebrochenen Dateidialog ohne die Frage, ob der Fokus
+        # ueberhaupt noch frei ist - er reisst den Nutzer dann aus dem Feld, in dem er tippt.
+        "rueckfokusimmer": [(_FREI_NEU, _FREI_ALT)],
     }
 
 
@@ -368,7 +376,23 @@ function fokusWeg(row) {
     await warte(1800);
     raus.fotoabbruch = lies(row);
 
-    // 6) spaetedatei: der mobile Fall. Die Kamera-App liefert ihr Bild erst, wenn die
+    // 6) fokusfrei: Der Nutzer hat den Dateidialog abgebrochen und tippt laengst in einem
+    //    anderen Feld, waehrend die 1,5-Sekunden-Frist noch laeuft. Der Rueckfokus darf ihn
+    //    dort NICHT herausreissen.
+    naechsterSucher = { photo: true };
+    row = neueZeile({ name: "Tippt", grams: 100 });
+    await startBarcodeFlow(row);
+    document.getElementById("f-cat").focus();     // der Nutzer ist woanders
+    window.dispatchEvent(new Event("focus"));     // Dialog abgebrochen
+    await warte(1800);
+    raus.fokusfrei = {
+      markierung: row.dataset.scanning || null,
+      lebt: row.isConnected,
+      fokusBeiZeile: document.activeElement === row,
+      fokusWoDerNutzerWar: document.activeElement === document.getElementById("f-cat"),
+    };
+
+    // 7) spaetedatei: der mobile Fall. Die Kamera-App liefert ihr Bild erst, wenn die
     //    Markierung laengst gefallen ist und die Zeile zugeklappt wurde. Dann schreibt
     //    applyBarcode() in Felder, die niemand mehr sieht - die sichtbare Zeile muss
     //    nachgezogen werden, sonst sieht auch das nach "nichts passiert" aus.
@@ -386,7 +410,7 @@ function fokusWeg(row) {
     raus.spaetedatei = lies(row);
     raus.spaetedatei.toast = toasts.join(" | ");
 
-    // 7) geloescht: der Nutzer entfernt die Zeile wirklich, waehrend der Sucher offen ist.
+    // 8) geloescht: der Nutzer entfernt die Zeile wirklich, waehrend der Sucher offen ist.
     naechsterSucher = { code: "3017620422003" };
     row = neueZeile({ name: "Weg", grams: 10 });
     toasts.length = 0;
@@ -493,6 +517,12 @@ def main():
     p("Foto-Abbruch: Markierung steht waehrend des Dialogs", h["markierung"], "1")
     p("Foto-Abbruch: Markierung faellt danach wieder", g["markierung"], None)
     p("Foto-Abbruch: Zeile bleibt bedienbar", g["lebt"], True)
+
+    ff = e["fokusfrei"]
+    p("Tippt woanders: Markierung faellt trotzdem", ff["markierung"], None)
+    p("Tippt woanders: Zeile bleibt stehen", ff["lebt"], True)
+    p("Tippt woanders: der Fokus wird NICHT weggerissen", ff["fokusBeiZeile"], False)
+    p("Tippt woanders: er bleibt, wo der Nutzer ihn hatte", ff["fokusWoDerNutzerWar"], True)
 
     s = e["spaetedatei"]
     sv = e["spaetedatei_vorher"]

@@ -4545,10 +4545,10 @@ Ausgeschnitten wird echter Code: `addIngRow()` samt `focusout`-Wächter, `closeI
 `esc`/`el` aus `lib/basis.js`. Gestubbt ist nur, was von außen kommt — der Sucher, der
 Abruf bei Open Food Facts, `toast`, die Sortiergeste und der Zustand.
 
-Sieben Fälle, 30 Messgrößen: die leere Zeile (der gemeldete Fall), die gefüllte Zeile, der
-Abbruch, der Foto-Weg, der abgebrochene Dateidialog, die **spät** eintreffende Datei (die
-Kamera-App auf dem Handy liefert, wenn die Zeile längst zugeklappt ist) und die wirklich
-gelöschte Zeile.
+Acht Fälle, 34 Messgrößen: die leere Zeile (der gemeldete Fall), die gefüllte Zeile, der
+Abbruch, der Foto-Weg, der abgebrochene Dateidialog, der Nutzer, der während der Frist
+**woanders tippt**, die **spät** eintreffende Datei (die Kamera-App auf dem Handy liefert,
+wenn die Zeile längst zugeklappt ist) und die wirklich gelöschte Zeile.
 
 ### Was dieser Prüfstand über headless gelernt hat
 
@@ -4568,14 +4568,20 @@ am Anfang der Ausgabe.
 ### Die Gegenproben
 
 ```powershell
-python tools/pruefstand-scan-zeile.py --rueckbau vorher       # 11 Messgroessen werden rot
-python tools/pruefstand-scan-zeile.py --rueckbau altewache    # 11 Messgroessen werden rot
-python tools/pruefstand-scan-zeile.py --rueckbau ohneanzeige  #  2 Messgroessen werden rot
+python tools/pruefstand-scan-zeile.py --rueckbau vorher           # 15 Messgroessen werden rot
+python tools/pruefstand-scan-zeile.py --rueckbau altewache        # 11 Messgroessen werden rot
+python tools/pruefstand-scan-zeile.py --rueckbau ohneanzeige      #  2 Messgroessen werden rot
+python tools/pruefstand-scan-zeile.py --rueckbau rueckfokusimmer  #  2 Messgroessen werden rot
 ```
 
 `vorher` ist die Gegenprobe, auf die es ankommt: Sie stellt den ganzen Stand von `db2aea7`
 wieder her und reproduziert den gemeldeten Fehler — leere Zeile weg, keine Werte, **kein
 Toast**. Die beiden anderen zeigen, welche Hälfte der Reparatur welchen Fall trägt.
+
+`rueckfokusimmer` gehört zum Nachtrag vom selben Tag: Der Rückfokus nach einem
+abgebrochenen Dateidialog fragt jetzt erst, ob der Fokus überhaupt noch frei ist — sonst
+räumt er den Nutzer aus dem Feld, in dem er gerade tippt. Der Fund stammt aus der
+Gegenprüfung eines Pushcheck-Befunds, nicht aus dem Befund selbst.
 
 **Ein Rückbau ist hier eine Liste von Ersetzungen, nicht eine einzelne.** Der erste Versuch
 baute nur den `focusout`-Wächter zurück — und der Kernfall blieb grün, weil der Rückfokus
