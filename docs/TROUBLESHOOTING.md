@@ -6206,3 +6206,56 @@ out` — auch die Zutaten-Abnahme, die unverändert war und kurz zuvor zweimal d
 Code war nicht schuld: Aus abgebrochenen Läufen standen elf `chrome.exe` offen und
 blockierten den Debug-Port. `taskkill /F /IM chrome.exe`, und beide Abnahmen waren wieder
 grün. Wer hier zuerst den eigenen Code verdächtigt, sucht lange an der falschen Stelle.
+
+## 166. Der Scan, nach dem gar nichts kam — der Sucher räumte die Zeile weg, die er füllen sollte
+
+**Symptom (Nutzermeldung, 13.09.2026):** „Meal erstellen → Zutat hinzufügen → Scannen" tat
+nach dem Scan **nichts**. Keine Werte, kein Toast, keine Fehlermeldung. Der Barcode-Pfad
+selbst war dabei vollständig heil: Open Food Facts antwortete korrekt (`status: 1`, CORS
+offen), ZXing lud aus `vendor/`, und `detectBarcode()` las einen echten EAN-13 fehlerfrei —
+alles im Browser nachgemessen, bevor eine Zeile Code geändert wurde.
+
+**Ursache:** `scanBarcodeLive()` hängt seinen Sucher an `document.body` und fokussiert
+dessen Schließen-Knopf. Damit verlässt der Fokus die Zutatenzeile, der `focusout`-Wächter
+der Zeile ruft `closeIngRow()` — und eine noch **leere** Zeile wird dabei entfernt, genau
+wie vorgesehen. Nach dem Treffer greift dann `if (!row.isConnected) return;` in
+`startBarcodeFlow()`, und diese Wache kehrt **wortlos** zurück. Sie war gegen eine vom
+Nutzer gelöschte Zeile gedacht und fing seit dem 08.08.2026 den Normalfall ab.
+
+Eingebaut wurde die Falle mit `3442cad`, als Ansehen und Bearbeiten zu einer Oberfläche
+zusammengelegt wurden. Der Scanner ist älter. Bezeichnend: Beim Sortieren war dasselbe
+Problem längst gelöst — `sortierGeste` bekommt ein `vorAufnahme`, das die offene Zeile
+kontrolliert zurückschreibt. Der Scan-Einstieg hatte nichts Vergleichbares.
+
+**Zweiter Befund, gleiche Wurzel:** Hatte die Zeile schon einen Namen, wurde sie nicht
+entfernt, sondern zugeklappt. Der Scan lief dann durch und schrieb in die jetzt versteckten
+Formularfelder, während die sichtbare Zeile weiter den alten Namen zeigte. Auch das sieht
+aus wie „nichts passiert", obwohl die Daten korrekt gespeichert würden.
+
+**Lösung:** `row.dataset.scanning` für die Dauer des Scans; der `focusout`-Wächter steigt
+aus, solange die Markierung steht. Sie hält über den Foto-Umweg hinweg und fällt erst, wenn
+die Datei da ist — oder, weil ein abgebrochener Dateidialog sich nicht meldet, spätestens
+1,5 Sekunden nachdem das Fenster den Fokus zurückbekommen hat (`armBarcodeDialogAbort`).
+Dazu zieht `applyBarcode()` die Ruhezustands-Zeile per `paintIngView()` nach, für den
+mobilen Fall, in dem die Kamera-App ihr Bild erst liefert, wenn die Zeile längst zugeklappt
+ist. Prüfer: `tools/pruefstand-scan-zeile.py`, Gegenprobe `--rueckbau vorher`.
+
+> **Die Lehre:** Eine Wache, die einen Sonderfall still abfängt, wird gefährlich, sobald
+> jemand anderswo den Normalfall in diesen Sonderfall verwandelt. `if (!row.isConnected)
+> return;` war richtig — nur hat über einen Monat lang niemand bemerkt, dass diese
+> Bedingung inzwischen fast immer zutraf. Ein stiller `return` ohne Rückmeldung an den
+> Nutzer verdient eine Begründung im Kommentar, warum er still sein darf.
+
+### Zweiter Fund derselben Untersuchung: headless stellt Fokusereignisse verzögert zu
+
+Der Prüfstand zum Fall war zuerst **grün, obwohl er nichts maß**. Unter `--headless=new`
+kommt das `focusout` nicht beim Fokuswechsel, sondern erst, wenn das fokussierte Element
+entfernt wird — also beim *Schließen* des Suchers statt beim Öffnen. In dieser Reihenfolge
+füllt `applyBarcode()` die Zeile noch rechtzeitig, `rowData()` ist danach nicht mehr leer,
+die Zeile wird nur zugeklappt statt entfernt, und der Kernfall bleibt grün. Im echten Chrome
+ist die Reihenfolge umgekehrt — dort war die Zeile weg, bevor der Scan zurückkam.
+
+Der Stub stellt das Ereignis deshalb selbst zum richtigen Zeitpunkt nach. Eine reine
+`.focus()`-Zählung taugt dort ebenfalls nicht als Messgröße: Sie schwankte über drei Läufe
+(0, 0, 1), weil die Reparatur den Fokus absichtlich zurückholt. Gemessen wird stattdessen
+`document.activeElement` während des Suchers — genau die Bedingung, die der Wächter auswertet.

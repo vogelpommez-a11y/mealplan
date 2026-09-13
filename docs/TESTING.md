@@ -85,6 +85,7 @@ Die Verfahren gibt es auch als Skill: `/smoke`, `/pruefstand`, `/abnahme`, `/dep
 | · | `tools/pruefstand-meal-symbol.py` — Symbol statt geratenem Foto (12.09.2026) |
 | · | `tools/pruefstand-picker-quellen.py` — die Auswahl eines Slots (12.09.2026) |
 | · | `tools/probe-symbole.html` — 36 Symbole bei 28 px ansehen (12.09.2026) |
+| · | `tools/pruefstand-scan-zeile.py` — überlebt die Zutatenzeile den Sucher? (13.09.2026) |
 
 <!-- REGISTER-ENDE -->
 
@@ -4530,3 +4531,53 @@ Dazu ein vierter Fall aus dem Bestand: Der Rückbau `griff` in
 Geste heißt die Stelle `opt.griff`. **Dass das auffiel, ist kein Glück:** Beide Prüfer
 brechen ab, wenn ein Rückbau seine Stelle nicht genau einmal findet. Ohne diese Zählung
 wäre die Gegenprobe still wirkungslos geblieben.
+
+## `tools/pruefstand-scan-zeile.py` — überlebt die Zutatenzeile den Sucher? (13.09.2026)
+
+Der Fall dahinter steht in `docs/TROUBLESHOOTING.md` 166: „Meal erstellen → Zutat
+hinzufügen → Scannen" tat nach dem Scan gar nichts, weil der Sucher der Zeile den Fokus
+nahm und der `focusout`-Wächter die noch leere Zeile entfernte. Der Treffer lief danach in
+eine stille Wache.
+
+Ausgeschnitten wird echter Code: `addIngRow()` samt `focusout`-Wächter, `closeIngRow()`,
+`rowData()`, `paintIngView()`, `applyBarcode()`, `startBarcodeFlow()`,
+`armBarcodeDialogAbort()` und der `change`-Handler des Datei-Feldes aus `index.html`, dazu
+`esc`/`el` aus `lib/basis.js`. Gestubbt ist nur, was von außen kommt — der Sucher, der
+Abruf bei Open Food Facts, `toast`, die Sortiergeste und der Zustand.
+
+Sieben Fälle, 30 Messgrößen: die leere Zeile (der gemeldete Fall), die gefüllte Zeile, der
+Abbruch, der Foto-Weg, der abgebrochene Dateidialog, die **spät** eintreffende Datei (die
+Kamera-App auf dem Handy liefert, wenn die Zeile längst zugeklappt ist) und die wirklich
+gelöschte Zeile.
+
+### Was dieser Prüfstand über headless gelernt hat
+
+**Unter `--headless=new` kommt `focusout` nicht beim Fokuswechsel, sondern erst beim
+Entfernen des fokussierten Elements** — also beim Schließen des Suchers statt beim Öffnen.
+Mit dieser Reihenfolge füllt `applyBarcode()` die Zeile noch rechtzeitig, `rowData()` ist
+nicht mehr leer, die Zeile wird nur zugeklappt statt entfernt — und der Kernfall bleibt
+grün, obwohl der Fehler unverändert im Code steht. Der Stub stellt das Ereignis deshalb
+selbst zum richtigen Zeitpunkt nach.
+
+Ebenso taugt eine `focusout`-Zählung dort nicht als Beleg, dass überhaupt gemessen wurde:
+Sie schwankte über drei Läufe (0, 0, 1), weil die Reparatur den Fokus absichtlich in die
+Zeile zurückholt. Gemessen wird stattdessen `document.activeElement` während des Suchers —
+genau die Bedingung, die der Wächter auswertet. Beide Messgrößen stehen als „Messbarkeit"
+am Anfang der Ausgabe.
+
+### Die Gegenproben
+
+```powershell
+python tools/pruefstand-scan-zeile.py --rueckbau vorher       # 11 Messgroessen werden rot
+python tools/pruefstand-scan-zeile.py --rueckbau altewache    # 11 Messgroessen werden rot
+python tools/pruefstand-scan-zeile.py --rueckbau ohneanzeige  #  2 Messgroessen werden rot
+```
+
+`vorher` ist die Gegenprobe, auf die es ankommt: Sie stellt den ganzen Stand von `db2aea7`
+wieder her und reproduziert den gemeldeten Fehler — leere Zeile weg, keine Werte, **kein
+Toast**. Die beiden anderen zeigen, welche Hälfte der Reparatur welchen Fall trägt.
+
+**Ein Rückbau ist hier eine Liste von Ersetzungen, nicht eine einzelne.** Der erste Versuch
+baute nur den `focusout`-Wächter zurück — und der Kernfall blieb grün, weil der Rückfokus
+aus `startBarcodeFlow()` die Zeile weiterhin rettete. Eine Gegenprobe, die nur einen Teil
+der Reparatur zurücknimmt, belegt nicht, was sie zu belegen scheint.

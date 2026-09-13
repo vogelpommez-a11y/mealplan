@@ -8700,9 +8700,19 @@
         e.preventDefault();
         closeIngRow(row);
       });
+      // Waehrend eines Barcode-Scans darf die Zeile NICHT zuklappen: scanBarcodeLive()
+      // fokussiert den Schliessen-Knopf seines Suchers, der Fokus verlaesst damit die Zeile -
+      // und closeIngRow() entfernt eine noch leere Zeile sofort. Der Treffer lief danach in
+      // die isConnected-Wache von startBarcodeFlow() und verschwand WORTLOS (Befund
+      // 13.09.2026, docs/TROUBLESHOOTING.md). Das Gegenstueck zu vorAufnahme bei
+      // sortierGeste, nur andersherum: hier soll gerade nicht geschlossen werden.
+      // Gesetzt und geloescht wird die Markierung in startBarcodeFlow() und im Foto-Weg.
       row.addEventListener("focusout", () => {
         if (!row.classList.contains("editing")) return;
-        setTimeout(() => { if (!row.contains(document.activeElement)) closeIngRow(row); }, 0);
+        setTimeout(() => {
+          if (row.dataset.scanning) return;
+          if (!row.contains(document.activeElement)) closeIngRow(row);
+        }, 0);
       });
 
       ingsWrap.appendChild(row);
@@ -8903,6 +8913,11 @@
         // stoesst die Kurzfassung an, OHNE erneut ueber das Einheiten-change-Event (und damit
         // die Umrechnung) zu laufen.
         row.querySelector(".ing-kcal").dispatchEvent(new Event("input"));
+        // Steht die Zeile im Ruhezustand, zeigt .ing-view noch Name und Werte von vorher -
+        // die Uebernahme saehe fuer den Nutzer aus, als waere nichts passiert, obwohl die
+        // Daten laengst korrekt in den Feldern stehen. Im Bearbeiten-Zustand gibt es
+        // .ing-view nicht, dort ist nichts nachzuziehen.
+        if (!row.classList.contains("editing")) paintIngView(row);
         updateMacroSum();
         toast(p.name ? "„" + p.name + "“ übernommen – Werte bitte kurz prüfen"
                      : "Nährwerte übernommen – bitte kurz prüfen");
@@ -8915,17 +8930,47 @@
     // Einstieg ueber den Zeilen-Button: erst Live-Kamera; wer dort aufs Foto ausweicht
     // (oder wessen Kamera nicht startet), landet auf dem bisherigen Foto-Weg.
     async function startBarcodeFlow(row) {
-      const r = await scanBarcodeLive();
+      // Zeile fuer die Dauer des Scans vor dem focusout-Waechter schuetzen - siehe dort.
+      row.dataset.scanning = "1";
+      let r = null;
+      try { r = await scanBarcodeLive(); }
+      finally { if (!(r && r.photo)) delete row.dataset.scanning; }
+      // Der Fokus liegt nach dem Sucher auf <body>. Zurueck in die Zeile, damit sie sich
+      // sofort wieder normal verhaelt - ohne das bliebe der naechste Klick irgendwohin der
+      // erste Fokuswechsel und die gerade gefuellte Zeile klappte unvermittelt zu.
+      if (row.isConnected && !(r && r.photo)) row.focus({ preventScroll: true });
       if (!r || r.cancelled) return;
-      if (!row.isConnected) return; // Zeile inzwischen entfernt
-      if (r.photo) { barcodeRow = row; barcodeInput.click(); return; }
+      if (!row.isConnected) return; // Zeile inzwischen entfernt (vom Nutzer geloescht)
+      // Der Foto-Weg behaelt die Markierung: der Dateidialog nimmt den Fokus genauso, und
+      // geloescht wird erst, wenn die Datei da ist (change) oder der Dialog abgebrochen wurde.
+      if (r.photo) { barcodeRow = row; armBarcodeDialogAbort(row); barcodeInput.click(); return; }
       if (r.code) await applyBarcode(row, r.code);
+    }
+    // Ein abgebrochener Dateidialog meldet sich nicht - ohne Gegenmittel bliebe die
+    // Scan-Markierung fuer immer stehen und die Zeile klappte nie wieder zu. Sie faellt
+    // deshalb, sobald das Fenster den Fokus zurueckbekommt und bis dahin KEINE Datei
+    // angekommen ist (barcodeRow steht dann noch). Die Wartezeit ist grosszuegig, weil auf
+    // dem Handy nicht ein Dialog aufgeht, sondern die Kamera-App - die liefert ihr Bild
+    // spuerbar spaeter als ein Dateiauswahlfenster. Kommt die Datei doch noch, findet der
+    // change-Handler barcodeRow unveraendert vor; verloren geht nichts.
+    function armBarcodeDialogAbort(row) {
+      window.addEventListener("focus", () => {
+        setTimeout(() => {
+          if (barcodeRow !== row) return; // Datei ist angekommen, change raeumt selbst auf
+          delete row.dataset.scanning;
+          if (row.isConnected) row.focus({ preventScroll: true });
+        }, 1500);
+      }, { once: true });
     }
     // Foto-Weg: Bild -> Code lokal auslesen -> gemeinsamer Nachschlage-Pfad
     barcodeInput.addEventListener("change", async () => {
       const f = barcodeInput.files && barcodeInput.files[0];
       barcodeInput.value = "";
       const row = barcodeRow; barcodeRow = null;
+      // Markierung faellt hier, nicht frueher: bis zu diesem Moment lag der Fokus beim
+      // Dateidialog bzw. der Kamera-App, und der focusout-Waechter haette die Zeile
+      // weggeraeumt (siehe startBarcodeFlow).
+      if (row) { delete row.dataset.scanning; if (row.isConnected) row.focus({ preventScroll: true }); }
       if (!f || !row || !row.isConnected) return;
       const btn = row.querySelector(".ing-barcode");
       btn.disabled = true; btn.classList.add("busy");
