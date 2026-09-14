@@ -6317,3 +6317,55 @@ der 404-Befund erklärt dasselbe Symptom auf anderem Weg.
 `tools/pruefstand-scan-zeile.py` stubbt den Sucher und stand mit 34 grünen Messgrößen da,
 während der Weg am Gerät als tot gemeldet wurde. Dieselbe Familie wie „Prüfer und Prüfling aus
 derselben Quelle" (Punkt 152) und der einmal feuernde `requestAnimationFrame` (Punkt 164).
+
+---
+
+## 168. Der Scan starb am Fingertipp — die Rettung kam einen Task zu spät
+
+**Symptom.** „Meal anlegen → Zutat hinzufügen → SCANNEN": Der Sucher öffnet, erkennt den Code,
+schließt sich — und die Zutatenzeile bleibt leer. **Nur am Handy.** Am Rechner lief derselbe
+Weg vollständig durch, im Wochenplan („schnell hinzufügen") funktionierte der Scan ebenfalls.
+Gemeldet am 14.09.2026, nachdem Punkt 166 bereits als behoben galt.
+
+**Ursache — eine Frage der Reihenfolge, nicht der Logik.**
+
+`pointerdown`/`mousedown` und `click` sind **zwei getrennte Tasks**. Dazwischen läuft die
+Ereignisschleife, und damit der `setTimeout(0)` des `focusout`-Wächters an der Zutatenzeile.
+Die Schutzmarkierung `row.dataset.scanning` wurde aber erst im **click**-Handler gesetzt, in
+`startBarcodeFlow()`. Der Ablauf am Gerät:
+
+| | |
+|---|---|
+| 1. | Der Nutzer tippt „Zutat hinzufügen" — Fokus steht im Namensfeld, Tastatur offen |
+| 2. | Er tippt SCANNEN. **Auf iOS/WebKit bekommt ein `<button>` durch einen Tipp keinen Fokus.** |
+| 3. | Das Namensfeld verliert ihn an `<body>` → `focusout` → Wächter setzt `setTimeout(0)` |
+| 4. | Der Timer läuft — `scanning` ist noch nicht gesetzt, die Zeile ist leer → `closeIngRow()` |
+| 5. | Erst jetzt der `click`: `startBarcodeFlow()` markiert eine Zeile, die es nicht mehr gibt |
+| 6. | Der Treffer läuft in `if (!row.isConnected) return;` — **wortlos** |
+
+**Warum es am Rechner nicht auftrat.** Chrome fokussiert einen Knopf beim `mousedown`. Der
+Scannen-Knopf liegt *in* der Zeile, der Wächter prüft `row.contains(document.activeElement)` —
+und sieht den Fokus weiterhin in der Zeile. Er schließt nichts. Dieselbe Bedienung, zwei
+Ergebnisse, je nach Fokusverhalten des Eingabegeräts.
+
+**Warum der Plan-Weg funktionierte.** `quickAddByBarcode()` arbeitet ohne Zutatenzeile. Es gibt
+dort keinen `focusout`-Wächter, der etwas wegräumen könnte.
+
+**Fix (14.09.2026).** Die Markierung fällt jetzt beim **Druck**, nicht erst beim Klick:
+`bcBtn.addEventListener("pointerdown", …)` setzt `row.dataset.scanning`. Ein `pointerup` ohne
+folgenden Klick nimmt sie über einen `setTimeout(0)` zurück (der `click` kommt vor diesem
+Timer), `pointercancel` — aus dem Druck wurde eine Wischgeste — sofort.
+
+**Warum der Prüfstand das zweimal nicht fand.** Er stellte den Fokusraub nach, aber im
+**selben Task** wie den Aufruf von `startBarcodeFlow()`. Damit war die Markierung immer
+rechtzeitig da, und der Fall blieb grün. Erst ein `await` zwischen Druck und Klick — die Lücke,
+die es am Gerät real gibt — machte den Fehler sichtbar. Der neue Fall `fingertipp` läuft
+deshalb **über den Knopf** (`bc.dispatchEvent(new Event("pointerdown"))`, Fokusverlust, Pause,
+`bc.click()`) und nicht über den direkten Funktionsaufruf; sonst misst er an der Reparatur
+vorbei. Gegenprobe: `--rueckbau erstbeimklick`.
+
+**Die Lehre.** Ein Prüfstand, der Ereignisse nachstellt, muss auch ihre **zeitlichen Abstände**
+nachstellen. Zwei Ereignisse im selben Task sind etwas anderes als dieselben zwei Ereignisse
+mit einer Ereignisschleife dazwischen — und genau dort wohnte dieser Fehler. Verwandt mit
+Punkt 166 (headless stellt `focusout` verzögert zu) und Punkt 164 (`requestAnimationFrame`
+feuert unter `--headless=new` genau einmal).

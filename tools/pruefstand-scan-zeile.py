@@ -75,6 +75,8 @@ _ANZEIGE_NEU = '        if (!row.classList.contains("editing")) paintIngView(row
 _FREI_NEU = """          const frei = !document.activeElement || document.activeElement === document.body;
           if (row.isConnected && frei) row.focus({ preventScroll: true });"""
 _FREI_ALT = """          if (row.isConnected) row.focus({ preventScroll: true });"""
+_DRUCK_NEU = '''      bcBtn.addEventListener("pointerdown", () => { bcGedrueckt = true; row.dataset.scanning = "1"; });'''
+_DRUCK_ALT = "      /* Rueckbau: kein Schutz beim Druck */"
 _MSG_NEU = """      p.textContent = text || "";
       p.hidden = !text;"""
 _MSG_ALT = """      p.hidden = true;"""
@@ -115,6 +117,9 @@ def rueckbauten(seite):
         # seine Fehlschlaege nur per Toast am unteren Rand - am Geraet gemeldet als
         # "es passiert einfach nichts".
         "stumm": [(_MSG_NEU, _MSG_ALT)],
+        # Die Markierung faellt erst im click-Handler, wie bis zum 14.09.2026. Am Rechner
+        # faellt das nicht auf - auf dem Handy stirbt der Scan daran (TROUBLESHOOTING 168).
+        "erstbeimklick": [(_DRUCK_NEU, _DRUCK_ALT)],
     }
 
 
@@ -472,6 +477,32 @@ function fokusWeg(row) {
     await startBarcodeFlow(row);
     await warte(40);
     raus.selbstabbruch = lies(row);
+
+    // 12) fingertipp: die Reihenfolge, die ein Tipp auf dem Handy erzeugt. Der Fokus
+    //     verlaesst die Zeile beim DRUCK (pointerdown/mousedown), der click-Handler laeuft
+    //     erst danach - auf iOS fokussiert ein Tipp den Knopf nicht, das Namensfeld gibt
+    //     den Fokus also an <body> ab. Der focusout-Waechter entscheidet damit, bevor
+    //     startBarcodeFlow() die Markierung setzen kann.
+    naechsterSucher = { code: "3017620422003" };
+    row = neueZeile();
+    toasts.length = 0;
+    row.querySelector(".ing-name").focus();
+    await warte(10);
+    // Der Weg MUSS ueber den Knopf laufen, nicht ueber den direkten Aufruf von
+    // startBarcodeFlow(): Die Rettung sitzt im pointerdown-Handler des Knopfes. Wer hier
+    // die Funktion direkt ruft, misst an der Reparatur vorbei.
+    const bc12 = row.querySelector(".ing-barcode");
+    bc12.dispatchEvent(new Event("pointerdown"));   // Druck
+    fokusWeg(row);                                  // ... dabei verliert das Feld den Fokus
+    // ENTSCHEIDEND: mousedown/pointerdown und click sind ZWEI Tasks. Dazwischen laeuft die
+    // Ereignisschleife - und damit der setTimeout(0) des Waechters. Wer hier ohne Pause
+    // weitermacht, misst eine Reihenfolge, die es am Geraet nicht gibt, und bleibt gruen.
+    await warte(5);
+    bc12.dispatchEvent(new Event("pointerup"));
+    bc12.click();                                   // click: kommt DANACH
+    await warte(120);
+    raus.fingertipp = lies(row);
+    raus.fingertipp.toast = toasts.join(" | ");
   } catch (e) {
     raus.messfehler = String(e && e.message || e);
   }
@@ -600,6 +631,13 @@ def main():
     p("Unterbrochen: die Zeile sagt es", "unterbrochen" in u["msg"], True)
     p("Unterbrochen: die Zeile bleibt stehen", u["lebt"], True)
     p("Selbst abgebrochen: bewusst KEINE Meldung", e["selbstabbruch"]["msg"], "")
+
+    ft = e["fingertipp"]
+    p("Fingertipp: die Zeile ueberlebt den Druck", ft["lebt"], True)
+    p("Fingertipp: Name uebernommen", ft["name"], "Nutella")
+    p("Fingertipp: kcal uebernommen", ft["kcal"], "539")
+    p("Fingertipp: der Nutzer bekommt eine Rueckmeldung",
+      ("Nutella" in ft["toast"]) or bool(ft["msg"]), True)
 
     breit = max(len(x[0]) for x in pruefungen)
     rot = 0

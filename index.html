@@ -8550,7 +8550,29 @@
       // Abnahme Phase 1) - ein Klick bubbelt also nicht mehr in dessen Oeffnen-Handler,
       // stopPropagation() ist damit nicht mehr noetig.
       row.querySelector(".ing-view-del").addEventListener("click", removeRow);
-      row.querySelector(".ing-barcode").addEventListener("click", () => { startBarcodeFlow(row); });
+      // Die Scan-Markierung faellt beim DRUCK, nicht erst beim Klick.
+      //
+      // Am Rechner genuegte der click-Handler: mousedown fokussiert dort den Knopf, und der
+      // liegt IN der Zeile - der focusout-Waechter sieht activeElement also weiterhin in der
+      // Zeile und schliesst nichts. Auf dem Handy fokussiert ein Tipp den Knopf NICHT
+      // (WebKit/iOS). Das Namensfeld gibt den Fokus an <body> ab, und weil mousedown und
+      // click zwei getrennte Tasks sind, laeuft der setTimeout(0) des Waechters DAZWISCHEN:
+      // Die noch leere Zeile war entfernt, bevor startBarcodeFlow() sie schuetzen konnte.
+      // Der Treffer lief danach in die isConnected-Wache und verschwand wortlos - der Scan
+      // am Geraet blieb deshalb auch nach der Reparatur vom 13.09.2026 tot (Befund
+      // 14.09.2026, docs/TROUBLESHOOTING.md 168).
+      const bcBtn = row.querySelector(".ing-barcode");
+      let bcGedrueckt = false;
+      bcBtn.addEventListener("pointerdown", () => { bcGedrueckt = true; row.dataset.scanning = "1"; });
+      // Finger wieder weggezogen, ohne auszuloesen: Die Markierung darf nicht stehenbleiben,
+      // sonst klappt die Zeile nie wieder zu. Der click kommt VOR diesem Timer - loest er
+      // aus, uebernimmt startBarcodeFlow() und raeumt selbst auf.
+      bcBtn.addEventListener("pointerup", () => {
+        setTimeout(() => { if (bcGedrueckt) { bcGedrueckt = false; delete row.dataset.scanning; } }, 0);
+      });
+      // Aus dem Druck wurde eine Wischgeste (Scrollen) - kein Scan, Markierung sofort weg.
+      bcBtn.addEventListener("pointercancel", () => { bcGedrueckt = false; delete row.dataset.scanning; });
+      bcBtn.addEventListener("click", () => { bcGedrueckt = false; startBarcodeFlow(row); });
       // Kurzfassung fuer die zugeklappte Zeile. Die vier Felder bleiben im DOM und
       // werden nur ausgeblendet - rowData() liest sie unveraendert ueber .value.
       function paintNut() {

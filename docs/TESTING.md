@@ -4651,7 +4651,8 @@ Gefunden wurde stattdessen etwas anderes, das genauso aussieht: siehe
 
 ## `tools/pruefstand-scan-zeile.py` — drei Fälle mehr (14.09.2026)
 
-Dazugekommen sind `keintreffer`, `unterbrochen` und `selbstabbruch` (41 Messgrößen statt 34).
+Dazugekommen sind `keintreffer`, `unterbrochen`, `selbstabbruch` und `fingertipp`
+(45 Messgrößen statt 34).
 Der dritte ist der wichtige: Er hält fest, dass ein vom **Nutzer** geschlossener Sucher
 bewusst **keine** Meldung bekommt. Ohne ihn ginge eine Meldung auf jeden Abbruch als Erfolg
 durch, und aus „sagt Bescheid, wenn etwas schiefging" würde „redet immer".
@@ -4662,3 +4663,15 @@ python tools/pruefstand-scan-zeile.py --rueckbau stumm   # 2 Messgroessen werden
 
 `stumm` legt `ingMsg()` still und stellt damit den Stand vor dem 14.09.2026 her: Der Scan
 meldete seine Fehlschläge nur per Toast am unteren Bildrand.
+
+**`fingertipp` ist der Fall, an dem zwei Anläufe vorbeigemessen haben** (`TROUBLESHOOTING` 168).
+Er bildet die Reihenfolge eines Tipps auf dem Handy ab: Druck auf den Knopf, dabei verliert das
+Namensfeld den Fokus — und **dann eine Pause**, bevor der Klick kommt. Die Pause ist der ganze
+Punkt: `pointerdown` und `click` sind zwei Tasks, und dazwischen läuft der `setTimeout(0)` des
+`focusout`-Wächters. Ohne sie ist die Schutzmarkierung immer rechtzeitig da und der Fall bleibt
+grün, während der Scan am Gerät tot ist. Der Fall läuft außerdem **über den Knopf**, nicht über
+einen direkten Aufruf von `startBarcodeFlow()` — die Rettung sitzt im `pointerdown`-Handler.
+
+```powershell
+python tools/pruefstand-scan-zeile.py --rueckbau erstbeimklick   # 4 Messgroessen werden rot
+```
