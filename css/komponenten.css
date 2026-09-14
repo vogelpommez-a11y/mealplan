@@ -99,6 +99,17 @@
   .ing-row:focus-within { border-color: color-mix(in srgb, var(--accent) 45%, var(--border-strong)); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 12%, transparent); }
   /* Die offene Vorschlagsliste hebt ihre Zeile ueber die darunterliegenden Zeilen */
   .ing-row.ac-open { z-index: 5; }
+  /* Antwort des Barcode-Scanners, direkt in der Zeile statt nur unten im Toast
+     (ingMsg() in index.html). Bewusst KEIN Rot und kein Warnsymbol: Ein Produkt, das die
+     Datenbank nicht kennt, ist kein Fehler des Nutzers. Der Akzentstreifen macht den Satz
+     auffindbar, der Ton bleibt ruhig. */
+  .ing-msg {
+    margin: 9px 0 0; padding: 7px 10px;
+    border-left: 3px solid var(--accent);
+    border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+    background: color-mix(in srgb, var(--accent) 9%, transparent);
+    color: var(--text); font-size: 13px; line-height: 1.45;
+  }
   .ing-top { display: flex; align-items: center; gap: 8px; }
   /* Name und Barcode-Knopf bleiben zusammen — auch wenn die Zeile mobil umbricht */
   .ing-nrow { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; }

@@ -23,7 +23,7 @@ paintIngView, applyBarcode, startBarcodeFlow, armBarcodeDialogAbort und der chan
 des Datei-Feldes aus index.html; esc/el aus lib/basis.js) - kein Nachbau. Gestubbt ist nur,
 was von aussen kommt: der Sucher, der OFF-Abruf, toast, die Sortiergeste und der Zustand.
 
-ACHT FAELLE:
+ELF FAELLE:
   leer          leere, frische Zeile + Treffer -> Zeile lebt, Werte und Name stehen drin
   gefuellt      Zeile mit Namen + Treffer -> Werte drin UND die sichtbare Zeile zeigt sie
   abbruch       Sucher abgebrochen -> Zeile bleibt, Markierung ist wieder weg
@@ -32,12 +32,16 @@ ACHT FAELLE:
   fokusfrei     Nutzer tippt waehrend der Frist woanders -> Rueckfokus reisst ihn nicht heraus
   spaetedatei   Kamera-App liefert spaet, Zeile laengst zugeklappt -> Anzeige wird nachgezogen
   geloescht     Zeile waehrend des Scans wirklich geloescht -> stiller Ausstieg, kein Fehler
+  keintreffer   Code steht nicht in der Datenbank -> die ZEILE sagt es (nicht nur ein Toast)
+  unterbrochen  Sucher vom System weggenommen (hidden) -> die Zeile sagt es
+  selbstabbruch vom Nutzer geschlossen -> bewusst KEINE Meldung, er weiss was er tat
 
 Gegenproben - ohne sie zaehlt kein Ergebnis:
   python tools/pruefstand-scan-zeile.py --rueckbau vorher       # ganzer Stand von db2aea7
   python tools/pruefstand-scan-zeile.py --rueckbau altewache    # focusout ohne Scan-Schutz
   python tools/pruefstand-scan-zeile.py --rueckbau ohneanzeige  # kein paintIngView danach
   python tools/pruefstand-scan-zeile.py --rueckbau rueckfokusimmer  # Rueckfokus ohne Ruecksicht
+  python tools/pruefstand-scan-zeile.py --rueckbau stumm        # Antwort in der Zeile stillgelegt
 
 "vorher" ist die Gegenprobe, auf die es ankommt: sie stellt den gemeldeten Fehler wieder her
 (leere Zeile weg, keine Werte, KEIN Toast). "altewache" und "ohneanzeige" zeigen, welche
@@ -71,6 +75,9 @@ _ANZEIGE_NEU = '        if (!row.classList.contains("editing")) paintIngView(row
 _FREI_NEU = """          const frei = !document.activeElement || document.activeElement === document.body;
           if (row.isConnected && frei) row.focus({ preventScroll: true });"""
 _FREI_ALT = """          if (row.isConnected) row.focus({ preventScroll: true });"""
+_MSG_NEU = """      p.textContent = text || "";
+      p.hidden = !text;"""
+_MSG_ALT = """      p.hidden = true;"""
 _FLOW_ALT = """    async function startBarcodeFlow(row) {
       const r = await scanBarcodeLive();
       if (!r || r.cancelled) return;
@@ -104,6 +111,10 @@ def rueckbauten(seite):
         # Der Rueckfokus nach einem abgebrochenen Dateidialog ohne die Frage, ob der Fokus
         # ueberhaupt noch frei ist - er reisst den Nutzer dann aus dem Feld, in dem er tippt.
         "rueckfokusimmer": [(_FREI_NEU, _FREI_ALT)],
+        # Die Antwort in der Zeile stillgelegt (Stand vor dem 14.09.2026): Der Scan meldete
+        # seine Fehlschlaege nur per Toast am unteren Rand - am Geraet gemeldet als
+        # "es passiert einfach nichts".
+        "stumm": [(_MSG_NEU, _MSG_ALT)],
     }
 
 
@@ -184,6 +195,10 @@ def schneide(rueckbau=None):
     # Den Vorzustand gab es ohne diesen Helfer - beim Rueckbau "vorher" ist er nicht da.
     if "function armBarcodeDialogAbort(row) {" in seite:
         teile.append(block(seite, "function armBarcodeDialogAbort(row) {"))
+    # Ebenso die Antwort in der Zeile (14.09.2026). Vor ihr meldete der Scan seine
+    # Fehlschlaege nur per Toast - der Rueckbau "vorher" kennt sie deshalb nicht.
+    if "function ingMsg(row, text) {" in seite:
+        teile.append(block(seite, "function ingMsg(row, text) {"))
     return "\n".join(teile)
 
 
@@ -265,6 +280,8 @@ async function scanBarcodeLive() {
 }
 // Das Produkt, das Open Food Facts liefern wuerde.
 let naechstesProdukt = { name: "Nutella", kcal: 539, carbs: 57.5, protein: 6.3, fat: 30.9, servingSize: null };
+// null ist die Antwort fuer einen Code, den Open Food Facts nicht kennt - seit dem
+// 14.09.2026 auch fuer HTTP 404 (lib/barcode.js), den haeufigsten Fall ueberhaupt.
 async function fetchOffNutrition() { return naechstesProdukt; }
 // Die Erkennung aus dem Bild - der Foto-Weg reicht den Code hier durch.
 let naechsterFotoCode = "222";
@@ -299,6 +316,7 @@ function lies(row) {
     sichtbarName: v ? v.querySelector(".ing-view-name").textContent : null,
     sichtbarKcal: v ? v.querySelector(".ing-view-kcal").textContent : null,
     offen: row.classList.contains("editing"),
+    msg: (() => { const p = row.querySelector(".ing-msg"); return p && !p.hidden ? p.textContent : ""; })(),
   };
 }
 function dateiSchicken(code) {
@@ -419,6 +437,41 @@ function fokusWeg(row) {
     await p;
     await warte(30);
     raus.geloescht = { lebt: row.isConnected, toast: toasts.join(" | ") };
+
+    // 9) keintreffer: der haeufigste reale Ausgang - die Datenbank kennt den Code nicht.
+    //    Bis zum 14.09.2026 sagte das nur ein Toast am unteren Bildrand; im Sheet auf dem
+    //    Handy liegt der weit weg von der Zeile, auf die der Nutzer gerade schaut.
+    naechsterSucher = { code: "4099999999996" };
+    naechstesProdukt = null;
+    row = neueZeile({ name: "Handeingabe", grams: 100 });
+    toasts.length = 0;
+    await startBarcodeFlow(row);
+    await warte(40);
+    raus.keintreffer = lies(row);
+    //    ... und der Satz verschwindet, sobald der Nutzer den Namen selbst tippt.
+    row.querySelector(".ing-name").value = "Selbst";
+    row.querySelector(".ing-name").dispatchEvent(new Event("input"));
+    await warte(20);
+    raus.keintreffer_nachTippen = lies(row);
+    naechstesProdukt = { name: "Nutella", kcal: 539, carbs: 57.5, protein: 6.3, fat: 30.9, servingSize: null };
+
+    // 10) unterbrochen: der Sucher wurde NICHT vom Nutzer geschlossen, sondern von der
+    //     Seite weggenommen (Hintergrund, Anruf, App-Wechsel). Fuer den Nutzer sieht das
+    //     aus wie ein kurzes Flimmern - danach darf nicht einfach nichts dastehen.
+    naechsterSucher = { cancelled: true, hidden: true };
+    row = neueZeile({ name: "Bleibt", grams: 100 });
+    await startBarcodeFlow(row);
+    await warte(40);
+    raus.unterbrochen = lies(row);
+
+    // 11) selbstabbruch: derselbe Weg, aber vom Nutzer ausgeloest - der weiss, was er getan
+    //     hat, und bekommt bewusst KEINE Meldung. Ohne diesen Fall wuerde eine Meldung auf
+    //     jeden Abbruch als Erfolg durchgehen.
+    naechsterSucher = { cancelled: true };
+    row = neueZeile({ name: "Bleibt", grams: 100 });
+    await startBarcodeFlow(row);
+    await warte(40);
+    raus.selbstabbruch = lies(row);
   } catch (e) {
     raus.messfehler = String(e && e.message || e);
   }
@@ -535,6 +588,18 @@ def main():
     z = e["geloescht"]
     p("Geloeschte Zeile: bleibt geloescht", z["lebt"], False)
     p("Geloeschte Zeile: kein Absturz, keine Rueckmeldung", z["toast"], "")
+
+    k = e["keintreffer"]
+    p("Kein Treffer: die Zeile sagt es", "Kein Treffer" in k["msg"], True)
+    p("Kein Treffer: die Zeile lebt weiter", k["lebt"], True)
+    p("Kein Treffer: der Name bleibt unangetastet", k["name"], "Handeingabe")
+    p("Kein Treffer: die Meldung geht, sobald der Nutzer tippt",
+      e["keintreffer_nachTippen"]["msg"], "")
+
+    u = e["unterbrochen"]
+    p("Unterbrochen: die Zeile sagt es", "unterbrochen" in u["msg"], True)
+    p("Unterbrochen: die Zeile bleibt stehen", u["lebt"], True)
+    p("Selbst abgebrochen: bewusst KEINE Meldung", e["selbstabbruch"]["msg"], "")
 
     breit = max(len(x[0]) for x in pruefungen)
     rot = 0

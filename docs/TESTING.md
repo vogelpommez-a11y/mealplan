@@ -4545,10 +4545,12 @@ Ausgeschnitten wird echter Code: `addIngRow()` samt `focusout`-Wächter, `closeI
 `esc`/`el` aus `lib/basis.js`. Gestubbt ist nur, was von außen kommt — der Sucher, der
 Abruf bei Open Food Facts, `toast`, die Sortiergeste und der Zustand.
 
-Acht Fälle, 34 Messgrößen: die leere Zeile (der gemeldete Fall), die gefüllte Zeile, der
+Elf Fälle, 41 Messgrößen: die leere Zeile (der gemeldete Fall), die gefüllte Zeile, der
 Abbruch, der Foto-Weg, der abgebrochene Dateidialog, der Nutzer, der während der Frist
 **woanders tippt**, die **spät** eintreffende Datei (die Kamera-App auf dem Handy liefert,
-wenn die Zeile längst zugeklappt ist) und die wirklich gelöschte Zeile.
+wenn die Zeile längst zugeklappt ist), die wirklich gelöschte Zeile — und seit dem
+14.09.2026 der fehlende Treffer, der unterbrochene Sucher und der selbst abgebrochene
+Sucher (die letzten drei weiter unten).
 
 ### Was dieser Prüfstand über headless gelernt hat
 
@@ -4587,3 +4589,76 @@ Gegenprüfung eines Pushcheck-Befunds, nicht aus dem Befund selbst.
 baute nur den `focusout`-Wächter zurück — und der Kernfall blieb grün, weil der Rückfokus
 aus `startBarcodeFlow()` die Zeile weiterhin rettete. Eine Gegenprobe, die nur einen Teil
 der Reparatur zurücknimmt, belegt nicht, was sie zu belegen scheint.
+
+---
+
+## `tools/abnahme-scan-kamera.py` — der Live-Kamera-Weg, am Rechner gefahren (14.09.2026)
+
+**Was er tut:** Er startet einen eigenen Chrome, dem eine **gefälschte Kamera** untergeschoben
+wird, und fährt darin den echten Scan-Weg der Zutatenzeile.
+
+```powershell
+powershell -NoProfile -File test-server.ps1        # Pflicht: getUserMedia braucht localhost
+python tools/abnahme-scan-kamera.py
+```
+
+**Warum es ihn gibt.** Der Live-Kamera-Weg war bis dahin **nie gesehen worden**: Am PC gab es
+keine Kamera, geprüft wurde immer der Foto-Weg, und `tools/pruefstand-scan-zeile.py` stubbt den
+Sucher vollständig weg. Am 14.09.2026 meldete Paddy den Scan an der Zutatenzeile erneut als tot,
+während der Prüfstand mit 34 grünen Messgrößen dastand. Ein Prüfstand, der den Sucher ersetzt,
+kann über den Sucher nichts aussagen — auch dann nicht, wenn er alles andere richtig misst.
+
+**Die drei Chrome-Schalter**, die den Aufbau tragen:
+
+```
+--use-fake-device-for-media-stream          Kamera durch Datei ersetzen
+--use-file-for-fake-video-capture=<y4m>     die Datei (rohes YUV4MPEG2, kein MP4)
+--use-fake-ui-for-media-stream              die Berechtigungsfrage selbst beantworten
+```
+
+Das Video erzeugt das Skript selbst: `ean13_muster()` kodiert einen EAN-13 nach Norm
+(Guards, Paritätstabelle nach der ersten Ziffer, Prüfziffer wird verifiziert), `y4m_schreiben()`
+malt ihn als Standbild in ein Y4M. Damit ist der Code bei jedem Lauf derselbe — anders als bei
+einer echten Kamera, die je nach Licht und Abstand mal liest und mal nicht.
+
+**Drei Dinge, ohne die der Lauf nichts misst:**
+
+* **Echte Mausereignisse** (`Input.dispatchMouseEvent`), nie `el.click()`. Ein Klick per
+  JavaScript **fokussiert den Knopf nicht** — und genau der Fokuswechsel ist hier die
+  Messgröße. Dieselbe Falle wie bei den Wischgesten (Abschnitt 2e).
+* **Eigener Port (9224) und eigenes Profil**, bewusst nicht angemeldet (Cloud-Falle).
+  `chrome_stoppen()` beendet deshalb **nur** Prozesse, deren Kommandozeile diesen Port trägt —
+  ein `taskkill /IM chrome.exe` nähme den Alltagsbrowser des Nutzers mit.
+* **Der Zustand wird über `localStorage` gesetzt**, nicht durch das zehnstufige Onboarding
+  geklickt: `goal` setzen, neu laden, fertig.
+
+**Er urteilt selbst.** `main()` fährt zwei Läufe — einen Code, den Open Food Facts kennt
+(Name und Nährwerte müssen ankommen), und einen gültigen Code ohne Produkt dahinter (die
+Zeile muss sagen, dass es keinen Treffer gab, und **nicht** von „offline" reden). Rückgabewert
+1 bei Befund. Der Browser wird in einem `finally` beendet, auch wenn der Lauf abbricht — ein
+offener Debug-Port ist eine offene Fernbedienung. `--zeigen` lässt ihn stehen,
+`--stoppen` räumt danach auf.
+
+**Die Gegenprobe** (Pflicht, sonst zählt kein Ergebnis): mit `git stash push -- index.html
+css/komponenten.css lib/barcode.js` den Stand vor dem 14.09.2026 herstellen und erneut fahren.
+Der Lauf meldet dann **ROT mit zwei Befunden** — die Zeile schweigt, und der unbekannte Code
+wird als Verbindungsproblem ausgegeben.
+
+**Was der Lauf am 14.09.2026 ergab:** Der Weg lief vollständig durch — Desktop **und**
+Gerätemaße, Name und Nährwerte kamen an. Der gemeldete Fehler war so nicht reproduzierbar.
+Gefunden wurde stattdessen etwas anderes, das genauso aussieht: siehe
+`docs/TROUBLESHOOTING.md` 167.
+
+## `tools/pruefstand-scan-zeile.py` — drei Fälle mehr (14.09.2026)
+
+Dazugekommen sind `keintreffer`, `unterbrochen` und `selbstabbruch` (41 Messgrößen statt 34).
+Der dritte ist der wichtige: Er hält fest, dass ein vom **Nutzer** geschlossener Sucher
+bewusst **keine** Meldung bekommt. Ohne ihn ginge eine Meldung auf jeden Abbruch als Erfolg
+durch, und aus „sagt Bescheid, wenn etwas schiefging" würde „redet immer".
+
+```powershell
+python tools/pruefstand-scan-zeile.py --rueckbau stumm   # 2 Messgroessen werden rot
+```
+
+`stumm` legt `ingMsg()` still und stellt damit den Stand vor dem 14.09.2026 her: Der Scan
+meldete seine Fehlschläge nur per Toast am unteren Bildrand.

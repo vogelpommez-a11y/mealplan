@@ -1015,3 +1015,29 @@ einer so flachen Karte ist jede andere Lösung schlechter.
 
 **Der Hinweis „Symbolbild · KI-generiert" entfällt an einer Symbolfläche.** Er gehört zu den
 mitgelieferten Fotos; ein Strichsymbol ist weder das eine noch das andere.
+
+## Der Scanner antwortet dort, wo der Blick liegt (seit 14.09.2026)
+
+Der Toast ist die richtige Form für eine Nachricht **an die App** — „Zum Plan hinzugefügt",
+„Nutella übernommen". Er ist die falsche Form für eine Nachricht **über ein einzelnes Feld**:
+Beim Scannen einer Zutat schaut der Nutzer auf die Zeile, der Toast erscheint am unteren
+Bildrand, und im Sheet auf dem Handy liegen dazwischen mehrere hundert Pixel. Nach zwei
+Sekunden ist er weg. Gemeldet wurde das als „es passiert einfach gar nichts".
+
+Fehlschläge des Barcode-Scans stehen deshalb **in der Zeile**: `.ing-msg`, gesetzt über
+`ingMsg(row, text)`.
+
+| | |
+|---|---|
+| **Form** | eine Zeile Text, 13 px, linker Akzentstreifen (3 px), Grund `color-mix(--accent 9%)` |
+| **Kein Rot, kein Warnsymbol** | ein Produkt, das die Datenbank nicht kennt, ist kein Fehler des Nutzers |
+| **Bleibt stehen** | bis der nächste Scan startet oder der Nutzer den Namen selbst tippt |
+| **A11y** | `role="status"` — wird vorgelesen, ohne zu unterbrechen |
+
+**Der Erfolgsfall bleibt beim Toast.** Er nennt den erkannten Produktnamen, die Werte stehen
+sichtbar in der Zeile, und ein zusätzlicher Satz wäre nur mehr Text.
+
+**Ein vom Nutzer abgebrochener Scan bekommt keine Meldung.** Er weiß, was er getan hat — eine
+Bestätigung wäre Lärm. Gemeldet wird nur, was der Nutzer **nicht** veranlasst hat: kein
+Treffer, unlesbares Bild, unterbrochener Sucher. Diese Unterscheidung ist der Grund, warum
+`scanBarcodeLive()` bei `visibilitychange`/`pagehide` `hidden: true` mitgibt.

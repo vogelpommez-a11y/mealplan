@@ -6267,3 +6267,53 @@ Der Stub stellt das Ereignis deshalb selbst zum richtigen Zeitpunkt nach. Eine r
 `.focus()`-Zählung taugt dort ebenfalls nicht als Messgröße: Sie schwankte über drei Läufe
 (0, 0, 1), weil die Reparatur den Fokus absichtlich zurückholt. Gemessen wird stattdessen
 `document.activeElement` während des Suchers — genau die Bedingung, die der Wächter auswertet.
+
+---
+
+## 167. „Suche nicht möglich (offline?)" — bei bester Verbindung
+
+**Symptom.** Ein Barcode wird gescannt, und die App meldet ein Verbindungsproblem. Das Netz
+steht, andere Produkte gehen. Auf dem Handy sieht es oft nach gar nichts aus: Der Toast steht
+zwei Sekunden am unteren Bildrand, während der Blick auf der Zutatenzeile liegt.
+
+**Ursache.** Open Food Facts antwortet auf einen Code, den es **nicht kennt**, mit
+**HTTP 404** — nicht mit `status: 0` im JSON. `fetchOffNutrition()` warf darauf
+`new Error("off-http-404")`, und der Aufrufer behandelte jeden geworfenen Fehler als
+Netzproblem:
+
+```js
+if (!res.ok) throw new Error("off-http-" + res.status);   // 404 inbegriffen
+...
+} catch (e) { toast("Suche nicht möglich (offline?) – bitte manuell eintragen"); }
+```
+
+Damit bekam der **häufigste** reale Ausgang des Scans — ein Produkt, das die Datenbank nicht
+führt — die Auskunft des seltensten. Für deutsche Eigenmarken ist das der Normalfall, nicht
+die Ausnahme.
+
+**Fix (14.09.2026).** `if (res.status === 404) return null;` **vor** der `res.ok`-Prüfung.
+Ein unbekanntes Produkt sieht ab da genauso aus wie ein leerer Treffer, und beide Wege
+(Zutatenzeile und Plan-Schnellzugriff) melden „kein Treffer" statt „offline".
+
+**Der zweite Teil desselben Befundes:** Die Antwort stand am falschen Ort. Beim Scannen liegt
+der Blick auf der Zutat; ein Toast am unteren Rand ist im Sheet weit weg und nach zwei Sekunden
+verschwunden. Fehlschläge antworten deshalb jetzt **in der Zeile** (`ingMsg()`, `.ing-msg`) und
+bleiben stehen, bis der nächste Versuch läuft oder der Nutzer den Namen selbst tippt. Der
+Erfolgsfall bleibt beim Toast — er nennt den Produktnamen und soll nicht im Weg stehen.
+
+**Dritter Teil: der weggenommene Sucher.** `scanBarcodeLive()` beendet sich auch bei
+`visibilitychange`/`pagehide`. Für den Nutzer sieht das aus wie ein kurzes Flimmern, dem nichts
+folgt — ununterscheidbar von einem fehlgeschlagenen Scan. Das Ergebnis trägt jetzt
+`hidden: true`, und die Aufrufer sagen Bescheid. Ein vom **Nutzer** geschlossener Sucher bleibt
+bewusst stumm; er weiß, was er getan hat.
+
+**Wie es gefunden wurde.** Über `tools/abnahme-scan-kamera.py` — Chrome mit gefälschter Kamera
+aus einer selbst erzeugten Barcode-Videodatei. Erst damit war der Live-Weg am Rechner überhaupt
+fahrbar. Der gemeldete Fehler („nach dem Scan passiert nichts") war so **nicht** reproduzierbar;
+der 404-Befund erklärt dasselbe Symptom auf anderem Weg.
+
+**Die Lehre, die über den Fall hinausgeht.** Ein Prüfstand, der die fragliche Komponente
+**ersetzt**, kann über sie nichts aussagen — auch nicht durch grüne Nachbarmessungen.
+`tools/pruefstand-scan-zeile.py` stubbt den Sucher und stand mit 34 grünen Messgrößen da,
+während der Weg am Gerät als tot gemeldet wurde. Dieselbe Familie wie „Prüfer und Prüfling aus
+derselben Quelle" (Punkt 152) und der einmal feuernde `requestAnimationFrame` (Punkt 164).

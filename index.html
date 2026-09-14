@@ -4183,7 +4183,10 @@
         e.preventDefault(); e.stopPropagation();
         finish({ cancelled: true });
       }
-      function onHide(e) { if (e.type === "pagehide" || document.hidden) finish({ cancelled: true }); }
+      // hidden: true trennt "der Nutzer hat zugemacht" von "die Seite ging in den
+      // Hintergrund". Die Aufrufer sagen im zweiten Fall Bescheid; ohne die Unterscheidung
+      // waere ein weggenommener Sucher von einem abgebrochenen nicht unterscheidbar.
+      function onHide(e) { if (e.type === "pagehide" || document.hidden) finish({ cancelled: true, hidden: true }); }
       function fail(msg) {
         if (done) return;
         hint.textContent = msg;
@@ -8496,6 +8499,7 @@
           </span>
           <button type="button" class="ing-ic ing-del" title="Zutat entfernen">✕</button>
         </div>
+        <p class="ing-msg" role="status" hidden></p>
         <details class="ing-nut">
           <summary class="ing-nsum">
             <span class="ing-ntitle">Makros <span class="ing-per">${ingPerLabel(u)}</span></span>
@@ -8666,6 +8670,9 @@
         row.querySelector(".ing-g").focus(); // jetzt fehlt nur noch die Menge
       }
       nameInp.addEventListener("input", acShow);
+      // Wer den Namen selbst tippt, hat die Antwort des Scanners beantwortet - der Satz
+      // "trag die Werte selbst ein" darf dann nicht weiter danebenstehen.
+      nameInp.addEventListener("input", () => ingMsg(row, ""));
       nameInp.addEventListener("blur", acClose);
       nameInp.addEventListener("keydown", e => {
         if (e.key === "ArrowDown" || e.key === "ArrowUp") {
@@ -8878,13 +8885,25 @@
     // keine persoenliche Notiz. Liefert der Treffer keinen Namen, bleibt der bisherige
     // stehen, statt ihn gegen nichts zu tauschen. Die Rueckmeldung nennt das erkannte
     // Produkt, damit ein ersetzter Name nicht wortlos verschwindet.
+    // Der Scan antwortet IN der Zeile, nicht nur unten im Toast. Beim Scannen liegt der
+    // Blick auf der Zutat; ein Toast am unteren Rand ist nach zwei Sekunden wieder weg und
+    // im Sheet weit vom Geschehen entfernt. Gemeldet am 14.09.2026 als "es passiert einfach
+    // nichts" - eine Meldung gab es, nur nicht dort, wo jemand hinsieht. Die Zeile behaelt
+    // den Satz, bis der naechste Versuch laeuft oder der Name von Hand geaendert wird.
+    function ingMsg(row, text) {
+      const p = row && row.querySelector(".ing-msg");
+      if (!p) return;
+      p.textContent = text || "";
+      p.hidden = !text;
+    }
     async function applyBarcode(row, code) {
       const btn = row.querySelector(".ing-barcode");
       btn.disabled = true; btn.classList.add("busy");
+      ingMsg(row, "");
       toast("Suche Produkt …");
       try {
         const p = await fetchOffNutrition(code);
-        if (!p) { toast("Produkt nicht gefunden – bitte manuell eintragen"); return; }
+        if (!p) { ingMsg(row, "Kein Treffer – trag die Werte kurz selbst ein."); return; }
         if (p.name) row.querySelector(".ing-name").value = p.name;
         // Reihenfolge bewusst so: das change-Event fuer die Einheit laeuft ZUERST, waehrend
         // die Naehrwertfelder noch ihre ALTEN Werte tragen - eine dabei ausgeloeste Umrechnung
@@ -8922,7 +8941,7 @@
         toast(p.name ? "„" + p.name + "“ übernommen – Werte bitte kurz prüfen"
                      : "Nährwerte übernommen – bitte kurz prüfen");
       } catch (e) {
-        toast("Suche nicht möglich (offline?) – bitte manuell eintragen");
+        ingMsg(row, "Die Suche kommt nicht durch – prüf die Verbindung oder trag die Werte selbst ein.");
       } finally {
         btn.disabled = false; btn.classList.remove("busy");
       }
@@ -8932,6 +8951,7 @@
     async function startBarcodeFlow(row) {
       // Zeile fuer die Dauer des Scans vor dem focusout-Waechter schuetzen - siehe dort.
       row.dataset.scanning = "1";
+      ingMsg(row, "");   // die Antwort des letzten Versuchs steht sonst neben dem neuen
       let r = null;
       try { r = await scanBarcodeLive(); }
       finally { if (!(r && r.photo)) delete row.dataset.scanning; }
@@ -8939,6 +8959,15 @@
       // sofort wieder normal verhaelt - ohne das bliebe der naechste Klick irgendwohin der
       // erste Fokuswechsel und die gerade gefuellte Zeile klappte unvermittelt zu.
       if (row.isConnected && !(r && r.photo)) row.focus({ preventScroll: true });
+      // Ein vom Nutzer geschlossener Sucher braucht keine Meldung - er weiss, was er getan
+      // hat. Ein Sucher, den das System wegnimmt (Seite kurz im Hintergrund, Anruf, Wechsel
+      // in eine andere App), sieht dagegen genauso aus wie ein fehlgeschlagener Scan: Es
+      // blitzt kurz auf und danach steht nichts da. Genau diese Beschreibung kam am
+      // 14.09.2026 vom Geraet. Deshalb sagt dieser Fall, was passiert ist.
+      if (r && r.hidden && row.isConnected) {
+        ingMsg(row, "Der Scan wurde unterbrochen – tipp noch einmal auf Scannen.");
+        return;
+      }
       if (!r || r.cancelled) return;
       if (!row.isConnected) return; // Zeile inzwischen entfernt (vom Nutzer geloescht)
       // Der Foto-Weg behaelt die Markierung: der Dateidialog nimmt den Fokus genauso, und
@@ -8986,12 +9015,12 @@
         code = await detectBarcode(f);
       } catch (e) {
         failed = true;
-        toast("Erkennung nicht möglich (offline?) – bitte manuell eintragen");
+        ingMsg(row, "Das Bild ließ sich nicht auslesen – trag die Werte selbst ein.");
       } finally {
         btn.disabled = false; btn.classList.remove("busy");
       }
       if (failed) return;
-      if (!code) { toast("Kein Barcode erkannt – bitte näher heran oder manuell eintragen"); return; }
+      if (!code) { ingMsg(row, "Kein Barcode auf dem Bild – näher heran oder Werte selbst eintragen."); return; }
       await applyBarcode(row, code);
     });
 
@@ -9215,6 +9244,9 @@
   // bereits per toast() gezeigt).
   async function scanBarcodeCode() {
     const r = await scanBarcodeLive();
+    // Wie an der Zutatenzeile: Ein vom System weggenommener Sucher darf nicht so aussehen
+    // wie ein Scan, der einfach nichts gefunden hat.
+    if (r && r.hidden) { toast("Der Scan wurde unterbrochen – versuch es noch einmal."); return null; }
     if (!r || r.cancelled) return null;
     if (r.code) return r.code;
     if (!r.photo) return null;
