@@ -6369,3 +6369,77 @@ nachstellen. Zwei Ereignisse im selben Task sind etwas anderes als dieselben zwe
 mit einer Ereignisschleife dazwischen — und genau dort wohnte dieser Fehler. Verwandt mit
 Punkt 166 (headless stellt `focusout` verzögert zu) und Punkt 164 (`requestAnimationFrame`
 feuert unter `--headless=new` genau einmal).
+
+## 169. Der Prüfstand, der 345 Fehler erfand — und die drei echten fast verdeckte
+
+**16.09.2026.** Die erste Geräteabnahme der mobilen Ansicht (`tools/abnahme-mobil.py`)
+meldete über sechs Läufe **346 Kontrast- und 702 Trefferflächenbefunde**. Echt davon waren
+**ein** Kontrastfall und 36 Trefferflächen. Alles andere hatte der Prüfstand selbst
+erzeugt. Vier verschiedene Ursachen, jede einzeln lehrreich:
+
+**1. Die Farbsyntax.** Die App benutzt `color(srgb 0.943 0.928 0.928)`. Der Parser las die
+Zahlen als 0–255 und machte aus fast-Weiß **fast-Schwarz** — Grund `rgb(1,1,1)` im
+Light-Theme. Daraus folgten rund 300 Befunde mit dem immer gleichen Wert 3,42:1, die so
+glaubwürdig aussahen, dass sie beinahe gemeldet worden wären. Aufgefallen ist es erst beim
+Blick auf den Screenshot: Das Light-Theme war tadellos hell.
+
+> Farben nie selbst parsen. Der Browser rechnet sie aus: einmal auf schwarzen, einmal auf
+> weißen Grund malen — daraus folgen Farbe und Deckkraft eindeutig, für **jede** CSS-Syntax.
+
+**2. Der gleitende Indikator.** Der aktive Knopf („Aktuelle Woche", der heutige Tag) bekommt
+seinen roten Grund von `span.ws-ind` — einem absolut gesetzten **Geschwister** mit
+`pointer-events: none`. Eine Elternkette sieht es nie; `elementsFromPoint` überspringt es
+ebenfalls, solange die Trefferprüfung nicht für die Dauer der Messung eingeschaltet wird.
+Gemeldet wurde weißer Text auf Rot als **1,17:1**.
+
+Das ist derselbe Fehler wie in `docs/TESTING.md` 2f, dort schon am 10.09.2026 notiert — und
+trotzdem sechs Tage später neu gemacht, weil der Abschnitt vor dem Bauen nicht gelesen wurde.
+
+**3. Die Trefferfläche.** Das Projekt vergrößert sie an über fünfzehn Stellen über ein
+`::after` (hitSlop). Gemessen wurde aber `getBoundingClientRect()` — also der sichtbare
+Kasten. Damit meldete der Prüfstand **genau die Stellen als Fehler, die längst gelöst
+waren**, darunter die Fußzeilen-Links, deren 44-px-Fläche am 10.09.2026 eigens eingebaut
+worden war.
+
+**4. Die eigene Hilfskonstruktion.** Für Ursache 2 wurde `pointer-events: auto !important`
+auf alles gelegt. Damit lag der **Toast** — der `pointer-events: none` trägt, damit man
+durch ihn hindurchtippen kann — plötzlich über den Reitern, und die Überlappungsprüfung
+meldete zwei unbedienbare Knöpfe, die es nicht gibt. Der Hilfsstil gilt jetzt nur noch um
+die Kontrastmessung.
+
+### Was wirklich gefunden wurde
+
+* Der Platzhalter `Meal oder Lebensmittel …` brauchte **183 px** bei **164 px** Platz und
+  wurde bei 360 px abgeschnitten → `Meal oder Produkt …` (148 px). Platzhalter sind keine
+  Textknoten; `scrollWidth` verrät über sie nichts. Sie werden gemessen, indem ihr Text mit
+  derselben Schrift in ein Messelement gelegt wird.
+* `.db-b.is-today` stand im Light mit **4,12:1** auf dem Streifengrund → `--accent-strong`,
+  das in **beiden** Themes besser liegt (Light 6,08, Dark 5,83).
+* 36 Stellen mit Trefferflächen unter 44 px, behoben nach dem hausüblichen hitSlop-Muster.
+
+### Die Lehre
+
+**Ein Prüfstand, der eine Eigenschaft der App nicht kennt, meldet sie als Fehler.** Dieselbe
+Familie wie `pruefer-und-prueflich-gleiche-quelle` und die Fälle 119 und 123 — nur
+andersherum: Nicht „grün, obwohl kaputt", sondern „rot, obwohl heil". Beide Richtungen
+kosten gleich viel, und die zweite verführt dazu, funktionierenden Code zu ändern.
+
+Deshalb gilt: **Jeder 🔴-Fund wird am echten Code oder am Bild gegengeprüft, bevor er
+gemeldet wird** — und jede Messgröße braucht ihre Gegenprobe (`--gegenprobe`).
+
+### Nachtrag am selben Tag: die Absicherung fand sich selbst
+
+`kvp` bemängelte am fertigen Werkzeug eine stille Bruchstelle: Das `WUNSCH`-Dict, aus dem
+der Onboarding-Automat die Pflichtangaben füllt, wird von Hand gepflegt. Fehlt ein Feld,
+nimmt das Skript klaglos den mittleren Listenwert — es misst dann einen Zustand, den so nie
+jemand erzeugt, und meldet trotzdem grün.
+
+Eingebaut wurde daraufhin eine Meldung: Ein Zahlenfeld, das `WUNSCH` nicht kennt, färbt den
+Lauf **rot**. **Beim ersten Lauf schlug sie sofort an** — auf `weightGoal`. Das Dict
+enthielt stattdessen ein `target` und ein `rate`, die es im Onboarding gar nicht gibt. Das
+Zielgewicht war also in **jedem** bis dahin grünen Lauf geraten worden, und niemand hätte es
+je bemerkt.
+
+> Die Absicherung gegen stilles Raten hat sich in dem Moment bezahlt gemacht, in dem sie
+> eingebaut wurde. Das ist kein Zufall, sondern das Muster: **Was still raten darf, rät
+> irgendwann falsch.**

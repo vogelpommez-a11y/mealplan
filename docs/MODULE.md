@@ -47,17 +47,17 @@ Erhoben aus den Abschnittsmarken im Code, nicht von Hand gepflegt.
 |---|---|---|---|
 | css/basis.css | Header | 20-229 | 210 |
 | css/basis.css | Section head | 230-235 | 6 |
-| css/basis.css | Buttons | 236-308 | 73 |
-| css/basis.css | Week grid | 309-1440 | 1132 |
-| css/komponenten.css | Recipe grid | 8-321 | 314 |
-| css/komponenten.css | Meal-Ansicht (openMealSheet) | 322-520 | 199 |
-| css/komponenten.css | Empty state | 521-526 | 6 |
-| css/komponenten.css | Modal | 527-882 | 356 |
-| css/komponenten.css | Profil (Login) & Teilen | 883-976 | 94 |
-| css/komponenten.css | Profilbild-Zuschnitt (Kreis-Crop) | 977-1167 | 191 |
-| css/komponenten.css | PDF / Druck | 1168-1201 | 34 |
-| css/mobil.css | Mobile / Smartphone | 8-997 | 990 |
-| css/mobil.css | Gemeinsam planen (Gruppe) | 998-1064 | 67 |
+| css/basis.css | Buttons | 236-315 | 80 |
+| css/basis.css | Week grid | 316-1460 | 1145 |
+| css/komponenten.css | Recipe grid | 8-329 | 322 |
+| css/komponenten.css | Meal-Ansicht (openMealSheet) | 330-528 | 199 |
+| css/komponenten.css | Empty state | 529-534 | 6 |
+| css/komponenten.css | Modal | 535-907 | 373 |
+| css/komponenten.css | Profil (Login) & Teilen | 908-1005 | 98 |
+| css/komponenten.css | Profilbild-Zuschnitt (Kreis-Crop) | 1006-1200 | 195 |
+| css/komponenten.css | PDF / Druck | 1201-1234 | 34 |
+| css/mobil.css | Mobile / Smartphone | 8-1005 | 998 |
+| css/mobil.css | Gemeinsam planen (Gruppe) | 1006-1072 | 67 |
 | data/bilder.js | Gerichtsfotos (nach Namen zugeordnet) | 11-142 | 132 |
 | data/cookbook.js | Rezeptbuch | 11-569 | 559 |
 | data/foods.js | Zutaten-Datenbank fuer die Suche | 11-244 | 234 |
@@ -311,16 +311,16 @@ _keine_
 | .gitattributes | 21 | 594 |
 | .github/workflows/pruefung.yml | 188 | 8066 |
 | .gitignore | 115 | 4972 |
-| CLAUDE.md | 696 | 29428 |
+| CLAUDE.md | 701 | 29586 |
 | CNAME | 1 | 21 |
 | FIREBASE-SETUP.md | 197 | 9363 |
 | LICENSE | 40 | 1907 |
 | README.md | 46 | 1990 |
 | SECURITY.md | 71 | 3006 |
 | css/CLAUDE.md | 92 | 4167 |
-| css/basis.css | 1440 | 103241 |
-| css/komponenten.css | 1201 | 93045 |
-| css/mobil.css | 1064 | 70154 |
+| css/basis.css | 1460 | 104744 |
+| css/komponenten.css | 1234 | 95355 |
+| css/mobil.css | 1072 | 70742 |
 | css/tokens.css | 239 | 12542 |
 | data/CLAUDE.md | 161 | 7419 |
 | data/bilder.js | 142 | 9143 |
@@ -328,16 +328,16 @@ _keine_
 | data/foods.js | 244 | 17334 |
 | data/ikonen.js | 168 | 19442 |
 | data/rechtstexte.js | 165 | 28069 |
-| docs/ABDECKUNG.md | 187 | 11136 |
+| docs/ABDECKUNG.md | 187 | 11305 |
 | docs/ARCHITECTURES.md | 3163 | 199989 |
-| docs/DESIGN.md | 1044 | 55926 |
+| docs/DESIGN.md | 1085 | 57924 |
 | docs/MODULE.md | — | — (erzeugt) |
 | docs/PRODUCT.md | 1729 | 98422 |
 | docs/RUNBOOK.md | 167 | 5665 |
 | docs/SECURITY.md | 454 | 26176 |
-| docs/STORE.md | 381 | 19757 |
-| docs/TESTING.md | 4678 | 278737 |
-| docs/TROUBLESHOOTING.md | 6372 | 369572 |
+| docs/STORE.md | 397 | 20898 |
+| docs/TESTING.md | 4766 | 283659 |
+| docs/TROUBLESHOOTING.md | 6446 | 374096 |
 | docs/module-index.json | — | — (erzeugt) |
 | firestore.rules | 443 | 25570 |
 | img/apple-touch-icon.png | — | 35163 |
@@ -428,7 +428,7 @@ _keine_
 | img/waffle.webp | — | 52546 |
 | img/wrap.webp | — | 43594 |
 | img/wurst.webp | — | 54064 |
-| index.html | 14607 | 900602 |
+| index.html | 14607 | 900597 |
 | lib/barcode.js | 163 | 9247 |
 | lib/basis.js | 21 | 836 |
 | lib/pdf.js | 241 | 13120 |
@@ -439,6 +439,7 @@ _keine_
 | syntax-check.py | 382 | 16172 |
 | test-server.ps1 | 66 | 2182 |
 | tools/abdeckung.py | 324 | 13049 |
+| tools/abnahme-mobil.py | 888 | 41132 |
 | tools/abnahme-plan-sortieren.py | 480 | 21478 |
 | tools/abnahme-scan-kamera.py | 388 | 15468 |
 | tools/abnahme-zutaten-sortieren.py | 458 | 20164 |

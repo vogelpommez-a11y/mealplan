@@ -13,6 +13,10 @@
     color: var(--text); font: inherit; cursor: pointer; text-align: left;
   }
   .cathead:hover { border-bottom-color: var(--border-strong); }
+  /* hitSlop wie .toast-undo::after: Trefferflaeche auf 44px (Apple HIG), Aussehen
+     unveraendert. Gemessen am 16.09.2026 mit tools/abnahme-mobil.py. */
+  .cathead { position: relative; }
+  .cathead::after { content: ""; position: absolute; inset: -6px 0; }
   /* Waehrend der Suche ist die Kopfzeile nur Beschriftung, kein Knopf - siehe paintRecipeGroups(). */
   .cathead.static { cursor: default; padding-left: 25px; }
   .cathead.static:hover { border-bottom-color: var(--border); }
@@ -44,6 +48,10 @@
      Filter am rechten Rand. In der Praxis ist die Reihe meist einzeilig: gezeigt wird nur,
      was im Bestand vorkommt. */
   .rfilters { margin: -8px 0 16px; }
+  /* hitSlop wie .toast-undo::after: Trefferflaeche auf 44px (Apple HIG), Aussehen
+     unveraendert. Gemessen am 16.09.2026 mit tools/abnahme-mobil.py. */
+  .rfilters button { position: relative; }
+  .rfilters button::after { content: ""; position: absolute; inset: -3px 0; }
   .recipe-search svg { position: absolute; left: 11px; top: 50%; transform: translateY(-50%);
     width: 16px; height: 16px; color: var(--text-muted); pointer-events: none; }
   /* Attributselektor, nicht nur "input": input[type="search"] (Zeile ~1113) hat dieselbe
@@ -615,6 +623,10 @@
   .modal-head { display: flex; align-items: center; gap: 12px; padding: 16px 18px; border-bottom: 1px solid var(--border); }
   .modal-head h3 { font-family: var(--font-display); font-size: 19px; margin: 0; flex: 1; }
   .modal-head .kicker { font-size: 11.5px; text-transform: uppercase; letter-spacing: .05em; color: var(--text-muted); }
+  /* hitSlop wie .toast-undo::after: Trefferflaeche auf 44px (Apple HIG), Aussehen
+     unveraendert. Gemessen am 16.09.2026 mit tools/abnahme-mobil.py. */
+  .modal-head .btn.ghost { position: relative; }
+  .modal-head .btn.ghost::after { content: ""; position: absolute; inset: -8px -6px; }
   .modal-body { padding: 18px; }
   .modal-foot { display: flex; gap: 8px; justify-content: flex-end; padding: 14px 18px; border-top: 1px solid var(--border); background: var(--surface-2); flex-wrap: wrap; }
 
@@ -699,6 +711,10 @@
     font-size: 12px; color: var(--text-muted);
   }
   .pempty { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; margin: 0; padding: 8px 4px; font-size: 13px; color: var(--text-muted); }
+  /* hitSlop wie .toast-undo::after: Trefferflaeche auf 44px (Apple HIG), Aussehen
+     unveraendert. Gemessen am 16.09.2026 mit tools/abnahme-mobil.py. */
+  .pmore .btn { position: relative; }
+  .pmore .btn::after { content: ""; position: absolute; inset: -8px 0; }
   /* Schnelleintrag (zaehlbare Lebensmittel). Die Ueberschrift traegt .sec-h, hier steht
      nur der Abstand - Ort-abhaengig ist der Abstand, nie die Schrift (siehe .sec-h). */
   .pq-h { margin: 15px 4px 5px; }
@@ -715,6 +731,15 @@
      haelt "Schnell" auf derselben Kante wie mit Caret (13 px Caret + 6 px gap), sonst
      springt das Wort beim zweiten getippten Zeichen sichtbar nach links. */
   .pq-h.static { padding-left: 19px; }
+  /* hitSlop wie .toast-undo::after: Trefferflaeche auf 44px (Apple HIG), Aussehen
+     unveraendert. Gemessen am 16.09.2026 mit tools/abnahme-mobil.py. */
+  button.pq-h { position: relative; }
+  button.pq-h::after { content: ""; position: absolute; inset: -9px 0; }
+  /* Suchzeile des Pickers: Ein <input> kann kein Pseudoelement tragen - der
+     hitSlop-Weg steht hier nicht offen. Deshalb echte Hoehe, und zwar fuer BEIDE
+     Elemente der Zeile: 44px nur am Feld liesse den Barcode-Knopf daneben 3px
+     niedriger stehen, was man sieht. Die 16px Schriftgroesse bleiben (iOS-Zoom). */
+  .picker-search input, .picker-search .btn { min-height: 44px; }
   button.pq-h .caret { width: 13px; height: 13px; flex: none; transition: transform var(--dur-fast); }
   button.pq-h .caret.open { transform: rotate(90deg); }
   @media (prefers-reduced-motion: reduce) { button.pq-h .caret { transition: none; } }
@@ -885,6 +910,10 @@
   .profile { position: relative; display: flex; align-items: center; }
   .profile-btn { display: flex; align-items: center; gap: 9px; font: inherit; cursor: pointer; background: var(--surface); border: 1px solid var(--border); border-radius: 999px; padding: 4px 12px 4px 4px; color: var(--text); transition: border-color var(--dur-fast); }
   .profile-btn:hover { border-color: var(--accent); }
+  /* hitSlop wie .toast-undo::after: Trefferflaeche auf 44px (Apple HIG), Aussehen
+     unveraendert. Gemessen am 16.09.2026 mit tools/abnahme-mobil.py. */
+  .profile-btn { position: relative; }
+  .profile-btn::after { content: ""; position: absolute; inset: -4px 0; }
   .avatar { width: 30px; height: 30px; border-radius: 50%; flex: none; display: grid; place-items: center; font-size: 12.5px; font-weight: 700; color: var(--accent-contrast); background: linear-gradient(150deg, var(--accent-solid), var(--accent-solid-strong)); overflow: hidden; }
   .avatar img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; display: block; }
   .profile-btn .pname { font-size: 13.5px; font-weight: 550; max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -1124,6 +1153,10 @@
   .auth-card .mark { width: 116px; height: 116px; border-radius: 50%; margin: 0 auto 20px; overflow: hidden; background: center / cover no-repeat var(--logo); }
   .auth-card h2 { font-family: var(--font-display); font-size: 25px; font-weight: 600; margin: 0 0 6px; text-wrap: balance; }
   .auth-card .lead { color: var(--text-muted); font-size: 14.5px; margin: 0 0 22px; line-height: 1.5; text-wrap: balance; }
+  /* hitSlop wie .toast-undo::after: "Mit Konto anmelden" ist ein .btn und damit 41px
+     hoch. Auf die Karte begrenzt - Begruendung bei .section-head .btn.primary. */
+  .auth-card .btn { position: relative; }
+  .auth-card .btn::after { content: ""; position: absolute; inset: -3px 0; }
   .auth-card .field { text-align: left; }
   .auth-card .btn.primary { width: 100%; justify-content: center; padding: 12px; font-size: 15px; margin-top: 4px; }
   .auth-switch { margin: 14px 0 0; font-size: 12.5px; color: var(--text-muted); }

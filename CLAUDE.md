@@ -217,7 +217,12 @@ Mobile Darstellung ist Bestandteil **jeder** UI-Änderung, nicht ein späterer S
 Breakpoints: `max-width: 720px` und `max-width: 560px`.
 Bei Eingaben 16 px beibehalten, sonst zoomt iOS automatisch.
 
-Relevante mobile Zustände tatsächlich prüfen, nicht nur Desktop.
+Relevante mobile Zustände tatsächlich prüfen, nicht nur Desktop — mit echter
+Geräte-Emulation, nie über die Fensterbreite:
+
+```powershell
+python tools/abnahme-mobil.py        # 3 Breiten x Light/Dark, 108 Stationen
+```
 
 ⚠️ **Einen `@media`-Block nie mitten in einen bestehenden einfügen** — das hat am
 16.08.2026 den 680-px-Block zerschnitten und die ganze mobile Ansicht lahmgelegt.

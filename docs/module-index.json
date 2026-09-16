@@ -325,80 +325,80 @@
       "zeilen": 6
     },
     {
-      "bis": 308,
+      "bis": 315,
       "datei": "css/basis.css",
       "titel": "Buttons",
       "von": 236,
-      "zeilen": 73
+      "zeilen": 80
     },
     {
-      "bis": 1440,
+      "bis": 1460,
       "datei": "css/basis.css",
       "titel": "Week grid",
-      "von": 309,
-      "zeilen": 1132
+      "von": 316,
+      "zeilen": 1145
     },
     {
-      "bis": 321,
+      "bis": 329,
       "datei": "css/komponenten.css",
       "titel": "Recipe grid",
       "von": 8,
-      "zeilen": 314
+      "zeilen": 322
     },
     {
-      "bis": 520,
+      "bis": 528,
       "datei": "css/komponenten.css",
       "titel": "Meal-Ansicht (openMealSheet)",
-      "von": 322,
+      "von": 330,
       "zeilen": 199
     },
     {
-      "bis": 526,
+      "bis": 534,
       "datei": "css/komponenten.css",
       "titel": "Empty state",
-      "von": 521,
+      "von": 529,
       "zeilen": 6
     },
     {
-      "bis": 882,
+      "bis": 907,
       "datei": "css/komponenten.css",
       "titel": "Modal",
-      "von": 527,
-      "zeilen": 356
+      "von": 535,
+      "zeilen": 373
     },
     {
-      "bis": 976,
+      "bis": 1005,
       "datei": "css/komponenten.css",
       "titel": "Profil (Login) & Teilen",
-      "von": 883,
-      "zeilen": 94
+      "von": 908,
+      "zeilen": 98
     },
     {
-      "bis": 1167,
+      "bis": 1200,
       "datei": "css/komponenten.css",
       "titel": "Profilbild-Zuschnitt (Kreis-Crop)",
-      "von": 977,
-      "zeilen": 191
+      "von": 1006,
+      "zeilen": 195
     },
     {
-      "bis": 1201,
+      "bis": 1234,
       "datei": "css/komponenten.css",
       "titel": "PDF / Druck",
-      "von": 1168,
+      "von": 1201,
       "zeilen": 34
     },
     {
-      "bis": 997,
+      "bis": 1005,
       "datei": "css/mobil.css",
       "titel": "Mobile / Smartphone",
       "von": 8,
-      "zeilen": 990
+      "zeilen": 998
     },
     {
-      "bis": 1064,
+      "bis": 1072,
       "datei": "css/mobil.css",
       "titel": "Gemeinsam planen (Gruppe)",
-      "von": 998,
+      "von": 1006,
       "zeilen": 67
     },
     {
@@ -1191,9 +1191,9 @@
       "zeilen": 115
     },
     {
-      "bytes": 29428,
+      "bytes": 29586,
       "pfad": "CLAUDE.md",
-      "zeilen": 696
+      "zeilen": 701
     },
     {
       "bytes": 21,
@@ -1226,19 +1226,19 @@
       "zeilen": 92
     },
     {
-      "bytes": 103241,
+      "bytes": 104744,
       "pfad": "css/basis.css",
-      "zeilen": 1440
+      "zeilen": 1460
     },
     {
-      "bytes": 93045,
+      "bytes": 95355,
       "pfad": "css/komponenten.css",
-      "zeilen": 1201
+      "zeilen": 1234
     },
     {
-      "bytes": 70154,
+      "bytes": 70742,
       "pfad": "css/mobil.css",
-      "zeilen": 1064
+      "zeilen": 1072
     },
     {
       "bytes": 12542,
@@ -1276,7 +1276,7 @@
       "zeilen": 165
     },
     {
-      "bytes": 11136,
+      "bytes": 11305,
       "pfad": "docs/ABDECKUNG.md",
       "zeilen": 187
     },
@@ -1286,9 +1286,9 @@
       "zeilen": 3163
     },
     {
-      "bytes": 55926,
+      "bytes": 57924,
       "pfad": "docs/DESIGN.md",
-      "zeilen": 1044
+      "zeilen": 1085
     },
     {
       "erzeugt": true,
@@ -1310,19 +1310,19 @@
       "zeilen": 454
     },
     {
-      "bytes": 19757,
+      "bytes": 20898,
       "pfad": "docs/STORE.md",
-      "zeilen": 381
+      "zeilen": 397
     },
     {
-      "bytes": 278737,
+      "bytes": 283659,
       "pfad": "docs/TESTING.md",
-      "zeilen": 4678
+      "zeilen": 4766
     },
     {
-      "bytes": 369572,
+      "bytes": 374096,
       "pfad": "docs/TROUBLESHOOTING.md",
-      "zeilen": 6372
+      "zeilen": 6446
     },
     {
       "erzeugt": true,
@@ -1688,7 +1688,7 @@
       "pfad": "img/wurst.webp"
     },
     {
-      "bytes": 900602,
+      "bytes": 900597,
       "pfad": "index.html",
       "zeilen": 14607
     },
@@ -1741,6 +1741,11 @@
       "bytes": 13049,
       "pfad": "tools/abdeckung.py",
       "zeilen": 324
+    },
+    {
+      "bytes": 41132,
+      "pfad": "tools/abnahme-mobil.py",
+      "zeilen": 888
     },
     {
       "bytes": 21478,

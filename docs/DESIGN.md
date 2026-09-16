@@ -157,6 +157,47 @@ Bestehende Werte für:
 
 verwenden.
 
+### Tippziele: 44 px, notfalls unsichtbar
+
+**Jedes bedienbare Element ist mindestens 44 × 44 px groß — als Trefferfläche, nicht
+zwingend sichtbar.** Das ist Apples Maß und damit Store-relevant; WCAG 2.5.8 verlangt 24 px
+als Untergrenze.
+
+Wo ein Knopf sichtbar kleiner bleiben soll — ein Icon im Kartenkopf, ein Fußzeilen-Link, ein
+Segment-Umschalter —, wächst die Fläche über ein Pseudoelement, nicht über Polsterung:
+
+```css
+.beispiel { position: relative; }
+.beispiel::after { content: ""; position: absolute; inset: -6px; }
+```
+
+Zwei Dinge, die dabei regelmäßig schiefgehen:
+
+* **`inset` zählt ab der padding box.** Ein 1-px-Rand ist nicht dabei: Ein 34-px-Knopf
+  braucht `inset: -6px` (32 + 12 = 44), nicht `-5px` (32 + 10 = 42). Genau daran fehlten
+  fünf bereits erweiterten Knöpfen 1,3 px, bis es am 16.09.2026 auffiel.
+* **Die Fläche darf dem Nachbarn nichts wegnehmen.** In einer Knopfreihe wird deshalb nur
+  senkrecht erweitert. `tools/abnahme-mobil.py` misst beides — zu kleine Flächen *und*
+  Knöpfe, die einander den Tipp abfangen.
+
+Eine allgemeine Regel auf `.btn` wäre verlockend, ist aber gesperrt: Sie bräuchte
+`position: relative` auf **jedem** Knopf, und genau das hat in den Rezeptkarten schon einmal
+den Stretched Link `.rcard-open::after` überlagert (`docs/TROUBLESHOOTING.md` 90).
+
+Ein `<input>` kann kein Pseudoelement tragen — dort hilft nur echte Höhe. Stehen Feld und
+Knopf in einer Zeile, bekommen **beide** dieselbe, sonst sieht man den Unterschied.
+
+**Welche Stellen schon einen hitSlop haben, wird nicht als Liste gepflegt** — eine
+handgeschriebene Tabelle wäre nach dem dritten neuen Knopf falsch und würde dann Falsches
+behaupten (`CLAUDE.md` §18a). Sie wird gefragt:
+
+```powershell
+Select-String -Path css/*.css -Pattern '::after.*inset:' | Select-Object -Expand Line
+```
+
+Verbindlich ist ohnehin die Messung, nicht die Liste: `python tools/abnahme-mobil.py`
+nennt jede Fläche unter 44 px mit Selektor, Größe und Station.
+
 ### Makros und Nährwerte
 
 **Kalorien und Makros werden in der ganzen App gleich benannt, gleich sortiert und in einer der drei festgelegten Formen dargestellt.**

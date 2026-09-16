@@ -334,9 +334,25 @@ Abschnitt 2: wer bei In-App-Käufen über die Stores Verkäufer ist.
 Primaertext prüfbar** — `gesetze-im-internet.de/bfsg/` lieferte 404. Vor Verlass darauf am
 amtlichen Text nachsehen.
 
-**Was auf der Codeseite bereits getan ist** (10.09.2026, `341a528`): Textkontrast erreicht
-in Light und Dark durchgängig 4,5:1, Trefferflächen liegen bei 44 px und mehr. Das ist
-**kein** Nachweis der Barrierefreiheit — Tastaturbedienbarkeit, Screenreader und
+**Was auf der Codeseite bereits getan ist** (16.09.2026): Textkontrast erreicht in Light
+und Dark durchgängig 4,5:1, Trefferflächen liegen bei 44 px und mehr — **erstmals
+systematisch gemessen** über Auth-Gate, alle zehn Onboarding-Schritte und die vier Reiter
+in drei Gerätebreiten, Light und Dark (`tools/abnahme-mobil.py`, 108 Stationen).
+
+⚠️ **Dieselbe Zusage stand hier schon am 10.09.2026 (`341a528`) — und war nicht belegt.**
+Die erste vollständige Messung fand am 16.09.2026 **36 Trefferflächen unter 44 px** und
+einen Kontrastfall mit **4,12:1** (`.db-b.is-today` im Light). Alles behoben, nachzulesen
+in `docs/TROUBLESHOOTING.md` 169. Wer diesen Abschnitt als Beleg gegenüber einem Store oder
+einer Behörde verwendet, nennt das Messdatum und das Werkzeug — eine Zusage ohne Messung
+ist genau das, was hier sechs Tage lang gestanden hat.
+
+**Und die Grenze der Messung gehört dazu:** Text, der über einem Foto oder einem Verlauf
+steht, hat keinen Grund, der sich berechnen ließe — die Startkarte, die Reiterleiste und
+der Einstiegsgruß fallen darunter. Das Werkzeug weist diese Stellen als *nicht messbar* aus,
+statt eine Zahl zu erfinden; geprüft sind sie nur mit dem Auge. „Durchgängig 4,5:1" gilt
+also für alles, was rechnerisch prüfbar ist — nicht für die ganze App.
+
+Das ist **kein** Nachweis der Barrierefreiheit — Tastaturbedienbarkeit, Screenreader und
 Alternativtexte sind dafür nicht geprüft.
 
 ---

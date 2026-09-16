@@ -633,9 +633,97 @@ Zwei weitere Fehlalarme, die dazugehören:
   Deckkraft nicht prüft, meldet jeden ruhenden Toast als schweren Verstoss.
 * Ein `:hover`-Zustand ist am Handy **kein Zustand**. Nach einem Tipp bleibt der Zeiger
   stehen; gemessen wird dann `--accent-strong` statt `--accent`.
+* **Farben nie selbst parsen.** Die App benutzt moderne Syntax wie
+  `color(srgb 0.943 0.928 0.928)`. Ein Parser, der diese Zahlen für 0–255 hält, macht aus
+  fast-Weiß fast-Schwarz — am 16.09.2026 entstanden so **345 falsche Kontrastbefunde von
+  346**. Den Wert rechnet der Browser selbst aus: die Farbe einmal auf schwarzen und
+  einmal auf weißen Grund malen, daraus folgen Farbe *und* Deckkraft eindeutig.
+* Der aktive Zustand wird hier über einen **gleitenden Indikator** (`span.ws-ind`) gemalt —
+  ein absolut gesetztes **Geschwister** mit `pointer-events: none`. Die Elternkette sieht
+  ihn nicht, und `elementsFromPoint` überspringt ihn ebenfalls, solange die Trefferprüfung
+  nicht für die Dauer der Messung eingeschaltet wird. Das ist derselbe Fehler wie in der
+  Tabelle oben, nur eine Ebene tiefer: Wer ihn übersieht, meldet weißen Text auf Rot als
+  1,17:1.
 
 **Die Gegenprobe** ist Pflicht und billig: einem Element im laufenden Bild eine bekannt zu
 blasse Farbe geben und prüfen, dass der Messstand darauf anschlägt.
+
+---
+
+## 2g. Vollständige Geräteabnahme — `tools/abnahme-mobil.py`
+
+Gebaut am 16.09.2026. Fährt **selbstständig** durch Auth-Gate, alle zehn
+Onboarding-Schritte, die vier Reiter, Meal-Picker, Einkaufsliste und Vorkochen — in drei
+Gerätebreiten (360/375/393) und **beiden** Farbschemata. 18 Stationen je Lauf, 108
+insgesamt. Baut auf 2e auf: eine durchgehende Verbindung, echte Touch-Ereignisse.
+
+```powershell
+python tools/abnahme-mobil.py                 # alle sechs Läufe
+python tools/abnahme-mobil.py --geraet 360x800 --theme light
+python tools/abnahme-mobil.py --gegenprobe    # misst sich selbst
+python tools/abnahme-mobil.py --zeigen        # Browser offen lassen
+```
+
+Braucht `test-server.ps1`. Eigenes Profil auf Port 9225, bewusst **nicht angemeldet**.
+
+**Sieben Messgrößen:** waagerechter Überlauf · Elemente über dem Rand · Trefferflächen
+unter 44 px · Knöpfe, die einander den Tipp wegnehmen · abgeschnittener Text · Eingaben
+unter 16 px · Kontrast nach WCAG.
+
+### Der Onboarding-Automat
+
+Er füllt jeden Schritt generisch (erste Option je `data-opt`, Wunschwerte je `data-num`),
+statt einen festen Klickpfad abzuspulen — ein fester Pfad bräche bei jeder Textänderung.
+Drei Dinge musste er lernen:
+
+* **Auswahlknöpfe schalten von selbst weiter** — ein Tipp statt zwei, gutes UX. Wer danach
+  noch „Weiter" tippt, tippt bereits auf den nächsten, leeren Schritt und hält dessen
+  gesperrten Knopf für Stillstand.
+* Manche Schritte **blenden nach der ersten Wahl einen zweiten Block ein**
+  („Was ist dein Ziel?" → „Wie schnell?"). Einmal füllen reicht dort nicht.
+* Während des Schiebe-Wechsels ist die **Fortschrittsleiste kurz nicht im Baum**. Wer
+  genau dann fragt, hält das Onboarding für beendet. Deshalb wird auf den Wechsel aktiv
+  gewartet, nicht blind geschlafen.
+
+### Die Trefferfläche messen, nicht den Kasten
+
+**Das Projekt vergrößert Trefferflächen an über fünfzehn Stellen über ein `::after`
+(hitSlop).** Eine Messung, die nur `getBoundingClientRect()` nimmt, meldet genau diese
+bereits gelösten Stellen als Fehler — und lässt Code „reparieren", der stimmt.
+
+Gemessen wird deshalb zweistufig: `elementFromPoint` an Mitte ± 21,5 px, und wo der
+Messpunkt aus dem Bild fällt (ein Knopf am unteren Rand — der Fuß ist genau so ein Fall),
+über die Geometrie des Pseudoelements.
+
+> `inset` bezieht sich auf die **padding box**. Ein 1-px-Rand zählt nicht mit: Ein 34-px-Knopf
+> braucht `inset: -6px` (32+12=44), nicht `-5px` (32+10=42). Genau daran fehlten fünf
+> bereits erweiterten Knöpfen 1,3 px.
+
+Bei `elementFromPoint` zählt **nur das Element selbst oder eines seiner Kinder**. Ein
+Vorfahre darf nicht zählen: Neben einem kleinen Knopf liefert `elementFromPoint` dessen
+Container — und `container.contains(knopf)` wiese jede beliebige Fläche als Treffer aus.
+Die Gegenprobe fiel genau darauf herein und hielt einen 30×20-Knopf für groß genug.
+
+### Nimmt ein hitSlop dem Nachbarn den Tipp weg?
+
+Die Kehrseite, und sie wäre schlimmer als der Fehler, den sie heilt. Geprüft wird am
+Mittelpunkt: Wer dort nicht sich selbst trifft, ist verdeckt. Zwei Ausnahmen gehören dazu:
+
+* Liegt ein **Overlay** über der Seite, sind die Knöpfe dahinter selbstverständlich
+  verdeckt — das ist der Zweck eines Modals. Dann zählt nur, was im Overlay selbst liegt.
+* Ein **Toast trägt `pointer-events: none`**, damit man durch ihn hindurchtippen kann. Wer
+  das für die Messung global aufhebt, legt ihn über die Reiter und meldet zwei
+  unbedienbare Knöpfe, die es nicht gibt.
+
+### Gegenprobe
+
+`--gegenprobe` baut je einen künstlichen Fehler ein und verlangt, dass jede Messgröße
+anschlägt. Sie ist Pflicht nach jeder Änderung am Skript — ein grüner Bericht ist sonst
+wertlos, weil er auch grün wäre, wenn gar nichts gemessen würde.
+
+Zusätzlich muss die Messung **gegen den alten Stand durchfallen**. Am 16.09.2026:
+189 Trefferflächen- und 3 Kontrastbefunde an 36 Stellen vorher, 0 nachher, keine einzige
+Stelle neu hinzugekommen.
 
 ---
 

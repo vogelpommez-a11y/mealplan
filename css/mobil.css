@@ -215,7 +215,11 @@
     /* „Heute" ist im Streifen bewusst nur ein Punkt: ohne Kopfzeile ist er mobil der
        einzige SICHTBARE „heute"-Traeger, das Wort steckt nur noch im aria-label. */
     .db-b .db-dot { width: 4px; height: 4px; border-radius: 50%; background: currentColor; opacity: 0; }
-    .db-b.is-today { color: var(--accent); }
+    /* --accent-strong statt --accent: gemessen am 16.09.2026 stand --accent im Light
+       mit 4,12:1 auf dem Streifengrund und fiel damit durch 4.5:1. --accent-strong
+       ist in BEIDEN Themes besser - Light 6,08:1, Dark 5,83:1 -, deshalb hier kein
+       eigenes Token und keine Theme-Weiche. */
+    .db-b.is-today { color: var(--accent-strong); }
     .db-b.is-today .db-dot { opacity: 1; }
     /* Muss NACH .is-today stehen, damit die aktive Farbe gewinnt, wenn heute zugleich
        der aktive Tag ist. Die Flaeche liegt jetzt auf .db-ind, hier nur noch die Farbe. */
@@ -905,6 +909,10 @@
      Groesse fuer den Einstieg – sieben Knoepfe muessen auf 320 px Breite passen. */
   .onb-tdays { margin-top: 4px; }
   .onb-tdays button { min-height: 52px; font-size: 14px; }
+  /* hitSlop wie .toast-undo::after: Trefferflaeche auf 44px (Apple HIG), Aussehen
+     unveraendert. Gemessen am 16.09.2026 mit tools/abnahme-mobil.py. */
+  .onb-tdays button { position: relative; }
+  .onb-tdays button::after { content: ""; position: absolute; inset: 0 -2px; }
   /* Die frueher darunter stehende Zeile "Montag, Mittwoch, Freitag" (.onb-sel) ist
      entfallen: Die hervorgehobenen Knoepfe sagen dasselbe schon. */
 
