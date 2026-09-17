@@ -13247,7 +13247,7 @@
     const node = el(`<div class="modal" role="dialog" aria-modal="true" aria-label="Konto löschen">
       <div class="modal-head"><h3>Konto endgültig löschen?</h3><button class="btn ghost sm" data-close>✕</button></div>
       <div class="modal-body">
-        <p style="margin:0 0 12px">Dein Konto, dein Wochenplan, deine Meals und dein gespeichertes Ziel werden unwiderruflich gelöscht${n ? ` – ebenso ${n} geteilte${n === 1 ? "r" : ""} Meal-Link${n === 1 ? "" : "e"}` : ""}. Das kann nicht rückgängig gemacht werden.</p>
+        <p style="margin:0 0 12px">Dein Konto, dein Wochenplan, deine Meals und dein gespeichertes Ziel werden gelöscht${n ? ` – ebenso ${n} geteilte${n === 1 ? "r" : ""} Meal-Link${n === 1 ? "" : "e"}` : ""}. Das kann nicht rückgängig gemacht werden.</p>
         ${isPw
           ? `<div class="field"><label for="del-pw">Passwort zur Bestätigung</label><input type="password" id="del-pw" autocomplete="current-password" placeholder="Dein Passwort"></div>`
           : `<p class="share-hint" style="margin:0">Zur Bestätigung öffnet sich gleich noch einmal das Anmeldefenster.</p>`}

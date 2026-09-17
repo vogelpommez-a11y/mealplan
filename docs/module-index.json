@@ -1271,14 +1271,14 @@
       "zeilen": 168
     },
     {
-      "bytes": 28069,
+      "bytes": 28482,
       "pfad": "data/rechtstexte.js",
-      "zeilen": 165
+      "zeilen": 169
     },
     {
-      "bytes": 11305,
+      "bytes": 11686,
       "pfad": "docs/ABDECKUNG.md",
-      "zeilen": 187
+      "zeilen": 188
     },
     {
       "bytes": 199989,
@@ -1300,14 +1300,14 @@
       "zeilen": 1729
     },
     {
-      "bytes": 5665,
+      "bytes": 7123,
       "pfad": "docs/RUNBOOK.md",
-      "zeilen": 167
+      "zeilen": 198
     },
     {
-      "bytes": 26176,
+      "bytes": 30573,
       "pfad": "docs/SECURITY.md",
-      "zeilen": 454
+      "zeilen": 515
     },
     {
       "bytes": 20898,
@@ -1315,9 +1315,9 @@
       "zeilen": 397
     },
     {
-      "bytes": 283659,
+      "bytes": 287505,
       "pfad": "docs/TESTING.md",
-      "zeilen": 4766
+      "zeilen": 4835
     },
     {
       "bytes": 374096,
@@ -1688,7 +1688,7 @@
       "pfad": "img/wurst.webp"
     },
     {
-      "bytes": 900597,
+      "bytes": 900582,
       "pfad": "index.html",
       "zeilen": 14607
     },
@@ -1783,6 +1783,21 @@
       "zeilen": 75
     },
     {
+      "bytes": 9765,
+      "pfad": "tools/firestore-backup.py",
+      "zeilen": 235
+    },
+    {
+      "bytes": 10811,
+      "pfad": "tools/firestore-restore.py",
+      "zeilen": 270
+    },
+    {
+      "bytes": 12409,
+      "pfad": "tools/firestore_api.py",
+      "zeilen": 284
+    },
+    {
       "bytes": 24255,
       "pfad": "tools/karte.py",
       "zeilen": 605
@@ -1856,6 +1871,11 @@
       "bytes": 11518,
       "pfad": "tools/pruefstand-einladung-verbrauch.py",
       "zeilen": 232
+    },
+    {
+      "bytes": 27945,
+      "pfad": "tools/pruefstand-firestore-backup.py",
+      "zeilen": 611
     },
     {
       "bytes": 8553,

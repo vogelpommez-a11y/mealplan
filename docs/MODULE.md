@@ -327,16 +327,16 @@ _keine_
 | data/cookbook.js | 569 | 52083 |
 | data/foods.js | 244 | 17334 |
 | data/ikonen.js | 168 | 19442 |
-| data/rechtstexte.js | 165 | 28069 |
-| docs/ABDECKUNG.md | 187 | 11305 |
+| data/rechtstexte.js | 169 | 28482 |
+| docs/ABDECKUNG.md | 188 | 11686 |
 | docs/ARCHITECTURES.md | 3163 | 199989 |
 | docs/DESIGN.md | 1085 | 57924 |
 | docs/MODULE.md | — | — (erzeugt) |
 | docs/PRODUCT.md | 1729 | 98422 |
-| docs/RUNBOOK.md | 167 | 5665 |
-| docs/SECURITY.md | 454 | 26176 |
+| docs/RUNBOOK.md | 198 | 7123 |
+| docs/SECURITY.md | 515 | 30573 |
 | docs/STORE.md | 397 | 20898 |
-| docs/TESTING.md | 4766 | 283659 |
+| docs/TESTING.md | 4835 | 287505 |
 | docs/TROUBLESHOOTING.md | 6446 | 374096 |
 | docs/module-index.json | — | — (erzeugt) |
 | firestore.rules | 443 | 25570 |
@@ -428,7 +428,7 @@ _keine_
 | img/waffle.webp | — | 52546 |
 | img/wrap.webp | — | 43594 |
 | img/wurst.webp | — | 54064 |
-| index.html | 14607 | 900597 |
+| index.html | 14607 | 900582 |
 | lib/barcode.js | 163 | 9247 |
 | lib/basis.js | 21 | 836 |
 | lib/pdf.js | 241 | 13120 |
@@ -447,6 +447,9 @@ _keine_
 | tools/bildsatz-stichworte.json | 1061 | 20704 |
 | tools/cdp.py | 261 | 11294 |
 | tools/firebase-vendor.py | 75 | 2957 |
+| tools/firestore-backup.py | 235 | 9765 |
+| tools/firestore-restore.py | 270 | 10811 |
+| tools/firestore_api.py | 284 | 12409 |
 | tools/karte.py | 605 | 24255 |
 | tools/meal-bilder.py | 473 | 24139 |
 | tools/mobilprobe-rezeptbuch.html | 146 | 8092 |
@@ -462,6 +465,7 @@ _keine_
 | tools/pruefstand-einkauf-gruppe.py | 305 | 15777 |
 | tools/pruefstand-einkaufsliste.py | 800 | 38502 |
 | tools/pruefstand-einladung-verbrauch.py | 232 | 11518 |
+| tools/pruefstand-firestore-backup.py | 611 | 27945 |
 | tools/pruefstand-grpm-zoom.py | 220 | 8553 |
 | tools/pruefstand-gruppe-aufloesen.py | 255 | 12273 |
 | tools/pruefstand-gruppe-beitritt-cache.py | 253 | 11335 |

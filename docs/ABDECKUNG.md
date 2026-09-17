@@ -90,6 +90,7 @@ merkt.
 | Dokumentation | `pfad:docs/` | `doku-waechter` | jede nicht-triviale Änderung |
 | Meal-Fotos und ihre Lizenzen | `pfad:img/` | `anwalt` (Bildrechte) | neues Bild, neue Quelle |
 | Werkzeuge und Prüfstände | `pfad:tools/` | `kvp` | neuer Prüfstand, neues Werkzeug |
+| Sicherung der Nutzerdaten | `pfad:tools/` (`firestore-backup.py`, `firestore-restore.py`, `firestore_api.py`) | `tools/pruefstand-firestore-backup.py` (Vollständigkeit, Ablageort, Rückspielung), `datenschutz-technik` (Aufbewahrung, Art. 30), `website-security` (Zugang, keine Geheimnisse auf der Platte) | neue Sammlung in Firestore, Änderung an Aufbewahrung oder Ablageort |
 | Fremdcode | `pfad:vendor/` | `lieferkette` | jede Änderung, plus regelmäßig ohne Anlass |
 | Cloudflare Worker | `pfad:worker/` | `website-security`, `datenschutz-technik` | Deploy, neue Verarbeitung |
 | Firestore-Regeln | `pfad:firestore.rules` | `website-security` | jede Regeländerung |

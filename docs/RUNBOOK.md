@@ -111,6 +111,37 @@ Token abgelaufen?
 
 ## 5. Notfälle
 
+### Daten sind verloren oder überschrieben
+
+Seit dem 17.09.2026 gibt es einen Weg zurück. **Nicht sofort zurückspielen** — erst sehen,
+was passiert ist.
+
+```powershell
+# 1. Sofort sichern, WAS JETZT DA IST. Auch ein kaputter Stand ist Beweismaterial.
+python tools/firestore-backup.py
+
+# 2. Ansehen, was ein Rückspiel täte - das ist die Voreinstellung, es schreibt nichts.
+python tools/firestore-restore.py --stand 2026-09-17-1430 --nur users/<uid>
+
+# 3. Erst wenn die Liste stimmt:
+python tools/firestore-restore.py --stand 2026-09-17-1430 --nur users/<uid> --schreiben
+```
+
+**Die Regeln dabei:**
+
+* **`--nur users/<uid>` ist der Normalfall.** Der realistische Schaden trifft ein Konto, nicht
+  die Datenbank. Alles zurückzuspielen überschreibt auch alles, was seit der Sicherung
+  entstanden ist — bei anderen Leuten.
+* **Der Trockenlauf ist keine Formalie.** Er zeigt jedes Dokument, das zurückkäme oder
+  überschrieben würde, samt der Felder, die dabei wegfallen. Wer ihn überspringt, sieht den
+  Schaden erst danach.
+* **Gelöschte Konten nicht wiederbeleben.** Wurde ein Konto auf Verlangen gelöscht, darf ein
+  Rückspiel es nicht zurückholen (`docs/DATENSCHUTZ-INTERN.md` 3a).
+* Zurückgespielt wird **nie gelöscht**: Was live steht und nicht in der Sicherung ist, bleibt.
+
+Läuft die Anmeldung nicht: `gcloud auth application-default login`. Die Sicherungen liegen in
+`Mealplan-Backups/` neben dem Projektordner, **nie im Repo**.
+
 ### Ein Schlüssel ist geleakt
 
 **Rotieren, sofort — nicht erst aufräumen.** Ein Schlüssel, der einmal irgendwo stand, ist

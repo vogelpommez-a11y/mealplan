@@ -14,7 +14,7 @@
 | 6. Bekannte Kompromisse | Was ist bewusst offen? |
 | 7. Was nicht prüfbar ist | Wo endet die lokale Prüfung — und was zuletzt in der Konsole nachgesehen wurde |
 | 8. Im Ernstfall | Was tun bei einem Leck? |
-| 9. Offene Härtung | Was bewusst noch fehlt — App Check, Backup, CSP, CI als Bremse |
+| 9. Offene Härtung | Was bewusst noch fehlt — App Check, CSP, CI als Bremse (Backup: erledigt 17.09.2026) |
 
 Dieses Dokument beschreibt das Modell. Der **Meldeweg für Lücken von außen** steht in
 `SECURITY.md` im Projektwurzelverzeichnis — das hier ist die interne Fassung.
@@ -283,6 +283,9 @@ Repo im selben Schritt nachziehen, sonst driften Vorlage und Wirklichkeit ausein
 Aufgenommen am 26.08.2026 nach der Frage „was haben wir vergessen?". Jeder Punkt ist
 nachgeprüft, nicht vermutet. Nach Gewicht sortiert.
 
+**9.2 ist seit dem 17.09.2026 erledigt** und bleibt als Abschnitt stehen, weil dort steht,
+wie die Sicherung arbeitet und wo ihre Grenze liegt. Offen sind 9.1, 9.3 und 9.4.
+
 ### 9.1 Firebase App Check fehlt — die größte inhaltliche Lücke
 
 **Kommt im ganzen Projekt nicht vor**: nicht im Code, nicht in einer Doku, in keinem Agenten.
@@ -299,16 +302,74 @@ Firebase-Konsole (reCAPTCHA im Web, App Attest unter iOS) und eine Entscheidung 
 Durchsetzung. Falsch eingerichtet **weist er echte Nutzer ab** — er gehört in eine eigene
 Sitzung mit Abnahme am echten Konto, nicht in einen Abend nebenher.
 
-### 9.2 Kein Backup der Firestore-Daten
+### 9.2 Backup der Firestore-Daten — seit dem 17.09.2026 vorhanden
 
-Art. 32 DSGVO nennt die Wiederherstellbarkeit ausdrücklich. Heute gilt: Wenn ein Fehler die
-`weekStats` oder die Rezepte eines Kontos überschreibt, **gibt es keinen Weg zurück**.
+Art. 32 DSGVO nennt die Wiederherstellbarkeit ausdrücklich. Bis zum 17.09.2026 galt: Wenn
+ein Fehler die `weekStats` oder die Rezepte eines Kontos überschreibt, **gibt es keinen Weg
+zurück**. Seitdem gibt es beide Richtungen:
 
-Geplante Firestore-Exporte setzen den **Blaze**-Tarif voraus — das hängt damit an derselben
-Entscheidung wie die Bezahlung (`docs/STORE.md`). Ein einfacherer Zwischenschritt wäre ein
-Export über `tools/cdp.py` am eigenen Konto; das deckt allerdings nur das eigene ab.
+| Werkzeug | Was es tut |
+|---|---|
+| `tools/firestore-backup.py` | sichert **alle** Sammlungen auf die lokale Platte |
+| `tools/firestore-restore.py` | spielt zurück — **Trockenlauf ist die Voreinstellung** |
+| `tools/firestore_api.py` | gemeinsamer Zugang (REST, nur Standardbibliothek) |
+| `tools/pruefstand-firestore-backup.py` | 74 Prüfungen, Gegenprobe über 7 bekannte Fehler |
 
-Steht als offener Punkt auch in `docs/DATENSCHUTZ-INTERN.md`, Abschnitt 3.
+Die **verwalteten** Firestore-Exporte von Google setzen weiterhin **Blaze** voraus und hängen
+damit an der Bezahl-Entscheidung (`docs/STORE.md`). Diese Werkzeuge brauchen ihn nicht: Sie
+lesen über die normale REST-Schnittstelle und laufen auf Spark.
+
+**Vier Festlegungen, die dabei tragen:**
+
+* **Der Ausweis ist kurzlebig.** Das Token kommt aus `gcloud auth print-access-token` und
+  lebt rund eine Stunde. Bewusst **kein** Dienstkonto-Schlüssel als Datei — der läge dauerhaft
+  auf der Platte und öffnete jedem, der ihn kopiert, sämtliche Nutzerdaten. Es bleibt bei den
+  zwei echten Geheimnissen aus Abschnitt 8.
+* **Das Ziel liegt nie im Repo.** `ziel_pruefen()` bricht ab, wenn der Zielordner innerhalb
+  des Projektordners liegt. Alles im Repo landet auf GitHub, und Gelöschtes bleibt in der
+  Historie — eine Sicherung dort wäre eine Veröffentlichung.
+  **Der Vergleich läuft über `os.path.normcase(os.path.realpath(...))`, nicht über `abspath`.**
+  Beides ist unter Windows nötig und fehlte im ersten Anlauf: NTFS ist unempfindlich gegen
+  Groß-/Kleinschreibung, ein Stringvergleich nicht (`…\PADDYS MEALPLAN\backups` wäre
+  durchgerutscht), und eine Junction kann lexikalisch außerhalb liegen und physisch in den
+  Repo-Baum zeigen. Gefunden am 17.09.2026 von `website-security`.
+* **Die Sammlungen werden erfragt, nicht aufgelistet.** `listCollectionIds` statt einer festen
+  Liste im Code: Eine neue Sammlung wäre sonst still nicht gesichert, und das Skript meldete
+  weiter Erfolg. Genau die Lücke, die `CLAUDE.md` 18b beschreibt.
+* **Die Rückspielung löscht nie.** Was live steht und nicht in der Sicherung, wird gemeldet
+  und bleibt — ein Konto, das nach der Sicherung entstanden ist, darf ein Rückspiel nicht
+  kosten. Innerhalb eines zurückgespielten Dokuments wird dagegen exakt der Stand der
+  Sicherung hergestellt, Felder inklusive.
+* **Die Sicherungsdatei ist eine Eingabe, kein Befehl.** Jeder Dokumentpfad daraus wird gegen
+  `pfad_ok()` geprüft (`firestore_api.py`), bevor irgendetwas passiert, und in `_url()`
+  zusätzlich **segmentweise kodiert**. Der Grund ist konkret: Ein Schlüssel wie
+  `users/abc/x?currentDocument.exists=false&y=` hätte den Query-String gekapert und die
+  nachgestellte `updateMask` verschluckt — **ein PATCH ohne `updateMask` ersetzt in Firestore
+  das ganze Dokument** statt einzelner Felder. Dann hätte eine Rückspielung, die der Betreiber
+  für „nur Konto X" hält, etwas anderes getroffen. Die Datei liegt zwar lokal, kann aber von
+  einem Stick kommen oder aus einem synchronisierten Ordner. Gefunden am 17.09.2026 von
+  `website-security`.
+
+**Was weiterhin fehlt:** Die Sicherung läuft **von Hand** und liegt auf **einem** Gerät. Gegen
+einen Plattenausfall oder ein verlorenes Notebook hilft sie nur so weit, wie der Ordner
+anderswo mitgesichert wird. Das ist eine bewusste Grenze, kein Versehen — eine automatische
+Ablage in einer fremden Cloud wäre ein neuer Auftragsverarbeiter.
+
+**Die Sicherung hat den Rechtstext verändert.** §10 der Datenschutzerklärung versprach
+„jederzeit selbst und *sofort unwiderruflich* löschen" — das trug mit einer bis zu 90 Tage
+alten Kopie nicht mehr. „Unwiderruflich" ist gestrichen, §10 nennt die Frist samt Grund; im
+Konto-Löschen-Dialog ebenso. Beim lokalen Profil bleibt die Formulierung, weil diese Daten nie
+in die Cloud und damit nie in eine Sicherung gelangen. Merksatz für das nächste Mal: **Ein
+Werkzeug, das nur im Betrieb läuft, kann trotzdem einen Rechtstext falsch machen** — hier hätte
+der erste echte Lauf das getan, nicht der Commit.
+
+**Was an dieser Stelle noch offen ist:** Die Sicherungsdateien liegen als **Klartext-JSON**.
+Ob das Arbeitsgerät volllaufwerkverschlüsselt ist, war am 17.09.2026 nicht feststellbar und
+steht als offener Punkt in den TOM — nicht als erledigt.
+
+Ablage, Aufbewahrung und Verzeichniseintrag: `docs/DATENSCHUTZ-INTERN.md`, Abschnitt **3a**
+(Beschreibung), **V6** in Abschnitt 2 (Art. 30) und die TOM-Tabelle in Abschnitt 3.
+Der Weg im Ernstfall: `docs/RUNBOOK.md`, Abschnitt 5.
 
 ### 9.3 Die CI ist eine Meldung, keine Bremse
 

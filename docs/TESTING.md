@@ -727,6 +727,75 @@ Stelle neu hinzugekommen.
 
 ---
 
+## 2h. Prüfstand mit nachgebautem Transport — `pruefstand-firestore-backup.py`
+
+Für Code, der mit einem **fremden Dienst** spricht. Hier: Sicherung und Rückspielung der
+Firestore-Daten (17.09.2026).
+
+### Das Problem
+
+Die Sicherung ist die einzige Funktion im Projekt, deren Fehler man erst am Tag des
+Datenverlusts bemerkt. Sie meldet jahrelang „gesichert" — und dann fehlt die Hälfte. Gegen die
+echte Datenbank zu testen, verbietet sich doppelt: Proben gehören nie an die Cloud echter
+Nutzer (siehe *Cloud-Falle*), und ein Test, der Rückspielung übt, würde dort schreiben.
+
+### Die Lösung: genau eine Stelle ersetzen
+
+`firestore_api.Zugang` hat den gesamten Netzverkehr in **einer** Methode, `roh()`. Der
+Prüfstand leitet eine Klasse ab, überschreibt nur diese Methode und beantwortet die Aufrufe
+aus einem Dict.
+
+**Das ist kein Nachbau der Logik** (den verbietet `CLAUDE.md` Abschnitt 11): Pfadbildung,
+Blättern, Rekursion über Unterkollektionen, `updateMask`, Vergleich und Schreibplan sind der
+echte Code und laufen unverändert. Ersetzt ist nur die Leitung nach draußen.
+
+Die Seitengröße des Nachbaus steht bewusst auf **2**. Damit läuft das Blättern in *jedem*
+Lauf durch und nicht erst, wenn jemand mehr als 300 Dokumente hat.
+
+### Was geprüft wird (74 Prüfungen)
+
+| Bereich | Kernfrage |
+|---|---|
+| Vollständigkeit | Kommen Unterkollektionen mit? Wird über Seitengrenzen geblättert? |
+| Neue Sammlung | Taucht eine Sammlung auf, die es beim Bau des Skripts nicht gab — wird sie gesichert? |
+| Rohformat | Bleibt `integerValue` eine Ganzzahl, statt zu 7.0 zu werden? |
+| Ablageort | Wird ein Ziel **im Repo** abgelehnt — auch in anderer Schreibweise oder über `..`? Ein Nachbarordner mit gleichem Namensanfang aber nicht? |
+| Pfad als Eingabe | Werden präparierte Dokumentpfade aus der Sicherungsdatei abgewiesen (`?`, `#`, `..`, Prozentkodierung, ungerade Segmentzahl)? |
+| Aufbewahrung | Ist nach dem Aufräumen **kein** Stand älter als die Frist — außer dem jüngsten? |
+| Trockenlauf | Ist nach einem Trockenlauf wirklich **kein** Schreibvorgang passiert? |
+| Rückspielung | Kommt der Stand exakt zurück — und bleibt liegen, was nur live existiert? |
+
+### Gegenprobe: sieben Fassungen, die durchfallen müssen
+
+`--gegenprobe` baut sieben bekannte Fehler nach und verlangt, dass der Prüfstand jeden bemerkt:
+
+1. eine Fassung, die **Unterkollektionen überspringt** — der klassische Backup-Fehler: sieht
+   vollständig aus, sichert die halbe App (5 statt 11 Dokumente);
+2. eine Fassung mit **fest verdrahteter Sammlungsliste** — sie kennt die Sammlung von morgen
+   nicht (`CLAUDE.md` 18b);
+3. eine Rückspielung, die **Extras mitlöscht** — Konten, die nach der Sicherung entstanden sind;
+4. ein **Ziel im Repo**, das durchgelassen wird;
+5. die **alte Pfadprüfung mit `abspath`** — sie fällt über die Groß-/Kleinschreibung, die neue
+   mit `realpath`+`normcase` nicht;
+6. die **alte Aufbewahrung** (jüngste zehn Stände unabhängig vom Alter) — sie ließ im
+   nachgestellten Fall 9 Stände über der 90-Tage-Frist stehen;
+7. ein **präparierter Dokumentpfad** aus der Sicherungsdatei.
+
+Die Nummern 5 bis 7 sind am 17.09.2026 dazugekommen: Es sind genau die Fehler, die in der
+ersten Fassung **wirklich drin waren** und die `website-security` und `datenschutz-technik`
+gefunden haben. Eine Gegenprobe gegen einen ausgedachten Fehler ist schwächer als eine gegen
+den, der tatsächlich passiert ist.
+
+Stand 17.09.2026: 74 grün, Gegenprobe 7 von 7.
+
+### Was dieser Prüfstand NICHT beweist
+
+Dass die echte Schnittstelle sich so verhält wie der Nachbau. Er prüft die **Zusagen der
+eigenen Werkzeuge**, nicht Googles API. Den Rest beweist nur ein echter Lauf mit `gcloud` —
+der gehört einmalig zur Inbetriebnahme und ist in `docs/RUNBOOK.md` Abschnitt 5 beschrieben.
+
+---
+
 ## 3. Ergebnisfortschritt
 
 Tests sollen nach jedem relevanten Schritt ein Ergebnis ausgeben.
