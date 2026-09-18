@@ -47,6 +47,7 @@ def schnitt(sig, tiefe=2):
 
 
 AUFLOESEN = schnitt("  async function dissolveGroupFirestore(")
+GRUPPE_AUFLOESEN = schnitt("  async function dissolveGroup(")
 
 # Sicherung gegen einen stillen Fehlschnitt.
 SPERRE = "      await window.CloudGroup.lock(gid);"
@@ -61,6 +62,16 @@ if 'lock: function (gid) { return updateDoc(groupDoc(gid), { status: "dissolving
 AUFLOESEN_ALT = AUFLOESEN.replace(SPERRE, "      /* ohne Sperre */")
 AUFLOESEN_ALT = AUFLOESEN_ALT.replace("async function dissolveGroupFirestore(",
                                       "async function dissolveGroupFirestoreALT(")
+
+# Gegenprobe zum Fehlerfall: die Fassung vor dem 18.09.2026 - der catch war leer, der
+# Inhaber ging trotzdem und liess eine gesperrte Gruppe ohne Inhaber zurueck.
+if "window.CloudGroup.unlock(gid)" not in GRUPPE_AUFLOESEN or "      return;" not in GRUPPE_AUFLOESEN:
+    raise SystemExit("dissolveGroup() nimmt die Sperre nicht zurueck oder bleibt nicht - Schnitt pruefen")
+_a = GRUPPE_AUFLOESEN.index("    } catch (e) {")
+_b = GRUPPE_AUFLOESEN.index("    await leaveGroup(keep);")
+GRUPPE_AUFLOESEN_ALT = (GRUPPE_AUFLOESEN[:_a] + "    } catch (e) {\n    }\n" + GRUPPE_AUFLOESEN[_b:])
+GRUPPE_AUFLOESEN_ALT = GRUPPE_AUFLOESEN_ALT.replace("async function dissolveGroup(",
+                                                    "async function dissolveGroupALT(")
 
 # Die Regeln: nur Textpruefung, siehe Kopf. Drei Stellen muessen gesperrt sein.
 regeln = io.open(REGELN, encoding="utf-8").read()
@@ -92,6 +103,10 @@ var REGEL_BEFUND = __REGEL_BEFUND__;
 // ---- Randstuecke ----
 var state = {}, schritte = [];
 function noteError(k, e) {}
+var syncGid = "g1", syncUid = "ich", toasts = [], verlassen = 0, batchFehler = null;
+function toast(t) { toasts.push(t); }
+function snapshotOwnData() { return {}; }
+function leaveGroup(keep) { verlassen++; return Promise.resolve(); }
 
 // ---- Der Server: eine Gruppe mit Unterkollektionen ----
 var server, sperreFehler, zwischenrufer;
@@ -105,6 +120,7 @@ function frisch() {
   };
   state = { inviteCodes: ["c1"] };
   schritte = []; sperreFehler = null; zwischenrufer = true;
+  toasts = []; verlassen = 0; batchFehler = null;
 }
 // Nachbau der Regel nichtGesperrt(): Schreiben in eine gesperrte (oder geloeschte) Gruppe
 // wird abgelehnt. Mehr ist an den Regeln hier nicht nachgebaut.
@@ -121,6 +137,11 @@ window.CloudGroup = {
     server.gruppe.status = "dissolving";
     return Promise.resolve();
   },
+  unlock: function (gid) {
+    schritte.push("entsperren");
+    if (server.gruppe) server.gruppe.status = "active";
+    return Promise.resolve();
+  },
   fetchMembers: function (gid) {
     schritte.push("listen");
     return Promise.resolve({ members: Object.keys(server.members).map(function (u) { return { uid: u }; }) });
@@ -133,6 +154,7 @@ window.CloudGroup = {
   },
   dissolve: function (gid, uids, wochen, ids) {
     schritte.push("loeschen");
+    if (batchFehler) return Promise.reject(batchFehler);
     uids.forEach(function (u) { delete server.members[u]; });
     wochen.forEach(function (w) { delete server.plans[w]; });
     ids.forEach(function (i) { delete server.recipes[i]; });
@@ -153,6 +175,8 @@ function reste() {
 
 __AUFLOESEN__
 __AUFLOESEN_ALT__
+__GRUPPE__
+__GRUPPE_ALT__
 
 (function () {
   pruef("die Regeln sperren plans, recipes und den Beitritt (nur Text, s. Kopf)", REGEL_BEFUND, []);
@@ -192,6 +216,35 @@ __AUFLOESEN_ALT__
     pruef("bei not-found wird trotzdem aufgeraeumt", ergebnis, "durch");
     pruef("und es bleibt nichts zurueck", reste(), []);
 
+    // ================= 5. Der Loesch-Batch scheitert NACH der Sperre =================
+    // Ziffer 10: keine Gruppe ohne Inhaber. Der Inhaber bleibt, die Sperre geht zurueck.
+    frisch();
+    zwischenrufer = false;
+    batchFehler = { code: "unavailable" };
+    return dissolveGroup();
+  }).then(function () {
+    pruef("scheitert der Batch, wird die Sperre zurueckgenommen", schritte, ["sperren", "listen", "loeschen", "entsperren"]);
+    pruef("die Gruppe ist wieder nutzbar", server.gruppe && server.gruppe.status, "active");
+    pruef("der Inhaber bleibt in der Gruppe", verlassen, 0);
+    pruef("und bekommt einen freundlichen Hinweis", toasts, ["Das Auflösen hat nicht geklappt – versuch es gleich noch einmal."]);
+
+    // Gegenprobe: die alte Fassung ging trotzdem.
+    frisch();
+    zwischenrufer = false;
+    batchFehler = { code: "unavailable" };
+    return dissolveGroupALT();
+  }).then(function () {
+    pruef("GEGENPROBE: die alte Fassung verlaesst eine gesperrte Gruppe",
+      verlassen === 1 && server.gruppe && server.gruppe.status === "dissolving", true);
+
+    // ================= 6. Der Normalfall =================
+    frisch();
+    zwischenrufer = false;
+    return dissolveGroup();
+  }).then(function () {
+    pruef("gelingt das Aufloesen, verlaesst der Inhaber die Gruppe wie bisher", verlassen, 1);
+    pruef("ohne Fehlermeldung", toasts, []);
+
     LOG.push("");
     LOG.push(bad ? ("FEHLGESCHLAGEN: " + bad + " von " + (ok + bad)) : ("ALLE " + ok + " PRUEFUNGEN GRUEN"));
     document.getElementById("log").textContent = LOG.join("\\n");
@@ -203,6 +256,8 @@ __AUFLOESEN_ALT__
 import json
 seite = (seite.replace("__REGEL_BEFUND__", json.dumps(regel_befund))
               .replace("__AUFLOESEN_ALT__", AUFLOESEN_ALT)
+              .replace("__GRUPPE_ALT__", GRUPPE_AUFLOESEN_ALT)
+              .replace("__GRUPPE__", GRUPPE_AUFLOESEN)
               .replace("__AUFLOESEN__", AUFLOESEN))
 io.open(ZIEL, "w", encoding="utf-8").write(seite)
 print("geschrieben: " + ZIEL)

@@ -6518,6 +6518,14 @@ wäre ein Rest.
 auch mit den alten Regeln, weil der Inhaber `status` schon immer ändern durfte. Die Lücke ist erst
 zu, wenn die Regeln **in der Konsole veröffentlicht** sind.
 
+**Nachtrag, gefunden von `anwalt` im `/pushcheck`:** Scheiterte der Lösch-Batch, verließ der
+Inhaber die Gruppe trotzdem, wie schon vor der Sperre. Zurück blieb eine Gruppe **ohne
+Inhaber**, die jetzt zudem gesperrt war: Die übrigen konnten nicht mehr planen, und niemand
+konnte sie je auflösen. Ziffer 10 verspricht, dass „keine Gruppe ohne Inhaber zurückbleibt“.
+Jetzt nimmt `dissolveGroup()` die Sperre zurück (`CloudGroup.unlock()`), der Inhaber bleibt und
+wird um einen neuen Versuch gebeten. `unlock()` läuft ohne `await`, weil ein Firestore-Schreibvorgang
+offline erst mit der Serverbestätigung auflöst und der Dialog sonst hinge.
+
 Prüfstand: `tools/pruefstand-gruppe-sperre.py`.
 
 > **Wer erst listet und dann löscht, löscht die Liste — nicht die Sammlung. Erst die Tür

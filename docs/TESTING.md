@@ -2351,8 +2351,10 @@ dieselbe Firestore-Datenbank.
 
 ## Eine Regel als Attrappe: die Auflösesperre (18.09.2026)
 
-`tools/pruefstand-gruppe-sperre.py` — 12 Prüfungen für `TROUBLESHOOTING.md` §171. Er schneidet
-`dissolveGroupFirestore()` im Original aus. Die Attrappe schreibt als „Mitglied“ genau **nach**
+`tools/pruefstand-gruppe-sperre.py` — 19 Prüfungen für `TROUBLESHOOTING.md` §171. Er schneidet
+`dissolveGroupFirestore()` und `dissolveGroup()` im Original aus. Der zweite Teil prüft den
+Fehlerfall: Scheitert der Batch, wird entsperrt, und der Inhaber bleibt. Die Gegenprobe ist die
+alte Fassung mit leerem `catch`, die trotzdem ging. Die Attrappe schreibt als „Mitglied“ genau **nach**
 dem Listen einen Plan und bildet dabei nur eine Regel nach: `nichtGesperrt()`. Das ist der einzige
 nachgebaute Teil.
 

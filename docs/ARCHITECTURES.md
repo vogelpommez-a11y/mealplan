@@ -741,9 +741,10 @@ ohne Elterndokument liegen bleiben (`docs/TROUBLESHOOTING.md` §171).
 
 * Scheitert die Sperre, bricht das Auflösen ab, bevor etwas gelöscht wird. Ausnahme ist
   `not-found`: Ohne Gruppendokument kann niemand mehr schreiben, aufgeräumt wird trotzdem.
-* Scheitert der Batch **nach** der Sperre, verlässt der Inhaber die Gruppe wie bisher. Die
-  übrigen Mitglieder sitzen dann in einer gesperrten Gruppe und können nicht mehr planen.
-  Das ist gewollt: Der Inhaber wollte auflösen.
+* Scheitert das Auflösen, nimmt `dissolveGroup()` die Sperre zurück (`CloudGroup.unlock()`,
+  `status: "active"`, bewusst ohne `await`), der Inhaber **bleibt** in der Gruppe und bekommt
+  „Das Auflösen hat nicht geklappt – versuch es gleich noch einmal.“ Bis zum 18.09.2026 ging er
+  trotzdem und ließ eine Gruppe ohne Inhaber zurück, entgegen Ziffer 10.
 * Löschen bleibt in einer gesperrten Gruppe erlaubt. Die Sperre verhindert nur Neues.
 
 ### Migration

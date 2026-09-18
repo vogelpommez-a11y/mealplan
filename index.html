@@ -643,6 +643,8 @@
         // wird gelistet und geloescht - sonst bliebe, was ein Mitglied in der Sekunde
         // dazwischen schreibt, ohne Elterndokument liegen (TROUBLESHOOTING §171).
         lock: function (gid) { return updateDoc(groupDoc(gid), { status: "dissolving" }); },
+        // Gegenstueck, wenn das Aufloesen scheitert: Die Gruppe soll danach wieder nutzbar sein.
+        unlock: function (gid) { return updateDoc(groupDoc(gid), { status: "active" }); },
         remove: function (gid) { return deleteDoc(groupDoc(gid)); },
         // Vollstaendiges Aufloesen: Gruppendokument + ALLE Mitglieder + ALLE Wochenplaene +
         // ALLE Meals in einem Batch. Firestore loescht Unterkollektionen NIE automatisch mit dem
@@ -13887,9 +13889,19 @@
     try {
       await dissolveGroupFirestore(gid);
     } catch (e) {
-      // Batch schlug fehl (z. B. offline) - lieber lokal trotzdem aufraeumen, statt den Nutzer
-      // in einer Gruppe festzuhalten, die er gerade aufloesen wollte. Auf dem Server bleibt sie
-      // dann zwar bestehen, leaveGroup() unten entfernt zumindest den eigenen Zugriff.
+      // Bis zum 18.09.2026 ging der Inhaber hier trotzdem - zurueck blieb eine Gruppe OHNE
+      // Inhaber, seit der Aufloesesperre zudem gesperrt: die uebrigen Mitglieder konnten
+      // nicht mehr planen, und niemand konnte sie je aufloesen. Ziffer 10 sagt das Gegenteil
+      // zu ("damit keine Gruppe ohne Inhaber zurueckbleibt"). Deshalb: Sperre zuruecknehmen,
+      // in der Gruppe bleiben, erneut versuchen lassen (TROUBLESHOOTING §171).
+      // Bis zum Loesch-Batch ist nichts geloescht - der lokale Stand ist unberuehrt.
+      // unlock() bewusst OHNE await: Offline loest ein Firestore-Schreibvorgang erst mit der
+      // Serverbestaetigung auf, der Dialog haenge sonst. Die Warteschlange behaelt die
+      // Reihenfolge - eine noch ausstehende Sperre wird danach wieder aufgehoben.
+      noteError("group:dissolve", e);
+      window.CloudGroup.unlock(gid).catch(e2 => noteError("group:unlock", e2));
+      toast("Das Auflösen hat nicht geklappt – versuch es gleich noch einmal.");
+      return;
     }
     await leaveGroup(keep);
   }
