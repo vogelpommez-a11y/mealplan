@@ -6516,7 +6516,10 @@ wäre ein Rest.
 
 **Die Reihenfolge beim Ausrollen ist egal, der Schutz aber nicht:** Der Client-Teil funktioniert
 auch mit den alten Regeln, weil der Inhaber `status` schon immer ändern durfte. Die Lücke ist erst
-zu, wenn die Regeln **in der Konsole veröffentlicht** sind.
+zu, wenn die Regeln **in der Konsole veröffentlicht** sind. Das ist am 18.09.2026 geschehen,
+gezielt an den vier Stellen im Live-Text. Denn der Live-Stand wich von der Vorlage im Repo ab
+(433 statt 442 Zeilen, Kopfkommentar noch vom 15.08.2026), hätte man die ganze Datei
+eingefügt, wäre das eine ungeprüfte Ersetzung gewesen.
 
 **Nachtrag, gefunden von `anwalt` im `/pushcheck`:** Scheiterte der Lösch-Batch, verließ der
 Inhaber die Gruppe trotzdem, wie schon vor der Sperre. Zurück blieb eine Gruppe **ohne

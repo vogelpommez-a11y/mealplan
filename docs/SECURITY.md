@@ -111,7 +111,7 @@ Deshalb steht heute überall dort, wo eine unerratbare ID der Schutz ist, ausdr�
 - **Mitgliederlimit**: `maxMitglieder() = 4`, geprüft über `memberCount`.
 - **Auflösesperre**: `nichtGesperrt()` lehnt Schreiben in `plans`/`recipes` und Beitritte ab,
   sobald `status == "dissolving"`. Ohne sie blieben Reste ohne Elterndokument liegen
-  (`docs/TROUBLESHOOTING.md` §171). Wirkt erst, wenn die Regeln in der Konsole veröffentlicht sind.
+  (`docs/TROUBLESHOOTING.md` §171). In der Konsole veröffentlicht am 18.09.2026.
 - **Pro-Gating**: `hasPro()` und `groupOwnerHasPro()`. Cloud-Sync ist ausdrücklich gratis;
   Pro trägt nur das **Gründen** einer Gruppe — der Inhaber zahlt, das Beitreten ist frei.
 - **UID-Bindung beim Erstellen**: `create` nur mit der eigenen `uid`, damit niemand
