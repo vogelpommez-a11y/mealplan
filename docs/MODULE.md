@@ -333,11 +333,11 @@ _keine_
 | docs/DESIGN.md | 1085 | 57924 |
 | docs/MODULE.md | — | — (erzeugt) |
 | docs/PRODUCT.md | 1729 | 98422 |
-| docs/RUNBOOK.md | 198 | 7123 |
+| docs/RUNBOOK.md | 209 | 7907 |
 | docs/SECURITY.md | 515 | 30573 |
 | docs/STORE.md | 397 | 20898 |
-| docs/TESTING.md | 4835 | 287505 |
-| docs/TROUBLESHOOTING.md | 6446 | 374096 |
+| docs/TESTING.md | 4842 | 288080 |
+| docs/TROUBLESHOOTING.md | 6500 | 377779 |
 | docs/module-index.json | — | — (erzeugt) |
 | firestore.rules | 443 | 25570 |
 | img/apple-touch-icon.png | — | 35163 |
@@ -447,9 +447,9 @@ _keine_
 | tools/bildsatz-stichworte.json | 1061 | 20704 |
 | tools/cdp.py | 261 | 11294 |
 | tools/firebase-vendor.py | 75 | 2957 |
-| tools/firestore-backup.py | 235 | 9765 |
+| tools/firestore-backup.py | 258 | 10777 |
 | tools/firestore-restore.py | 270 | 10811 |
-| tools/firestore_api.py | 284 | 12409 |
+| tools/firestore_api.py | 311 | 13954 |
 | tools/karte.py | 605 | 24255 |
 | tools/meal-bilder.py | 473 | 24139 |
 | tools/mobilprobe-rezeptbuch.html | 146 | 8092 |
@@ -465,7 +465,7 @@ _keine_
 | tools/pruefstand-einkauf-gruppe.py | 305 | 15777 |
 | tools/pruefstand-einkaufsliste.py | 800 | 38502 |
 | tools/pruefstand-einladung-verbrauch.py | 232 | 11518 |
-| tools/pruefstand-firestore-backup.py | 611 | 27945 |
+| tools/pruefstand-firestore-backup.py | 686 | 31525 |
 | tools/pruefstand-grpm-zoom.py | 220 | 8553 |
 | tools/pruefstand-gruppe-aufloesen.py | 255 | 12273 |
 | tools/pruefstand-gruppe-beitritt-cache.py | 253 | 11335 |

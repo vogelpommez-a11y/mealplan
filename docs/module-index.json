@@ -1300,9 +1300,9 @@
       "zeilen": 1729
     },
     {
-      "bytes": 7123,
+      "bytes": 7907,
       "pfad": "docs/RUNBOOK.md",
-      "zeilen": 198
+      "zeilen": 209
     },
     {
       "bytes": 30573,
@@ -1315,14 +1315,14 @@
       "zeilen": 397
     },
     {
-      "bytes": 287505,
+      "bytes": 288080,
       "pfad": "docs/TESTING.md",
-      "zeilen": 4835
+      "zeilen": 4842
     },
     {
-      "bytes": 374096,
+      "bytes": 377779,
       "pfad": "docs/TROUBLESHOOTING.md",
-      "zeilen": 6446
+      "zeilen": 6500
     },
     {
       "erzeugt": true,
@@ -1783,9 +1783,9 @@
       "zeilen": 75
     },
     {
-      "bytes": 9765,
+      "bytes": 10777,
       "pfad": "tools/firestore-backup.py",
-      "zeilen": 235
+      "zeilen": 258
     },
     {
       "bytes": 10811,
@@ -1793,9 +1793,9 @@
       "zeilen": 270
     },
     {
-      "bytes": 12409,
+      "bytes": 13954,
       "pfad": "tools/firestore_api.py",
-      "zeilen": 284
+      "zeilen": 311
     },
     {
       "bytes": 24255,
@@ -1873,9 +1873,9 @@
       "zeilen": 232
     },
     {
-      "bytes": 27945,
+      "bytes": 31525,
       "pfad": "tools/pruefstand-firestore-backup.py",
-      "zeilen": 611
+      "zeilen": 686
     },
     {
       "bytes": 8553,

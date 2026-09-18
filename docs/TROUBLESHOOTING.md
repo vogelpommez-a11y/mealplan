@@ -6,7 +6,7 @@ Dieses Dokument enthält bekannte Fehlerquellen, historische Bugs und Probleme, 
 
 <!-- REGISTER-ANFANG (erzeugt aus den Ueberschriften, nicht von Hand pflegen) -->
 
-**Register — 144.** Chronologisch gewachsen: je hoeher die Nummer,
+**Register — 170.** Chronologisch gewachsen: je hoeher die Nummer,
 desto juenger der Fund. Wer eine Falle sucht, sucht hier zuerst; die Ueberschrift sagt
 jeweils, worum es geht. **Nicht die ganze Datei lesen** — sie ist rund 310 KB gross.
 
@@ -157,6 +157,31 @@ jeweils, worum es geht. **Nicht die ganze Datei lesen** — sie ist rund 310 KB 
 | 143 | Die Zutat ohne Menge — und die drei Stellen, an denen sie schiefging |
 | 144 | Die Karte schneidet ab, statt überzulaufen — und der Layout-Prüfstand sieht nichts |
 | 145 | Ein Knoten, der den Neuaufbau überlebt, sammelt Animationsschleifen |
+| 146 | Eine Kennzahl verschwindet mit ihrem Container — und kein Prüfstand merkt es |
+| 147 | Die Vorschau zeigt ein leeres Konto und den Stand von gestern |
+| 148 | „Verlauf verwalten" hat nur einen Aufrufer — und der steht im falschen Zustand |
+| 149 | Die Zeile über dem Gitter sagt „kein geplanter Tag", während der Fuß vier zählt |
+| 150 | Eine Probe im angemeldeten Browserprofil schreibt in ein echtes Konto |
+| 151 | Ein Feld, das nur noch sich selbst sortiert |
+| 152 | `100vh` ist auf dem Handy nicht die Höhe, die man sieht |
+| 153 | `min-height: 0` macht `min-content` wertlos — und damit den Notausgang |
+| 154 | `overflow: hidden` schneidet ab, wo man Scrollen erwartet |
+| 155 | Der Abstand einer fixierten Leiste ist eine Untergrenze, kein Sparposten |
+| 156 | Ein Flex-Item mit Auto-Margin wird nicht gestreckt — die Breite kam vom längsten Text |
+| 157 | Der gemeldete Verdacht war falsch — nicht die Zahl stand über, das Wort |
+| 158 | Eine Karte namens „Als Nächstes“, die rückwärts zeigte |
+| 159 | Der Bilddeckel, der einen ganzen Tag lang auf morgen zeigte |
+| 160 | Der leere Filter, der ohne Konto alles fremd machte |
+| 161 | Das Logo, das seit der Dateiaufteilung nirgends mehr geladen wurde |
+| 162 | Das Token, das genau für diesen Fall angelegt und nie benutzt wurde |
+| 163 | Die Zutat, die ans Listenende rutschte, weil der Finger stillhielt |
+| 164 | `requestAnimationFrame` feuert unter `--headless=new` genau einmal |
+| 165 | Die Karte fiel in den Slot, den sie nur überquerte |
+| 166 | Der Scan, nach dem gar nichts kam — der Sucher räumte die Zeile weg, die er füllen sollte |
+| 167 | „Suche nicht möglich (offline?)" — bei bester Verbindung |
+| 168 | Der Scan starb am Fingertipp — die Rettung kam einen Task zu spät |
+| 169 | Der Prüfstand, der 345 Fehler erfand — und die drei echten fast verdeckte |
+| 170 | Die Sicherung sah nicht, was unter einem gelöschten Dokument hing |
 
 <!-- REGISTER-ENDE -->
 
