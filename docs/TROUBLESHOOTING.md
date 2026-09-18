@@ -6443,3 +6443,32 @@ je bemerkt.
 > Die Absicherung gegen stilles Raten hat sich in dem Moment bezahlt gemacht, in dem sie
 > eingebaut wurde. Das ist kein Zufall, sondern das Muster: **Was still raten darf, rät
 > irgendwann falsch.**
+
+## 170. Die Sicherung sah nicht, was unter einem gelöschten Dokument hing
+
+**18.09.2026.** `Zugang.alles()` in `tools/firestore_api.py` stieg nur unter den Dokumenten ab,
+die das Auflisten einer Sammlung liefert. Firestore listet ein Dokument, das es **nicht** gibt,
+aber normalerweise gar nicht — auch dann nicht, wenn darunter noch Unterkollektionen hängen.
+Alles darunter wäre nie gesichert worden, und das Skript hätte trotzdem Erfolg gemeldet.
+
+In dieser App entsteht so ein Fall nur als **Rest einer Löschung**: Konto löschen und
+`CloudGroup.dissolve()` löschen zuerst die Unterdokumente, die sie vorher geladen haben, und
+dann das Elterndokument. Schreibt ein zweites Gerät genau dazwischen, bleibt sein Dokument
+ohne Elterndokument stehen. (`CloudGroup.remove()` würde das immer tun, wird aber nirgends
+aufgerufen.)
+
+**Behoben:** `alles()` listet mit `showMissing=true`. Fehlende Elterndokumente erkennt es am
+fehlenden `createTime`. Was darunter hängt, wird **nicht gesichert**, sondern in
+`Zugang.verwaist` gesammelt und von `firestore-backup.py` laut gemeldet. Im Manifest stehen
+dazu nur Muster und Anzahl, keine IDs. Nicht gesichert wird es, weil diese Daten nach Ziffer 10
+der Datenschutzerklärung längst gelöscht sein müssten. Eine Sicherung würde sie nur weitere
+90 Tage aufbewahren.
+
+**Stand der echten Datenbank am 18.09.2026:** kein einziger Rest (500 Dokumente, 0 verwaist).
+
+Prüfstand: `tools/pruefstand-firestore-backup.py`, Abschnitt 2b, Gegenprobe (h). Zusätzlich
+lief der neue Prüfstand gegen das echte alte `firestore_api.py`: Die drei neuen Prüfungen
+fielen durch.
+
+> **Eine Sicherung, die nur sieht, was die Liste zeigt, sichert die Liste — nicht die
+> Datenbank.**

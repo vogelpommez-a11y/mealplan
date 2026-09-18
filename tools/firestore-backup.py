@@ -156,6 +156,15 @@ def alte_raeumen(basis, behalten_tage=BEHALTEN_TAGE, mindestens=MINDESTENS_STAEN
     return weg
 
 
+def verwaiste_muster(pfade):
+    u"""{'users/{id}/recipes/{id}': 3, ...} - wie viele Reste liegen wo?"""
+    raus = {}
+    for p in pfade:
+        m = fs.Zugang.muster(p)
+        raus[m] = raus.get(m, 0) + 1
+    return raus
+
+
 def sichere(zugang, ziel, jetzt=None, melder=None):
     u"""Holt alles und schreibt es. Liefert das Manifest."""
     melder = melder or (lambda t: None)
@@ -188,6 +197,8 @@ def sichere(zugang, ziel, jetzt=None, melder=None):
         "erstellt": begonnen.strftime("%Y-%m-%d %H:%M:%S"),
         "dokumente": len(alles),
         "sammlungen": {s: len(teile[s]) for s in sorted(teile)},
+        # Nur Muster und Anzahl, keine IDs - die Pfade selbst nennt die Meldung in main().
+        "verwaist": verwaiste_muster(zugang.verwaist),
         "werkzeug": "tools/firestore-backup.py",
         "format": "Firestore-Rohformat (fields), verlustfrei zurueckschreibbar",
     }
@@ -216,6 +227,18 @@ def main():
     for s in sorted(manifest["sammlungen"]):
         print(u"  %-16s %4d" % (s, manifest["sammlungen"][s]))
     print(u"Ordner:    %s" % manifest["ordner"])
+
+    if manifest["verwaist"]:
+        print(u"")
+        print(u"ACHTUNG: %d Dokument(e) unter einem Elterndokument, das es nicht mehr gibt."
+              % sum(manifest["verwaist"].values()))
+        print(u"Das sind Reste einer Loeschung (Konto oder Gruppe). Sie sind NICHT gesichert -")
+        print(u"und muessten laut Datenschutzerklaerung Ziffer 10 laengst weg sein:")
+        for m in sorted(manifest["verwaist"]):
+            print(u"  %-32s %4d" % (m, manifest["verwaist"][m]))
+        print(u"Zum Pruefen und Loeschen in der Firebase-Konsole (docs/RUNBOOK.md):")
+        for p in zugang.verwaist:
+            print(u"  %s" % p)
 
     weg = alte_raeumen(ziel_pruefen(ziel), behalten_tage=behalten)
     if weg:

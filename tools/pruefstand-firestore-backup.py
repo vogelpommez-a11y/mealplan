@@ -104,10 +104,16 @@ class FakeZugang(fs.Zugang):
         if methode == "GET":
             teile = pfad.split("/")
             if len(teile) % 2 == 1:           # ungerade -> Sammlung
-                treffer = sorted(p for p in self.daten
-                                 if p.startswith(pfad + "/")
-                                 and len(p.split("/")) == len(teile) + 1)
                 frage = urllib.parse.parse_qs(urllib.parse.urlparse(url).query)
+                # Wie Firestore: Ein Dokument, das es nicht gibt, unter dem aber noch etwas
+                # haengt, erscheint NUR mit showMissing - und dann ohne createTime.
+                tiefe = len(teile) + 1
+                treffer = set(p for p in self.daten
+                              if p.startswith(pfad + "/") and len(p.split("/")) == tiefe)
+                if frage.get("showMissing") == ["true"]:
+                    treffer |= set("/".join(p.split("/")[:tiefe]) for p in self.daten
+                                   if p.startswith(pfad + "/") and len(p.split("/")) > tiefe)
+                treffer = sorted(treffer)
                 ab = int(frage.get("pageToken", ["0"])[0])
                 stueck = treffer[ab:ab + self.SEITE]
                 antwort = {"documents": [self._doc(p) for p in stueck]}
@@ -131,8 +137,11 @@ class FakeZugang(fs.Zugang):
         raise AssertionError("unerwartete Methode %s" % methode)
 
     def _doc(self, pfad):
-        return {"name": "projects/%s/databases/(default)/documents/%s" % (self.projekt, pfad),
-                "fields": self.daten[pfad]}
+        name = "projects/%s/databases/(default)/documents/%s" % (self.projekt, pfad)
+        if pfad not in self.daten:
+            return {"name": name}
+        return {"name": name, "fields": self.daten[pfad],
+                "createTime": "2026-09-01T00:00:00Z", "updateTime": "2026-09-01T00:00:00Z"}
 
 
 def testdaten():
@@ -154,6 +163,22 @@ def testdaten():
         "entitlements/u1": {"pro": {"booleanValue": True}},
         "invites/abc": {"gid": {"stringValue": "g1"}},
     }
+
+
+# Reste einer Loeschung: Das Elterndokument ist weg, darunter haengt noch etwas. So entsteht
+# es, wenn ein zweites Geraet waehrend einer Konto- oder Gruppenloeschung schreibt.
+RESTE = ["groups/aufgeloest/plans/2026-W38",
+         "users/weg/recipes/r9",
+         "users/weg/recipes/r9/notizen/n1",
+         "users/weg/recipes/r10"]
+RESTE.sort()
+
+
+def mit_resten():
+    raus = testdaten()
+    for p in RESTE:
+        raus[p] = {"title": {"stringValue": "Rest"}}
+    return raus
 
 
 def main():
@@ -191,6 +216,22 @@ def main():
           "marketing/kampagne1" in alles2, True)
     pruef(u"eine neue Unterkollektion wird mitgesichert",
           "users/u1/notizen/n1" in alles2, True)
+
+    # ---- 2b. Reste unter einem Elter, das es nicht mehr gibt ----------------
+    print(u"")
+    print(u"-- Sichern: Reste einer Loeschung werden gemeldet, nicht gesichert --")
+    z3 = FakeZugang(mit_resten())
+    alles3 = z3.alles()
+    pruef(u"die Reste werden gefunden", z3.verwaist, RESTE)
+    pruef(u"die Reste landen NICHT in der Sicherung",
+          [p for p in RESTE if p in alles3], [])
+    pruef(u"alles Lebende kommt trotzdem vollstaendig mit", sorted(alles3), sorted(daten))
+    pruef(u"das fehlende Elterndokument selbst wird nicht erfunden",
+          "users/weg" in alles3 or "groups/aufgeloest" in alles3, False)
+    pruef(u"ohne Reste bleibt die Liste leer", z.verwaist, [])
+    pruef(u"die Meldung nennt Muster statt IDs", bk.verwaiste_muster(z3.verwaist),
+          {"groups/{id}/plans/{id}": 1, "users/{id}/recipes/{id}": 2,
+           "users/{id}/recipes/{id}/notizen/{id}": 1})
 
     # ---- 3. Rohformat: verlustfrei ----------------------------------------
     print(u"")
@@ -317,6 +358,14 @@ def main():
     try:
         manifest = bk.sichere(z, tmp, jetzt=datetime.datetime(2026, 9, 17, 14, 30))
         pruef(u"das Manifest zaehlt alle Dokumente", manifest["dokumente"], len(daten))
+        pruef(u"ohne Reste meldet das Manifest keine", manifest["verwaist"], {})
+        m3 = bk.sichere(FakeZugang(mit_resten()), tmp,
+                        jetzt=datetime.datetime(2026, 9, 17, 9, 0))
+        pruef(u"mit Resten nennt das Manifest ihre Anzahl",
+              sum(m3["verwaist"].values()), len(RESTE))
+        pruef(u"die Reste stehen in keiner Sicherungsdatei",
+              [p for p in RESTE if p in rs.lade_stand(m3["ordner"])], [])
+        shutil.rmtree(m3["ordner"])
         pruef(u"der Ordner heisst nach Datum und Uhrzeit",
               os.path.basename(manifest["ordner"]), "2026-09-17-1430")
         geschrieben = sorted(os.listdir(manifest["ordner"]))
@@ -598,9 +647,35 @@ def main():
         else:
             print(u"  ROT    ein praeparierter Dokumentpfad kaeme durch")
 
+        # (h) Die Fassung von vor dem 18.09.2026: steigt nur unter gelisteten Dokumenten ab.
+        #     Unter einem geloeschten Elter sieht sie nichts - und meldet trotzdem Erfolg.
+        class OhneFehlende(FakeZugang):
+            def alles(self, melder=None):
+                raus = {}
+
+                def ab(sammlung):
+                    for d in self.dokumente(sammlung):
+                        pfad = self.kurz(d.get("name", ""))
+                        raus[pfad] = d.get("fields", {})
+                        for unter in self.sammlungen(pfad):
+                            ab(pfad + "/" + unter)
+
+                for s in self.sammlungen():
+                    ab(s)
+                return raus
+
+        alt = OhneFehlende(mit_resten())
+        alt.alles()
+        if alt.verwaist != RESTE:
+            print(u"  GRUEN  die alte Fassung (ohne showMissing) uebersieht die Reste still")
+            print(u"         (%d statt %d gemeldet)" % (len(alt.verwaist), len(RESTE)))
+            erwischt += 1
+        else:
+            print(u"  ROT    die alte Fassung faellt NICHT auf")
+
         print(u"")
-        print(u"GEGENPROBE %d von 7 bekannten Fehlern bemerkt" % erwischt)
-        if erwischt < 7:
+        print(u"GEGENPROBE %d von 8 bekannten Fehlern bemerkt" % erwischt)
+        if erwischt < 8:
             return 2
 
     return 1 if rot[0] else 0

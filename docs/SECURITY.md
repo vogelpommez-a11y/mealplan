@@ -313,7 +313,7 @@ zurück**. Seitdem gibt es beide Richtungen:
 | `tools/firestore-backup.py` | sichert **alle** Sammlungen auf die lokale Platte |
 | `tools/firestore-restore.py` | spielt zurück — **Trockenlauf ist die Voreinstellung** |
 | `tools/firestore_api.py` | gemeinsamer Zugang (REST, nur Standardbibliothek) |
-| `tools/pruefstand-firestore-backup.py` | 74 Prüfungen, Gegenprobe über 7 bekannte Fehler |
+| `tools/pruefstand-firestore-backup.py` | 83 Prüfungen, Gegenprobe über 8 bekannte Fehler |
 
 Die **verwalteten** Firestore-Exporte von Google setzen weiterhin **Blaze** voraus und hängen
 damit an der Bezahl-Entscheidung (`docs/STORE.md`). Diese Werkzeuge brauchen ihn nicht: Sie

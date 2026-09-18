@@ -146,6 +146,13 @@ fragt das Token über `gcloud auth print-access-token` ab. Die Sicherungen liege
 Erster echter Lauf am 18.09.2026 (`2026-09-18-1515`): fünf Sammlungen, 500 Dokumente, rund
 17 MB, etwa eine Minute. Das Skript kennt kein `--help` — jeder Aufruf **sichert sofort**.
 
+**Meldet die Sicherung `ACHTUNG: … Elterndokument, das es nicht mehr gibt`:** Das sind Reste
+einer Konto- oder Gruppenlöschung, in die ein zweites Gerät hineingeschrieben hat. Sie werden
+bewusst **nicht** gesichert, und nach Ziffer 10 der Datenschutzerklärung müssten sie längst
+weg sein. Die Meldung listet die Pfade auf. Diese Pfade in der Firebase-Konsole ansehen und
+löschen. Stammen sie von einem **lebenden** Konto, ist das ein Fehler in der App und kein
+Rest (`docs/TROUBLESHOOTING.md` §170).
+
 ### Ein Schlüssel ist geleakt
 
 **Rotieren, sofort — nicht erst aufräumen.** Ein Schlüssel, der einmal irgendwo stand, ist

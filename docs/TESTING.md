@@ -752,12 +752,13 @@ echte Code und laufen unverändert. Ersetzt ist nur die Leitung nach draußen.
 Die Seitengröße des Nachbaus steht bewusst auf **2**. Damit läuft das Blättern in *jedem*
 Lauf durch und nicht erst, wenn jemand mehr als 300 Dokumente hat.
 
-### Was geprüft wird (74 Prüfungen)
+### Was geprüft wird (83 Prüfungen)
 
 | Bereich | Kernfrage |
 |---|---|
 | Vollständigkeit | Kommen Unterkollektionen mit? Wird über Seitengrenzen geblättert? |
 | Neue Sammlung | Taucht eine Sammlung auf, die es beim Bau des Skripts nicht gab — wird sie gesichert? |
+| Reste einer Löschung | Werden Dokumente unter einem **fehlenden** Elterndokument gefunden und gemeldet — aber nicht gesichert? Der Nachbau liefert sie wie Firestore nur mit `showMissing`, ohne `createTime`. |
 | Rohformat | Bleibt `integerValue` eine Ganzzahl, statt zu 7.0 zu werden? |
 | Ablageort | Wird ein Ziel **im Repo** abgelehnt — auch in anderer Schreibweise oder über `..`? Ein Nachbarordner mit gleichem Namensanfang aber nicht? |
 | Pfad als Eingabe | Werden präparierte Dokumentpfade aus der Sicherungsdatei abgewiesen (`?`, `#`, `..`, Prozentkodierung, ungerade Segmentzahl)? |
@@ -765,9 +766,9 @@ Lauf durch und nicht erst, wenn jemand mehr als 300 Dokumente hat.
 | Trockenlauf | Ist nach einem Trockenlauf wirklich **kein** Schreibvorgang passiert? |
 | Rückspielung | Kommt der Stand exakt zurück — und bleibt liegen, was nur live existiert? |
 
-### Gegenprobe: sieben Fassungen, die durchfallen müssen
+### Gegenprobe: acht Fassungen, die durchfallen müssen
 
-`--gegenprobe` baut sieben bekannte Fehler nach und verlangt, dass der Prüfstand jeden bemerkt:
+`--gegenprobe` baut acht bekannte Fehler nach und verlangt, dass der Prüfstand jeden bemerkt:
 
 1. eine Fassung, die **Unterkollektionen überspringt** — der klassische Backup-Fehler: sieht
    vollständig aus, sichert die halbe App (5 statt 11 Dokumente);
@@ -779,14 +780,20 @@ Lauf durch und nicht erst, wenn jemand mehr als 300 Dokumente hat.
    mit `realpath`+`normcase` nicht;
 6. die **alte Aufbewahrung** (jüngste zehn Stände unabhängig vom Alter) — sie ließ im
    nachgestellten Fall 9 Stände über der 90-Tage-Frist stehen;
-7. ein **präparierter Dokumentpfad** aus der Sicherungsdatei.
+7. ein **präparierter Dokumentpfad** aus der Sicherungsdatei;
+8. der **alte Abstieg ohne `showMissing`** — er übersieht alles unter einem gelöschten
+   Elterndokument und meldet trotzdem Erfolg (0 statt 4 Reste).
 
 Die Nummern 5 bis 7 sind am 17.09.2026 dazugekommen: Es sind genau die Fehler, die in der
 ersten Fassung **wirklich drin waren** und die `website-security` und `datenschutz-technik`
 gefunden haben. Eine Gegenprobe gegen einen ausgedachten Fehler ist schwächer als eine gegen
 den, der tatsächlich passiert ist.
 
-Stand 17.09.2026: 74 grün, Gegenprobe 7 von 7.
+Nummer 8 kam am 18.09.2026 dazu (`docs/TROUBLESHOOTING.md` §170). Zusätzlich lief der neue
+Prüfstand gegen das echte alte `firestore_api.py` aus Git: Drei der neuen Prüfungen fielen
+durch, wie sie sollen.
+
+Stand 18.09.2026: 83 grün, Gegenprobe 8 von 8.
 
 ### Was dieser Prüfstand NICHT beweist
 

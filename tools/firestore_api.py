@@ -113,6 +113,7 @@ class Zugang(object):
         self._token = token
         self.gelesen = 0
         self.geschrieben = 0
+        self.verwaist = []   # Dokumente unter einem Elter, das es nicht (mehr) gibt - s. alles()
 
     # -- Ausweis ---------------------------------------------------------------
     def token(self):
@@ -190,17 +191,24 @@ class Zugang(object):
                            {"pageSize": 300})
         return sorted(antwort.get("collectionIds", []))
 
-    def dokumente(self, sammlung):
-        u"""Alle Dokumente einer Sammlung, ueber alle Seiten hinweg."""
+    def dokumente(self, sammlung, auch_fehlende=False):
+        u"""Alle Dokumente einer Sammlung, ueber alle Seiten hinweg.
+
+        `auch_fehlende` liefert zusaetzlich die Dokumente, die es NICHT gibt, unter denen aber
+        noch Unterkollektionen haengen (showMissing). Sie tragen nur `name`, kein `createTime`.
+        """
         raus = []
         seite = None
         while True:
             url = self._url(sammlung) + "?pageSize=300"
+            if auch_fehlende:
+                url += "&showMissing=true"
             if seite:
                 url += "&pageToken=" + urllib.parse.quote(seite)
             antwort = self.roh("GET", url)
             for d in antwort.get("documents", []):
-                self.gelesen += 1
+                if "createTime" in d:
+                    self.gelesen += 1
                 raus.append(d)
             seite = antwort.get("nextPageToken")
             if not seite:
@@ -221,21 +229,40 @@ class Zugang(object):
         Unterkollektionen werden mitgenommen: In diesem Projekt haengen an `users/{uid}` die
         Rezepte und an `groups/{gid}` Mitglieder, Plaene und Rezepte. Wer nur die Wurzel
         sichert, sichert die halbe App.
+
+        Firestore listet ein Dokument, das nicht existiert, normalerweise gar nicht - auch
+        wenn darunter noch Unterkollektionen haengen. Wer nur ueber die gelisteten Dokumente
+        absteigt, uebersieht alles darunter und meldet trotzdem Erfolg. In dieser App entsteht
+        so etwas nur als Rest einer Loeschung (Konto, Gruppe), in die ein zweites Geraet
+        hineinschrieb. Solche Reste haetten laut Datenschutzerklaerung Ziffer 10 laengst weg
+        sein muessen - sie werden deshalb NICHT gesichert, sondern in `self.verwaist`
+        gesammelt, damit der Aufrufer sie meldet.
         """
         raus = {}
+        self.verwaist = []
 
-        def ab(sammlung):
+        def ab(sammlung, unter_fehlendem):
             if melder:
                 melder(sammlung)
-            for d in self.dokumente(sammlung):
+            for d in self.dokumente(sammlung, auch_fehlende=True):
                 pfad = self.kurz(d.get("name", ""))
-                raus[pfad] = d.get("fields", {})
+                fehlt = "createTime" not in d
+                if unter_fehlendem and not fehlt:
+                    self.verwaist.append(pfad)
+                elif not fehlt:
+                    raus[pfad] = d.get("fields", {})
                 for unter in self.sammlungen(pfad):
-                    ab(pfad + "/" + unter)
+                    ab(pfad + "/" + unter, unter_fehlendem or fehlt)
 
         for s in self.sammlungen():
-            ab(s)
+            ab(s, False)
+        self.verwaist.sort()
         return raus
+
+    @staticmethod
+    def muster(pfad):
+        u"""'users/abc/recipes/r1' -> 'users/{id}/recipes/{id}' - fuer Meldungen ohne IDs."""
+        return "/".join(t if i % 2 == 0 else "{id}" for i, t in enumerate(pfad.split("/")))
 
     # -- Schreiben -------------------------------------------------------------
     def schreibe(self, pfad, felder, auch_leeren=None):
