@@ -139,8 +139,12 @@ python tools/firestore-restore.py --stand 2026-09-17-1430 --nur users/<uid> --sc
   Rückspiel es nicht zurückholen (`docs/DATENSCHUTZ-INTERN.md` 3a).
 * Zurückgespielt wird **nie gelöscht**: Was live steht und nicht in der Sicherung ist, bleibt.
 
-Läuft die Anmeldung nicht: `gcloud auth application-default login`. Die Sicherungen liegen in
+Läuft die Anmeldung nicht: `gcloud auth login` — nicht `application-default login`, das Skript
+fragt das Token über `gcloud auth print-access-token` ab. Die Sicherungen liegen in
 `Mealplan-Backups/` neben dem Projektordner, **nie im Repo**.
+
+Erster echter Lauf am 18.09.2026 (`2026-09-18-1515`): fünf Sammlungen, 500 Dokumente, rund
+17 MB, etwa eine Minute. Das Skript kennt kein `--help` — jeder Aufruf **sichert sofort**.
 
 ### Ein Schlüssel ist geleakt
 

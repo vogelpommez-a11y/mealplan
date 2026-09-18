@@ -73,7 +73,7 @@ HILFE_ANMELDUNG = u"""
 Dafuer fehlt die Anmeldung. Einmalig einrichten:
 
     winget install Google.CloudSDK
-    gcloud auth application-default login
+    gcloud auth login
     gcloud config set project paddys-mealplan
 
 Danach laeuft dieses Skript ohne weitere Eingabe - das Token holt es sich selbst.
