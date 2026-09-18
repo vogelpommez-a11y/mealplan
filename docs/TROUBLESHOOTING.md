@@ -6,7 +6,7 @@ Dieses Dokument enthält bekannte Fehlerquellen, historische Bugs und Probleme, 
 
 <!-- REGISTER-ANFANG (erzeugt aus den Ueberschriften, nicht von Hand pflegen) -->
 
-**Register — 170.** Chronologisch gewachsen: je hoeher die Nummer,
+**Register — 171.** Chronologisch gewachsen: je hoeher die Nummer,
 desto juenger der Fund. Wer eine Falle sucht, sucht hier zuerst; die Ueberschrift sagt
 jeweils, worum es geht. **Nicht die ganze Datei lesen** — sie ist rund 310 KB gross.
 
@@ -182,6 +182,7 @@ jeweils, worum es geht. **Nicht die ganze Datei lesen** — sie ist rund 310 KB 
 | 168 | Der Scan starb am Fingertipp — die Rettung kam einen Task zu spät |
 | 169 | Der Prüfstand, der 345 Fehler erfand — und die drei echten fast verdeckte |
 | 170 | Die Sicherung sah nicht, was unter einem gelöschten Dokument hing |
+| 171 | Gruppe auflösen: Was in der Sekunde dazwischen geschrieben wurde, blieb liegen |
 
 <!-- REGISTER-ENDE -->
 
@@ -6497,3 +6498,27 @@ fielen durch.
 
 > **Eine Sicherung, die nur sieht, was die Liste zeigt, sichert die Liste — nicht die
 > Datenbank.**
+
+## 171. Gruppe auflösen: Was in der Sekunde dazwischen geschrieben wurde, blieb liegen
+
+**18.09.2026.** Gefunden von `anwalt` und `datenschutz-technik` beim `/pushcheck` zu §170.
+`dissolveGroupFirestore()` listete Mitglieder, Pläne und Meals und löschte danach **genau diese
+Liste** samt Gruppendokument. Schrieb ein Mitglied in der Sekunde dazwischen einen Plan oder ein
+Meal, stand das nicht auf der Liste. Es blieb ohne Elterndokument liegen: für niemanden mehr
+sichtbar und für niemanden mehr löschbar, denn die Regeln verlangen einen Mitgliedseintrag, und
+der war weg. Das widerspricht der Löschzusage in Ziffer 10. Ein Fehler trat dabei nicht auf.
+Live gab es bis dahin keinen einzigen Fall (§170).
+
+**Behoben:** erst sperren, dann listen, dann löschen. `CloudGroup.lock()` setzt
+`status: "dissolving"`. `nichtGesperrt()` in `firestore.rules` lehnt ab da jedes Neue unter
+`plans` und `recipes` ab, ebenso jeden Beitritt. Denn auch ein neues Mitglied in dieser Sekunde
+wäre ein Rest.
+
+**Die Reihenfolge beim Ausrollen ist egal, der Schutz aber nicht:** Der Client-Teil funktioniert
+auch mit den alten Regeln, weil der Inhaber `status` schon immer ändern durfte. Die Lücke ist erst
+zu, wenn die Regeln **in der Konsole veröffentlicht** sind.
+
+Prüfstand: `tools/pruefstand-gruppe-sperre.py`.
+
+> **Wer erst listet und dann löscht, löscht die Liste — nicht die Sammlung. Erst die Tür
+> abschließen, dann aufräumen.**

@@ -638,6 +638,11 @@
         // Beendet den Wartezustand (status:"pending" -> "active"), rein informativ - die
         // massgebliche Wahrheit fuer den Owner ist users/{uid}.pendingGroupId.
         activate: function (gid) { return updateDoc(groupDoc(gid), { status: "active" }); },
+        // Sperre vor dem Aufloesen: Solange status "dissolving" ist, lehnen die Regeln jedes
+        // neue Schreiben in plans/recipes und jeden Beitritt ab (firestore.rules). Erst danach
+        // wird gelistet und geloescht - sonst bliebe, was ein Mitglied in der Sekunde
+        // dazwischen schreibt, ohne Elterndokument liegen (TROUBLESHOOTING §171).
+        lock: function (gid) { return updateDoc(groupDoc(gid), { status: "dissolving" }); },
         remove: function (gid) { return deleteDoc(groupDoc(gid)); },
         // Vollstaendiges Aufloesen: Gruppendokument + ALLE Mitglieder + ALLE Wochenplaene +
         // ALLE Meals in einem Batch. Firestore loescht Unterkollektionen NIE automatisch mit dem
@@ -13793,6 +13798,14 @@
   // einer noch unbeigetretenen, vorbereiteten Gruppe gebraucht (withdrawPendingInvite(),
   // prepareGroup()).
   async function dissolveGroupFirestore(gid) {
+    // ZUERST sperren, dann listen. Scheitert die Sperre, bricht das Aufloesen ab - bis auf
+    // "not-found": Ohne Gruppendokument kann ohnehin niemand mehr schreiben (die Regeln
+    // lesen es fuer jede Schreibpruefung), das Aufraeumen darunter soll trotzdem laufen.
+    try {
+      await window.CloudGroup.lock(gid);
+    } catch (e) {
+      if (!(e && e.code === "not-found")) throw e;
+    }
     const [membersRes, plans, recipes] = await Promise.all([
       window.CloudGroup.fetchMembers(gid),
       window.CloudGroup.loadPlans(gid),

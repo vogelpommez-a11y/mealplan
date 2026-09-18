@@ -90,6 +90,15 @@ service cloud.firestore {
     function grpNow(gid)   { return get(grpPath(gid)).data; }
     function grpAfter(gid) { return getAfter(grpPath(gid)).data; }
 
+    // Die Gruppe wird gerade aufgeloest (CloudGroup.lock in index.html). Ab da darf nichts
+    // Neues mehr unter ihr entstehen - sonst bliebe, was in der Sekunde zwischen Listen und
+    // Loeschen geschrieben wird, ohne Elterndokument liegen (TROUBLESHOOTING §171).
+    // Kostet keinen zusaetzlichen Lesevorgang: groupOwnerHasPro() liest dasselbe Dokument,
+    // und Regeln lesen einen Pfad je Anfrage nur einmal.
+    function nichtGesperrt(gid) {
+      return grpNow(gid).get("status", "") != "dissolving";
+    }
+
     // Genau eine Aenderung am Zaehler und sonst NICHTS. Ohne hasOnly() liesse sich unter dem
     // Deckmantel eines Beitritts auch der Inhaber austauschen oder eine Einstellung kippen.
     function zaehlerNurUm(delta) {
@@ -286,6 +295,7 @@ service cloud.firestore {
                           && inviteData(request.resource.data.via).gid == gid
                           && inviteData(request.resource.data.via).role == request.resource.data.role
                           && request.resource.data.role in ["edit", "view"]
+                          && nichtGesperrt(gid)
                           && grpNow(gid).memberCount < maxMitglieder()
                           && grpAfter(gid).memberCount == grpNow(gid).memberCount + 1
                           // Der Code muss noch offen sein UND in diesem Batch verbraucht
@@ -347,7 +357,7 @@ service cloud.firestore {
       // delete bewusst OHNE Pro-Pruefung: pruneWeeks() raeumt vergangene Wochen weg, und
       // eine Gruppe, deren Inhaber nicht verlaengert, soll nicht dauerhaft Karteileichen
       // ansammeln. Aufraeumen darf immer, wer ohnehin Mitglied mit Schreibrecht ist.
-      allow create, update: if canWrite(gid) && groupOwnerHasPro(gid);
+      allow create, update: if canWrite(gid) && groupOwnerHasPro(gid) && nichtGesperrt(gid);
       allow delete: if canWrite(gid);
     }
 
@@ -368,7 +378,7 @@ service cloud.firestore {
     // aktualisieren lässt.
     match /groups/{gid}/recipes/{recipeId} {
       allow get, list: if isMember(gid);
-      allow create, update: if canWrite(gid) && groupOwnerHasPro(gid)
+      allow create, update: if canWrite(gid) && groupOwnerHasPro(gid) && nichtGesperrt(gid)
                             && recipeId.matches('^r[a-z0-9]{3,14}$');
       // Löschen bewusst OHNE Formatprüfung: Läge aus der Zeit vor dieser Regel noch ein
       // Dokument mit abweichender ID in einer Gruppe, muss es entfernt werden können.

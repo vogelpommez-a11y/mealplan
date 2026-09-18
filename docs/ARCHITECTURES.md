@@ -270,7 +270,7 @@ mit:
 * `recipes/{rid}`
 * `invites/{code}`
 
-Das Gruppendokument selbst trägt `status: "pending" | "active"` (rein informativ, siehe Wartezustand unten) sowie `name` (per `setName`) und `settings`.
+Das Gruppendokument selbst trägt `status: "pending" | "active" | "dissolving"` (`pending`/`active` rein informativ, siehe Wartezustand unten; `dissolving` ist eine **Sperre**, siehe „Auflösen sperrt zuerst“) sowie `name` (per `setName`) und `settings`.
 
 ### Firestore-Offline-Cache
 
@@ -729,6 +729,22 @@ derselben veralteten Basis, und die Regel wiese den zweiten ab.
 
 `CloudGroup.dissolve()` bleibt **unverändert** — die `delete`-Regel nimmt es über
 `!existsAfter(grpPath(gid))` aus, weil dort das Gruppendokument im selben Batch verschwindet.
+
+### Auflösen sperrt zuerst (seit 18.09.2026)
+
+`dissolveGroupFirestore()` setzt als **ersten** Schritt `status: "dissolving"`
+(`CloudGroup.lock()`, Regelzweig 1 des Inhabers). Erst danach listet es Mitglieder, Pläne und
+Meals und löscht sie im Batch. Ab der Sperre lehnt `nichtGesperrt()` in den Regeln jedes
+`create`/`update` unter `plans` und `recipes` sowie jeden Beitritt ab. Was ein Mitglied in der
+Sekunde zwischen Listen und Löschen schreibt, kann also nicht mehr entstehen und nicht als Rest
+ohne Elterndokument liegen bleiben (`docs/TROUBLESHOOTING.md` §171).
+
+* Scheitert die Sperre, bricht das Auflösen ab, bevor etwas gelöscht wird. Ausnahme ist
+  `not-found`: Ohne Gruppendokument kann niemand mehr schreiben, aufgeräumt wird trotzdem.
+* Scheitert der Batch **nach** der Sperre, verlässt der Inhaber die Gruppe wie bisher. Die
+  übrigen Mitglieder sitzen dann in einer gesperrten Gruppe und können nicht mehr planen.
+  Das ist gewollt: Der Inhaber wollte auflösen.
+* Löschen bleibt in einer gesperrten Gruppe erlaubt. Die Sperre verhindert nur Neues.
 
 ### Migration
 

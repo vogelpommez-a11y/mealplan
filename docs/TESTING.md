@@ -2349,6 +2349,19 @@ ein Meal in das Cloud-Konto geschrieben. Gemessen wird die Trefferfläche, nicht
 trennt nur localStorage, **nicht** die Cloud: Ein angemeldetes Konto schreibt von localhost in
 dieselbe Firestore-Datenbank.
 
+## Eine Regel als Attrappe: die Auflösesperre (18.09.2026)
+
+`tools/pruefstand-gruppe-sperre.py` — 12 Prüfungen für `TROUBLESHOOTING.md` §171. Er schneidet
+`dissolveGroupFirestore()` im Original aus. Die Attrappe schreibt als „Mitglied“ genau **nach**
+dem Listen einen Plan und bildet dabei nur eine Regel nach: `nichtGesperrt()`. Das ist der einzige
+nachgebaute Teil.
+
+* Die Gegenprobe steckt im Prüfstand: Derselbe Code ohne `lock()` lässt den Plan als Rest liegen.
+* Gegen das alte `index.html` aus Git bricht der Prüfstand am Schnitt-Wächter ab.
+* **Die Regeln selbst prüft er nur als Text.** Es gibt keinen Emulator. Ob sie wirken, zeigt
+  erst ein Schreibversuch in eine gesperrte Gruppe am echten Konto, nachdem sie in der Konsole
+  veröffentlicht sind.
+
 ## Ein Listener als Prüfobjekt: die Attrappe muss den Nebeneffekt haben (17.08.2026)
 
 `tools/pruefstand-gruppe-aufloesen.py` — 11 Prüfungen für `TROUBLESHOOTING.md` 101 (Gruppe
