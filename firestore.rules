@@ -6,18 +6,13 @@ rules_version = '2';
 // Firebase-Konsole unter Firestore Database -> Regeln eingefügt und VERÖFFENTLICHT wird.
 // Sie liegt hier im Repo, damit nachvollziehbar ist, was gelten soll.
 //
-// Stand: 2026-09-06 — DIESE FASSUNG IST SEIT DEM 06.09.2026 VEROEFFENTLICHT UND WIRKSAM.
+// Stand: 2026-09-19 — NOCH NICHT VEROEFFENTLICHT. Neu gegenueber dem Live-Stand ist allein
+// die Loeschsperre (loeschsperren, nichtImLoeschen(), TROUBLESHOOTING §172).
 //
-// Im Regel-Editor gegengeprueft, diesmal nicht per Augenschein: Der zuvor veroeffentlichte
-// Stand war mit dieser Datei ZEICHENGENAU identisch - 415 Zeilen, gleiche SHA-256 ueber den
-// normalisierten Text. Repo und Konsole waren also nie auseinander. (Jener Kopf datierte
-// sich selbst auf den 15.08.2026, veroeffentlicht wurde er am 17.08.2026 um 20:46.)
-// Neu ist allein die Formatpruefung der recipeId weiter unten.
-//
-// EINE bekannte Abweichung, bewusst stehen gelassen: Dieser Kommentarblock selbst
-// steht in der Konsole noch in seiner alten, kuerzeren Fassung ("Stand: 2026-08-15"). Der REGELTEXT
-// ist identisch - der Unterschied ist reiner Kommentar und aendert nichts an dem, was
-// durchgesetzt wird. Beim naechsten Veroeffentlichen mit nachziehen.
+// Live ist seit dem 18.09.2026 die Fassung mit der Aufloesesperre (§171). Gegengeprueft am
+// 19.09.2026 ueber die Firebase-Rules-API: Ihr REGELTEXT war mit dieser Datei vor der
+// Loeschsperre identisch, abweichend nur Kommentare. Beim Veroeffentlichen die GANZE Datei
+// einsetzen und danach `python tools/regeln-live.py` fahren - erwartet: "identisch".
 //
 // Bewusst in Kauf genommen: Zum Zeitpunkt der Veroeffentlichung gab es acht Gruppen, aber
 // nur EIN entitlements-Dokument. Die uebrigen sieben Gruppen koennen seitdem nicht mehr
@@ -136,7 +131,39 @@ service cloud.firestore {
     // hasPro() gelegt; zurueckgenommen am selben Tag, ohne dass sie je veroeffentlicht war.
     // Pro traegt stattdessen die Gruppe (siehe groupOwnerHasPro weiter unten).
     match /users/{uid} {
-      allow read, write: if request.auth != null && request.auth.uid == uid;
+      allow read, delete: if request.auth != null && request.auth.uid == uid;
+      allow create, update: if request.auth != null && request.auth.uid == uid
+                            && nichtImLoeschen(uid);
+    }
+
+    // ---- Loeschsperre beim Kontoloeschen (19.09.2026) ----
+    //
+    // Ein zweites angemeldetes Geraet behaelt sein Token bis zu einer Stunde nach deleteUser()
+    // und konnte in dieser Zeit Meals, users/{uid}, Teilen-Links oder Einladungen neu anlegen -
+    // Reste ohne Konto, die niemand mehr loeschen kann (TROUBLESHOOTING §172). Deshalb wie beim
+    // Aufloesen einer Gruppe (§171): erst die Tuer abschliessen, dann aufraeumen.
+    //
+    // Die Sperre enthaelt nur ein Ablaufdatum. Nach "bis" wirkt sie nicht mehr, auch wenn das
+    // Dokument noch steht - weggeraeumt wird es von der TTL-Richtlinie auf dem Feld "bis".
+    // Drei Stunden hoechstens: laenger als ein Token lebt, kuerzer als ein Aussperren, falls
+    // das Entsperren nach einem gescheiterten Loeschen selbst scheitert.
+    //
+    // Die Bedingung VERLANGT nichts von einem Client, der die Sperre nicht kennt - sie greift
+    // nur, wenn ein Sperrdokument existiert. Sie darf deshalb vor dem Client ausrollen.
+    function loeschsperrePfad(uid) {
+      return /databases/$(database)/documents/loeschsperren/$(uid);
+    }
+    function nichtImLoeschen(uid) {
+      return !exists(loeschsperrePfad(uid)) || get(loeschsperrePfad(uid)).data.bis < request.time;
+    }
+    match /loeschsperren/{uid} {
+      allow get, delete: if request.auth != null && request.auth.uid == uid;
+      allow list: if false;
+      allow create, update: if request.auth != null && request.auth.uid == uid
+                            && request.resource.data.keys().hasOnly(['bis'])
+                            && request.resource.data.bis is timestamp
+                            && request.resource.data.bis > request.time
+                            && request.resource.data.bis <= request.time + duration.value(3, 'h');
     }
 
     // ---- Pro-Berechtigung (D1) ----
@@ -170,7 +197,9 @@ service cloud.firestore {
     // NICHT automatisch auf Subcollections - deshalb ein eigener Block, gleiche
     // Zugriffslogik wie beim Hauptdokument. ----
     match /users/{uid}/recipes/{recipeId} {
-      allow read, write: if request.auth != null && request.auth.uid == uid;
+      allow read, delete: if request.auth != null && request.auth.uid == uid;
+      allow create, update: if request.auth != null && request.auth.uid == uid
+                            && nichtImLoeschen(uid);
     }
 
     // ---- Geteilte Wochenplan-Snapshots ----
@@ -188,7 +217,8 @@ service cloud.firestore {
       // Anlegen nur für angemeldete Personen und nur mit der eigenen uid im Dokument,
       // damit der Snapshot zuordenbar bleibt.
       allow create: if request.auth != null
-                    && request.resource.data.uid == request.auth.uid;
+                    && request.resource.data.uid == request.auth.uid
+                    && nichtImLoeschen(request.auth.uid);
 
       // Löschen darf nur, wer den Snapshot erstellt hat (Art. 17 DSGVO).
       allow delete: if request.auth != null
@@ -235,7 +265,8 @@ service cloud.firestore {
       allow create: if request.auth != null
                     && request.resource.data.owner == request.auth.uid
                     && hasPro(request.auth.uid)
-                    && request.resource.data.memberCount == 1;
+                    && request.resource.data.memberCount == 1
+                    && nichtImLoeschen(request.auth.uid);
 
       // Vier Wege, das Gruppendokument zu ändern - mehr gibt es nicht.
       allow update: if
@@ -287,6 +318,7 @@ service cloud.firestore {
       // er ist darin bereits enthalten. Der Beitritt dagegen muss im selben Batch hochzählen -
       // ohne getAfter() liesse sich ein Mitglied anlegen und der Zähler einfach weglassen.
       allow create: if request.auth != null && request.auth.uid == uid
+                    && nichtImLoeschen(uid)
                     && (
                          (grpNow(gid).owner == request.auth.uid
                           && request.resource.data.role == "owner"
@@ -403,7 +435,8 @@ service cloud.firestore {
                     && request.resource.data.role in ["edit", "view"]
                     && isOwner(request.resource.data.gid)
                     && hasPro(request.auth.uid)
-                    && grpNow(request.resource.data.gid).memberCount < maxMitglieder();
+                    && grpNow(request.resource.data.gid).memberCount < maxMitglieder()
+                    && nichtImLoeschen(request.auth.uid);
 
       // Ein Code ist unveränderlich - wer andere Rechte vergeben will, erzeugt einen neuen.
       // Die EINE Ausnahme seit dem 17.08.2026: Er darf beim Beitritt als verbraucht markiert

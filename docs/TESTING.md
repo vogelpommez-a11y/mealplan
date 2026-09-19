@@ -2364,6 +2364,42 @@ nachgebaute Teil.
   erst ein Schreibversuch in eine gesperrte Gruppe am echten Konto, nachdem sie in der Konsole
   veröffentlicht sind.
 
+**Live-Nachweis am 19.09.2026** (`/abnahme`, Pro-Konto, `tools/cdp.py`): Eine eigene
+Testgruppe wurde angelegt, der Inhaber als einziges Mitglied, und nur über `CloudGroup`
+beschrieben. Kontodokument, Meals und die echte Gruppe blieben unberührt.
+
+| Schritt | Ergebnis |
+|---|---|
+| Plan-Woche schreiben, offen | OK — die Gegenprobe |
+| `lock()`, dann derselbe Schreibversuch | **`permission-denied`** |
+| `unlock()`, dann schreiben | OK |
+| `lock()`, dann `dissolve()` | OK — ein Batch, also restlos weg |
+
+Dass danach auch `fetch()` `permission-denied` liefert, ist **kein** Beleg für das Löschen:
+`get` verlangt eine Mitgliedschaft, und die ist mitgelöscht. Den Beleg liefert der Batch, der
+entweder ganz oder gar nicht ausgeführt wird. Dass der Regeltext live wirklich dem im Repo
+entspricht, zeigt ein Vergleich über die Firebase-Rules-API am selben Tag: Nur Kommentare
+weichen ab (siehe Kopf von `firestore.rules`).
+
+## Die Gegenprobe aus Git: die Löschsperre fürs Konto (19.09.2026)
+
+`tools/pruefstand-konto-loeschsperre.py` — 17 Prüfungen für `TROUBLESHOOTING.md` §172. Er schneidet
+`CloudAuth.deleteAccount()` und `kontoDatenLoeschen()` im Original aus. Nachgebaut ist nur die
+Regel `nichtImLoeschen()`: Anlegen und Ändern unter `users/ich`, `shared/` und `invites/` scheitert,
+solange eine gültige Sperre steht. Das Zweitgerät schreibt in der Attrappe genau im Moment von
+`deleteUser()`, denn da ist sein Token noch gültig.
+
+* **Die Gegenprobe kommt aus Git** (`git show 5b11b8c:index.html`), nicht aus einer Textersetzung.
+  Denn der Fix ist zweiteilig, Sperre **und** Serverliste, und eine erfundene Rückdrehung träfe
+  nur einen der beiden Teile (siehe die Lehre vom 17.09.2026). Die alte Fassung muss fünf Reste
+  liegen lassen: ein Meal und einen Link, die nur die Cloud kannte, dazu die drei
+  Schreibvorgänge des Zweitgeräts.
+* Geprüft sind auch die drei Fehlerwege: Die Regeln lehnen die Sperre ab (es wird trotzdem
+  gelöscht), die Sperre scheitert am Netz (Abbruch, nichts gelöscht), das Listen scheitert
+  (Abbruch, die Sperre wird zurückgenommen).
+* **Die Regeln prüft er nur als Text**, an sechs Stellen, dazu die Bedingung „Löschen bleibt
+  frei“. Ob sie wirken, zeigt erst ein Versuch am echten Konto nach dem Veröffentlichen.
+
 ## Ein Listener als Prüfobjekt: die Attrappe muss den Nebeneffekt haben (17.08.2026)
 
 `tools/pruefstand-gruppe-aufloesen.py` — 11 Prüfungen für `TROUBLESHOOTING.md` 101 (Gruppe

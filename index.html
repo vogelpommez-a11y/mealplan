@@ -236,7 +236,7 @@
   import {
     getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager,
     terminate, clearIndexedDbPersistence,
-    doc, collection, getDoc, getDocs, getDocsFromServer, setDoc, updateDoc, deleteDoc, writeBatch, increment, onSnapshot
+    doc, collection, getDoc, getDocs, getDocFromServer, getDocsFromServer, setDoc, updateDoc, deleteDoc, writeBatch, increment, onSnapshot
   } from "./vendor/firebase/10.12.5/firebase-firestore.js";
 
   /* ▼▼▼ HIER die Werte aus der Firebase-Konsole eintragen ▼▼▼
@@ -329,6 +329,65 @@
             await reauthenticateWithPopup(user, new OAuthProvider("apple.com"));
           }
           const uid = user.uid;
+          // Erst die Tuer abschliessen, dann aufraeumen (TROUBLESHOOTING §172, wie §171 beim
+          // Aufloesen einer Gruppe). Ein zweites angemeldetes Geraet behaelt sein Token bis zu
+          // einer Stunde nach deleteUser() und koennte sonst Meals, das Kontodokument, Links
+          // oder Einladungen neu anlegen - Reste ohne Konto, die niemand mehr loeschen kann.
+          // Solange die Sperre gilt, lehnen die Regeln jedes Anlegen und Aendern ab; Loeschen
+          // bleibt erlaubt. Sie bleibt nach dem Loeschen bewusst stehen und laeuft von selbst ab.
+          //
+          // Lehnen die Regeln schon die Sperre ab, sind sie noch nicht veroeffentlicht. Dann
+          // wie bisher weiter statt abzubrechen: Die Loeschung selbst ist die Zusage (Art. 17
+          // DSGVO), die Sperre nur ihr Schutz gegen das Zweitgeraet.
+          const sperre = doc(db, "loeschsperren", uid);
+          let gesperrt = false;
+          try {
+            await setDoc(sperre, { bis: new Date(Date.now() + 2 * 60 * 60 * 1000) });
+            gesperrt = true;
+          } catch (e) {
+            if (!(e && e.code === "permission-denied")) throw e;
+            window.noteError("konto:loeschsperre", e);
+          }
+          try {
+            await kontoDatenLoeschen(uid, opts);
+          } catch (e) {
+            // Gescheitert, bevor alles weg war: entsperren, sonst liefe das Konto bis zum Ablauf
+            // ins Leere. Scheitert auch das, heilt es sich spaetestens mit "bis".
+            if (gesperrt) await deleteDoc(sperre).catch(function (e2) { window.noteError("konto:entsperren", e2); });
+            throw e;
+          }
+          try {
+            await deleteUser(user);
+          } catch (e) {
+            // Daten sind zu diesem Zeitpunkt bereits weg; nur noch der Login-Account
+            // besteht. Markieren, damit die App eine passende Meldung zeigen kann.
+            e.dataAlreadyDeleted = true;
+            throw e;
+          }
+        }
+      });
+
+      // Loescht alles, was zum Konto gehoert - aufgerufen von deleteAccount(), NACH der Sperre.
+      //
+      // Aufgelistet wird deshalb erst hier und vom SERVER: Wer vor dem Abschliessen listet,
+      // loescht die Liste, nicht die Sammlung (§170, §171). Was das Zweitgeraet bis zur Sperre
+      // angelegt hat, steht jetzt in der Cloud und nicht unbedingt im lokalen Zustand - die
+      // Listen des Aufrufers werden darum nur ERGAENZT, nie ersetzt. Geht der Serverweg nicht
+      // (offline), scheitert die Loeschung, statt still unvollstaendig zu bleiben.
+      async function kontoDatenLoeschen(uid, opts) {
+          opts = opts || {};
+          const vereint = function (a, b) {
+            return Array.from(new Set([].concat(a || [], Array.isArray(b) ? b : []).filter(function (x) { return typeof x === "string" && x; })));
+          };
+          const profilSnap = await getDocFromServer(doc(db, "users", uid));
+          const profil = profilSnap.exists() ? profilSnap.data() : {};
+          const rezeptSnap = await getDocsFromServer(collection(db, "users", uid, "recipes"));
+          opts = Object.assign({}, opts, {
+            shareIds: vereint(opts.shareIds, profil.shares),
+            inviteCodes: vereint(opts.inviteCodes, profil.inviteCodes),
+            recipeIds: vereint(opts.recipeIds, rezeptSnap.docs.map(function (d) { return d.id; })),
+            groupId: opts.groupId || (typeof profil.groupId === "string" ? profil.groupId : "")
+          });
           // shared/{id}, groups/{gid}/members/{uid} und invites/{code} pruefen in ihrer
           // delete-Regel jeweils resource.data (siehe firestore.rules) - anders als bei einer
           // reinen Pfad-Regel liefert das FUER EIN NICHT MEHR EXISTIERENDES Dokument ebenfalls
@@ -423,16 +482,7 @@
           // Kontoloeschung nicht blockieren (dieselbe Falle wie in TROUBLESHOOTING §48).
           await deleteBestEffort(doc(db, "entitlements", uid));
           await deleteDoc(doc(db, "users", uid));
-          try {
-            await deleteUser(user);
-          } catch (e) {
-            // Daten sind zu diesem Zeitpunkt bereits weg; nur noch der Login-Account
-            // besteht. Markieren, damit die App eine passende Meldung zeigen kann.
-            e.dataAlreadyDeleted = true;
-            throw e;
-          }
-        }
-      });
+      }
 
       // ----- Cloud-Sync (Firestore): pro Nutzer ein Dokument users/{uid} -----
       // Persistenz ist ein Komfortgewinn, keine Voraussetzung. Scheitert sie (Privatmodus ohne
@@ -2211,6 +2261,8 @@
   let cloudTooBigWarned = false;
   // Einmal-Meldung fuer einen Push, der NICHT am Netz gescheitert ist - siehe pushNow().
   let cloudPushFailed = false;
+  // Dasselbe fuer den Gruppenplan, aber nur bei "permission-denied" - siehe pushGroupPlan().
+  let groupPushDenied = false;
   // Rezepte einzeln synchronisieren (users/{uid}/recipes/{id}), diff-basiert genau wie
   // der Rest des States: lastPushedRecipes ist die zuletzt bestaetigte Baseline (Map
   // id -> JSON-String). Nur was sich seitdem geaendert hat, wird geschrieben/geloescht -
@@ -2325,9 +2377,21 @@
         });
       }
       lastPushedSlots = prev;   // dieselbe Map weiterfuehren, nie ersetzen (wie bei lastPushedRecipes)
+      groupPushDenied = false;
     } catch (e) {
       // Baseline unveraendert lassen -> naechster Zyklus versucht denselben Diff erneut.
       setSyncStatus("offline");
+      // "Offline" allein fuehrte ein Mitglied in die Irre, wenn die Regeln ablehnen - etwa weil
+      // der Inhaber die Gruppe gerade aufloest oder sein Pro abgelaufen ist. Kein Netz der Welt
+      // heilt das. Einmal sagen, DASS es nicht geklappt hat, ohne eine Ursache zu raten. Den
+      // Zeiger raeumt das bewusst NICHT, "permission-denied" kam schon einmal faelschlich (§134).
+      if (e && e.code === "permission-denied") {
+        noteError("sync:gruppenplan", e);
+        if (!groupPushDenied) {
+          groupPushDenied = true;
+          toast("Der Gruppenplan konnte gerade nicht gespeichert werden.");
+        }
+      }
     }
   }
 
@@ -12822,6 +12886,8 @@
       "auth/popup-blocked": "Das hat hier nicht geklappt. Öffne die Seite im Browser deines Geräts (z. B. über „In Chrome öffnen“ im Menü) und versuche es dort erneut.",
       "auth/account-exists-with-different-credential": "Diese E-Mail ist bereits mit einer anderen Anmeldeart registriert.",
       "auth/network-request-failed": "Keine Verbindung. Bitte prüfe dein Internet.",
+      // Firestore statt Auth: Konto loeschen liest seit §172 vom Server und bricht offline ab.
+      "unavailable": "Keine Verbindung. Bitte prüfe dein Internet.",
       "auth/operation-not-allowed": "Diese Anmeldeart ist in Firebase noch nicht aktiviert.",
       "auth/unauthorized-domain": "Diese Domain ist in Firebase nicht freigegeben (Authentication → Settings → Authorized domains).",
       "auth/requires-recent-login": "Aus Sicherheitsgründen musst du dich für diese Aktion erneut bestätigen."

@@ -138,7 +138,7 @@
          kann dein Konto danach noch <strong>bis zu 90 Tage</strong> enthalten sein: Wir sind
          verpflichtet, deine Daten wiederherstellen zu können (Art. 32 DSGVO), und dafür braucht es
          Kopien. Diese Kopien liegen ausschließlich bei uns, werden nicht weitergegeben und laufen
-         automatisch ab. Aus dem laufenden Betrieb ist dein Konto sofort verschwunden. Das schließt deinen <strong>Pro-Status</strong> (siehe Ziffer 3) ein, der zusammen mit dem Konto entfernt wird,
+         automatisch ab. Aus dem laufenden Betrieb ist dein Konto sofort verschwunden. Nur ein technischer Sperrvermerk (deine Kontokennung und ein Ablaufzeitpunkt) bleibt in der Regel bis zu gut einem Tag bestehen, damit ein noch angemeldetes zweites Gerät in dieser Zeit nichts Neues anlegt; danach wird er automatisch entfernt. Das schließt deinen <strong>Pro-Status</strong> (siehe Ziffer 3) ein, der zusammen mit dem Konto entfernt wird,
          sowie alle Teilen-Links für einzelne Meals, die deinem
          Konto zugeordnet und diesem Gerät bzw. deinem synchronisierten Konto zum Löschzeitpunkt bekannt sind – sie
          werden automatisch mitentfernt; stellt sich beim Löschversuch heraus, dass ein Link ohnehin nicht mehr

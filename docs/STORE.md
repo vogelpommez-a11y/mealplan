@@ -66,7 +66,7 @@ nur die Gruppe; das war überholt:
 
 | Pro-Funktion | Wo durchgesetzt |
 |---|---|
-| **Gruppe gründen** und in der Gruppe planen | **In den Regeln.** `groupOwnerHasPro(gid)` bei `groups/{gid}/plans` und `groups/{gid}/recipes` (`firestore.rules:340`, `:347`) |
+| **Gruppe gründen** und in der Gruppe planen | **In den Regeln.** `groupOwnerHasPro(gid)` bei `groups/{gid}/plans` und `groups/{gid}/recipes` (`firestore.rules:392`, `:413`) |
 | **Auto-Wochenplaner** — laut `docs/PRODUCT.md` „das entscheidende Pro-Feature" | **Nur im Client.** `if (!isPro() && !syncGid)` in `index.html:8645` |
 
 Cloud-Sync selbst bleibt ausdrücklich gratis.
@@ -74,7 +74,7 @@ Cloud-Sync selbst bleibt ausdrücklich gratis.
 ### ⚠️ Die Lücke: Der Auto-Planer ist bei Solo-Konten nicht durchgesetzt
 
 Ein Solo-Konto schreibt sein Planergebnis in `users/{uid}`. Diese Regel hat **bewusst keine
-Pro-Prüfung** (`firestore.rules:112-121`, ausdrücklich so entschieden am 15.08.2026, weil
+Pro-Prüfung** (`firestore.rules:128-137`, ausdrücklich so entschieden am 15.08.2026, weil
 Cloud-Sync frei bleiben soll). Der `isPro()`-Riegel davor ist damit eine **UI-Sperre** — und
 UI-Sperren sind keine Sicherheitsgrenze (CLAUDE.md § 12). Wer `autoPlanWeek()` über die
 DevTools aufruft, bekommt den Plan.

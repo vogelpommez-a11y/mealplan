@@ -747,6 +747,20 @@ ohne Elterndokument liegen bleiben (`docs/TROUBLESHOOTING.md` §171).
   trotzdem und ließ eine Gruppe ohne Inhaber zurück, entgegen Ziffer 10.
 * Löschen bleibt in einer gesperrten Gruppe erlaubt. Die Sperre verhindert nur Neues.
 
+### Konto löschen sperrt zuerst (seit 19.09.2026)
+
+Dasselbe Muster fürs Konto, aber mit einem eigenen Dokument, weil es nach dem Löschen stehen
+bleiben muss: `loeschsperren/{uid} = { bis: timestamp }`. `CloudAuth.deleteAccount()` schreibt es
+nach der erneuten Anmeldung (`bis` = jetzt + 2 h) und ruft dann `kontoDatenLoeschen()`. Das liest
+Profil und Meals **vom Server** und ergänzt damit die Listen des Aufrufers. Danach löscht es wie
+bisher Links, Meals, Mitgliedschaft, Einladungen, `entitlements` und `users/{uid}`, zuletzt folgt
+`deleteUser()`. `nichtImLoeschen()` in den Regeln lehnt so lange jedes Anlegen und Ändern unter dem
+Konto ab, also das eines Zweitgeräts mit noch gültigem Token (`docs/TROUBLESHOOTING.md` §172).
+
+* Scheitert das Aufräumen, wird die Sperre zurückgenommen.
+* Lehnen die Regeln die Sperre ab (noch nicht veröffentlicht), wird ohne sie gelöscht.
+* Die Sperre räumt eine TTL-Richtlinie auf `loeschsperren.bis` weg (Firestore-Konsole).
+
 ### Migration
 
 `migrateMemberCount()` trägt das Feld bei einer Gruppe aus der Zeit davor einmalig nach —

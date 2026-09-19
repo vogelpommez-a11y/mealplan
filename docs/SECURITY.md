@@ -103,6 +103,7 @@ Deshalb steht heute überall dort, wo eine unerratbare ID der Schutz ist, ausdr�
 | `groups/{gid}` | `get: isMember`, `list: false` | Auflisten fremder Gruppen |
 | `invites/{code}` | `get`, `list: false` | Durchprobieren aller Einladungscodes |
 | `entitlements/{uid}` | `get` nur eigene, `create/update: false` | Sich selbst Pro eintragen |
+| `loeschsperren/{uid}` | `get` nur eigene, `list: false` | Auflisten gerade gelöschter Konten |
 
 ### Was sonst in den Regeln steht, nicht nur im Client
 
@@ -112,6 +113,11 @@ Deshalb steht heute überall dort, wo eine unerratbare ID der Schutz ist, ausdr�
 - **Auflösesperre**: `nichtGesperrt()` lehnt Schreiben in `plans`/`recipes` und Beitritte ab,
   sobald `status == "dissolving"`. Ohne sie blieben Reste ohne Elterndokument liegen
   (`docs/TROUBLESHOOTING.md` §171). In der Konsole veröffentlicht am 18.09.2026.
+- **Löschsperre**: `nichtImLoeschen()` lehnt Anlegen und Ändern unter `users/{uid}`, `shared/`,
+  `invites/`, beim Gründen und beim Beitritt ab, solange `loeschsperren/{uid}.bis` in der Zukunft
+  liegt. Löschen bleibt frei. `bis` darf höchstens drei Stunden in der Zukunft liegen: Eine Sperre
+  kann nur das eigene Konto treffen, und auch das nur kurz (§172). **Noch nicht in der Konsole
+  veröffentlicht.**
 - **Pro-Gating**: `hasPro()` und `groupOwnerHasPro()`. Cloud-Sync ist ausdrücklich gratis;
   Pro trägt nur das **Gründen** einer Gruppe — der Inhaber zahlt, das Beitreten ist frei.
 - **UID-Bindung beim Erstellen**: `create` nur mit der eigenen `uid`, damit niemand
@@ -172,7 +178,7 @@ ohne die Entscheidung zu kennen:
 - **Der Auto-Wochenplaner ist bei Solo-Konten nur im Client Pro-gesperrt** (`isPro()` in
   `index.html:8645`). Er rechnet auf dem Gerät und schreibt in `users/{uid}` — dort darf
   der Nutzer ohnehin schreiben, und die Regel hat bewusst keine Pro-Prüfung
-  (`firestore.rules:112-121`, Entscheidung vom 15.08.2026, damit Cloud-Sync frei bleibt).
+  (`firestore.rules:128-137`, Entscheidung vom 15.08.2026, damit Cloud-Sync frei bleibt).
   Den Regeln sieht ein fertiger Plan nicht an, wie er entstanden ist.
   **Entschieden am 26.08.2026: bleibt so.** Serverseitig zu rechnen würde den Planer vom
   Netz abhängig machen — gegen die Offline-Zusage und gegen eine Store-Anforderung. Wer die

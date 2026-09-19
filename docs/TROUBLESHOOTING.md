@@ -6,7 +6,7 @@ Dieses Dokument enthält bekannte Fehlerquellen, historische Bugs und Probleme, 
 
 <!-- REGISTER-ANFANG (erzeugt aus den Ueberschriften, nicht von Hand pflegen) -->
 
-**Register — 171.** Chronologisch gewachsen: je hoeher die Nummer,
+**Register — 172.** Chronologisch gewachsen: je hoeher die Nummer,
 desto juenger der Fund. Wer eine Falle sucht, sucht hier zuerst; die Ueberschrift sagt
 jeweils, worum es geht. **Nicht die ganze Datei lesen** — sie ist rund 310 KB gross.
 
@@ -183,6 +183,7 @@ jeweils, worum es geht. **Nicht die ganze Datei lesen** — sie ist rund 310 KB 
 | 169 | Der Prüfstand, der 345 Fehler erfand — und die drei echten fast verdeckte |
 | 170 | Die Sicherung sah nicht, was unter einem gelöschten Dokument hing |
 | 171 | Gruppe auflösen: Was in der Sekunde dazwischen geschrieben wurde, blieb liegen |
+| 172 | Konto löschen: Das Zweitgerät schrieb nach dem Löschen weiter |
 
 <!-- REGISTER-ENDE -->
 
@@ -6531,5 +6532,54 @@ offline erst mit der Serverbestätigung auflöst und der Dialog sonst hinge.
 
 Prüfstand: `tools/pruefstand-gruppe-sperre.py`.
 
+**Nachtrag 19.09.2026, Befund `kvp`:** Ein Mitglied, das nach dem Auflösen weiterplante, sah nur
+„Offline“, und kein Netz heilte das. `pushGroupPlan()` meldet ein `permission-denied` seitdem
+einmalig mit „Der Gruppenplan konnte gerade nicht gespeichert werden.“ Der Text rät bewusst keine
+Ursache, weil derselbe Code auch kommt, wenn das Pro des Inhabers abgelaufen ist. Den
+Gruppenzeiger räumt das nicht (§134).
+
 > **Wer erst listet und dann löscht, löscht die Liste — nicht die Sammlung. Erst die Tür
 > abschließen, dann aufräumen.**
+
+## 172. Konto löschen: Das Zweitgerät schrieb nach dem Löschen weiter
+
+**19.09.2026.** Offen seit §171, Punkt 16 in `docs/DATENSCHUTZ-INTERN.md`. Ein zweites
+angemeldetes Gerät behält sein Token bis zu einer Stunde nach `deleteUser()`. In dieser Zeit
+konnte es ein Meal, das Kontodokument, einen Teilen-Link oder eine Einladung **neu anlegen**. Das
+sind Reste ohne Konto, die danach niemand mehr löschen kann. Dazu kam dieselbe Falle wie in §170
+und §171: `deleteAccount()` löschte die Listen des Aufrufers, also den lokalen Stand, nicht die
+Sammlungen in der Cloud. Ein Meal oder Link, den nur das Zweitgerät kannte, blieb liegen.
+
+**Der erste Plan ging nicht.** Er sah eine Regel „`recipes` nur, wenn `users/{uid}` existiert“ vor
+und wollte die Löschreihenfolge umdrehen. `pushNow()` schreibt die Meals aber **vor** dem Profil,
+die Regel hätte also den ersten Sync jedes neuen Kontos gebrochen.
+
+**Behoben:** wie in §171 erst sperren, dann vom Server listen, dann löschen.
+`deleteAccount()` schreibt nach der erneuten Anmeldung `loeschsperren/{uid}` mit genau einem Feld,
+`bis` (jetzt + 2 h). `nichtImLoeschen()` in `firestore.rules` lehnt Anlegen und Ändern ab, solange
+`bis` in der Zukunft liegt. Das gilt für `users/{uid}`, `users/{uid}/recipes`, `shared/`,
+`invites/`, das Gründen einer Gruppe und den Beitritt. **Löschen bleibt erlaubt**, sonst sperrte
+sich die Löschung selbst aus. Erst danach liest `kontoDatenLoeschen()` Profil und Meals mit
+`getDocFromServer`/`getDocsFromServer` und **ergänzt** die Listen des Aufrufers.
+
+* **Die Sperre bleibt nach dem Löschen stehen.** Genau dann wird sie gebraucht. Nach `bis` wirkt
+  sie nicht mehr. Weggeräumt wird sie von einer TTL-Richtlinie auf `loeschsperren.bis` in der
+  Firestore-Konsole, laut Google innerhalb von 24 Stunden nach Ablauf.
+* **Scheitert das Aufräumen**, nimmt `deleteAccount()` die Sperre zurück. Sonst liefe das Konto
+  zwei Stunden ins Leere. Scheitert auch das, endet der Zustand mit `bis` von selbst.
+* **Lehnen die Regeln schon die Sperre ab** (`permission-denied`, also noch nicht
+  veröffentlicht), löscht die App ohne Sperre weiter wie bisher und notiert
+  `konto:loeschsperre`. Die Löschung ist die Zusage aus Art. 17, die Sperre nur ihr Schutz.
+  Deshalb dürfen Regeln und Client in beliebiger Reihenfolge ausrollen.
+* **Grenze:** Legt das Zweitgerät einen Teilen-Link an, bevor die Sperre steht, und kommt die
+  Kennung erst danach in `users/{uid}.shares`, weiß niemand von dem Link, denn `shared/` ist nicht
+  auflistbar. Das Fenster ist die eine Sekunde zwischen den beiden Schreibvorgängen des
+  Zweitgeräts.
+* **Kosten:** Jedes Schreiben unter `users/{uid}` prüft mit `exists()`, ob eine Sperre steht, und
+  das zählt als ein Lesevorgang.
+
+Prüfstand: `tools/pruefstand-konto-loeschsperre.py`, mit der Gegenprobe gegen `deleteAccount()` aus
+`5b11b8c`.
+
+> **Die Lehre aus §171 gilt auch fürs Konto: erst die Tür abschließen, dann aufräumen. Und eine
+> Sperre, die nach dem Löschen stehen bleiben muss, braucht ein eigenes Ende.**
