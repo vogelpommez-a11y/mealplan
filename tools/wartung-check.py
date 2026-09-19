@@ -25,7 +25,8 @@ Recherche-Auftrag da (`anwalt`, `store-check`, `lieferkette`).
 Aufruf:
     python tools/wartung-check.py            # Bericht
     python tools/wartung-check.py --setze    # zusaetzlich Wartungsdatum auf heute setzen
-Rueckgabewert: 0 sauber, 1 mindestens ein Befund.
+                                             # (nur nach einer Sicherung der letzten 24 h)
+Rueckgabewert: 0 sauber, 1 mindestens ein Befund, 2 --setze ohne frische Sicherung.
 """
 import datetime
 import io
@@ -450,12 +451,49 @@ def pruefe_abdeckung():
         gelb(bereich, "Abdeckungserhebung nicht pruefbar: %s" % e)
 
 
+SICHERUNG_HOECHSTENS_STUNDEN = 24
+
+
+def sicherung_frisch(jetzt=None):
+    u"""(True/False, Beschreibung) - gibt es eine Sicherung aus den letzten 24 Stunden?
+
+    Liest die Ordner, die tools/firestore-backup.py anlegt - mit dessen eigener Namensregel,
+    damit Pruefer und Gepruefte dieselbe Quelle haben, aber das Ergebnis am Dateisystem steht.
+    """
+    import importlib.util
+    pfad = os.path.join("tools", "firestore-backup.py")
+    spec = importlib.util.spec_from_file_location("firestore_backup", pfad)
+    bk = importlib.util.module_from_spec(spec)
+    sys.path.insert(0, "tools")
+    spec.loader.exec_module(bk)
+    vorhanden = bk.staende(bk.STANDARD_ZIEL)
+    if not vorhanden:
+        return False, "keine Sicherung gefunden (%s)" % bk.STANDARD_ZIEL
+    juengste = vorhanden[-1]
+    alter = (jetzt or datetime.datetime.now()) - bk._datum_aus(juengste)
+    if alter > datetime.timedelta(hours=SICHERUNG_HOECHSTENS_STUNDEN):
+        return False, "die juengste Sicherung (%s) ist aelter als %d Stunden" % (
+            juengste, SICHERUNG_HOECHSTENS_STUNDEN)
+    return True, juengste
+
+
 def main():
     print("Wartungspruefung - Paddy's Mealplan Setup")
     print("=" * 62)
 
     # Das Datum VOR den Pruefungen setzen, sonst meldet derselbe Lauf noch den alten Stand.
+    #
+    # Aber nur nach einer frischen Sicherung. Sie raeumt die abgelaufenen Loeschsperren weg
+    # (TROUBLESHOOTING §172), und Ziffer 10 der Datenschutzerklaerung sagt zu, dass das "bei
+    # unserer naechsten Wartung" geschieht. Liesse sich die Wartung ohne Sicherung abhaken,
+    # waere diese Zusage eine Bitte (Befund `anwalt`, 19.09.2026).
     if "--setze" in sys.argv:
+        frisch, stand = sicherung_frisch()
+        if not frisch:
+            print("Wartungsdatum NICHT gesetzt: %s" % stand)
+            print("Zuerst:  python tools/firestore-backup.py")
+            print("Danach erneut:  python tools/wartung-check.py --setze")
+            return 2
         io.open(MARKER, "w", encoding="utf-8").write(datetime.date.today().isoformat() + "\n")
         print("Wartungsdatum auf %s gesetzt.\n" % datetime.date.today().isoformat())
 

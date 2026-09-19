@@ -279,6 +279,20 @@ class Zugang(object):
         self.roh("PATCH", url, {"fields": felder})
         self.geschrieben += 1
 
+    def loesche(self, pfad, update_time):
+        u"""Loescht ein Dokument - nur, wenn es seit dem Lesen unveraendert ist.
+
+        Die Vorbedingung `currentDocument.updateTime` ist hier der Kern, nicht Zierde: Wer
+        nach einem gelesenen Stand loescht, darf nicht loeschen, was sich inzwischen geaendert
+        hat (§170, §171). Ist es anders, lehnt Firestore ab, und der naechste Lauf entscheidet
+        neu. Ohne Zeitstempel wird gar nicht geloescht.
+        """
+        if not update_time:
+            raise ZugangFehler(u"Loeschen ohne updateTime verweigert: %s" % pfad)
+        url = (self._url(pfad) + "?currentDocument.updateTime="
+               + urllib.parse.quote(update_time, safe=""))
+        self.roh("DELETE", url)
+
 
 def arg(argv, name, standard=None, zahl=False):
     u"""Liest `--name WERT` aus argv - mit einer Meldung statt eines Absturzes.

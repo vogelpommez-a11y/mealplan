@@ -134,6 +134,15 @@ class FakeZugang(fs.Zugang):
             self.daten[pfad] = felder
             return {}
 
+        if methode == "DELETE":
+            # Wie Firestore: Die Vorbedingung updateTime muss zum Dokument passen.
+            frage = urllib.parse.parse_qs(urllib.parse.urlparse(url).query)
+            soll = frage.get("currentDocument.updateTime", [None])[0]
+            if pfad not in self.daten or (soll and soll != self._doc(pfad)["updateTime"]):
+                raise fs.ZugangFehler(u"Firestore antwortete mit HTTP 400: FAILED_PRECONDITION")
+            del self.daten[pfad]
+            return {}
+
         raise AssertionError("unerwartete Methode %s" % methode)
 
     def _doc(self, pfad):
@@ -178,6 +187,13 @@ def mit_resten():
     raus = testdaten()
     for p in RESTE:
         raus[p] = {"title": {"stringValue": "Rest"}}
+    return raus
+
+
+def sperren_daten():
+    raus = testdaten()
+    raus["loeschsperren/abgelaufen"] = {"bis": {"timestampValue": "2026-09-19T09:00:00.500Z"}}
+    raus["loeschsperren/aktiv"] = {"bis": {"timestampValue": "2026-09-19T13:30:00Z"}}
     return raus
 
 
@@ -525,6 +541,24 @@ def main():
     pruef(u"ein Name mit Backtick wird escaped",
           fs._maskenname("a`b"), "`a\\`b`")
 
+    # ---- 13. Abgelaufene Loeschsperren (§172) --------------------------------
+    print(u"")
+    print(u"-- Aufraeumen: abgelaufene Loeschsperren, sonst nichts --")
+    jetzt_s = datetime.datetime(2026, 9, 19, 12, 0)
+    zs = FakeZugang(sperren_daten())
+    pruef(u"genau die abgelaufene Sperre wird entfernt", bk.sperren_raeumen(zs, jetzt=jetzt_s), 1)
+    pruef(u"die noch gueltige Sperre bleibt - sie schuetzt eine laufende Loeschung",
+          sorted(p for p in zs.daten if p.startswith("loeschsperren/")), ["loeschsperren/aktiv"])
+    pruef(u"alles andere bleibt unberuehrt",
+          sorted(p for p in zs.daten if not p.startswith("loeschsperren/")), sorted(testdaten()))
+    pruef(u"geloescht wird nur mit Vorbedingung updateTime",
+          [u for m, u in zs.aufrufe if m == "DELETE" and "currentDocument.updateTime=" not in u], [])
+    try:
+        zs.loesche("loeschsperren/aktiv", None)
+        pruef(u"ohne updateTime wird nicht geloescht", "geloescht", "verweigert")
+    except fs.ZugangFehler:
+        pruef(u"ohne updateTime wird nicht geloescht", "verweigert", "verweigert")
+
     print(u"")
     print(u"ERGEBNIS %d gruen, %d rot" % (ok[0], rot[0]))
 
@@ -673,9 +707,20 @@ def main():
         else:
             print(u"  ROT    die alte Fassung faellt NICHT auf")
 
+        # (i) Eine Fassung, die alle Sperren wegraeumt, ohne auf `bis` zu schauen - sie oeffnete
+        #     einer laufenden Kontoloeschung die Tuer fuer das Zweitgeraet wieder.
+        zg = FakeZugang(sperren_daten())
+        for d in zg.dokumente("loeschsperren"):
+            zg.loesche(zg.kurz(d["name"]), d.get("updateTime"))
+        if "loeschsperren/aktiv" not in zg.daten:
+            print(u"  GRUEN  eine Fassung ohne Blick auf `bis` loescht die gueltige Sperre - faellt auf")
+            erwischt += 1
+        else:
+            print(u"  ROT    eine Fassung ohne Blick auf `bis` faellt NICHT auf")
+
         print(u"")
-        print(u"GEGENPROBE %d von 8 bekannten Fehlern bemerkt" % erwischt)
-        if erwischt < 8:
+        print(u"GEGENPROBE %d von 9 bekannten Fehlern bemerkt" % erwischt)
+        if erwischt < 9:
             return 2
 
     return 1 if rot[0] else 0

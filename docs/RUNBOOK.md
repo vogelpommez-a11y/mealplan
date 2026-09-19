@@ -155,6 +155,15 @@ weg sein. Die Meldung listet die Pfade auf. Diese Pfade in der Firebase-Konsole 
 löschen. Stammen sie von einem **lebenden** Konto, ist das ein Fehler in der App und kein
 Rest (`docs/TROUBLESHOOTING.md` §170).
 
+**Jede Sicherung räumt vorher abgelaufene Löschsperren weg** (`loeschsperren/{uid}`, §172).
+Das ist das Einzige, was das Skript in Firestore verändert. Eine TTL-Richtlinie würde das
+automatisch erledigen, braucht aber den Blaze-Tarif. Deshalb gehört die Sicherung zur
+**monatlichen Wartung**, Schritt 0 in der Wartungserinnerung, und Ziffer 10 der
+Datenschutzerklärung sagt „bei unserer nächsten Wartung“ zu, ohne feste Frist.
+`wartung-check.py --setze` verweigert das Abhaken, wenn die jüngste Sicherung älter als 24 h
+ist. Scheitert das Aufräumen, läuft die Sicherung trotzdem, und der nächste Lauf versucht es
+erneut.
+
 ### Ein Schlüssel ist geleakt
 
 **Rotieren, sofort — nicht erst aufräumen.** Ein Schlüssel, der einmal irgendwo stand, ist

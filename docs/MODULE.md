@@ -145,11 +145,11 @@ Erhoben aus den Abschnittsmarken im Code, nicht von Hand gepflegt.
 | index.html | Erscheinungsbild | 12625-12651 | 27 |
 | index.html | Einstellungen | 12652-12775 | 124 |
 | index.html | Einstieg (D1b) | 12776-12851 | 76 |
-| index.html | Cloud-Anmeldung (Firebase) | 12852-13411 | 560 |
-| index.html | Gemeinsam planen (Gruppe) | 13412-14403 | 992 |
-| index.html | Teilen ueber den nativen Dialog des Geraets (Web Share API) | 14404-14437 | 34 |
-| index.html | Einkaufsliste als PDF (Paket B3) | 14438-14677 | 240 |
-| index.html | Boot | 14678-14696 | 19 |
+| index.html | Cloud-Anmeldung (Firebase) | 12852-13413 | 562 |
+| index.html | Gemeinsam planen (Gruppe) | 13414-14405 | 992 |
+| index.html | Teilen ueber den nativen Dialog des Geraets (Web Share API) | 14406-14439 | 34 |
+| index.html | Einkaufsliste als PDF (Paket B3) | 14440-14679 | 240 |
+| index.html | Boot | 14680-14698 | 19 |
 | lib/barcode.js | Barcode-Scan (Open Food Facts) | 14-163 | 150 |
 | lib/pdf.js | PDF selbst erzeugen (kein window.print, sandbox-sicher) | 14-38 | 25 |
 | lib/pdf.js | Marken-Kopf fuer die PDFs (Logo, "PADDY'S MEALPLAN", Slogan) | 39-106 | 68 |
@@ -307,12 +307,12 @@ _keine_
 | .claude/hooks/push-waechter.py | 95 | 3107 |
 | .claude/hooks/secrets-filter.py | 93 | 3856 |
 | .claude/hooks/syntax-nach-edit.py | 100 | 3777 |
-| .claude/hooks/wartung-erinnerung.py | 145 | 6088 |
+| .claude/hooks/wartung-erinnerung.py | 148 | 6318 |
 | .claude/settings.json | 56 | 1526 |
 | .gitattributes | 21 | 594 |
 | .github/workflows/pruefung.yml | 188 | 8066 |
 | .gitignore | 115 | 4972 |
-| CLAUDE.md | 702 | 29682 |
+| CLAUDE.md | 704 | 29908 |
 | CNAME | 1 | 21 |
 | FIREBASE-SETUP.md | 197 | 9363 |
 | LICENSE | 40 | 1907 |
@@ -328,19 +328,19 @@ _keine_
 | data/cookbook.js | 569 | 52083 |
 | data/foods.js | 244 | 17334 |
 | data/ikonen.js | 168 | 19442 |
-| data/rechtstexte.js | 169 | 28482 |
+| data/rechtstexte.js | 169 | 28727 |
 | docs/ABDECKUNG.md | 188 | 11686 |
-| docs/ARCHITECTURES.md | 3194 | 202284 |
+| docs/ARCHITECTURES.md | 3194 | 202358 |
 | docs/DESIGN.md | 1085 | 57924 |
 | docs/MODULE.md | — | — (erzeugt) |
 | docs/PRODUCT.md | 1729 | 98422 |
-| docs/RUNBOOK.md | 211 | 8036 |
+| docs/RUNBOOK.md | 220 | 8675 |
 | docs/SECURITY.md | 524 | 31349 |
 | docs/STORE.md | 397 | 20898 |
 | docs/TESTING.md | 4893 | 291345 |
-| docs/TROUBLESHOOTING.md | 6580 | 383372 |
+| docs/TROUBLESHOOTING.md | 6590 | 384188 |
 | docs/module-index.json | — | — (erzeugt) |
-| firestore.rules | 488 | 28208 |
+| firestore.rules | 487 | 28217 |
 | img/apple-touch-icon.png | — | 35163 |
 | img/beef.webp | — | 56568 |
 | img/bilder-protokoll.json | 310 | 34158 |
@@ -429,7 +429,7 @@ _keine_
 | img/waffle.webp | — | 52546 |
 | img/wrap.webp | — | 43594 |
 | img/wurst.webp | — | 54064 |
-| index.html | 14696 | 906326 |
+| index.html | 14698 | 906473 |
 | lib/barcode.js | 163 | 9247 |
 | lib/basis.js | 21 | 836 |
 | lib/pdf.js | 241 | 13120 |
@@ -448,9 +448,9 @@ _keine_
 | tools/bildsatz-stichworte.json | 1061 | 20704 |
 | tools/cdp.py | 261 | 11294 |
 | tools/firebase-vendor.py | 75 | 2957 |
-| tools/firestore-backup.py | 258 | 10777 |
+| tools/firestore-backup.py | 304 | 12943 |
 | tools/firestore-restore.py | 270 | 10811 |
-| tools/firestore_api.py | 311 | 13954 |
+| tools/firestore_api.py | 325 | 14695 |
 | tools/karte.py | 605 | 24255 |
 | tools/meal-bilder.py | 473 | 24139 |
 | tools/mobilprobe-rezeptbuch.html | 146 | 8092 |
@@ -466,7 +466,7 @@ _keine_
 | tools/pruefstand-einkauf-gruppe.py | 305 | 15777 |
 | tools/pruefstand-einkaufsliste.py | 800 | 38502 |
 | tools/pruefstand-einladung-verbrauch.py | 232 | 11518 |
-| tools/pruefstand-firestore-backup.py | 686 | 31525 |
+| tools/pruefstand-firestore-backup.py | 731 | 33982 |
 | tools/pruefstand-grpm-zoom.py | 220 | 8553 |
 | tools/pruefstand-gruppe-aufloesen.py | 255 | 12273 |
 | tools/pruefstand-gruppe-beitritt-cache.py | 253 | 11335 |
@@ -510,7 +510,7 @@ _keine_
 | tools/rezept-makros.py | 283 | 12324 |
 | tools/smoke-mit-daten.py | 145 | 8236 |
 | tools/test-meal-bilder.py | 156 | 8295 |
-| tools/wartung-check.py | 493 | 22371 |
+| tools/wartung-check.py | 531 | 24232 |
 | vendor/HERKUNFT.md | 105 | 4621 |
 | vendor/firebase/10.12.5/LICENSE | 203 | 11358 |
 | vendor/firebase/10.12.5/README.md | 27 | 1063 |

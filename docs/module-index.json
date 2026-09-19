@@ -1011,38 +1011,38 @@
       "zeilen": 76
     },
     {
-      "bis": 13411,
+      "bis": 13413,
       "datei": "index.html",
       "titel": "Cloud-Anmeldung (Firebase)",
       "von": 12852,
-      "zeilen": 560
+      "zeilen": 562
     },
     {
-      "bis": 14403,
+      "bis": 14405,
       "datei": "index.html",
       "titel": "Gemeinsam planen (Gruppe)",
-      "von": 13412,
+      "von": 13414,
       "zeilen": 992
     },
     {
-      "bis": 14437,
+      "bis": 14439,
       "datei": "index.html",
       "titel": "Teilen ueber den nativen Dialog des Geraets (Web Share API)",
-      "von": 14404,
+      "von": 14406,
       "zeilen": 34
     },
     {
-      "bis": 14677,
+      "bis": 14679,
       "datei": "index.html",
       "titel": "Einkaufsliste als PDF (Paket B3)",
-      "von": 14438,
+      "von": 14440,
       "zeilen": 240
     },
     {
-      "bis": 14696,
+      "bis": 14698,
       "datei": "index.html",
       "titel": "Boot",
-      "von": 14678,
+      "von": 14680,
       "zeilen": 19
     },
     {
@@ -1166,9 +1166,9 @@
       "zeilen": 100
     },
     {
-      "bytes": 6088,
+      "bytes": 6318,
       "pfad": ".claude/hooks/wartung-erinnerung.py",
-      "zeilen": 145
+      "zeilen": 148
     },
     {
       "bytes": 1526,
@@ -1191,9 +1191,9 @@
       "zeilen": 115
     },
     {
-      "bytes": 29682,
+      "bytes": 29908,
       "pfad": "CLAUDE.md",
-      "zeilen": 702
+      "zeilen": 704
     },
     {
       "bytes": 21,
@@ -1271,7 +1271,7 @@
       "zeilen": 168
     },
     {
-      "bytes": 28482,
+      "bytes": 28727,
       "pfad": "data/rechtstexte.js",
       "zeilen": 169
     },
@@ -1281,7 +1281,7 @@
       "zeilen": 188
     },
     {
-      "bytes": 202284,
+      "bytes": 202358,
       "pfad": "docs/ARCHITECTURES.md",
       "zeilen": 3194
     },
@@ -1300,9 +1300,9 @@
       "zeilen": 1729
     },
     {
-      "bytes": 8036,
+      "bytes": 8675,
       "pfad": "docs/RUNBOOK.md",
-      "zeilen": 211
+      "zeilen": 220
     },
     {
       "bytes": 31349,
@@ -1320,18 +1320,18 @@
       "zeilen": 4893
     },
     {
-      "bytes": 383372,
+      "bytes": 384188,
       "pfad": "docs/TROUBLESHOOTING.md",
-      "zeilen": 6580
+      "zeilen": 6590
     },
     {
       "erzeugt": true,
       "pfad": "docs/module-index.json"
     },
     {
-      "bytes": 28208,
+      "bytes": 28217,
       "pfad": "firestore.rules",
-      "zeilen": 488
+      "zeilen": 487
     },
     {
       "bytes": 35163,
@@ -1688,9 +1688,9 @@
       "pfad": "img/wurst.webp"
     },
     {
-      "bytes": 906326,
+      "bytes": 906473,
       "pfad": "index.html",
-      "zeilen": 14696
+      "zeilen": 14698
     },
     {
       "bytes": 9247,
@@ -1783,9 +1783,9 @@
       "zeilen": 75
     },
     {
-      "bytes": 10777,
+      "bytes": 12943,
       "pfad": "tools/firestore-backup.py",
-      "zeilen": 258
+      "zeilen": 304
     },
     {
       "bytes": 10811,
@@ -1793,9 +1793,9 @@
       "zeilen": 270
     },
     {
-      "bytes": 13954,
+      "bytes": 14695,
       "pfad": "tools/firestore_api.py",
-      "zeilen": 311
+      "zeilen": 325
     },
     {
       "bytes": 24255,
@@ -1873,9 +1873,9 @@
       "zeilen": 232
     },
     {
-      "bytes": 31525,
+      "bytes": 33982,
       "pfad": "tools/pruefstand-firestore-backup.py",
-      "zeilen": 686
+      "zeilen": 731
     },
     {
       "bytes": 8553,
@@ -2093,9 +2093,9 @@
       "zeilen": 156
     },
     {
-      "bytes": 22371,
+      "bytes": 24232,
       "pfad": "tools/wartung-check.py",
-      "zeilen": 493
+      "zeilen": 531
     },
     {
       "bytes": 4621,

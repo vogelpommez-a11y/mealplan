@@ -144,7 +144,8 @@ service cloud.firestore {
     // Aufloesen einer Gruppe (§171): erst die Tuer abschliessen, dann aufraeumen.
     //
     // Die Sperre enthaelt nur ein Ablaufdatum. Nach "bis" wirkt sie nicht mehr, auch wenn das
-    // Dokument noch steht - weggeraeumt wird es von der TTL-Richtlinie auf dem Feld "bis".
+    // Dokument noch steht - weggeraeumt wird es von tools/firestore-backup.py bei der monatlichen Wartung (eine TTL-
+    // Richtlinie braeuchte den Blaze-Tarif, Stand 19.09.2026).
     // Drei Stunden hoechstens: laenger als ein Token lebt, kuerzer als ein Aussperren, falls
     // das Entsperren nach einem gescheiterten Loeschen selbst scheitert.
     //

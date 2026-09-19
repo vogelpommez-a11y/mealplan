@@ -25,6 +25,9 @@ Aus demselben Grund raeumt es alte Staende weg: Eine unbegrenzt wachsende Halde 
 personenbezogener Daten auf einer Arbeitsplatte waere selbst ein Datenschutzproblem.
 Aufbewahrung siehe docs/DATENSCHUTZ-INTERN.md.
 
+Nebenbei raeumt jeder Lauf abgelaufene Loeschsperren weg (siehe SPERREN) - das einzige, was
+dieses Skript in Firestore veraendert.
+
 Aufruf:
     python tools/firestore-backup.py                 # sichern
     python tools/firestore-backup.py --ziel D:\\Pfad  # anderes Ziel
@@ -165,6 +168,42 @@ def verwaiste_muster(pfade):
     return raus
 
 
+# Loeschsperren beim Kontoloeschen (docs/TROUBLESHOOTING.md §172). Sie bleiben nach dem Loeschen
+# bewusst stehen und laufen nach `bis` ab - danach darf sie aber NIEMAND mehr entfernen, weil
+# das Konto, dem sie gehoerten, nicht mehr existiert. Eine TTL-Richtlinie waere der natuerliche
+# Weg, verlangt aber den Blaze-Tarif (19.09.2026: "billing disabled"). Deshalb raeumt jede
+# Sicherung sie weg; die Datenschutzerklaerung (Ziffer 10) sagt "bei der naechsten Wartung".
+SPERREN = "loeschsperren"
+
+
+def _zeitpunkt(wert):
+    u"""'2026-09-19T16:05:36.797238Z' -> datetime (UTC, ohne Zeitzone). None, wenn unlesbar."""
+    try:
+        return datetime.datetime.strptime((wert or "")[:19], "%Y-%m-%dT%H:%M:%S")
+    except ValueError:
+        return None
+
+
+def sperren_raeumen(zugang, jetzt=None):
+    u"""Loescht abgelaufene Loeschsperren. Liefert die Zahl der entfernten.
+
+    Nur, was nachweislich abgelaufen ist: Eine Sperre, die noch gilt, schuetzt gerade eine
+    laufende Loeschung und bleibt. Eine ohne lesbares `bis` bleibt ebenfalls - die Regeln lassen
+    sie gar nicht entstehen, und im Zweifel nicht loeschen ist hier die sichere Richtung.
+    """
+    jetzt = jetzt or datetime.datetime.utcnow()
+    weg = 0
+    for d in zugang.dokumente(SPERREN):
+        if "createTime" not in d:
+            continue
+        ablauf = _zeitpunkt(d.get("fields", {}).get("bis", {}).get("timestampValue"))
+        if ablauf is None or ablauf >= jetzt:
+            continue
+        zugang.loesche(zugang.kurz(d.get("name", "")), d.get("updateTime"))
+        weg += 1
+    return weg
+
+
 def sichere(zugang, ziel, jetzt=None, melder=None):
     u"""Holt alles und schreibt es. Liefert das Manifest."""
     melder = melder or (lambda t: None)
@@ -216,6 +255,13 @@ def main():
         behalten = fs.arg(sys.argv, "--behalten", BEHALTEN_TAGE, zahl=True)
         zugang = fs.Zugang()
         print(u"Projekt: %s" % zugang.projekt)
+        # VOR dem Sichern, damit abgelaufene Sperren gar nicht erst in die Kopie wandern. Ein
+        # Fehler hier haelt die Sicherung nicht auf - sie ist wichtiger als das Aufraeumen.
+        try:
+            geraeumt = sperren_raeumen(zugang)
+            print(u"Abgelaufene Loeschsperren entfernt: %d" % geraeumt)
+        except fs.ZugangFehler as e:
+            print(u"WARNUNG: Loeschsperren nicht aufgeraeumt - beim naechsten Lauf erneut:\n  %s" % e)
         manifest = sichere(zugang, ziel, melder=lambda t: print(u"  " + t))
     except fs.ZugangFehler as e:
         print(u"")

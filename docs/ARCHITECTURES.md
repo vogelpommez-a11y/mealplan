@@ -759,7 +759,7 @@ Konto ab, also das eines Zweitgeräts mit noch gültigem Token (`docs/TROUBLESHO
 
 * Scheitert das Aufräumen, wird die Sperre zurückgenommen.
 * Lehnen die Regeln die Sperre ab (noch nicht veröffentlicht), wird ohne sie gelöscht.
-* Die Sperre räumt eine TTL-Richtlinie auf `loeschsperren.bis` weg (Firestore-Konsole).
+* Abgelaufene Sperren räumt `tools/firestore-backup.py` bei jeder Sicherung weg, also bei der monatlichen Wartung. Eine TTL-Richtlinie bräuchte den Blaze-Tarif.
 
 ### Migration
 

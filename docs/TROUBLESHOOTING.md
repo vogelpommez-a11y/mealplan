@@ -6563,8 +6563,12 @@ sich die Löschung selbst aus. Erst danach liest `kontoDatenLoeschen()` Profil u
 `getDocFromServer`/`getDocsFromServer` und **ergänzt** die Listen des Aufrufers.
 
 * **Die Sperre bleibt nach dem Löschen stehen.** Genau dann wird sie gebraucht. Nach `bis` wirkt
-  sie nicht mehr. Weggeräumt wird sie von einer TTL-Richtlinie auf `loeschsperren.bis` in der
-  Firestore-Konsole, laut Google innerhalb von 24 Stunden nach Ablauf.
+  sie nicht mehr. Weggeräumt wird sie von `tools/firestore-backup.py`, das bei jeder
+  Sicherung abgelaufene Sperren löscht, und zwar nur mit der Vorbedingung `updateTime`. Die Sicherung
+  ist Schritt 0 der monatlichen Wartung. **Die TTL-Richtlinie, die das automatisch täte, ging
+  nicht:** `gcloud firestore fields ttls update` lehnte mit „billing disabled“ ab, TTL braucht
+  Blaze. Nach dem Löschen darf niemand sonst die Sperre entfernen, denn das Konto, dem sie
+  gehört, gibt es nicht mehr. Ohne diesen Schritt bliebe sie für immer liegen.
 * **Scheitert das Aufräumen**, nimmt `deleteAccount()` die Sperre zurück. Sonst liefe das Konto
   zwei Stunden ins Leere. Scheitert auch das, endet der Zustand mit `bis` von selbst.
 * **Lehnen die Regeln schon die Sperre ab** (`permission-denied`, also noch nicht
