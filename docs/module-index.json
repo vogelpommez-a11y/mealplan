@@ -1101,9 +1101,9 @@
       "zeilen": 82
     },
     {
-      "bytes": 16133,
+      "bytes": 16548,
       "pfad": ".claude/agents/anwalt.md",
-      "zeilen": 278
+      "zeilen": 283
     },
     {
       "bytes": 9879,
@@ -1126,9 +1126,9 @@
       "zeilen": 124
     },
     {
-      "bytes": 8958,
+      "bytes": 9368,
       "pfad": ".claude/agents/store-check.md",
-      "zeilen": 170
+      "zeilen": 176
     },
     {
       "bytes": 3776,
@@ -1310,9 +1310,9 @@
       "zeilen": 524
     },
     {
-      "bytes": 20898,
+      "bytes": 22860,
       "pfad": "docs/STORE.md",
-      "zeilen": 397
+      "zeilen": 423
     },
     {
       "bytes": 291950,
@@ -1783,7 +1783,7 @@
       "zeilen": 75
     },
     {
-      "bytes": 12943,
+      "bytes": 12982,
       "pfad": "tools/firestore-backup.py",
       "zeilen": 304
     },
@@ -2098,7 +2098,7 @@
       "zeilen": 531
     },
     {
-      "bytes": 4621,
+      "bytes": 4752,
       "pfad": "vendor/HERKUNFT.md",
       "zeilen": 105
     },

@@ -294,12 +294,12 @@ _keine_
 | .claude/Skills/pruefstand/SKILL.md | 126 | 5263 |
 | .claude/Skills/rezeptcharge/SKILL.md | 482 | 26234 |
 | .claude/Skills/smoke/SKILL.md | 82 | 3368 |
-| .claude/agents/anwalt.md | 278 | 16133 |
+| .claude/agents/anwalt.md | 283 | 16548 |
 | .claude/agents/datenschutz-technik.md | 174 | 9879 |
 | .claude/agents/doku-waechter.md | 105 | 5302 |
 | .claude/agents/kvp.md | 162 | 9060 |
 | .claude/agents/lieferkette.md | 124 | 6016 |
-| .claude/agents/store-check.md | 170 | 8958 |
+| .claude/agents/store-check.md | 176 | 9368 |
 | .claude/agents/ux-reviewer.md | 71 | 3776 |
 | .claude/agents/website-security.md | 195 | 10650 |
 | .claude/commands/pushcheck.md | 70 | 2657 |
@@ -336,7 +336,7 @@ _keine_
 | docs/PRODUCT.md | 1729 | 98422 |
 | docs/RUNBOOK.md | 220 | 8675 |
 | docs/SECURITY.md | 524 | 31406 |
-| docs/STORE.md | 397 | 20898 |
+| docs/STORE.md | 423 | 22860 |
 | docs/TESTING.md | 4905 | 291950 |
 | docs/TROUBLESHOOTING.md | 6590 | 384276 |
 | docs/module-index.json | — | — (erzeugt) |
@@ -448,7 +448,7 @@ _keine_
 | tools/bildsatz-stichworte.json | 1061 | 20704 |
 | tools/cdp.py | 261 | 11294 |
 | tools/firebase-vendor.py | 75 | 2957 |
-| tools/firestore-backup.py | 304 | 12943 |
+| tools/firestore-backup.py | 304 | 12982 |
 | tools/firestore-restore.py | 270 | 10811 |
 | tools/firestore_api.py | 325 | 14695 |
 | tools/karte.py | 605 | 24255 |
@@ -511,7 +511,7 @@ _keine_
 | tools/smoke-mit-daten.py | 145 | 8236 |
 | tools/test-meal-bilder.py | 156 | 8295 |
 | tools/wartung-check.py | 531 | 24232 |
-| vendor/HERKUNFT.md | 105 | 4621 |
+| vendor/HERKUNFT.md | 105 | 4752 |
 | vendor/firebase/10.12.5/LICENSE | 203 | 11358 |
 | vendor/firebase/10.12.5/README.md | 27 | 1063 |
 | vendor/firebase/10.12.5/firebase-app.js | 5122 | 102248 |

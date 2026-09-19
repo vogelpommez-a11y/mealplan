@@ -71,6 +71,12 @@ entfernen, nicht nur abmelden oder deaktivieren.
 
 Prüfe: Gibt es `deleteAccountFlow()` o. Ä., ist er erreichbar, löscht er auch die
 Cloud-Daten (nicht nur `localStorage`), und was passiert bei Fehlern?
+
+**Google Play verlangt zusätzlich einen Web-Weg** (Richtlinie zur Kontolöschung, Stand April
+2026): eine Webseite, über die man die Löschung auch **ohne installierte App** anstoßen kann.
+Ihr Link gehört in die Play Console. Die Web-App unter www.paddysmealplan.de bietet
+„Konto löschen“ nach der Anmeldung an. Ob Google das als ausreichend ansieht, ist beim
+Einrichten der Play Console zu prüfen.
 Bekannte Falle: TROUBLESHOOTING Punkt 48 (ein einziger fremder `shared/{id}`-Eintrag
 konnte den Löschlauf abbrechen) und Punkt 37 (beide Speicher treffen).
 

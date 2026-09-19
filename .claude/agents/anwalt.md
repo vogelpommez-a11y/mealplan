@@ -164,6 +164,11 @@ kommt in Reichweite. Prüfe, was davon im Code schon sichtbar ist:
   Impressum und Datenschutzerklärung.
 - **Widerrufsrecht** bei digitalen Inhalten: Gibt es eine Belehrung, gibt es den Hinweis
   zum vorzeitigen Erlöschen?
+- **Widerrufsbutton (§ 356a BGB, in Kraft seit 19.06.2026)**: Für jeden online geschlossenen
+  Vertrag ein deutlich beschrifteter Button „Vertrag widerrufen“, erreichbar während der
+  ganzen Widerrufsfrist. Daneben der **Kündigungsbutton (§ 312k BGB)** für das Abo. Beides
+  greift erst mit einem Kaufweg. Ob es bei In-App-Käufen den Anbieter oder den Store trifft,
+  hängt an der Verkäuferfrage oben.
 - **Preisangaben vor dem Kauf**: Preis, Laufzeit, Verlängerung, Kündigungsfrist – sichtbar,
   bevor man kauft? Steht auf derselben Ansicht ein Link auf AGB und Datenschutz?
 - **Kündigung**: Wie kommt man wieder raus, und ist der Weg genauso leicht wie der Einstieg?

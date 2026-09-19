@@ -22,7 +22,7 @@ der vier Dateien.
 | Bezogen von | `https://www.gstatic.com/firebasejs/10.12.5/<name>` |
 | Bezogen über | `tools/firebase-vendor.py` — **nicht von Hand** |
 | Lizenz | Apache 2.0, Volltext liegt als `vendor/firebase/10.12.5/LICENSE` bei |
-| Zuletzt geprüft | 27.08.2026 durch `lieferkette`: kein Update-Anlass |
+| Zuletzt geprüft | 19.09.2026 durch `lieferkette` (Wartung): kein Update-Anlass, Prüfsummen unverändert. Beobachten: ReDoS-Fix in FirebaseError ab 12.17.0, ohne CVE, kein erreichbarer Pfad |
 
 ### Warum die Prüfsumme nicht der des Originals entspricht
 
@@ -57,7 +57,7 @@ Ergebnis mit den Werten unten — nicht die Rohdatei vom Server.
 | Version | **0.21.3** (`@zxing/library`, npm) |
 | Lizenz | Apache 2.0 — Hinweis in der `LICENSE` im Projektwurzelverzeichnis, Abschnitt „AUSNAHMEN" |
 | Geladen | **verzögert**, erst beim ersten Scan bzw. QR-Code (`loadZXing()`), nicht beim Start |
-| Zuletzt geprüft | 27.08.2026 durch `lieferkette`: keine CVEs gefunden |
+| Zuletzt geprüft | 19.09.2026 durch `lieferkette` (Wartung): keine CVEs gefunden |
 
 **Die Datei nennt ihre Version nicht selbst.** Sie ist minifiziert, dabei ist auch der
 Lizenzkopf verlorengegangen. Die Versionsangabe stand bis heute nur als Kommentar in

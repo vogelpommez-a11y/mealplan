@@ -191,7 +191,7 @@ def sperren_raeumen(zugang, jetzt=None):
     laufende Loeschung und bleibt. Eine ohne lesbares `bis` bleibt ebenfalls - die Regeln lassen
     sie gar nicht entstehen, und im Zweifel nicht loeschen ist hier die sichere Richtung.
     """
-    jetzt = jetzt or datetime.datetime.utcnow()
+    jetzt = jetzt or datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None)
     weg = 0
     for d in zugang.dokumente(SPERREN):
         if "createTime" not in d:

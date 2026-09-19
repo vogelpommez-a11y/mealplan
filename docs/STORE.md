@@ -121,6 +121,18 @@ Der Tarifwechsel gehört damit **vor** den Bau der Bezahlung, nicht danach.
 Begründungen: `docs/PRODUCT.md`, Abschnitt „Bewusste Produktentscheidung: Wie Pro verkauft
 wird". Umgesetzt ist davon **noch nichts** — die Entscheidungen legen fest, wie gebaut wird.
 
+**Nachtrag 19.09.2026:** Blaze wurde vorerst **nicht** aktiviert. Laut Betreiber setzt das
+Rechnungskonto ein Gewerbe voraus. Die Kaufbeleg-Prüfung hängt damit zusätzlich an einer
+Gewerbeanmeldung. Gleichzeitig fiel die Firestore-TTL weg, deshalb räumt das Backup die
+Löschsperren auf (TROUBLESHOOTING §172).
+
+**Neu seit August 2026, noch ungeprüft für uns:** Apple hat am 18.08.2026 neue EU-Geschäftsbedingungen
+angekündigt, wirksam ab 01.10.2026 (Apple Newsroom und Developer News, laut `store-check`
+am 19.09.2026). Die Core Technology Fee entfällt zugunsten einer Provision von 5 % für den
+Vertrieb außerhalb des App Store, die Wege für alternative Zahlungen sind neu geordnet. Ob
+das für eine App im regulären App Store überhaupt einen günstigeren Weg eröffnet, ist
+**offen**. Das gehört vor dem Bau der Bezahlung geklärt.
+
 ---
 
 ## 3. Konto-Löschung in der App
@@ -135,6 +147,12 @@ Stand: `deleteAccountFlow()` existiert. Zu prüfen bleibt bei jeder Änderung:
 - Trifft sie **beide** Speicher — `localStorage` und Cloud? (TROUBLESHOOTING 37)
 - Übersteht sie einen fremden oder toten `shared/{id}`-Eintrag? (TROUBLESHOOTING 48)
 - Was passiert mit einer Gruppe, wenn der **Inhaber** löscht?
+- Hält die Löschsperre (`loeschsperren/{uid}`, TROUBLESHOOTING §172) ein zweites Gerät ab?
+
+**Google Play verlangt zusätzlich einen Web-Weg**, also eine Löschmöglichkeit ohne
+installierte App, deren Link in die Play Console gehört (Richtlinie zur Kontolöschung, Stand
+April 2026, laut `store-check` am 19.09.2026). Die Web-App bietet „Konto löschen“ nach der
+Anmeldung an. Ob Google das genügt, ist beim Einrichten der Play Console zu klären.
 
 ---
 
@@ -371,6 +389,14 @@ Alternativtexte sind dafür nicht geprüft.
   `FIREBASE-SETUP.md:178` vorbereitet — es fehlen der Apple-Developer-Account und das
   Umlegen des Schalters.
 - **Tablet/iPad**: Layout darf nicht brechen.
+- **Mindest-SDK beim Einreichen** (laut `store-check`, Stand 19.09.2026): Apple verlangt seit
+  28.04.2026 Xcode 26 und das iOS-26-SDK, ab April 2027 das iOS-27-SDK. Google Play verlangt
+  seit 31.08.2026 für neue Einreichungen Android 16 (API 36), für Updates bestehender Apps
+  mindestens API 35. Beides wird erst mit dem Capacitor-Projekt prüfbar.
+- **„Mit Apple anmelden“, privates Relay:** Apple hat am 24.08.2026 die Relay-Domain von
+  `privaterelay.appleid.com` auf `private.icloud.com` umgestellt. Das betrifft uns erst, wenn
+  `APPLE_ENABLED` umgelegt wird. Dann müssen beide Domains durchgelassen werden, wo E-Mails
+  geprüft werden.
 
 ---
 
