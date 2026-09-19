@@ -324,8 +324,9 @@ Berechtigung wird **zuerst in den Regeln** durchgesetzt, dann im Client abgebild
 * `allow read` ist **nicht** `allow get` — `read` umfasst `list`. Wo eine unerratbare ID der
   Schutz ist, gehört `allow get` hin und `list` ausgeschaltet.
 * `firestore.rules` im Repo ist nur eine **Vorlage**. Verbindlich ist der in der
-  Firebase-Konsole veröffentlichte Stand — der ist lokal nicht abrufbar. Das bei jeder
-  Aussage über den Live-Zustand dazusagen.
+  Firebase-Konsole veröffentlichte Stand. Vergleichen, nur lesend:
+  `python tools/regeln-live.py` (braucht `gcloud auth login`). Ohne diesen Lauf bei jeder
+  Aussage über den Live-Zustand dazusagen, dass er nicht geprüft ist.
 * Die **Firebase-Web-Config in `index.html` ist kein Secret.** Web-Keys identifizieren das
   Projekt, sie autorisieren nichts. Nie als Leck behandeln.
 

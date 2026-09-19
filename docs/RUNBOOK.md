@@ -91,7 +91,9 @@ der erste Verdacht (TROUBLESHOOTING 1).
 
 **Zugriff verweigert, obwohl er erlaubt sein sollte**
 → Der veröffentlichte Regelstand in der Konsole weicht von `firestore.rules` ab. Das Repo
-ist nur die Vorlage (TROUBLESHOOTING 2).
+ist nur die Vorlage (TROUBLESHOOTING 2). Nachsehen, nur lesend:
+`python tools/regeln-live.py`. Das Skript unterscheidet „nur Kommentare“ von „Regeln weichen
+ab“.
 
 **Zwei Geräte schaukeln sich hoch**
 → `updatedAt` **in der Cloud** beobachten, nicht die Anzeige. Steigt der Zeitstempel,
