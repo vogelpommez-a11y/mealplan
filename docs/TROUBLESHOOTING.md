@@ -6583,7 +6583,7 @@ sich die Löschung selbst aus. Erst danach liest `kontoDatenLoeschen()` Profil u
   das zählt als ein Lesevorgang.
 
 Prüfstand: `tools/pruefstand-konto-loeschsperre.py`, mit der Gegenprobe gegen `deleteAccount()` aus
-`5b11b8c`.
+`5b11b8c`. Regeln veröffentlicht am 19.09.2026, am echten Konto nachgewiesen (`docs/TESTING.md`).
 
 > **Die Lehre aus §171 gilt auch fürs Konto: erst die Tür abschließen, dann aufräumen. Und eine
 > Sperre, die nach dem Löschen stehen bleiben muss, braucht ein eigenes Ende.**

@@ -335,12 +335,12 @@ _keine_
 | docs/MODULE.md | — | — (erzeugt) |
 | docs/PRODUCT.md | 1729 | 98422 |
 | docs/RUNBOOK.md | 220 | 8675 |
-| docs/SECURITY.md | 524 | 31349 |
+| docs/SECURITY.md | 524 | 31406 |
 | docs/STORE.md | 397 | 20898 |
-| docs/TESTING.md | 4893 | 291345 |
-| docs/TROUBLESHOOTING.md | 6590 | 384188 |
+| docs/TESTING.md | 4905 | 291950 |
+| docs/TROUBLESHOOTING.md | 6590 | 384276 |
 | docs/module-index.json | — | — (erzeugt) |
-| firestore.rules | 487 | 28217 |
+| firestore.rules | 486 | 28086 |
 | img/apple-touch-icon.png | — | 35163 |
 | img/beef.webp | — | 56568 |
 | img/bilder-protokoll.json | 310 | 34158 |

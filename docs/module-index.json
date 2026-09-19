@@ -1305,7 +1305,7 @@
       "zeilen": 220
     },
     {
-      "bytes": 31349,
+      "bytes": 31406,
       "pfad": "docs/SECURITY.md",
       "zeilen": 524
     },
@@ -1315,12 +1315,12 @@
       "zeilen": 397
     },
     {
-      "bytes": 291345,
+      "bytes": 291950,
       "pfad": "docs/TESTING.md",
-      "zeilen": 4893
+      "zeilen": 4905
     },
     {
-      "bytes": 384188,
+      "bytes": 384276,
       "pfad": "docs/TROUBLESHOOTING.md",
       "zeilen": 6590
     },
@@ -1329,9 +1329,9 @@
       "pfad": "docs/module-index.json"
     },
     {
-      "bytes": 28217,
+      "bytes": 28086,
       "pfad": "firestore.rules",
-      "zeilen": 487
+      "zeilen": 486
     },
     {
       "bytes": 35163,

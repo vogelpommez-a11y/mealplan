@@ -6,13 +6,12 @@ rules_version = '2';
 // Firebase-Konsole unter Firestore Database -> Regeln eingefügt und VERÖFFENTLICHT wird.
 // Sie liegt hier im Repo, damit nachvollziehbar ist, was gelten soll.
 //
-// Stand: 2026-09-19 — NOCH NICHT VEROEFFENTLICHT. Neu gegenueber dem Live-Stand ist allein
-// die Loeschsperre (loeschsperren, nichtImLoeschen(), TROUBLESHOOTING §172).
+// Stand: 2026-09-19 — DIESE FASSUNG IST SEIT DEM 19.09.2026 VEROEFFENTLICHT UND WIRKSAM
+// (neu: Loeschsperre, nichtImLoeschen(), TROUBLESHOOTING §172).
 //
-// Live ist seit dem 18.09.2026 die Fassung mit der Aufloesesperre (§171). Gegengeprueft am
-// 19.09.2026 ueber die Firebase-Rules-API: Ihr REGELTEXT war mit dieser Datei vor der
-// Loeschsperre identisch, abweichend nur Kommentare. Beim Veroeffentlichen die GANZE Datei
-// einsetzen und danach `python tools/regeln-live.py` fahren - erwartet: "identisch".
+// Veroeffentlicht als GANZE Datei ueber die Firebase-Rules-API, nicht von Hand im Editor.
+// Nachweis: `python tools/regeln-live.py` meldet "identisch". Bei jeder kuenftigen Aenderung
+// genauso: ganze Datei einsetzen, danach regeln-live.py.
 //
 // Bewusst in Kauf genommen: Zum Zeitpunkt der Veroeffentlichung gab es acht Gruppen, aber
 // nur EIN entitlements-Dokument. Die uebrigen sieben Gruppen koennen seitdem nicht mehr

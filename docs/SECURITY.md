@@ -116,8 +116,8 @@ Deshalb steht heute überall dort, wo eine unerratbare ID der Schutz ist, ausdr�
 - **Löschsperre**: `nichtImLoeschen()` lehnt Anlegen und Ändern unter `users/{uid}`, `shared/`,
   `invites/`, beim Gründen und beim Beitritt ab, solange `loeschsperren/{uid}.bis` in der Zukunft
   liegt. Löschen bleibt frei. `bis` darf höchstens drei Stunden in der Zukunft liegen: Eine Sperre
-  kann nur das eigene Konto treffen, und auch das nur kurz (§172). **Noch nicht in der Konsole
-  veröffentlicht.**
+  kann nur das eigene Konto treffen, und auch das nur kurz (§172). Veröffentlicht am 19.09.2026 über
+  die Rules-API, als ganze Datei (`tools/regeln-live.py`: identisch).
 - **Pro-Gating**: `hasPro()` und `groupOwnerHasPro()`. Cloud-Sync ist ausdrücklich gratis;
   Pro trägt nur das **Gründen** einer Gruppe — der Inhaber zahlt, das Beitreten ist frei.
 - **UID-Bindung beim Erstellen**: `create` nur mit der eigenen `uid`, damit niemand

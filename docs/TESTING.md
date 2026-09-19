@@ -2400,6 +2400,18 @@ solange eine gültige Sperre steht. Das Zweitgerät schreibt in der Attrappe gen
 * **Die Regeln prüft er nur als Text**, an sechs Stellen, dazu die Bedingung „Löschen bleibt
   frei“. Ob sie wirken, zeigt erst ein Versuch am echten Konto nach dem Veröffentlichen.
 
+**Live-Nachweis am 19.09.2026** (`/abnahme`, eigenes Konto, Konto **nicht** gelöscht): Die
+Sperre war nur 60 s gesetzt. Als Schreibprobe dienten ein Teilen-Link, den die App nie anzeigt
+und der danach wieder gelöscht wurde, und das Kontodokument mit unverändertem `tab`.
+
+| Probe | Ergebnis |
+|---|---|
+| Sperre mit `bis` in 4 h | `permission-denied`, die Regel erlaubt höchstens 3 h |
+| Sperre mit 60 s | OK |
+| Link anlegen / Kontodokument schreiben, gesperrt | **`permission-denied`** |
+| Sperre löschen | OK |
+| Link anlegen und löschen, Kontodokument schreiben, frei | OK — die Gegenprobe |
+
 ## Ein Listener als Prüfobjekt: die Attrappe muss den Nebeneffekt haben (17.08.2026)
 
 `tools/pruefstand-gruppe-aufloesen.py` — 11 Prüfungen für `TROUBLESHOOTING.md` 101 (Gruppe
