@@ -1310,19 +1310,19 @@
       "zeilen": 524
     },
     {
-      "bytes": 26786,
+      "bytes": 27190,
       "pfad": "docs/STORE.md",
-      "zeilen": 469
+      "zeilen": 473
     },
     {
-      "bytes": 297447,
+      "bytes": 298009,
       "pfad": "docs/TESTING.md",
-      "zeilen": 5006
+      "zeilen": 5016
     },
     {
-      "bytes": 384276,
+      "bytes": 387705,
       "pfad": "docs/TROUBLESHOOTING.md",
-      "zeilen": 6590
+      "zeilen": 6657
     },
     {
       "erzeugt": true,
@@ -1738,9 +1738,9 @@
       "zeilen": 66
     },
     {
-      "bytes": 24178,
+      "bytes": 24702,
       "pfad": "tools/a11y-pruefung.py",
-      "zeilen": 519
+      "zeilen": 529
     },
     {
       "bytes": 13049,

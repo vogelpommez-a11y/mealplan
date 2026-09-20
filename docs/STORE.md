@@ -344,9 +344,10 @@ oder Produkt, je nach Vertriebsweg" gegenüber. Das beschreibt die Weiche ungena
 * § 2 Nr. 26 definiert **Dienstleistung im elektronischen Geschäftsverkehr** als digitalen
   Dienst, der über eine App erbracht wird **mit dem Ziel eines Verbrauchervertrags**. Eine
   App mit Abo-Kaufweg fällt nach dem Wortlaut darunter.
-* Damit greift die **Kleinstunternehmer-Ausnahme** (§ 3 Abs. 3: unter 10 Beschäftigte und
-  höchstens 2 Mio. € Umsatz oder Bilanzsumme) — sie gilt ausdrücklich nur für
-  Dienstleistungen, und genau das wäre die App dann.
+* Damit **käme die Kleinstunternehmer-Ausnahme in Betracht**: § 3 Abs. 3 nimmt
+  Kleinstunternehmen aus, die Dienstleistungen anbieten — und genau das wäre die App dann.
+  Die Schwellen (unter 10 Beschäftigte, höchstens 2 Mio. € Umsatz oder Bilanzsumme) stehen
+  nicht in § 3 Abs. 3 selbst, sondern in der Definition in **§ 2 Nr. 17**.
 
 ⚠️ **Das ist die Lesart des Gesetzeswortlauts, keine amtliche Klarstellung und keine
 Rechtsprechung.** Kanzleiquellen ordnen Abo-Apps übereinstimmend als Dienstleistung ein;
@@ -374,7 +375,7 @@ systematisch gemessen** über Auth-Gate, alle zehn Onboarding-Schritte und die v
 in drei Gerätebreiten, Light und Dark (`tools/abnahme-mobil.py`, 108 Stationen).
 
 **Die zweite Hälfte, gemessen und behoben am 20.09.2026** (`tools/a11y-pruefung.py`,
-21 Stationen, 292 Tab-Stopps, Gegenprobe in **beide** Richtungen grün). Was
+24 Stationen, 298 Tab-Stopps, Gegenprobe in **beide** Richtungen grün). Was
 `abnahme-mobil.py` nicht sieht, weil man es nicht sieht — Screenreader-Namen, Labels,
 Tastaturweg, Fokusring, Überschriftenstruktur. **Stand danach: 0 Befunde.**
 
@@ -385,8 +386,11 @@ Tastaturweg, Fokusring, Überschriftenstruktur. **Stand danach: 0 Befunde.**
 | Fokus auf dem **markierten** Punkt des Gewichtsdiagramms nicht erkennbar — `.wch-pt.is-on` war schon groß, der Fokus änderte nichts | 1 | 2.4.7 | eigener heller Rand für `:focus-visible`, unabhängig von `is-on` |
 | Überschriftensprung `h1 → h3` | 5 | 1.3.1 | 32 Karten- und Modalüberschriften auf `h2`; CSS-Selektoren auf `:is(h2, h3)`. `.onb-sub-q` bleibt `h3` — echte Unterfrage |
 
-⚠️ **Drei der ursprünglich 13 Meldungen waren Fehlalarme des Prüfstands**, gefunden beim
-Gegenprüfen am Code vor der Behebung: Der Fokusring sitzt in diesem Projekt an drei Orten —
+⚠️ **Meldungen sind nicht Stellen** — die Tabelle zählt Stellen. Der erste Lauf brachte
+**13 Meldungen**: Die beiden Datei-Felder und `#p-search` lösten je *zwei* Messgrößen aus
+(kein Name **und** kein Label), und die beiden Datei-Felder teilen sich einen Pfad, werden
+also als eine Zeile gemeldet. **Drei der 13 Meldungen waren Fehlalarme des Prüfstands**,
+gefunden beim Gegenprüfen am Code vor der Behebung: Der Fokusring sitzt in diesem Projekt an drei Orten —
 am Element (`input:focus`), im Pseudoelement (`.rcard-open::after`) und im Kind
 (`.wch-pt .wch-dot`) —, und bei `input` liegt er hinter einer Transition. Wer nur das
 Element misst und sofort misst, lässt funktionierenden Code „reparieren". Die Gegenprobe

@@ -748,15 +748,25 @@ die, die auf jedem Bildschirmfoto in Ordnung aussieht:
 | Seitengerüst | 2.4.2, 3.1.1 | Titel, `lang` |
 
 ```powershell
-python tools/a11y-pruefung.py                 # 3 Läufe, 21 Stationen
+python tools/a11y-pruefung.py                 # 3 Läufe, 24 Stationen
 python tools/a11y-pruefung.py --gegenprobe    # misst sich selbst
 python tools/a11y-pruefung.py --schnell       # nur 390x844 dark
 ```
 
-**Kein zweites Gerüst.** Sitzung, Onboarding-Automat und Stationsweg werden aus
-`abnahme-mobil.py` importiert (über `importlib`, der Bindestrich verbietet ein normales
-`import`). Ein Nachbau wäre genau der Fehler, vor dem CLAUDE.md Abschnitt 11 warnt — er
-würde über kurz oder lang etwas anderes fahren als die Abnahme und das nicht merken.
+**Kein zweites Gerüst.** Sitzung und Onboarding-Automat werden aus `abnahme-mobil.py`
+importiert (über `importlib`, der Bindestrich verbietet ein normales `import`). Ein Nachbau
+wäre genau der Fehler, vor dem CLAUDE.md Abschnitt 11 warnt.
+
+⚠️ **Der Stationsweg steht trotzdem in beiden Dateien getrennt — und genau da schlug es
+sofort zu.** Der erste Entwurf ließ `23_vorkochen` aus: Die Vorkochliste wurde von der
+mobilen Abnahme geprüft, von der A11y-Prüfung nicht, und **kein Bericht sagte das**. Gefunden
+hat es `kvp` im Pushcheck, nicht die Messung — eine fehlende Station meldet sich nie von
+selbst, sie erscheint einfach nicht.
+
+> Ein Bereich, den nur einer von zwei Prüfständen kennt, fällt niemandem auf.
+
+Wer hier eine Station ergänzt, ergänzt sie in **beiden** Dateien. Eine gemeinsame Quelle für
+den Stationsweg wäre der sauberere Weg, sobald ein dritter Prüfstand dazukommt.
 
 ### Warum echte Tab-Tastendrücke und kein `element.focus()`
 
@@ -814,7 +824,7 @@ Transition) und verlangt, dass keiner davon gemeldet wird.
 ### Erster Lauf und Behebung, 20.09.2026
 
 13 Meldungen, davon 3 Fehlalarme. Die verbleibenden 10 sind behoben, der Lauf danach ist bei
-**0 Befunden über 21 Stationen und 292 Tab-Stopps**; `abnahme-mobil.py` bleibt bei 108
+**0 Befunden über 24 Stationen und 298 Tab-Stopps**; `abnahme-mobil.py` bleibt bei 108
 Stationen grün. Einzelheiten in `docs/STORE.md` Abschnitt 7b.
 
 Der wichtigste Fund war kein reiner A11y-Befund: `photoInput` und `avatarInput` hängen

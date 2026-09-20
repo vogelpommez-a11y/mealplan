@@ -6587,3 +6587,70 @@ Prüfstand: `tools/pruefstand-konto-loeschsperre.py`, mit der Gegenprobe gegen `
 
 > **Die Lehre aus §171 gilt auch fürs Konto: erst die Tür abschließen, dann aufräumen. Und eine
 > Sperre, die nach dem Löschen stehen bleiben muss, braucht ein eigenes Ende.**
+
+---
+
+## 173. Der A11y-Prüfstand, der nach sechs von 47 Elementen aufhörte — und dreimal am Fokusring vorbeimaß
+
+**20.09.2026.** `tools/a11y-pruefung.py` entstand für Phase E4 (BFSG) und hatte in seinem ersten
+Entwurf **drei** eigene Fehler. Alle drei hätten einen grünen Bericht erzeugt, den niemand
+angezweifelt hätte. Zwei fand die Gegenprobe, den dritten erst `kvp` im Pushcheck.
+
+### Erstens: Der Tabweg brach am Pfad-Text ab, nicht am Element
+
+Die Prüfung geht die Seite mit echten Tab-Tastendrücken ab. Als Erkennung für „der Ring ist
+rum" diente der **Pfad-Text** des fokussierten Elements:
+
+```js
+if (m["pfad"] in gesehen) break;      // falsch
+```
+
+Zwei Knöpfe im selben Container tragen aber denselben Pfad — `div.wg-actions > button.btn.ghost`
+gibt es mehrfach. Der Weg endete nach **6 statt 47 Elementen**, und der gesamte Rest der Seite
+galt stillschweigend als geprüft.
+
+Behoben: Der Rundlauf wird am Element erkannt (`data-a11y-besucht`), nicht am Text.
+
+**Aufgefallen ist es nur, weil ein künstlicher Fehler der Gegenprobe *nicht* anschlug.** Die
+Probe hing am Ende von `body` und wurde deshalb nie besucht. Seitdem wird sie an den **Anfang**
+gehängt, und der Bericht nennt die **Länge des Tabwegs**:
+
+> `0 Befunde` bei 0 abgegangenen Elementen ist kein Ergebnis, sondern eine Messung, die nicht
+> stattgefunden hat.
+
+### Zweitens: Der Fokusring sitzt an drei Orten, gemessen wurde einer
+
+```
+input:focus                      { border-color; box-shadow }   am Element, hinter einer Transition
+.rcard-open:focus-visible::after { outline }                    im Pseudoelement
+.wch-pt:focus-visible .wch-dot   { r; stroke }                  im Kind
+```
+
+`getComputedStyle(element)` sieht davon genau eines — und bei `input` auch das nur im
+Anfangszustand seiner Übergangsanimation. **Drei gut gelöste Stellen galten als Fehler.** Ohne
+die Gegenprüfung am Code wäre funktionierender Code „repariert" worden.
+
+Behoben: Die Messung legt für ihren Moment alle Übergänge still (`transition: none !important`)
+und vergleicht Element, `::before`, `::after` und bis zu zwölf Kinder. Die Gegenprobe baut
+seitdem **drei korrekt gelöste Fälle** ein und verlangt, dass keiner gemeldet wird.
+
+Dasselbe Muster wie §169 (`tools/abnahme-mobil.py` und die 345 erfundenen Kontrastbefunde):
+Ein Prüfstand, der zu viel meldet, ist genauso wertlos wie einer, der zu wenig meldet.
+
+### Drittens: Eine Station fehlte — und das meldet sich nie von selbst
+
+Der Stationsweg steht in `abnahme-mobil.py` und `a11y-pruefung.py` **getrennt**. Im ersten
+Entwurf fehlte `23_vorkochen`: Die Vorkochliste wurde von der mobilen Abnahme geprüft, von der
+A11y-Prüfung nicht. Der Bericht sagte nichts — eine Station, die nicht angefahren wird, taucht
+schlicht nicht auf.
+
+Gefunden hat es `kvp` im Pushcheck, nicht die Messung und nicht die Gegenprobe. Die Gegenprobe
+kann nur prüfen, was gemessen wird; eine **fehlende** Messung liegt außerhalb ihrer Reichweite.
+
+> **Ein Bereich, den nur einer von zwei Prüfständen kennt, fällt niemandem auf.**
+
+Wer eine Station ergänzt, ergänzt sie in beiden Dateien. Das ist die Schwachstelle der sonst
+sinnvollen Entscheidung, kein zweites Gerüst zu bauen (`docs/TESTING.md` 2g-bis).
+
+**Stand nach allen drei Korrekturen:** 0 Befunde über 24 Stationen und 298 Tab-Stopps,
+Gegenprobe in beide Richtungen grün, `abnahme-mobil.py` weiter grün über 108 Stationen.

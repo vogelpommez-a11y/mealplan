@@ -336,9 +336,9 @@ _keine_
 | docs/PRODUCT.md | 1729 | 98422 |
 | docs/RUNBOOK.md | 220 | 8675 |
 | docs/SECURITY.md | 524 | 31406 |
-| docs/STORE.md | 469 | 26786 |
-| docs/TESTING.md | 5006 | 297447 |
-| docs/TROUBLESHOOTING.md | 6590 | 384276 |
+| docs/STORE.md | 473 | 27190 |
+| docs/TESTING.md | 5016 | 298009 |
+| docs/TROUBLESHOOTING.md | 6657 | 387705 |
 | docs/module-index.json | — | — (erzeugt) |
 | firestore.rules | 486 | 28086 |
 | img/apple-touch-icon.png | — | 35163 |
@@ -439,7 +439,7 @@ _keine_
 | sw.js | 156 | 7192 |
 | syntax-check.py | 382 | 16172 |
 | test-server.ps1 | 66 | 2182 |
-| tools/a11y-pruefung.py | 519 | 24178 |
+| tools/a11y-pruefung.py | 529 | 24702 |
 | tools/abdeckung.py | 324 | 13049 |
 | tools/abnahme-mobil.py | 888 | 41132 |
 | tools/abnahme-plan-sortieren.py | 480 | 21478 |
