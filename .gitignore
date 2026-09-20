@@ -108,6 +108,11 @@ tools/pruefstand-*.html
 # beschreibt, wo das Projekt verwundbar ist, und gehoert nicht oeffentlich auf Pages.
 docs/DATENSCHUTZ-INTERN.md
 
+# Die bildliche Projektuebersicht (erzeugt aus plans/app-karte.json, das selbst in plans/
+# liegt und damit ohnehin ignoriert ist). Beschreibt Stand, Plaene und Luecken - gleiche
+# Begruendung wie bei ROADMAP.html: gehoert nicht oeffentlich auf Pages.
+dashboard.html
+
 # Ausgang des letzten Live-Regelvergleichs (tools/regeln-live.py). Rechnergebunden wie die
 # beiden Merker darunter - und er belegt den Stand EINER Konsole zu EINEM Zeitpunkt, im Repo
 # waere er sofort eine Behauptung ueber fremde Rechner.
