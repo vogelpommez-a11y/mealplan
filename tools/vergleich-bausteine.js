@@ -84,11 +84,17 @@ var BAUSTEINE = [
       "<details> — 6 Stellen (u. a. .wg-wk :7534, .ing-nut :8574, .grp-note :11175)",
       "data-action=\"toggle-*\" — 6 Stellen (toggle-day-goals :4519, toggle-cat :6811, toggle-fav :7297)"
     ],
-    oeffnen: function (doc) {
-      var b = doc.querySelector('[data-action="toggle-day-goals"]');
-      if (b) { b.click(); return "Tagesziele aufgeklappt"; }
-      return "Kein Aufklapper auf dieser Ansicht";
-    }
+    // Der Wiege-Dialog traegt `.wg-wk` - den einzigen Aufklapper, der seinen Pfeil
+    // bis zum 20.09.2026 aus den Zeichen "▾"/"▴" baute statt aus dem gemeinsamen SVG.
+    // Dafuer braucht es die Einwilligung und einen Messwert, sonst ist die Karte leer.
+    zustand: {
+      weightConsent: { given: true, at: 1758000000000, version: 1 },
+      weights: [{ m: "2026-W36", kg: 84 }]
+    },
+    schritte: [
+      '[data-action="tab"][data-tab="progress"]',
+      '[data-action="weigh"]'
+    ]
   },
 
   {

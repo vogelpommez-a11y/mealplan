@@ -433,6 +433,33 @@ Sichtbar ist ausschließlich die durchgängige Progress-Bar.
 * **Kurze Wege.** Eine Enter-Bewegung verschiebt ein Element um einige Dutzend Pixel und blendet es dabei ein — sie schiebt es nicht über den halben Bildschirm. Lange Transform-Strecken zwingen den Browser, in jedem Bild die ganze Fläche neu zu rastern; auf dem Handy fallen dabei Bilder aus (siehe `docs/TROUBLESHOOTING.md`). Wer doch eine große Fläche bewegt, setzt `will-change` und stellt innere Scroll-Container für die Dauer der Bewegung ruhig.
 * `reducedMotion()` immer berücksichtigt — Überblendung bleibt, Richtung entfällt.
 
+### Aufklapper: wann `<details>`, wann JavaScript
+
+Die App hat **beide** Mechanismen, und das bleibt so — die Frage ist nur, wann welcher.
+Festgehalten am 20.09.2026, nachdem die Uneinheitlichkeit im Code selbst als Mangel
+kommentiert war.
+
+| Lage | Mechanismus | Warum |
+|---|---|---|
+| Der Inhalt bleibt im DOM stehen | **natives `<details>`** | Tastatur, Screenreader und Aufklappen kommen umsonst. Fünf Stellen: `.wg-wk`, `.ing-nut`, `.grp-note` (2×), `.calc-note` |
+| Der Bereich wird per `innerHTML` **neu gebaut** | `<button aria-expanded>` + Zustand in einer Variablen | Ein DOM-Zustand ginge beim Neubau verloren. Der Picker baut bei **jedem Tastendruck** neu — `pqOpen` hält den Zustand außerhalb |
+| Der Zustand gehört zu den **Daten**, nicht zur Ansicht | `<button aria-expanded>` | Aufgeklappte Tagesziele und Kategorien überleben einen Reiterwechsel, weil sie im State liegen |
+
+> **Der Fehler wäre, alles auf eine Bauart zu zwingen.** Wer den Picker auf `<details>`
+> umstellt, verliert den Aufklappzustand bei jedem getippten Buchstaben.
+
+**Gemeinsam ist beiden der Pfeil.** `caretSvg()` ist die einzige Quelle (`index.html`); bis
+zum 20.09.2026 stand dasselbe SVG viermal wortgleich im Markup, und `.wg-wk` malte seinen
+Pfeil mit den Zeichen „▾" und „▴" — die lassen sich nicht drehen, der Wechsel sprang also,
+wo die anderen gleiten.
+
+⚠️ **Die Drehrichtung ist bewusst nicht einheitlich.** Sie zeigt dorthin, wo der Inhalt
+erscheint: Tagesziele klappen nach **oben** auf (`rotate(-90deg)`), Kategorien und
+Wochenziel nach **unten** (`rotate(90deg)`). Wer das angleicht, lässt den Pfeil ins Leere
+zeigen.
+
+---
+
 ### Die Haupt-Reiterleiste bekommt bewusst **keine** gleitende Pille
 
 Die gleitende Pille gibt es an drei Stellen — Tagesleiste (`.db-ind`), Kalender-Umschalter

@@ -24,10 +24,11 @@ nicht auf den gemeinsamen Helfer umgestellt ist.
 | **Bestätigungsdialog** | `confirmModal(o)` | 13 Aufrufe | eigen — ersetzte ausdrücklich fünf fast gleiche Modal-Blöcke | `a11y-pruefung.py` |
 | **Dropdown / Überlaufmenü** | `openMenu(wrap, trigger, eintraege)` | 3 Menüs (Plan, Profil, Gewicht). Das Chip-Menü `openAssignMenu` baut bewusst selbst — Mehrfachauswahl, Portal an `<body>`, eigene Positionsrechnung | nachgebaut nach WAI-ARIA Menu Pattern (Tastatur); Kollisionsvermeidung und Scroll-Schließen **aus dem eigenen Chip-Menü übernommen** | `bausteine.py`, `a11y-pruefung.py` |
 | **Leere Zustände** | `leerZustand({icon, titel, text, aktion, klein})` | 11 Aufrufe. Zwei Größen: ganze Ansicht (`.empty`, im Dialog `.empty.im-dialog`) und eine Zeile im Inhalt (`.leer`) | **eigen — die Form stand schon im Rezeptbuch** (`.empty`), sie wurde nur auf die anderen zehn Stellen übertragen. Bestätigt durch [NN/g zu Empty States](https://www.nngroup.com/articles/empty-state-interface-design/): ohne nächste Aktion ist ein leerer Zustand eine Sackgasse | `bausteine.py`, `abnahme-mobil.py` |
+| **Aufklapper** | `caretSvg()` für den Pfeil; **zwei** Mechanismen bleiben bewusst | 5× natives `<details>`, 5× `<button aria-expanded>` | **eigen.** Die Regel, wann welcher, steht in `docs/DESIGN.md` — sie zu vereinheitlichen wäre falsch: Der Picker baut bei jedem Tastendruck neu, ein `<details>`-Zustand ginge dabei verloren | `bausteine.py` |
 | **Meal-Blatt / Sheet** | `openMealSheet(id, …)` | ~25 Stellen | eigen | `abnahme-mobil.py` |
 | **Toast** | `toast(msg)` · `undoToast(msg, fn)` | ~130 Aufrufe, **ein** `#toast`-Element | eigen — die Undo-Variante teilt bewusst dieselbe Basis, sonst entwickeln sich zwei Toasts auseinander | — |
 
-**Diese sechs sind das Vorbild, nicht die Baustelle.** Wer hier etwas ändert, ändert es für
+**Diese sieben sind das Vorbild, nicht die Baustelle.** Wer hier etwas ändert, ändert es für
 alle — genau so soll es sein.
 
 ---
@@ -38,7 +39,6 @@ Stand der Erhebung: 20.09.2026. Reihenfolge und Begründungen in `plans/UI-Grund
 
 | Baustein | Heute | Ziel | Herkunft geplant |
 |---|---|---|---|
-| **Akkordeon** | **2 Mechanismen**: 6× natives `<details>`, 6× `data-action="toggle-*"` | eine Bauart, begründet in `docs/DESIGN.md` | offen — Entscheidung steht aus |
 | **Tabs / Segmente** | **3 Muster**: `.tabs` (Hauptreiter), `.daybar` (Tagesleiste), `.kal-seg` (Zeitraum) | gemeinsamer Bauplan | eigen — die gleitende Pille ist bereits etabliert |
 | **Button-Varianten** | Solide Basis `.btn`, aber Kontext und Variante vermischt (`onb-skip`, `wg-recalc`, `ms-ing-add`, `shop-ic`, `plan-auto`) | Kontext von Variante trennen | eigen |
 
@@ -64,5 +64,6 @@ Damit niemand sie „nachrüstet":
 |---|---|
 | **Gleitende Pille in der Haupt-Reiterleiste** | Ein Reiterwechsel passiert dutzendfach am Tag. Auch Instagram und iOS animieren dort nur den Zustand, nicht die Bewegung. Ausführlich in `docs/DESIGN.md` |
 | **Eigenes `confirm()`** | `confirmModal()` deckt das ab, natives `confirm()` blockiert und lässt sich nicht gestalten |
+| **Eine einzige Aufklapp-Bauart** | Der Meal-Picker baut seine Liste bei jedem Tastendruck über `innerHTML` neu. Ein `<details>`-Zustand ginge dabei jedes Mal verloren — deshalb liegt er dort in einer Variablen |
 | **Ein dritter Leerzustand** | Zwei Größen reichen: ganze Ansicht und Zeile im Inhalt. Die alten fünf Namen unterschieden sich um 2 px Abstand und 0,5 px Schrift — genau solche Zufallsunterschiede sollten verschwinden |
 | **CSS Anchor Positioning** für Menüs | Chrome/Edge produktiv, Safari erst teilweise, Firefox hinter Flag. Die App muss in einen iOS-WebView — Position wird in JavaScript berechnet |

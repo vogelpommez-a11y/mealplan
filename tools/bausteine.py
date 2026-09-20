@@ -61,9 +61,11 @@ BAUSTEINE = [
      r"<details\b", 6,
      u"zweiter Mechanismus neben data-action=toggle-*"),
 
+    # Nur MARKUP zaehlen, nicht die JS-Zeilen, die dasselbe Element suchen. Und
+    # `toggle-fav` gehoert nicht dazu: ein Favoritenschalter klappt nichts auf.
     (u"Akkordeon: JS-Aufklapper", "index.html",
-     r'data-action="toggle-', 6,
-     u"zweiter Mechanismus neben <details>"),
+     r'<button[^>]*(?:data-action="toggle-(?:day-goals|others|cat)"|data-pq-toggle)', 5,
+     u"4 Wege + pq-toggle; <details> ist der fuenfte Mechanismus"),
 
     (u"Tabs: Segment-Muster", "index.html",
      r'class="(?:tabs|daybar|kal-seg)\b', 3,
