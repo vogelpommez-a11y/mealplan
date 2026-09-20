@@ -845,6 +845,36 @@
           loadZXing, offServingSize, qrSvg } = PM.barcode;
   const { pdfBrandHeader, pdfBytes, pdfEsc, pdfSlimHeader, prepareLogoForPdf, saveBlob, trunc } = PM.pdf;
 
+  // ---------- Leere Zustaende: EINE Form statt fuenf ----------
+  //
+  // Bis zum 20.09.2026 gab es fuenf Klassennamen fuer "hier ist nichts" (.empty,
+  // .wch-empty, .wl-empty, .ms-empty-ings, .pempty) und zwei nackte <p> ganz ohne.
+  // Jeder sah anders aus - und der Nutzer trifft sie genau dann, wenn er neu ist.
+  //
+  // Zwei Groessen bleiben, weil sie berechtigt sind:
+  //   gross  ganze Ansicht - gestrichelter Rahmen, Symbol, Ueberschrift, naechster Schritt
+  //   klein  eine Zeile im laufenden Inhalt (Naehrwertzeile, Trefferliste, Gewichtskarte)
+  //
+  // CLAUDE.md Abschnitt 5 verlangt eine klare naechste Aktion. `aktion` ist deshalb kein
+  // Beiwerk: Wo etwas zu tun ist, steht hier der Knopf dafuer.
+  function leerZustand(o) {
+    if (o.klein) {
+      return `<p class="leer${o.klasse ? " " + o.klasse : ""}">${esc(o.text)}`
+           + (o.aktion ? `<button class="btn ghost sm" ${o.aktion.attr || ""}>`
+                       + `${esc(o.aktion.text)}</button>` : "")
+           + `</p>`;
+    }
+    return `<div class="empty${o.klasse ? " " + o.klasse : ""}">`
+         + (o.icon ? `<svg class="em-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor"`
+                   + ` stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"`
+                   + ` aria-hidden="true">${o.icon}</svg>` : "")
+         + `<h2>${esc(o.titel)}</h2>`
+         + (o.text ? `<p>${esc(o.text)}</p>` : "")
+         + (o.aktion ? `<button class="btn primary" ${o.aktion.attr || ""}>`
+                     + `${esc(o.aktion.text)}</button>` : "")
+         + `</div>`;
+  }
+
   // ---------- Testumgebung von den echten Daten trennen ----------
   // localStorage haengt an der Origin, die Cloud nicht: http://localhost:8000 und
   // https://www.paddysmealplan.de sind zwei getrennte Speicher, melden sich aber an
@@ -6019,7 +6049,8 @@
     let body;
     if (!rows.length) {
       // Leerer Zustand mit Handlung statt leerer Flaeche.
-      body = `<p class="wch-empty">Noch keine Messung ${year === String(new Date().getFullYear()) ? "in diesem Jahr" : "in " + year}.</p>`;
+      body = leerZustand({ klein: true,
+        text: `Noch keine Messung ${year === String(new Date().getFullYear()) ? "in diesem Jahr" : "in " + year}.` });
     } else {
       // Der Plot bleibt hier leer: initWeightChart misst die tatsaechliche Breite und
       // zeichnet erst dann - nur so stimmt die Schriftgroesse auf jedem Bildschirm.
@@ -7204,12 +7235,14 @@
 
     const library = libraryRecipes();
     if (library.length === 0) {
-      container.innerHTML = `<div class="empty">
-        <svg class="em-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4v16a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1V7l-4-3H5a1 1 0 0 0-1 1Z"/><path d="M8 9h8M8 13h8M8 17h5"/></svg>
-        <h2>${canEdit() ? "Noch keine Meals" : "Hier ist noch nichts"}</h2>
-        <p>${canEdit() ? "Lege dein erstes Meal an – danach kannst du es im Wochenplan auf die Tage verteilen." : "Sobald jemand aus eurer Gruppe ein Meal anlegt, siehst du es hier."}</p>
-        ${canEdit() ? `<button class="btn primary" data-action="new-recipe">Erstes Meal anlegen</button>` : ""}
-      </div>`;
+      container.innerHTML = leerZustand({
+        icon: `<path d="M4 4v16a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1V7l-4-3H5a1 1 0 0 0-1 1Z"/><path d="M8 9h8M8 13h8M8 17h5"/>`,
+        titel: canEdit() ? "Noch keine Meals" : "Hier ist noch nichts",
+        text: canEdit()
+          ? "Lege dein erstes Meal an – danach kannst du es im Wochenplan auf die Tage verteilen."
+          : "Sobald jemand aus eurer Gruppe ein Meal anlegt, steht es hier.",
+        aktion: canEdit() ? { text: "Erstes Meal anlegen", attr: 'data-action="new-recipe"' } : null
+      });
       return;
     }
 
@@ -7319,7 +7352,7 @@
           <h2><button type="button" class="rcard-open" data-action="view" data-id="${esc(r.id)}">${esc(r.name)}</button></h2>
         </div>
         <div class="rstats">
-          ${statsInner || `<p class="ms-empty-ings">Noch keine Nährwerte</p>`}
+          ${statsInner || leerZustand({ klein: true, text: "Noch keine Nährwerte" })}
           ${authorHtml ? `<span class="meta">${authorHtml}</span>` : ""}
         </div>
         </div>
@@ -7643,7 +7676,7 @@
         ? `<h4 style="margin:18px 0 2px;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--text-muted)">Verlauf</h4>`
           + rows.map(r => `<div class="wl-row"><span class="wl-d">${esc(weekKeyLabel(r.m))}</span><span class="wl-k">${kgfmt(r.kg)} kg</span>
               <button class="btn ghost sm" data-del="${r.m}" aria-label="Eintrag ${esc(weekKeyLabel(r.m))} löschen">✕</button></div>`).join("")
-        : `<p class="wl-empty">Noch keine Messung.</p>`;
+        : leerZustand({ klein: true, text: "Noch keine Messung." });
       listEl.querySelectorAll("[data-del]").forEach(b => b.addEventListener("click", () => {
         const m = b.dataset.del;
         // Loeschen der juengsten Wiegung kann syncGoalWeight() das Kalorienziel still neu
@@ -8099,10 +8132,10 @@
       const statsInner = mealStatsHtml(r);
       const statsHtml = statsInner
         ? `<div class="dsec"><h4 class="sec-h">Makros gesamt</h4>${statsInner}</div>`
-        : `<p class="ms-empty-ings">Noch keine Nährwerte</p>`;
+        : leerZustand({ klein: true, text: "Noch keine Nährwerte" });
       const ingHtml = (r.ingredients && r.ingredients.length)
         ? `<div class="ing-list">${r.ingredients.map(i => roIngRowHtml(i)).join("")}</div>`
-        : `<p class="ms-empty-ings">Noch keine Zutaten</p>`;
+        : leerZustand({ klein: true, text: "Noch keine Zutaten" });
       // Ein Katalog-Rezept gehoert dem Nutzer noch nicht: Bearbeiten waere gegenstandslos
       // (er wuerde eine Vorlage aendern, die beim naechsten Start wieder dasteht), und
       // Teilen erzeugte einen shared-Eintrag fuer etwas, das ohnehin jeder in der App hat.
@@ -8205,7 +8238,7 @@
         <div class="ms-ings">
           <h4 class="sec-h">Zutaten</h4>
           <div id="f-ings"></div>
-          <p class="ms-empty-ings" id="ms-ing-empty" hidden>Noch keine Zutaten</p>
+          <p class="leer" id="ms-ing-empty" hidden>Noch keine Zutaten</p>
           <!-- Meldet die neue Position nach dem Verschieben per Alt+Pfeil. Ohne sie waere die
                Reihenfolge fuer Screenreader-Nutzung unbelegbar: das Ergebnis der Taste ist rein
                visuell. -->
@@ -9238,11 +9271,12 @@
       let html;
       if (libEmpty) {
         // Kein Dead End: der Slot bleibt ueber den Schnellbereich unten benutzbar.
-        html = `<p class="pempty">Noch keine Meals angelegt. <button class="btn ghost sm" data-go>Zu den Meals</button></p>`;
+        html = leerZustand({ klein: true, text: "Noch keine Meals angelegt.",
+                             aktion: { text: "Zu den Meals", attr: "data-go" } });
       } else if (list.length === 0 && pieces.length === 0) {
-        html = `<p class="pempty">Nichts gefunden – probier es kürzer.</p>${more}`;
+        html = leerZustand({ klein: true, text: "Nichts gefunden – probier es kürzer." }) + more;
       } else if (list.length === 0) {
-        html = `<p class="pempty">Kein passendes Meal gefunden.</p>${more}`;
+        html = leerZustand({ klein: true, text: "Kein passendes Meal gefunden." }) + more;
       } else {
         html = list.map(itemHtml).join("") + more;
       }
@@ -9746,10 +9780,11 @@
             </div>
             <div class="bc-qty"><b>${nfmt(it.portions)}×</b><small>Meal${it.portions === 1 ? "" : "s"}</small></div>
           </div>`).join("")}</div>`
-      : `<div class="shop-empty">
-          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9.5h16v6a4.5 4.5 0 0 1-4.5 4.5h-7A4.5 4.5 0 0 1 4 15.5v-6Z"/><path d="M2.5 9.5h19"/><path d="M12 6.5V4.5"/></svg>
-          <p>Noch nichts eingeplant – plane erst ein paar Meals, dann steht hier, was du vorkochen kannst.</p>
-        </div>`;
+      : leerZustand({ klasse: "im-dialog",
+          icon: `<path d="M4 9.5h16v6a4.5 4.5 0 0 1-4.5 4.5h-7A4.5 4.5 0 0 1 4 15.5v-6Z"/><path d="M2.5 9.5h19"/><path d="M12 6.5V4.5"/>`,
+          titel: "Noch nichts eingeplant",
+          text: "Plane erst ein paar Meals, dann steht hier, was du vorkochen kannst.",
+          aktion: { text: "Zum Wochenplan", attr: 'data-close data-zum-plan="1"' } });
     // Woche im Dialognamen, gleiche Begruendung wie bei der Einkaufsliste.
     const node = el(`<div class="modal" role="dialog" aria-modal="true" aria-label="Vorkochen, ${esc(planScopeLabel(todayIdx))}">
       <div class="modal-head">
@@ -9763,6 +9798,10 @@
       <div class="modal-foot"><button class="btn primary" data-close>Schließen</button></div>
     </div>`);
     node.querySelectorAll("[data-close]").forEach(b => b.addEventListener("click", closeModal));
+    // Der leere Zustand verspricht einen Weg in den Wochenplan - hier wird er eingeloest.
+    // data-close schliesst schon, dieser Zuhoerer bringt nur noch den Reiterwechsel.
+    node.querySelectorAll("[data-zum-plan]").forEach(b =>
+      b.addEventListener("click", () => { state.tab = "plan"; save(); render(); }));
     openModal(node);
   }
 
@@ -9777,10 +9816,11 @@
     const checkSvg = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>`;
     let body;
     if (items.length === 0) {
-      body = `<div class="shop-empty">
-        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6h15l-1.5 9h-12z"/><path d="M6 6 5 2H2"/><circle cx="9" cy="20" r="1.5"/><circle cx="18" cy="20" r="1.5"/></svg>
-        <p>Noch keine Zutaten – plane zuerst ein paar Mahlzeiten im Wochenplan, dann sammeln wir die Zutaten hier automatisch.</p>
-      </div>`;
+      body = leerZustand({ klasse: "im-dialog",
+        icon: `<path d="M6 6h15l-1.5 9h-12z"/><path d="M6 6 5 2H2"/><circle cx="9" cy="20" r="1.5"/><circle cx="18" cy="20" r="1.5"/>`,
+        titel: "Noch keine Zutaten",
+        text: "Plane zuerst ein paar Mahlzeiten im Wochenplan, dann sammeln wir die Zutaten hier automatisch.",
+        aktion: { text: "Zum Wochenplan", attr: 'data-close data-zum-plan="1"' } });
     } else {
       let idx = 0;
       const listHtml = cur.groups.map(g => `
@@ -9988,6 +10028,10 @@
       <div class="modal-foot"><button class="btn primary" data-close>Schließen</button></div>
     </div>`);
     node.querySelectorAll("[data-close]").forEach(b => b.addEventListener("click", closeModal));
+    // Der leere Zustand verspricht einen Weg in den Wochenplan - hier wird er eingeloest.
+    // data-close schliesst schon, dieser Zuhoerer bringt nur noch den Reiterwechsel.
+    node.querySelectorAll("[data-zum-plan]").forEach(b =>
+      b.addEventListener("click", () => { state.tab = "plan"; save(); render(); }));
     openModal(node);
   }
   function openImpressum() {

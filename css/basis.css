@@ -1163,7 +1163,6 @@
   /* .wch-leg ist mit der letzten Nebenlinie entfallen - eine Legende zu EINER Kurve
      benennt nur, was ohnehin dasteht. */
   .wch-tip { margin-top: 8px; font-size: 12px; color: var(--text-muted); font-variant-numeric: tabular-nums; min-height: 17px; }
-  .wch-empty { margin: 6px 0 0; font-size: 13.5px; color: var(--text-muted); }
   /* Kennzahlenreihe als Fuss der Karte: Trennlinie setzt sie vom Diagramm ab. */
   .wch-foot { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border); }
   /* Verlaufsliste im Wiegen-Dialog */
@@ -1204,7 +1203,6 @@
   .wl-row { display: flex; align-items: center; gap: 10px; padding: 8px 2px; border-top: 1px solid var(--border); font-variant-numeric: tabular-nums; }
   .wl-row .wl-d { flex: 1; font-size: 13.5px; color: var(--text); }
   .wl-row .wl-k { font-weight: 700; font-size: 14px; }
-  .wl-empty { font-size: 13px; color: var(--text-muted); margin: 8px 0 0; }
 
   /* Kalorien breit, darunter die Makros (.wg-macros, wiederverwendet von "Ziele dieser
      Woche" – siehe dayGoalsHtml). Die Tageskarte sitzt in einem auto-fill-Grid und wird

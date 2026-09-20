@@ -219,7 +219,22 @@
         if (!ok) { melde(wer + ": " + (grund || "nicht bereit"), true); return; }
         themeSetzen(f);
         var text = "";
-        try { text = b.oeffnen ? b.oeffnen(f.contentDocument) : ""; } catch (e) {
+        try {
+          if (b.schritte) {
+            // Nacheinander mit Pause: Ein Klick, der neu rendert, erzeugt das Ziel des
+            // naechsten Klicks erst. Beide in einem Zug greifen ins Leere.
+            b.schritte.forEach(function (sel, i) {
+              setTimeout(function () {
+                var el = f.contentDocument.querySelector(sel);
+                if (el) el.click();
+                else melde(wer + ": Schritt " + (i + 1) + " nicht gefunden (" + sel + ")", true);
+              }, i * 700);
+            });
+            text = b.schritte.length + " Schritte";
+          } else if (b.oeffnen) {
+            text = b.oeffnen(f.contentDocument);
+          }
+        } catch (e) {
           melde(wer + ": oeffnen() warf " + e.message, true); return;
         }
         // Die Gegenprobe faerbt NUR die rechte Seite ein. Zeigt die Probe danach links

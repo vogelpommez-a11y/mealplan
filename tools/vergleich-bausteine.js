@@ -46,15 +46,18 @@ var BAUSTEINE = [
       ".ms-empty-ings — index.html:8102 ff. (Meal-Blatt)",
       ".wl-empty — index.html:7646 (Gewichtsliste)",
       ".pempty — index.html:9241 (Picker)",
-      "klassenlose <p> — index.html:9751 (Vorkochen), :9782 (Einkaufsliste)"
+      ".shop-empty — index.html:9781 (Vorkochen), :9812 (Einkaufsliste)",
+      "↑ erst beim Umbau gefunden — die Bestandsaufnahme hielt sie für klassenlose <p>"
     ],
     // Ohne Meals und ohne Plan sind die leeren Zustaende ueberhaupt erst zu sehen.
     zustand: { recipes: [], plans: {}, weights: [] },
-    oeffnen: function (doc) {
-      var b = doc.querySelector('[data-action="tab"][data-tab="recipes"]');
-      if (b) { b.click(); return "Rezeptbuch (leer) geöffnet"; }
-      return "Reiter nicht gefunden";
-    }
+    // Zwei Schritte mit Pause dazwischen: Der Reiterwechsel rendert neu, der
+    // Einkaufslisten-Knopf entsteht erst dabei. Ein `b.click(); s.click()` in einem Zug
+    // greift ins Leere (20.09.2026).
+    schritte: [
+      '[data-action="tab"][data-tab="plan"]',
+      '[data-action="shopping"]'
+    ]
   },
 
   {

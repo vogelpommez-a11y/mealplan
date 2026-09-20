@@ -45,9 +45,17 @@ BAUSTEINE = [
      r'<div class="menu[ $"]', 2,
      u"openMenu() + das Chip-Menue. Am 20.09.2026 von 4 auf 2"),
 
-    (u"Leere Zustaende: Klassennamen", "index.html",
-     r'class="(?:empty|wch-empty|ms-empty-ings|wl-empty|pempty)\b', 10,
-     u"5 Klassennamen, dazu 2 klassenlose <p> - Ziel: ein leerZustand()"),
+    (u"Leere Zustaende: Helfer", "index.html",
+     r"function leerZustand\s*\(", 1,
+     u"faellt er weg, ist jemand zurueckgefallen"),
+
+    (u"Leere Zustaende: Aufrufe", "index.html",
+     r"\bleerZustand\(", 12,
+     u"11 Aufrufe + Definition. Am 20.09.2026 aus 6 Klassennamen zusammengefuehrt"),
+
+    (u"Leere Zustaende: alte Klassen", "index.html",
+     r'class="(?:wch-empty|ms-empty-ings|wl-empty|pempty|shop-empty)\b', 0,
+     u"muss 0 bleiben - jede davon waere ein Rueckfall"),
 
     (u"Akkordeon: natives <details>", "index.html",
      r"<details\b", 6,

@@ -675,7 +675,7 @@ nicht fuer jede interne Hilfsfunktion.
 | Stufe | Frage | Wenn ja |
 |---|---|---|
 | 1 | **Gibt es das in der App schon?** (`Grep` ueber `index.html`, `css/`, `lib/`) | Den bestehenden Baustein verwenden, **nicht danebenbauen**. Entscheidung in `docs/BAUSTEINE.md` eintragen |
-| 2 | **Gibt es das anderswo schon?** (Watermelon, Origin UI, Base UI, React Aria, MDN, WCAG) | **Nachbauen statt erfinden** — besonders bei Tastatur und ARIA. Quelle im Kommentar nennen |
+| 2 | **Gibt es das anderswo schon?** (Watermelon, Origin UI, Base UI, React Aria, MDN, WCAG) | **Nachbauen statt erfinden** — besonders bei Tastatur und ARIA. Quelle im Kommentar nennen **und dem Nutzer melden** |
 | 3 | Nirgends vorhanden? | **Neu bauen** und festhalten, *warum* nichts passte. Das verhindert, dass beim naechsten Mal wieder gesucht wird |
 
 **Und wenn ein Baustein angefasst wird, werden ALLE seine Fundstellen angefasst.** Wer nur
@@ -683,6 +683,10 @@ eine von vier Stellen verbessert, hat aus einem Muster zwei gemacht.
 
 > Vier Dropdowns, sieben leere Zustaende, drei Tab-Muster: Die entstanden nicht aus
 > Nachlaessigkeit, sondern weil Stufe 1 nie stattgefunden hat.
+
+**Die Herkunft wird dem Nutzer nach jeder Änderung genannt** — wie das Vorbild dort
+heißt, mit Link, und was genau davon übernommen wurde. Auch wenn nichts übernommen wurde:
+dann steht da „eigene Lösung, weil …“. Er soll nicht raten müssen, woher eine Idee kommt.
 
 Register und Fundstellen: **`docs/BAUSTEINE.md`** · Pruefer: `python tools/bausteine.py`
 

@@ -319,7 +319,6 @@
     .ing-grip, .ing-row.shift { transition: none; }
   }
   .ms-ing-add { width: 100%; justify-content: center; margin-top: 10px; }
-  .ms-empty-ings { color: var(--text-muted); font-size: 13.5px; padding: 10px 2px 0; margin: 0; }
   /* "Fertig" am Ende der aufgeklappten Zeile (Nachtrag Abnahme Phase 1) - bewusst NICHT
      neben dem ✕ im .ing-top: Bestaetigen und Loeschen duerfen nicht nebeneinander liegen. */
   .ing-done-row { display: flex; justify-content: flex-end; margin-top: 4px; }
@@ -515,7 +514,7 @@
      die Kartenstatistik. */
   .rcard .rstats { display: flex; flex-direction: column; gap: 6px; margin-top: auto; padding-top: 4px; }
   .rcard .rstats .meta { justify-content: flex-end; }
-  .rcard .rstats .ms-empty-ings { padding: 0; margin: 0; }
+  .rcard .rstats .leer { padding: 0; }
   /* Kartenstatistik (cardStatsHtml, Nachtrag Abnahme Phase 1) - eine ruhige Zeile statt
      .nutfacts-Kacheln: kcal traegt das Gewicht, die drei Makros folgen als schmale farbige
      Kuerzel. Keine eigene 560px-Regel noetig - flex-wrap faengt sehr schmale Karten auf. */
@@ -531,6 +530,12 @@
   .empty .em-ico { width: 52px; height: 52px; margin: 0 auto 14px; color: var(--accent); opacity: .85; }
   .empty :is(h2, h3) { font-family: var(--font-display); color: var(--text); font-size: 20px; margin: 0 0 6px; }
   .empty p { margin: 0 auto 18px; max-width: 42ch; }
+  /* Der Knopf im leeren Zustand ist oft der einzige Weg nach vorne - er muss sicher zu
+     treffen sein. `.btn` kommt hier auf 38 px, unter dem Mindestmass von Apple HIG und
+     WCAG 2.5.5. Gefunden am 20.09.2026 von abnahme-mobil.py, an "Zum Wochenplan" in der
+     Einkaufsliste; es betrifft ebenso "Erstes Meal anlegen" im Rezeptbuch, das bis dahin
+     nur nie gemessen wurde (die Abnahme lief immer mit vorhandenen Meals). */
+  .empty .btn { min-height: 44px; }
 
   /* ---------- Modal ---------- */
   /* Seitliche Notch-Aussparung auch hier (D6): Das Overlay liegt fixiert ueber der ganzen
@@ -720,7 +725,12 @@
     margin-top: 8px; padding-top: 9px; border-top: 1px dashed var(--border);
     font-size: 12px; color: var(--text-muted);
   }
-  .pempty { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; margin: 0; padding: 8px 4px; font-size: 13px; color: var(--text-muted); }
+  /* Die kleine Form fuer "hier ist nichts" - eine Zeile im laufenden Inhalt.
+     Loest .pempty, .wch-empty, .wl-empty und .ms-empty-ings ab (20.09.2026). Uebernommen
+     wurde das Verhalten von .pempty: flex mit gap, damit ein Knopf daneben Platz hat,
+     ohne dass jede Fundstelle das neu erfindet. Die Abstaende kommen vom Ort, nicht von
+     hier - deshalb `margin: 0` und die Feinjustierung je Umgebung weiter unten. */
+  .leer { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; margin: 0; padding: 8px 4px; font-size: 13px; color: var(--text-muted); }
   /* hitSlop wie .toast-undo::after: Trefferflaeche auf 44px (Apple HIG), Aussehen
      unveraendert. Gemessen am 16.09.2026 mit tools/abnahme-mobil.py. */
   .pmore .btn { position: relative; }
@@ -848,9 +858,13 @@
   .shop-check:checked ~ .lbl { text-decoration: line-through; color: var(--text-muted); }
   .shop-item .qty { flex: none; font-size: 11.5px; font-weight: 650; color: var(--accent-strong); background: color-mix(in srgb, var(--accent) 14%, var(--surface)); border-radius: 999px; padding: 3px 9px; font-variant-numeric: tabular-nums; }
   .shop-check:checked ~ .qty { opacity: .5; }
-  .shop-empty { text-align: center; padding: 20px 10px 4px; color: var(--text-muted); }
-  .shop-empty .ic { width: 46px; height: 46px; margin: 0 auto 12px; color: var(--accent); opacity: .85; }
-  .shop-empty p { margin: 0 auto; max-width: 34ch; line-height: 1.5; }
+  /* Der leere Zustand im Dialog: dieselbe Form wie `.empty`, nur kompakter und ohne
+     gestrichelten Rahmen - im Modal ist der Kasten schon der Rahmen. Loest `.shop-empty`
+     ab (20.09.2026); die Werte sind von dort uebernommen, nicht neu erfunden. */
+  .empty.im-dialog { padding: 20px 10px 4px; border: 0; }
+  .empty.im-dialog .em-ico { width: 46px; height: 46px; margin-bottom: 12px; }
+  .empty.im-dialog h2 { font-size: 17px; }
+  .empty.im-dialog p { max-width: 34ch; margin-bottom: 14px; }
   .shop-group { display: flex; flex-direction: column; gap: 0; }
   /* 18px Luft ueber jedem Abschnitt, wie im Wochenplan: die Ueberschrift ist nur wenig
      groesser als die Zeilen darunter und dazu grau - mit weniger Raum eroeffnet sie keinen
