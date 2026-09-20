@@ -688,6 +688,36 @@ Register und Fundstellen: **`docs/BAUSTEINE.md`** · Pruefer: `python tools/baus
 
 ---
 
+# 21b. Sichtbare Änderungen werden vorgeführt, bevor sie live gehen
+
+**Jede Änderung, die man sehen kann, wird dem Nutzer zuerst im Browser als Vorher/Nachher
+gezeigt.** Erst nach seiner Zustimmung wird committet und gepusht.
+
+```powershell
+python tools/schnappschuss.py <baustein>   # Vorher-Stand einfrieren, VOR der Arbeit
+# ... Aenderung bauen ...
+python tools/vorfuehren.py <baustein>      # oeffnet sichtbar, in EIGENEM Profil
+```
+
+⚠️ **Nie im Alltagsbrowser vorführen.** Dort ist ein Cloud-Konto angemeldet, und die
+Vergleichsseite bricht ab — zu Recht: Sie schreibt einen erfundenen Zustand, und der
+`__test`-Suffix trennt nur den lokalen Speicher, nicht die Cloud. `vorfuehren.py` nimmt
+dafür ein eigenes Profil, in dem nie jemand angemeldet ist.
+
+Der Schnappschuss entsteht **vor** der Änderung. Wer ihn danach zieht, friert den neuen
+Stand ein und vergleicht zweimal dasselbe.
+
+Was nicht auf einem Bild zu sehen ist — Tastaturwege, Bewegung, Zustände nach einem Klick —
+wird **dazugesagt oder vorgeführt**, nicht verschwiegen. Ein Standbild zeigt keinen
+Pfeiltastenweg.
+
+Ausgenommen: Was der Nutzer ohnehin nicht sieht (Werkzeuge, Prþfstände, Dokumentation,
+Messungen). Dort gilt weiter der normale Weg über `/pushcheck`.
+
+→ Wie die Vergleichsseite funktioniert: `docs/TESTING.md` 2g-ter
+
+---
+
 # 22. Minimalprinzip
 
 **Ändere nur, was für die Aufgabe notwendig ist.**

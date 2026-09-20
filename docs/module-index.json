@@ -364,31 +364,31 @@
       "zeilen": 6
     },
     {
-      "bis": 907,
+      "bis": 917,
       "datei": "css/komponenten.css",
       "titel": "Modal",
       "von": 535,
-      "zeilen": 373
+      "zeilen": 383
     },
     {
-      "bis": 1005,
+      "bis": 1021,
       "datei": "css/komponenten.css",
       "titel": "Profil (Login) & Teilen",
-      "von": 908,
-      "zeilen": 98
+      "von": 918,
+      "zeilen": 104
     },
     {
-      "bis": 1200,
+      "bis": 1216,
       "datei": "css/komponenten.css",
       "titel": "Profilbild-Zuschnitt (Kreis-Crop)",
-      "von": 1006,
+      "von": 1022,
       "zeilen": 195
     },
     {
-      "bis": 1234,
+      "bis": 1250,
       "datei": "css/komponenten.css",
       "titel": "PDF / Druck",
-      "von": 1201,
+      "von": 1217,
       "zeilen": 34
     },
     {
@@ -966,87 +966,87 @@
       "zeilen": 47
     },
     {
-      "bis": 11612,
+      "bis": 11724,
       "datei": "index.html",
       "titel": "Kontowechsel auf demselben Geraet",
       "von": 11005,
-      "zeilen": 608
+      "zeilen": 720
     },
     {
-      "bis": 11703,
+      "bis": 11815,
       "datei": "index.html",
       "titel": "Kalorienrechner (Baustein 1: Tages-/Wochenbedarf → state.goal)",
-      "von": 11613,
+      "von": 11725,
       "zeilen": 91
     },
     {
-      "bis": 11777,
+      "bis": 11889,
       "datei": "index.html",
       "titel": "Wiegen: speichern, loeschen, ans Ziel koppeln",
-      "von": 11704,
+      "von": 11816,
       "zeilen": 74
     },
     {
-      "bis": 12630,
+      "bis": 12742,
       "datei": "index.html",
       "titel": "Erste Schritte (Onboarding)",
-      "von": 11778,
+      "von": 11890,
       "zeilen": 853
     },
     {
-      "bis": 12657,
+      "bis": 12769,
       "datei": "index.html",
       "titel": "Erscheinungsbild",
-      "von": 12631,
+      "von": 12743,
       "zeilen": 27
     },
     {
-      "bis": 12781,
+      "bis": 12893,
       "datei": "index.html",
       "titel": "Einstellungen",
-      "von": 12658,
+      "von": 12770,
       "zeilen": 124
     },
     {
-      "bis": 12857,
+      "bis": 12969,
       "datei": "index.html",
       "titel": "Einstieg (D1b)",
-      "von": 12782,
+      "von": 12894,
       "zeilen": 76
     },
     {
-      "bis": 13419,
+      "bis": 13531,
       "datei": "index.html",
       "titel": "Cloud-Anmeldung (Firebase)",
-      "von": 12858,
+      "von": 12970,
       "zeilen": 562
     },
     {
-      "bis": 14411,
+      "bis": 14523,
       "datei": "index.html",
       "titel": "Gemeinsam planen (Gruppe)",
-      "von": 13420,
+      "von": 13532,
       "zeilen": 992
     },
     {
-      "bis": 14445,
+      "bis": 14557,
       "datei": "index.html",
       "titel": "Teilen ueber den nativen Dialog des Geraets (Web Share API)",
-      "von": 14412,
+      "von": 14524,
       "zeilen": 34
     },
     {
-      "bis": 14685,
+      "bis": 14797,
       "datei": "index.html",
       "titel": "Einkaufsliste als PDF (Paket B3)",
-      "von": 14446,
+      "von": 14558,
       "zeilen": 240
     },
     {
-      "bis": 14704,
+      "bis": 14816,
       "datei": "index.html",
       "titel": "Boot",
-      "von": 14686,
+      "von": 14798,
       "zeilen": 19
     },
     {
@@ -1195,9 +1195,9 @@
       "zeilen": 134
     },
     {
-      "bytes": 31991,
+      "bytes": 33319,
       "pfad": "CLAUDE.md",
-      "zeilen": 741
+      "zeilen": 771
     },
     {
       "bytes": 21,
@@ -1235,9 +1235,9 @@
       "zeilen": 1465
     },
     {
-      "bytes": 95391,
+      "bytes": 96519,
       "pfad": "css/komponenten.css",
-      "zeilen": 1234
+      "zeilen": 1250
     },
     {
       "bytes": 70742,
@@ -1245,9 +1245,9 @@
       "zeilen": 1072
     },
     {
-      "bytes": 12542,
+      "bytes": 14080,
       "pfad": "css/tokens.css",
-      "zeilen": 239
+      "zeilen": 259
     },
     {
       "bytes": 7419,
@@ -1697,9 +1697,9 @@
       "pfad": "img/wurst.webp"
     },
     {
-      "bytes": 907054,
+      "bytes": 911984,
       "pfad": "index.html",
-      "zeilen": 14704
+      "zeilen": 14816
     },
     {
       "bytes": 9247,
@@ -1782,9 +1782,9 @@
       "zeilen": 226
     },
     {
-      "bytes": 7010,
+      "bytes": 7190,
       "pfad": "tools/bausteine.py",
-      "zeilen": 190
+      "zeilen": 194
     },
     {
       "bytes": 20704,
@@ -2130,6 +2130,11 @@
       "bytes": 3969,
       "pfad": "tools/vergleich-bausteine.js",
       "zeilen": 102
+    },
+    {
+      "bytes": 4607,
+      "pfad": "tools/vorfuehren.py",
+      "zeilen": 120
     },
     {
       "bytes": 27909,

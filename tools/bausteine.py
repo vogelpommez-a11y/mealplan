@@ -33,13 +33,17 @@ os.chdir(WURZEL)
 # Wer einen Baustein vereinheitlicht, setzt die Zahl hier UND in docs/BAUSTEINE.md neu -
 # an zwei Stellen bewusst, damit die Aenderung auffaellt.
 BAUSTEINE = [
+    (u"Dropdown: gemeinsamer Helfer", "index.html",
+     r"function openMenu\s*\(", 1,
+     u"faellt er weg, ist jemand zurueckgefallen"),
+
     (u"Dropdown: Menue-Baufunktionen", "index.html",
      r"function (?:toggle\w*Menu|openAssignMenu)\s*\(", 4,
-     u"Ziel: EIN openMenu(items, trigger)"),
+     u"3 nutzen jetzt openMenu, nur das Chip-Menue baut selbst"),
 
     (u"Dropdown: Markup-Stellen", "index.html",
-     r'<div class="menu"', 3,
-     u"jede Stelle baut ihr Menue heute selbst"),
+     r'<div class="menu[ $"]', 2,
+     u"openMenu() + das Chip-Menue. Am 20.09.2026 von 4 auf 2"),
 
     (u"Leere Zustaende: Klassennamen", "index.html",
      r'class="(?:empty|wch-empty|ms-empty-ings|wl-empty|pempty)\b', 10,

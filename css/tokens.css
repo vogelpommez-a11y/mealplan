@@ -113,6 +113,11 @@
     --train-contrast: #FFFFFF;
 
     --shadow: 0 1px 2px rgba(20,24,31,.06), 0 8px 24px rgba(20,24,31,.08);
+    /* Schwebendes ueber der Seite: Menues, Popover. Deutlich tiefer als --shadow,
+       das fuer ruhende Flaechen gedacht ist. Wert unveraendert uebernommen aus der
+       frueheren Hartkodierung in .menu (20.09.2026) - die Feinabstimmung zwischen
+       Light und Dark gehoert in die Token-Etappe, nicht in die Zusammenfuehrung. */
+    --shadow-pop: 0 18px 50px rgba(0,0,0,.28);
     --radius: 12px;
     --radius-sm: 8px;
     --maxw: 1120px;
@@ -182,6 +187,11 @@
       --train-contrast: #0C1220;
 
       --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.35);
+      /* Schwebendes ueber der Seite: Menues, Popover. Deutlich tiefer als --shadow,
+         das fuer ruhende Flaechen gedacht ist. Wert unveraendert uebernommen aus der
+         frueheren Hartkodierung in .menu (20.09.2026) - die Feinabstimmung zwischen
+         Light und Dark gehoert in die Token-Etappe, nicht in die Zusammenfuehrung. */
+      --shadow-pop: 0 18px 50px rgba(0,0,0,.28);
     }
   }
   :root[data-theme="light"] {
@@ -198,6 +208,11 @@
     --carb: #A26A11; --prot: #C74B78; --fat: #1C7EB3;
     --train: #2563EB; --train-strong: #1D4ED8; --train-contrast: #FFFFFF;
     --shadow: 0 1px 2px rgba(20,24,31,.06), 0 8px 24px rgba(20,24,31,.08);
+    /* Schwebendes ueber der Seite: Menues, Popover. Deutlich tiefer als --shadow,
+       das fuer ruhende Flaechen gedacht ist. Wert unveraendert uebernommen aus der
+       frueheren Hartkodierung in .menu (20.09.2026) - die Feinabstimmung zwischen
+       Light und Dark gehoert in die Token-Etappe, nicht in die Zusammenfuehrung. */
+    --shadow-pop: 0 18px 50px rgba(0,0,0,.28);
   }
   :root[data-theme="dark"] {
     --logo: var(--logoD);
@@ -213,6 +228,11 @@
     --carb: #E9A03B; --prot: #C74B78; --fat: #4AA8E0;
     --train: #60A5FA; --train-strong: #93C5FD; --train-contrast: #0C1220;
     --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.35);
+    /* Schwebendes ueber der Seite: Menues, Popover. Deutlich tiefer als --shadow,
+       das fuer ruhende Flaechen gedacht ist. Wert unveraendert uebernommen aus der
+       frueheren Hartkodierung in .menu (20.09.2026) - die Feinabstimmung zwischen
+       Light und Dark gehoert in die Token-Etappe, nicht in die Zusammenfuehrung. */
+    --shadow-pop: 0 18px 50px rgba(0,0,0,.28);
   }
 
   * { box-sizing: border-box; }

@@ -11370,9 +11370,25 @@
   function attachMenuDismiss(menu, trigger) {
     if (trigger) trigger.setAttribute("aria-expanded", "true");
     const close = back => {
-      menu.remove();
+      // Das Menue oeffnete weich und verschwand schlagartig. Jetzt blendet es aus - aber
+      // close() bleibt SYNCHRON: Der Knoten bekommt sofort `.menu-zu` und ist damit fuer
+      // jede Suche unsichtbar (openMenu sucht `.menu:not(.menu-zu)`), traegt aria-hidden
+      // und nimmt keine Klicks mehr. Ein sofort danach geoeffnetes zweites Menue faellt
+      // also nicht darueber. Entfernt wird der Knoten, wenn die Bewegung durch ist.
+      if (!reducedMotion() && menu.isConnected) {
+        menu.classList.add("menu-zu");
+        menu.setAttribute("aria-hidden", "true");
+        setTimeout(() => menu.remove(), 150);
+      } else {
+        menu.remove();
+      }
       document.removeEventListener("mousedown", onDown, true);
       document.removeEventListener("keydown", onKey, true);
+      // Auch die Einmal-Zuhoerer abraeumen: Wird per Klick geschlossen, haengt ihr
+      // scroll/resize sonst bis zum naechsten Scrollen herum. Harmlos, weil close()
+      // mehrfach aufrufbar ist - aber ein Zuhoerer ohne Aufgabe gehoert weg.
+      window.removeEventListener("scroll", onScroll, true);
+      window.removeEventListener("resize", onScroll);
       if (!trigger) return;
       trigger.setAttribute("aria-expanded", "false");
       if (back && trigger.isConnected) trigger.focus();
@@ -11384,13 +11400,51 @@
       if (menu.contains(e.target) || (trigger && trigger.contains(e.target))) return;
       close(false);
     };
+    // Tastaturbedienung nach dem WAI-ARIA Menu Pattern. Bis zum 20.09.2026 gab es nur
+    // Escape: Wer `role="menu"` vergibt, verspricht damit Pfeiltasten - ein Screenreader
+    // kuendigt ein Menue an, und der Nutzer versucht genau das. Tab dagegen ist im Menue
+    // NICHT vorgesehen; es schliesst und geht weiter.
+    const posten = () => [...menu.querySelectorAll("[role='menuitem']")]
+                           .filter(b => !b.disabled && b.offsetParent !== null);
+    const springe = (von, schritt) => {
+      const alle = posten();
+      if (!alle.length) return;
+      const i = alle.indexOf(von);
+      // Rundlauf: von unten wieder nach oben. Wer am Ende steht und weiterdrueckt, will
+      // weiter - nicht anstossen.
+      const ziel = i === -1 ? 0 : (i + schritt + alle.length) % alle.length;
+      alle[ziel].focus();
+    };
     const onKey = e => {
       if (!menu.isConnected) { close(false); return; }
-      if (e.key === "Escape") { e.stopPropagation(); close(true); }
+      const imMenu = menu.contains(document.activeElement) ? document.activeElement : null;
+      switch (e.key) {
+        case "Escape":    e.stopPropagation(); close(true); return;
+        case "Tab":       close(false); return;            // schliessen, Tab wirken lassen
+        case "ArrowDown": e.preventDefault(); springe(imMenu, 1); return;
+        case "ArrowUp":   e.preventDefault(); springe(imMenu, -1); return;
+        case "Home":      e.preventDefault(); (posten()[0] || {}).focus?.(); return;
+        case "End":       e.preventDefault(); (posten().slice(-1)[0] || {}).focus?.(); return;
+      }
+      // Tippen springt zum naechsten Eintrag mit diesem Anfangsbuchstaben. Bei sieben
+      // Eintraegen im Profilmenue ist das der Unterschied zwischen Suchen und Treffen.
+      if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        const alle = posten();
+        const ab = alle.indexOf(imMenu) + 1;
+        const passt = b => b.textContent.trim().toLowerCase().startsWith(e.key.toLowerCase());
+        const treffer = alle.slice(ab).find(passt) || alle.find(passt);
+        if (treffer) { e.preventDefault(); treffer.focus(); }
+      }
     };
+    // Ein Popover, das beim Scrollen an seiner Stelle stehen bleibt, zeigt auf nichts mehr.
+    // Dasselbe Verhalten hatte das Zuweisungs-Menue schon - hier ist es fuer alle.
+    // close() ist idempotent, { once: true } raeumt den Zuhoerer selbst weg.
+    const onScroll = () => close(false);
     setTimeout(() => {
       document.addEventListener("mousedown", onDown, true);
       document.addEventListener("keydown", onKey, true);
+      window.addEventListener("scroll", onScroll, { capture: true, once: true });
+      window.addEventListener("resize", onScroll, { once: true });
     }, 0);
     const first = menu.querySelector("[role='menuitem']");
     if (first) first.focus();
@@ -11400,61 +11454,125 @@
 
   function closeMenuNode(node) { if (node.__close) node.__close(false); else node.remove(); }
 
-  // Ueberlaufmenue der Wochenplan-Werkzeugleiste (B3). Bewusst dasselbe Muster wie das
-  // Gewichts-Menue - kein zweiter Weg fuer dieselbe Sache.
+  // ==========================================================================
+  // EIN Menue fuer alle Ueberlaufmenues (CLAUDE.md 21a, docs/BAUSTEINE.md).
+  //
+  // Bis zum 20.09.2026 baute jede der vier Stellen ihr Markup selbst zusammen und
+  // verdrahtete ihre Klick-Handler einzeln - gemeinsam waren nur `.menu` und
+  // attachMenuDismiss(). Vier Kopien heisst: Wer die Tastaturbedienung nachruestet,
+  // ruestet sie viermal nach. Oder dreimal, und merkt es nicht.
+  //
+  // `eintraege` ist eine Liste aus:
+  //     { id, text, icon, klasse, tun }   ein Eintrag
+  //     "trenner"                          eine Linie
+  //     { kopf: html } / { fuss: html }    Kopf- bzw. Fusszeile (Profilmenue)
+  // Ein Eintrag mit `wenn: false` entfaellt - das ersetzt die Template-Ternaere, bei
+  // denen ein leerer String im Markup landete.
+  //
+  // Wer eigenes Markup braucht (Chip-Menue der Zuweisung), gibt `roh` an und bekommt
+  // nur Geruest, Positionierung und Tastatur.
+  function openMenu(wrap, trigger, eintraege, opts) {
+    opts = opts || {};
+    // `:not(.menu-zu)` - ein gerade ausblendendes Menue ist fachlich schon zu. Ohne das
+    // wuerde ein zweiter Tipp auf denselben Knopf waehrend der Ausblendung als "ist noch
+    // offen, also schliessen" gelesen: Das Menue bliebe zu, obwohl man es oeffnen wollte.
+    const offen = wrap.querySelector(".menu:not(.menu-zu)");
+    if (offen) { closeMenuNode(offen); return null; }
+
+    const menu = el(`<div class="menu${opts.klasse ? " " + opts.klasse : ""}" role="menu"></div>`);
+    const taten = {};
+
+    if (opts.roh) {
+      menu.innerHTML = opts.roh;
+    } else {
+      let html = "";
+      for (const e of eintraege) {
+        if (e === "trenner") { html += "<hr>"; continue; }
+        if (e && e.kopf) { html += `<div class="mhead">${e.kopf}</div>`; continue; }
+        if (e && e.fuss) { html += `<div class="mfoot">${e.fuss}</div>`; continue; }
+        if (!e || e.wenn === false) continue;
+        taten[e.id] = e.tun;
+        html += `<button data-mi="${esc(e.id)}"${e.klasse ? ` class="${e.klasse}"` : ""}`
+              + ` role="menuitem">${e.icon || ""}${esc(e.text)}</button>`;
+      }
+      menu.innerHTML = html;
+    }
+
+    wrap.appendChild(menu);
+
+    // Kippt nach oben, wenn unten kein Platz ist. Das Menue haengt per CSS fest unter
+    // seinem Knopf (`top: calc(100% + 8px)`); bei einem Ausloeser im unteren Bildbereich
+    // lief es aus dem Bild - auf 360 px mit dem siebenteiligen Profilmenue regelmaessig.
+    //
+    // Nur die Richtung wird hier entschieden, nicht die Position: Die seitliche Verankerung
+    // macht weiterhin CSS. Dasselbe Prinzip nutzt das Zuweisungs-Menue seit laengerem, dort
+    // allerdings als Portal an <body> mit voller Berechnung (docs/BAUSTEINE.md).
+    const rt = trigger ? trigger.getBoundingClientRect() : null;
+    if (rt) {
+      const hoehe = menu.offsetHeight;
+      const platzUnten = window.innerHeight - rt.bottom - 8;
+      if (hoehe > platzUnten && rt.top > hoehe + 8) menu.classList.add("menu-oben");
+    }
+
+    const close = attachMenuDismiss(menu, trigger);
+
+    // Ein Ort fuer alle Klicks statt einer Zeile je Eintrag. Schliessen kommt VOR der
+    // Aktion: Oeffnet sie einen Dialog, liegt sonst das Menue darueber.
+    if (!opts.roh) {
+      menu.addEventListener("click", e => {
+        const b = e.target.closest("[data-mi]");
+        if (!b || !menu.contains(b)) return;
+        const tun = taten[b.dataset.mi];
+        if (!tun) return;
+        close(false);
+        tun();
+      });
+    }
+    return { menu, close };
+  }
+
+  // Ueberlaufmenue der Wochenplan-Werkzeugleiste (B3).
   function togglePlanMenu(btn) {
     const wrap = btn.closest(".plan-menu");
     if (!wrap) return;
-    const open = wrap.querySelector(".menu");
-    if (open) { closeMenuNode(open); return; }
     // "Woche planen" steht hier NUR fuer sehr schmale Geraete (unter 360px, siehe CSS) - dort
     // passt der Knopf nicht mehr in die Werkzeugzeile. Der Eintrag ist immer im Markup und
     // wird per Media Query ein- bzw. ausgeblendet: ein zweiter JS-Zweig fuer dieselbe Aktion
     // waere ein zweiter Ort, an dem man die Bedingung pflegen muesste.
-    const menu = el(`<div class="menu" role="menu">
-      ${goalTargets(1) ? `<button data-mi="autoplan" role="menuitem">${TOOL_ICONS.wand}Woche planen</button>` : ""}
-      <button data-mi="batch" role="menuitem">${iconSvg("pot", "")}Vorkochen</button>
-      <hr>
-      <button data-mi="clear" class="destructive" role="menuitem">${TOOL_ICONS.clear}Woche leeren</button>
-    </div>`);
-    wrap.appendChild(menu);
-    const close = attachMenuDismiss(menu, btn);
-    const auto = menu.querySelector("[data-mi='autoplan']");
-    if (auto) auto.addEventListener("click", () => { close(false); autoPlanWeek(); });
-    menu.querySelector("[data-mi='batch']").addEventListener("click", () => { close(false); openBatchCooking(); });
-    menu.querySelector("[data-mi='clear']").addEventListener("click", () => { close(false); clearWeek(); });
+    openMenu(wrap, btn, [
+      { id: "autoplan", text: "Woche planen", icon: TOOL_ICONS.wand,
+        wenn: !!goalTargets(1), tun: autoPlanWeek },
+      { id: "batch", text: "Vorkochen", icon: iconSvg("pot", ""), tun: openBatchCooking },
+      "trenner",
+      { id: "clear", text: "Woche leeren", icon: TOOL_ICONS.clear,
+        klasse: "destructive", tun: clearWeek }
+    ]);
   }
 
   function toggleProfileMenu() {
-    const open = document.querySelector(".profile .menu");
-    if (open) { closeMenuNode(open); return; }
     const wrap = document.querySelector(".profile");
     if (!wrap) return;
     const delLabel = authMode === "cloud" ? "Konto löschen" : "Alle Daten löschen";
-    const menu = el(`<div class="menu" role="menu">
-      <div class="mhead"><div class="mn">${esc(profile.name)}${isPro() ? ` <span class="pro-badge">Pro</span>` : ""}</div>${profile.email ? `<div class="me">${esc(profile.email)}</div>` : ""}</div>
-      <button data-mi="settings" role="menuitem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1.08-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg>Einstellungen</button>
-      <button data-mi="group" role="menuitem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>${syncGid ? "Gruppe" : "Gemeinsam planen"}</button>
-      <hr>
-      <button data-mi="impressum" role="menuitem">${ACT_ICONS.legal}Impressum</button>
-      <button data-mi="datenschutz" role="menuitem">${ACT_ICONS.shield}Datenschutz</button>
-      <hr>
-      <button data-mi="signout" class="danger" role="menuitem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5M21 12H9"/></svg>Abmelden</button>
-      <hr>
-      <button data-mi="delete" class="destructive" role="menuitem">${ACT_ICONS.del}${delLabel}</button>
-      <div class="mfoot">© ${new Date().getFullYear()} Paddy’s Mealplan</div>
-    </div>`);
-    wrap.appendChild(menu);
+    const jahr = new Date().getFullYear();
+    openMenu(wrap, wrap.querySelector(".profile-btn"), [
+      { kopf: `<div class="mn">${esc(profile.name)}${isPro() ? ` <span class="pro-badge">Pro</span>` : ""}</div>`
+            + (profile.email ? `<div class="me">${esc(profile.email)}</div>` : "") },
+      { id: "settings", text: "Einstellungen", icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1.08-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg>`, tun: openSettings },
+      { id: "group", text: syncGid ? "Gruppe" : "Gemeinsam planen", icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>`,
+        tun: openGroupModal },
+      "trenner",
+      // Dieselben Funktionen wie die Fusszeile (die abgemeldet weiter da ist) - ein Weg,
+      // zwei Ausloeser, kein zweiter Codepfad zu denselben Texten.
+      { id: "impressum", text: "Impressum", icon: ACT_ICONS.legal, tun: openImpressum },
+      { id: "datenschutz", text: "Datenschutz", icon: ACT_ICONS.shield, tun: openDatenschutz },
+      "trenner",
+      { id: "signout", text: "Abmelden", icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5M21 12H9"/></svg>`, klasse: "danger", tun: signOut },
+      "trenner",
+      { id: "delete", text: delLabel, icon: ACT_ICONS.del, klasse: "destructive",
+        tun: () => { authMode === "cloud" ? deleteAccountFlow() : deleteLocalDataFlow(); } },
+      { fuss: `© ${jahr} Paddy’s Mealplan` }
+    ]);
     updateSyncUI();
-    const close = attachMenuDismiss(menu, wrap.querySelector(".profile-btn"));
-    menu.querySelector("[data-mi='settings']").addEventListener("click", () => { close(false); openSettings(); });
-    menu.querySelector("[data-mi='group']").addEventListener("click", () => { close(false); openGroupModal(); });
-    // Dieselben Funktionen wie die Fusszeile (die abgemeldet weiter da ist) - ein Weg,
-    // zwei Ausloeser, kein zweiter Codepfad zu denselben Texten.
-    menu.querySelector("[data-mi='impressum']").addEventListener("click", () => { close(false); openImpressum(); });
-    menu.querySelector("[data-mi='datenschutz']").addEventListener("click", () => { close(false); openDatenschutz(); });
-    menu.querySelector("[data-mi='signout']").addEventListener("click", () => { close(false); signOut(); });
-    menu.querySelector("[data-mi='delete']").addEventListener("click", () => { close(false); authMode === "cloud" ? deleteAccountFlow() : deleteLocalDataFlow(); });
   }
 
   // Ueberlaufmenue der Gewichtskarte (B1). "Gewicht eintragen" steht NICHT mehr hier -
@@ -11462,8 +11580,6 @@
   function toggleWeightMenu(btn) {
     const wrap = btn.closest(".wch-menu");
     if (!wrap) return;
-    const open = wrap.querySelector(".menu");
-    if (open) { closeMenuNode(open); return; }
     const hatZiel = (state.weightGoals || {})[activeYear()] != null;
     // "Verlauf verwalten" gehoert HIERHER - und stand bis zum 04.09.2026 nicht drin.
     //
@@ -11475,19 +11591,15 @@
     //
     // Nur mit Daten: Ein Menuepunkt, der eine leere Liste oeffnet, ist eine Sackgasse.
     const hatDaten = (state.weights || []).length > 0;
-    const menu = el(`<div class="menu" role="menu">
-      <button data-mi="goal" role="menuitem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.5"/></svg>${hatZiel ? "Ziel ändern" : "Jahresziel setzen"}</button>
-      ${hatDaten ? `<button data-mi="manage" role="menuitem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>Verlauf verwalten</button>` : ""}
-      <hr>
-      <button data-mi="consent-out" class="destructive" role="menuitem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5M21 12H9"/></svg>Einwilligung widerrufen</button>
-    </div>`);
-    wrap.appendChild(menu);
-    const close = attachMenuDismiss(menu, btn);
-    menu.querySelector("[data-mi='goal']").addEventListener("click", () => { close(false); openWeightGoalForm(); });
-    const manageBtn = menu.querySelector("[data-mi='manage']");
-    if (manageBtn) manageBtn.addEventListener("click", () => { close(false); openWeighForm(true); });
-    const outBtn = menu.querySelector("[data-mi='consent-out']");
-    if (outBtn) outBtn.addEventListener("click", () => { close(false); weightConsentRevokeModal(); });
+    openMenu(wrap, btn, [
+      { id: "goal", text: hatZiel ? "Ziel ändern" : "Jahresziel setzen",
+        icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.5"/></svg>`, tun: openWeightGoalForm },
+      { id: "manage", text: "Verlauf verwalten", icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>`,
+        wenn: hatDaten, tun: () => openWeighForm(true) },
+      "trenner",
+      { id: "consent-out", text: "Einwilligung widerrufen", icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5M21 12H9"/></svg>`,
+        klasse: "destructive", tun: weightConsentRevokeModal }
+    ]);
   }
 
   // Zuweisung eines geplanten Gerichts aendern (Stift-Symbol auf der Meal-Karte).
