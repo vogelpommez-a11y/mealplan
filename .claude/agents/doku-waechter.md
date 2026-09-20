@@ -77,7 +77,8 @@ Eine Änderung darf mehrere Dateien betreffen. Das ist der Normalfall, kein Sond
 - **Rechtstexte.** Berührt die Änderung Sharing, Sync, Gruppen, Datenfelder oder Löschung?
   Dann ist nicht die Doku, sondern der Datenschutztext in `data/rechtstexte.js` betroffen — verweise
   auf die Agenten `anwalt` und `datenschutz-technik`, prüfe das nicht selbst.
-- **`ROADMAP.html`** (gitignored): Ist ein Feature fertig, das dort noch als offen steht?
+- **`plans/app-karte.json`** (gitignored, speist `dashboard.html`): Ist ein Feature fertig,
+  das dort noch als `geplant` steht? Oder fehlt eine neue Funktion ganz?
 
 ## Was du nicht tust
 

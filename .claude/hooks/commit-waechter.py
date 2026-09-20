@@ -3,7 +3,7 @@
 
 Warum es diesen Hook gibt:
   Alles im Repo landet oeffentlich auf GitHub Pages - und Geloeschtes bleibt in der
-  Historie stehen. Ein einziges "git add ." wuerde plans/, ROADMAP.html oder Marketing/
+  Historie stehen. Ein einziges "git add ." wuerde plans/, dashboard.html oder Marketing/
   unwiderruflich veroeffentlichen. Die .gitignore schuetzt davor, aber sie wirkt NICHT
   auf Dateien, die bereits getrackt sind oder mit "git add -f" erzwungen wurden.
 
@@ -31,6 +31,10 @@ VERBOTEN = [
     ("Marketing/",     "Marketing-Assets - nicht fuer die Oeffentlichkeit"),
     ("Instagram/",     "Instagram-Vorlagen - nicht fuer die Oeffentlichkeit"),
     ("ROADMAP.html",   "private Projektuebersicht mit offenen Schwachstellen"),
+    # Am 20.09.2026 nachgetragen: dashboard.html hat ROADMAP.html abgeloest und traegt
+    # denselben Inhalt - Stand, Luecken, Plaene. Ohne diese Zeile waere der Waechter mit
+    # der Umbenennung stillschweigend blind geworden.
+    ("dashboard.html", "private Projektuebersicht mit offenen Schwachstellen"),
     (".env",           "ZUGANGSDATEN - enthaelt einen echten API-Schluessel"),
     ("wochenplan-backup/", "Backups mit echten Plandaten"),
     (".claude/settings.local.json", "lokale Rechte dieses Rechners"),

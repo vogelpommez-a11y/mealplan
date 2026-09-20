@@ -84,7 +84,7 @@ E-Mail, ist das ein Befund (Regel aus CLAUDE.md § 20).
 
 Prüfe, was tatsächlich getrackt ist: `git ls-files`. Backups (`wochenplan-backup/`),
 Exporte mit echten Plandaten, Bilder mit EXIF-GPS (`Fotos/`), `.env`, `*.key`, `*.pem`,
-`index.backup*.html`, `plans/`, `ROADMAP.html`, `Marketing/`, `Instagram/`.
+`index.backup*.html`, `plans/`, `dashboard.html`, `Marketing/`, `Instagram/`.
 
 **Die `.gitignore` ist hier selbst ein Prüfobjekt** (sie existiert und ist ausführlich
 kommentiert). Prüfe zweierlei:

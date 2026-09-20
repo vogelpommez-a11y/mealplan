@@ -433,6 +433,19 @@ Sichtbar ist ausschließlich die durchgängige Progress-Bar.
 * **Kurze Wege.** Eine Enter-Bewegung verschiebt ein Element um einige Dutzend Pixel und blendet es dabei ein — sie schiebt es nicht über den halben Bildschirm. Lange Transform-Strecken zwingen den Browser, in jedem Bild die ganze Fläche neu zu rastern; auf dem Handy fallen dabei Bilder aus (siehe `docs/TROUBLESHOOTING.md`). Wer doch eine große Fläche bewegt, setzt `will-change` und stellt innere Scroll-Container für die Dauer der Bewegung ruhig.
 * `reducedMotion()` immer berücksichtigt — Überblendung bleibt, Richtung entfällt.
 
+### Die Haupt-Reiterleiste bekommt bewusst **keine** gleitende Pille
+
+Die gleitende Pille gibt es an drei Stellen — Tagesleiste (`.db-ind`), Kalender-Umschalter
+(`.kal-pill`), Wochenwechsel (`.week-switch`). Die **Haupt-Reiterleiste** unten ist die
+Ausnahme, und das ist eine Entscheidung, keine Lücke:
+
+> Ein Reiterwechsel passiert dutzendfach am Tag. Auch Instagram und iOS animieren dort nur
+> den **Zustand**, nicht die Bewegung — eine Pille, die man vierzigmal täglich wandern sieht,
+> wird vom Detail zur Zumutung.
+
+Wer sie „der Einheitlichkeit halber" nachrüstet, macht die App an der meistbenutzten Stelle
+langsamer. (Gerettet aus `ROADMAP.html`, bevor die abgelöst wurde — 20.09.2026.)
+
 Wischen (echtes `scroll-snap`) nur dort, wo es keinen verschachtelten horizontalen Scroller erzeugt. Bei Woche und Tabs bewusst kein Wischen: alle Ansichten gleichzeitig im DOM würde einen horizontalen Scroller im horizontalen Scroller ergeben, auf Touch gewinnt immer der innere, und `overscroll-behavior-x: contain` unterbindet die Weitergabe zusätzlich absichtlich. Bei den Tabs käme auf iOS die Zurück-Wischgeste am linken Rand dazu. Dort wird nur die Optik und Bewegungssprache angeglichen, nicht die Geste.
 
 **Ein Scroller entsteht auch ungewollt.** `overflow-y: auto` allein macht ein Element **auf beiden Achsen** zum Scroll-Container — die Spezifikation rechnet die andere Achse von `visible` auf `auto` um. Genau so ist im Wochenplan-Sheet ein waagerechter Scroller in den Snap-Streifen geraten und hat das Wischen zwischen den Tagen vollständig ausgeschaltet; ausgelöst hat es die unsichtbar vergrößerte Trefferfläche eines Knopfes, die 6 px über den Rand ragte.

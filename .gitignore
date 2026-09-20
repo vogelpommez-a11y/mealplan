@@ -74,6 +74,9 @@ index.backup*.html
 # Persoenliche Roadmap-Uebersicht. Beschreibt offene Schwachstellen (z. B. dass das
 # Pro-Gating aktuell clientseitig und damit umgehbar ist) und Geschaeftsplanung -
 # das gehoert nicht oeffentlich auf GitHub Pages.
+# ROADMAP.html wurde am 20.09.2026 durch dashboard.html abgeloest und liegt als
+# plans/ROADMAP-Archiv-2026-09-20.html (plans/ ist ohnehin ignoriert). Der Eintrag
+# bleibt stehen, falls die Datei irgendwo noch einmal auftaucht.
 ROADMAP.html
 
 # Marketing-Assets (Banner o. Ae.): fuer externen Gebrauch, nicht von der App

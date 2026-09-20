@@ -450,7 +450,7 @@ git rev-parse HEAD                     # ...uebereinstimmen
 Immer gezielt einzelne Pfade stagen. Ein Hook prüft das zusätzlich (Abschnitt 18), aber die
 Regel gilt unabhängig davon.
 
-Nicht öffentlich, deshalb gitignored: `plans/`, `ROADMAP.html`, `Fotos/`, `Marketing/`,
+Nicht öffentlich, deshalb gitignored: `plans/`, `dashboard.html`, `Fotos/`, `Marketing/`,
 `Instagram/`, `.env`, `docs/DATENSCHUTZ-INTERN.md`, die zugekauften Skills.
 
 **Vor jedem Push `/pushcheck`.** Er fährt `anwalt` und `website-security` auf Sonnet, dazu
@@ -610,13 +610,27 @@ komplexen Aufgaben von selbst vorschlagen, welches Modell sinnvoll ist.
 Nach `ExitPlanMode` den Plan aus `.claude/plans` nach `plans/` kopieren, mit sprechendem
 Namen. Umgesetzte und dokumentierte Pläne direkt löschen — ohne Rückfrage.
 
-## `ROADMAP.html`
+## `dashboard.html` — die Projektübersicht
 
-Die private visuelle Projektübersicht. Nach jedem abgeschlossenen Feature und jedem Push
-prüfen und bei Bedarf aktualisieren: Karte verschieben, Fortschritt, Balken, Datum,
-Commit-Hash, neue Risiken als `<p class="warn">`.
+**Erzeugt, nicht gepflegt.** Nach jedem abgeschlossenen Feature den Stand in
+`plans/app-karte.json` nachziehen und `python tools/dashboard.py` fahren. Wer die HTML von
+Hand bearbeitet, verliert es beim nächsten Lauf.
 
-Bleibt in `.gitignore`. **Nie committen.**
+Die Karte trägt drei Phasen, und die Reihenfolge ist der rote Faden des Projekts:
+
+| Phase | Inhalt | Zustand |
+|---|---|---|
+| **1** | Die App fertig machen | **jetzt** |
+| **2** | Marktstart (Landingpage, Instagram, Tester) | **geparkt**, bis Phase 1 durch ist |
+| **3** | App Store, Pro und Bezahlung | danach |
+
+`python tools/dashboard.py --pruefen` hält die Karte gegen den Code. Es prüft die
+**Struktur** (welche Reiter `data-tab` wirklich kennt), nicht den **Status** — der ist eine
+Bewertung und bleibt Handarbeit. Genau an dieser Grenze ist die Vorgängerin gealtert:
+`ROADMAP.html` wurde von Hand gepflegt und behauptete über einen Monat lang einen Stand, den
+es nicht mehr gab. Sie liegt als `plans/ROADMAP-Archiv-2026-09-20.html`.
+
+Beides bleibt in `.gitignore`. **Nie committen.**
 
 ---
 
@@ -646,7 +660,7 @@ Bleibt in `.gitignore`. **Nie committen.**
 4. Bei Cloud-/Sync-Änderungen: Sync-Szenarien, notfalls `/abnahme`.
 5. Rechtstexte prüfen, wenn betroffen.
 6. Passende Agenten einsetzen.
-7. Dokumentation aktualisieren, `ROADMAP.html` bei Bedarf.
+7. Dokumentation aktualisieren, `plans/app-karte.json` + `tools/dashboard.py` bei Bedarf.
 8. `git diff` auf unbeabsichtigte Änderungen prüfen.
 9. Erst danach committen. Nach dem Push Remote-Commit verifizieren.
 
@@ -672,7 +686,7 @@ der aktuellen Aufgabe, muss es vor Abschluss berücksichtigt werden.
 Eine Aufgabe ist abgeschlossen, wenn die Funktion korrekt umgesetzt ist, nichts
 Bestehendes beschädigt wurde, die relevanten Tests und UI-Zustände geprüft sind, Design,
 Mobile und A11y berücksichtigt wurden, Security und Rechtstexte bei Relevanz geprüft sind,
-die betroffene Dokumentation aktualisiert ist, `ROADMAP.html` stimmt und der `git diff`
+die betroffene Dokumentation aktualisiert ist, das Dashboard stimmt und der `git diff`
 gesichtet wurde.
 
 **Code, Dokumentation und Projektstatus beschreiben danach denselben Stand.**
@@ -698,7 +712,7 @@ Keine Regel rechtfertigt eine Sicherheitsverletzung oder Datenbeschädigung.
 
 **Nicht nur Code schreiben. Das Projekt als Ganzes konsistent halten.**
 
-> Produkt → UX → Design → Architektur → Daten → Security → Store → Tests → Dokumentation → ROADMAP
+> Produkt → UX → Design → Architektur → Daten → Security → Store → Tests → Dokumentation → Dashboard
 
 Betrifft eine Änderung einen dieser Bereiche tatsächlich, wird er ebenfalls aktualisiert
 und geprüft.

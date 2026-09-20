@@ -1227,7 +1227,7 @@ Laufzeitfehler, erst dann die eigentlichen Prüfungen lesen.
   `authMode !== "cloud"` (lokales Profil, `CloudShare.enabled` allein reicht nicht) oder bei
   Payload > 400 KB öffnet sich `openShareRecipe()`. Ein gestubbtes `navigator.share` belegt nur
   die Aufruf-Reihenfolge, nicht dass iOS Safari die Aktivierung tatsächlich akzeptiert — das
-  bleibt ein offener Handy-Test (siehe `ROADMAP.html`).
+  bleibt ein offener Handy-Test (siehe `plans/app-karte.json`, Bereich `substanz`).
 
 * **`offServingSize()`** (OFF-Packungsgröße) rein als Textparser ausgeschnitten und gegen eine
   Fallliste durchrechnen: reines Gewicht/Volumen ("65 g", "500 g", "1 L", "1 kg") liefert

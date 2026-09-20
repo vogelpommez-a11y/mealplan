@@ -182,6 +182,7 @@
       "name": "doku-waechter",
       "pfade": [
         "CLAUDE.md",
+        "dashboard.html",
         "data/rechtstexte.js",
         "docs/ARCHITECTURES.md",
         "docs/PRODUCT.md",
@@ -290,6 +291,7 @@
       "name": "website-security",
       "pfade": [
         "FIREBASE-SETUP.md",
+        "dashboard.html",
         "data/rechtstexte.js",
         "docs/MODULE.md",
         "docs/SECURITY.md",
@@ -1081,9 +1083,9 @@
       "zeilen": 80
     },
     {
-      "bytes": 3653,
+      "bytes": 3702,
       "pfad": ".claude/Skills/deploy/SKILL.md",
-      "zeilen": 101
+      "zeilen": 102
     },
     {
       "bytes": 5263,
@@ -1111,9 +1113,9 @@
       "zeilen": 174
     },
     {
-      "bytes": 5302,
+      "bytes": 5377,
       "pfad": ".claude/agents/doku-waechter.md",
-      "zeilen": 105
+      "zeilen": 106
     },
     {
       "bytes": 9060,
@@ -1136,7 +1138,7 @@
       "zeilen": 71
     },
     {
-      "bytes": 10650,
+      "bytes": 10652,
       "pfad": ".claude/agents/website-security.md",
       "zeilen": 195
     },
@@ -1146,9 +1148,9 @@
       "zeilen": 70
     },
     {
-      "bytes": 7835,
+      "bytes": 8147,
       "pfad": ".claude/hooks/commit-waechter.py",
-      "zeilen": 174
+      "zeilen": 178
     },
     {
       "bytes": 3107,
@@ -1186,14 +1188,14 @@
       "zeilen": 188
     },
     {
-      "bytes": 5245,
+      "bytes": 5741,
       "pfad": ".gitignore",
-      "zeilen": 120
+      "zeilen": 128
     },
     {
-      "bytes": 29950,
+      "bytes": 30762,
       "pfad": "CLAUDE.md",
-      "zeilen": 705
+      "zeilen": 719
     },
     {
       "bytes": 21,
@@ -1281,14 +1283,14 @@
       "zeilen": 188
     },
     {
-      "bytes": 202358,
+      "bytes": 202375,
       "pfad": "docs/ARCHITECTURES.md",
       "zeilen": 3194
     },
     {
-      "bytes": 57924,
+      "bytes": 58632,
       "pfad": "docs/DESIGN.md",
-      "zeilen": 1085
+      "zeilen": 1098
     },
     {
       "erzeugt": true,
@@ -1315,7 +1317,7 @@
       "zeilen": 473
     },
     {
-      "bytes": 298009,
+      "bytes": 298037,
       "pfad": "docs/TESTING.md",
       "zeilen": 5016
     },
@@ -1781,6 +1783,11 @@
       "bytes": 11294,
       "pfad": "tools/cdp.py",
       "zeilen": 261
+    },
+    {
+      "bytes": 15577,
+      "pfad": "tools/dashboard.py",
+      "zeilen": 392
     },
     {
       "bytes": 2957,

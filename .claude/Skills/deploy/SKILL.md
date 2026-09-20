@@ -65,7 +65,8 @@ alten Cache nicht weg, und Nutzer bleiben auf dem alten Stand hängen.
 
 ## Danach
 
-- `ROADMAP.html` aktualisieren: Karte verschieben, Fortschritt, Datum, Commit-Hash.
+- Stand in `plans/app-karte.json` nachziehen, dann `python tools/dashboard.py`.
+  Die HTML wird erzeugt — nie von Hand bearbeiten.
 - Wenn `/pushcheck` sauber war, hat es den Marker geschrieben — sonst nachtragen.
 
 ## Wenn live etwas kaputt ist

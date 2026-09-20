@@ -161,12 +161,12 @@ Erhoben aus den Abschnittsmarken im Code, nicht von Hand gepflegt.
 |---|---|---|---|---|
 | anwalt | sonnet | Read, Grep, Glob, Bash, WebSearch, WebFetch | nein | bilder-protokoll.json, data/rechtstexte.js, docs/MODULE.md, docs/PRODUCT.md, docs/STORE.md, firestore.rules, img/bilder-protokoll.json, img/library/bilder-protokoll.json, index.html, tools/meal-bilder.py, worker/og.js |
 | datenschutz-technik | sonnet | Read, Grep, Glob, Bash, WebSearch, WebFetch | nein | worker/og.js |
-| doku-waechter | sonnet | Read, Grep, Glob, Bash | nein | CLAUDE.md, data/rechtstexte.js, docs/ARCHITECTURES.md, docs/PRODUCT.md, docs/TESTING.md, docs/TROUBLESHOOTING.md |
+| doku-waechter | sonnet | Read, Grep, Glob, Bash | nein | CLAUDE.md, dashboard.html, data/rechtstexte.js, docs/ARCHITECTURES.md, docs/PRODUCT.md, docs/TESTING.md, docs/TROUBLESHOOTING.md |
 | kvp | haiku | Read, Grep, Glob, Bash | nein | css/mobil.css, css/tokens.css, index.html |
 | lieferkette | sonnet | Read, Grep, Glob, Bash, WebSearch, WebFetch | nein | ./firebase-app.js, firebase-app.js, index.html, lib/barcode.js, package.json, sw.js, tools/firebase-vendor.py, vendor/HERKUNFT.md, vendor/zxing.min.js |
 | store-check | sonnet | Read, Grep, Glob, Bash, WebSearch, WebFetch | nein | FIREBASE-SETUP.md, bilder-protokoll.json, docs/MODULE.md, docs/PRODUCT.md, docs/SECURITY.md, firestore.rules, index.html, manifest.webmanifest, sw.js |
 | ux-reviewer | haiku | Read, Grep, Glob, Bash, Skill | nein | css/CLAUDE.md, css/basis.css, css/komponenten.css, css/mobil.css, css/tokens.css, docs/DESIGN.md |
-| website-security | sonnet | Read, Grep, Glob, Bash | nein | FIREBASE-SETUP.md, data/rechtstexte.js, docs/MODULE.md, docs/SECURITY.md, firestore.rules, index.html, lib/barcode.js, sw.js, tools/firebase-vendor.py, worker/og.js |
+| website-security | sonnet | Read, Grep, Glob, Bash | nein | FIREBASE-SETUP.md, dashboard.html, data/rechtstexte.js, docs/MODULE.md, docs/SECURITY.md, firestore.rules, index.html, lib/barcode.js, sw.js, tools/firebase-vendor.py, worker/og.js |
 
 ## 5. Skills
 
@@ -290,20 +290,20 @@ _keine_
 | Pfad | Zeilen | Bytes |
 |---|---|---|
 | .claude/Skills/abnahme/SKILL.md | 80 | 3793 |
-| .claude/Skills/deploy/SKILL.md | 101 | 3653 |
+| .claude/Skills/deploy/SKILL.md | 102 | 3702 |
 | .claude/Skills/pruefstand/SKILL.md | 126 | 5263 |
 | .claude/Skills/rezeptcharge/SKILL.md | 482 | 26234 |
 | .claude/Skills/smoke/SKILL.md | 82 | 3368 |
 | .claude/agents/anwalt.md | 283 | 16548 |
 | .claude/agents/datenschutz-technik.md | 174 | 9879 |
-| .claude/agents/doku-waechter.md | 105 | 5302 |
+| .claude/agents/doku-waechter.md | 106 | 5377 |
 | .claude/agents/kvp.md | 162 | 9060 |
 | .claude/agents/lieferkette.md | 124 | 6016 |
 | .claude/agents/store-check.md | 176 | 9368 |
 | .claude/agents/ux-reviewer.md | 71 | 3776 |
-| .claude/agents/website-security.md | 195 | 10650 |
+| .claude/agents/website-security.md | 195 | 10652 |
 | .claude/commands/pushcheck.md | 70 | 2657 |
-| .claude/hooks/commit-waechter.py | 174 | 7835 |
+| .claude/hooks/commit-waechter.py | 178 | 8147 |
 | .claude/hooks/push-waechter.py | 95 | 3107 |
 | .claude/hooks/secrets-filter.py | 93 | 3856 |
 | .claude/hooks/syntax-nach-edit.py | 100 | 3777 |
@@ -311,8 +311,8 @@ _keine_
 | .claude/settings.json | 56 | 1526 |
 | .gitattributes | 21 | 594 |
 | .github/workflows/pruefung.yml | 188 | 8066 |
-| .gitignore | 120 | 5245 |
-| CLAUDE.md | 705 | 29950 |
+| .gitignore | 128 | 5741 |
+| CLAUDE.md | 719 | 30762 |
 | CNAME | 1 | 21 |
 | FIREBASE-SETUP.md | 197 | 9363 |
 | LICENSE | 40 | 1907 |
@@ -330,14 +330,14 @@ _keine_
 | data/ikonen.js | 168 | 19442 |
 | data/rechtstexte.js | 169 | 28727 |
 | docs/ABDECKUNG.md | 188 | 11847 |
-| docs/ARCHITECTURES.md | 3194 | 202358 |
-| docs/DESIGN.md | 1085 | 57924 |
+| docs/ARCHITECTURES.md | 3194 | 202375 |
+| docs/DESIGN.md | 1098 | 58632 |
 | docs/MODULE.md | — | — (erzeugt) |
 | docs/PRODUCT.md | 1729 | 98422 |
 | docs/RUNBOOK.md | 249 | 10092 |
 | docs/SECURITY.md | 527 | 31631 |
 | docs/STORE.md | 473 | 27190 |
-| docs/TESTING.md | 5016 | 298009 |
+| docs/TESTING.md | 5016 | 298037 |
 | docs/TROUBLESHOOTING.md | 6657 | 387705 |
 | docs/module-index.json | — | — (erzeugt) |
 | firestore.rules | 486 | 28086 |
@@ -448,6 +448,7 @@ _keine_
 | tools/alle-pruefstaende.py | 226 | 9699 |
 | tools/bildsatz-stichworte.json | 1061 | 20704 |
 | tools/cdp.py | 261 | 11294 |
+| tools/dashboard.py | 392 | 15577 |
 | tools/firebase-vendor.py | 75 | 2957 |
 | tools/firestore-backup.py | 304 | 12982 |
 | tools/firestore-restore.py | 270 | 10811 |

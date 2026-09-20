@@ -306,6 +306,9 @@ VORLAGE = u"""<!DOCTYPE html>
     body { padding: 20px 13px 48px; }
     h1 { font-size: 23px; }
     .jetzt ul { columns: 1; }
+    /* Nebeneinander bricht die Bilanz mitten im Satz um - untereinander liest sie sich. */
+    .bar-txt { flex-direction: column; gap: 2px; }
+    h2.abs { flex-direction: column; gap: 1px; }
   }
 </style>
 </head>
