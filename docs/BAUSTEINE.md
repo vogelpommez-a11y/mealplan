@@ -22,10 +22,11 @@ nicht auf den gemeinsamen Helfer umgestellt ist.
 |---|---|---|---|---|
 | **Modal / Dialog** | `openModal(node, opts)` | 27 Aufrufe + Definition | eigen | `a11y-pruefung.py` |
 | **Bestätigungsdialog** | `confirmModal(o)` | 13 Aufrufe | eigen — ersetzte ausdrücklich fünf fast gleiche Modal-Blöcke | `a11y-pruefung.py` |
+| **Dropdown / Überlaufmenü** | `openMenu(wrap, trigger, eintraege)` | 3 Menüs (Plan, Profil, Gewicht). Das Chip-Menü `openAssignMenu` baut bewusst selbst — Mehrfachauswahl, Portal an `<body>`, eigene Positionsrechnung | nachgebaut nach WAI-ARIA Menu Pattern (Tastatur); Kollisionsvermeidung und Scroll-Schließen **aus dem eigenen Chip-Menü übernommen** | `bausteine.py`, `a11y-pruefung.py` |
 | **Meal-Blatt / Sheet** | `openMealSheet(id, …)` | ~25 Stellen | eigen | `abnahme-mobil.py` |
 | **Toast** | `toast(msg)` · `undoToast(msg, fn)` | ~130 Aufrufe, **ein** `#toast`-Element | eigen — die Undo-Variante teilt bewusst dieselbe Basis, sonst entwickeln sich zwei Toasts auseinander | — |
 
-**Diese vier sind das Vorbild, nicht die Baustelle.** Wer hier etwas ändert, ändert es für
+**Diese fünf sind das Vorbild, nicht die Baustelle.** Wer hier etwas ändert, ändert es für
 alle — genau so soll es sein.
 
 ---
@@ -36,7 +37,6 @@ Stand der Erhebung: 20.09.2026. Reihenfolge und Begründungen in `plans/UI-Grund
 
 | Baustein | Heute | Ziel | Herkunft geplant |
 |---|---|---|---|
-| **Dropdown / Überlaufmenü** | **4 Funktionen**: `togglePlanMenu` (`index.html:11405`), `toggleProfileMenu` (`:11428`), `toggleWeightMenu` (`:11462`), `openAssignMenu` (`:11497`). Geteilt sind nur `.menu` und `attachMenuDismiss()` (`:11370`) | ein `openMenu(items, trigger)` | nachgebaut nach WAI-ARIA Menu Pattern + Radix/Base UI (Tastaturverhalten) |
 | **Leere Zustände** | **10 Stellen mit 5 Klassennamen** (`.empty` 1×, `.wch-empty` 1×, `.ms-empty-ings` 4×, `.wl-empty` 1×, `.pempty` 3×), dazu **2 klassenlose `<p>`** | ein `leerZustand({icon, titel, text, aktion})` | eigen — muss zur Markenstimme passen |
 | **Akkordeon** | **2 Mechanismen**: 6× natives `<details>`, 6× `data-action="toggle-*"` | eine Bauart, begründet in `docs/DESIGN.md` | offen — Entscheidung steht aus |
 | **Tabs / Segmente** | **3 Muster**: `.tabs` (Hauptreiter), `.daybar` (Tagesleiste), `.kal-seg` (Zeitraum) | gemeinsamer Bauplan | eigen — die gleitende Pille ist bereits etabliert |

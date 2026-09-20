@@ -331,7 +331,7 @@ _keine_
 | data/rechtstexte.js | 169 | 28727 |
 | docs/ABDECKUNG.md | 189 | 12155 |
 | docs/ARCHITECTURES.md | 3194 | 202375 |
-| docs/BAUSTEINE.md | 68 | 4032 |
+| docs/BAUSTEINE.md | 68 | 4079 |
 | docs/DESIGN.md | 1098 | 58632 |
 | docs/MODULE.md | — | — (erzeugt) |
 | docs/PRODUCT.md | 1729 | 98422 |
