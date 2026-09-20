@@ -6654,3 +6654,38 @@ sinnvollen Entscheidung, kein zweites Gerüst zu bauen (`docs/TESTING.md` 2g-bis
 
 **Stand nach allen drei Korrekturen:** 0 Befunde über 24 Stationen und 298 Tab-Stopps,
 Gegenprobe in beide Richtungen grün, `abnahme-mobil.py` weiter grün über 108 Stationen.
+
+---
+
+## 174. Der Prüfstand maß Chromes Fehlerseite — und meldete einen Befund
+
+**20.09.2026.** `tools/abnahme-mobil.py` meldete mitten in der UI-Arbeit:
+
+```
+* Trefferflaeche unter 44 px
+  div#suggestions-list > ul > li > a
+  Text: "Proxy und Firewall prüfe"
+```
+
+In der App gibt es kein `#suggestions-list`. Das ist **Chromes eigene Fehlerseite**
+(„Seite nicht erreichbar"), und ihre Links sind 20 px hoch. Gemessen wurde also nicht die
+App, sondern die Entschuldigung dafür, dass es sie gerade nicht gab: `test-server.ps1` war
+zwischendurch weggefallen.
+
+> **Ein Prüfstand, der seine Messgrundlage nicht prüft, misst irgendwas — und meldet es
+> mit derselben Bestimmtheit wie einen echten Befund.**
+
+Davor lief dasselbe Skript dreimal in einen `WebSocketTimeoutException`. Zwei verschiedene
+Ursachen, gleiches Erscheinungsbild:
+
+* **Ein beschädigtes Chrome-Profil** (`%TEMP%\mp-chrome-mobil`). `Sitzung.start()` löscht es
+  zwar bei `frisch=True`, aber ein noch laufender Prozess hält Dateien offen. Hilft:
+  alle `chrome.exe` beenden, dann den Profilordner löschen.
+* **Der fehlende Server.** Chrome lädt die Fehlerseite, `requestAnimationFrame` läuft dort
+  nicht wie erwartet, `bild_abwarten()` wartet ins Leere.
+
+**Offen, für den nächsten Lauf am Werkzeug:** `abnahme-mobil.py` und `a11y-pruefung.py`
+sollten nach dem Laden prüfen, ob sie überhaupt die App vor sich haben — ein Blick auf
+`document.title` oder `.app` genügt — und sonst mit klarer Ansage abbrechen, statt zu
+messen. `tools/vorfuehren.py` macht es bereits richtig: Es prüft den Server, bevor es
+Chrome öffnet, und startet ihn notfalls.
