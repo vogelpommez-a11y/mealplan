@@ -55,6 +55,7 @@ gepflegt (`python tools/karte.py`).
 | Technische Architektur | `docs/ARCHITECTURES.md` |
 | Design-System „Performance Dark" | `docs/DESIGN.md` |
 | Test- und Verifikationsverfahren | `docs/TESTING.md` |
+| UI-Bausteine: wer lebt wo, woher stammt er | `docs/BAUSTEINE.md` |
 | Bekannte Fehler, Fallen, Workarounds | `docs/TROUBLESHOOTING.md` |
 | Sicherheitsmodell | `docs/SECURITY.md` |
 | Store-Anforderungen | `docs/STORE.md` |
@@ -663,6 +664,27 @@ Beides bleibt in `.gitignore`. **Nie committen.**
 7. Dokumentation aktualisieren, `plans/app-karte.json` + `tools/dashboard.py` bei Bedarf.
 8. `git diff` auf unbeabsichtigte Änderungen prüfen.
 9. Erst danach committen. Nach dem Push Remote-Commit verifizieren.
+
+---
+
+# 21a. Bevor etwas Neues entsteht — drei Stufen
+
+Gilt fuer **UI-Bausteine und Interaktionsmuster** (alles, was der Nutzer sieht und antippt),
+nicht fuer jede interne Hilfsfunktion.
+
+| Stufe | Frage | Wenn ja |
+|---|---|---|
+| 1 | **Gibt es das in der App schon?** (`Grep` ueber `index.html`, `css/`, `lib/`) | Den bestehenden Baustein verwenden, **nicht danebenbauen**. Entscheidung in `docs/BAUSTEINE.md` eintragen |
+| 2 | **Gibt es das anderswo schon?** (Watermelon, Origin UI, Base UI, React Aria, MDN, WCAG) | **Nachbauen statt erfinden** — besonders bei Tastatur und ARIA. Quelle im Kommentar nennen |
+| 3 | Nirgends vorhanden? | **Neu bauen** und festhalten, *warum* nichts passte. Das verhindert, dass beim naechsten Mal wieder gesucht wird |
+
+**Und wenn ein Baustein angefasst wird, werden ALLE seine Fundstellen angefasst.** Wer nur
+eine von vier Stellen verbessert, hat aus einem Muster zwei gemacht.
+
+> Vier Dropdowns, sieben leere Zustaende, drei Tab-Muster: Die entstanden nicht aus
+> Nachlaessigkeit, sondern weil Stufe 1 nie stattgefunden hat.
+
+Register und Fundstellen: **`docs/BAUSTEINE.md`** · Pruefer: `python tools/bausteine.py`
 
 ---
 

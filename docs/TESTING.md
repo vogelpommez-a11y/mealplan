@@ -838,6 +838,76 @@ gar nicht existiert, braucht auch keinen Namen.
 
 ---
 
+## 2g-ter. Vorher neben Nachher — `tools/probe-vergleich.html`
+
+Angelegt am 20.09.2026 für die UI-Überarbeitung (`plans/UI-Grundlagen.MD`). Stellt einen
+Baustein zweimal nebeneinander: links der eingefrorene Stand, rechts der Arbeitsbaum.
+
+```powershell
+python tools/schnappschuss.py dropdown          # Vorher-Stand einfrieren (aus HEAD)
+python tools/schnappschuss.py dropdown 71a4650  # oder aus einem bestimmten Commit
+python tools/schnappschuss.py --liste
+# dann: http://localhost:8000/tools/probe-vergleich.html?baustein=dropdown
+```
+
+### Warum zwei `<iframe>` und kein `@scope`
+
+Links und rechts heißen beide `.menu`, `.btn`, `.modal`. Im selben Dokument wäre das ein
+Kaskadenkonflikt, den man nur durch Umbenennen lösen könnte — und Umbenennen wäre ein
+**Nachbau**, den Abschnitt 11 der `CLAUDE.md` ausschließt. Zwei Browsing-Contexts haben zwei
+getrennte CSSOMs; das Problem tritt gar nicht erst auf.
+
+**Eingefroren wird nur, was sich bei UI-Arbeit ändert:** `index.html` + `css/*.css`.
+`lib/`, `data/`, `img/` und `vendor/` kommen über ein `<base href="/">` aus der Wurzel —
+sonst müsste man 32 Meal-Fotos je Baustein mitkopieren, oder links stünden andere Rezepte
+als rechts.
+
+> **Ein Schnappschuss wird nie nachgezogen.** Er ist ein Zeugnis, kein lebendes Dokument.
+> Wer ihn aktualisiert, vergleicht am Ende zwei Stände des Nachher.
+
+### Es gibt keinen Übertragungsschritt
+
+Das Nachher-iframe zeigt von Anfang an den echten Arbeitsbaum. Die Vergleichsseite ist ein
+**Sichtfenster, nie eine Quelle**. Sobald das neue CSS in `komponenten.css` steht, ist es in
+der App scharf — es gibt nie zwei CSS-Wahrheiten.
+
+### Drei Eigenfehler, alle am ersten Tag gefunden
+
+Das Werkzeug hat sich beim Bauen dreimal selbst hereingelegt. Alle drei hätten einen
+plausiblen, aber falschen Vergleich erzeugt:
+
+| Fehler | Wirkung | Behoben |
+|---|---|---|
+| `<base>` per Regex vor den ersten `<link>` gesetzt | landete in **Zeile 5045** mitten im JavaScript — der erste `<link` im Text steht in einem JS-String, und `index.html` hat gar kein `<head>` | verankert an `<meta charset="utf-8">`, Abbruch wenn der fehlt |
+| Bereitschaft an gefülltem `#view` erkannt | der **Willkommensschirm** füllt `#view` auch — `oeffnen()` lief zu früh und meldete „Knopf nicht gefunden" | — |
+| Bereitschaft an den Reitern erkannt | ebenfalls falsch: die stehen **statisch im Markup** und sind im Gate genauso da | `.app` ohne Klasse `authing` — erst `enterApp()` nimmt sie weg |
+| `url(../img/logo.png)` unverändert kopiert | CSS-URLs lösen relativ zur **CSS-Datei** auf, nicht zum `<base>`. Links fehlte das Logo, rechts stand eines — **man hält es für eine Designänderung** | `css_pfade()` schreibt auf `url(/img/…)` um |
+
+### Gegenprobe
+
+Der Knopf **Gegenprobe** markiert nur die **rechte** Seite künstlich (türkis gestrichelt).
+Zeigt die Probe danach links und rechts dasselbe Bild, vergleicht sie zweimal denselben
+Stand — und ein grüner Eindruck wäre wertlos.
+
+Am 20.09.2026 gemessen: links `outline: none`, rechts `dashed rgb(0,229,255)`. Ohne
+Gegenprobe sind Menü-Schatten, -Radius und Logo-Darstellung (38×38) beidseitig identisch.
+
+### Breite: das Fenster ist nicht der Viewport
+
+Jedes iframe ist so breit, wie der Umschalter sagt (390/720/1280). Das **Fenster** drumherum
+ist breiter — es trägt zwei davon nebeneinander. Wer die Fensterbreite für den gemessenen
+Viewport hält, misst das Werkzeug statt der App. Dieselbe Verwechslung wie `--window-size`
+gegen den CSS-Viewport.
+
+### Die Notbremse steht einmal, nicht zweimal
+
+Alle drei Dokumente liegen auf `localhost:8000` und teilen sich **einen** `localStorage`.
+Eine Prüfung auf `firebase:authUser` genügt — **aber nur, weil die iframes erst danach
+geladen werden.** Ihr Markup trägt bewusst kein `src=`; das setzt JavaScript nach der
+Prüfung.
+
+---
+
 ## 2h. Prüfstand mit nachgebautem Transport — `pruefstand-firestore-backup.py`
 
 Für Code, der mit einem **fremden Dienst** spricht. Hier: Sicherung und Rückspielung der

@@ -116,6 +116,12 @@ docs/DATENSCHUTZ-INTERN.md
 # Begruendung wie bei ROADMAP.html: gehoert nicht oeffentlich auf Pages.
 dashboard.html
 
+# Eingefrorene Vorher-Staende fuer tools/probe-vergleich.html. Jeder ist rund 1,2 MB und
+# jederzeit reproduzierbar:  python tools/schnappschuss.py <id> <ref>
+# Im Repo waeren sie doppelt toter Ballast - und GitHub Pages lieferte unter
+# /tools/vorher/<id>/index.html eine vollstaendige ALTE Fassung der App oeffentlich aus.
+tools/vorher/
+
 # Ausgang des letzten Live-Regelvergleichs (tools/regeln-live.py). Rechnergebunden wie die
 # beiden Merker darunter - und er belegt den Stand EINER Konsole zu EINEM Zeitpunkt, im Repo
 # waere er sofort eine Behauptung ueber fremde Rechner.

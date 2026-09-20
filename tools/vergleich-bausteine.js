@@ -1,0 +1,101 @@
+// -*- coding: utf-8 -*-
+// Registry der UI-Bausteine fuer tools/probe-vergleich.html.
+//
+// Klassisches Skript, kein Modul - wie data/ikonen.js. Ueber file:// laeuft sonst nichts.
+//
+// Je Baustein:
+//   id        Ordnername unter tools/vorher/ UND ?baustein=<id> in der URL
+//   titel     Ueberschrift in der Probe
+//   was       ein Satz: worauf soll man schauen?
+//   stellen   die Fundstellen von heute - steht als Mahnung im Kopf der Probe,
+//             damit niemand eine davon vergisst (CLAUDE.md Abschnitt 21a)
+//   zustand   optionale Ergaenzungen zum Standard-Testzustand
+//   oeffnen   stellt den zu vergleichenden Zustand her (Menue aufklappen o. Ae.).
+//             Bekommt das Dokument des iframes, NICHT das eigene.
+//
+// Einen Baustein hinzufuegen heisst: hier einen Eintrag ergaenzen und einmal
+//   python tools/schnappschuss.py <id> <alter-stand>
+// laufen lassen. Kein neues HTML-Geruest - das ist der Unterschied zu den
+// Einzelproben probe-symbole.html/probe-fortschritt.html.
+
+var BAUSTEINE = [
+  {
+    id: "dropdown",
+    titel: "Dropdown / Überlaufmenü",
+    was: "Öffnen-Animation, Pfeiltasten, Fokusring, Rand bei wenig Platz.",
+    stellen: [
+      "togglePlanMenu() — index.html:11405",
+      "toggleProfileMenu() — index.html:11428",
+      "toggleWeightMenu() — index.html:11462",
+      "openAssignMenu() — index.html:11497"
+    ],
+    oeffnen: function (doc) {
+      var b = doc.querySelector('[data-action="profile-menu"]');
+      if (b) { b.click(); return "Profilmenü geöffnet"; }
+      return "Profil-Knopf nicht gefunden";
+    }
+  },
+
+  {
+    id: "leere-zustaende",
+    titel: "Leere Zustände",
+    was: "Sehen sie gleich aus? Hat jeder eine klare nächste Aktion?",
+    stellen: [
+      ".empty — index.html:7207 (Rezeptbuch)",
+      ".wch-empty — index.html:6022 (Gewichtsverlauf)",
+      ".ms-empty-ings — index.html:8102 ff. (Meal-Blatt)",
+      ".wl-empty — index.html:7646 (Gewichtsliste)",
+      ".pempty — index.html:9241 (Picker)",
+      "klassenlose <p> — index.html:9751 (Vorkochen), :9782 (Einkaufsliste)"
+    ],
+    // Ohne Meals und ohne Plan sind die leeren Zustaende ueberhaupt erst zu sehen.
+    zustand: { recipes: [], plans: {}, weights: [] },
+    oeffnen: function (doc) {
+      var b = doc.querySelector('[data-action="tab"][data-tab="recipes"]');
+      if (b) { b.click(); return "Rezeptbuch (leer) geöffnet"; }
+      return "Reiter nicht gefunden";
+    }
+  },
+
+  {
+    id: "tabs",
+    titel: "Tabs und Segmente",
+    was: "Drei Bauarten für dieselbe Sache — gleiche Höhe, gleiche Bewegung, gleicher Fokus?",
+    stellen: [
+      ".tabs — index.html:160 (Hauptreiter)",
+      ".daybar — css/mobil.css:158 (Tagesleiste)",
+      ".kal-seg — index.html:6534 (Zeitraum im Fortschritt)"
+    ],
+    oeffnen: function (doc) {
+      var b = doc.querySelector('[data-action="tab"][data-tab="progress"]');
+      if (b) { b.click(); return "Fortschritt geöffnet (zeigt .kal-seg)"; }
+      return "Reiter nicht gefunden";
+    }
+  },
+
+  {
+    id: "akkordeon",
+    titel: "Akkordeon / Aufklappen",
+    was: "Natives <details> gegen data-action=\"toggle-*\" — zwei Mechanismen, ein Zweck.",
+    stellen: [
+      "<details> — 6 Stellen (u. a. .wg-wk :7534, .ing-nut :8574, .grp-note :11175)",
+      "data-action=\"toggle-*\" — 6 Stellen (toggle-day-goals :4519, toggle-cat :6811, toggle-fav :7297)"
+    ],
+    oeffnen: function (doc) {
+      var b = doc.querySelector('[data-action="toggle-day-goals"]');
+      if (b) { b.click(); return "Tagesziele aufgeklappt"; }
+      return "Kein Aufklapper auf dieser Ansicht";
+    }
+  },
+
+  {
+    id: "buttons",
+    titel: "Buttons",
+    was: "13+ Modifier — welche sind Variante, welche nur Kontext?",
+    stellen: [
+      ".btn.primary (34×), .btn.ghost.sm (32×), .btn.ghost (20×)",
+      "Kontext statt Variante: onb-skip, wg-recalc, ms-ing-add, shop-ic, plan-auto"
+    ],
+    oeffnen: function () { return "Startseite"; }
+  }
+];

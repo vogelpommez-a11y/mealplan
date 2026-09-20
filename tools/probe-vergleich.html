@@ -1,0 +1,317 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Vergleich: vorher / nachher</title>
+<!-- Stellt einen UI-Baustein zweimal nebeneinander: links der eingefrorene Stand aus
+     tools/vorher/<id>/, rechts der aktuelle Arbeitsbaum.
+
+     Aufruf:  http://localhost:8000/tools/probe-vergleich.html
+              http://localhost:8000/tools/probe-vergleich.html?baustein=dropdown
+
+     WARUM ZWEI IFRAMES und kein @scope/Shadow DOM:
+     Links und rechts heissen beide `.menu`, `.btn`, `.modal`. Im selben Dokument waere das
+     ein Kaskadenkonflikt, den man nur durch Umbenennen loesen koennte - und Umbenennen
+     waere ein Nachbau. Zwei Browsing-Contexts haben zwei getrennte CSSOMs; das Problem
+     tritt gar nicht erst auf. Denselben Weg gehen probe-fortschritt.html und
+     probe-onboarding.html bereits.
+
+     ACHTUNG, BREITE:  Jedes iframe ist so breit, wie der Umschalter sagt (390/720/1280).
+     Das FENSTER drumherum ist breiter - es traegt zwei davon nebeneinander. Wer die
+     Fensterbreite fuer den gemessenen Viewport haelt, misst das Werkzeug statt der App.
+     (Dieselbe Verwechslung wie --window-size gegen den CSS-Viewport, docs/TESTING.md.)
+
+     Die Schnappschuesse legt tools/schnappschuss.py an. -->
+<style>
+  :root {
+    --w-bg: #14100F; --w-flaeche: #1D1817; --w-text: #F4EFEE; --w-leise: #A99C99;
+    --w-rand: #2E2726; --w-akzent: #FF5A66; --w-ok: #4ADE80;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 14px 16px 40px; background: var(--w-bg); color: var(--w-text);
+         font: 13.5px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  h1 { font-size: 17px; margin: 0 0 2px; }
+  .unter { color: var(--w-leise); font-size: 12.5px; margin: 0 0 12px; }
+
+  .leiste { display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
+            padding: 9px 11px; background: var(--w-flaeche); border: 1px solid var(--w-rand);
+            border-radius: 10px; margin-bottom: 11px; }
+  .leiste b { font-size: 12px; color: var(--w-leise); font-weight: 600; margin-right: 2px; }
+  button, select { font: inherit; font-size: 12.5px; color: var(--w-text);
+                   background: #241E1D; border: 1px solid var(--w-rand); border-radius: 7px;
+                   padding: 6px 11px; cursor: pointer; min-height: 32px; }
+  button:hover { border-color: var(--w-akzent); }
+  button[aria-pressed="true"] { border-color: var(--w-akzent); color: var(--w-akzent); }
+  .tr { width: 1px; height: 22px; background: var(--w-rand); margin: 0 3px; }
+
+  .stellen { padding: 9px 12px; background: #241E1D; border: 1px solid var(--w-rand);
+             border-left: 3px solid var(--w-akzent); border-radius: 8px; margin-bottom: 12px; }
+  .stellen b { display: block; margin-bottom: 4px; font-size: 12.5px; }
+  .stellen ul { margin: 0; padding-left: 18px; color: var(--w-leise); font-size: 12px; }
+  .stellen code { color: var(--w-text); }
+
+  .paar { display: flex; gap: 14px; align-items: flex-start; overflow-x: auto;
+          padding-bottom: 8px; }
+  .seite { flex: none; }
+  .kopf { display: flex; justify-content: space-between; align-items: baseline;
+          margin-bottom: 5px; font-size: 12px; }
+  .kopf .wer { font-weight: 700; }
+  .vorher .wer { color: var(--w-leise); }
+  .nachher .wer { color: var(--w-ok); }
+  .kopf .quelle { color: var(--w-leise); font-size: 11px; }
+  iframe { border: 1px solid var(--w-rand); border-radius: 10px; background: #000;
+           display: block; }
+
+  #melde { margin-top: 12px; padding: 9px 12px; background: var(--w-flaeche);
+           border: 1px solid var(--w-rand); border-radius: 8px; white-space: pre-wrap;
+           font: 12px/1.5 ui-monospace, Consolas, monospace; color: var(--w-leise); }
+  .warn { color: #FF8A93; }
+
+  .liste { display: grid; gap: 8px; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); }
+  .liste a { display: block; padding: 11px 13px; background: var(--w-flaeche);
+             border: 1px solid var(--w-rand); border-radius: 10px; color: var(--w-text);
+             text-decoration: none; }
+  .liste a:hover { border-color: var(--w-akzent); }
+  .liste .t { font-weight: 700; margin-bottom: 2px; }
+  .liste .w { color: var(--w-leise); font-size: 12px; }
+</style>
+
+<h1 id="titel">Vergleich: vorher / nachher</h1>
+<p class="unter" id="was">Wähle einen Baustein.</p>
+
+<div id="rahmen" hidden>
+  <div class="leiste">
+    <b>Breite</b>
+    <button data-br="390" aria-pressed="true">390</button>
+    <button data-br="720" aria-pressed="false">720</button>
+    <button data-br="1280" aria-pressed="false">1280</button>
+    <span class="tr"></span>
+    <b>Theme</b>
+    <button data-th="dark" aria-pressed="true">Dunkel</button>
+    <button data-th="light" aria-pressed="false">Hell</button>
+    <span class="tr"></span>
+    <button id="neu">Zustand neu herstellen</button>
+    <button id="probe" title="Baut künstlich einen Unterschied ein - zeigt die Seite ihn?">Gegenprobe</button>
+    <span class="tr"></span>
+    <select id="wechsel"></select>
+  </div>
+
+  <div class="stellen" id="stellen"></div>
+
+  <div class="paar">
+    <div class="seite vorher">
+      <div class="kopf"><span class="wer">VORHER</span><span class="quelle" id="q-alt"></span></div>
+      <iframe id="alt" title="vorher"></iframe>
+    </div>
+    <div class="seite nachher">
+      <div class="kopf"><span class="wer">NACHHER</span><span class="quelle">Arbeitsbaum · /index.html</span></div>
+      <iframe id="neu-f" title="nachher"></iframe>
+    </div>
+  </div>
+</div>
+
+<div class="liste" id="liste"></div>
+<div id="melde">bereit</div>
+
+<script src="vergleich-bausteine.js"></script>
+<script>
+(function () {
+  var out = [];
+  function melde(t, warn) {
+    out.push(t);
+    var m = document.getElementById("melde");
+    m.textContent = out.join("\n");
+    if (warn) m.classList.add("warn");
+  }
+  window.onerror = function (m, s, l) { melde("SKRIPTFEHLER Zeile " + l + ": " + m, true); };
+
+  // ==========================================================================
+  // NOTBREMSE - vor dem ersten Schreibzugriff und VOR dem Laden der iframes.
+  //
+  // Alle drei Dokumente (diese Seite und beide iframes) liegen auf localhost:8000,
+  // teilen sich also EINEN localStorage. Eine Pruefung genuegt deshalb - aber nur,
+  // solange die iframes erst danach geladen werden. Deshalb steht in ihrem Markup
+  // kein src=, es wird unten per JS gesetzt.
+  //
+  // Warum ueberhaupt: Der __test-Suffix trennt den lokalen Speicher, NICHT die Cloud.
+  // Ist ein Konto angemeldet, startet die App im Cloud-Modus, vereinigt den erfundenen
+  // Zustand mit dem echten Dokument und pusht ihn. Am 04.09.2026 waren das 14 erfundene
+  // Archivwochen und zwei erfundene Wiegungen in einem echten Konto.
+  // ==========================================================================
+  var angemeldet = Object.keys(localStorage).filter(function (k) {
+    return k.indexOf("firebase:authUser") === 0;
+  });
+  if (angemeldet.length) {
+    melde("ABBRUCH: In diesem Browserprofil ist ein Cloud-Konto angemeldet.", true);
+    melde("");
+    melde("Diese Probe schreibt nach wochenkueche_v1__test. Der __test-Suffix trennt nur");
+    melde("den lokalen Speicher, NICHT die Cloud - die App wuerde den erfundenen Zustand");
+    melde("mit dem echten Konto vereinigen und pushen.");
+    melde("");
+    melde("Abmelden oder ein eigenes Browserprofil verwenden, dann neu laden.");
+    document.getElementById("liste").hidden = true;
+    return;
+  }
+
+  function frage(name) {
+    var m = new RegExp("[?&]" + name + "=([^&]+)").exec(location.search);
+    return m ? decodeURIComponent(m[1]) : null;
+  }
+
+  // ---------------------------------------------------------------- Testzustand
+  function zustandSchreiben(extra) {
+    var daten = {
+      tab: "home", onboarded: true,
+      goal: { mode: "cut", kcal: 1950, protein: 150, carbs: 180, fat: 60,
+              activity: "pal14", training: [] },
+      recipes: [{ id: "r1", name: "Testmeal", cat: "Hauptgericht",
+                  nutrition: { kcal: 400, protein: 30, carbs: 40, fat: 12 } }],
+      plans: {}, weights: [], weightGoals: {}, weekStats: {}
+    };
+    for (var k in (extra || {})) daten[k] = extra[k];
+    localStorage.setItem("wochenkueche_v1__test", JSON.stringify(daten));
+    localStorage.setItem("wochenkueche_profile_v1__test",
+      JSON.stringify({ name: "Vergleich", id: "lokal" }));
+  }
+
+  // ------------------------------------------------------------------- Zustand
+  var breite = 390, theme = "dark", aktuell = null, gegenprobe = false;
+
+  function baustein(id) {
+    for (var i = 0; i < BAUSTEINE.length; i++) if (BAUSTEINE[i].id === id) return BAUSTEINE[i];
+    return null;
+  }
+
+  function warteAufApp(f, fertig, versuche) {
+    versuche = versuche || 0;
+    var d = f.contentDocument;
+    var v = d && d.getElementById("view");
+    // Auf INHALT warten, nicht auf das Ladeereignis: #view wird erst vom App-Skript
+    // gefuellt. Wer nach onload klickt, klickt ins Leere (Falle aus probe-onboarding.html).
+    //
+    // Und auf das Ende des Willkommensschirms warten, nicht nur auf Inhalt: Der Gate
+    // fuellt #view ebenfalls. Der erste Entwurf hielt ihn fuer die fertige App und meldete
+    // "Profil-Knopf nicht gefunden" - den gibt es dort noch gar nicht.
+    //
+    // Der zweite Entwurf wartete auf die Reiter. Auch falsch: Die stehen STATISCH im
+    // Markup (index.html:160 ff.) und sind im Gate genauso da. Erst `enterApp()` nimmt
+    // `.authing` vom App-Element - das ist das einzige verlaessliche Zeichen (20.09.2026).
+    var app = d && d.querySelector(".app");
+    var drin = app && !app.classList.contains("authing");
+    if (v && v.textContent.trim().length && drin) { fertig(true); return; }
+    if (versuche > 80) {
+      fertig(false, app && app.classList.contains("authing")
+        ? "App blieb im Willkommensschirm - Testzustand nicht angekommen?"
+        : "#view blieb leer");
+      return;
+    }
+    setTimeout(function () { warteAufApp(f, fertig, versuche + 1); }, 100);
+  }
+
+  function themeSetzen(f) {
+    try { f.contentDocument.documentElement.setAttribute("data-theme", theme); } catch (e) {}
+  }
+
+  function seiteLaden(f, url, b, wer) {
+    f.style.width = breite + "px";
+    f.style.height = "760px";
+    f.src = url + (url.indexOf("?") > -1 ? "&" : "?") + "v=" + Date.now();
+    f.onload = function () {
+      warteAufApp(f, function (ok, grund) {
+        if (!ok) { melde(wer + ": " + (grund || "nicht bereit"), true); return; }
+        themeSetzen(f);
+        var text = "";
+        try { text = b.oeffnen ? b.oeffnen(f.contentDocument) : ""; } catch (e) {
+          melde(wer + ": oeffnen() warf " + e.message, true); return;
+        }
+        // Die Gegenprobe faerbt NUR die rechte Seite ein. Zeigt die Probe danach links
+        // und rechts dasselbe Bild, vergleicht sie zweimal denselben Stand - und ein
+        // gruener Eindruck waere wertlos.
+        if (gegenprobe && wer === "NACHHER") {
+          var s = f.contentDocument.createElement("style");
+          s.textContent = ".menu, .btn, .card, .rcard { outline: 3px dashed #00E5FF !important; }";
+          f.contentDocument.head.appendChild(s);
+          melde("Gegenprobe: rechte Seite künstlich markiert (türkis gestrichelt).");
+          melde("Sieht man den Unterschied? Wenn nein, vergleicht die Probe zweimal dasselbe.");
+        }
+        melde(wer + " bereit" + (text ? " - " + text : ""));
+      });
+    };
+  }
+
+  function zeigen(id) {
+    var b = baustein(id);
+    if (!b) { melde("Unbekannter Baustein: " + id, true); return; }
+    aktuell = b;
+    out = [];
+    document.getElementById("melde").classList.remove("warn");
+    document.getElementById("titel").textContent = b.titel;
+    document.getElementById("was").textContent = b.was;
+    document.getElementById("liste").hidden = true;
+    document.getElementById("rahmen").hidden = false;
+    document.getElementById("q-alt").textContent = "eingefroren · /tools/vorher/" + b.id + "/";
+
+    var st = document.getElementById("stellen");
+    st.innerHTML = "<b>Diese Stellen gehören dazu — alle, nicht nur eine:</b><ul>"
+      + (b.stellen || []).map(function (z) { return "<li><code>" + z + "</code></li>"; }).join("")
+      + "</ul>";
+
+    zustandSchreiben(b.zustand);
+    seiteLaden(document.getElementById("alt"), "/tools/vorher/" + b.id + "/index.html", b, "VORHER");
+    seiteLaden(document.getElementById("neu-f"), "/index.html", b, "NACHHER");
+  }
+
+  // -------------------------------------------------------------------- Leiste
+  document.querySelectorAll("[data-br]").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      breite = +btn.dataset.br;
+      document.querySelectorAll("[data-br]").forEach(function (o) {
+        o.setAttribute("aria-pressed", String(o === btn));
+      });
+      if (aktuell) zeigen(aktuell.id);
+    });
+  });
+  document.querySelectorAll("[data-th]").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      theme = btn.dataset.th;
+      document.querySelectorAll("[data-th]").forEach(function (o) {
+        o.setAttribute("aria-pressed", String(o === btn));
+      });
+      themeSetzen(document.getElementById("alt"));
+      themeSetzen(document.getElementById("neu-f"));
+      melde("Theme: " + theme);
+    });
+  });
+  document.getElementById("neu").addEventListener("click", function () {
+    if (aktuell) zeigen(aktuell.id);
+  });
+  document.getElementById("probe").addEventListener("click", function () {
+    gegenprobe = !gegenprobe;
+    this.setAttribute("aria-pressed", String(gegenprobe));
+    if (aktuell) zeigen(aktuell.id);
+  });
+
+  var sel = document.getElementById("wechsel");
+  BAUSTEINE.forEach(function (b) {
+    var o = document.createElement("option");
+    o.value = b.id; o.textContent = b.titel;
+    sel.appendChild(o);
+  });
+  sel.addEventListener("change", function () {
+    history.replaceState(null, "", "?baustein=" + sel.value);
+    zeigen(sel.value);
+  });
+
+  // --------------------------------------------------------------------- Start
+  var wunsch = frage("baustein");
+  if (wunsch) {
+    sel.value = wunsch;
+    zeigen(wunsch);
+  } else {
+    var l = document.getElementById("liste");
+    l.innerHTML = BAUSTEINE.map(function (b) {
+      return '<a href="?baustein=' + b.id + '"><span class="t">' + b.titel
+           + '</span><span class="w">' + b.was + "</span></a>";
+    }).join("");
+    melde("Baustein wählen. Schnappschüsse legt tools/schnappschuss.py an.");
+  }
+})();
+</script>

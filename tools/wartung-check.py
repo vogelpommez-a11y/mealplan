@@ -386,6 +386,35 @@ def pruefe_alter():
                  % (p, tage, juengstes.isoformat()))
 
 
+# --------------------------------------------------------------------------- 8
+def pruefe_bausteine():
+    u"""Ist unbemerkt eine weitere Stelle eines UI-Bausteins dazugekommen?
+
+    CLAUDE.md Abschnitt 21a verlangt, dass ein Baustein an ALLEN Stellen angefasst wird.
+    Das faellt nur auf, wenn jemand nachzaehlt - und genau das ist ueber Monate nicht
+    passiert (vier Dropdowns, zehn leere Zustaende, drei Tab-Muster).
+
+    Die Logik steht in tools/bausteine.py, damit man sie auch einzeln fahren kann.
+    """
+    bereich = "Bausteine"
+    try:
+        import importlib.util
+        spec = importlib.util.spec_from_file_location("bausteine", "tools/bausteine.py")
+        m = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(m)
+    except Exception as e:
+        gelb(bereich, "tools/bausteine.py nicht ladbar: %s" % e)
+        return
+
+    rot_, gelb_ = m.bericht(m.zaehlen(), still=True)
+    for name, ist, soll in rot_:
+        rot(bereich, "%s: %d Stellen statt %d - steht der neue Baustein schon irgendwo? "
+                     "(CLAUDE.md 21a)" % (name, ist, soll))
+    for name, ist, soll in gelb_:
+        gelb(bereich, "%s: %d Stellen statt %d - vereinheitlicht? Dann die Zahl in "
+                      "docs/BAUSTEINE.md und tools/bausteine.py nachziehen" % (name, ist, soll))
+
+
 # --------------------------------------------------------------------------- 7
 def pruefe_regelstand():
     u"""Ist der Beleg ueber den LIVE veroeffentlichten Regelstand noch frisch?
@@ -546,7 +575,7 @@ def main():
 
     for fn in (pruefe_fakten, pruefe_verweise, pruefe_agenten,
                pruefe_hooks, pruefe_skills, pruefe_abdeckung, pruefe_landkarte,
-               pruefe_alter, pruefe_regelstand):
+               pruefe_alter, pruefe_regelstand, pruefe_bausteine):
         try:
             fn()
         except Exception as e:

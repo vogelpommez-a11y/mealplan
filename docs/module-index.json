@@ -5,6 +5,7 @@
     "registriert": [
       "doku:docs/ABDECKUNG.md",
       "doku:docs/ARCHITECTURES.md",
+      "doku:docs/BAUSTEINE.md",
       "doku:docs/DESIGN.md",
       "doku:docs/MODULE.md",
       "doku:docs/PRODUCT.md",
@@ -124,7 +125,8 @@
       "definiert_in": [
         "tools/probe-fortschritt.html",
         "tools/probe-onboarding-fluss.html",
-        "tools/probe-onboarding.html"
+        "tools/probe-onboarding.html",
+        "tools/probe-vergleich.html"
       ],
       "name": "onerror",
       "shared": false,
@@ -1188,14 +1190,14 @@
       "zeilen": 188
     },
     {
-      "bytes": 5741,
+      "bytes": 6081,
       "pfad": ".gitignore",
-      "zeilen": 128
+      "zeilen": 134
     },
     {
-      "bytes": 30762,
+      "bytes": 31991,
       "pfad": "CLAUDE.md",
-      "zeilen": 719
+      "zeilen": 741
     },
     {
       "bytes": 21,
@@ -1278,14 +1280,19 @@
       "zeilen": 169
     },
     {
-      "bytes": 11847,
+      "bytes": 12155,
       "pfad": "docs/ABDECKUNG.md",
-      "zeilen": 188
+      "zeilen": 189
     },
     {
       "bytes": 202375,
       "pfad": "docs/ARCHITECTURES.md",
       "zeilen": 3194
+    },
+    {
+      "bytes": 4032,
+      "pfad": "docs/BAUSTEINE.md",
+      "zeilen": 68
     },
     {
       "bytes": 58632,
@@ -1317,9 +1324,9 @@
       "zeilen": 473
     },
     {
-      "bytes": 298037,
+      "bytes": 301891,
       "pfad": "docs/TESTING.md",
-      "zeilen": 5016
+      "zeilen": 5086
     },
     {
       "bytes": 387705,
@@ -1775,6 +1782,11 @@
       "zeilen": 226
     },
     {
+      "bytes": 7010,
+      "pfad": "tools/bausteine.py",
+      "zeilen": 190
+    },
+    {
       "bytes": 20704,
       "pfad": "tools/bildsatz-stichworte.json",
       "zeilen": 1061
@@ -1843,6 +1855,11 @@
       "bytes": 2266,
       "pfad": "tools/probe-symbole.html",
       "zeilen": 40
+    },
+    {
+      "bytes": 14426,
+      "pfad": "tools/probe-vergleich.html",
+      "zeilen": 318
     },
     {
       "bytes": 15833,
@@ -2095,6 +2112,11 @@
       "zeilen": 283
     },
     {
+      "bytes": 7209,
+      "pfad": "tools/schnappschuss.py",
+      "zeilen": 159
+    },
+    {
       "bytes": 8236,
       "pfad": "tools/smoke-mit-daten.py",
       "zeilen": 145
@@ -2105,9 +2127,14 @@
       "zeilen": 156
     },
     {
-      "bytes": 26573,
+      "bytes": 3969,
+      "pfad": "tools/vergleich-bausteine.js",
+      "zeilen": 102
+    },
+    {
+      "bytes": 27909,
       "pfad": "tools/wartung-check.py",
-      "zeilen": 578
+      "zeilen": 607
     },
     {
       "bytes": 4752,

@@ -274,7 +274,7 @@ Verbraucher.
 | __onCloudAuth | index.html | — | nein |
 | __onCloudWatchError | index.html | — | nein |
 | noteError | index.html | — | nein |
-| onerror | tools/probe-fortschritt.html, tools/probe-onboarding-fluss.html, tools/probe-onboarding.html | — | nein |
+| onerror | tools/probe-fortschritt.html, tools/probe-onboarding-fluss.html, tools/probe-onboarding.html, tools/probe-vergleich.html | — | nein |
 
 ## 10. Pruefabdeckung
 
@@ -311,8 +311,8 @@ _keine_
 | .claude/settings.json | 56 | 1526 |
 | .gitattributes | 21 | 594 |
 | .github/workflows/pruefung.yml | 188 | 8066 |
-| .gitignore | 128 | 5741 |
-| CLAUDE.md | 719 | 30762 |
+| .gitignore | 134 | 6081 |
+| CLAUDE.md | 741 | 31991 |
 | CNAME | 1 | 21 |
 | FIREBASE-SETUP.md | 197 | 9363 |
 | LICENSE | 40 | 1907 |
@@ -329,15 +329,16 @@ _keine_
 | data/foods.js | 244 | 17334 |
 | data/ikonen.js | 168 | 19442 |
 | data/rechtstexte.js | 169 | 28727 |
-| docs/ABDECKUNG.md | 188 | 11847 |
+| docs/ABDECKUNG.md | 189 | 12155 |
 | docs/ARCHITECTURES.md | 3194 | 202375 |
+| docs/BAUSTEINE.md | 68 | 4032 |
 | docs/DESIGN.md | 1098 | 58632 |
 | docs/MODULE.md | — | — (erzeugt) |
 | docs/PRODUCT.md | 1729 | 98422 |
 | docs/RUNBOOK.md | 249 | 10092 |
 | docs/SECURITY.md | 527 | 31631 |
 | docs/STORE.md | 473 | 27190 |
-| docs/TESTING.md | 5016 | 298037 |
+| docs/TESTING.md | 5086 | 301891 |
 | docs/TROUBLESHOOTING.md | 6657 | 387705 |
 | docs/module-index.json | — | — (erzeugt) |
 | firestore.rules | 486 | 28086 |
@@ -446,6 +447,7 @@ _keine_
 | tools/abnahme-scan-kamera.py | 388 | 15468 |
 | tools/abnahme-zutaten-sortieren.py | 458 | 20164 |
 | tools/alle-pruefstaende.py | 226 | 9699 |
+| tools/bausteine.py | 190 | 7010 |
 | tools/bildsatz-stichworte.json | 1061 | 20704 |
 | tools/cdp.py | 261 | 11294 |
 | tools/dashboard.py | 392 | 15577 |
@@ -460,6 +462,7 @@ _keine_
 | tools/probe-onboarding-fluss.html | 270 | 14119 |
 | tools/probe-onboarding.html | 191 | 9537 |
 | tools/probe-symbole.html | 40 | 2266 |
+| tools/probe-vergleich.html | 318 | 14426 |
 | tools/pruefstand-als-naechstes.py | 303 | 15833 |
 | tools/pruefstand-autoplaner.py | 1160 | 63981 |
 | tools/pruefstand-bildstichworte.py | 357 | 17954 |
@@ -510,9 +513,11 @@ _keine_
 | tools/quelle.py | 180 | 7137 |
 | tools/regeln-live.py | 131 | 5770 |
 | tools/rezept-makros.py | 283 | 12324 |
+| tools/schnappschuss.py | 159 | 7209 |
 | tools/smoke-mit-daten.py | 145 | 8236 |
 | tools/test-meal-bilder.py | 156 | 8295 |
-| tools/wartung-check.py | 578 | 26573 |
+| tools/vergleich-bausteine.js | 102 | 3969 |
+| tools/wartung-check.py | 607 | 27909 |
 | vendor/HERKUNFT.md | 105 | 4752 |
 | vendor/firebase/10.12.5/LICENSE | 203 | 11358 |
 | vendor/firebase/10.12.5/README.md | 27 | 1063 |

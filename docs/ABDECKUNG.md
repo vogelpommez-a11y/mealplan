@@ -82,7 +82,7 @@ merkt.
 | Bereich | Kennung | Prüfer | Auslöser |
 |---|---|---|---|
 | Die App selbst | `pfad:index.html` | alle, je nach Änderung | siehe `CLAUDE.md` §19 |
-| Styles und Design-Tokens | `pfad:css/` | `ux-reviewer` (Tokens, Zustände), `kvp` (Mobile), `tools/abnahme-mobil.py` (Trefferflächen, Kontrast, Überlauf), `tools/a11y-pruefung.py` (Namen, Labels, Fokus, Tabweg) | jede UI-Änderung |
+| Styles und Design-Tokens | `pfad:css/` | `ux-reviewer` (Tokens, Zustände), `kvp` (Mobile), `tools/abnahme-mobil.py` (Trefferflächen, Kontrast, Überlauf), `tools/a11y-pruefung.py` (Namen, Labels, Fokus, Tabweg), `tools/probe-vergleich.html` (Sichtprobe vorher/nachher) | jede UI-Änderung |
 | Daten und Rechtstexte | `pfad:data/` | `anwalt` (Rechtstexte, Bildlizenzen), `kvp` (Katalog, Nährwerte), `tools/pruefstand-rezepttexte.py` (Zubereitungen), `tools/pruefstand-stueckliste.py` (Schnellauswahl) | neues Meal, neues Bild, geänderter Rechtstext |
 | Eigenständige Bibliotheken | `pfad:lib/` | `website-security` (Open Food Facts, Kamera), `lieferkette` (ZXing-Anbindung) | Änderung an Barcode, PDF oder den gemeinsamen Helfern |
 | Prüfsystem (Agenten, Hooks, Skills) | `pfad:.claude/` | `tools/wartung-check.py` | jede Änderung am Setup |
@@ -161,6 +161,7 @@ Entscheidung mit Begründung, kein Versäumnis — und `tools/abdeckung.py` schw
 | Doku: Architektur | `doku:docs/ARCHITECTURES.md` | dito |
 | Doku: Design | `doku:docs/DESIGN.md` | dito |
 | Doku: Tests | `doku:docs/TESTING.md` | dito |
+| Doku: UI-Bausteine | `doku:docs/BAUSTEINE.md` | `doku-waechter` deckt `docs/` ab. **Zusätzlich vorgesehen:** `tools/bausteine.py` prüft die Fundstellen-Spalte maschinell, sobald der erste Baustein vereinheitlicht ist (`plans/UI-Grundlagen.MD`) |
 | Doku: Fallarchiv | `doku:docs/TROUBLESHOOTING.md` | dito |
 | Doku: Runbook | `doku:docs/RUNBOOK.md` | dito |
 | Doku: Sicherheit | `doku:docs/SECURITY.md` | `website-security` liest sie ohnehin |
