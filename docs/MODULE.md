@@ -289,7 +289,6 @@ _keine_
 
 | Pfad | Zeilen | Bytes |
 |---|---|---|
-| .claude/.letzter-regelvergleich | 1 | 100 |
 | .claude/Skills/abnahme/SKILL.md | 80 | 3793 |
 | .claude/Skills/deploy/SKILL.md | 101 | 3653 |
 | .claude/Skills/pruefstand/SKILL.md | 126 | 5263 |
@@ -312,7 +311,7 @@ _keine_
 | .claude/settings.json | 56 | 1526 |
 | .gitattributes | 21 | 594 |
 | .github/workflows/pruefung.yml | 188 | 8066 |
-| .gitignore | 115 | 4972 |
+| .gitignore | 120 | 5245 |
 | CLAUDE.md | 705 | 29950 |
 | CNAME | 1 | 21 |
 | FIREBASE-SETUP.md | 197 | 9363 |

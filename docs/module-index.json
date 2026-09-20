@@ -1076,11 +1076,6 @@
   ],
   "dateien": [
     {
-      "bytes": 100,
-      "pfad": ".claude/.letzter-regelvergleich",
-      "zeilen": 1
-    },
-    {
       "bytes": 3793,
       "pfad": ".claude/Skills/abnahme/SKILL.md",
       "zeilen": 80
@@ -1191,9 +1186,9 @@
       "zeilen": 188
     },
     {
-      "bytes": 4972,
+      "bytes": 5245,
       "pfad": ".gitignore",
-      "zeilen": 115
+      "zeilen": 120
     },
     {
       "bytes": 29950,
