@@ -118,6 +118,9 @@ Deshalb steht heute überall dort, wo eine unerratbare ID der Schutz ist, ausdr�
   liegt. Löschen bleibt frei. `bis` darf höchstens drei Stunden in der Zukunft liegen: Eine Sperre
   kann nur das eigene Konto treffen, und auch das nur kurz (§172). Veröffentlicht am 19.09.2026 über
   die Rules-API, als ganze Datei (`tools/regeln-live.py`: identisch).
+  **Seit dem 20.09.2026 mahnt `tools/wartung-check.py` diesen Vergleich an**, wenn der
+  letzte Beleg älter als 30 Tage ist — er altert sonst lautlos, weil ein neuer Live-Stand
+  im Repo keine Zeile verändert (Phase E5).
 - **Pro-Gating**: `hasPro()` und `groupOwnerHasPro()`. Cloud-Sync ist ausdrücklich gratis;
   Pro trägt nur das **Gründen** einer Gruppe — der Inhaber zahlt, das Beitreten ist frei.
 - **UID-Bindung beim Erstellen**: `create` nur mit der eigenen `uid`, damit niemand

@@ -30,6 +30,7 @@ Rueckgabewert: 0 sauber, 1 mindestens ein Befund, 2 --setze ohne frische Sicheru
 """
 import datetime
 import io
+import json
 import os
 import py_compile
 import re
@@ -159,6 +160,7 @@ def pruefe_verweise():
         ".claude/plans",          # legt Claude Code selbst an, sobald ein Plan entsteht
         ".claude/.letzte-wartung",
         ".claude/.letzter-pushcheck",
+        ".claude/.letzter-regelvergleich",   # schreibt tools/regeln-live.py
     }
 
     muster = re.compile(r"`((?:docs|tools|\.claude|worker|vendor)/[A-Za-z0-9_./-]+"
@@ -384,6 +386,51 @@ def pruefe_alter():
                  % (p, tage, juengstes.isoformat()))
 
 
+# --------------------------------------------------------------------------- 7
+def pruefe_regelstand():
+    u"""Ist der Beleg ueber den LIVE veroeffentlichten Regelstand noch frisch?
+
+    Dieses Skript kann den Vergleich nicht selbst fahren - `tools/regeln-live.py` braucht
+    eine gcloud-Anmeldung und Netz. Aber es kann daran erinnern, und genau das ist der Punkt:
+
+    > Die Firestore Security Rules sind die einzige Sicherheitsgrenze (CLAUDE.md 12), und
+    > `firestore.rules` im Repo ist nur eine Vorlage. Der Live-Stand kann sich aendern, ohne
+    > dass im Repo eine Zeile anders wird - ein Beleg dafuer altert also LAUTLOS.
+
+    Phase E5, angebunden am 20.09.2026. Den Vermerk schreibt `regeln-live.py` selbst.
+    """
+    bereich = "Regeln live"
+    pfad = os.path.join(WURZEL, ".claude", ".letzter-regelvergleich")
+    if not os.path.exists(pfad):
+        gelb(bereich, "Der Live-Stand der Regeln wurde nie belegt. Einmal:"
+                      "  python tools/regeln-live.py")
+        return
+    try:
+        vermerk = json.loads(lies(pfad))
+        stand = datetime.date.fromisoformat(vermerk["datum"])
+    except Exception:
+        gelb(bereich, ".claude/.letzter-regelvergleich ist unlesbar -"
+                      " einmal 'python tools/regeln-live.py' laufen lassen")
+        return
+
+    ausgang = vermerk.get("ausgang", "?")
+    if ausgang == "ABWEICHUNG":
+        # Rot, nicht gelb: Hier weicht der durchgesetzte Regeltext ab, nicht nur ein Kommentar.
+        rot(bereich, "Der letzte Vergleich (%s) fand eine ABWEICHUNG im Regeltext."
+                     " Repo und Konsole sagen Verschiedenes - was live gilt, ist die Konsole."
+                     % stand.isoformat())
+        return
+
+    tage = (datetime.date.today() - stand).days
+    if tage > ABSTAND_TAGE:
+        gelb(bereich, "Letzter Vergleich vor %d Tagen (%s, '%s'). Faellig alle %d Tage:"
+                      "  python tools/regeln-live.py"
+                      % (tage, stand.isoformat(), ausgang, ABSTAND_TAGE))
+    elif ausgang == "nur Kommentare":
+        gelb(bereich, "Letzter Vergleich (%s): nur Kommentare weichen ab. Der Regeltext"
+                      " stimmt - firestore.rules bei Gelegenheit nachziehen." % stand.isoformat())
+
+
 # --------------------------------------------------------------------------- Lauf
 def pruefe_landkarte():
     """Bildet docs/MODULE.md noch den tatsaechlichen Zustand ab?
@@ -499,7 +546,7 @@ def main():
 
     for fn in (pruefe_fakten, pruefe_verweise, pruefe_agenten,
                pruefe_hooks, pruefe_skills, pruefe_abdeckung, pruefe_landkarte,
-               pruefe_alter):
+               pruefe_alter, pruefe_regelstand):
         try:
             fn()
         except Exception as e:

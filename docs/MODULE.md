@@ -289,6 +289,7 @@ _keine_
 
 | Pfad | Zeilen | Bytes |
 |---|---|---|
+| .claude/.letzter-regelvergleich | 1 | 100 |
 | .claude/Skills/abnahme/SKILL.md | 80 | 3793 |
 | .claude/Skills/deploy/SKILL.md | 101 | 3653 |
 | .claude/Skills/pruefstand/SKILL.md | 126 | 5263 |
@@ -312,7 +313,7 @@ _keine_
 | .gitattributes | 21 | 594 |
 | .github/workflows/pruefung.yml | 188 | 8066 |
 | .gitignore | 115 | 4972 |
-| CLAUDE.md | 704 | 29908 |
+| CLAUDE.md | 705 | 29950 |
 | CNAME | 1 | 21 |
 | FIREBASE-SETUP.md | 197 | 9363 |
 | LICENSE | 40 | 1907 |
@@ -334,8 +335,8 @@ _keine_
 | docs/DESIGN.md | 1085 | 57924 |
 | docs/MODULE.md | — | — (erzeugt) |
 | docs/PRODUCT.md | 1729 | 98422 |
-| docs/RUNBOOK.md | 220 | 8675 |
-| docs/SECURITY.md | 524 | 31406 |
+| docs/RUNBOOK.md | 249 | 10092 |
+| docs/SECURITY.md | 527 | 31631 |
 | docs/STORE.md | 473 | 27190 |
 | docs/TESTING.md | 5016 | 298009 |
 | docs/TROUBLESHOOTING.md | 6657 | 387705 |
@@ -507,11 +508,11 @@ _keine_
 | tools/pruefstand-zuweisung-loeschen.py | 232 | 10378 |
 | tools/pruefstand_lauf.py | 113 | 4894 |
 | tools/quelle.py | 180 | 7137 |
-| tools/regeln-live.py | 101 | 4248 |
+| tools/regeln-live.py | 131 | 5770 |
 | tools/rezept-makros.py | 283 | 12324 |
 | tools/smoke-mit-daten.py | 145 | 8236 |
 | tools/test-meal-bilder.py | 156 | 8295 |
-| tools/wartung-check.py | 531 | 24232 |
+| tools/wartung-check.py | 578 | 26573 |
 | vendor/HERKUNFT.md | 105 | 4752 |
 | vendor/firebase/10.12.5/LICENSE | 203 | 11358 |
 | vendor/firebase/10.12.5/README.md | 27 | 1063 |

@@ -19,11 +19,16 @@ Ausgabe
     nur Kommentare       der Regeltext ist gleich, Kommentare weichen ab (Diff folgt)
     REGELN WEICHEN AB    der durchgesetzte Text ist ein anderer (Diff folgt) - Exit-Code 1
 
+Jeder Lauf hinterlaesst seinen Ausgang in .claude/.letzter-regelvergleich. Daraus liest
+tools/wartung-check.py, ob der Beleg noch frisch ist: Der Live-Stand kann sich jederzeit
+aendern, ohne dass im Repo eine Zeile anders wird - ein Beleg dafuer altert also lautlos
+(Phase E5, angebunden am 20.09.2026).
+
 Aufruf:
     python tools/regeln-live.py              vergleichen
     python tools/regeln-live.py --speichern  zusaetzlich den Live-Text in den TEMP-Ordner
 """
-import difflib, io, json, os, re, sys, tempfile, urllib.error, urllib.request
+import datetime, difflib, io, json, os, re, sys, tempfile, urllib.error, urllib.request
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from firestore_api import WURZEL, Zugang, ZugangFehler  # noqa: E402
@@ -60,6 +65,29 @@ def ohne_kommentare(text):
     return zeilen
 
 
+VERMERK = os.path.join(".claude", ".letzter-regelvergleich")
+
+
+def vermerken(ausgang, regelwerk):
+    u"""Haelt fest, wann zuletzt verglichen wurde und wie es ausging.
+
+    tools/wartung-check.py liest das und mahnt, wenn der Beleg aelter als 30 Tage ist oder
+    die letzte Prüfung eine Abweichung ergab. Ein fehlgeschlagener Lauf (kein Zugang, API
+    nicht erreichbar) schreibt bewusst NICHTS - sonst sähe ein Abbruch wie eine Prüfung aus.
+    """
+    ziel = os.path.join(WURZEL, VERMERK)
+    try:
+        os.makedirs(os.path.dirname(ziel), exist_ok=True)
+        with io.open(ziel, "w", encoding="utf-8", newline="\n") as f:
+            json.dump({"datum": datetime.date.today().isoformat(),
+                       "ausgang": ausgang,
+                       "regelwerk": regelwerk.rsplit("/", 1)[-1]}, f, ensure_ascii=False)
+        print(u"\nVermerkt in %s (%s)." % (VERMERK, ausgang))
+    except Exception as e:
+        # Der Vergleich selbst ist das Ergebnis - am Vermerk soll er nicht scheitern.
+        print(u"\nHinweis: Vermerk konnte nicht geschrieben werden (%s)." % e)
+
+
 def main(argv):
     zugang = Zugang()
     release = holen(zugang, "projects/%s/releases/cloud.firestore" % zugang.projekt)
@@ -83,12 +111,14 @@ def main(argv):
 
     if live.rstrip() == repo.rstrip():
         print(u"\nidentisch")
+        vermerken("identisch", regelwerk)
         return 0
     regel_gleich = ohne_kommentare(live) == ohne_kommentare(repo)
     print(u"\n" + (u"nur Kommentare weichen ab" if regel_gleich else u"REGELN WEICHEN AB"))
     for zeile in difflib.unified_diff(repo.splitlines(), live.splitlines(),
                                       "firestore.rules (Repo)", "live", lineterm="", n=1):
         print(zeile)
+    vermerken("nur Kommentare" if regel_gleich else "ABWEICHUNG", regelwerk)
     return 0 if regel_gleich else 1
 
 

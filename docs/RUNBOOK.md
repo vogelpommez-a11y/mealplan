@@ -93,7 +93,7 @@ der erste Verdacht (TROUBLESHOOTING 1).
 → Der veröffentlichte Regelstand in der Konsole weicht von `firestore.rules` ab. Das Repo
 ist nur die Vorlage (TROUBLESHOOTING 2). Nachsehen, nur lesend:
 `python tools/regeln-live.py`. Das Skript unterscheidet „nur Kommentare“ von „Regeln weichen
-ab“.
+ab“ und **vermerkt jeden Lauf** in `.claude/.letzter-regelvergleich`.
 
 **Zwei Geräte schaukeln sich hoch**
 → `updatedAt` **in der Cloud** beobachten, nicht die Anzeige. Steigt der Zeitstempel,
@@ -163,6 +163,35 @@ Datenschutzerklärung sagt „bei unserer nächsten Wartung“ zu, ohne feste Fr
 `wartung-check.py --setze` verweigert das Abhaken, wenn die jüngste Sicherung älter als 24 h
 ist. Scheitert das Aufräumen, läuft die Sicherung trotzdem, und der nächste Lauf versucht es
 erneut.
+
+### Schritt 0b: der Live-Stand der Regeln
+
+```powershell
+python tools/regeln-live.py       # nur lesend, braucht `gcloud auth login`
+```
+
+**Warum das in die Wartung gehört und nicht in den Pushcheck** (Phase E5, angebunden am
+20.09.2026): Die Firestore Security Rules sind die **einzige** Sicherheitsgrenze, und
+`firestore.rules` im Repo ist nur eine Vorlage. Der veröffentlichte Stand kann sich ändern,
+ohne dass im Repo eine Zeile anders wird — ein Push löst also gar nichts aus, an das man
+sich hängen könnte.
+
+> **Ein Beleg über den Live-Stand altert lautlos.** Genau deshalb braucht er eine Frist statt
+> eines Auslösers.
+
+`wartung-check.py` fährt den Vergleich **nicht selbst** — er braucht Netz und eine
+gcloud-Anmeldung. Es liest nur den Vermerk und meldet:
+
+| Lage | Meldung |
+|---|---|
+| nie belegt, unlesbar, oder älter als 30 Tage | **gelb** — einmal laufen lassen |
+| letzter Lauf: `nur Kommentare` | **gelb** — Regeltext stimmt, `firestore.rules` nachziehen |
+| letzter Lauf: `ABWEICHUNG` | **rot** — der durchgesetzte Regeltext ist ein anderer |
+| letzter Lauf: `identisch`, keine 30 Tage her | still |
+
+Ein **gescheiterter** Lauf schreibt bewusst nichts. Sonst sähe ein Abbruch wegen fehlender
+Anmeldung aus wie eine bestandene Prüfung — und das ist der Fehler, den dieses ganze
+Wartungssystem verhindern soll.
 
 ### Ein Schlüssel ist geleakt
 

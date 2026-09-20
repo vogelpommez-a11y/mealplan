@@ -1076,6 +1076,11 @@
   ],
   "dateien": [
     {
+      "bytes": 100,
+      "pfad": ".claude/.letzter-regelvergleich",
+      "zeilen": 1
+    },
+    {
       "bytes": 3793,
       "pfad": ".claude/Skills/abnahme/SKILL.md",
       "zeilen": 80
@@ -1191,9 +1196,9 @@
       "zeilen": 115
     },
     {
-      "bytes": 29908,
+      "bytes": 29950,
       "pfad": "CLAUDE.md",
-      "zeilen": 704
+      "zeilen": 705
     },
     {
       "bytes": 21,
@@ -1300,14 +1305,14 @@
       "zeilen": 1729
     },
     {
-      "bytes": 8675,
+      "bytes": 10092,
       "pfad": "docs/RUNBOOK.md",
-      "zeilen": 220
+      "zeilen": 249
     },
     {
-      "bytes": 31406,
+      "bytes": 31631,
       "pfad": "docs/SECURITY.md",
-      "zeilen": 524
+      "zeilen": 527
     },
     {
       "bytes": 27190,
@@ -2078,9 +2083,9 @@
       "zeilen": 180
     },
     {
-      "bytes": 4248,
+      "bytes": 5770,
       "pfad": "tools/regeln-live.py",
-      "zeilen": 101
+      "zeilen": 131
     },
     {
       "bytes": 12324,
@@ -2098,9 +2103,9 @@
       "zeilen": 156
     },
     {
-      "bytes": 24232,
+      "bytes": 26573,
       "pfad": "tools/wartung-check.py",
-      "zeilen": 531
+      "zeilen": 578
     },
     {
       "bytes": 4752,
