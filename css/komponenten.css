@@ -492,7 +492,7 @@
   .rimg .mbadge.fat { --mbc: var(--fat); }
   .rbody { padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; flex: 1; }
   .rcard .top { display: flex; align-items: flex-start; gap: 10px; }
-  .rcard h3 { font-family: var(--font-display); font-size: 18px; font-weight: 600; margin: 0; flex: 1; line-height: 1.25; word-break: break-word; }
+  .rcard :is(h2, h3) { font-family: var(--font-display); font-size: 18px; font-weight: 600; margin: 0; flex: 1; line-height: 1.25; word-break: break-word; }
   /* Stretched-Link-Muster (plans/MealAnsicht.MD Schritt 3): der Titel oeffnet die ganze
      Karte, ohne dass ein <button> um die ganze Karte liegen muss ("kein Button im Button").
      all:unset gibt Schrift/Farbe an das umgebende <h3> zurueck (beides vererbte
@@ -529,7 +529,7 @@
   /* ---------- Empty state ---------- */
   .empty { text-align: center; padding: 60px 24px; border: 1.5px dashed var(--border-strong); border-radius: var(--radius); color: var(--text-muted); background: var(--surface); }
   .empty .em-ico { width: 52px; height: 52px; margin: 0 auto 14px; color: var(--accent); opacity: .85; }
-  .empty h3 { font-family: var(--font-display); color: var(--text); font-size: 20px; margin: 0 0 6px; }
+  .empty :is(h2, h3) { font-family: var(--font-display); color: var(--text); font-size: 20px; margin: 0 0 6px; }
   .empty p { margin: 0 auto 18px; max-width: 42ch; }
 
   /* ---------- Modal ---------- */
@@ -568,7 +568,7 @@
   .scanwrap { position: fixed; inset: 0; z-index: 80; background: #0a0c07; display: grid; place-items: center; padding: 16px; color: var(--text); font-family: var(--font-body); }
   .scanbox { width: 100%; max-width: 480px; display: flex; flex-direction: column; gap: 14px; }
   .scanhead { display: flex; align-items: center; gap: 12px; color: #F4EFEE; }
-  .scanhead h3 { font-family: var(--font-display); font-size: 20px; margin: 0; flex: 1; letter-spacing: .3px; }
+  .scanhead :is(h2, h3) { font-family: var(--font-display); font-size: 20px; margin: 0; flex: 1; letter-spacing: .3px; }
   .scanhead .btn { flex: none; }
   /* Buehne = Format des Kamerabilds. --scan-ar ist Breite/Hoehe als reine Zahl und wird von
      scanBarcodeLive() aus track.getSettings() gesetzt, sobald der Stream laeuft; der Startwert
@@ -621,7 +621,7 @@
     .scanfoot { grid-column: 2; grid-row: 3; }
   }
   .modal-head { display: flex; align-items: center; gap: 12px; padding: 16px 18px; border-bottom: 1px solid var(--border); }
-  .modal-head h3 { font-family: var(--font-display); font-size: 19px; margin: 0; flex: 1; }
+  .modal-head :is(h2, h3) { font-family: var(--font-display); font-size: 19px; margin: 0; flex: 1; }
   .modal-head .kicker { font-size: 11.5px; text-transform: uppercase; letter-spacing: .05em; color: var(--text-muted); }
   /* hitSlop wie .toast-undo::after: Trefferflaeche auf 44px (Apple HIG), Aussehen
      unveraendert. Gemessen am 16.09.2026 mit tools/abnahme-mobil.py. */

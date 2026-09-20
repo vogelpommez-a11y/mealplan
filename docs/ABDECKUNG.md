@@ -82,7 +82,7 @@ merkt.
 | Bereich | Kennung | Prüfer | Auslöser |
 |---|---|---|---|
 | Die App selbst | `pfad:index.html` | alle, je nach Änderung | siehe `CLAUDE.md` §19 |
-| Styles und Design-Tokens | `pfad:css/` | `ux-reviewer` (Tokens, Zustände), `kvp` (Mobile), `tools/abnahme-mobil.py` (Trefferflächen, Kontrast, Überlauf) | jede UI-Änderung |
+| Styles und Design-Tokens | `pfad:css/` | `ux-reviewer` (Tokens, Zustände), `kvp` (Mobile), `tools/abnahme-mobil.py` (Trefferflächen, Kontrast, Überlauf), `tools/a11y-pruefung.py` (Namen, Labels, Fokus, Tabweg) | jede UI-Änderung |
 | Daten und Rechtstexte | `pfad:data/` | `anwalt` (Rechtstexte, Bildlizenzen), `kvp` (Katalog, Nährwerte), `tools/pruefstand-rezepttexte.py` (Zubereitungen), `tools/pruefstand-stueckliste.py` (Schnellauswahl) | neues Meal, neues Bild, geänderter Rechtstext |
 | Eigenständige Bibliotheken | `pfad:lib/` | `website-security` (Open Food Facts, Kamera), `lieferkette` (ZXing-Anbindung) | Änderung an Barcode, PDF oder den gemeinsamen Helfern |
 | Prüfsystem (Agenten, Hooks, Skills) | `pfad:.claude/` | `tools/wartung-check.py` | jede Änderung am Setup |
@@ -127,10 +127,10 @@ Stelle, an der eine Prüflücke entsteht.
 
 | Bereich | Kennung | Prüfer | Auslöser |
 |---|---|---|---|
-| Startseite, Tagesziele | `reiter:home` | `kvp`, `ux-reviewer`, `tools/abnahme-mobil.py` | jede UI-Änderung |
-| Wochenplan | `reiter:plan` | `kvp`, `ux-reviewer`, `tools/abnahme-mobil.py` | jede UI-Änderung |
-| Meals und Rezeptbuch | `reiter:recipes` | `kvp`, `ux-reviewer`, `tools/abnahme-mobil.py` | jede UI-Änderung |
-| Fortschritt, Gewicht | `reiter:progress` | `kvp`, `ux-reviewer`, `datenschutz-technik`, `tools/abnahme-mobil.py` | Gesundheitsdaten — Art. 9 DSGVO ist offen |
+| Startseite, Tagesziele | `reiter:home` | `kvp`, `ux-reviewer`, `tools/abnahme-mobil.py`, `tools/a11y-pruefung.py` | jede UI-Änderung |
+| Wochenplan | `reiter:plan` | `kvp`, `ux-reviewer`, `tools/abnahme-mobil.py`, `tools/a11y-pruefung.py` | jede UI-Änderung |
+| Meals und Rezeptbuch | `reiter:recipes` | `kvp`, `ux-reviewer`, `tools/abnahme-mobil.py`, `tools/a11y-pruefung.py` | jede UI-Änderung |
+| Fortschritt, Gewicht | `reiter:progress` | `kvp`, `ux-reviewer`, `datenschutz-technik`, `tools/abnahme-mobil.py`, `tools/a11y-pruefung.py` | Gesundheitsdaten — Art. 9 DSGVO ist offen |
 
 ## 5. Externe Verbindungen
 

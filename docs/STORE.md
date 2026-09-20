@@ -332,14 +332,30 @@ nachsehen und hier nachtragen.**
 10.09.2026 nach einem Lauf des Agenten `anwalt`.
 
 Das Barrierefreiheitsstärkungsgesetz gilt seit dem 28.06.2025 und setzt die EU-Richtlinie
-2019/882 um. Ob es für Paddy's Mealplan greift, hängt an **einer** Einordnung:
+2019/882 um.
 
-* Ist die App eine **Dienstleistung**, greift voraussichtlich die
-  Kleinstunternehmer-Ausnahme (weniger als 10 Beschäftigte, höchstens 2 Mio. € Umsatz
-  oder Bilanzsumme).
-* Wird sie über den Vertrieb im App Store und bei Google Play als **Produkt** eingeordnet,
-  greift diese Ausnahme nach den gefundenen Quellen **nicht** — sie gilt ausdrücklich nur
-  für Dienstleistungen.
+**Präzisiert am 20.09.2026 (`anwalt`).** Die frühere Fassung stellte hier „Dienstleistung
+oder Produkt, je nach Vertriebsweg" gegenüber. Das beschreibt die Weiche ungenau:
+
+* § 2 Nr. 2 BFSG definiert **Produkt** eng — ein hergestellter Gegenstand, in der Praxis
+  die in § 1 Abs. 2 abschließend gelistete Hardware (Computer, Smartphones, Terminals).
+  **Eine App fällt nicht darunter.** Der Vertrieb über App Store oder Google Play ändert
+  daran nichts.
+* § 2 Nr. 26 definiert **Dienstleistung im elektronischen Geschäftsverkehr** als digitalen
+  Dienst, der über eine App erbracht wird **mit dem Ziel eines Verbrauchervertrags**. Eine
+  App mit Abo-Kaufweg fällt nach dem Wortlaut darunter.
+* Damit greift die **Kleinstunternehmer-Ausnahme** (§ 3 Abs. 3: unter 10 Beschäftigte und
+  höchstens 2 Mio. € Umsatz oder Bilanzsumme) — sie gilt ausdrücklich nur für
+  Dienstleistungen, und genau das wäre die App dann.
+
+⚠️ **Das ist die Lesart des Gesetzeswortlauts, keine amtliche Klarstellung und keine
+Rechtsprechung.** Kanzleiquellen ordnen Abo-Apps übereinstimmend als Dienstleistung ein;
+belegt ist das nicht. Und ob die Schwellen des § 3 Abs. 3 tatsächlich unterschritten werden,
+ist keine Recherchefrage, sondern eine Tatsachenfrage zum eigenen Betrieb.
+
+**Die Geld-Frage:** Nach dem Wortlaut kommt es auf das „Ziel des Abschlusses eines
+Verbrauchervertrags" an. Eine reine Gratisversion ohne Kaufweg läge danach außerhalb, die
+geplante Fassung mit Abo darin. Auch das ist Wortlaut-Lesart, keine bestätigte Auslegung.
 
 Greift das Gesetz, braucht es eine **Barrierefreiheitserklärung** als eigenes Dokument
 neben Impressum und Datenschutzerklärung. In `data/rechtstexte.js` steht heute keine.
@@ -356,6 +372,32 @@ amtlichen Text nachsehen.
 und Dark durchgängig 4,5:1, Trefferflächen liegen bei 44 px und mehr — **erstmals
 systematisch gemessen** über Auth-Gate, alle zehn Onboarding-Schritte und die vier Reiter
 in drei Gerätebreiten, Light und Dark (`tools/abnahme-mobil.py`, 108 Stationen).
+
+**Die zweite Hälfte, gemessen und behoben am 20.09.2026** (`tools/a11y-pruefung.py`,
+21 Stationen, 292 Tab-Stopps, Gegenprobe in **beide** Richtungen grün). Was
+`abnahme-mobil.py` nicht sieht, weil man es nicht sieht — Screenreader-Namen, Labels,
+Tastaturweg, Fokusring, Überschriftenstruktur. **Stand danach: 0 Befunde.**
+
+| Befund | Stellen | WCAG | Behoben durch |
+|---|---|---|---|
+| Zwei namenlose `input[type=file]` als **erste zwei Tab-Stopps** der App (`photoInput`, `avatarInput`) | 2 | 4.1.2, 3.3.2 | `tabIndex = -1` + `aria-hidden` — sie werden nur über `.click()` ausgelöst |
+| `#p-search` ohne Label (`#r-search` hatte längst eines) | 1 | 3.3.2 | `aria-label` |
+| Fokus auf dem **markierten** Punkt des Gewichtsdiagramms nicht erkennbar — `.wch-pt.is-on` war schon groß, der Fokus änderte nichts | 1 | 2.4.7 | eigener heller Rand für `:focus-visible`, unabhängig von `is-on` |
+| Überschriftensprung `h1 → h3` | 5 | 1.3.1 | 32 Karten- und Modalüberschriften auf `h2`; CSS-Selektoren auf `:is(h2, h3)`. `.onb-sub-q` bleibt `h3` — echte Unterfrage |
+
+⚠️ **Drei der ursprünglich 13 Meldungen waren Fehlalarme des Prüfstands**, gefunden beim
+Gegenprüfen am Code vor der Behebung: Der Fokusring sitzt in diesem Projekt an drei Orten —
+am Element (`input:focus`), im Pseudoelement (`.rcard-open::after`) und im Kind
+(`.wch-pt .wch-dot`) —, und bei `input` liegt er hinter einer Transition. Wer nur das
+Element misst und sofort misst, lässt funktionierenden Code „reparieren". Die Gegenprobe
+prüft seitdem **beide** Richtungen: Schlägt sie an, wo ein Fehler ist — und schweigt sie,
+wo keiner ist? Einzelheiten in `docs/TESTING.md` 2g-bis.
+
+**Ausdrücklich erfüllt — und besser als erwartet:** Das Sortieren per Ziehen hat eine
+Tastatur-Alternative (Alt+Pfeil), sie ist über `aria-keyshortcuts` **angesagt**, und die neue
+Position meldet ein `aria-live`-Bereich. Damit ist WCAG 2.5.1 (Zeigergesten) nicht nur
+formal erfüllt, sondern auffindbar. Ebenso: kein `div[data-action]` ist vom Tabweg
+ausgeschlossen.
 
 ⚠️ **Dieselbe Zusage stand hier schon am 10.09.2026 (`341a528`) — und war nicht belegt.**
 Die erste vollständige Messung fand am 16.09.2026 **36 Trefferflächen unter 44 px** und
@@ -416,7 +458,11 @@ Alternativtexte sind dafür nicht geprüft.
 | **Kaufbeleg serverseitig prüfen** | 🔴 zu bauen — Cloud Function, setzt den Blaze-Wechsel voraus |
 | Nutrition Labels / Data Safety | 🟡 Datengrundlage steht (Abschnitt 5), Formulare nicht ausgefüllt |
 | `NSCameraUsageDescription` | 🟡 zu prüfen, sobald das Capacitor-Projekt existiert |
-| **Barrierefreiheit (BFSG)** | 🔴 **ungeklärt, ob das Gesetz greift** — Dienstleistung oder Produkt? Erklärung fehlt. Abschnitt 7b |
+| **Barrierefreiheit (BFSG)** | 🟢 **Codeseite gemessen und behoben** (20.09.2026, 0 Befunde). Rechtsfrage weiter offen: Kleinstunternehmer-Ausnahme? Erklärung fehlt. Abschnitt 7b |
+| KI-Kennzeichnung (KI-VO Art. 50) | 🟡 Abs. 4 trifft nur Deepfakes — Einordnung bestätigt (20.09.2026). Offen: gelten die 36 rezeptgebundenen Bilder als Deepfake? |
+| Apple-EU-Bedingungen ab 01.10.2026 | ✅ geprüft (20.09.2026): **ohne praktische Wirkung**, solange nur IAP im regulären App Store. Beim Signieren die Standard-EU-Terms wählen, nicht die Marktplatz-Variante |
+| KI-Deklaration in der Play Console | 🟡 **Formularfeld, leicht zu übersehen**: pro hochgeladenem Store-Asset ein Kästchen. Greift, falls Screenshots die KI-Gerichtsfotos zeigen |
+| Accessibility Nutrition Labels (Apple) | 🟢 **freiwillig**, kein Zulassungskriterium. Nach dem Release nachtragen — kostenlose Sichtbarkeit |
 
 **Nicht aus diesem Repo prüfbar:** alles, was in App Store Connect, der Play Console oder
 im Capacitor-Projekt steht.

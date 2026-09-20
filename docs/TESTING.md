@@ -727,6 +727,107 @@ Stelle neu hinzugekommen.
 
 ---
 
+## 2g-bis. Die unsichtbare Hälfte — `tools/a11y-pruefung.py`
+
+Angelegt am 20.09.2026 für Phase E4 (BFSG). Maßstab ist EN 301 549, die auf **WCAG 2.1 AA**
+verweist.
+
+`abnahme-mobil.py` misst, was man **sieht**: Überlauf, Trefferflächen, Schriftgröße,
+Kontrast. Das deckt 1.4.3, 1.4.4 und 2.5.5/2.5.8 ab. Diese Prüfung misst die andere Hälfte —
+die, die auf jedem Bildschirmfoto in Ordnung aussieht:
+
+| Messgröße | WCAG | Was schiefgehen kann |
+|---|---|---|
+| Name fehlt | 4.1.2 | Ein Screenreader nennt den Knopf nur „Schaltfläche" |
+| Eingabe ohne Label | 3.3.2 | **Ein Platzhalter ist kein Label** — er verschwindet beim Tippen |
+| Bild ohne `alt` | 1.1.1 | Der Dateiname wird vorgelesen. `alt=""` ist richtig für Deko |
+| Nicht per Tab erreichbar | 2.1.1 | Ein `div[data-action]` ohne `tabindex` ist nur für die Maus da |
+| Fokus unsichtbar | 2.4.7 | Man weiß nicht, wo man ist |
+| Überschriftensprung | 1.3.1 | `h1 → h3` lässt raten, ob eine Ebene fehlt |
+| `aria-hidden`-Falle | 4.1.2 | Fokussierbar, aber für die Hilfstechnik nicht vorhanden |
+| Seitengerüst | 2.4.2, 3.1.1 | Titel, `lang` |
+
+```powershell
+python tools/a11y-pruefung.py                 # 3 Läufe, 21 Stationen
+python tools/a11y-pruefung.py --gegenprobe    # misst sich selbst
+python tools/a11y-pruefung.py --schnell       # nur 390x844 dark
+```
+
+**Kein zweites Gerüst.** Sitzung, Onboarding-Automat und Stationsweg werden aus
+`abnahme-mobil.py` importiert (über `importlib`, der Bindestrich verbietet ein normales
+`import`). Ein Nachbau wäre genau der Fehler, vor dem CLAUDE.md Abschnitt 11 warnt — er
+würde über kurz oder lang etwas anderes fahren als die Abnahme und das nicht merken.
+
+### Warum echte Tab-Tastendrücke und kein `element.focus()`
+
+`:focus-visible` hängt an der **Eingabemodalität**. Der Browser zeigt den Ring nur, wenn er
+die Eingabe für eine Tastatureingabe hält. Wer in einer Schleife programmatisch fokussiert,
+misst einen Ring, den ein echter Nutzer nie zu sehen bekommt — oder meldet umgekehrt einen
+fehlenden, den es gibt. Gemessen wird deshalb über `Input.dispatchKeyEvent`.
+
+Und der Ring wird als **Unterschied** gemessen, nicht als Zustand: Ein Element, das immer
+einen Schatten trägt, hat deshalb noch lange keinen Fokusring. Das Skript misst fokussiert,
+ruft `blur()`, misst erneut und vergleicht.
+
+### Der Fehler, den die Gegenprobe gefangen hat
+
+Der erste Entwurf brach den Tabweg ab, sobald ein **Pfad-Text** sich wiederholte — als
+Erkennung für „der Ring ist rum". Zwei Knöpfe im selben Container tragen aber denselben
+Pfad. Der Weg endete nach **6 statt 47 Elementen**, und der ganze Rest der Seite galt
+stillschweigend als geprüft.
+
+> Der Bericht wäre grün gewesen. Nicht, weil nichts zu finden war, sondern weil ab dem
+> siebten Element niemand mehr hingesehen hat.
+
+Gefunden hat es die Gegenprobe, und zwar nur, weil ihr künstlicher Fehler **nicht** anschlug.
+Behoben: Der Rundlauf wird am Element erkannt (`data-a11y-besucht`), nicht am Pfad-Text.
+Zwei Folgerungen sind ins Skript eingebaut:
+
+* Die künstliche Probe wird **an den Anfang** von `body` gehängt, nicht ans Ende. Am Ende
+  wird sie bei begrenzter Tastendruckzahl nie besucht — und die Messgröße meldet stumm
+  „kein Befund", obwohl sie gar nicht gefragt wurde.
+* Der Bericht nennt die **Länge des Tabwegs**. `0 Befunde` bei 0 abgegangenen Elementen ist
+  kein Ergebnis, sondern eine Messung, die nicht stattgefunden hat.
+
+### Die zweite Hälfte der Gegenprobe: schweigt sie, wo nichts ist?
+
+Der erste Lauf meldete 13 Stellen. **Drei davon waren Fehlalarme** — sichtbar erst beim
+Gegenprüfen am Code, vor der Behebung. Der Fokusring sitzt in diesem Projekt an drei Orten:
+
+```
+input:focus            { border-color; box-shadow }   -> am Element, hinter einer Transition
+.rcard-open:focus-visible::after { outline }          -> im Pseudoelement
+.wch-pt:focus-visible .wch-dot   { r; stroke }        -> im Kind
+```
+
+Wer nur `getComputedStyle(element)` liest und sofort liest, sieht zwei davon gar nicht und
+den dritten im Anfangszustand seiner Animation. Die Messung legt deshalb für ihren Moment
+alle Übergänge stumm und vergleicht Element, `::before`, `::after` und bis zu zwölf Kinder.
+
+> Ein Prüfstand, der zu viel meldet, ist genauso wertlos wie einer, der zu wenig meldet —
+> er lässt funktionierenden Code „reparieren".
+
+Die Gegenprobe prüft seitdem beide Richtungen. Neben den künstlichen Fehlern baut sie drei
+**korrekt gelöste** Fälle ein (Ring im `::after`, Ring im Kind, Ring hinter einer 900-ms-
+Transition) und verlangt, dass keiner davon gemeldet wird.
+
+### Erster Lauf und Behebung, 20.09.2026
+
+13 Meldungen, davon 3 Fehlalarme. Die verbleibenden 10 sind behoben, der Lauf danach ist bei
+**0 Befunden über 21 Stationen und 292 Tab-Stopps**; `abnahme-mobil.py` bleibt bei 108
+Stationen grün. Einzelheiten in `docs/STORE.md` Abschnitt 7b.
+
+Der wichtigste Fund war kein reiner A11y-Befund: `photoInput` und `avatarInput` hängen
+dauerhaft an `body` und waren damit die **ersten beiden Tab-Stopps der ganzen App** — zwei
+namenlose „Datei auswählen"-Felder, bevor man irgendetwas anderes erreicht.
+
+Zwei Nachwirkungen der Behebung fielen ebenfalls erst der nächsten Messung auf, und beide
+waren Fehler im Prüfstand, nicht im Code: Ein Feld mit `tabindex="-1"` **neben**
+`aria-hidden` ist die richtige Lösung, keine „Falle" — und ein Feld, das für die Hilfstechnik
+gar nicht existiert, braucht auch keinen Namen.
+
+---
+
 ## 2h. Prüfstand mit nachgebautem Transport — `pruefstand-firestore-backup.py`
 
 Für Code, der mit einem **fremden Dienst** spricht. Hier: Sicherung und Rückspielung der

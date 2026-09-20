@@ -4148,7 +4148,7 @@
       const node = el(`<div class="scanwrap" role="dialog" aria-modal="true" aria-label="${esc(title)}">
         <div class="scanbox">
           <div class="scanhead">
-            <h3>${esc(title)}</h3>
+            <h2>${esc(title)}</h2>
             <button type="button" class="btn ghost sm" data-x aria-label="Scanner schließen">✕</button>
           </div>
           <div class="scanvid"><video playsinline muted autoplay></video><div class="scanframe"></div></div>
@@ -4687,7 +4687,7 @@
         <div class="wg-lbl">${headHtml}</div>
         <div class="wg-row">
           <div class="wg-col-cal">
-            <h3 class="wg-h">Kalorien</h3>
+            <h2 class="wg-h">Kalorien</h2>
             <div class="wg-main">
               <div class="wg-ring">
                 <svg viewBox="0 0 78 78" width="118" height="118" aria-hidden="true">
@@ -4773,8 +4773,8 @@
     // nichts - dann stattdessen ein Satz, was hier erscheint. Ring und Kennzahlen bleiben,
     // die zeigen die Ziele auch ohne geplantes Meal.
     const dayRight = dayEmpty
-      ? `<h3 class="wg-h">Makros</h3><p class="wg-side-note">Trage für heute ein Meal ein, dann erscheinen hier deine Makros: Proteine, Kohlenhydrate und Fett.</p>`
-      : `<h3 class="wg-h">Makros</h3>${goalMacrosHtml(s, day)}`;
+      ? `<h2 class="wg-h">Makros</h2><p class="wg-side-note">Trage für heute ein Meal ein, dann erscheinen hier deine Makros: Proteine, Kohlenhydrate und Fett.</p>`
+      : `<h2 class="wg-h">Makros</h2>${goalMacrosHtml(s, day)}`;
     // Zwei Wege nebeneinander (B4): "Anpassen" korrigiert die Zahlen direkt, "Neu berechnen"
     // fuehrt durch den Rechner. Der Direktweg steht zuerst, weil er der haeufigere ist.
     //
@@ -5972,7 +5972,7 @@
         <div class="wch-head">
           <div>
             <div class="wg-lbl">Ziele ${activeYear()}</div>
-            <h3 class="wg-h">Gewicht</h3>
+            <h2 class="wg-h">Gewicht</h2>
           </div>
         </div>
         <button class="btn primary" data-action="weight-consent-in">Verlauf aktivieren</button>
@@ -6045,7 +6045,7 @@
             <!-- Kein "Ziele {Jahr}" mehr (seit 03.09.2026): Der Zeitraum steht jetzt einmal
                  ueber allen Karten. Das Jahr hier zu wiederholen waere Fuellung - und im
                  Monat sogar irrefuehrend, weil die Karte dann einen Monat hervorhebt. -->
-            <h3 class="wg-h">Gewicht</h3>
+            <h2 class="wg-h">Gewicht</h2>
           </div>
           <div class="wch-menu">
             <button class="wch-more" data-action="weight-menu" aria-haspopup="menu" aria-expanded="false" aria-label="Weitere Gewichts-Einstellungen">⋯</button>
@@ -6440,7 +6440,7 @@
     return `<div class="wg-col kal">
         <div class="wch-head">
           <div>
-            <h3 class="wg-h">Geplante Tage</h3>
+            <h2 class="wg-h">Geplante Tage</h2>
           </div>
         </div>
         <p class="kal-note${monat ? " monat" : ""}">${esc(daten.notiz || daten.satz)}</p>
@@ -7114,7 +7114,7 @@
         return `<article class="rcard">
           ${cardImageHtml(r)}
           <div class="rbody">
-            <div class="top"><h3><button type="button" class="rcard-open" data-cbview="${esc(r.id)}">${esc(r.name)}</button></h3></div>
+            <div class="top"><h2><button type="button" class="rcard-open" data-cbview="${esc(r.id)}">${esc(r.name)}</button></h2></div>
             <div class="rstats">${cardStatsHtml(r)}</div>
             <div class="cb-foot">
               ${drin
@@ -7206,7 +7206,7 @@
     if (library.length === 0) {
       container.innerHTML = `<div class="empty">
         <svg class="em-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4v16a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1V7l-4-3H5a1 1 0 0 0-1 1Z"/><path d="M8 9h8M8 13h8M8 17h5"/></svg>
-        <h3>${canEdit() ? "Noch keine Meals" : "Hier ist noch nichts"}</h3>
+        <h2>${canEdit() ? "Noch keine Meals" : "Hier ist noch nichts"}</h2>
         <p>${canEdit() ? "Lege dein erstes Meal an – danach kannst du es im Wochenplan auf die Tage verteilen." : "Sobald jemand aus eurer Gruppe ein Meal anlegt, siehst du es hier."}</p>
         ${canEdit() ? `<button class="btn primary" data-action="new-recipe">Erstes Meal anlegen</button>` : ""}
       </div>`;
@@ -7316,7 +7316,7 @@
                 aria-label="${isFav(r.id) ? "Aus Favoriten entfernen" : "Zu Favoriten hinzufügen"}">${iconSvg("heart", "")}</button>
         <div class="rbody">
         <div class="top">
-          <h3><button type="button" class="rcard-open" data-action="view" data-id="${esc(r.id)}">${esc(r.name)}</button></h3>
+          <h2><button type="button" class="rcard-open" data-action="view" data-id="${esc(r.id)}">${esc(r.name)}</button></h2>
         </div>
         <div class="rstats">
           ${statsInner || `<p class="ms-empty-ings">Noch keine Nährwerte</p>`}
@@ -7482,7 +7482,7 @@
   //   title, text (oder bodyHtml fuer Auszeichnungen), okLabel, onConfirm
   function confirmModal(o) {
     const node = el(`<div class="modal" role="dialog" aria-modal="true" aria-label="${esc(o.title)}">
-      <div class="modal-head"><h3>${esc(o.title)}</h3><button class="btn ghost sm" data-close aria-label="Schließen">✕</button></div>
+      <div class="modal-head"><h2>${esc(o.title)}</h2><button class="btn ghost sm" data-close aria-label="Schließen">✕</button></div>
       <div class="modal-body">${o.bodyHtml || `<p style="margin:0">${esc(o.text || "")}</p>`}</div>
       <div class="modal-foot"><button class="btn ghost" data-close>Abbrechen</button><button class="btn danger" data-confirm>${esc(o.okLabel || "Löschen")}</button></div>
     </div>`);
@@ -7522,7 +7522,7 @@
     const startLbl = kgfmt(startKg);
 
     const node = el(`<div class="modal wiegen" role="dialog" aria-modal="true" aria-label="${manageOnly ? "Verlauf verwalten" : "Wiegen"}">
-      <div class="modal-head"><h3>${manageOnly ? "Verlauf verwalten" : "Wiegen"}</h3><button class="btn ghost sm" data-close aria-label="Schließen">✕</button></div>
+      <div class="modal-head"><h2>${manageOnly ? "Verlauf verwalten" : "Wiegen"}</h2><button class="btn ghost sm" data-close aria-label="Schließen">✕</button></div>
       <div class="modal-body">
         ${manageOnly ? "" : `<div class="wg-step">
           <button type="button" class="wg-sb" id="w-minus" aria-label="0,1 Kilogramm weniger">−</button>
@@ -7709,7 +7709,7 @@
     const diff = newKcal - oldKcal;
     const sign = diff > 0 ? "+" : "−";
     const node = el(`<div class="modal" role="dialog" aria-modal="true" aria-label="Kalorienziel angepasst">
-      <div class="modal-head"><h3>${esc(title)}</h3><button class="btn ghost sm" data-close aria-label="Schließen">✕</button></div>
+      <div class="modal-head"><h2>${esc(title)}</h2><button class="btn ghost sm" data-close aria-label="Schließen">✕</button></div>
       <div class="modal-body">
         <p style="margin:0 0 4px">Dein Kalorienziel wurde angepasst:</p>
         <div class="bd-row"><span>Vorher</span><span>${nfmt(oldKcal)} kcal</span></div>
@@ -7740,7 +7740,7 @@
     // muesste sich erst zurueckarbeiten.
     const startKg = cur != null ? cur : (last ? last.kg : 75);
     const node = el(`<div class="modal wiegen" role="dialog" aria-modal="true" aria-label="Jahresziel ${year}">
-      <div class="modal-head"><h3>Ziel ${year}</h3><button class="btn ghost sm" data-close aria-label="Schließen">✕</button></div>
+      <div class="modal-head"><h2>Ziel ${year}</h2><button class="btn ghost sm" data-close aria-label="Schließen">✕</button></div>
       <div class="modal-body">
         <div class="wg-step">
           <button type="button" class="wg-sb" id="wg-minus" aria-label="0,1 Kilogramm weniger">−</button>
@@ -7831,7 +7831,7 @@
     const f = (id, label, val, unit, max) =>
       `<div class="field"><label for="${id}">${label}</label>${numField({ id: id, min: 0, max: max, step: 1, unit: unit, placeholder: "0", value: val != null ? String(val) : "" })}</div>`;
     const node = el(`<div class="modal" role="dialog" aria-modal="true" aria-label="Ziel anpassen">
-      <div class="modal-head"><h3>Ziel anpassen</h3><button class="btn ghost sm" data-close aria-label="Schließen">✕</button></div>
+      <div class="modal-head"><h2>Ziel anpassen</h2><button class="btn ghost sm" data-close aria-label="Schließen">✕</button></div>
       <div class="modal-body">
         <p class="hint" style="margin:0 0 14px">Gilt für Ruhetage. Trainingstage bekommen ihren Aufschlag weiterhin oben drauf.</p>
         <div class="onb-grid">
@@ -8116,7 +8116,7 @@
         <div class="ms-photo has-photo">${msPhotoInnerHtml(r)}</div>
         <div class="modal-body">
           ${bildHinweisHtml(r)}
-          <div class="ms-head"><h3 class="ms-title">${esc(r.name)}</h3><span class="chip ${cls}">${esc(r.category || "Gericht")}</span></div>
+          <div class="ms-head"><h2 class="ms-title">${esc(r.name)}</h2><span class="chip ${cls}">${esc(r.category || "Gericht")}</span></div>
           ${mealFlagsHtml(r)}
           ${statsHtml}
           <div class="ms-ings"><h4 class="sec-h">Zutaten</h4>${ingHtml}</div>
@@ -9175,10 +9175,10 @@
     // Meal-Bibliothek einplanen. Der Hinweis samt Weg zu den Meals steht jetzt IM Picker,
     // ueber dem Schnellbereich - eine Ansicht weniger, und der Slot bleibt benutzbar.
     const node = el(`<div class="modal" role="dialog" aria-modal="true" aria-label="Meal wählen">
-      <div class="modal-head"><div style="flex:1"><div class="kicker">${esc(dLabel)} · ${esc(mLabel)}</div><h3 style="margin-top:2px">Meal wählen</h3></div><button class="btn ghost sm" data-close>✕</button></div>
+      <div class="modal-head"><div style="flex:1"><div class="kicker">${esc(dLabel)} · ${esc(mLabel)}</div><h2 style="margin-top:2px">Meal wählen</h2></div><button class="btn ghost sm" data-close>✕</button></div>
       <div class="modal-body">
         <div class="picker-search">
-          <input type="text" id="p-search" placeholder="Meal oder Produkt …" autocomplete="off">
+          <input type="text" id="p-search" placeholder="Meal oder Produkt …" autocomplete="off" aria-label="Meals und Produkte durchsuchen">
           <button type="button" class="btn ghost sm" id="p-barcode" aria-label="Barcode scannen – Fertigprodukt direkt einplanen" title="Barcode scannen – Fertigprodukt direkt einplanen">${BARCODE_SVG}<span>Barcode</span></button>
         </div>
         <div class="plist" id="p-list"></div>
@@ -9755,7 +9755,7 @@
       <div class="modal-head">
         <div class="shop-head" style="flex:1">
           <div class="cart" aria-hidden="true">${iconSvg("pot", "")}</div>
-          <div><div class="kicker">${items.length} Gericht${items.length === 1 ? "" : "e"} · ${nfmt(total)} Meal${total === 1 ? "" : "s"} · ${esc(planScopeLabel(todayIdx))}</div><h3 style="margin:2px 0 0">Vorkochen</h3></div>
+          <div><div class="kicker">${items.length} Gericht${items.length === 1 ? "" : "e"} · ${nfmt(total)} Meal${total === 1 ? "" : "s"} · ${esc(planScopeLabel(todayIdx))}</div><h2 style="margin:2px 0 0">Vorkochen</h2></div>
         </div>
         <button class="btn ghost sm" data-close aria-label="Schließen">✕</button>
       </div>
@@ -9826,7 +9826,7 @@
           <!-- "der Woche" ist am 28.08.2026 entfallen: seit der Kicker die Woche beim Namen
                nennt ("diese Woche, ab heute" / "nächste Woche"), stand sie sonst zweimal da -
                einmal unbestimmt, einmal genau. Die genaue Angabe gewinnt. -->
-          <div><div class="kicker">${items.length} Position${items.length===1?"":"en"} · ${esc(planScopeLabel(todayIdx))}</div><h3 style="margin:2px 0 0">Einkaufsliste</h3></div>
+          <div><div class="kicker">${items.length} Position${items.length===1?"":"en"} · ${esc(planScopeLabel(todayIdx))}</div><h2 style="margin:2px 0 0">Einkaufsliste</h2></div>
         </div>
         <button class="btn ghost sm" data-close>✕</button>
       </div>
@@ -9983,7 +9983,7 @@
   // ---------- Rechtstexte (Impressum / Datenschutz) ----------
   function legalModal(title, bodyHtml) {
     const node = el(`<div class="modal" role="dialog" aria-modal="true" aria-label="${title}">
-      <div class="modal-head"><h3>${title}</h3><button class="btn ghost sm" data-close>✕</button></div>
+      <div class="modal-head"><h2>${title}</h2><button class="btn ghost sm" data-close>✕</button></div>
       <div class="modal-body legal">${bodyHtml}</div>
       <div class="modal-foot"><button class="btn primary" data-close>Schließen</button></div>
     </div>`);
@@ -10568,6 +10568,11 @@
   // lesen ihr Ziel direkt aus .rcard[data-rid] bzw. hoveredCardId - beide bleiben unangetastet.
   const photoInput = document.createElement("input");
   photoInput.type = "file"; photoInput.accept = "image/*"; photoInput.className = "visually-hidden";
+  // Aus dem Tabweg und aus der Screenreader-Ansage nehmen: Ausgeloest wird ausschliesslich
+  // ueber .click() aus openMealSheet(). `visually-hidden` versteckt nur fuers Auge - das
+  // Feld blieb fokussierbar und war zusammen mit avatarInput der ERSTE Tabstopp der ganzen
+  // App, zweimal "Datei auswaehlen" ohne Namen (WCAG 4.1.2/3.3.2, gemessen 20.09.2026).
+  photoInput.tabIndex = -1; photoInput.setAttribute("aria-hidden", "true");
   document.body.appendChild(photoInput);
   // Gesetzt von openMealSheet(): bekommt die fertige dataUrl statt dass der Handler
   // render() ruft - die offene Ansicht aktualisiert damit nur ihr eigenes <img>, ohne den
@@ -10588,6 +10593,7 @@
   // wiederverwendet - das haengt an Rezept-IDs, hier gibt es kein Zielobjekt dieser Art).
   const avatarInput = document.createElement("input");
   avatarInput.type = "file"; avatarInput.accept = "image/*"; avatarInput.className = "visually-hidden";
+  avatarInput.tabIndex = -1; avatarInput.setAttribute("aria-hidden", "true");   // wie photoInput
   document.body.appendChild(avatarInput);
   let avatarCropCb = null;
   avatarInput.addEventListener("change", () => {
@@ -11161,7 +11167,7 @@
       const switching = !!syncGid;
       const switchingPending = !switching && !!state.pendingGroupId && state.pendingGroupId !== inv.gid;
       const node = el(`<div class="modal" role="dialog" aria-modal="true" aria-label="Einladung">
-        <div class="modal-head"><div style="flex:1"><div class="kicker">Einladung erhalten</div><h3 style="margin-top:2px">Gemeinsam planen</h3></div><button class="btn ghost sm" data-close>✕</button></div>
+        <div class="modal-head"><div style="flex:1"><div class="kicker">Einladung erhalten</div><h2 style="margin-top:2px">Gemeinsam planen</h2></div><button class="btn ghost sm" data-close>✕</button></div>
         <div class="modal-body">
           <p style="margin:0 0 4px">Du bist eingeladen, einen Wochenplan gemeinsam zu nutzen – ${viewOnly ? "zum <b>Ansehen</b>" : "mit dem Recht, <b>mitzuplanen</b>"}.</p>
           ${switching ? `<p class="share-mini warn">Du bist schon in einer Gruppe. Trittst du bei, verlässt du die alte.</p>` : ""}
@@ -11213,11 +11219,11 @@
     const nrec = d.recipes.length;
     const isMeal = d.type === "meal";
     const node = el(isMeal ? `<div class="modal" role="dialog" aria-modal="true" aria-label="Geteiltes Meal">
-      <div class="modal-head"><div style="flex:1"><div class="kicker">Einladung erhalten</div><h3 style="margin-top:2px">Geteiltes Meal</h3></div><button class="btn ghost sm" data-close>✕</button></div>
+      <div class="modal-head"><div style="flex:1"><div class="kicker">Einladung erhalten</div><h2 style="margin-top:2px">Geteiltes Meal</h2></div><button class="btn ghost sm" data-close>✕</button></div>
       <div class="modal-body"><p style="margin:0"><strong>${who}</strong> hat ein Meal mit dir geteilt: <strong>${esc(d.recipes[0] ? d.recipes[0].name : "")}</strong>. Übernehmen?</p></div>
       <div class="modal-foot"><button class="btn ghost" data-close>Später</button><button class="btn primary" data-take>Meal übernehmen</button></div>
     </div>` : `<div class="modal" role="dialog" aria-modal="true" aria-label="Geteilter Plan">
-      <div class="modal-head"><div style="flex:1"><div class="kicker">Einladung erhalten</div><h3 style="margin-top:2px">Geteilter Wochenplan</h3></div><button class="btn ghost sm" data-close>✕</button></div>
+      <div class="modal-head"><div style="flex:1"><div class="kicker">Einladung erhalten</div><h2 style="margin-top:2px">Geteilter Wochenplan</h2></div><button class="btn ghost sm" data-close>✕</button></div>
       <div class="modal-body"><p style="margin:0"><strong>${who}</strong> hat einen Wochenplan mit dir geteilt (${nrec} Meal${nrec === 1 ? "" : "s"}). Möchtest du ihn übernehmen? Deine eigenen Meals bleiben erhalten, neue kommen dazu – dein aktueller Wochenplan wird durch den geteilten ersetzt.</p></div>
       <div class="modal-foot"><button class="btn ghost" data-close>Später</button><button class="btn primary" data-take>Plan übernehmen</button></div>
     </div>`);
@@ -11567,7 +11573,7 @@
   // Entscheidung sein soll - kein Haekchen, das man beim Ausfuellen mitwegklickt.
   function weightConsentModal() {
     const node = el(`<div class="modal" role="dialog" aria-modal="true" aria-label="Gewichtsverlauf aktivieren">
-      <div class="modal-head"><h3>Gewichtsverlauf aktivieren</h3><button class="btn ghost sm" data-close aria-label="Schließen">✕</button></div>
+      <div class="modal-head"><h2>Gewichtsverlauf aktivieren</h2><button class="btn ghost sm" data-close aria-label="Schließen">✕</button></div>
       <div class="modal-body">
         <p style="margin:0">Dein Gewicht ist ein Gesundheitsdatum. Mit „Zustimmen" speichern wir deine Wiegungen als Verlauf – jederzeit widerrufbar über das Menü der Karte.</p>
       </div>
@@ -11590,7 +11596,7 @@
   // automatische Eintraege aus dem Rechner und blendet die Karte wieder auf den Einstieg zurueck.
   function weightConsentRevokeModal() {
     const node = el(`<div class="modal" role="dialog" aria-modal="true" aria-label="Einwilligung widerrufen">
-      <div class="modal-head"><h3>Einwilligung widerrufen</h3><button class="btn ghost sm" data-close aria-label="Schließen">✕</button></div>
+      <div class="modal-head"><h2>Einwilligung widerrufen</h2><button class="btn ghost sm" data-close aria-label="Schließen">✕</button></div>
       <div class="modal-body">
         <p style="margin:0">Dein bisheriger Verlauf bleibt gespeichert, es kommen nur keine neuen Einträge mehr automatisch dazu.</p>
       </div>
@@ -12696,7 +12702,7 @@
     const th = getTheme();
     const thBtn = (v, label) => `<button type="button" role="radio" data-th="${v}" aria-checked="${th === v}" tabindex="${th === v ? 0 : -1}"${th === v ? ' class="on"' : ""}>${label}</button>`;
     const node = el(`<div class="modal" role="dialog" aria-modal="true" aria-label="Einstellungen">
-      <div class="modal-head"><h3>Einstellungen</h3><button class="btn ghost sm" data-close aria-label="Schließen">✕</button></div>
+      <div class="modal-head"><h2>Einstellungen</h2><button class="btn ghost sm" data-close aria-label="Schließen">✕</button></div>
       <div class="modal-body">
         <div class="setlist">
           <button type="button" class="setrow" data-si="profile"><span><b>Profil bearbeiten</b><small>Name und E-Mail</small></span></button>
@@ -13039,7 +13045,7 @@
 
   function openForgotPassword(prefill) {
     const node = el(`<div class="modal" role="dialog" aria-modal="true" aria-label="Passwort zurücksetzen">
-      <div class="modal-head"><h3>Passwort zurücksetzen</h3><button class="btn ghost sm" data-close>✕</button></div>
+      <div class="modal-head"><h2>Passwort zurücksetzen</h2><button class="btn ghost sm" data-close>✕</button></div>
       <div class="modal-body">
         <p class="share-hint">Gib deine E-Mail-Adresse ein – wir senden dir einen Link zum Zurücksetzen deines Passworts.</p>
         <div class="field"><label for="fp-email">E-Mail-Adresse</label><input type="email" id="fp-email" value="${esc(prefill || "")}" placeholder="du@beispiel.de"></div>
@@ -13087,7 +13093,7 @@
         const maxScale = minScale * 3;
         let scale = minScale, tx = 0, ty = 0;
         const node = el(`<div class="modal" role="dialog" aria-modal="true" aria-label="Profilbild zuschneiden">
-          <div class="modal-head"><h3>Profilbild zuschneiden</h3><button class="btn ghost sm" data-close>✕</button></div>
+          <div class="modal-head"><h2>Profilbild zuschneiden</h2><button class="btn ghost sm" data-close>✕</button></div>
           <div class="modal-body">
             <div class="crop-stage"><img alt="" draggable="false"><div class="crop-guide"></div></div>
             <div class="crop-zoom">
@@ -13179,7 +13185,7 @@
 
   function openProfileForm(prefillName) {
     const node = el(`<div class="modal" role="dialog" aria-modal="true" aria-label="Profil bearbeiten">
-      <div class="modal-head"><h3>Profil bearbeiten</h3><button class="btn ghost sm" data-close>✕</button></div>
+      <div class="modal-head"><h2>Profil bearbeiten</h2><button class="btn ghost sm" data-close>✕</button></div>
       <div class="modal-body">
         <div class="avatar-edit-row">
           <div class="avatar-edit" id="p-avatar">
@@ -13318,7 +13324,7 @@
     const isPw = pid === "password";
     const n = (state.shares || []).length;
     const node = el(`<div class="modal" role="dialog" aria-modal="true" aria-label="Konto löschen">
-      <div class="modal-head"><h3>Konto endgültig löschen?</h3><button class="btn ghost sm" data-close>✕</button></div>
+      <div class="modal-head"><h2>Konto endgültig löschen?</h2><button class="btn ghost sm" data-close>✕</button></div>
       <div class="modal-body">
         <p style="margin:0 0 12px">Dein Konto, dein Wochenplan, deine Meals und dein gespeichertes Ziel werden gelöscht${n ? ` – ebenso ${n} geteilte${n === 1 ? "r" : ""} Meal-Link${n === 1 ? "" : "e"}` : ""}. Das kann nicht rückgängig gemacht werden.</p>
         ${isPw
@@ -14046,7 +14052,7 @@
     }
     let createdUrl = null;   // Einladung fuer eine bereits AKTIVE Gruppe (weiteres Mitglied)
     const node = el(`<div class="modal" role="dialog" aria-modal="true" aria-label="Gemeinsam planen">
-      <div class="modal-head"><div style="flex:1"><div class="kicker">Gemeinsam planen</div><h3 style="margin-top:2px" id="grp-title"></h3></div><button class="btn ghost sm" data-close>✕</button></div>
+      <div class="modal-head"><div style="flex:1"><div class="kicker">Gemeinsam planen</div><h2 style="margin-top:2px" id="grp-title"></h2></div><button class="btn ghost sm" data-close>✕</button></div>
       <div class="modal-body"><div id="grp-body"></div></div>
     </div>`);
     node.querySelectorAll("[data-close]").forEach(b => b.addEventListener("click", closeModal));
@@ -14597,7 +14603,7 @@
     if (!r) return;
     let createdUrl = null;
     const node = el(`<div class="modal" role="dialog" aria-modal="true" aria-label="Meal teilen">
-      <div class="modal-head"><div style="flex:1"><div class="kicker">Meal teilen</div><h3 style="margin-top:2px">${esc(r.name)} teilen</h3></div><button class="btn ghost sm" data-close>✕</button></div>
+      <div class="modal-head"><div style="flex:1"><div class="kicker">Meal teilen</div><h2 style="margin-top:2px">${esc(r.name)} teilen</h2></div><button class="btn ghost sm" data-close>✕</button></div>
       <div class="modal-body"><div id="sr-body"></div></div>
     </div>`);
     node.querySelectorAll("[data-close]").forEach(b => b.addEventListener("click", closeModal));

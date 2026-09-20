@@ -1155,6 +1155,11 @@
   .wch-pt { cursor: pointer; }
   .wch-pt:focus { outline: none; }
   .wch-pt.is-on .wch-dot, .wch-pt:focus-visible .wch-dot { r: 6; stroke: var(--accent-strong); }
+  /* Der Tastaturfokus braucht ein EIGENES Merkmal, nicht dasselbe wie `is-on`: Auf dem
+     bereits markierten Punkt aenderte der Fokus sonst gar nichts - man sah nicht, wo man
+     steht (WCAG 2.4.7, gemessen am 20.09.2026 mit tools/a11y-pruefung.py). Der helle Rand
+     traegt in Light wie Dark, weil --text in beiden Themes der Gegenpol zum Grund ist. */
+  .wch-pt:focus-visible .wch-dot { stroke: var(--text); stroke-width: 3; }
   /* .wch-leg ist mit der letzten Nebenlinie entfallen - eine Legende zu EINER Kurve
      benennt nur, was ohnehin dasteht. */
   .wch-tip { margin-top: 8px; font-size: 12px; color: var(--text-muted); font-variant-numeric: tabular-nums; min-height: 17px; }
