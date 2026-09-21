@@ -380,6 +380,20 @@ kein Bestätigungsdialog: ein Klick, ein Ergebnis, *Rückgängig* daneben. Ein
 Konfigurationsdialog vor einer Automatik nimmt genau die Entscheidungen zurück, die sie
 abnehmen sollte.
 
+**Seit dem 21.09.2026 gilt das nicht mehr nur für den Planer.** „Meal löschen" und „Woche
+leeren" fragten bis dahin erst per Dialog nach — und boten danach trotzdem „Rückgängig" an.
+Zwei Sicherungen für denselben Fehler, von denen die erste **jeden** Nutzer **jedes Mal**
+einen Schritt kostete und die zweite nur den, der sich wirklich vertan hat. Die Frage ist
+weg, das Netz blieb; bei „Meal löschen" hält es jetzt 10 statt 5 Sekunden, weil ein eigenes
+Meal aus Name, Nährwerten und oft einem Foto besteht.
+
+**Die Regel daraus:** Wo eine Handlung reversibel ist und ein *Rückgängig* daneben steht,
+wird vorher nicht gefragt. Gefragt wird, wo es **kein** Zurück gibt (Konto löschen,
+Cloud-Zwischenspeicher verwerfen), wo **andere Menschen** betroffen sind (Gruppe auflösen,
+Person entfernen) oder wo der Dialog nicht fragt, sondern **erklärt** („braucht ein
+Cloud-Konto"). Das sind die elf verbliebenen `confirmModal`-Aufrufe — keiner davon ist ein
+Versehen.
+
 ### Fünf Regeln
 
 1. **Nur füllen, was für mich leer ist.** Bestehendes wird nie überschrieben. In einer Gruppe
@@ -479,8 +493,9 @@ schwache Kandidaten gar nicht erst im Feld sind. Reiner Zufall würde auch das s
 Gericht ziehen und die Zusage „trifft dein Kalorien- und Proteinziel" untergraben.
 
 Dazu ein **„Nochmal"** direkt im Toast: Der Vorschlag wird verworfen und neu gewürfelt, so oft
-man will. Ohne diesen Knopf müsste man über „Woche leeren" samt Rückfrage gehen — drei Schritte
-für eine Meinungsfrage.
+man will. Ohne diesen Knopf müsste man über „Woche leeren" gehen und danach neu planen — zwei
+Umwege für eine Meinungsfrage. (Bis zum 21.09.2026 waren es drei: „Woche leeren" fragte damals
+noch nach.)
 
 ### Der Planer erinnert sich
 

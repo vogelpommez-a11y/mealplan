@@ -10010,29 +10010,30 @@
     // Derselbe Riegel wie bei den Foto-Handlern oben: getRecipe() kann seit dem 17.08.2026
     // ein COOKBOOK-Objekt liefern, und ein Katalog-Rezept darf nie geloescht werden.
     if (!state.recipes.some(x => x.id === id)) return;
-    confirmModal({
-      title: "Meal löschen?",
-      bodyHtml: `<p style="margin:0">„<strong>${esc(r.name)}</strong>" wird dauerhaft entfernt und aus dem Wochenplan gelöscht.</p>`,
-      okLabel: "Löschen",
-      onConfirm: () => {
-        // dropRecipeIds raeumt in ALLEN gespeicherten Wochen auf (nicht nur der aktiven) -
-        // fuers Rueckgaengig-Machen deshalb alle Wochen klonen, nicht nur state.plan.
-        const plansBefore = JSON.parse(JSON.stringify(state.plans));
-        const favsBefore = (state.favs || []).slice();
-        state.recipes = state.recipes.filter(x => x.id !== id);
-        dropRecipeIds(new Set([id]));
-        markDeleted([id]);   // haelt das Meal beim naechsten Anmelden draussen (siehe sanitizeTombstones)
-        save(); render();
-        undoToast("Meal gelöscht", () => {
-          unmarkDeleted([id]);
-          state.recipes.push(r);
-          state.plans = plansBefore;
-          state.plan = state.plans[activeWeekKey()] || state.plan;
-          state.favs = favsBefore;
-          save(); render();
-        });
-      }
-    });
+    // Keine Rueckfrage mehr (21.09.2026). Bis dahin fragte erst ein confirmModal UND
+    // danach bot der Toast "Rueckgaengig" an - zwei Sicherungen fuer denselben Fehler,
+    // von denen die erste jeden Nutzer jedes Mal einen Schritt kostete. Die zweite ist
+    // die bessere: Sie kostet nur den, der sich vertan hat (CLAUDE.md 5).
+    //
+    // Dafuer haelt das Netz hier laenger als die ueblichen 5 s: Ein Meal ist echte Arbeit
+    // - Name, Naehrwerte, oft ein eigenes Foto. Wer aus Versehen tippt, soll den Weg
+    // zurueck noch finden, wenn der Blick erst zum Toast wandern muss.
+    // dropRecipeIds raeumt in ALLEN gespeicherten Wochen auf (nicht nur der aktiven) -
+    // fuers Rueckgaengig-Machen deshalb alle Wochen klonen, nicht nur state.plan.
+    const plansBefore = JSON.parse(JSON.stringify(state.plans));
+    const favsBefore = (state.favs || []).slice();
+    state.recipes = state.recipes.filter(x => x.id !== id);
+    dropRecipeIds(new Set([id]));
+    markDeleted([id]);   // haelt das Meal beim naechsten Anmelden draussen (siehe sanitizeTombstones)
+    save(); render();
+    undoToast(`„${r.name}" gelöscht`, () => {
+      unmarkDeleted([id]);
+      state.recipes.push(r);
+      state.plans = plansBefore;
+      state.plan = state.plans[activeWeekKey()] || state.plan;
+      state.favs = favsBefore;
+      save(); render();
+    }, { ms: 10000 });
   }
 
   // ---------- Rechtstexte (Impressum / Datenschutz) ----------
@@ -10554,21 +10555,18 @@
 
   function clearWeek() {
     if (planStats() === 0) { toast("Der Plan ist schon leer"); return; }
-    confirmModal({
-      title: "Woche leeren?",
-      text: "Alle Zuordnungen im Wochenplan werden entfernt. Deine Meals bleiben erhalten.",
-      okLabel: "Woche leeren",
-      onConfirm: () => {
-        const key = activeWeekKey();
-        const before = {}; DAYS.forEach(d => { before[d.key] = {}; MEALS.forEach(m => { before[d.key][m.key] = state.plan[d.key][m.key].slice(); }); });
-        DAYS.forEach(d => MEALS.forEach(m => { state.plan[d.key][m.key] = []; }));
-        save(); render();
-        undoToast(state.viewWeek === "next" ? "Nächste Woche geleert" : "Woche geleert", () => {
-          const p = state.plans[key]; if (!p) return;   // Woche existiert nach 5 s praktisch immer noch
-          DAYS.forEach(d => MEALS.forEach(m => { p[d.key][m.key] = before[d.key][m.key]; }));
-          save(); render();
-        });
-      }
+    // Wie bei deleteRecipe: keine Rueckfrage, das Rueckgaengig im Toast traegt allein.
+    // Der beruhigende Satz des alten Dialogs ("Deine Meals bleiben erhalten") faellt
+    // dabei weg und wird nicht vermisst - geleert wird sichtbar nur der Plan, und die
+    // Meals stehen unveraendert im Rezeptbuch nebenan.
+    const key = activeWeekKey();
+    const before = {}; DAYS.forEach(d => { before[d.key] = {}; MEALS.forEach(m => { before[d.key][m.key] = state.plan[d.key][m.key].slice(); }); });
+    DAYS.forEach(d => MEALS.forEach(m => { state.plan[d.key][m.key] = []; }));
+    save(); render();
+    undoToast(state.viewWeek === "next" ? "Nächste Woche geleert" : "Woche geleert", () => {
+      const p = state.plans[key]; if (!p) return;   // Woche existiert nach 5 s praktisch immer noch
+      DAYS.forEach(d => MEALS.forEach(m => { p[d.key][m.key] = before[d.key][m.key]; }));
+      save(); render();
     });
   }
 

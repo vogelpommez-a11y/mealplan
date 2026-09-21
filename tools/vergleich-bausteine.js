@@ -100,11 +100,46 @@ var BAUSTEINE = [
   {
     id: "buttons",
     titel: "Buttons",
-    was: "13+ Modifier — welche sind Variante, welche nur Kontext?",
+    was: "Rahmenlose Textknöpfe im Fuß — und die Radien der Zutaten-Knöpfe (1 px).",
     stellen: [
       ".btn.primary (34×), .btn.ghost.sm (32×), .btn.ghost (20×)",
-      "Kontext statt Variante: onb-skip, wg-recalc, ms-ing-add, shop-ic, plan-auto"
+      "Kontext statt Variante: onb-skip, wg-recalc, ms-ing-add, shop-ic, plan-auto",
+      "NEU 21.09.: .btn.link (+.inline/.leise) ersetzt auth-forgot/toggle-all/foot-link",
+      "⚠ Der Hauptgewinn ist UNSICHTBAR: die Trefferflächen. Nur am Gerät spürbar."
     ],
-    oeffnen: function () { return "Startseite"; }
+    oeffnen: function () { return "Startseite — der Fuß steht ganz unten"; }
+  },
+
+  {
+    id: "dialoge",
+    titel: "Bestätigen oder Rückgängig?",
+    was: "Links fragt „Woche leeren“ erst nach. Rechts leert es sofort — und legt "
+       + "„Rückgängig“ in den Toast. Beide Seiten anklicken und vergleichen.",
+    stellen: [
+      "deleteRecipe() — confirmModal entfernt, undoToast auf 10 s verlängert",
+      "clearWeek() — confirmModal entfernt, undoToast unverändert 5 s",
+      "Unangetastet: die 11 übrigen confirmModal — sie erklären, betreffen Dritte "
+        + "oder sind endgültig (Konto löschen)",
+      "⚠ Ein Standbild zeigt hier NICHTS — die Änderung ist ein weggefallener Dialog."
+    ],
+    // ⚠ OHNE gefuellten Plan zeigt diese Probe NICHTS: clearWeek() bricht bei
+    // planStats() === 0 sofort mit "Der Plan ist schon leer" ab - auf BEIDEN Seiten
+    // gleich, und man vergliche zweimal denselben Toast (TROUBLESHOOTING 174).
+    //
+    // Der Plan wird deshalb von der App selbst angelegt, ueber den Auto-Planer. Einen
+    // plans-Block hier hineinzuschreiben ginge nicht ohne isoWeekKey() nachzubauen -
+    // und Nachbau von Produktionscode ist in diesem Projekt ausgeschlossen
+    // (CLAUDE.md 11). Der Testzustand hat Ziel und ein Rezept, mehr braucht autoPlanWeek
+    // nicht.
+    schritte: [
+      '[data-action="tab"][data-tab="plan"]',
+      '[data-action="auto-plan"]',
+      '[data-action="plan-menu"]'
+    ],
+    oeffnen: function (doc) {
+      var m = doc.querySelector(".menu");
+      if (!m) return "⚠ Plan-Menü nicht offen — ist der Plan gefüllt?";
+      return "Plan gefüllt, Menü offen — jetzt LINKS und RECHTS „Woche leeren“ antippen";
+    }
   }
 ];

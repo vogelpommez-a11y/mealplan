@@ -76,8 +76,21 @@ BAUSTEINE = [
      u"VORBILD - 27 Aufrufe + Definition. Faellt die Zahl, ist er umgangen worden"),
 
     (u"Bestaetigung: zentraler Helfer", "index.html",
-     r"\bconfirmModal\s*\(", 14,
-     u"VORBILD - ersetzte fuenf fast gleiche Bloecke"),
+     r"\bconfirmModal\s*\(", 12,
+     u"11 Aufrufe + Definition. Am 21.09. fielen zwei weg, die neben einem Undo standen"),
+
+    # Loeschen mit Netz statt mit Rueckfrage (21.09.2026).
+    #
+    # Ein blosser undoToast-Zaehler taugt hier NICHT: Die Zahl war vor der Aenderung
+    # dieselbe (9), die Gegenprobe merkte nichts. Gezaehlt wird deshalb das, was neu ist -
+    # das verlaengerte Netz - und das, was verschwinden musste.
+    (u"Loeschen: verlaengertes Netz", "index.html",
+     r"\{\s*ms:\s*10000\s*\}", 1,
+     u"deleteRecipe: 10 s statt 5 - ein Meal ist Name, Naehrwerte und oft ein Foto"),
+
+    (u"Loeschen: keine doppelte Sicherung", "index.html",
+     r'title:\s*"(?:Meal l\u00f6schen\?|Woche leeren\?)"', 0,
+     u"muss 0 bleiben - beide standen vor einem undoToast, das denselben Fehler abfing"),
 
     # Der Trefferflaechen-Mechanismus (21.09.2026). Faellt die Zahl, hat jemand einen
     # Selektor aus der gemeinsamen Regel geloest - und der Knopf ist wieder unter 44 px,
