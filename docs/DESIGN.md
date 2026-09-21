@@ -157,6 +157,52 @@ Bestehende Werte für:
 
 verwenden.
 
+### Die gleitende Markierung — zwei Familien, und warum
+
+Vier Leisten zeigen „hier bist du": die Hauptreiter (`.tab-ind`), der Zeitraum im Fortschritt
+(`.kal-pill`), die Tagesleiste (`.db-ind`) und der Umschalter Meals/Rezeptbuch (`.ws-ind`).
+Bis zum 21.09.2026 unterschieden sie sich in drei Einzügen (3/4/5 px) und zwei hartkodierten
+Schatten — **gewachsen, nicht entschieden**. Fläche und Schatten stehen seitdem an einer
+Stelle in `css/basis.css`.
+
+**Zwei Familien bleiben. Das ist jetzt eine Regel, kein Zufall:**
+
+| Familie | Wo | Aussehen |
+|---|---|---|
+| **akzent** | kontextuelle Auswahl **innerhalb** einer Ansicht, die nur dort auftaucht — Tagesleiste, Zeitraum, Umschalter | Akzentverlauf, Schrift `--accent-contrast` |
+| **neutral** | die **dauerhaft sichtbare** Hauptnavigation | `--surface` + `--shadow`, Schrift `--accent-strong` |
+
+Die Hauptreiterleiste steht auf **jedem** Bildschirm am unteren Rand und sagt nichts
+Dringendes, sondern nur, wo man steht. Kräftiges Rot zöge dort permanent Blick auf eine
+Information, die man ohnehin hat — und **Rot ist in dieser App die Aktionsfarbe** (löschen,
+Konto entfernen). Zwei Bedeutungen auf einer Farbe nutzen sie ab.
+
+**Der Kontrast ist gemessen, nicht geschätzt** (21.09.2026):
+
+| | Light | Dark | Maßstab |
+|---|---|---|---|
+| heute: `--accent-strong` auf `--surface` | **7,13:1** | — | WCAG AA 4,5:1 |
+| verworfen: `--accent-contrast` auf dem Akzentverlauf | 4,83:1 | **4,72:1** | WCAG AA 4,5:1 |
+
+Beide bestehen. Die Akzentvariante wurde trotzdem verworfen: Sie gibt die ganze Reserve auf,
+und zwar ausgerechnet an der Leiste mit dem unruhigsten Hintergrund. Sie liegt auf Glas über
+**wechselnden Meal-Fotos** — getöntes Akzentrot fällt auf einer hellen Bildstelle (weißer
+Teller) auf ~1,8:1. Der Zeitraum im Fortschritt hat dieses Problem nicht und ist deshalb
+mitgewechselt.
+
+**Die Mechanik bleibt ebenfalls getrennt**, wie beim Aufklapper:
+
+* `.tab-ind`, `.kal-pill`, `.db-ind` schieben mit `translateX(n × 100%)`. Das geht **nur bei
+  gleich breiten Segmenten**, kostet dafür kein Layout.
+* `.ws-ind` **misst** (`syncWeekSwitchPill()`), weil „Meine Meals" und „Rezeptbuch"
+  unterschiedlich breit sind.
+
+Das Messverfahren könnte alle ersetzen — **an der Tagesleiste wäre es eine Regression.** Dort
+hängt die Markierung am Scrollen, und genau dafür sind die Messwerte in `initCarousel()`
+zwischengespeichert; vorher erzwang das pro Bild ein Layout.
+
+---
+
 ### Tippziele: 44 px, notfalls unsichtbar
 
 **Jedes bedienbare Element ist mindestens 44 × 44 px groß — als Trefferfläche, nicht

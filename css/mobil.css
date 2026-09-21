@@ -174,12 +174,13 @@
        initCarousel()/syncIndicator(). Keine eigene Transition: der Wert ist eine reine
        Funktion der Scrollposition, der native Sanftlauf des Inhalts liefert die Kurve
        gleich mit (auch fuer prefers-reduced-motion, siehe Kommentar dort). */
+    /* Flaeche und Schatten stehen im gemeinsamen Fundament (css/basis.css, "Gleitende
+       Markierung") - hier nur, was NUR hier gilt: der eckigere Radius der Tagesleiste
+       und will-change, weil diese eine am Scrollen haengt. */
     .db-ind {
-      position: absolute; left: 4px; top: 4px; bottom: 4px; z-index: 0;
+      left: 4px; top: 4px; bottom: 4px;
       width: 0; border-radius: var(--radius-sm);
-      background: linear-gradient(135deg, var(--accent-solid), var(--accent-solid-strong));
-      box-shadow: 0 2px 8px color-mix(in srgb, var(--accent) 34%, transparent);
-      will-change: transform; pointer-events: none;
+      will-change: transform;
     }
     /* Trainings-Blau als eigene Schicht: Verlaeufe lassen sich nicht zuverlaessig
        interpolieren, und die Transition MUSS auf dem Pseudo liegen - go() setzt beim

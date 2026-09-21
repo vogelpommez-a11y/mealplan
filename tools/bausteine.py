@@ -69,7 +69,23 @@ BAUSTEINE = [
 
     (u"Tabs: Segment-Muster", "index.html",
      r'class="(?:tabs|daybar|kal-seg)\b', 3,
-     u"drei Bauarten fuer 'eins aus wenigen'"),
+     u"drei Leisten - bleiben drei, vereinheitlicht ist ihre MARKIERUNG"),
+
+    # Die gleitende Markierung (21.09.2026). Faellt die Zahl, hat jemand einen Indikator
+    # aus dem gemeinsamen Fundament geloest und baut wieder eigene Flaechen.
+    (u"Markierung: gemeinsames Fundament", "css/basis.css",
+     r"\.tab-ind, \.kal-pill, \.db-ind, \.ws-ind \{", 1,
+     u"eine Zeile fuer Position und z-index aller vier"),
+
+    (u"Markierung: Akzent-Familie", "css/basis.css",
+     r"\n  \.kal-pill, \.db-ind, \.ws-ind \{", 1,
+     u"drei im Akzentverlauf; .tab-ind bleibt BEWUSST neutral (docs/DESIGN.md)"),
+
+    # Beide standen bis zum 21.09. als Rohwert im CSS, obwohl es --shadow gibt.
+    # Nur ausserhalb von Kommentaren zaehlen - die Begruendung darf sie nennen.
+    (u"Markierung: harte Schatten", "css/basis.css",
+     r"box-shadow: 0 1px [34]px rgba\(0, ?0, ?0, ?\.\d+\)", 0,
+     u"muss 0 bleiben - dafuer gibt es --shadow (css/CLAUDE.md)"),
 
     (u"Modal: zentraler Helfer", "index.html",
      r"\bopenModal\s*\(", 28,

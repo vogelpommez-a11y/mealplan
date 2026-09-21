@@ -56,6 +56,51 @@
   #profile-slot { order: 2; }
   .navrow { order: 3; width: 100%; display: flex; }
 
+  /* ---------- Gleitende Markierung ----------
+     VIER Indikatoren zeigen "hier bist du": .tab-ind (Hauptreiter), .kal-pill (Zeitraum),
+     .db-ind (Tagesleiste), .ws-ind (Umschalter). Bis zum 21.09.2026 unterschieden sie sich
+     in drei Einzuegen (3/4/5 px) und zwei hartkodierten Schatten, fuer die es Tokens gibt -
+     gewachsen, nicht entschieden. Das ist jetzt zusammengefuehrt.
+
+     ZWEI Familien bleiben, und DAS ist jetzt entschieden statt zufaellig:
+
+       akzent   kontextuelle Auswahl INNERHALB einer Ansicht, die nur dort auftaucht -
+                Tagesleiste, Zeitraum, Umschalter. Darf kraeftig sein.
+       neutral  die dauerhaft sichtbare Hauptnavigation. Sie steht auf JEDEM Bildschirm
+                am unteren Rand und sagt nichts Dringendes, sondern nur, wo man steht.
+                Kraeftiges Rot zoege dort permanent Blick auf eine Information, die man
+                ohnehin hat - und Rot ist in dieser App die AKTIONSfarbe (loeschen,
+                Konto entfernen). Zwei Bedeutungen auf einer Farbe nutzen sie ab.
+
+     Dazu ein gemessener Grund, der schon vor dem 21.09. im Code stand: Die Reiterleiste
+     liegt auf Glas ueber wechselnden Meal-Fotos. Getoentes Akzentrot faellt auf einer
+     hellen Bildstelle auf ~1.8:1. Deckend gerechnet haelt Weiss auf dem Akzentverlauf
+     zwar 4.72:1 (Dark) - die Norm also -, aber die Reserve von vorher 7.13:1 waere weg,
+     ausgerechnet an der Stelle mit dem unruhigsten Hintergrund. Nachweise: docs/DESIGN.md.
+
+     Die MECHANIK bleibt ebenfalls getrennt, auch das mit Grund: Drei schieben mit
+     translateX(n * 100%) - geht nur bei gleich breiten Segmenten, kostet aber kein
+     Layout. .ws-ind misst, weil "Meine Meals" und "Rezeptbuch" verschieden breit sind.
+     Das Messen auf die Tagesleiste auszudehnen waere eine Regression: Dort haengt die
+     Markierung am Scrollen, und genau dafuer sind die Messwerte gecacht (initCarousel).
+
+     KEIN border-radius hier: .db-ind sitzt in einer eckigeren Leiste und behaelt
+     --radius-sm. Der Radius gehoert zur Leiste, nicht zur Markierung. */
+  .tab-ind, .kal-pill, .db-ind, .ws-ind { position: absolute; z-index: 0; pointer-events: none; }
+
+  /* Akzent-Familie */
+  .kal-pill, .db-ind, .ws-ind {
+    background: linear-gradient(135deg, var(--accent-solid), var(--accent-solid-strong));
+    box-shadow: 0 2px 8px color-mix(in srgb, var(--accent) 34%, transparent);
+  }
+  .kal-seg button[aria-selected="true"],
+  .week-switch:has(.ws-ind) .ws-btn.active { color: var(--accent-contrast); }
+
+  /* Neutrale Familie. --shadow statt der bisherigen 0 1px 3px rgba(0,0,0,.12): derselbe
+     Token, den der Reiter am Rechner schon immer nutzte - damit sind Handy und Rechner
+     zum ersten Mal dieselbe Flaeche. */
+  .tab-ind { background: var(--surface); box-shadow: var(--shadow); }
+
   .tabs { display: flex; gap: 4px; background: var(--surface-2); padding: 4px; border-radius: 999px; border: 1px solid var(--border); }
   .tab {
     font: inherit; font-size: 14px; font-weight: 550;
@@ -64,6 +109,8 @@
     display: flex; align-items: center; gap: 7px; transition: color var(--dur-fast), background var(--dur-fast);
   }
   .tab:hover { color: var(--text); }
+  /* Am Rechner gibt es keine .tab-ind (unterschiedlich breite Knoepfe, s. u.) -
+     dort traegt der Knopf dieselbe neutrale Flaeche selbst. */
   .tab[aria-selected="true"] { background: var(--surface); color: var(--accent-strong); box-shadow: var(--shadow); }
   /* Nur mobil sichtbar (siehe 680px-Breakpoint) - am Rechner ist .tabs ein flex mit
      unterschiedlich breiten Knoepfen (Meal-Zaehler aendert die Breite), dort bleibt die
@@ -121,15 +168,15 @@
        Seit dem vierten Reiter ("Fortschritt", B8) sind es vier Spalten: Breite /4 und
        repeat(4, 1fr) gehoeren zusammen. translateX(i * 100%) bleibt unveraendert richtig -
        die 100 % beziehen sich auf die Breite der PILLE, nicht auf die der Leiste. */
+    /* Flaeche und Schatten im gemeinsamen Fundament oben; hier Sichtbarkeit und
+       Geometrie. Der hartkodierte Schatten (0 1px 3px rgba(0,0,0,.12)) ist mit dem
+       Fundament entfallen - Token-Verstoss (css/CLAUDE.md). */
     .tab-ind {
-      display: block; position: absolute; z-index: 0;
+      display: block;
       top: 5px; bottom: 5px; left: 6px;
       width: calc((100% - 12px) / 4);
       border-radius: 999px;
-      background: var(--surface);
-      box-shadow: 0 1px 3px rgba(0, 0, 0, .12);
       transition: transform var(--dur-base) var(--ease-out);
-      pointer-events: none;
     }
     /* Die aktive Pille ist DECKEND, nicht getoent. Getoent auf Glas gerechnet: liegt hinter
        der Kapsel eine helle Bildstelle (weisser Teller), faellt Akzentrot darauf auf ~1.8:1.
@@ -409,17 +456,16 @@
      das Aussehen bleibt. Gemessen am 16.09.2026 mit tools/abnahme-mobil.py.
      inset zaehlt ab PADDING BOX - der 1px-Rand ist nicht dabei. */
   .ws-btn::after { content: ""; position: absolute; inset: -6px 0; }
+  /* OHNE .ws-ind (Jahres-Umschalter im Rueckblick) traegt der Knopf die Flaeche selbst -
+     dieselbe Optik, nur hart umgeschaltet statt gleitend. */
   .ws-btn.active { color: var(--accent-contrast); background: linear-gradient(135deg, var(--accent-solid), var(--accent-solid-strong)); box-shadow: 0 2px 8px color-mix(in srgb, var(--accent) 34%, transparent); }
   /* Gleitende Pille (Schiebe-Schema) NUR dort, wo das Markup sie mitliefert (.ws-ind) -
      der Jahres-Umschalter im Rueckblick teilt sich .week-switch/.ws-btn, hat aber
      beliebig viele Knoepfe und bleibt bewusst bei der harten Umschaltung oben. */
   .week-switch:has(.ws-ind) .ws-btn.active { background: none; box-shadow: none; }
-  .ws-ind {
-    position: absolute; top: 3px; bottom: 3px; left: 0; z-index: 0;
-    width: 0; border-radius: 999px; pointer-events: none;
-    background: linear-gradient(135deg, var(--accent-solid), var(--accent-solid-strong));
-    box-shadow: 0 2px 8px color-mix(in srgb, var(--accent) 34%, transparent);
-  }
+  /* Flaeche und Schatten im Fundament oben. Die Breite setzt syncWeekSwitchPill()
+     zur Laufzeit - als einzige der vier wird sie gemessen, nicht gerechnet. */
+  .ws-ind { top: 3px; bottom: 3px; left: 0; width: 0; border-radius: 999px; }
   .week { display: grid; grid-template-columns: repeat(auto-fill, minmax(232px, 1fr)); gap: 16px; }
   .day {
     position: relative;
@@ -919,16 +965,18 @@
     padding: 9px 0; border-radius: 999px; color: var(--text-muted);
     font: 600 13px var(--font-body); transition: color var(--dur-base) var(--ease-out);
   }
-  .kal-seg button[aria-selected="true"] { color: var(--text); }
+  /* Schriftfarbe im Fundament oben (--accent-contrast). */
   /* hitSlop wie .toast-undo::after: die Trefferflaeche waechst auf 44px (Apple HIG),
      das Aussehen bleibt. Gemessen am 16.09.2026 mit tools/abnahme-mobil.py.
      inset zaehlt ab PADDING BOX - der 1px-Rand ist nicht dabei. */
   .kal-seg button::after { content: ""; position: absolute; inset: -6px 0; }
   .kal-seg button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  /* Flaeche und Schatten stehen im gemeinsamen Fundament oben. Hier nur Geometrie:
+     zwei Segmente, 3px Einzug. Der hartkodierte Schatten (0 1px 4px rgba(0,0,0,.18))
+     ist mit dem Fundament entfallen - er war ein Token-Verstoss (css/CLAUDE.md). */
   .kal-pill {
-    position: absolute; z-index: 0; top: 3px; bottom: 3px; left: 3px;
+    top: 3px; bottom: 3px; left: 3px;
     width: calc((100% - 6px) / 2); border-radius: 999px;
-    background: var(--surface); box-shadow: 0 1px 4px rgba(0,0,0,.18);
     transition: transform var(--dur-base) var(--ease-out);
   }
   /* MOTION-Tokens sind die einzige Quelle fuer Dauer und Kurve (docs/DESIGN.md); wer

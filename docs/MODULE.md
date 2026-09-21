@@ -45,19 +45,19 @@ Erhoben aus den Abschnittsmarken im Code, nicht von Hand gepflegt.
 
 | Datei | Bereich | Zeilen | Umfang |
 |---|---|---|---|
-| css/basis.css | Header | 20-229 | 210 |
-| css/basis.css | Section head | 230-235 | 6 |
-| css/basis.css | Buttons | 236-315 | 80 |
-| css/basis.css | Week grid | 316-1468 | 1153 |
-| css/komponenten.css | Recipe grid | 8-328 | 321 |
-| css/komponenten.css | Meal-Ansicht (openMealSheet) | 329-527 | 199 |
-| css/komponenten.css | Empty state | 528-539 | 12 |
-| css/komponenten.css | Modal | 540-931 | 392 |
-| css/komponenten.css | Profil (Login) & Teilen | 932-1035 | 104 |
-| css/komponenten.css | Profilbild-Zuschnitt (Kreis-Crop) | 1036-1230 | 195 |
-| css/komponenten.css | PDF / Druck | 1231-1264 | 34 |
-| css/mobil.css | Mobile / Smartphone | 8-1005 | 998 |
-| css/mobil.css | Gemeinsam planen (Gruppe) | 1006-1072 | 67 |
+| css/basis.css | Header | 20-273 | 254 |
+| css/basis.css | Section head | 274-307 | 34 |
+| css/basis.css | Buttons | 308-401 | 94 |
+| css/basis.css | Week grid | 402-1552 | 1151 |
+| css/komponenten.css | Recipe grid | 8-327 | 320 |
+| css/komponenten.css | Meal-Ansicht (openMealSheet) | 328-526 | 199 |
+| css/komponenten.css | Empty state | 527-538 | 12 |
+| css/komponenten.css | Modal | 539-930 | 392 |
+| css/komponenten.css | Profil (Login) & Teilen | 931-1033 | 103 |
+| css/komponenten.css | Profilbild-Zuschnitt (Kreis-Crop) | 1034-1228 | 195 |
+| css/komponenten.css | PDF / Druck | 1229-1262 | 34 |
+| css/mobil.css | Mobile / Smartphone | 8-1006 | 999 |
+| css/mobil.css | Gemeinsam planen (Gruppe) | 1007-1073 | 67 |
 | data/bilder.js | Gerichtsfotos (nach Namen zugeordnet) | 11-142 | 132 |
 | data/cookbook.js | Rezeptbuch | 11-569 | 559 |
 | data/foods.js | Zutaten-Datenbank fuer die Suche | 11-244 | 234 |
@@ -127,31 +127,31 @@ Erhoben aus den Abschnittsmarken im Code, nicht von Hand gepflegt.
 | index.html | Picker | 9193-9532 | 340 |
 | index.html | Shopping list | 9533-9744 | 212 |
 | index.html | Vorkochen (C3) | 9745-9952 | 208 |
-| index.html | Actions | 9953-10037 | 85 |
-| index.html | Rechtstexte (Impressum / Datenschutz) | 10038-10063 | 26 |
-| index.html | Auto-Wochenplaner (D2) | 10064-10170 | 107 |
-| index.html | Wiederholung: was zuletzt dran war, rutscht nach hinten | 10171-10189 | 19 |
-| index.html | Passt die Groesse zum Slot? | 10190-10196 | 7 |
-| index.html | In der Gruppe: was zu MEHR Profilen passt, kommt weiter nach vorn | 10197-10574 | 378 |
-| index.html | Toast | 10575-10584 | 10 |
-| index.html | Toast mit Rueckgaengig (Paket B1) | 10585-10620 | 36 |
-| index.html | Event delegation | 10621-10848 | 228 |
-| index.html | Meals im Plan per Ziehen sortieren | 10849-10952 | 104 |
-| index.html | Foto per Drag & Drop auf eine Meal-Karte (Desktop) | 10953-10984 | 32 |
-| index.html | Foto per Strg+V auf eine Meal-Karte einfuegen | 10985-11016 | 32 |
-| index.html | Profil (lokal) & Teilen | 11017-11063 | 47 |
-| index.html | Kontowechsel auf demselben Geraet | 11064-11783 | 720 |
-| index.html | Kalorienrechner (Baustein 1: Tages-/Wochenbedarf → state.goal) | 11784-11874 | 91 |
-| index.html | Wiegen: speichern, loeschen, ans Ziel koppeln | 11875-11948 | 74 |
-| index.html | Erste Schritte (Onboarding) | 11949-12801 | 853 |
-| index.html | Erscheinungsbild | 12802-12828 | 27 |
-| index.html | Einstellungen | 12829-12952 | 124 |
-| index.html | Einstieg (D1b) | 12953-13028 | 76 |
-| index.html | Cloud-Anmeldung (Firebase) | 13029-13590 | 562 |
-| index.html | Gemeinsam planen (Gruppe) | 13591-14582 | 992 |
-| index.html | Teilen ueber den nativen Dialog des Geraets (Web Share API) | 14583-14616 | 34 |
-| index.html | Einkaufsliste als PDF (Paket B3) | 14617-14856 | 240 |
-| index.html | Boot | 14857-14875 | 19 |
+| index.html | Actions | 9953-10038 | 86 |
+| index.html | Rechtstexte (Impressum / Datenschutz) | 10039-10064 | 26 |
+| index.html | Auto-Wochenplaner (D2) | 10065-10171 | 107 |
+| index.html | Wiederholung: was zuletzt dran war, rutscht nach hinten | 10172-10190 | 19 |
+| index.html | Passt die Groesse zum Slot? | 10191-10197 | 7 |
+| index.html | In der Gruppe: was zu MEHR Profilen passt, kommt weiter nach vorn | 10198-10572 | 375 |
+| index.html | Toast | 10573-10582 | 10 |
+| index.html | Toast mit Rueckgaengig (Paket B1) | 10583-10618 | 36 |
+| index.html | Event delegation | 10619-10846 | 228 |
+| index.html | Meals im Plan per Ziehen sortieren | 10847-10950 | 104 |
+| index.html | Foto per Drag & Drop auf eine Meal-Karte (Desktop) | 10951-10982 | 32 |
+| index.html | Foto per Strg+V auf eine Meal-Karte einfuegen | 10983-11014 | 32 |
+| index.html | Profil (lokal) & Teilen | 11015-11061 | 47 |
+| index.html | Kontowechsel auf demselben Geraet | 11062-11781 | 720 |
+| index.html | Kalorienrechner (Baustein 1: Tages-/Wochenbedarf → state.goal) | 11782-11872 | 91 |
+| index.html | Wiegen: speichern, loeschen, ans Ziel koppeln | 11873-11946 | 74 |
+| index.html | Erste Schritte (Onboarding) | 11947-12799 | 853 |
+| index.html | Erscheinungsbild | 12800-12826 | 27 |
+| index.html | Einstellungen | 12827-12950 | 124 |
+| index.html | Einstieg (D1b) | 12951-13026 | 76 |
+| index.html | Cloud-Anmeldung (Firebase) | 13027-13588 | 562 |
+| index.html | Gemeinsam planen (Gruppe) | 13589-14580 | 992 |
+| index.html | Teilen ueber den nativen Dialog des Geraets (Web Share API) | 14581-14614 | 34 |
+| index.html | Einkaufsliste als PDF (Paket B3) | 14615-14854 | 240 |
+| index.html | Boot | 14855-14873 | 19 |
 | lib/barcode.js | Barcode-Scan (Open Food Facts) | 14-163 | 150 |
 | lib/pdf.js | PDF selbst erzeugen (kein window.print, sandbox-sicher) | 14-38 | 25 |
 | lib/pdf.js | Marken-Kopf fuer die PDFs (Logo, "PADDY'S MEALPLAN", Slogan) | 39-106 | 68 |
@@ -321,9 +321,9 @@ _keine_
 | README.md | 46 | 1990 |
 | SECURITY.md | 71 | 3006 |
 | css/CLAUDE.md | 92 | 4167 |
-| css/basis.css | 1468 | 105446 |
-| css/komponenten.css | 1264 | 97532 |
-| css/mobil.css | 1072 | 70742 |
+| css/basis.css | 1552 | 110388 |
+| css/komponenten.css | 1262 | 97111 |
+| css/mobil.css | 1073 | 70753 |
 | css/tokens.css | 259 | 14080 |
 | data/CLAUDE.md | 161 | 7419 |
 | data/bilder.js | 142 | 9143 |
@@ -333,14 +333,14 @@ _keine_
 | data/rechtstexte.js | 169 | 28727 |
 | docs/ABDECKUNG.md | 189 | 12155 |
 | docs/ARCHITECTURES.md | 3194 | 202375 |
-| docs/BAUSTEINE.md | 70 | 4951 |
-| docs/DESIGN.md | 1125 | 60286 |
+| docs/BAUSTEINE.md | 96 | 8316 |
+| docs/DESIGN.md | 1196 | 64046 |
 | docs/MODULE.md | — | — (erzeugt) |
-| docs/PRODUCT.md | 1729 | 98422 |
+| docs/PRODUCT.md | 1744 | 99492 |
 | docs/RUNBOOK.md | 249 | 10092 |
 | docs/SECURITY.md | 527 | 31631 |
 | docs/STORE.md | 473 | 27190 |
-| docs/TESTING.md | 5086 | 301891 |
+| docs/TESTING.md | 5133 | 304394 |
 | docs/TROUBLESHOOTING.md | 6692 | 389342 |
 | docs/module-index.json | — | — (erzeugt) |
 | firestore.rules | 486 | 28086 |
@@ -432,7 +432,7 @@ _keine_
 | img/waffle.webp | — | 52546 |
 | img/wrap.webp | — | 43594 |
 | img/wurst.webp | — | 54064 |
-| index.html | 14875 | 914253 |
+| index.html | 14873 | 914610 |
 | lib/barcode.js | 163 | 9247 |
 | lib/basis.js | 21 | 836 |
 | lib/pdf.js | 241 | 13120 |
@@ -449,7 +449,7 @@ _keine_
 | tools/abnahme-scan-kamera.py | 388 | 15468 |
 | tools/abnahme-zutaten-sortieren.py | 458 | 20164 |
 | tools/alle-pruefstaende.py | 226 | 9699 |
-| tools/bausteine.py | 204 | 7716 |
+| tools/bausteine.py | 254 | 10401 |
 | tools/bildsatz-stichworte.json | 1061 | 20704 |
 | tools/cdp.py | 261 | 11294 |
 | tools/dashboard.py | 392 | 15577 |
@@ -492,6 +492,7 @@ _keine_
 | tools/pruefstand-mengenanzeige.py | 262 | 12448 |
 | tools/pruefstand-picker-quellen.py | 198 | 7217 |
 | tools/pruefstand-plan-sortieren.py | 501 | 24539 |
+| tools/pruefstand-reiter.py | 306 | 13267 |
 | tools/pruefstand-rezept-id-format.py | 295 | 13133 |
 | tools/pruefstand-rezeptbuch-ansicht.py | 188 | 10795 |
 | tools/pruefstand-rezeptbuch-filter.py | 222 | 10222 |
@@ -518,7 +519,7 @@ _keine_
 | tools/schnappschuss.py | 159 | 7209 |
 | tools/smoke-mit-daten.py | 145 | 8236 |
 | tools/test-meal-bilder.py | 156 | 8295 |
-| tools/vergleich-bausteine.js | 111 | 4431 |
+| tools/vergleich-bausteine.js | 146 | 6317 |
 | tools/vorfuehren.py | 120 | 4607 |
 | tools/wartung-check.py | 607 | 27909 |
 | vendor/HERKUNFT.md | 105 | 4752 |

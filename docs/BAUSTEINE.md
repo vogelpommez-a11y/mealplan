@@ -29,20 +29,26 @@ nicht auf den gemeinsamen Helfer umgestellt ist.
 | **Meal-Blatt / Sheet** | `openMealSheet(id, …)` | ~25 Stellen | eigen | `abnahme-mobil.py` |
 | **Button-Varianten** | `.btn` + Varianten `primary` · `ghost` · `sm` · `danger` · `icon-gh` · `fav-ic` · **`link`** (neu) | 117 Markup-Stellen | **eigen.** Kontext und Variante sind jetzt getrennt: `onb-skip`, `onb-back`, `ing-done` tragen gar kein CSS (reine JS-Handles), `ms-ing-add`, `wg-recalc`, `shop-ic`, `plan-auto`, `auth-forgot`, `foot-link`, `toggle-all` setzen nur noch Ort und Breite. `.btn.del-ic` war tot und ist entfernt | `bausteine.py` |
 | **Trefferflaeche (hitSlop)** | `.hit` / `.hit.rund`, zentrale Regel in `css/basis.css` | 9 Selektoren: `.btn.icon-gh`, `.btn.fav-ic`, `.foot-link`, `.ing-ic`, `.ing-view-del`, `.ing-barcode`, `.wch-add`, `.wch-more`, `.avatar-edit-btn` | **eigen.** Vorher stand an jeder Stelle ein von Hand ausgerechnetes `inset`: dreimal ergab es 44 px, zweimal 46, dreimal fehlte es ganz. `width/height: max(100%, 44px)` rechnet selbst und zaehlt ueber die Border-Box, also unabhaengig vom Rand. Mindestmass nach [WCAG 2.2 SC 2.5.5](https://www.w3.org/WAI/WCAG22/Understanding/target-size-enhanced.html) | `bausteine.py`, `abnahme-mobil.py` |
+| **Gleitende Markierung** | gemeinsames Fundament in `css/basis.css` („Gleitende Markierung“) | 4 Leisten: `.tab-ind`, `.kal-pill`, `.db-ind`, `.ws-ind` | **eigen.** Bis 21.09.2026 drei Einzuege (3/4/5 px) und zwei hartkodierte Schatten — gewachsen, nicht entschieden. **Zwei Familien bleiben bewusst**: akzent für kontextuelle Auswahl, neutral für die dauerhaft sichtbare Hauptnavigation (Rot ist die Aktionsfarbe, und die Leiste liegt auf Glas über wechselnden Fotos). Regel und Kontrastnachweis: `docs/DESIGN.md`. Auch **zwei Mechaniken** bleiben: drei schieben mit `translateX(n×100%)`, `.ws-ind` misst — Messen an der Tagesleiste wäre eine Performance-Regression | `bausteine.py`, `pruefstand-reiter.py` |
 | **Toast** | `toast(msg)` · `undoToast(msg, fn)` | ~130 Aufrufe, **ein** `#toast`-Element | eigen — die Undo-Variante teilt bewusst dieselbe Basis, sonst entwickeln sich zwei Toasts auseinander | — |
 
-**Diese neun sind das Vorbild, nicht die Baustelle.** Wer hier etwas ändert, ändert es für
+**Diese zehn sind das Vorbild, nicht die Baustelle.** Wer hier etwas ändert, ändert es für
 alle — genau so soll es sein.
 
 ---
 
 ## 2. In Arbeit — noch mehrfach getrennt gebaut
 
-Stand der Erhebung: 20.09.2026. Reihenfolge und Begründungen in `plans/UI-Grundlagen.MD`.
+**Zurzeit leer — Etappe 1 ist durch** (21.09.2026). Alle fünf Bausteine aus
+`plans/UI-Grundlagen.MD` stehen in Abschnitt 1: Dropdown, Leere Zustände, Aufklapper,
+Buttons, Tabs.
+
+Wer hier etwas einträgt, sagt damit: Dieser Baustein ist **heute** mehrfach getrennt
+gebaut und wird zusammengeführt. Ein Eintrag ohne Termin und ohne Plan gehört nicht
+hierher, sondern nach Abschnitt 3 oder 6.
 
 | Baustein | Heute | Ziel | Herkunft geplant |
 |---|---|---|---|
-| **Tabs / Segmente** | **3 Muster**: `.tabs` (Hauptreiter), `.daybar` (Tagesleiste), `.kal-seg` (Zeitraum) | gemeinsamer Bauplan | eigen — die gleitende Pille ist bereits etabliert |
 
 ---
 
