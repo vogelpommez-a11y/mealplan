@@ -189,9 +189,9 @@
     <div class="wrap foot-inner">
       <span class="foot-copy">© <span id="foot-year">2026</span> Paddy’s Mealplan</span>
       <nav class="foot-nav" aria-label="Rechtliches">
-        <button type="button" class="foot-link" data-action="impressum">Impressum</button>
+        <button type="button" class="btn link leise foot-link" data-action="impressum">Impressum</button>
         <span class="foot-sep" aria-hidden="true">·</span>
-        <button type="button" class="foot-link" data-action="datenschutz">Datenschutz</button>
+        <button type="button" class="btn link leise foot-link" data-action="datenschutz">Datenschutz</button>
       </nav>
     </div>
   </footer>
@@ -9865,7 +9865,7 @@
         <div class="shop-progress">
           <span class="ptext" id="shop-count">0 von ${items.length} erledigt</span>
           <div class="bar"><i id="shop-bar"></i></div>
-          <button class="toggle-all" id="shop-toggle" type="button">Alle abhaken</button>
+          <button class="btn link toggle-all" id="shop-toggle" type="button">Alle abhaken</button>
         </div>
         <div class="shop-list">${listHtml}</div>`;
     }
@@ -13001,7 +13001,7 @@
       ${hasData ? `<p class="auth-switch">Deine bisherigen Meals und dein Plan auf diesem Gerät bleiben erhalten.</p>` : ""}
       <p class="auth-note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></svg><span>Dies ist ein <strong>lokales Profil</strong> auf diesem Gerät – kein Konto, kein Passwort, keine Daten bei uns.
       ${pendingShare && window.CloudShare && window.CloudShare.enabled
-        ? `Geteilte Links brauchen ein Cloud-Konto – <button type="button" class="auth-forgot" style="display:inline;margin:0" id="a-use-cloud">stattdessen mit Cloud-Konto anmelden</button>.`
+        ? `Geteilte Links brauchen ein Cloud-Konto – <button type="button" class="btn link inline" id="a-use-cloud">stattdessen mit Cloud-Konto anmelden</button>.`
         : "Zum gemeinsamen Planen teilst du deine Woche per Einladungs-Code."}</span></p>
     </div></div>`;
     const nameEl = view.querySelector("#a-name");
@@ -13095,7 +13095,7 @@
       ${reg ? `<div class="field"><label for="c-name">Name</label><input type="text" id="c-name" placeholder="Wie heißt du?" maxlength="40" autocomplete="name"></div>` : ""}
       <div class="field"><label for="c-email">E-Mail-Adresse</label><input type="email" id="c-email" placeholder="du@beispiel.de" autocomplete="email"></div>
       <div class="field"><label for="c-pw">Passwort</label><input type="password" id="c-pw" placeholder="${reg ? "Mindestens 6 Zeichen" : "Dein Passwort"}" autocomplete="${reg ? "new-password" : "current-password"}"></div>
-      ${reg ? "" : `<button type="button" class="auth-forgot" id="c-forgot">Passwort vergessen?</button>`}
+      ${reg ? "" : `<button type="button" class="btn link auth-forgot" id="c-forgot">Passwort vergessen?</button>`}
       <p class="auth-err" id="c-err" role="alert"></p>
       <button class="btn primary" id="c-go">${reg ? "Konto erstellen" : "Anmelden"}</button>
       <div class="auth-or">oder</div>
@@ -13177,7 +13177,7 @@
       <button class="btn primary" id="v-check">Ich habe bestätigt</button>
       <div class="auth-or">oder</div>
       <button class="btn social" id="v-resend" type="button">Bestätigungsmail erneut senden</button>
-      <p class="auth-switch">Falsche Adresse oder anderes Konto? <button type="button" class="auth-forgot" style="display:inline;margin:0" id="v-back">Abmelden</button></p>
+      <p class="auth-switch">Falsche Adresse oder anderes Konto? <button type="button" class="btn link inline" id="v-back">Abmelden</button></p>
       <p class="auth-note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></svg><span>Keine Mail erhalten? Schau auch im <strong>Spam-Ordner</strong> nach. Der Link ist einige Zeit gültig.</span></p>
     </div></div>`;
     const card = view.querySelector(".auth-card");

@@ -78,6 +78,27 @@ BAUSTEINE = [
     (u"Bestaetigung: zentraler Helfer", "index.html",
      r"\bconfirmModal\s*\(", 14,
      u"VORBILD - ersetzte fuenf fast gleiche Bloecke"),
+
+    # Der Trefferflaechen-Mechanismus (21.09.2026). Faellt die Zahl, hat jemand einen
+    # Selektor aus der gemeinsamen Regel geloest - und der Knopf ist wieder unter 44 px,
+    # ohne dass es irgendwo auffaellt.
+    (u"Trefferflaeche: gemeinsame Regel", "css/basis.css",
+     r"\.(?:hit|btn\.icon-gh|btn\.fav-ic|foot-link|ing-ic|ing-view-del|ing-barcode|wch-add|wch-more|avatar-edit-btn)::after", 13,
+     u"9 in der ::after-Liste + 4 in der Rund-Zeile"),
+
+    # Der rahmenlose Textknopf. 0 heisst: keiner hat sich wieder danebengebaut.
+    (u"Textknopf: Eigenbauten", "css/komponenten.css",
+     r"\.(?:auth-forgot|toggle-all)\s*\{[^}]*background:\s*(?:0|none)", 0,
+     u"muss 0 bleiben - das Aussehen gehoert .btn.link"),
+
+    (u"Textknopf: Variante genutzt", "index.html",
+     r'class="btn link\b', 6,
+     u"3 Orte + 2 inline + 1 leise"),
+
+    # .btn.del-ic war am 21.09.2026 tot (nur CSS, kein Markup) und wurde entfernt.
+    (u"Button: tote Variante del-ic", "css/basis.css",
+     r"\.btn\.del-ic", 0,
+     u"muss 0 bleiben - war eine Karteileiche"),
 ]
 
 

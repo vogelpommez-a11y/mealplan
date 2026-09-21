@@ -211,13 +211,10 @@
   .foot-inner { display: flex; align-items: center; justify-content: space-between; gap: 12px 18px; padding: 16px 0; flex-wrap: wrap; }
   .foot-copy { font-size: 12.5px; color: var(--text-muted); }
   .foot-nav { display: flex; align-items: center; gap: 8px; }
-  .foot-link { font: inherit; font-size: 12.5px; color: var(--text-muted); background: 0; border: 0; padding: 2px 2px; cursor: pointer; }
-  .foot-link:hover { color: var(--accent-strong); text-decoration: underline; }
-  /* hitSlop wie .toast-undo::after: die Trefferflaeche waechst auf 44px, das Aussehen des
-     Fusses bleibt. Gemessen am 10.09.2026 waren die Knoepfe 23px hoch - unter den 24px,
-     die WCAG 2.5.8 als Mindestmass verlangt. position:relative traegt das Pseudo. */
-  .foot-link { position: relative; }
-  .foot-link::after { content: ""; position: absolute; left: 0; right: 0; top: 50%; height: 44px; transform: translateY(-50%); }
+  /* Aussehen: .btn.link.leise. Hier steht nur noch der Ort. Die 44px-Trefferflaeche
+     kommt aus dem gemeinsamen Mechanismus weiter unten - gemessen am 10.09.2026 waren
+     die Knoepfe 23px hoch, unter dem Mindestmass aus WCAG 2.5.8. */
+  .foot-link { padding: 2px 2px; }
   .foot-sep { color: var(--border-strong); }
   .app { display: flex; flex-direction: column; min-height: 100vh; min-height: 100dvh; }
   .legal h4 { font-family: var(--font-display); font-size: 15.5px; font-weight: 600; margin: 18px 0 5px; }
@@ -232,6 +229,34 @@
   .section-head .title { margin-right: auto; }
   .section-head h2 { font-family: var(--font-display); font-weight: 600; font-size: 27px; margin: 0 0 2px; letter-spacing: .2px; }
   .section-head .sub { color: var(--text-muted); font-size: 14px; }
+
+  /* ---------- Trefferflaeche ----------
+     EIN Mechanismus statt acht handgerechneter Werte. Die sichtbare Groesse bleibt
+     unveraendert, die Trefferflaeche misst immer mindestens 44 x 44 (WCAG 2.2 SC 2.5.5) -
+     gleich ob der Knopf 28, 34 oder 36 px gross ist.
+
+     Vorher stand an acht Stellen ein von Hand ausgerechnetes `inset`: dreimal ergab es
+     44 px, zweimal 46, und dreimal fehlte es ganz (.ing-ic, .ing-barcode). Wer die
+     sichtbare Groesse aendert, muesste das inset nachrechnen - `max()` rechnet selbst.
+     Deshalb steht die Regel hier zentral und nicht bei jeder Komponente.
+
+     Warum nicht `inset` mit calc: `inset` zaehlt ab Padding-Box, der Rand zaehlt nicht
+     mit - bei .ing-ic und .btn.icon-gh (je 1px Rand) waere derselbe Wert zwei
+     verschiedene Flaechen. Ueber Breite/Hoehe mit `max(100%, 44px)` zaehlt die Border-Box. */
+  .hit,
+  .btn.icon-gh, .btn.fav-ic, .foot-link,
+  .ing-ic, .ing-view-del, .ing-barcode,
+  .wch-add, .wch-more, .avatar-edit-btn { position: relative; }
+  .hit::after,
+  .btn.icon-gh::after, .btn.fav-ic::after, .foot-link::after,
+  .ing-ic::after, .ing-view-del::after, .ing-barcode::after,
+  .wch-add::after, .wch-more::after, .avatar-edit-btn::after {
+    content: ""; position: absolute; left: 50%; top: 50%;
+    width: max(100%, 44px); height: max(100%, 44px);
+    transform: translate(-50%, -50%);
+  }
+  /* Runde Knoepfe bekommen eine runde Trefferflaeche - sonst traefe die Ecke daneben. */
+  .hit.rund::after, .wch-add::after, .wch-more::after, .avatar-edit-btn::after { border-radius: 50%; }
 
   /* ---------- Buttons ---------- */
   .btn {
@@ -277,22 +302,16 @@
      (hitSlop-Muster) – so bleibt die Button-Zeile niedrig und der Touch-Target konform.
      Das Abruecken nach rechts (margin-left:auto) sitzt am Teilen-Button davor, nicht
      hier - sonst klemmen bei vier Buttons drei links und nur einer isoliert rechts. */
-  .btn.del-ic { position: relative; width: 34px; height: 34px; padding: 0; justify-content: center; color: var(--text-muted); background: transparent; border-color: transparent; }
-  .btn.del-ic::after { content: ""; position: absolute; inset: -6px; }
-  .btn.del-ic svg { width: 17px; height: 17px; }
-  .btn.del-ic:hover { color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, var(--surface)); border-color: transparent; }
   .btn svg { width: 16px; height: 16px; }
-  /* Icon-Button ohne Text, gleiches hitSlop-Muster wie .btn.del-ic, aber neutral statt
-     rot beim Hover - "Meal teilen"/"Woche leeren" sind keine Loeschaktionen. */
-  .btn.icon-gh { position: relative; width: 34px; height: 34px; padding: 0; justify-content: center; }
-  .btn.icon-gh::after { content: ""; position: absolute; inset: -6px; }
+  /* Icon-Button ohne Text. Die Trefferflaeche kommt aus der gemeinsamen Regel oben;
+     neutral statt rot beim Hover - "Meal teilen"/"Woche leeren" sind keine Loeschaktionen. */
+  .btn.icon-gh { width: 34px; height: 34px; padding: 0; justify-content: center; }
   .btn.icon-gh svg { width: 17px; height: 17px; }
-  /* Favoriten-Herz: gleiches Groessen-/Hit-Slop-Muster wie .btn.del-ic. Ruhezustand grau,
+  /* Favoriten-Herz: gleiche Groesse wie .btn.icon-gh. Ruhezustand grau,
      aktiv gefuellt in --accent. Gold ist Pro vorbehalten. Skaliert nur beim Antippen (icon,
      nicht der ganze Button) - hochfrequente Aktion, daher kurz und ohne Einschwingen. */
-  .btn.fav-ic { position: relative; width: 34px; height: 34px; padding: 0; justify-content: center;
+  .btn.fav-ic { width: 34px; height: 34px; padding: 0; justify-content: center;
     color: var(--text-muted); background: transparent; border-color: transparent; }
-  .btn.fav-ic::after { content: ""; position: absolute; inset: -6px; }
   .btn.fav-ic svg { width: 17px; height: 17px; transition: transform var(--dur-fast) var(--ease-out); }
   .btn.fav-ic:hover { color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, var(--surface)); border-color: transparent; }
   .btn.fav-ic.on { color: var(--accent); }
@@ -312,6 +331,26 @@
   .fav-ic.on-photo:hover { color: #fff; background: color-mix(in srgb, #0a0c07 68%, transparent); }
   .fav-ic.on-photo.on { color: var(--accent); }
   .btn.sm { padding: 6px 11px; font-size: 13px; }
+  /* Der Knopf, der wie ein Link aussieht - vorher dreimal getrennt gebaut
+     (.auth-forgot, .toggle-all, .foot-link), jedes Mal mit eigenem `background: 0;
+     border: 0; font: inherit`. Zwei der drei wurden im Markup zusaetzlich per
+     inline-`style` zurueckgebogen, weil die Klasse zwei Rollen trug: eigenstaendiger
+     Knopf UND Link mitten im Satz. Das ist jetzt getrennt - `link` ist die Variante,
+     `inline` der Kontext. */
+  .btn.link {
+    background: 0; border-color: transparent; padding: 3px 7px;
+    font-size: 12.5px; font-weight: 550; color: var(--accent-strong);
+    border-radius: 6px;
+  }
+  .btn.link:hover { border-color: transparent; background: color-mix(in srgb, var(--accent) 12%, transparent); }
+  .btn.link:active { transform: none; }
+  /* Mitten im Fliesstext: kein Padding, keine Hover-Flaeche - die wuerde die Zeile
+     aufreissen. Stattdessen die Unterstreichung, die man von einem Link erwartet. */
+  .btn.link.inline { display: inline; padding: 0; border-radius: 0; }
+  .btn.link.inline:hover { background: none; text-decoration: underline; }
+  /* Gedaempft: Impressum und Datenschutz im Fuss sollen da sein, aber nicht rufen. */
+  .btn.link.leise { color: var(--text-muted); }
+  .btn.link.leise:hover { color: var(--accent-strong); background: none; text-decoration: underline; }
 
   /* ---------- Week grid ---------- */
   /* Wochenplan-Kopf: Titel oben, Werkzeugleiste eine Zeile darunter */
@@ -1103,17 +1142,14 @@
   /* hitSlop wie .toast-undo::after: die Trefferflaeche waechst auf 44px (Apple HIG),
      das Aussehen bleibt. Gemessen am 16.09.2026 mit tools/abnahme-mobil.py.
      inset zaehlt ab PADDING BOX - der 1px-Rand ist nicht dabei. */
-  .wch-more { position: relative; }
-  .wch-more::after { content: ""; position: absolute; inset: -5px; border-radius: 50%; }
   /* Gleiches Gradient-Rund-Button-Muster wie .avatar-edit-btn (Profilbild aendern), nur
      groesser und im Fluss statt absolut: 36px sichtbar, Trefferflaeche per ::after auf 44px. */
   .wch-add {
-    position: relative; width: 36px; height: 36px; border: 0; border-radius: 50%; cursor: pointer;
+    width: 36px; height: 36px; border: 0; border-radius: 50%; cursor: pointer;
     display: grid; place-items: center; font-size: 23px; line-height: 1; padding: 0;
     color: var(--accent-contrast); background: linear-gradient(135deg, var(--accent-solid), var(--accent-solid-strong));
     box-shadow: 0 2px 8px rgba(0,0,0,.35); transition: transform var(--dur-fast) ease;
   }
-  .wch-add::after { content: ""; position: absolute; inset: -5px; border-radius: 50%; }
   .wch-add:hover { transform: scale(1.12); }
   .wch-head .wg-h { margin-bottom: 10px; }
   .wch-stats { display: flex; gap: 16px; flex-wrap: wrap; }

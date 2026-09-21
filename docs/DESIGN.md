@@ -164,7 +164,27 @@ zwingend sichtbar.** Das ist Apples Maß und damit Store-relevant; WCAG 2.5.8 ve
 als Untergrenze.
 
 Wo ein Knopf sichtbar kleiner bleiben soll — ein Icon im Kartenkopf, ein Fußzeilen-Link, ein
-Segment-Umschalter —, wächst die Fläche über ein Pseudoelement, nicht über Polsterung:
+Segment-Umschalter —, wächst die Fläche über ein Pseudoelement, nicht über Polsterung.
+
+**Seit dem 21.09.2026 rechnet das eine gemeinsame Regel in `css/basis.css`**, statt an jeder
+Stelle einen eigenen Wert zu verlangen. Ein neuer quadratischer Icon-Knopf trägt `.hit`
+(rund: `.hit.rund`) oder wird in die Selektorliste dort aufgenommen — mehr ist nicht nötig:
+
+```css
+.hit::after {
+  content: ""; position: absolute; left: 50%; top: 50%;
+  width: max(100%, 44px); height: max(100%, 44px);
+  transform: translate(-50%, -50%);
+}
+```
+
+`max()` rechnet selbst, und über Breite/Höhe zählt die **Border-Box** — der Rand ist also
+mit drin. Damit entfällt genau die Fehlerquelle, die unten beschrieben ist. Bei einem
+breiten Element (Fußzeilen-Link) bleibt die Breite stehen, weil `100%` größer als 44 px
+ist, und nur die Höhe wächst — dasselbe, was früher `inset: -6px 0` von Hand tat.
+
+**Fünfzehn Stellen rechnen weiterhin selbst** (`inset: -6px 0` und Verwandte). Sie sind
+nicht falsch, nur älter; die Liste steht in `docs/BAUSTEINE.md`. Der alte Weg:
 
 ```css
 .beispiel { position: relative; }
@@ -192,8 +212,13 @@ handgeschriebene Tabelle wäre nach dem dritten neuen Knopf falsch und würde da
 behaupten (`CLAUDE.md` §18a). Sie wird gefragt:
 
 ```powershell
-Select-String -Path css/*.css -Pattern '::after.*inset:' | Select-Object -Expand Line
+Select-String -Path css/*.css -Pattern '::after.*(inset:|max\(100%, 44px\))' | Select-Object -Expand Line
 ```
+
+⚠️ Das zweite Muster gehört dazu: Die neun Stellen an der gemeinsamen Regel enthalten
+**kein** `inset` mehr. Wer nur nach `inset:` sucht, übersieht sie und hält sie für
+unbehandelt. `python tools/bausteine.py` zählt sie ebenfalls und schlägt an, wenn ein
+Selektor aus der Regel fällt.
 
 Verbindlich ist ohnehin die Messung, nicht die Liste: `python tools/abnahme-mobil.py`
 nennt jede Fläche unter 44 px mit Selektor, Größe und Station.

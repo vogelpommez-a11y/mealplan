@@ -26,9 +26,11 @@ nicht auf den gemeinsamen Helfer umgestellt ist.
 | **Leere Zustände** | `leerZustand({icon, titel, text, aktion, klein})` | 11 Aufrufe. Zwei Größen: ganze Ansicht (`.empty`, im Dialog `.empty.im-dialog`) und eine Zeile im Inhalt (`.leer`) | **eigen — die Form stand schon im Rezeptbuch** (`.empty`), sie wurde nur auf die anderen zehn Stellen übertragen. Bestätigt durch [NN/g zu Empty States](https://www.nngroup.com/articles/empty-state-interface-design/): ohne nächste Aktion ist ein leerer Zustand eine Sackgasse | `bausteine.py`, `abnahme-mobil.py` |
 | **Aufklapper** | `caretSvg()` für den Pfeil; **zwei** Mechanismen bleiben bewusst | 5× natives `<details>`, 5× `<button aria-expanded>` | **eigen.** Die Regel, wann welcher, steht in `docs/DESIGN.md` — sie zu vereinheitlichen wäre falsch: Der Picker baut bei jedem Tastendruck neu, ein `<details>`-Zustand ginge dabei verloren | `bausteine.py` |
 | **Meal-Blatt / Sheet** | `openMealSheet(id, …)` | ~25 Stellen | eigen | `abnahme-mobil.py` |
+| **Button-Varianten** | `.btn` + Varianten `primary` · `ghost` · `sm` · `danger` · `icon-gh` · `fav-ic` · **`link`** (neu) | 117 Markup-Stellen | **eigen.** Kontext und Variante sind jetzt getrennt: `onb-skip`, `onb-back`, `ing-done` tragen gar kein CSS (reine JS-Handles), `ms-ing-add`, `wg-recalc`, `shop-ic`, `plan-auto`, `auth-forgot`, `foot-link`, `toggle-all` setzen nur noch Ort und Breite. `.btn.del-ic` war tot und ist entfernt | `bausteine.py` |
+| **Trefferflaeche (hitSlop)** | `.hit` / `.hit.rund`, zentrale Regel in `css/basis.css` | 9 Selektoren: `.btn.icon-gh`, `.btn.fav-ic`, `.foot-link`, `.ing-ic`, `.ing-view-del`, `.ing-barcode`, `.wch-add`, `.wch-more`, `.avatar-edit-btn` | **eigen.** Vorher stand an jeder Stelle ein von Hand ausgerechnetes `inset`: dreimal ergab es 44 px, zweimal 46, dreimal fehlte es ganz. `width/height: max(100%, 44px)` rechnet selbst und zaehlt ueber die Border-Box, also unabhaengig vom Rand. Mindestmass nach [WCAG 2.2 SC 2.5.5](https://www.w3.org/WAI/WCAG22/Understanding/target-size-enhanced.html) | `bausteine.py`, `abnahme-mobil.py` |
 | **Toast** | `toast(msg)` · `undoToast(msg, fn)` | ~130 Aufrufe, **ein** `#toast`-Element | eigen — die Undo-Variante teilt bewusst dieselbe Basis, sonst entwickeln sich zwei Toasts auseinander | — |
 
-**Diese sieben sind das Vorbild, nicht die Baustelle.** Wer hier etwas ändert, ändert es für
+**Diese neun sind das Vorbild, nicht die Baustelle.** Wer hier etwas ändert, ändert es für
 alle — genau so soll es sein.
 
 ---
@@ -40,7 +42,24 @@ Stand der Erhebung: 20.09.2026. Reihenfolge und Begründungen in `plans/UI-Grund
 | Baustein | Heute | Ziel | Herkunft geplant |
 |---|---|---|---|
 | **Tabs / Segmente** | **3 Muster**: `.tabs` (Hauptreiter), `.daybar` (Tagesleiste), `.kal-seg` (Zeitraum) | gemeinsamer Bauplan | eigen — die gleitende Pille ist bereits etabliert |
-| **Button-Varianten** | Solide Basis `.btn`, aber Kontext und Variante vermischt (`onb-skip`, `wg-recalc`, `ms-ing-add`, `shop-ic`, `plan-auto`) | Kontext von Variante trennen | eigen |
+
+---
+
+### Bekannter Rest: 15 Trefferflaechen sind noch handgerechnet
+
+Der Mechanismus oben deckt die quadratischen Icon-Knoepfe und den Fuss ab. Fuenfzehn
+weitere Stellen rechnen ihr `inset` weiter selbst — die meisten **asymmetrisch**
+(`inset: -6px 0`), weil dort nur die Hoehe wachsen muss und die Breite ohnehin reicht:
+
+`.section-head .btn.primary` · `.ws-btn` · `.kal-seg button` · `.zeitraum .kal-nb` ·
+`.slot .filled .x` / `.pencil` · `.pm-grip` · `.cathead` · `.rfilters button` ·
+`.ing-grip` · `.modal-head .btn.ghost` · `.pmore .btn` · `button.pq-h` · `.toast-undo` ·
+`.profile-btn` · `.auth-card .btn`
+
+`max(100%, 44px)` traegt diese Faelle mit — bei einem breiten Element bleibt die Breite
+stehen und nur die Hoehe waechst. Sie wurden am 21.09.2026 bewusst **nicht** mitgezogen:
+Der Auftrag war der Icon-Knopf, und `.ing-grip` (`-7px -12px`) sowie `.toast-antworten`
+sind Ziehgriffe mit absichtlich anderer Form. Wer sie angeht, geht sie alle an.
 
 ---
 

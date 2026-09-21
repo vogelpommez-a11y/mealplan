@@ -143,7 +143,7 @@
   .ing-gwrap { display: flex; gap: 6px; flex: none; width: 158px; }
   .ing-gwrap .ing-g { flex: none; width: 74px; text-align: right; }
   .ing-gwrap .ing-u { flex: 1; min-width: 0; padding: 8px 6px; }
-  .ing-ic { flex: none; width: 34px; height: 34px; border: 1px solid var(--border); background: var(--surface); color: var(--text-muted); border-radius: 9px; cursor: pointer; display: grid; place-items: center; font-size: 14px; line-height: 1; padding: 0; transition: color var(--dur-fast), border-color var(--dur-fast), background-color var(--dur-fast); }
+  .ing-ic { flex: none; width: 34px; height: 34px; border: 1px solid var(--border); background: var(--surface); color: var(--text-muted); border-radius: var(--radius-sm); cursor: pointer; display: grid; place-items: center; font-size: 14px; line-height: 1; padding: 0; transition: color var(--dur-fast), border-color var(--dur-fast), background-color var(--dur-fast); }
   .ing-ic svg { width: 17px; height: 17px; }
   .ing-ic:disabled, .ing-barcode:disabled { opacity: .5; cursor: default; }
   /* Beschriftet statt nur bebildert: auf Touch gibt es keine Tooltips, ein reines
@@ -151,7 +151,7 @@
   .ing-barcode {
     flex: none; display: inline-flex; align-items: center; gap: 6px; height: 34px;
     padding: 0 11px; border: 1px solid var(--border); background: var(--surface);
-    color: var(--text-muted); border-radius: 9px; cursor: pointer;
+    color: var(--text-muted); border-radius: var(--radius-sm); cursor: pointer;
     font-family: var(--font-body); font-size: 11px; font-weight: 700;
     letter-spacing: .06em; text-transform: uppercase; white-space: nowrap;
     transition: color var(--dur-fast), border-color var(--dur-fast), background-color var(--dur-fast);
@@ -265,12 +265,11 @@
   .ing-view-del {
     grid-column: 4; grid-row: 1 / span 2; align-self: start; position: relative; z-index: 2;
     width: 34px; height: 34px; border: 0; background: none; color: var(--text-muted);
-    cursor: pointer; border-radius: 9px; display: grid; place-items: center; font-size: 15px;
+    cursor: pointer; border-radius: var(--radius-sm); display: grid; place-items: center; font-size: 15px;
   }
-  /* 44px Trefferflaeche, TROUBLESHOOTING #38. Wieder symmetrisch (Nachtrag Abnahme Phase 1)
-     - ohne den Stift als Nachbarn braucht das ✕ keine einseitige Enge mehr. z-index haelt
-     es ueber dem ::after der Anzeigezeile, das sonst die ganze Zeile ueberdeckt. */
-  .ing-view-del::after { content: ""; position: absolute; inset: -5px; }
+  /* Die 44px-Trefferflaeche kommt aus dem gemeinsamen Mechanismus in css/basis.css
+     (TROUBLESHOOTING #38). Hier bleibt nur, was wirklich nur hier gilt: z-index haelt das
+     ✕ ueber dem ::after der Anzeigezeile, das sonst die ganze Zeile ueberdeckt. */
   .ing-view-del:hover { color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, transparent); }
 
   /* ---------- Zutaten sortieren (Paket 3) ----------
@@ -811,8 +810,8 @@
   .shop-progress .bar { flex: 1; height: 7px; border-radius: 99px; background: var(--surface-2); overflow: hidden; }
   .shop-progress .bar > i { display: block; height: 100%; width: 0; border-radius: 99px; background: linear-gradient(90deg, var(--accent), var(--accent-strong)); transition: width var(--dur-slow) ease; }
   .shop-progress .ptext { font-size: 12.5px; color: var(--text-muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
-  .shop-progress .toggle-all { font: inherit; font-size: 12.5px; font-weight: 550; color: var(--accent-strong); background: none; border: 0; cursor: pointer; padding: 3px 7px; border-radius: 6px; white-space: nowrap; }
-  .shop-progress .toggle-all:hover { background: color-mix(in srgb, var(--accent) 12%, transparent); }
+  /* Aussehen: .btn.link. Hier bleibt nur, was der Ort verlangt. */
+  .shop-progress .toggle-all { white-space: nowrap; }
   /* ---------- Listen-Optik statt Kacheln ----------
      Dieselbe Form wie der Zutaten-Ruhezustand der Meal-Ansicht (.ing-view) und die
      Mahlzeiten im Wochenplan auf dem Handy: ein Fenster, darin Abschnitte mit
@@ -1027,9 +1026,8 @@
     color: var(--accent-contrast); background: linear-gradient(135deg, var(--accent-solid), var(--accent-solid-strong));
     box-shadow: 0 2px 8px rgba(0,0,0,.35); transition: transform var(--dur-fast) ease;
   }
-  /* Sichtbar bleiben 28px - die Trefferflaeche wird per Pseudo-Element auf 44x44 erweitert,
-     gleiches hitSlop-Muster wie .btn.icon-gh (TROUBLESHOOTING #38). */
-  .avatar-edit-btn::after { content: ""; position: absolute; inset: -8px; }
+  /* Sichtbar bleiben 28px - auf 44x44 erweitert der gemeinsame Mechanismus in
+     css/basis.css (TROUBLESHOOTING #38). */
   .avatar-edit-btn:hover { transform: scale(1.12); }
   .avatar-edit-btn svg { width: 14px; height: 14px; }
 
@@ -1194,8 +1192,8 @@
   .auth-note svg { width: 15px; height: 15px; flex: none; margin-top: 1px; color: var(--accent); }
   .auth-card .field + .field { margin-top: 10px; }
   .auth-err { color: var(--danger); font-size: 12.5px; margin: 12px 0 0; text-align: left; line-height: 1.45; min-height: 0; }
-  .auth-forgot { display: block; text-align: right; font-size: 12px; color: var(--accent-strong); background: 0; border: 0; cursor: pointer; margin: 8px 0 0; padding: 0; }
-  .auth-forgot:hover { text-decoration: underline; }
+  /* Nur noch Ort und Ausrichtung - das Aussehen kommt von .btn.link (css/basis.css). */
+  .auth-forgot { display: block; text-align: right; margin: 8px 0 0 auto; }
   .auth-or { display: flex; align-items: center; gap: 12px; margin: 18px 0 16px; color: var(--text-muted); font-size: 12px; }
   .auth-or::before, .auth-or::after { content: ""; flex: 1; height: 1px; background: var(--border); }
   .btn.social { width: 100%; justify-content: center; gap: 10px; padding: 11px; font-size: 14.5px; font-weight: 550; background: var(--surface); border: 1px solid var(--border-strong); color: var(--text); }
