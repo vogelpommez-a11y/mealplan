@@ -217,6 +217,53 @@ Beispiele:
 
 Ein HTTP-200 beweist hier nichts.
 
+### Was der Smoke-Test **nicht** beweist — und wer die Lücke schließt
+
+Er lädt die App und schaut, ob `#view` gefüllt ist. Dort steht dann der **Anmelde- bzw.
+Onboarding-Bildschirm**. Bis zu einem Reiter kommt er nie.
+
+Am 21.09.2026 fiel beim Umbau der Meals-Leiste eine `const` weg, zwei Verwendungen blieben
+stehen. Ergebnis: `ReferenceError` in `render()`, der Meals-Reiter blieb leer — und
+**beide** Prüfungen waren grün:
+
+| Prüfung | warum sie es nicht sah |
+|---|---|
+| `syntax-check.py` | Ein fehlender Bezeichner ist **kein Syntaxfehler**. Die Datei ist grammatikalisch einwandfrei; erst die Ausführung stolpert. Das ist keine Schwäche des Skripts, sondern seine Grenze |
+| `/smoke` | Kommt nur bis zum Startbildschirm — der Reiter dahinter wird nie gerendert |
+
+Gefunden hat es der Nutzer von Hand. Seither gibt es dafür:
+
+```powershell
+python tools/pruefstand-reiter.py              # alle vier Reiter wirklich rendern
+python tools/pruefstand-reiter.py --sichtbar   # zum Zuschauen
+python tools/pruefstand-reiter.py --gegenprobe # baut einen Fehler ein: merkt er ihn?
+```
+
+Er setzt fünf Testmeals, klickt jeden Reiter an und prüft je Reiter drei Dinge: `#view`
+ist gefüllt, ein **reiterspezifisches** Merkmal ist da, und beim Wechsel wurde kein
+`window.onerror` oder `console.error` ausgelöst.
+
+Das mittlere ist der Punkt, an dem er sich von `/smoke` unterscheidet: Wäre nur „`#view`
+ist gefüllt" geprüft, wäre ein **wirkungsloser Klick** grün — der vorige Inhalt stünde
+ja noch da.
+
+⚠️ **Die Merkmale nachschlagen, nicht raten.** Der erste Entwurf suchte auf dem
+Startreiter nach `.home`, `.hero` und `.ring` — keine davon existiert in dieser App. Er
+meldete ROT, obwohl alles heil war. Die echten sind `.wg-c`, `.wg-actions`, `.hm-card`.
+Ein Prüfer mit erfundenen Fakten ist schlimmer als keiner (`CLAUDE.md` §18a).
+
+⚠️ **Eigenes, frisches Edge-Profil — nie `tools/cdp.py`.** Dessen Profil ist
+bestimmungsgemäß mit dem echten Cloud-Konto angemeldet (es ist das Werkzeug für
+`/abnahme`). Hier wird ein Testzustand geschrieben, und der hat in einem angemeldeten
+Profil nichts verloren.
+
+⚠️ **Beim Lesen der Sicherung `newline=""` setzen.** Die Gegenprobe zerschießt
+`index.html` absichtlich und schreibt sie danach zurück. Ohne `newline=""` macht Python
+beim **Lesen** universal newlines, aus CRLF wird LF — die Datei kommt inhaltlich identisch,
+aber mit anderen Zeilenenden zurück, und `git` meldet die ganze Datei als geändert.
+
+---
+
 ### Seit D4: `file://` prüft nur noch den Fallback
 
 Das Firebase-SDK liegt seit dem 23.08.2026 in `vendor/firebase/` und wird **relativ**
