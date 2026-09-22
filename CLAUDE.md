@@ -327,8 +327,11 @@ Berechtigung wird **zuerst in den Regeln** durchgesetzt, dann im Client abgebild
 * `firestore.rules` im Repo ist nur eine **Vorlage**. Verbindlich ist der in der
   Firebase-Konsole veröffentlichte Stand. Vergleichen, nur lesend:
   `python tools/regeln-live.py` (braucht `gcloud auth login`); die Wartung mahnt ihn nach
-  30 Tagen an. Ohne diesen Lauf bei jeder
-  Aussage über den Live-Zustand dazusagen, dass er nicht geprüft ist.
+  30 Tagen an. Ohne diesen Lauf bei jeder Aussage über den Live-Zustand dazusagen, dass er
+  nicht geprüft ist.
+* **Vor jedem Veröffentlichen** `python tools/regeln-pruefen.py` — es gibt keinen Emulator,
+  und ein Tippfehler in einer `allow`-Zeile fällt sonst erst bei echten Nutzern auf.
+  **Veröffentlicht wird von Hand in der Konsole**, nie aus einem Skript.
 * Die **Firebase-Web-Config in `index.html` ist kein Secret.** Web-Keys identifizieren das
   Projekt, sie autorisieren nichts. Nie als Leck behandeln.
 

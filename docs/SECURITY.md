@@ -524,3 +524,55 @@ Unterschied ändert nichts an dem, was durchgesetzt wird.
 besteht. Der Weg dorthin war unauffällig: `uid()` erzeugt harmlose IDs, also sah die Stelle
 jahrelang harmlos aus. Der Angreifer schreibt die ID aber nicht über `uid()`, sondern über den
 Dokumentnamen in Firestore.
+
+
+---
+
+## 10. Zwei Regeln, die am 22.09.2026 dazugekommen sind
+
+### `shareFrisch()` — ein Teilen-Link lebt 12 Monate
+
+Die Frist wird in der **Regel** durchgesetzt, nicht in der Oberfläche: Nach 12 Monaten
+lässt sich der Snapshot nicht mehr lesen, auch nicht mit den Entwicklerwerkzeugen. Das
+physische Entfernen holt `tools/shared-aufraeumen.py` bei der Wartung nach.
+
+Dazu gehört eine zweite Hälfte, ohne die die erste Zierde wäre: `create` verlangt ein
+`when`, das **nahe an der Serverzeit** liegt (± 1 Tag). Ohne sie datierte man den Snapshot
+einfach auf das Jahr 2099 und die Frist liefe nie ab. Der eine Tag Spielraum ist Absicht —
+die Uhr eines Geräts darf schief gehen, Teilen soll daran nicht scheitern.
+
+Dokumente **ohne** `when` bleiben lesbar. Bestand aus der Zeit vor der Regel soll nicht
+schlagartig sterben, nur weil ein Feld fehlt (Stand 22.09.2026: genau eines).
+
+### `loestPersonenbezug()` — und warum sie NICHT an Pro hängt
+
+Verlässt jemand eine Gruppe, bleibt sein Meal im gemeinsamen Bestand, seine UID darf es
+nicht (Art. 17 DSGVO). Die Regel erlaubt genau diese eine Änderung: `hasOnly(['by'])`,
+einziger Zielwert `''`, und zwar für die betroffene Person selbst oder den Inhaber.
+
+**Der wichtige Teil ist, woran sie nicht hängt.** Die übrige `update`-Regel für
+`groups/{gid}/recipes` verlangt `canWrite(gid) && groupOwnerHasPro(gid) &&
+nichtGesperrt(gid)`. Hätte das Anonymisieren daran gehängt, wäre passiert:
+
+> Ein Mitglied kann seinen Personenbezug nicht mehr lösen, **weil der Gruppen-Inhaber sein
+> Abo nicht bezahlt hat.** Und es hätte es nicht gemerkt — die Regel lehnt still ab.
+
+Ein Betroffenenrecht darf nicht vom Zahlungsstatus eines Dritten abhängen. Deshalb steht
+die Ausnahme **neben** der Pro-Bedingung, nicht dahinter. Sie ist ungefährlich, weil sie
+nur wegnehmen kann: Inhalt anlegen oder ändern lässt `hasOnly(['by'])` nicht zu.
+
+Gefunden wurde das beim Schreiben des Clients, **nicht** beim Schreiben der Regel — der
+erste Wurf hätte still versagt. Prüfer: `tools/pruefstand-gruppe-anonymisieren.py`,
+Abschnitt 9.
+
+> **Beide Regeln sind Vorlage, nicht Wahrheit.** Verbindlich ist der in der Firebase-Konsole
+> veröffentlichte Stand. **Sie sind am 22.09.2026 noch NICHT veröffentlicht** — bis dahin
+> Geprüft sind sie bislang nur **syntaktisch**: `python tools/regeln-pruefen.py` legt sie über die
+> Rules-API als Regelwerk an (und entfernt es wieder), ohne es scharf zu schalten. Das ist
+> die einzige Probe, die es hier gibt: Einen Firestore-Emulator hat dieses Projekt nicht.
+> Ohne sie fällt ein Tippfehler in einer `allow`-Zeile erst auf, wenn die Regeln live sind,
+> und bei einer verschärfenden Regel hieße das: alle Teilen-Links auf einen Schlag tot.
+>
+> Bis zum Veröffentlichen gilt live die alte Fassung: kein Ablauf für Teilen-Links, und das Anonymisieren beim
+> Austritt scheitert an der `update`-Regel (der Client fängt das ab und protokolliert
+> `group:anonymize`). Vergleichen mit `python tools/regeln-live.py`.

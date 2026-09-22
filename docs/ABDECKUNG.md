@@ -90,10 +90,11 @@ merkt.
 | Dokumentation | `pfad:docs/` | `doku-waechter` | jede nicht-triviale Änderung |
 | Meal-Fotos und ihre Lizenzen | `pfad:img/` | `anwalt` (Bildrechte) | neues Bild, neue Quelle |
 | Werkzeuge und Prüfstände | `pfad:tools/` | `kvp` | neuer Prüfstand, neues Werkzeug |
+| Fristen und Aufräumen | `pfad:tools/` (`shared-aufraeumen.py`, `konten-inaktiv.py`) | `tools/pruefstand-share-frist.py` (drei Fristzahlen gegeneinander), `tools/pruefstand-konten-inaktiv.py` (Einstufung an den Grenzen), `datenschutz-technik` (Art. 30, Art. 5 Abs. 1 lit. e), `anwalt` (Zusage in Ziffer 8 und 10) | Änderung an einer Löschfrist, neue Sammlung mit Personenbezug |
 | Sicherung der Nutzerdaten | `pfad:tools/` (`firestore-backup.py`, `firestore-restore.py`, `firestore_api.py`) | `tools/pruefstand-firestore-backup.py` (Vollständigkeit, Ablageort, Rückspielung), `datenschutz-technik` (Aufbewahrung, Art. 30), `website-security` (Zugang, keine Geheimnisse auf der Platte) | neue Sammlung in Firestore, Änderung an Aufbewahrung oder Ablageort |
 | Fremdcode | `pfad:vendor/` | `lieferkette` | jede Änderung, plus regelmäßig ohne Anlass |
 | Cloudflare Worker | `pfad:worker/` | `website-security`, `datenschutz-technik` | Deploy, neue Verarbeitung |
-| Firestore-Regeln | `pfad:firestore.rules` | `website-security` | jede Regeländerung |
+| Firestore-Regeln | `pfad:firestore.rules` | `website-security` (Inhalt), `tools/regeln-live.py` (Repo gegen Live), `tools/regeln-pruefen.py` (Syntax, ohne zu veröffentlichen — es gibt keinen Emulator), `tools/pruefstand-share-frist.py` und `tools/pruefstand-gruppe-anonymisieren.py` (je eine Regel gegen den Client) | jede Regeländerung, und vor jedem Veröffentlichen |
 | Service Worker | `pfad:sw.js` | `website-security` | Cache-Strategie, neue Assets |
 | Store-Manifest | `pfad:manifest.webmanifest` | `store-check` | Name, Icons, Berechtigungen |
 | Syntax-Prüfung | `pfad:syntax-check.py` | `tools/wartung-check.py` | Änderung am Prüfverfahren |
@@ -167,6 +168,7 @@ Entscheidung mit Begründung, kein Versäumnis — und `tools/abdeckung.py` schw
 | Doku: Sicherheit | `doku:docs/SECURITY.md` | `website-security` liest sie ohnehin |
 | Doku: Store | `doku:docs/STORE.md` | `store-check` liest sie ohnehin |
 | Doku: Datenschutz intern | `doku:docs/DATENSCHUTZ-INTERN.md` | `datenschutz-technik` liest sie ohnehin; gitignored |
+| Doku: Abnahme durch Menschen | `doku:docs/ABNAHME-MENSCH.md` | `doku-waechter` deckt `docs/` ab. **Bewusst kein maschineller Prüfer:** Die Datei sammelt genau das, was sich nicht automatisieren lässt — Wischgesten, echter Safari, ein zweiter Mensch. Ein Skript, das ihre Häkchen prüft, wäre ein Widerspruch in sich. Was sie altern lässt, ist eine UI-Änderung; genau dafür ist `doku-waechter` da |
 | Doku: Abdeckung | `doku:docs/ABDECKUNG.md` | diese Datei selbst |
 | Doku: Technische Landkarte | `doku:docs/MODULE.md` | erzeugt von `tools/karte.py`; `--pruefe` läuft in `wartung-check.py` und in der CI und schlägt an, sobald sie vom Ist-Zustand abweicht |
 

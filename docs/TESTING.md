@@ -5130,3 +5130,105 @@ einen direkten Aufruf von `startBarcodeFlow()` — die Rettung sitzt im `pointer
 ```powershell
 python tools/pruefstand-scan-zeile.py --rueckbau erstbeimklick   # 4 Messgroessen werden rot
 ```
+
+
+---
+
+## Fünf Prüfstände und eine Probe (22.09.2026)
+
+### `tools/pruefstand-messgrundlage.py` — misst der Prüfstand die App?
+
+Die Gegenprobe zu `TROUBLESHOOTING` 174. `abnahme-mobil.py` prüft seit dem 22.09.2026
+**vor** dem Chrome-Start, ob der Server antwortet, und **nach** jedem Laden, ob `.app` und
+`#view` überhaupt da sind. Dieses Skript belegt, dass beides anschlägt:
+
+```powershell
+python tools/pruefstand-messgrundlage.py
+```
+
+* **A** — toter Port: `Sitzung.start()` bricht mit klarer Ansage ab, statt zu messen.
+* **B** — Server da, aber fremde Seite: Die Gerüstprüfung greift. Und die echte App wird
+  trotzdem nicht fälschlich abgelehnt — ohne diesen zweiten Teil wäre eine Prüfung, die
+  *immer* ablehnt, ebenfalls „grün".
+
+`a11y-pruefung.py` importiert dieselbe `Sitzung` und erbt beides mit.
+
+> Nebenbefund des ersten Laufs: `test-server.ps1` ließ sich gar nicht automatisch starten —
+> die ExecutionPolicy blockierte ihn. Behoben in `abnahme-mobil.py` **und**
+> `vorfuehren.py` (`-ExecutionPolicy Bypass`).
+
+### `tools/pruefstand-share-frist.py` — dieselbe Zahl an drei Stellen
+
+Die 12-Monats-Frist geteilter Meals steht notgedrungen dreimal: in `firestore.rules`
+(`shareFrisch`), in `index.html` (`SHARE_TTL_MS`, nur die Beschriftung) und in
+`tools/shared-aufraeumen.py` (das Aufräumen). Firestore-Regeln lassen sich nicht aus
+JavaScript speisen, das Wartungsskript läuft ohne Browser.
+
+**Drei Zahlen driften.** Fällt eine zurück, sagt die App „12 Monate", die Regel sperrt nach
+sechs, das Aufräumen löscht nach zwei Jahren — und keiner der drei Zustände fällt im Alltag
+auf. Der Prüfstand hält sie gegeneinander und prüft zusätzlich die Grenzfälle des
+Aufräumskripts am echten, importierten Code.
+
+```powershell
+python tools/pruefstand-share-frist.py --gegenprobe
+```
+
+### `tools/pruefstand-gruppe-anonymisieren.py` — die UID verlässt die Gruppe mit der Person
+
+Gemessen wird **nicht** „sieht man noch einen Namen" — den sah man schon vorher nicht,
+weil `recipeAuthorHtml()` bei unbekannter uid `""` liefert. **Nicht angezeigt ist keine
+Anonymisierung.** Gemessen wird der Datenbestand: Trägt nach dem Austritt noch ein
+Gruppen-Meal die UID?
+
+Dazu drei Dinge, die im Code auseinanderfallen können: die Funktion selbst
+(ausgeschnitten), ihre **Stelle** im Ablauf (vor `leaveAtomic` — danach ist man kein
+Mitglied mehr) und die Regel, die es erlaubt.
+
+```powershell
+python tools/pruefstand-gruppe-anonymisieren.py --gegenprobe
+```
+
+**Die Gegenprobe holt den alten Stand aus git** statt einen „alten Ablauf" im Testcode
+nachzubauen. Eine Funktion, die man selbst leer hinschreibt, belegt nur, dass eine leere
+Funktion nichts tut — genau der Fall aus dem Fallarchiv (erfundene Gegenproben sind
+schwächer als echte). Der erste Wurf dieses Prüfstands hatte den Stub; er ist ersetzt.
+
+### `tools/pruefstand-konten-inaktiv.py` — eine Frist, die niemanden trifft
+
+`tools/konten-inaktiv.py` meldet gegen die echte Datenbank „nichts zu tun". Das stimmt —
+alle 15 Konten sind aktiv — und belegt deshalb **nichts**: Ein Werkzeug, dessen Einstufung
+gar nicht greift, meldet dasselbe.
+
+Darum ist die Einstufung als `einstufen()` herausgezogen und wird mit erfundenen Konten an
+den Grenzen geprüft: 729 gegen 730 Tage, 29 gegen 30 Tage Gnadenfrist, ein Rückkehrer mit
+altem Warnvermerk (bleibt aktiv), kaputte Vermerke (führen nie zur Löschung), ein nie
+benutztes Konto (zählt ab Anlage).
+
+### `tools/pruefstand-foto-tokens.py` — und warum der Pixelvergleich dort versagt
+
+Etappe 2 der UI-Grundlagen zog 17 Zeilen auf vier neue Tokens (`--on-photo`,
+`--on-photo-dim`, `--photo-scrim`, `--shadow-float`). Ein Pixelvergleich der vier Reiter
+lief danach grün — **und belegte nichts**: Die geänderten Regeln liegen auf Overlays, die
+auf keinem dieser Reiter zu sehen sind. Grün hieß dort nur „Unverändertes ist unverändert".
+
+Gemessen wird deshalb der **berechnete Wert**, in beiden Themes. Die vier dürfen sich
+zwischen Light und Dark nicht unterscheiden — ein Foto ist in beiden Themes dasselbe Foto.
+
+### Die Rückspielung, einmal wirklich gefahren (E2)
+
+`tools/firestore-restore.py` gab es seit dem 17.09.2026, erprobt war bis zum 22.09.2026
+nur der **Trockenlauf**. Ein Backup, das man nie zurückgespielt hat, ist eine Hoffnung.
+
+Der Ablauf, der das geschlossen hat — ohne Echtdaten anzufassen:
+
+1. Wegwerf-Dokument `rueckspielprobe/p1` über die Admin-API anlegen (`wert: "ORIGINAL"`).
+2. Sicherung ziehen — sie enthält es (`rueckspielprobe 1`).
+3. Dokument **kaputtmachen**: Wert ändern *und* ein Feld hinzufügen.
+4. `python tools/firestore-restore.py --stand … --nur rueckspielprobe --schreiben --ja`
+5. Nachsehen: `wert` ist wieder `ORIGINAL`, **und das hinzugefügte Feld ist weg**.
+6. Wegwerf-Dokument entfernen.
+
+Schritt 5 ist der eigentliche Nachweis. Dass ein geänderter Wert zurückkommt, könnte auch
+ein `merge` leisten — dass ein **zusätzliches** Feld verschwindet, belegt die Zusage aus dem
+Dateikopf: „Ein Dokument wird exakt auf den Stand der Sicherung gesetzt, auch in den
+Feldern." Sonst entstünde eine Mischung aus zwei Ständen, die es nie gab.

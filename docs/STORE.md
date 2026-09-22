@@ -216,7 +216,29 @@ Rechtsrisiko, weil es eine Zusage gegenüber den Nutzenden ist.
 
 - **Datenschutzerklärung als URL** — nicht nur in der App.
 - **Support-Kontakt.**
-- **Altersfreigabe / Content Rating** ausgefüllt.
+- **Altersfreigabe / Content Rating** ausgefüllt. **Die inhaltliche Vorgabe steht seit dem
+  22.09.2026: mindestens 16 Jahre.** Ziffer 13 der Datenschutzerklärung nennt sie samt
+  Rechtsgrundlage, bei der Registrierung steht der Hinweis in der `auth-note`. Beim
+  Ausfüllen der Store-Formulare muss das **zusammenpassen** — eine App, die sich im Store
+  „ab 4“ nennt und im Rechtstext 16 verlangt, widerspricht sich an einer Stelle, die beide
+  Prüfer lesen. Apple hat sein Schema Ende 2025 umgestellt: Es gilt jetzt
+  **4+/9+/13+/16+/18+** — eine Stufe „16+“ gibt es also. (Die frühere Annahme, es gäbe nur
+  4+/9+/12+/17+, war beim Nachrecherchieren am 22.09.2026 überholt.)
+
+  **Wichtig ist trotzdem, dass beides NICHT dasselbe ist.** Apples Altersfreigabe ist ein
+  **Inhalts**-Rating aus dem Fragebogen (Gewalt, Sprache, medizinische Themen) — keine
+  Altersschranke für die Registrierung. Die 16 aus Ziffer 13 ist eine
+  **Einwilligungs**-Grenze nach Art. 8 DSGVO. Die beiden können auseinanderfallen: Die
+  Inhalte dieser App führen im Fragebogen vermutlich auf eine niedrigere Stufe, während
+  der Rechtstext 16 verlangt. Das ist kein Widerspruch, solange man es beim Ausfüllen
+  auseinanderhält.
+
+  Bei Google Play gehört dazu die Angabe **„Target audience and content“**: Eine App, deren
+  Registrierung erst ab 16 zulässig ist, sollte dort die Altersbänder unter 16 nicht
+  auswählen — sonst widerspricht die Zielgruppenangabe der eigenen Datenschutzerklärung.
+
+  Ob „ab 16“ rechtlich die richtige Grenze ist, bleibt Anwaltsfrage
+  (`docs/DATENSCHUTZ-INTERN.md`, Abschnitt 1, Punkt 9).
 - **Keine medizinischen Heilversprechen.** Die App ist kein Medizinprodukt und darf sich
   nicht so darstellen. Das betrifft UI-Texte *und* die Store-Beschreibung.
 - **Keine Verweise auf andere Plattformen** in der App („auch im Play Store!").

@@ -6684,8 +6684,156 @@ Ursachen, gleiches Erscheinungsbild:
 * **Der fehlende Server.** Chrome lädt die Fehlerseite, `requestAnimationFrame` läuft dort
   nicht wie erwartet, `bild_abwarten()` wartet ins Leere.
 
-**Offen, für den nächsten Lauf am Werkzeug:** `abnahme-mobil.py` und `a11y-pruefung.py`
-sollten nach dem Laden prüfen, ob sie überhaupt die App vor sich haben — ein Blick auf
-`document.title` oder `.app` genügt — und sonst mit klarer Ansage abbrechen, statt zu
-messen. `tools/vorfuehren.py` macht es bereits richtig: Es prüft den Server, bevor es
-Chrome öffnet, und startet ihn notfalls.
+**Behoben am 22.09.2026.** `Sitzung.start()` prüft jetzt den Server, bevor Chrome
+überhaupt öffnet (und startet ihn notfalls, wie `vorfuehren.py` es tat), und `laden()`
+sieht nach **jedem** Laden nach, ob `.app` und `#view` da sind — sonst bricht der Lauf mit
+klarer Ansage ab. `a11y-pruefung.py` importiert dieselbe `Sitzung` und erbt beides mit.
+
+Geprüft wird bewusst das **Gerüst**, nicht der Inhalt: Ein leeres `#view` ist ein Befund
+der App und kein Grund abzubrechen — fehlt das Gerüst ganz, ist es nicht die App.
+
+Gegenprobe: `python tools/pruefstand-messgrundlage.py`. Sie fährt beide Fälle (kein Server,
+fremde Seite) und prüft zusätzlich, dass die echte App **nicht** fälschlich abgelehnt wird
+— eine Prüfung, die immer ablehnt, wäre sonst ebenfalls „grün“.
+
+
+---
+
+## 175. `test-server.ps1` ließ sich nicht automatisch starten — ExecutionPolicy
+
+**22.09.2026.** Beim ersten Lauf der neuen Messgrundlage-Prüfung (§174) meldete
+PowerShell:
+
+```
+Die Datei ... test-server.ps1 kann nicht geladen werden, da die Ausfuehrung von
+Skripts auf diesem System deaktiviert ist.
+```
+
+Der Server-Selbststart lief damit **nie** — weder in `abnahme-mobil.py` (neu) noch in
+`tools/vorfuehren.py` (seit es die Funktion gibt). Dort fiel es nicht auf, weil `vorfuehren.py`
+danach eine Meldung zeigt und man den Server eben von Hand startet.
+
+**Behoben:** `-ExecutionPolicy Bypass` in beiden Aufrufen. Das schaltet die Richtlinie nicht
+um, es umgeht sie für genau diesen einen Prozess.
+
+> Der Fund gehört zu §174, ist aber ein eigener Fall: Die Prüfung der Messgrundlage hat
+> nicht nur eine falsche Messung verhindert, sondern gleich eine Automatik gefunden, die
+> seit ihrer Einführung stillstand. Genau dafür sind Gegenproben da.
+
+---
+
+## 176. Ein grüner Pixelvergleich, der nichts belegte
+
+**22.09.2026.** Etappe 2 der UI-Grundlagen zog 17 hartkodierte Farben auf vier neue Tokens.
+Zur Absicherung liefen Screenshots der vier Reiter vorher und nachher — **alle acht
+SHA-256-Hashes identisch**, in Light und Dark.
+
+Das sah nach einem starken Beleg aus und war keiner. Die geänderten Regeln
+(`.hm-veil`, `.fav-ic.on-photo`, `.ms-photobtn`, `.mbadge`, `.scanwrap`) liegen auf
+**Foto-Overlays**, die auf keinem der vier Reiter zu sehen sind. Der Vergleich belegte
+also: Unverändertes ist unverändert.
+
+> **Ein Vergleich, der die geänderte Stelle nicht zeigt, misst die Abwesenheit der
+> Änderung — und meldet sie als Erfolg.**
+
+Dieselbe Familie wie der Befund vom 17.09.2026 (Prüfer und Prüfling aus derselben Quelle):
+Die Messung war technisch einwandfrei und am Gegenstand vorbei.
+
+**Ersetzt durch** `tools/pruefstand-foto-tokens.py`: Er liest die **berechneten** Werte der
+vier Tokens und vergleicht sie mit den Literalen, die vorher dastanden — in beiden Themes,
+weil ein Foto in Light wie in Dark dasselbe Foto ist.
+
+Der Pixelvergleich selbst war trotzdem nicht umsonst: Er schließt aus, dass beim Umbau
+versehentlich eine Regel getroffen wurde, die auf den Reitern sichtbar ist. Er ist eine
+**Absicherung gegen Kollateralschaden**, kein Nachweis der Änderung. Nur wurde er zuerst
+als Zweites verkauft.
+
+
+---
+
+## 177. `pruefstand-reiter.py` meldet unter Last einen Fehlalarm
+
+**22.09.2026.** Im Reihenlauf über alle Prüfstände meldete er:
+
+```
+  ROT  Start          #view leer
+```
+
+Das ist genau die Meldung, für die es diesen Prüfstand gibt — und sie war falsch.
+
+**Nachgewiesen, dass die App in Ordnung ist**, in beiden Browsern und über acht Sekunden
+gemessen: `#view` hat ein Kind, der Text beginnt mit „HEUTE / Noch nichts geplant“, die
+drei Merkmale (`.wg-c`, `.wg-actions`, `.hm-card`) sind da — auch **nach** dem Klick auf
+den bereits aktiven Reiter, den der Prüfstand ausführt.
+
+**Ohne Parallellast gefahren ist er grün:** `ERGEBNIS 4 Reiter gruen, 0 rot`.
+
+Der Auslöser waren die vier neuen Chrome-gestützten Prüfstände vom selben Tag
+(`pruefstand-messgrundlage`, `-foto-tokens`, `-gruppe-anonymisieren` und der Sammellauf
+selbst). Der Prüfstand wartet nach `location.reload()` feste **3 s** und nach jedem
+Reiterklick **1,2 s**. Unter Last reicht das nicht, und eine feste Wartezeit kann das
+nicht wissen.
+
+> **Ein Prüfstand, der unter Last rot meldet, ist schlimmer als einer, der gar nicht
+> läuft.** Beim nächsten Mal glaubt man ihm — oder, schlimmer, man gewöhnt sich an sein
+> Rot und übersieht den echten Fall.
+
+**Nicht behoben**, bewusst: Die Umstellung von festen Wartezeiten auf ein Warten **auf
+einen Zustand** (`#view` hat Kinder, oder Zeitgrenze) ist eigene Arbeit am Werkzeug und
+stand nicht im Auftrag dieses Tages. Hier festgehalten, damit die nächste rote Meldung
+nicht wieder eine Stunde Suche kostet — und damit klar ist, dass **erst ohne Parallellast
+nachgefahren wird**, bevor jemand die App verdächtigt.
+
+### Die beiden anderen roten sind echt
+
+Im selben Lauf blieben `pruefstand-einkaufsliste.py` („die Ueberschrift heisst weiterhin
+'Einkaufsliste'“, 1 von 58) und `pruefstand-kalender.py` („6 neutrale Zellen“) auch
+**ohne** Last rot. Beide fallen ebenso gegen `HEAD` durch (mit `git stash` gegengeprüft) —
+sie sind älter als dieser Tag und gehören auf die Liste, nicht in diesen Abschnitt.
+
+
+---
+
+## 178. Derselbe Fehler, eine Sammlung weiter — und ein Hinweis auf ein Pro-Feature
+
+**22.09.2026, beide im `/pushcheck` gefunden**, nachdem die Arbeit fertig schien. Beide sind
+lehrreicher als ihre Behebung.
+
+### Die UID war an zwei Orten, geraeumt wurde einer
+
+`anonymizeMyRecipes` leerte `by` in `groups/{gid}/recipes` — sauber gebaut, mit Prüfstand,
+Gegenprobe und drei Aufrufwegen. Nur: Ein Meal kann im Wochenplan **zusätzlich** einzelnen
+Mitgliedern zugewiesen sein, `{id, uids:[…]}` in `groups/{gid}/plans/{week}`. Dort stand
+dieselbe UID, unberührt.
+
+Das Bittere daran: Der Fehler war an dieser Stelle **bereits benannt**. Im Kommentar bei
+`by` steht wörtlich, dass „nicht angezeigt keine Anonymisierung“ ist — und genau diese
+Verwechslung lag eine Sammlung weiter unbemerkt noch einmal vor
+(`memberByUid()` liefert `null`, die Oberfläche zeigt „Jemanden“, die Kennung bleibt).
+
+> **Eine Fehlerklasse ist erst geschlossen, wenn man alle Stellen gesucht hat, an denen
+> sie vorkommen kann — nicht die, an der man sie gefunden hat.**
+
+Gefunden von `datenschutz-technik`. Der eigene Prüfstand fand es nicht, weil er genau das
+prüfte, was gebaut worden war. Er deckt den zweiten Ort jetzt mit ab.
+
+### Ein Hinweis auf etwas, das der Angesprochene nicht hat
+
+Der neue Spotlight nach dem Onboarding zeigte auf den Auto-Planer. Der ist ein
+**Pro-Feature** (`autoPlanWeek`: `if (!isPro() && !syncGid) { toast("Automatisch planen
+gehört zu Pro"); return; }`). Ein frisch angelegtes Gratis-Konto hätte also den Hinweis
+gesehen, auf „Zeig mal“ getippt — und eine Verkaufsmeldung bekommen. In der ersten Minute.
+
+Der Knopf selbst ist für alle sichtbar (bestehende Produktentscheidung); erst der Klick
+verrät die Sperre. Ein **Hinweis** darauf macht aus dieser Sperre eine Einladung ins Leere.
+
+> **Bevor man auf eine Funktion zeigt, prüft man, ob der Angesprochene sie hat.**
+
+Gefunden von `kvp`. Behoben mit `toPlan && (isPro() || syncGid)`.
+
+### Was beide gemeinsam haben
+
+Beide Funde stammen aus dem `/pushcheck`, nicht aus den Prüfständen — und beide sind
+Fragen, die ein Prüfstand gar nicht stellt: *„Gibt es diesen Fall noch woanders?“* und
+*„Gilt das überhaupt für die Person, die es sieht?“* Ein Prüfstand misst, was gebaut
+wurde. Er fragt nicht, ob das Richtige gebaut wurde.

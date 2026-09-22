@@ -30,9 +30,12 @@ nicht auf den gemeinsamen Helfer umgestellt ist.
 | **Button-Varianten** | `.btn` + Varianten `primary` · `ghost` · `sm` · `danger` · `icon-gh` · `fav-ic` · **`link`** (neu) | 117 Markup-Stellen | **eigen.** Kontext und Variante sind jetzt getrennt: `onb-skip`, `onb-back`, `ing-done` tragen gar kein CSS (reine JS-Handles), `ms-ing-add`, `wg-recalc`, `shop-ic`, `plan-auto`, `auth-forgot`, `foot-link`, `toggle-all` setzen nur noch Ort und Breite. `.btn.del-ic` war tot und ist entfernt | `bausteine.py` |
 | **Trefferflaeche (hitSlop)** | `.hit` / `.hit.rund`, zentrale Regel in `css/basis.css` | 9 Selektoren: `.btn.icon-gh`, `.btn.fav-ic`, `.foot-link`, `.ing-ic`, `.ing-view-del`, `.ing-barcode`, `.wch-add`, `.wch-more`, `.avatar-edit-btn` | **eigen.** Vorher stand an jeder Stelle ein von Hand ausgerechnetes `inset`: dreimal ergab es 44 px, zweimal 46, dreimal fehlte es ganz. `width/height: max(100%, 44px)` rechnet selbst und zaehlt ueber die Border-Box, also unabhaengig vom Rand. Mindestmass nach [WCAG 2.2 SC 2.5.5](https://www.w3.org/WAI/WCAG22/Understanding/target-size-enhanced.html) | `bausteine.py`, `abnahme-mobil.py` |
 | **Gleitende Markierung** | gemeinsames Fundament in `css/basis.css` („Gleitende Markierung“) | 4 Leisten: `.tab-ind`, `.kal-pill`, `.db-ind`, `.ws-ind` | **eigen.** Bis 21.09.2026 drei Einzuege (3/4/5 px) und zwei hartkodierte Schatten — gewachsen, nicht entschieden. **Zwei Familien bleiben bewusst**: akzent für kontextuelle Auswahl, neutral für die dauerhaft sichtbare Hauptnavigation (Rot ist die Aktionsfarbe, und die Leiste liegt auf Glas über wechselnden Fotos). Regel und Kontrastnachweis: `docs/DESIGN.md`. Auch **zwei Mechaniken** bleiben: drei schieben mit `translateX(n×100%)`, `.ws-ind` misst — Messen an der Tagesleiste wäre eine Performance-Regression | `bausteine.py`, `pruefstand-reiter.py` |
+| **Spotlight** | `spotlight({selektor, titel, text, aktion})` | **1 Aufruf** — nach dem ersten Onboarding, Ziel `.plan-auto` | **nachgebaut.** Das Loch im Dunkel entsteht über einen sehr großen `box-shadow`-Ring statt über eine Maske — so bleibt das hervorgehobene Element ein normales Element und behält Klick und Fokusring; das Verfahren stammt aus [Shepherd.js](https://shepherdjs.dev/) und [Intro.js](https://introjs.com/). Tastaturweg und ARIA nach [WAI-ARIA APG, Dialog (Modal)](https://www.w3.org/WAI/ARIA/apg/patterns/dialog-modal/). **Bewusst EIN Schritt, kein Tour-System**: Der Rest des Bildschirms erklärt sich seit dem 20.09.2026 selbst — eine Tour hätte Sichtbares vorgelesen | `abnahme-mobil.py` |
+| **Hinweis** (Tooltip/Popover) | `data-hinweis="…"` + ein geteiltes `.hinweis-pop` | 3 Auslöser: `.qty` und `.lbl` in der Einkaufsliste, `.dtrain` im Rechner | **nachgebaut.** Fokus öffnet, Escape schließt, `aria-describedby` verbindet beide — [WAI-ARIA APG, Tooltip](https://www.w3.org/WAI/ARIA/apg/patterns/tooltip/). Was das Muster nicht abdeckt, ist Touch: Dort **öffnet ein Tippen**, wie bei [React Aria `useTooltipTrigger`](https://react-spectrum.adobe.com/react-aria/useTooltipTrigger.html). **Ein** geteiltes Popover statt eines je Auslöser — 30 Listenzeilen erzeugen sonst 30 Knoten | `abnahme-mobil.py` |
+| **Ladezustand Bild** | `.rimg:not(.bild-da)` + ein delegierter `load`-Listener | alle `img.rphoto` | **eigen.** Kein Skeleton-System: Das Layout sprang nie (`.rimg` hat feste Höhe), es fehlte nur die Überbrückung. **Ein** Listener an `document` in der Capture-Phase statt eines Handlers je Bild — `load` steigt nicht auf ([MDN](https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/load_event)), kommt in der Capture-Phase aber an. Die Bewegung läuft **nur**, solange das Bild fehlt; ein Schimmer unter 30 geladenen Bildern kostet dauerhaft Akku, ohne dass ihn je jemand sieht | `pruefstand-foto-tokens.py` (Tokens), Sichtprobe in `ABNAHME-MENSCH.md` 1.4 |
 | **Toast** | `toast(msg)` · `undoToast(msg, fn)` | ~130 Aufrufe, **ein** `#toast`-Element | eigen — die Undo-Variante teilt bewusst dieselbe Basis, sonst entwickeln sich zwei Toasts auseinander | — |
 
-**Diese zehn sind das Vorbild, nicht die Baustelle.** Wer hier etwas ändert, ändert es für
+**Diese vierzehn sind das Vorbild, nicht die Baustelle.** Wer hier etwas ändert, ändert es für
 alle — genau so soll es sein.
 
 ---
@@ -72,13 +75,17 @@ sind Ziehgriffe mit absichtlich anderer Form. Wer sie angeht, geht sie alle an.
 
 ## 3. Fehlt ganz
 
-| Baustein | Stand | Anmerkung |
-|---|---|---|
-| **Ladezustände / Skeleton** | existiert **nirgends** im Projekt | Inhalte erscheinen schlagartig; beim Cloud-Sync gibt es nur hinterher einen Toast |
-| **Tooltip / Popover** | nur native `title=`-Attribute | Auf Touch-Geräten praktisch unsichtbar |
+— **leer seit dem 22.09.2026.** Die beiden Einträge, die hier standen, sind gebaut und
+stehen jetzt in Abschnitt 1:
 
-Beides ist **neues Verhalten**, kein Aufräumen — und sinnvoll erst, wenn Abschnitt 2
-abgearbeitet ist.
+| Ehemalige Lücke | Wo jetzt |
+|---|---|
+| Ladezustände / Skeleton | Abschnitt 1, **Ladezustand Bild** |
+| Tooltip / Popover | Abschnitt 1, **Hinweis** |
+
+Dass hier nichts mehr steht, heißt nicht, dass nichts mehr fehlt — es heißt, dass uns
+gerade nichts fehlt, das wir benennen können. Taucht beim nächsten Feature ein Muster
+auf, das es zweimal gibt, gehört es hierher, bevor es ein drittes Mal entsteht.
 
 ---
 

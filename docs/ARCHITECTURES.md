@@ -3191,3 +3191,95 @@ Bei mehreren möglichen Lösungen gewinnt grundsätzlich die Lösung mit:
 5. weniger technischer Schuld
 
 Provisorische Lösungen nur dann, wenn eine saubere Lösung aktuell nicht sinnvoll machbar ist.
+
+
+---
+
+## Drei Fristen und eine Anonymisierung (22.09.2026)
+
+Bis hierher kannte das Datenmodell genau eine Art, Daten loszuwerden: **die Kontolöschung**.
+Alles andere lag, solange das Konto lag. Drei Stellen haben seitdem eine eigene Grenze.
+
+### Teilen-Links: 12 Monate, in der Regel erzwungen
+
+`shareMealPayload()` schrieb schon immer ein `when: Date.now()` — es war nur nie etwas
+darauf gebaut. Jetzt trägt es die Frist:
+
+* **`firestore.rules`** (`shareFrisch`) lässt `get` nach 12 Monaten nicht mehr zu. Damit ist
+  der Link tot, **bevor** irgendjemand aufräumt — das ist der Unterschied zwischen einer
+  Frist und einem guten Vorsatz.
+* **`tools/shared-aufraeumen.py`** entfernt die Dokumente bei der Wartung physisch. Die
+  Regel macht unlesbar, sie löscht nicht; unlesbar ist keine Löschung.
+* **`index.html`** kennt die Zahl nur als Beschriftung (`SHARE_TTL_MS`, `SHARE_TTL_TEXT`)
+  und nennt sie beim Erstellen des Links. `loadSharedById()` unterscheidet jetzt
+  `permission-denied` von „nicht gefunden“ — ein abgelaufener Link ist nicht kaputt,
+  sondern zu alt, und das soll er auch sagen.
+
+Dieselbe Zahl an drei Stellen ist eine Dublette, die sich nicht vermeiden lässt
+(Regeln können kein JavaScript lesen, das Wartungsskript keinen Browser). Deshalb hält
+`tools/pruefstand-share-frist.py` sie gegeneinander.
+
+### Gruppen-Meals: die Meals bleiben, die UID geht
+
+`CloudGroup.anonymizeMyRecipes(gid, uid)` liest die Rezepte der Gruppe, findet die mit
+`by === uid` und setzt `by: ""` — in Häppchen zu 400, weil Firestore einen Batch bei 500
+Vorgängen abschneidet.
+
+Aufgerufen wird sie auf **allen drei** Wegen aus einer Gruppe:
+
+| Weg | Wer anonymisiert | Wann |
+|---|---|---|
+| `leaveGroup()` | die Person selbst | **vor** `leaveAtomic` |
+| Entfernen durch den Inhaber | der Inhaber | vor `leaveAtomic` |
+| `kontoDatenLoeschen()` | die Person selbst | vor dem Mitglieder-Batch |
+
+### Der zweite Ort, der fast durchgerutscht wäre
+
+`by` am Meal war nur die Hälfte. Ein Meal kann im Wochenplan **zusätzlich** einzelnen
+Mitgliedern zugewiesen sein — `{id, uids:[…]}` in `groups/{gid}/plans/{week}`. Dort stand
+dieselbe UID, und der erste Wurf der Anonymisierung fasste sie nicht an.
+
+Gefunden hat das der Agent `datenschutz-technik` im Push-Check, und es ist **exakt dieselbe
+Verwechslung** wie bei `by`: Die Oberfläche zeigt nach dem Austritt keinen Namen mehr
+(`memberByUid()` liefert `null`, es steht „Jemanden“ da) — die Kennung blieb trotzdem im
+Dokument. Der Fall war benannt, verstanden, behoben — und eine Sammlung weiter unbemerkt
+wieder da.
+
+`CloudGroup.anonymizeMyPlanAssignments(gid, uid)` geht deshalb alle Wochen durch und nimmt
+die UID aus jedem `uids`-Array. Bleibt ein Eintrag dabei ohne Zuweisung übrig, wird er auf
+die **String-Form** zurückgeführt (= für alle) und nicht als `{id, uids: []}` stehen
+gelassen: Ein Gericht, das niemandem gehört, ist im Datenmodell ausdrücklich verboten — es
+wäre sichtbar, zählte aber bei niemandem mit.
+
+> **Eine bekannte Fehlerklasse ist erst dann geschlossen, wenn man alle Stellen gesucht
+> hat, an denen sie vorkommen kann.** Nicht die, an der man sie gefunden hat.
+
+**Offene Grenze, ehrlich benannt:** Für die Plan-Sammlung gibt es keine Entsprechung zu
+`loestPersonenbezug()`. Firestore-Regeln können Arrays von Maps nicht Element für Element
+prüfen — eine Regel, die „nur UIDs entfernen“ erlaubt, lässt sich dort nicht formulieren.
+Im Normalfall genügt `canWrite(gid)`; in den Randfällen (Inhaber ohne Pro, Gruppe in
+Auflösung) scheitert das Aufräumen und wird nur protokolliert (`group:anonymPlan`).
+
+**Die Reihenfolge ist keine Kosmetik.** Nach `leaveAtomic` ist man kein Mitglied mehr, und
+`canWrite(gid)` verweigert jeden Schreibzugriff — die UID bliebe für immer stehen. Beim
+Entfernen durch den Inhaber gilt dasselbe aus der anderen Richtung: Danach kann die
+betroffene Person es selbst nicht mehr, also muss der Inhaber es tun.
+
+Scheitert es, wird der Vorgang **trotzdem zu Ende geführt** (`noteError("group:anonymize")`).
+Dieselbe Abwägung wie beim Best-Effort-Aufräumen: Ein Mensch, der die Gruppe verlassen oder
+sein Konto löschen will, darf daran nicht hängenbleiben. Bei der Kontolöschung wäre das
+sogar ein Verstoß gegen die Zusage „jederzeit selbst und sofort“ (Ziffer 10).
+
+Nur-Leser sind ausgenommen: Sie haben nie Meals in die Gruppe eingebracht.
+
+### Verwaiste Konten: 24 Monate
+
+Die einzige Frist, die **nicht** im Code steht, sondern in der Wartung. `tools/konten-inaktiv.py`
+liest `lastLoginAt` über die Identity-Toolkit-API und stuft ein: aktiv, zu warnen, Frist
+läuft, zu löschen. Der Warnstand (wer wann angeschrieben wurde) liegt bei den Sicherungen,
+**nicht im Repo** — er trägt UIDs und E-Mail-Adressen.
+
+**Versand und Löschung bleiben Handarbeit.** Beides automatisch bräuchte eine Cloud Function
+und damit Blaze, den es hier bewusst nicht gibt. Das Werkzeug meldet und führt Buch; es
+verschickt nichts und löscht nichts. Das ist ehrlicher als eine halbe Automatik, die im
+Zweifel fremde Konten entfernt.

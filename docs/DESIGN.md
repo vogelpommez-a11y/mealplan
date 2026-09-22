@@ -1193,3 +1193,122 @@ sichtbar in der Zeile, und ein zusätzlicher Satz wäre nur mehr Text.
 Bestätigung wäre Lärm. Gemeldet wird nur, was der Nutzer **nicht** veranlasst hat: kein
 Treffer, unlesbares Bild, unterbrochener Sucher. Diese Unterscheidung ist der Grund, warum
 `scanBarcodeLive()` bei `visibilitychange`/`pagehide` `hidden: true` mitgibt.
+
+
+---
+
+## Tokens für „liegt auf einem Bild“ (seit 22.09.2026)
+
+Etappe 2 der UI-Grundlagen begann mit der Frage „208 hartkodierte Farben — welche gehören
+in Tokens?“. Die Sichtung ergab eine andere Antwort, als die Frage erwartete.
+
+Von 213 Farbliteralen in `css/` stehen 140 in **Token-Definitionen** — dort gehören sie hin.
+Von den übrigen 73 sind elf im **Druckbereich** (`#print-area`, `@media print`), und dort
+wäre ein Theme-Token schlicht falsch: Papier ist weiß, unabhängig davon, welches Theme
+jemand eingestellt hat.
+
+Blieben 17 Zeilen mit einem gemeinsamen Nenner, den vorher niemand benannt hatte:
+
+> Sie beschreiben Farben, die auf einem **Foto** liegen — Meal-Bild, Kamerabild,
+> Zuschnitt-Bühne. Was darunter liegt, ist kein `--surface`, sondern ein Bild.
+
+Deshalb vier neue Tokens, und zwar **nur in `:root`**:
+
+| Token | Wert | Wofür |
+|---|---|---|
+| `--on-photo` | `#fff` | Text und Symbole auf einem Foto |
+| `--on-photo-dim` | `rgba(255,255,255,.85)` | Nebentext ebendort |
+| `--photo-scrim` | `#0a0c07` | Abdunklung, damit der Text trägt |
+| `--shadow-float` | `0 2px 8px rgba(0,0,0,.35)` | Knopf, der auf dem Foto schwebt |
+
+**Sie werden in den drei Theme-Blöcken absichtlich nicht überschrieben.** Ein Foto ist in
+Light wie in Dark dasselbe Foto; ein Weiß, das im Light-Theme zu Dunkelgrau kippte, wäre
+darauf unlesbar. Der Kopf von `css/tokens.css` warnt davor, nur einen der vier Blöcke zu
+ändern — hier gilt ausnahmsweise das Gegenteil, und deshalb steht die Begründung im Token
+selbst.
+
+> **Es fehlten nicht Tokens für Themes, es fehlten Tokens für einen Zustand.** Jede der 17
+> Stellen war für sich richtig; zusammen hatten sie keinen Namen und keine gemeinsame
+> Stellschraube.
+
+Prüfer: `tools/pruefstand-foto-tokens.py`. Warum dafür **kein** Pixelvergleich taugt, steht
+in `docs/TROUBLESHOOTING.md` §176.
+
+Drei Stimmungen für das Dark-Theme liegen zum Vergleich bereit:
+`tools/probe-farbstimmungen.html` (A = heute, B = mehr Tiefe, C = neutrale Graustufen).
+Sie ändern **ausschließlich Tokens**, keinen Bauteil-Stil — und der Akzent bleibt in allen
+dreien `#FF3040`.
+
+---
+
+## Spotlight: ein Hinweis, genau einmal (seit 22.09.2026)
+
+Nach dem Onboarding stand ein neues Konto vor einem leeren Wochenplan. Seit dem 20.09.2026
+erklärt sich dieser Bildschirm allerdings größtenteils selbst: In jeder Mahlzeit steht
+„+ Meal wählen“, der Meals-Reiter trägt ein Abzeichen mit der Zahl der Startmeals.
+
+Was er **nicht** zeigt, ist der Auto-Planer hinter dem Zauberstab — die Funktion, die am
+meisten Zeit spart, und die am ersten Tag niemand findet.
+
+**Deshalb ein Schritt, kein Tour-System.** Eine mehrstufige Tour hätte erklärt, was ohnehin
+dasteht; das verstößt gegen „möglichst wenige Interaktionen“ und „so wenig Text wie
+möglich“ (`CLAUDE.md` 5 und 6). Der Baustein kann mehr Schritte, er bekommt nur keine.
+
+**Er erscheint nur, wenn der Auto-Planer für diese Person auch läuft** — also bei Pro
+oder in einer Gruppe. Im ersten Wurf fehlte diese Bedingung, und das wäre ein schlechter
+erster Moment geworden: Ein frisch angelegtes Gratis-Konto hätte den Hinweis gesehen, auf
+„Zeig mal“ getippt und als Antwort „Automatisch planen gehört zu Pro“ bekommen. Gefunden
+hat das der Agent `kvp` im Push-Check.
+
+> **Ein Hinweis auf eine Funktion, die der Angesprochene nicht hat, ist keine Hilfe,
+> sondern eine Verkaufsansprache im falschen Moment.** Die Marke hilft dem Nutzer, sie
+> lockt ihn nicht (`CLAUDE.md` 6).
+
+Wer den Planer nicht hat, verliert dadurch nichts: Der leere Wochenplan erklärt sich seit
+dem 20.09.2026 selbst. Der Spotlight war immer nur für die eine Sache gedacht, die man
+sonst nicht findet — und wenn es sie nicht gibt, schweigt er.
+
+Form: ein sehr großer `box-shadow`-Ring dunkelt alles ab **außer** dem Ziel — das bleibt
+ein normales Element und behält Klick und Fokusring. Die Karte sitzt unter dem Ziel, wenn
+darunter Platz ist, sonst darüber. Escape schließt, der Fokus kehrt zurück, `Tab` bleibt
+in der Karte gefangen. Erscheint der Zauberstab gar nicht (er verlangt ein Ziel), schweigt
+die App, statt ins Leere zu zeigen.
+
+---
+
+## Ladezustand: nur solange das Bild fehlt (seit 22.09.2026)
+
+`.rimg` hatte immer schon eine feste Höhe, das Foto liegt absolut darin — **das Layout
+sprang nie.** Was fehlte, war die Überbrückung: Bis das Bild kam, stand eine leere Fläche,
+beim Scrollen durchs Rezeptbuch auf einem langsamen Netz zwei Dutzend davon.
+
+Der Schimmer (`.rimg:not(.bild-da)::before`) läuft **nur**, solange das Bild fehlt. Die
+Klasse `bild-da` setzt ein einziger Listener an `document` in der Capture-Phase — `load`
+steigt nicht auf, kommt dort aber an. Ein Schimmer, der unter dreißig längst geladenen
+Bildern weiterläuft, kostet dauerhaft Rechenzeit und Akku, ohne dass ihn je jemand sieht.
+
+Auch ein **fehlendes** Bild beendet das Warten (`error`-Listener): Eine Animation, die ewig
+weiterläuft, verspricht etwas, das nie kommt.
+
+Bei `prefers-reduced-motion` bleibt die getönte Fläche, die Bewegung geht — sie sagt
+dasselbe, nur ruhig.
+
+---
+
+## Hinweis statt `title=` (seit 22.09.2026)
+
+Ein `title=` erscheint nur beim Verweilen mit der Maus. Auf einem Telefon gibt es kein
+Verweilen; die Erklärung war dort unerreichbar.
+
+Betroffen waren nicht alle 23 `title=`-Stellen. Bei siebzehn steht daneben ein
+`aria-label`, und das Symbol trägt die Bedeutung selbst — dort ist der Tooltip reiner
+Maus-Komfort. Umgestellt wurden die drei Stellen, an denen der sichtbare Text die **Zahl**
+trägt und das `title=` die **Herkunft** erklärt: „×2“ in der Einkaufsliste, die summierte
+Menge, das Trainings-Abzeichen im Rechner.
+
+Zwei Icon-Buttons (`.ing-barcode`, `.ing-ic.ing-del`) hatten weder `aria-label` noch
+sichtbaren Text — für einen Screenreader waren sie stumm. Das war der einzige echte
+A11y-Mangel in dieser Gruppe und ist behoben.
+
+Ein Auslöser trägt `data-hinweis="…"` **statt** `title="…"`. Beides zugleich wäre doppelt:
+Der Browser zeigte zusätzlich seine eigene gelbe Blase.
