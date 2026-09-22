@@ -118,6 +118,25 @@
        frueheren Hartkodierung in .menu (20.09.2026) - die Feinabstimmung zwischen
        Light und Dark gehoert in die Token-Etappe, nicht in die Zusammenfuehrung. */
     --shadow-pop: 0 18px 50px rgba(0,0,0,.28);
+
+    /* ---------- Auf einem Foto (Etappe 2, 22.09.2026) ----------
+       Diese vier stehen ABSICHTLICH nur hier in :root und werden in den drei
+       Theme-Bloecken NICHT ueberschrieben. Der Grund ist inhaltlich, nicht
+       nachlaessig: Sie beschreiben Farben, die auf einem FOTO liegen - Meal-Bild,
+       Kamerabild, Zuschnitt. Was darunter liegt, ist kein --surface, sondern ein
+       Bild, und das ist in Light wie in Dark dasselbe Bild. Ein Weiss, das im
+       Light-Theme zu Dunkelgrau kippte, waere auf dem Foto unlesbar.
+
+       Vorher standen die Werte 25-mal hartkodiert in basis.css und komponenten.css
+       (#fff, #0a0c07, rgba(0,0,0,.35)) - jede Stelle fuer sich richtig, zusammen
+       aber ohne Namen und ohne gemeinsame Stellschraube. Das war der eigentliche
+       Fund der Farbsichtung: Es fehlten nicht Tokens FUER Themes, es fehlten
+       Tokens fuer "liegt auf einem Bild". */
+    --on-photo: #fff;                        /* Text und Symbole auf einem Foto */
+    --on-photo-dim: rgba(255,255,255,.85);   /* Nebentext ebendort */
+    --photo-scrim: #0a0c07;                  /* Abdunklung, damit der Text traegt */
+    --shadow-float: 0 2px 8px rgba(0,0,0,.35); /* Knopf, der auf dem Foto schwebt */
+
     --radius: 12px;
     --radius-sm: 8px;
     --maxw: 1120px;

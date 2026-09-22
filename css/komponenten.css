@@ -333,10 +333,10 @@
   }
   .mealsheet .modal-head .icon-gh.on-photo {
     color: #fff; border-radius: 50%;
-    background: color-mix(in srgb, #0a0c07 50%, transparent);
-    box-shadow: 0 2px 8px rgba(0,0,0,.35);
+    background: color-mix(in srgb, var(--photo-scrim) 50%, transparent);
+    box-shadow: var(--shadow-float);
   }
-  .mealsheet .modal-head .icon-gh.on-photo:hover { color: #fff; background: color-mix(in srgb, #0a0c07 68%, transparent); }
+  .mealsheet .modal-head .icon-gh.on-photo:hover { color: var(--on-photo); background: color-mix(in srgb, var(--photo-scrim) 68%, transparent); }
   /* "Bearbeiten" im Kopf des Nur-Lese-Zweigs (Nachtrag Abnahme Phase 2) - nur sichtbar,
      wenn canEdit() wahr ist; jedes bestehende Meal oeffnet inzwischen zuerst lesend, egal
      aus welchem Reiter. margin-right:auto schiebt sie an den linken Rand, Teilen/Schliessen
@@ -349,9 +349,9 @@
   .ms-photobtn {
     font-family: var(--font-body); padding: 7px 13px; border-radius: 999px; border: 0; cursor: pointer;
     font-size: 12.5px; font-weight: 600; color: #fff;
-    background: color-mix(in srgb, #0a0c07 55%, transparent); box-shadow: 0 2px 8px rgba(0,0,0,.35);
+    background: color-mix(in srgb, var(--photo-scrim) 55%, transparent); box-shadow: var(--shadow-float);
   }
-  .ms-photobtn:hover { background: color-mix(in srgb, #0a0c07 72%, transparent); }
+  .ms-photobtn:hover { background: color-mix(in srgb, var(--photo-scrim) 72%, transparent); }
   .ms-photobtn[hidden] { display: none; }
   /* Der Herkunftshinweis unter dem Foto. Leise gehalten - er ist eine Fussnote, keine
      Aussage ueber das Gericht - aber mit --text-muted noch klar lesbar, weil er eine
@@ -474,7 +474,32 @@
     border-color: var(--accent);
     box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent);
   }
-  .rimg { position: relative; height: 116px; display: grid; place-items: center; overflow: hidden; }
+  /* ---------- Ladezustand fuer Meal-Bilder ----------
+     Das Layout sprang nie: .rimg hat eine feste Hoehe, das Bild liegt absolut darin.
+     Was fehlte, war die Ueberbrueckung - bis das Foto da ist, stand eine leere Flaeche.
+     Auf einem langsamen Mobilnetz sind das beim Scrollen durchs Rezeptbuch zwei Dutzend
+     graue Loecher.
+
+     Die Animation laeuft NUR, solange das Bild fehlt: `bild-da` kommt von einem einzigen
+     Listener (document 'load' mit Capture), nicht von einem Inline-Handler - die CSP
+     dieser Seite und die Bauart der App verbieten beides. Ein Shimmer, der unter jedem
+     laengst geladenen Bild weiterlaeuft, kostet auf einer Liste mit 30 Karten dauerhaft
+     Rechenzeit und Akku, ohne dass ihn je jemand sieht. */
+  .rimg { position: relative; height: 116px; display: grid; place-items: center; overflow: hidden; background: var(--surface-2); }
+  .rimg:not(.bild-da)::before {
+    content: ""; position: absolute; inset: 0; z-index: 0;
+    background: linear-gradient(100deg,
+      transparent 20%,
+      color-mix(in srgb, var(--text) 7%, transparent) 42%,
+      transparent 64%);
+    background-size: 220% 100%;
+    animation: pm-schimmer 1.25s linear infinite;
+  }
+  @keyframes pm-schimmer { from { background-position: 120% 0; } to { background-position: -120% 0; } }
+  /* Ohne Bewegung bleibt die getoente Flaeche - sie sagt dasselbe, nur ruhig. */
+  @media (prefers-reduced-motion: reduce) {
+    .rimg:not(.bild-da)::before { animation: none; background: none; }
+  }
   .rimg::after { content: ""; position: absolute; inset: 0; background: radial-gradient(130px 66px at 78% 16%, rgba(255,255,255,.30), transparent); pointer-events: none; }
   .rimg.has-photo::after { display: none; }
   .rphoto { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
@@ -484,7 +509,7 @@
      Bis zu zwei Badges (Haupt-Makro + "Low Carb"), daher Flex mit Umbruch: auf
      schmalen Karten rutscht das zweite in die naechste Zeile statt aus dem Bild. */
   .rimg .mbadges { position: absolute; left: 11px; top: 10px; z-index: 1; display: flex; flex-wrap: wrap; gap: 5px; max-width: calc(100% - 22px); }
-  .rimg .mbadge { display: inline-flex; align-items: center; gap: 5px; font-size: 10.5px; font-weight: 700; letter-spacing: .03em; text-transform: uppercase; color: #fff; background: rgba(16,18,13,.62); backdrop-filter: blur(4px); padding: 3px 9px 3px 7px; border-radius: 999px; }
+  .rimg .mbadge { display: inline-flex; align-items: center; gap: 5px; font-size: 10.5px; font-weight: 700; letter-spacing: .03em; text-transform: uppercase; color: var(--on-photo); background: rgba(16,18,13,.62); backdrop-filter: blur(4px); padding: 3px 9px 3px 7px; border-radius: 999px; }
   .rimg .mbadge::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--mbc); flex: none; }
   .rimg .mbadge.good { --mbc: var(--ok); }
   .rimg .mbadge.fat { --mbc: var(--fat); }
@@ -541,7 +566,7 @@
      Flaeche, also greift das Padding von .wrap nicht. Betrifft alle Modals — und besonders
      den Barcode-Scanner, der ausdruecklich fuers QUERFORMAT gebaut ist, wo die Aussparung
      erst wirklich breit wird. */
-  .overlay { position: fixed; inset: 0; z-index: 60; background: color-mix(in srgb, #0a0c07 55%, transparent); display: grid; place-items: start center; padding: 5vh calc(16px + env(safe-area-inset-right, 0px)) 16px calc(16px + env(safe-area-inset-left, 0px)); overflow-y: auto; color: var(--text); font-family: var(--font-body); }
+  .overlay { position: fixed; inset: 0; z-index: 60; background: color-mix(in srgb, var(--photo-scrim) 55%, transparent); display: grid; place-items: start center; padding: 5vh calc(16px + env(safe-area-inset-right, 0px)) 16px calc(16px + env(safe-area-inset-left, 0px)); overflow-y: auto; color: var(--text); font-family: var(--font-body); }
   .modal {
     background: var(--surface); border: 1px solid var(--border); border-radius: 14px; box-shadow: 0 24px 70px rgba(0,0,0,.35);
     width: 100%; max-width: 540px; overflow: hidden;
@@ -579,7 +604,7 @@
      bei nativen Kamera-UIs verbessert das feste Dunkel den Kontrast zum Kamerabild UND
      zum hellen Sucherrahmen (.scanframe, --accent). Im Hell-Theme waeren --bg/--text hier
      falsch (heller Sucher blendet, Rahmen ginge im hellen Hintergrund unter). */
-  .scanwrap { position: fixed; inset: 0; z-index: 80; background: #0a0c07; display: grid; place-items: center; padding: 16px; color: var(--text); font-family: var(--font-body); }
+  .scanwrap { position: fixed; inset: 0; z-index: 80; background: var(--photo-scrim); display: grid; place-items: center; padding: 16px; color: var(--text); font-family: var(--font-body); }
   .scanbox { width: 100%; max-width: 480px; display: flex; flex-direction: column; gap: 14px; }
   .scanhead { display: flex; align-items: center; gap: 12px; color: #F4EFEE; }
   .scanhead :is(h2, h3) { font-family: var(--font-display); font-size: 20px; margin: 0; flex: 1; letter-spacing: .3px; }
@@ -1024,7 +1049,7 @@
     position: absolute; bottom: -2px; right: -2px; width: 28px; height: 28px; border: 2px solid var(--surface);
     border-radius: 50%; cursor: pointer; display: grid; place-items: center; padding: 0;
     color: var(--accent-contrast); background: linear-gradient(135deg, var(--accent-solid), var(--accent-solid-strong));
-    box-shadow: 0 2px 8px rgba(0,0,0,.35); transition: transform var(--dur-fast) ease;
+    box-shadow: var(--shadow-float); transition: transform var(--dur-fast) ease;
   }
   /* Sichtbar bleiben 28px - auf 44x44 erweitert der gemeinsame Mechanismus in
      css/basis.css (TROUBLESHOOTING #38). */
@@ -1037,7 +1062,7 @@
   .crop-stage img { position: absolute; top: 0; left: 0; transform-origin: 0 0; user-select: none; -webkit-user-drag: none; pointer-events: none; }
   /* Kreis-Fenster per riesigem box-shadow statt SVG-Maske - dieselbe Abdunklung wie
      .overlay, damit ausserhalb des Kreises sichtbar "verworfen" wirkt. */
-  .crop-guide { position: absolute; inset: 0; margin: auto; width: 100%; height: 100%; border-radius: 50%; pointer-events: none; box-shadow: 0 0 0 9999px color-mix(in srgb, #0a0c07 55%, transparent); border: 2px solid rgba(255,255,255,.7); box-sizing: border-box; }
+  .crop-guide { position: absolute; inset: 0; margin: auto; width: 100%; height: 100%; border-radius: 50%; pointer-events: none; box-shadow: 0 0 0 9999px color-mix(in srgb, var(--photo-scrim) 55%, transparent); border: 2px solid rgba(255,255,255,.7); box-sizing: border-box; }
   .crop-zoom { display: flex; align-items: center; justify-content: center; gap: 14px; margin-top: 16px; }
 
   .auth { min-height: calc(100vh - 170px); display: grid; place-items: center; padding: 16px 0 60px; }
@@ -1252,10 +1277,70 @@
     @page { margin: 16mm; }
   }
 
+  /* ---------- Hinweis: ein title=, das auch auf Touch ankommt ----------
+     Natives `title=` erscheint nur beim Verweilen mit der Maus. Auf einem Telefon gibt es
+     kein Verweilen - die Erklaerung war dort schlicht nicht erreichbar. Betroffen sind die
+     Stellen, an denen der sichtbare Text die Zahl traegt und das title= die HERKUNFT
+     erklaert ("x3" in der Einkaufsliste, das Trainings-Abzeichen).
+
+     Bewusst EIN geteiltes Element statt eines Popovers je Ausloeser: Es gibt nie zwei
+     offene Hinweise gleichzeitig, und 30 Listenzeilen erzeugen so nicht 30 Knoten. */
+  .hinweis-traeger { cursor: help; text-decoration: underline dotted currentColor; text-underline-offset: 3px; border-radius: 4px; }
+  /* Die App setzt Fokusringe je Selektor, es gibt keine Grundregel - ein Traeger ist aber
+     per tabindex erreichbar und braucht deshalb seinen eigenen (WCAG 2.4.7). */
+  .hinweis-traeger:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  /* Auf Touch gibt es kein Hovern: Die gepunktete Linie allein sagt dort nicht, dass man
+     tippen kann. Beim Tippen antwortet der Traeger deshalb sichtbar. */
+  .hinweis-traeger:active,
+  .hinweis-traeger[aria-describedby] { background: color-mix(in srgb, var(--accent) 12%, transparent); }
+  .hinweis-pop {
+    position: fixed; z-index: 95; max-width: min(260px, calc(100vw - 24px));
+    background: var(--surface); color: var(--text);
+    border: 1px solid var(--border-strong); border-radius: var(--radius-sm);
+    box-shadow: var(--shadow); padding: 8px 11px;
+    font-size: 13px; line-height: 1.4; pointer-events: none;
+    opacity: 0; transition: opacity var(--dur-fast) var(--ease-out);
+  }
+  .hinweis-pop.auf { opacity: 1; }
+
+  /* ---------- Spotlight: EIN Hinweis, genau einmal ----------
+     Nach dem Onboarding steht ein neues Konto vor einem leeren Plan. Die vier
+     "+ Meal waehlen" sagen, was man tun KANN - sie sagen nicht, dass die Woche
+     sich auch von selbst planen laesst. Genau das ist der Punkt, an dem die App
+     am meisten Zeit spart, und er steckt hinter einem Symbol.
+
+     Bewusst KEINE mehrstufige Tour: Der Rest des Bildschirms erklaert sich seit
+     dem 20.09.2026 selbst (leerZustand mit naechster Aktion). Eine Tour haette
+     erklaert, was ohnehin dasteht - gegen CLAUDE.md 5 und 6.
+
+     Das Loch im Dunkel entsteht ueber einen sehr grossen Schattenring statt ueber
+     eine Maske: So bleibt das hervorgehobene Element ein ganz normales Element,
+     bleibt klickbar und behaelt seinen Fokusring. Vorbild ist das gaengige
+     Verfahren aus Shepherd.js / Intro.js; die Dialogrolle folgt dem
+     WAI-ARIA-Muster "Dialog (Modal)". */
+  .spot-dim { position: fixed; inset: 0; z-index: 90; background: transparent; }
+  .spot-ring {
+    position: fixed; z-index: 91; border-radius: 999px; pointer-events: none;
+    box-shadow: 0 0 0 9999px rgba(0, 0, 0, .72), 0 0 0 3px var(--accent);
+    transition: opacity var(--dur-base) var(--ease-out);
+  }
+  .spot-card {
+    position: fixed; z-index: 92; max-width: min(320px, calc(100vw - 32px));
+    background: var(--surface); color: var(--text);
+    border: 1px solid var(--border-strong); border-radius: var(--radius);
+    box-shadow: var(--shadow); padding: 16px;
+    animation: spot-in var(--dur-base) var(--ease-out) both;
+  }
+  .spot-card h3 { margin: 0 0 4px; font-family: var(--font-display); font-size: 17px; }
+  .spot-card p { margin: 0 0 12px; color: var(--text-muted); font-size: 14px; line-height: 1.45; }
+  .spot-actions { display: flex; gap: 8px; }
+  .spot-actions .btn { flex: 1; justify-content: center; }
+  @keyframes spot-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
   /* Weniger statt null: Bewegung (Transform/Keyframes) aus, aber Opacity-Ueberblendungen
      bleiben, weil sie Zustandswechsel (Modal/Toast/Onboarding) verstehbar halten. */
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; }
-    .modal, #toast, .onb-stage, .onb-opt, .onb-bf-o { transition: opacity var(--dur-fast) ease !important; transform: none !important; animation: none !important; }
+    .modal, #toast, .onb-stage, .onb-opt, .onb-bf-o, .spot-card { transition: opacity var(--dur-fast) ease !important; transform: none !important; animation: none !important; }
     * { transition-property: opacity, color, background-color, border-color, box-shadow !important; }
   }

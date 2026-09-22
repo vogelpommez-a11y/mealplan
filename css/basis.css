@@ -372,10 +372,10 @@
      unveraendert. */
   .fav-ic.on-photo {
     position: absolute; top: 10px; right: 10px; z-index: 3;
-    color: #fff; background: color-mix(in srgb, #0a0c07 50%, transparent);
-    box-shadow: 0 2px 8px rgba(0,0,0,.35);
+    color: #fff; background: color-mix(in srgb, var(--photo-scrim) 50%, transparent);
+    box-shadow: var(--shadow-float);
   }
-  .fav-ic.on-photo:hover { color: #fff; background: color-mix(in srgb, #0a0c07 68%, transparent); }
+  .fav-ic.on-photo:hover { color: var(--on-photo); background: color-mix(in srgb, var(--photo-scrim) 68%, transparent); }
   .fav-ic.on-photo.on { color: var(--accent); }
   .btn.sm { padding: 6px 11px; font-size: 13px; }
   /* Der Knopf, der wie ein Link aussieht - vorher dreimal getrennt gebaut
@@ -733,7 +733,7 @@
   /* Die Abdunklung ist bewusst NICHT tokenisiert und in beiden Themes gleich: Sie stellt
      den Kontrast zum BILD her, nicht zum Hintergrund der Seite. Ein helles Token im
      Light-Theme machte den weissen Text auf einem hellen Gericht unlesbar. */
-  .hm-veil { position: absolute; inset: auto 0 0 0; padding: 34px 16px 10px; color: #fff;
+  .hm-veil { position: absolute; inset: auto 0 0 0; padding: 34px 16px 10px; color: var(--on-photo);
     background: linear-gradient(180deg, transparent, rgba(10,8,9,.55) 38%, rgba(10,8,9,.92)); }
   /* .88 statt .78: Die Zeile sitzt im OBEREN Teil des Verlaufs, wo die Abdunklung erst bei
      rund 55 % liegt - und darunter kann ein helles Gericht liegen. Bei 78 % Weiss wird das
@@ -754,8 +754,8 @@
   /* Kompaktzeile: kcal, dann KH/P/F OHNE Einheit - so schreibt es macroLineHtml()
      ueberall (docs/DESIGN.md, "Die drei erlaubten Formen"). */
   .hm-facts { display: flex; gap: 12px; flex-wrap: wrap; font-size: 12px; font-weight: 600;
-    color: rgba(255,255,255,.85); font-variant-numeric: tabular-nums; }
-  .hm-facts b { color: #fff; font-weight: 700; }
+    color: var(--on-photo-dim); font-variant-numeric: tabular-nums; }
+  .hm-facts b { color: var(--on-photo); font-weight: 700; }
 
   .hm-body { padding: 13px 16px; }
 
@@ -1196,7 +1196,7 @@
     width: 36px; height: 36px; border: 0; border-radius: 50%; cursor: pointer;
     display: grid; place-items: center; font-size: 23px; line-height: 1; padding: 0;
     color: var(--accent-contrast); background: linear-gradient(135deg, var(--accent-solid), var(--accent-solid-strong));
-    box-shadow: 0 2px 8px rgba(0,0,0,.35); transition: transform var(--dur-fast) ease;
+    box-shadow: var(--shadow-float); transition: transform var(--dur-fast) ease;
   }
   .wch-add:hover { transform: scale(1.12); }
   .wch-head .wg-h { margin-bottom: 10px; }

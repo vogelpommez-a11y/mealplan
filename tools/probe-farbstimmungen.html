@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="de" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Performance Dark – drei Stimmungen im Vergleich</title>
+
+<!-- Das ECHTE Projekt-CSS, nicht nachgebaut. Wer hier Farben abtippt, vergleicht
+     seine Abschrift mit sich selbst. -->
+<link rel="stylesheet" href="../css/tokens.css">
+<link rel="stylesheet" href="../css/basis.css">
+<link rel="stylesheet" href="../css/komponenten.css">
+
+<style>
+  /* Nur das Gerüst dieser Vergleichsseite - kein Projekt-Stil. */
+  body { margin: 0; background: #0C0A0B; color: #F4EFEE;
+         font-family: system-ui, -apple-system, "Segoe UI", sans-serif; }
+  .kopf { padding: 24px 20px 8px; max-width: 1200px; margin: 0 auto; }
+  .kopf h1 { font-size: 21px; margin: 0 0 6px; }
+  .kopf p { margin: 0 0 4px; color: #A69B9D; font-size: 14px; line-height: 1.5; max-width: 76ch; }
+  .reihe { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;
+           padding: 16px 20px 40px; max-width: 1200px; margin: 0 auto; }
+  @media (max-width: 900px) { .reihe { grid-template-columns: 1fr; } }
+  .spalte { border-radius: 14px; overflow: hidden; border: 1px solid #2A2223; }
+  .spalte > .titel { padding: 10px 14px; font-size: 13px; font-weight: 700;
+                     letter-spacing: .04em; text-transform: uppercase;
+                     background: #1C1718; color: #F4EFEE; border-bottom: 1px solid #2A2223; }
+  .spalte > .warum { padding: 10px 14px; font-size: 12.5px; line-height: 1.5;
+                     color: #A69B9D; background: #141011; border-bottom: 1px solid #2A2223; }
+  .buehne { padding: 16px; background: var(--bg); color: var(--text); }
+  .buehne .karte { background: var(--surface); border: 1px solid var(--border);
+                   border-radius: var(--radius); padding: 14px; margin-bottom: 12px; }
+  .buehne h3 { margin: 0 0 4px; font-size: 15px; color: var(--text); }
+  .buehne .neben { margin: 0; font-size: 13px; color: var(--text-muted); }
+  .werte { display: flex; gap: 12px; margin-top: 10px; font-size: 12.5px;
+           font-variant-numeric: tabular-nums; }
+  .werte b { display: block; font-size: 15px; }
+  .k { color: var(--accent); } .kh { color: var(--fr, #E8B33A); }
+  .pr { color: var(--mi, #4BC08A); } .fe { color: var(--ab, #7C6BE8); }
+  .knopfreihe { display: flex; gap: 8px; margin-top: 12px; }
+  .kn { border: 0; border-radius: 999px; padding: 9px 16px; font-size: 13.5px;
+        font-weight: 600; cursor: default; }
+  .kn.prim { background: var(--accent); color: #fff; }
+  .kn.zweit { background: var(--surface-2); color: var(--text); border: 1px solid var(--border); }
+  .leerprobe { border: 1.5px dashed var(--border-strong); border-radius: var(--radius);
+               padding: 22px 14px; text-align: center; color: var(--text-muted); font-size: 13px; }
+  .streifen { display: flex; margin-top: 12px; border-radius: 8px; overflow: hidden;
+              border: 1px solid var(--border); }
+  .streifen span { flex: 1; height: 34px; display: grid; place-items: center;
+                   font-size: 10px; color: #fff8; }
+
+  /* ---- Die drei Stimmungen. NUR Tokens, kein einziger Bauteil-Stil. ---- */
+
+  /* A: unveraendert - die Referenz. Ohne sie vergleicht man zwei Entwuerfe
+        miteinander und merkt nicht, dass beide schlechter sind als das, was steht. */
+  .v-a .buehne { --bg:#0C0A0B; --surface:#141011; --surface-2:#1C1718;
+                 --text:#F4EFEE; --text-muted:#A69B9D; --border:#2A2223; --border-strong:#3A2F30;
+                 --accent:#FF3040; }
+
+  /* B: mehr Tiefe. bg dunkler, surface heller - der Abstand zwischen Hintergrund und
+        Karte waechst von 2 auf 5 Helligkeitsstufen. */
+  .v-b .buehne { --bg:#080607; --surface:#181314; --surface-2:#231C1E;
+                 --text:#F6F2F1; --text-muted:#ACA1A3; --border:#332A2B; --border-strong:#463A3B;
+                 --accent:#FF3040; }
+
+  /* C: neutrale Graustufen. Derselbe Aufbau wie A, aber ohne den warmen Stich. */
+  .v-c .buehne { --bg:#0B0B0C; --surface:#151517; --surface-2:#1E1E21;
+                 --text:#F2F2F3; --text-muted:#A0A0A6; --border:#292A2D; --border-strong:#393A3E;
+                 --accent:#FF3040; }
+</style>
+</head>
+<body>
+
+<div class="kopf">
+  <h1>Performance Dark – drei Stimmungen</h1>
+  <p>Etappe 2 der UI-Grundlagen. Links steht der <strong>heutige Stand unverändert</strong>;
+     ohne ihn vergleicht man zwei Entwürfe miteinander und merkt nicht, dass beide
+     schlechter sind als das, was schon da ist.</p>
+  <p>Verändert werden ausschließlich <strong>Tokens</strong> – kein Bauteil, kein Abstand,
+     keine Schrift. Der Akzent bleibt in allen dreien derselbe (<code>#FF3040</code>);
+     Gold bleibt für Pro reserviert und kommt hier nicht vor.</p>
+</div>
+
+<div class="reihe">
+
+  <div class="spalte v-a">
+    <div class="titel">A · heute (Referenz)</div>
+    <div class="warum">Der Stand, der live ist. Hintergrund und Karte liegen nur zwei
+      Helligkeitsstufen auseinander – auf einem OLED-Schirm verschwimmen sie fast.</div>
+    <div class="buehne">
+      <div class="karte">
+        <h3>Ofenlachs mit Süßkartoffel</h3>
+        <p class="neben">Abendessen · 2 Portionen</p>
+        <div class="werte">
+          <div><b class="k">612</b>kcal</div><div><b class="kh">44</b>KH</div>
+          <div><b class="pr">41</b>P</div><div><b class="fe">27</b>F</div>
+        </div>
+        <div class="knopfreihe">
+          <button class="kn prim">Einplanen</button>
+          <button class="kn zweit">Ansehen</button>
+        </div>
+      </div>
+      <div class="leerprobe">Noch kein Meal für Mittwoch</div>
+      <div class="streifen"><span style="background:var(--bg)">bg</span><span style="background:var(--surface)">surf</span><span style="background:var(--surface-2)">surf2</span><span style="background:var(--border-strong)">rand</span></div>
+    </div>
+  </div>
+
+  <div class="spalte v-b">
+    <div class="titel">B · mehr Tiefe</div>
+    <div class="warum">Hintergrund dunkler, Karte heller: Der Abstand wächst von zwei auf
+      fünf Stufen. Karten heben sich ab, ohne dass ein Schatten nachhelfen muss.</div>
+    <div class="buehne">
+      <div class="karte">
+        <h3>Ofenlachs mit Süßkartoffel</h3>
+        <p class="neben">Abendessen · 2 Portionen</p>
+        <div class="werte">
+          <div><b class="k">612</b>kcal</div><div><b class="kh">44</b>KH</div>
+          <div><b class="pr">41</b>P</div><div><b class="fe">27</b>F</div>
+        </div>
+        <div class="knopfreihe">
+          <button class="kn prim">Einplanen</button>
+          <button class="kn zweit">Ansehen</button>
+        </div>
+      </div>
+      <div class="leerprobe">Noch kein Meal für Mittwoch</div>
+      <div class="streifen"><span style="background:var(--bg)">bg</span><span style="background:var(--surface)">surf</span><span style="background:var(--surface-2)">surf2</span><span style="background:var(--border-strong)">rand</span></div>
+    </div>
+  </div>
+
+  <div class="spalte v-c">
+    <div class="titel">C · neutrale Graustufen</div>
+    <div class="warum">Gleicher Aufbau wie A, aber ohne den warmen Rotstich in den Grautönen.
+      Der rote Akzent bekommt dadurch mehr Kraft, weil nichts mehr mit ihm konkurriert.</div>
+    <div class="buehne">
+      <div class="karte">
+        <h3>Ofenlachs mit Süßkartoffel</h3>
+        <p class="neben">Abendessen · 2 Portionen</p>
+        <div class="werte">
+          <div><b class="k">612</b>kcal</div><div><b class="kh">44</b>KH</div>
+          <div><b class="pr">41</b>P</div><div><b class="fe">27</b>F</div>
+        </div>
+        <div class="knopfreihe">
+          <button class="kn prim">Einplanen</button>
+          <button class="kn zweit">Ansehen</button>
+        </div>
+      </div>
+      <div class="leerprobe">Noch kein Meal für Mittwoch</div>
+      <div class="streifen"><span style="background:var(--bg)">bg</span><span style="background:var(--surface)">surf</span><span style="background:var(--surface-2)">surf2</span><span style="background:var(--border-strong)">rand</span></div>
+    </div>
+  </div>
+
+</div>
+
+<div class="kopf" style="padding-bottom:40px">
+  <p><strong>Wenn eine Stimmung gewinnt:</strong> Es sind sieben Token-Werte im
+     <code>@media (prefers-color-scheme: dark)</code>-Block von <code>css/tokens.css</code> –
+     und dieselben sieben im Block <code>:root[data-theme="dark"]</code>. Beide ändern,
+     sonst weicht die App vom Systemwunsch ab (der Kopf von <code>tokens.css</code> warnt
+     ausdrücklich davor). Danach <code>python tools/abnahme-mobil.py</code>, weil die
+     Kontrastwerte mitwandern.</p>
+  <p><strong>Wenn keine gewinnt:</strong> Auch ein Ergebnis. A bleibt, und Etappe 2 ist
+     mit dem Token-Aufräumen abgeschlossen.</p>
+</div>
+
+</body>
+</html>

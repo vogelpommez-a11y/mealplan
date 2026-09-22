@@ -450,6 +450,51 @@
           // daran die GESAMTE Kontoloeschung ab - schlimmer als der alte Zustand, und ein
           // Verstoss gegen "jederzeit selbst und sofort loeschen" (Ziffer 10, Art. 17 DSGVO).
           if (opts && opts.groupId) {
+            // Erst den Personenbezug aus den Gruppen-Meals nehmen, dann die Mitgliedschaft
+            // beenden - nach dem Batch unten ist man kein Mitglied mehr und canWrite(gid)
+            // laesst nichts mehr zu. Die Meals selbst bleiben bei der Gruppe (Ziffer 10 der
+            // Datenschutzerklaerung); Art. 17 verlangt, dass die Zuordnung verschwindet,
+            // nicht der gemeinsame Bestand.
+            //
+            // Scheitert es, bricht die Kontoloeschung NICHT ab. "Jederzeit selbst und sofort
+            // loeschen" (Ziffer 10) waere sonst an einer Aufraeumarbeit in einer fremden
+            // Gruppe aufgehaengt - und der Nutzer stuende mit einem halb geloeschten Konto da.
+            // Der Fall wird protokolliert, damit er nicht stillschweigend verschwindet.
+            try {
+              const rsnap = await getDocs(collection(db, "groups", opts.groupId, "recipes"));
+              const meine = rsnap.docs.filter(function (d) { return (d.data() || {}).by === uid; });
+              for (let i = 0; i < meine.length; i += 400) {
+                const ab = writeBatch(db);
+                meine.slice(i, i + 400).forEach(function (d) {
+                  ab.update(doc(db, "groups", opts.groupId, "recipes", d.id), { by: "" });
+                });
+                await ab.commit();
+              }
+            } catch (e) { window.noteError("konto:anonymGruppe", e); }
+            // Und dieselbe Bereinigung fuer die Zuweisungen im Wochenplan.
+            try {
+              const psnap = await getDocs(collection(db, "groups", opts.groupId, "plans"));
+              for (const pd of psnap.docs) {
+                const felder = pd.data() || {};
+                const patch = {};
+                Object.keys(felder).forEach(function (feld) {
+                  const liste = felder[feld];
+                  if (!Array.isArray(liste)) return;
+                  let trifft = false;
+                  const neu = liste.map(function (e) {
+                    if (!e || typeof e !== "object" || !Array.isArray(e.uids)) return e;
+                    if (e.uids.indexOf(uid) === -1) return e;
+                    trifft = true;
+                    const rest = e.uids.filter(function (u) { return u !== uid; });
+                    return rest.length ? { id: e.id, uids: rest } : e.id;
+                  });
+                  if (trifft) patch[feld] = neu;
+                });
+                if (Object.keys(patch).length) {
+                  await setDoc(doc(db, "groups", opts.groupId, "plans", pd.id), patch, { merge: true });
+                }
+              }
+            } catch (e) { window.noteError("konto:anonymPlan", e); }
             const mref = doc(db, "groups", opts.groupId, "members", uid);
             try {
               const gref = doc(db, "groups", opts.groupId);
@@ -774,6 +819,31 @@
           if (data && data.via) batch.update(doc(db, "invites", data.via), { used: true });
           return batch.commit();
         },
+        // Beim Austritt bleiben die Meals bei der Gruppe (Datenschutz Ziffer 10) - die
+        // UID des Ausgetretenen darf es nicht. Sie ist der einzige Personenbezug an einem
+        // Gruppen-Meal, und sie ueberlebte den Austritt bisher: Der Mitglieder-Eintrag
+        // verschwand, `by` blieb stehen. Die Oberflaeche zeigte dann zwar keinen Namen mehr
+        // (recipeAuthorHtml gibt bei unbekannter uid "" zurueck), aber "nicht angezeigt" ist
+        // keine Anonymisierung - die Kennung stand weiter im Dokument und war ueber Firebase
+        // Auth weiter einer Person zuzuordnen. Offener Punkt V4 des Art.-30-Verzeichnisses,
+        // entschieden am 22.09.2026: Die Meals bleiben, der Personenbezug geht.
+        //
+        // Muss VOR leaveAtomic() laufen: Danach ist man kein Mitglied mehr, und canWrite(gid)
+        // verweigert jeden Schreibzugriff. Firestore begrenzt einen Batch auf 500 Vorgaenge,
+        // deshalb in Haeppchen - eine Gruppe darf zwar nur vier Mitglieder haben, aber nicht
+        // nur vierhundert Meals.
+        anonymizeMyRecipes: async function (gid, uid) {
+          const snap = await getDocs(recipesCol(["groups", gid]));
+          const meine = snap.docs.filter(function (d) { return (d.data() || {}).by === uid; });
+          for (let i = 0; i < meine.length; i += 400) {
+            const batch = writeBatch(db);
+            meine.slice(i, i + 400).forEach(function (d) {
+              batch.update(recipeDoc(["groups", gid], d.id), { by: "" });
+            });
+            await batch.commit();
+          }
+          return meine.length;
+        },
         leaveAtomic: function (gid, uid) {
           const batch = writeBatch(db);
           batch.delete(doc(db, "groups", gid, "members", uid));
@@ -799,6 +869,43 @@
           return getDocsFromServer(collection(db, "groups", gid, "plans")).then(function (snap) {
             return snap.docs.map(function (d) { return { week: d.id, fields: d.data() }; });
           });
+        },
+        // Die zweite Stelle, an der eine UID im Gruppenbestand steckt: die Zuweisung
+        // eines Slots an einzelne Mitglieder ({id, uids:[...]} in groups/{gid}/plans/{week}).
+        // anonymizeMyRecipes() raeumt nur `by` an den MEALS weg - die Zuweisungen blieben
+        // stehen. Befund des Agenten `datenschutz-technik` am 22.09.2026, und es ist
+        // exakt dieselbe Verwechslung wie bei `by`: Die Oberflaeche zeigt danach keinen
+        // Namen mehr ("Jemanden"), aber die Kennung steht weiter im Dokument.
+        //
+        // Bleibt ein Eintrag ohne Zuweisung uebrig, wird er auf die String-Form
+        // zurueckgefuehrt (= fuer alle). Er darf NICHT als {id, uids: []} stehen bleiben:
+        // Ein Gericht, das niemandem gehoert, ist im Datenmodell ausdruecklich verboten
+        // (docs/ARCHITECTURES.md) - es waere sichtbar, zaehlte aber bei niemandem mit.
+        anonymizeMyPlanAssignments: async function (gid, uid) {
+          const snap = await getDocs(collection(db, "groups", gid, "plans"));
+          let geaendert = 0;
+          for (const d of snap.docs) {
+            const felder = d.data() || {};
+            const patch = {};
+            Object.keys(felder).forEach(function (feld) {
+              const liste = felder[feld];
+              if (!Array.isArray(liste)) return;
+              let trifft = false;
+              const neu = liste.map(function (e) {
+                if (!e || typeof e !== "object" || !Array.isArray(e.uids)) return e;
+                if (e.uids.indexOf(uid) === -1) return e;
+                trifft = true;
+                const rest = e.uids.filter(function (u) { return u !== uid; });
+                return rest.length ? { id: e.id, uids: rest } : e.id;
+              });
+              if (trifft) patch[feld] = neu;
+            });
+            if (Object.keys(patch).length) {
+              await setDoc(doc(db, "groups", gid, "plans", d.id), patch, { merge: true });
+              geaendert++;
+            }
+          }
+          return geaendert;
         },
         savePlanWeek: function (gid, week, patch) {
           return setDoc(doc(db, "groups", gid, "plans", week), patch, { merge: true });
@@ -3906,6 +4013,9 @@
       recipeIndex = null;
       dayNutCache = null;
     }
+    // Bilder aus dem Cache sind schon fertig, bevor der Listener oben sie sehen konnte -
+    // sonst schimmerte beim zweiten Besuch jede Karte, obwohl das Foto laengst dasteht.
+    bilderNachtragen(view);
     // Fokus nur dann einfangen, wenn er beim Neuaufbau tatsaechlich verloren ging -
     // der aktive Reiter ist ein stabiler Anker, von dem aus man weitertabben kann.
     if (focusWasInView && (!document.activeElement || document.activeElement === document.body)) {
@@ -4502,7 +4612,7 @@
     const lv = trainLevel(e.level);
     const add = dayTrainKcal(dayKey);
     const title = `Trainingstag: ${lv.label}, ${e.min} Min.${add ? ` · +${nfmt(add)} kcal` : ""}`;
-    return `<span class="dtrain" title="${esc(title)}">${ICON_DUMBBELL}${esc(lv.label)}</span>`;
+    return `<span class="dtrain hinweis-traeger" tabindex="0" data-hinweis="${esc(title)}">${ICON_DUMBBELL}${esc(lv.label)}</span>`;
   }
 
   // Ab diesem Anteil des Ziels gilt der Korridor als getroffen. Darunter ist nicht
@@ -5356,6 +5466,199 @@
     fitHeight();
     syncIndicator();
     return { go: go, fit: fitHeight, index: currentIndex };
+  }
+
+  // ---------- Hinweis: title=, das auch auf Touch ankommt ----------
+  //
+  // Ein `title=` zeigt der Browser nur beim Verweilen mit der Maus. Auf einem Telefon gibt
+  // es kein Verweilen, die Erklaerung war dort also unerreichbar. Betroffen sind die
+  // Stellen, an denen der sichtbare Text die Zahl traegt und das title= die HERKUNFT
+  // erklaert - "x3" in der Einkaufsliste, das Trainings-Abzeichen im Rechner.
+  //
+  // Herkunft: Tastaturweg und ARIA folgen dem WAI-ARIA-APG-Muster "Tooltip" (Fokus oeffnet,
+  // Escape schliesst, `aria-describedby` verbindet Ausloeser und Text). Ergaenzt um das,
+  // was das Muster nicht abdeckt: Auf Touch oeffnet ein Tippen, weil es dort kein Hovern
+  // gibt - so macht es auch React Aria (useTooltipTrigger, "touch: long press / press").
+  //
+  // Ein Ausloeser traegt `data-hinweis="..."` statt `title="..."`. Beides zugleich waere
+  // doppelt: Der Browser zeigte zusaetzlich seine eigene gelbe Blase.
+  const hinweis = (() => {
+    let pop = null, offen = null;
+
+    function element() {
+      if (!pop) {
+        pop = el('<div class="hinweis-pop" role="tooltip" id="pm-hinweis"></div>');
+        document.body.appendChild(pop);
+      }
+      return pop;
+    }
+
+    function zeige(ausloeser) {
+      const text = ausloeser.getAttribute("data-hinweis");
+      if (!text) return;
+      const n = element();
+      n.textContent = text;
+      n.classList.add("auf");
+      ausloeser.setAttribute("aria-describedby", "pm-hinweis");
+      offen = ausloeser;
+      const r = ausloeser.getBoundingClientRect();
+      // Darueber, wenn oben Platz ist - sonst darunter. Auf einer langen Einkaufsliste
+      // steht der Ausloeser sonst am oberen Rand und die Blase halb ausserhalb.
+      const h = n.offsetHeight, b = n.offsetWidth;
+      const oben = r.top - 8 - h >= 4;
+      n.style.top = (oben ? r.top - 8 - h : r.bottom + 8) + "px";
+      n.style.left = Math.max(12, Math.min(window.innerWidth - b - 12,
+                                           r.left + r.width / 2 - b / 2)) + "px";
+    }
+
+    function verbirg() {
+      if (offen) { offen.removeAttribute("aria-describedby"); offen = null; }
+      if (pop) pop.classList.remove("auf");
+    }
+
+    // Delegiert an document: Die Ausloeser entstehen bei jedem render() neu, ein Listener
+    // je Element muesste danach jedes Mal neu gesetzt werden - und die naechste Stelle,
+    // die einen Hinweis einbaut, vergaesse es.
+    document.addEventListener("pointerover", e => {
+      const a = e.target.closest && e.target.closest("[data-hinweis]");
+      if (a && e.pointerType === "mouse") zeige(a);
+    });
+    document.addEventListener("pointerout", e => {
+      if (e.target.closest && e.target.closest("[data-hinweis]")) verbirg();
+    });
+    document.addEventListener("focusin", e => {
+      const a = e.target.closest && e.target.closest("[data-hinweis]");
+      if (a) zeige(a); else verbirg();
+    });
+    document.addEventListener("click", e => {
+      const a = e.target.closest && e.target.closest("[data-hinweis]");
+      if (a) { e.preventDefault(); (offen === a) ? verbirg() : zeige(a); }
+      else verbirg();
+    });
+    document.addEventListener("keydown", e => { if (e.key === "Escape") verbirg(); });
+    window.addEventListener("scroll", verbirg, true);
+    window.addEventListener("resize", verbirg);
+    return { verbirg };
+  })();
+
+  // ---------- Ladezustand der Meal-Bilder ----------
+  //
+  // EIN Listener fuer die ganze App statt eines Handlers je Bild. `load` steigt nicht auf,
+  // in der Capture-Phase kommt es aber trotzdem an document an - das ist der uebliche Weg,
+  // Bild-Ladeereignisse zentral zu behandeln (MDN: Event.eventPhase / "load does not
+  // bubble"). Ohne ihn braeuchte jede der Stellen, die eine Meal-Karte baut, ihren eigenen
+  // onload, und die naechste vergaesse ihn.
+  //
+  // `complete` deckt den Fall ab, dass das Bild aus dem Cache kommt und `load` schon
+  // gefeuert hat, bevor der Listener es sah - beim zweiten Besuch also fast immer.
+  function bildFertig(img) {
+    const box = img.closest ? img.closest(".rimg") : null;
+    if (box) box.classList.add("bild-da");
+  }
+  document.addEventListener("load", e => {
+    const n = e.target;
+    if (n && n.tagName === "IMG" && n.classList.contains("rphoto")) bildFertig(n);
+  }, true);
+  // Auch ein FEHLendes Bild beendet das Warten: Ein Schimmer, der ewig weiterlaeuft, weil
+  // die Datei nicht existiert, verspricht etwas, das nie kommt.
+  document.addEventListener("error", e => {
+    const n = e.target;
+    if (n && n.tagName === "IMG" && n.classList.contains("rphoto")) bildFertig(n);
+  }, true);
+  // Nach jedem Neuzeichnen die bereits fertigen Bilder nachtragen (Cache-Fall).
+  function bilderNachtragen(wurzel) {
+    (wurzel || document).querySelectorAll("img.rphoto").forEach(img => {
+      if (img.complete && img.naturalWidth > 0) bildFertig(img);
+    });
+  }
+
+  // ---------- Spotlight: ein Hinweis auf genau eine Funktion ----------
+  //
+  // Gebaut fuer den Moment nach dem Onboarding. Der leere Plan erklaert sich inzwischen
+  // selbst ("+ Meal waehlen" in jeder Mahlzeit) - was er NICHT zeigt, ist der Auto-Planer
+  // hinter dem Zauberstab. Das ist die Funktion, die am meisten Zeit spart, und ohne
+  // Hinweis findet sie niemand am ersten Tag.
+  //
+  // Bewusst ein einzelner Schritt und kein Tour-System (CLAUDE.md 5, 6, 22): Alles andere
+  // auf diesem Bildschirm zu erklaeren hiesse, Sichtbares vorzulesen.
+  //
+  // Herkunft: Das Loch im Dunkel ueber einen sehr grossen `box-shadow`-Ring ist das
+  // gaengige Verfahren aus Shepherd.js und Intro.js - das hervorgehobene Element bleibt
+  // dabei ein normales Element und behaelt Klick und Fokusring. Tastaturweg und ARIA
+  // folgen dem WAI-ARIA-APG-Muster "Dialog (Modal)": role="dialog", aria-modal,
+  // Fokus hinein, Escape schliesst, Fokus zurueck.
+  function spotlight(o) {
+    const ziel = document.querySelector(o.selektor);
+    // Kein Ziel, kein Hinweis. Das ist der Normalfall auf schmalen Geraeten oder wenn die
+    // Funktion gerade nicht angeboten wird (der Auto-Planer verlangt ein Ziel) - dann
+    // schweigt die App, statt ins Leere zu zeigen.
+    if (!ziel) return false;
+    const vorher = document.activeElement;
+    const dim = el('<div class="spot-dim"></div>');
+    const ring = el('<div class="spot-ring"></div>');
+    const karte = el(`<div class="spot-card" role="dialog" aria-modal="true" aria-labelledby="spot-t">
+      <h3 id="spot-t">${esc(o.titel)}</h3>
+      <p>${esc(o.text)}</p>
+      <div class="spot-actions">
+        <button class="btn ghost sm" data-spot="zu">${esc(o.spaeter || "Später")}</button>
+        <button class="btn primary sm" data-spot="los">${esc(o.aktion)}</button>
+      </div>
+    </div>`);
+
+    function platziere() {
+      const r = ziel.getBoundingClientRect();
+      const luft = 8;
+      ring.style.left = (r.left - luft) + "px";
+      ring.style.top = (r.top - luft) + "px";
+      ring.style.width = (r.width + luft * 2) + "px";
+      ring.style.height = (r.height + luft * 2) + "px";
+      // Unter das Ziel, wenn darunter Platz ist - sonst darueber. Ohne diese Wahl klebt
+      // die Karte bei einem Ziel am unteren Rand halb ausserhalb des Bildschirms.
+      const kh = karte.offsetHeight || 150;
+      const unten = r.bottom + 12 + kh <= window.innerHeight - 8;
+      karte.style.top = (unten ? r.bottom + 12 : Math.max(8, r.top - 12 - kh)) + "px";
+      const kb = karte.offsetWidth || 300;
+      karte.style.left = Math.max(16, Math.min(window.innerWidth - kb - 16,
+                                               r.left + r.width / 2 - kb / 2)) + "px";
+    }
+
+    function zu(los) {
+      window.removeEventListener("resize", platziere);
+      window.removeEventListener("scroll", platziere, true);
+      document.removeEventListener("keydown", taste, true);
+      [dim, ring, karte].forEach(n => { if (n.parentNode) n.parentNode.removeChild(n); });
+      overlayClosed(zuOhneLos);
+      if (vorher && vorher.focus) { try { vorher.focus(); } catch (e) { /* weg */ } }
+      if (los) ziel.click();
+    }
+    const zuOhneLos = () => zu(false);
+
+    function taste(e) {
+      if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); zu(false); return; }
+      // Fokusfalle: Der Hinweis ist modal, also darf Tab nicht dahinter wandern.
+      if (e.key !== "Tab") return;
+      const k = karte.querySelectorAll("button");
+      if (!k.length) return;
+      const erste = k[0], letzte = k[k.length - 1];
+      if (e.shiftKey && document.activeElement === erste) { e.preventDefault(); letzte.focus(); }
+      else if (!e.shiftKey && document.activeElement === letzte) { e.preventDefault(); erste.focus(); }
+      else if (!karte.contains(document.activeElement)) { e.preventDefault(); erste.focus(); }
+    }
+
+    document.body.appendChild(dim);
+    document.body.appendChild(ring);
+    document.body.appendChild(karte);
+    platziere();
+    if (reducedMotion()) ring.style.transition = "none";
+    karte.querySelector('[data-spot="zu"]').addEventListener("click", () => zu(false));
+    karte.querySelector('[data-spot="los"]').addEventListener("click", () => zu(true));
+    dim.addEventListener("click", () => zu(false));
+    window.addEventListener("resize", platziere);
+    window.addEventListener("scroll", platziere, true);
+    document.addEventListener("keydown", taste, true);
+    overlayOpened(zuOhneLos);
+    karte.querySelector('[data-spot="los"]').focus();
+    return true;
   }
 
   function reducedMotion() {
@@ -8604,7 +8907,7 @@
               <input type="text" class="ing-name" placeholder="Zutat, z. B. Reis" maxlength="60" autocomplete="off" value="${esc(o.name || "")}">
               <ul class="ing-ac" role="listbox" hidden></ul>
             </span>
-            <button type="button" class="ing-barcode" title="Barcode mit der Kamera scannen – füllt Name und Nährwerte automatisch">${BARCODE_SVG}<span>Scannen</span></button>
+            <button type="button" class="ing-barcode" aria-label="Barcode scannen" title="Barcode mit der Kamera scannen – füllt Name und Nährwerte automatisch">${BARCODE_SVG}<span>Scannen</span></button>
           </span>
           <span class="ing-gwrap">
             <input type="number" class="ing-g" min="0" max="99999" step="1" placeholder="200" value="${nutVal(o.grams)}" aria-label="Menge">
@@ -8616,7 +8919,7 @@
               <option value="tl"${u === "tl" ? " selected" : ""}>TL</option>
             </select>
           </span>
-          <button type="button" class="ing-ic ing-del" title="Zutat entfernen">✕</button>
+          <button type="button" class="ing-ic ing-del" aria-label="Zutat entfernen" title="Zutat entfernen">✕</button>
         </div>
         <p class="ing-msg" role="status" hidden></p>
         <details class="ing-nut">
@@ -9846,8 +10149,8 @@
             return `<label class="shop-item">
               <input type="checkbox" class="shop-check" id="${id}" data-norm="${esc(it.norm)}"${done.has(it.norm) ? " checked" : ""}>
               <span class="box" aria-hidden="true">${checkSvg}</span>
-              <span class="lbl"${it.qty && it.count > 1 ? ` title="summiert aus ${it.count} Meals der Woche"` : ""}>${esc(it.label)}</span>
-              ${!it.qty && it.count > 1 ? `<span class="qty" title="in ${it.count} Meals der Woche">×${it.count}</span>` : ""}
+              <span class="lbl${it.qty && it.count > 1 ? " hinweis-traeger" : ""}"${it.qty && it.count > 1 ? ` tabindex="0" data-hinweis="summiert aus ${it.count} Meals der Woche"` : ""}>${esc(it.label)}</span>
+              ${!it.qty && it.count > 1 ? `<span class="qty hinweis-traeger" tabindex="0" data-hinweis="in ${it.count} Meals der Woche">×${it.count}</span>` : ""}
             </label>`;
           }).join("")}
         </div>`).join("");
@@ -11266,9 +11569,37 @@
       return;
     }
     window.CloudShare.fetch(id).then(function (data) {
+      // Die Frist wird ZWEIMAL geprueft, und das ist kein Versehen:
+      //
+      //   in den Regeln (shareFrisch)  - die verbindliche Grenze, nicht umgehbar
+      //   hier im Client               - damit die Zusage aus Ziffer 8 auch dann gilt,
+      //                                  wenn die Regel noch nicht veroeffentlicht ist
+      //
+      // Die Regeln liegen im Repo nur als Vorlage; scharf werden sie von Hand in der
+      // Firebase-Konsole (CLAUDE.md 12). Zwischen dem Push dieser Datei und diesem
+      // Handgriff laege sonst ein Zeitraum, in dem die Datenschutzerklaerung eine Frist
+      // verspricht, die niemand einhaelt. Diese Pruefung hier ist KEINE Sicherheitsgrenze
+      // - mit den Entwicklerwerkzeugen ist sie zu umgehen -, aber sie macht die Zusage
+      // fuer jeden normalen Weg wahr.
+      if (data && typeof data.when === "number" && Date.now() - data.when > SHARE_TTL_MS) {
+        toast("Dieser Link ist abgelaufen – Teilen-Links gelten " + SHARE_TTL_TEXT + ".");
+        return;
+      }
       if (data && Array.isArray(data.recipes)) openSharedImport(data);
-      else toast("Geteilter Plan nicht gefunden (Link abgelaufen?)");
-    }).catch(function () { toast("Geteilter Plan konnte nicht geladen werden"); });
+      else toast("Diesen Link gibt es nicht mehr.");
+    }).catch(function (e) {
+      // Seit der 12-Monats-Frist (SHARE_TTL_MS, firestore.rules -> shareFrisch) ist ein
+      // abgelaufener Link nicht "kaputt", sondern schlicht zu alt - die Regel verweigert
+      // das Lesen. Firestore meldet das als permission-denied, also genau das, was auch
+      // ein Nicht-Angemeldeter bekaeme. Angemeldet ist hier aber schon jeder (oben
+      // abgefangen), deshalb bleibt als Ursache praktisch nur die Frist.
+      var code = (e && (e.code || e.message)) || "";
+      if (String(code).indexOf("permission-denied") >= 0) {
+        toast("Dieser Link ist abgelaufen – Teilen-Links gelten 12 Monate.");
+      } else {
+        toast("Geteilter Plan konnte nicht geladen werden");
+      }
+    });
   }
   function openSharedImport(d) {
     if (!d || !Array.isArray(d.recipes)) return;
@@ -12171,6 +12502,34 @@
     render();
     syncStickyOffsets();
     if (msg) toast(msg);
+    // Nur beim ERSTEN Durchlauf (toPlan) - und nur, wenn der Auto-Planer fuer DIESE
+    // Person ueberhaupt laeuft. Beide Bedingungen sind noetig:
+    //
+    //   goalTargets(1)        sonst zeigt renderPlan() den Knopf gar nicht erst
+    //   isPro() || syncGid    sonst antwortet autoPlanWeek() mit "gehoert zu Pro"
+    //
+    // Die zweite fehlte im ersten Wurf, und das waere ein schlechter erster Moment
+    // gewesen: Ein frisch angelegtes Gratis-Konto haette einen Hinweis bekommen, auf
+    // "Zeig mal" getippt und als Antwort eine Verkaufsmeldung erhalten. Die Marke hilft,
+    // sie lockt nicht (CLAUDE.md 6).
+    //
+    // Wer den Planer nicht hat, verliert dadurch nichts: Der leere Wochenplan erklaert
+    // sich seit dem 20.09.2026 selbst ("+ Meal waehlen" in jeder Mahlzeit). Der Spotlight
+    // war immer nur fuer die EINE Sache gedacht, die man sonst nicht findet.
+    //
+    // requestAnimationFrame, weil render() gerade erst geschrieben hat: Vorher hat der
+    // Knopf noch keine Position, und der Ring saesse bei 0,0. Der Toast darueber darf
+    // zuerst kommen, er verschwindet selbst.
+    if (toPlan && (isPro() || syncGid)) {
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        spotlight({
+          selektor: ".plan-auto",
+          titel: "Die ganze Woche auf einmal",
+          text: "Hier füllt sich dein Plan von selbst – passend zu deinem Ziel. Ändern kannst du danach alles.",
+          aktion: "Zeig mal"
+        });
+      }));
+    }
   }
 
   // Was fehlt auf dem aktuellen Bildschirm? Leerer String = alles gut. Der Text landet
@@ -13099,7 +13458,7 @@
       <div class="auth-or">oder</div>
       <button class="btn social" id="c-google" type="button">${GOOGLE_SVG}<span>Mit Google ${reg ? "registrieren" : "anmelden"}</span></button>
       ${APPLE_ENABLED ? `<button class="btn social apple" id="c-apple" type="button">${APPLE_SVG}<span>Mit Apple ${reg ? "registrieren" : "anmelden"}</span></button>` : ""}
-      <p class="auth-note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg><span>Dein Konto liegt sicher in der Cloud – du kannst dich von jedem Gerät aus anmelden. Nach der Registrierung schicken wir dir eine <strong>Bestätigungsmail</strong>.</span></p>
+      <p class="auth-note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg><span>Dein Konto liegt sicher in der Cloud – du kannst dich von jedem Gerät aus anmelden. Nach der Registrierung schicken wir dir eine <strong>Bestätigungsmail</strong>.${reg ? " Mit der Registrierung bestätigst du, dass du mindestens <strong>16 Jahre</strong> alt bist." : ""}</span></p>
     </div></div>`;
 
     const card = view.querySelector(".auth-card");
@@ -14162,6 +14521,25 @@
     const snap = keep || snapshotOwnData();
     const keepRecipes = snap.recipes;
     const keepPlans = snap.plans;
+    // Die eigene UID aus den Gruppen-Meals nehmen, SOLANGE man noch Mitglied ist. Danach
+    // verweigert canWrite(gid) jeden Schreibzugriff, und der Personenbezug bliebe fuer
+    // immer stehen (Art.-30-Verzeichnis V4). Nur-Leser haben nie Meals eingebracht, fuer
+    // sie gibt es nichts zu tun.
+    //
+    // Scheitert es, wird der Austritt trotzdem zu Ende gefuehrt: Ein Mensch, der die Gruppe
+    // verlassen will, darf daran nicht haengenbleiben - dieselbe Abwaegung wie beim
+    // Best-Effort-Aufraeumen weiter unten. Der Fall wird protokolliert, damit er nicht
+    // stillschweigend verschwindet.
+    if (!warNurLeser) {
+      try {
+        await window.CloudGroup.anonymizeMyRecipes(gid, syncUid);
+      } catch (e) { noteError("group:anonymize", e); }
+      // Zweite Stelle: die Zuweisungen im Wochenplan. Getrennter try/catch, damit ein
+      // Fehler an der einen Stelle die andere nicht mitreisst.
+      try {
+        await window.CloudGroup.anonymizeMyPlanAssignments(gid, syncUid);
+      } catch (e) { noteError("group:anonymPlan", e); }
+    }
     try {
       // Atomar samt memberCount - einzeln lehnt die Regel es ab (CloudGroup.leaveAtomic).
       // Der leere catch traegt seit dem Limit einen Fall mehr: Nach dissolveGroup() ist das
@@ -14498,6 +14876,13 @@
           text: "Die Person sieht euren gemeinsamen Plan dann nicht mehr. Die von ihr angelegten Meals bleiben bei euch.",
           okLabel: "Entfernen",
           onConfirm: async () => {
+            // Dieselbe Pflicht wie beim eigenen Austritt (leaveGroup): Die Meals bleiben,
+            // die UID des Entfernten geht. Hier anonymisiert der Inhaber, nicht die
+            // betroffene Person - die kann es nicht mehr, sobald sie draussen ist.
+            try { await window.CloudGroup.anonymizeMyRecipes(syncGid, b.dataset.kick); }
+            catch (e) { noteError("group:anonymizeKick", e); }
+            try { await window.CloudGroup.anonymizeMyPlanAssignments(syncGid, b.dataset.kick); }
+            catch (e) { noteError("group:anonymPlanKick", e); }
             // Atomar samt memberCount - sonst bliebe der Platz fuer immer belegt.
             try { await window.CloudGroup.leaveAtomic(syncGid, b.dataset.kick); } catch (e) { toast("Das hat nicht geklappt."); }
           }
@@ -14541,6 +14926,14 @@
     const ownPhoto = safeImage(r.image);
     return { app: "wochenkueche", v: 1, type: "meal", uid: syncUid || "", by: profile ? profile.name : "", when: Date.now(), recipes: [r], og: { t: r.name, img: ownPhoto ? null : photoFor(r) } };
   }
+  // Ein Teilen-Link lebt 12 Monate (Entscheidung 22.09.2026, Art.-30-Verzeichnis V5).
+  // Durchgesetzt wird die Frist in den Firestore-Regeln (shareFrisch), nicht hier - diese
+  // Zahl ist nur die Beschriftung dazu. Werden die beiden Werte je verschieden, sagt die
+  // Oberflaeche etwas anderes als die Regel; tools/pruefstand-share-frist.py haelt sie
+  // deshalb gegeneinander.
+  const SHARE_TTL_MS = 31536000000; // 365 Tage
+  const SHARE_TTL_TEXT = "12 Monate";
+
   // Der Link ist der einzige Schutz des geteilten Plans, also muss die ID unerratbar sein.
   // Math.random() ist dafuer ungeeignet (nicht kryptografisch) und ein Zeitstempel erst recht.
   // 16 Zeichen aus einem 32er-Alphabet = 80 Bit; 32 teilt 256 glatt, daher kein Modulo-Bias.
@@ -14789,7 +15182,7 @@
             <input type="text" class="share-link" id="sl" readonly value="${esc(createdUrl)}">
             <button class="btn primary" id="sl-copy">Link kopieren</button>
           </div>
-          <p class="share-mini">Der Empfänger meldet sich einmal kostenlos an und kann das Meal dann übernehmen.</p>
+          <p class="share-mini">Der Empfänger meldet sich einmal kostenlos an und kann das Meal dann übernehmen. Der Link gilt ${SHARE_TTL_TEXT}.</p>
           <div class="share-actions"><button class="btn" id="sl-new">Neuen Link erstellen</button></div>`;
         body.querySelector("#sl-copy").addEventListener("click", () => { body.querySelector("#sl").select(); copyToClipboard(createdUrl, "Link kopiert"); });
         body.querySelector("#sl-new").addEventListener("click", () => { createdUrl = null; paint(); });
