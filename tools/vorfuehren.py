@@ -40,7 +40,7 @@ def server_laeuft():
 
 def server_starten():
     print(u"Der lokale Server laeuft nicht - starte test-server.ps1 ...")
-    subprocess.Popen(["powershell", "-NoProfile", "-WindowStyle", "Minimized",
+    subprocess.Popen(["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-WindowStyle", "Minimized",
                       "-File", os.path.join(WURZEL, "test-server.ps1")],
                      cwd=WURZEL)
     for _ in range(30):

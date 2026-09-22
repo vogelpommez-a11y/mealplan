@@ -43,6 +43,38 @@ PORT = 9225
 PROFIL = os.path.join(os.environ.get("TEMP", "."), "mp-chrome-mobil")
 URL = "http://localhost:8000/index.html"
 SCHUESSE = os.path.join(os.environ.get("TEMP", "."), "mp-abnahme-mobil")
+WURZEL = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+# --------------------------------------------------------------- Messgrundlage ---
+# TROUBLESHOOTING 174: Faellt test-server.ps1 weg, laedt Chrome seine eigene
+# Fehlerseite - und die hat 20-px-Links. Gemessen wurde dann nicht die App,
+# sondern die Entschuldigung dafuer, dass es sie gerade nicht gab. Ein Pruefstand,
+# der seine Messgrundlage nicht prueft, misst irgendwas und meldet es mit
+# derselben Bestimmtheit wie einen echten Befund.
+
+
+def server_laeuft():
+    try:
+        urllib.request.urlopen(URL, timeout=2).read(1)
+        return True
+    except Exception:
+        return False
+
+
+def server_sicherstellen():
+    u"""Startet test-server.ps1, wenn er fehlt. Wie tools/vorfuehren.py es macht."""
+    if server_laeuft():
+        return True
+    print(u"Der lokale Server laeuft nicht - starte test-server.ps1 ...")
+    subprocess.Popen(["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-WindowStyle", "Minimized",
+                      "-File", os.path.join(WURZEL, "test-server.ps1")],
+                     cwd=WURZEL)
+    for _ in range(30):
+        time.sleep(0.5)
+        if server_laeuft():
+            return True
+    return False
+
 
 GERAETE = [
     (360, 800, "klein_android"),   # engster Fall, Breakpoint 360
@@ -382,6 +414,12 @@ class Sitzung(object):
             return [t for t in json.loads(r.read().decode("utf-8")) if t.get("type") == "page"]
 
     def start(self, frisch=True):
+        if not server_sicherstellen():
+            raise SystemExit(
+                u"ABBRUCH - der lokale Server antwortet nicht auf %s.\n"
+                u"  Ohne ihn laedt Chrome seine Fehlerseite, und dieser Lauf wuerde\n"
+                u"  die Fehlerseite vermessen statt die App (TROUBLESHOOTING 174).\n"
+                u"  Von Hand:  powershell -NoProfile -File test-server.ps1" % URL)
         try:
             if self._seiten():
                 self.verbinden()
@@ -467,6 +505,29 @@ class Sitzung(object):
                 continue
         time.sleep(0.6)
         self.bild_abwarten()
+        self.messgrundlage_pruefen()
+
+    def messgrundlage_pruefen(self):
+        u"""Haben wir ueberhaupt die App vor uns - oder Chromes Fehlerseite?
+
+        Geprueft wird das Geruest (.app und #view), nicht der Inhalt: Ein leeres
+        #view ist ein Befund der App, kein Grund, den Lauf abzubrechen. Fehlt das
+        Geruest ganz, ist es nicht die App.
+        """
+        try:
+            titel = self.js("document.title") or ""
+            geruest = self.js(
+                "!!(document.querySelector('.app') && document.getElementById('view'))")
+        except Exception as e:
+            raise SystemExit(u"ABBRUCH - die Seite antwortet nicht (%s)." % e)
+        if geruest is True:
+            return
+        raise SystemExit(
+            u"ABBRUCH - das ist nicht Paddy's Mealplan, sondern:  %r\n"
+            u"  Weder .app noch #view sind da. Sehr wahrscheinlich Chromes\n"
+            u"  Fehlerseite, weil test-server.ps1 weggefallen ist.\n"
+            u"  Dieser Lauf haette die Fehlerseite vermessen (TROUBLESHOOTING 174).\n"
+            u"  Von Hand:  powershell -NoProfile -File test-server.ps1" % titel)
 
     def tippen(self, x, y):
         p = [{"x": float(x), "y": float(y), "radiusX": 12, "radiusY": 12, "force": 1}]
