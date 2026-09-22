@@ -100,6 +100,9 @@
          Personen, die den Inhalt sehen dürfen</strong>, denn wer ihn hat, kann ihn öffnen. Ein Teilen-Link ist eine
          <strong>Momentaufnahme</strong>: Wer ihn öffnet, erhält eine Kopie und kann dein Meal nicht verändern. Das
          gemeinsame Planen eines Wochenplans in einer Gruppe funktioniert anders – siehe Ziffer 8a.</p>
+      <p>Ein Teilen-Link gilt <strong>12 Monate</strong>. Danach lässt er sich nicht mehr öffnen, und wir
+         entfernen die gespeicherte Kopie bei unserer nächsten Wartung. Du kannst einen Link auch jederzeit
+         vorher loswerden: Löschst du dein Konto, verschwinden alle deine Teilen-Links mit.</p>
       <h4>8a. Gemeinsam planen (Gruppen)</h4>
       <p>Mit „Gemeinsam planen" könnt ihr – etwa als Paar oder WG – <strong>denselben</strong> Wochenplan nutzen.
          Anders als beim Teilen-Link (Ziffer 8) ist das keine Kopie: Änderungen sind für alle Mitglieder sofort
@@ -124,10 +127,12 @@
       <h4>9. Verschlüsselung</h4>
       <p>Die Übertragung der Daten erfolgt verschlüsselt über HTTPS (SSL/TLS).</p>
       <h4>10. Speicherdauer &amp; Löschung</h4>
-      <p>Wir speichern deine Daten, solange dein Konto besteht – mit zwei Ausnahmen, die von selbst ablaufen. Erstens dein <strong>Wochenarchiv</strong>: Die Kennzahlen vergangener Kalenderwochen (Ziffer 3) bewahren wir nur für das laufende und die beiden vorangegangenen <strong>Kalenderjahre</strong> auf; Älteres entfernt die App automatisch, auch wenn dein Konto bestehen bleibt. Zweitens: Einträge, die du
+      <p>Wir speichern deine Daten, solange dein Konto besteht – mit drei Ausnahmen, die von selbst ablaufen. Erstens dein <strong>Wochenarchiv</strong>: Die Kennzahlen vergangener Kalenderwochen (Ziffer 3) bewahren wir nur für das laufende und die beiden vorangegangenen <strong>Kalenderjahre</strong> auf; Älteres entfernt die App automatisch, auch wenn dein Konto bestehen bleibt. Zweitens: Einträge, die du
          schnell in den Plan gelegt hast – per Barcode-Scan oder durch Antippen eines zählbaren
          Lebensmittels (z. B. ein Apfel) –, räumt die App nach etwa drei Wochen von selbst
-         weg – aber nur, wenn sie in keiner deiner Wochen mehr eingeplant sind. Einmalig räumt die App außerdem
+         weg – aber nur, wenn sie in keiner deiner Wochen mehr eingeplant sind. Drittens laufen deine
+         <strong>Teilen-Links</strong> nach 12 Monaten ab (Ziffer 8); die gespeicherte Kopie entfernen wir bei
+         unserer nächsten Wartung. Einmalig räumt die App außerdem
          Kopien aus dem mitgelieferten <strong>Rezeptbuch</strong> weg, die frühere Fassungen beim Planen angelegt
          haben: Sie werden nicht mehr gebraucht, weil dein Plan inzwischen direkt auf das mitgelieferte Gericht
          verweisen kann (Ziffer 3). Betroffen sind ausschließlich Kopien, die du <strong>nie verändert</strong> und
@@ -147,6 +152,10 @@
          abrufbar – auch dann, wenn du den Link nicht mehr weitergibst. Nutzt du die App ohne Cloud-Konto (lokales
          Profil), kannst du ebenso über „Alle Daten löschen" im Profilmenü sämtliche auf diesem Gerät gespeicherten
          Daten sofort entfernen.</p>
+      <p>Meldet sich <strong>24 Monate</strong> lang niemand bei deinem Konto an, schreiben wir dich bei unserer
+         nächsten Wartung an die hinterlegte E-Mail-Adresse an. Meldest du dich danach <strong>30 Tage</strong>
+         lang nicht, löschen wir das Konto samt Daten. Eine einzige Anmeldung setzt die Frist wieder auf Anfang – du musst nichts
+         weiter tun, um dein Konto zu behalten.</p>
       <p>Bist du <strong>Mitglied einer Gruppe</strong> (Ziffer 8a), werden beim Löschen deines Kontos zusätzlich
          dein Mitglieder-Eintrag (Name und Bild) sowie die von dir erstellten Einladungslinks mitentfernt. Bist du
          <strong>Inhaber</strong> einer Gruppe, musst du sie vorher auflösen – die App weist dich darauf hin, damit
@@ -156,8 +165,9 @@
          du musst dafür nicht bis zur Kontolöschung warten. Die Meals und Wochenpläne, die in der Gruppe entstanden
          sind, <strong>bleiben bei der Gruppe</strong> – du behältst davon eine eigene Kopie. Das gilt auch für Meals, die ursprünglich von dir stammen: Sobald du
          sie in eine Gruppe eingebracht hast, kannst du sie den übrigen Mitgliedern nicht mehr einseitig entziehen.
-         Der Personenbezug entfällt dabei, weil zu einem Meal nur deine Nutzerkennung gespeichert ist, die mit
-         deinem Mitglieder-Eintrag verschwindet.</p>
+         Den Personenbezug nehmen wir dabei heraus: Zu einem Meal ist nur deine Nutzerkennung gespeichert, und die
+         entfernen wir beim Austritt aus den Meals der Gruppe. Zurück bleibt das Gericht – ohne Hinweis darauf,
+         von wem es stammt. Dasselbe geschieht, wenn dich die Gruppe entfernt oder wenn du dein Konto löschst.</p>
       <h4>11. Deine Rechte</h4>
       <p>Du hast das Recht auf Auskunft, Berichtigung, Löschung, Einschränkung der Verarbeitung, Datenübertragbarkeit und Widerspruch – wende dich dafür an die in Ziffer 1 genannte Adresse; Löschen und Widerruf gehen zusätzlich direkt in der App (Ziffern 3b und 10). Soweit eine Verarbeitung auf deiner Einwilligung beruht, kannst du diese jederzeit mit Wirkung für die Zukunft widerrufen. Zudem hast du ein Beschwerderecht bei einer Datenschutz-Aufsichtsbehörde – für uns zuständig ist das Bayerische Landesamt für Datenschutzaufsicht (BayLDA), Promenade 18, 91522 Ansbach.</p>
       <h4>12. Automatisierte Entscheidungsfindung</h4>
@@ -165,4 +175,9 @@
          Beeinträchtigung im Sinne des Art. 22 DSGVO findet nicht statt. Funktionen, die dir etwas <em>vorschlagen</em> –
          etwa der automatische Wochenplaner, der aus deinen eigenen Meals einen Vorschlag gegen dein Kalorienziel
          zusammenstellt – fallen nicht darunter: Das Ergebnis ist ein Vorschlag in deinem Plan, den du jederzeit ändern,
-         rückgängig machen oder löschen kannst.</p>`;
+         rückgängig machen oder löschen kannst.</p>
+      <h4>13. Mindestalter</h4>
+      <p>Paddy&#39;s Mealplan richtet sich an Menschen ab <strong>16 Jahren</strong>. Wir verarbeiten
+         Ernährungs- und Gewichtsdaten, und ab 16 darfst du in die Verarbeitung deiner Daten selbst
+         einwilligen (Art. 8 Abs. 1 DSGVO). Bist du jünger, richte dir bitte kein Konto ein.
+         Erfahren wir, dass ein Konto einem jüngeren Menschen gehört, löschen wir es.</p>`;

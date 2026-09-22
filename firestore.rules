@@ -211,14 +211,40 @@ service cloud.firestore {
     //
     // Deshalb ausdrücklich nur "get": Wer die ID nicht kennt, kommt nicht heran.
     // Die IDs sind kryptografisch zufällig (16 Zeichen, 80 Bit, siehe shareId()).
+    //
+    // ---- Loeschfrist: ein Teilen-Link lebt 12 Monate ----
+    //
+    // Entscheidung vom 22.09.2026 (Art.-30-Verzeichnis V5, vorher bewusst offen).
+    // Ein geteilter Snapshot, den niemand loescht, blieb bisher unbefristet liegen.
+    // Die Frist wird HIER durchgesetzt und nicht in der Oberflaeche: Nach 12 Monaten
+    // ist das Dokument nicht mehr lesbar - auch nicht mit den Entwicklerwerkzeugen.
+    // Das physische Entfernen holt die Wartung nach (tools/shared-aufraeumen.py);
+    // die Regel wirkt sofort, das Aufraeumen loescht die Daten.
+    //
+    // Dokumente OHNE `when` bleiben lesbar. Das ist Absicht: Bestand aus der Zeit vor
+    // dieser Regel soll nicht schlagartig sterben, nur weil ein Feld fehlt.
+    function shareFrisch() {
+      return !('when' in resource.data)
+             || !(resource.data.when is int)
+             || request.time.toMillis() - resource.data.when < 31536000000;
+    }
+
     match /shared/{id} {
-      allow get: if request.auth != null;
+      allow get: if request.auth != null && shareFrisch();
 
       // Anlegen nur für angemeldete Personen und nur mit der eigenen uid im Dokument,
       // damit der Snapshot zuordenbar bleibt.
+      //
+      // `when` muss zur Serverzeit passen, sonst waere die Frist oben wertlos: Wer sie
+      // umgehen wollte, datierte den Snapshot einfach auf das Jahr 2099. Ein ganzer Tag
+      // Spielraum, weil die Uhr eines Geraets durchaus schief gehen darf - teilen soll
+      // daran nicht scheitern.
       allow create: if request.auth != null
                     && request.resource.data.uid == request.auth.uid
-                    && nichtImLoeschen(request.auth.uid);
+                    && nichtImLoeschen(request.auth.uid)
+                    && request.resource.data.when is int
+                    && request.resource.data.when > request.time.toMillis() - 86400000
+                    && request.resource.data.when < request.time.toMillis() + 86400000;
 
       // Löschen darf nur, wer den Snapshot erstellt hat (Art. 17 DSGVO).
       allow delete: if request.auth != null
@@ -408,10 +434,34 @@ service cloud.firestore {
     // Gilt NICHT für users/{uid}/recipes: dort schreibt nur der Eigentümer selbst, und
     // eine ältere eigene id, die durchfällt, wäre ein Meal, das sich nicht mehr
     // aktualisieren lässt.
+    // ---- Den Personenbezug loesen: immer erlaubt ----
+    //
+    // Verlaesst jemand die Gruppe, bleibt sein Meal beim gemeinsamen Bestand - seine UID
+    // darf es nicht (Art. 17 DSGVO, Art.-30-Verzeichnis V4, entschieden am 22.09.2026).
+    //
+    // Diese eine Aenderung haengt bewusst WEDER an groupOwnerHasPro() NOCH an
+    // nichtGesperrt(): Das Recht auf Loeschung darf nicht davon abhaengen, ob ein Dritter
+    // sein Abo bezahlt hat oder ob die Gruppe gerade aufgeloest wird. Genau das waere
+    // sonst der Fall - und es faellt niemandem auf, weil die Regel still ablehnt.
+    //
+    // Gefaehrlich ist die Ausnahme nicht: Sie kann nur Zuordnung WEGNEHMEN, niemals
+    // Inhalt anlegen oder aendern. hasOnly(['by']) laesst genau ein Feld zu, und der
+    // einzige erlaubte Zielwert ist der leere String. Wer darf: die betroffene Person
+    // selbst - oder der Inhaber, wenn er jemanden aus der Gruppe entfernt (danach kann
+    // die betroffene Person es selbst nicht mehr).
+    function loestPersonenbezug(gid) {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['by'])
+             && request.resource.data.by == ''
+             && (resource.data.get('by', '') == request.auth.uid || isOwner(gid));
+    }
+
     match /groups/{gid}/recipes/{recipeId} {
       allow get, list: if isMember(gid);
-      allow create, update: if canWrite(gid) && groupOwnerHasPro(gid) && nichtGesperrt(gid)
-                            && recipeId.matches('^r[a-z0-9]{3,14}$');
+      allow create: if canWrite(gid) && groupOwnerHasPro(gid) && nichtGesperrt(gid)
+                    && recipeId.matches('^r[a-z0-9]{3,14}$');
+      allow update: if (canWrite(gid) && groupOwnerHasPro(gid) && nichtGesperrt(gid)
+                        && recipeId.matches('^r[a-z0-9]{3,14}$'))
+                    || (isMember(gid) && loestPersonenbezug(gid));
       // Löschen bewusst OHNE Formatprüfung: Läge aus der Zeit vor dieser Regel noch ein
       // Dokument mit abweichender ID in einer Gruppe, muss es entfernt werden können.
       allow delete: if canWrite(gid);
