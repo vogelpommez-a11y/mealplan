@@ -4,9 +4,9 @@
 
 Dieses Dokument beschreibt Produktidentität, Produktphilosophie, UX-Prinzipien, Markenstimme und Regeln für neue Features.
 
-<!-- REGISTER-ANFANG (erzeugt aus den Ueberschriften, nicht von Hand pflegen) -->
+<!-- REGISTER-ANFANG (erzeugt aus den Ueberschriften: python tools/register.py - nicht von Hand pflegen) -->
 
-**Register — 29 Abschnitte.** Produktregeln vorne, bewusste Einzelentscheidungen hinten.
+**Register — 32 Abschnitte.** Produktregeln vorne, bewusste Einzelentscheidungen hinten.
 Eine Ueberschrift mit „Bewusste Produktentscheidung" heisst: Das ist entschieden, nicht
 vergessen — wer es aendern will, aendert eine Entscheidung.
 
@@ -34,14 +34,16 @@ vergessen — wer es aendern will, aendert eine Entscheidung.
 | · | Bewusste Produktentscheidungen für Fitness & Meal-Prep (13.08.2026) |
 | · | Bewusste Produktentscheidung: Vorkochen ist eine eigene Ansicht |
 | · | Bewusste Produktentscheidung: Der Wizard endet im Wochenplan |
-| · | Bewusste Produktentscheidung: Der Rückblick misst gegen das Ziel |
+| · | Bewusste Produktentscheidung: Der Fortschritt misst gegen das Ziel |
 | · | Bewusste Produktentscheidung: Der Kalender zeigt Planung, nicht Zensuren (30.08.2026) |
+| · | Bewusste Produktentscheidung: Zwei Karten, ein Zeitraum (03.09.2026) |
 | · | Bewusste Produktentscheidungen: Wochenplan |
 | · | Bewusste Produktentscheidungen: Gemeinsam planen |
 | · | Bewusste Produktentscheidung: Barcode-Schnellzugriff |
 | · | Bewusste Produktentscheidung: Schnelleintrag für Stück-Artikel |
 | · | Bewusste Produktentscheidung: Meal-Ansicht und Editor sind eins |
 | · | Was bewusst nicht passieren soll |
+| · | Bewusst verworfen: der Plan-gegen-Waage-Abgleich (03.09.2026) |
 
 <!-- REGISTER-ENDE -->
 

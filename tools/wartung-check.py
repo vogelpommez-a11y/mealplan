@@ -482,6 +482,30 @@ def pruefe_landkarte():
         gelb(bereich, "docs/MODULE.md weicht vom Ist-Zustand ab - einmal 'python tools/karte.py' laufen lassen")
 
 
+def pruefe_register():
+    """Stimmen die Register am Kopf von PRODUCT, ARCHITECTURES, TESTING, TROUBLESHOOTING?
+
+    Sie trugen seit dem 26.08.2026 den Vermerk "erzeugt", das Skript dazu fehlte aber - bis
+    zum 24.09.2026 waren alle vier still veraltet (TROUBLESHOOTING endete bei 172 von 179).
+    Wer eine Falle ueber das Register sucht, findet eine neue dann schlicht nicht.
+    """
+    bereich = "Register"
+    if not os.path.exists("tools/register.py"):
+        rot(bereich, "tools/register.py fehlt - die Register in docs/ werden nicht mehr erzeugt")
+        return
+    try:
+        lauf = subprocess.run([sys.executable, "tools/register.py", "--pruefe"],
+                              capture_output=True, text=True, timeout=60,
+                              encoding="utf-8", errors="replace")
+    except Exception as e:
+        gelb(bereich, "tools/register.py nicht ausfuehrbar: %s" % e)
+        return
+    if lauf.returncode != 0:
+        veraltet = [z.split()[1] for z in lauf.stdout.splitlines() if "VERALTET" in z]
+        gelb(bereich, "Register veraltet in %s - einmal 'python tools/register.py' laufen lassen"
+             % (", ".join(veraltet) or "docs/"))
+
+
 def pruefe_abdeckung():
     """Gibt es einen Bereich im Projekt, den niemand prueft?
 
@@ -574,7 +598,7 @@ def main():
         print("Wartungsdatum auf %s gesetzt.\n" % datetime.date.today().isoformat())
 
     for fn in (pruefe_fakten, pruefe_verweise, pruefe_agenten,
-               pruefe_hooks, pruefe_skills, pruefe_abdeckung, pruefe_landkarte,
+               pruefe_hooks, pruefe_skills, pruefe_abdeckung, pruefe_landkarte, pruefe_register,
                pruefe_alter, pruefe_regelstand, pruefe_bausteine):
         try:
             fn()

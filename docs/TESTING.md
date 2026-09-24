@@ -14,9 +14,9 @@ Es gibt:
 
 Die primäre Verifikation erfolgt deshalb über den Browser und gezielte isolierte Tests.
 
-<!-- REGISTER-ANFANG (erzeugt aus den Ueberschriften, nicht von Hand pflegen) -->
+<!-- REGISTER-ANFANG (erzeugt aus den Ueberschriften: python tools/register.py - nicht von Hand pflegen) -->
 
-**Register — 48.** Vorne (0 bis 9) die geltenden Verfahren: Syntax-Check,
+**Register — 81.** Vorne (0 bis 9) die geltenden Verfahren: Syntax-Check,
 Smoke-Test, Ausschneide-Pruefstand, Sync-Tests. Dahinter das datierte Fallarchiv —
 einzelne Pruefstaende und was ihre Gegenprobe gezeigt hat.
 
@@ -24,10 +24,21 @@ Die Verfahren gibt es auch als Skill: `/smoke`, `/pruefstand`, `/abnahme`, `/dep
 
 | # | Abschnitt |
 |---|---|
+| | **— ab hier Teil A: Die geltenden Verfahren —** |
 | · | Testprinzip |
 | 0 | Syntax-Check (läuft zuerst, vor allem anderen) |
 | 1 | Smoke-Test |
 | 2 | Ausschneide-Prüfstand |
+| 2a-2 | Ausschneide-Prüfstand für reine Helfer — `pruefstand-mengenanzeige.py` |
+| 2b | Datenprüfstand — `pruefstand-rezepttexte.py` |
+| 2c | Bildstichworte — `pruefstand-bildstichworte.py` |
+| 2d | Dateipfade im CSS — `pruefstand-css-pfade.py` |
+| 2e | Geräteabnahme im emulierten Gerät — `tools/cdp.py` + Emulation |
+| 2f | Kontrast messen: CSS-Farbe plus Pixel-Grund |
+| 2g | Vollständige Geräteabnahme — `tools/abnahme-mobil.py` |
+| 2g-bis | Die unsichtbare Hälfte — `tools/a11y-pruefung.py` |
+| 2g-ter | Vorher neben Nachher — `tools/probe-vergleich.html` |
+| 2h | Prüfstand mit nachgebautem Transport — `pruefstand-firestore-backup.py` |
 | 3 | Ergebnisfortschritt |
 | 4 | Was isoliert getestet werden kann |
 | 5 | UI-Testregeln |
@@ -37,12 +48,14 @@ Die Verfahren gibt es auch als Skill: `/smoke`, `/pruefstand`, `/abnahme`, `/dep
 | 8a | Cloudflare-Worker-Test (`worker/og.js`) |
 | 9 | Testabschluss |
 | · | Grundregel |
-| | **— ab hier Teil B: Fallarchiv, datierte Einzelfälle —** |
+| | **— ab hier Teil B: Fallarchiv —** |
 | · | Sichtprüfung generierter Bilder: Kontaktabzug statt Einzelaufrufe (15.08.2026) |
 | · | Auto-Wochenplaner: zwei Prüfstände, zwei Fragen (16.08.2026) |
 | · | Mitgliederlimit: die eine Hälfte ist prüfbar, die andere nicht (16.08.2026) |
 | · | Katalog als Nachschlagequelle: eine Erwartung dreht sich um (17.08.2026) |
 | · | Stapelkontext und Trefferflächen: `elementFromPoint()` im echten Browser (15.08.2026) |
+| · | Eine Regel als Attrappe: die Auflösesperre (18.09.2026) |
+| · | Die Gegenprobe aus Git: die Löschsperre fürs Konto (19.09.2026) |
 | · | Ein Listener als Prüfobjekt: die Attrappe muss den Nebeneffekt haben (17.08.2026) |
 | · | Ein absichtlich zufälliger Planer braucht festgenagelten Zufall (17.08.2026) |
 | · | Zwei Clients ohne Firestore: derselbe Ausgangsstand, zwei Läufe (17.08.2026) |
@@ -60,7 +73,7 @@ Die Verfahren gibt es auch als Skill: `/smoke`, `/pruefstand`, `/abnahme`, `/dep
 | · | `tools/pruefstand-rueckblick-ziel.py` — der Beweis, dass eine Woche fehlt (26.08.2026) |
 | · | `tools/alle-pruefstaende.py` — der Reihenlauf (26.08.2026) |
 | · | `tools/pruefstand-grpm-zoom.py` — eine Behauptung über die CSS-Kaskade messen (27.08.2026) |
-| · | `tools/pruefstand-einkaufsliste.py` — fünf Läufe über beide Wochenreiter (28.08.2026) |
+| · | `tools/pruefstand-einkaufsliste.py` — vier Läufe über beide Wochenreiter (28.08.2026) |
 | · | `tools/pruefstand-gruppe-verlassen-dubletten.py` — der Rückweg aus der Gruppe (28.08.2026) |
 | · | `tools/pruefstand-gruppe-beitritt-cache.py` — ein Cache, der lügt (28.08.2026) |
 | · | `tools/pruefstand-zuweisung-loeschen.py` — zwei Funktionen gegeneinander (28.08.2026) |
@@ -76,9 +89,12 @@ Die Verfahren gibt es auch als Skill: `/smoke`, `/pruefstand`, `/abnahme`, `/dep
 | · | `tools/pruefstand-jahresumschalter.py` — ein Jahrgang, der nicht auftauchen darf (30.08.2026) |
 | · | `tools/pruefstand-kalender.py` — die laufende Woche, die im Archiv fehlt (30.08.2026) |
 | · | `tools/pruefstand-kalender-layout.py` — ein Überlauf, den niemand sieht (30.08.2026) |
+| · | Konzept G: was die Prüfstände dabei gelernt haben (03.09.2026) |
+| · | Abnahme des Fortschritt-Reiters im Browser (04.09.2026) |
 | · | `tools/probe-fortschritt.html` — die Abnahme in der echten App (30.08.2026) |
 | · | `tools/probe-onboarding.html` — wie weit der Weiter-Knopf springt (30.08.2026) |
 | · | `tools/probe-onboarding-fluss.html` — den Weg messen, nicht das Ziel (30.08.2026) |
+| · | `tools/pruefstand-rezept-id-format.py` — die Härtung darf nicht mehr kaputtmachen als sie schützt (06.09.2026) |
 | · | Zwei Gesten, vier Prüfstände: was headless nicht kann (11./12.09.2026) |
 | · | `tools/pruefstand-stueckliste.py` — die Lücke sichtbar machen (11.09.2026) |
 | · | `tools/pruefstand-scan-packung.py` — eine umgedrehte Regel festhalten (11.09.2026) |
@@ -86,6 +102,11 @@ Die Verfahren gibt es auch als Skill: `/smoke`, `/pruefstand`, `/abnahme`, `/dep
 | · | `tools/pruefstand-picker-quellen.py` — die Auswahl eines Slots (12.09.2026) |
 | · | `tools/probe-symbole.html` — 36 Symbole bei 28 px ansehen (12.09.2026) |
 | · | `tools/pruefstand-scan-zeile.py` — überlebt die Zutatenzeile den Sucher? (13.09.2026) |
+| · | `tools/abnahme-scan-kamera.py` — der Live-Kamera-Weg, am Rechner gefahren (14.09.2026) |
+| · | `tools/pruefstand-scan-zeile.py` — drei Fälle mehr (14.09.2026) |
+| · | Fünf Prüfstände und eine Probe (22.09.2026) |
+| · | Zwei Prüfstände, die gegen die App gemessen haben statt für sie (24.09.2026) |
+| · | `tools/pruefstand-makro-abweichung.py` — gilt ein übernommenes Rezept als angepasst? (24.09.2026) |
 
 <!-- REGISTER-ENDE -->
 

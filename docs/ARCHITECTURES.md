@@ -4,9 +4,9 @@
 
 Dieses Dokument beschreibt die technische Struktur, Datenflüsse, Persistenz und bewusst beibehaltenen Architekturentscheidungen.
 
-<!-- REGISTER-ANFANG (erzeugt aus den Ueberschriften, nicht von Hand pflegen) -->
+<!-- REGISTER-ANFANG (erzeugt aus den Ueberschriften: python tools/register.py - nicht von Hand pflegen) -->
 
-**Register — 25 Abschnitte.** Wo welcher Teil des Systems beschrieben ist.
+**Register — 26 Abschnitte.** Wo welcher Teil des Systems beschrieben ist.
 
 | # | Abschnitt |
 |---|---|
@@ -35,6 +35,7 @@ Dieses Dokument beschreibt die technische Struktur, Datenflüsse, Persistenz und
 | · | Auto-Wochenplaner (D2, 16.08.2026) |
 | · | Einkaufsliste: der Abhak-Zustand hängt an der Woche (28.08.2026) |
 | · | Architekturprinzip |
+| · | Drei Fristen und eine Anonymisierung (22.09.2026) |
 
 <!-- REGISTER-ENDE -->
 

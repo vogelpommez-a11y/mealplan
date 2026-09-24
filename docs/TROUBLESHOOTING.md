@@ -4,9 +4,9 @@
 
 Dieses Dokument enthält bekannte Fehlerquellen, historische Bugs und Probleme, die bei Änderungen an Paddy's Mealplan berücksichtigt werden müssen.
 
-<!-- REGISTER-ANFANG (erzeugt aus den Ueberschriften, nicht von Hand pflegen) -->
+<!-- REGISTER-ANFANG (erzeugt aus den Ueberschriften: python tools/register.py - nicht von Hand pflegen) -->
 
-**Register — 172.** Chronologisch gewachsen: je hoeher die Nummer,
+**Register — 179.** Chronologisch gewachsen: je hoeher die Nummer,
 desto juenger der Fund. Wer eine Falle sucht, sucht hier zuerst; die Ueberschrift sagt
 jeweils, worum es geht. **Nicht die ganze Datei lesen** — sie ist rund 310 KB gross.
 
@@ -140,16 +140,16 @@ jeweils, worum es geht. **Nicht die ganze Datei lesen** — sie ist rund 310 KB 
 | 126 | Ein leeres Leseergebnis, das eine Entscheidung trägt |
 | 127 | Ein zugewiesenes Meal ließ sich nicht aus dem Plan löschen |
 | 128 | Der Beitretende verlor seine Woche — und eine Migration räumte fremden Bestand auf |
-| 129 | „Synchronisiert“, während nichts mehr ankam |
+| 129 | „Synchronisiert", während nichts mehr ankam |
 | 130 | Ein Gericht, das niemandem gehörte — und ein leeres Array, das `true` ist |
 | 131 | Ein Prüfstand, der immer grün meldete, weil er nie lief |
-| 132 | „Mengen × Mitglieder: Aus“ galt nur für die Hälfte der Rechnung |
+| 132 | „Mengen × Mitglieder: Aus" galt nur für die Hälfte der Rechnung |
 | 133 | Wer aus einer Gruppe entfernt wird, bleibt für immer daran hängen |
 | 134 | Der vergiftete Offline-Cache — Ursache der `permission-denied`-Phasen |
 | 135 | Der Home-Screen-Verweis auf dem iPhone ist ein zweites Gerät |
 | 136 | Ein `let` am Rand eines Schnitts: geteilter Zustand bricht die Aufteilung |
 | 137 | Ein Cache in einer Fassade ist eine Kopie, kein Cache |
-| 138 | Ein neues Sync-Feld braucht drei Stellen — die dritte wirft es beim Push weg |
+| 138 | Ein neues Sync-Feld braucht drei Stellen — die dritte wirft es beim eigenen Push weg |
 | 139 | `const` auf Modulebene: die App startet nicht, der Syntax-Check sagt nichts |
 | 140 | Hooks mit relativem Pfad: ein `cd` legt das ganze Prüfsystem still |
 | 141 | Die Zutat, die in der Anleitung nie vorkommt |
@@ -184,6 +184,13 @@ jeweils, worum es geht. **Nicht die ganze Datei lesen** — sie ist rund 310 KB 
 | 170 | Die Sicherung sah nicht, was unter einem gelöschten Dokument hing |
 | 171 | Gruppe auflösen: Was in der Sekunde dazwischen geschrieben wurde, blieb liegen |
 | 172 | Konto löschen: Das Zweitgerät schrieb nach dem Löschen weiter |
+| 173 | Der A11y-Prüfstand, der nach sechs von 47 Elementen aufhörte — und dreimal am Fokusring vorbeimaß |
+| 174 | Der Prüfstand maß Chromes Fehlerseite — und meldete einen Befund |
+| 175 | `test-server.ps1` ließ sich nicht automatisch starten — ExecutionPolicy |
+| 176 | Ein grüner Pixelvergleich, der nichts belegte |
+| 177 | `pruefstand-reiter.py` meldet unter Last einen Fehlalarm |
+| 178 | Derselbe Fehler, eine Sammlung weiter — und ein Hinweis auf ein Pro-Feature |
+| 179 | Übernommene Rezepte galten sofort als „manuell angepasst“ |
 
 <!-- REGISTER-ENDE -->
 
