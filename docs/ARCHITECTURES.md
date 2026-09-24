@@ -1246,8 +1246,8 @@ wiederhergestellte Eigenschaft: Ein Torwächter im Sync-Pfad hatte in der ersten
 D2b gleich drei Folgefehler erzeugt (`docs/TROUBLESHOOTING.md` 77–79), und keiner davon war
 beim Lesen sichtbar.
 
-**Serverseitig** (`firestore.rules`, Fassung vom 15.08.2026 — **im Repo scharf, in der Konsole
-noch nicht veröffentlicht**):
+**Serverseitig** (`firestore.rules`, Pro-Grenze seit der Fassung vom 15.08.2026 — **veröffentlicht**,
+aktueller Stand vom 24.09.2026, `tools/regeln-live.py` meldet „identisch"):
 
 * `users/{uid}` und `users/{uid}/recipes/*`: unverändert `read, write` für das eigene Konto.
   Keine Pro-Prüfung.
