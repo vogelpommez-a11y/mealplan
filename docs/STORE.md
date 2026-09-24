@@ -91,6 +91,10 @@ serverseitig rechnen lassen.
 ### Was der Verkauf zusätzlich verlangt
 
 - **15–30 % Marge** (15 % im Small Business Program bis 1 Mio. USD Jahresumsatz).
+- **Google Play in der EU** (laut `store-check`, Stand 24.09.2026): Seit 30.06.2026 darf
+  Play Billing durch ein eigenes Bezahlsystem ersetzt oder ergänzt werden, die Gebühr sinkt
+  dann um 3 Prozentpunkte; für Abos und die erste 1 Mio. USD gilt ohnehin ein reduzierter
+  Satz. Für die Pro-Preisplanung mitentscheiden, bevor die Bezahlung gebaut wird.
 - **„Wiederherstellen" ist Pflicht** bei nicht verbrauchbaren Käufen und Abos. Existiert
   heute nicht — es gibt noch nichts wiederherzustellen.
 - Bei einem Abo müssen Preis, Laufzeit und Verlängerungsbedingungen **vor** dem Kauf
@@ -232,6 +236,11 @@ Rechtsrisiko, weil es eine Zusage gegenüber den Nutzenden ist.
   Inhalte dieser App führen im Fragebogen vermutlich auf eine niedrigere Stufe, während
   der Rechtstext 16 verlangt. Das ist kein Widerspruch, solange man es beim Ausfüllen
   auseinanderhält.
+
+  Der neue Fragebogen enthält Pflichtfragen zu **medizinischen und Wellness-Themen**
+  (`store-check`, 24.09.2026). Gewicht, Kalorien und Ziele gehören dahin — sorgfältig und
+  passend zu „keine Heilversprechen“ unten beantworten. Unvollständig blockiert App Store
+  Connect den Upload.
 
   Bei Google Play gehört dazu die Angabe **„Target audience and content“**: Eine App, deren
   Registrierung erst ab 16 zulässig ist, sollte dort die Altersbänder unter 16 nicht
@@ -457,6 +466,10 @@ Alternativtexte sind dafür nicht geprüft.
   `FIREBASE-SETUP.md:178` vorbereitet — es fehlen der Apple-Developer-Account und das
   Umlegen des Schalters.
 - **Tablet/iPad**: Layout darf nicht brechen.
+- **Privacy Manifest (`PrivacyInfo.xcprivacy`)** — Apple verlangt es seit 01.05.2024 für
+  die App und jedes gebündelte native SDK; fehlt es, scheitert schon der Upload. Betrifft
+  nicht `vendor/` (läuft im WebView), sondern die **Capacitor-Plugins** (Kamera u. a.) —
+  beim D7-Build prüfen (`store-check`, 24.09.2026).
 - **Mindest-SDK beim Einreichen** (laut `store-check`, Stand 19.09.2026): Apple verlangt seit
   28.04.2026 Xcode 26 und das iOS-26-SDK, ab April 2027 das iOS-27-SDK. Google Play verlangt
   seit 31.08.2026 für neue Einreichungen Android 16 (API 36), für Updates bestehender Apps
@@ -484,6 +497,7 @@ Alternativtexte sind dafür nicht geprüft.
 | **Kaufbeleg serverseitig prüfen** | 🔴 zu bauen — Cloud Function, setzt den Blaze-Wechsel voraus |
 | Nutrition Labels / Data Safety | 🟡 Datengrundlage steht (Abschnitt 5), Formulare nicht ausgefüllt |
 | `NSCameraUsageDescription` | 🟡 zu prüfen, sobald das Capacitor-Projekt existiert |
+| Privacy Manifest (Apple) | 🟡 beim D7-Build prüfen — ohne scheitert der Upload (Abschnitt 8) |
 | **Barrierefreiheit (BFSG)** | 🟢 **Codeseite gemessen und behoben** (20.09.2026, 0 Befunde). Rechtsfrage weiter offen: Kleinstunternehmer-Ausnahme? Erklärung fehlt. Abschnitt 7b |
 | KI-Kennzeichnung (KI-VO Art. 50) | 🟡 Abs. 4 trifft nur Deepfakes — Einordnung bestätigt (20.09.2026). Offen: gelten die 36 rezeptgebundenen Bilder als Deepfake? |
 | Apple-EU-Bedingungen ab 01.10.2026 | ✅ geprüft (20.09.2026): **ohne praktische Wirkung**, solange nur IAP im regulären App Store. Beim Signieren die Standard-EU-Terms wählen, nicht die Marktplatz-Variante |

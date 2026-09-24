@@ -343,7 +343,7 @@ _keine_
 | docs/PRODUCT.md | 1744 | 99492 |
 | docs/RUNBOOK.md | 249 | 10092 |
 | docs/SECURITY.md | 580 | 34704 |
-| docs/STORE.md | 495 | 28778 |
+| docs/STORE.md | 509 | 29863 |
 | docs/TESTING.md | 5266 | 311251 |
 | docs/TROUBLESHOOTING.md | 6840 | 396502 |
 | docs/module-index.json | — | — (erzeugt) |
@@ -535,7 +535,7 @@ _keine_
 | tools/vergleich-bausteine.js | 146 | 6317 |
 | tools/vorfuehren.py | 120 | 4637 |
 | tools/wartung-check.py | 607 | 27909 |
-| vendor/HERKUNFT.md | 105 | 4752 |
+| vendor/HERKUNFT.md | 105 | 4816 |
 | vendor/firebase/10.12.5/LICENSE | 203 | 11358 |
 | vendor/firebase/10.12.5/README.md | 27 | 1063 |
 | vendor/firebase/10.12.5/firebase-app.js | 5122 | 102248 |

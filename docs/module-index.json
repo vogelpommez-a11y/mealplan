@@ -1360,9 +1360,9 @@
       "zeilen": 580
     },
     {
-      "bytes": 28778,
+      "bytes": 29863,
       "pfad": "docs/STORE.md",
-      "zeilen": 495
+      "zeilen": 509
     },
     {
       "bytes": 311251,
@@ -2233,7 +2233,7 @@
       "zeilen": 607
     },
     {
-      "bytes": 4752,
+      "bytes": 4816,
       "pfad": "vendor/HERKUNFT.md",
       "zeilen": 105
     },
