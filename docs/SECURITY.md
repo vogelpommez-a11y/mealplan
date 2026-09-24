@@ -566,8 +566,9 @@ erste Wurf hätte still versagt. Prüfer: `tools/pruefstand-gruppe-anonymisieren
 Abschnitt 9.
 
 > **Beide Regeln sind Vorlage, nicht Wahrheit.** Verbindlich ist der in der Firebase-Konsole
-> veröffentlichte Stand. **Sie sind am 22.09.2026 noch NICHT veröffentlicht** — bis dahin
-> Geprüft sind sie bislang nur **syntaktisch**: `python tools/regeln-pruefen.py` legt sie über die
+> veröffentlichte Stand. **Veröffentlicht am 24.09.2026**, von Hand in der Konsole;
+> `python tools/regeln-live.py` meldet seitdem „identisch".
+> Vor dem Veröffentlichen geprüft **syntaktisch**: `python tools/regeln-pruefen.py` legt sie über die
 > Rules-API als Regelwerk an (und entfernt es wieder), ohne es scharf zu schalten. Das ist
 > die einzige Probe, die es hier gibt: Einen Firestore-Emulator hat dieses Projekt nicht.
 > Ohne sie fällt ein Tippfehler in einer `allow`-Zeile erst auf, wenn die Regeln live sind,

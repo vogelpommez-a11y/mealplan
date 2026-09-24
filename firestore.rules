@@ -6,10 +6,10 @@ rules_version = '2';
 // Firebase-Konsole unter Firestore Database -> Regeln eingefügt und VERÖFFENTLICHT wird.
 // Sie liegt hier im Repo, damit nachvollziehbar ist, was gelten soll.
 //
-// Stand: 2026-09-19 — DIESE FASSUNG IST SEIT DEM 19.09.2026 VEROEFFENTLICHT UND WIRKSAM
-// (neu: Loeschsperre, nichtImLoeschen(), TROUBLESHOOTING §172).
+// Stand: 2026-09-24 — veroeffentlicht am 24.09.2026
+// (neu seit 19.09.: shareFrisch() - Teilen-Links 12 Monate; loestPersonenbezug() - Anonymisierung beim Austritt).
 //
-// Veroeffentlicht als GANZE Datei ueber die Firebase-Rules-API, nicht von Hand im Editor.
+// Veroeffentlicht als GANZE Datei von Hand in der Firebase-Konsole (CLAUDE.md 12).
 // Nachweis: `python tools/regeln-live.py` meldet "identisch". Bei jeder kuenftigen Aenderung
 // genauso: ganze Datei einsetzen, danach regeln-live.py.
 //
