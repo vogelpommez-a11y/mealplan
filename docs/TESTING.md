@@ -5263,3 +5263,26 @@ ganz im September) → 7 und 7. `--gegenprobe-notiz` fällt weiter durch.
 
 **Lehre:** Ein Prüfstand, der „heute" als Anker nimmt, muss seine Erwartung aus demselben
 Anker ableiten — sonst misst er den Kalender statt der App.
+
+## `tools/pruefstand-makro-abweichung.py` — gilt ein übernommenes Rezept als angepasst? (24.09.2026)
+
+Ausgeschnitten: `macroWeichtAb()` und `ingSummeAus()` aus dem Meal-Blatt, dazu `ING_UNITS`,
+`nutNum`, `addNut`, `ingUnit`, `ingObj`, `ingHasNut`, `ingContrib`. `initial` kommt als
+Parameter einer Fabrik herein. Die Rezepte stammen ungefiltert aus `data/cookbook.js`: Der
+Katalog trägt kein `portions`, `copyFromCookbook()` ändert also weder Zutaten noch Makros.
+
+Acht Messgrößen: kein einziges der Katalogrezepte gilt als angepasst; +40 kcal, +1 kcal,
++1 g Protein und +0,6 g Fett werden erkannt; ohne gespeicherte Makros gilt nichts als
+übersteuert.
+
+**Die Gegenprobe läuft im selben Lauf mit:** Dieselben Fälle gegen `macroWeichtAb()` aus
+Commit `96e71ff` (vor dem Fix, per `git show` gelesen, nicht nachgebaut). Dort **müssen**
+Katalogrezepte als angepasst gelten — gemessen 36 von 36. Der Commit ist fest verdrahtet,
+nicht `HEAD`: Nach dem Commit enthielte `HEAD` den Fix, und die Gegenprobe verglich den neuen
+Stand mit sich selbst.
+
+Der Prüfstand hat sich schon beim Bau bezahlt gemacht: Der erste Fix ließ 6 Rezepte durch
+(TROUBLESHOOTING 179).
+
+Vorführung: `python tools/vorfuehren.py makro-toleranz` — die Schritte übernehmen das Chili
+wirklich, statt eine Kopie in den Testzustand zu schreiben.

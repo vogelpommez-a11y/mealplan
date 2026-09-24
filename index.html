@@ -9239,11 +9239,19 @@
       // Zutatenzeilen stehen (siehe dort), und da gibt es noch keine Zeilen zu lesen.
       const summe = ingSummeAus(zutaten);
       if (!summe) return false;                   // ohne Zutatensumme gibt es nichts zu vergleichen
-      // Auf dieselbe Genauigkeit runden, in der updateMacroSum() schreibt: sonst gilt ein
-      // Rundungsrest als Uebersteuerung, und "Automatisch uebernehmen" staende dauerhaft da.
-      const r0 = v => Math.round(v || 0), r1 = v => Math.round((v || 0) * 10) / 10;
-      return r0(n.kcal) !== r0(summe.kcal) || r1(n.carbs) !== r1(summe.carbs)
-          || r1(n.protein) !== r1(summe.protein) || r1(n.fat) !== r1(summe.fat);
+      // Ein Rundungsrest darf nicht als Uebersteuerung gelten, sonst staende "Automatisch
+      // uebernehmen" dauerhaft da. Deshalb eine Toleranz von 0,5 gegen die UNGERUNDETE Summe
+      // statt exakter Gleichheit der gerundeten Werte (24.09.2026, TROUBLESHOOTING 179):
+      // Das Rezeptbuch speichert Makros ganzzahlig, die Summe hat Nachkommastellen (76 gegen
+      // 76,1 KH), und x,5 kcal ist dort AB-, im Editor aber AUFgerundet (504 gegen 505). Mit
+      // `!==` galt so jedes der 36 Katalogrezepte gleich nach dem Uebernehmen als "manuell
+      // angepasst" - eine geaenderte Zutatenmenge rechnete die Makros nicht mehr nach.
+      // Gemessen liegt die Abweichung im Katalog bei hoechstens 0,5. Was updateMacroSum()
+      // selbst schreibt (auf 0 bzw. 1 Stelle gerundet), liegt ebenfalls darin. Das Epsilon
+      // faengt Gleitkommareste genau an der Grenze ab.
+      const weg = (a, b) => Math.abs((a || 0) - (b || 0)) > 0.5 + 1e-9;
+      return weg(n.kcal, summe.kcal) || weg(n.carbs, summe.carbs)
+          || weg(n.protein, summe.protein) || weg(n.fat, summe.fat);
     }
     // Die Summe der Zutaten mit Naehrwerten, oder null, wenn es keine gibt. Eine Quelle fuer
     // updateMacroSum() und macroWeichtAb() - zwei Kopien derselben Bedingung waeren genau die

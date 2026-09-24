@@ -141,5 +141,31 @@ var BAUSTEINE = [
       if (!m) return "⚠ Plan-Menü nicht offen — ist der Plan gefüllt?";
       return "Plan gefüllt, Menü offen — jetzt LINKS und RECHTS „Woche leeren“ antippen";
     }
+  },
+
+  {
+    id: "makro-toleranz",
+    titel: "Übernommenes Meal bearbeiten",
+    was: "Links steht bei „Makros gesamt“ schon „manuell angepasst“, obwohl nichts "
+       + "geändert wurde. Rechts nicht. Danach beidseits eine Zutatenmenge ändern: "
+       + "Nur rechts rechnen die kcal mit.",
+    stellen: [
+      "macroWeichtAb() — index.html:9235 (Toleranz 0,5 statt exakter Gleichheit)",
+      "⚠ Der Hauptgewinn ist ein VERHALTEN: kcal rechnen beim Ändern der Menge mit."
+    ],
+    // Leerer Bestand: Dann ist "Hauptgericht" nach dem Uebernehmen die einzige und damit
+    // die erste Kategorie - und die erste steht in "Meine Meals" offen (collapsedCats).
+    zustand: { recipes: [] },
+    // Wirklich uebernehmen statt eine Kopie hineinzuschreiben: Eine Kopie hier muesste
+    // copyFromCookbook() nachbauen (CLAUDE.md 11).
+    schritte: [
+      '[data-action="tab"][data-tab="recipes"]',
+      '[data-rtab="buch"]',
+      '[data-cbcat="Hauptgericht"]',
+      '[data-adopt="chili-rinderhack-bohnen"]',
+      '[data-rtab="meine"]',
+      '[data-action="view"]',
+      '[data-edit]'
+    ]
   }
 ];

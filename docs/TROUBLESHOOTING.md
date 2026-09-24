@@ -3486,9 +3486,10 @@ Hand gesetzt. Kein neues Datenfeld nötig, rückwärtskompatibel.
   Ableitung nach der Schleife kam nachweislich zu spät: Der Reset-Knopf erschien dann korrekt,
   im Feld stand aber längst die Summe. Das war erst an einer Messung von `#f-kcal` direkt nach
   dem Aufbau zu sehen, nicht am Ergebnis.
-* **Auf dieselbe Genauigkeit runden, in der `updateMacroSum()` schreibt** (kcal ganzzahlig,
-  Makros auf eine Nachkommastelle). Sonst gilt ein Rundungsrest als Übersteuerung, und
-  „Automatisch übernehmen" stünde dauerhaft da.
+* **Einen Rundungsrest nicht als Übersteuerung werten.** Sonst stünde „Automatisch
+  übernehmen" dauerhaft da. Ursprünglich über Runden auf dieselbe Genauigkeit gelöst — das
+  reichte nicht: Seit dem 24.09.2026 gilt eine Toleranz von 0,5 gegen die ungerundete Summe
+  (Ziffer 179).
 
 **Allgemein, und das ist die Lehre aus Ziffer 74 in neuer Form:** Jede Funktion, die abgeleitete
 Werte neu berechnet, braucht eine Antwort auf die Frage „und wenn der Nutzer sie selbst gesetzt
@@ -6837,3 +6838,30 @@ Beide Funde stammen aus dem `/pushcheck`, nicht aus den Prüfständen — und be
 Fragen, die ein Prüfstand gar nicht stellt: *„Gibt es diesen Fall noch woanders?“* und
 *„Gilt das überhaupt für die Person, die es sieht?“* Ein Prüfstand misst, was gebaut
 wurde. Er fragt nicht, ob das Richtige gebaut wurde.
+
+## 179. Übernommene Rezepte galten sofort als „manuell angepasst“
+
+**24.09.2026, im Praxistest gefunden** („Übernehmen, bearbeiten, speichern — entstehen zwei
+Meals?“ Nein, das klappte). Aufgefallen ist dabei etwas anderes: Mehr Hack im übernommenen
+Chili, aber die kcal blieben bei 560.
+
+`macroWeichtAb()` (Ziffer 110) leitet beim Öffnen des Editors ab, ob die Makros von Hand
+gesetzt sind. Verglichen wurde mit `!==` nach dem Runden. Das Rezeptbuch speichert Makros
+aber **ganzzahlig**, die Zutatensumme hat Nachkommastellen (76 gegen 76,1 KH), und x,5 kcal
+ist im Katalog **ab-**, im Editor **auf**gerundet (504 gegen 505). Ergebnis: **Alle 36**
+Katalogrezepte galten gleich nach dem Übernehmen als übersteuert. „Automatisch übernehmen“
+stand da, und eine geänderte Zutatenmenge rechnete die Makros nicht mehr nach.
+
+Behoben mit einer **Toleranz von 0,5 gegen die ungerundete Summe**. Gemessen liegt die
+Abweichung im Katalog bei höchstens 0,5, also reiner Rundung; was `updateMacroSum()` selbst
+schreibt, liegt ebenfalls darin. Echte Handänderungen ab 0,6 bleiben geschützt. Das
+gilt auch für Kopien, die Nutzer schon übernommen haben — eine Korrektur der Katalogdaten
+hätte nur künftige Übernahmen repariert.
+
+Der erste Anlauf (Toleranz, aber weiter auf gerundete Werte) ließ noch 6 Rezepte durch —
+genau die mit x,5 kcal. Gefunden hat das der Prüfstand, nicht die Rechnung vorab.
+
+> **Zwei Quellen, die „gleich“ sein sollen, runden selten gleich.** Wer sie auf exakte
+> Gleichheit vergleicht, vergleicht ihre Rundungsregeln.
+
+Prüfer: `tools/pruefstand-makro-abweichung.py`, Gegenprobe gegen Commit `96e71ff`.
