@@ -92,7 +92,16 @@ var probe = kat[0];
 pruef("NEU: echte Handaenderung +40 kcal wird erkannt", weicht(NEU, probe, plus(probe.nutrition, "kcal", 40)));
 pruef("NEU: +1 kcal wird erkannt", weicht(NEU, probe, plus(probe.nutrition, "kcal", 1)));
 pruef("NEU: +1 g Protein wird erkannt", weicht(NEU, probe, plus(probe.nutrition, "protein", 1)));
-pruef("NEU: +0,6 g Fett wird erkannt (knapp ueber der Grenze)", weicht(NEU, probe, plus(probe.nutrition, "fat", 0.6)));
+// Die Grenze an einer Zutat mit EXAKT bekannter Summe messen (100 g -> 200/20/10/5), nicht
+// am Katalogrezept: Das weicht schon von Haus aus um Zehntel ab, +0,5 laege dort ueber der
+// Grenze, und die Pruefung maesse die Rundung des Katalogs statt der Toleranz.
+var genau = { ingredients: [{ name: "Probe", grams: 100, kcal: 200, carbs: 20, protein: 10, fat: 5 }],
+              nutrition: { kcal: 200, carbs: 20, protein: 10, fat: 5 } };
+pruef("NEU: exakte Summe gilt nicht als angepasst", !weicht(NEU, genau));
+pruef("NEU: +0,6 g Fett wird erkannt (knapp ueber der Grenze)", weicht(NEU, genau, plus(genau.nutrition, "fat", 0.6)));
+// Genau AUF der Grenze ist noch Rundung - belegt, dass `> 0,5` gilt und das Epsilon greift.
+pruef("NEU: +0,5 g Fett wird NICHT erkannt (genau auf der Grenze)", !weicht(NEU, genau, plus(genau.nutrition, "fat", 0.5)));
+pruef("NEU: -0,5 kcal wird NICHT erkannt (Grenze nach unten)", !weicht(NEU, genau, plus(genau.nutrition, "kcal", -0.5)));
 pruef("NEU: ohne gespeicherte Makros gilt nichts als uebersteuert",
       NEU({ nutrition: null })(probe.ingredients) === false);
 

@@ -5271,9 +5271,14 @@ Ausgeschnitten: `macroWeichtAb()` und `ingSummeAus()` aus dem Meal-Blatt, dazu `
 Parameter einer Fabrik herein. Die Rezepte stammen ungefiltert aus `data/cookbook.js`: Der
 Katalog trägt kein `portions`, `copyFromCookbook()` ändert also weder Zutaten noch Makros.
 
-Acht Messgrößen: kein einziges der Katalogrezepte gilt als angepasst; +40 kcal, +1 kcal,
-+1 g Protein und +0,6 g Fett werden erkannt; ohne gespeicherte Makros gilt nichts als
-übersteuert.
+Elf Messgrößen: kein einziges der Katalogrezepte gilt als angepasst; +40 kcal, +1 kcal und
++1 g Protein werden erkannt; ohne gespeicherte Makros gilt nichts als übersteuert.
+
+**Die Grenze selbst** misst er an einer Zutat mit exakt bekannter Summe, nicht am
+Katalogrezept: +0,6 g Fett wird erkannt, +0,5 g Fett und −0,5 kcal nicht. Am Katalogrezept
+ging das nicht — es weicht schon von Haus aus um Zehntel ab, +0,5 lag dort über der Grenze,
+und die Prüfung maß die Rundung des Katalogs statt der Toleranz. Gegenprobe dazu: Mit `>=`
+statt `>` im Code fallen beide Grenzfälle durch.
 
 **Die Gegenprobe läuft im selben Lauf mit:** Dieselben Fälle gegen `macroWeichtAb()` aus
 Commit `96e71ff` (vor dem Fix, per `git show` gelesen, nicht nachgebaut). Dort **müssen**
