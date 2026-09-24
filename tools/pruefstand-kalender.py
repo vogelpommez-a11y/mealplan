@@ -580,7 +580,17 @@ state.kalMode = "monat"; state.kalMonth = don.getMonth(); state.viewYear = don.g
 view.innerHTML = kalenderHtml();
 var notiz = view.querySelector(".kal-note");
 var unk = view.querySelectorAll("td.kal-t.unk").length;
-pruefe("das Gitter zeichnet die Woche neutral", unk === 7, unk + " neutrale Zellen");
+// Erwartet werden so viele Zellen, wie Tage DIESER Woche im Monat ihres Donnerstags liegen -
+// nicht pauschal 7. Reicht die Woche ueber die Monatsgrenze (z. B. 31.08.-06.09.), ist der
+// Tag davor im Gitter eine leere Fuellzelle und darf nicht grau sein. Mit fester 7 fiel der
+// Pruefstand genau in diesen Wochen durch, obwohl die App richtig zeichnete (24.09.2026).
+var imMonat = 0;
+for (var wt = -3; wt <= 3; wt++) {
+  var wd = new Date(don); wd.setDate(don.getDate() + wt);
+  if (wd.getMonth() === don.getMonth()) imMonat++;
+}
+pruefe("das Gitter zeichnet die Woche neutral", unk === imMonat,
+       unk + " neutrale Zellen, erwartet " + imMonat);
 pruefe("die Zeile behauptet NICHT 'kein geplanter Tag'", !/[Kk]ein geplanter Tag/.test(notiz.textContent),
        notiz.textContent.replace(/\\s+/g, " ").trim());
 pruefe("sie nennt die Tage ohne Tagesangabe", /ohne Tagesangabe/.test(notiz.textContent),

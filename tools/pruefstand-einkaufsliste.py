@@ -106,7 +106,10 @@ MESS = u"""<script>
       positionen: ch.length,
       abgehakt: ch.filter(function (c) { return c.checked; }).length,
       kicker: k ? k.textContent.trim() : "(kein kicker)",
-      ueberschrift: (m.querySelector(".modal-head h3") || {}).textContent || "",
+      // h2 seit 71a4650 (20.09.2026): alle Modal-Ueberschriften sind eine Ebene hoeher gerueckt.
+      // Mit dem alten h3 las der Pruefstand eine leere Zeichenkette und meldete die richtige
+      // Ueberschrift als falsch.
+      ueberschrift: (m.querySelector(".modal-head h2") || {}).textContent || "",
       // Der Dialogname ist das, was ein Screenreader beim OEFFNEN ansagt - der Kicker wird
       // erst beim Weiterlesen erreicht. Seit die Ueberschrift gekuerzt ist ("Einkaufsliste"
       // statt "Einkaufsliste der Woche"), traegt sonst nichts im Namen die Woche.

@@ -5232,3 +5232,34 @@ Schritt 5 ist der eigentliche Nachweis. Dass ein geänderter Wert zurückkommt, 
 ein `merge` leisten — dass ein **zusätzliches** Feld verschwindet, belegt die Zusage aus dem
 Dateikopf: „Ein Dokument wird exakt auf den Stand der Sicherung gesetzt, auch in den
 Feldern." Sonst entstünde eine Mischung aus zwei Ständen, die es nie gab.
+
+## Zwei Prüfstände, die gegen die App gemessen haben statt für sie (24.09.2026)
+
+Beide standen seit mindestens dem 22.09. auf rot und fielen auch gegen den alten Stand
+durch. Die App war beide Male richtig — falsch war der Prüfer.
+
+### `tools/pruefstand-einkaufsliste.py` — die Überschrift eine Ebene höher
+
+Der Prüfstand las die Überschrift über `.modal-head h3`. Seit `71a4650` (20.09.2026,
+Barrierefreiheit) sind alle 13 Modal-Überschriften `h2`. Der Selektor traf nichts, las
+eine leere Zeichenkette und meldete „Einkaufsliste" als falsch. Jetzt `h2`.
+
+Gegenprobe: Überschrift in einer Kopie auf „Einkaufsliste der Woche" gesetzt — zwei
+Prüfungen fallen durch, wie sie sollen.
+
+**Lehre:** Wird ein Baustein an allen Fundstellen umgestellt (CLAUDE.md 21a), gehören die
+Selektoren der Prüfstände zu diesen Fundstellen.
+
+### `tools/pruefstand-kalender.py` 14c — ein Test, der am Datum hing
+
+Abschnitt 14c legt eine Woche von vor 21 Tagen an und erwartete **fest 7** neutrale Zellen.
+Reicht diese Woche über eine Monatsgrenze (am 24.09.: 31.08.–06.09.), ist der Tag im
+Vormonat im Gitter eine leere Füllzelle — also 6, und das ist richtig. Der Prüfstand war
+damit je nach Kalenderdatum rot oder grün, ohne dass sich etwas änderte.
+
+Jetzt erwartet er so viele Zellen, wie Tage dieser Woche im Monat ihres Donnerstags liegen.
+Belegt in beide Richtungen: `tagVor(21)` → 6 erwartet, 6 gefunden; `tagVor(14)` (Woche
+ganz im September) → 7 und 7. `--gegenprobe-notiz` fällt weiter durch.
+
+**Lehre:** Ein Prüfstand, der „heute" als Anker nimmt, muss seine Erwartung aus demselben
+Anker ableiten — sonst misst er den Kalender statt der App.
