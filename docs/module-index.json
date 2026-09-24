@@ -1326,7 +1326,7 @@
       "zeilen": 139
     },
     {
-      "bytes": 207464,
+      "bytes": 207519,
       "pfad": "docs/ARCHITECTURES.md",
       "zeilen": 3286
     },
@@ -1355,9 +1355,9 @@
       "zeilen": 249
     },
     {
-      "bytes": 34646,
+      "bytes": 34704,
       "pfad": "docs/SECURITY.md",
-      "zeilen": 579
+      "zeilen": 580
     },
     {
       "bytes": 28778,
@@ -1365,9 +1365,9 @@
       "zeilen": 495
     },
     {
-      "bytes": 309571,
+      "bytes": 311251,
       "pfad": "docs/TESTING.md",
-      "zeilen": 5235
+      "zeilen": 5266
     },
     {
       "bytes": 396502,
@@ -1379,7 +1379,7 @@
       "pfad": "docs/module-index.json"
     },
     {
-      "bytes": 31029,
+      "bytes": 31035,
       "pfad": "firestore.rules",
       "zeilen": 536
     },
@@ -1943,9 +1943,9 @@
       "zeilen": 305
     },
     {
-      "bytes": 38502,
+      "bytes": 38728,
       "pfad": "tools/pruefstand-einkaufsliste.py",
-      "zeilen": 800
+      "zeilen": 803
     },
     {
       "bytes": 11518,
@@ -2018,9 +2018,9 @@
       "zeilen": 365
     },
     {
-      "bytes": 41592,
+      "bytes": 42159,
       "pfad": "tools/pruefstand-kalender.py",
-      "zeilen": 741
+      "zeilen": 751
     },
     {
       "bytes": 25588,

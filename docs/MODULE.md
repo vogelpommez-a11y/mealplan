@@ -336,18 +336,18 @@ _keine_
 | data/rechtstexte.js | 184 | 30224 |
 | docs/ABDECKUNG.md | 191 | 13235 |
 | docs/ABNAHME-MENSCH.md | 139 | 7222 |
-| docs/ARCHITECTURES.md | 3286 | 207464 |
+| docs/ARCHITECTURES.md | 3286 | 207519 |
 | docs/BAUSTEINE.md | 103 | 10474 |
 | docs/DESIGN.md | 1315 | 70119 |
 | docs/MODULE.md | — | — (erzeugt) |
 | docs/PRODUCT.md | 1744 | 99492 |
 | docs/RUNBOOK.md | 249 | 10092 |
-| docs/SECURITY.md | 579 | 34646 |
+| docs/SECURITY.md | 580 | 34704 |
 | docs/STORE.md | 495 | 28778 |
-| docs/TESTING.md | 5235 | 309571 |
+| docs/TESTING.md | 5266 | 311251 |
 | docs/TROUBLESHOOTING.md | 6840 | 396502 |
 | docs/module-index.json | — | — (erzeugt) |
-| firestore.rules | 536 | 31029 |
+| firestore.rules | 536 | 31035 |
 | img/apple-touch-icon.png | — | 35163 |
 | img/beef.webp | — | 56568 |
 | img/bilder-protokoll.json | 310 | 34158 |
@@ -477,7 +477,7 @@ _keine_
 | tools/pruefstand-cache-reset.py | 202 | 8848 |
 | tools/pruefstand-css-pfade.py | 95 | 3572 |
 | tools/pruefstand-einkauf-gruppe.py | 305 | 15777 |
-| tools/pruefstand-einkaufsliste.py | 800 | 38502 |
+| tools/pruefstand-einkaufsliste.py | 803 | 38728 |
 | tools/pruefstand-einladung-verbrauch.py | 232 | 11518 |
 | tools/pruefstand-firestore-backup.py | 731 | 33982 |
 | tools/pruefstand-foto-tokens.py | 89 | 3706 |
@@ -492,7 +492,7 @@ _keine_
 | tools/pruefstand-home-eine-seite.py | 405 | 22404 |
 | tools/pruefstand-jahresumschalter.py | 234 | 9867 |
 | tools/pruefstand-kalender-layout.py | 365 | 18822 |
-| tools/pruefstand-kalender.py | 741 | 41592 |
+| tools/pruefstand-kalender.py | 751 | 42159 |
 | tools/pruefstand-katalog-plan.py | 539 | 25588 |
 | tools/pruefstand-konten-inaktiv.py | 133 | 5890 |
 | tools/pruefstand-konto-loeschsperre.py | 251 | 12278 |
