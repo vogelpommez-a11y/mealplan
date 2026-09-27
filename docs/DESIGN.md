@@ -1234,10 +1234,12 @@ selbst.
 Prüfer: `tools/pruefstand-foto-tokens.py`. Warum dafür **kein** Pixelvergleich taugt, steht
 in `docs/TROUBLESHOOTING.md` §176.
 
-Drei Stimmungen für das Dark-Theme liegen zum Vergleich bereit:
-`tools/probe-farbstimmungen.html` (A = heute, B = mehr Tiefe, C = neutrale Graustufen).
-Sie ändern **ausschließlich Tokens**, keinen Bauteil-Stil — und der Akzent bleibt in allen
-dreien `#FF3040`.
+**Farbstimmung entschieden (27.09.2026): Die Dark-Tokens bleiben, wie sie sind (A).**
+Zur Wahl standen in `tools/probe-farbstimmungen.html` drei Stimmungen, die nur Tokens
+ändern: A = heute, B = mehr Tiefe, C = neutrale Graustufen. Der Akzent war in allen dreien
+`#FF3040`. Am Monitor war zwischen ihnen kein Unterschied zu sehen, und eine Änderung, die
+niemand bemerkt, bringt keinen Nutzen, kostet aber eine neue Kontrastabnahme. Die
+Probeseite bleibt als Beleg liegen.
 
 ---
 
