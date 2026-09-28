@@ -16,7 +16,7 @@ Die primäre Verifikation erfolgt deshalb über den Browser und gezielte isolier
 
 <!-- REGISTER-ANFANG (erzeugt aus den Ueberschriften: python tools/register.py - nicht von Hand pflegen) -->
 
-**Register — 81.** Vorne (0 bis 9) die geltenden Verfahren: Syntax-Check,
+**Register — 82.** Vorne (0 bis 9) die geltenden Verfahren: Syntax-Check,
 Smoke-Test, Ausschneide-Pruefstand, Sync-Tests. Dahinter das datierte Fallarchiv —
 einzelne Pruefstaende und was ihre Gegenprobe gezeigt hat.
 
@@ -107,6 +107,7 @@ Die Verfahren gibt es auch als Skill: `/smoke`, `/pruefstand`, `/abnahme`, `/dep
 | · | Fünf Prüfstände und eine Probe (22.09.2026) |
 | · | Zwei Prüfstände, die gegen die App gemessen haben statt für sie (24.09.2026) |
 | · | `tools/pruefstand-makro-abweichung.py` — gilt ein übernommenes Rezept als angepasst? (24.09.2026) |
+| · | `tools/pruefstand-cloud-laden.py` — was zeigt ein frisches Gerät während des ersten Abgleichs? (28.09.2026) |
 
 <!-- REGISTER-ENDE -->
 
@@ -5312,3 +5313,33 @@ Der Prüfstand hat sich schon beim Bau bezahlt gemacht: Der erste Fix ließ 6 Re
 
 Vorführung: `python tools/vorfuehren.py makro-toleranz` — die Schritte übernehmen das Chili
 wirklich, statt eine Kopie in den Testzustand zu schreiben.
+
+## `tools/pruefstand-cloud-laden.py` — was zeigt ein frisches Gerät während des ersten Abgleichs? (28.09.2026)
+
+**Kein Ausschnitt, sondern die ganze App** — der Ablauf führt über `handleCloudUser()`,
+`enterApp()`, `render()` und `startCloudSync()`, die sich nicht sinnvoll einzeln herauslösen
+lassen. Edge headless mit frischem Profil, Browser-Klasse aus `pruefstand-reiter.py`.
+
+**Wie ohne Netz:** Testprofil mit `cloud: true`, dadurch steht die App nach dem Start in der
+Cloud-Anmeldung. Dann ersetzt eine Attrappe `window.CloudSync` (ihr `load()` antwortet erst auf
+Zuruf), `CloudEntitlement` wird abgeschaltet, und der echte `handleCloudUser()` läuft über
+`window.__onCloudAuth`. Damit ist der einzige Weg zu Firestore ersetzt — nichts erreicht die
+Cloud.
+
+Fünf Fälle: **A** Ladeanzeige während des Abgleichs, auch nach Reiterwechsel, als
+`role="status"`; **B** Konto mit Ziel und Meals, danach ist die App da; **C** neues Konto,
+danach die ersten Schritte; **D** Abgleich scheitert, ebenfalls die ersten Schritte; **E**
+neues Konto über einen Teilen-Link, die Ladeanzeige verschwindet trotzdem.
+
+**Zwei Gegenproben** (`--gegenprobe`): gegen `tools/vorher/cloud-laden/` muss A rot sein;
+ohne die Neuzeichnung am Ende von `startCloudSync()` muss E rot sein. Der erste Entwurf ließ
+dort B durchfallen und blieb grün — B braucht die Zeile nicht (TROUBLESHOOTING 180).
+
+**Falle beim Bau:** Den Testzustand erst auf einer neutralen Seite derselben Herkunft
+(`/robots.txt`) schreiben. Die beim Start offene App schreibt beim Verlassen ihr Profil
+zurück und überschrieb ihn — je nach Takt stand dann die Willkommensmaske statt der
+Cloud-Anmeldung da.
+
+Vorführung: `python tools/vorfuehren.py cloud-laden` — dieselbe Attrappe in `oeffnen()`;
+dafür kennt `probe-vergleich.html` jetzt `profil` (eigenes Testprofil) und `nurInhalt` (auf
+die Anmeldemaske warten statt auf `enterApp()`).

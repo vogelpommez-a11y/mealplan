@@ -545,14 +545,23 @@
       // Notbremse, kein sauberer Datensatz.
       // Der Fallback muss es MITTRAGEN: sonst verliert ein Geraet ohne IndexedDB das Netz
       // wieder. Deshalb dort ebenfalls initializeFirestore, nur ohne persistenten Cache.
+      // In-App-Browser (Instagram, Facebook, TikTok) direkt auf Long Polling stellen. Dort
+      // brauchte der erste Abgleich am 28.09.2026 45 Sekunden (docs/ABNAHME-MENSCH.md 1.9):
+      // Das SDK probiert sonst vor jeder Verbindung erst den Streaming-Weg und erkennt erst
+      // danach, dass die WebView ihn puffert - und der Start liest mehrmals nacheinander.
+      // Nur dort, weil der Streaming-Weg ueberall sonst der schnellere ist.
+      // Beide Optionen schliessen sich gegenseitig aus (das SDK wirft sonst) - deshalb nur
+      // die eine setzen und die automatische Erkennung nicht mitgeben.
+      const IN_APP_BROWSER = /Instagram|FBAN|FBAV|BytedanceWebview|musical_ly/i.test(navigator.userAgent || "");
+      const netz = IN_APP_BROWSER ? { experimentalForceLongPolling: true } : {};
       let db;
       try {
-        db = initializeFirestore(app, {
+        db = initializeFirestore(app, Object.assign({
           ignoreUndefinedProperties: true,
           localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
-        });
+        }, netz));
       } catch (e) {
-        try { db = initializeFirestore(app, { ignoreUndefinedProperties: true }); }
+        try { db = initializeFirestore(app, Object.assign({ ignoreUndefinedProperties: true }, netz)); }
         catch (e2) { db = getFirestore(app); }
       }
       // Rezepte liegen zweimal in derselben Struktur: unter users/{uid}/recipes fuer das
@@ -2222,6 +2231,9 @@
   // Betrifft NUR das Kontodokument. syncRecipes() und pushGroupPlan() haben ihre eigenen,
   // diff-basierten Baselines und laufen unveraendert weiter.
   let cloudBaselineOk = false;
+  // Hat render() waehrend des ersten Abgleichs die Ladeanzeige gezeichnet? Dann zeichnet
+  // startCloudSync() am Ende selbst neu - siehe dort, wann das noetig ist.
+  let cloudLaedtAngezeigt = false;
   // Ein Beitritt/eine Aktivierung laeuft gerade: syncGid ist dabei bewusst noch null, waehrend
   // die Cloud-groupId schon geschrieben wird (finalizeGroupActivation/joinGroup). Ein in dieses
   // Fenster fallender Debounce-Push wuerde sie sofort wieder mit "" ueberschreiben.
@@ -3273,6 +3285,12 @@
       // dieser Aufruf noch unterwegs ist. Wer den Ablauf dort startete, bekaeme ihn bei jedem
       // Login auf einem neuen Geraet kurz zu sehen, bevor das Flag aus der Cloud eintrifft.
       maybeStartOnboarding();
+      // Die Ladeanzeige verschwindet meist von selbst: mergeRemoteRecipes() und der
+      // Gruppenzweig setzen das Ziel VOR ihrem render(). Bleibt das Ziel leer und starten die
+      // ersten Schritte trotzdem nicht - ein Teilen-Link wartet (shareOnStart) -, zeichnet
+      // niemand sonst neu, und die Anzeige stuende fuer immer. Laufen die ersten Schritte,
+      // kehrt render() sofort zurueck.
+      if (cloudLaedtAngezeigt) { cloudLaedtAngezeigt = false; render(); }
     } catch (e) {
       // Doppelter Boden zu syncHandshakeOk: der Start ist irgendwo mittendrin abgebrochen, die
       // Mitgliedschaft ist damit ungeklaert. syncUid bleibt gesetzt (die App synct persoenlich
@@ -3289,6 +3307,7 @@
       lastGroupAttempt = state.groupId || null;   // fuer WELCHE Gruppe der Versuch scheiterte (onRemote)
       setSyncStatus("offline"); /* offline: App läuft lokal weiter, Sync greift beim nächsten Mal */
       maybeStartOnboarding();   // ohne Cloud entscheidet der lokale Stand
+      if (cloudLaedtAngezeigt) { cloudLaedtAngezeigt = false; render(); }
     }
   }
   function stopCloudSync() {
@@ -3974,6 +3993,20 @@
     // erst, wenn der Finger oben ist. Anders als beim Ablauf oben holt das niemand von
     // selbst nach, deshalb der Merker.
     if (planSortLaeuft) { planSortRenderOffen = true; return; }
+    // Frisches Geraet im Cloud-Modus, erster Abgleich laeuft noch: Hier gibt es lokal
+    // nichts, und jeder Reiter zeigte einen leeren Plan mit "0 Meals" - im Instagram-
+    // Browser 45 Sekunden lang (docs/ABNAHME-MENSCH.md 1.9). Das sieht aus wie "alles weg".
+    // !state.goal ist das Kennzeichen des frischen Geraets: Wer lokal schon einen Stand hat,
+    // sieht ihn sofort, wie bisher. startCloudSync() zeichnet nach dem Abgleich neu.
+    if (authMode === "cloud" && !cloudBaselineOk && !state.goal) {
+      cloudLaedtAngezeigt = true;
+      view.innerHTML = `<div role="status">${leerZustand({
+        icon: `<path d="M7 18a4.5 4.5 0 0 1-.6-8.96A6 6 0 0 1 18 9a4.5 4.5 0 0 1-.5 9Z"/>`,
+        titel: "Deine Meals werden geladen …"
+      })}</div>`;
+      resetCarousels();
+      return;
+    }
     hoveredCardId = null; // Kartenknoten werden gleich ersetzt - alte Hover-Referenz waere sonst veraltet
     // Gleiche Ueberlegung fuer den Tastaturfokus: liegt er gerade auf einem Element in
     // <main>, wird dieses gleich mitsamt innerHTML ersetzt und der Fokus faellt auf

@@ -157,7 +157,7 @@
   }
 
   // ---------------------------------------------------------------- Testzustand
-  function zustandSchreiben(extra) {
+  function zustandSchreiben(extra, profil) {
     var daten = {
       tab: "home", onboarded: true,
       goal: { mode: "cut", kcal: 1950, protein: 150, carbs: 180, fat: 60,
@@ -169,7 +169,7 @@
     for (var k in (extra || {})) daten[k] = extra[k];
     localStorage.setItem("wochenkueche_v1__test", JSON.stringify(daten));
     localStorage.setItem("wochenkueche_profile_v1__test",
-      JSON.stringify({ name: "Vergleich", id: "lokal" }));
+      JSON.stringify(profil || { name: "Vergleich", id: "lokal" }));
   }
 
   // ------------------------------------------------------------------- Zustand
@@ -180,7 +180,7 @@
     return null;
   }
 
-  function warteAufApp(f, fertig, versuche) {
+  function warteAufApp(f, fertig, versuche, nurInhalt) {
     versuche = versuche || 0;
     var d = f.contentDocument;
     var v = d && d.getElementById("view");
@@ -195,7 +195,10 @@
     // Markup (index.html:160 ff.) und sind im Gate genauso da. Erst `enterApp()` nimmt
     // `.authing` vom App-Element - das ist das einzige verlaessliche Zeichen (20.09.2026).
     var app = d && d.querySelector(".app");
-    var drin = app && !app.classList.contains("authing");
+    // Ausnahme `nurInhalt` (Baustein cloud-laden): Dort IST die Anmeldemaske der Startpunkt,
+    // oeffnen() meldet danach erst an. Gewartet wird dann auf die Maske selbst.
+    var drin = nurInhalt ? !!(d && d.getElementById("c-google"))
+                         : app && !app.classList.contains("authing");
     if (v && v.textContent.trim().length && drin) { fertig(true); return; }
     if (versuche > 80) {
       fertig(false, app && app.classList.contains("authing")
@@ -203,7 +206,7 @@
         : "#view blieb leer");
       return;
     }
-    setTimeout(function () { warteAufApp(f, fertig, versuche + 1); }, 100);
+    setTimeout(function () { warteAufApp(f, fertig, versuche + 1, nurInhalt); }, 100);
   }
 
   function themeSetzen(f) {
@@ -248,7 +251,7 @@
           melde("Sieht man den Unterschied? Wenn nein, vergleicht die Probe zweimal dasselbe.");
         }
         melde(wer + " bereit" + (text ? " - " + text : ""));
-      });
+      }, 0, b.nurInhalt);
     };
   }
 
@@ -269,7 +272,7 @@
       + (b.stellen || []).map(function (z) { return "<li><code>" + z + "</code></li>"; }).join("")
       + "</ul>";
 
-    zustandSchreiben(b.zustand);
+    zustandSchreiben(b.zustand, b.profil);
     seiteLaden(document.getElementById("alt"), "/tools/vorher/" + b.id + "/index.html", b, "VORHER");
     seiteLaden(document.getElementById("neu-f"), "/index.html", b, "NACHHER");
   }

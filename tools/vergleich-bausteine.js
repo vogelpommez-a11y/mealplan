@@ -167,5 +167,33 @@ var BAUSTEINE = [
       '[data-action="view"]',
       '[data-edit]'
     ]
+  },
+
+  {
+    id: "cloud-laden",
+    titel: "Erster Cloud-Abgleich auf frischem Gerät",
+    was: "Angemeldet, der Abgleich läuft noch. Links der leere Plan, der wie „alles weg“ "
+       + "aussieht, rechts die Ladeanzeige. Auch die anderen Reiter antippen.",
+    stellen: [
+      "render() — Ladeanzeige, solange !cloudBaselineOk && !state.goal",
+      "startCloudSync() — zeichnet nach dem Abgleich neu (zwei Stellen + catch)"
+    ],
+    // Frisches Geraet: kein Ziel, keine Meals. Ein Cloud-Profil, damit die App nach dem
+    // Start in der Cloud-Anmeldung steht statt lokal loszulaufen.
+    zustand: { goal: null, onboarded: false, recipes: [], plans: {} },
+    profil: { name: "Vergleich", email: "", uid: "vergleich", cloud: true },
+    // Die Anmeldemaske ist hier der erwartete Startpunkt - nicht auf enterApp() warten.
+    nurInhalt: true,
+    // Anmeldung nachstellen, OHNE dass etwas ans Netz geht: CloudSync wird durch eine
+    // Attrappe ersetzt, deren load() nie antwortet - genau der haengende Abgleich aus dem
+    // Instagram-Browser. Danach laeuft der echte handleCloudUser() -> enterApp() ->
+    // startCloudSync(). Der Pro-Listener entfaellt, er ginge sonst an Firestore.
+    oeffnen: function (doc) {
+      var w = doc.defaultView;
+      w.CloudEntitlement = null;
+      w.CloudSync = { enabled: true, load: function () { return new Promise(function () {}); } };
+      w.__onCloudAuth({ uid: "vergleich", emailVerified: true, displayName: "Vergleich", email: "" });
+      return "Anmeldung nachgestellt, der Abgleich hängt absichtlich";
+    }
   }
 ];

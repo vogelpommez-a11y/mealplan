@@ -50,8 +50,9 @@ BAUSTEINE = [
      u"faellt er weg, ist jemand zurueckgefallen"),
 
     (u"Leere Zustaende: Aufrufe", "index.html",
-     r"\bleerZustand\(", 12,
-     u"11 Aufrufe + Definition. Am 20.09.2026 aus 6 Klassennamen zusammengefuehrt"),
+     r"\bleerZustand\(", 13,
+     u"12 Aufrufe + Definition. Am 20.09.2026 aus 6 Klassennamen zusammengefuehrt; "
+     u"der 12. (28.09.2026) ist die Ladeanzeige beim ersten Cloud-Abgleich"),
 
     (u"Leere Zustaende: alte Klassen", "index.html",
      r'class="(?:wch-empty|ms-empty-ings|wl-empty|pempty|shop-empty)\b', 0,

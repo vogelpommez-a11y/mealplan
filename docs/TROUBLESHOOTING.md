@@ -6,7 +6,7 @@ Dieses Dokument enthält bekannte Fehlerquellen, historische Bugs und Probleme, 
 
 <!-- REGISTER-ANFANG (erzeugt aus den Ueberschriften: python tools/register.py - nicht von Hand pflegen) -->
 
-**Register — 179.** Chronologisch gewachsen: je hoeher die Nummer,
+**Register — 180.** Chronologisch gewachsen: je hoeher die Nummer,
 desto juenger der Fund. Wer eine Falle sucht, sucht hier zuerst; die Ueberschrift sagt
 jeweils, worum es geht. **Nicht die ganze Datei lesen** — sie ist rund 310 KB gross.
 
@@ -191,6 +191,7 @@ jeweils, worum es geht. **Nicht die ganze Datei lesen** — sie ist rund 310 KB 
 | 177 | `pruefstand-reiter.py` meldet unter Last einen Fehlalarm |
 | 178 | Derselbe Fehler, eine Sammlung weiter — und ein Hinweis auf ein Pro-Feature |
 | 179 | Übernommene Rezepte galten sofort als „manuell angepasst“ |
+| 180 | Im Instagram-Browser brauchte der erste Cloud-Abgleich 45 Sekunden |
 
 <!-- REGISTER-ENDE -->
 
@@ -6872,3 +6873,40 @@ genau die mit x,5 kcal. Gefunden hat das der Prüfstand, nicht die Rechnung vora
 > Gleichheit vergleicht, vergleicht ihre Rundungsregeln.
 
 Prüfer: `tools/pruefstand-makro-abweichung.py`, Gegenprobe gegen Commit `96e71ff`.
+
+## 180. Im Instagram-Browser brauchte der erste Cloud-Abgleich 45 Sekunden
+
+**28.09.2026, Geräteabnahme 1.9** (`docs/ABNAHME-MENSCH.md`). Link in Instagram geöffnet,
+mit Google angemeldet — das klappte. Danach aber **45 Sekunden** (mitgezählt) ein schwarzer
+Startreiter, „0 Meals“, oben rechts pulsierte der Sync-Punkt gelb („Verbinde …“).
+
+**Zwei Befunde, getrennt behoben:**
+
+1. **Die Wartezeit.** Das Firestore-SDK prüft in der Voreinstellung vor jeder Verbindung erst
+   den Streaming-Weg und weicht erst dann auf Long Polling aus. `startCloudSync()` liest beim
+   Start mehrmals **nacheinander** (Konto, Gruppe, Meals, Plan) — in einer WebView, die den
+   Streaming-Weg puffert, summiert sich das. Seitdem bekommen In-App-Browser (Instagram,
+   Facebook, TikTok, am User-Agent erkannt) `experimentalForceLongPolling: true`, sonst bleibt
+   alles wie vorher (`docs/ARCHITECTURES.md`). **Stand: Wirkung am Gerät noch nicht gemessen** —
+   die Instagram-WebView lässt sich am Rechner nicht nachstellen. Headless mit
+   Instagram-Kennung ist nur belegt, dass Firestore mit der Einstellung startet und den Server
+   erreicht.
+2. **Wie die Wartezeit aussah.** Ein frisches Gerät hat lokal nichts. Bis der Abgleich
+   zurückkam, zeichnete jeder Reiter einen leeren Plan — das sieht aus wie „alles weg“, und
+   wer über einen Instagram-Post kommt, wartet keine 45 Sekunden. Jetzt steht dort
+   „Deine Meals werden geladen …“.
+
+**Falle beim Bauen:** Die Neuzeichnung nach dem Abgleich war zuerst an **zwei** Stellen
+eingebaut. Die Gegenprobe zeigte, dass die erste nie greift: `mergeRemoteRecipes()` setzt das
+Ziel **vor** seinem `render()`, die Anzeige verschwindet also von selbst. Gebraucht wird die
+Neuzeichnung nur, wenn das Ziel leer bleibt **und** die ersten Schritte nicht starten — beim
+Teilen-Link (`shareOnStart`). Ohne sie stünde die Ladeanzeige dort für immer.
+
+> **Eine Gegenprobe, die gegen die eigene Absicherung grün bleibt, ist ein Befund über die
+> Absicherung — nicht nur über die Probe.** Hier war die Hälfte des Codes überflüssig.
+
+**Nebenbefund:** Die Anmeldung mit Google klappte im Instagram-Browser. Die Vermutung, Google
+sperre sie dort (`disallowed_useragent`), traf auf diesem Gerät nicht zu.
+
+Prüfer: `tools/pruefstand-cloud-laden.py` (A–E), Gegenproben gegen `tools/vorher/cloud-laden/`
+und gegen den Stand ohne Neuzeichnung.

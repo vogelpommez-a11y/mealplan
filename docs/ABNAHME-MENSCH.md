@@ -81,12 +81,18 @@ siehe Punkt 1.9.
 
 ### 1.9 Der In-App-Browser *(bekannter offener Punkt)*
 Einen Teilen-Link in Instagram oder WhatsApp an sich selbst schicken und **dort** öffnen.
-- [ ] Die App lädt.
-- [ ] Wenn die Anmeldung mit Google dort scheitert: Erscheint ein verständlicher Hinweis,
-      oder eine Sackgasse? (Notiert als Befund vom 26.07.2026 — hier bitte den
-      tatsächlichen Stand eintragen.)
+- [x] Die App lädt.
+- [x] Wenn die Anmeldung mit Google dort scheitert: Erscheint ein verständlicher Hinweis,
+      oder eine Sackgasse? — **Scheitert nicht** (Instagram, 28.09.2026): Die Anmeldung
+      mit Google klappte.
+- [ ] Nach der Anmeldung steht die App **zügig** da, während des Ladens steht „Deine Meals
+      werden geladen …“ statt eines leeren Plans.
+- [ ] Dasselbe in WhatsApp.
 
-**Stand 27.09.2026: 1.9 ist noch nicht getestet** und bleibt offen.
+**Stand 28.09.2026:** Am 28.09. brauchte der erste Abgleich in Instagram **45 Sekunden**,
+so lange stand ein schwarzer, leerer Plan da. Behoben mit Long Polling für In-App-Browser und
+einer Ladeanzeige (`docs/TROUBLESHOOTING.md` 180). **Nach dem Push hier die neue Zeit
+eintragen** — die Wirkung lässt sich nur am Gerät messen.
 
 ---
 
