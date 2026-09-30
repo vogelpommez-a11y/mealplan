@@ -68,7 +68,7 @@ Diese Grenzen sind bekannt und bewusst. Wer einen Bereich anlegt, der so aussieh
 | Ein gitignorter Ordner (`plans/`, `Fotos/`, `Marketing/`) | `git ls-files` kennt nur Versioniertes | er geht auch nicht live; der Commit-Wächter blockiert ihn zusätzlich |
 | Ein leeres Verzeichnis | git kennt keine leeren Verzeichnisse | fällt auf, sobald die erste Datei darin liegt |
 | Hostnamen ohne Punkt (`localhost`) | bewusst gefiltert, sonst landet jedes URL-Fragment im Register | keine echte Verbindung nach draußen |
-| Eine Domain, die nur in `vendor/` steht | Fremdcode nennt Dutzende Hosts, die er nie kontaktiert — das Register wäre nach einem Update unlesbar | `pfad:vendor/` hat mit `lieferkette` seinen eigenen Prüfer |
+| Eine Domain, die nur in `vendor/` steht | Fremdcode nennt Dutzende Hosts, die er nie kontaktiert — das Register wäre nach einem Update unlesbar | `pfad:vendor/` hat mit `lieferkette` seinen eigenen Prüfer — und **ob** ein solcher Host wirklich kontaktiert wird, misst `tools/netz-ohne-konto.py` im Browser. Genau hier lag die Lücke von §181: `apis.google.com` stand nur im Auth-SDK und wurde auf Handys trotzdem geladen |
 
 **Die andere Richtung prüft das Skript ebenfalls:** Steht eine Kennung im Register, die im
 Repo nirgends vorkommt, meldet es das als **Verrottung**. Ohne diese Prüfung könnte ein
@@ -92,7 +92,7 @@ merkt.
 | Werkzeuge und Prüfstände | `pfad:tools/` | `kvp` | neuer Prüfstand, neues Werkzeug |
 | Fristen und Aufräumen | `pfad:tools/` (`shared-aufraeumen.py`, `konten-inaktiv.py`) | `tools/pruefstand-share-frist.py` (drei Fristzahlen gegeneinander), `tools/pruefstand-konten-inaktiv.py` (Einstufung an den Grenzen), `datenschutz-technik` (Art. 30, Art. 5 Abs. 1 lit. e), `anwalt` (Zusage in Ziffer 8 und 10) | Änderung an einer Löschfrist, neue Sammlung mit Personenbezug |
 | Sicherung der Nutzerdaten | `pfad:tools/` (`firestore-backup.py`, `firestore-restore.py`, `firestore_api.py`) | `tools/pruefstand-firestore-backup.py` (Vollständigkeit, Ablageort, Rückspielung), `datenschutz-technik` (Aufbewahrung, Art. 30), `website-security` (Zugang, keine Geheimnisse auf der Platte) | neue Sammlung in Firestore, Änderung an Aufbewahrung oder Ablageort |
-| Fremdcode | `pfad:vendor/` | `lieferkette` | jede Änderung, plus regelmäßig ohne Anlass |
+| Fremdcode | `pfad:vendor/` | `lieferkette`, `tools/netz-ohne-konto.py` (was der Fremdcode ohne Konto tatsächlich anfragt — vier Browserkennungen, weil das SDK an der Kennung verzweigt) | jede Änderung, plus regelmäßig ohne Anlass |
 | Cloudflare Worker | `pfad:worker/` | `website-security`, `datenschutz-technik` | Deploy, neue Verarbeitung |
 | Firestore-Regeln | `pfad:firestore.rules` | `website-security` (Inhalt), `tools/regeln-live.py` (Repo gegen Live), `tools/regeln-pruefen.py` (Syntax, ohne zu veröffentlichen — es gibt keinen Emulator), `tools/pruefstand-share-frist.py` und `tools/pruefstand-gruppe-anonymisieren.py` (je eine Regel gegen den Client) | jede Regeländerung, und vor jedem Veröffentlichen |
 | Service Worker | `pfad:sw.js` | `website-security` | Cache-Strategie, neue Assets |

@@ -6,7 +6,7 @@ Dieses Dokument enthält bekannte Fehlerquellen, historische Bugs und Probleme, 
 
 <!-- REGISTER-ANFANG (erzeugt aus den Ueberschriften: python tools/register.py - nicht von Hand pflegen) -->
 
-**Register — 180.** Chronologisch gewachsen: je hoeher die Nummer,
+**Register — 181.** Chronologisch gewachsen: je hoeher die Nummer,
 desto juenger der Fund. Wer eine Falle sucht, sucht hier zuerst; die Ueberschrift sagt
 jeweils, worum es geht. **Nicht die ganze Datei lesen** — sie ist rund 310 KB gross.
 
@@ -192,6 +192,7 @@ jeweils, worum es geht. **Nicht die ganze Datei lesen** — sie ist rund 310 KB 
 | 178 | Derselbe Fehler, eine Sammlung weiter — und ein Hinweis auf ein Pro-Feature |
 | 179 | Übernommene Rezepte galten sofort als „manuell angepasst“ |
 | 180 | Im Instagram-Browser brauchte der erste Cloud-Abgleich 45 Sekunden |
+| 181 | Auf Handys lud die App ohne Konto Code von Google — auf dem Desktop nie |
 
 <!-- REGISTER-ENDE -->
 
@@ -6910,3 +6911,40 @@ sperre sie dort (`disallowed_useragent`), traf auf diesem Gerät nicht zu.
 
 Prüfer: `tools/pruefstand-cloud-laden.py` (A–E), Gegenproben gegen `tools/vorher/cloud-laden/`
 und gegen den Stand ohne Neuzeichnung.
+
+## 181. Auf Handys lud die App ohne Konto Code von Google — auf dem Desktop nie
+
+**30.09.2026, Rechtsprüfung mit `anwalt` (Opus) plus Netzmessung.** Ziffer 3 und 5 der
+Datenschutzerklärung sagen: *Ohne Konto entsteht keine Verbindung zu Google.* Auf iPhone,
+Android und Mac-Safari stimmte das nicht. Schon der bloße Aufruf — auch im lokalen Modus —
+lud `apis.google.com/js/api.js` und ein iframe von `paddys-mealplan.firebaseapp.com`. Damit
+ging die IP an Google, **und** es war Code von einem fremden Server (CLAUDE.md §1, Apple 2.5.2).
+
+**Ursache:** `getAuth(app)` hängt den `browserPopupRedirectResolver` fest an. Der startet sich
+selbst, sobald `_shouldInitProactively()` wahr ist — und das ist
+`_isMobileBrowser() || _isSafari() || _isIOS()`. Auf dem Desktop-Chrome also nie.
+
+**Fix:** `initializeAuth(app, { persistence: [indexedDB, local, session] })` — dieselbe
+Persistenzliste wie `getAuth`, sonst wären Angemeldete abgemeldet — **ohne** Resolver. Den
+bekommen nur `signInWithPopup`, `signInWithRedirect` und `reauthenticateWithPopup` als drittes
+Argument. `getRedirectResult` läuft nur noch, wenn vorher ein eigener Merker in
+`sessionStorage` (`pm-auth-redirect`) gesetzt wurde: Ohne festen Resolver holt Firebase den
+Rückkehrer eines Redirects **nur** dort ab, ein bedingungsloser Aufruf lüde das Modul wieder
+bei jedem.
+
+**Die eigentliche Falle — zweimal:**
+
+1. **Die erste eigene Messung war sauber.** Headless-Chrome mit Desktop-Kennung: null fremde
+   Anfragen. Erst `anwalt` fand den Zweig im SDK-Code, und die Messung mit iPhone-Kennung
+   bestätigte ihn. Eine Netzmessung mit **einer** Browserkennung belegt nichts über die anderen.
+2. **Das Prüfsystem konnte es nicht sehen.** `docs/ABDECKUNG.md` suchte externe Hosts nur in
+   `index.html`, `sw.js` und `worker/` — nicht in `vendor/`. Der Host stand im SDK.
+
+**Was bleibt:** Klickt jemand „Mit Google anmelden“, lädt die App `apis.google.com` weiterhin —
+so arbeitet Firebase im Browser, Ziffer 6 sagt es jetzt ausdrücklich. Für den Store (Apple 2.5.2)
+ist das ein offener Punkt für D7: In einer nativen Hülle gehört die Google-Anmeldung in ein
+natives Plugin.
+
+Prüfer: `tools/netz-ohne-konto.py` — vier Kennungen, frisches Profil, vier Phasen, fällt bei
+jedem fremden Host durch. `--gegenprobe`: der alte Stand (live, vor dem Push) muss durchfallen,
+der neue (lokal) bestehen. Beides am 30.09.2026 gelaufen.

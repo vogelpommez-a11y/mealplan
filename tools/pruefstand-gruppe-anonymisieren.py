@@ -126,20 +126,25 @@ function meineNoch(uid) {
 // Eintrag darin ist ENTWEDER eine blosse id (= fuer alle) ODER {id, uids:[...]}.
 var plaene = {};
 function frischePlaene() {
+  // `by`/`at` auf Dokumentebene: "zuletzt geaendert von" - savePlanWeek() setzt es bei
+  // jedem Schreiben. Das ist der DRITTE Ort mit der UID (Befund `anwalt`, 30.09.2026).
   plaene = {
     "2026-W39": {
       mo_fr: ["r1", { id: "r2", uids: ["ich", "luisa"] }],
       di_ab: [{ id: "r3", uids: ["ich"] }],
       mi_mi: [{ id: "r2", uids: ["luisa"] }],
-      do_fr: ["r4"]
+      do_fr: ["r4"],
+      by: "ich", at: 1
     },
-    "2026-W40": { fr_ab: [{ id: "r1", uids: ["ich"] }] }
+    "2026-W40": { fr_ab: [{ id: "r1", uids: ["ich"] }], by: "luisa", at: 2 },
+    "2026-W41": { sa_mi: ["r4"], by: "ich", at: 3 }
   };
 }
 function planUids() {
   var raus = [];
   Object.keys(plaene).forEach(function (w) {
     Object.keys(plaene[w]).forEach(function (f) {
+      if (!Array.isArray(plaene[w][f])) return;
       plaene[w][f].forEach(function (e) {
         if (e && typeof e === "object" && e.uids) raus = raus.concat(e.uids);
       });
@@ -151,7 +156,7 @@ function planEintrag(woche, feld, i) { return plaene[woche][feld][i]; }
 
 // Firestore-Stub fuer die Plan-Sammlung. setDoc mit merge:true ersetzt die genannten
 // Felder ganz - genau das tut die echte Schnittstelle bei einem Array-Feld.
-var PLAN_SCHREIBT = 0;
+var PLAN_SCHREIBT = 0, PLAN_PATCHES = [];
 function getDocsPlaene() {
   return Promise.resolve({
     docs: Object.keys(plaene).map(function (w) {
@@ -161,6 +166,7 @@ function getDocsPlaene() {
 }
 function setDocPlan(woche, patch) {
   PLAN_SCHREIBT++;
+  PLAN_PATCHES.push(Object.keys(patch).sort().join(","));
   Object.keys(patch).forEach(function (f) { plaene[woche][f] = patch[f]; });
   return Promise.resolve();
 }
@@ -225,7 +231,7 @@ console.log("--- 6. Der ZWEITE Ort: Zuweisungen im Wochenplan ---");
 // zugewiesen sein ({id, uids:[...]}), und dort blieb die UID stehen. Dieselbe
 // Verwechslung wie bei `by`, nur eine Sammlung weiter.
 frischePlaene();
-PLAN_SCHREIBT = 0;
+PLAN_SCHREIBT = 0; PLAN_PATCHES = [];
 pr("vorher steht meine UID im Plan", planUids().filter(function (u) { return u === "ich"; }).length === 3,
    JSON.stringify(planUids()));
 var wochen = await CG.anonymizeMyPlanAssignments("g1", "ich");
@@ -233,7 +239,21 @@ pr("keine Zuweisung traegt noch meine UID",
    planUids().indexOf("ich") === -1, JSON.stringify(planUids()));
 pr("Luisas Zuweisungen bleiben",
    planUids().filter(function (u) { return u === "luisa"; }).length === 2, JSON.stringify(planUids()));
-pr("beide Wochen angefasst", wochen === 2, wochen + "");
+pr("alle drei Wochen angefasst (W41 nur wegen `by`)", wochen === 3, wochen + "");
+
+console.log("--- 6a. Der DRITTE Ort: `by` auf Dokumentebene ---");
+pr("W39: `by` ist leer", plaene["2026-W39"].by === "", JSON.stringify(plaene["2026-W39"].by));
+pr("W41: `by` ist leer, obwohl dort keine Zuweisung stand",
+   plaene["2026-W41"].by === "", JSON.stringify(plaene["2026-W41"].by));
+pr("W40: Luisas `by` bleibt", plaene["2026-W40"].by === "luisa", JSON.stringify(plaene["2026-W40"].by));
+pr("`at` bleibt unangetastet", plaene["2026-W39"].at === 1 && plaene["2026-W41"].at === 3);
+// Die Regel loestPlanBezug() laesst `by` nur zu, wenn im selben Schreibvorgang NICHTS sonst
+// steht (hasOnly(['by'])). Im gemeinsamen Paket mit den Zuweisungen lehnte sie alles ab -
+// und ein Nur-Leser behielte seine Kennung doch.
+pr("`by` wird in eigenen Schreibvorgaengen geleert, nie zusammen mit Zuweisungen",
+   PLAN_PATCHES.filter(function (k) { return k === "by"; }).length === 2
+   && PLAN_PATCHES.every(function (k) { return k === "by" || k.split(",").indexOf("by") === -1; }),
+   JSON.stringify(PLAN_PATCHES));
 
 console.log("--- 6b. Kein Eintrag wird zur Waise ---");
 // Ein Gericht ohne zugewiesene Person darf im Datenmodell nicht existieren
@@ -241,6 +261,7 @@ console.log("--- 6b. Kein Eintrag wird zur Waise ---");
 var waisen = [];
 Object.keys(plaene).forEach(function (w) {
   Object.keys(plaene[w]).forEach(function (f) {
+    if (!Array.isArray(plaene[w][f])) return;
     plaene[w][f].forEach(function (e) {
       if (e && typeof e === "object" && Array.isArray(e.uids) && e.uids.length === 0) waisen.push(w + "/" + f);
     });
@@ -262,6 +283,22 @@ PLAN_SCHREIBT = 0;
 var keine2 = await CG.anonymizeMyPlanAssignments("g1", "niemand");
 pr("kein Treffer -> 0 Wochen", keine2 === 0, keine2 + "");
 pr("kein Schreibvorgang", PLAN_SCHREIBT === 0, PLAN_SCHREIBT + "");
+
+console.log("--- 6d. Teilen-Link: die Meal-Kopie traegt keine fremde UID ---");
+// Ein Gruppen-Meal traegt `by` = UID des Mitglieds, das es angelegt hat - oft nicht ich.
+// Im Snapshot unter shared/ erreichte dessen Austritt oder Loeschung es nie mehr.
+var GR = { id: "r7", name: "Chili", by: "luisa", nutrition: { kcal: 600 } };
+// Global, nicht lokal: shareMealPayload() ist auf oberster Ebene ausgeschnitten und sucht
+// seine Helfer dort.
+window.getRecipe = function (id) { return id === "r7" ? GR : null; };
+window.safeImage = function () { return null; };
+window.photoFor = function () { return "img/chili.webp"; };
+window.syncUid = "ich"; window.profile = { name: "Paddy" };
+var pay = shareMealPayload("r7");
+pr("die Meal-Kopie hat kein `by`", !("by" in pay.recipes[0]), JSON.stringify(pay.recipes[0]));
+pr("das Original im Bestand behaelt sein `by`", GR.by === "luisa", GR.by);
+pr("Inhalt der Kopie vollstaendig", pay.recipes[0].name === "Chili" && pay.recipes[0].nutrition.kcal === 600);
+pr("die eigene uid bleibt (Regeln + Loeschen haengen daran)", pay.uid === "ich", pay.uid);
 
 console.log("");
 console.log("ERGEBNIS " + ok + " gruen, " + bad + " rot");
@@ -315,6 +352,29 @@ def statisch():
     pr(u"die Kontoloeschung ebenso",
        "konto:anonymPlan" in html,
        u"sonst ueberlebt die Zuweisung die Kontoloeschung")
+    # Der dritte Ort (30.09.2026): `by` auf Dokumentebene - in BEIDEN Bereinigungen.
+    pr(u"`by` auf Dokumentebene wird an beiden Stellen EINZELN geleert",
+       html.count(u', { by: "" }, { merge: true })') == 2,
+       u"Kontoloeschung oder Austritt laesst 'zuletzt geaendert von' stehen")
+    pr(u"die Kontoloeschung meldet ein Scheitern dabei",
+       "konto:anonymPlanBy" in html, u"ein stilles Scheitern faellt niemandem auf")
+
+    print(u"--- 9b. Die Regel fuer den Plan ---")
+    pr(u"loestPlanBezug() steht in firestore.rules",
+       "function loestPlanBezug(gid)" in rules, u"ohne sie lehnt Firestore das bei Nur-Lesern ab")
+    pblok = re.search(r"match /groups/\{gid\}/plans/\{weekKey\}(.*?)\n    \}", rules, re.S)
+    pinhalt = pblok.group(1) if pblok else ""
+    pr(u"allow update laesst sie zu, ohne Pro und ohne canWrite",
+       "isMember(gid) && loestPlanBezug(gid)" in pinhalt,
+       u"sonst haengt Art. 17 am Abo eines Dritten oder an der Rolle")
+    pfunk = re.search(r"function loestPlanBezug\(gid\) \{(.*?)\n    \}", rules, re.S)
+    pf = pfunk.group(1) if pfunk else ""
+    pr(u"sie kann nur `by` leeren, nichts sonst",
+       "hasOnly(['by'])" in pf and "request.resource.data.by == ''" in pf,
+       u"ohne hasOnly waere es ein Freibrief auf den Gruppenplan")
+    pr(u"create bleibt streng",
+       "allow create: if canWrite(gid) && groupOwnerHasPro(gid) && nichtGesperrt(gid);" in pinhalt,
+       u"die Ausnahme darf kein Anlegen erlauben")
 
     print(u"--- 9. Die Regel, die es erlauben muss ---")
     pr(u"loestPersonenbezug() steht in firestore.rules",
@@ -347,19 +407,23 @@ def main():
     # Plan-Stubs umgebogen. Der gepruefte Teil - Filterlogik, Waisen-Rueckfuehrung,
     # Zaehlung - bleibt unangetastet; ausgetauscht wird nur, WOHER die Dokumente kommen.
     anon_plan = schneide(quelle, u"anonymizeMyPlanAssignments: async function (gid, uid) {",
-                         u"          return geaendert;", u"\n        }")
+                         u"          return angefasst.size;", u"\n        }")
     anon_plan = (anon_plan
                  .replace(u'await getDocs(collection(db, "groups", gid, "plans"))',
                           u"await getDocsPlaene()")
                  .replace(u'await setDoc(doc(db, "groups", gid, "plans", d.id), patch, { merge: true })',
-                          u"await setDocPlan(d.id, patch)"))
+                          u"await setDocPlan(d.id, patch)")
+                 .replace(u'await setDoc(doc(db, "groups", gid, "plans", d.id), { by: "" }, { merge: true })',
+                          u'await setDocPlan(d.id, { by: "" })'))
+    teilen = schneide(quelle, u"function shareMealPayload(recipeId) {",
+                      u'return { app: "wochenkueche", v: 1, type: "meal"', u"\n  }")
 
     tmp = tempfile.mkdtemp(prefix="mp-grpanon-")
     try:
         seite = os.path.join(tmp, "pruefstand.html")
         io.open(seite, "w", encoding="utf-8").write(
             u"<script>\n" + UMFELD + u"\nvar CG = {\n" + anon + u",\n" + anon_plan
-            + u"\n};\n" + TEST + u"\n</script>")
+            + u"\n};\n" + teilen + u"\n" + TEST + u"\n</script>")
         p = subprocess.run(
             [EDGE, "--headless=new", "--disable-gpu", "--virtual-time-budget=8000",
              "--user-data-dir=" + os.path.join(tmp, "profil"),

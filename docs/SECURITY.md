@@ -325,7 +325,7 @@ zurück**. Seitdem gibt es beide Richtungen:
 | `tools/firestore-backup.py` | sichert **alle** Sammlungen auf die lokale Platte |
 | `tools/firestore-restore.py` | spielt zurück — **Trockenlauf ist die Voreinstellung** |
 | `tools/firestore_api.py` | gemeinsamer Zugang (REST, nur Standardbibliothek) |
-| `tools/pruefstand-firestore-backup.py` | 83 Prüfungen, Gegenprobe über 8 bekannte Fehler |
+| `tools/pruefstand-firestore-backup.py` | 96 Prüfungen, Gegenprobe über 10 bekannte Fehler (Stand 30.09.2026) |
 
 Die **verwalteten** Firestore-Exporte von Google setzen weiterhin **Blaze** voraus und hängen
 damit an der Bezahl-Entscheidung (`docs/STORE.md`). Diese Werkzeuge brauchen ihn nicht: Sie
@@ -352,6 +352,11 @@ lesen über die normale REST-Schnittstelle und laufen auf Spark.
   und bleibt — ein Konto, das nach der Sicherung entstanden ist, darf ein Rückspiel nicht
   kosten. Innerhalb eines zurückgespielten Dokuments wird dagegen exakt der Stand der
   Sicherung hergestellt, Felder inklusive.
+* **Die Rückspielung belebt kein gelöschtes Konto wieder** (Art. 17). Vor dem Schreiben fragt
+  sie Firebase Auth (`accounts:lookup`), welche betroffenen Konten noch bestehen; Daten toter
+  Konten werden übersprungen und als `GESPERRT` gemeldet. Scheitert die Abfrage, wird nichts
+  geschrieben. Ausnahme nur mit `--auch-geloeschte` auf ausdrücklichen Wunsch der Person. Bis
+  zum 30.09.2026 war das nur eine organisatorische Zusage (Befund `anwalt`).
 * **Die Sicherungsdatei ist eine Eingabe, kein Befehl.** Jeder Dokumentpfad daraus wird gegen
   `pfad_ok()` geprüft (`firestore_api.py`), bevor irgendetwas passiert, und in `_url()`
   zusätzlich **segmentweise kodiert**. Der Grund ist konkret: Ein Schlüssel wie
@@ -565,9 +570,17 @@ Gefunden wurde das beim Schreiben des Clients, **nicht** beim Schreiben der Rege
 erste Wurf hätte still versagt. Prüfer: `tools/pruefstand-gruppe-anonymisieren.py`,
 Abschnitt 9.
 
-> **Beide Regeln sind Vorlage, nicht Wahrheit.** Verbindlich ist der in der Firebase-Konsole
+**Dieselbe Ausnahme für den Wochenplan: `loestPlanBezug()` (30.09.2026).** Das Feld `by`
+(„zuletzt geändert von“) einer Planwoche darf jedes Mitglied leeren, wenn es seine eigene
+UID ist, oder der Inhaber — ohne `canWrite`, ohne Pro, `hasOnly(['by'])`, Zielwert `''`.
+Anlass: Ein Nur-Leser hätte seine Kennung dort sonst nie entfernen können. Prüfer: dieselbe
+Datei, Abschnitt 9b.
+
+> **Diese Regeln sind Vorlage, nicht Wahrheit.** Verbindlich ist der in der Firebase-Konsole
 > veröffentlichte Stand. **Veröffentlicht am 24.09.2026**, von Hand in der Konsole;
-> `python tools/regeln-live.py` meldet seitdem „identisch".
+> `python tools/regeln-live.py` meldete danach „identisch". **Mit `loestPlanBezug()` erneut
+> veröffentlicht am 30.09.2026** (19:08 UTC), `regeln-live.py`: „identisch“ — und zwar
+> **vor** dem Push des Clients und des Rechtstexts, die sich darauf verlassen.
 > Vor dem Veröffentlichen geprüft **syntaktisch**: `python tools/regeln-pruefen.py` legt sie über die
 > Rules-API als Regelwerk an (und entfernt es wieder), ohne es scharf zu schalten. Das ist
 > die einzige Probe, die es hier gibt: Einen Firestore-Emulator hat dieses Projekt nicht.

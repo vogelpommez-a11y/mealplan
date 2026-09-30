@@ -138,7 +138,11 @@ python tools/firestore-restore.py --stand 2026-09-17-1430 --nur users/<uid> --sc
   überschrieben würde, samt der Felder, die dabei wegfallen. Wer ihn überspringt, sieht den
   Schaden erst danach.
 * **Gelöschte Konten nicht wiederbeleben.** Wurde ein Konto auf Verlangen gelöscht, darf ein
-  Rückspiel es nicht zurückholen (`docs/DATENSCHUTZ-INTERN.md` 3a).
+  Rückspiel es nicht zurückholen (`docs/DATENSCHUTZ-INTERN.md` 3a). Seit dem 30.09.2026
+  erzwingt das Skript das selbst: Es fragt vor dem Schreiben Firebase Auth und meldet Dokumente
+  toter Konten als `GESPERRT`. Scheitert die Abfrage, bricht es ab — dann erst die Anmeldung
+  reparieren, nicht den Schalter setzen. Nur wenn die Person ausdrücklich um Wiederherstellung
+  eines versehentlich gelöschten Kontos bittet: `--auch-geloeschte`.
 * Zurückgespielt wird **nie gelöscht**: Was live steht und nicht in der Sicherung ist, bleibt.
 
 Läuft die Anmeldung nicht: `gcloud auth login` — nicht `application-default login`, das Skript

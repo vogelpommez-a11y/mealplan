@@ -14,7 +14,7 @@ Ein Rueckspiel zur falschen Zeit macht mehr kaputt, als es rettet: Es ueberschre
 was seit der Sicherung entstanden ist. Deshalb zeigt das Skript zuerst nur, WAS es taete,
 und schreibt erst mit `--schreiben` plus Rueckfrage.
 
-Zwei Zusagen, die das Skript einhaelt
+Drei Zusagen, die das Skript einhaelt
 -------------------------------------
 * **Es loescht nie ein Dokument.** Was live steht, aber nicht in der Sicherung, wird
   gemeldet und bleibt stehen. Ein Konto, das nach der Sicherung angelegt wurde, darf ein
@@ -22,6 +22,13 @@ Zwei Zusagen, die das Skript einhaelt
 * **Ein Dokument wird exakt auf den Stand der Sicherung gesetzt**, auch in den Feldern:
   Was live ein Feld mehr hat, verliert es. Sonst entstuende eine Mischung aus zwei Staenden,
   die es nie gab - und die niemand mehr auseinandersortieren kann.
+* **Es belebt kein geloeschtes Konto wieder** (Art. 17 DSGVO). Vor dem Schreiben fragt es
+  Firebase Auth, welche betroffenen Konten noch bestehen. Daten eines Kontos, das es nicht
+  mehr gibt, werden uebersprungen und gemeldet - auch bei `--nur users/<uid>`. Scheitert
+  die Abfrage, wird NICHTS geschrieben: Im Zweifel verweigern, nicht raten. Bis zum
+  30.09.2026 war das nur eine organisatorische Zusage (Befund `anwalt`).
+  Ausnahme nur mit `--auch-geloeschte` - etwa wenn ein Konto versehentlich geloescht wurde
+  und die Person ausdruecklich um Wiederherstellung bittet.
 
 Der Normalfall ist NICHT die ganze Datenbank
 --------------------------------------------
@@ -40,6 +47,8 @@ Weitere Schalter:
     --ziel <Ordner>   anderer Ablageort (Standard: Mealplan-Backups neben dem Projekt)
     --ja              ueberspringt die Rueckfrage bei --schreiben. Gedacht fuer den Fall,
                       dass niemand an der Tastatur sitzt - im Notfall lieber bestaetigen.
+    --auch-geloeschte schreibt auch Daten von Konten zurueck, die es nicht mehr gibt.
+                      Nur auf ausdruecklichen Wunsch der betroffenen Person.
 
 Rueckgabewert: 0 in Ordnung, 1 Abbruch mit Meldung.
 """
@@ -147,6 +156,71 @@ def zu_tun(plan):
     return [(p, a, z) for p, a, z in plan if a != "gleich"]
 
 
+def konto_von(pfad, felder):
+    u"""Wem gehoert dieses Dokument? Liefert die UID oder None (kein Personenbezug im Pfad).
+
+    users/<uid>/...  entitlements/<uid>  loeschsperren/<uid>  groups/<gid>/members/<uid>
+    und shared/<id> - dort steht der Eigentuemer nicht im Pfad, sondern im Feld `uid`.
+    """
+    t = pfad.split("/")
+    if t[0] in ("users", "entitlements", "loeschsperren") and len(t) >= 2:
+        return t[1]
+    if t[0] == "groups" and len(t) >= 4 and t[2] == "members":
+        return t[3]
+    if t[0] == "shared":
+        return ((felder or {}).get("uid") or {}).get("stringValue") or None
+    return None
+
+
+def bestehende_konten(zugang, uids):
+    u"""Fragt Firebase Auth, welche dieser UIDs noch ein Konto haben.
+
+    Eigener Aufruf statt zugang.roh(): Die Auth-Schnittstelle will mit Nutzer-Zugangsdaten
+    ein Kontingent-Projekt im Kopf (x-goog-user-project), und roh() meldet Fehler als
+    Firestore-Fehler. Wirft ZugangFehler - der Aufrufer schreibt dann gar nichts.
+    """
+    import urllib.request, urllib.error
+    uids = sorted(set(u for u in uids if u))
+    lebend = set()
+    for i in range(0, len(uids), 100):
+        teil = uids[i:i + 100]
+        url = ("https://identitytoolkit.googleapis.com/v1/projects/%s/accounts:lookup"
+               % zugang.projekt)
+        anfrage = urllib.request.Request(url, data=json.dumps({"localId": teil}).encode("utf-8"),
+                                         method="POST")
+        anfrage.add_header("Authorization", "Bearer " + zugang.token())
+        anfrage.add_header("Content-Type", "application/json")
+        anfrage.add_header("x-goog-user-project", zugang.projekt)
+        try:
+            with urllib.request.urlopen(anfrage, timeout=60) as antwort:
+                daten = json.loads(antwort.read().decode("utf-8") or "{}")
+        except urllib.error.HTTPError as e:
+            raise fs.ZugangFehler(
+                u"Firebase Auth verweigert die Kontenpruefung (HTTP %d):\n%s\n"
+                u"Ohne diese Pruefung wird nichts geschrieben - sonst koennte ein geloeschtes\n"
+                u"Konto zurueckkommen." % (e.code, e.read().decode("utf-8", "replace")[:400]))
+        except urllib.error.URLError as e:
+            raise fs.ZugangFehler(u"Keine Verbindung zu Firebase Auth: %s" % e.reason)
+        lebend.update(u.get("localId") for u in daten.get("users", []))
+    return lebend
+
+
+def sperre_geloeschte(plan, sicherung, lebend):
+    u"""Nimmt aus dem Plan alles heraus, was einem nicht mehr bestehenden Konto gehoert.
+
+    Liefert (plan_ohne, gesperrt). Unveraenderte Dokumente bleiben im Plan - sie kosten
+    keinen Schreibvorgang und belegen nichts.
+    """
+    ohne, gesperrt = [], []
+    for pfad, art, zu_leeren in plan:
+        uid = konto_von(pfad, sicherung.get(pfad))
+        if art != "gleich" and uid and uid not in lebend:
+            gesperrt.append((pfad, uid))
+        else:
+            ohne.append((pfad, art, zu_leeren))
+    return ohne, gesperrt
+
+
 def spiele_zurueck(zugang, sicherung, plan, melder=None):
     u"""Schreibt den Plan und liefert die Zahl der geschriebenen Dokumente.
 
@@ -171,6 +245,7 @@ def main():
 
     schreiben = "--schreiben" in sys.argv
     ohne_rueckfrage = "--ja" in sys.argv
+    auch_geloeschte = "--auch-geloeschte" in sys.argv
 
     print(u"Firestore-Rueckspielung - Paddy's Mealplan")
     print(u"=" * 62)
@@ -190,10 +265,30 @@ def main():
         print(u"")
         live = hole_live(zugang, sicherung, nur)
         plan, extras = vergleiche(sicherung, live)
+        gesperrt = []
+        if not auch_geloeschte:
+            betroffen = [konto_von(p, sicherung.get(p)) for p, a, _ in plan if a != "gleich"]
+            if any(betroffen):
+                lebend = bestehende_konten(zugang, betroffen)
+                plan, gesperrt = sperre_geloeschte(plan, sicherung, lebend)
     except fs.ZugangFehler as e:
         print(u"")
         print(u"ABBRUCH: %s" % e)
         return 1
+
+    if gesperrt:
+        konten = sorted(set(u for _, u in gesperrt))
+        print(u"GESPERRT: %d Dokumente gehoeren %d Konto/Konten, die es nicht mehr gibt."
+              % (len(gesperrt), len(konten)))
+        print(u"  Sie werden NICHT zurueckgespielt (Art. 17 DSGVO). Ausnahme: --auch-geloeschte")
+        for pfad, _ in gesperrt[:10]:
+            print(u"  GESPERRT     %s" % pfad)
+        if len(gesperrt) > 10:
+            print(u"  ... und %d weitere" % (len(gesperrt) - 10))
+        print(u"")
+    elif auch_geloeschte:
+        print(u"--auch-geloeschte ist gesetzt: Konten werden NICHT auf Bestand geprueft.")
+        print(u"")
 
     zaehler = {"neu": 0, "abweichend": 0, "gleich": 0}
     for pfad, art, _ in plan:

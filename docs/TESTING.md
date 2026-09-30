@@ -16,7 +16,7 @@ Die primäre Verifikation erfolgt deshalb über den Browser und gezielte isolier
 
 <!-- REGISTER-ANFANG (erzeugt aus den Ueberschriften: python tools/register.py - nicht von Hand pflegen) -->
 
-**Register — 82.** Vorne (0 bis 9) die geltenden Verfahren: Syntax-Check,
+**Register — 83.** Vorne (0 bis 9) die geltenden Verfahren: Syntax-Check,
 Smoke-Test, Ausschneide-Pruefstand, Sync-Tests. Dahinter das datierte Fallarchiv —
 einzelne Pruefstaende und was ihre Gegenprobe gezeigt hat.
 
@@ -39,6 +39,7 @@ Die Verfahren gibt es auch als Skill: `/smoke`, `/pruefstand`, `/abnahme`, `/dep
 | 2g-bis | Die unsichtbare Hälfte — `tools/a11y-pruefung.py` |
 | 2g-ter | Vorher neben Nachher — `tools/probe-vergleich.html` |
 | 2h | Prüfstand mit nachgebautem Transport — `pruefstand-firestore-backup.py` |
+| 2i | Netz ohne Konto — `tools/netz-ohne-konto.py` |
 | 3 | Ergebnisfortschritt |
 | 4 | Was isoliert getestet werden kann |
 | 5 | UI-Testregeln |
@@ -1015,8 +1016,9 @@ Lauf durch und nicht erst, wenn jemand mehr als 300 Dokumente hat.
 | Aufbewahrung | Ist nach dem Aufräumen **kein** Stand älter als die Frist — außer dem jüngsten? |
 | Trockenlauf | Ist nach einem Trockenlauf wirklich **kein** Schreibvorgang passiert? |
 | Rückspielung | Kommt der Stand exakt zurück — und bleibt liegen, was nur live existiert? |
+| Gelöschte Konten (seit 30.09.2026) | Wird alles eines Kontos, das es nicht mehr gibt, gesperrt — `users/`, Mitglieds-Eintrag, Teilen-Link über sein Feld `uid` —, während das verlorene Rezept eines bestehenden Kontos trotzdem zurückkommt? |
 
-### Gegenprobe: acht Fassungen, die durchfallen müssen
+### Gegenprobe: Fassungen, die durchfallen müssen
 
 `--gegenprobe` baut acht bekannte Fehler nach und verlangt, dass der Prüfstand jeden bemerkt:
 
@@ -1045,11 +1047,45 @@ durch, wie sie sollen.
 
 Stand 18.09.2026: 83 grün, Gegenprobe 8 von 8.
 
+Seitdem dazu: (9) eine Fassung, die Löschsperren ohne Blick auf `bis` räumt, und (10) am
+30.09.2026 die Rückspielung **ohne Kontenprüfung** — sie belebt das gelöschte Konto samt
+Teilen-Link still wieder (Befund `anwalt`). Stand 30.09.2026: 96 grün, Gegenprobe 10 von 10.
+
 ### Was dieser Prüfstand NICHT beweist
 
 Dass die echte Schnittstelle sich so verhält wie der Nachbau. Er prüft die **Zusagen der
-eigenen Werkzeuge**, nicht Googles API. Den Rest beweist nur ein echter Lauf mit `gcloud` —
+eigenen Werkzeuge**, nicht Googles API. Das gilt ausdrücklich auch für die Kontenabfrage bei
+Firebase Auth (`bestehende_konten()`): Geprüft ist, was mit ihrer Antwort geschieht, nicht,
+dass die echte Schnittstelle so antwortet. Den Rest beweist nur ein echter Lauf mit `gcloud` —
 der gehört einmalig zur Inbetriebnahme und ist in `docs/RUNBOOK.md` Abschnitt 5 beschrieben.
+
+---
+
+## 2i. Netz ohne Konto — `tools/netz-ohne-konto.py`
+
+```powershell
+python tools/netz-ohne-konto.py                # lokal
+python tools/netz-ohne-konto.py --live         # www.paddysmealplan.de
+python tools/netz-ohne-konto.py --gegenprobe   # live (alt) muss durchfallen, lokal (neu) bestehen
+```
+
+Prüft die Zusage aus Ziffer 3 und 5 der Datenschutzerklärung und CLAUDE.md §1 **im Browser**:
+Fragt die App ohne Konto irgendeinen fremden Host an? Frisches Profil, keine Anmeldung, vier
+Phasen (Erstaufruf, Impressum und Datenschutz, Anmeldebildschirm ohne Klick auf Google, lokales
+Profil mit allen Reitern), dazu Cookies. Jeder fremde Host lässt den Lauf durchfallen.
+
+**Vier Browserkennungen, nicht eine.** Desktop-Chrome, iPhone-Safari, Android-Chrome,
+Mac-Safari. Das Firebase-SDK verzweigt an der Kennung: Am 30.09.2026 war Desktop-Chrome sauber,
+die drei anderen luden `apis.google.com` (`docs/TROUBLESHOOTING.md` §181). Die erste Messung
+lief nur mit Desktop-Kennung — und hätte den Fehler bestätigt, statt ihn zu finden.
+
+**Gegenprobe:** gegen den alten Stand live, solange der Fix noch nicht gepusht ist. Am
+30.09.2026: alt 3 von 4 Kennungen FEHLER, neu 4 von 4 OK. Nach dem Push ist diese Gegenprobe
+nicht mehr möglich — das Skript sagt das, statt grün zu melden.
+
+**Nicht erfasst:** was ein fremdes iframe selbst nachlädt (unnötig, schon das iframe-Dokument
+ist ein fremder Host), und der Barcode-Abruf bei Open Food Facts — der ist nutzergetrieben und
+in Ziffer 7a beschrieben.
 
 ---
 

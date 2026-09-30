@@ -103,7 +103,14 @@ Lies `openDatenschutz()` Satz für Satz und suche für **jede Zusage** die Stell
   der Text nicht nennt?
 - Nennt §5/§6 alle eingebundenen Drittdienste? Prüfe **alle** externen Requests: `import`
   aus `gstatic.com`, `<script src>`, `fetch`, `<img src="http`, Fonts, CDNs. Jeder Dienst,
-  der eine IP-Adresse sieht, gehört in die Erklärung.
+  der eine IP-Adresse sieht, gehört in die Erklärung. **Auch `vendor/`:** Fremdcode nennt
+  Hosts, die er selbst anfragt — `apis.google.com` stand nur im Auth-SDK und wurde auf Handys
+  trotzdem ohne Konto geladen (TROUBLESHOOTING §181).
+- **Messen, nicht nur greppen:** `python tools/netz-ohne-konto.py` fährt die App ohne Konto
+  mit vier Browserkennungen (Desktop, iPhone, Android, Mac-Safari) und fällt bei jedem
+  fremden Host durch. Eine Messung mit nur **einer** Kennung belegt nichts über die anderen —
+  das SDK verzweigt daran. Jede Zusage der Art „ohne Konto keine Verbindung zu …“ gilt erst
+  als geprüft, wenn dieser Lauf grün ist.
 - §7 behauptet, es finde **kein Tracking** statt und Analytics sei aus. Stimmt das noch?
 - §8 beschreibt die Teilen-Funktion. Prüfe gegen `firestore.rules` und `shareId()`:
   Ist `list` wirklich verboten? Sind die IDs kryptografisch zufällig
@@ -234,6 +241,42 @@ Apple-Kategorie „Health & Fitness" im Store-Formular.
 Prüfe im Code, **welche** dieser Felder tatsächlich in die Cloud gehen, und ob die
 Datenschutzerklärung sie beim Namen nennt.
 
+Zwei Argumente, die du dem Anwalt dazu jedes Mal mitgibst: Nach EuGH C-184/20 (01.08.2022)
+können auch Daten unter Art. 9 fallen, aus denen sich Gesundheit nur **mittelbar erschließen**
+lässt — das betrifft Gewicht, BMI, Körperfettstufe, Zielrichtung, `weekStats` und
+„glutenfrei/laktosefrei“. Und daran hängt die Frage nach einer **Datenschutz-Folgenabschätzung**
+(Art. 35, Schwellwertprüfung nach der DSK-Muss-Liste).
+
+### 12. Art. 13 im Einzelnen (seit 30.09.2026)
+
+- Je Verarbeitung **Zweck und Rechtsgrundlage**, nicht pauschal über eine Sammelziffer; bei
+  Art. 6 Abs. 1 lit. f das konkrete berechtigte Interesse.
+- **Drittlandtransfer** mit Mechanismus (DPF der konkreten Entität, SCC) — bei **jedem**
+  US-Dienst, nicht nur bei Google.
+- **Speicherdauer konkret** je Datenart. „Solange erforderlich“ ist kein Befund-freier Zustand.
+- **Widerspruchsrecht (Art. 21)** in eigener, abgesetzter Form, sobald irgendwo lit. f genutzt
+  wird (Art. 21 Abs. 4: „von anderen Informationen getrennt“).
+- **Aufsichtsbehörde** namentlich (Art. 77), **Stand-Datum** an Impressum und Erklärung —
+  und wenn sich ein Rechtstext ändert, muss das Stand-Datum mitwandern.
+- Impressum: **kein** Link auf die abgeschaltete OS-Plattform der EU; Hinweis nach § 36 VSBG
+  gehört auf die Vorbereitungsliste zum Verkauf (Punkt 7).
+
+### 13. Betroffenenrechte technisch (seit 30.09.2026 — der ergiebigste Punkt)
+
+Nicht „steht es im Text?“, sondern „tut der Code es?“:
+
+- **Löschung erreicht jeden Ort**, an dem eine UID steht — nicht nur das offensichtliche Feld.
+  Die UID steckte schon an drei Stellen je Gruppe (Meal-`by`, Plan-Zuweisungen, Plan-`by` auf
+  Dokumentebene) und in Kopien unter `shared/`. Suche nach **jedem** Schreibzugriff mit
+  `syncUid`/`uid`, nicht nach dem, den du erwartest.
+- **Sicherung und Rückspiel:** Hält der Text zur Aufbewahrung, was `firestore-backup.py` tut?
+  Kann `firestore-restore.py` ein gelöschtes Konto wiederbeleben?
+- **Export (Art. 20)** und **Berichtigung (Art. 16)**: Gibt es den Weg, den die interne Doku
+  behauptet?
+- **Dialoge gegen Funktionen:** Verspricht ein UI-Text eine Funktion, die es nicht gibt
+  (am 30.09.2026: „oder übergib sie“ ohne Übergabe-Funktion)?
+- **Social Login:** minimale Scopes, Anbieter als Empfänger genannt, Alternative ohne ihn.
+
 ## Was du ausdrücklich nicht prüfen kannst – immer mitschreiben
 
 - **Den veröffentlichten Stand der Firestore-Regeln** (liegt in der Konsole).
@@ -266,6 +309,9 @@ Rechtstext und Code – ja oder nein. Danach die Befunde, schwerwiegendste zuers
 - **Fundort** als `index.html:1234` bzw. `firestore.rules:12`
 - **Der Widerspruch**: Was sagt der Text zu, was tut der Code?
 - **Konkreter Fix**
+- **Belegart**: *beobachtet* (am Code oder im Browser nachgesehen, mit Fundstelle) oder
+  *abgeleitet* (ein Schluss daraus). Ein abgeleiteter 🔴 ist ein Verdacht, kein Befund —
+  schreib dazu, was ihn bestätigen würde.
 
 Danach zwei kurze Abschnitte:
 

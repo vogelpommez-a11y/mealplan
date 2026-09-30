@@ -194,8 +194,17 @@ und `getAuth(app)` fände seine App nicht mehr. Die gleichlautenden Strings **in
 `firebase-app.js` sind dagegen Komponentennamen, keine Ladepfade, und bleiben unangetastet.
 
 Nicht lokalisierbar bleibt der OAuth-Popup-Weg: `signInWithPopup` öffnet ein iframe unter
-`https://paddys-mealplan.firebaseapp.com/__/auth/…`. Das ist Google-Infrastruktur, kein
-Bundle — es verschwindet erst mit dem nativen Login aus D7.
+`https://paddys-mealplan.firebaseapp.com/__/auth/…` und lädt `apis.google.com/js/api.js`. Das
+ist Google-Infrastruktur, kein Bundle — es verschwindet erst mit dem nativen Login aus D7.
+
+**Aber nur, wer ihn benutzt.** Auth wird mit `initializeAuth(app, { persistence: [...] })`
+**ohne** `popupRedirectResolver` gestartet, nicht mit `getAuth(app)`. `getAuth` hängt den
+Resolver fest an, und der lädt sich auf Handy, iOS und Safari schon beim Seitenaufruf —
+auch ohne Konto (`docs/TROUBLESHOOTING.md` §181). Seit dem 30.09.2026 bekommt ihn nur, wer
+einen Popup oder Redirect auslöst (`RESOLVER` als drittes Argument). `getRedirectResult`
+läuft nur, wenn vorher der Merker `pm-auth-redirect` in `sessionStorage` gesetzt wurde.
+Ob ohne Konto ein fremder Host angefragt wird, misst `tools/netz-ohne-konto.py` mit vier
+Browserkennungen.
 
 ### `window.CloudAuth`
 
@@ -3259,11 +3268,18 @@ wäre sichtbar, zählte aber bei niemandem mit.
 > **Eine bekannte Fehlerklasse ist erst dann geschlossen, wenn man alle Stellen gesucht
 > hat, an denen sie vorkommen kann.** Nicht die, an der man sie gefunden hat.
 
-**Offene Grenze, ehrlich benannt:** Für die Plan-Sammlung gibt es keine Entsprechung zu
-`loestPersonenbezug()`. Firestore-Regeln können Arrays von Maps nicht Element für Element
-prüfen — eine Regel, die „nur UIDs entfernen“ erlaubt, lässt sich dort nicht formulieren.
-Im Normalfall genügt `canWrite(gid)`; in den Randfällen (Inhaber ohne Pro, Gruppe in
-Auflösung) scheitert das Aufräumen und wird nur protokolliert (`group:anonymPlan`).
+**Der dritte Ort (30.09.2026):** Jede Planwoche trägt auf Dokumentebene `by`/`at` („zuletzt
+geändert von“, `savePlanWeek`). Beide Bereinigungen leeren `by` **zuerst und einzeln** je
+Woche, weil die Regel `loestPlanBezug()` genau diese eine Änderung jedem Mitglied erlaubt —
+unabhängig von Pro und Rolle, gebaut wie `loestPersonenbezug()`. Im gemeinsamen Paket mit den
+Zuweisungen würde sie abgelehnt.
+
+**Offene Grenze, ehrlich benannt:** Für die Zuweisungen gibt es keine Entsprechung.
+Firestore-Regeln können Arrays von Maps nicht Element für Element prüfen — eine Regel, die
+„nur UIDs entfernen“ erlaubt, lässt sich dort nicht formulieren. Im Normalfall genügt
+`canWrite(gid)`; in den Randfällen (Nur-Leser, Inhaber ohne Pro, Gruppe in Auflösung)
+scheitert das Aufräumen und wird nur protokolliert (`group:anonymPlan`). Ziffer 10 der
+Datenschutzerklärung nennt diese Randfälle seit dem 30.09.2026 ausdrücklich.
 
 **Die Reihenfolge ist keine Kosmetik.** Nach `leaveAtomic` ist man kein Mitglied mehr, und
 `canWrite(gid)` verweigert jeden Schreibzugriff — die UID bliebe für immer stehen. Beim

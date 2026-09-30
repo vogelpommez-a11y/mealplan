@@ -559,6 +559,35 @@ def main():
     except fs.ZugangFehler:
         pruef(u"ohne updateTime wird nicht geloescht", "verweigert", "verweigert")
 
+    # ---- 14. Kein geloeschtes Konto wiederbeleben (Art. 17, Befund 30.09.2026) --------
+    print(u"")
+    print(u"-- Rueckspielen: geloeschte Konten bleiben geloescht --")
+    sicherung_g = dict(alles)
+    sicherung_g["shared/s1"] = {"uid": {"stringValue": "u2"}, "when": {"integerValue": "1"}}
+    sicherung_g["shared/s2"] = {"uid": {"stringValue": "u1"}, "when": {"integerValue": "1"}}
+    # u2 hat sein Konto nach der Sicherung geloescht: alles von u2 ist live weg.
+    live_g = {p: f for p, f in sicherung_g.items()
+              if p not in ("users/u2", "groups/g1/members/u2", "shared/s1")}
+    del live_g["users/u1/recipes/r2"]              # und u1 hat ein Rezept verloren
+    plan_g, _ = rs.vergleiche(sicherung_g, live_g)
+    pruef(u"konto_von: users/<uid>", rs.konto_von("users/u2", {}), "u2")
+    pruef(u"konto_von: Unterkollektion", rs.konto_von("users/u1/recipes/r1", {}), "u1")
+    pruef(u"konto_von: Gruppenmitglied", rs.konto_von("groups/g1/members/u2", {}), "u2")
+    pruef(u"konto_von: Teilen-Link ueber das Feld uid",
+          rs.konto_von("shared/s1", sicherung_g["shared/s1"]), "u2")
+    pruef(u"konto_von: Gruppe selbst hat keinen Personenbezug im Pfad",
+          rs.konto_von("groups/g1", {}), None)
+    ohne_g, gesperrt_g = rs.sperre_geloeschte(plan_g, sicherung_g, lebend={"u1"})
+    pruef(u"alles des geloeschten Kontos wird gesperrt",
+          sorted(p for p, _ in gesperrt_g),
+          ["groups/g1/members/u2", "shared/s1", "users/u2"])
+    pruef(u"das verlorene Rezept des bestehenden Kontos kommt trotzdem zurueck",
+          [p for p, a, _ in rs.zu_tun(ohne_g)], ["users/u1/recipes/r2"])
+    zg14 = FakeZugang(live_g)
+    rs.spiele_zurueck(zg14, sicherung_g, ohne_g)
+    pruef(u"nach dem Rueckspiel ist das geloeschte Konto NICHT zurueck",
+          [p for p in ("users/u2", "groups/g1/members/u2", "shared/s1") if p in zg14.daten], [])
+
     print(u"")
     print(u"ERGEBNIS %d gruen, %d rot" % (ok[0], rot[0]))
 
@@ -718,9 +747,19 @@ def main():
         else:
             print(u"  ROT    eine Fassung ohne Blick auf `bis` faellt NICHT auf")
 
+        # (j) Die Fassung von vor dem 30.09.2026: kein Blick auf den Kontenbestand. Sie spielt
+        #     das geloeschte Konto u2 samt Teilen-Link zurueck - still, als waere es Erfolg.
+        zj = FakeZugang(live_g)
+        rs.spiele_zurueck(zj, sicherung_g, plan_g)           # ungesperrter Plan = alte Fassung
+        if "users/u2" in zj.daten and "shared/s1" in zj.daten:
+            print(u"  GRUEN  die alte Fassung belebt das geloeschte Konto wieder - faellt auf")
+            erwischt += 1
+        else:
+            print(u"  ROT    die alte Fassung faellt NICHT auf")
+
         print(u"")
-        print(u"GEGENPROBE %d von 9 bekannten Fehlern bemerkt" % erwischt)
-        if erwischt < 9:
+        print(u"GEGENPROBE %d von 10 bekannten Fehlern bemerkt" % erwischt)
+        if erwischt < 10:
             return 2
 
     return 1 if rot[0] else 0

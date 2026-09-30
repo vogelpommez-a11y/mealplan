@@ -6,8 +6,9 @@ rules_version = '2';
 // Firebase-Konsole unter Firestore Database -> Regeln eingefügt und VERÖFFENTLICHT wird.
 // Sie liegt hier im Repo, damit nachvollziehbar ist, was gelten soll.
 //
-// Stand: 2026-09-24 — veroeffentlicht am 24.09.2026
-// (neu seit 19.09.: shareFrisch() - Teilen-Links 12 Monate; loestPersonenbezug() - Anonymisierung beim Austritt).
+// Stand: 2026-09-30 — veroeffentlicht am 30.09.2026
+// (neu seit 19.09.: shareFrisch() - Teilen-Links 12 Monate; loestPersonenbezug() - Anonymisierung beim Austritt;
+//  neu seit 30.09.: loestPlanBezug() - "zuletzt geaendert von" im Gruppen-Wochenplan loesen).
 //
 // Veroeffentlicht als GANZE Datei von Hand in der Firebase-Konsole (CLAUDE.md 12).
 // Nachweis: `python tools/regeln-live.py` meldet "identisch". Bei jeder kuenftigen Aenderung
@@ -410,12 +411,27 @@ service cloud.firestore {
     // ---- Gemeinsamer Wochenplan: ein Dokument je ISO-Woche ----
     // Felder sind einzelne Slots ("mon_fr", "sat_ab"), damit gleichzeitiges Planen sich
     // nicht gegenseitig überschreibt. Hier greift "Nur ansehen" wirklich.
+    // "Zuletzt geaendert von" loesen: dieselbe Konstruktion wie loestPersonenbezug() bei den
+    // Meals (Begruendung dort), fuer das Feld `by` auf Dokumentebene einer Planwoche.
+    // Neu am 30.09.2026 (Befund `anwalt` + `datenschutz-technik`): Ohne sie konnte ein
+    // Nur-Leser - fuer ihn ist canWrite() immer falsch - und jedes Mitglied einer Gruppe ohne
+    // Pro-Inhaber seine Kennung beim Austritt nie aus dem Plan entfernen.
+    // Die Zuweisungen ({id, uids:[...]}) deckt sie NICHT ab: Firestore kann Arrays von Maps
+    // nicht elementweise pruefen (docs/DATENSCHUTZ-INTERN.md V4).
+    function loestPlanBezug(gid) {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['by'])
+             && request.resource.data.by == ''
+             && (resource.data.get('by', '') == request.auth.uid || isOwner(gid));
+    }
+
     match /groups/{gid}/plans/{weekKey} {
       allow get, list: if isMember(gid);
       // delete bewusst OHNE Pro-Pruefung: pruneWeeks() raeumt vergangene Wochen weg, und
       // eine Gruppe, deren Inhaber nicht verlaengert, soll nicht dauerhaft Karteileichen
       // ansammeln. Aufraeumen darf immer, wer ohnehin Mitglied mit Schreibrecht ist.
-      allow create, update: if canWrite(gid) && groupOwnerHasPro(gid) && nichtGesperrt(gid);
+      allow create: if canWrite(gid) && groupOwnerHasPro(gid) && nichtGesperrt(gid);
+      allow update: if (canWrite(gid) && groupOwnerHasPro(gid) && nichtGesperrt(gid))
+                    || (isMember(gid) && loestPlanBezug(gid));
       allow delete: if canWrite(gid);
     }
 

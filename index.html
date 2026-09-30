@@ -226,7 +226,8 @@
 <script type="module">
   import { initializeApp } from "./vendor/firebase/10.12.5/firebase-app.js";
   import {
-    getAuth, onAuthStateChanged, createUserWithEmailAndPassword,
+    initializeAuth, indexedDBLocalPersistence, browserSessionPersistence,
+    browserPopupRedirectResolver, onAuthStateChanged, createUserWithEmailAndPassword,
     signInWithEmailAndPassword, sendEmailVerification, signOut,
     updateProfile, sendPasswordResetEmail, setPersistence,
     browserLocalPersistence, GoogleAuthProvider, OAuthProvider, signInWithPopup,
@@ -259,23 +260,39 @@
   } else {
     try {
       const app = initializeApp(firebaseConfig);
-      const auth = getAuth(app);
+      // initializeAuth statt getAuth, und bewusst OHNE popupRedirectResolver (TROUBLESHOOTING
+      // §181). getAuth haengt den Resolver fest an - und der startet auf Handy, iOS und Safari
+      // sofort beim Seitenaufruf (_shouldInitProactively): Er laedt apis.google.com/js/api.js
+      // und ein iframe von firebaseapp.com, auch ohne Konto. Das widersprach Ziffer 3/5 der
+      // Datenschutzerklaerung und ist Code von fremdem Server (Apple 2.5.2, CLAUDE.md §1).
+      // Die Persistenzliste ist dieselbe wie bei getAuth - sonst waeren Angemeldete abgemeldet.
+      // Den Resolver bekommt jetzt nur, wer wirklich ein Popup oder einen Redirect ausloest.
+      const auth = initializeAuth(app, {
+        persistence: [indexedDBLocalPersistence, browserLocalPersistence, browserSessionPersistence]
+      });
+      const RESOLVER = browserPopupRedirectResolver;
+      const REDIRECT_MERKER = "pm-auth-redirect";
       auth.languageCode = "de";
       setPersistence(auth, browserLocalPersistence).catch(function () {});
 
       function popupFallback(e, provider) {
         const c = e && e.code;
         if (c === "auth/popup-blocked" || c === "auth/operation-not-supported-in-this-environment") {
-          return signInWithRedirect(auth, provider);
+          try { sessionStorage.setItem(REDIRECT_MERKER, "1"); } catch (e2) {}
+          return signInWithRedirect(auth, provider, RESOLVER);
         }
         throw e;
       }
       // Nach signInWithRedirect verlaesst die Seite den Tab komplett und laedt danach neu -
       // das Ergebnis (oder ein Fehler wie "account-exists-with-different-credential") kommt
-      // erst hier an, nie ueber das Promise von loginGoogle/loginApple. onAuthStateChanged holt
-      // den erfolgreich angemeldeten User ohnehin automatisch ab; hier wird nur der Fehlerfall
-      // eingefangen, damit er nicht stillschweigend verschwindet.
-      getRedirectResult(auth).catch(function (e) { window.CloudAuth.redirectError = e; });
+      // erst hier an, nie ueber das Promise von loginGoogle/loginApple. Ohne festen Resolver
+      // holt Firebase den zurueckgekehrten Nutzer NUR hier ab. Deshalb der Merker: Nur wer
+      // selbst einen Redirect gestartet hat, laedt dafuer das Google-Modul - alle anderen nie.
+      let redirectOffen = false;
+      try { redirectOffen = sessionStorage.getItem(REDIRECT_MERKER) === "1"; sessionStorage.removeItem(REDIRECT_MERKER); } catch (e) {}
+      if (redirectOffen) {
+        getRedirectResult(auth, RESOLVER).catch(function (e) { window.CloudAuth.redirectError = e; });
+      }
 
       Object.assign(window.CloudAuth, {
         registerEmail: async function (name, email, pw) {
@@ -292,11 +309,11 @@
         // weiter unten ab, sobald die Seite danach neu laedt.
         loginGoogle: function () {
           const p = new GoogleAuthProvider(); p.setCustomParameters({ prompt: "select_account" });
-          return signInWithPopup(auth, p).catch(function (e) { return popupFallback(e, p); });
+          return signInWithPopup(auth, p, RESOLVER).catch(function (e) { return popupFallback(e, p); });
         },
         loginApple: function () {
           const p = new OAuthProvider("apple.com"); p.addScope("email"); p.addScope("name");
-          return signInWithPopup(auth, p).catch(function (e) { return popupFallback(e, p); });
+          return signInWithPopup(auth, p, RESOLVER).catch(function (e) { return popupFallback(e, p); });
         },
         resendVerification: function () {
           return auth.currentUser ? sendEmailVerification(auth.currentUser) : Promise.reject(new Error("no-user"));
@@ -324,9 +341,9 @@
             if (!opts || !opts.password) throw new Error("password-required");
             await reauthenticateWithCredential(user, EmailAuthProvider.credential(user.email, opts.password));
           } else if (pid === "google.com") {
-            await reauthenticateWithPopup(user, new GoogleAuthProvider());
+            await reauthenticateWithPopup(user, new GoogleAuthProvider(), RESOLVER);
           } else if (pid === "apple.com") {
-            await reauthenticateWithPopup(user, new OAuthProvider("apple.com"));
+            await reauthenticateWithPopup(user, new OAuthProvider("apple.com"), RESOLVER);
           }
           const uid = user.uid;
           // Erst die Tuer abschliessen, dann aufraeumen (TROUBLESHOOTING §172, wie §171 beim
@@ -474,6 +491,14 @@
             // Und dieselbe Bereinigung fuer die Zuweisungen im Wochenplan.
             try {
               const psnap = await getDocs(collection(db, "groups", opts.groupId, "plans"));
+              // Erst "zuletzt geaendert von" (`by` auf Dokumentebene, savePlanWeek) - EINZELN und
+              // nur dieses Feld: Genau das laesst die Regel loestPlanBezug() auch einem Nur-Leser
+              // und ohne Pro des Inhabers zu. Im selben Paket mit den Zuweisungen lehnte sie alles ab.
+              for (const pd of psnap.docs) {
+                if ((pd.data() || {}).by !== uid) continue;
+                try { await setDoc(doc(db, "groups", opts.groupId, "plans", pd.id), { by: "" }, { merge: true }); }
+                catch (e) { window.noteError("konto:anonymPlanBy", e); }
+              }
               for (const pd of psnap.docs) {
                 const felder = pd.data() || {};
                 const patch = {};
@@ -892,7 +917,18 @@
         // (docs/ARCHITECTURES.md) - es waere sichtbar, zaehlte aber bei niemandem mit.
         anonymizeMyPlanAssignments: async function (gid, uid) {
           const snap = await getDocs(collection(db, "groups", gid, "plans"));
-          let geaendert = 0;
+          const angefasst = new Set();
+          // Die dritte Stelle: `by` auf Dokumentebene ("zuletzt geaendert von", gesetzt von
+          // savePlanWeek). Befund des Agenten `anwalt` am 30.09.2026. Bewusst ZUERST und EINZELN
+          // je Woche: Die Regel loestPlanBezug() erlaubt genau diese Aenderung jedem Mitglied,
+          // auch ohne Pro des Inhabers - aber nur, wenn im selben Schreibvorgang nichts sonst steht.
+          for (const d of snap.docs) {
+            if ((d.data() || {}).by !== uid) continue;
+            try {
+              await setDoc(doc(db, "groups", gid, "plans", d.id), { by: "" }, { merge: true });
+              angefasst.add(d.id);
+            } catch (e) { window.noteError("group:anonymPlanBy", e); }
+          }
           for (const d of snap.docs) {
             const felder = d.data() || {};
             const patch = {};
@@ -911,10 +947,10 @@
             });
             if (Object.keys(patch).length) {
               await setDoc(doc(db, "groups", gid, "plans", d.id), patch, { merge: true });
-              geaendert++;
+              angefasst.add(d.id);
             }
           }
-          return geaendert;
+          return angefasst.size;
         },
         savePlanWeek: function (gid, week, patch) {
           return setDoc(doc(db, "groups", gid, "plans", week), patch, { merge: true });
@@ -9567,7 +9603,7 @@
     // Meal-Bibliothek einplanen. Der Hinweis samt Weg zu den Meals steht jetzt IM Picker,
     // ueber dem Schnellbereich - eine Ansicht weniger, und der Slot bleibt benutzbar.
     const node = el(`<div class="modal" role="dialog" aria-modal="true" aria-label="Meal wählen">
-      <div class="modal-head"><div style="flex:1"><div class="kicker">${esc(dLabel)} · ${esc(mLabel)}</div><h2 style="margin-top:2px">Meal wählen</h2></div><button class="btn ghost sm" data-close>✕</button></div>
+      <div class="modal-head"><div style="flex:1"><div class="kicker">${esc(dLabel)} · ${esc(mLabel)}</div><h2 style="margin-top:2px">Meal wählen</h2></div><button class="btn ghost sm" data-close aria-label="Schließen">✕</button></div>
       <div class="modal-body">
         <div class="picker-search">
           <input type="text" id="p-search" placeholder="Meal oder Produkt …" autocomplete="off" aria-label="Meals und Produkte durchsuchen">
@@ -10227,7 +10263,7 @@
                einmal unbestimmt, einmal genau. Die genaue Angabe gewinnt. -->
           <div><div class="kicker">${items.length} Position${items.length===1?"":"en"} · ${esc(planScopeLabel(todayIdx))}</div><h2 style="margin:2px 0 0">Einkaufsliste</h2></div>
         </div>
-        <button class="btn ghost sm" data-close>✕</button>
+        <button class="btn ghost sm" data-close aria-label="Schließen">✕</button>
       </div>
       <div class="modal-body">${body}</div>
       <div class="modal-foot">
@@ -10383,7 +10419,7 @@
   // ---------- Rechtstexte (Impressum / Datenschutz) ----------
   function legalModal(title, bodyHtml) {
     const node = el(`<div class="modal" role="dialog" aria-modal="true" aria-label="${title}">
-      <div class="modal-head"><h2>${title}</h2><button class="btn ghost sm" data-close>✕</button></div>
+      <div class="modal-head"><h2>${title}</h2><button class="btn ghost sm" data-close aria-label="Schließen">✕</button></div>
       <div class="modal-body legal">${bodyHtml}</div>
       <div class="modal-foot"><button class="btn primary" data-close>Schließen</button></div>
     </div>`);
@@ -11568,7 +11604,7 @@
       const switching = !!syncGid;
       const switchingPending = !switching && !!state.pendingGroupId && state.pendingGroupId !== inv.gid;
       const node = el(`<div class="modal" role="dialog" aria-modal="true" aria-label="Einladung">
-        <div class="modal-head"><div style="flex:1"><div class="kicker">Einladung erhalten</div><h2 style="margin-top:2px">Gemeinsam planen</h2></div><button class="btn ghost sm" data-close>✕</button></div>
+        <div class="modal-head"><div style="flex:1"><div class="kicker">Einladung erhalten</div><h2 style="margin-top:2px">Gemeinsam planen</h2></div><button class="btn ghost sm" data-close aria-label="Schließen">✕</button></div>
         <div class="modal-body">
           <p style="margin:0 0 4px">Du bist eingeladen, einen Wochenplan gemeinsam zu nutzen – ${viewOnly ? "zum <b>Ansehen</b>" : "mit dem Recht, <b>mitzuplanen</b>"}.</p>
           ${switching ? `<p class="share-mini warn">Du bist schon in einer Gruppe. Trittst du bei, verlässt du die alte.</p>` : ""}
@@ -11648,11 +11684,11 @@
     const nrec = d.recipes.length;
     const isMeal = d.type === "meal";
     const node = el(isMeal ? `<div class="modal" role="dialog" aria-modal="true" aria-label="Geteiltes Meal">
-      <div class="modal-head"><div style="flex:1"><div class="kicker">Einladung erhalten</div><h2 style="margin-top:2px">Geteiltes Meal</h2></div><button class="btn ghost sm" data-close>✕</button></div>
+      <div class="modal-head"><div style="flex:1"><div class="kicker">Einladung erhalten</div><h2 style="margin-top:2px">Geteiltes Meal</h2></div><button class="btn ghost sm" data-close aria-label="Schließen">✕</button></div>
       <div class="modal-body"><p style="margin:0"><strong>${who}</strong> hat ein Meal mit dir geteilt: <strong>${esc(d.recipes[0] ? d.recipes[0].name : "")}</strong>. Übernehmen?</p></div>
       <div class="modal-foot"><button class="btn ghost" data-close>Später</button><button class="btn primary" data-take>Meal übernehmen</button></div>
     </div>` : `<div class="modal" role="dialog" aria-modal="true" aria-label="Geteilter Plan">
-      <div class="modal-head"><div style="flex:1"><div class="kicker">Einladung erhalten</div><h2 style="margin-top:2px">Geteilter Wochenplan</h2></div><button class="btn ghost sm" data-close>✕</button></div>
+      <div class="modal-head"><div style="flex:1"><div class="kicker">Einladung erhalten</div><h2 style="margin-top:2px">Geteilter Wochenplan</h2></div><button class="btn ghost sm" data-close aria-label="Schließen">✕</button></div>
       <div class="modal-body"><p style="margin:0"><strong>${who}</strong> hat einen Wochenplan mit dir geteilt (${nrec} Meal${nrec === 1 ? "" : "s"}). Möchtest du ihn übernehmen? Deine eigenen Meals bleiben erhalten, neue kommen dazu – dein aktueller Wochenplan wird durch den geteilten ersetzt.</p></div>
       <div class="modal-foot"><button class="btn ghost" data-close>Später</button><button class="btn primary" data-take>Plan übernehmen</button></div>
     </div>`);
@@ -13499,7 +13535,7 @@
       <div class="auth-or">oder</div>
       <button class="btn social" id="c-google" type="button">${GOOGLE_SVG}<span>Mit Google ${reg ? "registrieren" : "anmelden"}</span></button>
       ${APPLE_ENABLED ? `<button class="btn social apple" id="c-apple" type="button">${APPLE_SVG}<span>Mit Apple ${reg ? "registrieren" : "anmelden"}</span></button>` : ""}
-      <p class="auth-note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg><span>Dein Konto liegt sicher in der Cloud – du kannst dich von jedem Gerät aus anmelden. Nach der Registrierung schicken wir dir eine <strong>Bestätigungsmail</strong>.${reg ? " Mit der Registrierung bestätigst du, dass du mindestens <strong>16 Jahre</strong> alt bist." : ""}</span></p>
+      <p class="auth-note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg><span>Dein Konto liegt sicher in der Cloud – du kannst dich von jedem Gerät aus anmelden. Nach der Registrierung schicken wir dir eine <strong>Bestätigungsmail</strong>.${reg ? " Mit der Registrierung bestätigst du, dass du mindestens <strong>16 Jahre</strong> alt bist." : " Meldest du dich zum ersten Mal mit Google an, bestätigst du, dass du mindestens <strong>16 Jahre</strong> alt bist."}</span></p>
     </div></div>`;
 
     const card = view.querySelector(".auth-card");
@@ -13614,7 +13650,7 @@
 
   function openForgotPassword(prefill) {
     const node = el(`<div class="modal" role="dialog" aria-modal="true" aria-label="Passwort zurücksetzen">
-      <div class="modal-head"><h2>Passwort zurücksetzen</h2><button class="btn ghost sm" data-close>✕</button></div>
+      <div class="modal-head"><h2>Passwort zurücksetzen</h2><button class="btn ghost sm" data-close aria-label="Schließen">✕</button></div>
       <div class="modal-body">
         <p class="share-hint">Gib deine E-Mail-Adresse ein – wir senden dir einen Link zum Zurücksetzen deines Passworts.</p>
         <div class="field"><label for="fp-email">E-Mail-Adresse</label><input type="email" id="fp-email" value="${esc(prefill || "")}" placeholder="du@beispiel.de"></div>
@@ -13662,7 +13698,7 @@
         const maxScale = minScale * 3;
         let scale = minScale, tx = 0, ty = 0;
         const node = el(`<div class="modal" role="dialog" aria-modal="true" aria-label="Profilbild zuschneiden">
-          <div class="modal-head"><h2>Profilbild zuschneiden</h2><button class="btn ghost sm" data-close>✕</button></div>
+          <div class="modal-head"><h2>Profilbild zuschneiden</h2><button class="btn ghost sm" data-close aria-label="Schließen">✕</button></div>
           <div class="modal-body">
             <div class="crop-stage"><img alt="" draggable="false"><div class="crop-guide"></div></div>
             <div class="crop-zoom">
@@ -13754,7 +13790,7 @@
 
   function openProfileForm(prefillName) {
     const node = el(`<div class="modal" role="dialog" aria-modal="true" aria-label="Profil bearbeiten">
-      <div class="modal-head"><h2>Profil bearbeiten</h2><button class="btn ghost sm" data-close>✕</button></div>
+      <div class="modal-head"><h2>Profil bearbeiten</h2><button class="btn ghost sm" data-close aria-label="Schließen">✕</button></div>
       <div class="modal-body">
         <div class="avatar-edit-row">
           <div class="avatar-edit" id="p-avatar">
@@ -13868,7 +13904,7 @@
       confirmModal({
         title: "Erst die Gruppe auflösen",
         text: others
-          ? `Du bist Inhaber eurer Gruppe mit ${others} weiteren ${others === 1 ? "Person" : "Personen"}. Löse sie zuerst auf oder übergib sie – danach kannst du dein Konto löschen.`
+          ? `Du bist Inhaber eurer Gruppe mit ${others} weiteren ${others === 1 ? "Person" : "Personen"}. Löse sie zuerst auf – danach kannst du dein Konto löschen.`
           : "Du bist Inhaber einer Gruppe. Löse sie zuerst auf – danach kannst du dein Konto löschen.",
         okLabel: "Zur Gruppe",
         onConfirm: () => openGroupModal()
@@ -13893,7 +13929,7 @@
     const isPw = pid === "password";
     const n = (state.shares || []).length;
     const node = el(`<div class="modal" role="dialog" aria-modal="true" aria-label="Konto löschen">
-      <div class="modal-head"><h2>Konto endgültig löschen?</h2><button class="btn ghost sm" data-close>✕</button></div>
+      <div class="modal-head"><h2>Konto endgültig löschen?</h2><button class="btn ghost sm" data-close aria-label="Schließen">✕</button></div>
       <div class="modal-body">
         <p style="margin:0 0 12px">Dein Konto, dein Wochenplan, deine Meals und dein gespeichertes Ziel werden gelöscht${n ? ` – ebenso ${n} geteilte${n === 1 ? "r" : ""} Meal-Link${n === 1 ? "" : "e"}` : ""}. Das kann nicht rückgängig gemacht werden.</p>
         ${isPw
@@ -14640,7 +14676,7 @@
     }
     let createdUrl = null;   // Einladung fuer eine bereits AKTIVE Gruppe (weiteres Mitglied)
     const node = el(`<div class="modal" role="dialog" aria-modal="true" aria-label="Gemeinsam planen">
-      <div class="modal-head"><div style="flex:1"><div class="kicker">Gemeinsam planen</div><h2 style="margin-top:2px" id="grp-title"></h2></div><button class="btn ghost sm" data-close>✕</button></div>
+      <div class="modal-head"><div style="flex:1"><div class="kicker">Gemeinsam planen</div><h2 style="margin-top:2px" id="grp-title"></h2></div><button class="btn ghost sm" data-close aria-label="Schließen">✕</button></div>
       <div class="modal-body"><div id="grp-body"></div></div>
     </div>`);
     node.querySelectorAll("[data-close]").forEach(b => b.addEventListener("click", closeModal));
@@ -14965,7 +15001,14 @@
     // (kein eigenes Foto) traegt og.img den Wert direkt - photoFor(r) liefert dort ohnehin
     // nur einen "img/..."-Pfad, keine data:-URL.
     const ownPhoto = safeImage(r.image);
-    return { app: "wochenkueche", v: 1, type: "meal", uid: syncUid || "", by: profile ? profile.name : "", when: Date.now(), recipes: [r], og: { t: r.name, img: ownPhoto ? null : photoFor(r) } };
+    // Die Meal-Kopie OHNE `by`: In einer Gruppe steht dort die Nutzerkennung dessen, der das
+    // Meal angelegt hat - oft ein ANDERES Mitglied. Dessen Austritt oder Kontoloeschung
+    // erreicht fremde Snapshots nie (Befund `anwalt`, 30.09.2026). Der Empfaenger braucht es
+    // nicht: Er uebernimmt das Meal als eigenes. Die eigene `uid` oben bleibt - an ihr haengen
+    // die Regeln (create nur mit eigener uid) und das Loeschen beim Kontoende (Ziffer 8).
+    const kopie = Object.assign({}, r);
+    delete kopie.by;
+    return { app: "wochenkueche", v: 1, type: "meal", uid: syncUid || "", by: profile ? profile.name : "", when: Date.now(), recipes: [kopie], og: { t: r.name, img: ownPhoto ? null : photoFor(r) } };
   }
   // Ein Teilen-Link lebt 12 Monate (Entscheidung 22.09.2026, Art.-30-Verzeichnis V5).
   // Durchgesetzt wird die Frist in den Firestore-Regeln (shareFrisch), nicht hier - diese
@@ -15206,7 +15249,7 @@
     if (!r) return;
     let createdUrl = null;
     const node = el(`<div class="modal" role="dialog" aria-modal="true" aria-label="Meal teilen">
-      <div class="modal-head"><div style="flex:1"><div class="kicker">Meal teilen</div><h2 style="margin-top:2px">${esc(r.name)} teilen</h2></div><button class="btn ghost sm" data-close>✕</button></div>
+      <div class="modal-head"><div style="flex:1"><div class="kicker">Meal teilen</div><h2 style="margin-top:2px">${esc(r.name)} teilen</h2></div><button class="btn ghost sm" data-close aria-label="Schließen">✕</button></div>
       <div class="modal-body"><div id="sr-body"></div></div>
     </div>`);
     node.querySelectorAll("[data-close]").forEach(b => b.addEventListener("click", closeModal));

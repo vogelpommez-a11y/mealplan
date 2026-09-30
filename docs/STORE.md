@@ -174,6 +174,20 @@ Inhalt? **Jeder neue CDN-Verweis macht diese Arbeit zunichte.**
 
 Nebeneffekt, der ebenfalls zählt: Ohne CDN startet die Cloud-Anmeldung auch offline.
 
+**Die Lücke, die bis zum 30.09.2026 offen war — trotz `vendor/`:** Das lokale Auth-SDK lud auf
+Handy, iOS und Safari selbst `apis.google.com/js/api.js` nach, schon beim Seitenaufruf ohne
+Konto (`docs/TROUBLESHOOTING.md` §181). Behoben durch `initializeAuth` ohne Popup-Resolver.
+Gemessen wird das seitdem im Browser, nicht per Grep: `python tools/netz-ohne-konto.py`.
+
+**Offen für D7:** Wer „Mit Google anmelden“ antippt, lädt diesen Google-Code weiterhin — so
+arbeitet der Web-Popup von Firebase. In der nativen Hülle gehört die Google-Anmeldung deshalb in
+ein **natives Plugin**, sonst bleibt 2.5.2 genau an dieser Stelle angreifbar. Wichtiger noch:
+Google verweigert OAuth in eingebetteten WebViews **serverseitig** (`disallowed_useragent`,
+durchgesetzt seit 24.07.2023 laut Google Developers Blog; `store-check`, 30.09.2026) — in der
+Capacitor-Hülle ginge der Web-Popup also voraussichtlich gar nicht. Das Plugin muss einen
+sichtbaren System-Flow nutzen (`ASWebAuthenticationSession` bzw. Custom Tabs). Das ist eine
+Google-Regel, keine Apple-Guideline.
+
 ---
 
 ## 5. Datenschutz-Formulare beider Stores
