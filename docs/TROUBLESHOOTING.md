@@ -6887,10 +6887,10 @@ Startreiter, „0 Meals“, oben rechts pulsierte der Sync-Punkt gelb („Verbin
    Start mehrmals **nacheinander** (Konto, Gruppe, Meals, Plan) — in einer WebView, die den
    Streaming-Weg puffert, summiert sich das. Seitdem bekommen In-App-Browser (Instagram,
    Facebook, TikTok, am User-Agent erkannt) `experimentalForceLongPolling: true`, sonst bleibt
-   alles wie vorher (`docs/ARCHITECTURES.md`). **Stand: Wirkung am Gerät noch nicht gemessen** —
-   die Instagram-WebView lässt sich am Rechner nicht nachstellen. Headless mit
-   Instagram-Kennung ist nur belegt, dass Firestore mit der Einstellung startet und den Server
-   erreicht.
+   alles wie vorher (`docs/ARCHITECTURES.md`). **Am Gerät gemessen (30.09.2026):** In Instagram
+   jetzt unter 2 Sekunden statt 45. WhatsApp öffnet ebenfalls im In-App-Browser, wird von der
+   Kennung aber **nicht** erfasst — und ist trotzdem unter 2 Sekunden da. Dort braucht es den
+   Umweg also nicht; WhatsApp deshalb nicht vorsorglich in die Liste aufnehmen.
 2. **Wie die Wartezeit aussah.** Ein frisches Gerät hat lokal nichts. Bis der Abgleich
    zurückkam, zeichnete jeder Reiter einen leeren Plan — das sieht aus wie „alles weg“, und
    wer über einen Instagram-Post kommt, wartet keine 45 Sekunden. Jetzt steht dort

@@ -12,7 +12,7 @@ liegt, wandert er beim nächsten Aufräumen in ein Werkzeug, das ihn nur scheinb
 Stand: 22.09.2026.
 
 **Abgenommen am 27.09.2026 von Paddy:** Abschnitt 1 (außer 1.9) und Abschnitt 2
-vollständig, ohne Befund. Offen bleibt nur 1.9.
+vollständig, ohne Befund. 1.9 folgte am 30.09.2026 — damit ist alles abgenommen.
 
 ---
 
@@ -79,20 +79,22 @@ siehe Punkt 1.9.
 - [x] Aus dem Home-Bildschirm gestartet läuft die App **ohne Adressleiste**.
 - [x] Auch dort: Flugmodus an, App startet trotzdem.
 
-### 1.9 Der In-App-Browser *(bekannter offener Punkt)*
+### 1.9 Der In-App-Browser
 Einen Teilen-Link in Instagram oder WhatsApp an sich selbst schicken und **dort** öffnen.
 - [x] Die App lädt.
 - [x] Wenn die Anmeldung mit Google dort scheitert: Erscheint ein verständlicher Hinweis,
       oder eine Sackgasse? — **Scheitert nicht** (Instagram, 28.09.2026): Die Anmeldung
       mit Google klappte.
-- [ ] Nach der Anmeldung steht die App **zügig** da, während des Ladens steht „Deine Meals
-      werden geladen …“ statt eines leeren Plans.
-- [ ] Dasselbe in WhatsApp.
+- [x] Nach der Anmeldung steht die App **zügig** da, während des Ladens steht „Deine Meals
+      werden geladen …“ statt eines leeren Plans. — **Unter 2 s** (Instagram, 30.09.2026),
+      Ladeanzeige kurz sichtbar.
+- [x] Dasselbe in WhatsApp. — Öffnet im **In-App-Browser**, Google-Anmeldung klappt,
+      unter 2 s, Ladeanzeige kurz sichtbar (30.09.2026).
 
-**Stand 28.09.2026:** Am 28.09. brauchte der erste Abgleich in Instagram **45 Sekunden**,
+**Stand 30.09.2026:** Am 28.09. brauchte der erste Abgleich in Instagram **45 Sekunden**,
 so lange stand ein schwarzer, leerer Plan da. Behoben mit Long Polling für In-App-Browser und
-einer Ladeanzeige (`docs/TROUBLESHOOTING.md` 180). **Nach dem Push hier die neue Zeit
-eintragen** — die Wirkung lässt sich nur am Gerät messen.
+einer Ladeanzeige (`docs/TROUBLESHOOTING.md` 180, `8683ee9`). Am Gerät nachgemessen: in
+Instagram und WhatsApp jetzt unter 2 Sekunden.
 
 ---
 
