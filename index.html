@@ -3292,7 +3292,10 @@
         // Kopien aus einem frueheren Austritt (vor dem 01.10.2026) tragen noch `by`/`uids`
         // anderer Mitglieder - einmal wegraeumen. Der pushNow() unten schreibt den bereinigten
         // Stand: Meals per batch.set (ganzes Dokument), plans per mergeFields (ganzes Feld).
-        if (hatFremdbezug(state.recipes, state.plans)) {
+        // NUR bei "gone" - dieser Zweig laeuft auch bei "error" (Gruppe besteht, Abgleich
+        // scheiterte nur), und dann steht hier der Gruppenstand aus dem Cache, dessen `by`
+        // und `uids` gebraucht werden (Befund website-security 01.10.2026).
+        if (groupResult === "gone" && hatFremdbezug(state.recipes, state.plans)) {
           const sauber = ohneFremdbezug(state.recipes, state.plans, uid);
           state.recipes = sauber.recipes;
           state.plans = sauber.plans;

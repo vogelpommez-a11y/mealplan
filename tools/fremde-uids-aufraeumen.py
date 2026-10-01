@@ -244,6 +244,12 @@ def main_selbsttest():
     return 0 if (not f and g) else 1
 
 
+def ohne_pfade(text):
+    u"""Ersetzt Firestore-Dokumentpfade (und damit UIDs) in Fehlertexten durch {pfad}."""
+    import re
+    return re.sub(r"projects/[^\s\"',]+", "{pfad}", text)
+
+
 # --------------------------------------------------------------------- Lauf
 def main(argv):
     if "--selbsttest" in argv:
@@ -306,7 +312,9 @@ def main(argv):
             db.schreibe(pfad, aend, auch_leeren=leeren, update_time=ut)
             ok += 1
         except Exception as e:
-            fehler.append((F.Zugang.muster(pfad), str(e)[:160]))
+            # Firestore nennt im Fehlertext den vollen Dokumentpfad - mit UID. Maskieren,
+            # wie die Pfade oben (Befund website-security 01.10.2026).
+            fehler.append((F.Zugang.muster(pfad), ohne_pfade(str(e))[:160]))
     print(u"\nBereinigt: %d" % ok)
     if fehler:
         print(u"Nicht bereinigt (meist inzwischen geaendert - erneut laufen lassen): %d" % len(fehler))

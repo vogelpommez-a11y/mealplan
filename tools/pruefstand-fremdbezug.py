@@ -182,6 +182,11 @@ def quelltext(quelle):
             schief.append("startCloudSync: raeumt alte Kopien beim Laden nicht auf")
         elif "ohneFremdbezug(" in code[:k]:
             schief.append("startCloudSync: bereinigt auch im Gruppenzweig - dort wird `by` gebraucht")
+        elif not re.search(r'groupResult\s*===\s*"gone"\s*&&\s*hatFremdbezug\(', rest):
+            # Der Zweig ohne Gruppe laeuft auch bei "error": Gruppe besteht, Abgleich scheiterte.
+            # Dann steht dort der Gruppenstand aus dem Cache (Befund website-security 01.10.2026).
+            schief.append('startCloudSync: bereinigt nicht nur bei groupResult === "gone" '
+                          '- auch ein gescheiterter Gruppenabgleich wuerde umgeschrieben')
     return schief
 
 

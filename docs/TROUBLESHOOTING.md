@@ -7040,7 +7040,10 @@ ganze App, nicht über den Diff.
 * `ohneFremdbezug()` in `leaveGroup()` (gilt damit auch für `dissolveGroup()`): `by` raus,
   Planeinträge mir zugewiesen → String-Form, nur anderen zugewiesen → fallen weg (zählten
   schon vorher nicht in die eigenen Makros; Entscheidung Paddy 01.10.2026).
-* `startCloudSync()` räumt im Zweig ohne Gruppe alte Kopien beim Laden auf (`hatFremdbezug()`).
+* `startCloudSync()` räumt im Zweig ohne Gruppe alte Kopien beim Laden auf (`hatFremdbezug()`),
+  **nur bei `groupResult === "gone"`**: Der Zweig läuft auch bei `"error"` (Gruppe besteht, Abgleich
+  scheiterte), und dann stünde dort der Gruppenstand aus dem Cache — Befund `website-security`
+  im Pushcheck, vor dem Push behoben.
   Der folgende `pushNow()` schreibt den bereinigten Stand — Meals per `batch.set` (ganzes
   Dokument), `plans` per `mergeFields` (ganzes Feld), das alte `by` verschwindet also auch in
   der Cloud.

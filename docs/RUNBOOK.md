@@ -171,7 +171,10 @@ erneut. Ebenso verweigert es ohne Bericht `plans/rechtspruefung-*.md` der letzte
 Ebenfalls zur Wartung (Schritt 3 der Erinnerung, ohne Sperre - bis 2027/28 gibt es dort
 nichts zu tun): `tools/shared-aufraeumen.py` (abgelaufene Teilen-Links) und
 `tools/konten-inaktiv.py` (24 Monate still). Ziffer 10 sagt beides „bei unserer nächsten
-Wartung“ zu.
+Wartung“ zu. Dazu `tools/fremde-uids-aufraeumen.py` als **Trockenlauf**: Er muss „Nichts zu tun“
+melden. Fremde Kennungen in Kopien entstehen seit dem 01.10.2026 nicht mehr (die App bereinigt
+beim Austritt und beim Start); meldet er doch etwas, war ein Gerät mit altem Stand unterwegs —
+sichern, dann `--schreiben` (§183).
 
 ### Schritt 0b: der Live-Stand der Regeln
 
@@ -246,9 +249,23 @@ wie der App-Weg `kontoDatenLoeschen()` in `index.html` — nicht nur `users/{uid
 Konto löscht, lässt Name und Bild im Mitglieds-Eintrag, Teilen-Links und Einladungen stehen
 (Rechtsprüfung 01.10.2026).
 
-**Vorher immer:** `python tools/firestore-backup.py`. Danach Löschsperre beachten: Die App legt
-beim eigenen Löschen `loeschsperren/{uid}` an — von Hand ist das nicht nötig, solange das Konto
-in Authentication zuerst gelöscht wird (dann schreibt kein Gerät mehr).
+**Ablauf je Antrag:**
+
+1. **Identität prüfen** (Art. 12 Abs. 6): Antwort nur an die E-Mail-Adresse, die im Konto
+   hinterlegt ist (Firebase-Konsole → Authentication). Kommt der Antrag von einer anderen Adresse,
+   dort nachfragen, nicht an die fremde Adresse antworten — eine Auskunft an die falsche Person
+   ist selbst eine Datenpanne.
+2. **Frist:** innerhalb eines Monats (Art. 12 Abs. 3). Eingang und Erledigung datieren.
+3. **Sichern:** `python tools/firestore-backup.py`.
+4. **Löschsperre setzen** — wie die App: Dokument `loeschsperren/{uid}` mit Feld `bis`
+   (Zeitstempel, jetzt + 2 h) in der Firestore-Konsole anlegen. Ein bereits ausgestelltes
+   ID-Token bleibt nach dem Löschen in Authentication noch bis zu einer Stunde gültig; ohne
+   Sperre könnte ein angemeldetes Zweitgerät Reste neu schreiben (`docs/TROUBLESHOOTING.md`
+   §172). Die Sperre räumt die nächste Sicherung weg.
+5. **Die sieben Orte** unten abarbeiten, danach das Konto in **Authentication** löschen.
+6. **Nachweis** (Art. 5 Abs. 2) — in `docs/DATENSCHUTZ-INTERN.md` Abschnitt 4, **ohne Klardaten**:
+   Datum Eingang, Datum Erledigung, Art (Löschung/Auskunft), „sieben Orte geprüft“. Keine UID,
+   keine E-Mail-Adresse.
 
 | # | Ort | Löschen | Auskunft |
 |---|---|---|---|
@@ -260,10 +277,14 @@ in Authentication zuerst gelöscht wird (dann schreibt kein Gerät mehr).
 | 6 | `entitlements/{uid}` | Dokument löschen | Pro-Status |
 | 7 | `users/{uid}` samt `users/{uid}/recipes/*` | alles löschen | vollständig, inkl. Fotos in den Meals |
 
-Zuletzt das Konto in der Firebase-Konsole unter **Authentication** löschen. Ist der Nutzer
-**Inhaber** einer Gruppe mit weiteren Mitgliedern: nicht stillschweigend löschen — Ziffer 10
-sagt „keine Gruppe ohne Inhaber“. Erst die Gruppe auflösen (Mitglieder behalten ihre Kopie)
-oder den Nutzer bitten, das in der App zu tun.
+Die App räumt Gruppendaten nur für die **aktuelle** Gruppe (`profil.groupId`); der Betreiberweg
+sucht über **alle** `groups/*` — gründlicher, und er erreicht Reste aus früheren Gruppen.
+
+Ist der Nutzer **Inhaber** einer Gruppe mit weiteren Mitgliedern: nicht stillschweigend
+löschen — Ziffer 10 sagt „keine Gruppe ohne Inhaber“. Beim Antrag per E-Mail den Nutzer bitten,
+die Gruppe in der App aufzulösen. Bei einem **verwaisten** Konto (24 Monate still, nicht
+erreichbar) gibt es dafür noch **keine** Entscheidung — Einzelfall, offen in
+`docs/DATENSCHUTZ-INTERN.md` Punkt 19.
 
 Ein Admin-Skript dafür gibt es bewusst noch nicht (Entscheidung 01.10.2026: erst bei Bedarf);
 bis dahin ist diese Tabelle die Prüfliste. Kommt eins, muss es dieselbe Liste abarbeiten wie

@@ -213,6 +213,12 @@ Anforderungen nach sich und korrespondiert mit der Frage, ob Art. 9 DSGVO greift
 Empfänger, die genannt werden müssen: Google (Firebase), Cloudflare (Worker), GitHub
 (Pages), Open Food Facts.
 
+**Nur lokal, keine eigene Formularkategorie** (Stand 01.10.2026, Ziffer 7 der
+Datenschutzerklärung): `localStorage`/IndexedDB, ein kurzer Merker im `sessionStorage` während
+einer Google-Anmeldung (`pm-auth-redirect`) und der Cache des Service Workers (Programmdateien,
+Bilder). Weder Tracking noch eine neue Datenkategorie — sie müssen aber zur Liste in Ziffer 7
+passen, damit Formular und Rechtstext dieselben Speicher nennen.
+
 Ein falsch ausgefülltes Formular ist ein eigener Ablehnungsgrund — und später ein
 Rechtsrisiko, weil es eine Zusage gegenüber den Nutzenden ist.
 

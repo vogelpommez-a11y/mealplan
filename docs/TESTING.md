@@ -16,7 +16,7 @@ Die primäre Verifikation erfolgt deshalb über den Browser und gezielte isolier
 
 <!-- REGISTER-ANFANG (erzeugt aus den Ueberschriften: python tools/register.py - nicht von Hand pflegen) -->
 
-**Register — 84.** Vorne (0 bis 9) die geltenden Verfahren: Syntax-Check,
+**Register — 85.** Vorne (0 bis 9) die geltenden Verfahren: Syntax-Check,
 Smoke-Test, Ausschneide-Pruefstand, Sync-Tests. Dahinter das datierte Fallarchiv —
 einzelne Pruefstaende und was ihre Gegenprobe gezeigt hat.
 
@@ -110,6 +110,7 @@ Die Verfahren gibt es auch als Skill: `/smoke`, `/pruefstand`, `/abnahme`, `/dep
 | · | Zwei Prüfstände, die gegen die App gemessen haben statt für sie (24.09.2026) |
 | · | `tools/pruefstand-makro-abweichung.py` — gilt ein übernommenes Rezept als angepasst? (24.09.2026) |
 | · | `tools/pruefstand-cloud-laden.py` — was zeigt ein frisches Gerät während des ersten Abgleichs? (28.09.2026) |
+| · | `tools/pruefstand-fremdbezug.py` — die Kopie nach dem Austritt trägt keine fremde Kennung (01.10.2026) |
 
 <!-- REGISTER-ENDE -->
 
@@ -5410,3 +5411,31 @@ Cloud-Anmeldung da.
 Vorführung: `python tools/vorfuehren.py cloud-laden` — dieselbe Attrappe in `oeffnen()`;
 dafür kennt `probe-vergleich.html` jetzt `profil` (eigenes Testprofil) und `nurInhalt` (auf
 die Anmeldemaske warten statt auf `enterApp()`).
+
+## `tools/pruefstand-fremdbezug.py` — die Kopie nach dem Austritt trägt keine fremde Kennung (01.10.2026)
+
+**Ausschneide-Prüfstand** für `ohneFremdbezug()` und `hatFremdbezug()` aus `index.html`, dazu die
+Konstanten `DAYS`/`MEALS`. Edge headless über `file://`, wie `pruefstand-mengenanzeige.py`.
+Anlass: `docs/TROUBLESHOOTING.md` §183.
+
+**17 Prüfungen:** `by` fällt an jedem Meal (fremdes wie eigenes), übrige Felder bleiben;
+Planeinträge mir + anderen → String-Form, nur anderen → weg, `{id}` ohne `uids` → String-Form;
+Nicht-Slot-Felder der Woche bleiben; die Eingaben werden nicht verändert; `hatFremdbezug()`
+erkennt beides und meldet bei sauberem Stand nichts (sonst schriebe jeder Login); zweimal
+bereinigt = einmal.
+
+**Dazu eine Quelltextprüfung** (Kommentare vorher entfernt): `leaveGroup()` ruft die Bereinigung
+**vor** dem Übernehmen in den State; `startCloudSync()` ruft sie nur im Zweig ohne Gruppe und
+**nur bei `groupResult === "gone"`**. Der Zweig läuft auch bei `"error"` — Gruppe besteht, nur
+der Abgleich scheiterte —, und dann stünde dort der Gruppenstand aus dem Cache (Befund
+`website-security` im Pushcheck, bevor es live ging).
+
+**Gegenproben:** gegen `7fb1990` (Funktionen fehlen, Aufrufe fehlen → durchgefallen); `delete
+k.by` entfernt → 4 rot; Planeinträge nur abgestreift statt weggelassen → 1 rot; Bedingung
+`groupResult === "gone"` entfernt → 1 rot.
+
+`tools/pruefstand-gruppe-aufloesen.py` schneidet `leaveGroup()` aus und brauchte deshalb
+`ohneFremdbezug()` samt `DAYS`/`MEALS` mit — ohne sie brach die Seite mit `ReferenceError` ab.
+Gefunden im Gesamtlauf `tools/alle-pruefstaende.py`, nicht vorher: **Wer eine Funktion in eine
+ausgeschnittene einfügt, bricht jeden Prüfstand, der die äußere ausschneidet.** Vor dem Commit
+also den Gesamtlauf, nicht nur den eigenen Prüfstand.

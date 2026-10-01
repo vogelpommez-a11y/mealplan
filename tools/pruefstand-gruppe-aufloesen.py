@@ -45,6 +45,19 @@ def schnitt(sig, tiefe=2):
 
 CODES = schnitt("  async function dropAllInviteCodes(")
 SNAPSHOT = schnitt("  function snapshotOwnData(")
+# Seit 01.10.2026 bereinigt leaveGroup() die Kopie (TROUBLESHOOTING §183) - mitschneiden,
+# sonst bricht die Seite mit ReferenceError ab. DAYS/MEALS braucht sie fuer die Plaene.
+OHNE_FREMD = schnitt("  function ohneFremdbezug(")
+def konstante(sig):
+    for i, z in enumerate(lines):
+        if z.startswith(sig):
+            for j in range(i, len(lines)):
+                if lines[j] == "  ];":
+                    return "\n".join(lines[i:j + 1])
+    raise SystemExit("NICHT GEFUNDEN: " + sig)
+
+
+KONST = konstante("  const DAYS = [") + "\n" + konstante("  const MEALS = [")
 DISSOLVE = schnitt("  async function dissolveGroup(")
 LEAVE = schnitt("  async function leaveGroup(")
 
@@ -121,6 +134,8 @@ function dissolveGroupFirestore(gid) {
 
 __CODES__
 __SNAPSHOT__
+__KONST__
+__OHNE_FREMD__
 __DISSOLVE__
 __DISSOLVE_ALT__
 __LEAVE__
@@ -231,6 +246,8 @@ function planEintraege(plans) {
 
 seite = (seite.replace("__CODES__", CODES)
               .replace("__SNAPSHOT__", SNAPSHOT)
+              .replace("__OHNE_FREMD__", OHNE_FREMD)
+              .replace("__KONST__", KONST)
               .replace("__DISSOLVE_ALT__", DISSOLVE_ALT)
               .replace("__DISSOLVE__", DISSOLVE)
               .replace("__LEAVE__", LEAVE))
