@@ -236,7 +236,8 @@ Rechtsrisiko, weil es eine Zusage gegenüber den Nutzenden ist.
 - **Support-Kontakt.**
 - **Altersfreigabe / Content Rating** ausgefüllt. **Die inhaltliche Vorgabe steht seit dem
   22.09.2026: mindestens 16 Jahre.** Ziffer 13 der Datenschutzerklärung nennt sie samt
-  Rechtsgrundlage, bei der Registrierung steht der Hinweis in der `auth-note`. Beim
+  Rechtsgrundlage, bei der Registrierung steht der Hinweis in der `auth-note`, und seit
+  dem 01.10.2026 nimmt auch die Einführung erst ab 16 Jahren an (`ONB_NUM.age.min`, vorher 10). Beim
   Ausfüllen der Store-Formulare muss das **zusammenpassen** — eine App, die sich im Store
   „ab 4“ nennt und im Rechtstext 16 verlangt, widerspricht sich an einer Stelle, die beide
   Prüfer lesen. Apple hat sein Schema Ende 2025 umgestellt: Es gilt jetzt

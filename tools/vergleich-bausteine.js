@@ -170,6 +170,42 @@ var BAUSTEINE = [
   },
 
   {
+    id: "alter-16",
+    titel: "Einführung: Alter unter 16",
+    was: "Beide Seiten tragen 14 Jahre ein und tippen auf „Weiter“. Links geht es weiter "
+       + "zum Körperfett, rechts erscheint der Hinweis „zwischen 16 und 120 Jahre“.",
+    stellen: [
+      "ONB_NUM.age.min — index.html (Grenze 16, eine Quelle)",
+      "missingCalc() — liest dieselbe Grenze, statt sie auszuschreiben"
+    ],
+    // Frisch: Ohne Ziel startet die Einfuehrung von selbst.
+    zustand: { goal: null, onboarded: false },
+    // Echte Klicks und Eingaben in Folge - die Einfuehrung baut jeden Schritt neu auf,
+    // deshalb mit Pausen statt in einem Zug.
+    oeffnen: function (doc) {
+      var w = doc.defaultView;
+      function weiter() { var b = doc.querySelector(".onb-next"); if (b) b.click(); }
+      function tippe(sel, wert) {
+        var el = doc.querySelector(sel); if (!el) return;
+        el.value = wert; el.dispatchEvent(new w.Event("input", { bubbles: true }));
+      }
+      function koerper() {
+        if (!doc.querySelector('[data-num="age"]')) {    // noch nicht dort: Name o. Ae.
+          tippe("#onb-text", "Vergleich"); weiter(); w.setTimeout(koerper, 500); return;
+        }
+        var m = doc.querySelector('[data-opt="sex"][data-v="m"]'); if (m) m.click();
+        tippe('[data-num="age"]', "14");
+        tippe('[data-num="height"]', "175");
+        tippe('[data-num="weight"]', "70");
+        w.setTimeout(weiter, 300);
+      }
+      weiter();
+      w.setTimeout(koerper, 500);
+      return "Einführung bis „Körperdaten“, 14 Jahre eingetragen, „Weiter“ getippt";
+    }
+  },
+
+  {
     id: "cloud-laden",
     titel: "Erster Cloud-Abgleich auf frischem Gerät",
     was: "Angemeldet, der Abgleich läuft noch. Links der leere Plan, der wie „alles weg“ "
