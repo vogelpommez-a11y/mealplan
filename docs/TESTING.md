@@ -16,7 +16,7 @@ Die primäre Verifikation erfolgt deshalb über den Browser und gezielte isolier
 
 <!-- REGISTER-ANFANG (erzeugt aus den Ueberschriften: python tools/register.py - nicht von Hand pflegen) -->
 
-**Register — 83.** Vorne (0 bis 9) die geltenden Verfahren: Syntax-Check,
+**Register — 84.** Vorne (0 bis 9) die geltenden Verfahren: Syntax-Check,
 Smoke-Test, Ausschneide-Pruefstand, Sync-Tests. Dahinter das datierte Fallarchiv —
 einzelne Pruefstaende und was ihre Gegenprobe gezeigt hat.
 
@@ -40,6 +40,7 @@ Die Verfahren gibt es auch als Skill: `/smoke`, `/pruefstand`, `/abnahme`, `/dep
 | 2g-ter | Vorher neben Nachher — `tools/probe-vergleich.html` |
 | 2h | Prüfstand mit nachgebautem Transport — `pruefstand-firestore-backup.py` |
 | 2i | Netz ohne Konto — `tools/netz-ohne-konto.py` |
+| 2j | Rechts-Durchgang über die ganze App — `/rechtspruefung` |
 | 3 | Ergebnisfortschritt |
 | 4 | Was isoliert getestet werden kann |
 | 5 | UI-Testregeln |
@@ -1086,6 +1087,26 @@ nicht mehr möglich — das Skript sagt das, statt grün zu melden.
 **Nicht erfasst:** was ein fremdes iframe selbst nachlädt (unnötig, schon das iframe-Dokument
 ist ein fremder Host), und der Barcode-Abruf bei Open Food Facts — der ist nutzergetrieben und
 in Ziffer 7a beschrieben.
+
+## 2j. Rechts-Durchgang über die ganze App — `/rechtspruefung`
+
+Monatlich in der Wartung und vor jeder Store-Einreichung: `anwalt` **auf Opus über die ganze
+App** mit Recherche-Auftrag, parallel `netz-ohne-konto.py --live` (2i). Bericht im Chat und als
+`plans/rechtspruefung-JJJJ-MM-TT.md`, mit Vergleich zum Vorbericht (neu · erledigt · offen).
+
+**Warum es das neben `/pushcheck` gibt:** Der Pushcheck fährt `anwalt` auf Sonnet über den
+**Diff**. Am 30.09.2026 fand derselbe Agent auf Opus über die ganze App weit mehr — darunter
+den 🔴 aus §181 (Auth lud ohne Konto `apis.google.com`), den kein Diff gezeigt hätte, weil der
+Fehler in unverändertem Code lag. Ein Diff-Prüfer sieht nie, was schon vor ihm falsch war.
+
+**Nachweis ist der Bericht selbst**, kein Stempel: `wartung-check.py --setze` verweigert ohne
+Bericht der letzten 30 Tage (Rückgabe 3). Geprüft nur bei `--setze` — die Cloud-Routine sieht
+`plans/` nicht (gitignored) und stünde sonst dauerhaft auf gelb. Der Befehl ändert nichts an
+der App; Fixes erst nach Freigabe.
+
+**Gegenprobe (01.10.2026):** ohne Bericht, mit 47 Tage altem und mit Dateien, die nur ähnlich
+heißen → verweigert, Wartungsdatum unverändert; Bericht von heute bzw. genau 30 Tage alt →
+gesetzt.
 
 ---
 

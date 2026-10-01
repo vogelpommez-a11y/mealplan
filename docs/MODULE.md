@@ -308,16 +308,17 @@ _keine_
 | .claude/agents/ux-reviewer.md | 71 | 3776 |
 | .claude/agents/website-security.md | 195 | 10652 |
 | .claude/commands/pushcheck.md | 70 | 2657 |
+| .claude/commands/rechtspruefung.md | 86 | 3942 |
 | .claude/hooks/commit-waechter.py | 178 | 8147 |
 | .claude/hooks/push-waechter.py | 95 | 3107 |
 | .claude/hooks/secrets-filter.py | 93 | 3856 |
 | .claude/hooks/syntax-nach-edit.py | 100 | 3777 |
-| .claude/hooks/wartung-erinnerung.py | 148 | 6318 |
+| .claude/hooks/wartung-erinnerung.py | 148 | 6385 |
 | .claude/settings.json | 56 | 1526 |
 | .gitattributes | 21 | 594 |
 | .github/workflows/pruefung.yml | 188 | 8066 |
 | .gitignore | 134 | 6081 |
-| CLAUDE.md | 778 | 33879 |
+| CLAUDE.md | 779 | 34043 |
 | CNAME | 1 | 21 |
 | FIREBASE-SETUP.md | 197 | 9363 |
 | LICENSE | 40 | 1907 |
@@ -341,10 +342,10 @@ _keine_
 | docs/DESIGN.md | 1317 | 70327 |
 | docs/MODULE.md | — | — (erzeugt) |
 | docs/PRODUCT.md | 1746 | 99669 |
-| docs/RUNBOOK.md | 253 | 10469 |
+| docs/RUNBOOK.md | 254 | 10594 |
 | docs/SECURITY.md | 593 | 35778 |
-| docs/STORE.md | 523 | 30938 |
-| docs/TESTING.md | 5382 | 318859 |
+| docs/STORE.md | 524 | 31128 |
+| docs/TESTING.md | 5403 | 320187 |
 | docs/TROUBLESHOOTING.md | 6951 | 403884 |
 | docs/module-index.json | — | — (erzeugt) |
 | firestore.rules | 552 | 32127 |
@@ -538,7 +539,7 @@ _keine_
 | tools/test-meal-bilder.py | 156 | 8295 |
 | tools/vergleich-bausteine.js | 200 | 9006 |
 | tools/vorfuehren.py | 120 | 4637 |
-| tools/wartung-check.py | 631 | 29107 |
+| tools/wartung-check.py | 687 | 31783 |
 | vendor/HERKUNFT.md | 105 | 4816 |
 | vendor/firebase/10.12.5/LICENSE | 203 | 11358 |
 | vendor/firebase/10.12.5/README.md | 27 | 1063 |

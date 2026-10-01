@@ -512,13 +512,14 @@ wenig — oder zu viel?) — und die Falle, die schon zugeschlagen hat: **ein Ag
 verspricht.
 
 Was das Skript **nicht** kann: sehen, ob sich Recht, Store-Richtlinien oder die
-Sicherheitslage von Fremdcode geändert haben. Dafür `anwalt`, `store-check` und
-`lieferkette` mit ihrem Rechercheauftrag laufen lassen.
+Sicherheitslage von Fremdcode geändert haben. Dafür **`/rechtspruefung`** (`anwalt` auf Opus
+über die ganze App plus Netzmessung ohne Konto), `store-check` und `lieferkette` laufen lassen.
 
 Danach `python tools/wartung-check.py --setze` — das datiert den Stand neu und bringt den
 Erinnerungs-Hook zum Schweigen. **Es verweigert das ohne Sicherung der letzten 24 h**: Die
 Sicherung (`tools/firestore-backup.py`) räumt abgelaufene Löschsperren weg, und Ziffer 10 der
-Datenschutzerklärung sagt das „bei unserer nächsten Wartung“ zu.
+Datenschutzerklärung sagt das „bei unserer nächsten Wartung“ zu. **Ebenso ohne Bericht
+`plans/rechtspruefung-*.md` der letzten 30 Tage** — der Pushcheck sieht nur den Diff.
 
 **Monatlich läuft dieselbe Prüfung zusätzlich in der Cloud** (Routine „Monatliche
 Wartungsprüfung", 1. des Monats), damit sie auch dann stattfindet, wenn wochenlang niemand

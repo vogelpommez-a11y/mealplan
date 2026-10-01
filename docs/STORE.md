@@ -516,6 +516,7 @@ Alternativtexte sind dafür nicht geprüft.
 | KI-Kennzeichnung (KI-VO Art. 50) | 🟡 Abs. 4 trifft nur Deepfakes — Einordnung bestätigt (20.09.2026). Offen: gelten die 36 rezeptgebundenen Bilder als Deepfake? |
 | Apple-EU-Bedingungen ab 01.10.2026 | ✅ geprüft (20.09.2026): **ohne praktische Wirkung**, solange nur IAP im regulären App Store. Beim Signieren die Standard-EU-Terms wählen, nicht die Marktplatz-Variante |
 | KI-Deklaration in der Play Console | 🟡 **Formularfeld, leicht zu übersehen**: pro hochgeladenem Store-Asset ein Kästchen. Greift, falls Screenshots die KI-Gerichtsfotos zeigen |
+| Rechts-Durchgang vor der Einreichung | 🟡 **Pflicht vor jeder Einreichung:** `/rechtspruefung` (ganze App + Netzmessung ohne Konto), Bericht nicht älter als die letzte Code-Änderung |
 | Accessibility Nutrition Labels (Apple) | 🟢 **freiwillig**, kein Zulassungskriterium. Nach dem Release nachtragen — kostenlose Sichtbarkeit |
 
 **Nicht aus diesem Repo prüfbar:** alles, was in App Store Connect, der Play Console oder

@@ -1188,6 +1188,11 @@
       "zeilen": 70
     },
     {
+      "bytes": 3942,
+      "pfad": ".claude/commands/rechtspruefung.md",
+      "zeilen": 86
+    },
+    {
       "bytes": 8147,
       "pfad": ".claude/hooks/commit-waechter.py",
       "zeilen": 178
@@ -1208,7 +1213,7 @@
       "zeilen": 100
     },
     {
-      "bytes": 6318,
+      "bytes": 6385,
       "pfad": ".claude/hooks/wartung-erinnerung.py",
       "zeilen": 148
     },
@@ -1233,9 +1238,9 @@
       "zeilen": 134
     },
     {
-      "bytes": 33879,
+      "bytes": 34043,
       "pfad": "CLAUDE.md",
-      "zeilen": 778
+      "zeilen": 779
     },
     {
       "bytes": 21,
@@ -1352,9 +1357,9 @@
       "zeilen": 1746
     },
     {
-      "bytes": 10469,
+      "bytes": 10594,
       "pfad": "docs/RUNBOOK.md",
-      "zeilen": 253
+      "zeilen": 254
     },
     {
       "bytes": 35778,
@@ -1362,14 +1367,14 @@
       "zeilen": 593
     },
     {
-      "bytes": 30938,
+      "bytes": 31128,
       "pfad": "docs/STORE.md",
-      "zeilen": 523
+      "zeilen": 524
     },
     {
-      "bytes": 318859,
+      "bytes": 320187,
       "pfad": "docs/TESTING.md",
-      "zeilen": 5382
+      "zeilen": 5403
     },
     {
       "bytes": 403884,
@@ -2250,9 +2255,9 @@
       "zeilen": 120
     },
     {
-      "bytes": 29107,
+      "bytes": 31783,
       "pfad": "tools/wartung-check.py",
-      "zeilen": 631
+      "zeilen": 687
     },
     {
       "bytes": 4816,

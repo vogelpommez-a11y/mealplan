@@ -20,13 +20,15 @@ Was es NICHT kann
 -----------------
 Es prueft Konsistenz, nicht Inhalt. Ob eine Rechtslage sich geaendert hat oder eine
 Store-Richtlinie neu gefasst wurde, sieht es nicht - dafuer sind die Agenten mit
-Recherche-Auftrag da (`anwalt`, `store-check`, `lieferkette`).
+Recherche-Auftrag da (`/rechtspruefung` mit `anwalt`, dazu `store-check`, `lieferkette`).
 
 Aufruf:
     python tools/wartung-check.py            # Bericht
     python tools/wartung-check.py --setze    # zusaetzlich Wartungsdatum auf heute setzen
-                                             # (nur nach einer Sicherung der letzten 24 h)
-Rueckgabewert: 0 sauber, 1 mindestens ein Befund, 2 --setze ohne frische Sicherung.
+                                             # (nur nach einer Sicherung der letzten 24 h
+                                             # und einer /rechtspruefung der letzten 30 Tage)
+Rueckgabewert: 0 sauber, 1 mindestens ein Befund, 2 --setze ohne frische Sicherung,
+3 --setze ohne frische Rechtspruefung.
 """
 import datetime
 import io
@@ -354,6 +356,19 @@ def pruefe_skills():
         except Exception:
             pass
 
+    # Eigene Befehle unter .claude/commands/ - von --setze bzw. vor dem Push vorausgesetzt
+    for name in ("pushcheck", "rechtspruefung"):
+        p = ".claude/commands/%s.md" % name
+        if not os.path.exists(p):
+            rot(bereich, "Eigener Befehl '/%s' fehlt (%s)" % (name, p))
+            continue
+        try:
+            r = subprocess.run(["git", "check-ignore", "-q", p], capture_output=True)
+            if r.returncode == 0:
+                rot(bereich, "%s ist gitignored - beim naechsten frischen Checkout weg" % p)
+        except Exception:
+            pass
+
 
 # --------------------------------------------------------------------------- 6
 def pruefe_alter():
@@ -577,6 +592,38 @@ def sicherung_frisch(jetzt=None):
     return True, juengste
 
 
+RECHTSPRUEFUNG_HOECHSTENS_TAGE = 30
+RECHTSPRUEFUNG_MUSTER = re.compile(r"^rechtspruefung-(\d{4}-\d{2}-\d{2})\.md$")
+
+
+def rechtspruefung_frisch(ordner="plans", heute=None):
+    u"""(True/False, Beschreibung) - gibt es einen /rechtspruefung-Bericht der letzten 30 Tage?
+
+    Nachweis ist der Bericht selbst (plans/rechtspruefung-JJJJ-MM-TT.md), kein eigener
+    Stempel: Ein Stempel liesse sich ohne Durchgang schreiben, ein leerer Bericht faellt beim
+    Vergleich im naechsten Monat auf. Nur bei --setze geprueft - die Cloud-Routine sieht
+    plans/ nicht (gitignored) und stuende sonst dauerhaft auf gelb.
+    """
+    heute = heute or datetime.date.today()
+    daten = []
+    if os.path.isdir(ordner):
+        for name in os.listdir(ordner):
+            m = RECHTSPRUEFUNG_MUSTER.match(name)
+            if m:
+                try:
+                    daten.append(datetime.date.fromisoformat(m.group(1)))
+                except ValueError:
+                    pass
+    if not daten:
+        return False, "kein Bericht plans/rechtspruefung-JJJJ-MM-TT.md gefunden"
+    juengste = max(daten)
+    alter = (heute - juengste).days
+    if alter > RECHTSPRUEFUNG_HOECHSTENS_TAGE:
+        return False, "der juengste Bericht (%s) ist %d Tage alt, erlaubt sind %d" % (
+            juengste.isoformat(), alter, RECHTSPRUEFUNG_HOECHSTENS_TAGE)
+    return True, juengste.isoformat()
+
+
 def main():
     print("Wartungspruefung - Paddy's Mealplan Setup")
     print("=" * 62)
@@ -594,6 +641,15 @@ def main():
             print("Zuerst:  python tools/firestore-backup.py")
             print("Danach erneut:  python tools/wartung-check.py --setze")
             return 2
+        # Ebenso die Rechtspruefung: Am 30.09.2026 fand `anwalt` auf Opus ueber die ganze App
+        # weit mehr als der Pushcheck auf Sonnet ueber den Diff (docs/TESTING.md). Was nur
+        # empfohlen ist, faellt im Monat aus, in dem es eilt.
+        frisch, stand = rechtspruefung_frisch()
+        if not frisch:
+            print("Wartungsdatum NICHT gesetzt: %s" % stand)
+            print("Zuerst:  /rechtspruefung (in Claude Code)")
+            print("Danach erneut:  python tools/wartung-check.py --setze")
+            return 3
         io.open(MARKER, "w", encoding="utf-8").write(datetime.date.today().isoformat() + "\n")
         print("Wartungsdatum auf %s gesetzt.\n" % datetime.date.today().isoformat())
 
@@ -608,8 +664,8 @@ def main():
     if not befunde:
         print("\nKeine Befunde. Das Setup beschreibt sich selbst korrekt.")
         print("\nWas dieses Skript NICHT prueft: ob sich Recht, Store-Richtlinien oder")
-        print("Bibliotheken geaendert haben. Dafuer die Agenten mit Recherche-Auftrag:")
-        print("  anwalt, store-check, lieferkette")
+        print("Bibliotheken geaendert haben. Dafuer /rechtspruefung (anwalt auf Opus +")
+        print("Netzmessung) und die Agenten store-check und lieferkette.")
         return 0
 
     for schwere in ("rot", "gelb"):

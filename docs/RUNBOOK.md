@@ -166,7 +166,8 @@ automatisch erledigen, braucht aber den Blaze-Tarif. Deshalb gehört die Sicheru
 Datenschutzerklärung sagt „bei unserer nächsten Wartung“ zu, ohne feste Frist.
 `wartung-check.py --setze` verweigert das Abhaken, wenn die jüngste Sicherung älter als 24 h
 ist. Scheitert das Aufräumen, läuft die Sicherung trotzdem, und der nächste Lauf versucht es
-erneut.
+erneut. Ebenso verweigert es ohne Bericht `plans/rechtspruefung-*.md` der letzten 30 Tage
+(`/rechtspruefung`, `docs/TESTING.md` 2j).
 
 ### Schritt 0b: der Live-Stand der Regeln
 
