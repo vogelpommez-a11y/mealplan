@@ -325,8 +325,9 @@ def main():
             print(u"Gegenprobe nicht moeglich: Anker fehlt oder ist nicht eindeutig.")
             return 2
         kaputt = sicherung.replace(marke, marke + " GIBTESNICHT();", 1)
-        io.open(pfad, "w", encoding="utf-8", newline="").write(kaputt)
         try:
+            # Im try: Scheitert schon dieses Schreiben halb, stellt finally trotzdem her.
+            io.open(pfad, "w", encoding="utf-8", newline="").write(kaputt)
             print(u"GEGENPROBE - der Meals-Reiter ist absichtlich zerschossen:")
             befunde, zeilen = lauf(sichtbar)
             for zustand, label, text in zeilen:
