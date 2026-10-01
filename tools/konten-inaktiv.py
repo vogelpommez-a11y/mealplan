@@ -219,8 +219,8 @@ def main(argv):
         print(u"\nZU LOESCHEN (%d) - gewarnt und 30 Tage verstrichen:" % len(loeschen))
         for uid, mail, tage, seit in loeschen:
             print(u"  * %s  %s  (%d Tage still, gewarnt vor %d Tagen)" % (uid, mail, tage, seit))
-        print(u"\n  Dieses Skript loescht NICHT. Weg: Firebase-Konsole -> Authentication,")
-        print(u"  dazu die Daten unter users/{uid} samt Unterkollektion (docs/RUNBOOK.md).")
+        print(u"\n  Dieses Skript loescht NICHT. Weg: docs/RUNBOOK.md, Abschnitt")
+        print(u"  'Loeschung und Auskunft durch den Betreiber' - SIEBEN Orte, nicht nur users/{uid}.")
         print(u"  Vorher sichern:  python tools/firestore-backup.py")
 
     if not (warnen or wartend or loeschen):

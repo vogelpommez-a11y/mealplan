@@ -168,6 +168,10 @@ Datenschutzerklärung sagt „bei unserer nächsten Wartung“ zu, ohne feste Fr
 ist. Scheitert das Aufräumen, läuft die Sicherung trotzdem, und der nächste Lauf versucht es
 erneut. Ebenso verweigert es ohne Bericht `plans/rechtspruefung-*.md` der letzten 30 Tage
 (`/rechtspruefung`, `docs/TESTING.md` 2j).
+Ebenfalls zur Wartung (Schritt 3 der Erinnerung, ohne Sperre - bis 2027/28 gibt es dort
+nichts zu tun): `tools/shared-aufraeumen.py` (abgelaufene Teilen-Links) und
+`tools/konten-inaktiv.py` (24 Monate still). Ziffer 10 sagt beides „bei unserer nächsten
+Wartung“ zu.
 
 ### Schritt 0b: der Live-Stand der Regeln
 
@@ -232,6 +236,38 @@ unabhängig vom Deploy. `firestore.rules` im Repo im selben Schritt nachziehen, 
 driften Vorlage und Wirklichkeit auseinander.
 
 ---
+
+### Löschung und Auskunft durch den Betreiber
+
+Zwei Fälle, in denen nicht der Nutzer in der App löscht, sondern wir: ein **Löschantrag per
+E-Mail** (Ziffer 10) und ein **verwaistes Konto** nach 24 Monaten (`tools/konten-inaktiv.py`).
+Dazu die **Auskunft** nach Art. 15/20 (Ziffer 11). Alle drei müssen **dieselben Orte** erreichen
+wie der App-Weg `kontoDatenLoeschen()` in `index.html` — nicht nur `users/{uid}`. Wer nur das
+Konto löscht, lässt Name und Bild im Mitglieds-Eintrag, Teilen-Links und Einladungen stehen
+(Rechtsprüfung 01.10.2026).
+
+**Vorher immer:** `python tools/firestore-backup.py`. Danach Löschsperre beachten: Die App legt
+beim eigenen Löschen `loeschsperren/{uid}` an — von Hand ist das nicht nötig, solange das Konto
+in Authentication zuerst gelöscht wird (dann schreibt kein Gerät mehr).
+
+| # | Ort | Löschen | Auskunft |
+|---|---|---|---|
+| 1 | `shared/{id}` mit Feld `uid` = UID | Dokument löschen | Liste der Links samt Inhalt |
+| 2 | `groups/{gid}/members/{uid}` | löschen **und** `groups/{gid}.memberCount` um 1 senken | Rolle, Name, Bild |
+| 3 | `groups/{gid}/recipes/*` mit `by` = UID | `by` auf `""` setzen (Meal bleibt der Gruppe) | betroffene Meals |
+| 4 | `groups/{gid}/plans/*` — `by` = UID und Einträge mit UID in `uids` | `by` → `""`; UID aus `uids` nehmen, leere Liste → String-Form | betroffene Wochen |
+| 5 | `invites/{code}` mit `by` = UID | Dokument löschen | offene Einladungen |
+| 6 | `entitlements/{uid}` | Dokument löschen | Pro-Status |
+| 7 | `users/{uid}` samt `users/{uid}/recipes/*` | alles löschen | vollständig, inkl. Fotos in den Meals |
+
+Zuletzt das Konto in der Firebase-Konsole unter **Authentication** löschen. Ist der Nutzer
+**Inhaber** einer Gruppe mit weiteren Mitgliedern: nicht stillschweigend löschen — Ziffer 10
+sagt „keine Gruppe ohne Inhaber“. Erst die Gruppe auflösen (Mitglieder behalten ihre Kopie)
+oder den Nutzer bitten, das in der App zu tun.
+
+Ein Admin-Skript dafür gibt es bewusst noch nicht (Entscheidung 01.10.2026: erst bei Bedarf);
+bis dahin ist diese Tabelle die Prüfliste. Kommt eins, muss es dieselbe Liste abarbeiten wie
+`kontoDatenLoeschen()` — und ein Prüfstand muss beide gegeneinander halten.
 
 ## 6. Zuständigkeiten
 

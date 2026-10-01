@@ -1006,7 +1006,7 @@ echte Code und laufen unverändert. Ersetzt ist nur die Leitung nach draußen.
 Die Seitengröße des Nachbaus steht bewusst auf **2**. Damit läuft das Blättern in *jedem*
 Lauf durch und nicht erst, wenn jemand mehr als 300 Dokumente hat.
 
-### Was geprüft wird (83 Prüfungen)
+### Was geprüft wird (105 Prüfungen)
 
 | Bereich | Kernfrage |
 |---|---|
@@ -1020,6 +1020,7 @@ Lauf durch und nicht erst, wenn jemand mehr als 300 Dokumente hat.
 | Trockenlauf | Ist nach einem Trockenlauf wirklich **kein** Schreibvorgang passiert? |
 | Rückspielung | Kommt der Stand exakt zurück — und bleibt liegen, was nur live existiert? |
 | Gelöschte Konten (seit 30.09.2026) | Wird alles eines Kontos, das es nicht mehr gibt, gesperrt — `users/`, Mitglieds-Eintrag, Teilen-Link über sein Feld `uid` —, während das verlorene Rezept eines bestehenden Kontos trotzdem zurückkommt? |
+| Tote Kennungen in Gruppendaten (seit 01.10.2026) | Wird eine Einladung (`invites/`, Feld `by`) eines gelöschten Kontos gesperrt? Wird dessen Kennung in Gruppen-Meals (`by` → `""`) und -Plänen (`uids` ohne sie, leere Liste → String-Form) entfernt, statt das Dokument der Gruppe zu sperren — und bleibt die Sicherung auf der Platte unverändert? |
 
 ### Gegenprobe: Fassungen, die durchfallen müssen
 
@@ -1109,6 +1110,13 @@ der App; Fixes erst nach Freigabe.
 **Gegenprobe (01.10.2026):** ohne Bericht, mit 47 Tage altem und mit Dateien, die nur ähnlich
 heißen → verweigert, Wartungsdatum unverändert; Bericht von heute bzw. genau 30 Tage alt →
 gesetzt.
+
+**Erster Durchgang 01.10.2026:** ein 🔴 (fremde UIDs in den Kopien nach dem Austritt,
+`docs/TROUBLESHOOTING.md` §183), sechs 🟡. Dafür entstanden `tools/pruefstand-fremdbezug.py`
+(Ausschneide-Prüfstand für `ohneFremdbezug()`/`hatFremdbezug()` plus Quelltextprüfung, dass
+`leaveGroup()` und `startCloudSync()` sie aufrufen) und Abschnitt 15 in
+`tools/pruefstand-firestore-backup.py` (tote Kennungen beim Rückspiel). Gegenproben: alter
+Stand und zwei gezielte Sabotagen fallen durch bzw. 6 rot bei abgeschalteten Stellen.
 
 ---
 
