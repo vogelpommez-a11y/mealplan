@@ -53,6 +53,7 @@ Weitere Schalter:
 Rueckgabewert: 0 in Ordnung, 1 Abbruch mit Meldung.
 """
 import io
+import copy
 import json
 import os
 import sys
@@ -160,7 +161,10 @@ def konto_von(pfad, felder):
     u"""Wem gehoert dieses Dokument? Liefert die UID oder None (kein Personenbezug im Pfad).
 
     users/<uid>/...  entitlements/<uid>  loeschsperren/<uid>  groups/<gid>/members/<uid>
-    und shared/<id> - dort steht der Eigentuemer nicht im Pfad, sondern im Feld `uid`.
+    und shared/<id> - dort steht der Eigentuemer nicht im Pfad, sondern im Feld `uid` -,
+    invites/<code> ueber das Feld `by` (seit 01.10.2026: Eine Einladung eines geloeschten
+    Kontos waere nach dem Rueckspiel wieder ein gueltiger Link).
+    Gruppen-Meals und -Plaene gehoeren der Gruppe; die UIDs darin raeumt tote_entfernen().
     """
     t = pfad.split("/")
     if t[0] in ("users", "entitlements", "loeschsperren") and len(t) >= 2:
@@ -169,7 +173,89 @@ def konto_von(pfad, felder):
         return t[3]
     if t[0] == "shared":
         return ((felder or {}).get("uid") or {}).get("stringValue") or None
+    if t[0] == "invites":
+        return ((felder or {}).get("by") or {}).get("stringValue") or None
     return None
+
+
+def _gruppeninhalt(pfad):
+    t = pfad.split("/")
+    return len(t) == 4 and t[0] == "groups" and t[2] in ("recipes", "plans")
+
+
+def uids_im_inhalt(pfad, felder):
+    u"""Alle UIDs in einem Gruppen-Meal oder -Plan: `by` und die `uids` der Planeintraege."""
+    if not _gruppeninhalt(pfad):
+        return set()
+    raus = set()
+    by = ((felder or {}).get("by") or {}).get("stringValue")
+    if by:
+        raus.add(by)
+    for v in (felder or {}).values():
+        for e in ((v or {}).get("arrayValue") or {}).get("values") or []:
+            f = (e.get("mapValue") or {}).get("fields") or {}
+            for u in ((f.get("uids") or {}).get("arrayValue") or {}).get("values") or []:
+                if u.get("stringValue"):
+                    raus.add(u["stringValue"])
+    return raus
+
+
+def tote_entfernen(pfad, felder, lebend):
+    u"""Gruppen-Meal/-Plan ohne die UIDs geloeschter Konten - wie die App beim Austritt.
+
+    Ohne das schriebe ein Gruppen-Rueckspiel die Kennung eines geloeschten Kontos zurueck in
+    die Gruppe (Rechtspruefung 01.10.2026; Ziffer 10: "ohne Hinweis darauf, von wem es
+    stammt"). Gesperrt wird das Dokument NICHT - es gehoert der Gruppe, nicht dem Konto.
+    Dieselben Regeln wie anonymizeMyRecipes()/anonymizeMyPlanAssignments() in index.html:
+      by: <tot>              -> by: ""
+      {id, uids:[tot, x]}    -> {id, uids:[x]}
+      {id, uids:[tot]}       -> "id" (String-Form, wie in der App)
+    Liefert (felder, geaendert?). Die Eingabe bleibt unveraendert.
+    """
+    if not _gruppeninhalt(pfad) or not felder:
+        return felder, False
+    neu = copy.deepcopy(felder)
+    geaendert = False
+    by = (neu.get("by") or {}).get("stringValue")
+    if by and by not in lebend:
+        neu["by"] = {"stringValue": ""}
+        geaendert = True
+    for name, v in neu.items():
+        werte = ((v or {}).get("arrayValue") or {}).get("values")
+        if not werte:
+            continue
+        for i, e in enumerate(werte):
+            f = (e.get("mapValue") or {}).get("fields") or {}
+            uids = ((f.get("uids") or {}).get("arrayValue") or {}).get("values")
+            if uids is None:
+                continue
+            rest = [u for u in uids if u.get("stringValue") in lebend]
+            if len(rest) == len(uids):
+                continue
+            geaendert = True
+            if rest:
+                f["uids"] = {"arrayValue": {"values": rest}}
+            else:
+                werte[i] = {"stringValue": (f.get("id") or {}).get("stringValue", "")}
+    return neu, geaendert
+
+
+def tote_aus_gruppen(plan, sicherung, lebend):
+    u"""Wendet tote_entfernen() auf alle zu schreibenden Gruppen-Dokumente an.
+
+    Liefert (neue_sicherung, Zahl bereinigter Dokumente). Die Sicherung auf der Platte
+    bleibt unberuehrt - geschrieben wird aus der bereinigten Kopie.
+    """
+    neu = dict(sicherung)
+    n = 0
+    for pfad, art, _ in plan:
+        if art == "gleich":
+            continue
+        f, g = tote_entfernen(pfad, sicherung.get(pfad), lebend)
+        if g:
+            neu[pfad] = f
+            n += 1
+    return neu, n
 
 
 def bestehende_konten(zugang, uids):
@@ -268,9 +354,17 @@ def main():
         gesperrt = []
         if not auch_geloeschte:
             betroffen = [konto_von(p, sicherung.get(p)) for p, a, _ in plan if a != "gleich"]
+            for p, a, _ in plan:
+                if a != "gleich":
+                    betroffen.extend(uids_im_inhalt(p, sicherung.get(p)))
             if any(betroffen):
                 lebend = bestehende_konten(zugang, betroffen)
                 plan, gesperrt = sperre_geloeschte(plan, sicherung, lebend)
+                sicherung, bereinigt = tote_aus_gruppen(plan, sicherung, lebend)
+                if bereinigt:
+                    print(u"BEREINIGT: %d Gruppen-Dokument(e) ohne die Kennung geloeschter Konten."
+                          % bereinigt)
+                    print(u"")
     except fs.ZugangFehler as e:
         print(u"")
         print(u"ABBRUCH: %s" % e)

@@ -588,6 +588,45 @@ def main():
     pruef(u"nach dem Rueckspiel ist das geloeschte Konto NICHT zurueck",
           [p for p in ("users/u2", "groups/g1/members/u2", "shared/s1") if p in zg14.daten], [])
 
+    # ---- 15. Auch die Kennung IN Gruppendaten und Einladungen (Rechtspruefung 01.10.2026) ----
+    print(u"")
+    print(u"-- Rueckspielen: tote Kennungen in Gruppen-Meals, -Plaenen und Einladungen --")
+    def _a(*w):
+        return {"arrayValue": {"values": list(w)}}
+    def _e(i, *u):
+        return {"mapValue": {"fields": {"id": {"stringValue": i},
+                                        "uids": _a(*[{"stringValue": x} for x in u])}}}
+    sicherung_t = {
+        "groups/g1/recipes/m1": {"title": {"stringValue": "Lachs"}, "by": {"stringValue": "u2"}},
+        "groups/g1/recipes/m2": {"title": {"stringValue": "Skyr"}, "by": {"stringValue": "u1"}},
+        "groups/g1/plans/2026-W40": {"by": {"stringValue": "u2"},
+                                     "mon_mi": _a(_e("m1", "u1", "u2"), _e("m2", "u2"),
+                                                  {"stringValue": "m3"})},
+        "invites/tot": {"gid": {"stringValue": "g1"}, "by": {"stringValue": "u2"}},
+        "invites/lebt": {"gid": {"stringValue": "g1"}, "by": {"stringValue": "u1"}},
+    }
+    plan_t, _ = rs.vergleiche(sicherung_t, {})          # alles fehlt live
+    pruef(u"konto_von: Einladung ueber das Feld by", rs.konto_von("invites/tot", sicherung_t["invites/tot"]), "u2")
+    pruef(u"uids_im_inhalt findet by und uids",
+          sorted(rs.uids_im_inhalt("groups/g1/plans/2026-W40", sicherung_t["groups/g1/plans/2026-W40"])),
+          ["u1", "u2"])
+    ohne_t, gesperrt_t = rs.sperre_geloeschte(plan_t, sicherung_t, lebend={"u1"})
+    pruef(u"Einladung des geloeschten Kontos wird gesperrt, die andere nicht",
+          sorted(p for p, _ in gesperrt_t), ["invites/tot"])
+    neu_t, n_t = rs.tote_aus_gruppen(ohne_t, sicherung_t, {"u1"})
+    pruef(u"zwei Gruppen-Dokumente bereinigt (Meal von u2, Plan)", n_t, 2)
+    pruef(u"by des geloeschten Kontos wird leer", neu_t["groups/g1/recipes/m1"]["by"], {"stringValue": ""})
+    pruef(u"by des bestehenden Kontos bleibt", neu_t["groups/g1/recipes/m2"]["by"], {"stringValue": "u1"})
+    pruef(u"Plan: [u1,u2] -> [u1], [u2] -> String-Form, String bleibt",
+          json.dumps(neu_t["groups/g1/plans/2026-W40"]["mon_mi"], sort_keys=True),
+          json.dumps(_a(_e("m1", "u1"), {"stringValue": "m2"}, {"stringValue": "m3"}), sort_keys=True))
+    pruef(u"die Sicherung selbst bleibt unveraendert",
+          sicherung_t["groups/g1/recipes/m1"]["by"], {"stringValue": "u2"})
+    zg15 = FakeZugang({})
+    rs.spiele_zurueck(zg15, neu_t, ohne_t)
+    pruef(u"nach dem Rueckspiel steht u2 nirgends mehr",
+          "u2" in json.dumps(zg15.daten), False)
+
     print(u"")
     print(u"ERGEBNIS %d gruen, %d rot" % (ok[0], rot[0]))
 

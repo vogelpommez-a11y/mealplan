@@ -6,7 +6,7 @@ Dieses Dokument enthält bekannte Fehlerquellen, historische Bugs und Probleme, 
 
 <!-- REGISTER-ANFANG (erzeugt aus den Ueberschriften: python tools/register.py - nicht von Hand pflegen) -->
 
-**Register — 182.** Chronologisch gewachsen: je hoeher die Nummer,
+**Register — 183.** Chronologisch gewachsen: je hoeher die Nummer,
 desto juenger der Fund. Wer eine Falle sucht, sucht hier zuerst; die Ueberschrift sagt
 jeweils, worum es geht. **Nicht die ganze Datei lesen** — sie ist rund 310 KB gross.
 
@@ -194,6 +194,7 @@ jeweils, worum es geht. **Nicht die ganze Datei lesen** — sie ist rund 310 KB 
 | 180 | Im Instagram-Browser brauchte der erste Cloud-Abgleich 45 Sekunden |
 | 181 | Auf Handys lud die App ohne Konto Code von Google — auf dem Desktop nie |
 | 182 | `pruefstand-reiter.py`: „Start leer" war ein Wettlauf im Prüfstand — und die Gegenprobe maß nichts |
+| 183 | Die Kopie nach dem Austritt trug die Kennungen der anderen Mitglieder |
 
 <!-- REGISTER-ENDE -->
 
@@ -7015,3 +7016,43 @@ anderen Werkzeuge mit Selbststart hatten den Schalter schon; nachgezogen, dazu a
 „Von Hand“-Hinweise.
 
 Prüfer: `tools/pruefstand-reiter.py` selbst, `--gegenprobe`.
+
+## 183. Die Kopie nach dem Austritt trug die Kennungen der anderen Mitglieder
+
+**01.10.2026, gefunden von der ersten `/rechtspruefung`** (`anwalt` auf Opus über die ganze App).
+Ziffer 10 der Datenschutzerklärung sagt zu: Beim Austritt und bei der Kontolöschung bleibt
+„das Gericht – ohne Hinweis darauf, von wem es stammt“. Anonymisiert wurde aber nur unter
+`groups/{gid}`. Die private Kopie, die beim Austritt bzw. Auflösen ins eigene Konto ging
+(`snapshotOwnData()` → `leaveGroup()`), behielt `by` an jedem Meal und `uids` an jedem
+Planeintrag — `sanitizeRecipe()` lässt `by` stehen, und außer beim Teilen löschte es niemand.
+Löschte ein Mitglied später sein Konto, erreichten weder `kontoDatenLoeschen()` noch
+`anonymizeMyRecipes()` diese Kopien. **Live bestätigt:** 11 Meals in Konten ohne Gruppe trugen
+eine fremde Kennung; die 27 Teilen-Links waren sauber.
+
+**Warum es kein Prüfer sah:** Jeder Prüfstand zur Anonymisierung prüfte, ob die Gruppe sauber
+ist — dort, wo man den Personenbezug erwartet. Die Kopie ist ein zweiter Ort, an dem dieselbe
+UID steht. Dieselbe Lehre wie am 22.09. (Einstieg 5): **Ein Prüfstand prüft, was gebaut wurde,
+nicht, ob derselbe Fall noch woanders vorkommt.** Gefunden hat es erst ein Durchgang über die
+ganze App, nicht über den Diff.
+
+**Fix:**
+
+* `ohneFremdbezug()` in `leaveGroup()` (gilt damit auch für `dissolveGroup()`): `by` raus,
+  Planeinträge mir zugewiesen → String-Form, nur anderen zugewiesen → fallen weg (zählten
+  schon vorher nicht in die eigenen Makros; Entscheidung Paddy 01.10.2026).
+* `startCloudSync()` räumt im Zweig ohne Gruppe alte Kopien beim Laden auf (`hatFremdbezug()`).
+  Der folgende `pushNow()` schreibt den bereinigten Stand — Meals per `batch.set` (ganzes
+  Dokument), `plans` per `mergeFields` (ganzes Feld), das alte `by` verschwindet also auch in
+  der Cloud.
+* `tools/fremde-uids-aufraeumen.py` für Konten, die die App nicht mehr öffnen, und für
+  `shared/` — Trockenlauf als Standard, `--schreiben` nur nach Sicherung, jede Schreibung mit
+  Vorbedingung `currentDocument.updateTime` (dafür `firestore_api.schreibe(update_time=…)`).
+* `tools/firestore-restore.py`: Ein Gruppen-Rückspiel schrieb die Kennung eines gelöschten
+  Kontos zurück in `groups/*/recipes|plans`, eine Einladung (`invites/` mit `by`) eines
+  gelöschten Kontos wäre wieder gültig gewesen. Jetzt: `konto_von()` kennt `invites/`,
+  `tote_entfernen()` macht in Gruppendaten, was die App beim Austritt macht.
+
+Prüfer: `tools/pruefstand-fremdbezug.py` (17 Prüfungen; Gegenprobe gegen `7fb1990` und zwei
+gezielte Sabotagen fallen durch), `tools/fremde-uids-aufraeumen.py --selbsttest` (mit
+Gegenprobe), `tools/pruefstand-firestore-backup.py` Abschnitt 15 (Gegenprobe: 6 rot bei
+abgeschalteten Stellen).

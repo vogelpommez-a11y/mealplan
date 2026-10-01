@@ -3289,6 +3289,16 @@
           dropRecipeIds(new Set(tombIds));   // Plan- und Favoritenverweise gleich mitraeumen
         }
         if (cloudRecipes.length || legacyRecipes.length) mergeRemoteRecipes(legacyRecipes.concat(cloudRecipes));
+        // Kopien aus einem frueheren Austritt (vor dem 01.10.2026) tragen noch `by`/`uids`
+        // anderer Mitglieder - einmal wegraeumen. Der pushNow() unten schreibt den bereinigten
+        // Stand: Meals per batch.set (ganzes Dokument), plans per mergeFields (ganzes Feld).
+        if (hatFremdbezug(state.recipes, state.plans)) {
+          const sauber = ohneFremdbezug(state.recipes, state.plans, uid);
+          state.recipes = sauber.recipes;
+          state.plans = sauber.plans;
+          setViewWeek(state.viewWeek);
+          save();
+        }
         // Baseline aus dem geladenen Cloud-Stand vorbefuellen statt auf null zu setzen:
         // so schreibt der folgende pushNow()-Lauf nur, was wirklich neu/geaendert ist
         // (Migration UND Normalfall gleichermassen abgedeckt), statt bei JEDEM Login alle
@@ -12344,7 +12354,9 @@
   function missingCalc(i) {
     const m = [];
     if (i.sex !== "m" && i.sex !== "f") m.push("dein Geschlecht");
-    if (!(i.age >= 10 && i.age <= 120)) m.push("dein Alter");
+    // Grenzen aus ONB_NUM, nicht noch einmal ausgeschrieben: Bis 01.10.2026 standen hier und
+    // dort je eine 10 - und Ziffer 13 sagt "ab 16" (Rechtspruefung 01.10.2026).
+    if (!(i.age >= ONB_NUM.age.min && i.age <= ONB_NUM.age.max)) m.push("dein Alter");
     if (!(i.height >= 100 && i.height <= 250)) m.push("deine Größe");
     if (!(i.weight >= 30 && i.weight <= 400)) m.push("dein Gewicht");
     if (!ACTIVITY.some(a => a.key === i.activity)) m.push("deine Bewegung im Alltag");
@@ -12391,7 +12403,7 @@
   // nicht mehr die Ueberschrift die Bedeutung, also braucht jedes Feld ein eigenes
   // <label>), `miss` der Klartext fuer den Hinweis, wenn es leer bleibt.
   const ONB_NUM = {
-    age:    { unit: "Jahre", min: 10,      max: 120,          lab: "Alter",   miss: "dein Alter" },
+    age:    { unit: "Jahre", min: 16,      max: 120,          lab: "Alter",   miss: "dein Alter" },
     height: { unit: "cm",    min: 100,     max: 250,          lab: "Größe",   miss: "deine Größe" },
     weight: { unit: "kg",    min: KG_MIN,  max: KG_MAX,       lab: "Gewicht", miss: "dein Gewicht" },
     tmin:   { unit: "Min.",  min: TRAIN_MIN_MIN, max: TRAIN_MIN_MAX, lab: "Dauer", miss: "die Dauer einer Einheit" }
@@ -14549,6 +14561,55 @@
     };
   }
 
+  // Personenbezug aus der EIGENEN Kopie nehmen (Ziffer 10: "Zurueck bleibt das Gericht - ohne
+  // Hinweis darauf, von wem es stammt"). Bis 01.10.2026 wurde nur in groups/{gid} anonymisiert;
+  // die Kopie, die man beim Austritt mitnimmt, trug weiter `by` und `uids` der anderen - und
+  // dort erreichte sie keine spaetere Loeschung (Rechtspruefung 01.10.2026, TROUBLESHOOTING §183).
+  // Ausserhalb einer Gruppe haben beide Felder keine Funktion:
+  //   * `by` faellt an jedem Meal weg - auch das eigene, eine Kennung ohne Gruppe zeigt nichts an.
+  //   * Planeintraege mit `uids`: mir zugewiesen -> normaler Eintrag (String-Form); nur anderen
+  //     zugewiesen -> faellt aus der Kopie (zaehlte schon vorher nicht in meine Makros).
+  // Liefert neue Objekte, veraendert die Eingaben nicht.
+  function ohneFremdbezug(recipes, plans, uid) {
+    const rs = (recipes || []).map(r => {
+      if (!r || typeof r !== "object" || !("by" in r)) return r;
+      const k = Object.assign({}, r); delete k.by; return k;
+    });
+    const ps = {};
+    Object.keys(plans || {}).forEach(wk => {
+      const w = plans[wk];
+      if (!w || typeof w !== "object") { ps[wk] = w; return; }
+      const nw = Object.assign({}, w);
+      DAYS.forEach(d => {
+        if (!w[d.key] || typeof w[d.key] !== "object") return;
+        nw[d.key] = Object.assign({}, w[d.key]);
+        MEALS.forEach(m => {
+          const ids = w[d.key][m.key];
+          if (!Array.isArray(ids)) return;
+          nw[d.key][m.key] = ids
+            .map(e => {
+              if (!e || typeof e !== "object") return e;
+              if (!Array.isArray(e.uids)) return e.id;
+              return e.uids.indexOf(uid) !== -1 ? e.id : null;
+            })
+            .filter(e => e !== null && e !== undefined);
+        });
+      });
+      ps[wk] = nw;
+    });
+    return { recipes: rs, plans: ps };
+  }
+  // Traegt die Kopie noch Gruppenbezug? Nur dann wird beim Start umgeschrieben - sonst
+  // loeste jeder Login einen leeren Schreibvorgang aus.
+  function hatFremdbezug(recipes, plans) {
+    if ((recipes || []).some(r => r && typeof r === "object" && "by" in r)) return true;
+    return Object.keys(plans || {}).some(wk => {
+      const w = plans[wk];
+      return w && typeof w === "object" && DAYS.some(d => w[d.key] && MEALS.some(m =>
+        Array.isArray(w[d.key][m.key]) && w[d.key][m.key].some(e => e && typeof e === "object")));
+    });
+  }
+
   // Gruppe vollstaendig aufloesen (nur der Inhaber, ueber "Auflösen"), danach dieselbe lokale
   // Aufraeumarbeit wie beim einfachen Verlassen. Der eigene Mitglieder-Eintrag ist durch den
   // Batch in dissolveGroupFirestore() schon weg; removeMember() darin (in leaveGroup()) ist
@@ -14596,8 +14657,11 @@
     // Bestand in users/{uid}/recipes die EINZIGE Kopie und darf nicht aufgeraeumt werden.
     const warNurLeser = myRole === "view";
     const snap = keep || snapshotOwnData();
-    const keepRecipes = snap.recipes;
-    const keepPlans = snap.plans;
+    // Ohne `by`/fremde `uids` - die Kopie gehoert ab jetzt nur noch einer Person (Ziffer 10).
+    // Gilt auch fuer dissolveGroup(): Der Inhaber behielt sonst die UIDs aller Mitglieder.
+    const sauber = ohneFremdbezug(snap.recipes, snap.plans, syncUid);
+    const keepRecipes = sauber.recipes;
+    const keepPlans = sauber.plans;
     // Die eigene UID aus den Gruppen-Meals nehmen, SOLANGE man noch Mitglied ist. Danach
     // verweigert canWrite(gid) jeden Schreibzugriff, und der Personenbezug bliebe fuer
     // immer stehen (Art.-30-Verzeichnis V4). Nur-Leser haben nie Meals eingebracht, fuer

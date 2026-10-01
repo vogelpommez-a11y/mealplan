@@ -265,16 +265,22 @@ class Zugang(object):
         return "/".join(t if i % 2 == 0 else "{id}" for i, t in enumerate(pfad.split("/")))
 
     # -- Schreiben -------------------------------------------------------------
-    def schreibe(self, pfad, felder, auch_leeren=None):
+    def schreibe(self, pfad, felder, auch_leeren=None, update_time=None):
         u"""Setzt ein Dokument auf genau diese Felder.
 
         `auch_leeren` nennt zusaetzliche Feldnamen, die in der Maske stehen, aber nicht im
         Rumpf - die raeumt Firestore dadurch weg. So entsteht wirklich der Stand des Backups
         und nicht eine Mischung aus alt und neu.
+
+        `update_time` (optional): nur schreiben, wenn das Dokument seit dem Lesen unveraendert
+        ist - dieselbe Vorbedingung wie bei loesche(). Fuer Bereinigungen, die auf einem
+        gelesenen Stand rechnen (tools/fremde-uids-aufraeumen.py).
         """
         namen = sorted(set(list(felder.keys()) + list(auch_leeren or [])))
-        maske = "&".join("updateMask.fieldPaths=" + urllib.parse.quote(_maskenname(n))
-                         for n in namen)
+        teile = ["updateMask.fieldPaths=" + urllib.parse.quote(_maskenname(n)) for n in namen]
+        if update_time:
+            teile.append("currentDocument.updateTime=" + urllib.parse.quote(update_time, safe=""))
+        maske = "&".join(teile)
         url = self._url(pfad) + ("?" + maske if maske else "")
         self.roh("PATCH", url, {"fields": felder})
         self.geschrieben += 1

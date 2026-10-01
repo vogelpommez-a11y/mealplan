@@ -607,6 +607,8 @@ Kür, nicht Pflicht, wie der Abgleich im Beitrittspfad. Ausführlich:
 
 **Verlassen und Auflösen sichern denselben Snapshot, aber zu verschiedenen Zeitpunkten.** `snapshotOwnData()` liefert Meals und Wochenplan als eigene Kopie; `leaveGroup(keep)` schreibt sie zurück ins eigene Konto. Beim einfachen Verlassen bildet `leaveGroup()` den Snapshot selbst. Beim Auflösen zieht ihn `dissolveGroup()` **vor** `dissolveGroupFirestore()` und reicht ihn herein — sonst hätten `watchPlans`/`watchRecipes` den lokalen Stand nach dem Löschen bereits geräumt und die Sicherung wäre leer (`docs/TROUBLESHOOTING.md` 101).
 
+**Die Kopie verlässt die Gruppe ohne Personenbezug (seit 01.10.2026).** `leaveGroup()` schickt den Snapshot durch `ohneFremdbezug()`, bevor er in den State und ins Konto geht: `by` fällt an jedem Meal weg, Planeinträge `{id, uids}` werden zur String-Form, wenn die eigene UID darin steht, und fallen weg, wenn sie nur anderen zugewiesen waren. Außerhalb einer Gruppe tragen beide Felder keine Funktion. `startCloudSync()` räumt im Zweig **ohne** Gruppe einmal dasselbe weg, wenn `hatFremdbezug()` anschlägt — für Kopien aus Austritten vor diesem Datum. `by` und `uids` existieren damit **nur** unter `groups/{gid}`. Altdaten von Konten, die die App nicht mehr öffnen: `tools/fremde-uids-aufraeumen.py` (`docs/TROUBLESHOOTING.md` §183).
+
 Drei Randfälle werden bewusst behandelt, statt einen zweiten, verwaisten Gruppen-Zeiger entstehen zu lassen:
 
 * **Konto löschen im Wartezustand:** `deleteAccountFlow()` sperrt nicht nur bei aktiver Eigner-Rolle (`syncGid`), sondern auch bei gesetztem `state.pendingGroupId` — sonst bliebe `groups/{gid}` als Karteileiche ohne erreichbaren Owner zurück.
