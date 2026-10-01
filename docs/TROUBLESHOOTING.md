@@ -6,7 +6,7 @@ Dieses Dokument enthält bekannte Fehlerquellen, historische Bugs und Probleme, 
 
 <!-- REGISTER-ANFANG (erzeugt aus den Ueberschriften: python tools/register.py - nicht von Hand pflegen) -->
 
-**Register — 181.** Chronologisch gewachsen: je hoeher die Nummer,
+**Register — 182.** Chronologisch gewachsen: je hoeher die Nummer,
 desto juenger der Fund. Wer eine Falle sucht, sucht hier zuerst; die Ueberschrift sagt
 jeweils, worum es geht. **Nicht die ganze Datei lesen** — sie ist rund 310 KB gross.
 
@@ -193,6 +193,7 @@ jeweils, worum es geht. **Nicht die ganze Datei lesen** — sie ist rund 310 KB 
 | 179 | Übernommene Rezepte galten sofort als „manuell angepasst“ |
 | 180 | Im Instagram-Browser brauchte der erste Cloud-Abgleich 45 Sekunden |
 | 181 | Auf Handys lud die App ohne Konto Code von Google — auf dem Desktop nie |
+| 182 | `pruefstand-reiter.py`: „Start leer" war ein Wettlauf im Prüfstand — und die Gegenprobe maß nichts |
 
 <!-- REGISTER-ENDE -->
 
@@ -6788,7 +6789,10 @@ nicht wissen.
 > läuft.** Beim nächsten Mal glaubt man ihm — oder, schlimmer, man gewöhnt sich an sein
 > Rot und übersieht den echten Fall.
 
-**Nicht behoben**, bewusst: Die Umstellung von festen Wartezeiten auf ein Warten **auf
+**Nachtrag 01.10.2026: behoben — und die Ursache war eine andere** (§182). Nicht die Last
+allein, sondern ein Wettlauf beim Aufbau: Der Testzustand kam oft gar nicht an.
+
+**Damals nicht behoben**, bewusst: Die Umstellung von festen Wartezeiten auf ein Warten **auf
 einen Zustand** (`#view` hat Kinder, oder Zeitgrenze) ist eigene Arbeit am Werkzeug und
 stand nicht im Auftrag dieses Tages. Hier festgehalten, damit die nächste rote Meldung
 nicht wieder eine Stunde Suche kostet — und damit klar ist, dass **erst ohne Parallellast
@@ -6948,3 +6952,66 @@ natives Plugin.
 Prüfer: `tools/netz-ohne-konto.py` — vier Kennungen, frisches Profil, vier Phasen, fällt bei
 jedem fremden Host durch. `--gegenprobe`: der alte Stand (live, vor dem Push) muss durchfallen,
 der neue (lokal) bestehen. Beides am 30.09.2026 gelaufen.
+
+## 182. `pruefstand-reiter.py`: „Start leer" war ein Wettlauf im Prüfstand — und die Gegenprobe maß nichts
+
+**01.10.2026.** Der Altbefund aus §177 und vom 30.09.2026 („Start: #view leer“, auch gegen
+alte Stände) ließ sich nachstellen: rot in etwa jedem zweiten bis dritten Lauf, ohne dass die
+App sich änderte.
+
+**Gemessen, nicht vermutet.** Ein Messlauf las nach dem Neuladen alle 0,2 s Speicher und
+Bildschirm aus. In den roten Läufen hatte die neue Seite **keinen** der beiden Testschlüssel
+(`wochenkueche_v1__test`, `wochenkueche_profile_v1__test`) — die App fand einen leeren
+Speicher und zeigte **richtig** „Willkommen bei Paddy’s Mealplan“. Sie hing nicht in
+`authing`, sie hatte schlicht kein Profil. Der Prüfstand hatte geschrieben, solange die Seite
+noch lud (`readyState: loading`) oder sogar in der leeren Startseite `about:blank` (die sofort
+„complete“ meldet), und dann sofort neu geladen. Die Schreibvorgänge kamen nicht an.
+
+`tools/pruefstand-cloud-laden.py` hatte am 28.09.2026 dasselbe Symptom und umging es mit einem
+Umweg über eine fertig geladene Nebenseite (`robots.txt`) — richtig. Seine Erklärung („die App
+schreibt beim Verlassen ihr Profil zurück“) passt aber nicht zur Messung: Die Schlüssel waren
+nicht überschrieben, sie **fehlten**, auch der Zustandsschlüssel, den die App nie entfernt.
+
+Ein echter Nutzer gerät nie in diese Lage — niemand schreibt in den ersten Millisekunden des
+Ladens und lädt dann neu. **Kein App-Fehler.**
+
+**Fix im Prüfstand:**
+
+1. Erst schreiben, wenn `location.href` die App ist **und** `readyState === "complete"`.
+2. Nach dem Neuladen prüfen, ob das Testprofil angekommen ist. Fehlt es, heißt die Meldung
+   „Aufbau: Testzustand fehlt — Prüfstand, nicht App“, nicht „Start leer“.
+3. Statt fest 3 s warten, bis die App den Ladebildschirm verlässt (höchstens 15 s — ihr eigener
+   Rückfall braucht bis zu 6 s plus 4 s für IndexedDB).
+
+Danach 12 von 12 Läufen grün.
+
+### Die zweite Falle: Die Gegenprobe war wirkungslos
+
+Sie schob eine **zweite** `function paintRecipeGroups(){ GIBTESNICHT(); }` **vor** die echte.
+In JavaScript gewinnt bei doppelten Funktionsdeklarationen die **spätere** — die echte. Die
+Sabotage tat nichts. „Bestanden“ meldete die Gegenprobe trotzdem, weil *irgendein* Befund
+zählte, und den lieferte zuverlässig genug der Wettlauf am Startreiter. **Zwei Fehler haben
+sich gegenseitig verdeckt.**
+
+Jetzt steht `GIBTESNICHT();` **in** der echten Funktion, und bestanden ist nur, wenn **genau**
+der Meals-Reiter rot ist. Dreimal gelaufen: jedes Mal `ROT Meals — Uncaught ReferenceError:
+GIBTESNICHT is not defined`, die anderen drei grün.
+
+> **Eine Gegenprobe, die „irgendein Befund“ zählt, beweist nur, dass der Prüfstand
+> überhaupt etwas meldet — nicht, dass er das Richtige meldet.**
+
+### Die dritte: Das Zurückschreiben kann scheitern
+
+Beim Nachmessen scheiterte das Wiederherstellen von `index.html` einmal mit
+`PermissionError` — Windows hielt die Datei kurz gesperrt, vermutlich der Testserver beim
+Ausliefern. Die Sabotagezeile stand danach in der echten Datei; ein Commit hätte sie live
+gebracht. Aus git wiederhergestellt (`git checkout -- index.html`, vorher unverändert).
+Seither: `zurueckschreiben()` versucht es bis zu 20-mal, liest zur Kontrolle zurück und bricht
+sonst laut mit Rückgabe 3 und dem `git checkout`-Hinweis ab.
+
+Nebenbei: Der Prüfstand startete den Testserver ohne `-ExecutionPolicy Bypass` — auf einem
+Rechner ohne gesetzte Ausführungsrichtlinie (Standard `Restricted`) scheiterte das. Die drei
+anderen Werkzeuge mit Selbststart hatten den Schalter schon; nachgezogen, dazu alle
+„Von Hand“-Hinweise.
+
+Prüfer: `tools/pruefstand-reiter.py` selbst, `--gegenprobe`.

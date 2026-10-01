@@ -39,7 +39,7 @@ Fehler hält, jagt einen Phantomfehler — genau dafür steht diese Tabelle hier
 Für den HTTP-Weg zuerst:
 
 ```powershell
-powershell -NoProfile -File test-server.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File test-server.ps1
 ```
 
 ## Schritt 3: Headless laden

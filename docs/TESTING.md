@@ -263,7 +263,9 @@ python tools/pruefstand-reiter.py --sichtbar   # zum Zuschauen
 python tools/pruefstand-reiter.py --gegenprobe # baut einen Fehler ein: merkt er ihn?
 ```
 
-Er setzt fünf Testmeals, klickt jeden Reiter an und prüft je Reiter drei Dinge: `#view`
+Er setzt fünf Testmeals — **erst, wenn die App-Seite fertig geladen ist**, und prüft nach dem
+Neuladen, ob sie angekommen sind (`docs/TROUBLESHOOTING.md` §182) —, klickt jeden Reiter an und
+prüft je Reiter drei Dinge: `#view`
 ist gefüllt, ein **reiterspezifisches** Merkmal ist da, und beim Wechsel wurde kein
 `window.onerror` oder `console.error` ausgelöst.
 
@@ -306,7 +308,7 @@ den Cloud-Pfad, und ein „Wie sollen wir dich nennen?" ist dort **kein Befund**
 Anmeldung, Firestore oder den Sync im Smoke-Test sehen will, muss über HTTP laden:
 
 ```powershell
-powershell -NoProfile -File test-server.ps1   # http://localhost:8000/
+powershell -NoProfile -ExecutionPolicy Bypass -File test-server.ps1   # http://localhost:8000/
 ```
 
 Dass das SDK wirklich lokal geladen hat, zeigt am zuverlässigsten die Ressourcenliste der
@@ -4610,7 +4612,7 @@ Fortschritt-Reiter — Reihenfolge der Karten, gefüllte laufende Woche, Jahr-Um
 beide Karten, Tipp, Tages-Serie.
 
 ```powershell
-powershell -NoProfile -File test-server.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File test-server.ps1
 & "C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe" --headless=new --disable-gpu `
   --virtual-time-budget=45000 --user-data-dir="<scratchpad>\edge" --dump-dom `
   http://localhost:8000/tools/probe-fortschritt.html > dump.html
@@ -4651,7 +4653,7 @@ man klickt durch, ohne Eingaben zu erfinden. Gemessen wird je Bildschirm die Hö
 `.onb-stage`, die Absolutposition von `.onb-next` und `scrollHeight - innerHeight`.
 
 ```powershell
-powershell -NoProfile -File test-server.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File test-server.ps1
 # http://localhost:8000/tools/probe-onboarding.html            (Messung)
 # http://localhost:8000/tools/probe-onboarding.html?kaputt=1   (Gegenprobe)
 ```
@@ -5041,7 +5043,7 @@ Brezel als Hasenkopf. Vier Runden hat es gebraucht, jede über diese Seite entsc
 einen Pfad ändert, prüft ihn hier — nicht bei 64 px.**
 
 ```powershell
-powershell -NoProfile -File test-server.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File test-server.ps1
 # dann http://localhost:8000/tools/probe-symbole.html
 ```
 
@@ -5132,7 +5134,7 @@ der Reparatur zurücknimmt, belegt nicht, was sie zu belegen scheint.
 wird, und fährt darin den echten Scan-Weg der Zutatenzeile.
 
 ```powershell
-powershell -NoProfile -File test-server.ps1        # Pflicht: getUserMedia braucht localhost
+powershell -NoProfile -ExecutionPolicy Bypass -File test-server.ps1        # Pflicht: getUserMedia braucht localhost
 python tools/abnahme-scan-kamera.py
 ```
 

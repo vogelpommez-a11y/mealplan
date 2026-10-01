@@ -462,7 +462,7 @@ Nicht öffentlich, deshalb gitignored: `plans/`, `dashboard.html`, `Fotos/`, `Ma
 
 → Rollback, Notfälle, Credential-Manager-Workaround: `docs/RUNBOOK.md` und `/deploy`
 
-Lokaler Server: `powershell -NoProfile -File test-server.ps1` → `http://localhost:8000/`
+Lokaler Server: `powershell -NoProfile -ExecutionPolicy Bypass -File test-server.ps1` → `http://localhost:8000/`
 
 ---
 

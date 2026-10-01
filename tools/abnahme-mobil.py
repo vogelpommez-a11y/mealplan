@@ -13,7 +13,7 @@ mit Input.dispatchTouchEvent. Drei Geraetebreiten, Light UND Dark, 22 Stationen 
   python tools/abnahme-mobil.py --gegenprobe     # misst sich selbst (siehe unten)
   python tools/abnahme-mobil.py --zeigen         # Browser am Ende offen lassen
 
-Braucht den lokalen Server: powershell -NoProfile -File test-server.ps1
+Braucht den lokalen Server: powershell -NoProfile -ExecutionPolicy Bypass -File test-server.ps1
 Eigenes Profil auf Port 9225, bewusst NICHT angemeldet - die Cloud-Falle aus
 docs/TESTING.md: localhost trennt nur den lokalen Speicher, nicht die Cloud.
 
@@ -419,7 +419,7 @@ class Sitzung(object):
                 u"ABBRUCH - der lokale Server antwortet nicht auf %s.\n"
                 u"  Ohne ihn laedt Chrome seine Fehlerseite, und dieser Lauf wuerde\n"
                 u"  die Fehlerseite vermessen statt die App (TROUBLESHOOTING 174).\n"
-                u"  Von Hand:  powershell -NoProfile -File test-server.ps1" % URL)
+                u"  Von Hand:  powershell -NoProfile -ExecutionPolicy Bypass -File test-server.ps1" % URL)
         try:
             if self._seiten():
                 self.verbinden()
@@ -527,7 +527,7 @@ class Sitzung(object):
             u"  Weder .app noch #view sind da. Sehr wahrscheinlich Chromes\n"
             u"  Fehlerseite, weil test-server.ps1 weggefallen ist.\n"
             u"  Dieser Lauf haette die Fehlerseite vermessen (TROUBLESHOOTING 174).\n"
-            u"  Von Hand:  powershell -NoProfile -File test-server.ps1" % titel)
+            u"  Von Hand:  powershell -NoProfile -ExecutionPolicy Bypass -File test-server.ps1" % titel)
 
     def tippen(self, x, y):
         p = [{"x": float(x), "y": float(y), "radiusX": 12, "radiusY": 12, "force": 1}]

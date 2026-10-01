@@ -49,8 +49,8 @@ python tools/netz-ohne-konto.py --live
 
 Vier Browserkennungen, frische Profile, keine Anmeldung. Vorher alle `chrome.exe`/
 `msedge.exe` beenden (`docs/TROUBLESHOOTING.md` §177). Ist der Stand nicht gepusht
-(Schritt 1), zusätzlich lokal: Server starten (`powershell -NoProfile -File
-test-server.ps1`) und `python tools/netz-ohne-konto.py` ohne `--live`.
+(Schritt 1), zusätzlich lokal: Server starten (`powershell -NoProfile -ExecutionPolicy
+Bypass -File test-server.ps1`) und `python tools/netz-ohne-konto.py` ohne `--live`.
 
 ## 3. Gegenprüfen
 

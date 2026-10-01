@@ -86,7 +86,7 @@ def main():
     a = p.parse_args()
 
     if not server_laeuft() and not server_starten():
-        print(u"Server kam nicht hoch. Von Hand:  powershell -NoProfile -File test-server.ps1")
+        print(u"Server kam nicht hoch. Von Hand:  powershell -NoProfile -ExecutionPolicy Bypass -File test-server.ps1")
         return 2
 
     if a.app:

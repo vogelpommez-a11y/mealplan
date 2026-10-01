@@ -35,7 +35,7 @@ Rueckbau der Schwelle aendert nichts. Die Schwelle ist der Guertel fuer Zeiger, 
 pointercancel schicken; geprueft wird sie headless im Pruefstand.
 
 Voraussetzung: der lokale Server laeuft.
-    powershell -NoProfile -File test-server.ps1
+    powershell -NoProfile -ExecutionPolicy Bypass -File test-server.ps1
 
 Aufruf:  python tools/abnahme-zutaten-sortieren.py [--rueckbau <name>] [--bleib]
          --bleib laesst Chrome offen, um selbst nachzusehen.
@@ -362,7 +362,7 @@ def main():
         urllib.request.urlopen(SERVER + "index.html", timeout=5).read(64)
     except Exception:
         raise SystemExit("Der lokale Server antwortet nicht auf %s\n"
-                         "  powershell -NoProfile -File test-server.ps1" % SERVER)
+                         "  powershell -NoProfile -ExecutionPolicy Bypass -File test-server.ps1" % SERVER)
 
     url = SERVER + "index.html"
     if rueckbau:

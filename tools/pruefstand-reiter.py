@@ -108,7 +108,7 @@ def server_laeuft():
 def server_starten():
     u"""Wie in tools/vorfuehren.py - der Reihenlauf soll nicht an einer Vorbedingung
     scheitern, die sich in drei Sekunden selbst herstellen laesst."""
-    subprocess.Popen(["powershell", "-NoProfile", "-WindowStyle", "Minimized",
+    subprocess.Popen(["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-WindowStyle", "Minimized",
                       "-File", os.path.join(WURZEL, "test-server.ps1")], cwd=WURZEL)
     for _ in range(30):
         time.sleep(0.5)
@@ -189,17 +189,51 @@ class Browser(object):
             pass
 
 
+def warte(b, ausdruck, sekunden):
+    u"""Fragt `ausdruck` alle 0,2 s ab, bis er wahr ist. False nach `sekunden`."""
+    ende = time.time() + sekunden
+    while time.time() < ende:
+        if b.js(ausdruck) is True:
+            return True
+        time.sleep(.2)
+    return False
+
+
 def lauf(sichtbar=False):
     u"""Liefert (befunde, zeilen). befunde = Liste der ROT-Meldungen."""
     b = Browser(sichtbar)
     befunde, zeilen = [], []
     try:
+        # Erst schreiben, wenn die Seite fertig geladen ist. Schrieb der Pruefstand in eine
+        # Seite mit readyState "loading" und lud sofort neu, kam der Testzustand in jedem
+        # zweiten bis dritten Lauf NICHT an - die App sah einen leeren Speicher, zeigte
+        # richtig den Willkommensbildschirm, und gemeldet wurde "Start: #view leer"
+        # (gemessen 01.10.2026, docs/TROUBLESHOOTING.md §182). Ein Pruefstandsfehler, kein App-Fehler.
+        # Auch die Adresse pruefen: Die leere Startseite about:blank meldet sofort
+        # "complete" - wer dort schreibt, schreibt in einen anderen Ursprung.
+        if not warte(b, "location.href.indexOf('/index.html') >= 0"
+                        " && document.readyState === 'complete'", 15):
+            befunde.append(u"Aufbau: App-Seite wurde nicht fertig geladen")
+            zeilen.append((u"ROT", u"Aufbau", u"Seite laedt nicht - Pruefstand, nicht App"))
+            return befunde, zeilen
         b.js("localStorage.setItem('wochenkueche_v1__test', %s);"
              "localStorage.setItem('wochenkueche_profile_v1__test', %s);"
              % (json.dumps(json.dumps(ZUSTAND)),
                 json.dumps(json.dumps({"name": "Probe", "id": "lokal"}))))
         b.js("location.reload()")
-        time.sleep(3)
+        time.sleep(.5)
+        if not warte(b, "!!localStorage.getItem('wochenkueche_profile_v1__test')", 10):
+            befunde.append(u"Aufbau: Testprofil kam nach dem Neuladen nicht an")
+            zeilen.append((u"ROT", u"Aufbau", u"Testzustand fehlt - Pruefstand, nicht App"))
+            return befunde, zeilen
+        # Bis die App wirklich steht, statt fest 3 s: Ihr eigener Rueckfall braucht bis zu
+        # 6 s (Cloud antwortet nicht) plus 4 s (IndexedDB), siehe boot()/hydrateImages().
+        if not warte(b, "(function(){var a=document.querySelector('.authing');"
+                        "var v=document.getElementById('view');"
+                        "return !a && !!v && v.children.length > 0;})()", 15):
+            befunde.append(u"Start: App verlaesst den Ladebildschirm nicht (15 s)")
+            zeilen.append((u"ROT", u"Start", u"haengt in 'authing'"))
+            return befunde, zeilen
 
         # Laufzeitfehler ab hier mitschreiben. window.onerror faengt genau das, was
         # syntax-check.py nicht sehen kann: einen Fehler bei der AUSFUEHRUNG.
@@ -242,6 +276,27 @@ def lauf(sichtbar=False):
     return befunde, zeilen
 
 
+def zurueckschreiben(pfad, inhalt):
+    u"""Stellt die sabotierte Datei wieder her - mit Wiederholung und Kontrolle.
+
+    Am 01.10.2026 scheiterte das Zurueckschreiben einmal mit PermissionError (Windows hielt
+    index.html kurz gesperrt, vermutlich der Testserver beim Ausliefern). Danach stand die
+    Sabotage in der echten Datei - ein Commit haette sie live gebracht.
+    """
+    for _ in range(20):
+        try:
+            io.open(pfad, "w", encoding="utf-8", newline="").write(inhalt)
+            if io.open(pfad, encoding="utf-8", newline="").read() == inhalt:
+                return
+        except (IOError, OSError):
+            pass
+        time.sleep(.5)
+    print(u"")
+    print(u"!!! %s konnte NICHT wiederhergestellt werden - die Sabotage steht noch drin." % pfad)
+    print(u"!!! Sofort:  git checkout -- index.html   (und vorher NICHTS committen)")
+    sys.exit(3)
+
+
 def main():
     args = sys.argv[1:]
     sichtbar = "--sichtbar" in args
@@ -250,7 +305,7 @@ def main():
 
     if not server_laeuft() and not server_starten():
         print(u"FEHLGESCHLAGEN: Kein Server auf :8000, und er liess sich nicht starten.")
-        print(u"Von Hand:  powershell -NoProfile -File test-server.ps1")
+        print(u"Von Hand:  powershell -NoProfile -ExecutionPolicy Bypass -File test-server.ps1")
         return 2
 
     if gegenprobe:
@@ -261,27 +316,35 @@ def main():
         # CRLF wird LF, und die Sicherung schreibt hinterher ANDERE Zeilenenden zurueck.
         # Inhaltlich identisch, fuer git trotzdem die ganze Datei geaendert.
         sicherung = io.open(pfad, encoding="utf-8", newline="").read()
-        marke = "  function paintRecipeGroups("
-        if marke not in sicherung:
-            print(u"Gegenprobe nicht moeglich: Anker fehlt.")
+        # Der Fehler kommt IN die echte Funktion. Bis 01.10.2026 stand hier eine zweite
+        # Deklaration VOR der echten - in JavaScript gewinnt aber die spaetere, die Sabotage
+        # war wirkungslos. "Bestanden" kam nur, weil der Startreiter im Wettlauf leer blieb
+        # (docs/TROUBLESHOOTING.md §182). Deshalb zaehlt jetzt nur ein Befund am Meals-Reiter.
+        marke = "  function paintRecipeGroups() {"
+        if sicherung.count(marke) != 1:
+            print(u"Gegenprobe nicht moeglich: Anker fehlt oder ist nicht eindeutig.")
             return 2
-        kaputt = sicherung.replace(
-            marke, "  function paintRecipeGroups(){ GIBTESNICHT(); }\n" + marke, 1)
+        kaputt = sicherung.replace(marke, marke + " GIBTESNICHT();", 1)
         io.open(pfad, "w", encoding="utf-8", newline="").write(kaputt)
         try:
-            print(u"GEGENPROBE - ein Reiter ist absichtlich zerschossen:")
+            print(u"GEGENPROBE - der Meals-Reiter ist absichtlich zerschossen:")
             befunde, zeilen = lauf(sichtbar)
             for zustand, label, text in zeilen:
                 print(u"  %-4s %-14s %s" % (zustand, label, text))
             print()
-            if befunde:
-                print(u"BESTANDEN: %d Befund(e) - der Pruefstand merkt es." % len(befunde))
+            rot = [l for z, l, _ in zeilen if z == u"ROT"]
+            if rot == [u"Meals"]:
+                print(u"BESTANDEN: genau der zerschossene Reiter ist rot.")
                 return 0
+            if rot:
+                print(u"DURCHGEFALLEN: rot ist %s, erwartet war genau 'Meals'." % ", ".join(rot))
+                print(u"Ein Befund an der falschen Stelle beweist nicht, dass er misst.")
+                return 1
             print(u"DURCHGEFALLEN: nichts gemeldet. Der Pruefstand misst nicht,")
             print(u"was er zu messen vorgibt (CLAUDE.md 11).")
             return 1
         finally:
-            io.open(pfad, "w", encoding="utf-8", newline="").write(sicherung)
+            zurueckschreiben(pfad, sicherung)
 
     befunde, zeilen = lauf(sichtbar)
     print(u"Reiter - rendert jeder?")

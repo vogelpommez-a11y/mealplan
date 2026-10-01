@@ -69,7 +69,9 @@ siehe Punkt 1.9.
 - [x] Abbrechen gibt die Kamera wieder frei (die Leuchte am Gerät geht aus).
 
 ### 1.7 Anmelden
-- [x] Anmeldung mit Google öffnet das Fenster und kehrt **in die App** zurück.
+- [x] Anmeldung mit Google öffnet das Fenster und kehrt **in die App** zurück. — Nach dem
+      Auth-Umbau vom 30.09.2026 (`initializeAuth` ohne Resolver, TROUBLESHOOTING §181) in
+      Safari und Instagram erneut bestanden (30.09.2026).
 - [x] Anmeldung per E-Mail: Die Bestätigungsmail kommt an und der Link führt zurück.
 - [x] Bei der Registrierung steht der Hinweis auf **mindestens 16 Jahre**.
 

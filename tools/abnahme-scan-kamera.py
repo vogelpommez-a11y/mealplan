@@ -15,7 +15,7 @@ Fokusereignisse, echter Netzabruf bei Open Food Facts. Gestubbt ist nichts.
   python tools/abnahme-scan-kamera.py           # beide Wege messen
   python tools/abnahme-scan-kamera.py --zeigen  # Browser am Ende offen lassen
 
-Braucht den lokalen Server: powershell -NoProfile -File test-server.ps1
+Braucht den lokalen Server: powershell -NoProfile -ExecutionPolicy Bypass -File test-server.ps1
 
 Eigenes Profil auf Port 9224, bewusst NICHT angemeldet - siehe docs/TESTING.md
 (Cloud-Falle: localhost trennt nur den lokalen Speicher, nicht die Cloud).

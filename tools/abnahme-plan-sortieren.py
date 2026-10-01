@@ -41,7 +41,7 @@ Chrome pointercancel, sobald das Scrollen uebernimmt - die Geste ist da schon be
 Geprueft wird sie headless im Pruefstand.
 
 Voraussetzung: der lokale Server laeuft.
-    powershell -NoProfile -File test-server.ps1
+    powershell -NoProfile -ExecutionPolicy Bypass -File test-server.ps1
 
 Aufruf:  python tools/abnahme-plan-sortieren.py [--rueckbau <name>] [--bleib]
          --bleib laesst Chrome offen, um selbst nachzusehen.
