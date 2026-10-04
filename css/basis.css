@@ -205,7 +205,8 @@
        Knopfzeile und Kapsel. 10px bleiben als Trennung, die restlichen 10 gehen an die
        Karte. */
     .app:has(.week-nut .hm-card) { padding-bottom: calc(var(--tabbar-h, 58px) + 10px + env(safe-area-inset-bottom, 0px)); }
-    #toast { bottom: calc(var(--tabbar-h, 58px) + 24px + env(safe-area-inset-bottom, 0px)); }
+    /* #toast ueber der Kapsel: steht in komponenten.css hinter der Grundregel. Hier war er
+       wirkungslos - komponenten.css laedt spaeter und ihr "bottom: 26px" gewann. */
 
     /* ---------- Fusszeile: auf dem Handy weg ----------
        Impressum und Datenschutz stehen dort im Ausklappmenue oben rechts. Fuer mobile

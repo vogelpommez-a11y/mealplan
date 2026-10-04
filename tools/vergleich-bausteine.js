@@ -206,6 +206,65 @@ var BAUSTEINE = [
   },
 
   {
+    id: "toast",
+    titel: "Toast: Glas statt weißer Pille",
+    was: "Der Toast mit „Rückgängig“ steht dauerhaft über dem Plan. Links die alte Pille "
+       + "(im Dunkeln weiß), rechts Glas wie die Reiterleiste. Oben Hell/Dunkel umschalten.",
+    stellen: [
+      "#toast — css/komponenten.css (eine Regel für alle ~130 Aufrufe)",
+      "Rückfälle ohne Blur und bei „Transparenz reduzieren“ — direkt darunter"
+    ],
+    zustand: {},
+    // Echtes #toast-Element und echtes CSS, nur ohne den Ausblende-Timer von toast()/
+    // undoToast() - sonst waere er nach 2 bzw. 5 Sekunden weg, bevor man vergleicht.
+    // Markup wie in undoToast(): <span> + button.toast-undo.
+    oeffnen: function (doc) {
+      var t = doc.getElementById("toast"); if (!t) return "kein #toast gefunden";
+      t.textContent = "";
+      var s = doc.createElement("span"); s.textContent = "Meal gelöscht"; t.appendChild(s);
+      var b = doc.createElement("button"); b.type = "button"; b.className = "toast-undo";
+      b.textContent = "Rückgängig"; t.appendChild(b);
+      t.classList.add("show", "has-undo");
+      return "Toast mit „Rückgängig“ dauerhaft eingeblendet";
+    }
+  },
+
+  {
+    id: "zahl-hinweise",
+    titel: "Hinweis bei Zahlen außerhalb der Grenzen",
+    was: "Beide Seiten tragen 12 Jahre ein und tippen auf „Weiter“. Links „Alter: bitte ein "
+       + "Wert zwischen 16 und 120 Jahre“, rechts „Trag dein Alter zwischen 16 und 120 Jahren "
+       + "ein“. Danach selbst probieren: Größe 300, Gewicht 500 – und im Wiegen-Dialog.",
+    stellen: [
+      "onbNumMissing() — Alter, Größe, Gewicht, Trainingsdauer (Wörter aus ONB_NUM.bad)",
+      "onbMissing(\"target\") — Zielgewicht",
+      "Wiegen-Dialog — zwei Stellen, gleicher Satz"
+    ],
+    zustand: { goal: null, onboarded: false },
+    oeffnen: function (doc) {
+      var w = doc.defaultView;
+      function weiter() { var b = doc.querySelector(".onb-next"); if (b) b.click(); }
+      function tippe(sel, wert) {
+        var el = doc.querySelector(sel); if (!el) return;
+        el.value = wert; el.dispatchEvent(new w.Event("input", { bubbles: true }));
+      }
+      function koerper() {
+        if (!doc.querySelector('[data-num="age"]')) {
+          tippe("#onb-text", "Vergleich"); weiter(); w.setTimeout(koerper, 500); return;
+        }
+        var m = doc.querySelector('[data-opt="sex"][data-v="m"]'); if (m) m.click();
+        tippe('[data-num="age"]', "12");
+        tippe('[data-num="height"]', "175");
+        tippe('[data-num="weight"]', "70");
+        w.setTimeout(weiter, 300);
+      }
+      weiter();
+      w.setTimeout(koerper, 500);
+      return "Einführung bis „Körperdaten“, 12 Jahre eingetragen, „Weiter“ getippt";
+    }
+  },
+
+  {
     id: "cloud-laden",
     titel: "Erster Cloud-Abgleich auf frischem Gerät",
     was: "Angemeldet, der Abgleich läuft noch. Links der leere Plan, der wie „alles weg“ "

@@ -6,7 +6,7 @@ Dieses Dokument enthält bekannte Fehlerquellen, historische Bugs und Probleme, 
 
 <!-- REGISTER-ANFANG (erzeugt aus den Ueberschriften: python tools/register.py - nicht von Hand pflegen) -->
 
-**Register — 183.** Chronologisch gewachsen: je hoeher die Nummer,
+**Register — 184.** Chronologisch gewachsen: je hoeher die Nummer,
 desto juenger der Fund. Wer eine Falle sucht, sucht hier zuerst; die Ueberschrift sagt
 jeweils, worum es geht. **Nicht die ganze Datei lesen** — sie ist rund 310 KB gross.
 
@@ -195,6 +195,7 @@ jeweils, worum es geht. **Nicht die ganze Datei lesen** — sie ist rund 310 KB 
 | 181 | Auf Handys lud die App ohne Konto Code von Google — auf dem Desktop nie |
 | 182 | `pruefstand-reiter.py`: „Start leer" war ein Wettlauf im Prüfstand — und die Gegenprobe maß nichts |
 | 183 | Die Kopie nach dem Austritt trug die Kennungen der anderen Mitglieder |
+| 184 | Der Toast: Times-Schrift, auf der Reiterleiste, umgebrochen — drei alte Fehler unter Weiß |
 
 <!-- REGISTER-ENDE -->
 
@@ -7059,3 +7060,21 @@ Prüfer: `tools/pruefstand-fremdbezug.py` (17 Prüfungen; Gegenprobe gegen `7fb1
 gezielte Sabotagen fallen durch), `tools/fremde-uids-aufraeumen.py --selbsttest` (mit
 Gegenprobe), `tools/pruefstand-firestore-backup.py` Abschnitt 15 (Gegenprobe: 6 rot bei
 abgeschalteten Stellen).
+
+## 184. Der Toast: Times-Schrift, auf der Reiterleiste, umgebrochen — drei alte Fehler unter Weiß
+
+**04.10.2026, gefunden beim Umstellen auf Glas** (Vorher/Nachher `?baustein=toast`). Die weiße
+Pille hatte alle drei verdeckt; erst das Glas machte sie sichtbar.
+
+| Fehler | Ursache | Fix |
+|---|---|---|
+| Toast-Text in **Times** | `#toast` steht im Markup **außerhalb** von `.app`, und nur `.app` setzt `font-family`. Die Modals hatten dasselbe Problem und lösen es über `.overlay` — der Toast war vergessen | `font-family: var(--font-body)` am `#toast` |
+| Am Handy **auf** der Reiterleiste statt darüber | Die mobile Regel stand in `basis.css` (680er-Block). `komponenten.css` lädt **danach**, und deren Grundregel `bottom: 26px` gewann bei gleicher Spezifität — die mobile Regel war seit der schwebenden Kapsel wirkungslos | Regel in `komponenten.css` **hinter** die Grundregel verschoben, in `basis.css` ein Hinweis |
+| „Meal gelöscht · Rückgängig" **zweizeilig** | `left: 50%` lässt einem fixierten Element nur die halbe Viewportbreite für seine Breitenberechnung | `width: max-content; max-width: calc(100vw - 32px)` |
+
+**Die Lehre:** Ein deckendes, kontraststarkes Element verdeckt Fehler seiner Umgebung — hier
+die Überlappung mit der Leiste, die mit Weiß nur „etwas unschön" aussah und mit Glas unleserlich
+wurde. Und wieder die Kaskadenregel aus `css/CLAUDE.md`: **Die Reihenfolge der Dateien ist
+Verhalten.** Eine Regel kann in der richtigen Datei stehen und trotzdem nie greifen.
+
+Prüfer: Sichtprobe `tools/probe-vergleich.html?baustein=toast` (Hell/Dunkel, 390/720/1280).

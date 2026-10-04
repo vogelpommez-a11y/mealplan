@@ -1168,6 +1168,26 @@ einer so flachen Karte ist jede andere Lösung schlechter.
 **Der Hinweis „Symbolbild · KI-generiert" entfällt an einer Symbolfläche.** Er gehört zu den
 mitgelieferten Fotos; ein Strichsymbol ist weder das eine noch das andere.
 
+## Der Toast ist aus Glas (seit 04.10.2026)
+
+Bis dahin hatte der Toast die Theme-Farben **vertauscht** (`background: var(--text)`): im Dark
+Mode eine weiße Pille, das einzige grelle Element in Performance Dark. Verglichen wurden vier
+Varianten (`tools/probe-toast.html`: Fläche, Fläche + Akzentkante, Glas, immer dunkel);
+Paddy wählte **Glas**.
+
+| | |
+|---|---|
+| **Material** | dieselben Tokens wie die schwebende Reiterleiste: `--glass-bg-strong`, `--glass-edge`, `--glass-shadow`, `--glass-blur` |
+| **Warum `-strong`** | im Toast steht Text über durchlaufendem Inhalt und Fotos — dieselbe Begründung wie im Kopf |
+| **Schrift** | 600 statt 550: Text auf Glas braucht eine Spur mehr Gewicht |
+| **Rückfälle** | ohne `backdrop-filter` und bei `prefers-reduced-transparency` deckend — halbtransparent ohne Unschärfe hieße Text auf Text |
+| **Am Handy** | 24 px **über** der Reiterleiste, nie darauf: Glas auf Glas ist unleserlich |
+| **Kontrast** | ungünstigster Fall (Glas über weißem bzw. schwarzem Foto): ≈ 8,7:1 dunkel, ≈ 11,8:1 hell |
+
+Verworfen: die **Akzentkante** — an der Pillenrundung wird der Streifen zur roten Sichel, und
+Rot ist die Aktionsfarbe (siehe oben). **Immer dunkel** hätte ein neues Token in vier Blöcken
+gebraucht, für eine Wirkung, die im Dark Mode kaum von der Fläche zu unterscheiden war.
+
 ## Der Scanner antwortet dort, wo der Blick liegt (seit 14.09.2026)
 
 Der Toast ist die richtige Form für eine Nachricht **an die App** — „Zum Plan hinzugefügt",

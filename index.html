@@ -8110,7 +8110,7 @@
       // waere dann der alte, und die Eingabe ginge stillschweigend verloren.
       // nutParse akzeptiert Komma wie Punkt - auf deutschen Tastaturen wird das Komma getippt.
       const kg = nutParse(kgEl.value);
-      if (!(kg >= KG_MIN && kg <= KG_MAX)) { kgEl.focus(); kgEl.classList.add("is-bad"); toast("Bitte ein Gewicht zwischen " + KG_MIN + " und " + KG_MAX + " kg eintragen"); return; }
+      if (!(kg >= KG_MIN && kg <= KG_MAX)) { kgEl.focus(); kgEl.classList.add("is-bad"); toast("Trag dein Gewicht zwischen " + KG_MIN + " und " + KG_MAX + " kg ein"); return; }
       const m = yEl.value + "-W" + mEl.value;
       // Zeichenkettenvergleich reicht: "2026-W07" < "2026-W33" stimmt, weil die Wochenzahl
       // zweistellig aufgefuellt ist - dieselbe Eigenschaft, auf der schon state.plans beruht.
@@ -8240,7 +8240,7 @@
       // Aus dem Feld lesen, nicht aus kgWert - wer tippt und direkt speichert, hat noch
       // kein change-Ereignis ausgeloest (gleicher Grund wie beim Wiegen).
       const kg = nutParse(kgEl.value);
-      if (!(kg >= KG_MIN && kg <= KG_MAX)) { kgEl.focus(); kgEl.classList.add("is-bad"); toast("Bitte ein Gewicht zwischen " + KG_MIN + " und " + KG_MAX + " kg eintragen"); return; }
+      if (!(kg >= KG_MIN && kg <= KG_MAX)) { kgEl.focus(); kgEl.classList.add("is-bad"); toast("Trag dein Gewicht zwischen " + KG_MIN + " und " + KG_MAX + " kg ein"); return; }
       if (!state.weightGoals) state.weightGoals = {};
       state.weightGoals[year] = Math.round(kg * 10) / 10;
       save(); closeModal(); render(); toast("Ziel für " + year + " gespeichert");
@@ -12404,12 +12404,18 @@
                      "target", "diet", "result", "go"];
   // Zahlenfelder. `lab` ist die Feldbeschriftung auf den Sammel-Bildschirmen (dort traegt
   // nicht mehr die Ueberschrift die Bedeutung, also braucht jedes Feld ein eigenes
-  // <label>), `miss` der Klartext fuer den Hinweis, wenn es leer bleibt.
+  // <label>), `miss` der Klartext fuer den Hinweis, wenn es leer bleibt. `bad` fuer den
+  // Hinweis ausserhalb der Grenzen: eigene Woerter statt `miss`/`unit`, weil der Satz
+  // andere Formen braucht ("zwischen 16 und 120 Jahren", "eine Dauer" statt "die Dauer").
   const ONB_NUM = {
-    age:    { unit: "Jahre", min: 16,      max: 120,          lab: "Alter",   miss: "dein Alter" },
-    height: { unit: "cm",    min: 100,     max: 250,          lab: "Größe",   miss: "deine Größe" },
-    weight: { unit: "kg",    min: KG_MIN,  max: KG_MAX,       lab: "Gewicht", miss: "dein Gewicht" },
-    tmin:   { unit: "Min.",  min: TRAIN_MIN_MIN, max: TRAIN_MIN_MAX, lab: "Dauer", miss: "die Dauer einer Einheit" }
+    age:    { unit: "Jahre", min: 16,      max: 120,          lab: "Alter",   miss: "dein Alter",
+              bad: ["dein Alter", "Jahren"] },
+    height: { unit: "cm",    min: 100,     max: 250,          lab: "Größe",   miss: "deine Größe",
+              bad: ["deine Größe", "cm"] },
+    weight: { unit: "kg",    min: KG_MIN,  max: KG_MAX,       lab: "Gewicht", miss: "dein Gewicht",
+              bad: ["dein Gewicht", "kg"] },
+    tmin:   { unit: "Min.",  min: TRAIN_MIN_MIN, max: TRAIN_MIN_MAX, lab: "Dauer", miss: "die Dauer einer Einheit",
+              bad: ["eine Dauer", "Minuten"] }
   };
   const ONB_TEXT = {
     name: { q: "Wie heißt du?", max: 40, placeholder: "Dein Vorname" }
@@ -12656,7 +12662,7 @@
         const v = c.weightGoal;
         if (v === "" || v == null) return "";  // optional, leer ist gueltig
         const n = Number(v);
-        if (!isFinite(n) || n < KG_MIN || n > KG_MAX) return `Bitte ein Zielgewicht zwischen ${KG_MIN} und ${KG_MAX} kg oder leer lassen`;
+        if (!isFinite(n) || n < KG_MIN || n > KG_MAX) return `Trag ein Zielgewicht zwischen ${KG_MIN} und ${KG_MAX} kg ein – oder lass das Feld leer`;
       }
     }
     if (id === "result") { const f = missingCalc(onbGoalInput()); if (f.length) return "Es fehlt noch " + f.join(" und "); }
@@ -12670,7 +12676,7 @@
     const num = ONB_NUM[k]; if (!num) return "";
     const raw = onb.cur[k], v = Number(raw);
     if (!raw || !isFinite(v)) return "Trag noch " + num.miss + " ein";
-    if (v < num.min || v > num.max) return `${num.lab}: bitte ein Wert zwischen ${num.min} und ${num.max} ${num.unit}`;
+    if (v < num.min || v > num.max) return `Trag ${num.bad[0]} zwischen ${num.min} und ${num.max} ${num.bad[1]} ein`;
     return "";
   }
 

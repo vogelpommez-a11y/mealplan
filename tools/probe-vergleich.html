@@ -173,7 +173,8 @@
   }
 
   // ------------------------------------------------------------------- Zustand
-  var breite = 390, theme = "dark", aktuell = null, gegenprobe = false;
+  // ?theme=light: fuer headless Aufnahmen, die keinen Knopf druecken koennen.
+  var breite = 390, theme = frage("theme") === "light" ? "light" : "dark", aktuell = null, gegenprobe = false;
 
   function baustein(id) {
     for (var i = 0; i < BAUSTEINE.length; i++) if (BAUSTEINE[i].id === id) return BAUSTEINE[i];

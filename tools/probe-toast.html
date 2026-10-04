@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="de" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Toast – Varianten im Vergleich</title>
+
+<!-- Das ECHTE Projekt-CSS, nicht nachgebaut. Der heutige Toast (Variante 0) wird unten
+     per JS aus der #toast-Regel in komponenten.css abgeleitet - wer ihn abtippt,
+     vergleicht seine Abschrift mit sich selbst. -->
+<link rel="stylesheet" href="../css/tokens.css">
+<link rel="stylesheet" href="../css/basis.css">
+<link rel="stylesheet" href="../css/komponenten.css">
+
+<style>
+  /* Geruest dieser Vergleichsseite - folgt dem Theme, ist aber kein Projekt-Stil. */
+  body { margin: 0; background: var(--bg); color: var(--text); font-family: var(--font-body); }
+  .kopf { padding: 24px 20px 8px; max-width: 1240px; margin: 0 auto; }
+  .kopf h1 { font-size: 21px; margin: 0 0 6px; font-family: var(--font-display); }
+  .kopf p { margin: 0 0 10px; color: var(--text-muted); font-size: 14px; line-height: 1.5; max-width: 80ch; }
+  .schalter { display: inline-flex; gap: 6px; padding: 4px; border-radius: 999px;
+              background: var(--surface-2); border: 1px solid var(--border); }
+  .schalter button { border: 0; background: transparent; color: var(--text-muted); font: inherit;
+                     font-size: 13.5px; font-weight: 600; padding: 7px 16px; border-radius: 999px; cursor: pointer; }
+  .schalter button[aria-pressed="true"] { background: var(--surface); color: var(--text); box-shadow: var(--shadow); }
+  .reihe { display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 16px;
+           padding: 16px 20px 40px; max-width: 1240px; margin: 0 auto; }
+  .spalte { border-radius: 14px; overflow: hidden; border: 1px solid var(--border); background: var(--surface); }
+  .titel { padding: 10px 14px; font-size: 13px; font-weight: 700; letter-spacing: .04em;
+           text-transform: uppercase; border-bottom: 1px solid var(--border); }
+  .warum { padding: 10px 14px; font-size: 12.5px; line-height: 1.5; color: var(--text-muted);
+           border-bottom: 1px solid var(--border); min-height: 3em; }
+
+  /* Buehne: ein Stueck App dahinter, damit man sieht, wie der Toast UEBER Inhalt steht -
+     fuer das Glas (C) ist das ueberhaupt erst die Probe. */
+  .buehne { position: relative; height: 300px; background: var(--bg); overflow: hidden; }
+  .buehne .karte { margin: 14px 14px 0; background: var(--surface); border: 1px solid var(--border);
+                   border-radius: var(--radius); padding: 12px 14px; }
+  .buehne .karte b { display: block; font-size: 15px; margin-bottom: 4px; }
+  .buehne .karte span { font-size: 13px; color: var(--text-muted); }
+  .buehne .bild { height: 56px; margin-top: 10px; border-radius: 8px;
+                  background: linear-gradient(120deg, var(--accent), var(--ok)); opacity: .55; }
+  .stapel { position: absolute; left: 0; right: 0; bottom: 16px; display: flex; flex-direction: column;
+            align-items: center; gap: 10px; }
+
+  /* .tdemo bekommt per JS die Deklarationen der echten #toast-Regel (Variante 0), hier
+     nur aus fixed/unsichtbar/verschoben ein statisches, sichtbares Element gemacht. */
+  .stapel .tdemo { position: static !important; transform: none !important; opacity: 1 !important;
+                   pointer-events: auto !important; max-width: calc(100% - 28px); }
+
+  /* ---- Die Varianten. NUR Tokens. ---- */
+
+  /* A: Flaeche - die Toast-Pille wird eine erhobene Karte im Theme. */
+  .v-a .tdemo { background: var(--surface-2); color: var(--text);
+                border: 1px solid var(--border-strong); box-shadow: var(--shadow); }
+
+  /* B: wie A, dazu eine Akzentkante links. Inset-Schatten statt border-left, damit die
+        Pillenrundung nicht abbricht. */
+  .v-b .tdemo { background: var(--surface-2); color: var(--text);
+                border: 1px solid var(--border-strong);
+                box-shadow: inset 4px 0 0 var(--accent), var(--shadow); padding-left: 22px; }
+
+  /* C: Glas - halbtransparent, Unschaerfe dahinter (Apple-Material). */
+  .v-c .tdemo { background: color-mix(in srgb, var(--surface-2) 70%, transparent);
+                -webkit-backdrop-filter: blur(18px) saturate(1.5); backdrop-filter: blur(18px) saturate(1.5);
+                color: var(--text); border: 1px solid color-mix(in srgb, var(--text) 12%, transparent);
+                box-shadow: var(--shadow); }
+
+  /* D: immer dunkel - in beiden Themes dieselbe dunkle Pille (iOS/Android-Snackbar).
+        In der App waere das ein neues Token --toast-bg in allen vier Bloecken; hier
+        lokal gesetzt, Werte = surface-2/text des Dark-Themes. */
+  .v-d { --toast-bg: #1C1718; --toast-text: #F4EFEE; --toast-rand: #3A2F30; }
+  .v-d .tdemo { background: var(--toast-bg); color: var(--toast-text);
+                border: 1px solid var(--toast-rand); box-shadow: var(--shadow); }
+</style>
+</head>
+<body>
+  <div class="kopf">
+    <h1>Toast – vier Varianten und der heutige Stand</h1>
+    <p>Jede Spalte zeigt den normalen Toast und den mit „Rückgängig“ über einem Stück App.
+       Oben zwischen Hell und Dunkel umschalten – alle Farben kommen aus den echten Tokens.</p>
+    <div class="schalter" role="group" aria-label="Theme">
+      <button type="button" data-t="dark" aria-pressed="true">Dunkel</button>
+      <button type="button" data-t="light" aria-pressed="false">Hell</button>
+    </div>
+  </div>
+  <div class="reihe" id="reihe"></div>
+
+<script>
+(function () {
+  var VARIANTEN = [
+    // Liest live aus komponenten.css - zeigt also immer den Stand der App. Bis 04.10.2026
+    // war das die weisse Pille, seitdem ist es C (Glas). Gewaehlt: C.
+    { k: "v-0", t: "0 · Stand der App", w: "Live aus css/komponenten.css – seit 04.10.2026 Glas (C)." },
+    { k: "v-a", t: "A · Fläche", w: "Erhobene Karte im Theme, feiner Rand, Schatten. Ruhig." },
+    { k: "v-b", t: "B · Fläche + Akzentkante", w: "Wie A, links ein Streifen in --accent. Mehr Marke – Rot kann aber nach Fehler aussehen." },
+    { k: "v-c", t: "C · Glas", w: "Halbtransparent mit Unschärfe dahinter. Hebt sich ab, ohne grell zu sein." },
+    { k: "v-d", t: "D · Immer dunkel", w: "In beiden Themes dieselbe dunkle Pille. Im Dunkeln fast wie A, im Hellen der Unterschied." }
+  ];
+
+  // Variante 0 = die echte #toast-Regel aus komponenten.css, auf .tdemo umgeschrieben.
+  // Findet sich keine, faellt das laut auf, statt still eine leere Pille zu zeigen.
+  var basis = "";
+  for (var i = 0; i < document.styleSheets.length; i++) {
+    var regeln; try { regeln = document.styleSheets[i].cssRules; } catch (e) { continue; }
+    for (var j = 0; j < regeln.length; j++) {
+      var r = regeln[j];
+      if (r.selectorText === "#toast") basis += ".tdemo{" + r.style.cssText + "}";
+      if (r.selectorText === ".toast-undo") basis += ".stapel .toast-undo{" + r.style.cssText + "}";
+    }
+  }
+  if (basis.indexOf(".tdemo") < 0) {
+    document.querySelector(".kopf p").textContent = "FEHLER: Die #toast-Regel wurde nicht gefunden – Seite über den lokalen Server öffnen.";
+  }
+  var st = document.createElement("style"); st.textContent = basis;
+  document.head.insertBefore(st, document.head.querySelector("style"));
+
+  var reihe = document.getElementById("reihe");
+  VARIANTEN.forEach(function (v) {
+    var s = document.createElement("section");
+    s.className = "spalte " + v.k;
+    s.innerHTML =
+      '<div class="titel"></div><div class="warum"></div>' +
+      '<div class="buehne">' +
+        '<div class="karte"><b>Protein-Bowl mit Hähnchen</b><span>612 kcal · 58 g KH · 46 g P · 18 g F</span><div class="bild"></div></div>' +
+        '<div class="karte"><b>Overnight Oats</b><span>Frühstück · Dienstag</span></div>' +
+        '<div class="stapel">' +
+          '<div class="tdemo">Zum Plan hinzugefügt</div>' +
+          '<div class="tdemo"><span>Meal gelöscht</span><button type="button" class="toast-undo">Rückgängig</button></div>' +
+        '</div>' +
+      '</div>';
+    s.querySelector(".titel").textContent = v.t;
+    s.querySelector(".warum").textContent = v.w;
+    reihe.appendChild(s);
+  });
+
+  document.querySelectorAll(".schalter button").forEach(function (b) {
+    b.addEventListener("click", function () {
+      document.documentElement.setAttribute("data-theme", b.dataset.t);
+      document.querySelectorAll(".schalter button").forEach(function (x) {
+        x.setAttribute("aria-pressed", x === b ? "true" : "false");
+      });
+    });
+  });
+})();
+</script>
+</body>
+</html>

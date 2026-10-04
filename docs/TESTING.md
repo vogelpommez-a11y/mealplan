@@ -924,6 +924,9 @@ python tools/schnappschuss.py --liste
 # dann: http://localhost:8000/tools/probe-vergleich.html?baustein=dropdown
 ```
 
+`&theme=light` startet im hellen Theme — für headless Aufnahmen, die den Knopf nicht drücken
+können (seit 04.10.2026).
+
 ### Warum zwei `<iframe>` und kein `@scope`
 
 Links und rechts heißen beide `.menu`, `.btn`, `.modal`. Im selben Dokument wäre das ein
