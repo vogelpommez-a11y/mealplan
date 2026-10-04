@@ -28,6 +28,8 @@ In `CLAUDE.md` steht weiterhin die kurze Fassung: die Regel und der Zeiger hierh
 | Die ersten Schritte bewegen sich wie der Rest | Wizard: `slideIn()`, Höhenübergang, `.onb-still` |
 | Der Fortschritt-Kalender | zwei Gitter in einer Karte, `max-width: 420px`, Symbolsprache |
 | Ein Symbol je Lebensmittel | die Symbolfläche `.msym`, zwei Größen, Lesbarkeit bei 28 px |
+| Der Toast ist aus Glas | `--glass-*`-Tokens der Reiterleiste, Rückfälle, Position am Handy |
+| Der Scanner antwortet dort, wo der Blick liegt | `.ing-msg` in der Zeile statt Toast bei Fehlschlägen |
 
 ---
 
