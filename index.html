@@ -9472,8 +9472,8 @@
         // .ing-view nicht, dort ist nichts nachzuziehen.
         if (!row.classList.contains("editing")) paintIngView(row);
         updateMacroSum();
-        toast(p.name ? "„" + p.name + "“ übernommen – Werte bitte kurz prüfen"
-                     : "Nährwerte übernommen – bitte kurz prüfen");
+        toast(p.name ? "„" + p.name + "“ übernommen – prüf die Werte kurz"
+                     : "Nährwerte übernommen – prüf sie kurz");
       } catch (e) {
         ingMsg(row, "Die Suche kommt nicht durch – prüf die Verbindung oder trag die Werte selbst ein.");
       } finally {
@@ -9802,10 +9802,10 @@
     toast("Lese Barcode …");
     try {
       const code = await detectBarcode(file);
-      if (!code) { toast("Kein Barcode erkannt – bitte näher heran oder manuell eintragen"); return null; }
+      if (!code) { toast("Kein Barcode erkannt – geh näher heran oder trag die Werte selbst ein"); return null; }
       return code;
     } catch (e) {
-      toast("Erkennung nicht möglich (offline?) – bitte manuell eintragen");
+      toast("Erkennung nicht möglich (offline?) – trag die Werte selbst ein");
       return null;
     }
   }
@@ -9828,8 +9828,8 @@
     toast("Suche Produkt …");
     let p;
     try { p = await fetchOffNutrition(code); }
-    catch (e) { toast("Suche nicht möglich (offline?) – bitte manuell eintragen"); return; }
-    if (!p) { toast("Produkt nicht gefunden – bitte manuell eintragen"); return; }
+    catch (e) { toast("Suche nicht möglich (offline?) – trag die Werte selbst ein"); return; }
+    if (!p) { toast("Produkt nicht gefunden – trag die Werte selbst ein"); return; }
 
     const ss = p.servingSize;
     // Portionsgroesse fuer das stille Anlegen. Eine erkannte Stueckzahl meint IMMER ein
@@ -9848,7 +9848,7 @@
     const portionUnit = (ss && ss.unit === "ml") ? "ml" : "g";
     const complete = p.name && portion && p.kcal != null && p.carbs != null && p.protein != null && p.fat != null;
     if (!complete) {
-      toast("Ein paar Angaben fehlen – bitte kurz prüfen");
+      toast("Ein paar Angaben fehlen – prüf sie kurz");
       // Die gefundenen Naehrwerte gehen nicht verloren: sie ziehen als vorbefuellte
       // Zutaten-Zeile (je 100 g) mit ins Formular. Sobald der Nutzer die Menge eintraegt,
       // rechnet updateMacroSum() die Meal-Naehrwerte selbst aus - genau der eine Wert,
@@ -13508,7 +13508,7 @@
       "auth/invalid-credential": "E-Mail oder Passwort ist falsch.",
       "auth/wrong-password": "E-Mail oder Passwort ist falsch.",
       "auth/user-not-found": "Kein Konto mit dieser E-Mail gefunden.",
-      "auth/too-many-requests": "Zu viele Versuche. Bitte warte kurz und versuche es erneut.",
+      "auth/too-many-requests": "Zu viele Versuche. Warte kurz und versuch es dann noch einmal.",
       "auth/popup-closed-by-user": "Anmeldefenster wurde geschlossen.",
       "auth/cancelled-popup-request": "Anmeldung abgebrochen.",
       // "Erlaube Pop-ups" hilft nur im normalen Browser. In einem In-App-Browser (Instagram,
@@ -13517,9 +13517,9 @@
       // Meldung bleibt nur als Rueckfall fuer den seltenen Fall, dass auch das fehlschlaegt.
       "auth/popup-blocked": "Das hat hier nicht geklappt. Öffne die Seite im Browser deines Geräts (z. B. über „In Chrome öffnen“ im Menü) und versuche es dort erneut.",
       "auth/account-exists-with-different-credential": "Diese E-Mail ist bereits mit einer anderen Anmeldeart registriert.",
-      "auth/network-request-failed": "Keine Verbindung. Bitte prüfe dein Internet.",
+      "auth/network-request-failed": "Keine Verbindung. Prüf dein Internet.",
       // Firestore statt Auth: Konto loeschen liest seit §172 vom Server und bricht offline ab.
-      "unavailable": "Keine Verbindung. Bitte prüfe dein Internet.",
+      "unavailable": "Keine Verbindung. Prüf dein Internet.",
       "auth/operation-not-allowed": "Diese Anmeldeart ist in Firebase noch nicht aktiviert.",
       "auth/unauthorized-domain": "Diese Domain ist in Firebase nicht freigegeben (Authentication → Settings → Authorized domains).",
       "auth/requires-recent-login": "Aus Sicherheitsgründen musst du dich für diese Aktion erneut bestätigen."
@@ -13644,7 +13644,7 @@
       try {
         const u = await window.CloudAuth.reloadUser();
         if (u && u.emailVerified) { clearInterval(verifyPollTimer); handleCloudUser(u); }
-        else { setBusy(false); errEl.textContent = "Noch nicht bestätigt. Bitte klicke zuerst den Link in der E-Mail."; }
+        else { setBusy(false); errEl.textContent = "Noch nicht bestätigt. Klick zuerst auf den Link in der E-Mail."; }
       } catch (e) { setBusy(false); errEl.textContent = cloudErrMsg(e); }
     });
     view.querySelector("#v-resend").addEventListener("click", async () => {
@@ -13997,7 +13997,7 @@
           // diese stehengebliebenen Daten wieder hochsynchronisieren, als waeren sie neu.
           setTimeout(() => location.reload(), 900);
         } catch (wipeErr) {
-          toast("Ein Teil der lokalen Daten ließ sich gerade nicht entfernen. Lade die Seite bitte neu und versuche es noch einmal.");
+          toast("Ein Teil der lokalen Daten ließ sich gerade nicht entfernen. Lad die Seite neu und versuch es noch einmal.");
         }
       } catch (e) {
         if (e && e.dataAlreadyDeleted) {
@@ -14009,10 +14009,10 @@
           try {
             await wipeLocalData();
             try { window.CloudAuth.logout(); } catch (er) { noteError("auth:logoutAfterDelete", er); }
-            toast("Deine Daten wurden gelöscht. Bitte melde dich einmal neu an und wiederhole „Konto löschen“, um auch den Zugang zu entfernen.");
+            toast("Deine Daten wurden gelöscht. Melde dich einmal neu an und wiederhole „Konto löschen“, um auch den Zugang zu entfernen.");
             setTimeout(() => location.reload(), 900);
           } catch (wipeErr) {
-            toast("Ein Teil der lokalen Daten ließ sich gerade nicht entfernen. Lade die Seite bitte neu und versuche es noch einmal.");
+            toast("Ein Teil der lokalen Daten ließ sich gerade nicht entfernen. Lad die Seite neu und versuch es noch einmal.");
           }
           return;
         }
@@ -14037,7 +14037,7 @@
           toast("Alle Daten wurden gelöscht");
           setTimeout(() => location.reload(), 900); // kurz sichtbar, dann sauberer Neustart
         } catch (wipeErr) {
-          toast("Ein Teil der lokalen Daten ließ sich gerade nicht entfernen. Lade die Seite bitte neu und versuche es noch einmal.");
+          toast("Ein Teil der lokalen Daten ließ sich gerade nicht entfernen. Lad die Seite neu und versuch es noch einmal.");
         }
       }
     });
@@ -14484,7 +14484,7 @@
       const abgelehnt = e && e.code === "permission-denied";
       toast(abgelehnt
         ? "Der Beitritt wurde abgelehnt. Vielleicht ist die Gruppe voll oder die Einladung gilt nicht mehr."
-        : "Der Beitritt hat nicht geklappt. Bitte den Link noch einmal öffnen.");
+        : "Der Beitritt hat nicht geklappt. Öffne den Link noch einmal.");
     } finally {
       groupTransition = false;
     }

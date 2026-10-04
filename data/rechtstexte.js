@@ -170,9 +170,9 @@
          dein Mitglieder-Eintrag (Name und Bild) sowie die von dir erstellten Einladungslinks mitentfernt. Bist du
          <strong>Inhaber</strong> einer Gruppe, musst du sie vorher auflösen – ebenso eine noch offene Einladung
          zurückziehen, die du gerade vorbereitet hast. Die App weist dich darauf hin, damit keine Gruppe ohne
-         Inhaber zurückbleibt. Wird das Konto einer Inhaberin oder eines Inhabers wegen Inaktivität gelöscht,
-         lösen wir die Gruppe auf und informieren die Mitglieder vorher per E-Mail; jedes Mitglied behält eine
-         eigene Kopie.</p>
+         Inhaber zurückbleibt. Eine Ausnahme gilt, wenn das Konto einer Inhaberin oder eines Inhabers wegen
+         Inaktivität gelöscht wird: Dann lösen wir die Gruppe auf und informieren die Mitglieder vorher per
+         E-Mail. Wer die App bis dahin noch einmal öffnet, behält eine eigene Kopie.</p>
       <p>Verlässt du eine Gruppe oder löst sie auf, wird dein Mitglieder-Eintrag entfernt und du siehst den
          gemeinsamen Plan nicht mehr. Die von dir erstellten Einladungslinks werden dabei ebenfalls gelöscht –
          du musst dafür nicht bis zur Kontolöschung warten. Die Meals und Wochenpläne, die in der Gruppe entstanden

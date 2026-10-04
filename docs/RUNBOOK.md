@@ -280,17 +280,23 @@ Konto löscht, lässt Name und Bild im Mitglieds-Eintrag, Teilen-Links und Einla
 Die App räumt Gruppendaten nur für die **aktuelle** Gruppe (`profil.groupId`); der Betreiberweg
 sucht über **alle** `groups/*` — gründlicher, und er erreicht Reste aus früheren Gruppen.
 
-Ist der Nutzer **Inhaber** einer Gruppe mit weiteren Mitgliedern: nicht stillschweigend
-löschen — Ziffer 10 sagt „keine Gruppe ohne Inhaber“. Beim Antrag per E-Mail den Nutzer bitten,
-die Gruppe in der App aufzulösen.
+Beim **Löschantrag per E-Mail** und Inhaber einer Gruppe mit weiteren Mitgliedern: nicht
+stillschweigend löschen — Ziffer 10 sagt „keine Gruppe ohne Inhaber“. Den Nutzer bitten, die
+Gruppe in der App aufzulösen. Für das **verwaiste** Konto gilt der Ablauf unten.
 
 Bei einem **verwaisten** Konto (24 Monate still, gewarnt, 30 Tage verstrichen) gilt seit dem
 04.10.2026 (Entscheidung Paddy): **Die Gruppe wird aufgelöst**, nicht übertragen und nicht
 aufgeschoben. Ablauf, **vor** den sieben Orten oben:
 
-1. Die übrigen Mitglieder per E-Mail informieren (Adresse aus `users/{uid}`, nicht aus der
-   Gruppe — dort steht keine): Die Gruppe wird in 14 Tagen aufgelöst; wer die App bis dahin
-   einmal öffnet, behält den aktuellen Stand als eigene Kopie.
+1. Die UIDs der übrigen Mitglieder aus `groups/{gid}/members` notieren — **vorher**, denn
+   die Liste verschwindet mit der Gruppe. Die E-Mail-Adressen stehen **nur in Firebase Auth**
+   (nicht in `users/{uid}`, nicht in der Gruppe): über die Auth-Konsole oder dieselbe
+   Abfrage wie `tools/konten-inaktiv.py` (`accounts:batchGet`). Jedes Mitglied hat eine:
+   Gruppen gibt es nur mit Cloud-Konto, und `handleCloudUser()` lässt nur Konten mit
+   bestätigter Adresse (`emailVerified`) in die App. Fehlt trotzdem eine, ist das ein Befund —
+   im Vermerk festhalten und nicht ohne Benachrichtigung auflösen.
+   Dann informieren: Die Gruppe wird in 14 Tagen aufgelöst; wer die App bis dahin einmal
+   öffnet, behält den aktuellen Stand als eigene Kopie.
 2. Nach 14 Tagen löschen, was `CloudGroup.dissolve()` löscht: `groups/{gid}/members/*`,
    `…/plans/*`, `…/recipes/*`, dann `groups/{gid}` selbst — dazu die Einladungen
    (`invites/*` mit `gid` dieser Gruppe). Die Profile der Mitglieder **nicht** anfassen:
@@ -299,6 +305,8 @@ aufgeschoben. Ablauf, **vor** den sieben Orten oben:
    (`startCloudSync()`, `hatFremdbezug()`, TROUBLESHOOTING §183) — genau wie beim Auflösen
    aus der App, wo auch nur der Inhaber seine Kopie direkt bekommt.
 3. Erst dann das Konto des Inhabers über die Tabelle oben löschen.
+4. Vermerk ohne Klardaten bei den Sicherungen (wie der Warnstand von `konten-inaktiv.py`):
+   Datum der Mail, Datum der Auflösung, Zahl der Mitglieder, davon ohne erreichbare Adresse.
 
 Warum nicht übertragen: Das bräuchte eine neue Regel in `firestore.rules`, einen neuen
 Rechtstext und kollidiert mit „der Inhaber zahlt Pro“. Ob die Formulierung rechtlich trägt,

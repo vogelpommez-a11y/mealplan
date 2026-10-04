@@ -3306,3 +3306,11 @@ läuft, zu löschen. Der Warnstand (wer wann angeschrieben wurde) liegt bei den 
 und damit Blaze, den es hier bewusst nicht gibt. Das Werkzeug meldet und führt Buch; es
 verschickt nichts und löscht nichts. Das ist ehrlicher als eine halbe Automatik, die im
 Zweifel fremde Konten entfernt.
+
+**Inhaber einer Gruppe** (seit 04.10.2026): Vor dem Konto wird die Gruppe aufgelöst. Die
+Mitglieder bekommen 14 Tage vorher eine E-Mail. Ihre Kopie entsteht **nicht** auf dem Server,
+sondern in ihrem eigenen Client: Beim nächsten Laden liefert `enterGroupSync()` `"gone"`, der
+zwischengespeicherte Stand bleibt, wird ohne `by`/`uids` bereinigt und per `pushNow()` ins
+eigene Konto geschrieben. Wer die App erst danach auf einem Gerät ohne diesen Zwischenspeicher
+öffnet, hat keine Kopie — deshalb die Vorwarnung. Ablauf: `docs/RUNBOOK.md`, Löschung und
+Auskunft durch den Betreiber.
