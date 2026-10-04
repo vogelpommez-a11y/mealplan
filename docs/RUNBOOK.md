@@ -282,9 +282,27 @@ sucht über **alle** `groups/*` — gründlicher, und er erreicht Reste aus frü
 
 Ist der Nutzer **Inhaber** einer Gruppe mit weiteren Mitgliedern: nicht stillschweigend
 löschen — Ziffer 10 sagt „keine Gruppe ohne Inhaber“. Beim Antrag per E-Mail den Nutzer bitten,
-die Gruppe in der App aufzulösen. Bei einem **verwaisten** Konto (24 Monate still, nicht
-erreichbar) gibt es dafür noch **keine** Entscheidung — Einzelfall, offen in
-`docs/DATENSCHUTZ-INTERN.md` Punkt 19.
+die Gruppe in der App aufzulösen.
+
+Bei einem **verwaisten** Konto (24 Monate still, gewarnt, 30 Tage verstrichen) gilt seit dem
+04.10.2026 (Entscheidung Paddy): **Die Gruppe wird aufgelöst**, nicht übertragen und nicht
+aufgeschoben. Ablauf, **vor** den sieben Orten oben:
+
+1. Die übrigen Mitglieder per E-Mail informieren (Adresse aus `users/{uid}`, nicht aus der
+   Gruppe — dort steht keine): Die Gruppe wird in 14 Tagen aufgelöst; wer die App bis dahin
+   einmal öffnet, behält den aktuellen Stand als eigene Kopie.
+2. Nach 14 Tagen löschen, was `CloudGroup.dissolve()` löscht: `groups/{gid}/members/*`,
+   `…/plans/*`, `…/recipes/*`, dann `groups/{gid}` selbst — dazu die Einladungen
+   (`invites/*` mit `gid` dieser Gruppe). Die Profile der Mitglieder **nicht** anfassen:
+   Deren App bemerkt beim nächsten Laden `groupResult === "gone"`, behält ihren
+   zwischengespeicherten Stand und schreibt ihn ohne `by`/`uids` ins eigene Konto
+   (`startCloudSync()`, `hatFremdbezug()`, TROUBLESHOOTING §183) — genau wie beim Auflösen
+   aus der App, wo auch nur der Inhaber seine Kopie direkt bekommt.
+3. Erst dann das Konto des Inhabers über die Tabelle oben löschen.
+
+Warum nicht übertragen: Das bräuchte eine neue Regel in `firestore.rules`, einen neuen
+Rechtstext und kollidiert mit „der Inhaber zahlt Pro“. Ob die Formulierung rechtlich trägt,
+bleibt als Frage für das Anwaltsgespräch (`docs/DATENSCHUTZ-INTERN.md` Punkt 19, Frage 6).
 
 Ein Admin-Skript dafür gibt es bewusst noch nicht (Entscheidung 01.10.2026: erst bei Bedarf);
 bis dahin ist diese Tabelle die Prüfliste. Kommt eins, muss es dieselbe Liste abarbeiten wie

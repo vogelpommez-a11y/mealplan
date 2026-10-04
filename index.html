@@ -8114,7 +8114,7 @@
       const m = yEl.value + "-W" + mEl.value;
       // Zeichenkettenvergleich reicht: "2026-W07" < "2026-W33" stimmt, weil die Wochenzahl
       // zweistellig aufgefuellt ist - dieselbe Eigenschaft, auf der schon state.plans beruht.
-      if (!validWeightKey(m) || m > nowKey) { toast("Bitte eine Woche bis heute wählen"); return; }
+      if (!validWeightKey(m) || m > nowKey) { toast("Wähl eine Woche bis heute"); return; }
       const neu = !(state.weights || []).some(e => e.m === m);
       const oldKcal = state.goal ? state.goal.kcal : null;
       setWeight(m, kg);
@@ -8299,7 +8299,7 @@
       const inp = node.querySelector("#gt-kcal");
       if (!(kcal >= 500 && kcal <= 20000)) {
         inp.focus(); inp.style.borderColor = "var(--danger)";
-        toast("Bitte ein Kalorienziel zwischen 500 und 20.000 eintragen");
+        toast("Trag ein Kalorienziel zwischen 500 und 20.000 ein");
         return;
       }
       state.goal = Object.assign({}, state.goal, {
@@ -8800,7 +8800,7 @@
         } else {
           const nameInp = node.querySelector("#f-name");
           nameInp.focus(); nameInp.style.borderColor = "var(--danger)";
-          toast("Bitte gib einen Namen ein");
+          toast("Gib dem Meal einen Namen");
           // closeModal() hat den Hook vor dem Aufruf geleert - ohne diese Zeile waere der
           // ZWEITE Schliessversuch ungeprueft durchgegangen und haette den Entwurf still
           // verworfen. Faellt seit D5 auf, weil die Zurueck-Taste denselben Weg nimmt.
@@ -8862,7 +8862,7 @@
     // --- Teilen / Loeschen: Ansicht zuerst schliessen, dann die eigentliche Aktion (siehe
     // plans/MealAnsicht.MD und TROUBLESHOOTING #40 - kein await vor navigator.share) ---
     node.querySelector("[data-share]").addEventListener("click", () => {
-      if (!recId) { toast("Bitte zuerst einen Namen eingeben"); return; }
+      if (!recId) { toast("Gib dem Meal zuerst einen Namen"); return; }
       const shareId = recId;
       openSheetId = null; openSheetRemovedCb = null; modalCloseHook = null; closeModal();
       shareRecipeNow(shareId);
@@ -11035,7 +11035,7 @@
     if (!cb) return; // photoInput.click() kommt heute ausschliesslich aus openMealSheet()
     if (!f) return;
     if (!canEdit()) return;
-    if (!/^image\//.test(f.type)) { toast("Bitte ein Bild verwenden"); return; }
+    if (!/^image\//.test(f.type)) { toast("Wähl eine Bilddatei aus"); return; }
     readAndDownscale(f, dataUrl => { if (dataUrl) cb(dataUrl); else toast("Bild konnte nicht geladen werden"); });
   });
 
@@ -11051,7 +11051,7 @@
     avatarInput.value = "";
     const cb = avatarCropCb; avatarCropCb = null;
     if (!f || !cb) return;
-    if (!/^image\//.test(f.type)) { toast("Bitte ein Bild verwenden"); return; }
+    if (!/^image\//.test(f.type)) { toast("Wähl eine Bilddatei aus"); return; }
     openAvatarCropper(f, cb);
   });
 
@@ -11369,7 +11369,7 @@
     // Rezepte stehen nicht in der Meals-Liste), aber ein Riegel kostet eine Zeile.
     if (!state.recipes.some(x => x.id === r.id)) return;
     if (blockedByRole()) return;   // laeuft nicht ueber die Delegation
-    if (!/^image\//.test(f.type)) { toast("Bitte ein Bild verwenden"); return; }
+    if (!/^image\//.test(f.type)) { toast("Wähl eine Bilddatei aus"); return; }
     readAndDownscale(f, dataUrl => { if (dataUrl) { r.image = dataUrl; save(); render(); toast("Foto übernommen"); } else toast("Bild konnte nicht geladen werden"); });
   });
 
@@ -13464,10 +13464,10 @@
     function submit() {
       const name = nameEl.value.trim();
       const email = emailEl.value.trim();
-      if (!name) { nameEl.focus(); nameEl.style.borderColor = "var(--danger)"; toast("Bitte gib deinen Namen ein"); return; }
+      if (!name) { nameEl.focus(); nameEl.style.borderColor = "var(--danger)"; toast("Gib deinen Namen ein"); return; }
       // Leer ist erlaubt (D1b), eine falsch getippte Adresse nicht: wer etwas eintraegt,
       // meint auch etwas - stillschweigend zu verwerfen waere schlechter als der Hinweis.
-      if (email && !validEmail(email)) { emailEl.focus(); emailEl.style.borderColor = "var(--danger)"; toast("Bitte gib eine gültige E-Mail ein oder lass das Feld leer"); return; }
+      if (email && !validEmail(email)) { emailEl.focus(); emailEl.style.borderColor = "var(--danger)"; toast("Gib eine gültige E-Mail ein – oder lass das Feld leer"); return; }
       profile = { name, email }; saveProfile(); rememberLast();
       enterApp(); toast("Angemeldet als " + name);
     }
@@ -13504,7 +13504,7 @@
       "auth/email-already-in-use": "Diese E-Mail ist bereits registriert. Melde dich stattdessen an.",
       "auth/invalid-email": "Diese E-Mail-Adresse ist ungültig.",
       "auth/weak-password": "Das Passwort ist zu schwach (mindestens 6 Zeichen).",
-      "auth/missing-password": "Bitte gib ein Passwort ein.",
+      "auth/missing-password": "Gib ein Passwort ein.",
       "auth/invalid-credential": "E-Mail oder Passwort ist falsch.",
       "auth/wrong-password": "E-Mail oder Passwort ist falsch.",
       "auth/user-not-found": "Kein Konto mit dieser E-Mail gefunden.",
@@ -13582,13 +13582,13 @@
       showErr("");
       const email = val("#c-email");
       const pw = view.querySelector("#c-pw").value;
-      if (!validEmail(email)) { showErr("Bitte gib eine gültige E-Mail-Adresse ein."); return; }
-      if (!pw) { showErr("Bitte gib ein Passwort ein."); return; }
+      if (!validEmail(email)) { showErr("Gib eine gültige E-Mail-Adresse ein."); return; }
+      if (!pw) { showErr("Gib ein Passwort ein."); return; }
       setBusy(true);
       try {
         if (reg) {
           const name = val("#c-name");
-          if (!name) { showErr("Bitte gib deinen Namen ein."); setBusy(false); return; }
+          if (!name) { showErr("Gib deinen Namen ein."); setBusy(false); return; }
           if (pw.length < 6) { showErr("Das Passwort muss mindestens 6 Zeichen haben."); setBusy(false); return; }
           const user = await window.CloudAuth.registerEmail(name, email, pw);
           renderVerifyPending(user);
@@ -13683,7 +13683,7 @@
     node.querySelector("[data-send]").addEventListener("click", async () => {
       const email = node.querySelector("#fp-email").value.trim();
       const err = node.querySelector("#fp-err");
-      if (!validEmail(email)) { err.textContent = "Bitte gib eine gültige E-Mail-Adresse ein."; return; }
+      if (!validEmail(email)) { err.textContent = "Gib eine gültige E-Mail-Adresse ein."; return; }
       err.textContent = "";
       try { await window.CloudAuth.resetPassword(email); closeModal(); toast("E-Mail zum Zurücksetzen gesendet"); }
       catch (e) { err.textContent = cloudErrMsg(e); }
@@ -13845,7 +13845,7 @@
     });
     node.querySelector("[data-save]").addEventListener("click", async () => {
       const name = node.querySelector("#p-name").value.trim();
-      if (!name) { toast("Bitte gib deinen Namen ein"); return; }
+      if (!name) { toast("Gib deinen Namen ein"); return; }
       if (authMode === "cloud") {
         try { await applyDisplayName(name); } catch (e) { toast("Hat nicht geklappt – versuch’s nochmal"); return; }
         closeModal(); toast("Profil gespeichert");
@@ -13855,7 +13855,7 @@
       // Dieselbe Regel wie beim Anlegen (D1b): leer ist erlaubt, falsch getippt nicht.
       // Ohne diese Zeile konnte man ein lokales Profil OHNE E-Mail anlegen, es danach aber
       // nie wieder speichern - der Dialog verlangte hier weiterhin eine Adresse.
-      if (email && !validEmail(email)) { toast("Bitte gib eine gültige E-Mail ein oder lass das Feld leer"); return; }
+      if (email && !validEmail(email)) { toast("Gib eine gültige E-Mail ein – oder lass das Feld leer"); return; }
       profile = { name, email }; saveProfile(); rememberLast();
       renderProfileChip(); closeModal(); toast("Profil gespeichert");
     });
@@ -13965,7 +13965,7 @@
     const err = node.querySelector("#del-err");
     btn.addEventListener("click", async () => {
       const pw = isPw ? node.querySelector("#del-pw").value : null;
-      if (isPw && !pw) { err.textContent = "Bitte gib dein Passwort ein."; return; }
+      if (isPw && !pw) { err.textContent = "Gib dein Passwort ein."; return; }
       err.textContent = "";
       btn.disabled = true; btn.textContent = "Wird gelöscht …";
       try {
