@@ -6,7 +6,7 @@ Dieses Dokument enthält bekannte Fehlerquellen, historische Bugs und Probleme, 
 
 <!-- REGISTER-ANFANG (erzeugt aus den Ueberschriften: python tools/register.py - nicht von Hand pflegen) -->
 
-**Register — 184.** Chronologisch gewachsen: je hoeher die Nummer,
+**Register — 186.** Chronologisch gewachsen: je hoeher die Nummer,
 desto juenger der Fund. Wer eine Falle sucht, sucht hier zuerst; die Ueberschrift sagt
 jeweils, worum es geht. **Nicht die ganze Datei lesen** — sie ist rund 310 KB gross.
 
@@ -196,6 +196,8 @@ jeweils, worum es geht. **Nicht die ganze Datei lesen** — sie ist rund 310 KB 
 | 182 | `pruefstand-reiter.py`: „Start leer" war ein Wettlauf im Prüfstand — und die Gegenprobe maß nichts |
 | 183 | Die Kopie nach dem Austritt trug die Kennungen der anderen Mitglieder |
 | 184 | Der Toast: Times-Schrift, auf der Reiterleiste, umgebrochen — drei alte Fehler unter Weiß |
+| 185 | OFFEN: In der Gruppe tut „−“ in der Einkaufsliste nichts |
+| 186 | Das Zuweisungsmenü stand in Serifenschrift |
 
 <!-- REGISTER-ENDE -->
 
@@ -4573,7 +4575,7 @@ Er ist **sichtbar, aber für jede Auswertung unsichtbar**:
 |---|---|
 | `dayNutOf()` | zählt ihn niemandem an (`uids.indexOf(syncUid) === -1`) |
 | `slotOpenForMe()` | meldet den Slot als **frei** — der Auto-Planer plant darüber |
-| `entryIsShared()` | „nicht gemeinsam" → `slotIsShared()` kippt für die ganze Zeile |
+| `entryIsShared()` | „nicht gemeinsam" → `slotIsShared()` kippte für die ganze Zeile (bis 07.10.2026, entfallen) |
 | `buildShoppingList()` | skaliert mit `uids.length` auf **null** — wird nie eingekauft |
 
 Der Widerspruch, den der Prüfstand festhält: Der Slot meldet „frei", obwohl dort etwas
@@ -7078,3 +7080,39 @@ wurde. Und wieder die Kaskadenregel aus `css/CLAUDE.md`: **Die Reihenfolge der D
 Verhalten.** Eine Regel kann in der richtigen Datei stehen und trotzdem nie greifen.
 
 Prüfer: Sichtprobe `tools/probe-vergleich.html?baustein=toast` (Hell/Dunkel, 390/720/1280).
+
+## 185. OFFEN: In der Gruppe tut „−“ in der Einkaufsliste nichts
+
+**Gefunden am 05.10.2026** beim Bau von „Wie eure Gruppe" — nicht behoben, weil außerhalb des
+Auftrags (CLAUDE.md Abschnitt 22). Gemessen in der Vorführung `gruppe-fuer-alle`, alter wie
+neuer Stand gleich.
+
+In einer Zweiergruppe mit „Einkauf für alle rechnen: An" steht „Einkauf für 2 Personen". „−" ist
+**aktiv**, ein Tipp darauf ändert aber nichts: Der Knopf setzt `state.shopPersons = 1`, und
+`shopPersons()` liest eine 1 als „nichts eingestellt" und gibt wieder die Mitgliederzahl zurück
+(`if (own > 1) return own;` — die eigene Zahl gewinnt nur **über** 1). Wer nur für sich einkaufen
+will, kommt über die Liste nicht dorthin; es geht nur über „Einkauf für alle rechnen: Aus" in
+den Gruppeneinstellungen.
+
+Die Wurzel: Die 1 trägt zwei Bedeutungen — „Standard" und „bewusst eine Person". Eine Lösung
+braucht eine Produktentscheidung (unterscheidbarer Wert, oder „−" unterhalb der Gruppenzahl
+ausgrauen), deshalb hier nur festgehalten.
+
+## 186. Das Zuweisungsmenü stand in Serifenschrift
+
+**Gefunden am 07.10.2026** in der Vorführung `gruppe-fuer-alle`, behoben im selben Schritt.
+Seit es das Chip-Menü gibt (02.08.2026) betroffen, aber nur ab drei Personen sichtbar — bei
+zweien schaltete das Symbol bis dahin stumm um, ohne Menü.
+
+`openAssignMenu()` hängt das Menü an `<body>` (wegen `overflow: hidden` der `.day`). Die Schrift
+der App sitzt aber auf `.app` (`css/tokens.css`), `<body>` trägt keine. `.menu button` hat
+`font: inherit` und erbte damit die Serifen-Vorgabe des Browsers. Behoben wie bei `.overlay`,
+das aus demselben Grund an `<body>` hängt: `.assign-menu { font-family: var(--font-body); }`.
+
+**Merksatz:** Wer etwas an `<body>` hängt, verlässt `.app` — und damit Schrift und Textfarbe.
+
+**Nebenbefund, nie live:** Die beiden Knöpfe des Toasts beim Einplanen (`eingeplantMelden()`,
+05.10.2026) änderten den Plan, riefen aber nur `render()`, nicht `save()` — jeder andere
+Rückgängig-Knopf der App speichert. Der Prüfstand stubbte `render()` und fragte nie nach dem
+Speichern. Jetzt prüft er es (`'Rückgängig' speichert`).
+

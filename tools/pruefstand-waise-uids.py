@@ -18,7 +18,7 @@ Was so ein Eintrag anrichtet - er ist sichtbar, aber fuer jede Auswertung unsich
 
   * `dayNutOf()`      zaehlt ihn niemandem an (uids.indexOf(syncUid) === -1)
   * `slotOpenForMe()` haelt den Slot fuer frei -> der Auto-Planer plant darueber
-  * `entryIsShared()` meldet "nicht gemeinsam" -> slotIsShared() kippt fuer die ganze Zeile
+  * `entryIsShared()` meldet "nicht gemeinsam" -> slotIsShared() kippte fuer die ganze Zeile (bis 07.10.2026, entfallen)
   * die Einkaufsliste skaliert ihn mit uids.length auf NULL -> er wird nie eingekauft
 
 Und der Sanitizer kann die Waise SELBST erzeugen: Enthaelt `uids` nur Nicht-Strings

@@ -70,9 +70,6 @@ teile = [
     schnitt("  function entryUids("),
     schnitt("  function entryIsShared("),
     schnitt("  function makeEntry("),
-    # Seit dem 16.08.2026 fragt auch der Planer, ob eine Zeile noch fuer alle gilt - dieselbe
-    # Frage, die der Picker an fuenf Stellen stellt.
-    schnitt("  function slotIsShared("),
     schnitt("  function makeEmptyPlan("),
     # Wochenschluessel - der Undo-Pfad haengt daran.
     schnitt("  function isoWeekKey("),
@@ -416,28 +413,21 @@ function bestand() {
       return true;
     })(), true);
 
-  // ---- Leere Zeile heisst "fuer alle" ----
-  // Gefunden am Geraet zu zweit: Der Planer trug ausnahmslos sich selbst ein, 31 von 31
-  // Eintraegen trugen ein Badge. Der gemeinsame Plan war voll und fuer die andere Person
-  // trotzdem leer. Der Picker macht es an fuenf Stellen anders (slotIsShared), der Planer war
-  // die Ausnahme.
+  // ---- In der Gruppe plant der Planer nur fuer MICH (07.10.2026) ----
+  // Vom 16.08. bis 07.10.2026 hiess eine leere Zeile "fuer alle" (31 von 31 Badges am Geraet
+  // zu zweit). Dann plante jemand die eigene Woche durch, und die Einkaufsliste rechnete alles
+  // mal zwei. Seitdem gilt jedes neu eingeplante Gericht nur mir - von Hand wie im Planer.
   frischerPlan(bestand());
   syncGid = "g1"; myRole = "edit"; syncUid = "ich"; groupMembers = [{ uid: "ich" }, { uid: "du" }];
   autoPlanWeek();
-  pruef("in leere Zeilen plant der Planer fuer ALLE",
-    DAYS.every(function (d) {
-      return ["fr", "mi", "ab"].every(function (m) {
-        var arr = state.plan[d.key][m];
-        return !arr.length || entryIsShared(arr[0]);
-      });
+  pruef("in der Gruppe plant der Planer nur fuer MICH",
+    alleEintraege().length > 0 && alleEintraege().every(function (x) {
+      return JSON.stringify(entryUids(x.e)) === JSON.stringify(["ich"]);
     }), true);
-  pruef("und zwar wirklich als blanker String (nicht als Objekt mit allen uids)",
-    typeof state.plan.mon.fr[0], "string");
-  // Gegenprobe zur Bilanz: Ein "fuer alle" zaehlt in JEDER Bilanz, auch in meiner.
-  pruef("das Gericht zaehlt weiterhin in meiner Tagesbilanz",
+  pruef("das Gericht zaehlt in meiner Tagesbilanz",
     dayNutOf(state.plan, "mon").kcal > 0, true);
 
-  // Die ZWEITE Portion bleibt individuell - "wir essen dasselbe, ich zweimal".
+  // Zwei Portionen: beide nur mir - "ich esse davon zwei".
   frischerPlan(bestand(), { kcal: 3600, carbs: 360, protein: 260, fat: 110 });
   syncGid = "g1"; myRole = "edit"; syncUid = "ich"; groupMembers = [{ uid: "ich" }, { uid: "du" }];
   autoPlanWeek();
@@ -449,20 +439,20 @@ function bestand() {
       });
     });
     pruef("bei zwei Portionen gibt es so einen Slot ueberhaupt", !!doppelt, true);
-    pruef("die erste Portion gilt fuer alle", doppelt ? entryIsShared(doppelt[0]) : null, true);
-    pruef("die zweite gehoert nur mir",
-      doppelt ? JSON.stringify(entryUids(doppelt[1])) : null, JSON.stringify(["ich"]));
+    pruef("beide Portionen gehoeren nur mir",
+      doppelt ? JSON.stringify(doppelt.map(entryUids)) : null, JSON.stringify([["ich"], ["ich"]]));
   })();
 
-  // Steht in der Zeile schon eine FREMDE Zuweisung, wird daraus kein "fuer alle" - sonst
-  // schriebe der Planer der anderen Person ihr eigenes Gericht um.
+  // Eine FREMDE Zuweisung bleibt unangetastet - der Planer schreibt der anderen Person ihr
+  // Gericht nicht um.
   frischerPlan(bestand());
   syncGid = "g1"; myRole = "edit"; syncUid = "ich"; groupMembers = [{ uid: "ich" }, { uid: "du" }];
-  state.plan.mon.fr.push({ id: "fr3", uids: ["du"] });   // passt nicht in den fr-Slot? doch: Fruehstueck
+  state.plan.mon.fr.push({ id: "fr3", uids: ["du"] });
   autoPlanWeek();
-  pruef("neben einer fremden Zuweisung entsteht kein fuer-alle",
-    state.plan.mon.fr.every(function (e) { return !entryIsShared(e); })
-      || state.plan.mon.fr.length === 1, true);
+  // Ein fremdes Gericht in der Zeile: Der Planer tritt ihm bei (planUebernahme), statt
+  // ein zweites daneben zu legen - dadurch, und nur dadurch, entsteht ein "fuer alle".
+  pruef("einem fremden Gericht tritt der Planer bei",
+    entryId(state.plan.mon.fr[0]) === "fr3" && entryIsShared(state.plan.mon.fr[0]), true);
 
   // Und allein aendert sich gar nichts: makeEntry liefert ohnehin die String-Form.
   frischerPlan(bestand());
@@ -1082,21 +1072,36 @@ function bestand() {
   mitFestemZufall(2026, function () { autoPlanWeek(); });
   var standA = planStand();
   pruef("A hat geplant", slotsMitEintraegen(standA) > 0, true);
-  pruef("und zwar in leere Zeilen fuer alle", entryIsShared(standA.mon.mi[0]), true);
+  pruef("und zwar nur fuer sich", JSON.stringify(entryUids(standA.mon.mi[0])), JSON.stringify(["ich"]));
 
   // ---- Fall 1: B kennt A's Stand SCHON. So soll es sein. ----
   // Derselbe Ausgangsstand wie A ihn hinterlassen hat, nur eine andere UID am Steuer.
+  // Seit dem 07.10.2026 plant A nur fuer sich, As Zeilen sind fuer B also offen. B legt dort
+  // kein zweites Gericht daneben, sondern TRITT As Gericht BEI - aus "nur ich" wird
+  // "fuer alle", derselbe Topf (planUebernahme). Bis zum 07.10. schloss As "fuer alle" die
+  // Zeile, und B fuegte gar nichts hinzu.
   planStandSetzen(standA);
   syncUid = "du";
   mitFestemZufall(99, function () { autoPlanWeek(); });
-  pruef("B fuegt einem aktuellen Stand nichts hinzu",
-    JSON.stringify(planStand()), JSON.stringify(standA));
+  (function () {
+    var beigetreten = true, gezaehlt = 0;
+    DAYS.forEach(function (d) { ["fr", "mi", "ab"].forEach(function (m) {
+      var a = standA[d.key][m], b = state.plan[d.key][m];
+      if (!a.length) return;
+      gezaehlt++;
+      if (!b.length || entryId(b[0]) !== entryId(a[0]) || !entryIsShared(b[0])) beigetreten = false;
+    }); });
+    pruef("B tritt As Hauptmahlzeiten bei statt zu doppeln", gezaehlt > 0 && beigetreten, true);
+  })();
+  // Auch die SNACK-Zeile - genau dort trat am 16.08.2026 der Doppel-Fall auf.
+  pruef("in der Snack-Zeile tritt B dem ersten Snack bei",
+    state.plan.mon.sn.length ? (entryId(state.plan.mon.sn[0]) === entryId(standA.mon.sn[0]) && entryIsShared(state.plan.mon.sn[0])) : null, true);
+  // Und ein zweiter Lauf von B fuegt nichts mehr hinzu - jetzt ist alles fuer alle.
+  var standNachB = planStand();
+  mitFestemZufall(7, function () { autoPlanWeek(); });
+  pruef("ein zweiter Lauf von B fuegt nichts hinzu",
+    JSON.stringify(planStand()), JSON.stringify(standNachB));
   pruef("und sagt das auch", letzterToast, "Deine Woche ist schon geplant");
-
-  // Das gilt ausdruecklich auch fuer die SNACK-Zeile - genau dort trat der Fall am
-  // 16.08.2026 auf.
-  pruef("auch die Snack-Zeile bleibt unangetastet",
-    JSON.stringify(state.plan.mon.sn), JSON.stringify(standA.mon.sn));
 
   // ---- Fall 2: B kennt A's Stand NOCH NICHT. Der reale Fehlerfall. ----
   // B plant auf dem leeren Stand von vorhin - sein Client hat A's Push noch nicht empfangen.
@@ -1118,12 +1123,14 @@ function bestand() {
   // ---- Der Befund ----
   // slotOpenForMe() ist NICHT die Ursache. Sie liefert fuer einen "fuer alle"-Eintrag
   // zuverlaessig "geschlossen" - auch fuer den, der ihn nicht geschrieben hat.
+  // A plant seit dem 07.10.2026 nur fuer sich - das "fuer alle" wird deshalb von Hand gesetzt.
   planStandSetzen(standA);
   syncUid = "du";
+  state.plan.mon.mi = ["ha1"];
+  state.plan.mon.sn = ["sn1"];
   pruef("ein fremdes fuer-alle schliesst den Slot auch fuer mich",
     slotOpenForMe("mon", "mi"), false);
-  pruef("dasselbe fuer die Snack-Zeile",
-    standA.mon.sn.length ? slotOpenForMe("mon", "sn") : false, false);
+  pruef("dasselbe fuer die Snack-Zeile", slotOpenForMe("mon", "sn"), false);
   // Und die Gegenprobe, sonst misst die Zeile darueber nur "irgendwas ist belegt":
   state.plan.mon.mi = [];
   pruef("eine wirklich leere Zeile ist offen", slotOpenForMe("mon", "mi"), true);

@@ -106,7 +106,9 @@ function uid() { return "r" + (++uidZaehler); }
 const state = { recipes: [], plan: { mon: { fr: [] } } };
 let syncUid = "", syncGid = null;
 function makeEntry(rid, uids) { return { id: rid, uids: uids.filter(Boolean) }; }
-function slotIsShared() { return false; }
+// Ohne Gruppe meldet eingeplantMelden() schlicht ueber toast() - genau dieser Zweig.
+// Seit dem 05.10.2026 ruft der Barcode-Weg es auf; ohne Stub brach der Pruefstand ab.
+function eingeplantMelden(day, meal, text) { toast(text(null)); }
 let renderZahl = 0;
 function render() { renderZahl++; }
 const toasts = [];

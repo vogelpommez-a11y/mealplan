@@ -82,7 +82,6 @@ teile = [
     schnitt("  function entryUids("),
     schnitt("  function entryIsShared("),
     schnitt("  function makeEntry("),
-    schnitt("  function slotIsShared("),
     schnitt("  function makeEmptyPlan("),
     schnitt("  function isoWeekKey("),
     schnitt("  function weekKeyFor("),

@@ -16,7 +16,7 @@ Die primäre Verifikation erfolgt deshalb über den Browser und gezielte isolier
 
 <!-- REGISTER-ANFANG (erzeugt aus den Ueberschriften: python tools/register.py - nicht von Hand pflegen) -->
 
-**Register — 85.** Vorne (0 bis 9) die geltenden Verfahren: Syntax-Check,
+**Register — 86.** Vorne (0 bis 9) die geltenden Verfahren: Syntax-Check,
 Smoke-Test, Ausschneide-Pruefstand, Sync-Tests. Dahinter das datierte Fallarchiv —
 einzelne Pruefstaende und was ihre Gegenprobe gezeigt hat.
 
@@ -111,6 +111,7 @@ Die Verfahren gibt es auch als Skill: `/smoke`, `/pruefstand`, `/abnahme`, `/dep
 | · | `tools/pruefstand-makro-abweichung.py` — gilt ein übernommenes Rezept als angepasst? (24.09.2026) |
 | · | `tools/pruefstand-cloud-laden.py` — was zeigt ein frisches Gerät während des ersten Abgleichs? (28.09.2026) |
 | · | `tools/pruefstand-fremdbezug.py` — die Kopie nach dem Austritt trägt keine fremde Kennung (01.10.2026) |
+| · | `tools/pruefstand-gruppe-fuer-alle.py` — ein Hinweis, der an fünf Stellen hängen muss (05.10.2026, erweitert 07.10.2026) |
 
 <!-- REGISTER-ENDE -->
 
@@ -1379,7 +1380,7 @@ Laufzeitfehler, erst dann die eigentlichen Prüfungen lesen.
 * Gruppen-Plan-Merge beim Aktivieren (`finalizeGroupActivation()`): mit gestubbtem `CloudGroup`
   prüfen, dass ein in der Gruppe bereits belegter Slot **nicht** überschrieben wird, ein dort
   noch leerer Slot aber nachgetragen wird.
-* Gerichte-Zuweisung (`entryId`/`entryUids`/`entryIsShared`/`makeEntry`/`slotIsShared`) sowie der
+* Gerichte-Zuweisung (`entryId`/`entryUids`/`entryIsShared`/`makeEntry` (bis 07.10.2026 auch `slotIsShared`)) sowie der
   Aggregations-Kern von `buildShoppingList()` (Trennung `sharedQty`/`assignedQty`) lassen sich mit
   Mock-`state.plan`/`groupMembers`/Rezepten (inkl. `portions`) isoliert ohne DOM durchrechnen.
   Wichtiger Regressionsfall: `makeEntry` muss **Mengenabdeckung** prüfen (`groupMembers.every(...)`),
@@ -2348,6 +2349,15 @@ Referenz trennt „ersetzt" von „mutiert" — und genau daran hängt der Undo-
 | dieselbe Übertreibung **ohne** `Math.min` | Deckel fehlt, Zeile fällt | 53 statt 8 |
 | `slotGemeinsam` entfernt (wieder immer `meineUids()`) | die „für alle"-Prüfungen fallen | 3 von 149 rot |
 
+**Seit dem 07.10.2026 ist die letzte Zeile das Soll:** Der Planer trägt wieder nur mich ein
+(`docs/PRODUCT.md` „Neu Eingeplantes gilt erst nur mir"), `slotGemeinsam` ist weg. Die
+„für alle"-Prüfungen sind umgedreht („in der Gruppe plant der Planer nur fuer MICH", „beide
+Portionen gehoeren nur mir"), und der Zwei-Läufe-Test erwartet in Fall 1 jetzt das
+**Beitreten**: B legt nichts daneben, sondern macht As Gerichte zu „für alle"; erst ein
+**zweiter** Lauf von B fügt nichts mehr hinzu. Gegenprobe gegen `adc4ac7` (mit
+`slotIsShared` wieder im Schnitt, sonst bricht der alte Stand nur ab): 3 von 157 rot — genau
+die drei umgedrehten Prüfungen.
+
 Die dritte war nicht optional: Bei der ersten Gegenprobe blieben „das fremde Objekt wurde
 ersetzt" und „Rückgängig stellt den fremden Eintrag her" **grün** — ohne Beitritt wird eben
 nichts mutiert. Eine Prüfung gegen genau die Falle, vor der der Code warnt, braucht eine
@@ -2386,7 +2396,7 @@ Deshalb gehört in jede Auswertung eine Zeile, die *positiv* bestätigt, dass ge
 (hier: „ALLE n PRUEFUNGEN GRUEN"), und nicht bloß die Abwesenheit von Fehlern.
 
 Dieselbe Sitzung lieferte den Gegenpol: eine Prüfung, die den Extraktor **nicht** mitzog. Wird im
-Produktionscode eine neue Funktion benutzt (`slotIsShared` im Planer), muss sie in `teile`
+Produktionscode eine neue Funktion benutzt (`slotIsShared` im Planer, bis 07.10.2026), muss sie in `teile`
 aufgenommen werden — sonst endet der Lauf in `ReferenceError`, diesmal immerhin sichtbar.
 
 ### Eine Prüfung, die den Würfel misst, ist schlimmer als keine
@@ -2793,7 +2803,8 @@ exakt das, was zwei Clients tun, die voneinander noch nichts wissen.
 
 Entscheidend ist, beide Fälle zu fahren und nicht nur den kaputten:
 
-1. B plant auf A's **aktuellem** Stand → darf nichts hinzufügen.
+1. B plant auf A's **aktuellem** Stand → darf nichts hinzufügen. (Seit 07.10.2026: tritt As
+   Gerichten bei, ein zweiter Lauf fügt nichts mehr hinzu — A plant nur noch für sich.)
 2. B plant auf dem **veralteten** Stand → belegt dieselben Slots.
 
 Erst der Vergleich trennt die Funktion vom Zeitpunkt. Läuft nur Fall 2, sieht `slotOpenForMe()`
@@ -5442,3 +5453,50 @@ k.by` entfernt → 4 rot; Planeinträge nur abgestreift statt weggelassen → 1 
 Gefunden im Gesamtlauf `tools/alle-pruefstaende.py`, nicht vorher: **Wer eine Funktion in eine
 ausgeschnittene einfügt, bricht jeden Prüfstand, der die äußere ausschneidet.** Vor dem Commit
 also den Gesamtlauf, nicht nur den eigenen Prüfstand.
+
+## `tools/pruefstand-gruppe-fuer-alle.py` — ein Hinweis, der an fünf Stellen hängen muss (05.10.2026, erweitert 07.10.2026)
+
+Prüft die drei Hinweise, die „für alle" in der Gruppe sichtbar machen (`docs/PRODUCT.md`,
+„Für alle" muss man sehen): `gruppenPortionen()`, die Metazeile und das Schild der Plankarte
+(ausgeschnitten sind nur die Zeilen von `const fuerAlle` bis `meta`, mit `grp`/`uids`/`r` als
+Parameter), `eingeplantMelden()` samt beiden Toast-Knöpfen (auch: speichern sie?) und
+`persAusGruppe()`. Seit dem 07.10.2026 dazu Abschnitt 6: `openAssignMenu()` bei zwei Personen
+**echt geklickt** — drei `menuitemradio`, die aktive markiert, jede Wahl setzt genau ihren
+Zustand; ab drei bleibt die Mehrfachauswahl. Die Seite braucht dafür ein `<body>` vor dem
+Script. 44 Prüfungen.
+
+**Abschnitt 5 ist statisch und der wichtigste:** Jede Einplan-Stelle nach dem Muster
+`push(makeEntry(…, [syncUid]))` („nur ich", seit 07.10.2026) muss in den nächsten sechs Zeilen
+`eingeplantMelden()` rufen, und keine darf mehr nach dem alten Muster
+`push(slotIsShared(day, meal) …)` mit „für alle" starten; `quickAddPiece()` meldet nicht selbst, dafür jeder seiner Aufrufer. Kommentare zählen
+nicht mit — der Auto-Planer zitiert das Muster wörtlich, und die erste Fassung hielt das Zitat
+für eine sechste Stelle ohne Meldung. Ein neuer Einplanweg ohne Hinweis fällt damit auf, statt
+still „Zum Plan hinzugefügt" zu sagen.
+
+**Gegenprobe gegen `adc4ac7`:** am 05.10.2026 1 grün, 9 rot; am 07.10.2026 1 grün, 13 rot
+(dort fällt auch der alte stumme Klick-Zyklus an echtem Verhalten durch: kein Menü, Eintrag
+sofort umgeschaltet). Dazu eine Mutante des neuen Stands — ein Einplanweg wieder „für alle",
+Schild auch an „nur ich", „Rückgängig" ohne `save()`: genau diese drei Prüfungen rot. Der Gesamtlauf fand den Fall
+"Funktion in eine ausgeschnittene eingefügt" erneut: `pruefstand-scan-packung.py` schneidet
+`quickAddByBarcode()` aus und brach an `eingeplantMelden` ab (Stub für den Zweig ohne Gruppe). Abschnitt 5 fällt dort an echtem Verhalten
+durch (alle fünf Stellen ohne Meldung); die Abschnitte 1–4 nur, weil die Funktionen fehlen —
+fehlende Marker zählen als rote Prüfung statt als Abbruch, sonst liefe Abschnitt 5 am alten
+Stand nie. Die Gegenprobe braucht einen vollständigen alten Stand (`git worktree add`), nicht
+den Schnappschuss unter `tools/vorher/`: Der leiht `lib/` aus der Wurzel, `quelle.py` sucht es
+neben der Datei.
+
+**Falle beim Bau:** `u"… replace(/<[^>]+>/g, "") …"` in einem Python-String mit doppelten
+Anführungszeichen ist kein leerer JS-String, sondern das Ende des Python-Strings — JS bekam
+`replace(re, )` und schrieb `undefined` an jede Tag-Stelle. Fünf rote Prüfungen, die nach
+einem Produktfehler aussahen.
+
+**Vorführung:** Baustein `gruppe-fuer-alle` in `tools/vergleich-bausteine.js` stellt eine
+Zweiergruppe **ohne Netz** nach — `CloudSync`/`CloudGroup` als Attrappe, unbekannte Methoden
+fängt ein Proxy als „Funktion, die zugleich als Promise taugt" ab. Die Klickfolge wartet auf
+das Meal im Picker, statt fester Zeiten: Mit 1,2 s fest ging der Picker rechts vor dem
+Abgleich auf und war leer. Die Rezept-ID muss `validRecipeId()` bestehen (`r` + 3–14 Zeichen),
+sonst filtert der Gruppenabgleich das Meal still heraus. Seit dem 07.10.2026 tippt sie danach
+das Personen-Symbol an — und zwar am **sichtbaren** Tag: `querySelector` nahm den ersten
+Mittag der Woche (Montag), am Handy zeigt der Streifen aber heute; Karte und Menü lagen
+außerhalb des Bildes.
+

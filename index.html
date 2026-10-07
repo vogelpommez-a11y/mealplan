@@ -1339,7 +1339,6 @@
     if (!uids || !groupMembers.length || groupMembers.every(mem => uids.indexOf(mem.uid) !== -1)) return id;
     return { id: id, uids: uids.slice() };
   }
-  function slotIsShared(day, meal) { return state.plan[day][meal].every(entryIsShared); }
 
   // ---------- Wochen (aktuelle + naechste, an ISO-Kalenderwochen gebunden) ----------
   // Plaene liegen unter state.plans["YYYY-Www"]. "Aktuell" ist die ISO-Woche von heute,
@@ -1897,6 +1896,14 @@
   // sie sagt nur nicht mehr allein, WIE VIEL eingekauft wird.
   function shopCountsMembers() {
     return !!(syncGid && groupSetting("shopForAll") && groupMembers.length > 1);
+  }
+  // Fuer wie viele isst ein "fuer alle"-Gericht mit? 0 heisst: keine Gruppe, oder allein in
+  // ihr - dann gibt es nichts anzuzeigen. Eine Stelle fuer Plankarte ("für 2"), den Toast
+  // beim Einplanen und den Hinweis in der Einkaufsliste, damit sie nie verschiedene Zahlen
+  // nennen. Bewusst NICHT an "Einkauf für alle rechnen" gehaengt: Die Karte sagt, wer isst,
+  // nicht wie viel eingekauft wird (dieselbe Trennung wie bei shopCountsMembers()).
+  function gruppenPortionen() {
+    return syncGid && groupMembers.length > 1 ? groupMembers.length : 0;
   }
 
   // Favoriten sind persoenlich (Konto-Dokument, nie Gruppe). Deduplizieren UND sortieren:
@@ -7223,10 +7230,22 @@
             // also die zuerst eingeplanten, der Rest steckt in "+N weitere".
             if (otherSeen > otherVisible) return;
           }
-          const badge = grp !== 0 ? memberBadgeHtml(uids) : "";
-          // Badges sind aria-hidden (rein dekorativ) - wer das Gericht isst, muss deshalb
-          // im Titel stehen, sonst bleibt die Zuweisung fuer Screenreader unsichtbar.
-          const assignNote = uids ? " – nur für " + uids.map(u => (memberByUid(u) ? firstName(memberByUid(u).name) : null) || "Jemanden").join(", ") : "";
+          // Das Schild markiert die AUSNAHME. Seit dem 07.10.2026 startet jedes neue Gericht
+          // als "nur ich" - das ist der Normalfall und bleibt ohne Schild; sonst truege fast
+          // jede Karte eines (31 von 31, wie am 16.08.2026 umgekehrt). "Fuer alle" bekommt die
+          // Kuerzel aller, dazu "für 2" in der Metazeile: Die Einkaufsliste rechnet es mal
+          // Mitglieder, das soll man sehen. Fremde und gemischte Zuweisungen wie bisher.
+          // Badges sind aria-hidden (rein dekorativ) - wer das Gericht isst, steht deshalb
+          // im Titel, sonst bliebe die Zuweisung fuer Screenreader unsichtbar.
+          const fuerAlle = grp === 0 ? gruppenPortionen() : 0;
+          const nurIch = uids && uids.length === 1 && uids[0] === syncUid;
+          const badge = fuerAlle ? memberBadgeHtml(groupMembers.map(x => x.uid)) : (uids && !nurIch ? memberBadgeHtml(uids) : "");
+          const assignNote = uids ? " – nur für " + uids.map(u => (memberByUid(u) ? firstName(memberByUid(u).name) : null) || "Jemanden").join(", ") : (fuerAlle ? " – für alle" : "");
+          const kcal = recipeNut(r).kcal;
+          // Je Teil ein <span>: In den sieben schmalen Desktop-Spalten bricht die Zeile sonst
+          // mitten durch ("540 kcal ·" / "für 2"). So bricht sie hoechstens ZWISCHEN den Teilen.
+          const meta = [kcal ? nfmt(kcal) + " kcal" : "", fuerAlle ? "für " + fuerAlle : ""].filter(Boolean)
+            .map((t, i) => `<span>${i ? "· " : ""}${t}</span>`).join(" ");
           // tabindex und aria-keyshortcuts nur, wo auch sortiert werden darf: ohne
           // Schreibrecht waere der Fokus eine Einladung zu einer Taste, die nichts tut -
           // und siebenmal vier Slots voller Karten in der Tab-Reihenfolge sind teuer genug,
@@ -7234,7 +7253,7 @@
           html += `<div class="filled"${drag ? ` tabindex="0" aria-keyshortcuts="Alt+ArrowUp Alt+ArrowDown"` : ""} data-action="view" data-id="${esc(r.id)}" data-slot-src="${d.key}:${m.key}:${idx}" title="${esc(r.name)}${esc(assignNote)}${drag ? " – ziehen zum Verschieben" : ""}">
               ${drag ? `<span class="pm-grip" aria-hidden="true">${ICON_GRIP}</span>` : ""}
               <span class="r-thumb-wrap">${thumbHtml(r, "r-thumb", true)}${badge}</span>
-              <div class="r-body"><div class="r-name">${esc(r.name)}</div>${recipeNut(r).kcal ? `<div class="r-meta">${nfmt(recipeNut(r).kcal)} kcal</div>` : ""}</div>
+              <div class="r-body"><div class="r-name">${esc(r.name)}</div>${meta ? `<div class="r-meta">${meta}</div>` : ""}</div>
               ${showPencil ? `<button class="pencil" data-action="assign" data-slot-src="${d.key}:${m.key}:${idx}" aria-label="Zuweisung ändern" title="Zuweisung ändern">${ICON_PEOPLE}</button>` : ""}
               ${drag ? `<button class="x" data-action="unassign" data-slot-src="${d.key}:${m.key}:${idx}" aria-label="Entfernen" title="Entfernen">✕</button>` : ""}
             </div>`;
@@ -8749,9 +8768,9 @@
         if (delBtn) delBtn.textContent = "Meal löschen";
         if (pre && pre.assignTo) {
           const { day, meal } = pre.assignTo;
-          state.plan[day][meal].push(slotIsShared(day, meal) ? draft.id : makeEntry(draft.id, [syncUid]));
+          state.plan[day][meal].push(makeEntry(draft.id, [syncUid]));
           pre.assignTo = null;
-          toast("Meal angelegt und eingeplant");
+          eingeplantMelden(day, meal, wem => "Meal angelegt und " + (wem ? wem + " " : "") + "eingeplant");
         } else {
           toast("Meal angelegt");
         }
@@ -9737,14 +9756,16 @@
       if (go) go.addEventListener("click", () => { closeModal(); state.tab = "recipes"; render(); openMealSheet(null); });
       listEl.querySelectorAll("[data-assign]").forEach(b => b.addEventListener("click", () => {
         const id = b.dataset.assign;
-        state.plan[day][meal].push(slotIsShared(day, meal) ? id : makeEntry(id, [syncUid]));
-        closeModal(); render(); toast("Zum Plan hinzugefügt");
+        state.plan[day][meal].push(makeEntry(id, [syncUid]));
+        closeModal(); render();
+        eingeplantMelden(day, meal, wem => wem ? wem.charAt(0).toUpperCase() + wem.slice(1) + " eingeplant" : "Zum Plan hinzugefügt");
       }));
       listEl.querySelectorAll("[data-piece]").forEach(b => b.addEventListener("click", () => {
         const f = pieces[Number(b.dataset.piece)];
         if (!f) return;
         quickAddPiece(day, meal, f);
-        closeModal(); render(); toast("„" + f.name + "“ zum Plan hinzugefügt");
+        closeModal(); render();
+        eingeplantMelden(day, meal, wem => "„" + f.name + "“ " + (wem ? wem + " eingeplant" : "zum Plan hinzugefügt"));
       }));
     }
     // Beide Umschalter der Liste ("Alle anzeigen" und der Schnell-Aufklapper) zeichnen ueber
@@ -9820,9 +9841,9 @@
     if (!code) return;
     const existing = state.recipes.find(r => r.barcode === code);
     if (existing) {
-      state.plan[day][meal].push(slotIsShared(day, meal) ? existing.id : makeEntry(existing.id, [syncUid]));
+      state.plan[day][meal].push(makeEntry(existing.id, [syncUid]));
       render();
-      toast("Zum Plan hinzugefügt");
+      eingeplantMelden(day, meal, wem => wem ? wem.charAt(0).toUpperCase() + wem.slice(1) + " eingeplant" : "Zum Plan hinzugefügt");
       return;
     }
     toast("Suche Produkt …");
@@ -9883,10 +9904,10 @@
       created: Date.now(),
     }, syncGid ? { by: syncUid } : null);
     state.recipes.push(recipe);
-    state.plan[day][meal].push(slotIsShared(day, meal) ? recipe.id : makeEntry(recipe.id, [syncUid]));
+    state.plan[day][meal].push(makeEntry(recipe.id, [syncUid]));
     render();
     // Die Menge steht bewusst IM Toast: sie ist der einzige Wert, den niemand bestaetigt hat.
-    toast("„" + p.name + "“ · " + qtyLabel(portion, portionUnit) + " zum Plan hinzugefügt");
+    eingeplantMelden(day, meal, wem => "„" + p.name + "“ · " + qtyLabel(portion, portionUnit) + " " + (wem ? wem + " eingeplant" : "zum Plan hinzugefügt"));
   }
 
   // Schnelleintrag: ein zaehlbares Lebensmittel (pieceFoods) in einen Slot legen. Genau
@@ -9920,7 +9941,46 @@
       }, syncGid ? { by: syncUid } : null);
       state.recipes.push(recipe);
     }
-    state.plan[day][meal].push(slotIsShared(day, meal) ? recipe.id : makeEntry(recipe.id, [syncUid]));
+    state.plan[day][meal].push(makeEntry(recipe.id, [syncUid]));
+  }
+
+  // Rueckmeldung nach dem Einplanen von Hand - gerufen DIREKT nach dem push() an den fuenf
+  // Stellen mit `makeEntry(id, [syncUid])`.
+  //
+  // In der Gruppe startet ein neues Gericht seit dem 07.10.2026 als "nur fuer mich" (vorher
+  // "fuer alle" in einer leeren Zeile, docs/PRODUCT.md). Am Geraet hatte jemand die eigene
+  // Woche durchgeplant, ohne an die Gruppe zu denken - die Einkaufsliste rechnete alles mal
+  // zwei. Der Toast sagt deshalb, fuer wen, und bietet "Für euch beide" an: derselbe Schritt
+  // wie das Personen-Symbol auf der Karte, nur ohne sie erst suchen zu muessen.
+  //
+  // text(wem): wem ist "für dich" oder null (keine Gruppe, allein in ihr). Der Eintrag wird
+  // am Slotende abgelesen, nicht als Parameter gereicht - so bleibt jede Aufrufstelle eine Zeile.
+  function eingeplantMelden(day, meal, text) {
+    const slot = state.plan[day][meal];
+    const entry = slot[slot.length - 1];
+    const n = gruppenPortionen();
+    // makeEntry() kollabiert ohne Gruppe (oder allein in ihr) zur String-Form - dann gibt es
+    // niemanden, fuer den man mitplanen koennte.
+    if (!n || typeof entry === "string") { toast(text(null)); return; }
+    // Die Knoepfe greifen bis zu acht Sekunden spaeter - inzwischen kann jemand die Woche
+    // gewechselt haben, und state.plan zeigte auf eine andere. Dann lieber nichts tun.
+    // Gesucht wird das Objekt selbst (indexOf vergleicht mit ===), nicht die id: Dasselbe
+    // Gericht kann zweimal im Slot stehen.
+    const woche = state.viewWeek;
+    const finde = () => state.viewWeek === woche ? state.plan[day][meal].indexOf(entry) : -1;
+    undoToast(text("für dich"), () => {
+      const i = finde();
+      if (i !== -1) { state.plan[day][meal].splice(i, 1); save(); render(); }
+    }, {
+      label: n === 2 ? "Für euch beide" : "Für alle",
+      fn: () => {
+        const i = finde();
+        if (i !== -1) { state.plan[day][meal][i] = makeEntry(entryId(entry), null); save(); render(); }
+      },
+      // Laenger als die 5 s des reinen "Rueckgaengig": Zwei Knoepfe wollen gelesen werden,
+      // bevor man waehlt - dieselbe Ueberlegung wie beim "Nochmal" des Auto-Planers.
+      ms: 8000
+    });
   }
 
   // ---------- Shopping list ----------
@@ -10097,6 +10157,13 @@
   // "2 Personen" / "1 Person" - eine Stelle, damit Knopf-Beschriftung und Vorlesetext
   // nicht auseinanderlaufen koennen.
   function personsLabel(n) { return n + (n === 1 ? " Person" : " Personen"); }
+  // Stammt die Personenzahl der Einkaufsliste aus der Gruppe (und nicht von Hand)? Genau
+  // dann steht "Wie eure Gruppe" darunter - sonst sieht man "2 Personen", ohne je etwas
+  // eingestellt zu haben, und haelt die doppelten Mengen fuer einen Fehler. Dieselbe
+  // Rangfolge wie in shopPersons(): eine von Hand gesetzte Zahl > 1 gewinnt.
+  function persAusGruppe() {
+    return shopCountsMembers() && sanitizeShopPersons(state.shopPersons) <= 1;
+  }
 
   // Welche Tage der gezeigten Woche zaehlen noch? In der aktuellen Woche nur heute und die
   // kommenden - fuer vergangene Tage wird nicht mehr eingekauft und nicht mehr vorgekocht,
@@ -10248,7 +10315,7 @@
       const plus = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>`;
       body = `
         <div class="shop-persons">
-          <span class="lbl">Einkauf für</span>
+          <span class="lbl">Einkauf für<small class="shop-pers-src" id="shop-pers-src"${persAusGruppe() ? "" : " hidden"}>Wie eure Gruppe</small></span>
           <div class="step" role="group" aria-label="Personenanzahl">
             <button type="button" class="pbtn" data-pers="-1" aria-label="Eine Person weniger">${minus}</button>
             <span class="pnum" id="shop-pers" aria-live="polite">${esc(personsLabel(cur.persons))}</span>
@@ -10293,8 +10360,11 @@
     if (items.length) {
       const persEl = node.querySelector("#shop-pers");
       const persBtns = Array.from(node.querySelectorAll(".shop-persons .pbtn"));
+      const srcEl = node.querySelector("#shop-pers-src");
       const applyPersons = () => {
         persEl.textContent = personsLabel(cur.persons);
+        // Von Hand verstellt, kommt die Zahl nicht mehr aus der Gruppe - der Hinweis geht.
+        srcEl.hidden = !persAusGruppe();
         persBtns.forEach(b => { b.disabled = cur.persons + Number(b.dataset.pers) < 1 || cur.persons + Number(b.dataset.pers) > 12; });
         const byNorm = new Map(cur.items.map(it => [it.norm, it.label]));
         node.querySelectorAll(".shop-check").forEach(c => {
@@ -10756,27 +10826,13 @@
         const liste = wahl[m.key];
         const uebernommen = planUebernahme(d.key, m.key);
 
-        // Gilt das ERSTE Gericht in diesem Slot fuer alle? Dieselbe Frage, die der Picker
-        // seit jeher stellt - dort steht an fuenf Stellen woertlich
-        //
-        //   state.plan[day][meal].push(slotIsShared(day, meal) ? id : makeEntry(id, [syncUid]));
-        //
-        // und slotIsShared() ist bei einem LEEREN Slot true (every auf leerem Array). Von Hand
-        // eingeplant entsteht in einer leeren Zeile also ein "fuer alle"-Eintrag; der Planer war
-        // die einzige Stelle der App, die stattdessen immer nur sich selbst eintrug.
-        //
-        // Die Folge sah man erst am Geraet zu zweit: 31 von 31 Eintraegen trugen ein Badge, der
-        // gemeinsame Plan war voll und fuer die andere Person trotzdem leer. Gemeinsam kochen ist
-        // der Normalfall - der muss ohne Zusatzklick entstehen.
-        //
-        // Das ist KEINE Fremdplanung: Ueber das Kalorienziel der anderen wird nichts entschieden
-        // (jede Bilanz rechnet weiter gegen ihr eigenes), und ein Klick auf das Personen-Symbol
-        // nimmt das Gericht wieder heraus. Entschieden wird nur, was gekocht wird.
-        //
-        // VOR der Schleife festgehalten: Nach dem ersten Einfuegen waere die Antwort eine andere,
-        // und dann bekaeme auch die zweite Portion ein "fuer alle" - zwei Portionen fuer jeden
-        // statt zwei fuer mich.
-        const slotGemeinsam = slotIsShared(d.key, m.key);
+        // Jedes Gericht des Planers gilt nur MIR - wie beim Einplanen von Hand (07.10.2026).
+        // Vom 16.08. bis 07.10.2026 bekam das erste Gericht einer leeren Zeile "fuer alle":
+        // Damals trugen 31 von 31 Eintraegen ein Badge, und der gemeinsame Plan war fuer die
+        // andere Person leer. Umgekehrt plante am 07.10. jemand die eigene Woche durch, und die
+        // Einkaufsliste rechnete alles mal zwei - das kostet Geld, der leere Plan nur einen
+        // Tipp auf das Personen-Symbol. Gerechnet ist hier ohnehin auf MEIN Kalorienziel.
+        // Mitessen bleibt ueber planUebernahme() erhalten ("Beitreten statt Doppeln").
 
         // Der Snack-Slot bekommt VERSCHIEDENE Snacks, nicht ein Vielfaches desselben.
         // Vorher rechnete auch er `round(rest / kcal)` - bei einem 150-kcal-Shake und
@@ -10792,10 +10848,7 @@
             // Ein weiterer Snack nur, wenn der Rest ihn im Wesentlichen noch traegt -
             // sonst schoebe die Zeile den Tag ueber das Ziel.
             if (offen < skcal * 0.6) break;
-            // Der erste Snack gilt fuer alle, jeder weitere nur mir: Die Zahl der Snacks haengt
-            // an MEINEM Restbudget, und wer ein kleineres Ziel hat, soll nicht automatisch drei
-            // Kleinigkeiten mitessen.
-            state.plan[d.key][m.key].push(makeEntry(planId(s), k === 0 && slotGemeinsam ? null : meineUids()));
+            state.plan[d.key][m.key].push(makeEntry(planId(s), meineUids()));
             offen -= skcal;
             gesetzt++;
           }
@@ -10871,11 +10924,8 @@
           // makeEntry je Eintrag neu: eine gemeinsame Objektreferenz mehrfach im Plan waere
           // eine Falle fuer jede spaetere Aenderung an genau einem der Eintraege.
           //
-          // Die erste Portion in einer leeren Zeile gilt fuer alle (siehe slotGemeinsam oben),
-          // jede weitere nur mir: "wir essen dasselbe, ich zweimal" - genau die Aussage, fuer
-          // die es die Mehrfacheintraege in der Gruppe ueberhaupt gibt.
           // Allein liefert makeEntry ohnehin die schlichte String-Form.
-          state.plan[d.key][m.key].push(makeEntry(rid, i === 0 && slotGemeinsam ? null : meineUids()));
+          state.plan[d.key][m.key].push(makeEntry(rid, meineUids()));
         }
         offen -= n * kcal;
         gesetzt += n;
@@ -12080,10 +12130,11 @@
     ]);
   }
 
-  // Zuweisung eines geplanten Gerichts aendern (Stift-Symbol auf der Meal-Karte).
-  // Bei genau zwei Mitgliedern reicht ein Klick-Zyklus, ab drei ein Chip-Popover mit
-  // Mehrfachauswahl. Orphan-Schutz: wuerde eine Abwahl die letzte Person entfernen,
-  // wird stattdessen der ganze Eintrag geloescht (derselbe Pfad wie "unassign").
+  // Zuweisung eines geplanten Gerichts aendern (Personen-Symbol auf der Meal-Karte).
+  // Bei genau zwei Mitgliedern drei feste Wahlen ("Für euch beide" / "Nur ich" / "Nur Lisa"),
+  // ab drei ein Chip-Popover mit Mehrfachauswahl. Orphan-Schutz: wuerde eine Abwahl die
+  // letzte Person entfernen, wird stattdessen der ganze Eintrag geloescht (derselbe Pfad wie
+  // "unassign").
   function openAssignMenu(btn) {
     const [d, m, i] = btn.dataset.slotSrc.split(":");
     const idx = Number(i);
@@ -12103,19 +12154,31 @@
       save(); render();
     }
 
-    if (groupMembers.length === 2) {
-      const curUids = entryUids(entry);
-      const other = groupMembers.find(x => x.uid !== syncUid);
-      let next;
-      if (curUids === null) next = [syncUid];
-      else if (curUids.indexOf(syncUid) !== -1 && curUids.length === 1) next = other ? [other.uid] : null;
-      else next = null; // zurueck zu "fuer alle"
-      apply(next);
-      return;
-    }
-
     const open = document.querySelector(".assign-menu");
     if (open) closeMenuNode(open);
+
+    // Zwei Mitglieder: bis zum 07.10.2026 ein stummer Klick-Zyklus (fuer alle -> nur ich ->
+    // nur die andere Person -> fuer alle). Was ein Tipp bewirkte, sah man erst danach - und
+    // seit neue Gerichte als "nur ich" starten, ist "Für euch beide" der haeufigste Wechsel.
+    // Die Mehrfachauswahl von unten passt hier nicht: Der Tipp auf den eigenen Namen nimmt
+    // einen dort HERAUS, aus "fuer alle" wuerde "nur die andere Person".
+    // Deshalb Einfachauswahl nach dem WAI-ARIA-Muster Menu Button mit menuitemradio
+    // (https://www.w3.org/WAI/ARIA/apg/patterns/menu-button/): ein Tipp = genau dieser
+    // Zustand, die aktive Wahl ist markiert. Optik und Schliessen wie das Popover unten.
+    const other = groupMembers.length === 2 ? groupMembers.find(x => x.uid !== syncUid) : null;
+    const me = groupMembers.find(x => x.uid === syncUid);
+    let menu;
+    if (other && me) {
+      const cur = entryUids(entry);
+      const aktiv = cur === null ? "alle" : (cur.length === 1 && cur[0] === syncUid ? "ich" : (cur.length === 1 && cur[0] === other.uid ? "du" : ""));
+      const wahl = (key, inhalt) => `<button class="assign-chip${aktiv === key ? " on" : ""}" data-wahl="${key}" role="menuitemradio" aria-checked="${aktiv === key}">${inhalt}</button>`;
+      menu = el(`<div class="menu assign-menu" role="menu" aria-label="Für wen?">
+        ${wahl("alle", `<span class="avatar-spacer" aria-hidden="true"></span><span>Für euch beide</span>`)}
+        <div class="assign-sep" aria-hidden="true"></div>
+        ${wahl("ich", `${memberAvatarHtml(me, true)}<span>Nur ich</span>`)}
+        ${wahl("du", `${memberAvatarHtml(other, true)}<span>Nur ${esc(firstName(other.name) || "Jemand")}</span>`)}
+      </div>`);
+    }
     const curUids = entryUids(entry) || groupMembers.map(x => x.uid);
     // "Für alle" als eigener Chip ganz oben, nicht nur als Ergebnis vollstaendigen Anhakens.
     //
@@ -12127,7 +12190,7 @@
     // Er setzt uids auf null - genau das, was makeEntry() ohnehin erzeugt, sobald alle
     // abgedeckt sind. Kein zweiter Weg zum selben Zustand, nur eine Abkuerzung dorthin.
     const alleAn = entryUids(entry) === null;
-    const menu = el(`<div class="menu assign-menu" role="menu">
+    if (!menu) menu = el(`<div class="menu assign-menu" role="menu">
       <button class="assign-chip${alleAn ? " on" : ""}" data-all="1" role="menuitem"><span class="avatar-spacer" aria-hidden="true"></span><span>Für alle</span></button>
       <div class="assign-sep" aria-hidden="true"></div>
       ${groupMembers.map(mem => `<button class="assign-chip${curUids.indexOf(mem.uid) !== -1 ? " on" : ""}" data-uid="${esc(mem.uid)}" role="menuitem">${memberAvatarHtml(mem, true)}<span>${esc(firstName(mem.name) || "Jemand")}</span></button>`).join("")}
@@ -12147,6 +12210,10 @@
     // als schwebend an falscher Stelle stehen zu bleiben. close() ist idempotent (mehrfacher
     // Aufruf harmlos), { once: true } entfernt den Listener nach dem ersten Scroll von selbst.
     window.addEventListener("scroll", () => close(false), { capture: true, once: true });
+    menu.querySelectorAll("[data-wahl]").forEach(b => b.addEventListener("click", () => {
+      close(false);
+      apply({ alle: null, ich: [syncUid], du: [other.uid] }[b.dataset.wahl]);
+    }));
     const alleChip = menu.querySelector("[data-all]");
     if (alleChip) alleChip.addEventListener("click", () => { close(false); apply(null); });
     menu.querySelectorAll("[data-uid]").forEach(chip => chip.addEventListener("click", () => {

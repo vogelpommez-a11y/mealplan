@@ -841,17 +841,21 @@ Helper (neben `asIdList()`):
   **jedes aktuelle** Gruppenmitglied abdeckt (Mengenabdeckung per `groupMembers.every(...)`,
   nicht nur `uids.length`, sonst würde eine veraltete UID eines ausgeschiedenen Mitglieds einen
   Eintrag fälschlich zu "für alle" kollabieren lassen)
-* `slotIsShared(day, meal)` — prüft, ob ein ganzer Slot noch ausschließlich geteilte Einträge hat
+* `slotIsShared(day, meal)` gab es bis zum 07.10.2026 — es entschied, ob ein neuer Eintrag
+  „für alle" startet. Seitdem startet jeder neue Eintrag als `makeEntry(id, [syncUid])`
+  (`docs/PRODUCT.md` „Neu Eingeplantes gilt erst nur mir"), und die Funktion entfiel.
 
 `unflattenWeek()` sanitisiert empfangene `{id,uids}`-Objekte: `uids`-Elemente müssen Strings
 sein, auf 24 Einträge gedeckelt (das Dokument kommt von einem anderen Gerät und wird nicht
 vertraut). `normalizePlan()` filtert weiterhin über `entryId(e)` gegen bekannte Rezept-IDs.
 
-Zuweisen-UI (Personen-Symbol, nur ab `groupMembers.length >= 2`): bei genau zwei Mitgliedern ein
-Klick-Zyklus ("für alle" → "nur ich" → "nur die andere Person" → "für alle"), ab drei ein
-Chip-Popover mit Mehrfachauswahl. Das Popover hängt sich an `document.body` (nicht an die Karte),
-weil `.day` `overflow: hidden` für die mobilen Karussell-Streifen trägt und ein daran verankertes
-Popover abschneiden würde.
+Zuweisen-UI (Personen-Symbol, nur ab `groupMembers.length >= 2`): bei genau zwei Mitgliedern
+seit dem 07.10.2026 eine Einfachauswahl mit drei festen Wahlen („Für euch beide" / „Nur ich" /
+„Nur [Name]", `role="menuitemradio"` + `aria-checked`) — vorher ein stummer Klick-Zyklus. Ab
+drei ein Chip-Popover mit Mehrfachauswahl. Beide hängen sich an `document.body` (nicht an die
+Karte), weil `.day` `overflow: hidden` für die mobilen Karussell-Streifen trägt und ein daran
+verankertes Popover abschneiden würde. `<body>` trägt keine Schrift, deshalb setzt
+`.assign-menu` `font-family: var(--font-body)` selbst (wie `.overlay`).
 
 **Nach `asIdList()` darf kein Vergleich mehr auf den rohen Eintrag zeigen** — kein `.filter`,
 `.indexOf`, `.includes` oder `.has`, immer über `entryId(e)`. `dropRecipeIds()` tat es bis zum
@@ -923,8 +927,21 @@ Der frühere Teiler `r.portions` ist am 15.08.2026 entfallen (ein Meal = eine Po
 die einzige Stelle, an der das Feld überhaupt rechnete — und genau deshalb widersprüchlich:
 Bei "für alle" wurde er nie angewandt, die Tagesbilanz kannte ihn ohnehin nicht.
 
-Farbring/Initiale (`--member-1` bis `--member-6`) nur bei "eigenen"/"anderen" Karten, nie bei
-"gemeinsam". Maximal 2 Badges pro Karte, der Rest sammelt sich in einem "+N"-Badge
+Farbring/Initiale (`--member-1` bis `--member-6`) markiert die **Ausnahme**. Seit dem
+07.10.2026: **kein** Schild bei „nur ich" (der Normalfall, seit neue Einträge so starten), die
+Kürzel **aller** bei „für alle", die genannten Kürzel bei fremden und gemischten Zuweisungen.
+Bis dahin war es umgekehrt (Schild bei „eigen"/„andere", nie bei „gemeinsam"). **Seit dem
+05.10.2026** trägt die gemeinsame Karte zusätzlich `für N` in der Metazeile (`.r-meta`, je Teil ein `<span>` mit `white-space: nowrap`, damit die schmalen
+Desktop-Spalten nur zwischen den Teilen umbrechen) und `– für alle` im `title`. N kommt aus
+`gruppenPortionen()` (`groupMembers.length` in einer Gruppe ab zwei, sonst 0) — derselben
+Quelle wie der Toast `eingeplantMelden()` beim Einplanen von Hand (alle fünf Stellen mit
+`makeEntry(id, [syncUid])`) und `persAusGruppe()` für „Wie eure Gruppe" in der Einkaufsliste.
+Der Toast liest den neuen Eintrag am Slotende ab und sucht ihn später als **Objekt**
+(`indexOf` vergleicht mit `===`), nicht über die id — dasselbe Gericht kann zweimal im Slot
+stehen. Seine Knöpfe („Für euch beide" bzw. „Für alle" → `makeEntry(id, null)`, „Rückgängig"
+→ entfernen, beide mit `save()`) greifen nur, solange `state.viewWeek` unverändert ist —
+sonst zeigte `state.plan` auf eine andere Woche.
+Der Auto-Planer meldet weiter über seinen eigenen Toast mit „Nochmal". Maximal 2 Badges pro Karte, der Rest sammelt sich in einem "+N"-Badge
 (`BADGE_MAX`).
 
 **Farbvergabe (`memberColorSlot()`) ist kollisionsfrei, nicht nur gehasht.** Ausgangspunkt
@@ -1173,7 +1190,7 @@ Ein Eintrag im Wochenplan ist eines von zwei Dingen:
 
 | Form | Bedeutung |
 |---|---|
-| `"rid"` | für alle — der Normalfall, bewusst ein blanker String |
+| `"rid"` | für alle — bewusst ein blanker String (neu Eingeplantes startet seit dem 07.10.2026 als `{id, uids:[ich]}`) |
 | `{id, uids}` | nur für bestimmte Gruppenmitglieder |
 
 **Zurückgenommen (13.08.2026): der Portionsfaktor `{id, p}`.** Er war einen Tag lang als B5
@@ -2963,20 +2980,11 @@ geteilt oder mir zugewiesen? Ein Eintrag, der nur anderen Mitgliedern gehört, l
 mich offen. Genau daran hängt Regel 5: `planUebernahme()` sieht dann nach, ob deren Gericht auch
 zu meinem Profil passt, und nimmt dasselbe.
 
-**`slotGemeinsam` — der Planer fragt jetzt dieselbe Frage wie der Picker** (16.08.2026). Vor dem
-Einfügen wird `slotIsShared(tag, slot)` einmal ausgewertet; ist die Zeile leer oder rein
-gemeinsam, bekommt der **erste** Eintrag `null` als `uids` („für alle"), jeder weitere
-`meineUids()`. Vorher trug der Planer ausnahmslos die eigene UID ein — als einzige Stelle der
-App, denn die fünf manuellen Einplan-Wege stellen die Frage seit jeher:
-
-```js
-state.plan[day][meal].push(slotIsShared(day, meal) ? id : makeEntry(id, [syncUid]));
-```
-
-`slotIsShared()` ist bei leerem Slot `true` (`every` auf leerem Array). **Der Wert muss VOR der
-Portionsschleife festgehalten werden** — nach dem ersten Einfügen wäre die Antwort eine andere,
-und die zweite Portion würde ebenfalls „für alle", also zwei Portionen für jeden statt zwei für
-mich.
+**Der Planer trägt nur MICH ein** (`meineUids()`, seit dem 07.10.2026 wieder — wie die fünf
+manuellen Einplan-Wege). Vom 16.08. bis 07.10.2026 bekam das erste Gericht einer leeren oder
+rein gemeinsamen Zeile `null` als `uids` („für alle", `slotGemeinsam` über `slotIsShared()`).
+Beides entfiel mit der Entscheidung in `docs/PRODUCT.md` „Neu Eingeplantes gilt erst nur mir".
+Gemeinsam wird ein Gericht im Planer nur noch über das **Beitreten**:
 
 **`planUebernahme()` liefert `{ r, idx }`, nicht nur das Rezept** (16.08.2026). Der Index ist der
 Grund für die Änderung: Der Planer legt im Übernahmefall **keinen zweiten Eintrag** mehr an,

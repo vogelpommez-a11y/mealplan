@@ -415,30 +415,35 @@ Versehen.
    3000, 2000 und 1800 kcal essen dasselbe Gericht in unterschiedlicher Anzahl. Passt es nicht
    zum eigenen Profil, wird ein anderes gewählt.
 
-### Eine leere Zeile heißt „für alle" (16.08.2026)
+### Neu Eingeplantes gilt erst nur mir (07.10.2026)
 
-Am Gerät zu zweit fiel auf: Der Planer trug **ausnahmslos sich selbst** ein. 31 von 31 Einträgen
-trugen ein Namensschild. Der gemeinsame Wochenplan war randvoll — und für die andere Person
-trotzdem leer, ihre Tagesbilanz stand auf null.
+**Abgelöst am 07.10.2026:** Vom 16.08. bis 07.10.2026 hieß eine leere Zeile „für alle". Anlass
+damals: Der Planer trug ausnahmslos sich selbst ein, 31 von 31 Einträgen trugen ein Namensschild,
+und der gemeinsame Plan war für die andere Person leer.
 
-Der Maßstab lag längst in der App: Beim **manuellen** Einplanen entsteht in einer leeren Zeile
-ein „für alle"-Gericht (`slotIsShared()`, an fünf Stellen). Der Auto-Planer war die einzige
-Ausnahme. Er stellt jetzt dieselbe Frage.
+Am 07.10.2026 kam der umgekehrte Fall aus der Praxis: Paddy plante **seine** Woche, ohne daran
+zu denken, dass er in einer Gruppe ist. Alles wurde „für alle", und erst in der Einkaufsliste
+fiel auf, dass es viel zu viele Zutaten waren.
 
-**Das ist keine Fremdplanung.** Über das Kalorienziel der anderen wird nichts entschieden — jede
-Bilanz rechnet weiter gegen ihr eigenes Ziel — und ein Klick auf das Personen-Symbol nimmt das
-Gericht wieder heraus. Entschieden wird nur, **was gekocht wird**, und gemeinsam kochen ist der
-Normalfall. Der darf keinen Zusatzklick kosten.
+Beide Erfahrungen sind echt — sie kommen aus zwei Arten, die Gruppe zu nutzen. Entschieden hat
+**der Preis des Vergessens**:
 
-Die Grenze bleibt sauber:
+* Start „für alle", vergessen umzustellen → **zu viel eingekauft**. Fällt spät auf (Laden,
+  Kühlschrank) und kostet Geld.
+* Start „nur ich", vergessen umzustellen → das Gericht fehlt in der Bilanz der anderen Person.
+  Fällt früh auf (sie sieht es unter „+N weitere") und kostet einen Tipp.
 
-* **Erste Portion** einer leeren Zeile → für alle.
-* **Jede weitere** → nur mir. „Wir essen dasselbe, ich zweimal" — genau die Aussage, für die es
-  Mehrfacheinträge in der Gruppe überhaupt gibt.
-* **Beim Snack** ebenso: Die Zahl der Snacks hängt an meinem Restbudget, wer ein kleineres Ziel
-  hat, soll nicht automatisch drei Kleinigkeiten mitessen.
-* Steht in der Zeile schon eine **fremde Zuweisung**, entsteht kein „für alle" — sonst schriebe
-  der Planer jemandem sein eigenes Gericht um.
+Deshalb gilt seit dem 07.10.2026 **überall** — von Hand an allen fünf Stellen wie im
+Auto-Planer: Ein neu eingeplantes Gericht gehört **nur mir**. „Für euch beide" wählt man
+bewusst: im Toast direkt nach dem Einplanen oder über das Personen-Symbol der Karte. Der
+Planer rechnet ohnehin auf **mein** Kalorienziel.
+
+Gemeinsam essen entsteht weiter von selbst, wo zwei dasselbe wollen: Plant die zweite Person
+mit dem Auto-Planer, **tritt sie dem vorhandenen Gericht bei** (nächster Abschnitt), und daraus
+wird ein „für alle"-Gericht.
+
+Was schon im Plan stand, blieb beim Umstellen unverändert — bei „für alle" ist nicht
+gespeichert, wer es eingeplant hat.
 
 ### Beitreten statt doppeln (16.08.2026)
 
@@ -448,9 +453,8 @@ zwei Namensplaketten. Rechnerisch stimmte alles — nur las es sich wie *jeder k
 obwohl *ein Topf, zwei Teller* gemeint war. **Der Plan zeigte die Buchhaltung statt das Essen.**
 
 Deshalb trägt sich der Planer jetzt am **vorhandenen** Eintrag ein. Sind damit alle Mitglieder
-dabei, wird daraus automatisch ein „für alle"-Gericht — aus zwei Karten wird eine, ohne Badge,
-weil gemeinsam essen der Normalfall ist. Ein **zweiter** Eintrag entsteht nur noch, wenn jemand
-wirklich zwei Portionen braucht. Dann ist er eine echte Aussage und keine Doppelung.
+dabei, wird daraus automatisch ein „für alle"-Gericht — aus zwei Karten wird eine. Ein
+**zweiter** Eintrag entsteht nur noch, wenn jemand wirklich zwei Portionen braucht. Dann ist er eine echte Aussage und keine Doppelung.
 
 **Wer zuerst plant, wählt verträglich.** Ein veganes Hauptgericht kann auch der Fleischesser
 mitessen, umgekehrt nicht. In einer Gruppe rücken Gerichte mit wenigen Einschränkungen deshalb
@@ -461,6 +465,33 @@ Gedächtnis für Abwechslung wiegt weiterhin deutlich schwerer.
 Verschiedene Ernährungsformen werden dabei **nicht wegprogrammiert**: Ein Veganer und ein
 Fleischesser können nicht dasselbe essen. Dann stehen zwei Karten im Slot, jede mit ihrer
 Plakette — und das ist die richtige Antwort, kein Fehler.
+
+### „Für alle" muss man sehen (05.10.2026, geändert 07.10.2026)
+
+Ein „für alle"-Gericht trug bis zum 05.10.2026 **kein** Namensschild. Die Folge fiel zu zweit
+auf: Die Karte sah aus wie ein Gericht für eine Person, während die Einkaufsliste die Zutaten
+richtig **mal zwei** nahm. Die doppelte Menge wirkte wie ein Fehler. Gerechnet war alles
+richtig, nur stand es nirgends.
+
+Die Rechnung bleibt unverändert. Drei Hinweise sagen, wofür sie steht:
+
+* **Plankarte:** `540 kcal · für 2` in der Metazeile, dazu seit dem 07.10.2026 die **Kürzel
+  aller** als Schild. Das Schild markiert die **Ausnahme**: Seit neue Gerichte als „nur ich"
+  starten, ist „nur ich" der Normalfall und trägt keines — sonst hätte fast jede Karte eines.
+  Gerichte der anderen und gemischte Zuweisungen tragen ihre Kürzel wie bisher. Die kcal
+  gelten weiter **je Person**.
+* **Beim Einplanen:** „Für dich eingeplant" mit **Für euch beide** (ab drei: **Für alle**) und
+  **Rückgängig** — wer gemeinsam isst, stellt es mit einem Tipp um, ohne erst das
+  Personen-Symbol suchen zu müssen.
+* **Einkaufsliste:** „Wie eure Gruppe" unter „Einkauf für" — nur solange die Zahl wirklich aus
+  der Gruppe kommt. Eine von Hand gesetzte Zahl hat keinen Hinweis.
+
+Die Zahl auf der Karte hängt **nicht** an „Einkauf für alle rechnen": Die Karte sagt, wer
+isst, nicht wie viel eingekauft wird.
+
+**Das Personen-Symbol bei zwei Personen** (07.10.2026) öffnet drei feste Wahlen — „Für euch
+beide", „Nur ich", „Nur [Name]" — statt wie bis dahin stumm im Kreis weiterzuschalten. Was
+ein Tipp bewirkte, sah man vorher erst danach. Ab drei Personen bleibt die Mehrfachauswahl.
 
 ### Drei bewusste Grenzen beim gemeinsamen Planen
 
@@ -1542,8 +1573,9 @@ Der Wochenplan war bisher zwangsläufig für die ganze Gruppe identisch, obwohl 
 ein eigenes Kalorien-/Makroziel hat. In der Praxis isst man nicht jeden Tag exakt dasselbe — will
 aber trotzdem eine einzige, gemeinsame Einkaufsliste. Einzelne Gerichte lassen sich deshalb per
 Personen-Symbol optional nur einer Teilmenge der Gruppe zuweisen, die Einkaufsliste skaliert pro
-Gericht nach tatsächlicher Personenzahl. Der Regelfall ("für alle") bleibt dabei ohne jeden
-zusätzlichen Klick — Zuweisung ist eine Ausnahme, keine Pflichtentscheidung beim Einplanen.
+Gericht nach tatsächlicher Personenzahl. Seit dem 07.10.2026 startet ein neu eingeplantes
+Gericht als „nur ich"; „Für euch beide" ist ein Tipp im Toast oder am Personen-Symbol (siehe
+„Neu Eingeplantes gilt erst nur mir").
 Das Symbol war ursprünglich ein Stift, der wie "bearbeiten" statt "wer isst mit" liest — inzwischen
 ein Personen-Icon, das die tatsächliche Aktion zeigt.
 

@@ -1458,6 +1458,7 @@
   .r-badge.r-badge-more { font-size: 7.5px; }
   .slot .filled .r-name { font-size: 13.5px; font-weight: 550; line-height: 1.3; flex: 1; word-break: break-word; }
   .slot .filled .r-meta { font-size: 11.5px; color: var(--text-muted); margin-top: 1px; }
+  .slot .filled .r-meta > span { white-space: nowrap; }
   .slot .filled .x, .slot .filled .pencil {
     position: relative; flex: none; border: 0; background: transparent; color: var(--text-muted); cursor: pointer;
     width: 32px; height: 32px; border-radius: var(--radius-sm); display: grid; place-items: center; line-height: 1;
@@ -1498,7 +1499,10 @@
   /* Seit dem 16.08.2026 fasst eine Gruppe hoechstens vier Personen - mit "Fuer alle" sind das
      fuenf Chips, die ohnehin auf jeden Bildschirm passen. max-height bleibt als Netz fuer sehr
      kleine Viewports (Querformat auf dem Handy) stehen, nicht mehr fuer grosse Gruppen. */
-  .assign-menu { max-height: 50vh; overflow-y: auto; }
+  /* font-family: Das Menue haengt an <body> (wegen overflow:hidden der .day), und <body> traegt
+     keine Schrift - .menu button erbt per font: inherit. Bis zum 07.10.2026 stand es deshalb in
+     der Serifen-Vorgabe des Browsers. Dieselbe Loesung wie bei .overlay. */
+  .assign-menu { max-height: 50vh; overflow-y: auto; font-family: var(--font-body); }
   /* Der "Fuer alle"-Chip hat keinen Avatar. Ohne Platzhalter staende sein Text rund 32 px
      weiter links als die Namen darunter - eine Liste, die nicht fluchtet, liest sich wie ein
      Fehler. Der Platzhalter ist genau so breit wie ein Avatar samt gap. */

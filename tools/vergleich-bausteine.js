@@ -290,5 +290,97 @@ var BAUSTEINE = [
       w.__onCloudAuth({ uid: "vergleich", emailVerified: true, displayName: "Vergleich", email: "" });
       return "Anmeldung nachgestellt, der Abgleich hängt absichtlich";
     }
+  },
+
+  {
+    id: "gruppe-fuer-alle",
+    titel: "Gruppe: erst „nur ich“, „für euch beide“ bewusst wählen",
+    was: "Zweiergruppe (Paddy + Anna), ein Meal wird automatisch in den ersten Mittag gelegt, "
+       + "danach wird das Personen-Symbol der Karte angetippt. Rechts: Toast „Für dich eingeplant“ "
+       + "mit „Für euch beide“ (8 s), Karte ohne Schild, Menü mit drei Wahlen. Links (live): "
+       + "„für alle“ ohne Hinweis, der Tipp aufs Symbol schaltet stumm um. Danach selbst: "
+       + "„Für euch beide“ wählen – Karte zeigt „· für 2“ und beide Kürzel; „Einkaufsliste“ "
+       + "öffnen – dort steht „Wie eure Gruppe“.",
+    stellen: [
+      "Plankarte .r-meta + title + Schild — renderPlan(), Kartenschleife",
+      "Personen-Symbol — openAssignMenu(), Einfachauswahl bei zwei Personen",
+      "Auto-Planer — autoPlanWeek(), plant nur für mich",
+      "eingeplantMelden() — Picker, Schnellauswahl, Barcode (2×), Meal anlegen + einplanen",
+      "Einkaufsliste .shop-pers-src — persAusGruppe()"
+    ],
+    zustand: { goal: null, onboarded: false, recipes: [], plans: {} },
+    profil: { name: "Paddy", email: "", uid: "vergleich", cloud: true },
+    nurInhalt: true,
+    // Gruppe nachstellen, OHNE dass etwas ans Netz geht - wie bei cloud-laden, nur dass
+    // load() hier antwortet. Alles, was die App sonst noch an CloudSync/CloudGroup fragt
+    // (Speichern, Listener, Mitgliedseintrag), faengt ein Proxy als stilles Nichts ab:
+    // eine Funktion, die zugleich als Promise taugt - Listener geben sie als Abmelder
+    // zurueck, await liest sie als "erledigt".
+    oeffnen: function (doc) {
+      var w = doc.defaultView;
+      function nichts() {
+        var f = function () {};
+        f.then = function (ok) { return w.Promise.resolve(ok ? ok() : undefined); };
+        f.catch = function () { return f; };
+        f.finally = function (g) { if (g) g(); return f; };
+        return f;
+      }
+      function attrappe(basis) {
+        return new w.Proxy(basis, { get: function (t, k) { return k in t ? t[k] : nichts; } });
+      }
+      var MEAL = { id: "rvgbowl", name: "Hähnchen-Reis-Bowl", category: "Hauptgericht",
+        nutrition: { kcal: 540, carbs: 55, protein: 42, fat: 14 },
+        ingredients: [{ name: "Hähnchenbrust", grams: 150 }, { name: "Reis", grams: 80 },
+                      { name: "Brokkoli", grams: 120 }] };
+      var GOAL = { mode: "cut", kcal: 1950, protein: 150, carbs: 180, fat: 60, activity: "pal14", training: [] };
+      w.CloudEntitlement = null;
+      w.CloudSync = attrappe({ enabled: true,
+        load: function () { return w.Promise.resolve({ groupId: "vg-gruppe", onboarded: true, goal: GOAL }); },
+        loadRecipes: function () { return w.Promise.resolve([MEAL]); }
+      });
+      w.CloudGroup = attrappe({ enabled: true,
+        fetch: function () { return w.Promise.resolve({ data: { name: "Wir", settings: { shopForAll: true } }, fromCache: false }); },
+        fetchMembers: function () { return w.Promise.resolve({ fromCache: false, members: [
+          { uid: "vergleich", name: "Paddy", role: "owner" }, { uid: "vg-anna", name: "Anna", role: "edit" }] }); },
+        loadPlans: function () { return w.Promise.resolve([]); }
+      });
+      w.__onCloudAuth({ uid: "vergleich", emailVerified: true, displayName: "Paddy", email: "" });
+      // Nach dem Abgleich: Plan-Reiter, erster "Meal wählen", das Meal im Picker antippen.
+      // NICHT nach fester Uhr: Die beiden Seiten laden unterschiedlich schnell, und ein
+      // Picker, der vor dem Abgleich aufgeht, ist leer - mit festen 1,2 s klappte es links
+      // und rechts nicht (05.10.2026). Also: so lange versuchen, bis das Meal drinsteht.
+      function versuch(n) {
+        var tab = doc.querySelector('[data-action="tab"][data-tab="plan"]');
+        if (tab && tab.getAttribute("aria-selected") !== "true") tab.click();
+        // Den Mittag des SICHTBAREN Tages nehmen: Am Handy zeigt der Streifen heute, nicht
+        // Montag - eine Karte am Montag saehe man nicht, und das Menue hinge im Nichts.
+        var pick = [].filter.call(doc.querySelectorAll('[data-action="pick"][data-meal="mi"]'), function (x) {
+          var r = x.getBoundingClientRect();
+          return r.width > 0 && r.left >= 0 && r.right <= w.innerWidth;
+        })[0];
+        if (pick) pick.click();
+        w.setTimeout(function () {
+          var item = doc.querySelector('[data-assign="rvgbowl"]');
+          if (item) {
+            item.click();
+            // Das Personen-Symbol antippen: rechts geht das Menue auf, links schaltet es
+            // stumm weiter - genau der Unterschied, um den es geht.
+            w.setTimeout(function () {
+              var symbol = [].filter.call(doc.querySelectorAll('[data-action="assign"]'), function (x) {
+                var r = x.getBoundingClientRect();
+                return r.width > 0 && r.left >= 0 && r.right <= w.innerWidth;
+              })[0];
+              if (symbol) symbol.click();
+            }, 1500);
+            return;
+          }
+          var zu = doc.querySelector(".modal [data-close]");
+          if (zu) zu.click();
+          if (n < 20) w.setTimeout(function () { versuch(n + 1); }, 500);
+        }, 400);
+      }
+      w.setTimeout(function () { versuch(0); }, 800);
+      return "Gruppe nachgestellt (ohne Netz), Meal wird gleich eingeplant";
+    }
   }
 ];
