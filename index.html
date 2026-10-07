@@ -511,8 +511,11 @@
                     if (e.uids.indexOf(uid) === -1) return e;
                     trifft = true;
                     const rest = e.uids.filter(function (u) { return u !== uid; });
-                    return rest.length ? { id: e.id, uids: rest } : e.id;
-                  });
+                    // Gehoerte der Eintrag NUR mir, faellt er aus dem Gruppenplan (07.10.2026). Vorher
+                    // wurde er zur String-Form (= fuer alle) - seit neue Gerichte als "nur ich" starten,
+                    // landete so die ganze Woche der Ausgetretenen in Bilanz und Einkauf der anderen.
+                    return rest.length ? { id: e.id, uids: rest } : null;
+                  }).filter(function (e) { return e !== null; });
                   if (trifft) patch[feld] = neu;
                 });
                 if (Object.keys(patch).length) {
@@ -911,10 +914,12 @@
         // exakt dieselbe Verwechslung wie bei `by`: Die Oberflaeche zeigt danach keinen
         // Namen mehr ("Jemanden"), aber die Kennung steht weiter im Dokument.
         //
-        // Bleibt ein Eintrag ohne Zuweisung uebrig, wird er auf die String-Form
-        // zurueckgefuehrt (= fuer alle). Er darf NICHT als {id, uids: []} stehen bleiben:
-        // Ein Gericht, das niemandem gehoert, ist im Datenmodell ausdruecklich verboten
-        // (docs/ARCHITECTURES.md) - es waere sichtbar, zaehlte aber bei niemandem mit.
+        // Bleibt ein Eintrag ohne Zuweisung uebrig, faellt er seit dem 07.10.2026 aus dem
+        // Plan - er gehoerte nur der Person, die geht. Bis dahin wurde er auf die String-Form
+        // zurueckgefuehrt (= fuer alle); seit neue Gerichte als "nur ich" starten, waere so die
+        // ganze Woche der Ausgetretenen bei den anderen gelandet. Als {id, uids: []} darf er
+        // ohnehin nicht stehen bleiben: Ein Gericht, das niemandem gehoert, ist im Datenmodell
+        // verboten (docs/ARCHITECTURES.md) - sichtbar, aber bei niemandem mitgezaehlt.
         anonymizeMyPlanAssignments: async function (gid, uid) {
           const snap = await getDocs(collection(db, "groups", gid, "plans"));
           const angefasst = new Set();
@@ -941,8 +946,11 @@
                 if (e.uids.indexOf(uid) === -1) return e;
                 trifft = true;
                 const rest = e.uids.filter(function (u) { return u !== uid; });
-                return rest.length ? { id: e.id, uids: rest } : e.id;
-              });
+                // Gehoerte der Eintrag NUR mir, faellt er aus dem Gruppenplan (07.10.2026). Vorher
+                // wurde er zur String-Form (= fuer alle) - seit neue Gerichte als "nur ich" starten,
+                // landete so die ganze Woche der Ausgetretenen in Bilanz und Einkauf der anderen.
+                return rest.length ? { id: e.id, uids: rest } : null;
+              }).filter(function (e) { return e !== null; });
               if (trifft) patch[feld] = neu;
             });
             if (Object.keys(patch).length) {

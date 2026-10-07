@@ -268,9 +268,12 @@ Object.keys(plaene).forEach(function (w) {
   });
 });
 pr("keine leeren uids-Arrays entstanden", waisen.length === 0, JSON.stringify(waisen));
-// War ich der einzige Zugewiesene, wird der Eintrag auf die String-Form zurueckgefuehrt.
-pr("aus {id,uids:[ich]} wurde die blosse id",
-   planEintrag("2026-W39", "di_ab", 0) === "r3", JSON.stringify(planEintrag("2026-W39", "di_ab", 0)));
+// War ich der einzige Zugewiesene, faellt der Eintrag seit dem 07.10.2026 aus dem Plan.
+// Vorher wurde er zur String-Form (= fuer alle) - seit neue Gerichte als "nur ich" starten,
+// landete so die ganze Woche der Ausgetretenen in Bilanz und Einkauf der anderen.
+pr("ein Eintrag nur fuer mich faellt aus dem Plan (nicht: wird 'fuer alle')",
+   JSON.stringify(plaene["2026-W39"].di_ab) === "[]" && JSON.stringify(plaene["2026-W40"].fr_ab) === "[]",
+   JSON.stringify(plaene["2026-W39"].di_ab) + " | " + JSON.stringify(plaene["2026-W40"].fr_ab));
 pr("aus {id,uids:[ich,luisa]} wurde {id,uids:[luisa]}",
    JSON.stringify(planEintrag("2026-W39", "mo_fr", 1)) === JSON.stringify({ id: "r2", uids: ["luisa"] }),
    JSON.stringify(planEintrag("2026-W39", "mo_fr", 1)));

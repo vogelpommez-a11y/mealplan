@@ -617,9 +617,11 @@ def main():
     pruef(u"zwei Gruppen-Dokumente bereinigt (Meal von u2, Plan)", n_t, 2)
     pruef(u"by des geloeschten Kontos wird leer", neu_t["groups/g1/recipes/m1"]["by"], {"stringValue": ""})
     pruef(u"by des bestehenden Kontos bleibt", neu_t["groups/g1/recipes/m2"]["by"], {"stringValue": "u1"})
-    pruef(u"Plan: [u1,u2] -> [u1], [u2] -> String-Form, String bleibt",
+    # Seit dem 07.10.2026 faellt ein Eintrag, der NUR dem Geloeschten gehoerte, heraus (wie
+    # in der App beim Austritt) - vorher wurde er zur String-Form, also "fuer alle".
+    pruef(u"Plan: [u1,u2] -> [u1], [u2] faellt heraus, String bleibt",
           json.dumps(neu_t["groups/g1/plans/2026-W40"]["mon_mi"], sort_keys=True),
-          json.dumps(_a(_e("m1", "u1"), {"stringValue": "m2"}, {"stringValue": "m3"}), sort_keys=True))
+          json.dumps(_a(_e("m1", "u1"), {"stringValue": "m3"}), sort_keys=True))
     pruef(u"die Sicherung selbst bleibt unveraendert",
           sicherung_t["groups/g1/recipes/m1"]["by"], {"stringValue": "u2"})
     zg15 = FakeZugang({})

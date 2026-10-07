@@ -115,9 +115,9 @@
          optionales <strong>Profilbild</strong> (als kleines Abbild), deine <strong>Meals samt Fotos</strong>, der
          gemeinsame <strong>Wochenplan</strong>, ein optionaler <strong>Gruppenname</strong> und die Angabe,
          <strong>wer welches Meal angelegt hat</strong> (gespeichert wird dafür nur deine Nutzerkennung, nicht dein
-         Name). Weist du ein geplantes Gericht nur einem Teil der Gruppe zu, statt es wie im Regelfall für alle
-         gelten zu lassen, ist auch diese <strong>Zuweisung</strong> (per Nutzerkennung) für die ganze Gruppe
-         sichtbar. Zu jeder Woche des gemeinsamen Plans ist außerdem vermerkt, <strong>wer ihn zuletzt geändert
+         Name). Für wen ein geplantes Gericht gilt, ist ebenfalls für die ganze Gruppe sichtbar (diese
+         <strong>Zuweisung</strong> speichern wir per Nutzerkennung); was du neu einplanst, ist zunächst nur dir
+         zugewiesen, bis du es für alle einplanst. Zu jeder Woche des gemeinsamen Plans ist außerdem vermerkt, <strong>wer ihn zuletzt geändert
          hat und wann</strong> (per Nutzerkennung) – daraus zeigt die App den anderen „… hat den Plan geändert“.
          In deinem Mitglieder-Eintrag stehen zusätzlich der <strong>Zeitpunkt deines Beitritts</strong> und der
          Einladungscode, über den du beigetreten bist.</p>
@@ -180,7 +180,8 @@
          sie in eine Gruppe eingebracht hast, kannst du sie den übrigen Mitgliedern nicht mehr einseitig entziehen.
          Den Personenbezug nehmen wir dabei heraus: Zu einem Meal ist nur deine Nutzerkennung gespeichert, und die
          entfernen wir beim Austritt aus den Meals der Gruppe – ebenso aus dem Vermerk, wer eine Woche zuletzt
-         geändert hat, und in der Regel auch aus den Zuweisungen im Wochenplan. Hattest du in der Gruppe nur
+         geändert hat, und in der Regel auch aus den Zuweisungen im Wochenplan. Gerichte, die im gemeinsamen Plan nur dir
+         zugewiesen waren, nehmen wir dabei aus dem Plan heraus. Hattest du in der Gruppe nur
          „Nur ansehen“ oder hat die Inhaberin bzw. der Inhaber kein Pro mehr, kann eine solche Zuweisung
          technisch stehen bleiben – bis die Woche vorbei ist und jemand, der in der Gruppe mitplant, die App
          wieder öffnet; dann räumt sie die Woche samt Zuweisung weg. Zurück bleibt das Gericht – ohne Hinweis darauf,
@@ -199,4 +200,4 @@
          Ernährungs- und Gewichtsdaten, und ab 16 darfst du in die Verarbeitung deiner Daten selbst
          einwilligen (Art. 8 Abs. 1 DSGVO). Bist du jünger, richte dir bitte kein Konto ein.
          Erfahren wir, dass ein Konto einem jüngeren Menschen gehört, löschen wir es.</p>
-      <p>Stand: 4. Oktober 2026</p>`;
+      <p>Stand: 7. Oktober 2026</p>`;

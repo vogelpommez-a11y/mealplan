@@ -3270,10 +3270,14 @@ Dokument. Der Fall war benannt, verstanden, behoben — und eine Sammlung weiter
 wieder da.
 
 `CloudGroup.anonymizeMyPlanAssignments(gid, uid)` geht deshalb alle Wochen durch und nimmt
-die UID aus jedem `uids`-Array. Bleibt ein Eintrag dabei ohne Zuweisung übrig, wird er auf
-die **String-Form** zurückgeführt (= für alle) und nicht als `{id, uids: []}` stehen
-gelassen: Ein Gericht, das niemandem gehört, ist im Datenmodell ausdrücklich verboten — es
-wäre sichtbar, zählte aber bei niemandem mit.
+die UID aus jedem `uids`-Array. Bleibt ein Eintrag dabei ohne Zuweisung übrig, **fällt er
+seit dem 07.10.2026 aus dem Plan** — er gehörte nur der Person, die geht. Bis dahin wurde er
+auf die String-Form zurückgeführt (= für alle); seit neue Gerichte als „nur ich“ starten,
+landete so die ganze Woche der Ausgetretenen in Bilanz und Einkauf der Verbleibenden
+(Befund `anwalt` im Pushcheck). Dieselbe Regel gilt bei der Kontolöschung und in
+`tools/firestore-restore.py`. Als `{id, uids: []}` darf er ohnehin nicht stehen bleiben: Ein
+Gericht, das niemandem gehört, ist im Datenmodell ausdrücklich verboten — es wäre sichtbar,
+zählte aber bei niemandem mit.
 
 > **Eine bekannte Fehlerklasse ist erst dann geschlossen, wenn man alle Stellen gesucht
 > hat, an denen sie vorkommen kann.** Nicht die, an der man sie gefunden hat.

@@ -209,7 +209,8 @@ def tote_entfernen(pfad, felder, lebend):
     Dieselben Regeln wie anonymizeMyRecipes()/anonymizeMyPlanAssignments() in index.html:
       by: <tot>              -> by: ""
       {id, uids:[tot, x]}    -> {id, uids:[x]}
-      {id, uids:[tot]}       -> "id" (String-Form, wie in der App)
+      {id, uids:[tot]}       -> faellt heraus (wie in der App seit 07.10.2026; vorher "id",
+                                also "fuer alle" - die Woche des Geloeschten landete bei allen)
     Liefert (felder, geaendert?). Die Eingabe bleibt unveraendert.
     """
     if not _gruppeninhalt(pfad) or not felder:
@@ -224,19 +225,22 @@ def tote_entfernen(pfad, felder, lebend):
         werte = ((v or {}).get("arrayValue") or {}).get("values")
         if not werte:
             continue
-        for i, e in enumerate(werte):
+        behalten = []
+        for e in werte:
             f = (e.get("mapValue") or {}).get("fields") or {}
             uids = ((f.get("uids") or {}).get("arrayValue") or {}).get("values")
             if uids is None:
+                behalten.append(e)
                 continue
             rest = [u for u in uids if u.get("stringValue") in lebend]
             if len(rest) == len(uids):
+                behalten.append(e)
                 continue
             geaendert = True
             if rest:
                 f["uids"] = {"arrayValue": {"values": rest}}
-            else:
-                werte[i] = {"stringValue": (f.get("id") or {}).get("stringValue", "")}
+                behalten.append(e)
+        werte[:] = behalten
     return neu, geaendert
 
 
