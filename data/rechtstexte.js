@@ -184,7 +184,7 @@
          zugewiesen waren, nehmen wir dabei aus dem Plan heraus. Hattest du in der Gruppe nur
          „Nur ansehen“ oder hat die Inhaberin bzw. der Inhaber kein Pro mehr, kann eine solche Zuweisung
          technisch stehen bleiben – bis die Woche vorbei ist und jemand, der in der Gruppe mitplant, die App
-         wieder öffnet; dann räumt sie die Woche samt Zuweisung weg. Zurück bleibt das Gericht – ohne Hinweis darauf,
+         wieder öffnet; dann räumt sie die Woche samt Zuweisung weg. Zurück bleibt das Meal in der Gruppe – ohne Hinweis darauf,
          von wem es stammt. Dasselbe geschieht, wenn dich die Gruppe entfernt oder wenn du dein Konto löschst.</p>
       <h4>11. Deine Rechte</h4>
       <p>Du hast das Recht auf Auskunft, Berichtigung, Löschung, Einschränkung der Verarbeitung und Datenübertragbarkeit – wende dich dafür an die in Ziffer 1 genannte Adresse; Löschen und Widerruf gehen zusätzlich direkt in der App (Ziffern 3b und 10). Soweit eine Verarbeitung auf deiner Einwilligung beruht, kannst du diese jederzeit mit Wirkung für die Zukunft widerrufen. Zudem hast du ein Beschwerderecht bei einer Datenschutz-Aufsichtsbehörde – für uns zuständig ist das Bayerische Landesamt für Datenschutzaufsicht (BayLDA), Promenade 18, 91522 Ansbach.</p>
