@@ -4824,8 +4824,8 @@ Beide Verwender hängen jetzt daran. **Die Zuweisung selbst bleibt unberührt** 
 weiterhin, *wer* isst; sie sagt nur nicht mehr allein, *wie viel* eingekauft wird.
 
 Bewusst **nicht** an `per` gehängt: `per` kann auch aus einer von Hand verstellten Personenzahl
-stammen (ohne Gruppe `state.shopPersons`, in der Gruppe seit dem 08.10.2026 der flüchtige
-`shopPersOffen`, Fall 185), und die ist ein Multiplikator für den Einkauf, keine Aussage über
+stammen (`state.shopPersons`; in der Gruppe gibt es sie seit dem 08.10.2026 nicht mehr,
+Fall 185), und die ist ein Multiplikator für den Einkauf, keine Aussage über
 Gruppenmitglieder. Die Zuweisung folgt ausschließlich dem Schalter, der ihren Namen trägt.
 
 ### Die Regel dahinter
@@ -7108,12 +7108,17 @@ Vorführung den eigentlichen Haken: **Gespeichert bleibt die Zahl hängen.** Jed
 eingeplante „für euch beide“-Meal zählte dann einfach — die Liste wäre falsch, ohne dass es
 jemand merkt. Dasselbe galt schon vorher für jede gespeicherte Zahl über 1.
 
-Jetzt (Paddys Wahl): In der Gruppe gilt eine verstellte Zahl **nur, solange die Liste offen
-ist** (`shopPersOffen`, erlischt über `node.isConnected`), und es wird nichts gespeichert. Beim
-nächsten Öffnen steht wieder die Gruppenzahl. Ohne Gruppe bleibt die gemerkte Haushaltsgröße.
-Kein neues Datenfeld, keine Datenumstellung. Prüfer: `tools/pruefstand-einkauf-gruppe.py` 1b,
-`tools/pruefstand-gruppe-fuer-alle.py` 4 — beide Gegenproben gegen 2c6916b rot. Vorführung:
-`python tools/vorfuehren.py einkauf-minus`.
+Zweiter Schritt (60697dd, live): In der Gruppe galt eine verstellte Zahl nur, solange die
+Liste offen war (`shopPersOffen`, erlosch über `node.isConnected`), nichts wurde gespeichert.
+
+**Endstand am selben Tag (Paddys Wahl):** In der Gruppe gibt es **kein „−“/„+“** mehr, die
+Zahl ist immer die Gruppengröße. Jedes Meal sagt seit dem 07.10. selbst, für wen es ist — die
+Knöpfe hätten nur noch Besuch abgebildet, und der kommt selten. `shopPersOffen` ist wieder
+entfernt. Ohne Gruppe (oder mit „Einkauf für alle rechnen: Aus“) bleiben Knöpfe und gemerkte
+Haushaltsgröße. Kein neues Datenfeld, keine Datenumstellung. Prüfer:
+`tools/pruefstand-einkauf-gruppe.py` 1b, `tools/pruefstand-gruppe-fuer-alle.py` 4 — beide
+Gegenproben gegen 2c6916b rot; Knöpfe und Mengen im vollen Plan in der echten App gemessen.
+Vorführung: `python tools/vorfuehren.py einkauf-minus`.
 
 **Merksatz:** Eine Einstellung, die eine *Liste* korrigiert, gehört zu dieser Liste — nicht ins
 Konto. Sonst wirkt sie auf Einträge, die es beim Einstellen noch gar nicht gab.

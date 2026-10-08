@@ -18,8 +18,8 @@ Geprueft wird:
      Schild an "fuer alle" (alle Kuerzel) und an Fremdem, NICHT an "nur ich"
   3. eingeplantMelden(): Toast "Für dich eingeplant" mit "Für euch beide" und "Rückgängig",
      nur in der Gruppe; beide Knoepfe speichern und greifen nicht in eine andere Woche
-  4. persAusGruppe(): "Wie eure Gruppe" nur, wenn die Personenzahl wirklich aus der Gruppe
-     kommt - eine von Hand gesetzte Zahl schlaegt sie, wie in shopPersons()
+  4. persAusGruppe(): "Wie eure Gruppe" in jeder Gruppe mit "Einkauf fuer alle rechnen" -
+     dort gilt seit dem 08.10.2026 immer die Gruppenzahl, eine gespeicherte Zahl zaehlt nicht
   5. Alle Einplan-Stellen von Hand legen "nur ich" an und melden ueber eingeplantMelden()
      (statische Pruefung)
   6. openAssignMenu() bei zwei Personen: drei feste Wahlen (menuitemradio), aktive markiert
@@ -215,21 +215,10 @@ if (gibt("persAusGruppe")) {
   state.shopPersons = 1;
   pr("Gruppe, nichts eingestellt -> Hinweis", persAusGruppe() === true);
   // Seit dem 08.10.2026 (TROUBLESHOOTING 185) zaehlt in der Gruppe keine gespeicherte Zahl
-  // mehr - nur eine, die bei offener Liste verstellt wurde. GEGENPROBE: alt wird hier rot.
+  // mehr, und -/+ gibt es dort nicht. GEGENPROBE: der Stand 2c6916b wird hier rot.
   state.shopPersons = 3;
   pr("gespeicherte 3 -> Hinweis bleibt (Gruppe gilt)", persAusGruppe() === true);
   state.shopPersons = 1;
-  if (typeof shopPersOffen !== "undefined") {
-    var offen = { isConnected: true };
-    shopPersOffen = { n: 1, node: offen };
-    pr("bei offener Liste auf 1 -> kein Hinweis", persAusGruppe() === false);
-    shopPersOffen = { n: 2, node: offen };
-    pr("zurueck auf 2 -> Hinweis wieder da", persAusGruppe() === true);
-    shopPersOffen = { n: 1, node: offen };
-    offen.isConnected = false;
-    pr("Liste zu -> Hinweis wieder da", persAusGruppe() === true);
-    shopPersOffen = null;
-  } else pr("shopPersOffen vorhanden", false);
   gruppenEinstellungen.shopForAll = false;
   pr("'Einkauf für alle rechnen' Aus -> kein Hinweis", persAusGruppe() === false);
   gruppenEinstellungen.shopForAll = true;
@@ -344,10 +333,10 @@ def main():
     portionen = schneide(quelle, u"function gruppenPortionen()",
                          u"return syncGid && groupMembers.length > 1", u"\n  }")
     ausgruppe = schneide(quelle, u"function persAusGruppe()",
-                         u"return shopCountsMembers() &&", u"\n  }")
-    # Seit dem 08.10.2026 fragt persAusGruppe() shopPersons() (TROUBLESHOOTING 185). Bis zur
-    # ersten Zeile "  }" geschnitten, das traegt alten und neuen Stand; die Variable
-    # shopPersOffen fehlt im alten - dann bleibt die Zeile leer.
+                         u"return shopCountsMembers()", u"\n  }")
+    # shopPersons() mitnehmen: Der Stand 60697dd fragte sie aus persAusGruppe() heraus. Bis
+    # zur ersten Zeile "  }" geschnitten, das traegt jeden Stand; die Variable
+    # shopPersOffen gab es nur in 60697dd - fehlt sie, bleibt die Zeile leer.
     a = next((i for i, l in enumerate(quelle) if u"function shopPersons()" in l), None)
     b = None if a is None else next((i for i, l in enumerate(quelle) if i > a and l.rstrip() == u"  }"), None)
     if a is None or b is None:

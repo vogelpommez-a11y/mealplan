@@ -119,29 +119,20 @@ state.shopPersons = 3;
 pr("ohne Gruppenrechnung: gemerkte Haushaltsgroesse 3", shopPersons() === 3, shopPersons() + "");
 gruppenEinstellungen.shopForAll = true;
 
-console.log("--- 1b. In der Gruppe gilt eine verstellte Zahl nur bei offener Liste (TROUBLESHOOTING 185) ---");
+console.log("--- 1b. In der Gruppe zaehlt immer die Gruppe (TROUBLESHOOTING 185) ---");
 // Bis zum 08.10.2026: eine gespeicherte Zahl > 1 schlug die Gruppe - und traf damit jedes
-// spaeter eingeplante "fuer euch beide"-Meal. GEGENPROBE: der alte Stand wird hier rot.
+// spaeter eingeplante "fuer euch beide"-Meal. Seitdem gibt es in der Gruppe kein -/+ mehr,
+// und keine gespeicherte Zahl zaehlt dort. GEGENPROBE: der Stand 2c6916b wird hier rot.
 pr("gespeicherte 3 schlaegt die Gruppe NICHT mehr", shopPersons() === 2, shopPersons() + " statt 2");
+state.plan = leererPlan();
+state.plan.mon.mi = ["nudeln"];                         // fuer euch beide
+state.plan.tue.mi = ["nudeln"];                         // spaeter dazu
+pr("jedes 'fuer euch beide'-Meal doppelt: 2 x 100 x 2 = 400",
+   menge(buildShoppingList().items, "Nudeln") === 400, menge(buildShoppingList().items, "Nudeln") + " statt 400");
+gruppenEinstellungen.shopForAll = false;
+pr("Schalter Aus: gemerkte Zahl gilt wieder (3)", shopPersons() === 3, shopPersons() + "");
+gruppenEinstellungen.shopForAll = true;
 state.shopPersons = 1;
-var hatOffen = typeof shopPersOffen !== "undefined";
-pr("shopPersOffen vorhanden", hatOffen);
-if (hatOffen) {
-  var modal = { isConnected: true };
-  shopPersOffen = { n: 1, node: modal };
-  state.plan = leererPlan();
-  state.plan.mon.mi = ["nudeln"];                       // fuer alle
-  pr("Liste offen, '-' auf 1 -> 1", shopPersons() === 1, shopPersons() + "");
-  pr("'fuer alle' bei offener Liste einfach", menge(buildShoppingList().items, "Nudeln") === 100,
-     menge(buildShoppingList().items, "Nudeln") + " statt 100");
-  pr("nichts gespeichert", state.shopPersons === 1, String(state.shopPersons));
-  modal.isConnected = false;                            // Liste zu
-  state.plan.tue.mi = ["nudeln"];                       // spaeter "fuer euch beide" dazu
-  pr("Liste zu -> wieder Gruppe", shopPersons() === 2, shopPersons() + "");
-  pr("neues Meal zaehlt doppelt: 2 x 100 x 2 = 400", menge(buildShoppingList().items, "Nudeln") === 400,
-     menge(buildShoppingList().items, "Nudeln") + " statt 400");
-  shopPersOffen = null;
-}
 
 console.log("--- 2. 'Fuer alle' wird mit dem Personenfaktor hochgerechnet ---");
 state.plan = leererPlan();
@@ -296,8 +287,6 @@ def main():
     # 08.10.2026 geaendert (TROUBLESHOOTING 185), so traegt der Schnitt alten und neuen Stand -
     # und die Gegenprobe faellt an der Sache durch statt am Marker.
     shoppers = funktion(quelle, u"function shopPersons()")
-    # Seit dem 08.10.2026; im alten Stand fehlt die Zeile, dann bleibt sie leer.
-    shoppers += u"\n" + next((l for l in quelle if u"let shopPersOffen = null;" in l), u"")
     tage2 = schneide(quelle, u"function planDaysAhead()", u"return { todayIdx: todayIdx", u"\n  }")
     einkauf = schneide(quelle, u"function buildShoppingList(persons)",
                        u"return { items, groups, todayIdx, persons: per };", u"\n  }")

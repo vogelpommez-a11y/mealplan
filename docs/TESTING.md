@@ -4088,13 +4088,13 @@ Beide gehören ins Archiv, weil sie sich bei jedem Ausschneide-Prüfstand wieder
   hat die Funktion kein `own` mehr (TROUBLESHOOTING 185). `pruefstand-einkauf-gruppe.py` und
   `pruefstand-gruppe-fuer-alle.py` schneiden sie deshalb bis zur ersten Zeile `  }` (Funktionsende
   auf Einrückung 2) — das trägt alten wie neuen Stand, die Gegenprobe fällt an der Sache durch
-  statt am Marker. `let shopPersOffen = null;` wird als eigene Zeile mitgenommen und fehlt im
-  alten Stand; die Tests fragen deshalb `typeof shopPersOffen` ab. Neue Abschnitte: 1b
-  (Einkauf-Gruppe: gespeicherte Zahl schlägt die Gruppe nicht mehr, offene Liste, Liste zu →
-  neues Meal zählt doppelt) und 4 (Gruppe-für-alle: Hinweis „Wie eure Gruppe“). Gegenprobe gegen
-  2c6916b: 2 bzw. 2 rot. Dazu am 08.10.2026 einmalig ein voller Wochenplan in der echten App
-  (Vorher/Nachher, 390 px, Mengen gegen Handrechnung, inklusive vergangenem Tag und „nur Anna“) —
-  alles exakt.
+  statt am Marker. Neue Abschnitte: 1b (Einkauf-Gruppe: gespeicherte Zahl schlägt die Gruppe
+  nicht mehr, jedes „für euch beide“-Meal doppelt, Schalter Aus → gemerkte Zahl) und 4
+  (Gruppe-für-alle: Hinweis „Wie eure Gruppe“). Gegenprobe gegen 2c6916b: 2 bzw. 1 rot. Dazu am
+  08.10.2026 einmalig ein voller Wochenplan in der echten App (Vorher/Nachher, 390 px, hell und
+  dunkel, Mengen gegen Handrechnung inklusive vergangenem Tag und „nur Anna“, Knöpfe gezählt) —
+  alles exakt. **Falle dabei:** Die Zeile ohne Knöpfe ist niedriger (54 statt 63 px), weil
+  „Wie eure Gruppe“ nicht mehr umbricht — die Erwartung „gleich hoch“ war falsch, nicht die App.
 
 > **Ein Endmarker muss im Zielbereich EINDEUTIG sein.** Ein `return`, eine schließende Klammer
 > oder ein `}` sind es fast nie. Wird ein Prüfstand ohne Codeänderung rot, ist der Schnitt der

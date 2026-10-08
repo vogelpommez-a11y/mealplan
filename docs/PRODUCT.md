@@ -483,13 +483,16 @@ Die Rechnung bleibt unverändert. Drei Hinweise sagen, wofür sie steht:
 * **Beim Einplanen:** „Für dich eingeplant" mit **Für euch beide** (ab drei: **Für alle**) und
   **Rückgängig** — wer gemeinsam isst, stellt es mit einem Tipp um, ohne erst das
   Personen-Symbol suchen zu müssen.
-* **Einkaufsliste:** „Wie eure Gruppe" unter „Einkauf für" — nur solange die Zahl wirklich aus
-  der Gruppe kommt. Eine von Hand gesetzte Zahl hat keinen Hinweis.
-* **Personenzahl in der Gruppe gilt nur für diesen Einkauf** (Paddy, 08.10.2026). „−“/„+“
-  verstellen sie, solange die Liste offen ist (auch für PDF und Teilen); beim nächsten Öffnen
-  steht wieder die Gruppenzahl. Gespeichert hätte eine 1 jedes später eingeplante „für euch
-  beide“-Meal einfach gezählt — unbemerkt. Ohne Gruppe bleibt die Zahl die gemerkte
-  Haushaltsgröße. `docs/TROUBLESHOOTING.md` 185.
+* **Einkaufsliste:** „Wie eure Gruppe" unter „Einkauf für" — immer, wenn die Gruppe
+  mitgerechnet wird („Einkauf für alle rechnen: An“). Ohne Gruppe oder mit „Aus“ steht dort
+  kein Hinweis.
+* **In der Gruppe kein „−“/„+“ an der Personenzahl** (Paddy, 08.10.2026). Die Zahl ist immer
+  die Gruppengröße. Jedes Meal sagt selbst, für wen es ist („nur ich“ / „für euch beide“) —
+  wer nur für sich einkauft, plant „nur ich“. Eine von Hand gesetzte Zahl hätte zudem jedes
+  später eingeplante „für euch beide“-Meal mitgetroffen, unbemerkt falsch. Bewusst in Kauf
+  genommen: Besuch lässt sich in der Gruppe nicht mehr mit einem Tipp mitrechnen. Ohne Gruppe
+  (oder mit „Einkauf für alle rechnen: Aus“) bleiben „−“/„+“ und die gemerkte Haushaltsgröße.
+  `docs/TROUBLESHOOTING.md` 185.
 
 Die Zahl auf der Karte hängt **nicht** an „Einkauf für alle rechnen": Die Karte sagt, wer
 isst, nicht wie viel eingekauft wird.

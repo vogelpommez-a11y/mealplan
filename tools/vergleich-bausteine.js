@@ -405,16 +405,16 @@ var BAUSTEINE = [
 
   {
     id: "einkauf-minus",
-    titel: "Einkaufsliste in der Gruppe: „−“ gilt für diesen Einkauf",
-    was: "Zweiergruppe, ein Meal „für euch beide“, die Einkaufsliste geht von selbst auf "
-       + "(„2 Personen · Wie eure Gruppe“, 240 g Brokkoli). Selbst auf „−“ tippen. Rechts: "
-       + "1 Person, 120 g, „Wie eure Gruppe“ verschwindet. Links (live): „−“ tut nichts. "
-       + "Danach rechts schließen und neu öffnen: wieder 2 Personen – nichts bleibt hängen.",
+    titel: "Einkaufsliste in der Gruppe: ohne „−“ und „+“",
+    was: "Zweiergruppe, ein Meal „für euch beide“, die Einkaufsliste geht von selbst auf. "
+       + "Rechts: „Einkauf für 2 Personen · Wie eure Gruppe“ ohne Knöpfe, „Wie eure Gruppe“ "
+       + "bricht nicht mehr um. "
+       + "Links (live): mit „−“/„+“. Ohne Gruppe bleiben die Knöpfe (hier nicht gezeigt).",
     stellen: [
-      "shopPersons() — in der Gruppe: Gruppenzahl, außer bei offener Liste verstellt",
-      "shopPersOffen — erlischt mit dem Schließen (node.isConnected)",
-      "persAusGruppe() — „Wie eure Gruppe“, solange die Zahl der Gruppe entspricht",
-      "Einkaufsliste .pbtn — in der Gruppe nicht gespeichert, ohne Gruppe wie bisher"
+      "shopPersons() — in der Gruppe immer die Gruppenzahl",
+      "persAusGruppe() — „Wie eure Gruppe“ in jeder Gruppe mit „Einkauf für alle rechnen“",
+      "openShopping() — .pnum.fest statt .step in der Gruppe",
+      "css/komponenten.css — .shop-persons .pnum.fest (mind. 44 px Zeilenhöhe)"
     ],
     zustand: { goal: null, onboarded: false, recipes: [], plans: {} },
     profil: { name: "Paddy", email: "", uid: "vergleich", cloud: true },

@@ -1883,23 +1883,17 @@
   // Steht "Einkauf für alle rechnen" in der Gruppe, gibt die Mitgliederzahl den Takt vor -
   // sonst kauft man fuer eine Person ein und kocht fuer zwei.
   //
-  // In der Gruppe wird eine von Hand verstellte Zahl NICHT gespeichert, sondern gilt nur,
-  // solange die Einkaufsliste offen ist (shopPersOffen, TROUBLESHOOTING 185). Gespeichert
-  // traf sie jedes spaeter eingeplante "fuer euch beide"-Meal mit - unbemerkt einfach statt
-  // doppelt. Bis zum 08.10.2026 gewann zudem eine gespeicherte Zahl ueber 1 die Gruppe, eine
-  // gespeicherte 1 aber nicht: "-" tat in der Gruppe nichts. Ohne Gruppe (oder mit "Einkauf
-  // fuer alle rechnen: Aus") bleibt die Zahl die gemerkte Haushaltsgroesse.
+  // In der Gruppe IMMER die Mitgliederzahl, ohne -/+ in der Liste (TROUBLESHOOTING 185):
+  // Jedes Meal sagt selbst, fuer wen es ist ("nur ich" / "fuer euch beide"), die Zahl wirkt
+  // nur auf die "fuer euch beide"-Meals - und die sind per Definition fuer alle. Eine von
+  // Hand gesetzte Zahl traf zudem jedes SPAETER eingeplante Meal mit, unbemerkt falsch. Bis
+  // zum 08.10.2026 gewann eine gespeicherte Zahl ueber 1 die Gruppe, eine 1 aber nicht ("-"
+  // tat nichts). Ohne Gruppe (oder mit "Einkauf fuer alle rechnen: Aus") bleibt die Zahl die
+  // gemerkte Haushaltsgroesse, mit -/+.
   function shopPersons() {
-    if (shopCountsMembers()) {
-      return shopPersOffen && shopPersOffen.node.isConnected ? shopPersOffen.n : sanitizeShopPersons(groupMembers.length);
-    }
+    if (shopCountsMembers()) return sanitizeShopPersons(groupMembers.length);
     return sanitizeShopPersons(state && state.shopPersons);
   }
-  // { n, node }: Zahl und das Modal, in dem sie eingestellt wurde. Ueber node.isConnected
-  // erlischt sie mit dem Schliessen von selbst - egal ob Kreuz, Escape oder Hintergrund -,
-  // ohne dass jeder Schliessweg daran denken muss. PDF und Teilen bauen die Liste neu und
-  // fragen dabei hier: solange die Liste offen ist, bekommen sie dieselbe Zahl.
-  let shopPersOffen = null;
   // Zaehlt eine Zuweisung als MENGEN-Faktor? Dieselbe Frage wie oben, nur fuer die andere
   // Haelfte der Rechnung - und sie muss dieselbe Antwort bekommen.
   //
@@ -10178,10 +10172,10 @@
   function personsLabel(n) { return n + (n === 1 ? " Person" : " Personen"); }
   // Stammt die Personenzahl der Einkaufsliste aus der Gruppe (und nicht von Hand)? Genau
   // dann steht "Wie eure Gruppe" darunter - sonst sieht man "2 Personen", ohne je etwas
-  // eingestellt zu haben, und haelt die doppelten Mengen fuer einen Fehler. Von Hand fuer
-  // diesen Einkauf verstellt, geht der Hinweis - zurueck auf der Gruppenzahl, kommt er wieder.
+  // eingestellt zu haben, und haelt die doppelten Mengen fuer einen Fehler. Seit dem
+  // 08.10.2026 kommt die Zahl in der Gruppe immer aus der Gruppe (siehe shopPersons()).
   function persAusGruppe() {
-    return shopCountsMembers() && shopPersons() === sanitizeShopPersons(groupMembers.length);
+    return shopCountsMembers();
   }
 
   // Welche Tage der gezeigten Woche zaehlen noch? In der aktuellen Woche nur heute und die
@@ -10335,11 +10329,15 @@
       body = `
         <div class="shop-persons">
           <span class="lbl">Einkauf für<small class="shop-pers-src" id="shop-pers-src"${persAusGruppe() ? "" : " hidden"}>Wie eure Gruppe</small></span>
-          <div class="step" role="group" aria-label="Personenanzahl">
+          ${shopCountsMembers()
+            // In der Gruppe ohne -/+: jedes Meal sagt selbst, fuer wen es ist, die Zahl folgt
+            // der Gruppe (siehe shopPersons()). Paddy, 08.10.2026.
+            ? `<span class="pnum fest" id="shop-pers">${esc(personsLabel(cur.persons))}</span>`
+            : `<div class="step" role="group" aria-label="Personenanzahl">
             <button type="button" class="pbtn" data-pers="-1" aria-label="Eine Person weniger">${minus}</button>
             <span class="pnum" id="shop-pers" aria-live="polite">${esc(personsLabel(cur.persons))}</span>
             <button type="button" class="pbtn" data-pers="1" aria-label="Eine Person mehr">${plus}</button>
-          </div>
+          </div>`}
         </div>
         <div class="shop-progress">
           <span class="ptext" id="shop-count">0 von ${items.length} erledigt</span>
@@ -10382,7 +10380,7 @@
       const srcEl = node.querySelector("#shop-pers-src");
       const applyPersons = () => {
         persEl.textContent = personsLabel(cur.persons);
-        // Von Hand verstellt, kommt die Zahl nicht mehr aus der Gruppe - der Hinweis geht.
+        // "Wie eure Gruppe" nur in der Gruppe - dort gibt es keine Knoepfe, die Zahl bleibt.
         srcEl.hidden = !persAusGruppe();
         persBtns.forEach(b => { b.disabled = cur.persons + Number(b.dataset.pers) < 1 || cur.persons + Number(b.dataset.pers) > 12; });
         const byNorm = new Map(cur.items.map(it => [it.norm, it.label]));
@@ -10394,12 +10392,12 @@
       persBtns.forEach(b => b.addEventListener("click", () => {
         const next = sanitizeShopPersons(cur.persons + Number(b.dataset.pers));
         if (next === cur.persons) return;
-        // In der Gruppe nur fuer diesen Einkauf (siehe shopPersons()), sonst Kontoeinstellung:
-        // gilt auch fuer PDF, Text und das naechste Oeffnen.
-        if (shopCountsMembers()) shopPersOffen = { n: next, node: node };
-        else { state.shopPersons = next; save(); }
+        // Kontoeinstellung: gilt auch fuer PDF, Text und das naechste Oeffnen. In der Gruppe
+        // gibt es die Knoepfe gar nicht (siehe shopPersons()).
+        state.shopPersons = next;
         cur = buildShoppingList();
         applyPersons();
+        save();
       }));
       applyPersons();
 
