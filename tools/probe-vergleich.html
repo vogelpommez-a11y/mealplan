@@ -111,7 +111,10 @@
 <div class="liste" id="liste"></div>
 <div id="melde">bereit</div>
 
-<script src="vergleich-bausteine.js"></script>
+<!-- Mit Zeitstempel geladen, wie die beiden iframes (seiteLaden): Der Testserver schickt
+     keine Cache-Kopfzeilen, Chrome haelt die Registry dann nach Gutduenken vor - ein frisch
+     eingetragener Baustein fehlte in der Vorfuehrung, die Seite blieb leer (08.10.2026). -->
+<script>document.write('<script src="vergleich-bausteine.js?v=' + Date.now() + '"><\/script>');</script>
 <script>
 (function () {
   var out = [];

@@ -1875,20 +1875,31 @@
   // laeuft ueber pushNow()) fragen bewusst NICHT hier, sondern lesen sanitizeShopPersons
   // (state.shopPersons) direkt: shopPersons() ist ein abgeleiteter Anzeigewert (haengt an
   // groupMembers.length/"shopForAll"), keine Kontoeinstellung. Wuerde er in die Cloud/nach
-  // localStorage geschrieben, ueberschriebe er eine bewusst auf 1 gesetzte Zahl dauerhaft -
+  // localStorage geschrieben, ueberschriebe er die gemerkte Haushaltsgroesse dauerhaft -
   // und weil er sich je nach Gruppenzustand bei jedem Geraet anders berechnet, waere das
   // zugleich wieder eine Endlos-Schreib-Quelle (siehe dataJSON()-Kommentar).
   // Laeuft sehr frueh (kann vor dem ersten render() feuern), deshalb defensiv gegen ein
   // state, das das Feld noch nicht traegt.
   // Steht "Einkauf für alle rechnen" in der Gruppe, gibt die Mitgliederzahl den Takt vor -
-  // sonst kauft man fuer eine Person ein und kocht fuer zwei. Eine von Hand gesetzte Zahl
-  // gewinnt trotzdem: Besuch, Meal-Prep oder ein Mitglied, das nicht mitisst.
+  // sonst kauft man fuer eine Person ein und kocht fuer zwei.
+  //
+  // In der Gruppe wird eine von Hand verstellte Zahl NICHT gespeichert, sondern gilt nur,
+  // solange die Einkaufsliste offen ist (shopPersOffen, TROUBLESHOOTING 185). Gespeichert
+  // traf sie jedes spaeter eingeplante "fuer euch beide"-Meal mit - unbemerkt einfach statt
+  // doppelt. Bis zum 08.10.2026 gewann zudem eine gespeicherte Zahl ueber 1 die Gruppe, eine
+  // gespeicherte 1 aber nicht: "-" tat in der Gruppe nichts. Ohne Gruppe (oder mit "Einkauf
+  // fuer alle rechnen: Aus") bleibt die Zahl die gemerkte Haushaltsgroesse.
   function shopPersons() {
-    const own = sanitizeShopPersons(state && state.shopPersons);
-    if (own > 1) return own;
-    if (syncGid && groupSetting("shopForAll") && groupMembers.length > 1) return sanitizeShopPersons(groupMembers.length);
-    return own;
+    if (shopCountsMembers()) {
+      return shopPersOffen && shopPersOffen.node.isConnected ? shopPersOffen.n : sanitizeShopPersons(groupMembers.length);
+    }
+    return sanitizeShopPersons(state && state.shopPersons);
   }
+  // { n, node }: Zahl und das Modal, in dem sie eingestellt wurde. Ueber node.isConnected
+  // erlischt sie mit dem Schliessen von selbst - egal ob Kreuz, Escape oder Hintergrund -,
+  // ohne dass jeder Schliessweg daran denken muss. PDF und Teilen bauen die Liste neu und
+  // fragen dabei hier: solange die Liste offen ist, bekommen sie dieselbe Zahl.
+  let shopPersOffen = null;
   // Zaehlt eine Zuweisung als MENGEN-Faktor? Dieselbe Frage wie oben, nur fuer die andere
   // Haelfte der Rechnung - und sie muss dieselbe Antwort bekommen.
   //
@@ -2078,7 +2089,7 @@
         : state.recipes;
       // shopPersons(): dieselbe Regel wie in pushNow() - berechnet lesen, aber NIE roh schreiben. Sonst
       // kaeme der berechnete Wert beim naechsten load() aus localStorage zurueck und ueberschriebe
-      // eine bewusst auf 1 gesetzte Personenzahl dauerhaft.
+      // die gemerkte Haushaltsgroesse (state.shopPersons) dauerhaft.
       localStorage.setItem(STORE_KEY, JSON.stringify({ recipes: recipesForLS, plans: state.plans, tab: state.tab, goal: state.goal || null, shares: state.shares || [], onboarded: state.onboarded === true, weights: state.weights || [], weightGoals: state.weightGoals || {}, weekStats: state.weekStats || {}, profileImage: idbOK ? null : (state.profileImage || null), weightConsent: state.weightConsent || noConsent(), shopPersons: sanitizeShopPersons(state.shopPersons), groupId: state.groupId || "", pendingGroupId: state.pendingGroupId || "", pendingInviteUrl: state.pendingInviteUrl || "", inviteCodes: state.inviteCodes || [], favs: state.favs || [], planned: state.planned || {}, deleted: sanitizeTombstones(state.deleted), dedupeV1: state.dedupeV1 === true }));
       storageFullWarned = false;
     } catch (e) {
@@ -2622,8 +2633,8 @@
     // shopPersons(): berechnet lesen, aber NIE roh schreiben - shopPersons() haengt in der
     // Gruppe an groupMembers.length/"shopForAll" und ist damit ein abgeleiteter Anzeigewert,
     // keine Kontoeinstellung. sanitizeShopPersons(state.shopPersons) schreibt die tatsaechlich
-    // vom Nutzer gesetzte Zahl (Default 1) - sonst ueberschriebe der berechnete Wert eine
-    // bewusst gesetzte 1 dauerhaft in der Cloud (siehe dataJSON()/shopPersons()-Kommentare).
+    // vom Nutzer gesetzte Zahl (Default 1) - sonst ueberschriebe der berechnete Wert die
+    // gemerkte Haushaltsgroesse dauerhaft in der Cloud (siehe dataJSON()/shopPersons()-Kommentare).
     const d = { tab: state.tab, goal: state.goal || null, shares: state.shares || [], onboarded: state.onboarded === true, weights: state.weights || [], weightGoals: state.weightGoals || {}, profileImage: state.profileImage || null, weightConsent: state.weightConsent || noConsent(), weekStats: sanitizeWeekStats(state.weekStats), shopPersons: sanitizeShopPersons(state.shopPersons), inviteCodes: state.inviteCodes || [], favs: sanitizeFavs(state.favs), planned: sanitizePlanned(state.planned, state.recipes), deleted: sanitizeTombstones(state.deleted) };
     // groupId NUR schreiben, wenn dieser Client den Gruppenzustand wirklich kennt. syncGid null
     // heisst nicht "keine Gruppe", sondern nur "gerade keine Gruppen-Session" - ein "groupId: ''"
@@ -10167,10 +10178,10 @@
   function personsLabel(n) { return n + (n === 1 ? " Person" : " Personen"); }
   // Stammt die Personenzahl der Einkaufsliste aus der Gruppe (und nicht von Hand)? Genau
   // dann steht "Wie eure Gruppe" darunter - sonst sieht man "2 Personen", ohne je etwas
-  // eingestellt zu haben, und haelt die doppelten Mengen fuer einen Fehler. Dieselbe
-  // Rangfolge wie in shopPersons(): eine von Hand gesetzte Zahl > 1 gewinnt.
+  // eingestellt zu haben, und haelt die doppelten Mengen fuer einen Fehler. Von Hand fuer
+  // diesen Einkauf verstellt, geht der Hinweis - zurueck auf der Gruppenzahl, kommt er wieder.
   function persAusGruppe() {
-    return shopCountsMembers() && sanitizeShopPersons(state.shopPersons) <= 1;
+    return shopCountsMembers() && shopPersons() === sanitizeShopPersons(groupMembers.length);
   }
 
   // Welche Tage der gezeigten Woche zaehlen noch? In der aktuellen Woche nur heute und die
@@ -10383,10 +10394,12 @@
       persBtns.forEach(b => b.addEventListener("click", () => {
         const next = sanitizeShopPersons(cur.persons + Number(b.dataset.pers));
         if (next === cur.persons) return;
-        state.shopPersons = next;
+        // In der Gruppe nur fuer diesen Einkauf (siehe shopPersons()), sonst Kontoeinstellung:
+        // gilt auch fuer PDF, Text und das naechste Oeffnen.
+        if (shopCountsMembers()) shopPersOffen = { n: next, node: node };
+        else { state.shopPersons = next; save(); }
         cur = buildShoppingList();
         applyPersons();
-        save();   // Kontoeinstellung: gilt auch fuer PDF, Text und das naechste Oeffnen
       }));
       applyPersons();
 

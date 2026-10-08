@@ -214,9 +214,22 @@ console.log("--- 4. persAusGruppe(): 'Wie eure Gruppe' in der Einkaufsliste ---"
 if (gibt("persAusGruppe")) {
   state.shopPersons = 1;
   pr("Gruppe, nichts eingestellt -> Hinweis", persAusGruppe() === true);
+  // Seit dem 08.10.2026 (TROUBLESHOOTING 185) zaehlt in der Gruppe keine gespeicherte Zahl
+  // mehr - nur eine, die bei offener Liste verstellt wurde. GEGENPROBE: alt wird hier rot.
   state.shopPersons = 3;
-  pr("von Hand 3 -> kein Hinweis", persAusGruppe() === false);
+  pr("gespeicherte 3 -> Hinweis bleibt (Gruppe gilt)", persAusGruppe() === true);
   state.shopPersons = 1;
+  if (typeof shopPersOffen !== "undefined") {
+    var offen = { isConnected: true };
+    shopPersOffen = { n: 1, node: offen };
+    pr("bei offener Liste auf 1 -> kein Hinweis", persAusGruppe() === false);
+    shopPersOffen = { n: 2, node: offen };
+    pr("zurueck auf 2 -> Hinweis wieder da", persAusGruppe() === true);
+    shopPersOffen = { n: 1, node: offen };
+    offen.isConnected = false;
+    pr("Liste zu -> Hinweis wieder da", persAusGruppe() === true);
+    shopPersOffen = null;
+  } else pr("shopPersOffen vorhanden", false);
   gruppenEinstellungen.shopForAll = false;
   pr("'Einkauf für alle rechnen' Aus -> kein Hinweis", persAusGruppe() === false);
   gruppenEinstellungen.shopForAll = true;
@@ -331,7 +344,17 @@ def main():
     portionen = schneide(quelle, u"function gruppenPortionen()",
                          u"return syncGid && groupMembers.length > 1", u"\n  }")
     ausgruppe = schneide(quelle, u"function persAusGruppe()",
-                         u"return shopCountsMembers() && sanitizeShopPersons", u"\n  }")
+                         u"return shopCountsMembers() &&", u"\n  }")
+    # Seit dem 08.10.2026 fragt persAusGruppe() shopPersons() (TROUBLESHOOTING 185). Bis zur
+    # ersten Zeile "  }" geschnitten, das traegt alten und neuen Stand; die Variable
+    # shopPersOffen fehlt im alten - dann bleibt die Zeile leer.
+    a = next((i for i, l in enumerate(quelle) if u"function shopPersons()" in l), None)
+    b = None if a is None else next((i for i, l in enumerate(quelle) if i > a and l.rstrip() == u"  }"), None)
+    if a is None or b is None:
+        FEHLT.append(u"function shopPersons()")
+    else:
+        ausgruppe += u"\n" + u"\n".join(quelle[a:b + 1])
+    ausgruppe += u"\n" + next((l for l in quelle if u"let shopPersOffen = null;" in l), u"")
     melden = schneide(quelle, u"function eingeplantMelden(day, meal, text)",
                       u"ms: 8000", u"\n    });\n  }")
     # Die Karte wird nicht als ganze renderPlan() gefahren - nur die Zeilen, die Metazeile

@@ -486,8 +486,9 @@ Zwei Werte gehören **nie roh** in einen Push, auch wenn sie inhaltlich stimmen:
 
 * **Berechnete Werte.** `shopPersons()` hängt an `groupMembers.length`/`"shopForAll"` und ist ein
   abgeleiteter Anzeigewert, keine Kontoeinstellung. `pushNow()`/`save()` schreiben stattdessen
-  `sanitizeShopPersons(state.shopPersons)` — sonst überschriebe der berechnete Wert eine bewusst
-  auf 1 gesetzte Zahl dauerhaft, und weil er sich je nach Gruppenzustand pro Gerät unterschiedlich
+  `sanitizeShopPersons(state.shopPersons)` — sonst überschriebe der berechnete Wert (Gruppenzahl
+  oder flüchtige `shopPersOffen`, siehe „Personenzahl in der Gruppe ist flüchtig“) die gemerkte
+  Haushaltsgröße dauerhaft, und weil er sich je nach Gruppenzustand pro Gerät unterschiedlich
   berechnet, wäre er zugleich selbst wieder eine Endlos-Schreib-Quelle.
 * **Merge-Ergebnisse ohne abschließende Sortierung.** `state.weightGoals = sanitizeWeightGoals(
   Object.assign({}, sanitizeWeightGoals(a), sanitizeWeightGoals(b)))` — sowohl innen als auch
@@ -915,6 +916,15 @@ heißt. `shopCountsMembers()` ist die gemeinsame Bedingung für `buildShoppingLi
 `buildBatchList()`; bewusst **nicht** an `per` gehängt, weil `per` auch aus einer von Hand
 gesetzten Personenzahl stammen kann. Die Zuweisung sagt weiterhin, *wer* isst — nur nicht mehr
 allein, *wie viel* eingekauft wird. `docs/TROUBLESHOOTING.md` 132.
+
+**Personenzahl in der Gruppe ist flüchtig** (08.10.2026, `docs/TROUBLESHOOTING.md` 185). Gilt
+`shopCountsMembers()`, liefert `shopPersons()` die Mitgliederzahl — `state.shopPersons` zählt
+dort nicht mehr. Ein Tipp auf „−“/„+“ setzt `shopPersOffen = { n, node }` statt
+`state.shopPersons`, und nichts wird gespeichert. Die Zahl erlischt über
+`node.isConnected` mit dem Schließen der Liste, egal auf welchem Weg; PDF und Teilen bauen die
+Liste neu und bekommen bis dahin dieselbe Zahl. Ohne Gruppe oder mit „Einkauf für alle
+rechnen: Aus“ bleibt `state.shopPersons` die gespeicherte Haushaltsgröße. Bis zum 08.10.2026
+schlug eine gespeicherte Zahl über 1 die Gruppe, eine gespeicherte 1 aber nicht.
 
 Die Einkaufsliste (`buildShoppingList()`) trennt pro Zutat `sharedQty` (aus "für alle"-Gerichten,
 skaliert erst mit dem globalen `per`-Personenfaktor) von `assignedQty` (aus individuell

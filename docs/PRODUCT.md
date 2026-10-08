@@ -485,6 +485,11 @@ Die Rechnung bleibt unverändert. Drei Hinweise sagen, wofür sie steht:
   Personen-Symbol suchen zu müssen.
 * **Einkaufsliste:** „Wie eure Gruppe" unter „Einkauf für" — nur solange die Zahl wirklich aus
   der Gruppe kommt. Eine von Hand gesetzte Zahl hat keinen Hinweis.
+* **Personenzahl in der Gruppe gilt nur für diesen Einkauf** (Paddy, 08.10.2026). „−“/„+“
+  verstellen sie, solange die Liste offen ist (auch für PDF und Teilen); beim nächsten Öffnen
+  steht wieder die Gruppenzahl. Gespeichert hätte eine 1 jedes später eingeplante „für euch
+  beide“-Meal einfach gezählt — unbemerkt. Ohne Gruppe bleibt die Zahl die gemerkte
+  Haushaltsgröße. `docs/TROUBLESHOOTING.md` 185.
 
 Die Zahl auf der Karte hängt **nicht** an „Einkauf für alle rechnen": Die Karte sagt, wer
 isst, nicht wie viel eingekauft wird.

@@ -18,6 +18,51 @@
 // laufen lassen. Kein neues HTML-Geruest - das ist der Unterschied zu den
 // Einzelproben probe-symbole.html/probe-fortschritt.html.
 
+// Zweiergruppe (Paddy + Anna, "Einkauf fuer alle rechnen: An") nachstellen, OHNE dass etwas
+// ans Netz geht - wie bei cloud-laden, nur dass load() hier antwortet. Alles, was die App
+// sonst noch an CloudSync/CloudGroup fragt (Speichern, Listener, Mitgliedseintrag), faengt
+// ein Proxy als stilles Nichts ab: eine Funktion, die zugleich als Promise taugt - Listener
+// geben sie als Abmelder zurueck, await liest sie als "erledigt".
+// Genutzt von gruppe-fuer-alle und einkauf-minus.
+function zweiergruppeNachstellen(w) {
+  function nichts() {
+    var f = function () {};
+    f.then = function (ok) { return w.Promise.resolve(ok ? ok() : undefined); };
+    f.catch = function () { return f; };
+    f.finally = function (g) { if (g) g(); return f; };
+    return f;
+  }
+  function attrappe(basis) {
+    return new w.Proxy(basis, { get: function (t, k) { return k in t ? t[k] : nichts; } });
+  }
+  var MEAL = { id: "rvgbowl", name: "Hähnchen-Reis-Bowl", category: "Hauptgericht",
+    nutrition: { kcal: 540, carbs: 55, protein: 42, fat: 14 },
+    ingredients: [{ name: "Hähnchenbrust", grams: 150 }, { name: "Reis", grams: 80 },
+                  { name: "Brokkoli", grams: 120 }] };
+  // Zwei weitere fuer Durchlaeufe mit vollem Plan: Brokkoli steckt auch in den Nudeln, damit
+  // das Zusammenzaehlen derselben Zutat aus verschiedenen Meals mitgeprueft wird.
+  var NUDELN = { id: "rvgnudeln", name: "Brokkoli-Nudeln", category: "Hauptgericht",
+    nutrition: { kcal: 480, carbs: 70, protein: 20, fat: 10 },
+    ingredients: [{ name: "Vollkornnudeln", grams: 100 }, { name: "Tomaten", grams: 200 },
+                  { name: "Brokkoli", grams: 60 }] };
+  var SHAKE = { id: "rvgshake", name: "Hafer-Shake", category: "Frühstück",
+    nutrition: { kcal: 350, carbs: 45, protein: 18, fat: 9 },
+    ingredients: [{ name: "Haferflocken", grams: 50 }, { name: "Banane", grams: 120 }] };
+  var GOAL = { mode: "cut", kcal: 1950, protein: 150, carbs: 180, fat: 60, activity: "pal14", training: [] };
+  w.CloudEntitlement = null;
+  w.CloudSync = attrappe({ enabled: true,
+    load: function () { return w.Promise.resolve({ groupId: "vg-gruppe", onboarded: true, goal: GOAL }); },
+    loadRecipes: function () { return w.Promise.resolve([MEAL, NUDELN, SHAKE]); }
+  });
+  w.CloudGroup = attrappe({ enabled: true,
+    fetch: function () { return w.Promise.resolve({ data: { name: "Wir", settings: { shopForAll: true } }, fromCache: false }); },
+    fetchMembers: function () { return w.Promise.resolve({ fromCache: false, members: [
+      { uid: "vergleich", name: "Paddy", role: "owner" }, { uid: "vg-anna", name: "Anna", role: "edit" }] }); },
+    loadPlans: function () { return w.Promise.resolve([]); }
+  });
+  w.__onCloudAuth({ uid: "vergleich", emailVerified: true, displayName: "Paddy", email: "" });
+}
+
 var BAUSTEINE = [
   {
     id: "dropdown",
@@ -318,33 +363,7 @@ var BAUSTEINE = [
     // zurueck, await liest sie als "erledigt".
     oeffnen: function (doc) {
       var w = doc.defaultView;
-      function nichts() {
-        var f = function () {};
-        f.then = function (ok) { return w.Promise.resolve(ok ? ok() : undefined); };
-        f.catch = function () { return f; };
-        f.finally = function (g) { if (g) g(); return f; };
-        return f;
-      }
-      function attrappe(basis) {
-        return new w.Proxy(basis, { get: function (t, k) { return k in t ? t[k] : nichts; } });
-      }
-      var MEAL = { id: "rvgbowl", name: "Hähnchen-Reis-Bowl", category: "Hauptgericht",
-        nutrition: { kcal: 540, carbs: 55, protein: 42, fat: 14 },
-        ingredients: [{ name: "Hähnchenbrust", grams: 150 }, { name: "Reis", grams: 80 },
-                      { name: "Brokkoli", grams: 120 }] };
-      var GOAL = { mode: "cut", kcal: 1950, protein: 150, carbs: 180, fat: 60, activity: "pal14", training: [] };
-      w.CloudEntitlement = null;
-      w.CloudSync = attrappe({ enabled: true,
-        load: function () { return w.Promise.resolve({ groupId: "vg-gruppe", onboarded: true, goal: GOAL }); },
-        loadRecipes: function () { return w.Promise.resolve([MEAL]); }
-      });
-      w.CloudGroup = attrappe({ enabled: true,
-        fetch: function () { return w.Promise.resolve({ data: { name: "Wir", settings: { shopForAll: true } }, fromCache: false }); },
-        fetchMembers: function () { return w.Promise.resolve({ fromCache: false, members: [
-          { uid: "vergleich", name: "Paddy", role: "owner" }, { uid: "vg-anna", name: "Anna", role: "edit" }] }); },
-        loadPlans: function () { return w.Promise.resolve([]); }
-      });
-      w.__onCloudAuth({ uid: "vergleich", emailVerified: true, displayName: "Paddy", email: "" });
+      zweiergruppeNachstellen(w);
       // Nach dem Abgleich: Plan-Reiter, erster "Meal wählen", das Meal im Picker antippen.
       // NICHT nach fester Uhr: Die beiden Seiten laden unterschiedlich schnell, und ein
       // Picker, der vor dem Abgleich aufgeht, ist leer - mit festen 1,2 s klappte es links
@@ -381,6 +400,70 @@ var BAUSTEINE = [
       }
       w.setTimeout(function () { versuch(0); }, 800);
       return "Gruppe nachgestellt (ohne Netz), Meal wird gleich eingeplant";
+    }
+  },
+
+  {
+    id: "einkauf-minus",
+    titel: "Einkaufsliste in der Gruppe: „−“ gilt für diesen Einkauf",
+    was: "Zweiergruppe, ein Meal „für euch beide“, die Einkaufsliste geht von selbst auf "
+       + "(„2 Personen · Wie eure Gruppe“, 240 g Brokkoli). Selbst auf „−“ tippen. Rechts: "
+       + "1 Person, 120 g, „Wie eure Gruppe“ verschwindet. Links (live): „−“ tut nichts. "
+       + "Danach rechts schließen und neu öffnen: wieder 2 Personen – nichts bleibt hängen.",
+    stellen: [
+      "shopPersons() — in der Gruppe: Gruppenzahl, außer bei offener Liste verstellt",
+      "shopPersOffen — erlischt mit dem Schließen (node.isConnected)",
+      "persAusGruppe() — „Wie eure Gruppe“, solange die Zahl der Gruppe entspricht",
+      "Einkaufsliste .pbtn — in der Gruppe nicht gespeichert, ohne Gruppe wie bisher"
+    ],
+    zustand: { goal: null, onboarded: false, recipes: [], plans: {} },
+    profil: { name: "Paddy", email: "", uid: "vergleich", cloud: true },
+    nurInhalt: true,
+    oeffnen: function (doc) {
+      var w = doc.defaultView;
+      zweiergruppeNachstellen(w);
+      // Nach dem Abgleich: Plan-Reiter, ein Meal in den Sonntagmittag (der zaehlt in der
+      // Einkaufsliste immer - vergangene Tage der Woche nicht), dann die Einkaufsliste.
+      // Ohne Zutaten zeigt sie nur den leeren Zustand, ohne Personenzahl. Wie bei
+      // gruppe-fuer-alle nicht nach fester Uhr, sondern so lange versuchen, bis es klappt.
+      function versuch(n) {
+        if (doc.querySelector(".shop-persons")) return;
+        var tab = doc.querySelector('[data-action="tab"][data-tab="plan"]');
+        if (tab && tab.getAttribute("aria-selected") !== "true") tab.click();
+        var hatMeal = !!doc.querySelector('[data-action="assign"]');
+        w.setTimeout(function () {
+          if (!hatMeal) {
+            var picks = doc.querySelectorAll('[data-action="pick"][data-meal="mi"]');
+            if (picks.length) picks[picks.length - 1].click();
+            w.setTimeout(function () {
+              var item = doc.querySelector('[data-assign="rvgbowl"]');
+              if (item) {
+                item.click();
+                // "Für euch beide" im Toast: Nur ein Meal fuer alle rechnet mit der
+                // Personenzahl - bei "nur ich" aenderte "-" die Zahl, aber keine Menge.
+                // Links (vorher) gibt es den Knopf genauso, die Ausgangslage ist gleich.
+                w.setTimeout(function () {
+                  var beide = [].filter.call(doc.querySelectorAll("button"), function (b) {
+                    return b.textContent.trim() === "Für euch beide";
+                  })[0];
+                  if (beide) beide.click();
+                }, 500);
+              } else { var zu = doc.querySelector(".modal [data-close]"); if (zu) zu.click(); }
+              if (n < 20) w.setTimeout(function () { versuch(n + 1); }, 1400);
+            }, 400);
+            return;
+          }
+          // Den Toast "Für dich eingeplant" erst abwarten lassen ist nicht noetig - die
+          // Liste legt sich darueber.
+          var s = [].filter.call(doc.querySelectorAll('[data-action="shopping"]'), function (x) {
+            return x.getBoundingClientRect().width > 0;
+          })[0];
+          if (s) s.click();
+          if (n < 20) w.setTimeout(function () { versuch(n + 1); }, 500);
+        }, 400);
+      }
+      w.setTimeout(function () { versuch(0); }, 800);
+      return "Gruppe nachgestellt (ohne Netz), Einkaufsliste geht gleich auf";
     }
   }
 ];

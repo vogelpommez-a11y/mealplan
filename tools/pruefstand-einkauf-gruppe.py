@@ -56,6 +56,15 @@ def zeile(zeilen, marker):
     return t
 
 
+def funktion(zeilen, start):
+    u"""Eine Funktion bis zu ihrer schliessenden Klammer auf Einrueckung 2."""
+    a = next((i for i, l in enumerate(zeilen) if start in l), None)
+    if a is None:
+        raise SystemExit(u"Marker nicht gefunden: " + start)
+    b = next(i for i, l in enumerate(zeilen) if i > a and l.rstrip() == u"  }")
+    return u"\n".join(zeilen[a:b + 1])
+
+
 UMFELD = u"""
 var syncUid = "ich", syncGid = "g1";
 var groupMembers = [{ uid: "ich" }, { uid: "du" }];
@@ -105,9 +114,34 @@ pr("shopForAll An -> Mitgliederzahl", shopPersons() === 2, shopPersons() + "");
 gruppenEinstellungen.shopForAll = false;
 pr("shopForAll Aus -> 1", shopPersons() === 1, shopPersons() + "");
 gruppenEinstellungen.shopForAll = true;
+gruppenEinstellungen.shopForAll = false;
 state.shopPersons = 3;
-pr("eigene Zahl schlaegt die Gruppe", shopPersons() === 3, shopPersons() + "");
+pr("ohne Gruppenrechnung: gemerkte Haushaltsgroesse 3", shopPersons() === 3, shopPersons() + "");
+gruppenEinstellungen.shopForAll = true;
+
+console.log("--- 1b. In der Gruppe gilt eine verstellte Zahl nur bei offener Liste (TROUBLESHOOTING 185) ---");
+// Bis zum 08.10.2026: eine gespeicherte Zahl > 1 schlug die Gruppe - und traf damit jedes
+// spaeter eingeplante "fuer euch beide"-Meal. GEGENPROBE: der alte Stand wird hier rot.
+pr("gespeicherte 3 schlaegt die Gruppe NICHT mehr", shopPersons() === 2, shopPersons() + " statt 2");
 state.shopPersons = 1;
+var hatOffen = typeof shopPersOffen !== "undefined";
+pr("shopPersOffen vorhanden", hatOffen);
+if (hatOffen) {
+  var modal = { isConnected: true };
+  shopPersOffen = { n: 1, node: modal };
+  state.plan = leererPlan();
+  state.plan.mon.mi = ["nudeln"];                       // fuer alle
+  pr("Liste offen, '-' auf 1 -> 1", shopPersons() === 1, shopPersons() + "");
+  pr("'fuer alle' bei offener Liste einfach", menge(buildShoppingList().items, "Nudeln") === 100,
+     menge(buildShoppingList().items, "Nudeln") + " statt 100");
+  pr("nichts gespeichert", state.shopPersons === 1, String(state.shopPersons));
+  modal.isConnected = false;                            // Liste zu
+  state.plan.tue.mi = ["nudeln"];                       // spaeter "fuer euch beide" dazu
+  pr("Liste zu -> wieder Gruppe", shopPersons() === 2, shopPersons() + "");
+  pr("neues Meal zaehlt doppelt: 2 x 100 x 2 = 400", menge(buildShoppingList().items, "Nudeln") === 400,
+     menge(buildShoppingList().items, "Nudeln") + " statt 400");
+  shopPersOffen = null;
+}
 
 console.log("--- 2. 'Fuer alle' wird mit dem Personenfaktor hochgerechnet ---");
 state.plan = leererPlan();
@@ -258,9 +292,12 @@ def main():
     shopsan = zeile(quelle, u"function sanitizeShopPersons(v)")
     zaehlt = schneide(quelle, u"function shopCountsMembers()",
                       u"return !!(syncGid && groupSetting", u"\n  }")
-    shoppers = schneide(quelle, u"function shopPersons()",
-                        u"return sanitizeShopPersons(groupMembers.length);",
-                        u"\n    return own;\n  }")
+    # Bis zur schliessenden Klammer auf Einrueckung 2: Die Funktion hat ihre Gestalt am
+    # 08.10.2026 geaendert (TROUBLESHOOTING 185), so traegt der Schnitt alten und neuen Stand -
+    # und die Gegenprobe faellt an der Sache durch statt am Marker.
+    shoppers = funktion(quelle, u"function shopPersons()")
+    # Seit dem 08.10.2026; im alten Stand fehlt die Zeile, dann bleibt sie leer.
+    shoppers += u"\n" + next((l for l in quelle if u"let shopPersOffen = null;" in l), u"")
     tage2 = schneide(quelle, u"function planDaysAhead()", u"return { todayIdx: todayIdx", u"\n  }")
     einkauf = schneide(quelle, u"function buildShoppingList(persons)",
                        u"return { items, groups, todayIdx, persons: per };", u"\n  }")

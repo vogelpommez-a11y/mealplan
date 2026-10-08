@@ -6,7 +6,7 @@ Dieses Dokument enthält bekannte Fehlerquellen, historische Bugs und Probleme, 
 
 <!-- REGISTER-ANFANG (erzeugt aus den Ueberschriften: python tools/register.py - nicht von Hand pflegen) -->
 
-**Register — 186.** Chronologisch gewachsen: je hoeher die Nummer,
+**Register — 187.** Chronologisch gewachsen: je hoeher die Nummer,
 desto juenger der Fund. Wer eine Falle sucht, sucht hier zuerst; die Ueberschrift sagt
 jeweils, worum es geht. **Nicht die ganze Datei lesen** — sie ist rund 310 KB gross.
 
@@ -196,8 +196,9 @@ jeweils, worum es geht. **Nicht die ganze Datei lesen** — sie ist rund 310 KB 
 | 182 | `pruefstand-reiter.py`: „Start leer" war ein Wettlauf im Prüfstand — und die Gegenprobe maß nichts |
 | 183 | Die Kopie nach dem Austritt trug die Kennungen der anderen Mitglieder |
 | 184 | Der Toast: Times-Schrift, auf der Reiterleiste, umgebrochen — drei alte Fehler unter Weiß |
-| 185 | OFFEN: In der Gruppe tut „−“ in der Einkaufsliste nichts |
+| 185 | In der Gruppe tat „−“ in der Einkaufsliste nichts |
 | 186 | Das Zuweisungsmenü stand in Serifenschrift |
+| 187 | Die Vorführung blieb leer — Chrome hielt die Bausteinliste vor |
 
 <!-- REGISTER-ENDE -->
 
@@ -1190,6 +1191,8 @@ Liste der Vergleichsstellen: `docs/ARCHITECTURES.md`, Abschnitt „Cloud-Synchro
   schrieb ihn trotzdem roh in die Cloud — dadurch überschrieb er in der Gruppe eine bewusst auf 1
   gesetzte Zahl dauerhaft, und weil er sich pro Gerät je nach Gruppenzustand unterschiedlich
   berechnet, war er selbst wieder eine Endlos-Schreib-Quelle, ganz ohne Reihenfolge-Problem.
+  (Seit dem 08.10.2026 wird in der Gruppe gar keine Zahl mehr gespeichert, Fall 185 — die
+  Regel „nie roh pushen“ gilt für die Haushaltsgröße ohne Gruppe weiter.)
 * **„Kein Toast" beweist nicht „kein Render".** `onRecipesRemote()` ist der einzige
   Render-Auslöser im Sync **ohne** eigenen Toast (anders als `onRemote()`, das „Von anderem Gerät
   aktualisiert" meldet). `hydrateImages()` hängt `r.image` als **letzten** Schlüssel an — danach
@@ -4820,8 +4823,9 @@ function shopCountsMembers() {
 Beide Verwender hängen jetzt daran. **Die Zuweisung selbst bleibt unberührt** — sie sagt
 weiterhin, *wer* isst; sie sagt nur nicht mehr allein, *wie viel* eingekauft wird.
 
-Bewusst **nicht** an `per` gehängt: `per` kann auch aus einer von Hand gesetzten Personenzahl
-stammen (`state.shopPersons`), und die ist ein Haushalts-Multiplikator, keine Aussage über
+Bewusst **nicht** an `per` gehängt: `per` kann auch aus einer von Hand verstellten Personenzahl
+stammen (ohne Gruppe `state.shopPersons`, in der Gruppe seit dem 08.10.2026 der flüchtige
+`shopPersOffen`, Fall 185), und die ist ein Multiplikator für den Einkauf, keine Aussage über
 Gruppenmitglieder. Die Zuweisung folgt ausschließlich dem Schalter, der ihren Namen trägt.
 
 ### Die Regel dahinter
@@ -7081,7 +7085,7 @@ Verhalten.** Eine Regel kann in der richtigen Datei stehen und trotzdem nie grei
 
 Prüfer: Sichtprobe `tools/probe-vergleich.html?baustein=toast` (Hell/Dunkel, 390/720/1280).
 
-## 185. OFFEN: In der Gruppe tut „−“ in der Einkaufsliste nichts
+## 185. In der Gruppe tat „−“ in der Einkaufsliste nichts
 
 **Gefunden am 05.10.2026** beim Bau von „Wie eure Gruppe" — nicht behoben, weil außerhalb des
 Auftrags (CLAUDE.md Abschnitt 22). Gemessen in der Vorführung `gruppe-fuer-alle`, alter wie
@@ -7097,6 +7101,22 @@ den Gruppeneinstellungen.
 Die Wurzel: Die 1 trägt zwei Bedeutungen — „Standard" und „bewusst eine Person". Eine Lösung
 braucht eine Produktentscheidung (unterscheidbarer Wert, oder „−" unterhalb der Gruppenzahl
 ausgrauen), deshalb hier nur festgehalten.
+
+**Behoben am 08.10.2026 — anders als zuerst gebaut.** Der erste Entwurf trennte „Standard“ (0)
+von „von Hand 1“ in einem neuen Feld `shopPers` und speicherte die Hand-1. Paddy sah in der
+Vorführung den eigentlichen Haken: **Gespeichert bleibt die Zahl hängen.** Jedes später
+eingeplante „für euch beide“-Meal zählte dann einfach — die Liste wäre falsch, ohne dass es
+jemand merkt. Dasselbe galt schon vorher für jede gespeicherte Zahl über 1.
+
+Jetzt (Paddys Wahl): In der Gruppe gilt eine verstellte Zahl **nur, solange die Liste offen
+ist** (`shopPersOffen`, erlischt über `node.isConnected`), und es wird nichts gespeichert. Beim
+nächsten Öffnen steht wieder die Gruppenzahl. Ohne Gruppe bleibt die gemerkte Haushaltsgröße.
+Kein neues Datenfeld, keine Datenumstellung. Prüfer: `tools/pruefstand-einkauf-gruppe.py` 1b,
+`tools/pruefstand-gruppe-fuer-alle.py` 4 — beide Gegenproben gegen 2c6916b rot. Vorführung:
+`python tools/vorfuehren.py einkauf-minus`.
+
+**Merksatz:** Eine Einstellung, die eine *Liste* korrigiert, gehört zu dieser Liste — nicht ins
+Konto. Sonst wirkt sie auf Einträge, die es beim Einstellen noch gar nicht gab.
 
 ## 186. Das Zuweisungsmenü stand in Serifenschrift
 
@@ -7115,4 +7135,22 @@ das aus demselben Grund an `<body>` hängt: `.assign-menu { font-family: var(--f
 05.10.2026) änderten den Plan, riefen aber nur `render()`, nicht `save()` — jeder andere
 Rückgängig-Knopf der App speichert. Der Prüfstand stubbte `render()` und fragte nie nach dem
 Speichern. Jetzt prüft er es (`'Rückgängig' speichert`).
+
+## 187. Die Vorführung blieb leer — Chrome hielt die Bausteinliste vor
+
+**Gefunden am 08.10.2026** bei `python tools/vorfuehren.py einkauf-minus`: Paddy sah nichts.
+Headless lief derselbe Vergleich einwandfrei.
+
+`tools/probe-vergleich.html` lud `vergleich-bausteine.js` ohne Zeitstempel. `test-server.ps1`
+schickt keine Cache-Kopfzeilen, und Chrome hält eine solche Datei dann nach eigener Schätzung
+vor. Das Vorführprofil bleibt zwischen den Läufen bestehen und hatte die Liste von einem
+früheren Mal — ohne den frisch eingetragenen Baustein. Die beiden iframes waren nie betroffen:
+`seiteLaden()` hängt seit jeher `?v=Date.now()` an.
+
+**Behoben:** Die Registry wird jetzt ebenfalls mit Zeitstempel geladen
+(`document.write`, damit sie wie vorher synchron vor dem Seitenskript steht).
+
+**Merksatz:** Wer neben einer Datei mit Zeitstempel eine ohne lädt, hat den Cache nur zur
+Hälfte ausgeschaltet. Bei „headless geht's, sichtbar nicht“ zuerst an das bleibende Profil
+denken — `vorfuehren.py --frisch` setzt es zurück.
 

@@ -145,6 +145,7 @@ Alles, was nach draußen geht, ist entweder eine **Verarbeitung** (Datenschutz) 
 | Google-APIs | `domain:www.googleapis.com` | `datenschutz-technik` | neuer Dienst |
 | Eigene Domain | `domain:www.paddysmealplan.de` | `website-security` | Domainwechsel |
 | Strukturierte Daten | `domain:schema.org` | — Namensraum, keine Verbindung — | — |
+| W3C/WAI-Muster | `domain:www.w3.org` | — Quellenverweis im Kommentar (CLAUDE.md 21a), keine Verbindung — | — |
 | OpenAI-Nutzungsbedingungen | `domain:openai.com` | `anwalt` | Rechtstext-Verweis |
 | GitHub-Datenschutz | `domain:docs.github.com` | `anwalt` | Rechtstext-Verweis |
 | Google-Datenschutz | `domain:policies.google.com` | `anwalt` | Rechtstext-Verweis |
