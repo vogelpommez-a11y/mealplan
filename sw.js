@@ -110,7 +110,8 @@ self.addEventListener("fetch", (event) => {
           // landete jede Navigation hier - auch eine 404 von GitHub Pages oder eine fremde Seite
           // unter derselben Domain (tools/*.html) - und der naechste Offline-Start zeigte dann
           // genau die (Audit 17.10.2026).
-          if (res.ok && /\/(?:index\.html)?$/.test(url.pathname)) {
+          const scope = new URL(self.registration.scope).pathname;
+          if (res.ok && (url.pathname === scope || url.pathname === scope + "index.html")) {
             const copy = res.clone();
             caches.open(SHELL_CACHE).then((c) => c.put("./index.html", copy)).catch(() => {});
           }

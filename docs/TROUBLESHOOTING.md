@@ -927,6 +927,8 @@ localStorage-JSON. `hydrateImages()` zieht beim Start `map.__profile__` zurück 
 passiv, es kam aktiv zurück.
 
 **Regel:** Bei jeder Änderung daran, *wo* Daten liegen, gehört `wipeLocalData()` mitgeprüft.
+(Wiederholt am 17.10.2026: `LETZTE_UID_KEY` und `PLAN_BASE_KEY` tragen die uid und fehlten —
+im Audit gefunden, behoben.)
 Der Speicherort einer Information und ihre Löschung sind ein Paar. Ziffer 10 der
 Datenschutzerklärung sagt wörtlich „sämtliche auf diesem Gerät gespeicherten Daten sofort
 entfernen" — jeder neue Speicherort ist damit automatisch eine rechtliche Zusage.
@@ -1311,7 +1313,11 @@ besteht grundsätzlich immer dann, wenn zwischen einer lokalen Änderung und ihr
 Reload passiert — mit dem Offline-Cache ist das nur leichter zu erreichen (offline weiterplanen fühlt
 sich jetzt normal an), nicht neu entstanden.
 
-**Bewusst nicht mitgefixt:** Ein slot-genaues Merge (statt Wochen-Ersetzung) für den persönlichen
+**Nachgeholt am 17.10.2026:** Das slot-genaue Merge für den persönlichen Plan ist gebaut
+(`mergePlansSlotwise()` mit gemerkter Baseline, Ziffer 189). Der Codeblock oben steht so nicht
+mehr im Code; die Ursache bleibt als Begründung stehen.
+
+**Damals bewusst nicht mitgefixt:** Ein slot-genaues Merge (statt Wochen-Ersetzung) für den persönlichen
 Plan wäre ein eigenes, größeres Paket — analog zur bereits vorhandenen slot-genauen Merge-Logik im
 Gruppenmodus (`groups/{gid}/plans`, ein Dokument je Woche mit flachen Feldern, siehe
 `docs/ARCHITECTURES.md`, Abschnitt „Gruppen-Wochenplan"). Nicht ungefragt im Rahmen des
@@ -3362,7 +3368,8 @@ Jetzt `{ mergeFields: Object.keys(data) }`: Was der Aufrufer schickt, wird **gan
 er weglässt, bleibt unangetastet. Die Teil-Schreibvorgänge (`{ pendingGroupId: … }`) verhalten
 sich unverändert.
 
-**Zwei Felder ändern dadurch ihre Semantik, beide gewollt:** `plans` (nur außerhalb einer Gruppe)
+**Zwei Felder ändern dadurch ihre Semantik, beide gewollt:** `plans` (nur außerhalb einer Gruppe;
+seit 17.10.2026 slotweise statt als Feld, Ziffer 189)
 wird ersetzt statt gemischt — `state.plans` ist durch `pruneWeeks()` ohnehin beschnitten, und
 beim Lesen läuft `pruneWeeks()` erneut. `weightGoals`, `deleted`, `weightConsent` und `planned`
 werden ebenfalls ersetzt; alle vier werden in `onRemote()` **vor** dem Speichern lokal vereinigt,
@@ -7054,7 +7061,8 @@ ganze App, nicht über den Diff.
   scheiterte), und dann stünde dort der Gruppenstand aus dem Cache — Befund `website-security`
   im Pushcheck, vor dem Push behoben.
   Der folgende `pushNow()` schreibt den bereinigten Stand — Meals per `batch.set` (ganzes
-  Dokument), `plans` per `mergeFields` (ganzes Feld), das alte `by` verschwindet also auch in
+  Dokument), `plans` per `mergeFields` (ganzes Feld; seit 17.10.2026 slotweise über
+  `pushPersonalPlans()`, Ziffer 189), das alte `by` verschwindet also auch in
   der Cloud.
 * `tools/fremde-uids-aufraeumen.py` für Konten, die die App nicht mehr öffnen, und für
   `shared/` — Trockenlauf als Standard, `--schreiben` nur nach Sicherung, jede Schreibung mit
@@ -7203,6 +7211,8 @@ stillem Datenverlust:
 
 Dazu, beim selben Durchgang: „Rückgängig“ nach dem Entfernen schrieb in `state.plan` — die
 gerade **angezeigte** Woche. Wer binnen 5 s die Woche wechselte, bekam das Meal dort.
+
+**Vorgeschichte:** Den Neustart-Fall hatte Ziffer 46 schon beschrieben und bewusst vertagt.
 
 **Behoben:** slotweiser Abgleich wie im Gruppenplan, mit einer im `localStorage` gemerkten
 Baseline (`docs/ARCHITECTURES.md`, „Der persönliche Wochenplan wird slotweise abgeglichen“);

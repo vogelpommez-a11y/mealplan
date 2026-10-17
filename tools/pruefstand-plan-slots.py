@@ -140,6 +140,14 @@ var e7 = {}; e7[W] = plan({ mon_fr: ["a", { id: "q", uids: ["u1"] }] });
 pr("Eintrag mit Zuweisung uebersteht den Weg unveraendert",
    canonJSON(mergePlansSlotwise(e7, kopie(e7), planSlots(e7))) === canonJSON(e7));
 
+console.log("--- 7b. Nur echte Wochenschluessel werden geschrieben (Pushcheck 17.10.2026) ---");
+var schief = JSON.parse('{"__proto__": {}, "a.b": {}}');
+schief["__proto__"] = plan({ mon_fr: ["x"] }); schief["a.b"] = plan({ mon_fr: ["y"] });
+schief[W] = plan({ mon_fr: ["a"] });
+var ps = planSlots(schief);
+pr("nur die echte Woche landet in der Baseline", ps.size === 1 && ps.has(W + ".mon_fr"), JSON.stringify(Array.from(ps.keys())));
+pr("und nur sie im Patch", planPatch(schief, new Map()).set.join() === W + ".mon_fr");
+
 console.log("--- 8. Rueckgaengig nach Entfernen trifft die richtige Woche ---");
 var undo = null;
 undoToast = function (text, fn) { undo = fn; };

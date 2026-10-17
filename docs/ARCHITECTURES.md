@@ -405,7 +405,8 @@ Seit die Meal-Fotos und das Profilbild in IndexedDB liegen (Paket A3) und nicht 
 `localStorage`-JSON, reicht das Entfernen der localStorage-Schlüssel nicht mehr aus.
 `wipeLocalData()` ist deshalb `async` und räumt:
 
-* `STORE_KEY`, `PROFILE_KEY`, `LAST_KEY`, `SHOP_DONE_KEY`
+* `STORE_KEY`, `PROFILE_KEY`, `LAST_KEY`, `SHOP_DONE_KEY`, `LETZTE_UID_KEY`, `PLAN_BASE_KEY`
+  (die letzten beiden tragen die uid; seit 17.10.2026, Ziffer 10 der Datenschutzerklärung)
 * den ObjectStore `images` der IndexedDB
 * die Baseline `imgSaved`
 
@@ -627,7 +628,7 @@ Drei Randfälle werden bewusst behandelt, statt einen zweiten, verwaisten Gruppe
 * `"gone"` — Gruppendokument existiert nicht mehr, oder man steht nicht in der Mitgliederliste. **Nur hier** darf `startCloudSync()` `state.groupId` leeren. Eine **leere** Mitgliederliste zählt ausdrücklich nicht dazu: `getDocs()` wirft offline nicht, sondern liefert das leere Cache-Ergebnis — das ergibt `"error"`.
 * `"error"` — der Zugriff ist gescheitert (Netz, noch nicht veröffentlichte Regeln, Rate-Limit) oder `CloudGroup` ist gar nicht verfügbar. Über die Mitgliedschaft sagt das nichts aus, der Zeiger bleibt stehen, der nächste Start versucht es erneut.
 
-Bei `"error"` setzt `startCloudSync()` zusätzlich `groupSyncFailed = true`. Dieses Flag hält `pushNow()` davon ab, die Felder `groupId` und `plans` überhaupt in das Kontodokument zu schreiben — was nicht in der Nutzlast steht, steht auch nicht in `mergeFields`, der vorhandene Cloud-Stand bleibt also unangetastet (siehe „Das Kontodokument wird feldweise ersetzt" unten). Ohne das Flag würde der Fehlerzustand (`syncGid === null`) als `groupId: ""` hochgeschrieben und die Gruppe für **alle** Geräte des Kontos unauffindbar machen. Das reguläre Verlassen ist davon nicht betroffen: `leaveGroup()` schreibt sein `groupId: ""` selbst und explizit.
+Bei `"error"` setzt `startCloudSync()` zusätzlich `groupSyncFailed = true`. Dieses Flag hält `pushNow()` davon ab, `groupId` in das Kontodokument zu schreiben und den persönlichen Plan (`pushPersonalPlans()`) hochzuladen — was nicht in der Nutzlast steht, steht auch nicht in `mergeFields`, der vorhandene Cloud-Stand bleibt also unangetastet (siehe „Das Kontodokument wird feldweise ersetzt" unten). Ohne das Flag würde der Fehlerzustand (`syncGid === null`) als `groupId: ""` hochgeschrieben und die Gruppe für **alle** Geräte des Kontos unauffindbar machen. Das reguläre Verlassen ist davon nicht betroffen: `leaveGroup()` schreibt sein `groupId: ""` selbst und explizit.
 
 Der `"gone"`-Zweig räumt bewusst **nicht** mehr per `removeMember()` auf. `CloudGroup.fetch()` liefert `null` für jedes Leseergebnis ohne Dokument — aus einem Lesevorgang darf keine Löschung folgen.
 
@@ -691,10 +692,10 @@ Ziffer 108.
 
 **Zwei Felder ändern dadurch ihre Bedeutung — beide gewollt:**
 
-* `plans` (nur außerhalb einer Gruppe, siehe `groupKnown`) wird **ersetzt**. `state.plans` ist
-  durch `pruneWeeks()` auf aktuelle + nächste Woche beschnitten; die Cloud verliert damit alte
-  Wochen, die sie bisher als Rest mitschleppte. Beim Lesen läuft `pruneWeeks()` ohnehin — der
-  Datensatz wird ehrlicher, nicht ärmer.
+* `plans` wird seit dem 17.10.2026 **nicht mehr als Feld ersetzt**, sondern slotweise geschrieben
+  (siehe „Der persönliche Wochenplan wird slotweise abgeglichen“). Verfallene Wochen fallen
+  weiterhin weg, jetzt per `deleteField()` je Woche. Bis dahin galt: ersetzt, und die Cloud verlor
+  damit alte Wochen, die sie als Rest mitschleppte.
 * `weightGoals`, `deleted`, `weightConsent` und `planned` werden ebenfalls **ersetzt**. Alle vier
   vereinigt `onRemote()` **vor** dem Speichern lokal (`mergeWeights`, `mergeTombstones`,
   `mergeConsent`, `unionIds`), der lokale Stand ist also bereits der vollständige. Ersetzen ist

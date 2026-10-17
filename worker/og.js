@@ -112,6 +112,7 @@ async function handleOgImage(shareId, env) {
   // Fallback: dasselbe neutrale Foto, das photoFor() ohne Treffer auch clientseitig zeigt
   // (PHOTOS.neutral, index.html) - kein eigens erzeugtes Banner noetig.
   const fallback = await fetch(ORIGIN + "/img/neutral.jpg");
+  if (!fallback.ok) return new Response(null, { status: 404, headers: BILD_KOPF });
   return new Response(fallback.body, { headers: Object.assign({ "Content-Type": "image/jpeg" }, BILD_KOPF) });
 }
 

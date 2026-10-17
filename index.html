@@ -1749,6 +1749,7 @@
   function removeFromSlot(d, m, idx) {
     const wk = activeWeekKey();
     const removed = state.plan[d][m][idx];
+    if (removed === undefined) return;   // Index veraltet (Cloud-Stand dazwischen) - nichts zu entfernen
     state.plan[d][m].splice(idx, 1);
     save(); render();
     undoToast("Entfernt", () => {
@@ -1783,7 +1784,8 @@
     const name = leiste.getAttribute("aria-label") || "";
     tabs[n].click();
     const neu = name ? document.querySelector('[role="tablist"][aria-label="' + CSS.escape(name) + '"]') : null;
-    const ziel = (neu && sichtbar(neu)[n]) || tabs[n];
+    const neueTabs = neu ? sichtbar(neu) : [];
+    const ziel = neueTabs[n] || neueTabs[0] || tabs[n];
     if (ziel.isConnected) ziel.focus();
   });
 
@@ -2394,7 +2396,12 @@
     planBase = b;
     if (!syncUid) return;
     try { localStorage.setItem(PLAN_BASE_KEY, JSON.stringify({ uid: syncUid, slots: Array.from(b.entries()) })); }
-    catch (e) { noteError("store:planBase", e); }
+    catch (e) {
+      // Lieber gar keine gemerkte Baseline als eine veraltete: Mit der alten hielte der naechste
+      // Start laengst hochgeladene Slots fuer "noch nicht oben" (Pushcheck kvp).
+      noteError("store:planBase", e);
+      try { localStorage.removeItem(PLAN_BASE_KEY); } catch (e2) { /* Speicher gesperrt - nichts mehr zu tun */ }
+    }
   }
   function loadPlanBase(uid) {
     try {
@@ -2552,7 +2559,10 @@
   // bei flattenWeek). Pruefer: tools/pruefstand-plan-slots.py
   function planSlots(plans) {
     const out = new Map();
-    Object.keys(plans || {}).forEach(wk => {
+    // Nur echte Wochenschluessel ("2026-W42"): Sie werden als Pfadsegment geschrieben und am
+    // ersten Punkt wieder zerlegt (slotTeile) - ein "__proto__" oder "a.b" aus einem
+    // manipulierten eigenen Dokument fiele sonst falsch durch (Pushcheck website-security).
+    Object.keys(plans || {}).filter(wk => /^\d{4}-W\d{2}$/.test(wk)).forEach(wk => {
       const flat = flattenWeek(plans[wk]);
       Object.keys(flat).forEach(f => out.set(wk + "." + f, canonJSON(flat[f])));
     });
@@ -2744,8 +2754,13 @@
     p.set.forEach(k => { const [wk, d, m] = slotTeile(k); writes.push({ path: ["plans", wk, d, m], value: state.plans[wk][d][m].slice() }); });
     p.clear.forEach(k => { const [wk, d, m] = slotTeile(k); writes.push({ path: ["plans", wk, d, m], value: [] }); });
     p.dead.forEach(wk => writes.push({ path: ["plans", wk], del: true }));
+    // Status wie im Kontodokument-Pfad: Eine reine Plan-Aenderung laeuft dort nicht durch, die
+    // Anzeige bliebe sonst auf "synchronisiert", waehrend die Slots offline noch warten.
+    const lauf = ++pushLauf;
+    setSyncStatus("saving");
     try {
       await window.CloudSync.savePlanSlots(syncUid, writes);
+      if (lauf === pushLauf) setSyncStatus("synced");
       // Die AKTUELLE Baseline fortschreiben, nicht die von vor dem await - onRemote() kann sie
       // inzwischen durch den eingegangenen Cloud-Stand ersetzt haben.
       const b = planBase || new Map();
@@ -2755,6 +2770,7 @@
       setPlanBase(b);
     } catch (e) {
       noteError("sync:plaene", e);   // Baseline bleibt -> naechster Zyklus versucht denselben Diff
+      if (lauf === pushLauf) setSyncStatus("offline");
     }
   }
   async function pushGroupPlan() {
@@ -7509,7 +7525,10 @@
           // um sie sich zu verdienen.
           // tabindex IMMER (Audit 17.10.2026): Ohne Schreibrecht fehlt das Sortieren, aber das
           // Oeffnen per Enter gehoert trotzdem dazu - "Nur ansehen" heisst nicht "nicht ansehen".
-          html += `<div class="filled" tabindex="0" role="button"${drag ? ` aria-keyshortcuts="Alt+ArrowUp Alt+ArrowDown"` : ""} data-action="view" data-id="${esc(r.id)}" data-slot-src="${d.key}:${m.key}:${idx}" title="${esc(r.name)}${esc(assignNote)}${drag ? " – ziehen zum Verschieben" : ""}">
+          // role="button" nur OHNE Schreibrecht: Mit Schreibrecht liegen Stift und Kreuz als
+          // eigene Knoepfe darin, und ein Knopf im Knopf verschluckt sie fuer die Sprachausgabe
+          // (Pushcheck ux-reviewer, 17.10.2026).
+          html += `<div class="filled" tabindex="0"${drag ? ` aria-keyshortcuts="Alt+ArrowUp Alt+ArrowDown"` : ` role="button"`} data-action="view" data-id="${esc(r.id)}" data-slot-src="${d.key}:${m.key}:${idx}" title="${esc(r.name)}${esc(assignNote)}${drag ? " – ziehen zum Verschieben" : ""}">
               ${drag ? `<span class="pm-grip" aria-hidden="true">${ICON_GRIP}</span>` : ""}
               <span class="r-thumb-wrap">${thumbHtml(r, "r-thumb", true)}${badge}</span>
               <div class="r-body"><div class="r-name">${esc(r.name)}</div>${meta ? `<div class="r-meta">${meta}</div>` : ""}</div>
@@ -8033,7 +8052,7 @@
           <h2><button type="button" class="rcard-open" data-action="view" data-id="${esc(r.id)}">${esc(r.name)}</button></h2>
         </div>
         <div class="rstats">
-          ${statsInner || `<span class="meta" aria-label="Noch keine Nährwerte">–</span>`}
+          ${statsInner || `<span class="meta" aria-hidden="true">–</span><span class="visually-hidden">Noch keine Nährwerte</span>`}
           ${authorHtml ? `<span class="meta">${authorHtml}</span>` : ""}
         </div>
         </div>
@@ -8547,8 +8566,9 @@
     const node = el(`<div class="modal" role="dialog" aria-modal="true" aria-label="Ziel anpassen">
       <div class="modal-head"><h2>Ziel anpassen</h2><button class="btn ghost sm" data-close aria-label="Schließen">✕</button></div>
       <div class="modal-body">
+        <h4 class="sec-h">An Ruhetagen</h4>
         <div class="onb-grid">
-          ${f("gt-kcal", "Kalorien an Ruhetagen", nutNum(g.kcal), "kcal", 20000)}
+          ${f("gt-kcal", "Kalorien", nutNum(g.kcal), "kcal", 20000)}
           ${f("gt-carbs", "Kohlenhydrate", nutNum(g.carbs), "g", 2000)}
           ${f("gt-protein", "Protein", nutNum(g.protein), "g", 2000)}
           ${f("gt-fat", "Fett", nutNum(g.fat), "g", 2000)}
@@ -8901,7 +8921,7 @@
         ${bildHinweisHtml(initial)}
         <div class="ms-head">
           <input type="text" id="f-name" class="ms-name" placeholder="Name des Meals" aria-label="Name des Meals" value="${esc(initial.name || "")}" maxlength="80">
-          <select id="f-cat" class="ms-cat">${opts}</select>
+          <select id="f-cat" class="ms-cat" aria-label="Kategorie">${opts}</select>
         </div>
         <!-- Makro-Kacheln (Nachtrag Abnahme Phase 2, 08.08.2026): dieselbe .nutfacts-Optik
              wie im Nur-Lese-Zweig (mealStatsHtml) und auf der Karte, nur mit Eingabefeldern
@@ -15466,7 +15486,7 @@
       // Blatt ueber denselben Weg oeffnet.
       const invite = isPro()
         ? `<button class="btn primary" id="grp-invite-start" style="width:100%">Person einladen</button>`
-        : `<p class="share-mini" style="margin:0 0 8px"><b>Einladen gehört zu Pro</b> – beitreten kannst du jederzeit.</p>`;
+        : `<p class="share-mini" style="margin:0 0 8px"><b>Einladen gehört zu Pro</b> – beitreten ist für alle kostenlos.</p>`;
       // Ausweg aus einer Gruppe, die nicht mehr erreichbar ist (docs/TROUBLESHOOTING.md 133).
       //
       // Wer aus einer Gruppe ENTFERNT wird, behaelt den Zeiger: CloudGroup.fetch() wirft fuer
