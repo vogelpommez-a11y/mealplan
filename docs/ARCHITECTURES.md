@@ -1257,6 +1257,17 @@ Test- und Echtbestand braucht er nicht. `wipeLocalData()` lässt ihn stehen.
 Beim Kontowechsel (`kontoWechselAufraeumen()`) bleibt der Splash bewusst stehen, die Seite
 lädt ohnehin neu.
 
+**Marken-Lader (seit 17.10.2026):** `markenLader(o)` liefert ein Promise, erfüllt nach dem
+Ausblenden. Wo er hängt, verschiebt er nur das **Zeichnen**, nie das Rechnen oder Speichern:
+
+* `autoPlanWeek(opts)` plant und ruft `save()` sofort; `render()`, `planNeuEinblenden(before)`
+  und der Toast laufen erst im `then`. „Nochmal“ ruft `autoPlanWeek({ kurz: true })`.
+* `onbGo()` hält vorwärts vor dem Schritt `result` an, zeigt die Werte aus `computeGoal()` und
+  setzt erst danach `onb.i`; `onbLaderLaeuft` sperrt zweite Tipps in der Zwischenzeit.
+* `render()` zeichnet beim ersten Cloud-Abgleich `markenLaderHtml()` statt eines leeren
+  Zustands — gleiche Bedingung (`cloudLaedtAngezeigt`), gleiches Ende.
+* Der Beitreten-Dialog schließt sofort; `leaveGroup()`/`joinGroup()` laufen als `warten`.
+
 ### Pro-Berechtigung: `entitlements/{uid}` und `isPro()` (D1)
 
 Der Pro-Status liegt in einer **eigenen Firestore-Sammlung**, die der Client nur lesen darf:

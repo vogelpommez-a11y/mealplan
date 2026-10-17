@@ -505,5 +505,59 @@ var BAUSTEINE = [
       doc.defaultView.localStorage.removeItem("wochenkueche_intro_v1");
       return "Erst-Intro – „Zustand neu herstellen“ spielt es erneut ab";
     }
+  },
+
+  {
+    id: "ladeanimationen",
+    titel: "Marken-Lader: Woche automatisch planen",
+    was: "Rechts: Karte über dem abgedunkelten Plan – ein Schritt zur Zeit, Zahl groß: "
+       + "„Wochenziel“, „Ausgewählt … Meals“, „Makros: Ausbalanciert“, darunter Linie und Punkte; "
+       + "danach ploppen die neuen Meals ein. "
+       + "„Nochmal“ im Hinweis zeigt die Kurzfassung. Links (live): der Plan steht sofort da. "
+       + "Läuft von selbst; „Zustand neu herstellen“ wiederholt es. Pro wird über eine "
+       + "nachgestellte Gruppe ohne Netz freigeschaltet.",
+    stellen: [
+      "markenLader() / markenLaderHtml() — index.html, neben hideSplash()",
+      "autoPlanWeek() — Lader mit den Werten des Laufs, planNeuEinblenden()",
+      "onbGo() — Ziel-Berechnung; render() — erster Cloud-Abgleich; Beitreten-Dialog",
+      "css/komponenten.css — Marken-Lader"
+    ],
+    zustand: { goal: null, onboarded: false, recipes: [], plans: {} },
+    profil: { name: "Paddy", email: "", uid: "vergleich", cloud: true },
+    nurInhalt: true,
+    oeffnen: function (doc) {
+      var w = doc.defaultView;
+      w.localStorage.setItem("wochenkueche_intro_v1", "1");
+      zweiergruppeNachstellen(w);
+      // Nach dem Abgleich: Plan-Reiter, dann "Woche planen" - so lange versuchen, bis es den
+      // Knopf gibt (er erscheint erst mit Ziel), wie bei gruppe-fuer-alle.
+      function versuch(n) {
+        var tab = doc.querySelector('[data-action="tab"][data-tab="plan"]');
+        if (tab && tab.getAttribute("aria-selected") !== "true") tab.click();
+        var auto = doc.querySelector('[data-action="auto-plan"]');
+        if (auto && auto.getBoundingClientRect().width > 0) { w.setTimeout(function () { auto.click(); }, 600); return; }
+        if (n < 20) w.setTimeout(function () { versuch(n + 1); }, 500);
+      }
+      w.setTimeout(function () { versuch(0); }, 800);
+      return "Gruppe nachgestellt (ohne Netz), „Woche planen“ läuft gleich von selbst";
+    }
+  },
+
+  {
+    id: "ziel-berechnen",
+    titel: "Marken-Lader: Ziel berechnen",
+    was: "Die Ersteinrichtung bis „Dein Ziel steht“ durchtippen. Rechts kommt vor dem Ergebnis "
+       + "die Karte „Grundumsatz“ → „Mit deinem Alltag“ → „Dein Ziel“ – je ein Schritt mit großer "
+       + "Zahl, echte Zwischenwerte –, danach zählen kcal und Makros hoch. Links (live): das "
+       + "Ergebnis steht sofort da.",
+    stellen: [
+      "onbGo() — Lader vor dem Schritt result, onbErgebnisZaehlen()",
+      "markenLader() — index.html"
+    ],
+    zustand: { goal: null, onboarded: false, recipes: [], plans: {} },
+    oeffnen: function (doc) {
+      doc.defaultView.localStorage.setItem("wochenkueche_intro_v1", "1");
+      return "Ersteinrichtung offen – bis zum Ergebnis durchtippen";
+    }
   }
 ];

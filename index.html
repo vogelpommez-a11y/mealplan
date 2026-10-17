@@ -4106,10 +4106,9 @@
     // sieht ihn sofort, wie bisher. startCloudSync() zeichnet nach dem Abgleich neu.
     if (authMode === "cloud" && !cloudBaselineOk && !state.goal) {
       cloudLaedtAngezeigt = true;
-      view.innerHTML = `<div role="status">${leerZustand({
-        icon: `<path d="M7 18a4.5 4.5 0 0 1-.6-8.96A6 6 0 0 1 18 9a4.5 4.5 0 0 1-.5 9Z"/>`,
-        titel: "Deine Meals werden geladen …"
-      })}</div>`;
+      // Seit 17.10.2026 in Markenoptik statt als leerer Zustand (markenLaderHtml) - es ist
+      // echtes Laden, und es endet genau dann, wenn der Abgleich da ist, wie vorher.
+      view.innerHTML = markenLaderHtml("Deine Meals werden geladen …");
       resetCarousels();
       return;
     }
@@ -5344,6 +5343,8 @@
       base: cs.getPropertyValue("--dur-base").trim() || "200ms",
       slow: cs.getPropertyValue("--dur-slow").trim() || "300ms",
       ease: cs.getPropertyValue("--ease-out").trim() || "cubic-bezier(.23, 1, .32, 1)",
+      // Markenbewegung (Startbildschirm, Marken-Lader) - nur dort, siehe css/tokens.css.
+      markeLang: cs.getPropertyValue("--dur-marke-lang").trim() || "600ms",
     };
   })();
 
@@ -10810,7 +10811,7 @@
     return dayNutOf(state.plan, dayKey).kcal;
   }
 
-  function autoPlanWeek() {
+  function autoPlanWeek(opts) {
     if (!canEdit()) return;
     // Ohne Ziel gibt es nichts zu treffen - dann wird der Knopf gar nicht erst angeboten
     // (siehe renderPlan). Der Riegel hier ist die Absicherung dahinter, deshalb stumm.
@@ -10999,7 +11000,9 @@
       state.plan[d.key][m.key].forEach(e => { state.planned[entryId(e)] = geplanteWoche; });
     }));
 
-    save(); render();
+    // Gespeichert wird sofort, gezeichnet erst nach dem Marken-Lader (unten) - der Plan steht
+    // also fest, waehrend die Karte laeuft, und ein Sync-Push wartet nicht auf die Show.
+    save();
 
     // Schritt 7 - ehrlich sein. Eine Woche, die deutlich unter dem Ziel liegt, wird benannt
     // und nicht kaschiert; lieber ein offener Rest als ein schoengerechneter Plan.
@@ -11040,15 +11043,46 @@
       state.planned = plannedBefore;
       return true;
     };
-    undoToast(msg, () => { if (zuruecknehmen()) { save(); render(); } }, {
-      // "Nochmal" wuerfelt einen neuen Vorschlag: zuruecknehmen, dann derselbe Aufruf. Ohne
-      // diesen Knopf muesste man ueber "Woche leeren" samt Rueckfrage gehen, um eine zweite
-      // Fassung zu sehen - drei Schritte fuer etwas, das eine Meinungsfrage ist.
-      // Ohne save()/render() dazwischen: autoPlanWeek macht beides selbst.
-      label: "Nochmal",
-      fn: () => { if (zuruecknehmen()) autoPlanWeek(); },
-      // Ein Wochenplan will laenger angesehen werden als ein geloeschter Slot.
-      ms: 9000
+    // Marken-Lader mit den Werten DIESES Laufs (docs/PRODUCT.md "Inszenierte Momente"): Ziel,
+    // Zahl der gesetzten Meals, und ob die Woche das Ziel trifft - verfehlt sie es, sagt der
+    // dritte Schritt das, statt "ausbalanciert" zu behaupten. "Nochmal" bekommt nur die
+    // Kurzfassung: Wer wuerfelt, will den naechsten Vorschlag sehen, keine Show.
+    const getroffen = !wZiel || (Math.abs(diff) <= wZiel.kcal * PLAN_TOLERANZ && protFehlt <= wZiel.protein * PLAN_TOLERANZ);
+    const lader = opts && opts.kurz
+      ? { schritte: [["", "Neuer Vorschlag"]], dauer: ML_KURZ_MS }
+      : { schritte: [wZiel ? ["Wochenziel", `${nfmt(wZiel.kcal)} kcal`] : null, ["Ausgewählt", `${gesetzt} Meals`],
+                     // Ohne Haken, wenn verfehlt: ein Haken neben "Fast getroffen" laese sich wie
+                     // "alles gut" - den Rest nennt gleich der Toast.
+                     getroffen ? ["Makros", "Ausbalanciert"] : ["Makros", "Fast getroffen", "ohneHaken"]] };
+    markenLader(lader).then(() => {
+      render();
+      planNeuEinblenden(before);
+      undoToast(msg, () => { if (zuruecknehmen()) { save(); render(); } }, {
+        // "Nochmal" wuerfelt einen neuen Vorschlag: zuruecknehmen, dann derselbe Aufruf. Ohne
+        // diesen Knopf muesste man ueber "Woche leeren" samt Rueckfrage gehen, um eine zweite
+        // Fassung zu sehen - drei Schritte fuer etwas, das eine Meinungsfrage ist.
+        // Ohne save()/render() dazwischen: autoPlanWeek macht beides selbst.
+        label: "Nochmal",
+        fn: () => { if (zuruecknehmen()) autoPlanWeek({ kurz: true }); },
+        // Ein Wochenplan will laenger angesehen werden als ein geloeschter Slot.
+        ms: 9000
+      });
+    });
+  }
+
+  // Nach dem Auto-Planer: nur die NEU gesetzten Karten ploppen nacheinander ein - man soll
+  // sehen, wo in der Woche etwas entstanden ist. Neu ist, was hinter dem alten Ende des Slots
+  // liegt (`before` aus autoPlanWeek); ein Beitritt zu einem vorhandenen Gruppen-Eintrag
+  // aendert keinen Index und bleibt still. Unter Reduced Motion gar nicht.
+  function planNeuEinblenden(before) {
+    if (reducedMotion()) return;
+    let i = 0;
+    view.querySelectorAll(".filled[data-slot-src]").forEach(el => {
+      const [d, m, idx] = el.getAttribute("data-slot-src").split(":");
+      if (!before[d] || !before[d][m] || +idx < before[d][m].length) return;
+      el.style.setProperty("--ml-i", i++);
+      el.classList.add("ml-neu");
+      el.addEventListener("animationend", () => el.classList.remove("ml-neu"), { once: true });
     });
   }
 
@@ -11740,10 +11774,16 @@
       node.querySelectorAll("[data-close]").forEach(b => b.addEventListener("click", closeModal));
       const join = node.querySelector("[data-join]");
       join.addEventListener("click", async () => {
-        join.disabled = true; join.textContent = "Einen Moment …";
-        if (switching) await leaveGroup();
-        await joinGroup(code);
+        join.disabled = true;
+        // Der Dialog geht zuerst; den Beitritt begleitet der Marken-Lader - echtes Warten auf
+        // Firestore, so lange wie es dauert (docs/PRODUCT.md "Inszenierte Momente").
+        // joinGroup() faengt seine Fehler selbst und meldet sie per Toast; das catch hier
+        // ist nur das Netz darunter, damit der Lader nie eine Ablehnung verschluckt.
         closeModal();
+        try {
+          await markenLader({ text: "Du trittst der Gruppe bei …",
+                              warten: (async () => { if (switching) await leaveGroup(); await joinGroup(code); })() });
+        } catch (e) { noteError("group:joinLader", e); }
       });
       openModal(node);
     }).catch(() => toast("Die Einladung konnte nicht geladen werden."));
@@ -12840,11 +12880,32 @@
     return false;
   }
 
+  let onbLaderLaeuft = false;
   function onbGo(delta) {
+    if (onbLaderLaeuft) return;   // waehrend der Ziel-Berechnung zaehlt kein zweiter Tipp
     const steps = onbSteps();
     const next = onb.i + delta;
     if (next < 0) return;
     if (next >= steps.length) { finishOnboarding(onb.first ? "Viel Erfolg!" : null, onb.first); return; }
+    // Vorwaerts auf "Dein Ziel steht": erst der Marken-Lader mit den echten Zwischenwerten
+    // DIESER Rechnung (docs/PRODUCT.md "Inszenierte Momente"), dann das Ergebnis, dessen
+    // Zahlen hochzaehlen. Nur vorwaerts; wer zurueck- und wieder vorblaettert, sieht die
+    // Rechnung erneut - die Eingaben koennen sich inzwischen geaendert haben. Mit Luecken
+    // (missingCalc) gibt es nichts zu rechnen: direkt weiter, die Ergebnisseite sagt es.
+    if (delta > 0 && steps[next] === "result" && !missingCalc(onbGoalInput()).length) {
+      const g = computeGoal(onbGoalInput());
+      onbLaderLaeuft = true;
+      markenLader({ schritte: [["Grundumsatz", `${nfmt(g.bmr)} kcal`], ["Mit deinem Alltag", `${nfmt(g.tdee)} kcal`],
+                               ["Dein Ziel", `${nfmt(g.kcal)} kcal`]] }).then(() => {
+        onbLaderLaeuft = false;
+        if (!onb) return;           // in der Zwischenzeit abgebrochen
+        onb.i = next;
+        pendingOnbDir = 1;
+        renderOnboardStep();
+        onbErgebnisZaehlen();
+      });
+      return;
+    }
     onb.i = next;
     // Richtung merken, damit der Wechsel sie zeigen kann - vorwaerts von rechts,
     // zurueck von links. Dasselbe Muster wie pendingWeekDir beim Wochenwechsel.
@@ -13055,6 +13116,33 @@
         <li><b>Teilen</b> – deine Woche als Link.</li>
       </ul>
     </div>`;
+  }
+
+  // Nach der Ziel-Berechnung: kcal und Makros der Ergebniskarte zaehlen von 0 auf ihren Wert.
+  // Geschrieben wird nur der Textknoten der Zahl - die Einheit daneben ist ein eigenes <span>
+  // (.onb-res-k) bzw. steckt im selben <b> (" g") und wird mitformatiert. Gleiche Kurve wie
+  // animateOnbProgress, Dauer --dur-marke-lang. Unter Reduced Motion stehen die Zahlen sofort.
+  function onbErgebnisZaehlen() {
+    if (reducedMotion()) return;
+    const ziele = [];
+    const k = view.querySelector(".onb-res-k");
+    if (k && k.firstChild && k.firstChild.nodeType === 3) {
+      ziele.push({ node: k.firstChild, wert: parseInt(k.firstChild.textContent.replace(/\D/g, ""), 10), fmt: nfmt });
+    }
+    view.querySelectorAll(".onb-res-m b").forEach(b => {
+      if (b.firstChild && b.firstChild.nodeType === 3) {
+        ziele.push({ node: b.firstChild, wert: parseInt(b.firstChild.textContent, 10), fmt: v => Math.round(v) + " g" });
+      }
+    });
+    const ok = ziele.filter(z => isFinite(z.wert));
+    if (!ok.length) return;
+    const dur = parseFloat(MOTION.markeLang), t0 = performance.now();
+    (function frame(now) {
+      const p = Math.max(0, Math.min(1, (now - t0) / dur));   // nach unten klemmen, siehe animateOnbProgress
+      const e = 1 - Math.pow(1 - p, 3);
+      ok.forEach(z => { if (z.node.isConnected) z.node.textContent = z.fmt(z.wert * e); });
+      if (p < 1) requestAnimationFrame(frame);
+    })(t0);
   }
 
   // Weich hochzaehlen (und beim
@@ -13677,6 +13765,118 @@
       // Laengster Abgang: Grund 160 ms Verzoegerung + --dur-marke.
       setTimeout(() => { if (el.parentNode) el.parentNode.removeChild(el); }, 160 + 400 + 150);
     }, Math.max(0, splashFrei - performance.now()));
+  }
+
+  // ---------- Marken-Lader (docs/DESIGN.md "Der Marken-Lader") ----------
+  // Dieselbe Sprache wie der Startbildschirm - Logo, rote Linie -, als Karte ueber der
+  // abgedunkelten Ansicht. Zwei Arten, und die Grenze zwischen ihnen ist eine Produktregel
+  // (docs/PRODUCT.md "Inszenierte Momente"):
+  //   inszeniert  { schritte: [[titel, wert], ...], dauer? }  NUR wo die App wirklich etwas
+  //               ausgerechnet hat (Auto-Planer, Ziel). Die Werte stammen aus genau diesem Lauf.
+  //               IMMER NUR EIN SCHRITT ZUR ZEIT, der Wert gross: Die erste Fassung zeigte
+  //               drei Zeilen untereinander in 1,4 s - Paddy konnte sie nicht lesen (17.10.2026).
+  //               Je Schritt ML_SCHRITT_MS; `dauer` nur fuer die Kurzfassung ("Nochmal").
+  //   echt        { text, warten }     so lange wie das Promise, nichts kuenstlich verlaengert.
+  //               Erscheint erst nach ML_ECHT_ZEIGEN_MS (kein Aufflackern bei schnellen
+  //               Antworten) und bleibt dann ML_ECHT_MIN_MS stehen.
+  // Liefert ein Promise, erfuellt nach dem Ausblenden - bei "echt" mit dem Ergebnis von
+  // `warten`, abgelehnt mit dessen Fehler. Tippen oder Escape/Enter/Leertaste ueberspringt
+  // die inszenierte Art; die echte laesst sich nicht abkuerzen (dort wartet sie auf etwas).
+  // Reduzierte Bewegung kuerzt NICHT: Weniger Bewegung heisst nicht weniger Lesezeit.
+  const ML_SCHRITT_MS = 700, ML_KURZ_MS = 600, ML_HALTEN_MS = 300;
+  const ML_ECHT_ZEIGEN_MS = 150, ML_ECHT_MIN_MS = 400;
+  const ML_LOGO = '<div class="mark ml-mark" aria-hidden="true"></div>';
+  // Fuer echtes Laden INNERHALB von #view (render() beim ersten Cloud-Abgleich): DIESELBE Karte
+  // wie das echte Warten im markenLader, nur ohne Abdunkeln - dahinter ist noch nichts zu sehen.
+  // Bis zum 17.10.2026 (vor dem Push) ohne Kartenrahmen; Paddy wollte ein Schema fuer alle.
+  function markenLaderHtml(text) {
+    return `<div class="ml-inline" role="status"><div class="ml-karte">${ML_LOGO}`
+      + `<div class="ml-buehne"><div class="ml-schritt da"><span class="ml-wert">${esc(text)}</span></div></div>`
+      + `<i class="ml-linie laeuft" aria-hidden="true"></i></div></div>`;
+  }
+  function markenLader(o) {
+    const echt = !!o.warten;
+    const schritte = echt ? [["", o.text]] : o.schritte.filter(Boolean);
+    const dauer = echt ? 0 : (o.dauer || schritte.length * ML_SCHRITT_MS);
+    const ov = document.createElement("div");
+    ov.className = "ml-overlay" + (echt ? " echt" : "");
+    // Alle Schritte liegen uebereinander auf derselben Buehne; sichtbar ist nur der aktuelle.
+    // Die Punkte darunter sagen "Schritt 2 von 3" - der aktuelle ist breiter, nicht nur farbig.
+    ov.innerHTML = `<div class="ml-karte" role="status" aria-live="polite" tabindex="-1">${ML_LOGO}
+      <div class="ml-buehne">${schritte.map(s => `<div class="ml-schritt">`
+        + (s[0] ? `<span class="ml-titel">${esc(s[0])}</span>` : "")
+        + `<span class="ml-wert">${esc(s[1])}</span></div>`).join("")}</div>
+      <i class="ml-linie${echt ? " laeuft" : ""}" aria-hidden="true"></i>
+      ${schritte.length > 1 ? `<div class="ml-punkte" aria-hidden="true">${schritte.map(() => "<i></i>").join("")}</div>` : ""}
+    </div>`;
+    ov.style.setProperty("--ml-dauer", dauer + "ms");
+    const items = Array.prototype.slice.call(ov.querySelectorAll(".ml-schritt"));
+    const punkte = Array.prototype.slice.call(ov.querySelectorAll(".ml-punkte i"));
+    const vorher = document.activeElement;
+    const timer = [];
+    let zu = false, gezeigt = false, gezeigtAb = 0, fertigMelden;
+
+    function zeigen() {
+      if (gezeigt || zu) return;
+      gezeigt = true; gezeigtAb = performance.now();
+      document.body.appendChild(ov);
+      appEl.inert = true;            // Tab und Screenreader bleiben auf der Karte
+      ov.querySelector(".ml-karte").focus({ preventScroll: true });
+      // Ein Bild warten, damit die Startwerte (Linie bei 0, Schritte unsichtbar) gezeichnet
+      // sind, bevor .los die Uebergaenge anstoesst.
+      requestAnimationFrame(() => requestAnimationFrame(() => ov.classList.add("los")));
+    }
+    function schliessen() {
+      if (zu) return;
+      zu = true;
+      timer.forEach(clearTimeout);
+      document.removeEventListener("keydown", taste, true);
+      if (!gezeigt) { fertigMelden(); return; }
+      ov.classList.add("los", "voll", "weg");
+      setTimeout(() => {
+        if (ov.parentNode) ov.parentNode.removeChild(ov);
+        appEl.inert = false;
+        if (vorher && vorher.isConnected && typeof vorher.focus === "function") vorher.focus({ preventScroll: true });
+        fertigMelden();
+      }, parseFloat(MOTION.base) + 40);
+    }
+    function taste(e) {
+      if (e.key === "Escape" || e.key === "Enter" || e.key === " ") { e.preventDefault(); schliessen(); }
+    }
+
+    return new Promise((ok, fehler) => {
+      if (echt) {
+        let ergebnis, fehlschlag = null;
+        fertigMelden = () => fehlschlag ? fehler(fehlschlag.e) : ok(ergebnis);
+        timer.push(setTimeout(zeigen, ML_ECHT_ZEIGEN_MS));
+        Promise.resolve(o.warten).then(r => { ergebnis = r; }, e => { fehlschlag = { e: e }; }).then(() => {
+          const rest = gezeigt ? Math.max(0, ML_ECHT_MIN_MS - (performance.now() - gezeigtAb)) : 0;
+          setTimeout(schliessen, rest);
+        });
+        return;
+      }
+      fertigMelden = ok;
+      zeigen();
+      ov.addEventListener("pointerdown", schliessen);
+      document.addEventListener("keydown", taste, true);
+      // Schritt i steht von i/n bis (i+1)/n der Dauer allein auf der Buehne; der vorige geht
+      // nach oben weg, der neue kommt von unten. Die Linie laeuft gleichmaessig darunter durch.
+      // Am Ende bekommt der letzte Schritt seinen Haken und bleibt ML_HALTEN_MS stehen -
+      // sonst waere das Ergebnis weg, kaum dass es da ist.
+      const takt = dauer / items.length;
+      items.forEach((el, i) => {
+        timer.push(setTimeout(() => {
+          if (i > 0) { items[i - 1].classList.remove("da"); items[i - 1].classList.add("vorbei"); }
+          el.classList.add("da");
+          punkte.forEach((p, k) => p.classList.toggle("an", k === i));
+        }, i * takt));
+      });
+      // Der Haken heisst "gelungen". Ein Schritt mit drittem Feld "ohneHaken" (Planer hat das
+      // Ziel verfehlt) bekommt ihn nicht - dort waere er eine geschoente Aussage.
+      const letzter = schritte[schritte.length - 1];
+      if (letzter[2] !== "ohneHaken") timer.push(setTimeout(() => items[items.length - 1].classList.add("fertig"), dauer));
+      timer.push(setTimeout(schliessen, dauer + ML_HALTEN_MS));
+    });
   }
 
   function cloudErrMsg(e) {

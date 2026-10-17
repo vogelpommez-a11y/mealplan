@@ -750,6 +750,16 @@ und `abnahme-zutaten-sortieren.py` (sie luden neu und warteten nur 1,0–1,2 s);
 `abnahme-scan-kamera.py` wartet 3 s und braucht es nicht. Weil `laden()` den Speicher leert,
 läuft dort bei jedem Laden das **Erst-Intro** (rund 2,9 s bis zur App) — das Warten deckt es ab.
 
+**Marken-Lader in Prüfständen:** `pruefstand-autoplaner.py` und `pruefstand-katalog-plan.py`
+stubben `markenLader` als **synchrones** `then` (merkt sich die Schritte in `letzterLader`) —
+so messen alle Toast-Prüfungen weiter direkt nach `autoPlanWeek()`. Der Autoplaner prüft
+zusätzlich, dass die Schritte echte Werte nennen (Wochenziel, Zahl der gesetzten Meals,
+„Fast getroffen“ bei verfehltem Ziel) und „Nochmal“ die Kurzfassung bekommt. Gegenprobe
+17.10.2026 (auch nach dem Umbau auf „ein Schritt zur Zeit“, Schritte als `[titel, wert]`): ein
+Lader mit fester „14 Meals“ und immer „Ausbalanciert“ fiel mit 3 Fehlern durch.
+Vorführen: Vergleichsseite `ladeanimationen` (Auto-Planer, nachgestellte Gruppe) und
+`ziel-berechnen`.
+
 **Den Startbildschirm Bild für Bild ansehen:** Die Vergleichsseite kennt `startbildschirm`
 (Kurzfassung) und `startbildschirm-intro`; „Zustand neu herstellen“ spielt ihn erneut ab. Ein
 Standbild zeigt keine Bewegung — vor einer Änderung an der Choreografie eine Bildfolge

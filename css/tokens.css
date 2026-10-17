@@ -157,9 +157,9 @@
     --dur-fast: 160ms;
     --dur-base: 200ms;
     --dur-slow: 300ms;
-    /* Markenbewegung - NUR fuer den Startbildschirm. Die UI-Grenze von 300 ms gilt fuer
-       Bewegungen, die man dutzendfach am Tag sieht; der Startbildschirm ist ein einzelner
-       Markenmoment, und der Flug durchs Logo braucht Weg. Nicht fuer anderes verwenden.
+    /* Markenbewegung - NUR fuer Startbildschirm und Marken-Lader. Die UI-Grenze von 300 ms
+       gilt fuer Bewegungen, die man dutzendfach am Tag sieht; beides sind seltene
+       Markenmomente, und der Flug durchs Logo braucht Weg. Nicht fuer anderes verwenden.
        --ease-marke beschleunigt (ease-in): Man fliegt in das Logo HINEIN. */
     --dur-marke: 400ms;
     --dur-marke-lang: 600ms;

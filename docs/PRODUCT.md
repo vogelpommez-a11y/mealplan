@@ -6,7 +6,7 @@ Dieses Dokument beschreibt Produktidentität, Produktphilosophie, UX-Prinzipien,
 
 <!-- REGISTER-ANFANG (erzeugt aus den Ueberschriften: python tools/register.py - nicht von Hand pflegen) -->
 
-**Register — 33 Abschnitte.** Produktregeln vorne, bewusste Einzelentscheidungen hinten.
+**Register — 34 Abschnitte.** Produktregeln vorne, bewusste Einzelentscheidungen hinten.
 Eine Ueberschrift mit „Bewusste Produktentscheidung" heisst: Das ist entschieden, nicht
 vergessen — wer es aendern will, aendert eine Entscheidung.
 
@@ -17,6 +17,7 @@ vergessen — wer es aendern will, aendert eine Entscheidung.
 | · | Produktversprechen |
 | · | Offline-Nutzbarkeit |
 | · | Der Startbildschirm: Markenmoment, aber keine Wartezeit (17.10.2026) |
+| · | Inszenierte Momente: nur wo wirklich gerechnet wird (17.10.2026) |
 | · | Produktidentität |
 | · | Produktfilter für Features |
 | · | UX-Philosophie |
@@ -100,6 +101,27 @@ lassen; bei einem Planer ist Tempo selbst ein Markenversprechen. Deshalb zwei Fa
   Intro taugt als Anfang für Reels und das App-Store-Vorschauvideo.
 
 Kein Ton: Viele öffnen die App unterwegs, ein unangekündigter Klang wirkt dort störend.
+
+## Inszenierte Momente: nur wo wirklich gerechnet wird (17.10.2026)
+
+Ein Ergebnis wirkt wertvoller, wenn man sieht, dass dafür gearbeitet wurde („Labor
+Illusion“, Buell & Norton, Harvard 2011). Das gilt aber nur an wenigen besonderen Momenten —
+überall sonst macht dieselbe Pause die App langsam. Nach Durchsicht **aller** Funktionen:
+
+* **Inszeniert** (Marken-Lader, `docs/DESIGN.md`): **Woche automatisch planen** und
+  **Ziel berechnen**. Die Schritte nennen ausschließlich echte Werte aus genau diesem Lauf;
+  verfehlt der Plan das Ziel, sagt die Karte „Fast getroffen“ — dieselbe Haltung wie
+  „Ehrlich sein statt schönrechnen“. **Lesbar vor schnell:** ein Schritt zur Zeit, je etwa
+  0,7 s, gut 2 s insgesamt — eine erste Fassung mit 1,4 s für drei Zeilen war nicht zu lesen.
+  Überspringbar, bei „Nochmal“ nur die Kurzfassung.
+* **Echtes Warten in Markenoptik**, nie künstlich verlängert: erster Cloud-Abgleich, einer
+  Gruppe beitreten. Gruppe gründen bleibt beim Knopftext „Wird erstellt …“ — das Warten
+  dauert dort nur einen Sekundenbruchteil, eine Karte würde aufflackern.
+* **Bewusst nicht:** Einkaufs- und Vorkochliste, Einplanen, Sortieren, Schnelleintrag,
+  Woche leeren (oft und unterwegs), PDF und Teilen (man will die Datei; das Teilen-Fenster muss
+  sofort aufgehen), Barcode-Scan (hat eigenes echtes Warten), Rezeptbuch und Suche (Stöbern),
+  Gewicht, Kalender, Rückblick (kein Rechenmoment — „wird ausgewertet“ wäre beim Gewicht
+  sogar wertend), Anmeldung, Konto löschen.
 
 ## Produktidentität
 

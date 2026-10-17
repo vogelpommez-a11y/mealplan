@@ -1364,6 +1364,96 @@
     #splash.splash-out { opacity: 0; transition: opacity var(--dur-slow) var(--ease-out); }
     #splash.splash-out::before, #splash.splash-out .splash-logo { animation: none; }
   }
+  /* ---------- Marken-Lader (markenLader() / markenLaderHtml() in index.html) ----------
+     Die Sprache des Startbildschirms - Logo, rote Linie - fuer die wenigen Momente, in denen
+     die App etwas ausrechnet (Auto-Planer, Ziel) oder wirklich wartet (Cloud, Gruppe). Anders
+     als der Startbildschirm folgt er dem Theme: Er liegt IN der App, ueber der abgedunkelten
+     Ansicht, mit derselben Abdunkelung wie .overlay. Ueber Modals (60), unter dem Toast (90). */
+  .ml-overlay {
+    position: fixed; inset: 0; z-index: 80;
+    display: grid; place-items: center;
+    padding: calc(16px + env(safe-area-inset-top, 0px)) calc(16px + env(safe-area-inset-right, 0px))
+             calc(16px + env(safe-area-inset-bottom, 0px)) calc(16px + env(safe-area-inset-left, 0px));
+    background: color-mix(in srgb, var(--photo-scrim) 55%, transparent);
+    opacity: 0; transition: opacity var(--dur-base) var(--ease-out);
+  }
+  .ml-overlay.los { opacity: 1; }
+  .ml-overlay.weg { opacity: 0; }
+  .ml-karte {
+    width: min(320px, 100%); display: flex; flex-direction: column; align-items: center; gap: 14px;
+    background: var(--surface); color: var(--text); font-family: var(--font-body);
+    border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow-pop);
+    padding: 24px 22px 20px; outline: none;
+    transform: scale(.96); transition: transform var(--dur-base) var(--ease-out);
+  }
+  .ml-overlay.los .ml-karte { transform: none; }
+  .ml-overlay.weg .ml-karte { transform: scale(.98); }
+  .ml-mark { width: 48px; height: 48px; border-radius: 50%; flex: none; background: center / cover no-repeat var(--logo); }
+  /* Die Buehne: alle Schritte liegen in derselben Rasterzelle uebereinander, sichtbar ist nur
+     .da. Ein Blickpunkt statt einer Liste - die Liste war in der kurzen Zeit nicht lesbar
+     (17.10.2026). Der Wert ist die Hauptsache, gross in der Display-Schrift wie die kcal-Zahl
+     der Ergebniskarte; der Titel steht klein darueber. */
+  .ml-buehne { display: grid; width: 100%; min-height: 62px; place-items: center; text-align: center; }
+  .ml-schritt {
+    grid-area: 1 / 1; display: flex; flex-direction: column; align-items: center; gap: 4px;
+    opacity: 0; transform: translateY(10px);
+    transition: opacity var(--dur-slow) var(--ease-out), transform var(--dur-slow) var(--ease-out);
+  }
+  .ml-schritt.da { opacity: 1; transform: none; }
+  .ml-schritt.vorbei { opacity: 0; transform: translateY(-10px); }
+  .ml-titel { font-size: 13px; color: var(--text-muted); letter-spacing: .3px; }
+  .ml-wert {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-family: var(--font-display); font-weight: 700; font-size: 28px; line-height: 1.1;
+    color: var(--text); font-variant-numeric: tabular-nums;
+  }
+  /* Beim echten Laden ist der Wert ein ganzer Satz - dort Fliesstext statt Display-Zahl. */
+  .ml-overlay.echt .ml-wert, .ml-inline .ml-wert { font-family: var(--font-body); font-weight: 500; font-size: 16px; }
+  /* Der Haken traegt "erledigt" - nicht die Farbe allein (docs/PRODUCT.md: ein Zustand wird
+     nie nur ueber Farbe angezeigt). --accent-solid haelt Weiss mit ueber 4,5:1. */
+  .ml-schritt.fertig .ml-wert::before {
+    content: ""; flex: none; width: 22px; height: 22px; border-radius: 50%;
+    background: var(--accent-solid) center / 14px no-repeat url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 6 9 17l-5-5'/%3E%3C/svg%3E");
+  }
+  /* "Schritt 2 von 3": der aktuelle Punkt ist breiter (Form, nicht nur Farbe). */
+  .ml-punkte { display: flex; gap: 6px; margin-top: -4px; }
+  .ml-punkte i {
+    display: block; width: 6px; height: 6px; border-radius: 3px; background: var(--border-strong);
+    transition: width var(--dur-base) var(--ease-out), background-color var(--dur-base) var(--ease-out);
+  }
+  .ml-punkte i.an { width: 16px; background: var(--accent-solid); }
+  /* Die Linie: inszeniert laeuft sie ueber --ml-dauer (aus markenLader()) auf volle Breite,
+     beim echten Laden pendelt ein Abschnitt, bis das Warten vorbei ist. Nur transform. */
+  .ml-linie {
+    display: block; width: 100%; height: 3px; border-radius: 2px;
+    background: var(--accent); transform-origin: left center; transform: scaleX(0);
+    transition: transform var(--ml-dauer, 0ms) var(--ease-in-out);
+  }
+  .ml-overlay.los .ml-linie, .ml-overlay.voll .ml-linie { transform: none; }
+  /* Uebersprungen: Die Linie holt den Rest schnell auf, statt die volle Dauer weiterzulaufen. */
+  .ml-overlay.voll .ml-linie { transition-duration: var(--dur-base); }
+  .ml-linie.laeuft {
+    position: relative; overflow: hidden; transform: none;
+    background: color-mix(in srgb, var(--accent) 22%, transparent);
+  }
+  .ml-linie.laeuft::after {
+    content: ""; position: absolute; inset: 0; width: 40%; border-radius: 2px; background: var(--accent);
+    animation: ml-lauf calc(var(--dur-marke-lang) * 2) var(--ease-in-out) infinite;
+  }
+  @keyframes ml-lauf { from { transform: translateX(-100%); } to { transform: translateX(250%); } }
+  /* Echtes Laden im Inhalt (#view, erster Cloud-Abgleich): dieselbe Karte wie ueberall, im
+     Inhalt statt ueber der Ansicht - kein Abdunkeln (dahinter ist nichts), kein Einblenden
+     (.los gibt es hier nicht - die Karte steht sofort in ihrer Endform). */
+  .ml-inline { display: grid; place-items: center; width: 100%; padding: 14vh 0; }
+  .ml-inline .ml-karte { transform: none; }
+  /* Nach dem Auto-Planer: die neu gesetzten Karten ploppen nacheinander ein. */
+  .filled.ml-neu { animation: ml-pop var(--dur-slow) var(--ease-out) both; animation-delay: calc(var(--ml-i, 0) * 35ms); }
+  @keyframes ml-pop { from { opacity: 0; transform: scale(.94); } to { opacity: 1; transform: none; } }
+  @media (prefers-reduced-motion: reduce) {
+    /* Der globale Block kuerzt die Pendel-Animation auf einen Durchlauf von 0,001 ms - der
+       Abschnitt stuende dann rechts ausserhalb. Ruhig: die ganze Linie, halb deckend. */
+    .ml-linie.laeuft::after { animation: none; width: 100%; opacity: .5; }
+  }
   .auth-card { width: 100%; max-width: 430px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); padding: 34px 30px 26px; text-align: center; }
   .auth-card .mark { width: 116px; height: 116px; border-radius: 50%; margin: 0 auto 20px; overflow: hidden; background: center / cover no-repeat var(--logo); }
   .auth-card h2 { font-family: var(--font-display); font-size: 25px; font-weight: 600; margin: 0 0 6px; text-wrap: balance; }

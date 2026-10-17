@@ -125,6 +125,7 @@ teile = [
     # weekKeyBack samt seinem Puffer - die let-Zeile davor gehoert dazu, sonst wirft die
     # Funktion beim ersten Aufruf (im ersten Anlauf genau so passiert).
     block("  let weekBackCache = ", "  }"),
+    zeile("  const ML_SCHRITT_MS = "),     # Dauern des Marken-Laders (17.10.2026)
     schnitt("  function autoPlanWeek("),
 ]
 code = "\n\n".join(teile)
@@ -154,6 +155,12 @@ function save() { gespeichert++; }
 function render() { gezeichnet++; }
 function toast(t) { letzterToast = t; window.__undo = null; }
 function undoToast(t, cb, opts) { letzterToast = t; window.__undo = cb; window.__opts = opts || null; }
+// Marken-Lader (17.10.2026): ein Randstueck wie toast - er zeichnet nur. Der Stub merkt sich,
+// was gezeigt wuerde, und laeuft SOFORT weiter (synchrones then), damit jede Pruefung auf
+// den Toast weiterhin direkt nach autoPlanWeek() misst. planNeuEinblenden ist reines DOM.
+var letzterLader = null;
+function markenLader(o) { letzterLader = o; return { then: function (f) { f(); } }; }
+function planNeuEinblenden() {}
 // Randstuecke von sanitizeRecipe() - dieselben Stubs wie im Rezeptbuch-Pruefstand.
 var lfdUid = 0;
 function uid() { return "u" + (++lfdUid); }
@@ -191,7 +198,7 @@ function frischerPlan(recipes, goal) {
   state.plan = state.plans[activeWeekKey()];
   syncUid = null; syncGid = null; myRole = null; groupMembers = [];
   proInfo = { pro: true, source: "manual", until: null };
-  gespeichert = 0; gezeichnet = 0; letzterToast = "";
+  gespeichert = 0; gezeichnet = 0; letzterToast = ""; letzterLader = null;
 }
 // Der Planer zieht seine Wochengerichte seit dem 16.08.2026 ABSICHTLICH zufaellig
 // (planWochengerichte: mischen, gewichtet ziehen). Jede Pruefung, die zwei Tage der Woche
@@ -659,6 +666,9 @@ function bestand() {
   ], { kcal: 3000, carbs: 300, protein: 200, fat: 90 });
   autoPlanWeek();
   pruef("ein grosser Rest wird benannt", letzterToast.indexOf("kcal offen") !== -1, true);
+  // Der Marken-Lader darf nicht behaupten, was der Toast gleich widerlegt (17.10.2026).
+  pruef("der Lader sagt dann ehrlich 'Fast getroffen'", letzterLader && letzterLader.schritte[2][1], "Fast getroffen");
+  pruef("und ohne Haken - der hiesse 'gelungen'", letzterLader && letzterLader.schritte[2][2], "ohneHaken");
   pruef("und der Plan entsteht trotzdem", alleEintraege().length > 0, true);
 
   // Der Fall, den der KVP-Check am 16.08.2026 aufgebracht hat: Die MENGEN rechnet der Planer
@@ -1029,10 +1039,18 @@ function bestand() {
   // ---- "Nochmal" wird angeboten ----
   frischerPlan(bestand()); katalogAn();
   autoPlanWeek();
+  // Marken-Lader (17.10.2026): Seine Schritte nennen die Werte DIESES Laufs, nicht
+  // ausgedachte. Die Zahl der Meals ist die tatsaechlich gesetzte, das Wochenziel das echte.
+  var zielL = goalTargetsForDays(DAYS.map(function (d) { return d.key; }));
+  pruef("Lader: Wochenziel ist das echte", letzterLader.schritte[0], ["Wochenziel", nfmt(zielL.kcal) + " kcal"]);
+  pruef("Lader: Zahl der Meals ist die gesetzte", letzterLader.schritte[1], ["Ausgewählt", alleEintraege().length + " Meals"]);
+  pruef("Lader: volle Fassung beim ersten Lauf (drei Schritte, Dauer je Schritt)",
+    letzterLader.dauer == null && letzterLader.schritte.length === 3, true);
   pruef("der Toast bietet einen zweiten Knopf", !!(window.__opts && window.__opts.fn), true);
   pruef("und er heisst 'Nochmal'", window.__opts.label, "Nochmal");
   pruef("der Toast steht laenger als der normale", window.__opts.ms > 5000, true);
   window.__opts.fn();
+  pruef("Nochmal zeigt nur die Kurzfassung des Laders", letzterLader.dauer, ML_KURZ_MS);
   pruef("Nochmal erzeugt wieder einen vollstaendigen Plan", alleEintraege().length > 0, true);
   pruef("auch danach nie Mittag = Abend", mittagAbendGleich(), []);
   // Bis zum 17.08.2026 stand hier eine Pruefung auf VERWAISTE Kopien: "Nochmal" durfte den

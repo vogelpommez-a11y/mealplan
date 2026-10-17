@@ -188,8 +188,8 @@ Die Kurzfassung:
 * Mehrstufige Abläufe verwenden die durchgängige Progress-Bar (`.wg-progress-bar`), die
   **nicht anklickbar** ist. Zurück nur über einen eigenen `Zurück`-Button.
 * Ansichtswechsel folgen dem Schiebe-Schema; `MOTION`-Tokens sind die einzige Quelle für
-  Dauer und Kurve (Ausnahme nur `--dur-marke*`/`--ease-marke` für `#splash`);
-  `reducedMotion()` immer berücksichtigen.
+  Dauer und Kurve (Ausnahme nur `--dur-marke*`/`--ease-marke` für Startbildschirm und
+  Marken-Lader); `reducedMotion()` immer berücksichtigen.
 * **In einem Snap-Streifen niemals einen zweiten Scroll-Container anlegen.**
 
 **→ Die vollständigen Regeln samt Begründungen: `docs/DESIGN.md`. Bei jeder Design-Änderung

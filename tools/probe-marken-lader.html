@@ -1,0 +1,46 @@
+<!doctype html>
+<!-- Sichtprobe Marken-Lader: alle Formen nebeneinander, Hell und Dunkel, mit dem echten CSS.
+     Das Markup entspricht markenLader()/markenLaderHtml() in index.html - bei einer Aenderung
+     dort hier nachziehen. Bewegung zeigt diese Probe nicht; dafuer die Vergleichsseite
+     (ladeanimationen, ziel-berechnen). Ueber http://localhost:8000/tools/probe-marken-lader.html -->
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Probe Marken-Lader</title>
+<link rel="stylesheet" href="../css/tokens.css">
+<link rel="stylesheet" href="../css/basis.css">
+<link rel="stylesheet" href="../css/komponenten.css">
+<link rel="stylesheet" href="../css/mobil.css">
+<style>
+  body { margin: 0; }
+  .reihe { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); }
+  .feld { position: relative; min-height: 300px; display: grid; place-items: center; background: var(--bg); color: var(--text); font-family: var(--font-body); }
+  .feld .ml-overlay { position: absolute; }
+  .feld h3 { position: absolute; top: 6px; left: 10px; margin: 0; font-size: 12px; color: var(--text-muted); z-index: 90; }
+</style>
+<div class="reihe" id="reihe"></div>
+<script>
+  var LOGO = '<div class="mark ml-mark" aria-hidden="true"></div>';
+  function karte(schritte, aktiv, fertig, echt) {
+    return '<div class="ml-overlay los' + (echt ? " echt" : "") + '"><div class="ml-karte">' + LOGO
+      + '<div class="ml-buehne">' + schritte.map(function (s, i) {
+          return '<div class="ml-schritt' + (i === aktiv ? " da" : "") + (i === aktiv && fertig ? " fertig" : "") + '">'
+            + (s[0] ? '<span class="ml-titel">' + s[0] + '</span>' : "") + '<span class="ml-wert">' + s[1] + '</span></div>';
+        }).join("") + '</div>'
+      + '<i class="ml-linie' + (echt ? " laeuft" : "") + '" style="' + (echt ? "" : "transform:scaleX(" + ((aktiv + 1) / schritte.length) + ")") + '"></i>'
+      + (schritte.length > 1 ? '<div class="ml-punkte">' + schritte.map(function (_, i) { return '<i' + (i === aktiv ? ' class="an"' : "") + '></i>'; }).join("") + '</div>' : "")
+      + '</div></div>';
+  }
+  var plan = [["Wochenziel", "13.650 kcal"], ["Ausgewählt", "28 Meals"], ["Makros", "Ausbalanciert"]];
+  var faelle = [
+    ["Planer, Schritt 1", karte(plan, 0)],
+    ["Planer, Ende", karte(plan, 2, true)],
+    ["Planer verfehlt (ohne Haken)", karte([plan[0], plan[1], ["Makros", "Fast getroffen"]], 2, false)],
+    ["Nochmal", karte([["", "Neuer Vorschlag"]], 0)],
+    ["Gruppe beitreten (echt)", karte([["", "Du trittst der Gruppe bei …"]], 0, false, true)],
+    ["Cloud-Abgleich (im Inhalt)", '<div class="ml-inline" role="status"><div class="ml-karte">' + LOGO
+      + '<div class="ml-buehne"><div class="ml-schritt da"><span class="ml-wert">Deine Meals werden geladen …</span></div></div>'
+      + '<i class="ml-linie laeuft"></i></div></div>']
+  ];
+  var r = document.getElementById("reihe");
+  faelle.forEach(function (f) { r.insertAdjacentHTML("beforeend", '<div class="feld"><h3>' + f[0] + '</h3>' + f[1] + '</div>'); });
+</script>

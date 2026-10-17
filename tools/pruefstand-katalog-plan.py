@@ -120,6 +120,7 @@ teile = [
     zeile("  const PLAN_GEDAECHTNIS_WOCHEN = "),
     schnitt("  function sanitizePlanned("),
     block("  let weekBackCache = ", "  }"),
+    zeile("  const ML_SCHRITT_MS = "),     # Dauern des Marken-Laders (17.10.2026)
     schnitt("  function autoPlanWeek("),
     # ---- Teil 1.5 / Teil 2 / Teil 3 des Katalog-Umbaus - der eigentliche Pruefgegenstand ----
     schnitt("  function dropRecipeIds("),
@@ -167,6 +168,12 @@ function save() { gespeichert++; }
 function render() { gezeichnet++; }
 function toast(t) { letzterToast = t; window.__undo = null; }
 function undoToast(t, cb, opts) { letzterToast = t; window.__undo = cb; window.__opts = opts || null; }
+// Marken-Lader (17.10.2026): ein Randstueck wie toast - er zeichnet nur. Der Stub merkt sich,
+// was gezeigt wuerde, und laeuft SOFORT weiter (synchrones then), damit jede Pruefung auf
+// den Toast weiterhin direkt nach autoPlanWeek() misst. planNeuEinblenden ist reines DOM.
+var letzterLader = null;
+function markenLader(o) { letzterLader = o; return { then: function (f) { f(); } }; }
+function planNeuEinblenden() {}
 var lfdUid = 0;
 function uid() { return "u" + (++lfdUid); }
 function safeImage(x) { return x || null; }
