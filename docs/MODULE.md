@@ -135,28 +135,28 @@ Erhoben aus den Abschnittsmarken im Code, nicht von Hand gepflegt.
 | index.html | Auto-Wochenplaner (D2) | 10585-10691 | 107 |
 | index.html | Wiederholung: was zuletzt dran war, rutscht nach hinten | 10692-10710 | 19 |
 | index.html | Passt die Groesse zum Slot? | 10711-10717 | 7 |
-| index.html | In der Gruppe: was zu MEHR Profilen passt, kommt weiter nach vorn | 10718-11112 | 395 |
-| index.html | Toast | 11113-11122 | 10 |
-| index.html | Toast mit Rueckgaengig (Paket B1) | 11123-11158 | 36 |
-| index.html | Event delegation | 11159-11386 | 228 |
-| index.html | Meals im Plan per Ziehen sortieren | 11387-11490 | 104 |
-| index.html | Foto per Drag & Drop auf eine Meal-Karte (Desktop) | 11491-11522 | 32 |
-| index.html | Foto per Strg+V auf eine Meal-Karte einfuegen | 11523-11554 | 32 |
-| index.html | Profil (lokal) & Teilen | 11555-11601 | 47 |
-| index.html | Kontowechsel auf demselben Geraet | 11602-12376 | 775 |
-| index.html | Kalorienrechner (Baustein 1: Tages-/Wochenbedarf → state.goal) | 12377-12467 | 91 |
-| index.html | Wiegen: speichern, loeschen, ans Ziel koppeln | 12468-12543 | 76 |
-| index.html | Erste Schritte (Onboarding) | 12544-13478 | 935 |
-| index.html | Erscheinungsbild | 13479-13505 | 27 |
-| index.html | Einstellungen | 13506-13629 | 124 |
-| index.html | Einstieg (D1b) | 13630-13707 | 78 |
-| index.html | Cloud-Anmeldung (Firebase) | 13708-13724 | 17 |
-| index.html | Startbildschirm (#splash, statisch im Markup) | 13725-13778 | 54 |
-| index.html | Marken-Lader (docs/DESIGN.md "Der Marken-Lader") | 13779-14457 | 679 |
-| index.html | Gemeinsam planen (Gruppe) | 14458-15542 | 1085 |
-| index.html | Teilen ueber den nativen Dialog des Geraets (Web Share API) | 15543-15576 | 34 |
-| index.html | Einkaufsliste als PDF (Paket B3) | 15577-15816 | 240 |
-| index.html | Boot | 15817-15835 | 19 |
+| index.html | In der Gruppe: was zu MEHR Profilen passt, kommt weiter nach vorn | 10718-11145 | 428 |
+| index.html | Toast | 11146-11155 | 10 |
+| index.html | Toast mit Rueckgaengig (Paket B1) | 11156-11191 | 36 |
+| index.html | Event delegation | 11192-11419 | 228 |
+| index.html | Meals im Plan per Ziehen sortieren | 11420-11523 | 104 |
+| index.html | Foto per Drag & Drop auf eine Meal-Karte (Desktop) | 11524-11555 | 32 |
+| index.html | Foto per Strg+V auf eine Meal-Karte einfuegen | 11556-11587 | 32 |
+| index.html | Profil (lokal) & Teilen | 11588-11634 | 47 |
+| index.html | Kontowechsel auf demselben Geraet | 11635-12409 | 775 |
+| index.html | Kalorienrechner (Baustein 1: Tages-/Wochenbedarf → state.goal) | 12410-12500 | 91 |
+| index.html | Wiegen: speichern, loeschen, ans Ziel koppeln | 12501-12576 | 76 |
+| index.html | Erste Schritte (Onboarding) | 12577-13511 | 935 |
+| index.html | Erscheinungsbild | 13512-13538 | 27 |
+| index.html | Einstellungen | 13539-13662 | 124 |
+| index.html | Einstieg (D1b) | 13663-13740 | 78 |
+| index.html | Cloud-Anmeldung (Firebase) | 13741-13757 | 17 |
+| index.html | Startbildschirm (#splash, statisch im Markup) | 13758-13811 | 54 |
+| index.html | Marken-Lader (docs/DESIGN.md "Der Marken-Lader") | 13812-14490 | 679 |
+| index.html | Gemeinsam planen (Gruppe) | 14491-15575 | 1085 |
+| index.html | Teilen ueber den nativen Dialog des Geraets (Web Share API) | 15576-15609 | 34 |
+| index.html | Einkaufsliste als PDF (Paket B3) | 15610-15849 | 240 |
+| index.html | Boot | 15850-15868 | 19 |
 | lib/barcode.js | Barcode-Scan (Open Food Facts) | 14-163 | 150 |
 | lib/pdf.js | PDF selbst erzeugen (kein window.print, sandbox-sicher) | 14-38 | 25 |
 | lib/pdf.js | Marken-Kopf fuer die PDFs (Logo, "PADDY'S MEALPLAN", Slogan) | 39-106 | 68 |
@@ -341,7 +341,7 @@ _keine_
 | data/rechtstexte.js | 204 | 33623 |
 | docs/ABDECKUNG.md | 192 | 13718 |
 | docs/ABNAHME-MENSCH.md | 154 | 8210 |
-| docs/ARCHITECTURES.md | 3372 | 216443 |
+| docs/ARCHITECTURES.md | 3374 | 216631 |
 | docs/BAUSTEINE.md | 105 | 13131 |
 | docs/DESIGN.md | 1438 | 80188 |
 | docs/MODULE.md | — | — (erzeugt) |
@@ -350,7 +350,7 @@ _keine_
 | docs/SECURITY.md | 593 | 35778 |
 | docs/STORE.md | 531 | 31668 |
 | docs/TESTING.md | 5547 | 331557 |
-| docs/TROUBLESHOOTING.md | 7162 | 418019 |
+| docs/TROUBLESHOOTING.md | 7188 | 419744 |
 | docs/module-index.json | — | — (erzeugt) |
 | firestore.rules | 552 | 32127 |
 | img/apple-touch-icon.png | — | 35163 |
@@ -442,7 +442,7 @@ _keine_
 | img/waffle.webp | — | 52546 |
 | img/wrap.webp | — | 43594 |
 | img/wurst.webp | — | 54064 |
-| index.html | 15835 | 1000501 |
+| index.html | 15868 | 1002563 |
 | lib/barcode.js | 163 | 9247 |
 | lib/basis.js | 21 | 836 |
 | lib/pdf.js | 241 | 13120 |
@@ -483,7 +483,7 @@ _keine_
 | tools/probe-toast.html | 149 | 8500 |
 | tools/probe-vergleich.html | 340 | 15820 |
 | tools/pruefstand-als-naechstes.py | 303 | 15833 |
-| tools/pruefstand-autoplaner.py | 1185 | 66223 |
+| tools/pruefstand-autoplaner.py | 1226 | 68447 |
 | tools/pruefstand-bildstichworte.py | 357 | 17954 |
 | tools/pruefstand-cache-reset.py | 202 | 8848 |
 | tools/pruefstand-cloud-laden.py | 283 | 12712 |

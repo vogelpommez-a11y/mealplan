@@ -6,7 +6,7 @@ Dieses Dokument enthält bekannte Fehlerquellen, historische Bugs und Probleme, 
 
 <!-- REGISTER-ANFANG (erzeugt aus den Ueberschriften: python tools/register.py - nicht von Hand pflegen) -->
 
-**Register — 187.** Chronologisch gewachsen: je hoeher die Nummer,
+**Register — 188.** Chronologisch gewachsen: je hoeher die Nummer,
 desto juenger der Fund. Wer eine Falle sucht, sucht hier zuerst; die Ueberschrift sagt
 jeweils, worum es geht. **Nicht die ganze Datei lesen** — sie ist rund 310 KB gross.
 
@@ -199,6 +199,7 @@ jeweils, worum es geht. **Nicht die ganze Datei lesen** — sie ist rund 310 KB 
 | 185 | In der Gruppe tat „−“ in der Einkaufsliste nichts |
 | 186 | Das Zuweisungsmenü stand in Serifenschrift |
 | 187 | Die Vorführung blieb leer — Chrome hielt die Bausteinliste vor |
+| 188 | „Rückgängig“ nach dem Auto-Planer löschte, was die Gruppe inzwischen eingetragen hatte |
 
 <!-- REGISTER-ENDE -->
 
@@ -7159,3 +7160,28 @@ früheren Mal — ohne den frisch eingetragenen Baustein. Die beiden iframes war
 Hälfte ausgeschaltet. Bei „headless geht's, sichtbar nicht“ zuerst an das bleibende Profil
 denken — `vorfuehren.py --frisch` setzt es zurück.
 
+## 188. „Rückgängig“ nach dem Auto-Planer löschte, was die Gruppe inzwischen eingetragen hatte
+
+**Gefunden am 17.10.2026** vom `kvp` im Pushcheck des Marken-Laders, behoben am selben Tag.
+
+`autoPlanWeek()` merkte sich vor dem Planen die ganze Woche (`before`) und schrieb sie bei
+„Rückgängig“ und „Nochmal“ komplett zurück. Ändert in den 9 Sekunden des Hinweises jemand
+anderes in der Gruppe dieselbe Woche, ersetzt der Snapshot `state.plans[key]` — und die
+Rücknahme überschrieb diese Änderung mit dem alten Stand und pushte das. **Stiller
+Datenverlust**, auch in der Cloud. „Woche leeren“ hatte denselben Fehler (5 s).
+
+**Behoben:**
+* Der Planer führt Buch (`spuren`): jeder neue Eintrag, jeder Beitritt zu einem vorhandenen
+  (alt → neu), **auch die Snack-Zeile**, die in einer eigenen Schleife gefüllt wird — die hatte
+  der erste Entwurf vergessen, der neue Prüfstand fand es sofort. „Rückgängig“/„Nochmal“
+  nehmen nur diese Einträge zurück; gesucht per `canonJSON` vom Slot-Ende her, weil der
+  Snapshot neue Objekte liefert und Identität nicht trägt.
+* „Woche leeren“ legt die entfernten Einträge **vor** das, was inzwischen dazukam, statt den
+  Slot zu ersetzen.
+
+**Prüfstand:** `pruefstand-autoplaner.py`, Abschnitt „188“ — stellt den Snapshot nach (Woche
+als JSON-Kopie, fremder Eintrag dazu). Gegenprobe gegen den Stand davor: 4 rot.
+
+**Merksatz:** Ein Rückgängig, das einen ganzen Bereich auf „vorher“ setzt, löscht alles, was
+andere in der Zwischenzeit getan haben. Zurücknehmen heißt: genau das zurücknehmen, was man
+selbst getan hat.

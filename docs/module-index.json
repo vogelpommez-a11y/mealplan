@@ -949,157 +949,157 @@
       "zeilen": 7
     },
     {
-      "bis": 11112,
+      "bis": 11145,
       "datei": "index.html",
       "titel": "In der Gruppe: was zu MEHR Profilen passt, kommt weiter nach vorn",
       "von": 10718,
-      "zeilen": 395
+      "zeilen": 428
     },
     {
-      "bis": 11122,
+      "bis": 11155,
       "datei": "index.html",
       "titel": "Toast",
-      "von": 11113,
+      "von": 11146,
       "zeilen": 10
     },
     {
-      "bis": 11158,
+      "bis": 11191,
       "datei": "index.html",
       "titel": "Toast mit Rueckgaengig (Paket B1)",
-      "von": 11123,
+      "von": 11156,
       "zeilen": 36
     },
     {
-      "bis": 11386,
+      "bis": 11419,
       "datei": "index.html",
       "titel": "Event delegation",
-      "von": 11159,
+      "von": 11192,
       "zeilen": 228
     },
     {
-      "bis": 11490,
+      "bis": 11523,
       "datei": "index.html",
       "titel": "Meals im Plan per Ziehen sortieren",
-      "von": 11387,
+      "von": 11420,
       "zeilen": 104
     },
     {
-      "bis": 11522,
+      "bis": 11555,
       "datei": "index.html",
       "titel": "Foto per Drag & Drop auf eine Meal-Karte (Desktop)",
-      "von": 11491,
+      "von": 11524,
       "zeilen": 32
     },
     {
-      "bis": 11554,
+      "bis": 11587,
       "datei": "index.html",
       "titel": "Foto per Strg+V auf eine Meal-Karte einfuegen",
-      "von": 11523,
+      "von": 11556,
       "zeilen": 32
     },
     {
-      "bis": 11601,
+      "bis": 11634,
       "datei": "index.html",
       "titel": "Profil (lokal) & Teilen",
-      "von": 11555,
+      "von": 11588,
       "zeilen": 47
     },
     {
-      "bis": 12376,
+      "bis": 12409,
       "datei": "index.html",
       "titel": "Kontowechsel auf demselben Geraet",
-      "von": 11602,
+      "von": 11635,
       "zeilen": 775
     },
     {
-      "bis": 12467,
+      "bis": 12500,
       "datei": "index.html",
       "titel": "Kalorienrechner (Baustein 1: Tages-/Wochenbedarf → state.goal)",
-      "von": 12377,
+      "von": 12410,
       "zeilen": 91
     },
     {
-      "bis": 12543,
+      "bis": 12576,
       "datei": "index.html",
       "titel": "Wiegen: speichern, loeschen, ans Ziel koppeln",
-      "von": 12468,
+      "von": 12501,
       "zeilen": 76
     },
     {
-      "bis": 13478,
+      "bis": 13511,
       "datei": "index.html",
       "titel": "Erste Schritte (Onboarding)",
-      "von": 12544,
+      "von": 12577,
       "zeilen": 935
     },
     {
-      "bis": 13505,
+      "bis": 13538,
       "datei": "index.html",
       "titel": "Erscheinungsbild",
-      "von": 13479,
+      "von": 13512,
       "zeilen": 27
     },
     {
-      "bis": 13629,
+      "bis": 13662,
       "datei": "index.html",
       "titel": "Einstellungen",
-      "von": 13506,
+      "von": 13539,
       "zeilen": 124
     },
     {
-      "bis": 13707,
+      "bis": 13740,
       "datei": "index.html",
       "titel": "Einstieg (D1b)",
-      "von": 13630,
+      "von": 13663,
       "zeilen": 78
     },
     {
-      "bis": 13724,
+      "bis": 13757,
       "datei": "index.html",
       "titel": "Cloud-Anmeldung (Firebase)",
-      "von": 13708,
+      "von": 13741,
       "zeilen": 17
     },
     {
-      "bis": 13778,
+      "bis": 13811,
       "datei": "index.html",
       "titel": "Startbildschirm (#splash, statisch im Markup)",
-      "von": 13725,
+      "von": 13758,
       "zeilen": 54
     },
     {
-      "bis": 14457,
+      "bis": 14490,
       "datei": "index.html",
       "titel": "Marken-Lader (docs/DESIGN.md \"Der Marken-Lader\")",
-      "von": 13779,
+      "von": 13812,
       "zeilen": 679
     },
     {
-      "bis": 15542,
+      "bis": 15575,
       "datei": "index.html",
       "titel": "Gemeinsam planen (Gruppe)",
-      "von": 14458,
+      "von": 14491,
       "zeilen": 1085
     },
     {
-      "bis": 15576,
+      "bis": 15609,
       "datei": "index.html",
       "titel": "Teilen ueber den nativen Dialog des Geraets (Web Share API)",
-      "von": 15543,
+      "von": 15576,
       "zeilen": 34
     },
     {
-      "bis": 15816,
+      "bis": 15849,
       "datei": "index.html",
       "titel": "Einkaufsliste als PDF (Paket B3)",
-      "von": 15577,
+      "von": 15610,
       "zeilen": 240
     },
     {
-      "bis": 15835,
+      "bis": 15868,
       "datei": "index.html",
       "titel": "Boot",
-      "von": 15817,
+      "von": 15850,
       "zeilen": 19
     },
     {
@@ -1348,9 +1348,9 @@
       "zeilen": 154
     },
     {
-      "bytes": 216443,
+      "bytes": 216631,
       "pfad": "docs/ARCHITECTURES.md",
-      "zeilen": 3372
+      "zeilen": 3374
     },
     {
       "bytes": 13131,
@@ -1392,9 +1392,9 @@
       "zeilen": 5547
     },
     {
-      "bytes": 418019,
+      "bytes": 419744,
       "pfad": "docs/TROUBLESHOOTING.md",
-      "zeilen": 7162
+      "zeilen": 7188
     },
     {
       "erzeugt": true,
@@ -1765,9 +1765,9 @@
       "pfad": "img/wurst.webp"
     },
     {
-      "bytes": 1000501,
+      "bytes": 1002563,
       "pfad": "index.html",
-      "zeilen": 15835
+      "zeilen": 15868
     },
     {
       "bytes": 9247,
@@ -1970,9 +1970,9 @@
       "zeilen": 303
     },
     {
-      "bytes": 66223,
+      "bytes": 68447,
       "pfad": "tools/pruefstand-autoplaner.py",
-      "zeilen": 1185
+      "zeilen": 1226
     },
     {
       "bytes": 17954,

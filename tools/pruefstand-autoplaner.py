@@ -125,7 +125,12 @@ teile = [
     # weekKeyBack samt seinem Puffer - die let-Zeile davor gehoert dazu, sonst wirft die
     # Funktion beim ersten Aufruf (im ersten Anlauf genau so passiert).
     block("  let weekBackCache = ", "  }"),
-    zeile("  const ML_SCHRITT_MS = "),     # Dauern des Marken-Laders (17.10.2026)
+    zeile("  const ML_SCHRITT_MS = "),
+    # Rueckgaengig vergleicht Eintraege per canonJSON (TROUBLESHOOTING 188, 17.10.2026).
+    schnitt("  function canonValue("),
+    zeile("  function canonJSON("),
+    schnitt("  function planStats("),
+    schnitt("  function clearWeek("),     # Dauern des Marken-Laders (17.10.2026)
     schnitt("  function autoPlanWeek("),
 ]
 code = "\n\n".join(teile)
@@ -1063,6 +1068,42 @@ function bestand() {
   for (var w = 0; w < 3; w++) { if (window.__opts && window.__opts.fn) window.__opts.fn(); }
   pruef("auch nach dreimal Nochmal bleibt der Bestand gleich", state.recipes.length, bestand().length);
   pruef("und der Plan steht immer noch", alleEintraege().length > 0, true);
+
+  // ---- Rueckgaengig nimmt nur zurueck, was der Planer gesetzt hat (TROUBLESHOOTING 188) ----
+  // Der Fall aus der Gruppe: Waehrend der Hinweis steht, ersetzt ein Snapshot die Woche
+  // (neue Objekte!) und bringt einen Eintrag der anderen Person mit. Bis zum 17.10.2026
+  // setzte "Rueckgaengig" die ganze Woche auf den Stand davor - der fremde Eintrag war weg.
+  frischerPlan(bestand());
+  state.plan.mon.fr = ["vorher1"];
+  autoPlanWeek();
+  var k188 = activeWeekKey();
+  state.plans[k188] = JSON.parse(JSON.stringify(state.plans[k188]));
+  state.plans[k188].wed.mi.push("fremd1");
+  state.plan = state.plans[k188];
+  window.__undo();
+  pruef("188: Rueckgaengig behaelt den Eintrag der anderen Person", state.plan.wed.mi.indexOf("fremd1") !== -1, true);
+  pruef("188: und den, der vorher schon da war", state.plan.mon.fr, ["vorher1"]);
+  pruef("188: alles vom Planer Gesetzte ist weg", alleEintraege().map(function (x) { return x.e; }).sort(), ["fremd1", "vorher1"]);
+  // Dasselbe ueber "Nochmal" (nutzt dieselbe Ruecknahme)
+  frischerPlan(bestand());
+  autoPlanWeek();
+  state.plans[k188] = JSON.parse(JSON.stringify(state.plans[k188]));
+  state.plans[k188].thu.ab.push("fremd2");
+  state.plan = state.plans[k188];
+  window.__opts.fn();
+  pruef("188: auch Nochmal behaelt den fremden Eintrag", state.plan.thu.ab.indexOf("fremd2") !== -1, true);
+
+  // ---- Woche leeren: Rueckgaengig legt zurueck, ohne Neues zu loeschen (188) ----
+  frischerPlan(bestand());
+  state.plan.mon.mi = ["a1"]; state.plan.tue.ab = ["a2"];
+  clearWeek();
+  pruef("Woche leeren leert", alleEintraege().length, 0);
+  state.plans[k188] = JSON.parse(JSON.stringify(state.plans[k188]));
+  state.plans[k188].thu.mi = ["fremd3"];
+  state.plan = state.plans[k188];
+  window.__undo();
+  pruef("188: Woche leeren - Rueckgaengig bringt die alten Eintraege zurueck", [state.plan.mon.mi, state.plan.tue.ab], [["a1"], ["a2"]]);
+  pruef("188: und behaelt, was inzwischen dazukam", state.plan.thu.mi, ["fremd3"]);
 
   // ---- Zwei zeitversetzte Laeufe in derselben Gruppe (17.08.2026) ----
   //

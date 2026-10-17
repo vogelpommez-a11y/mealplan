@@ -1262,6 +1262,8 @@ Ausblenden. Wo er hängt, verschiebt er nur das **Zeichnen**, nie das Rechnen od
 
 * `autoPlanWeek(opts)` plant und ruft `save()` sofort; `render()`, `planNeuEinblenden(before)`
   und der Toast laufen erst im `then`. „Nochmal“ ruft `autoPlanWeek({ kurz: true })`.
+  Rückgängig/Nochmal nehmen über die Buchführung `spuren` **nur** zurück, was dieser Lauf
+  gesetzt hat — nie die ganze Woche (`docs/TROUBLESHOOTING.md` 188; ebenso `clearWeek()`).
 * `onbGo()` hält vorwärts vor dem Schritt `result` an, zeigt die Werte aus `computeGoal()` und
   setzt erst danach `onb.i`; `onbLaderLaeuft` sperrt zweite Tipps in der Zwischenzeit.
 * `render()` zeichnet beim ersten Cloud-Abgleich `markenLaderHtml()` statt eines leeren
