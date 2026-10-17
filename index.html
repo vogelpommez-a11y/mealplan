@@ -13631,8 +13631,9 @@
   //             jede Karte, die die Ladekarte abloest; mehrfache Aufrufe sind harmlos)
   //   frei    - die Einblendung ist durch: Kurzfassung SPLASH_MIN_MS seit Seitenstart,
   //             Erst-Intro SPLASH_INTRO_MS ab splashStart(). Tippen im Intro macht sofort frei.
-  // Die Kurzfassung haelt also nichts auf - ist die App nach 300 ms bereit, wartet sie nur, bis
-  // das Logo steht; ein abgerissenes Logo wirkt kaputter als gar keins. Das Intro ist die eine
+  // Die Kurzfassung steht also MINDESTENS 0,8 s - ist die App nach 300 ms bereit, kostet das bis
+  // zu einer halben Sekunde. Bewusst (Paddy, 17.10.2026): ein abgerissenes Logo wirkt kaputter
+  // als gar keins. Laedt die App laenger, kostet die Kurzfassung nichts. Das Intro ist die eine
   // bewusste Ausnahme: einmal je Geraet, ueberspringbar (docs/PRODUCT.md).
   const SPLASH_MIN_MS = 800;
   const SPLASH_INTRO_MS = 2200;      // Zeitleiste in css/komponenten.css endet bei ~1,95 s
@@ -13645,11 +13646,18 @@
     // Compositor und haette waehrend des Einlesens gestockt (css/komponenten.css).
     el.classList.add("intro-los");
     splashFrei = performance.now() + SPLASH_INTRO_MS;
-    el.addEventListener("pointerdown", () => {
+    // Ueberspringen per Tippen UND per Tastatur (Escape, Enter, Leertaste) - der Splash ist
+    // aria-hidden und nicht fokussierbar, deshalb lauscht die Taste am Dokument.
+    const ueberspringen = () => {
+      el.removeEventListener("pointerdown", ueberspringen);
+      document.removeEventListener("keydown", taste);
       el.classList.add("splash-fertig");
       splashFrei = 0;
       splashPlanen();
-    }, { once: true });
+    };
+    const taste = e => { if (e.key === "Escape" || e.key === "Enter" || e.key === " ") ueberspringen(); };
+    el.addEventListener("pointerdown", ueberspringen);
+    document.addEventListener("keydown", taste);
     try { localStorage.setItem(SPLASH_INTRO_KEY, "1"); } catch (e) { noteError("splash:introKey", e); }
   }
   function hideSplash() {

@@ -6,7 +6,7 @@ Dieses Dokument beschreibt Produktidentität, Produktphilosophie, UX-Prinzipien,
 
 <!-- REGISTER-ANFANG (erzeugt aus den Ueberschriften: python tools/register.py - nicht von Hand pflegen) -->
 
-**Register — 32 Abschnitte.** Produktregeln vorne, bewusste Einzelentscheidungen hinten.
+**Register — 33 Abschnitte.** Produktregeln vorne, bewusste Einzelentscheidungen hinten.
 Eine Ueberschrift mit „Bewusste Produktentscheidung" heisst: Das ist entschieden, nicht
 vergessen — wer es aendern will, aendert eine Entscheidung.
 
@@ -16,6 +16,7 @@ vergessen — wer es aendern will, aendert eine Entscheidung.
 | · | Was die App nicht ist |
 | · | Produktversprechen |
 | · | Offline-Nutzbarkeit |
+| · | Der Startbildschirm: Markenmoment, aber keine Wartezeit (17.10.2026) |
 | · | Produktidentität |
 | · | Produktfilter für Features |
 | · | UX-Philosophie |
@@ -90,8 +91,9 @@ Training. Ein Netflix-Intro bei jedem Start würde sie beim zehnten Mal langsam 
 lassen; bei einem Planer ist Tempo selbst ein Markenversprechen. Deshalb zwei Fassungen:
 
 * **Jeder Start:** eine Kurzfassung mit Signatur (Logo, Slogan, rote Linie, Flug durchs
-  Logo in die App). Sie überbrückt nur die Ladezeit, die es ohnehin gibt — frühestens nach
-  0,8 s, damit sie nicht abreißt, aber nie länger, als die App zum Laden braucht.
+  Logo in die App). Sie steht **mindestens 0,8 s**, damit sie nicht abreißt; lädt die App
+  länger, steht sie genau so lange wie das Laden. Ist die App schneller, kostet sie also bis
+  zu einer halben Sekunde — der bewusste Preis der Signatur, nicht mehr.
 * **Allererster Start auf einem Gerät:** ein Intro von gut 2 s, in dem sich das Logo
   aufbaut. Die **eine bewusste Ausnahme** von „kostet keine Zeit“ — vertretbar, weil
   einmalig, und ein Tippen überspringt es. Der erste Eindruck zählt am meisten; dasselbe

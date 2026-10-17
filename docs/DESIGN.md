@@ -502,7 +502,7 @@ Sichtbar ist ausschließlich die durchgängige Progress-Bar.
 
 * Segmented Control mit gleitender Pille statt harter Umschaltung.
 * gerichtete Enter-Bewegung beim Inhaltswechsel.
-* `MOTION`-Tokens (`--dur-fast`/`--dur-base`/`--dur-slow`/`--ease-out`) als einzige Quelle für Dauer und Kurve.
+* `MOTION`-Tokens (`--dur-fast`/`--dur-base`/`--dur-slow`/`--ease-out`) als einzige Quelle für Dauer und Kurve. Einzige Ausnahme: `--dur-marke*`/`--ease-marke`, nur für den Startbildschirm (siehe dort).
 * **Kurze Wege.** Eine Enter-Bewegung verschiebt ein Element um einige Dutzend Pixel und blendet es dabei ein — sie schiebt es nicht über den halben Bildschirm. Lange Transform-Strecken zwingen den Browser, in jedem Bild die ganze Fläche neu zu rastern; auf dem Handy fallen dabei Bilder aus (siehe `docs/TROUBLESHOOTING.md`). Wer doch eine große Fläche bewegt, setzt `will-change` und stellt innere Scroll-Container für die Dauer der Bewegung ruhig.
 * `reducedMotion()` immer berücksichtigt — Überblendung bleibt, Richtung entfällt.
 
@@ -1322,8 +1322,8 @@ dasselbe, nur ruhig.
 ## Der Startbildschirm (seit 17.10.2026)
 
 `#splash` steht **statisch im Markup** vor `.app` und ist damit mit dem ersten Bild da,
-bevor das App-Script geparst ist. Er ist ein Markenmoment, kein Lückenfüller — aber er
-kostet im Alltag keine Zeit. Deshalb gibt es **zwei Fassungen**:
+bevor das App-Script geparst ist. Er ist ein Markenmoment, kein Lückenfüller — und kostet
+im Alltag höchstens eine halbe Sekunde. Deshalb gibt es **zwei Fassungen**:
 
 | Fassung | Wann | Ablauf |
 |---|---|---|
@@ -1335,9 +1335,12 @@ kurz aus (`scale(.92)`, `--ease-out`) und fliegt dann beschleunigt auf 14-fache 
 (`--ease-marke`); es wird dabei durchsichtig, der dunkle Grund (`#splash::before`) blendet
 hinterher aus. Vorbild ist die Logo-Enthüllung der früheren Twitter-iOS-App.
 
-* **Er hält nichts auf.** `hideSplash()` blendet aus, sobald Anmeldekarte oder App stehen —
-  frühestens nach `SPLASH_MIN_MS` (800 ms) seit Seitenstart, beim Intro nach
-  `SPLASH_INTRO_MS`. Ein abgerissenes Logo wirkt kaputter als gar keins.
+* **Er wartet auf die App, nicht umgekehrt.** `hideSplash()` blendet aus, sobald
+  Anmeldekarte oder App stehen — frühestens nach `SPLASH_MIN_MS` (800 ms) seit Seitenstart,
+  beim Intro nach `SPLASH_INTRO_MS`. Ist die App schneller, kostet die Mindestzeit bis zu
+  0,5 s; bewusst, denn ein abgerissenes Logo wirkt kaputter als gar keins.
+* **Überspringen** per Tippen und per Tastatur (Escape, Enter, Leertaste). Ein sichtbarer
+  Hinweis fehlt bewusst: 2,2 s einmal je Gerät, und jeder Text stört das Intro.
 * **Phase 1 wartet auf das Script, mit Absicht.** Das Zeichnen der Mütze
   (`stroke-dashoffset`) läuft nicht auf dem Compositor und stockte, solange der Browser das
   große App-Script einliest. Größe und Deckkraft laufen dort weiter, deshalb steht bis dahin

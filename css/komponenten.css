@@ -1240,9 +1240,10 @@
      Steht statisch im Markup VOR .app, damit er mit dem ersten Bild da ist - noch bevor das
      App-Script geparst ist. Zwei Fassungen (Regeln und Ablauf: docs/DESIGN.md):
 
-       Kurzfassung  jeder Start. Reines CSS ab dem ersten Bild. Haelt nichts auf: hideSplash()
-                    blendet aus, sobald Anmeldekarte oder App stehen, fruehestens nach
-                    SPLASH_MIN_MS, damit die Einblendung nicht abreisst.
+       Kurzfassung  jeder Start. Reines CSS ab dem ersten Bild. hideSplash() blendet aus,
+                    sobald Anmeldekarte oder App stehen, fruehestens nach SPLASH_MIN_MS
+                    (0,8 s), damit die Einblendung nicht abreisst - ist die App schneller,
+                    ist das der bewusste Preis der Signatur.
        Erst-Intro   html.splash-intro, nur beim allerersten Start. Bis das App-Script laeuft,
                     steht nur der Kreis; erst splashStart() setzt .intro-los. Grund: Das
                     Zeichnen der Muetze (stroke-dashoffset) laeuft NICHT auf dem Compositor
@@ -1282,7 +1283,7 @@
   .splash-intro .splash-marke { display: block; }
   .splash-slogan {
     margin: 0; display: flex; gap: .4em; flex-wrap: wrap; justify-content: center;
-    font-family: "Segoe Script", "Bradley Hand", "Brush Script MT", "Snell Roundhand", cursive;
+    font-family: var(--font-script);
     font-size: 19px; letter-spacing: .3px; line-height: 1.2;
   }
   /* Das letzte Wort traegt den Akzent - wie "Mealplan" im Kopf. */

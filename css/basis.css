@@ -51,7 +51,7 @@
   .brand p { margin: 0; font-size: 12.5px; color: var(--text-muted); }
   /* Slogan in Schreibschrift (System-Fonts, kein externes Laden). Farbe folgt
      dem Theme: im Dark quasi weiss, im Light dunkel – sonst waere er unlesbar. */
-  .brand .slogan { margin: 3px 0 0; font-family: "Segoe Script", "Bradley Hand", "Brush Script MT", "Snell Roundhand", cursive; font-size: 15.5px; font-weight: 400; color: var(--text); letter-spacing: .3px; line-height: 1.1; }
+  .brand .slogan { margin: 3px 0 0; font-family: var(--font-script); font-size: 15.5px; font-weight: 400; color: var(--text); letter-spacing: .3px; line-height: 1.1; }
   /* Kopfzeile: Brand + Profil in Zeile 1, Reiter in eigener Zeile darunter */
   #profile-slot { order: 2; }
   .navrow { order: 3; width: 100%; display: flex; }

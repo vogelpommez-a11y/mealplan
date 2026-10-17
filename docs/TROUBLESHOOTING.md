@@ -1945,7 +1945,7 @@ seine Fotos offline.
 
 **Unverändert gilt:** Alles wird Cache-First ausgeliefert. Wird ein Foto **oder das Logo**
 ausgetauscht, muss `VERSION` in `sw.js` hoch — sonst sieht ein wiederkehrender Nutzer weiter die
-alte Datei. Steht jetzt auf `pm-v6`.
+alte Datei. Stand damals auf `pm-v6`.
 
 ## 69. Ein JSON-LD-Block ist kein JavaScript — der Syntax-Check lief prompt darauf auf
 

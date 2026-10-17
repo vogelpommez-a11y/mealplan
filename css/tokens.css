@@ -10,6 +10,8 @@
        Laden: Google-Fonts-CDN waere in DE ein Datenschutz-/Abmahnrisiko). */
     --font-display: "Bahnschrift", "Arial Narrow", "Roboto Condensed", "Oswald", system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     --font-body: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    /* Schreibschrift des Slogans (Kopf und Startbildschirm) - ebenfalls nur System-Fonts. */
+    --font-script: "Segoe Script", "Bradley Hand", "Brush Script MT", "Snell Roundhand", cursive;
 
     --bg: #F6F4F4;
     --surface: #FFFFFF;

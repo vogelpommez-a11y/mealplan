@@ -2434,10 +2434,11 @@ Picker-Liste bleiben bei `lazy` — dort können deutlich mehr Bilder gleichzeit
 
 ### Das Logo ist eine Datei, kein Base64
 
-`--logoL` verweist auf `../img/logo.png` (220×220 RGBA, 45 KB) — der Pfad ist relativ zu
-`css/tokens.css` zu lesen, nicht zum Dokument. Das `fetch("img/logo.png")` in `lib/pdf.js`
-holt dieselbe Datei und sieht trotzdem anders aus, weil JavaScript gegen `index.html`
-auflöst. Genau diese Ungleichheit hat das Logo vier Monate lang unsichtbar gemacht, siehe
+`--logoL` verweist seit dem 17.10.2026 auf `../img/logo.svg` (Vektor aus
+`tools/logo-vektor.py`, siehe `docs/DESIGN.md`); davor auf `../img/logo.png` (220×220 RGBA,
+45 KB), das für den PDF-Export bleibt. Der Pfad ist relativ zu `css/tokens.css` zu lesen,
+nicht zum Dokument. Das `fetch("img/logo.png")` in `lib/pdf.js` sieht anders aus, weil
+JavaScript gegen `index.html` auflöst. Genau diese Ungleichheit hat das Logo vier Monate lang unsichtbar gemacht, siehe
 `docs/TROUBLESHOOTING.md` Ziffer 161. Bis zum 10.08.2026 stand das Bild
 als 60-KB-Base64 direkt in der CSS-Variablen — also im render-blocking `<style>`-Block, den jeder
 Aufruf vollständig parsen muss, bevor das erste Pixel erscheint. Der CSS-Block ist dadurch von
@@ -2448,14 +2449,15 @@ berührt (beide Themes nutzen dieselbe Datei).
 
 **`prepareLogoForPdf()` hängt daran.** Die Funktion braucht die rohen PNG-Bytes, um daraus
 RGB- und Alpha-Streams für den PDF-Writer zu bauen, und las sie früher per `getComputedStyle`
-aus `--logoL`. Sie holt sie jetzt per `fetch("img/logo.png", { cache: "force-cache" })`. Wer den
-Pfad des Logos ändert, muss **beide** Stellen anfassen. Details und die `file://`-Einschränkung:
+aus `--logoL`. Sie holt sie jetzt per `fetch("img/logo.png", { cache: "force-cache" })`. Seit
+dem 17.10.2026 nutzen CSS (`logo.svg`) und PDF (`logo.png`) verschiedene Dateien; ändert sich
+das Logo, müssen **beide** neu entstehen (`tools/logo-vektor.py` für das SVG). Details und die `file://`-Einschränkung:
 `docs/TROUBLESHOOTING.md`, Punkt 67.
 
 ### Was der Service Worker vorlädt
 
-`SHELL_ASSETS` in `sw.js` enthält nur noch die Hülle: `index.html`, Manifest, das Logo und die
-vier Icons. Die 32 Meal-Fotos und `vendor/zxing.min.js` sind seit dem 10.08.2026 **nicht** mehr
+`SHELL_ASSETS` in `sw.js` enthält nur noch die Hülle: `index.html`, Manifest, das Logo (PNG und
+SVG) und die vier Icons. Die 32 Meal-Fotos und `vendor/zxing.min.js` sind seit dem 10.08.2026 **nicht** mehr
 im Precache — sie kommen über den Cache-First-Zweig des `fetch`-Handlers nach und liegen danach
 genauso dauerhaft im Cache. Das spart 927 KB bei der Installation.
 
@@ -2465,7 +2467,7 @@ genau der Seitenaufruf, der es holen würde, holt es ohnehin selbst. Ein Precach
 690 KB nur auf die Installation vor, ohne einen Abruf zu sparen.
 
 Alles wird Cache-First ausgeliefert: Wird ein Foto oder das Logo ausgetauscht, muss `VERSION`
-hoch (aktuell `pm-v6`). Siehe `docs/TROUBLESHOOTING.md`, Punkt 68.
+hoch. Siehe `docs/TROUBLESHOOTING.md`, Punkt 68.
 
 ## Wochenplan auf dem Handy
 
