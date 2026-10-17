@@ -511,7 +511,7 @@ var BAUSTEINE = [
     id: "ladeanimationen",
     titel: "Marken-Lader: Woche automatisch planen",
     was: "Rechts: Karte über dem abgedunkelten Plan – ein Schritt zur Zeit, Zahl groß: "
-       + "„Wochenziel“, „Ausgewählt … Meals“, „Makros: Ausbalanciert“, darunter Linie und Punkte; "
+       + "„Wochenziel“, „Ausgewählt … Meals“, „Kalorien und Protein: Im Ziel“, darunter Linie und Punkte; "
        + "danach ploppen die neuen Meals ein. "
        + "„Nochmal“ im Hinweis zeigt die Kurzfassung. Links (live): der Plan steht sofort da. "
        + "Läuft von selbst; „Zustand neu herstellen“ wiederholt es. Pro wird über eine "

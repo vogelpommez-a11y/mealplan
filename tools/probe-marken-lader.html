@@ -30,11 +30,11 @@
       + (schritte.length > 1 ? '<div class="ml-punkte">' + schritte.map(function (_, i) { return '<i' + (i === aktiv ? ' class="an"' : "") + '></i>'; }).join("") + '</div>' : "")
       + '</div></div>';
   }
-  var plan = [["Wochenziel", "13.650 kcal"], ["Ausgewählt", "28 Meals"], ["Makros", "Ausbalanciert"]];
+  var plan = [["Wochenziel", "13.650 kcal"], ["Ausgewählt", "28 Meals"], ["Kalorien und Protein", "Im Ziel"]];
   var faelle = [
     ["Planer, Schritt 1", karte(plan, 0)],
     ["Planer, Ende", karte(plan, 2, true)],
-    ["Planer verfehlt (ohne Haken)", karte([plan[0], plan[1], ["Makros", "Fast getroffen"]], 2, false)],
+    ["Planer verfehlt (ohne Haken)", karte([plan[0], plan[1], ["Kalorien und Protein", "Fast getroffen"]], 2, false)],
     ["Nochmal", karte([["", "Neuer Vorschlag"]], 0)],
     ["Gruppe beitreten (echt)", karte([["", "Du trittst der Gruppe bei …"]], 0, false, true)],
     ["Cloud-Abgleich (im Inhalt)", '<div class="ml-inline" role="status"><div class="ml-karte">' + LOGO

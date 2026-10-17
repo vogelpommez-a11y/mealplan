@@ -1397,9 +1397,14 @@
   .ml-schritt {
     grid-area: 1 / 1; display: flex; flex-direction: column; align-items: center; gap: 4px;
     opacity: 0; transform: translateY(10px);
-    transition: opacity var(--dur-slow) var(--ease-out), transform var(--dur-slow) var(--ease-out);
+    /* visibility statt nur Deckkraft: Ein unsichtbarer Schritt ist auch fuer Screenreader weg.
+       Sie springt erst NACH dem Ausblenden um (0s mit Verzoegerung --dur-slow), sonst
+       verschwaende der vorige Schritt schlagartig. */
+    visibility: hidden;
+    transition: opacity var(--dur-slow) var(--ease-out), transform var(--dur-slow) var(--ease-out),
+                visibility 0s linear var(--dur-slow);
   }
-  .ml-schritt.da { opacity: 1; transform: none; }
+  .ml-schritt.da { opacity: 1; transform: none; visibility: visible; transition-delay: 0s; }
   .ml-schritt.vorbei { opacity: 0; transform: translateY(-10px); }
   .ml-titel { font-size: 13px; color: var(--text-muted); letter-spacing: .3px; }
   .ml-wert {

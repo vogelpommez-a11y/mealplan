@@ -760,6 +760,15 @@ Lader mit fester „14 Meals“ und immer „Ausbalanciert“ fiel mit 3 Fehlern
 Vorführen: Vergleichsseite `ladeanimationen` (Auto-Planer, nachgestellte Gruppe) und
 `ziel-berechnen`.
 
+**`tools/pruefstand-marken-lader.py`** (17.10.2026) schneidet `markenKarteHtml`, `markenLaderHtml`
+und `markenLader` aus und misst das Verhalten: ein Schritt zur Zeit und nur der vorlesbar,
+Haken nur bei Erfolg, Escape überspringt, echtes Warten mit sichtbarem Satz, ohne Aufflackern,
+mit Fehlerweitergabe und Obergrenze. Entstanden, weil vor dem Push der Satz beim echten Warten
+unsichtbar blieb — die Sichtprobe hatte `.da` von Hand gesetzt und den Fehler verdeckt.
+Zwei Eigenheiten: Er braucht ein Zeitbudget von 40 s (die Obergrenze liegt bei 12 s), und er
+schreibt beim langen Warten ein Lebenszeichen ins Protokoll — der Läufer beendet sonst nach
+1,5 s Stille. Gegenproben je einzeln (siehe Kopf der Datei).
+
 **Den Startbildschirm Bild für Bild ansehen:** Die Vergleichsseite kennt `startbildschirm`
 (Kurzfassung) und `startbildschirm-intro`; „Zustand neu herstellen“ spielt ihn erneut ab. Ein
 Standbild zeigt keine Bewegung — vor einer Änderung an der Choreografie eine Bildfolge

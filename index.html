@@ -11045,15 +11045,20 @@
     };
     // Marken-Lader mit den Werten DIESES Laufs (docs/PRODUCT.md "Inszenierte Momente"): Ziel,
     // Zahl der gesetzten Meals, und ob die Woche das Ziel trifft - verfehlt sie es, sagt der
-    // dritte Schritt das, statt "ausbalanciert" zu behaupten. "Nochmal" bekommt nur die
-    // Kurzfassung: Wer wuerfelt, will den naechsten Vorschlag sehen, keine Show.
-    const getroffen = !wZiel || (Math.abs(diff) <= wZiel.kcal * PLAN_TOLERANZ && protFehlt <= wZiel.protein * PLAN_TOLERANZ);
+    // dritte Schritt das. "Nochmal" bekommt nur die Kurzfassung: Wer wuerfelt, will den
+    // naechsten Vorschlag sehen, keine Show.
+    // Der dritte Schritt nennt GENAU das, was geprueft wird: Kalorien und Protein (dieselben
+    // zwei Saeulen wie der Toast). Bis zum Pushcheck stand dort "Makros: Ausbalanciert" - das
+    // versprach auch Kohlenhydrate und Fett, die der Planer gar nicht abgleicht (anwalt,
+    // 17.10.2026). Ohne Wochenziel gibt es nichts zu treffen; dann entfallen beide Schritte.
+    const getroffen = wZiel && Math.abs(diff) <= wZiel.kcal * PLAN_TOLERANZ && protFehlt <= wZiel.protein * PLAN_TOLERANZ;
     const lader = opts && opts.kurz
       ? { schritte: [["", "Neuer Vorschlag"]], dauer: ML_KURZ_MS }
       : { schritte: [wZiel ? ["Wochenziel", `${nfmt(wZiel.kcal)} kcal`] : null, ["Ausgewählt", `${gesetzt} Meals`],
                      // Ohne Haken, wenn verfehlt: ein Haken neben "Fast getroffen" laese sich wie
                      // "alles gut" - den Rest nennt gleich der Toast.
-                     getroffen ? ["Makros", "Ausbalanciert"] : ["Makros", "Fast getroffen", "ohneHaken"]] };
+                     !wZiel ? null : getroffen ? ["Kalorien und Protein", "Im Ziel"]
+                       : ["Kalorien und Protein", "Fast getroffen", "ohneHaken"]] };
     markenLader(lader).then(() => {
       render();
       planNeuEinblenden(before);
@@ -11080,7 +11085,9 @@
     view.querySelectorAll(".filled[data-slot-src]").forEach(el => {
       const [d, m, idx] = el.getAttribute("data-slot-src").split(":");
       if (!before[d] || !before[d][m] || +idx < before[d][m].length) return;
-      el.style.setProperty("--ml-i", i++);
+      // Gedeckelt bei 8: Bei 21 neuen Meals waere die Staffelung sonst fast eine Sekunde lang -
+      // ab der neunten Karte kommen alle gleichzeitig (ux-reviewer, 17.10.2026).
+      el.style.setProperty("--ml-i", Math.min(i++, 8));
       el.classList.add("ml-neu");
       el.addEventListener("animationend", () => el.classList.remove("ml-neu"), { once: true });
     });
@@ -13784,15 +13791,31 @@
   // die inszenierte Art; die echte laesst sich nicht abkuerzen (dort wartet sie auf etwas).
   // Reduzierte Bewegung kuerzt NICHT: Weniger Bewegung heisst nicht weniger Lesezeit.
   const ML_SCHRITT_MS = 700, ML_KURZ_MS = 600, ML_HALTEN_MS = 300;
-  const ML_ECHT_ZEIGEN_MS = 150, ML_ECHT_MIN_MS = 400;
+  // ML_ECHT_MAX_MS: Obergrenze fuers echte Warten. Haengt Firestore (offline, Zeitlimit), ginge
+  // die Karte sonst nie weg und .app bliebe inert - ohne Ausweg fuer Tastatur und Screenreader
+  // (anwalt, kvp/BFSG, 17.10.2026). Danach laeuft das Warten im Hintergrund weiter, ein Toast sagt es.
+  const ML_ECHT_ZEIGEN_MS = 150, ML_ECHT_MIN_MS = 400, ML_ECHT_MAX_MS = 12000;
   const ML_LOGO = '<div class="mark ml-mark" aria-hidden="true"></div>';
-  // Fuer echtes Laden INNERHALB von #view (render() beim ersten Cloud-Abgleich): DIESELBE Karte
-  // wie das echte Warten im markenLader, nur ohne Abdunkeln - dahinter ist noch nichts zu sehen.
-  // Bis zum 17.10.2026 (vor dem Push) ohne Kartenrahmen; Paddy wollte ein Schema fuer alle.
+  // Die EINE Bauanleitung der Karte - fuer die Karte ueber der Ansicht wie fuer die im Inhalt.
+  // Zwei getrennte Fassungen haetten sich auseinanderentwickelt (kvp, 17.10.2026).
+  // Alle Schritte liegen uebereinander auf derselben Buehne; sichtbar ist nur der aktuelle (.da),
+  // die anderen sind auch fuer Screenreader weg (visibility + aria-hidden, nicht nur Deckkraft -
+  // sonst laese er alle drei Werte auf einmal vor). Die Punkte sagen "Schritt 2 von 3".
+  // role="status" ist bereits eine hoefliche Live-Region; ein zusaetzliches aria-live doppelte das.
+  function markenKarteHtml(schritte, echt, attr) {
+    return `<div class="ml-karte" role="status"${attr || ""}>${ML_LOGO}
+      <div class="ml-buehne">${schritte.map((s, i) => `<div class="ml-schritt${attr ? "" : " da"}"${attr && i ? ' aria-hidden="true"' : ""}>`
+        + (s[0] ? `<span class="ml-titel">${esc(s[0])}</span>` : "")
+        + `<span class="ml-wert">${esc(s[1])}</span></div>`).join("")}</div>
+      <i class="ml-linie${echt ? " laeuft" : ""}" aria-hidden="true"></i>
+      ${schritte.length > 1 ? `<div class="ml-punkte" aria-hidden="true">${schritte.map(() => "<i></i>").join("")}</div>` : ""}
+    </div>`;
+  }
+  // Fuer echtes Laden INNERHALB von #view (render() beim ersten Cloud-Abgleich): dieselbe Karte,
+  // ohne Abdunkeln (dahinter ist noch nichts) und ohne die 150/400-ms-Regeln des Overlays - sie
+  // steht genau so lange, wie render() sie zeichnet.
   function markenLaderHtml(text) {
-    return `<div class="ml-inline" role="status"><div class="ml-karte">${ML_LOGO}`
-      + `<div class="ml-buehne"><div class="ml-schritt da"><span class="ml-wert">${esc(text)}</span></div></div>`
-      + `<i class="ml-linie laeuft" aria-hidden="true"></i></div></div>`;
+    return `<div class="ml-inline">${markenKarteHtml([["", text]], true)}</div>`;
   }
   function markenLader(o) {
     const echt = !!o.warten;
@@ -13800,18 +13823,14 @@
     const dauer = echt ? 0 : (o.dauer || schritte.length * ML_SCHRITT_MS);
     const ov = document.createElement("div");
     ov.className = "ml-overlay" + (echt ? " echt" : "");
-    // Alle Schritte liegen uebereinander auf derselben Buehne; sichtbar ist nur der aktuelle.
-    // Die Punkte darunter sagen "Schritt 2 von 3" - der aktuelle ist breiter, nicht nur farbig.
-    ov.innerHTML = `<div class="ml-karte" role="status" aria-live="polite" tabindex="-1">${ML_LOGO}
-      <div class="ml-buehne">${schritte.map(s => `<div class="ml-schritt">`
-        + (s[0] ? `<span class="ml-titel">${esc(s[0])}</span>` : "")
-        + `<span class="ml-wert">${esc(s[1])}</span></div>`).join("")}</div>
-      <i class="ml-linie${echt ? " laeuft" : ""}" aria-hidden="true"></i>
-      ${schritte.length > 1 ? `<div class="ml-punkte" aria-hidden="true">${schritte.map(() => "<i></i>").join("")}</div>` : ""}
-    </div>`;
+    ov.innerHTML = markenKarteHtml(schritte, echt, ' tabindex="-1"');
     ov.style.setProperty("--ml-dauer", dauer + "ms");
     const items = Array.prototype.slice.call(ov.querySelectorAll(".ml-schritt"));
     const punkte = Array.prototype.slice.call(ov.querySelectorAll(".ml-punkte i"));
+    // Echtes Warten hat genau einen Schritt und keine Zeitleiste, die ihn einblendet - er steht
+    // sofort. (Ohne diese Zeile blieb der Satz unsichtbar; die Sichtprobe hatte .da von Hand
+    // gesetzt und den Fehler deshalb nicht gezeigt - gefunden am 17.10.2026 vor dem Push.)
+    if (echt) items[0].classList.add("da");
     const vorher = document.activeElement;
     const timer = [];
     let zu = false, gezeigt = false, gezeigtAb = 0, fertigMelden;
@@ -13849,6 +13868,11 @@
         let ergebnis, fehlschlag = null;
         fertigMelden = () => fehlschlag ? fehler(fehlschlag.e) : ok(ergebnis);
         timer.push(setTimeout(zeigen, ML_ECHT_ZEIGEN_MS));
+        timer.push(setTimeout(() => {
+          if (zu) return;
+          toast("Das dauert länger – es läuft im Hintergrund weiter.");
+          schliessen();
+        }, ML_ECHT_MAX_MS));
         Promise.resolve(o.warten).then(r => { ergebnis = r; }, e => { fehlschlag = { e: e }; }).then(() => {
           const rest = gezeigt ? Math.max(0, ML_ECHT_MIN_MS - (performance.now() - gezeigtAb)) : 0;
           setTimeout(schliessen, rest);
@@ -13868,6 +13892,9 @@
         timer.push(setTimeout(() => {
           if (i > 0) { items[i - 1].classList.remove("da"); items[i - 1].classList.add("vorbei"); }
           el.classList.add("da");
+          // Nur der aktuelle Schritt ist fuer Screenreader da; der Wechsel des sichtbaren Texts
+          // in der Live-Region (role="status") wird angesagt.
+          items.forEach((x, k) => { if (k === i) x.removeAttribute("aria-hidden"); else x.setAttribute("aria-hidden", "true"); });
           punkte.forEach((p, k) => p.classList.toggle("an", k === i));
         }, i * takt));
       });

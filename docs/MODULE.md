@@ -54,8 +54,8 @@ Erhoben aus den Abschnittsmarken im Code, nicht von Hand gepflegt.
 | css/komponenten.css | Empty state | 552-563 | 12 |
 | css/komponenten.css | Modal | 564-989 | 426 |
 | css/komponenten.css | Profil (Login) & Teilen | 990-1092 | 103 |
-| css/komponenten.css | Profilbild-Zuschnitt (Kreis-Crop) | 1093-1505 | 413 |
-| css/komponenten.css | PDF / Druck | 1506-1599 | 94 |
+| css/komponenten.css | Profilbild-Zuschnitt (Kreis-Crop) | 1093-1510 | 418 |
+| css/komponenten.css | PDF / Druck | 1511-1604 | 94 |
 | css/mobil.css | Mobile / Smartphone | 8-1006 | 999 |
 | css/mobil.css | Gemeinsam planen (Gruppe) | 1007-1073 | 67 |
 | data/bilder.js | Gerichtsfotos (nach Namen zugeordnet) | 11-142 | 132 |
@@ -135,28 +135,28 @@ Erhoben aus den Abschnittsmarken im Code, nicht von Hand gepflegt.
 | index.html | Auto-Wochenplaner (D2) | 10585-10691 | 107 |
 | index.html | Wiederholung: was zuletzt dran war, rutscht nach hinten | 10692-10710 | 19 |
 | index.html | Passt die Groesse zum Slot? | 10711-10717 | 7 |
-| index.html | In der Gruppe: was zu MEHR Profilen passt, kommt weiter nach vorn | 10718-11105 | 388 |
-| index.html | Toast | 11106-11115 | 10 |
-| index.html | Toast mit Rueckgaengig (Paket B1) | 11116-11151 | 36 |
-| index.html | Event delegation | 11152-11379 | 228 |
-| index.html | Meals im Plan per Ziehen sortieren | 11380-11483 | 104 |
-| index.html | Foto per Drag & Drop auf eine Meal-Karte (Desktop) | 11484-11515 | 32 |
-| index.html | Foto per Strg+V auf eine Meal-Karte einfuegen | 11516-11547 | 32 |
-| index.html | Profil (lokal) & Teilen | 11548-11594 | 47 |
-| index.html | Kontowechsel auf demselben Geraet | 11595-12367 | 773 |
-| index.html | Kalorienrechner (Baustein 1: Tages-/Wochenbedarf → state.goal) | 12368-12458 | 91 |
-| index.html | Wiegen: speichern, loeschen, ans Ziel koppeln | 12459-12534 | 76 |
-| index.html | Erste Schritte (Onboarding) | 12535-13469 | 935 |
-| index.html | Erscheinungsbild | 13470-13496 | 27 |
-| index.html | Einstellungen | 13497-13620 | 124 |
-| index.html | Einstieg (D1b) | 13621-13698 | 78 |
-| index.html | Cloud-Anmeldung (Firebase) | 13699-13715 | 17 |
-| index.html | Startbildschirm (#splash, statisch im Markup) | 13716-13769 | 54 |
-| index.html | Marken-Lader (docs/DESIGN.md "Der Marken-Lader") | 13770-14428 | 659 |
-| index.html | Gemeinsam planen (Gruppe) | 14429-15513 | 1085 |
-| index.html | Teilen ueber den nativen Dialog des Geraets (Web Share API) | 15514-15547 | 34 |
-| index.html | Einkaufsliste als PDF (Paket B3) | 15548-15787 | 240 |
-| index.html | Boot | 15788-15806 | 19 |
+| index.html | In der Gruppe: was zu MEHR Profilen passt, kommt weiter nach vorn | 10718-11112 | 395 |
+| index.html | Toast | 11113-11122 | 10 |
+| index.html | Toast mit Rueckgaengig (Paket B1) | 11123-11158 | 36 |
+| index.html | Event delegation | 11159-11386 | 228 |
+| index.html | Meals im Plan per Ziehen sortieren | 11387-11490 | 104 |
+| index.html | Foto per Drag & Drop auf eine Meal-Karte (Desktop) | 11491-11522 | 32 |
+| index.html | Foto per Strg+V auf eine Meal-Karte einfuegen | 11523-11554 | 32 |
+| index.html | Profil (lokal) & Teilen | 11555-11601 | 47 |
+| index.html | Kontowechsel auf demselben Geraet | 11602-12374 | 773 |
+| index.html | Kalorienrechner (Baustein 1: Tages-/Wochenbedarf → state.goal) | 12375-12465 | 91 |
+| index.html | Wiegen: speichern, loeschen, ans Ziel koppeln | 12466-12541 | 76 |
+| index.html | Erste Schritte (Onboarding) | 12542-13476 | 935 |
+| index.html | Erscheinungsbild | 13477-13503 | 27 |
+| index.html | Einstellungen | 13504-13627 | 124 |
+| index.html | Einstieg (D1b) | 13628-13705 | 78 |
+| index.html | Cloud-Anmeldung (Firebase) | 13706-13722 | 17 |
+| index.html | Startbildschirm (#splash, statisch im Markup) | 13723-13776 | 54 |
+| index.html | Marken-Lader (docs/DESIGN.md "Der Marken-Lader") | 13777-14455 | 679 |
+| index.html | Gemeinsam planen (Gruppe) | 14456-15540 | 1085 |
+| index.html | Teilen ueber den nativen Dialog des Geraets (Web Share API) | 15541-15574 | 34 |
+| index.html | Einkaufsliste als PDF (Paket B3) | 15575-15814 | 240 |
+| index.html | Boot | 15815-15833 | 19 |
 | lib/barcode.js | Barcode-Scan (Open Food Facts) | 14-163 | 150 |
 | lib/pdf.js | PDF selbst erzeugen (kein window.print, sandbox-sicher) | 14-38 | 25 |
 | lib/pdf.js | Marken-Kopf fuer die PDFs (Logo, "PADDY'S MEALPLAN", Slogan) | 39-106 | 68 |
@@ -330,7 +330,7 @@ _keine_
 | SECURITY.md | 71 | 3006 |
 | css/CLAUDE.md | 92 | 4167 |
 | css/basis.css | 1557 | 110811 |
-| css/komponenten.css | 1599 | 120184 |
+| css/komponenten.css | 1604 | 120543 |
 | css/mobil.css | 1073 | 70753 |
 | css/tokens.css | 298 | 16653 |
 | data/CLAUDE.md | 161 | 7419 |
@@ -341,15 +341,15 @@ _keine_
 | data/rechtstexte.js | 204 | 33623 |
 | docs/ABDECKUNG.md | 192 | 13718 |
 | docs/ABNAHME-MENSCH.md | 154 | 8210 |
-| docs/ARCHITECTURES.md | 3372 | 216369 |
-| docs/BAUSTEINE.md | 105 | 12935 |
-| docs/DESIGN.md | 1431 | 79240 |
+| docs/ARCHITECTURES.md | 3372 | 216443 |
+| docs/BAUSTEINE.md | 105 | 12965 |
+| docs/DESIGN.md | 1438 | 80188 |
 | docs/MODULE.md | — | — (erzeugt) |
 | docs/PRODUCT.md | 1826 | 105083 |
 | docs/RUNBOOK.md | 337 | 16629 |
 | docs/SECURITY.md | 593 | 35778 |
 | docs/STORE.md | 531 | 31668 |
-| docs/TESTING.md | 5538 | 330836 |
+| docs/TESTING.md | 5547 | 331557 |
 | docs/TROUBLESHOOTING.md | 7162 | 418019 |
 | docs/module-index.json | — | — (erzeugt) |
 | firestore.rules | 552 | 32127 |
@@ -442,7 +442,7 @@ _keine_
 | img/waffle.webp | — | 52546 |
 | img/wrap.webp | — | 43594 |
 | img/wurst.webp | — | 54064 |
-| index.html | 15806 | 998312 |
+| index.html | 15833 | 1000341 |
 | lib/barcode.js | 163 | 9247 |
 | lib/basis.js | 21 | 836 |
 | lib/pdf.js | 241 | 13120 |
@@ -476,7 +476,7 @@ _keine_
 | tools/netz-ohne-konto.py | 271 | 12118 |
 | tools/probe-farbstimmungen.html | 167 | 8797 |
 | tools/probe-fortschritt.html | 351 | 20064 |
-| tools/probe-marken-lader.html | 47 | 3096 |
+| tools/probe-marken-lader.html | 47 | 3118 |
 | tools/probe-onboarding-fluss.html | 270 | 14119 |
 | tools/probe-onboarding.html | 191 | 9537 |
 | tools/probe-symbole.html | 40 | 2266 |
@@ -512,6 +512,7 @@ _keine_
 | tools/pruefstand-konto-loeschsperre.py | 251 | 12278 |
 | tools/pruefstand-kontowechsel.py | 215 | 9393 |
 | tools/pruefstand-makro-abweichung.py | 125 | 6483 |
+| tools/pruefstand-marken-lader.py | 171 | 8398 |
 | tools/pruefstand-meal-symbol.py | 252 | 10879 |
 | tools/pruefstand-mengenanzeige.py | 262 | 12448 |
 | tools/pruefstand-messgrundlage.py | 84 | 3633 |
@@ -548,7 +549,7 @@ _keine_
 | tools/shared-aufraeumen.py | 115 | 3755 |
 | tools/smoke-mit-daten.py | 145 | 8236 |
 | tools/test-meal-bilder.py | 156 | 8295 |
-| tools/vergleich-bausteine.js | 564 | 28346 |
+| tools/vergleich-bausteine.js | 564 | 28354 |
 | tools/vorfuehren.py | 120 | 4661 |
 | tools/wartung-check.py | 687 | 31783 |
 | vendor/HERKUNFT.md | 105 | 4816 |

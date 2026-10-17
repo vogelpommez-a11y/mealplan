@@ -1370,7 +1370,7 @@ Toast). Anders als der Startbildschirm folgt er dem **Theme**: Er liegt in der A
 | Art | Wo | Ablauf |
 |---|---|---|
 | **inszeniert** | Auto-Planer und Ziel-Berechnung (je 3 Schritte à 0,7 s + 0,3 s Halten ≈ 2,4 s), „Nochmal“ 0,6 s | **Ein Schritt zur Zeit** auf einer Bühne: kleiner Titel, darunter der Wert groß in `--font-display` (28 px). Der vorige geht nach oben, der neue kommt von unten. Darunter läuft die Linie über die ganze Dauer (`--ml-dauer`, `--ease-in-out`), Punkte zeigen „Schritt 2 von 3“. Tippen/Escape/Enter/Leertaste überspringt |
-| **echt** | erster Cloud-Abgleich (im Inhalt, `markenLaderHtml`), Gruppe beitreten | Ein Satz in Fließtext, die Linie pendelt (`--dur-marke-lang` × 2), bis das Warten vorbei ist. Erscheint erst nach 150 ms und steht dann mindestens 400 ms — kein Aufflackern |
+| **echt** | erster Cloud-Abgleich (im Inhalt, `markenLaderHtml`), Gruppe beitreten | Ein Satz in Fließtext, die Linie pendelt (`--dur-marke-lang` × 2), bis das Warten vorbei ist. Als Karte über der Ansicht (Gruppe beitreten): erst nach 150 ms sichtbar, dann mindestens 400 ms — kein Aufflackern —, und **höchstens 12 s**; danach geht sie mit dem Hinweis „Das dauert länger – es läuft im Hintergrund weiter.“, damit die App nie gesperrt bleibt. Im Inhalt (Cloud-Abgleich) steht sie genau so lange, wie `render()` sie zeichnet |
 
 * **Ein Schema für alle.** Jede Lade-Inszenierung und jedes sichtbare Warten in Markenoptik
   läuft über `markenLader()`/`markenLaderHtml()` — dieselbe Karte, dasselbe Logo, dieselbe
@@ -1382,7 +1382,9 @@ Toast). Anders als der Startbildschirm folgt er dem **Theme**: Er liegt in der A
   0,7 s erfassbar, drei Sätze sind es nicht.
 * **Die Schritte nennen echte Werte aus genau diesem Lauf** (Wochenziel, Zahl der gesetzten
   Meals, Grundumsatz …). Verfehlt der Plan das Ziel, heißt der dritte Schritt „Fast
-  getroffen“ statt „Ausbalanciert“ — die Produktregel dazu steht in `docs/PRODUCT.md`.
+  getroffen“ statt „Im Ziel“. Der Schritt heißt „Kalorien und Protein“, weil der Planer genau
+  diese zwei Säulen prüft — „Makros“ hätte auch KH und Fett versprochen (anwalt, 17.10.2026). Die
+  Produktregel dazu steht in `docs/PRODUCT.md`.
 * **Gelungen trägt einen Haken** vor dem letzten Wert, nicht nur Farbe; der Kreis ist
   `--accent-solid` (Weiß darauf über 4,5:1). **„Fast getroffen“ bekommt keinen** — ein Haken
   daneben läse sich wie „alles gut“ (Schritt mit drittem Feld `"ohneHaken"`). Der aktuelle
@@ -1393,8 +1395,13 @@ Toast). Anders als der Startbildschirm folgt er dem **Theme**: Er liegt in der A
   (`.filled.ml-neu`, 35 ms Versatz) — man sieht, wo in der Woche etwas entstanden ist.
 * Nach der Ziel-Berechnung **zählen kcal und Makros hoch** (`onbErgebnisZaehlen`,
   `--dur-marke-lang`, dieselbe Kurve wie die Fortschrittsleiste).
-* Während der Karte ist `.app` `inert`, der Fokus liegt auf der Karte (`role="status"`,
-  `aria-live`), danach kehrt er zurück.
+* Während der Karte ist `.app` `inert`, der Fokus liegt auf der Karte (`role="status"`),
+  danach kehrt er zurück. Nicht aktive Schritte sind `visibility: hidden` **und**
+  `aria-hidden` — nur Deckkraft ließe einen Screenreader alle Werte auf einmal vorlesen.
+* **Eine Bauanleitung** (`markenKarteHtml`) für die Karte über der Ansicht und die im Inhalt.
+* Auf der Liste fürs Anwaltsgespräch: ob die kcal-Werte der Ziel-Karte den Hinweis
+  „Rechnerische Richtwerte“ schon auf der Karte brauchen (er steht direkt danach auf der
+  Ergebnisseite); ob „Kalorien und Protein: Im Ziel“ als Gesundheitsaussage zu werten ist.
 * Reduzierte Bewegung: **dieselbe Dauer** (weniger Bewegung heißt nicht weniger Lesezeit),
   aber kein Versatz, kein Einploppen, kein Hochzählen; die pendelnde Linie steht als ruhige,
   halb deckende Linie.

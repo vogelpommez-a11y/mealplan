@@ -382,17 +382,17 @@
       "zeilen": 103
     },
     {
-      "bis": 1505,
+      "bis": 1510,
       "datei": "css/komponenten.css",
       "titel": "Profilbild-Zuschnitt (Kreis-Crop)",
       "von": 1093,
-      "zeilen": 413
+      "zeilen": 418
     },
     {
-      "bis": 1599,
+      "bis": 1604,
       "datei": "css/komponenten.css",
       "titel": "PDF / Druck",
-      "von": 1506,
+      "von": 1511,
       "zeilen": 94
     },
     {
@@ -949,157 +949,157 @@
       "zeilen": 7
     },
     {
-      "bis": 11105,
+      "bis": 11112,
       "datei": "index.html",
       "titel": "In der Gruppe: was zu MEHR Profilen passt, kommt weiter nach vorn",
       "von": 10718,
-      "zeilen": 388
+      "zeilen": 395
     },
     {
-      "bis": 11115,
+      "bis": 11122,
       "datei": "index.html",
       "titel": "Toast",
-      "von": 11106,
+      "von": 11113,
       "zeilen": 10
     },
     {
-      "bis": 11151,
+      "bis": 11158,
       "datei": "index.html",
       "titel": "Toast mit Rueckgaengig (Paket B1)",
-      "von": 11116,
+      "von": 11123,
       "zeilen": 36
     },
     {
-      "bis": 11379,
+      "bis": 11386,
       "datei": "index.html",
       "titel": "Event delegation",
-      "von": 11152,
+      "von": 11159,
       "zeilen": 228
     },
     {
-      "bis": 11483,
+      "bis": 11490,
       "datei": "index.html",
       "titel": "Meals im Plan per Ziehen sortieren",
-      "von": 11380,
+      "von": 11387,
       "zeilen": 104
     },
     {
-      "bis": 11515,
+      "bis": 11522,
       "datei": "index.html",
       "titel": "Foto per Drag & Drop auf eine Meal-Karte (Desktop)",
-      "von": 11484,
+      "von": 11491,
       "zeilen": 32
     },
     {
-      "bis": 11547,
+      "bis": 11554,
       "datei": "index.html",
       "titel": "Foto per Strg+V auf eine Meal-Karte einfuegen",
-      "von": 11516,
+      "von": 11523,
       "zeilen": 32
     },
     {
-      "bis": 11594,
+      "bis": 11601,
       "datei": "index.html",
       "titel": "Profil (lokal) & Teilen",
-      "von": 11548,
+      "von": 11555,
       "zeilen": 47
     },
     {
-      "bis": 12367,
+      "bis": 12374,
       "datei": "index.html",
       "titel": "Kontowechsel auf demselben Geraet",
-      "von": 11595,
+      "von": 11602,
       "zeilen": 773
     },
     {
-      "bis": 12458,
+      "bis": 12465,
       "datei": "index.html",
       "titel": "Kalorienrechner (Baustein 1: Tages-/Wochenbedarf → state.goal)",
-      "von": 12368,
+      "von": 12375,
       "zeilen": 91
     },
     {
-      "bis": 12534,
+      "bis": 12541,
       "datei": "index.html",
       "titel": "Wiegen: speichern, loeschen, ans Ziel koppeln",
-      "von": 12459,
+      "von": 12466,
       "zeilen": 76
     },
     {
-      "bis": 13469,
+      "bis": 13476,
       "datei": "index.html",
       "titel": "Erste Schritte (Onboarding)",
-      "von": 12535,
+      "von": 12542,
       "zeilen": 935
     },
     {
-      "bis": 13496,
+      "bis": 13503,
       "datei": "index.html",
       "titel": "Erscheinungsbild",
-      "von": 13470,
+      "von": 13477,
       "zeilen": 27
     },
     {
-      "bis": 13620,
+      "bis": 13627,
       "datei": "index.html",
       "titel": "Einstellungen",
-      "von": 13497,
+      "von": 13504,
       "zeilen": 124
     },
     {
-      "bis": 13698,
+      "bis": 13705,
       "datei": "index.html",
       "titel": "Einstieg (D1b)",
-      "von": 13621,
+      "von": 13628,
       "zeilen": 78
     },
     {
-      "bis": 13715,
+      "bis": 13722,
       "datei": "index.html",
       "titel": "Cloud-Anmeldung (Firebase)",
-      "von": 13699,
+      "von": 13706,
       "zeilen": 17
     },
     {
-      "bis": 13769,
+      "bis": 13776,
       "datei": "index.html",
       "titel": "Startbildschirm (#splash, statisch im Markup)",
-      "von": 13716,
+      "von": 13723,
       "zeilen": 54
     },
     {
-      "bis": 14428,
+      "bis": 14455,
       "datei": "index.html",
       "titel": "Marken-Lader (docs/DESIGN.md \"Der Marken-Lader\")",
-      "von": 13770,
-      "zeilen": 659
+      "von": 13777,
+      "zeilen": 679
     },
     {
-      "bis": 15513,
+      "bis": 15540,
       "datei": "index.html",
       "titel": "Gemeinsam planen (Gruppe)",
-      "von": 14429,
+      "von": 14456,
       "zeilen": 1085
     },
     {
-      "bis": 15547,
+      "bis": 15574,
       "datei": "index.html",
       "titel": "Teilen ueber den nativen Dialog des Geraets (Web Share API)",
-      "von": 15514,
+      "von": 15541,
       "zeilen": 34
     },
     {
-      "bis": 15787,
+      "bis": 15814,
       "datei": "index.html",
       "titel": "Einkaufsliste als PDF (Paket B3)",
-      "von": 15548,
+      "von": 15575,
       "zeilen": 240
     },
     {
-      "bis": 15806,
+      "bis": 15833,
       "datei": "index.html",
       "titel": "Boot",
-      "von": 15788,
+      "von": 15815,
       "zeilen": 19
     },
     {
@@ -1293,9 +1293,9 @@
       "zeilen": 1557
     },
     {
-      "bytes": 120184,
+      "bytes": 120543,
       "pfad": "css/komponenten.css",
-      "zeilen": 1599
+      "zeilen": 1604
     },
     {
       "bytes": 70753,
@@ -1348,19 +1348,19 @@
       "zeilen": 154
     },
     {
-      "bytes": 216369,
+      "bytes": 216443,
       "pfad": "docs/ARCHITECTURES.md",
       "zeilen": 3372
     },
     {
-      "bytes": 12935,
+      "bytes": 12965,
       "pfad": "docs/BAUSTEINE.md",
       "zeilen": 105
     },
     {
-      "bytes": 79240,
+      "bytes": 80188,
       "pfad": "docs/DESIGN.md",
-      "zeilen": 1431
+      "zeilen": 1438
     },
     {
       "erzeugt": true,
@@ -1387,9 +1387,9 @@
       "zeilen": 531
     },
     {
-      "bytes": 330836,
+      "bytes": 331557,
       "pfad": "docs/TESTING.md",
-      "zeilen": 5538
+      "zeilen": 5547
     },
     {
       "bytes": 418019,
@@ -1765,9 +1765,9 @@
       "pfad": "img/wurst.webp"
     },
     {
-      "bytes": 998312,
+      "bytes": 1000341,
       "pfad": "index.html",
-      "zeilen": 15806
+      "zeilen": 15833
     },
     {
       "bytes": 9247,
@@ -1935,7 +1935,7 @@
       "zeilen": 351
     },
     {
-      "bytes": 3096,
+      "bytes": 3118,
       "pfad": "tools/probe-marken-lader.html",
       "zeilen": 47
     },
@@ -2113,6 +2113,11 @@
       "bytes": 6483,
       "pfad": "tools/pruefstand-makro-abweichung.py",
       "zeilen": 125
+    },
+    {
+      "bytes": 8398,
+      "pfad": "tools/pruefstand-marken-lader.py",
+      "zeilen": 171
     },
     {
       "bytes": 10879,
@@ -2295,7 +2300,7 @@
       "zeilen": 156
     },
     {
-      "bytes": 28346,
+      "bytes": 28354,
       "pfad": "tools/vergleich-bausteine.js",
       "zeilen": 564
     },
