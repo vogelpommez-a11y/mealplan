@@ -12272,17 +12272,18 @@
     // Zustand, die aktive Wahl ist markiert. Optik und Schliessen wie das Popover unten.
     const other = groupMembers.length === 2 ? groupMembers.find(x => x.uid !== syncUid) : null;
     const me = groupMembers.find(x => x.uid === syncUid);
-    let menu;
+    // EINE Huelle fuer beide Varianten, nur der Inhalt unterscheidet sich (bis 17.10.2026 stand
+    // die Huelle zweimal da, und die Variante ab drei Personen hatte kein aria-label).
+    let inhalt;
     if (other && me) {
       const cur = entryUids(entry);
       const aktiv = cur === null ? "alle" : (cur.length === 1 && cur[0] === syncUid ? "ich" : (cur.length === 1 && cur[0] === other.uid ? "du" : ""));
-      const wahl = (key, inhalt) => `<button class="assign-chip${aktiv === key ? " on" : ""}" data-wahl="${key}" role="menuitemradio" aria-checked="${aktiv === key}">${inhalt}</button>`;
-      menu = el(`<div class="menu assign-menu" role="menu" aria-label="Für wen?">
+      const wahl = (key, chip) => `<button class="assign-chip${aktiv === key ? " on" : ""}" data-wahl="${key}" role="menuitemradio" aria-checked="${aktiv === key}">${chip}</button>`;
+      inhalt = `
         ${wahl("alle", `<span class="avatar-spacer" aria-hidden="true"></span><span>Für euch beide</span>`)}
         <div class="assign-sep" aria-hidden="true"></div>
         ${wahl("ich", `${memberAvatarHtml(me, true)}<span>Nur ich</span>`)}
-        ${wahl("du", `${memberAvatarHtml(other, true)}<span>Nur ${esc(firstName(other.name) || "Jemand")}</span>`)}
-      </div>`);
+        ${wahl("du", `${memberAvatarHtml(other, true)}<span>Nur ${esc(firstName(other.name) || "Jemand")}</span>`)}`;
     }
     const curUids = entryUids(entry) || groupMembers.map(x => x.uid);
     // "Für alle" als eigener Chip ganz oben, nicht nur als Ergebnis vollstaendigen Anhakens.
@@ -12295,10 +12296,11 @@
     // Er setzt uids auf null - genau das, was makeEntry() ohnehin erzeugt, sobald alle
     // abgedeckt sind. Kein zweiter Weg zum selben Zustand, nur eine Abkuerzung dorthin.
     const alleAn = entryUids(entry) === null;
-    if (!menu) menu = el(`<div class="menu assign-menu" role="menu">
+    if (!inhalt) inhalt = `
       <button class="assign-chip${alleAn ? " on" : ""}" data-all="1" role="menuitem"><span class="avatar-spacer" aria-hidden="true"></span><span>Für alle</span></button>
       <div class="assign-sep" aria-hidden="true"></div>
-      ${groupMembers.map(mem => `<button class="assign-chip${curUids.indexOf(mem.uid) !== -1 ? " on" : ""}" data-uid="${esc(mem.uid)}" role="menuitem">${memberAvatarHtml(mem, true)}<span>${esc(firstName(mem.name) || "Jemand")}</span></button>`).join("")}
+      ${groupMembers.map(mem => `<button class="assign-chip${curUids.indexOf(mem.uid) !== -1 ? " on" : ""}" data-uid="${esc(mem.uid)}" role="menuitem">${memberAvatarHtml(mem, true)}<span>${esc(firstName(mem.name) || "Jemand")}</span></button>`).join("")}`;
+    const menu = el(`<div class="menu assign-menu" role="menu" aria-label="Für wen?">${inhalt}
     </div>`);
     // An <body> haengen statt an die Karte: .day hat overflow:hidden (fuer die mobilen
     // Karussell-Streifen) und wuerde ein absolut positioniertes Popover abschneiden.

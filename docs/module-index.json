@@ -1005,101 +1005,101 @@
       "zeilen": 47
     },
     {
-      "bis": 12374,
+      "bis": 12376,
       "datei": "index.html",
       "titel": "Kontowechsel auf demselben Geraet",
       "von": 11602,
-      "zeilen": 773
+      "zeilen": 775
     },
     {
-      "bis": 12465,
+      "bis": 12467,
       "datei": "index.html",
       "titel": "Kalorienrechner (Baustein 1: Tages-/Wochenbedarf → state.goal)",
-      "von": 12375,
+      "von": 12377,
       "zeilen": 91
     },
     {
-      "bis": 12541,
+      "bis": 12543,
       "datei": "index.html",
       "titel": "Wiegen: speichern, loeschen, ans Ziel koppeln",
-      "von": 12466,
+      "von": 12468,
       "zeilen": 76
     },
     {
-      "bis": 13476,
+      "bis": 13478,
       "datei": "index.html",
       "titel": "Erste Schritte (Onboarding)",
-      "von": 12542,
+      "von": 12544,
       "zeilen": 935
     },
     {
-      "bis": 13503,
+      "bis": 13505,
       "datei": "index.html",
       "titel": "Erscheinungsbild",
-      "von": 13477,
+      "von": 13479,
       "zeilen": 27
     },
     {
-      "bis": 13627,
+      "bis": 13629,
       "datei": "index.html",
       "titel": "Einstellungen",
-      "von": 13504,
+      "von": 13506,
       "zeilen": 124
     },
     {
-      "bis": 13705,
+      "bis": 13707,
       "datei": "index.html",
       "titel": "Einstieg (D1b)",
-      "von": 13628,
+      "von": 13630,
       "zeilen": 78
     },
     {
-      "bis": 13722,
+      "bis": 13724,
       "datei": "index.html",
       "titel": "Cloud-Anmeldung (Firebase)",
-      "von": 13706,
+      "von": 13708,
       "zeilen": 17
     },
     {
-      "bis": 13776,
+      "bis": 13778,
       "datei": "index.html",
       "titel": "Startbildschirm (#splash, statisch im Markup)",
-      "von": 13723,
+      "von": 13725,
       "zeilen": 54
     },
     {
-      "bis": 14455,
+      "bis": 14457,
       "datei": "index.html",
       "titel": "Marken-Lader (docs/DESIGN.md \"Der Marken-Lader\")",
-      "von": 13777,
+      "von": 13779,
       "zeilen": 679
     },
     {
-      "bis": 15540,
+      "bis": 15542,
       "datei": "index.html",
       "titel": "Gemeinsam planen (Gruppe)",
-      "von": 14456,
+      "von": 14458,
       "zeilen": 1085
     },
     {
-      "bis": 15574,
+      "bis": 15576,
       "datei": "index.html",
       "titel": "Teilen ueber den nativen Dialog des Geraets (Web Share API)",
-      "von": 15541,
+      "von": 15543,
       "zeilen": 34
     },
     {
-      "bis": 15814,
+      "bis": 15816,
       "datei": "index.html",
       "titel": "Einkaufsliste als PDF (Paket B3)",
-      "von": 15575,
+      "von": 15577,
       "zeilen": 240
     },
     {
-      "bis": 15833,
+      "bis": 15835,
       "datei": "index.html",
       "titel": "Boot",
-      "von": 15815,
+      "von": 15817,
       "zeilen": 19
     },
     {
@@ -1353,7 +1353,7 @@
       "zeilen": 3372
     },
     {
-      "bytes": 12965,
+      "bytes": 13131,
       "pfad": "docs/BAUSTEINE.md",
       "zeilen": 105
     },
@@ -1765,9 +1765,9 @@
       "pfad": "img/wurst.webp"
     },
     {
-      "bytes": 1000341,
+      "bytes": 1000501,
       "pfad": "index.html",
-      "zeilen": 15833
+      "zeilen": 15835
     },
     {
       "bytes": 9247,

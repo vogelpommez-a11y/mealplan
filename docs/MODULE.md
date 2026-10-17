@@ -143,20 +143,20 @@ Erhoben aus den Abschnittsmarken im Code, nicht von Hand gepflegt.
 | index.html | Foto per Drag & Drop auf eine Meal-Karte (Desktop) | 11491-11522 | 32 |
 | index.html | Foto per Strg+V auf eine Meal-Karte einfuegen | 11523-11554 | 32 |
 | index.html | Profil (lokal) & Teilen | 11555-11601 | 47 |
-| index.html | Kontowechsel auf demselben Geraet | 11602-12374 | 773 |
-| index.html | Kalorienrechner (Baustein 1: Tages-/Wochenbedarf → state.goal) | 12375-12465 | 91 |
-| index.html | Wiegen: speichern, loeschen, ans Ziel koppeln | 12466-12541 | 76 |
-| index.html | Erste Schritte (Onboarding) | 12542-13476 | 935 |
-| index.html | Erscheinungsbild | 13477-13503 | 27 |
-| index.html | Einstellungen | 13504-13627 | 124 |
-| index.html | Einstieg (D1b) | 13628-13705 | 78 |
-| index.html | Cloud-Anmeldung (Firebase) | 13706-13722 | 17 |
-| index.html | Startbildschirm (#splash, statisch im Markup) | 13723-13776 | 54 |
-| index.html | Marken-Lader (docs/DESIGN.md "Der Marken-Lader") | 13777-14455 | 679 |
-| index.html | Gemeinsam planen (Gruppe) | 14456-15540 | 1085 |
-| index.html | Teilen ueber den nativen Dialog des Geraets (Web Share API) | 15541-15574 | 34 |
-| index.html | Einkaufsliste als PDF (Paket B3) | 15575-15814 | 240 |
-| index.html | Boot | 15815-15833 | 19 |
+| index.html | Kontowechsel auf demselben Geraet | 11602-12376 | 775 |
+| index.html | Kalorienrechner (Baustein 1: Tages-/Wochenbedarf → state.goal) | 12377-12467 | 91 |
+| index.html | Wiegen: speichern, loeschen, ans Ziel koppeln | 12468-12543 | 76 |
+| index.html | Erste Schritte (Onboarding) | 12544-13478 | 935 |
+| index.html | Erscheinungsbild | 13479-13505 | 27 |
+| index.html | Einstellungen | 13506-13629 | 124 |
+| index.html | Einstieg (D1b) | 13630-13707 | 78 |
+| index.html | Cloud-Anmeldung (Firebase) | 13708-13724 | 17 |
+| index.html | Startbildschirm (#splash, statisch im Markup) | 13725-13778 | 54 |
+| index.html | Marken-Lader (docs/DESIGN.md "Der Marken-Lader") | 13779-14457 | 679 |
+| index.html | Gemeinsam planen (Gruppe) | 14458-15542 | 1085 |
+| index.html | Teilen ueber den nativen Dialog des Geraets (Web Share API) | 15543-15576 | 34 |
+| index.html | Einkaufsliste als PDF (Paket B3) | 15577-15816 | 240 |
+| index.html | Boot | 15817-15835 | 19 |
 | lib/barcode.js | Barcode-Scan (Open Food Facts) | 14-163 | 150 |
 | lib/pdf.js | PDF selbst erzeugen (kein window.print, sandbox-sicher) | 14-38 | 25 |
 | lib/pdf.js | Marken-Kopf fuer die PDFs (Logo, "PADDY'S MEALPLAN", Slogan) | 39-106 | 68 |
@@ -342,7 +342,7 @@ _keine_
 | docs/ABDECKUNG.md | 192 | 13718 |
 | docs/ABNAHME-MENSCH.md | 154 | 8210 |
 | docs/ARCHITECTURES.md | 3372 | 216443 |
-| docs/BAUSTEINE.md | 105 | 12965 |
+| docs/BAUSTEINE.md | 105 | 13131 |
 | docs/DESIGN.md | 1438 | 80188 |
 | docs/MODULE.md | — | — (erzeugt) |
 | docs/PRODUCT.md | 1826 | 105083 |
@@ -442,7 +442,7 @@ _keine_
 | img/waffle.webp | — | 52546 |
 | img/wrap.webp | — | 43594 |
 | img/wurst.webp | — | 54064 |
-| index.html | 15833 | 1000341 |
+| index.html | 15835 | 1000501 |
 | lib/barcode.js | 163 | 9247 |
 | lib/basis.js | 21 | 836 |
 | lib/pdf.js | 241 | 13120 |
