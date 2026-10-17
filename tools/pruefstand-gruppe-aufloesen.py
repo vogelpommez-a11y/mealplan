@@ -99,6 +99,11 @@ function toast(t) { toasts.push(t); }
 function setViewWeek(w) {}
 function leaveGroupState() { syncGid = null; groupInfo = null; groupMembers = []; myRole = null; lastPushedSlots = null; }
 function switchGroup(gid) { return Promise.resolve(); }
+// Seit 17.10.2026 setzt leaveGroup() nach dem Zurueckschreiben die Plan-Baseline (slotweiser
+// Abgleich, gepruft in pruefstand-plan-slots.py). Hier nur festhalten, dass es passiert.
+var planBaseGesetzt = null;
+function planSlots(p) { return p; }
+function setPlanBase(b) { planBaseGesetzt = b; }
 
 var geloeschteCodes = [], codeFehler = [];   // codeFehler: diese Codes lassen sich nicht loeschen
 window.CloudGroup = {

@@ -6,7 +6,7 @@ Dieses Dokument enthält bekannte Fehlerquellen, historische Bugs und Probleme, 
 
 <!-- REGISTER-ANFANG (erzeugt aus den Ueberschriften: python tools/register.py - nicht von Hand pflegen) -->
 
-**Register — 188.** Chronologisch gewachsen: je hoeher die Nummer,
+**Register — 189.** Chronologisch gewachsen: je hoeher die Nummer,
 desto juenger der Fund. Wer eine Falle sucht, sucht hier zuerst; die Ueberschrift sagt
 jeweils, worum es geht. **Nicht die ganze Datei lesen** — sie ist rund 310 KB gross.
 
@@ -200,6 +200,7 @@ jeweils, worum es geht. **Nicht die ganze Datei lesen** — sie ist rund 310 KB 
 | 186 | Das Zuweisungsmenü stand in Serifenschrift |
 | 187 | Die Vorführung blieb leer — Chrome hielt die Bausteinliste vor |
 | 188 | „Rückgängig“ nach dem Auto-Planer löschte, was die Gruppe inzwischen eingetragen hatte |
+| 189 | Ohne Gruppe gewann beim Wochenplan der letzte Schreiber — auch ein veralteter |
 
 <!-- REGISTER-ENDE -->
 
@@ -7185,3 +7186,37 @@ als JSON-Kopie, fremder Eintrag dazu). Gegenprobe gegen den Stand davor: 4 rot.
 **Merksatz:** Ein Rückgängig, das einen ganzen Bereich auf „vorher“ setzt, löscht alles, was
 andere in der Zwischenzeit getan haben. Zurücknehmen heißt: genau das zurücknehmen, was man
 selbst getan hat.
+
+## 189. Ohne Gruppe gewann beim Wochenplan der letzte Schreiber — auch ein veralteter
+
+**Gefunden am 17.10.2026** im Qualitäts-Audit (`kvp`, gegengeprüft am Code), behoben am selben Tag.
+
+Außerhalb einer Gruppe schrieb `pushNow()` den Plan als **ein** Feld (`d.plans = state.plans`),
+und `onRemote()`/`startCloudSync()` ersetzten den lokalen Plan durch den der Cloud. Zwei Wege zu
+stillem Datenverlust:
+
+1. **Offline geplant:** Der Schreibvorgang lag in der Warteschlange des `persistentLocalCache`
+   und kam beim Wiederverbinden an — mit dem ganzen, alten Plan. Was das zweite Gerät
+   inzwischen eingetragen hatte, war weg.
+2. **App binnen 800 ms geschlossen:** Die Änderung stand nur im `localStorage`. Beim nächsten
+   Start gewann je Woche der Cloud-Plan.
+
+Dazu, beim selben Durchgang: „Rückgängig“ nach dem Entfernen schrieb in `state.plan` — die
+gerade **angezeigte** Woche. Wer binnen 5 s die Woche wechselte, bekam das Meal dort.
+
+**Behoben:** slotweiser Abgleich wie im Gruppenplan, mit einer im `localStorage` gemerkten
+Baseline (`docs/ARCHITECTURES.md`, „Der persönliche Wochenplan wird slotweise abgeglichen“);
+Push sofort bei `pagehide`/`visibilitychange`; `removeFromSlot()` hält die Woche fest und
+begrenzt den Index.
+
+**Prüfstand:** `tools/pruefstand-plan-slots.py` (25 Punkte, Gegenprobe gegen den alten Stand).
+**Nicht** im Prüfstand: das echte Firestore-SDK — dafür `/abnahme` mit zwei Geräten.
+
+**Merksatz:** Wer ein ganzes Feld schreibt, überschreibt alles, was er nicht kennt. Ein Gerät,
+das offline war, kennt am wenigsten.
+
+**Offen, bei der Abnahme beobachtet (älter als diese Änderung):** `onRemote()` übergeht jeden
+Snapshot mit `hasPendingWrites`. Kommt ein fremder Slot genau zusammen mit dem eigenen
+ausstehenden Schreibvorgang an, sieht das Gerät ihn erst beim nächsten Snapshot — nach der
+Serverbestätigung ändern sich nur Metadaten, und dafür feuert ohne `includeMetadataChanges` kein
+Ereignis. Kein Datenverlust, nur verzögerte Anzeige. Abnahme-Protokoll in `docs/TESTING.md`.

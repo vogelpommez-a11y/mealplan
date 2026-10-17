@@ -66,15 +66,15 @@ nur die Gruppe; das war überholt:
 
 | Pro-Funktion | Wo durchgesetzt |
 |---|---|
-| **Gruppe gründen** und in der Gruppe planen | **In den Regeln.** `groupOwnerHasPro(gid)` bei `groups/{gid}/plans` und `groups/{gid}/recipes` (`firestore.rules:393`, `:414`) |
-| **Auto-Wochenplaner** — laut `docs/PRODUCT.md` „das entscheidende Pro-Feature" | **Nur im Client.** `if (!isPro() && !syncGid)` in `index.html:8645` |
+| **Gruppe gründen** und in der Gruppe planen | **In den Regeln.** `groupOwnerHasPro(gid)` bei `groups/{gid}/plans` und `groups/{gid}/recipes` (`firestore.rules`, Funktion `groupOwnerHasPro`) |
+| **Auto-Wochenplaner** — laut `docs/PRODUCT.md` „das entscheidende Pro-Feature" | **Nur im Client.** `if (!isPro() && !syncGid)` in `autoPlanWeek()` (`index.html`) |
 
 Cloud-Sync selbst bleibt ausdrücklich gratis.
 
 ### ⚠️ Die Lücke: Der Auto-Planer ist bei Solo-Konten nicht durchgesetzt
 
 Ein Solo-Konto schreibt sein Planergebnis in `users/{uid}`. Diese Regel hat **bewusst keine
-Pro-Prüfung** (`firestore.rules:128-137`, ausdrücklich so entschieden am 15.08.2026, weil
+Pro-Prüfung** (`firestore.rules`, Block `match /users/{uid}`, ausdrücklich so entschieden am 15.08.2026, weil
 Cloud-Sync frei bleiben soll). Der `isPro()`-Riegel davor ist damit eine **UI-Sperre** — und
 UI-Sperren sind keine Sicherheitsgrenze (CLAUDE.md § 12). Wer `autoPlanWeek()` über die
 DevTools aufruft, bekommt den Plan.
@@ -187,6 +187,12 @@ durchgesetzt seit 24.07.2023 laut Google Developers Blog; `store-check`, 30.09.2
 Capacitor-Hülle ginge der Web-Popup also voraussichtlich gar nicht. Das Plugin muss einen
 sichtbaren System-Flow nutzen (`ASWebAuthenticationSession` bzw. Custom Tabs). Das ist eine
 Google-Regel, keine Apple-Guideline.
+
+**Dasselbe trifft das Konto-Löschen** (`store-check`, 17.10.2026): Google-Nutzer bestätigen vor
+`deleteUser()` per `reauthenticateWithPopup` (`CloudAuth.deleteAccount` in `index.html`). In der
+WebView scheitert dieser Popup genauso — die Löschung in der App ginge für Google-Konten nicht,
+und 5.1.1(v) verlangt sie dort. Das native Plugin muss deshalb auch die **Re-Authentifizierung**
+übernehmen, nicht nur die Anmeldung.
 
 ---
 
@@ -480,8 +486,8 @@ Alternativtexte sind dafür nicht geprüft.
 - **Funktioniert sie ohne Anmeldung sinnvoll?** Ein Login-Gate ohne Grund vor allem Inhalt
   ist ein Ablehnungsgrund. Der lokale Modus (`authMode = "local"`) deckt das ab.
 - **„Mit Apple anmelden" (Apple 4.8) — greift bereits.** Der Google-Login wird heute
-  bedingungslos angeboten (`index.html:11109`), während `APPLE_ENABLED = false` steht
-  (`index.html:11041`) und der Apple-Knopf dahinter verborgen ist (`:11110`). Apple verlangt
+  bedingungslos angeboten (Anmeldekarte in `index.html`), während `APPLE_ENABLED = false` steht
+  (`index.html`) und der Apple-Knopf dahinter verborgen ist. Apple verlangt
   neben einem Drittanbieter-Login eine gleichwertige datensparsame Option; „Mit Apple
   anmelden" erfüllt sie, der Google-Login allein nicht. Die Einrichtung ist laut
   `FIREBASE-SETUP.md:178` vorbereitet — es fehlen der Apple-Developer-Account und das

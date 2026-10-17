@@ -45,6 +45,9 @@ def schnitt(sig, tiefe=2):
 
 JOIN = schnitt("  async function joinGroup(")
 MERGEPLAN = schnitt("  async function mergeOwnPlanIntoGroup(")
+# Seit 17.10.2026 schreibt joinGroup() den Namen ueber gruppenName() (kein E-Mail-Rueckfall ins
+# Mitgliederdokument) - echt ausgeschnitten, nicht gestubbt.
+NAME = schnitt("  function gruppenName(")
 
 # Sicherung gegen einen stillen Fehlschnitt (die Lehre vom 16.08.2026: ein Pruefstand, der
 # nichts sagt, hat nicht bestanden).
@@ -94,6 +97,7 @@ function copyOwnRecipesToGroup(gid) { kopiert++; return Promise.resolve(); }
 // 28.08.2026 Teil des Beitrittspfads, und genau ihr Fehlen hat diesen Pruefstand
 // beim ersten echten Lauf rot gemacht (docs/TROUBLESHOOTING.md 128 und 131).
 __MERGEPLAN__
+__NAME__
 function flattenWeek(w) { return w || {}; }
 function switchGroup(gid) { gewechselt = gid; return Promise.resolve(); }
 function withdrawPendingInvite() { return Promise.resolve(); }
@@ -211,7 +215,7 @@ var BENUTZT = { gid: "g1", role: "edit", by: "paddy", used: true };
 """
 
 io.open(ZIEL, "w", encoding="utf-8").write(
-    seite.replace("__JOIN_ALT__", JOIN_ALT).replace("__MERGEPLAN__", MERGEPLAN).replace("__JOIN__", JOIN))
+    seite.replace("__JOIN_ALT__", JOIN_ALT).replace("__MERGEPLAN__", MERGEPLAN).replace("__NAME__", NAME).replace("__JOIN__", JOIN))
 print("geschrieben: " + ZIEL)
 
 

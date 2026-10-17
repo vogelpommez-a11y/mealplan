@@ -50,9 +50,10 @@ BAUSTEINE = [
      u"faellt er weg, ist jemand zurueckgefallen"),
 
     (u"Leere Zustaende: Aufrufe", "index.html",
-     r"\bleerZustand\(", 12,
-     u"11 Aufrufe + Definition. Am 20.09.2026 aus 6 Klassennamen zusammengefuehrt; "
-     u"die Ladeanzeige beim ersten Cloud-Abgleich ist seit 17.10.2026 der Marken-Lader"),
+     r"\bleerZustand\(", 11,
+     u"10 Aufrufe + Definition. Am 20.09.2026 aus 6 Klassennamen zusammengefuehrt; "
+     u"die Ladeanzeige beim ersten Cloud-Abgleich ist seit 17.10.2026 der Marken-Lader, "
+     u"die Meal-Karte ohne Naehrwerte zeigt seit demselben Tag einen Strich (Audit)"),
 
     (u"Marken-Lader: Helfer", "index.html",
      r"function markenLader\s*\(", 1,

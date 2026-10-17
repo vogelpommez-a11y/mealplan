@@ -176,12 +176,22 @@ ohne die Entscheidung zu kennen:
   steht in `docs/ARCHITECTURES.md`. Am 26.08.2026 wurde genau dagegen verstoßen und die
   Änderung wieder zurückgenommen; der vorbereitete Text liegt in
   `docs/DATENSCHUTZ-INTERN.md`, Abschnitt 7.
+  **Gehärtet am 17.10.2026, noch vor dem ersten Deploy** (Befund `website-security`): Weil der
+  Worker die Regeln umgeht, prüft er selbst, was die Regeln nicht prüfen. `shared/{id}` darf
+  jedes angemeldete Konto mit beliebigem Inhalt anlegen; übernähme der Worker Typ und Inhalt
+  aus `og.img`, wäre `data:text/html;base64,…` ein Skript **im Ursprung der App** (Anmeldung im
+  IndexedDB, Plandaten im `localStorage`). Jetzt: nur `image/jpeg|png|webp`, nur sauberes
+  Base64, `img/`-Pfade nur nach Muster (kein `..`), jede Bildantwort mit
+  `X-Content-Type-Options: nosniff` und `Content-Security-Policy: default-src 'none'; sandbox`.
+  Dazu die **12-Monats-Frist** aus `shareFrisch()` — der Service-Account sieht abgelaufene
+  Links, die Regel nicht. Wer den Worker ändert: diese vier Prüfungen bleiben, sie sind die
+  einzige Grenze vor der Hauptdomain.
 - **Pro-Gating ist zusätzlich clientseitig sichtbar.** Das ist Bequemlichkeit; die Grenze
   liegt in `groupOwnerHasPro()`.
 - **Der Auto-Wochenplaner ist bei Solo-Konten nur im Client Pro-gesperrt** (`isPro()` in
-  `index.html:8645`). Er rechnet auf dem Gerät und schreibt in `users/{uid}` — dort darf
+  `autoPlanWeek()`). Er rechnet auf dem Gerät und schreibt in `users/{uid}` — dort darf
   der Nutzer ohnehin schreiben, und die Regel hat bewusst keine Pro-Prüfung
-  (`firestore.rules:128-137`, Entscheidung vom 15.08.2026, damit Cloud-Sync frei bleibt).
+  (`firestore.rules`, Block `match /users/{uid}`, Entscheidung vom 15.08.2026, damit Cloud-Sync frei bleibt).
   Den Regeln sieht ein fertiger Plan nicht an, wie er entstanden ist.
   **Entschieden am 26.08.2026: bleibt so.** Serverseitig zu rechnen würde den Planer vom
   Netz abhängig machen — gegen die Offline-Zusage und gegen eine Store-Anforderung. Wer die

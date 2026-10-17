@@ -69,6 +69,10 @@ function isDeleted(id){ return !!state.deleted[id]; }
 function pruneWeeks(p){ return p || {}; }
 function normalizePlans(p){ return p || {}; }
 function plansField(){ return {}; }
+// Seit 17.10.2026 fuehrt mergeRemoteRecipes() den Plan slotweise zusammen (mergePlansSlotwise,
+// unten mit ausgeschnitten). Ohne Baseline rechnet es wie vorher: Cloud-Wochen gewinnen, rein
+// lokale bleiben - der Plan ist hier ohnehin nicht Gegenstand der Pruefung.
+var planBase = null;
 function unionIds(a,b){ return (a||[]).concat(b||[]); }
 function recipeBase(){ return syncGid ? ["groups", syncGid] : ["users", syncUid]; }
 var CLOUD_DOC_MAX = 900000, cloudTooBigWarned = false, cloudPushFailed = false;
@@ -307,13 +311,15 @@ def main():
                     u"\n    }\n  }")
     merge = schneide(quelle, u"function mergeRemoteRecipes(list)",
                      u"save(); render();", u"\n      }")
+    slots = schneide(quelle, u"function planSlots(plans)",
+                     u"    return [key.slice(0, dot)]", u"\n  }")
 
     tmp = tempfile.mkdtemp(prefix="mp-grpleave-")
     try:
         seite = os.path.join(tmp, "pruefstand.html")
         io.open(seite, "w", encoding="utf-8").write(
             u"<script>\n" + canon + u"\n" + UMFELD + u"\n" + prune + u"\n" + sync +
-            u"\n" + merge + u"\n" + TEST + u"\n</script>")
+            u"\n" + slots + u"\n" + merge + u"\n" + TEST + u"\n</script>")
         p = subprocess.run(
             [EDGE, "--headless=new", "--disable-gpu", "--virtual-time-budget=8000",
              "--user-data-dir=" + os.path.join(tmp, "profil"),

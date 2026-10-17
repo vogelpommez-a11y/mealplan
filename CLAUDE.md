@@ -254,7 +254,7 @@ Stattdessen: mit `Grep` die relevante Stelle suchen, nur diese mit Offset/Limit 
 sucht seit der Aufteilung an Tokens, Rezeptkatalog, Rechtstexten, PDF und Barcode vorbei —
 und findet nichts, ohne dass das auffällt. `docs/MODULE.md` sagt, wo was liegt.
 
-Die Meal-Fotos liegen als 32 Dateien in `img/`, **nicht** mehr als Base64 in der Datei. Was
+Die Meal-Fotos liegen als Dateien in `img/` und `img/library/`, **nicht** mehr als Base64 in der Datei. Was
 noch als `data:image;base64` vorkommt, sind Bilder des Nutzers aus `localStorage`/Firestore —
 zur Laufzeit, nicht im Quelltext. Trifft man sie doch einmal an: über Skripte arbeiten, nie
 durch den Kontext kopieren.
@@ -294,6 +294,15 @@ python tools/alle-pruefstaende.py
 
 Achtung: Bei Prüfständen, die `OFFEN` von `REGRESSION` trennen, heißt „grün" dort nur
 **keine Regression** — offene Punkte kann es trotzdem geben. Der Läufer weist das aus.
+
+**Prüfaufwand nach Größe der Änderung** (Festlegung Paddy, 17.10.2026):
+
+* Während der Arbeit nur Schnelles: Syntax-Check und der **eine** betroffene Prüfstand.
+* `alle-pruefstaende.py` (~5 min) und `abnahme-mobil.py` (~5 min) laufen **einmal am Ende,
+  vor dem Push** — `abnahme-mobil.py` nur, wenn sich etwas Sichtbares geändert hat. Nicht nach
+  jeder Text-, Doku- oder Pushcheck-Korrektur erneut.
+* Bricht ein langer Test ab: **nicht neu starten**, sondern in `docs/TROUBLESHOOTING.md`
+  nachsehen und den Nutzer fragen. `WebSocketTimeoutException` ist ein bekannter Werkzeug-Flake.
 
 Zwei Regeln, die dabei nicht verhandelbar sind:
 

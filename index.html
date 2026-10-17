@@ -274,7 +274,8 @@
   import {
     getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager,
     terminate, clearIndexedDbPersistence,
-    doc, collection, getDoc, getDocs, getDocFromServer, getDocsFromServer, setDoc, updateDoc, deleteDoc, writeBatch, increment, onSnapshot
+    doc, collection, getDoc, getDocs, getDocFromServer, getDocsFromServer, setDoc, updateDoc, deleteDoc, writeBatch, increment, onSnapshot,
+    FieldPath, deleteField
   } from "./vendor/firebase/10.12.5/firebase-firestore.js";
 
   /* ▼▼▼ HIER die Werte aus der Firebase-Konsole eintragen ▼▼▼
@@ -709,6 +710,21 @@
           const felder = Object.keys(data);
           if (!felder.length) return Promise.resolve();
           return setDoc(doc(db, "users", uid), data, { mergeFields: felder });
+        },
+        // Persoenlicher Wochenplan slotweise (siehe planPatch() im App-Teil): writes ist eine Liste
+        // { path: ["plans", woche, tag, mahlzeit], value } bzw. { path: ["plans", woche], del: true }.
+        // FieldPath statt Punkt-Zeichenkette - "2026-W42" soll nie als Pfadsyntax gelesen werden.
+        // mergeFields mit genau diesen Pfaden: jeder Slot wird ganz ersetzt, alles andere bleibt.
+        savePlanSlots: function (uid, writes) {
+          if (!writes.length) return Promise.resolve();
+          const data = {}, maske = [];
+          writes.forEach(function (w) {
+            let o = data;
+            w.path.slice(0, -1).forEach(function (p) { o = o[p] || (o[p] = {}); });
+            o[w.path[w.path.length - 1]] = w.del ? deleteField() : w.value;
+            maske.push(new FieldPath(...w.path));
+          });
+          return setDoc(doc(db, "users", uid), data, { mergeFields: maske });
         },
         watch: function (uid, cb) {
           return onSnapshot(doc(db, "users", uid), function (snap) {
@@ -1725,6 +1741,51 @@
     if (!state.plans[key]) state.plans[key] = makeEmptyPlan();
     state.plan = state.plans[key];
   }
+  // Einen Eintrag aus einem Slot der angezeigten Woche nehmen, mit Rueckgaengig. Die Woche wird
+  // beim Entfernen festgehalten: Ueber state.plan landete das Rueckgaengig in der Woche, die
+  // gerade ANGEZEIGT wird - wer binnen der 5 s die Woche wechselte, bekam das Meal dort
+  // (Audit 17.10.2026). Der Index wird begrenzt, weil ein Cloud-Stand die Liste inzwischen
+  // verkuerzt haben kann. Pruefer: tools/pruefstand-plan-slots.py
+  function removeFromSlot(d, m, idx) {
+    const wk = activeWeekKey();
+    const removed = state.plan[d][m][idx];
+    state.plan[d][m].splice(idx, 1);
+    save(); render();
+    undoToast("Entfernt", () => {
+      const pl = state.plans[wk];
+      if (!pl) return;   // Woche inzwischen verfallen (Wochenwechsel waehrend der Anzeige)
+      const liste = pl[d][m];
+      liste.splice(Math.min(idx, liste.length), 0, removed);
+      save(); render();
+    });
+  }
+
+  // Pfeiltasten fuer ALLE Reiterleisten (role="tablist": Hauptreiter, Woche, Meals-Ansicht,
+  // Zeitraum im Fortschritt, Anmelden/Registrieren) - ein Handler statt fuenf Kopien
+  // (CLAUDE.md 21a). Vorbild: WAI-ARIA Authoring Practices, "Tabs Pattern" mit automatischer
+  // Aktivierung (https://www.w3.org/WAI/ARIA/apg/patterns/tabs/) - Links/Rechts wechselt zum
+  // Nachbarn und aktiviert ihn, Pos1/Ende springen an den Rand. Uebernommen ist nur die
+  // Tastenbelegung; der Roving-Tabindex des Vorbilds nicht, weil die fuenf Leisten in vier
+  // verschiedenen Renderwegen entstehen. Die Leiste wird nach dem Klick meist neu gezeichnet,
+  // deshalb findet der Fokus sie ueber ihren Namen und die Position wieder (Audit 17.10.2026).
+  document.addEventListener("keydown", e => {
+    if (e.altKey || e.ctrlKey || e.metaKey) return;
+    const tab = e.target.closest && e.target.closest('[role="tab"]');
+    const leiste = tab && tab.closest('[role="tablist"]');
+    if (!leiste) return;
+    const sichtbar = l => Array.from(l.querySelectorAll('[role="tab"]')).filter(t => !t.disabled && t.getClientRects().length);
+    const tabs = sichtbar(leiste), i = tabs.indexOf(tab);
+    const n = e.key === "ArrowRight" ? (i + 1) % tabs.length
+            : e.key === "ArrowLeft" ? (i - 1 + tabs.length) % tabs.length
+            : e.key === "Home" ? 0 : e.key === "End" ? tabs.length - 1 : -1;
+    if (n < 0 || n === i) return;
+    e.preventDefault();
+    const name = leiste.getAttribute("aria-label") || "";
+    tabs[n].click();
+    const neu = name ? document.querySelector('[role="tablist"][aria-label="' + CSS.escape(name) + '"]') : null;
+    const ziel = (neu && sichtbar(neu)[n]) || tabs[n];
+    if (ziel.isConnected) ziel.focus();
+  });
 
   // Trainingsplan auf gueltige Wochentage eindampfen: fremde Schluessel raus, Stufe auf
   // eine bekannte Stufe zwingen, Dauer in den erlaubten Bereich klemmen.
@@ -2324,6 +2385,27 @@
   // Betrifft NUR das Kontodokument. syncRecipes() und pushGroupPlan() haben ihre eigenen,
   // diff-basierten Baselines und laufen unveraendert weiter.
   let cloudBaselineOk = false;
+  // Baseline des persoenlichen Wochenplans (siehe planSlots()): was die Cloud nachweislich hat.
+  // Im localStorage MIT der uid gemerkt - die Baseline eines anderen Kontos auf demselben Geraet
+  // waere falsch und liesse fremde Slots als "noch nicht hochgeladen" erscheinen.
+  const PLAN_BASE_KEY = localKey("wochenkueche_planbase_v1");
+  let planBase = null;
+  function setPlanBase(b) {
+    planBase = b;
+    if (!syncUid) return;
+    try { localStorage.setItem(PLAN_BASE_KEY, JSON.stringify({ uid: syncUid, slots: Array.from(b.entries()) })); }
+    catch (e) { noteError("store:planBase", e); }
+  }
+  function loadPlanBase(uid) {
+    try {
+      const o = JSON.parse(localStorage.getItem(PLAN_BASE_KEY) || "null");
+      return o && o.uid === uid && Array.isArray(o.slots) ? new Map(o.slots) : null;
+    } catch (e) { return null; }
+  }
+  function dropPlanBase() {
+    planBase = null;
+    try { localStorage.removeItem(PLAN_BASE_KEY); } catch (e) { noteError("store:planBase", e); }
+  }
   // Hat render() waehrend des ersten Abgleichs die Ladeanzeige gezeichnet? Dann zeichnet
   // startCloudSync() am Ende selbst neu - siehe dort, wann das noetig ist.
   let cloudLaedtAngezeigt = false;
@@ -2454,6 +2536,68 @@
     if (d && d.plan) { const o = {}; o[weekKeyFor("cur")] = d.plan; return o; }
     return {};
   }
+
+  // ---------- Persoenlicher Wochenplan: slotweise statt als Ganzes (Audit 17.10.2026) ----------
+  // Ohne Gruppe lag der Plan als EIN Feld im Kontodokument, und pushNow() ersetzte es ganz.
+  // Zwei Folgen: Wer offline plante, schrieb beim Wiederverbinden seinen alten Stand ueber die
+  // neueren Wochen des anderen Geraets. Und wer die App binnen 800 ms (Debounce) nach einer
+  // Aenderung schloss, verlor sie beim naechsten Start an den Cloud-Stand. Jetzt gilt dasselbe
+  // Muster wie im Gruppenplan (pushGroupPlan): geschrieben wird nur, was sich gegenueber der
+  // Baseline geaendert hat, und ein eingehender Stand ueberschreibt keinen Slot, den dieses
+  // Geraet noch nicht hochgeschickt hat.
+  //
+  // Die Baseline (planBase, Map "Woche.slot" -> canonJSON) ist der Stand, den die Cloud
+  // nachweislich hat. Sie wird zusaetzlich im localStorage gemerkt - nur so weiss ein Neustart,
+  // welche Slots vor dem Schliessen nicht mehr hochkamen. Leere Slots stehen nie darin (wie
+  // bei flattenWeek). Pruefer: tools/pruefstand-plan-slots.py
+  function planSlots(plans) {
+    const out = new Map();
+    Object.keys(plans || {}).forEach(wk => {
+      const flat = flattenWeek(plans[wk]);
+      Object.keys(flat).forEach(f => out.set(wk + "." + f, canonJSON(flat[f])));
+    });
+    return out;
+  }
+  // Lokal + Cloud je Slot zusammenfuehren: Weicht der lokale Slot von der Baseline ab, ist er
+  // noch nicht oben und bleibt. Sonst gilt die Cloud - auch ein dort geleerter Slot.
+  // Ohne Baseline (erster Start nach dem Update, anderes Konto) bleibt es beim alten Verhalten:
+  // Cloud-Wochen gewinnen ganz, rein lokale Wochen bleiben stehen.
+  function mergePlansSlotwise(local, remote, base) {
+    local = local || {}; remote = remote || {};
+    const out = {};
+    Array.from(new Set(Object.keys(local).concat(Object.keys(remote)))).sort().forEach(wk => {
+      if (!base) { out[wk] = remote[wk] || local[wk]; return; }
+      const lf = flattenWeek(local[wk]), rf = flattenWeek(remote[wk]);
+      const fields = {};
+      DAYS.forEach(d => MEALS.forEach(m => {
+        const f = d.key + "_" + m.key;
+        const l = lf[f] ? canonJSON(lf[f]) : undefined;
+        const src = l !== base.get(wk + "." + f) ? lf : rf;
+        if (src[f]) fields[f] = src[f];
+      }));
+      out[wk] = unflattenWeek(fields);
+    });
+    return out;
+  }
+  // Was seit der Baseline zu schreiben ist: neue/geaenderte Slots (set), geleerte Slots
+  // (clear, werden als [] geschrieben) und Wochen, die es lokal nicht mehr gibt (dead -
+  // pruneWeeks hat sie archiviert, sie fallen in der Cloud als Ganzes weg).
+  function planPatch(plans, base) {
+    const cur = planSlots(plans);
+    const set = [], clear = [], dead = new Set();
+    cur.forEach((json, key) => { if (base.get(key) !== json) set.push(key); });
+    base.forEach((_, key) => {
+      if (cur.has(key)) return;
+      const wk = key.slice(0, key.indexOf("."));
+      if (plans && plans[wk]) clear.push(key); else dead.add(wk);
+    });
+    return { cur: cur, set: set, clear: clear, dead: Array.from(dead).sort() };
+  }
+  // "2026-W42.mon_fr" -> ["2026-W42", "mon", "fr"]
+  function slotTeile(key) {
+    const dot = key.indexOf(".");
+    return [key.slice(0, dot)].concat(key.slice(dot + 1).split("_"));
+  }
   // Vergleichs-Signatur ohne "tab" – ein reiner Tab-Wechsel soll keinen Cloud-Write auslösen.
   // "onboarded" gehoert dagegen hinein, sonst wuerde das Abschliessen der ersten Schritte
   // nie gepusht und der Ablauf startete auf jedem weiteren Geraet erneut. Die Normalisierung
@@ -2506,9 +2650,22 @@
 
   function scheduleCloudPush() {
     if (!syncUid) return;
-    clearTimeout(pushTimer);
-    pushTimer = setTimeout(pushNow, 800);
+    clearTimeout(pushTimer); pushTimer = null;
+    pushTimer = setTimeout(() => { pushTimer = null; pushNow(); }, 800);   // null: pushSofort() erkennt "nichts offen"
   }
+  let pushLauf = 0;   // Zaehler fuer pushNow(), siehe dort
+  // Geht die App in den Hintergrund oder wird geschlossen, den geplanten Push nicht erst nach
+  // 800 ms abwarten - die Seite ist dann womoeglich schon eingefroren. Wasserdicht ist das
+  // nicht (iOS gibt kaum Zeit); das Netz darunter ist die gemerkte Plan-Baseline (planBase).
+  function pushSofort() {
+    if (!syncUid || !pushTimer) return;
+    clearTimeout(pushTimer); pushTimer = null;
+    pushNow();
+  }
+  window.addEventListener("pagehide", pushSofort);
+  document.addEventListener("visibilitychange", () => { if (document.hidden) pushSofort(); });
+  // Netz zurueck: einen Abgleich anstossen, statt auf die naechste Aenderung zu warten.
+  window.addEventListener("online", scheduleCloudPush);
   // Firestore laesst pro Dokument hoechstens 1 MiB zu. Frueher lagen alle Meals samt
   // ihren Fotos in EINEM Dokument, die Grenze war mit ein paar Dutzend eigenen Bildern
   // erreicht. Seit dem Subcollection-Umbau (syncRecipes()) gilt die Grenze pro Rezept,
@@ -2576,6 +2733,30 @@
   // iteriert, bliebe der alte Eintrag in der Cloud stehen - das Meal kaeme beim naechsten
   // Snapshot zurueck. Deshalb unten die zweite Schleife ueber die Baseline, die
   // verschwundene Felder ausdruecklich als leeres Array schreibt.
+  // Persoenlichen Wochenplan schreiben - nur der Diff gegen planBase (siehe planPatch()).
+  // Die Baseline waechst erst NACH der Bestaetigung: Offline haengt das await, bis der Server
+  // die Schreibvorgaenge aus der Warteschlange bestaetigt hat. Wird die App vorher geschlossen,
+  // sieht der naechste Start dieselben Slots als "noch nicht oben" und schickt sie erneut.
+  async function pushPersonalPlans() {
+    const p = planPatch(state.plans, planBase || new Map());
+    if (!p.set.length && !p.clear.length && !p.dead.length) { if (!planBase) setPlanBase(p.cur); return; }
+    const writes = [];
+    p.set.forEach(k => { const [wk, d, m] = slotTeile(k); writes.push({ path: ["plans", wk, d, m], value: state.plans[wk][d][m].slice() }); });
+    p.clear.forEach(k => { const [wk, d, m] = slotTeile(k); writes.push({ path: ["plans", wk, d, m], value: [] }); });
+    p.dead.forEach(wk => writes.push({ path: ["plans", wk], del: true }));
+    try {
+      await window.CloudSync.savePlanSlots(syncUid, writes);
+      // Die AKTUELLE Baseline fortschreiben, nicht die von vor dem await - onRemote() kann sie
+      // inzwischen durch den eingegangenen Cloud-Stand ersetzt haben.
+      const b = planBase || new Map();
+      p.set.forEach(k => b.set(k, p.cur.get(k)));
+      p.clear.forEach(k => b.delete(k));
+      p.dead.forEach(wk => Array.from(b.keys()).forEach(k => { if (k.indexOf(wk + ".") === 0) b.delete(k); }));
+      setPlanBase(b);
+    } catch (e) {
+      noteError("sync:plaene", e);   // Baseline bleibt -> naechster Zyklus versucht denselben Diff
+    }
+  }
   async function pushGroupPlan() {
     if (!syncGid || !window.CloudGroup || !canEdit()) return;   // Nur-Ansehen schreibt nie
     const prev = lastPushedSlots || new Map();
@@ -2686,7 +2867,9 @@
     // In den drei Faellen oben ebenfalls nicht: state.plans ist dann moeglicherweise der
     // persoenliche Stand von vor dem Beitritt und wuerde den Kontoplan mit veralteten Daten
     // ueberschreiben.
-    if (groupKnown && !syncGid) d.plans = state.plans;
+    // Seit dem 17.10.2026 nicht mehr als ganzes Feld in `d`, sondern slotweise (pushPersonalPlans).
+    // dataJSON(d) traegt damit immer ein leeres "plans" - onRemote() setzt lastPushedJSON passend.
+    if (groupKnown && !syncGid) await pushPersonalPlans();
     const j = dataJSON(d);
     if (j === lastPushedJSON) return;
     if (j.length > CLOUD_DOC_MAX) {
@@ -2705,12 +2888,16 @@
     cloudTooBigWarned = false;
     lastPushedJSON = j;
     setSyncStatus("saving");
+    // Laeufe koennen sich ueberlappen (die awaits oben haengen offline, bis der Server
+    // bestaetigt). Nur der JUENGSTE Lauf darf den Status setzen - sonst meldete ein alter,
+    // gescheiterter Lauf "offline", obwohl ein neuerer laengst durch ist.
+    const lauf = ++pushLauf;
     try {
       await window.CloudSync.save(syncUid, Object.assign({}, d, { updatedAt: Date.now() }));
       cloudPushFailed = false;
-      setSyncStatus("synced");
+      if (lauf === pushLauf) setSyncStatus("synced");
     } catch (e) {
-      lastPushedJSON = null; setSyncStatus("offline"); /* z. B. offline – nächster Save versucht es erneut */
+      lastPushedJSON = null; if (lauf === pushLauf) setSyncStatus("offline"); /* z. B. offline – nächster Save versucht es erneut */
       // Ein Netzfehler heilt von selbst, ein DATENfehler nie: Er wiederholt sich bei jedem
       // save() und blockiert dabei das ganze Kontodokument - Ziel, Gewichte, Favoriten,
       // Profilbild. Als "offline" gemeldet sieht beides gleich aus, und genau so blieb ein
@@ -2768,7 +2955,13 @@
     // In einer Gruppe kommt der Plan aus groups/{gid}/plans (onGroupPlansRemote) - das
     // Feld im Kontodokument ist dann der eingefrorene Stand von vor dem Beitritt und
     // wuerde den Gruppenplan ueberschreiben.
-    if (!syncGid) state.plans = pruneWeeks(normalizePlans(plansField(data), state.recipes));
+    // Slotweise statt ersetzen (siehe mergePlansSlotwise): ein hier noch nicht hochgeschickter
+    // Slot bleibt. Danach ist der eingegangene Stand die neue Baseline - genau das hat die Cloud.
+    if (!syncGid) {
+      const rp = normalizePlans(plansField(data), state.recipes);
+      state.plans = pruneWeeks(mergePlansSlotwise(state.plans, rp, planBase));
+      setPlanBase(planSlots(rp));
+    }
     state.goal = sanitizeGoal(data.goal);
     state.shares = unionIds(state.shares, data.shares); // nie einen Link verlieren, der nur lokal bekannt ist
     state.inviteCodes = unionIds(state.inviteCodes, data.inviteCodes); // desgleichen fuer Einladungscodes
@@ -2799,7 +2992,10 @@
     state.deleted = mergeTombstones(state.deleted, data.deleted);
     if (data.onboarded) state.onboarded = true;         // nur in eine Richtung, siehe startCloudSync
     setViewWeek(state.viewWeek);
-    lastPushedJSON = j;
+    // Ohne "plans": pushNow() schreibt den Plan slotweise und vergleicht dataJSON(d) daher stets
+    // mit leerem Plan. Mit dem Plan hier stimmte die Signatur nie - jeder Snapshot loeste sonst
+    // einen ueberfluessigen Schreibvorgang des Kontodokuments aus.
+    lastPushedJSON = dataJSON(Object.assign({}, data, { plans: null, plan: null }));
     save();
     // Der Vergleich oben schlaegt schon an, wenn das eingehende Dokument nur ANDERS ist.
     // Die Zusammenfuehrung darunter kann daraus trotzdem exakt denselben Stand ergeben -
@@ -3025,7 +3221,7 @@
     if (!syncGid || !window.CloudGroup || !syncUid) return;
     try {
       await window.CloudGroup.putMember(syncGid, syncUid, {
-        name: profile.name || "",
+        name: gruppenName(),
         avatar: await smallAvatar(state.profileImage)
       });
     } catch (e) { /* nicht kritisch: Name/Bild sind Beiwerk, der Sync laeuft weiter */ }
@@ -3184,6 +3380,7 @@
     if (syncUid === uid) return;                 // läuft schon
     stopCloudSync();
     syncUid = uid;
+    planBase = loadPlanBase(uid);   // nur die eigene, siehe PLAN_BASE_KEY
     setSyncStatus("connecting");
     // Pro-Berechtigung (D1) mitlaufen lassen. Eigener Listener statt eines Feldes im
     // Kontodokument - siehe isPro(). Laeuft VOR dem await unten los: er haengt an nichts,
@@ -3247,9 +3444,10 @@
         sanitizeRecipes(list).forEach(r => { if (r && r.id && !isDeleted(r.id)) map[r.id] = r; });
         state.recipes.forEach(r => { if (r && r.id && !map[r.id] && !isDeleted(r.id)) map[r.id] = r; });
         state.recipes = Object.values(map);
-        const rp = pruneWeeks(normalizePlans(plansField(remote), state.recipes));
-        Object.keys(state.plans).forEach(k => { if (!rp[k]) rp[k] = state.plans[k]; }); // lokale Wochen behalten, die es remote nicht gibt
-        state.plans = pruneWeeks(rp);
+        // Slotweise gegen die gemerkte Baseline (siehe mergePlansSlotwise): Was dieses Geraet vor dem
+        // letzten Schliessen nicht mehr hochbrachte, bleibt. Ohne Baseline wie bisher - Cloud-Wochen
+        // gewinnen, rein lokale Wochen bleiben.
+        state.plans = pruneWeeks(mergePlansSlotwise(state.plans, normalizePlans(plansField(remote), state.recipes), planBase));
         if (remote.goal) state.goal = sanitizeGoal(remote.goal); // Ziel aus der Cloud übernehmen; lokales bleibt, falls remote keins hat
         state.shares = unionIds(state.shares, remote.shares);
         setViewWeek(state.viewWeek);
@@ -3330,6 +3528,9 @@
       }
 
       if (inGroup) {
+        // In der Gruppe ruht der persoenliche Plan - seine Baseline waere beim Austritt veraltet.
+        // leaveGroup() schreibt den Plan dann ganz und setzt sie neu.
+        dropPlanBase();
         if (remote.goal) state.goal = sanitizeGoal(remote.goal);
         state.shares = unionIds(state.shares, remote.shares);
         save(); render();
@@ -3364,6 +3565,10 @@
         // (Migration UND Normalfall gleichermassen abgedeckt), statt bei JEDEM Login alle
         // Rezepte erneut zu schreiben.
         lastPushedRecipes = new Map(cloudRecipes.map(r => [r.id, canonJSON(r)]));   // kanonisch seeden, siehe enterGroupSync()
+        // Dasselbe fuer den Wochenplan: Baseline = Cloud-Stand. Der Baseline-Push unten schreibt
+        // dann nur die Slots, in denen der zusammengefuehrte Stand davon abweicht. Ungepruned,
+        // damit vergangene Wochen in der Cloud als "dead" erkannt und weggeraeumt werden.
+        setPlanBase(planSlots(normalizePlans(plansField(remote), state.recipes)));
         syncUnsubRecipes = window.CloudSync.watchRecipes ? window.CloudSync.watchRecipes(["users", uid], onRecipesRemote) : null;
       }
       lastPushedJSON = null;
@@ -3425,8 +3630,9 @@
     proInfo = null;
     unwatchPending();    // Wartezustand-Listener haengt sonst weiter, obwohl niemand mehr angemeldet ist
     leaveGroupState();   // Gruppen-Listener haengen sonst weiter und schreiben in den alten Zustand
-    clearTimeout(pushTimer);
+    clearTimeout(pushTimer); pushTimer = null;
     syncUid = null; lastPushedJSON = null; lastPushedRecipes = null; recipesSyncFailed = false; groupSyncFailed = false; syncHandshakeOk = false;
+    planBase = null;   // nur im Speicher - die gemerkte bleibt fuer den naechsten Start stehen
     watchAbgerissen = false;   // gehoert zu genau dieser Sync-Session (wie lastGroupAttempt unten)
     cloudBaselineOk = false;   // naechste Sitzung muss den Cloud-Stand erst wieder laden
     lastGroupAttempt = null;   // Sicherheitsnetz aus onRemote() gehoert zu genau dieser Sync-Session
@@ -4600,7 +4806,7 @@
         } catch (e) {
           const n = e && e.name;
           fail(n === "NotAllowedError" || n === "SecurityError"
-              ? "Kamerazugriff wurde abgelehnt. Erlaube ihn in den Browser-Einstellungen." + photoHint
+              ? "Kamerazugriff wurde abgelehnt. Erlaube ihn in den Einstellungen." + photoHint   // nicht "Browser-": stimmt in der App-Huelle nicht (Audit 17.10.2026)
             : n === "NotFoundError" || n === "OverconstrainedError"
               ? "Keine passende Kamera gefunden." + photoHint
               : "Die Kamera lässt sich nicht starten." + photoHint);
@@ -7301,7 +7507,9 @@
           // Schreibrecht waere der Fokus eine Einladung zu einer Taste, die nichts tut -
           // und siebenmal vier Slots voller Karten in der Tab-Reihenfolge sind teuer genug,
           // um sie sich zu verdienen.
-          html += `<div class="filled"${drag ? ` tabindex="0" aria-keyshortcuts="Alt+ArrowUp Alt+ArrowDown"` : ""} data-action="view" data-id="${esc(r.id)}" data-slot-src="${d.key}:${m.key}:${idx}" title="${esc(r.name)}${esc(assignNote)}${drag ? " – ziehen zum Verschieben" : ""}">
+          // tabindex IMMER (Audit 17.10.2026): Ohne Schreibrecht fehlt das Sortieren, aber das
+          // Oeffnen per Enter gehoert trotzdem dazu - "Nur ansehen" heisst nicht "nicht ansehen".
+          html += `<div class="filled" tabindex="0" role="button"${drag ? ` aria-keyshortcuts="Alt+ArrowUp Alt+ArrowDown"` : ""} data-action="view" data-id="${esc(r.id)}" data-slot-src="${d.key}:${m.key}:${idx}" title="${esc(r.name)}${esc(assignNote)}${drag ? " – ziehen zum Verschieben" : ""}">
               ${drag ? `<span class="pm-grip" aria-hidden="true">${ICON_GRIP}</span>` : ""}
               <span class="r-thumb-wrap">${thumbHtml(r, "r-thumb", true)}${badge}</span>
               <div class="r-body"><div class="r-name">${esc(r.name)}</div>${meta ? `<div class="r-meta">${meta}</div>` : ""}</div>
@@ -7311,6 +7519,9 @@
         });
         if (collapsed) html += `<button class="add more" data-action="toggle-others" data-slot="${slotKey}">+${otherTotal - otherVisible} weitere</button>`;
         else if (otherTotal > SLOT_OTHERS_MAX) html += `<button class="add more" data-action="toggle-others" data-slot="${slotKey}">Weniger anzeigen</button>`;
+        // Bewusst MIT Text, auch wenn er in einer leeren Woche 28-mal dasteht: Er ist das, was den
+        // Wochenplan beim ersten Start selbsterklaerend macht. Ein reines "+" wurde am 17.10.2026
+        // vorgefuehrt und verworfen (Entscheidung Paddy, Audit).
         if (canEdit()) html += `<button class="add${shown ? " more" : ""}" data-action="pick" data-day="${d.key}" data-meal="${m.key}">+ ${shown ? "Noch ein Meal" : "Meal wählen"}</button>`;
         html += `</div>`;
       });
@@ -7471,7 +7682,7 @@
     let html = `
       <div class="section-head">
         <div class="title">
-          <div class="week-switch" role="tablist" aria-label="Ansicht wählen">
+          <div class="week-switch" role="tablist" aria-label="Meals-Ansicht wählen">
             <span class="ws-ind" aria-hidden="true"></span>
             <button class="ws-btn${imBuch ? "" : " active"}" data-rtab="meine" role="tab" aria-selected="${imBuch ? "false" : "true"}">Meine Meals</button>
             <button class="ws-btn${imBuch ? " active" : ""}" data-rtab="buch" role="tab" aria-selected="${imBuch ? "true" : "false"}">Rezeptbuch</button>
@@ -7822,7 +8033,7 @@
           <h2><button type="button" class="rcard-open" data-action="view" data-id="${esc(r.id)}">${esc(r.name)}</button></h2>
         </div>
         <div class="rstats">
-          ${statsInner || leerZustand({ klein: true, text: "Noch keine Nährwerte" })}
+          ${statsInner || `<span class="meta" aria-label="Noch keine Nährwerte">–</span>`}
           ${authorHtml ? `<span class="meta">${authorHtml}</span>` : ""}
         </div>
         </div>
@@ -8336,9 +8547,8 @@
     const node = el(`<div class="modal" role="dialog" aria-modal="true" aria-label="Ziel anpassen">
       <div class="modal-head"><h2>Ziel anpassen</h2><button class="btn ghost sm" data-close aria-label="Schließen">✕</button></div>
       <div class="modal-body">
-        <p class="hint" style="margin:0 0 14px">Gilt für Ruhetage. Trainingstage bekommen ihren Aufschlag weiterhin oben drauf.</p>
         <div class="onb-grid">
-          ${f("gt-kcal", "Kalorien", nutNum(g.kcal), "kcal", 20000)}
+          ${f("gt-kcal", "Kalorien an Ruhetagen", nutNum(g.kcal), "kcal", 20000)}
           ${f("gt-carbs", "Kohlenhydrate", nutNum(g.carbs), "g", 2000)}
           ${f("gt-protein", "Protein", nutNum(g.protein), "g", 2000)}
           ${f("gt-fat", "Fett", nutNum(g.fat), "g", 2000)}
@@ -8690,7 +8900,7 @@
       <div class="modal-body">
         ${bildHinweisHtml(initial)}
         <div class="ms-head">
-          <input type="text" id="f-name" class="ms-name" placeholder="Name des Meals" value="${esc(initial.name || "")}" maxlength="80">
+          <input type="text" id="f-name" class="ms-name" placeholder="Name des Meals" aria-label="Name des Meals" value="${esc(initial.name || "")}" maxlength="80">
           <select id="f-cat" class="ms-cat">${opts}</select>
         </div>
         <!-- Makro-Kacheln (Nachtrag Abnahme Phase 2, 08.08.2026): dieselbe .nutfacts-Optik
@@ -9056,7 +9266,7 @@
         <div class="ing-top">
           <span class="ing-nrow">
             <span class="ing-nwrap">
-              <input type="text" class="ing-name" placeholder="Zutat, z. B. Reis" maxlength="60" autocomplete="off" value="${esc(o.name || "")}">
+              <input type="text" class="ing-name" placeholder="Zutat, z. B. Reis" aria-label="Zutat" maxlength="60" autocomplete="off" value="${esc(o.name || "")}">
               <ul class="ing-ac" role="listbox" hidden></ul>
             </span>
             <button type="button" class="ing-barcode" aria-label="Barcode scannen" title="Barcode mit der Kamera scannen – füllt Name und Nährwerte automatisch">${BARCODE_SVG}<span>Scannen</span></button>
@@ -11358,11 +11568,7 @@
     else if (a === "unassign") {
       e.stopPropagation();
       const [d, m, i] = t.dataset.slotSrc.split(":");
-      const idx = Number(i);
-      const removedId = state.plan[d][m][idx];
-      state.plan[d][m].splice(idx, 1);
-      save(); render();
-      undoToast("Entfernt", () => { state.plan[d][m].splice(idx, 0, removedId); save(); render(); });
+      removeFromSlot(d, m, Number(i));
     }
     else if (a === "shopping") openShopping();
     else if (a === "auto-plan") autoPlanWeek();
@@ -11448,13 +11654,15 @@
     return laenge;
   }
 
-  // Die Karte ist ein div und bekommt ihren Fokus nur fuers Sortieren (tabindex im Markup).
-  // Wer sie mit der Tastatur erreicht, erwartet aber auch, sie oeffnen zu koennen - ein
-  // fokussiertes div loest bei Enter von sich aus keinen Klick aus.
+  // Die Karte ist ein div mit tabindex (seit 17.10.2026 auch ohne Schreibrecht, zum Oeffnen).
+  // Wer sie mit der Tastatur erreicht, erwartet, sie oeffnen zu koennen - ein fokussiertes div
+  // loest bei Enter von sich aus keinen Klick aus.
+  // Nur die Karte SELBST: Stand der Fokus auf Stift oder Kreuz darin, fing diese Zeile das Enter
+  // ab und oeffnete das Meal, statt es zu entfernen (Audit 17.10.2026).
   view.addEventListener("keydown", e => {
     if (e.key !== "Enter" && e.key !== " ") return;
     const f = e.target.closest(".filled[data-slot-src]");
-    if (!f || e.altKey) return;
+    if (!f || e.target !== f || e.altKey) return;
     e.preventDefault();
     f.click();
   });
@@ -11674,11 +11882,18 @@
       });
     return true;
   }
+  // Name fuer das Mitgliederdokument der Gruppe - ohne den E-Mail-Rueckfall aus handleCloudUser().
+  function gruppenName() {
+    return profile && profile.name && !profile.nameAusMail ? profile.name : "Mitglied";
+  }
   function handleCloudUser(user) {
     cloudSignalled = true; authMode = "cloud";
     if (user && user.emailVerified) {
       profile = {
         name: user.displayName || (user.email ? user.email.split("@")[0] : "Ich"),
+        // Merker fuer gruppenName(): Der Rueckfall oben ist ein Teil der E-Mail-Adresse und darf
+        // nicht ins Mitgliederdokument, das alle in der Gruppe lesen (CLAUDE.md §13).
+        nameAusMail: !user.displayName,
         email: user.email || "", uid: user.uid, cloud: true
       };
       saveProfile(); rememberLast();
@@ -12282,10 +12497,7 @@
 
     function apply(uids) {
       if (uids && uids.length === 0) {
-        const removed = state.plan[d][m][idx];
-        state.plan[d][m].splice(idx, 1);
-        save(); render();
-        undoToast("Entfernt", () => { state.plan[d][m].splice(idx, 0, removed); save(); render(); });
+        removeFromSlot(d, m, idx);
         return;
       }
       state.plan[d][m][idx] = makeEntry(id, uids);
@@ -12590,7 +12802,7 @@
     // zum 04.09.2026 kcal · P · F · KH - eine eigene Reihenfolge "weil es hier besser
     // passt" ist ausdruecklich ausgeschlossen, und die Zeile steht an zwei sichtbaren
     // Stellen: am Ende des Onboardings und auf der Startseite bei "Mein Ziel behalten".
-    return `<b>${g.kcal.toLocaleString("de-DE")} kcal</b> am Tag · ${g.carbs} g Kohlenhydrate · ${g.protein} g Eiweiß · ${g.fat} g Fett`;
+    return `<b>${g.kcal.toLocaleString("de-DE")} kcal</b> am Tag · ${g.carbs} g Kohlenhydrate · ${g.protein} g Protein · ${g.fat} g Fett`;
   }
 
   // Reihenfolge der Bildschirme. Verwandte Fragen stehen zusammen auf EINEM Bildschirm:
@@ -13124,7 +13336,7 @@
           <div class="onb-res-k">${g.kcal.toLocaleString("de-DE")}<span>kcal / ${hatT ? "Ruhetag" : "Tag"}</span></div>
           <div class="onb-res-m">
             <div class="t-carb"><b>${g.carbs} g</b><span>Kohlenhydrate</span></div>
-            <div class="t-prot"><b>${g.protein} g</b><span>Eiweiß</span></div>
+            <div class="t-prot"><b>${g.protein} g</b><span>Protein</span></div>
             <div class="t-fat"><b>${g.fat} g</b><span>Fett</span></div>
           </div>
           ${hatT ? `<div class="onb-res-t">
@@ -14146,7 +14358,7 @@
     if (authMode === "cloud" && window.CloudAuth && window.CloudAuth.updateName) {
       await window.CloudAuth.updateName(name);
     }
-    profile = Object.assign({}, profile, { name });
+    profile = Object.assign({}, profile, { name, nameAusMail: false });   // jetzt ein echter Name, siehe gruppenName()
     saveProfile(); rememberLast(); renderProfileChip();
   }
 
@@ -14351,7 +14563,10 @@
   // statt still zu bleiben) - alle Aufrufer brauchen deshalb ein eigenes try/catch, das eine
   // ehrliche Meldung statt "geloescht" zeigt und NICHT neu laedt.
   async function wipeLocalData() {
-    [STORE_KEY, PROFILE_KEY, LAST_KEY, SHOP_DONE_KEY].forEach(k => { try { localStorage.removeItem(k); } catch (e) { noteError("store:wipeLocal", e); } });
+    // LETZTE_UID_KEY und PLAN_BASE_KEY tragen die uid - Ziffer 10 der Datenschutzerklaerung
+    // verspricht "saemtliche auf diesem Geraet gespeicherten Daten" (Audit 17.10.2026).
+    [STORE_KEY, PROFILE_KEY, LAST_KEY, SHOP_DONE_KEY, LETZTE_UID_KEY, PLAN_BASE_KEY].forEach(k => { try { localStorage.removeItem(k); } catch (e) { noteError("store:wipeLocal", e); } });
+    planBase = null;
     imgSaved = new Map();   // Baseline mitleeren, sonst gilt ein spaeter gleich benanntes Bild als schon gespeichert
     try { await idbRW(store => store.clear()); } catch (e) { noteError("store:wipeImages", e); }
     // Zuletzt: nach terminate() ist die Firestore-Instanz tot, die vorigen Schritte muessen
@@ -14700,7 +14915,7 @@
         settings: { shopForAll: true, changeHints: true }
       });
       await window.CloudGroup.putMember(gid, syncUid, {
-        name: profile.name || "", avatar: await smallAvatar(state.profileImage),
+        name: gruppenName(), avatar: await smallAvatar(state.profileImage),
         role: "owner", joinedAt: Date.now()
       });
       // Schon jetzt hochladen, nicht erst bei der Aktivierung: wer beitritt, soll sofort
@@ -14762,7 +14977,7 @@
     // ausloeschen - und weil pendingGroupId dann ebenfalls leer ist, waere die Gruppe fuer den
     // Owner weder aktiv noch wartend, obwohl der Beitretende laengst drin ist.
     groupTransition = true;
-    clearTimeout(pushTimer);   // bereits geplanten Push zuruecknehmen, statt auf sein Timing zu hoffen
+    clearTimeout(pushTimer); pushTimer = null;   // bereits geplanten Push zuruecknehmen, statt auf sein Timing zu hoffen
     try {
       await finalizeGroupActivation(gid);
       state.pendingGroupId = ""; state.pendingInviteUrl = ""; save();
@@ -14824,7 +15039,7 @@
     // null. Ein Debounce-Push in dieses Fenster naehme den Beitritt sofort wieder zurueck.
     const prevGid = state.groupId;
     groupTransition = true;
-    clearTimeout(pushTimer);
+    clearTimeout(pushTimer); pushTimer = null;
     // Ausserhalb von try deklariert (nicht const IM try): der catch-Block braucht inv.gid fuer
     // lastGroupAttempt - ein try{} und sein catch{} sind eigene Bloecke, eine dort deklarierte
     // const waere im catch schlicht nicht sichtbar (ReferenceError), unabhaengig davon, ob sie
@@ -14848,7 +15063,7 @@
       // zwischen Pruefung und Beitritt koennte sonst jemand anderes den letzten Platz nehmen.
       const role = inv.role === "view" ? "view" : "edit";
       const daten = {
-        name: profile.name || "", avatar: await smallAvatar(state.profileImage),
+        name: gruppenName(), avatar: await smallAvatar(state.profileImage),
         role: role, via: code, joinedAt: Date.now()
       };
       // Stehe ich in dieser Gruppe SCHON? Dann ist das kein Beitritt, sondern eine Rueckkehr -
@@ -15140,8 +15355,11 @@
       // Der leere catch traegt seit dem Limit einen Fall mehr: Nach dissolveGroup() ist das
       // Gruppendokument bereits weg, das update() darin scheitert also zwangslaeufig. Das ist
       // Normalbetrieb und kein Fehler - der Rest muss trotzdem laufen.
+      // Offline wirft der Batch nicht, er wartet auf den Server - die ankommenden Fehler sind
+      // also die erwarteten (schon entfernt, aufgeloest). Protokolliert statt verschluckt, damit
+      // ein unerwarteter Fall im Fehlerprotokoll sichtbar wird (Audit 17.10.2026).
       await window.CloudGroup.leaveAtomic(gid, syncUid);
-    } catch (e) { /* schon entfernt oder Gruppe aufgeloest - der Rest muss trotzdem laufen */ }
+    } catch (e) { noteError("group:leaveAtomic", e); /* der Rest muss trotzdem laufen */ }
     state.groupId = "";
     leaveGroupState();
     state.recipes = keepRecipes;
@@ -15149,6 +15367,7 @@
     setViewWeek(state.viewWeek);
     try {
       await window.CloudSync.save(syncUid, { groupId: "", plans: keepPlans });
+      setPlanBase(planSlots(keepPlans));   // das Feld ist eben ganz geschrieben worden - genau das hat die Cloud
       // Baseline leeren, damit der naechste Zyklus alle Meals als "neu" ins eigene
       // Konto schreibt - dort liegen sie ja noch nicht.
       lastPushedRecipes = new Map();
@@ -15231,8 +15450,8 @@
         <div class="setpick" style="margin-top:10px">
           <b>${label}</b>${hint ? `<small style="display:block;margin:-6px 0 9px;color:var(--text-muted);font-size:12.5px">${hint}</small>` : ""}
           <div class="seg" data-set="${key}" role="group" aria-label="${label}">
-            <button type="button" data-v="1" class="${groupSetting(key) ? "on" : ""}">${on}</button>
-            <button type="button" data-v="0" class="${groupSetting(key) ? "" : "on"}">${off}</button>
+            <button type="button" data-v="1" class="${groupSetting(key) ? "on" : ""}" aria-pressed="${groupSetting(key)}">${on}</button>
+            <button type="button" data-v="0" class="${groupSetting(key) ? "" : "on"}" aria-pressed="${!groupSetting(key)}">${off}</button>
           </div>
         </div>`;
       return row("shopForAll", "Einkauf für alle rechnen", "Mengen × Mitglieder", "An", "Aus")
@@ -15247,7 +15466,7 @@
       // Blatt ueber denselben Weg oeffnet.
       const invite = isPro()
         ? `<button class="btn primary" id="grp-invite-start" style="width:100%">Person einladen</button>`
-        : `<p class="share-mini" style="margin:0 0 8px"><b>Einladen gehört zu Pro.</b> Eingeladen werden kannst du jederzeit – Pro braucht nur, wer die Gruppe gründet.</p>`;
+        : `<p class="share-mini" style="margin:0 0 8px"><b>Einladen gehört zu Pro</b> – beitreten kannst du jederzeit.</p>`;
       // Ausweg aus einer Gruppe, die nicht mehr erreichbar ist (docs/TROUBLESHOOTING.md 133).
       //
       // Wer aus einer Gruppe ENTFERNT wird, behaelt den Zeiger: CloudGroup.fetch() wirft fuer
@@ -15344,7 +15563,7 @@
       const settingsBlock = owner ? `
         <span class="share-sub" style="margin-top:16px;display:block">Einstellungen</span>
         <div class="setpick">
-          <b style="display:block;margin-bottom:8px">Gruppenname</b>
+          <label for="grp-name" style="display:block;margin-bottom:8px;font-weight:700">Gruppenname</label>
           <input type="text" id="grp-name" maxlength="40" placeholder="z. B. Team Küche" value="${esc((groupInfo && groupInfo.name) || "")}">
         </div>
         ${settingsHtml()}` : "";
@@ -15361,7 +15580,7 @@
         const val = b.dataset.v === "1";
         const next = Object.assign({}, (groupInfo && groupInfo.settings) || {});
         next[key] = val;
-        grp.querySelectorAll("[data-v]").forEach(x => x.classList.toggle("on", x === b));
+        grp.querySelectorAll("[data-v]").forEach(x => { x.classList.toggle("on", x === b); x.setAttribute("aria-pressed", String(x === b)); });
         try {
           await window.CloudGroup.setSettings(syncGid, next);
           groupInfo = Object.assign({}, groupInfo, { settings: next });
@@ -15526,7 +15745,9 @@
     // die Regeln (create nur mit eigener uid) und das Loeschen beim Kontoende (Ziffer 8).
     const kopie = Object.assign({}, r);
     delete kopie.by;
-    return { app: "wochenkueche", v: 1, type: "meal", uid: syncUid || "", by: profile ? profile.name : "", when: Date.now(), recipes: [kopie], og: { t: r.name, img: ownPhoto ? null : photoFor(r) } };
+    // by: nie der E-Mail-Rueckfall (siehe gruppenName()) - wer den Link hat, liest das Feld. Leer
+    // zeigt der Empfaenger "Jemand".
+    return { app: "wochenkueche", v: 1, type: "meal", uid: syncUid || "", by: profile && !profile.nameAusMail ? profile.name : "", when: Date.now(), recipes: [kopie], og: { t: r.name, img: ownPhoto ? null : photoFor(r) } };
   }
   // Ein Teilen-Link lebt 12 Monate (Entscheidung 22.09.2026, Art.-30-Verzeichnis V5).
   // Durchgesetzt wird die Frist in den Firestore-Regeln (shareFrisch), nicht hier - diese

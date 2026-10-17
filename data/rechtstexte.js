@@ -126,7 +126,9 @@
          welche Tage du beplant hast (Ziffer 3), und deine <strong>E-Mail-Adresse</strong>. Jedes Mitglied
          sieht denselben Plan gegen sein jeweils eigenes Ziel.</p>
       <p>Eingeladen wird über einen <strong>Einladungslink</strong>. Für ihn gilt dasselbe wie für den Teilen-Link:
-         80&nbsp;Bit Zufall, nicht erratbar, ein Auflisten ist technisch unterbunden. Ein Unterschied ist aber
+         80&nbsp;Bit Zufall, nicht erratbar, ein Auflisten ist technisch unterbunden. Zum Link gespeichert ist neben der
+         Gruppe auch die pseudonyme Nutzerkennung der Person, die ihn erstellt hat – wer den Link hat und angemeldet
+         ist, kann sie lesen. Ein Unterschied ist aber
          wesentlich – wer den Einladungslink öffnet und sich anmeldet, wird <strong>Mitglied</strong> und erhält
          zunächst das Recht zum <strong>Mitplanen</strong>; die Inhaberin oder der Inhaber der Gruppe kann das
          jederzeit auf <strong>Nur ansehen</strong> ändern, Mitglieder entfernen und den Einladungslink
@@ -200,4 +202,4 @@
          Ernährungs- und Gewichtsdaten, und ab 16 darfst du in die Verarbeitung deiner Daten selbst
          einwilligen (Art. 8 Abs. 1 DSGVO). Bist du jünger, richte dir bitte kein Konto ein.
          Erfahren wir, dass ein Konto einem jüngeren Menschen gehört, löschen wir es.</p>
-      <p>Stand: 7. Oktober 2026</p>`;
+      <p>Stand: 17. Oktober 2026</p>`;

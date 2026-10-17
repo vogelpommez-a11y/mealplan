@@ -448,7 +448,10 @@ Im Cloud-Modus schreibt `save()` den State über:
 
 `scheduleCloudPush()`
 
-mit einem Debounce von ca. 800 ms.
+mit einem Debounce von ca. 800 ms. Geht die Seite in den Hintergrund (`visibilitychange`) oder
+wird sie geschlossen (`pagehide`), läuft ein noch geplanter Push sofort (`pushSofort()`); bei
+Netzrückkehr (`online`) wird einer angestoßen. Überlappende `pushNow()`-Läufe sind erlaubt, den
+Sync-Status setzt aber nur der jüngste (`pushLauf`).
 
 Live-Synchronisation erfolgt über `onSnapshot`.
 
@@ -638,11 +641,37 @@ Der `"gone"`-Zweig räumt bewusst **nicht** mehr per `removeMember()` auf. `Clou
 | `groupSyncFailed` | bei `enterGroupSync() === "error"`, im `catch` von `startCloudSync()`, `activateGroup()` und `joinGroup()` | ungeklärte Mitgliedschaft nach einem gescheiterten Zugriff |
 | `groupTransition` | für die Dauer von `activateGroup()`/`joinGroup()`, `finally` räumt auf | Debounce-Push im Fenster zwischen Cloud-Write und `switchGroup()`, in dem `syncGid` der Cloud absichtlich nachhinkt. Beide Funktionen rufen beim Eintritt zusätzlich `clearTimeout(pushTimer)`. |
 
-Ist `groupKnown` false, fehlen `groupId` **und** `plans` im geschriebenen Objekt — sie stehen damit auch nicht in `mergeFields`, der Cloud-Stand bleibt unangetastet. Das reguläre Verlassen ist davon nicht betroffen: `leaveGroup()` schreibt sein `groupId: ""` selbst und explizit.
+Ist `groupKnown` false, fehlt `groupId` im geschriebenen Objekt — es steht damit auch nicht in `mergeFields` — und `pushPersonalPlans()` läuft nicht; der Cloud-Stand bleibt unangetastet. Das reguläre Verlassen ist davon nicht betroffen: `leaveGroup()` schreibt sein `groupId: ""` selbst und explizit.
 
 Aus derselben Logik behandeln die Listener leere Ergebnisse als *ungeklärt*, nicht als Austritt: `watchMembers()` meldet Lesefehler als `null` statt als leere Liste, `onMembersRemote()` steigt bei leerer Liste aus (eine bestehende Gruppe hat immer ≥ 1 Mitglied; das echte Auflösen kommt über `onGroupRemote()`), und `onRemote()` löst bei leerem `remoteGid` **kein** `switchGroup(null)` mehr aus, solange eine Gruppen-Session läuft.
 
 Seit dem Firestore-Offline-Cache gilt dieselbe Vorsicht zusätzlich für `fromCache`-Ergebnisse, nicht nur für leere: siehe „Firestore-Offline-Cache" oben und `docs/TROUBLESHOOTING.md` („`fromCache` ist kein Beweis").
+
+### Der persönliche Wochenplan wird slotweise abgeglichen (17.10.2026)
+
+Außerhalb einer Gruppe liegt der Plan weiter im Feld `plans` des Kontodokuments
+(`plans[woche][tag][mahlzeit]`), wird aber **nicht mehr als Ganzes** geschrieben. Bis zum
+17.10.2026 stand `d.plans = state.plans` in `pushNow()`, und `onRemote()`/`startCloudSync()`
+ersetzten den lokalen Plan durch den der Cloud. Ein Gerät, das offline geplant hatte, schrieb
+beim Wiederverbinden seinen alten Stand über die neueren Wochen des anderen; wer die App binnen
+der 800 ms schloss, verlor die Änderung beim nächsten Start.
+
+Jetzt gilt das Muster des Gruppenplans (`pushGroupPlan()`), nur im Kontodokument:
+
+| Baustein | Aufgabe |
+|---|---|
+| `planBase` | Baseline `"Woche.tag_mahlzeit" → canonJSON`: was die Cloud **nachweislich** hat. Zusätzlich in `localStorage` (`wochenkueche_planbase_v1`, mit `uid`), damit ein Neustart nicht hochgeladene Slots erkennt. Leere Slots stehen nie darin. |
+| `planPatch()` | Diff gegen die Baseline: geänderte Slots, geleerte Slots (als `[]`), verfallene Wochen (`deleteField()`). |
+| `CloudSync.savePlanSlots()` | `setDoc` mit `mergeFields` aus `FieldPath`s — jeder Slot wird ganz ersetzt, alles andere bleibt. |
+| `mergePlansSlotwise()` | Eingang (Login und Snapshot): Slot ≠ Baseline → noch nicht oben, bleibt lokal; sonst gilt die Cloud. Ohne Baseline das alte Verhalten (Cloud-Wochen gewinnen, rein lokale bleiben). |
+
+Die Baseline wächst erst **nach** der Serverbestätigung; ein eingehender Snapshot setzt sie
+auf den Cloud-Stand. In der Gruppe ruht sie (`dropPlanBase()`), `leaveGroup()` schreibt den Plan
+weiterhin als ganzes Feld und setzt sie danach neu. `lastPushedJSON` wird in `onRemote()` **ohne**
+Plan gebildet — `pushNow()` vergleicht `dataJSON(d)` stets mit leerem Plan.
+
+Grenze: Zwei Geräte, die **denselben** Slot ändern, entscheidet weiter der letzte Schreiber —
+wie in der Gruppe. Prüfer: `tools/pruefstand-plan-slots.py`.
 
 ### Das Kontodokument wird feldweise ersetzt, nicht blattweise gemischt (24.08.2026)
 

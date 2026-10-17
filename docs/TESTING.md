@@ -16,7 +16,7 @@ Die primäre Verifikation erfolgt deshalb über den Browser und gezielte isolier
 
 <!-- REGISTER-ANFANG (erzeugt aus den Ueberschriften: python tools/register.py - nicht von Hand pflegen) -->
 
-**Register — 86.** Vorne (0 bis 9) die geltenden Verfahren: Syntax-Check,
+**Register — 87.** Vorne (0 bis 9) die geltenden Verfahren: Syntax-Check,
 Smoke-Test, Ausschneide-Pruefstand, Sync-Tests. Dahinter das datierte Fallarchiv —
 einzelne Pruefstaende und was ihre Gegenprobe gezeigt hat.
 
@@ -112,6 +112,7 @@ Die Verfahren gibt es auch als Skill: `/smoke`, `/pruefstand`, `/abnahme`, `/dep
 | · | `tools/pruefstand-cloud-laden.py` — was zeigt ein frisches Gerät während des ersten Abgleichs? (28.09.2026) |
 | · | `tools/pruefstand-fremdbezug.py` — die Kopie nach dem Austritt trägt keine fremde Kennung (01.10.2026) |
 | · | `tools/pruefstand-gruppe-fuer-alle.py` — ein Hinweis, der an fünf Stellen hängen muss (05.10.2026, erweitert 07.10.2026) |
+| · | `tools/pruefstand-plan-slots.py` — persönlicher Plan slotweise, Rückgängig in der richtigen Woche (17.10.2026) |
 
 <!-- REGISTER-ENDE -->
 
@@ -5544,3 +5545,42 @@ das Personen-Symbol an — und zwar am **sichtbaren** Tag: `querySelector` nahm 
 Mittag der Woche (Montag), am Handy zeigt der Streifen aber heute; Karte und Menü lagen
 außerhalb des Bildes.
 
+---
+
+## `tools/pruefstand-plan-slots.py` — persönlicher Plan slotweise, Rückgängig in der richtigen Woche (17.10.2026)
+
+Entstanden im Qualitäts-Audit vom 17.10.2026 (`docs/TROUBLESHOOTING.md` 189). Schneidet
+`planSlots()`, `mergePlansSlotwise()`, `planPatch()`, `slotTeile()` und `removeFromSlot()` samt
+`flattenWeek()`/`unflattenWeek()` aus und bildet Firestores `mergeFields` im Test nach
+(`cloudAnwenden`) — mit genau den Pfaden, die `pushPersonalPlans()` schreibt.
+
+Acht Abschnitte: offline geplant (nur der eigene Slot geht hoch, der fremde überlebt), Neustart
+nach nicht hochgeladener Änderung, eingehende Änderung, Leeren in beide Richtungen, ohne
+Baseline, verfallene Woche, kein Ping-Pong, Rückgängig nach Wochenwechsel und nach verkürzter
+Liste. Abschnitte 1 und 2 rechnen die **alte** Regel daneben und verlangen, dass sie den Fehler
+zeigt. Gegenprobe gegen `git show HEAD~:index.html` (Stand vor der Änderung): Marker fehlen,
+der Prüfstand bricht ab.
+
+**Was er nicht kann:** prüfen, ob Firestore die `FieldPath`-Maske und `deleteField()` im echten
+SDK so annimmt. Das ist nur mit `/abnahme` am echten Konto zu sehen — zwei Geräte, eines offline.
+
+**Abnahme am echten Konto, 17.10.2026** (`tools/cdp.py`, Konto ohne Gruppe, Ausgangsstand: kein
+Plan in der Cloud). Alle fünf Fälle bestanden, Fehlerprotokoll (`noteError.dump()`) leer:
+
+| Fall | Ergebnis |
+|---|---|
+| Einplanen | genau `plans.2026-W42.sun.ab` geschrieben, verschachtelt wie bisher; Baseline im Gerät nachgezogen |
+| Leeren | `[]` in der Cloud. **Nebenbei echt bewiesen:** Paddy plante zeitgleich am anderen Gerät drei Montags-Slots — sie blieben stehen |
+| Offline gegen anderes Gerät | Fenster per `Network.emulateNetworkConditions` offline, dort `tue.mi` geplant; Gegenprobe: in der Cloud noch nicht da. „Anderes Gerät“ schrieb `wed.fr` per REST mit dem ID-Token. Nach dem Wiederverbinden: **beide** Slots da, Montag unberührt |
+| Einplanen + sofort neu laden | Slot lokal und in der Cloud (der `pagehide`-Push griff) |
+| Nur lokal geändert, nicht gepusht, neu geladen | Slot überlebte den Start (Baseline erkannte ihn) und ging hoch — der Fall, der vorher verloren ging |
+
+Aufgeräumt über die normale Bedienung; Endstand = Ausgangsstand plus Paddys eigene Montags-Slots.
+
+**Beobachtet, nicht behoben (älter als diese Änderung):** Nach dem Wiederverbinden stand `wed.fr`
+in der Cloud, aber nicht in der Baseline des Geräts. Vermutlich kam der Snapshot mit dem fremden
+Slot **zusammen** mit dem eigenen ausstehenden Schreibvorgang (`hasPendingWrites`) und wurde von
+`onRemote()` übergangen; nach der Bestätigung ändert sich nur die Metadaten-Seite, und ohne
+`includeMetadataChanges` feuert dafür kein Ereignis. Das Gerät sieht den fremden Slot dann erst
+beim nächsten Snapshot. Kein Datenverlust (die Cloud hat beides), aber eine verzögerte Anzeige.
+Nicht gemessen, nur geschlossen — `docs/TROUBLESHOOTING.md` 189.

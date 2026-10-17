@@ -19,7 +19,7 @@
  * die App auf dem Root von www.paddysmealplan.de liegt - und es haelt den Capacitor-Weg offen.
  * Die Versionsnummer bei jedem inhaltlichen SW-Wechsel erhoehen -> activate raeumt Altes weg.
  */
-const VERSION = "pm-v10";
+const VERSION = "pm-v11";
 const SHELL_CACHE = "shell-" + VERSION;
 
 // Kern-Assets, die die App-Huelle offline tragen. index.html liegt zusaetzlich im Cache,
@@ -106,8 +106,14 @@ self.addEventListener("fetch", (event) => {
     event.respondWith(
       fetch(req)
         .then((res) => {
-          const copy = res.clone();
-          caches.open(SHELL_CACHE).then((c) => c.put("./index.html", copy)).catch(() => {});
+          // Nur eine ERFOLGREICHE Antwort der App-Seite selbst wird zur Offline-Huelle. Vorher
+          // landete jede Navigation hier - auch eine 404 von GitHub Pages oder eine fremde Seite
+          // unter derselben Domain (tools/*.html) - und der naechste Offline-Start zeigte dann
+          // genau die (Audit 17.10.2026).
+          if (res.ok && /\/(?:index\.html)?$/.test(url.pathname)) {
+            const copy = res.clone();
+            caches.open(SHELL_CACHE).then((c) => c.put("./index.html", copy)).catch(() => {});
+          }
           return res;
         })
         .catch(() => caches.match(req).then((m) => m || caches.match("./index.html")))
@@ -121,8 +127,10 @@ self.addEventListener("fetch", (event) => {
     event.respondWith(
       fetch(req)
         .then((res) => {
-          const copy = res.clone();
-          caches.open(SHELL_CACHE).then((c) => c.put(req, copy)).catch(() => {});
+          if (res.ok) {   // ein kurzer 404/5xx soll den letzten guten Stand nicht verdraengen
+            const copy = res.clone();
+            caches.open(SHELL_CACHE).then((c) => c.put(req, copy)).catch(() => {});
+          }
           return res;
         })
         .catch(() => caches.match(req))
@@ -148,8 +156,12 @@ self.addEventListener("fetch", (event) => {
     caches.match(req).then((hit) => hit || fetch(req, { cache: "reload" })
       .catch(() => fetch(req))
       .then((res) => {
-        const copy = res.clone();
-        caches.open(SHELL_CACHE).then((c) => c.put(req, copy)).catch(() => {});
+        // Cache-First heisst: was hier liegt, bleibt bis zum naechsten VERSION-Wechsel. Eine
+        // Fehlerantwort gehoert deshalb erst recht nicht hinein.
+        if (res.ok) {
+          const copy = res.clone();
+          caches.open(SHELL_CACHE).then((c) => c.put(req, copy)).catch(() => {});
+        }
         return res;
       }).catch(() => hit))
   );

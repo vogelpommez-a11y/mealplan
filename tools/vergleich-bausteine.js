@@ -559,5 +559,21 @@ var BAUSTEINE = [
       doc.defaultView.localStorage.setItem("wochenkueche_intro_v1", "1");
       return "Ersteinrichtung offen – bis zum Ergebnis durchtippen";
     }
+  },
+
+  // Qualitaets-Audit 17.10.2026, Paket D: Texte kuerzen. Ziel-Dialog und Gruppen-Hinweis sind
+  // hier nicht nachgestellt - sie wurden beim Vorfuehren in Worten gezeigt. Ein zweiter Eintrag
+  // fuer ein reines "+" in leeren Slots wurde vorgefuehrt, verworfen und wieder entfernt.
+  {
+    id: "audit-meals",
+    titel: "Audit: Meal-Karten ohne Nährwerte",
+    was: "Die Karte „Overnight Oats“ hat keine Nährwerte: links der Satz „Noch keine Nährwerte“, rechts ein Strich.",
+    stellen: ["Meal-Bibliothek — .rstats in index.html (Meal-Blatt bleibt beim Satz)"],
+    zustand: { recipes: [
+      { id: "rvgoats", name: "Overnight Oats", category: "Frühstück", ingredients: [] },
+      { id: "rvgbowl", name: "Hähnchen-Reis-Bowl", category: "Hauptgericht",
+        nutrition: { kcal: 540, carbs: 55, protein: 42, fat: 14 }, ingredients: [] }
+    ] },
+    schritte: ['[data-action="tab"][data-tab="recipes"]']
   }
 ];

@@ -25,6 +25,25 @@ const ORIGIN = "https://www.paddysmealplan.de";
 // Alphabet aus shareId() (index.html) - ohne l/o/0/1 (verwechselbar), 16 Zeichen.
 const SHARE_ID_RE = /^[abcdefghijkmnpqrstuvwxyz23456789]{16}$/;
 
+// ----- Haertung vor dem ersten Deploy (Audit 17.10.2026, Befund website-security) -----
+// shared/{id} darf jedes angemeldete Konto mit beliebigem Inhalt anlegen. Der Worker liefert
+// unter der HAUPTDOMAIN aus - uebernaehme er Typ und Inhalt aus dem Dokument, waere
+// og.img = "data:text/html;base64,..." ein Skript im Ursprung der App (Anmeldung, Plandaten).
+// Deshalb: nur echte Bildtypen, nur sauberes Base64, und jede Bildantwort traegt nosniff und
+// eine CSP, unter der selbst ein durchgerutschtes Dokument nichts ausfuehren kann.
+const BILD_TYPEN = new Set(["image/jpeg", "image/png", "image/webp"]);
+const BASE64_RE = /^[A-Za-z0-9+/]+={0,2}$/;
+// Nur die mitgelieferten Fotos, kein ".." und keine Unterpfade ausserhalb von img/.
+const IMG_PFAD_RE = /^img\/(?:library\/)?[a-z0-9_-]+\.(?:jpg|jpeg|png|webp)$/;
+const BILD_KOPF = {
+  "Cache-Control": "public, max-age=86400",
+  "X-Content-Type-Options": "nosniff",
+  "Content-Security-Policy": "default-src 'none'; sandbox"
+};
+// Dieselbe 12-Monats-Frist wie firestore.rules -> shareFrisch(). Der Worker liest mit einem
+// Service-Account und umgeht die Regeln - ohne diese Pruefung zeigte er abgelaufene Links weiter.
+const SHARE_TTL_MS = 31536000000;
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
@@ -77,27 +96,23 @@ async function handleOgImage(shareId, env) {
   if (!img && doc && Array.isArray(doc.recipes) && doc.recipes[0]) img = doc.recipes[0].image;
 
   if (typeof img === "string" && img.startsWith("data:")) {
-    const m = img.match(/^data:([^;]+);base64,(.+)$/);
-    if (m) {
-      return new Response(base64ToBytes(m[2]), {
-        headers: { "Content-Type": m[1], "Cache-Control": "public, max-age=86400" }
-      });
+    const m = img.match(/^data:([^;,]+);base64,(.+)$/);
+    const typ = m && m[1].toLowerCase();
+    if (m && BILD_TYPEN.has(typ) && BASE64_RE.test(m[2])) {
+      return new Response(base64ToBytes(m[2]), { headers: Object.assign({ "Content-Type": typ }, BILD_KOPF) });
     }
   }
-  if (typeof img === "string" && img.startsWith("img/")) {
+  if (typeof img === "string" && IMG_PFAD_RE.test(img)) {
     const upstream = await fetch(ORIGIN + "/" + img);
-    if (upstream.ok) {
-      return new Response(upstream.body, {
-        headers: { "Content-Type": upstream.headers.get("Content-Type") || "image/webp", "Cache-Control": "public, max-age=86400" }
-      });
+    const typ = (upstream.headers.get("Content-Type") || "").split(";")[0].trim().toLowerCase();
+    if (upstream.ok && BILD_TYPEN.has(typ)) {
+      return new Response(upstream.body, { headers: Object.assign({ "Content-Type": typ }, BILD_KOPF) });
     }
   }
   // Fallback: dasselbe neutrale Foto, das photoFor() ohne Treffer auch clientseitig zeigt
   // (PHOTOS.neutral, index.html) - kein eigens erzeugtes Banner noetig.
   const fallback = await fetch(ORIGIN + "/img/neutral.jpg");
-  return new Response(fallback.body, {
-    headers: { "Content-Type": "image/jpeg", "Cache-Control": "public, max-age=86400" }
-  });
+  return new Response(fallback.body, { headers: Object.assign({ "Content-Type": "image/jpeg" }, BILD_KOPF) });
 }
 
 function base64ToBytes(b64) {
@@ -123,7 +138,10 @@ async function getSharedDoc(id, env) {
   );
   if (!res.ok) return null;
   const data = await res.json();
-  return firestoreFieldsToJson(data.fields || {});
+  const doc = firestoreFieldsToJson(data.fields || {});
+  // Abgelaufen wie in shareFrisch(): Dokumente ohne gueltiges `when` bleiben lesbar (Bestand).
+  if (typeof doc.when === "number" && Date.now() - doc.when >= SHARE_TTL_MS) return null;
+  return doc;
 }
 
 async function getAccessToken(env) {

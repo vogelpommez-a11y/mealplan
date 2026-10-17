@@ -6,7 +6,7 @@ Warum es dieses Werkzeug gibt: Eine Abnahme "im Browser" ueber die Fensterbreite
 falschen Viewport und liefert `pointer: fine` - sie meldet gruen, wo am Geraet ein Fehler
 waere. Hier laeuft echte Geraete-Emulation ueber das DevTools-Protokoll:
 setDeviceMetricsOverride + setTouchEmulationEnabled + setEmulatedMedia, und getippt wird
-mit Input.dispatchTouchEvent. Drei Geraetebreiten, Light UND Dark, 22 Stationen je Lauf.
+mit Input.dispatchTouchEvent. Drei Geraetebreiten, Light UND Dark, 18 Stationen je Lauf (108 gesamt, gezaehlt am 17.10.2026).
 
   python tools/abnahme-mobil.py                  # alle sechs Laeufe
   python tools/abnahme-mobil.py --geraet 360x800 --theme light
