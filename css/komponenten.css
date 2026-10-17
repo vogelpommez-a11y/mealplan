@@ -1236,6 +1236,133 @@
   .bd-row span:last-child { color: var(--text); font-weight: 600; font-variant-numeric: tabular-nums; }
   .bd-row.bd-mid { color: var(--text); font-weight: 600; }
   .bd-row.bd-mid span:last-child { font-weight: 700; }
+  /* ---------- Startbildschirm (#splash) ----------
+     Steht statisch im Markup VOR .app, damit er mit dem ersten Bild da ist - noch bevor das
+     App-Script geparst ist. Zwei Fassungen (Regeln und Ablauf: docs/DESIGN.md):
+
+       Kurzfassung  jeder Start. Reines CSS ab dem ersten Bild. Haelt nichts auf: hideSplash()
+                    blendet aus, sobald Anmeldekarte oder App stehen, fruehestens nach
+                    SPLASH_MIN_MS, damit die Einblendung nicht abreisst.
+       Erst-Intro   html.splash-intro, nur beim allerersten Start. Bis das App-Script laeuft,
+                    steht nur der Kreis; erst splashStart() setzt .intro-los. Grund: Das
+                    Zeichnen der Muetze (stroke-dashoffset) laeuft NICHT auf dem Compositor
+                    und stockte, solange der Browser das grosse Script einliest.
+
+     Abgang beider Fassungen: der "Flug durchs Logo" - kurz ausholen, dann gross ziehen und
+     dabei durchsichtig werden (ein bildschirmfuellendes Rot waere ein Helligkeitssprung).
+     Farben fest dunkel (--splash-*, tokens.css) - Begruendung dort. Kein Nachfedern: Federn
+     gehoert zu Bewegungen, die ein Finger angestossen hat. */
+  #splash {
+    position: fixed; inset: 0; z-index: 200;
+    display: grid; place-items: center;
+    color: var(--splash-text);
+    padding: env(safe-area-inset-top) 16px env(safe-area-inset-bottom);
+    /* Notbremse ohne JavaScript: Bricht das App-Script ab, ruft niemand hideSplash() - dann
+       verschwindet er nach 15 s von selbst (laengster Rueckfall: 6 s Cloud + 4 s IndexedDB).
+       "forwards" statt "both": Bis dahin greift die Animation gar nicht. Die Verzoegerung
+       uebersteht auch den globalen Reduced-Motion-Block, der nur die Dauer verkuerzt. */
+    animation: splash-notaus var(--dur-slow) var(--ease-out) 15s forwards;
+  }
+  /* Der Grund liegt auf einer eigenen Ebene: Beim Abgang blendet er aus, waehrend das Logo
+     noch fliegt - auf #splash selbst naehme die Deckkraft das Logo mit. */
+  #splash::before { content: ""; position: absolute; inset: 0; background: var(--splash-bg); }
+  .splash-inner { position: relative; display: flex; flex-direction: column; align-items: center; gap: 18px; }
+  /* Gleiche Groesse wie .auth-card .mark: Wer ohne Konto startet, sieht das Logo danach an
+     derselben Stelle in derselben Groesse weiterstehen, statt dass es springt. */
+  .splash-logo { width: 116px; height: 116px; overflow: visible; }
+  .splash-logo .lg-teil { transform-box: fill-box; transform-origin: center; }
+  .splash-logo .lg-spur { stroke-dasharray: 1; stroke-dashoffset: 0; }
+  /* Schriftzug wie .brand h1 im Kopf - nur im Erst-Intro, die Kurzfassung bleibt knapp. */
+  .splash-marke {
+    display: none; margin: 4px 0 0;
+    font-family: var(--font-display); font-weight: 700; font-size: 26px;
+    letter-spacing: .6px; line-height: 1; text-transform: uppercase;
+  }
+  .splash-marke span { color: var(--splash-accent); }
+  .splash-intro .splash-marke { display: block; }
+  .splash-slogan {
+    margin: 0; display: flex; gap: .4em; flex-wrap: wrap; justify-content: center;
+    font-family: "Segoe Script", "Bradley Hand", "Brush Script MT", "Snell Roundhand", cursive;
+    font-size: 19px; letter-spacing: .3px; line-height: 1.2;
+  }
+  /* Das letzte Wort traegt den Akzent - wie "Mealplan" im Kopf. */
+  .splash-slogan span:nth-child(3) { color: var(--splash-accent); }
+  /* Die rote Linie: zieht sich unter dem Slogan durch wie ein Fortschrittsbalken - so breit
+     wie die breiteste Zeile darueber. */
+  .splash-linie {
+    display: block; align-self: stretch; height: 3px; margin-top: -6px; border-radius: 2px;
+    background: var(--splash-accent); transform-origin: left center;
+  }
+
+  /* Kurzfassung - jede Einzelbewegung --dur-slow, gestaffelt ueber Verzoegerungen. */
+  html:not(.splash-intro) .splash-logo { animation: splash-pop var(--dur-slow) var(--ease-out) both; }
+  html:not(.splash-intro) .splash-slogan span { animation: splash-wort var(--dur-slow) var(--ease-out) both; }
+  html:not(.splash-intro) .splash-slogan span:nth-child(1) { animation-delay: 180ms; }
+  html:not(.splash-intro) .splash-slogan span:nth-child(2) { animation-delay: 300ms; }
+  html:not(.splash-intro) .splash-slogan span:nth-child(3) { animation-delay: 420ms; }
+  html:not(.splash-intro) .splash-linie { animation: splash-strich var(--dur-slow) var(--ease-out) 480ms both; }
+
+  /* Erst-Intro, Phase 1 (bis das App-Script laeuft): nur der Kreis. */
+  .splash-intro .lg-kreis { animation: splash-kreis var(--dur-marke) var(--ease-out) both; }
+  .splash-intro #splash:not(.intro-los) .lg-teil:not(.lg-kreis),
+  .splash-intro #splash:not(.intro-los) .splash-marke,
+  .splash-intro #splash:not(.intro-los) .splash-slogan span,
+  .splash-intro #splash:not(.intro-los) .splash-linie { opacity: 0; }
+  /* Phase 2 (.intro-los): Muetze zeichnet sich, fuellt sich, die Hantel schiebt sich
+     zusammen, dann Schriftzug, Slogan, Linie. Die Zeitleiste endet bei rund 1,95 s;
+     SPLASH_INTRO_MS (index.html) haelt danach noch einen Atemzug. */
+  .intro-los .lg-spur { animation: splash-zeichnen var(--dur-marke-lang) var(--ease-in-out) both; }
+  .intro-los .lg-muetze { transform-origin: center bottom; animation: splash-auf var(--dur-slow) var(--ease-out) 450ms both; }
+  .intro-los .lg-stange { animation: splash-stange var(--dur-slow) var(--ease-out) 550ms both; }
+  .intro-los .lg-scheiben-l { animation: splash-von-links var(--dur-marke) var(--ease-out) 600ms both; }
+  .intro-los .lg-scheiben-r { animation: splash-von-rechts var(--dur-marke) var(--ease-out) 600ms both; }
+  .intro-los .splash-marke { animation: splash-wort var(--dur-slow) var(--ease-out) 1000ms both; }
+  .intro-los .splash-slogan span { animation: splash-wort var(--dur-slow) var(--ease-out) both; }
+  .intro-los .splash-slogan span:nth-child(1) { animation-delay: 1150ms; }
+  .intro-los .splash-slogan span:nth-child(2) { animation-delay: 1270ms; }
+  .intro-los .splash-slogan span:nth-child(3) { animation-delay: 1390ms; }
+  .intro-los .splash-linie { animation: splash-strich var(--dur-marke) var(--ease-out) 1550ms both; }
+  /* Tippen ueberspringt: alles sofort im Endzustand. */
+  #splash.splash-fertig .lg-teil, #splash.splash-fertig .lg-spur, #splash.splash-fertig .splash-marke,
+  #splash.splash-fertig .splash-slogan span, #splash.splash-fertig .splash-linie { animation: none; opacity: 1; }
+
+  /* Abgang: Texte gehen sofort, das Logo holt kurz aus und fliegt dem Betrachter entgegen,
+     der Grund blendet hinterher aus. */
+  #splash.splash-out { pointer-events: none; animation: none; }
+  #splash.splash-out::before { animation: splash-weg var(--dur-marke) var(--ease-out) 160ms both; }
+  #splash.splash-out .splash-marke, #splash.splash-out .splash-slogan, #splash.splash-out .splash-linie {
+    animation: splash-weg var(--dur-fast) var(--ease-out) both;
+  }
+  #splash.splash-out .splash-logo {
+    animation: splash-flug var(--dur-marke-lang) both, splash-weg var(--dur-slow) var(--ease-out) 180ms both;
+  }
+
+  @keyframes splash-pop { from { opacity: 0; transform: scale(.88); } to { opacity: 1; transform: none; } }
+  @keyframes splash-wort { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+  @keyframes splash-strich { from { transform: scaleX(0); } to { transform: none; } }
+  @keyframes splash-kreis { from { opacity: 0; transform: scale(.6); } to { opacity: 1; transform: none; } }
+  @keyframes splash-zeichnen { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+  @keyframes splash-auf { from { opacity: 0; transform: scale(.9); } to { opacity: 1; transform: none; } }
+  @keyframes splash-stange { from { opacity: 0; transform: scaleX(.3); } to { opacity: 1; transform: none; } }
+  @keyframes splash-von-links { from { opacity: 0; transform: translateX(-70px); } to { opacity: 1; transform: none; } }
+  @keyframes splash-von-rechts { from { opacity: 0; transform: translateX(70px); } to { opacity: 1; transform: none; } }
+  @keyframes splash-weg { to { opacity: 0; } }
+  /* Ausholen mit --ease-out, dann der Flug mit --ease-marke (beschleunigt: man fliegt hinein,
+     nicht heraus). 14-fach reicht, damit der Kreis auch am Rechner ueber den Rand waechst. */
+  @keyframes splash-flug {
+    0% { transform: none; animation-timing-function: var(--ease-out); }
+    22% { transform: scale(.92); animation-timing-function: var(--ease-marke); }
+    100% { transform: scale(14); }
+  }
+  @keyframes splash-notaus { to { opacity: 0; visibility: hidden; } }
+  /* Reduzierte Bewegung: Das Intro startet gar nicht erst (Inline-Script im Markup). Der
+     globale Block kuerzt alle Animationen auf 0,001 ms - der Flug waere ein Sprung. Statt
+     dessen ein ruhiges Ausblenden als Transition; die laesst der globale Block fuer opacity
+     zu. */
+  @media (prefers-reduced-motion: reduce) {
+    #splash.splash-out { opacity: 0; transition: opacity var(--dur-slow) var(--ease-out); }
+    #splash.splash-out::before, #splash.splash-out .splash-logo { animation: none; }
+  }
   .auth-card { width: 100%; max-width: 430px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); padding: 34px 30px 26px; text-align: center; }
   .auth-card .mark { width: 116px; height: 116px; border-radius: 50%; margin: 0 auto 20px; overflow: hidden; background: center / cover no-repeat var(--logo); }
   .auth-card h2 { font-family: var(--font-display); font-size: 25px; font-weight: 600; margin: 0 0 6px; text-wrap: balance; }

@@ -191,6 +191,9 @@ def aufbauen(s, url):
          "localStorage.setItem('wochenkueche_profile_v1__test', %s); location.reload(); 1"
          % (json.dumps(json.dumps(ZUSTAND)), json.dumps(json.dumps({"name": "Test"}))))
     time.sleep(1.0)
+    # Der Startbildschirm (#splash) faengt echte Touch-Ereignisse ab, bis er weg ist
+    # (fruehestens 0,8 s + Ausblenden). Siehe docs/TESTING.md 2g.
+    warte_auf(s, "html:not(:has(#splash))", "das Ende des Startbildschirms")
     warte_auf(s, '[data-tab="recipes"]', "die Reiterleiste")
     s.js("document.querySelector('[data-tab=\"recipes\"]').click(); 1")
     warte_auf(s, ".rcard", "die Meal-Karte")

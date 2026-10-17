@@ -741,6 +741,21 @@ python tools/abnahme-mobil.py --zeigen        # Browser offen lassen
 
 Braucht `test-server.ps1`. Eigenes Profil auf Port 9225, bewusst **nicht angemeldet**.
 
+**Seit 17.10.2026 wartet `laden()` auf das Verschwinden von `#splash`.** Der Startbildschirm
+liegt über allem und fängt Tipps ab. Ohne das Warten träfe der erste Tipp ihn statt
+`#a-local`, und Fotos zeigten das Logo statt der App. Dasselbe gilt für jedes neue Werkzeug,
+das echte Touch-/Maus-Ereignisse schickt: erst `!document.getElementById('splash')`, dann
+tippen. JS-`click()` ist davon nicht betroffen. Nachgezogen in `abnahme-plan-sortieren.py`
+und `abnahme-zutaten-sortieren.py` (sie luden neu und warteten nur 1,0–1,2 s);
+`abnahme-scan-kamera.py` wartet 3 s und braucht es nicht. Weil `laden()` den Speicher leert,
+läuft dort bei jedem Laden das **Erst-Intro** (rund 2,9 s bis zur App) — das Warten deckt es ab.
+
+**Den Startbildschirm Bild für Bild ansehen:** Die Vergleichsseite kennt `startbildschirm`
+(Kurzfassung) und `startbildschirm-intro`; „Zustand neu herstellen“ spielt ihn erneut ab. Ein
+Standbild zeigt keine Bewegung — vor einer Änderung an der Choreografie eine Bildfolge
+aufnehmen (headless, eigenes Profil, `Page.captureScreenshot` in Schleife) und Phase für Phase
+ansehen.
+
 **Sieben Messgrößen:** waagerechter Überlauf · Elemente über dem Rand · Trefferflächen
 unter 44 px · Knöpfe, die einander den Tipp wegnehmen · abgeschnittener Text · Eingaben
 unter 16 px · Kontrast nach WCAG.

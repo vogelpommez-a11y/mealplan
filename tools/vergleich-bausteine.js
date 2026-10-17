@@ -465,5 +465,45 @@ var BAUSTEINE = [
       w.setTimeout(function () { versuch(0); }, 800);
       return "Gruppe nachgestellt (ohne Netz), Einkaufsliste geht gleich auf";
     }
+  },
+
+  {
+    id: "startbildschirm",
+    titel: "Startbildschirm: die tägliche Kurzfassung",
+    was: "Rechts: Logo ploppt auf, „Plan it. · Cook it. · Lift it.“ nacheinander, die rote Linie "
+       + "zieht durch, dann der Flug durchs Logo in die App. Links (live): kein Startbild. "
+       + "Nur beim Laden zu sehen – „Zustand neu herstellen“ spielt ihn erneut ab. "
+       + "Auch das Logo ist neu: scharf statt hochgerechnet (Kopf und Karte vergleichen).",
+    stellen: [
+      "#splash — statisch in index.html vor .app, Logo eingesetzt von tools/logo-vektor.py",
+      "hideSplash()/splashStart() — enterApp, renderAuthChoice/-Local/-Cloud, renderVerifyPending, boot",
+      "css/komponenten.css — Startbildschirm, css/tokens.css — --splash-*, --dur-marke*, --logoL"
+    ],
+    zustand: {},
+    // Merker setzen: Der NAECHSTE Ladevorgang zeigt sicher die Kurzfassung. Der allererste in
+    // einem frischen Profil zeigt das Intro - "Zustand neu herstellen" einmal druecken.
+    oeffnen: function (doc) {
+      doc.defaultView.localStorage.setItem("wochenkueche_intro_v1", "1");
+      return "Kurzfassung – „Zustand neu herstellen“ spielt sie erneut ab";
+    }
+  },
+
+  {
+    id: "startbildschirm-intro",
+    titel: "Startbildschirm: das Erst-Intro",
+    was: "Läuft nur beim allerersten Start auf einem Gerät: Kreis, die Mütze zeichnet sich, "
+       + "die Hantel schiebt sich zusammen, Schriftzug, Slogan, Linie, Flug in die App. "
+       + "Ein Tippen überspringt es. Hier spielt „Zustand neu herstellen“ es jedes Mal erneut ab.",
+    stellen: [
+      "Inline-Script am #splash setzt html.splash-intro (nicht bei reduzierter Bewegung)",
+      "splashStart() — setzt .intro-los und den Merker wochenkueche_intro_v1",
+      "css/komponenten.css — Erst-Intro, Phase 1 und 2"
+    ],
+    zustand: {},
+    // Merker loeschen, damit der naechste Ladevorgang wieder das Intro zeigt.
+    oeffnen: function (doc) {
+      doc.defaultView.localStorage.removeItem("wochenkueche_intro_v1");
+      return "Erst-Intro – „Zustand neu herstellen“ spielt es erneut ab";
+    }
   }
 ];

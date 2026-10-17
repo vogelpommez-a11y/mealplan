@@ -1236,6 +1236,27 @@ Alternative.
 `authMode` bleibt die einzige Quelle dafür, ob gerade Cloud-Funktionen möglich sind — daran
 hängen Teilen-Links, Gruppen und der Sync-Punkt in der Kopfzeile.
 
+**Startbildschirm (seit 17.10.2026):** Über allem liegt bis dahin `#splash` (statisch im
+Markup, Gestaltung in `docs/DESIGN.md`). Darunter steht weiter `renderAuthLoading()`. Er geht
+erst, wenn **zwei** Bedingungen erfüllt sind:
+
+* **bereit** — jeder Bildschirm aus der Tabelle oben ruft `hideSplash()` auf: `enterApp()`
+  nach dem ersten `render()`, dazu `renderAuthChoice()`, `renderAuthLocal()`,
+  `renderAuthCloud()` und `renderVerifyPending()`. Wer einen neuen Einstiegsbildschirm baut,
+  braucht diesen Aufruf ebenfalls — sonst bleibt der Splash bis zur 15-s-Notbremse stehen.
+* **frei** — die Einblendung ist durch: `SPLASH_MIN_MS` (800 ms) seit Seitenstart, beim
+  Erst-Intro `SPLASH_INTRO_MS` (2,2 s) ab `splashStart()`. Ein Tippen ins Intro macht sofort frei.
+
+**Erst-Intro:** Ein Inline-Script direkt am `#splash` setzt vor dem ersten Bild
+`html.splash-intro`, wenn `localStorage["wochenkueche_intro_v1"]` fehlt und keine reduzierte
+Bewegung eingestellt ist. `splashStart()` (erste Zeile von `boot()`) lässt Phase 2 los und setzt
+den Merker erst dann — bricht der Start vorher ab, bleibt das Intro für den nächsten Versuch.
+Der Merker trägt **bewusst kein `__test`-Suffix**: Er enthält keine Daten, eine Trennung von
+Test- und Echtbestand braucht er nicht. `wipeLocalData()` lässt ihn stehen.
+
+Beim Kontowechsel (`kontoWechselAufraeumen()`) bleibt der Splash bewusst stehen, die Seite
+lädt ohnehin neu.
+
 ### Pro-Berechtigung: `entitlements/{uid}` und `isPro()` (D1)
 
 Der Pro-Status liegt in einer **eigenen Firestore-Sammlung**, die der Client nur lesen darf:

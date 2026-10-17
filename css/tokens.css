@@ -143,7 +143,9 @@
 
     /* Logo (Light-Standard); Dark-Variante über Theme-Blöcke */
     /* Logo als eigene Datei statt Base64: 60 KB Base64 mitten im render-blocking CSS haben den ersten Paint fuer jeden Aufruf verzoegert, auch fuer die, die das Logo nie sehen. Der PDF-Export holt dieselbe Datei per fetch (prepareLogoForPdf). */
-    --logoL: url(../img/logo.png);
+    /* Seit 17.10.2026 der Vektor (tools/logo-vektor.py) - das 220-px-PNG war auf dem Handy
+       weich. img/logo.png bleibt fuer den PDF-Export (lib/pdf.js braucht ein Rasterbild). */
+    --logoL: url(../img/logo.svg);
     --logoD: var(--logoL);
     --logo: var(--logoL);
 
@@ -153,6 +155,22 @@
     --dur-fast: 160ms;
     --dur-base: 200ms;
     --dur-slow: 300ms;
+    /* Markenbewegung - NUR fuer den Startbildschirm. Die UI-Grenze von 300 ms gilt fuer
+       Bewegungen, die man dutzendfach am Tag sieht; der Startbildschirm ist ein einzelner
+       Markenmoment, und der Flug durchs Logo braucht Weg. Nicht fuer anderes verwenden.
+       --ease-marke beschleunigt (ease-in): Man fliegt in das Logo HINEIN. */
+    --dur-marke: 400ms;
+    --dur-marke-lang: 600ms;
+    --ease-marke: cubic-bezier(.7, 0, .84, 0);
+
+    /* Startbildschirm (#splash): bewusst NICHT je Theme. Er ist immer dunkel, weil er nahtlos
+       an das Startbild des Systems anschliesst - und das kommt aus background_color im
+       Manifest (#0C0A0B), nicht aus dem Theme. Ein heller Splash im Light-Theme blitzte
+       zwischen dunklem Systembild und hellem App-Inhalt einmal dunkel-hell-hell auf.
+       Die drei Werte sind die Dark-Werte von --bg, --text und --accent. */
+    --splash-bg: #0C0A0B;
+    --splash-text: #F4EFEE;
+    --splash-accent: #FF3040;
   }
 
   @media (prefers-color-scheme: dark) {

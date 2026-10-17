@@ -19,7 +19,7 @@
  * die App auf dem Root von www.paddysmealplan.de liegt - und es haelt den Capacitor-Weg offen.
  * Die Versionsnummer bei jedem inhaltlichen SW-Wechsel erhoehen -> activate raeumt Altes weg.
  */
-const VERSION = "pm-v9";
+const VERSION = "pm-v10";
 const SHELL_CACHE = "shell-" + VERSION;
 
 // Kern-Assets, die die App-Huelle offline tragen. index.html liegt zusaetzlich im Cache,
@@ -62,6 +62,7 @@ const SHELL_ASSETS = [
   "./data/rechtstexte.js",
   "./manifest.webmanifest",
   "./img/logo.png",
+  "./img/logo.svg",
   "./img/icon-192.png",
   "./img/icon-512.png",
   "./img/icon-maskable-512.png",

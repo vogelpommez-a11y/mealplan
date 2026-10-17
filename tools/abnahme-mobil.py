@@ -504,6 +504,16 @@ class Sitzung(object):
             except Exception:
                 continue
         time.sleep(0.6)
+        # Der Startbildschirm (#splash) liegt ueber allem und faengt Tipps ab, bis hideSplash()
+        # ihn entfernt (fruehestens 0,8 s, im Rueckfall bis 15 s). Ohne dieses Warten traefe
+        # der erste Tipp ihn statt "#a-local" - und jedes Foto zeigte das Logo statt der App.
+        for _ in range(64):
+            try:
+                if not self.js("!!document.getElementById('splash')"):
+                    break
+            except Exception:
+                pass
+            time.sleep(0.25)
         self.bild_abwarten()
         self.messgrundlage_pruefen()
 

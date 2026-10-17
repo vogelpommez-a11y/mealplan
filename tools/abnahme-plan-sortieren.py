@@ -226,6 +226,9 @@ def aufbauen(s, url):
          "localStorage.setItem('wochenkueche_profile_v1__test', JSON.stringify({name:'Test'}));"
          "location.reload(); return 1})()")
     time.sleep(1.2)
+    # Der Startbildschirm (#splash) faengt echte Touch-Ereignisse ab, bis er weg ist
+    # (fruehestens 0,8 s + Ausblenden). Siehe docs/TESTING.md 2g.
+    warte_auf(s, "html:not(:has(#splash))", "das Ende des Startbildschirms")
     # Bewusst ueber die Kennung des Reiterknopfs: data-tab="plan" traegt auch die grosse
     # Bildkachel im Startreiter, und die stand hier zuerst im Dokument.
     warte_auf(s, "#tab-plan", "die Reiterleiste")

@@ -83,6 +83,22 @@ seit dem Firestore-Offline-Cache (`docs/ARCHITECTURES.md`, Abschnitt „Firestor
 eine Produktzusage, kein bloßer Härtungsschritt. Kein eigener Offline-Hinweis in der UI: der
 Sync-Status bleibt der bestehende farbige Punkt am Avatar.
 
+## Der Startbildschirm: Markenmoment, aber keine Wartezeit (17.10.2026)
+
+Die App öffnet man mehrmals am Tag und kurz — im Supermarkt, in der Küche, nach dem
+Training. Ein Netflix-Intro bei jedem Start würde sie beim zehnten Mal langsam wirken
+lassen; bei einem Planer ist Tempo selbst ein Markenversprechen. Deshalb zwei Fassungen:
+
+* **Jeder Start:** eine Kurzfassung mit Signatur (Logo, Slogan, rote Linie, Flug durchs
+  Logo in die App). Sie überbrückt nur die Ladezeit, die es ohnehin gibt — frühestens nach
+  0,8 s, damit sie nicht abreißt, aber nie länger, als die App zum Laden braucht.
+* **Allererster Start auf einem Gerät:** ein Intro von gut 2 s, in dem sich das Logo
+  aufbaut. Die **eine bewusste Ausnahme** von „kostet keine Zeit“ — vertretbar, weil
+  einmalig, und ein Tippen überspringt es. Der erste Eindruck zählt am meisten; dasselbe
+  Intro taugt als Anfang für Reels und das App-Store-Vorschauvideo.
+
+Kein Ton: Viele öffnen die App unterwegs, ein unangekündigter Klang wirkt dort störend.
+
 ## Produktidentität
 
 Paddy's Mealplan:

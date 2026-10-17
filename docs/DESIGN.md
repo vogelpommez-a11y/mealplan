@@ -1319,6 +1319,57 @@ dasselbe, nur ruhig.
 
 ---
 
+## Der Startbildschirm (seit 17.10.2026)
+
+`#splash` steht **statisch im Markup** vor `.app` und ist damit mit dem ersten Bild da,
+bevor das App-Script geparst ist. Er ist ein Markenmoment, kein Lückenfüller — aber er
+kostet im Alltag keine Zeit. Deshalb gibt es **zwei Fassungen**:
+
+| Fassung | Wann | Ablauf |
+|---|---|---|
+| **Kurzfassung** | jeder Start | Logo ploppt auf (`scale(.88)` → 1), „Plan it.“ · „Cook it.“ · „Lift it.“ nacheinander (180/300/420 ms), die rote Linie zieht durch (480 ms). Reines CSS ab dem ersten Bild |
+| **Erst-Intro** | einmal je Gerät (`html.splash-intro`) | Phase 1, bis das Script läuft: nur der Kreis. Phase 2 (`.intro-los`): Mützenumriss zeichnet sich (Maske, `stroke-dashoffset`), Füllung kommt, Stange wächst, Scheiben schieben sich von den Seiten heran, dann Schriftzug „Paddy’s Mealplan“, Slogan, Linie. Endet bei ~1,95 s; `SPLASH_INTRO_MS` hält 2,2 s. **Ein Tippen überspringt** (`.splash-fertig`) |
+
+**Abgang beider Fassungen — der Flug durchs Logo:** Die Texte gehen sofort, das Logo holt
+kurz aus (`scale(.92)`, `--ease-out`) und fliegt dann beschleunigt auf 14-fache Größe
+(`--ease-marke`); es wird dabei durchsichtig, der dunkle Grund (`#splash::before`) blendet
+hinterher aus. Vorbild ist die Logo-Enthüllung der früheren Twitter-iOS-App.
+
+* **Er hält nichts auf.** `hideSplash()` blendet aus, sobald Anmeldekarte oder App stehen —
+  frühestens nach `SPLASH_MIN_MS` (800 ms) seit Seitenstart, beim Intro nach
+  `SPLASH_INTRO_MS`. Ein abgerissenes Logo wirkt kaputter als gar keins.
+* **Phase 1 wartet auf das Script, mit Absicht.** Das Zeichnen der Mütze
+  (`stroke-dashoffset`) läuft nicht auf dem Compositor und stockte, solange der Browser das
+  große App-Script einliest. Größe und Deckkraft laufen dort weiter, deshalb steht bis dahin
+  nur der Kreis. `splashStart()` am Anfang von `boot()` lässt Phase 2 los.
+* **Kein Nachfedern.** Federn gehört zu Bewegungen, die ein Finger angestoßen hat.
+* **Eigene Motion-Tokens, nur hier:** `--dur-marke` (400 ms), `--dur-marke-lang` (600 ms),
+  `--ease-marke` (beschleunigend). Die 300-ms-Grenze gilt für Bewegungen, die man dutzendfach
+  am Tag sieht; der Flug braucht Weg. Für andere UI **nicht** verwenden.
+* **Immer dunkel — die eine bewusste Theme-Ausnahme.** `--splash-bg/-text/-accent` in
+  `:root` sind die Dark-Werte und stehen absichtlich nicht in den Theme-Blöcken. Der
+  Startbildschirm schließt an das Startbild des Systems an, und das kommt aus
+  `background_color` im Manifest (`#0C0A0B`). Ein heller Splash im Light-Theme blitzte
+  dunkel → hell auf.
+* **Notbremse ohne JavaScript:** Bricht das App-Script ab, verschwindet er nach 15 s über die
+  CSS-Animation `splash-notaus` (längster Rückfall: 6 s Cloud + 4 s IndexedDB).
+* **Reduzierte Bewegung:** kein Intro (das Inline-Script setzt `splash-intro` gar nicht erst),
+  kein Aufploppen, kein Flug. Die Wörter erscheinen nur zeitlich gestaffelt, dann blendet er
+  als Transition aus — der globale Reduced-Motion-Block hätte den Flug sonst zum Sprung
+  verkürzt.
+
+### Das Logo ist ein Vektor (seit 17.10.2026)
+
+`img/logo.svg` und das Inline-Logo im Startbildschirm erzeugt `tools/logo-vektor.py` aus
+`img/icon-512.png` — abgenommen, nicht nachgebaut: Kontur an der 50-%-Kante, gleichmäßig
+verteilt, geglättet, als zentripetale Catmull-Rom-Kurven geschrieben (die uniforme Form
+bildete an den Hantelscheiben kleine Hörner). Das 220-px-PNG war auf dem Handy weich.
+`--logoL` zeigt auf das SVG; `img/logo.png` bleibt für den PDF-Export. **Beides nie von Hand
+bearbeiten** — das Werkzeug ersetzt den Block zwischen den `LOGO-SVG`-Marken in `index.html`.
+App-Symbole (`icon-*.png`, `apple-touch-icon.png`) sind davon unberührt.
+
+---
+
 ## Hinweis statt `title=` (seit 22.09.2026)
 
 Ein `title=` erscheint nur beim Verweilen mit der Maus. Auf einem Telefon gibt es kein
