@@ -248,7 +248,8 @@ Rechtsrisiko, weil es eine Zusage gegenüber den Nutzenden ist.
 - **Support-Kontakt.**
 - **Altersfreigabe / Content Rating** ausgefüllt. **Die inhaltliche Vorgabe steht seit dem
   22.09.2026: mindestens 16 Jahre.** Ziffer 13 der Datenschutzerklärung nennt sie samt
-  Rechtsgrundlage, bei der Registrierung steht der Hinweis in der `auth-note`, und seit
+  Rechtsgrundlage, bei der Registrierung steht der Hinweis in der `auth-note` (seit 18.10.2026 mit Link auf die
+  Datenschutzerklärung), und seit
   dem 01.10.2026 nimmt auch die Einführung erst ab 16 Jahren an (`ONB_NUM.age.min`, vorher 10). Beim
   Ausfüllen der Store-Formulare muss das **zusammenpassen** — eine App, die sich im Store
   „ab 4“ nennt und im Rechtstext 16 verlangt, widerspricht sich an einer Stelle, die beide
@@ -345,10 +346,13 @@ dass er es beim zweiten Fall auf einer dünneren Grundlage tut.
 `Symbolbild · KI-generiert` (`bildHinweisHtml()`) — und im **Alt-Text** des Bildes
 (`bildAlt()`), damit die Auskunft nicht nur bekommt, wer sehen kann. Zwei Gründe:
 
-1. **Falls** ein Gericht „Gegenständen“ weiter auslegt, ist die Pflicht bereits erfüllt —
-   und zwar am richtigen Ort. Art. 50 Abs. 5 verlangt die Angabe „klar und eindeutig,
-   spätestens zum Zeitpunkt der ersten Aussetzung“; ein Hinweis, den man erst im Impressum
-   findet, genügt dafür vermutlich nicht.
+1. **Falls** ein Gericht „Gegenständen“ weiter auslegt, ist die Pflicht damit **nicht
+   sicher** erfüllt (Rechtsprüfung 17.10.2026, 🟡 3). Art. 50 Abs. 5 verlangt die Angabe
+   „klar und eindeutig, spätestens zum Zeitpunkt der ersten Aussetzung“ — die erste
+   Aussetzung ist meist die **Karte** (Plan, Picker, Rezeptbuch), der Hinweis steht aber nur
+   in der großen Meal-Ansicht. Ein Hinweis, den man erst im Impressum findet, genügt
+   vermutlich nicht. **Offen, Anwaltsfrage:** Reicht die Meal-Ansicht, oder braucht schon
+   die Karte eine Kennzeichnung?
 2. **Unabhängig vom AI Act: Irreführung nach UWG.** Das Wort *Symbolbild* sagt genau das,
    worauf es ankommt — das Gericht sieht beim Nachkochen nicht zwingend so aus. Das wird
    scharf, sobald Inhalte bezahlt sind (Pro).

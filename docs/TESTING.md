@@ -16,7 +16,7 @@ Die primäre Verifikation erfolgt deshalb über den Browser und gezielte isolier
 
 <!-- REGISTER-ANFANG (erzeugt aus den Ueberschriften: python tools/register.py - nicht von Hand pflegen) -->
 
-**Register — 87.** Vorne (0 bis 9) die geltenden Verfahren: Syntax-Check,
+**Register — 88.** Vorne (0 bis 9) die geltenden Verfahren: Syntax-Check,
 Smoke-Test, Ausschneide-Pruefstand, Sync-Tests. Dahinter das datierte Fallarchiv —
 einzelne Pruefstaende und was ihre Gegenprobe gezeigt hat.
 
@@ -113,6 +113,7 @@ Die Verfahren gibt es auch als Skill: `/smoke`, `/pruefstand`, `/abnahme`, `/dep
 | · | `tools/pruefstand-fremdbezug.py` — die Kopie nach dem Austritt trägt keine fremde Kennung (01.10.2026) |
 | · | `tools/pruefstand-gruppe-fuer-alle.py` — ein Hinweis, der an fünf Stellen hängen muss (05.10.2026, erweitert 07.10.2026) |
 | · | `tools/pruefstand-plan-slots.py` — persönlicher Plan slotweise, Rückgängig in der richtigen Woche (17.10.2026) |
+| · | `tools/pruefstand-daten-loeschen.py` — räumt „Alle Daten löschen“ wirklich alles? (18.10.2026) |
 
 <!-- REGISTER-ENDE -->
 
@@ -5584,3 +5585,23 @@ Slot **zusammen** mit dem eigenen ausstehenden Schreibvorgang (`hasPendingWrites
 `includeMetadataChanges` feuert dafür kein Ereignis. Das Gerät sieht den fremden Slot dann erst
 beim nächsten Snapshot. Kein Datenverlust (die Cloud hat beides), aber eine verzögerte Anzeige.
 Nicht gemessen, nur geschlossen — `docs/TROUBLESHOOTING.md` 189.
+
+## `tools/pruefstand-daten-loeschen.py` — räumt „Alle Daten löschen“ wirklich alles? (18.10.2026)
+
+Anlass: Rechtsprüfung vom 17.10.2026, 🟡 4. Ziffer 10 sagt „sämtliche auf diesem Gerät
+gespeicherten Daten“ zu, `wipeLocalData()` ließ aber `wochenkueche_theme_v1` und
+`wochenkueche_intro_v1` stehen.
+
+Ausgeschnitten: `wipeLocalData()`, `localKey()` und die acht Schlüssel-Konstanten (einzeilig,
+nicht über die Klammer gesucht — eine Konstante endet auf `;`). Gestubbt nur die Randstücke:
+`idbRW` (Fotos), `CloudSync.wipeCache` (Firestore-Cache), `noteError`. Gemessen wird gegen einen
+**echten** `localStorage` (headless Edge, `file://`): vorher alle acht App-Schlüssel gesetzt,
+danach kein `wochenkueche_`-Schlüssel mehr, Fotos und Cache je einmal geleert, ein fremder
+Schlüssel ohne App-Bezug unberührt.
+
+**Gegenprobe im selben Lauf:** derselbe Ablauf gegen `wipeLocalData()` aus Commit `9b0cc8f`
+(per `git show`, fest verdrahtet). Dort **müssen** genau Theme und Intro-Merker übrig bleiben —
+gemessen: genau diese zwei.
+
+**Was er nicht kann:** die beiden IndexedDBs des Firebase-SDK prüfen. Die bleiben bewusst
+(`docs/ARCHITECTURES.md`, „`wipeLocalData()` deckt beide Speicher ab“).

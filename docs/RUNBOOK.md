@@ -175,6 +175,9 @@ Wartung“ zu. Dazu `tools/fremde-uids-aufraeumen.py` als **Trockenlauf**: Er mu
 melden. Fremde Kennungen in Kopien entstehen seit dem 01.10.2026 nicht mehr (die App bereinigt
 beim Austritt und beim Start); meldet er doch etwas, war ein Gerät mit altem Stand unterwegs —
 sichern, dann `--schreiben` (§183).
+Ebenso `tools/mailnamen-aufraeumen.py` als **Trockenlauf** (Teil der E-Mail als Name in
+Mitgliedereinträgen und Teilen-Links, Rechtsprüfung 17.10.2026): Er muss „Nichts zu tun“ melden —
+die App schreibt den Rückfall seit dem 17.10.2026 nicht mehr. Meldet er etwas: sichern, dann `--schreiben`.
 
 ### Schritt 0b: der Live-Stand der Regeln
 
@@ -315,6 +318,42 @@ bleibt als Frage für das Anwaltsgespräch (`docs/DATENSCHUTZ-INTERN.md` Punkt 1
 Ein Admin-Skript dafür gibt es bewusst noch nicht (Entscheidung 01.10.2026: erst bei Bedarf);
 bis dahin ist diese Tabelle die Prüfliste. Kommt eins, muss es dieselbe Liste abarbeiten wie
 `kontoDatenLoeschen()` — und ein Prüfstand muss beide gegeneinander halten.
+
+### Meldung eines rechtswidrigen Inhalts (DSA)
+
+Seit dem 18.10.2026 nennt das Impressum einen Meldeweg: „Rechtswidrige Inhalte melden“, per
+E-Mail. Der Text sagt zu: **„Wir prüfen jede Meldung und melden uns bei dir.“** Dieser Ablauf
+ist der Unterbau dafür. Ob und wie weit der DSA hier überhaupt greift, ist offen
+(`docs/DATENSCHUTZ-INTERN.md` Punkt 22) — der Ablauf gilt trotzdem, weil der Text es zusagt.
+
+**Fristen (Entscheidung Paddy, 18.10.2026):** Eingang bestätigen binnen **3 Tagen**,
+Entscheidung binnen **14 Tagen** mitteilen. Ausnahme: Deutet die Meldung auf eine Gefahr für
+Leib oder Leben, **sofort** handeln und die Polizei informieren (Art. 18 DSA).
+
+1. **Eingang bestätigen** — an die Absenderadresse, kurz: Meldung ist angekommen, Entscheidung
+   folgt. Fehlt der Link oder die Begründung, danach fragen.
+2. **Einordnen:** Wo liegt der Inhalt?
+   - **Teilen-Link** (`…?s=<id>` bzw. `shared/{id}`): Nur hier ist ein Inhalt für Dritte
+     abrufbar — für jeden Angemeldeten, der den Link hat. Der häufigste Fall.
+   - **Gruppe** (`groups/{gid}/recipes/*`): nur für die höchstens vier Mitglieder sichtbar.
+     Meldet ein Mitglied, liegt die Gruppen-ID nicht im Link — über die UID des Meldenden in
+     `groups/*/members` suchen.
+   - **Eigenes Konto** (`users/{uid}`): sieht niemand außer dem Nutzer selbst. Kein Fall für
+     diesen Ablauf.
+3. **Prüfen**, sorgfältig und ohne Ansehen der Person: Ist der Inhalt offensichtlich
+   rechtswidrig (z. B. fremdes Foto mit Urheberrecht, Beleidigung, Bild einer Person ohne
+   Einwilligung)? Im Zweifel nicht selbst entscheiden — zurückstellen und anwaltlich fragen.
+4. **Entfernen**, wenn ja — vorher `python tools/firestore-backup.py`:
+   - Teilen-Link: Dokument `shared/{id}` in der Firestore-Konsole löschen. Wer den Link
+     danach öffnet, bekommt „Diesen Link gibt es nicht mehr.“
+   - Gruppe: nur das betroffene Meal bzw. Foto in `groups/{gid}/recipes/{id}` entfernen, nicht
+     die Gruppe. Im Feld `by` steht die UID dessen, der es angelegt hat.
+5. **Mitteilen:** dem Meldenden die Entscheidung; bei Entfernung auch dem, der den Inhalt
+   angelegt hat (E-Mail aus Firebase Auth über die UID) — mit kurzer Begründung, was entfernt
+   wurde und warum (Art. 17 DSA). Weder dem einen den Namen des anderen nennen.
+6. **Vermerk** ohne Klardaten in `docs/DATENSCHUTZ-INTERN.md` Abschnitt 4, wie bei Löschanträgen:
+   Datum Eingang, Datum Bestätigung, Datum Entscheidung, Ort (Teilen-Link/Gruppe), entfernt
+   ja/nein. Keine UID, keine E-Mail, keine Link-ID.
 
 ## 6. Zuständigkeiten
 

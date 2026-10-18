@@ -14232,7 +14232,7 @@
       <div class="auth-or">oder</div>
       <button class="btn social" id="c-google" type="button">${GOOGLE_SVG}<span>Mit Google ${reg ? "registrieren" : "anmelden"}</span></button>
       ${APPLE_ENABLED ? `<button class="btn social apple" id="c-apple" type="button">${APPLE_SVG}<span>Mit Apple ${reg ? "registrieren" : "anmelden"}</span></button>` : ""}
-      <p class="auth-note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg><span>Dein Konto liegt sicher in der Cloud – du kannst dich von jedem Gerät aus anmelden. Nach der Registrierung schicken wir dir eine <strong>Bestätigungsmail</strong>.${reg ? " Mit der Registrierung bestätigst du, dass du mindestens <strong>16 Jahre</strong> alt bist." : " Meldest du dich zum ersten Mal mit Google an, bestätigst du, dass du mindestens <strong>16 Jahre</strong> alt bist."}</span></p>
+      <p class="auth-note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg><span>Dein Konto liegt sicher in der Cloud – du kannst dich von jedem Gerät aus anmelden. Nach der Registrierung schicken wir dir eine <strong>Bestätigungsmail</strong>.${reg ? ` Mit der Registrierung bestätigst du, dass du mindestens <strong>16 Jahre</strong> alt bist. Es gilt unsere <button type="button" class="btn link inline" data-action="datenschutz">Datenschutzerklärung</button>.` : " Meldest du dich zum ersten Mal mit Google an, bestätigst du, dass du mindestens <strong>16 Jahre</strong> alt bist."}</span></p>
     </div></div>`;
 
     const card = view.querySelector(".auth-card");
@@ -14584,8 +14584,10 @@
   // ehrliche Meldung statt "geloescht" zeigt und NICHT neu laedt.
   async function wipeLocalData() {
     // LETZTE_UID_KEY und PLAN_BASE_KEY tragen die uid - Ziffer 10 der Datenschutzerklaerung
-    // verspricht "saemtliche auf diesem Geraet gespeicherten Daten" (Audit 17.10.2026).
-    [STORE_KEY, PROFILE_KEY, LAST_KEY, SHOP_DONE_KEY, LETZTE_UID_KEY, PLAN_BASE_KEY].forEach(k => { try { localStorage.removeItem(k); } catch (e) { noteError("store:wipeLocal", e); } });
+    // verspricht "saemtliche auf diesem Geraet gespeicherten Daten" (Audit 17.10.2026). THEME_KEY
+    // und SPLASH_INTRO_KEY tragen nichts Persoenliches, fallen aber unter dieselbe Zusage
+    // (Rechtspruefung 17.10.2026, 🟡 4) - nach dem Neuladen gilt wieder Geraet-Farbe und Erst-Intro.
+    [STORE_KEY, PROFILE_KEY, LAST_KEY, SHOP_DONE_KEY, LETZTE_UID_KEY, PLAN_BASE_KEY, THEME_KEY, SPLASH_INTRO_KEY].forEach(k => { try { localStorage.removeItem(k); } catch (e) { noteError("store:wipeLocal", e); } });
     planBase = null;
     imgSaved = new Map();   // Baseline mitleeren, sonst gilt ein spaeter gleich benanntes Bild als schon gespeichert
     try { await idbRW(store => store.clear()); } catch (e) { noteError("store:wipeImages", e); }

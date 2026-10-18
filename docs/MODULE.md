@@ -153,11 +153,11 @@ Erhoben aus den Abschnittsmarken im Code, nicht von Hand gepflegt.
 | index.html | Einstieg (D1b) | 13895-13972 | 78 |
 | index.html | Cloud-Anmeldung (Firebase) | 13973-13989 | 17 |
 | index.html | Startbildschirm (#splash, statisch im Markup) | 13990-14043 | 54 |
-| index.html | Marken-Lader (docs/DESIGN.md "Der Marken-Lader") | 14044-14725 | 682 |
-| index.html | Gemeinsam planen (Gruppe) | 14726-15816 | 1091 |
-| index.html | Teilen ueber den nativen Dialog des Geraets (Web Share API) | 15817-15850 | 34 |
-| index.html | Einkaufsliste als PDF (Paket B3) | 15851-16090 | 240 |
-| index.html | Boot | 16091-16109 | 19 |
+| index.html | Marken-Lader (docs/DESIGN.md "Der Marken-Lader") | 14044-14727 | 684 |
+| index.html | Gemeinsam planen (Gruppe) | 14728-15818 | 1091 |
+| index.html | Teilen ueber den nativen Dialog des Geraets (Web Share API) | 15819-15852 | 34 |
+| index.html | Einkaufsliste als PDF (Paket B3) | 15853-16092 | 240 |
+| index.html | Boot | 16093-16111 | 19 |
 | lib/barcode.js | Barcode-Scan (Open Food Facts) | 14-163 | 150 |
 | lib/pdf.js | PDF selbst erzeugen (kein window.print, sandbox-sicher) | 14-38 | 25 |
 | lib/pdf.js | Marken-Kopf fuer die PDFs (Logo, "PADDY'S MEALPLAN", Slogan) | 39-106 | 68 |
@@ -340,19 +340,19 @@ _keine_
 | data/cookbook.js | 569 | 52083 |
 | data/foods.js | 244 | 17334 |
 | data/ikonen.js | 168 | 19442 |
-| data/rechtstexte.js | 206 | 33808 |
+| data/rechtstexte.js | 208 | 34157 |
 | docs/ABDECKUNG.md | 192 | 13718 |
 | docs/ABNAHME-MENSCH.md | 154 | 8210 |
-| docs/ARCHITECTURES.md | 3404 | 219102 |
+| docs/ARCHITECTURES.md | 3415 | 219941 |
 | docs/BAUSTEINE.md | 106 | 13955 |
 | docs/DESIGN.md | 1438 | 80188 |
 | docs/MODULE.md | — | — (erzeugt) |
 | docs/PRODUCT.md | 1826 | 105226 |
-| docs/RUNBOOK.md | 337 | 16629 |
+| docs/RUNBOOK.md | 376 | 19508 |
 | docs/SECURITY.md | 603 | 36666 |
-| docs/STORE.md | 537 | 32143 |
-| docs/TESTING.md | 5587 | 334626 |
-| docs/TROUBLESHOOTING.md | 7233 | 422481 |
+| docs/STORE.md | 541 | 32456 |
+| docs/TESTING.md | 5608 | 335960 |
+| docs/TROUBLESHOOTING.md | 7236 | 422775 |
 | docs/module-index.json | — | — (erzeugt) |
 | firestore.rules | 552 | 32127 |
 | img/apple-touch-icon.png | — | 35163 |
@@ -444,7 +444,7 @@ _keine_
 | img/waffle.webp | — | 52546 |
 | img/wrap.webp | — | 43594 |
 | img/wurst.webp | — | 54064 |
-| index.html | 16109 | 1018055 |
+| index.html | 16111 | 1018408 |
 | lib/barcode.js | 163 | 9247 |
 | lib/basis.js | 21 | 836 |
 | lib/pdf.js | 241 | 13120 |
@@ -473,6 +473,7 @@ _keine_
 | tools/karte.py | 605 | 24255 |
 | tools/konten-inaktiv.py | 233 | 9221 |
 | tools/logo-vektor.py | 211 | 10042 |
+| tools/mailnamen-aufraeumen.py | 197 | 8874 |
 | tools/meal-bilder.py | 473 | 24139 |
 | tools/mobilprobe-rezeptbuch.html | 146 | 8092 |
 | tools/netz-ohne-konto.py | 271 | 12118 |
@@ -490,6 +491,7 @@ _keine_
 | tools/pruefstand-cache-reset.py | 202 | 8848 |
 | tools/pruefstand-cloud-laden.py | 283 | 12712 |
 | tools/pruefstand-css-pfade.py | 95 | 3572 |
+| tools/pruefstand-daten-loeschen.py | 136 | 6318 |
 | tools/pruefstand-einkauf-gruppe.py | 331 | 17363 |
 | tools/pruefstand-einkaufsliste.py | 803 | 38728 |
 | tools/pruefstand-einladung-verbrauch.py | 236 | 11752 |
@@ -552,7 +554,7 @@ _keine_
 | tools/shared-aufraeumen.py | 115 | 3755 |
 | tools/smoke-mit-daten.py | 145 | 8236 |
 | tools/test-meal-bilder.py | 156 | 8295 |
-| tools/vergleich-bausteine.js | 580 | 29284 |
+| tools/vergleich-bausteine.js | 603 | 30354 |
 | tools/vorfuehren.py | 120 | 4661 |
 | tools/wartung-check.py | 687 | 31783 |
 | vendor/HERKUNFT.md | 105 | 4816 |

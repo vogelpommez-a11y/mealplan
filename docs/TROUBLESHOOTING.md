@@ -928,7 +928,10 @@ passiv, es kam aktiv zurück.
 
 **Regel:** Bei jeder Änderung daran, *wo* Daten liegen, gehört `wipeLocalData()` mitgeprüft.
 (Wiederholt am 17.10.2026: `LETZTE_UID_KEY` und `PLAN_BASE_KEY` tragen die uid und fehlten —
-im Audit gefunden, behoben.)
+im Audit gefunden, behoben. Und am 18.10.2026 ein drittes Mal: `THEME_KEY` und
+`SPLASH_INTRO_KEY` blieben stehen, obwohl Ziffer 10 „sämtliche“ Daten zusagt — Rechtsprüfung
+🟡 4, behoben; Prüfer `tools/pruefstand-daten-loeschen.py`. Die zwei IndexedDBs des
+Firebase-SDK bleiben bewusst, `docs/ARCHITECTURES.md`.)
 Der Speicherort einer Information und ihre Löschung sind ein Paar. Ziffer 10 der
 Datenschutzerklärung sagt wörtlich „sämtliche auf diesem Gerät gespeicherten Daten sofort
 entfernen" — jeder neue Speicherort ist damit automatisch eine rechtliche Zusage.

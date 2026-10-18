@@ -338,6 +338,29 @@ var BAUSTEINE = [
   },
 
   {
+    id: "anmelden-datenschutz",
+    titel: "Registrieren: Datenschutzerklärung am Formular",
+    was: "Registrier-Maske. Rechts endet der Hinweis unter dem Knopf mit „Es gilt unsere "
+       + "Datenschutzerklärung.“ – der Link öffnet dasselbe Fenster wie im Fuß. "
+       + "Unter „Anmelden“ bleibt alles wie vorher.",
+    stellen: [
+      "drawCloudCard() — .auth-note, nur im Zweig reg (Rechts-Check 18.10.2026)"
+    ],
+    // Wie cloud-laden: Ein Cloud-Profil laesst die App in der Anmeldemaske starten.
+    zustand: { goal: null, onboarded: false, recipes: [], plans: {} },
+    profil: { name: "Vergleich", email: "", uid: "vergleich", cloud: true },
+    nurInhalt: true,
+    // Mit gemerktem Profil steht die Maske auf "Anmelden" - der Reiter "Registrieren" ist
+    // ein echter Klick, kein gesetzter Zustand.
+    oeffnen: function (doc) {
+      var reg = doc.querySelector('.segbar [data-m="register"]');
+      if (!reg) return "Keine Anmeldemaske gefunden";
+      reg.click();
+      return "Reiter „Registrieren“ angetippt";
+    }
+  },
+
+  {
     id: "gruppe-fuer-alle",
     titel: "Gruppe: erst „nur ich“, „für euch beide“ bewusst wählen",
     was: "Zweiergruppe (Paddy + Anna), ein Meal wird automatisch in den ersten Mittag gelegt, "

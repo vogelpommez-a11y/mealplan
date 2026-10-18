@@ -386,7 +386,8 @@ Deshalb bekommen alle lokalen Schlüssel in der Testumgebung das Suffix `__test`
 * `SHOP_DONE_KEY`
 * IndexedDB-Datenbank `mealplan-media`
 
-Nicht betroffen ist `THEME_KEY` — eine reine Anzeigeeinstellung, die beim Testen absichtlich
+Vom `__test`-Suffix nicht betroffen ist `THEME_KEY` (gelöscht wird er von `wipeLocalData()`
+trotzdem, siehe unten) — eine reine Anzeigeeinstellung, die beim Testen absichtlich
 mit der Live-Ansicht übereinstimmt; außerdem liest das Anti-Flimmer-Script im `<head>` denselben
 Schlüssel, bevor `localKey()` überhaupt existiert.
 
@@ -407,8 +408,16 @@ Seit die Meal-Fotos und das Profilbild in IndexedDB liegen (Paket A3) und nicht 
 
 * `STORE_KEY`, `PROFILE_KEY`, `LAST_KEY`, `SHOP_DONE_KEY`, `LETZTE_UID_KEY`, `PLAN_BASE_KEY`
   (die letzten beiden tragen die uid; seit 17.10.2026, Ziffer 10 der Datenschutzerklärung)
+* `THEME_KEY` und `SPLASH_INTRO_KEY` (seit 18.10.2026, Rechtsprüfung 🟡 4) — nichts
+  Persönliches, aber dieselbe Zusage; danach gelten wieder Gerätefarbe und Erst-Intro
 * den ObjectStore `images` der IndexedDB
 * die Baseline `imgSaved`
+
+**Bewusst nicht gelöscht** (Entscheidung Paddy, 18.10.2026): die beiden IndexedDBs des
+Firebase-SDK, `firebaseLocalStorageDb` (Auth) und `firebase-heartbeat-database`. Sie tragen
+keine Inhalte des Nutzers, das SDK hält sie offen (`deleteDatabase()` hinge in `onblocked`,
+siehe unten), und beim nächsten Start legt es sie sofort neu an. Ein Löschen wäre also
+weder wirksam noch gefahrlos. Der Firestore-Cache dagegen wird geleert (`wipeCache()`).
 
 Ohne den IndexedDB-Teil holte `hydrateImages()` nach dem Neustart `map.__profile__` wieder in
 den State (`if (!state.profileImage && map.__profile__)`) — ein direkt danach neu registriertes
@@ -1282,7 +1291,9 @@ erst, wenn **zwei** Bedingungen erfüllt sind:
 Bewegung eingestellt ist. `splashStart()` (erste Zeile von `boot()`) lässt Phase 2 los und setzt
 den Merker erst dann — bricht der Start vorher ab, bleibt das Intro für den nächsten Versuch.
 Der Merker trägt **bewusst kein `__test`-Suffix**: Er enthält keine Daten, eine Trennung von
-Test- und Echtbestand braucht er nicht. `wipeLocalData()` lässt ihn stehen.
+Test- und Echtbestand braucht er nicht. `wipeLocalData()` entfernt ihn seit 18.10.2026 mit
+(Ziffer 10 sagt „sämtliche“ Daten zu) — nach „Alle Daten löschen“ kommt das Erst-Intro also
+wieder.
 
 Beim Kontowechsel (`kontoWechselAufraeumen()`) bleibt der Splash bewusst stehen, die Seite
 lädt ohnehin neu.

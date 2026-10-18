@@ -1075,38 +1075,38 @@
       "zeilen": 54
     },
     {
-      "bis": 14725,
+      "bis": 14727,
       "datei": "index.html",
       "titel": "Marken-Lader (docs/DESIGN.md \"Der Marken-Lader\")",
       "von": 14044,
-      "zeilen": 682
+      "zeilen": 684
     },
     {
-      "bis": 15816,
+      "bis": 15818,
       "datei": "index.html",
       "titel": "Gemeinsam planen (Gruppe)",
-      "von": 14726,
+      "von": 14728,
       "zeilen": 1091
     },
     {
-      "bis": 15850,
+      "bis": 15852,
       "datei": "index.html",
       "titel": "Teilen ueber den nativen Dialog des Geraets (Web Share API)",
-      "von": 15817,
+      "von": 15819,
       "zeilen": 34
     },
     {
-      "bis": 16090,
+      "bis": 16092,
       "datei": "index.html",
       "titel": "Einkaufsliste als PDF (Paket B3)",
-      "von": 15851,
+      "von": 15853,
       "zeilen": 240
     },
     {
-      "bis": 16109,
+      "bis": 16111,
       "datei": "index.html",
       "titel": "Boot",
-      "von": 16091,
+      "von": 16093,
       "zeilen": 19
     },
     {
@@ -1340,9 +1340,9 @@
       "zeilen": 168
     },
     {
-      "bytes": 33808,
+      "bytes": 34157,
       "pfad": "data/rechtstexte.js",
-      "zeilen": 206
+      "zeilen": 208
     },
     {
       "bytes": 13718,
@@ -1355,9 +1355,9 @@
       "zeilen": 154
     },
     {
-      "bytes": 219102,
+      "bytes": 219941,
       "pfad": "docs/ARCHITECTURES.md",
-      "zeilen": 3404
+      "zeilen": 3415
     },
     {
       "bytes": 13955,
@@ -1379,9 +1379,9 @@
       "zeilen": 1826
     },
     {
-      "bytes": 16629,
+      "bytes": 19508,
       "pfad": "docs/RUNBOOK.md",
-      "zeilen": 337
+      "zeilen": 376
     },
     {
       "bytes": 36666,
@@ -1389,19 +1389,19 @@
       "zeilen": 603
     },
     {
-      "bytes": 32143,
+      "bytes": 32456,
       "pfad": "docs/STORE.md",
-      "zeilen": 537
+      "zeilen": 541
     },
     {
-      "bytes": 334626,
+      "bytes": 335960,
       "pfad": "docs/TESTING.md",
-      "zeilen": 5587
+      "zeilen": 5608
     },
     {
-      "bytes": 422481,
+      "bytes": 422775,
       "pfad": "docs/TROUBLESHOOTING.md",
-      "zeilen": 7233
+      "zeilen": 7236
     },
     {
       "erzeugt": true,
@@ -1772,9 +1772,9 @@
       "pfad": "img/wurst.webp"
     },
     {
-      "bytes": 1018055,
+      "bytes": 1018408,
       "pfad": "index.html",
-      "zeilen": 16109
+      "zeilen": 16111
     },
     {
       "bytes": 9247,
@@ -1917,6 +1917,11 @@
       "zeilen": 211
     },
     {
+      "bytes": 8874,
+      "pfad": "tools/mailnamen-aufraeumen.py",
+      "zeilen": 197
+    },
+    {
       "bytes": 24139,
       "pfad": "tools/meal-bilder.py",
       "zeilen": 473
@@ -2000,6 +2005,11 @@
       "bytes": 3572,
       "pfad": "tools/pruefstand-css-pfade.py",
       "zeilen": 95
+    },
+    {
+      "bytes": 6318,
+      "pfad": "tools/pruefstand-daten-loeschen.py",
+      "zeilen": 136
     },
     {
       "bytes": 17363,
@@ -2312,9 +2322,9 @@
       "zeilen": 156
     },
     {
-      "bytes": 29284,
+      "bytes": 30354,
       "pfad": "tools/vergleich-bausteine.js",
-      "zeilen": 580
+      "zeilen": 603
     },
     {
       "bytes": 4661,
