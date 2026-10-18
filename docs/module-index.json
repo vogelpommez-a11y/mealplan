@@ -336,17 +336,17 @@
       "zeilen": 34
     },
     {
-      "bis": 402,
+      "bis": 405,
       "datei": "css/basis.css",
       "titel": "Buttons",
       "von": 309,
-      "zeilen": 94
+      "zeilen": 97
     },
     {
-      "bis": 1557,
+      "bis": 1560,
       "datei": "css/basis.css",
       "titel": "Week grid",
-      "von": 403,
+      "von": 406,
       "zeilen": 1155
     },
     {
@@ -385,31 +385,31 @@
       "zeilen": 103
     },
     {
-      "bis": 1510,
+      "bis": 1515,
       "datei": "css/komponenten.css",
       "titel": "Profilbild-Zuschnitt (Kreis-Crop)",
       "von": 1093,
-      "zeilen": 418
+      "zeilen": 423
     },
     {
-      "bis": 1604,
+      "bis": 1610,
       "datei": "css/komponenten.css",
       "titel": "PDF / Druck",
-      "von": 1511,
-      "zeilen": 94
+      "von": 1516,
+      "zeilen": 95
     },
     {
-      "bis": 1006,
+      "bis": 1061,
       "datei": "css/mobil.css",
       "titel": "Mobile / Smartphone",
       "von": 8,
-      "zeilen": 999
+      "zeilen": 1054
     },
     {
-      "bis": 1073,
+      "bis": 1128,
       "datei": "css/mobil.css",
       "titel": "Gemeinsam planen (Gruppe)",
-      "von": 1007,
+      "von": 1062,
       "zeilen": 67
     },
     {
@@ -448,11 +448,11 @@
       "zeilen": 42
     },
     {
-      "bis": 168,
+      "bis": 170,
       "datei": "data/ikonen.js",
       "titel": "Symbole fuer die Schnellauswahl im Picker",
       "von": 73,
-      "zeilen": 96
+      "zeilen": 98
     },
     {
       "bis": 640,
@@ -1015,101 +1015,101 @@
       "zeilen": 47
     },
     {
-      "bis": 12641,
+      "bis": 12648,
       "datei": "index.html",
       "titel": "Kontowechsel auf demselben Geraet",
       "von": 11863,
-      "zeilen": 779
+      "zeilen": 786
     },
     {
-      "bis": 12732,
+      "bis": 12739,
       "datei": "index.html",
       "titel": "Kalorienrechner (Baustein 1: Tages-/Wochenbedarf → state.goal)",
-      "von": 12642,
+      "von": 12649,
       "zeilen": 91
     },
     {
-      "bis": 12808,
+      "bis": 12815,
       "datei": "index.html",
       "titel": "Wiegen: speichern, loeschen, ans Ziel koppeln",
-      "von": 12733,
+      "von": 12740,
       "zeilen": 76
     },
     {
-      "bis": 13743,
+      "bis": 13813,
       "datei": "index.html",
       "titel": "Erste Schritte (Onboarding)",
-      "von": 12809,
-      "zeilen": 935
+      "von": 12816,
+      "zeilen": 998
     },
     {
-      "bis": 13770,
+      "bis": 13840,
       "datei": "index.html",
       "titel": "Erscheinungsbild",
-      "von": 13744,
+      "von": 13814,
       "zeilen": 27
     },
     {
-      "bis": 13894,
+      "bis": 13964,
       "datei": "index.html",
       "titel": "Einstellungen",
-      "von": 13771,
+      "von": 13841,
       "zeilen": 124
     },
     {
-      "bis": 13972,
+      "bis": 14044,
       "datei": "index.html",
       "titel": "Einstieg (D1b)",
-      "von": 13895,
-      "zeilen": 78
+      "von": 13965,
+      "zeilen": 80
     },
     {
-      "bis": 13989,
+      "bis": 14061,
       "datei": "index.html",
       "titel": "Cloud-Anmeldung (Firebase)",
-      "von": 13973,
+      "von": 14045,
       "zeilen": 17
     },
     {
-      "bis": 14043,
+      "bis": 14115,
       "datei": "index.html",
       "titel": "Startbildschirm (#splash, statisch im Markup)",
-      "von": 13990,
+      "von": 14062,
       "zeilen": 54
     },
     {
-      "bis": 14727,
+      "bis": 14810,
       "datei": "index.html",
       "titel": "Marken-Lader (docs/DESIGN.md \"Der Marken-Lader\")",
-      "von": 14044,
-      "zeilen": 684
+      "von": 14116,
+      "zeilen": 695
     },
     {
-      "bis": 15818,
+      "bis": 15901,
       "datei": "index.html",
       "titel": "Gemeinsam planen (Gruppe)",
-      "von": 14728,
+      "von": 14811,
       "zeilen": 1091
     },
     {
-      "bis": 15852,
+      "bis": 15935,
       "datei": "index.html",
       "titel": "Teilen ueber den nativen Dialog des Geraets (Web Share API)",
-      "von": 15819,
+      "von": 15902,
       "zeilen": 34
     },
     {
-      "bis": 16092,
+      "bis": 16175,
       "datei": "index.html",
       "titel": "Einkaufsliste als PDF (Paket B3)",
-      "von": 15853,
+      "von": 15936,
       "zeilen": 240
     },
     {
-      "bis": 16111,
+      "bis": 16194,
       "datei": "index.html",
       "titel": "Boot",
-      "von": 16093,
+      "von": 16176,
       "zeilen": 19
     },
     {
@@ -1168,9 +1168,9 @@
       "zeilen": 82
     },
     {
-      "bytes": 25825,
+      "bytes": 26041,
       "pfad": ".claude/agents/anwalt.md",
-      "zeilen": 415
+      "zeilen": 417
     },
     {
       "bytes": 9879,
@@ -1263,9 +1263,9 @@
       "zeilen": 134
     },
     {
-      "bytes": 34764,
+      "bytes": 36136,
       "pfad": "CLAUDE.md",
-      "zeilen": 789
+      "zeilen": 813
     },
     {
       "bytes": 21,
@@ -1298,19 +1298,19 @@
       "zeilen": 92
     },
     {
-      "bytes": 110811,
+      "bytes": 111138,
       "pfad": "css/basis.css",
-      "zeilen": 1557
+      "zeilen": 1560
     },
     {
-      "bytes": 120543,
+      "bytes": 120943,
       "pfad": "css/komponenten.css",
-      "zeilen": 1604
+      "zeilen": 1610
     },
     {
-      "bytes": 70753,
+      "bytes": 75107,
       "pfad": "css/mobil.css",
-      "zeilen": 1073
+      "zeilen": 1128
     },
     {
       "bytes": 16653,
@@ -1338,12 +1338,12 @@
       "zeilen": 244
     },
     {
-      "bytes": 19442,
+      "bytes": 19768,
       "pfad": "data/ikonen.js",
-      "zeilen": 168
+      "zeilen": 170
     },
     {
-      "bytes": 34157,
+      "bytes": 34439,
       "pfad": "data/rechtstexte.js",
       "zeilen": 208
     },
@@ -1353,33 +1353,33 @@
       "zeilen": 192
     },
     {
-      "bytes": 8210,
+      "bytes": 8239,
       "pfad": "docs/ABNAHME-MENSCH.md",
       "zeilen": 154
     },
     {
-      "bytes": 219941,
+      "bytes": 221526,
       "pfad": "docs/ARCHITECTURES.md",
-      "zeilen": 3415
+      "zeilen": 3433
     },
     {
-      "bytes": 13955,
+      "bytes": 14052,
       "pfad": "docs/BAUSTEINE.md",
       "zeilen": 106
     },
     {
-      "bytes": 80188,
+      "bytes": 80261,
       "pfad": "docs/DESIGN.md",
-      "zeilen": 1438
+      "zeilen": 1439
     },
     {
       "erzeugt": true,
       "pfad": "docs/MODULE.md"
     },
     {
-      "bytes": 105226,
+      "bytes": 108506,
       "pfad": "docs/PRODUCT.md",
-      "zeilen": 1826
+      "zeilen": 1866
     },
     {
       "bytes": 19508,
@@ -1392,19 +1392,19 @@
       "zeilen": 603
     },
     {
-      "bytes": 32456,
+      "bytes": 32559,
       "pfad": "docs/STORE.md",
       "zeilen": 541
     },
     {
-      "bytes": 335960,
+      "bytes": 336151,
       "pfad": "docs/TESTING.md",
-      "zeilen": 5608
+      "zeilen": 5609
     },
     {
-      "bytes": 422775,
+      "bytes": 424645,
       "pfad": "docs/TROUBLESHOOTING.md",
-      "zeilen": 7236
+      "zeilen": 7264
     },
     {
       "erzeugt": true,
@@ -1775,9 +1775,9 @@
       "pfad": "img/wurst.webp"
     },
     {
-      "bytes": 1018408,
+      "bytes": 1024769,
       "pfad": "index.html",
-      "zeilen": 16111
+      "zeilen": 16194
     },
     {
       "bytes": 9247,
@@ -1860,9 +1860,9 @@
       "zeilen": 226
     },
     {
-      "bytes": 10933,
+      "bytes": 11047,
       "pfad": "tools/bausteine.py",
-      "zeilen": 264
+      "zeilen": 265
     },
     {
       "bytes": 20704,
@@ -1955,7 +1955,7 @@
       "zeilen": 47
     },
     {
-      "bytes": 14119,
+      "bytes": 14134,
       "pfad": "tools/probe-onboarding-fluss.html",
       "zeilen": 270
     },
@@ -2325,9 +2325,9 @@
       "zeilen": 156
     },
     {
-      "bytes": 30354,
+      "bytes": 31417,
       "pfad": "tools/vergleich-bausteine.js",
-      "zeilen": 603
+      "zeilen": 618
     },
     {
       "bytes": 4661,

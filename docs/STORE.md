@@ -179,7 +179,7 @@ Handy, iOS und Safari selbst `apis.google.com/js/api.js` nach, schon beim Seiten
 Konto (`docs/TROUBLESHOOTING.md` §181). Behoben durch `initializeAuth` ohne Popup-Resolver.
 Gemessen wird das seitdem im Browser, nicht per Grep: `python tools/netz-ohne-konto.py`.
 
-**Offen für D7:** Wer „Mit Google anmelden“ antippt, lädt diesen Google-Code weiterhin — so
+**Offen für D7:** Wer „Weiter mit Google“ antippt, lädt diesen Google-Code weiterhin — so
 arbeitet der Web-Popup von Firebase. In der nativen Hülle gehört die Google-Anmeldung deshalb in
 ein **natives Plugin**, sonst bleibt 2.5.2 genau an dieser Stelle angreifbar. Wichtiger noch:
 Google verweigert OAuth in eingebetteten WebViews **serverseitig** (`disallowed_useragent`,
@@ -248,8 +248,8 @@ Rechtsrisiko, weil es eine Zusage gegenüber den Nutzenden ist.
 - **Support-Kontakt.**
 - **Altersfreigabe / Content Rating** ausgefüllt. **Die inhaltliche Vorgabe steht seit dem
   22.09.2026: mindestens 16 Jahre.** Ziffer 13 der Datenschutzerklärung nennt sie samt
-  Rechtsgrundlage, bei der Registrierung steht der Hinweis in der `auth-note` (seit 18.10.2026 mit Link auf die
-  Datenschutzerklärung), und seit
+  Rechtsgrundlage, beim Registrieren und beim Anmelden (für den, der sich dort zum ersten Mal mit Google anmeldet)
+  steht der Hinweis in der `auth-note`, seit 18.10.2026 mit Link auf die Datenschutzerklärung, und seit
   dem 01.10.2026 nimmt auch die Einführung erst ab 16 Jahren an (`ONB_NUM.age.min`, vorher 10). Beim
   Ausfüllen der Store-Formulare muss das **zusammenpassen** — eine App, die sich im Store
   „ab 4“ nennt und im Rechtstext 16 verlangt, widerspricht sich an einer Stelle, die beide
@@ -433,7 +433,7 @@ amtlichen Text nachsehen.
 
 **Was auf der Codeseite bereits getan ist** (16.09.2026): Textkontrast erreicht in Light
 und Dark durchgängig 4,5:1, Trefferflächen liegen bei 44 px und mehr — **erstmals
-systematisch gemessen** über Auth-Gate, alle zehn Onboarding-Schritte und die vier Reiter
+systematisch gemessen** über Auth-Gate, alle Onboarding-Schritte (damals zehn, seit 18.10.2026 neun) und die vier Reiter
 in drei Gerätebreiten, Light und Dark (`tools/abnahme-mobil.py`, 108 Stationen).
 
 **Die zweite Hälfte, gemessen und behoben am 20.09.2026** (`tools/a11y-pruefung.py`,

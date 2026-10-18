@@ -729,8 +729,8 @@ blasse Farbe geben und prüfen, dass der Messstand darauf anschlägt.
 
 ## 2g. Vollständige Geräteabnahme — `tools/abnahme-mobil.py`
 
-Gebaut am 16.09.2026. Fährt **selbstständig** durch Auth-Gate, alle zehn
-Onboarding-Schritte, die vier Reiter, Meal-Picker, Einkaufsliste und Vorkochen — in drei
+Gebaut am 16.09.2026. Fährt **selbstständig** durch Auth-Gate, alle Schritte der Einführung
+(seit 18.10.2026 neun; das Körperfett ist zugeklappt und freiwillig, der Automat lässt es zu), die vier Reiter, Meal-Picker, Einkaufsliste und Vorkochen — in drei
 Gerätebreiten (360/375/393) und **beiden** Farbschemata. 18 Stationen je Lauf, 108
 insgesamt. Baut auf 2e auf: eine durchgehende Verbindung, echte Touch-Ereignisse.
 
@@ -787,7 +787,8 @@ Er füllt jeden Schritt generisch (erste Option je `data-opt`, Wunschwerte je `d
 statt einen festen Klickpfad abzuspulen — ein fester Pfad bräche bei jeder Textänderung.
 Drei Dinge musste er lernen:
 
-* **Auswahlknöpfe schalten von selbst weiter** — ein Tipp statt zwei, gutes UX. Wer danach
+* **Auswahlknöpfe schalteten bis 18.10.2026 von selbst weiter** (heute immer „Weiter“, der Automat
+  kommt mit beidem zurecht) — ein Tipp statt zwei. Wer danach
   noch „Weiter" tippt, tippt bereits auf den nächsten, leeren Schritt und hält dessen
   gesperrten Knopf für Stillstand.
 * Manche Schritte **blenden nach der ersten Wahl einen zweiten Block ein**
@@ -5234,7 +5235,7 @@ einer echten Kamera, die je nach Licht und Abstand mal liest und mal nicht.
 * **Eigener Port (9224) und eigenes Profil**, bewusst nicht angemeldet (Cloud-Falle).
   `chrome_stoppen()` beendet deshalb **nur** Prozesse, deren Kommandozeile diesen Port trägt —
   ein `taskkill /IM chrome.exe` nähme den Alltagsbrowser des Nutzers mit.
-* **Der Zustand wird über `localStorage` gesetzt**, nicht durch das zehnstufige Onboarding
+* **Der Zustand wird über `localStorage` gesetzt**, nicht durch die Einführung (seit 18.10.2026 neun Schritte)
   geklickt: `goal` setzen, neu laden, fertig.
 
 **Er urteilt selbst.** `main()` fährt zwei Läufe — einen Code, den Open Food Facts kennt

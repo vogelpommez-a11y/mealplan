@@ -1470,6 +1470,11 @@
   .auth-card .field { text-align: left; }
   .auth-card .btn.primary { width: 100%; justify-content: center; padding: 12px; font-size: 15px; margin-top: 4px; }
   .auth-switch { margin: 14px 0 0; font-size: 12.5px; color: var(--text-muted); }
+  /* Textlinks hier stehen allein in ihrer Zeile ("Ich habe schon ein Konto", "Neu hier?") -
+     die Trefferflaeche darf deshalb ueber die Schrift hinaus auf 44 px wachsen, ohne einen
+     Nachbarn zu ueberdecken. Im Fliesstext (.auth-note) bleibt es bei -3px. */
+  .auth-switch .btn::after { inset: -12px -6px; }
+  .auth-back { margin-top: 12px; }
   .auth-note { font-size: 12px; color: var(--text-muted); margin: 16px 0 0; line-height: 1.5; display: flex; gap: 8px; align-items: flex-start; text-align: left; border-top: 1px solid var(--border); padding-top: 14px; }
   .auth-note svg { width: 15px; height: 15px; flex: none; margin-top: 1px; color: var(--accent); }
   .auth-card .field + .field { margin-top: 10px; }
@@ -1599,5 +1604,6 @@
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; }
     .modal, #toast, .onb-stage, .onb-opt, .onb-bf-o, .spot-card { transition: opacity var(--dur-fast) ease !important; transform: none !important; animation: none !important; }
+    .onb-res-fill { animation: none !important; }
     * { transition-property: opacity, color, background-color, border-color, box-shadow !important; }
   }

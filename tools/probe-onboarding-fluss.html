@@ -177,7 +177,7 @@ function ruhe(ms){ return new Promise(function(r){ setTimeout(r, ms || 400); });
       var k = doc.querySelector(".onb-stage .onb-opt");
       var an = f.contentWindow.getComputedStyle(k).animationName;
       pruefe("die Kacheln starten keine Einblendung", an === "none", "animation-name: " + an);
-      // Manche Bildschirme springen nach einer Auswahl von selbst weiter (onbAutoNext,
+      // Bis 18.10.2026 sprangen manche Bildschirme nach einer Auswahl von selbst weiter (onbAutoNext,
       // 260 ms). Abwarten, sonst misst der naechste Abschnitt mitten im Wechsel.
       await ruhe(800);
     }

@@ -338,26 +338,41 @@ var BAUSTEINE = [
   },
 
   {
-    id: "anmelden-datenschutz",
-    titel: "Registrieren: Datenschutzerklärung am Formular",
-    was: "Registrier-Maske. Rechts endet der Hinweis unter dem Knopf mit „Es gilt unsere "
-       + "Datenschutzerklärung.“ – der Link öffnet dasselbe Fenster wie im Fuß. "
-       + "Unter „Anmelden“ bleibt alles wie vorher.",
+    id: "anmeldung",
+    titel: "Anmelden und Registrieren ohne Reiter",
+    was: "Beide Seiten starten in „Anmelden“. Rechts: „Weiter mit Google“ oben, „oder mit "
+       + "E-Mail“, kurzer Hinweis, unten „Neu hier? Konto erstellen“. Diesen Link rechts "
+       + "antippen, links den Reiter „Registrieren“ – dann die Registrier-Ansichten vergleichen.",
     stellen: [
-      "drawCloudCard() — .auth-note, nur im Zweig reg (Rechts-Check 18.10.2026)"
+      "drawCloudCard() — ohne .segbar, Wechsel-Link #c-switch, Zurück #c-back (nur mit Ziel)",
+      "renderAuthChoice() — „Loslegen“ + Textlink (nicht hier sichtbar: Startbildschirm)",
+      "renderAuthLocal() — ohne E-Mail-Feld und Erklärkasten",
+      "toggleProfileMenu() — „Auf allen Geräten nutzen“ (nur lokal)",
+      ".btn.link.inline unterstrichen, .auth-switch mit 44-px-Trefferfläche"
     ],
-    // Wie cloud-laden: Ein Cloud-Profil laesst die App in der Anmeldemaske starten.
+    // Ein Cloud-Profil laesst die App in der Anmeldemaske starten (wie cloud-laden).
     zustand: { goal: null, onboarded: false, recipes: [], plans: {} },
     profil: { name: "Vergleich", email: "", uid: "vergleich", cloud: true },
     nurInhalt: true,
-    // Mit gemerktem Profil steht die Maske auf "Anmelden" - der Reiter "Registrieren" ist
-    // ein echter Klick, kein gesetzter Zustand.
-    oeffnen: function (doc) {
-      var reg = doc.querySelector('.segbar [data-m="register"]');
-      if (!reg) return "Keine Anmeldemaske gefunden";
-      reg.click();
-      return "Reiter „Registrieren“ angetippt";
-    }
+    oeffnen: function () { return "Anmeldemaske geladen"; }
+  },
+
+  {
+    id: "einfuehrung",
+    titel: "Einführung V2: kürzer, zeigen statt erklären",
+    was: "Beide Seiten parallel durchtippen. Rechts: Mini-Vorschau + „In einer Minute zu deinem Ziel.“, "
+       + "Körperfett aufklappbar im Körper-Schritt, Dank-Zeile danach, Stufenbalken bei Bewegung, "
+       + "Symbole bei Ziel und Ernährung, Ergebnis mit Ring + Tempo, „Alles bereit“ entfällt.",
+    stellen: [
+      "ONB_ORDER — 9 statt 11 Schritte (ohne bodyfat, go)",
+      "onbVorschauHtml() / onbKoerperfettHtml() / onbTempoText() / onbStufeSvg() / ONB_ICONS",
+      "onbOpt(…, ic) — Kachel mit Symbol (.onb-opt.mit-ic)",
+      "Ergebnis: .onb-res-ring, .onb-tempo; Knopf „Zum Wochenplan“ beim Erstkontakt",
+      "css/mobil.css (.onb-*) + komponenten.css (reduced motion)"
+    ],
+    // Frisch: Ohne Ziel startet die Einfuehrung von selbst (wie alter-16).
+    zustand: { goal: null, onboarded: false },
+    oeffnen: function () { return "Einführung gestartet"; }
   },
 
   {

@@ -223,7 +223,7 @@ Relevante mobile Zustände tatsächlich prüfen, nicht nur Desktop — mit echte
 Geräte-Emulation, nie über die Fensterbreite:
 
 ```powershell
-python tools/abnahme-mobil.py        # 3 Breiten x Light/Dark, 108 Stationen
+python tools/abnahme-mobil.py        # 3 Breiten x Light/Dark, 96 Stationen
 ```
 
 ⚠️ **Einen `@media`-Block nie mitten in einen bestehenden einfügen** — das hat am
@@ -733,6 +733,30 @@ Ausgenommen: Was der Nutzer ohnehin nicht sieht (Werkzeuge, Prþfstände, Dokume
 Messungen). Dort gilt weiter der normale Weg über `/pushcheck`.
 
 → Wie die Vergleichsseite funktioniert: `docs/TESTING.md` 2g-ter
+
+---
+
+# 21c. Änderungswünsche: erst das Vorgehen anbieten
+
+Gilt für alles, was der Nutzer **sieht oder bedient**, und für **neue Funktionen**. **Nicht** für
+Fehlerbehebungen, Tippfehler, Doku, Werkzeuge und Prüfstände — dort normal weiter.
+
+**Zuerst fragen (Auswahlbildschirm), ob vorher recherchiert werden soll.** „Ohne Recherche“ ist
+eine gültige Antwort. Bei Ja, in dieser Reihenfolge:
+
+1. **Recherche:** Wie lösen es die besten Konkurrenten (Fitness-, Ernährungs-, Planer-Apps, z. B.
+   MyFitnessPal, Lifesum, Yazio, Mealime)? Was ist üblich (Apple HIG, Material Design, NN/g,
+   Baymard, WCAG)? Mit **Quellen**, Lücken offen benennen.
+2. **Vorschläge:** 2–3 Varianten mit Skizze, Empfehlung zuerst, jeweils was dafür und dagegen
+   spricht — gegen die Feature-Regel (§4) und Performance Dark (§7) gespiegelt.
+3. **Erst nach der Auswahl bauen.** Dann Vorher/Nachher (§21b), Prüfungen, Livegang.
+4. **Größere Umbauten** (neuer Ablauf, mehrere Bildschirme): Vor dem Livegang die
+   Geräte-Nachbildung (`tools/abnahme-mobil.py`), **direkt danach** bittet Claude den Nutzer, es
+   am eigenen Handy anzusehen. Der Testserver ist nur am PC erreichbar — vorher geht es nicht.
+   Fällt dort etwas auf: Rückweg über `/deploy`.
+
+Vorbild ist der Umbau des Anmeldebereichs am 18.10.2026 (`docs/PRODUCT.md`, „eine Entscheidung
+statt zwei“).
 
 ---
 

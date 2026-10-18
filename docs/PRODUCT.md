@@ -301,7 +301,7 @@ Haupt-Verkaufsargument beworben: vom Kostenfaktor zum Kaufgrund, ohne dass eine 
 Codes wegfällt.
 
 **Der Einstieg führt seit 13.08.2026 (D1b) in den lokalen Modus.** Wer die App zum ersten Mal
-öffnet, sieht „Ohne Konto loslegen" als Hauptweg und „Mit Konto anmelden" daneben. Vorher stand
+öffnet, sah bis zum 18.10.2026 „Ohne Konto loslegen" als Hauptweg und „Mit Konto anmelden" daneben (heute: siehe unten). Vorher stand
 dort „Konto erstellen" — eine Anmeldemaske vor einer App, die ohne Konto vollständig
 funktioniert. Ohne diesen Schritt trägt die Pro-Grenze nicht: Ein Konto kann erst dann ein
 Aufstieg sein, wenn es keine Eintrittskarte mehr ist.
@@ -312,7 +312,47 @@ Zwei Folgen, die dazugehören:
   mit fertigem lokalem Profil vor der Cloud-Anmeldung, sobald Firebase erreichbar war.
 * **Die E-Mail-Adresse im lokalen Profil ist optional.** Sie verlässt das Gerät nie und wird für
   nichts gebraucht — sie zwingend abzufragen war das Gegenteil von Datenminimierung und eine
-  Hürde vor dem ersten Meal.
+  Hürde vor dem ersten Meal. Seit 18.10.2026 wird sie gar nicht mehr abgefragt; wer schon eine
+  hinterlegt hat, sieht sie weiter.
+
+**Seit 18.10.2026: eine Entscheidung statt zwei.** Der Startbildschirm trägt nur noch
+„Loslegen“ und darunter den Textlink „Ich habe schon ein Konto“ — kein Erklärabsatz, keine Wahl
+„ohne/mit Konto“. Vorbild sind MyFitnessPal, Lifesum und Yazio (erst Nutzen, das Konto am Ende)
+und Apples HIG („Delay sign-in as long as possible“). Das Konto kommt, wenn es einen Grund gibt:
+über **„Auf allen Geräten nutzen“** im Profilmenü oder über „Gemeinsam planen“; `startCloudSync()`
+nimmt die Daten des Geräts dabei mit. Anmelden und Registrieren sind zwei schlanke Ansichten
+**ohne Reiter**: „Weiter mit Google“ oben, „oder mit E-Mail“, die Felder, ein kurzer Hinweis
+(16 Jahre, Datenschutzerklärung) und unten ein Wechsel-Link. „Zurück“ gibt es nur, wenn hinter
+der Maske etwas liegt (lokales Profil oder Startbildschirm).
+
+**Die Einführung seit 18.10.2026 (V2): kürzer, zeigen statt erklären, ein Abschluss mit Wirkung.**
+Recherche und Auswahl nach §21c (`CLAUDE.md`): NN/g fand bei Text-Tutorials keinen Nutzen (91 %
+gegen 94 % Erfolg, gelesen wirkte die App schwerer), Apple will die Einführung „schnell und
+optional“, MyFitnessPal/Lifesum zeigen das Produkt statt es zu beschreiben, GOV.UK: eine Frage
+je Bildschirm. Was die Konkurrenz an Druck einsetzt (Countdown, Abnehm-Prognose mit Datum),
+ist bewusst **nicht** übernommen — die Marke hilft, sie lockt nicht.
+
+* **9 statt 11 Schritte:** `hi` · `name` (nur falls nötig) · `body` · `activity` · `training` ·
+  `goal` · `target` · `diet` · `result`.
+* **Willkommen** zeigt drei Miniaturen (Ring, Wochenleiste, Einkaufsliste) statt einer Liste,
+  dazu „In einer Minute zu deinem Ziel.“ (zuerst „Dauert etwa eine Minute.“ — Paddy: Was
+  dauert? Der Satz braucht sein Ziel)
+* **Körperfett** ist ein aufklappbarer, freiwilliger Teil von „Erzähl uns von dir“, kein
+  eigener Schritt mehr. Ohne Angabe rechnet die App wie bisher nach Mifflin-St-Jeor.
+* Nach den Körperdaten ein Satz Dank („Danke – das war der wichtigste Teil.“), ohne eigenen
+  Bildschirm.
+* **Ziel und Ernährung** tragen Symbole, die **Bewegung** eine Stufenanzeige (1–5 Balken).
+* **Weiter geht es immer über „Weiter“.** Bis 18.10.2026 sprangen Bewegung und Ziel nach einem
+  Tipp von selbst weiter, alle anderen Schritte nicht — für Paddy uneinheitlich. Auswählen
+  markiert nur; das erfüllt WCAG 3.2.2 „On Input“ (kein Kontextwechsel durch bloßes Auswählen)
+  und lässt einen Fehltipp korrigieren. Preis: zwei Tipps mehr im ganzen Ablauf.
+* **Ergebnis = Abschluss.** „Dein Ziel steht“ mit Ring, der sich im Takt des Hochzählens
+  schließt, darunter das Tempo als Wochenwert („≈ 0,5 kg pro Woche weniger“) — ohne Datum,
+  ohne Versprechen. Der Knopf heißt beim Erstkontakt „Zum Wochenplan“. „Alles bereit“
+  entfällt.
+* **Kein „Erste Woche planen“ am Ende**, obwohl es das stärkste Bild wäre: Der Auto-Planer
+  gehört zu Pro, und ein Gratis-Konto bekäme als erste Antwort eine Verkaufsmeldung
+  (Entscheidung Paddy, 18.10.2026). Pro/Gruppe sehen im Wochenplan wie bisher den Hinweis.
 
 Technisch ist der Status **serverseitig** verankert (`entitlements/{uid}`, für den Client nur
 lesbar) — eine UI-Sperre wäre keine Grenze, sondern eine Anzeige. Siehe

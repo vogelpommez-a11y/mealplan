@@ -6,7 +6,7 @@ Dieses Dokument enthält bekannte Fehlerquellen, historische Bugs und Probleme, 
 
 <!-- REGISTER-ANFANG (erzeugt aus den Ueberschriften: python tools/register.py - nicht von Hand pflegen) -->
 
-**Register — 189.** Chronologisch gewachsen: je hoeher die Nummer,
+**Register — 190.** Chronologisch gewachsen: je hoeher die Nummer,
 desto juenger der Fund. Wer eine Falle sucht, sucht hier zuerst; die Ueberschrift sagt
 jeweils, worum es geht. **Nicht die ganze Datei lesen** — sie ist rund 310 KB gross.
 
@@ -201,6 +201,7 @@ jeweils, worum es geht. **Nicht die ganze Datei lesen** — sie ist rund 310 KB 
 | 187 | Die Vorführung blieb leer — Chrome hielt die Bausteinliste vor |
 | 188 | „Rückgängig“ nach dem Auto-Planer löschte, was die Gruppe inzwischen eingetragen hatte |
 | 189 | Ohne Gruppe gewann beim Wochenplan der letzte Schreiber — auch ein veralteter |
+| 190 | „Rechnerische Richtwerte“ auf „Dein Ziel steht“ ließ sich scheinbar nicht öffnen |
 
 <!-- REGISTER-ENDE -->
 
@@ -6973,7 +6974,7 @@ bei jedem.
 2. **Das Prüfsystem konnte es nicht sehen.** `docs/ABDECKUNG.md` suchte externe Hosts nur in
    `index.html`, `sw.js` und `worker/` — nicht in `vendor/`. Der Host stand im SDK.
 
-**Was bleibt:** Klickt jemand „Mit Google anmelden“, lädt die App `apis.google.com` weiterhin —
+**Was bleibt:** Klickt jemand „Mit Google anmelden“ (seit 18.10.2026 „Weiter mit Google“), lädt die App `apis.google.com` weiterhin —
 so arbeitet Firebase im Browser, Ziffer 6 sagt es jetzt ausdrücklich. Für den Store (Apple 2.5.2)
 ist das ein offener Punkt für D7: In einer nativen Hülle gehört die Google-Anmeldung in ein
 natives Plugin.
@@ -7242,3 +7243,21 @@ Snapshot mit `hasPendingWrites`. Kommt ein fremder Slot genau zusammen mit dem e
 ausstehenden Schreibvorgang an, sieht das Gerät ihn erst beim nächsten Snapshot — nach der
 Serverbestätigung ändern sich nur Metadaten, und dafür feuert ohne `includeMetadataChanges` kein
 Ereignis. Kein Datenverlust, nur verzögerte Anzeige. Abnahme-Protokoll in `docs/TESTING.md`.
+
+## 190. „Rechnerische Richtwerte“ auf „Dein Ziel steht“ ließ sich scheinbar nicht öffnen
+
+**Symptom (Paddy, 18.10.2026, in der Vorführung):** Der Pfeil am Hinweis dreht sich, sonst
+passiert nichts.
+
+**Ursache:** Das `<details>` öffnete sich sehr wohl, aber nach **unten** — außerhalb des
+sichtbaren Bereichs. In der Vergleichsseite ist jede Seite ein festes 760-px-Fenster, auf einem
+kleinen Handy ist es genauso. Nichts rückte nach. Älter als die Einführung V2, links im Vergleich
+genauso.
+
+**Behoben:** Ein `toggle`-Zuhörer in `renderOnboardStep()` ruft beim Öffnen
+`scrollIntoView({ block: "nearest" })`, ohne Bewegungswunsch ohne Animation. Gemessen mit einer
+Probe auf `abnahme-mobil.py`-Basis bei 1280×520, Zeile am unteren Rand: mit Korrektur endet der
+Text bei 520 von 520 px, **Gegenprobe** ohne Zuhörer bei 623 — unter dem Rand.
+
+**Lehre:** „Lässt sich nicht öffnen“ heißt nicht, dass es sich nicht öffnet. Erst `open` messen,
+dann, ob man es **sieht**.

@@ -1261,7 +1261,7 @@ Einlesen weg; damit räumt sich der kurze Zwischenstand von selbst auf.
 |---|---|
 | Cloud-Nutzer, E-Mail bestätigt | App + `startCloudSync()` |
 | Cloud-Nutzer, unbestätigt | Warteseite |
-| niemand angemeldet, **kein** Profil | `renderAuthChoice()` — die Wahl, lokal als Standard |
+| niemand angemeldet, **kein** Profil | `renderAuthChoice()` — „Loslegen“ (lokal), Textlink zur Anmeldung |
 | niemand angemeldet, **lokales** Profil | direkt in die App |
 | niemand angemeldet, **Cloud-Profil** | Anmeldemaske (die Daten liegen in der Cloud) |
 
@@ -1274,6 +1274,24 @@ Alternative.
 
 `authMode` bleibt die einzige Quelle dafür, ob gerade Cloud-Funktionen möglich sind — daran
 hängen Teilen-Links, Gruppen und der Sync-Punkt in der Kopfzeile.
+
+**Seit 18.10.2026:** `renderAuthChoice()` trägt nur „Loslegen“ (`#a-local` → `renderAuthLocal()`)
+und den Textlink „Ich habe schon ein Konto“ (`#a-cloud` → `cloudMode = "login"`). Die Anmeldemaske
+`drawCloudCard()` hat **keine Reiter** mehr: `cloudMode` (`"login"`/`"register"`) wählt die
+Ansicht, `#c-switch` wechselt. `cloudZurueck()` liefert den Rückweg nur, wenn etwas dahinter
+liegt — lokales Profil → `enterApp()`, kein Profil → `renderAuthChoice()`, abgemeldetes
+Cloud-Profil → kein Zurück. Lokale Profile haben im Profilmenü „Auf allen Geräten nutzen“
+(`cloudMode = "register"`); `startCloudSync()` führt die Gerätedaten beim ersten Abgleich mit
+dem Konto zusammen (Ziffer 3 der Datenschutzerklärung sagt das seit demselben Tag ausdrücklich).
+
+**Einführung (V2, 18.10.2026):** `ONB_ORDER` = `hi, name, body, activity, training, goal,
+target, diet, result` — `bodyfat` und `go` sind keine Schritte mehr. Das Körperfett ist ein
+JS-Aufklapper in `body` (`onbKoerperfettHtml()`, Zustand `onb.cur.bfOffen`; `bodyfat === ""`
+heißt weiterhin „Weiß ich nicht“). **Kein Schritt springt mehr von selbst weiter** (`onbAutoNext`
+entfernt): immer „Weiter“, einheitlich und nach WCAG 3.2.2 „On Input“. Das
+Ergebnis ist der Abschluss: Knopf „Zum Wochenplan“ beim Erstkontakt, sonst „Ziel übernehmen“.
+Helfer: `onbVorschauHtml()`, `onbTempoText()`, `onbStufeSvg()`, `ONB_ICONS`, `onbOpt(…, ic)`.
+`onb.danke` zeigt den Dank auf `activity`, wenn es vorwärts aus `body` kommt.
 
 **Startbildschirm (seit 17.10.2026):** Über allem liegt bis dahin `#splash` (statisch im
 Markup, Gestaltung in `docs/DESIGN.md`). Darunter steht weiter `renderAuthLoading()`. Er geht
@@ -2202,7 +2220,7 @@ nichts. Wer eine dritte Stelle anlegt, die `computeGoal()` aufruft, zieht die H�
 **Onboarding:** ein Bildschirm (`diet`) zwischen Zielwahl und Ergebnis. Vorbelegt mit „Alles",
 weil das die häufigste Antwort ist und niemand tippen soll, um weiterzukommen — anders als bei
 den übrigen Fragen ist das keine unterstellte Angabe, sondern der Zustand, in dem die App ohne
-das Feld ohnehin läuft. Kein `onbAutoNext`: Nach der Form kommen noch die Zusatz-Schalter.
+das Feld ohnehin läuft. Weiter geht es wie überall über „Weiter“ (seit 18.10.2026 springt kein Schritt mehr von selbst).
 
 ### `portions` ist entfallen — ein Meal ist eine Portion (15.08.2026)
 

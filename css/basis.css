@@ -393,9 +393,12 @@
   .btn.link:hover { border-color: transparent; background: color-mix(in srgb, var(--accent) 12%, transparent); }
   .btn.link:active { transform: none; }
   /* Mitten im Fliesstext: kein Padding, keine Hover-Flaeche - die wuerde die Zeile
-     aufreissen. Stattdessen die Unterstreichung, die man von einem Link erwartet. */
-  .btn.link.inline { display: inline; padding: 0; border-radius: 0; }
-  .btn.link.inline:hover { background: none; text-decoration: underline; }
+     aufreissen. Stattdessen die Unterstreichung, die man von einem Link erwartet - schon
+     im Ruhezustand: Linkfarbe und Fliesstext liegen nur ~1,2:1 auseinander, Farbe allein
+     traegt die Unterscheidung nicht (WCAG 1.4.1, Pushcheck 18.10.2026). Abstand wie
+     .hinweis-traeger; Hover macht die Linie kraeftiger statt sie erst einzublenden. */
+  .btn.link.inline { display: inline; padding: 0; border-radius: 0; text-decoration: underline; text-underline-offset: 3px; }
+  .btn.link.inline:hover { background: none; text-decoration-thickness: 2px; }
   /* Gedaempft: Impressum und Datenschutz im Fuss sollen da sein, aber nicht rufen. */
   .btn.link.leise { color: var(--text-muted); }
   .btn.link.leise:hover { color: var(--accent-strong); background: none; text-decoration: underline; }

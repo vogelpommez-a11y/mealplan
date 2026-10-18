@@ -4,7 +4,7 @@ Diese Datei sammelt die Abnahmen, die kein Skript übernimmt — und sagt bei je
 dazu, **warum** nicht. Das ist kein Beiwerk: Solange nicht dasteht, warum ein Punkt hier
 liegt, wandert er beim nächsten Aufräumen in ein Werkzeug, das ihn nur scheinbar prüft.
 
-> `tools/abnahme-mobil.py` fährt 108 Stationen über drei Gerätebreiten und beide Themes.
+> `tools/abnahme-mobil.py` fährt 96 Stationen (seit 18.10.2026, vorher 108) über drei Gerätebreiten und beide Themes.
 > Es misst Größen, Kontraste und Trefferflächen — und das sehr genau. Was es **nicht**
 > kann: eine Wischgeste, den echten Safari, einen zweiten Menschen und ein Netz, das
 > mitten im Vorgang abbricht. Genau das steht hier.

@@ -769,19 +769,39 @@
   .onb-q:focus { outline: none; }
   .onb-why { margin: 0 0 20px; color: var(--text-muted); font-size: 14.5px; line-height: 1.55; }
   .onb-why b { color: var(--text); }
-  .onb-list { margin: 0; padding: 0; list-style: none; display: grid; gap: 10px; }
-  /* Akzentkante links: macht aus einer Aufzaehlung eine Liste mit Richtung. */
-  .onb-list li {
-    padding: 13px 15px; border: 1px solid var(--border); border-left: 3px solid var(--accent);
-    border-radius: var(--radius-sm); background: var(--surface-2);
-    font-size: 14px; line-height: 1.5; color: var(--text-muted);
+  /* Mini-Vorschau der Einfuehrung (18.10.2026, ersetzt die Liste mit Akzentkante): drei Karten,
+     die in Miniatur zeigen, was die App zeigt. Ring wie .wg-ring (wg-track/wg-fill), Wochenleiste
+     in den Mahlzeit-Farben, Einkaufszeilen mit Haken. Nur Tokens. */
+  .onb-vor { margin: 26px 0 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .onb-vor li { display: grid; gap: 8px; justify-items: center; min-width: 0; }
+  .onb-vor-k {
+    width: 100%; aspect-ratio: 1; border: 1px solid var(--border); border-radius: var(--radius-sm);
+    background: var(--surface-2); display: grid; place-items: center; padding: 10px; overflow: hidden;
   }
-  .onb-list li b { color: var(--text); font-weight: 650; }
+  .onb-vor-l { font-family: var(--font-display); font-size: 14px; font-weight: 600; color: var(--text); }
+  .onb-vor-r { position: relative; width: 74%; aspect-ratio: 1; }
+  .onb-vor-ring { width: 100%; height: 100%; transform: rotate(-90deg); }
+  .onb-vor-ring .wg-track, .onb-vor-ring .wg-fill { stroke-width: 4.5; }
+  .onb-vor-zahl { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; font-size: 11px; line-height: 1.1; color: var(--text-muted); }
+  .onb-vor-zahl b { font-family: var(--font-display); font-size: 15px; font-weight: 600; color: var(--text); }
+  .onb-vor-w { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; width: 100%; }
+  .onb-vor-tag { display: grid; gap: 3px; justify-items: stretch; }
+  .onb-vor-tag i { font-style: normal; font-size: 10.5px; text-align: center; color: var(--text-muted); }
+  .onb-vor-tag em { height: 9px; border-radius: 2px; }
+  .onb-vor-tag em.fr { background: var(--fr); }
+  .onb-vor-tag em.mi { background: var(--mi); }
+  .onb-vor-tag em.ab { background: var(--ab); }
+  .onb-vor-tag em.frei { background: var(--border); }
+  .onb-vor-e { display: grid; gap: 7px; width: 100%; }
+  .onb-vor-zeile { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .onb-vor-zeile i { flex: none; width: 12px; height: 12px; border: 1.5px solid var(--border-strong); border-radius: 3px; }
+  .onb-vor-zeile.ok { color: var(--text-muted); text-decoration: line-through; }
+  .onb-vor-zeile.ok i { background: var(--accent); border-color: var(--accent); }
 
   /* Hinweis bei starkem Defizit auf dem Ergebnis. Bewusst KEIN roter Alarmkasten:
      --danger ist in diesem Theme auf --accent gelegt, ein roter Kasten ginge zwischen
      den ohnehin roten Elementen unter — und die Marke hilft, sie bewertet nicht. Also
-     dieselbe ruhige Kante wie .onb-list li, nur mit Info-Zeichen davor. */
+     dieselbe ruhige Kante wie frueher die Einfuehrungsliste, nur mit Info-Zeichen davor. */
   .onb-warn {
     display: flex; gap: 10px; align-items: flex-start; margin: 14px 0 0;
     padding: 12px 14px; border: 1px solid var(--border); border-left: 3px solid var(--accent);
@@ -823,6 +843,28 @@
   .onb-opt-t { font-weight: 650; font-size: 16px; letter-spacing: .005em; }
   .onb-opt-h { font-size: 12.5px; color: var(--text-muted); line-height: 1.4; }
   .onb-tick { position: absolute; right: 15px; top: 50%; transform: translateY(-50%); width: 21px; height: 21px; color: var(--accent); }
+  /* Kachel mit Symbol (Einfuehrung V2): Symbol links im zarten Akzentkreis, Text daneben. */
+  .onb-opt.mit-ic { display: grid; grid-template-columns: 36px 1fr; column-gap: 14px; row-gap: 2px; align-items: center; }
+  .onb-opt.mit-ic .onb-opt-ic { grid-row: 1 / span 2; }
+  .onb-opt.mit-ic .onb-opt-t, .onb-opt.mit-ic .onb-opt-h { grid-column: 2; }
+  .onb-opt-ic {
+    width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center;
+    background: color-mix(in srgb, var(--accent) 12%, transparent); color: var(--accent-strong);
+  }
+  .onb-opt-ic svg { width: 19px; height: 19px; }
+  .onb-dauer { margin: 8px 0 0; }
+  .onb-danke { margin: 0 0 10px; font-size: 13.5px; font-weight: 600; color: var(--accent-strong); }
+  /* Koerperfett als freiwilliger Teil von "body" (18.10.2026). */
+  .onb-bf-det { margin-top: 18px; }
+  .onb-bf-sum {
+    display: flex; align-items: center; gap: 8px; min-height: 44px; width: 100%; padding: 0; cursor: pointer;
+    background: none; border: 0; font: inherit; font-weight: 650; font-size: 15px; text-align: left; color: var(--accent-strong);
+  }
+  .onb-bf-sum .caret { width: 16px; height: 16px; flex: none; transition: transform var(--dur-fast) var(--ease-out); }
+  .onb-bf-sum .caret.open { transform: rotate(90deg); }
+  .onb-bf-sum .onb-f-opt { color: var(--text-muted); opacity: 1; }
+  .onb-bf-sum:focus-visible { outline: none; box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 34%, transparent); border-radius: 6px; }
+  .onb-bf-det .onb-bf { margin-top: 8px; }
 
   /* Zahlenfelder. Frueher stand eines gross und allein auf seinem Bildschirm; jetzt
      stehen drei nebeneinander (Alter/Groesse/Gewicht), also kleiner gesetzt und jedes
@@ -928,8 +970,22 @@
     content: ""; position: absolute; inset: -60% 0 auto 0; height: 150px; pointer-events: none;
     background: radial-gradient(ellipse at 50% 100%, color-mix(in srgb, var(--accent) 20%, transparent), transparent 70%);
   }
+  /* Ring um die Zahl (Einfuehrung V2): zeichnet sich beim Erscheinen einmal voll, im Takt
+     des Hochzaehlens (--dur-marke-lang, wie onbErgebnisZaehlen). Ohne Bewegungswunsch steht
+     er sofort (komponenten.css, reduced-motion-Liste). */
+  .onb-res-ring { position: relative; width: min(210px, 62vw); aspect-ratio: 1; margin: 0 auto; display: grid; place-items: center; }
+  .onb-res-ring svg { position: absolute; inset: 0; width: 100%; height: 100%; transform: rotate(-90deg); }
+  .onb-res-track { fill: none; stroke: var(--border); stroke-width: 5; }
+  .onb-res-fill {
+    fill: none; stroke: var(--accent); stroke-width: 5; stroke-linecap: round;
+    stroke-dasharray: 100; stroke-dashoffset: 0;
+    animation: onb-ring var(--dur-marke-lang) var(--ease-out) both;
+  }
+  @keyframes onb-ring { from { stroke-dashoffset: 100; } to { stroke-dashoffset: 0; } }
+  .onb-tempo { margin: 14px 0 0; text-align: center; font-size: 14.5px; font-weight: 600; color: var(--text); }
+  .onb-tempo:empty { display: none; }
   .onb-res-k {
-    position: relative; font-family: var(--font-display); font-size: 58px; line-height: .95;
+    position: relative; font-family: var(--font-display); font-size: 52px; line-height: .95;
     letter-spacing: -.02em; color: var(--accent); font-variant-numeric: tabular-nums;
     text-shadow: 0 0 34px color-mix(in srgb, var(--accent) 38%, transparent);
   }
@@ -959,7 +1015,6 @@
 
   .onb-hi { text-align: center; }
   .onb-hi .onb-q { font-size: 34px; }
-  .onb-hi .onb-list { text-align: left; margin-top: 22px; }
   /* Das Logo mit einem Schein dahinter statt nackt auf der Flaeche – gibt der Startseite
      einen Mittelpunkt, ohne ein zusaetzliches Bild zu brauchen. */
   .onb-mark {

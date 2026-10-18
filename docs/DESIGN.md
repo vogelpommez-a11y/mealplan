@@ -575,7 +575,8 @@ Seither gilt auch dort das Schiebe-Schema der App:
   Kurve aus `MOTION`, unter `reducedMotion()` eine reine Überblendung.
 * **Höhe**: eine CSS-Transition am `.onb-stage-wrap` (`var(--dur-base)`, `var(--ease-out)`),
   die unter „weniger Bewegung" von der globalen Regel abgeschaltet wird.
-* **Was bleibt**: die gestaffelte Einblendung der Kacheln (`.onb-opt`, `.onb-bf-o`) und die
+* **Was bleibt**: die gestaffelte Einblendung der Kacheln (`.onb-opt`, `.onb-bf-o` — letztere seit
+  18.10.2026 erst nach dem Aufklappen des Körperfetts) und die
   rAF-Animation des Fortschrittsbalkens. Beide sind der Teil, der sich lebendig anfühlt.
 
 **Die Regel, die dabei entstanden ist:** Eine Einblendung gehört zum *Wechsel*, nicht zu

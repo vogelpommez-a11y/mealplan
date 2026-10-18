@@ -74,8 +74,8 @@ BAUSTEINE = [
     # Nur MARKUP zaehlen, nicht die JS-Zeilen, die dasselbe Element suchen. Und
     # `toggle-fav` gehoert nicht dazu: ein Favoritenschalter klappt nichts auf.
     (u"Akkordeon: JS-Aufklapper", "index.html",
-     r'<button[^>]*(?:data-action="toggle-(?:day-goals|others|cat)"|data-pq-toggle)', 5,
-     u"4 Wege + pq-toggle; <details> ist der fuenfte Mechanismus"),
+     r'<button[^>]*(?:data-action="toggle-(?:day-goals|others|cat)"|data-pq-toggle|data-bf-toggle)', 6,
+     u"4 Wege + pq-toggle + Koerperfett der Einfuehrung (18.10.2026); <details> ist der zweite Mechanismus"),
 
     (u"Tabs: Segment-Muster", "index.html",
      r'class="(?:tabs|daybar|kal-seg)\b', 3,
@@ -131,8 +131,9 @@ BAUSTEINE = [
      u"muss 0 bleiben - das Aussehen gehoert .btn.link"),
 
     (u"Textknopf: Variante genutzt", "index.html",
-     r'class="btn link\b', 7,
-     u"3 Orte + 3 inline + 1 leise (dritter inline: Datenschutz am Registrieren, 18.10.2026)"),
+     r'class="btn link\b', 9,
+     u"3 Orte + 5 inline + 1 leise (18.10.2026: Datenschutz am Registrieren, "
+     u"'Ich habe schon ein Konto', Wechsel-Link Anmelden/Registrieren)"),
 
     # .btn.del-ic war am 21.09.2026 tot (nur CSS, kein Markup) und wurde entfernt.
     (u"Button: tote Variante del-ic", "css/basis.css",

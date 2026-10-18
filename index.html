@@ -12461,6 +12461,13 @@
       { id: "settings", text: "Einstellungen", icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1.08-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg>`, tun: openSettings },
       { id: "group", text: syncGid ? "Gruppe" : "Gemeinsam planen", icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>`,
         tun: openGroupModal },
+      // Das Konto kommt spaeter, wenn es einen Grund gibt (18.10.2026) - nicht am Eingang.
+      // startCloudSync() fuehrt die Daten dieses Geraets beim ersten Abgleich mit dem Konto zusammen.
+      // Nur, wenn die Cloud ueberhaupt da ist - sonst fuehrte er in eine Maske, deren Knoepfe
+      // alle scheitern (CLAUDE.md 12: die App laeuft auch ohne Firebase).
+      ...(authMode === "cloud" || !(window.CloudAuth && window.CloudAuth.configured && window.CloudSync && window.CloudSync.enabled)
+        ? [] : [{ id: "cloud", text: "Auf allen Geräten nutzen", icon: ACT_ICONS.cloud,
+        tun: () => { cloudMode = "register"; renderAuthCloud(); } }]),
       "trenner",
       // Dieselben Funktionen wie die Fusszeile (die abgemeldet weiter da ist) - ein Weg,
       // zwei Ausloeser, kein zweiter Codepfad zu denselben Texten.
@@ -12839,8 +12846,11 @@
   // "diet" sitzt zwischen Zielwahl und Ergebnis: Bis dahin ging es um den Koerper, ab hier
   // ums Essen - und wer abbricht, hat das Rechnerische schon hinter sich. Nach "result"
   // waere zu spaet: Die Zusammenfassung soll das vollstaendige Profil zeigen.
-  const ONB_ORDER = ["hi", "name", "body", "bodyfat", "activity", "training", "goal",
-                     "target", "diet", "result", "go"];
+  // Seit 18.10.2026 (Einfuehrung V2) ohne "bodyfat" und "go": Das Koerperfett ist ein
+  // aufklappbarer, freiwilliger Teil von "body", und das Ergebnis IST der Abschluss -
+  // "Alles bereit" wiederholte nur, was "Dein Ziel steht" gerade gezeigt hatte.
+  const ONB_ORDER = ["hi", "name", "body", "activity", "training", "goal",
+                     "target", "diet", "result"];
   // Zahlenfelder. `lab` ist die Feldbeschriftung auf den Sammel-Bildschirmen (dort traegt
   // nicht mehr die Ueberschrift die Bedeutung, also braucht jedes Feld ein eigenes
   // <label>), `miss` der Klartext fuer den Hinweis, wenn es leer bleibt. `bad` fuer den
@@ -12939,7 +12949,7 @@
       if (id === "name") return onbNameFehlt();
       // Begruessung und Schlussbild nur beim Erstkontakt: Wer sein Ziel neu berechnet,
       // kennt die App und will zu seinen Zahlen, nicht durch eine Vorstellung.
-      if (id === "hi" || id === "go") return onb.first;
+      if (id === "hi") return onb.first;
       return true;
     });
   }
@@ -13140,19 +13150,11 @@
              bodyfat: (c.bodyfat === "" || c.bodyfat == null) ? null : +c.bodyfat };
   }
 
-  // Nach welcher Kachelauswahl darf der Ablauf von selbst weiterspringen? Frueher hing
-  // das daran, dass die Auswahlgruppe zufaellig genauso hiess wie der Schritt – auf den
-  // Sammel-Bildschirmen stimmt das nicht mehr (Gruppe "sex" auf Schritt "body"), also
-  // steht es hier ausdruecklich. Ein Sprung ist nur richtig, wenn der Bildschirm mit
-  // dieser einen Antwort vollstaendig beantwortet ist.
-  function onbAutoNext(stepId) {
-    const c = onb.cur;
-    if (stepId === "bodyfat" || stepId === "activity") return true;
-    // "goal" traegt zwei Fragen: nach dem Ziel erscheint erst das Tempo. Springen also
-    // nur, wenn beides steht – bei "Halten" gibt es kein Tempo.
-    if (stepId === "goal") return !!c.mode && (c.mode === "hold" || !!c.pace);
-    return false;
-  }
+  // Bis 18.10.2026 sprang der Ablauf nach manchen Kachelauswahlen von selbst weiter
+  // (onbAutoNext: Bewegung, Ziel+Tempo), nach anderen nicht - fuer den Nutzer nicht
+  // vorhersehbar (Meldung Paddy). Seitdem geht es IMMER ueber "Weiter": einheitlich, ein
+  // Fehltipp bleibt korrigierbar, und WCAG 3.2.2 "On Input" will keinen Kontextwechsel
+  // durch blosses Auswaehlen (Failure F36, Technik G80: Weiter-Knopf).
 
   let onbLaderLaeuft = false;
   function onbGo(delta) {
@@ -13180,6 +13182,9 @@
       });
       return;
     }
+    // Nach der Gewichtsangabe ein kurzer Dank auf dem naechsten Bildschirm (wie Noom nach
+    // der heikelsten Frage) - nur vorwaerts, zurueck und wieder vor zeigt ihn erneut.
+    onb.danke = delta > 0 && steps[onb.i] === "body";
     onb.i = next;
     // Richtung merken, damit der Wechsel sie zeigen kann - vorwaerts von rechts,
     // zurueck von links. Dasselbe Muster wie pendingWeekDir beim Wochenwechsel.
@@ -13190,10 +13195,27 @@
   // Auswahlkachel. Die Auswahl haengt NICHT allein an der Farbe – das Haekchen traegt
   // sie mit, sonst waere sie fuer Farbfehlsichtige nicht zu erkennen.
   const ONB_TICK = `<svg class="onb-tick" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>`;
-  function onbOpt(grp, v, label, hint) {
+  function onbOpt(grp, v, label, hint, ic) {
     const on = onb.cur[grp] === v;
-    return `<button type="button" class="onb-opt${on ? " on" : ""}" data-opt="${grp}" data-v="${esc(v)}" aria-pressed="${on ? "true" : "false"}">
-      <span class="onb-opt-t">${esc(label)}</span>${hint ? `<span class="onb-opt-h">${esc(hint)}</span>` : ""}${on ? ONB_TICK : ""}</button>`;
+    return `<button type="button" class="onb-opt${on ? " on" : ""}${ic ? " mit-ic" : ""}" data-opt="${grp}" data-v="${esc(v)}" aria-pressed="${on ? "true" : "false"}">
+      ${ic ? `<span class="onb-opt-ic">${ic}</span>` : ""}<span class="onb-opt-t">${esc(label)}</span>${hint ? `<span class="onb-opt-h">${esc(hint)}</span>` : ""}${on ? ONB_TICK : ""}</button>`;
+  }
+  // Symbole der Auswahlkacheln (Einfuehrung V2, 18.10.2026). Ziel und Ernaehrung aus Lucide
+  // (ISC-Lizenz: trending-down, equal, trending-up, utensils, leaf, sprout), im Strich der
+  // App. Die Bewegung im Alltag bekommt kein Bild, sondern eine Stufenanzeige - fuenf
+  // Balken, gefuellt bis zur Stufe: eindeutiger als Sofa und Bauhelm.
+  const ONB_SVG = (inhalt) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${inhalt}</svg>`;
+  const ONB_ICONS = {
+    lose: ONB_SVG('<polyline points="22 17 13.5 8.5 8.5 13.5 2 7"/><polyline points="16 17 22 17 22 11"/>'),
+    hold: ONB_SVG('<line x1="5" x2="19" y1="9" y2="9"/><line x1="5" x2="19" y1="15" y2="15"/>'),
+    gain: ONB_SVG('<polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/>'),
+    alles: ONB_SVG('<path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"/>'),
+    vegetarisch: ONB_SVG('<path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/>'),
+    vegan: ONB_SVG('<path d="M7 20h10"/><path d="M10 20c5.5-2.5.8-6.4 3-10"/><path d="M9.5 9.4c1.1.8 1.8 2.2 2.3 3.7-2 .4-3.5.4-4.8-.3-1.2-.6-2.3-1.9-3-4.2 2.8-.5 4.4 0 5.5.8z"/><path d="M14.1 6a7 7 0 0 0-1.1 4c1.9-.1 3.3-.6 4.3-1.4 1-1 1.6-2.3 1.7-4.6-2.7.1-4 1-4.9 2z"/>')
+  };
+  function onbStufeSvg(n) {
+    return `<svg viewBox="0 0 24 24" aria-hidden="true">${[0, 1, 2, 3, 4].map(i =>
+      `<rect x="${1.5 + i * 4.5}" y="${18 - (i + 1) * 3}" width="3" height="${(i + 1) * 3 + 2}" rx="1" fill="currentColor"${i < n ? "" : ' opacity=".22"'}/>`).join("")}</svg>`;
   }
 
   // Ein beschriftetes Zahlenfeld fuer die Sammel-Bildschirme. Auf den frueheren
@@ -13213,6 +13235,70 @@
     </div>`;
   }
 
+  // Mini-Vorschau der Einfuehrung (18.10.2026): Zeigen statt erklaeren. Drei Karten zeichnen in
+  // Miniatur, was die App wirklich zeigt - Kalorien-Ring, Wochenleiste, Einkaufsliste -, darunter
+  // je ein Wort. Hintergrund: Text-Tutorials verbessern nichts (NN/g, "Mobile Tutorials", 70
+  // Personen); MyFitnessPal und Lifesum zeigen das Produkt statt es zu beschreiben. Gezeichnet
+  // aus Tokens statt als Bildschirmfoto - altert nicht und traegt Hell wie Dunkel. Die Werte sind
+  // Schmuck (aria-hidden); vorgelesen werden nur die drei Woerter.
+  function onbVorschauHtml() {
+    const C = 2 * Math.PI * 18;
+    const ring = `<svg viewBox="0 0 44 44" class="onb-vor-ring"><circle class="wg-track" cx="22" cy="22" r="18"/>`
+      + `<circle class="wg-fill" cx="22" cy="22" r="18" stroke-dasharray="${C.toFixed(1)}" stroke-dashoffset="${(C * 0.28).toFixed(1)}"/></svg>`
+      + `<span class="onb-vor-zahl"><b>2100</b>kcal</span>`;
+    // Je Tag Fruehstueck/Mittag/Abend: 1 = geplant, 0 = noch frei.
+    const woche = [[1,1,1],[1,1,1],[1,0,1],[1,1,1],[0,1,1],[1,1,0],[0,0,0]];
+    const tage = "MDMDFSS".split("").map((t, i) =>
+      `<span class="onb-vor-tag"><i>${t}</i>${["fr","mi","ab"].map((m, j) =>
+        `<em class="${m}${woche[i][j] ? "" : " frei"}"></em>`).join("")}</span>`).join("");
+    const liste = [["Reis", 1], ["Eier", 1], ["Brokkoli", 0]].map(([n, ok]) =>
+      `<span class="onb-vor-zeile${ok ? " ok" : ""}"><i></i>${n}</span>`).join("");
+    const karte = (inhalt, wort) =>
+      `<li><div class="onb-vor-k" aria-hidden="true">${inhalt}</div><span class="onb-vor-l">${wort}</span></li>`;
+    return `<ul class="onb-vor">${karte(`<div class="onb-vor-r">${ring}</div>`, "Ziel")}`
+      + `${karte(`<div class="onb-vor-w">${tage}</div>`, "Wochenplan")}`
+      + `${karte(`<div class="onb-vor-e">${liste}</div>`, "Einkauf")}</ul>`;
+  }
+
+  // Das Ziel in etwas Greifbares uebersetzt - ohne Datum und ohne Versprechen: dieselbe Zahl,
+  // die beim Tempo auf der Kachel stand. Wertet nicht, sagt nur, wohin die Reise geht.
+  function onbTempoText(c) {
+    if (c.mode === "hold") return "Dein Gewicht halten";
+    const o = paceOptions(c.mode).find(x => x[0] === c.pace);
+    const kg = o ? (o[2].match(/[\d,]+/) || [""])[0] : "";
+    if (!kg) return "";
+    return `≈ ${kg} kg pro Woche ${c.mode === "lose" ? "weniger" : "mehr"}`;
+  }
+
+  // Koerperfett (seit 18.10.2026 Teil von "body"): freiwillig und deshalb zugeklappt.
+  // JS-Aufklapper statt des nativen details-Elements (docs/DESIGN.md "Aufklapper"): Dieser Bildschirm wird bei
+  // jeder Auswahl per innerHTML neu gebaut, ein DOM-Zustand ginge dabei verloren. Der Zustand
+  // liegt in onb.cur.bfOffen; ungesetzt steht er offen, wenn schon eine Stufe gewaehlt ist.
+  // Ohne Angabe rechnet die App nach Mifflin-St-Jeor.
+  function onbKoerperfettHtml(c) {
+    const list = BODYFAT[c.sex] || BODYFAT.m;
+    const offen = c.bfOffen != null ? c.bfOffen : (c.bodyfat != null && c.bodyfat !== "");
+    // Gewaehlt und zugeklappt: Die Stufe steht in der Zeile. Sonst rechnete das Ziel mit einem
+    // Wert, den niemand mehr sieht (Pushcheck kvp 18.10.2026).
+    const gewaehlt = list.find(o => String(o.v) === c.bodyfat);
+    const zeile = gewaehlt ? `Körperfett: ${esc(gewaehlt.r)}`
+      : `Körperfett angeben <span class="onb-f-opt">optional – rechnet genauer</span>`;
+    return `<div class="onb-bf-det">
+      <button type="button" class="onb-bf-sum" data-bf-toggle aria-expanded="${offen}"${offen ? ' aria-controls="onb-bf-inhalt"' : ""}>${caretSvg(offen)}<span>${zeile}</span></button>
+      ${offen ? `<div id="onb-bf-inhalt">
+      <div class="onb-bf">${list.map((o, i) => {
+        const on = c.bodyfat === String(o.v);
+        return `<button type="button" class="onb-bf-o${on ? " on" : ""}" data-opt="bodyfat" data-v="${o.v}" aria-pressed="${on ? "true" : "false"}">
+          ${bfSvg(c.sex, i)}
+          <span class="onb-bf-p">${esc(o.r)}</span>
+          <span class="onb-bf-t">${esc(o.label)}</span>
+          <span class="onb-bf-h">${esc(o.hint)}</span>${on ? ONB_TICK : ""}</button>`;
+      }).join("")}</div>
+      <button type="button" class="btn ghost sm onb-bf-skip${c.bodyfat === "" ? " on" : ""}" data-opt="bodyfat" data-v="" aria-pressed="${c.bodyfat === "" ? "true" : "false"}">Weiß ich nicht</button>
+      </div>` : ""}
+    </div>`;
+  }
+
   function onbStepHtml(id) {
     const c = onb.cur;
     if (id === "hi") {
@@ -13228,11 +13314,8 @@
         <div class="onb-mark" aria-hidden="true"></div>
         ${vorname ? `<p class="onb-kicker">Willkommen, ${esc(vorname)}</p>` : ""}
         <h2 class="onb-q">Plan it. Cook it. Lift it.</h2>
-        <ul class="onb-list">
-          <li><b>Ziel</b> – Kalorien und Makros aus deinen Daten.</li>
-          <li><b>Wochenplan</b> – Frühstück, Mittag, Abend, Snacks.</li>
-          <li><b>Einkaufsliste</b> – automatisch aus deinem Plan.</li>
-        </ul></div>`;
+        <p class="onb-why onb-dauer">In einer Minute zu deinem Ziel.</p>
+        ${onbVorschauHtml()}</div>`;
     }
     const txt = ONB_TEXT[id];
     if (txt) {
@@ -13246,27 +13329,16 @@
     if (id === "body") {
       return `<h2 class="onb-q" tabindex="-1">Erzähl uns von dir</h2>
         <div class="onb-opts onb-opts-2">${onbOpt("sex", "f", "Weiblich")}${onbOpt("sex", "m", "Männlich")}</div>
-        <div class="onb-grid">${onbNumField("age")}${onbNumField("height")}${onbNumField("weight")}</div>`;
-    }
-    if (id === "bodyfat") {
-      const list = BODYFAT[c.sex] || BODYFAT.m;
-      return `<h2 class="onb-q" tabindex="-1">Was kommt deinem Körper am nächsten?</h2>
-        <p class="onb-why">Damit rechnen wir genauer als mit Gewicht allein.</p>
-        <div class="onb-bf">${list.map((o, i) => {
-          const on = c.bodyfat === String(o.v);
-          return `<button type="button" class="onb-bf-o${on ? " on" : ""}" data-opt="bodyfat" data-v="${o.v}" aria-pressed="${on ? "true" : "false"}">
-            ${bfSvg(c.sex, i)}
-            <span class="onb-bf-p">${esc(o.r)}</span>
-            <span class="onb-bf-t">${esc(o.label)}</span>
-            <span class="onb-bf-h">${esc(o.hint)}</span>${on ? ONB_TICK : ""}</button>`;
-        }).join("")}</div>
-        <button type="button" class="btn ghost sm onb-bf-skip${c.bodyfat === "" ? " on" : ""}" data-opt="bodyfat" data-v="" aria-pressed="${c.bodyfat === "" ? "true" : "false"}">Weiß ich nicht</button>`;
+        <div class="onb-grid">${onbNumField("age")}${onbNumField("height")}${onbNumField("weight")}</div>
+        ${onbKoerperfettHtml(c)}`;
     }
     if (id === "activity") {
-      return `<h2 class="onb-q" tabindex="-1">Wie viel bewegst du dich im Alltag?</h2>
+      return `${onb.danke ? `<p class="onb-danke">Danke – das war der wichtigste Teil.</p>` : ""}
+        <h2 class="onb-q" tabindex="-1">Wie viel bewegst du dich im Alltag?</h2>
         <p class="onb-why">Nur Beruf und Alltag – Training zählt separat.</p>
-        <div class="onb-opts onb-opts-1">${ACTIVITY.map(a => onbOpt("activity", a.key, a.label, a.hint)).join("")}</div>`;
+        <div class="onb-opts onb-opts-1">${ACTIVITY.map((a, i) => onbOpt("activity", a.key, a.label, a.hint, onbStufeSvg(i + 1))).join("")}</div>`;
     }
+
     // Ernaehrungsprofil. Bewusst EIN Bildschirm fuer beide Angaben statt zweier: Sie
     // gehoeren zusammen, und ein eigener Schritt fuer zwei optionale Schalter waere ein
     // "Weiter" zu viel. Die Einschraenkungen sind Mehrfachauswahl und schalten um (toggle),
@@ -13279,7 +13351,7 @@
       const av = c.avoid || [];
       return `<h2 class="onb-q" tabindex="-1">Wie isst du?</h2>
         <p class="onb-why">Danach richten sich deine Vorschläge und der Wochenplan.</p>
-        <div class="onb-opts onb-opts-1">${DIETS.map(d => onbOpt("diet", d.key, d.label, d.hint)).join("")}</div>
+        <div class="onb-opts onb-opts-1">${DIETS.map(d => onbOpt("diet", d.key, d.label, d.hint, ONB_ICONS[d.key])).join("")}</div>
         <div class="sec-h" style="margin:22px 0 10px">Zusätzlich</div>
         <div class="onb-opts onb-opts-2">${AVOIDS.map(a => {
           const on = av.indexOf(a.key) !== -1;
@@ -13308,7 +13380,7 @@
     if (id === "goal") {
       const pace = paceOptions(c.mode);
       return `<h2 class="onb-q" tabindex="-1">Was ist dein Ziel?</h2>
-        <div class="onb-opts onb-opts-1">${onbOpt("mode", "lose", "Abnehmen", "Kalorien unter dem Bedarf")}${onbOpt("mode", "hold", "Gewicht halten", "Kalorien auf Bedarfshöhe")}${onbOpt("mode", "gain", "Zunehmen", "Kalorien über dem Bedarf")}</div>
+        <div class="onb-opts onb-opts-1">${onbOpt("mode", "lose", "Abnehmen", "Kalorien unter dem Bedarf", ONB_ICONS.lose)}${onbOpt("mode", "hold", "Gewicht halten", "Kalorien auf Bedarfshöhe", ONB_ICONS.hold)}${onbOpt("mode", "gain", "Zunehmen", "Kalorien über dem Bedarf", ONB_ICONS.gain)}</div>
         ${pace.length ? `<div class="onb-sub">
           <h3 class="onb-sub-q">Wie schnell?</h3>
           <div class="onb-opts onb-opts-1">${pace.map(o => onbOpt("pace", o[0], o[1], o[2])).join("")}</div>
@@ -13353,7 +13425,10 @@
       return `<h2 class="onb-q" tabindex="-1">Dein Ziel steht</h2>
         ${hatT ? `<p class="onb-why">Wert für einen Tag ohne Training.</p>` : ""}
         <div class="onb-res">
-          <div class="onb-res-k">${g.kcal.toLocaleString("de-DE")}<span>kcal / ${hatT ? "Ruhetag" : "Tag"}</span></div>
+          <div class="onb-res-ring">
+            <svg viewBox="0 0 120 120" aria-hidden="true"><circle class="onb-res-track" cx="60" cy="60" r="54"/><circle class="onb-res-fill" cx="60" cy="60" r="54" pathLength="100"/></svg>
+            <div class="onb-res-k">${g.kcal.toLocaleString("de-DE")}<span>kcal / ${hatT ? "Ruhetag" : "Tag"}</span></div>
+          </div>
           <div class="onb-res-m">
             <div class="t-carb"><b>${g.carbs} g</b><span>Kohlenhydrate</span></div>
             <div class="t-prot"><b>${g.protein} g</b><span>Protein</span></div>
@@ -13364,6 +13439,7 @@
             <b>${tTag.kcal.toLocaleString("de-DE")} kcal</b>
           </div>` : ""}
         </div>
+        <p class="onb-tempo">${onbTempoText(c)}</p>
         ${g.adjust <= -750 ? `<p class="onb-warn">
           <svg class="ci" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></svg>
           <span><b>${Math.abs(g.adjust)} kcal unter deinem Bedarf.</b> Das ist viel für einen langen Zeitraum – halte die Phase kurz oder sprich sie mit einer Ärztin, einem Arzt oder einer Ernährungsberatung ab.</span>
@@ -13375,21 +13451,7 @@
         </summary>
         <div class="cn-body">Alle Werte sind <strong>rechnerische Richtwerte</strong>: Grundumsatz nach Katch-McArdle (mit Körperfettanteil) oder Mifflin-St-Jeor (ohne), Alltagsbedarf über einen Aktivitätsfaktor (PAL). Der tatsächliche Verbrauch kann davon deutlich abweichen. Sie ersetzen keine ärztliche oder ernährungsmedizinische Beratung. Bei Erkrankungen, in Schwangerschaft und Stillzeit oder vor einer stärkeren Ernährungsumstellung sprich bitte mit einer Ärztin oder einem Arzt.</div></details>`;
     }
-    // "go" – Schlussbild, nur beim Erstkontakt. Der frueher eigene Schritt "how"
-    // ("So laeuft deine Woche") ist hier als Liste aufgegangen: Nach dem Ergebnis noch
-    // zwei reine Textbildschirme zu zeigen, liess den Hoehepunkt verpuffen.
-    const g = state.goal;
-    const vorname = String(c.name || "").trim().split(/\s+/)[0];
-    return `<div class="onb-hi">
-      <div class="onb-mark" aria-hidden="true"></div>
-      <h2 class="onb-q" tabindex="-1">${vorname ? "Alles bereit, " + esc(vorname) : "Alles bereit"}</h2>
-      ${g ? `<p class="onb-why">${goalSummaryHtml(g)}</p>` : ""}
-      <ul class="onb-list">
-        <li><b>Meals</b> – fünf Beispiele sind schon da.</li>
-        <li><b>Einkaufsliste</b> – automatisch, unter dem Wochenplan.</li>
-        <li><b>Teilen</b> – deine Woche als Link.</li>
-      </ul>
-    </div>`;
+    return "";
   }
 
   // Nach der Ziel-Berechnung: kcal und Makros der Ergebniskarte zaehlen von 0 auf ihren Wert.
@@ -13568,7 +13630,7 @@
     const last = onb.i === steps.length - 1;
     const showTop = onb.i > 0;
     const pct = Math.round((onb.i + 1) / steps.length * 100);
-    const nextLabel = id === "result" ? "Ziel übernehmen" : last ? (onb.first ? "Zum Wochenplan" : "Fertig") : "Weiter";
+    const nextLabel = id === "result" ? (onb.first ? "Zum Wochenplan" : "Ziel übernehmen") : last ? (onb.first ? "Zum Wochenplan" : "Fertig") : "Weiter";
     const miss = onbMissing(id);
 
     // Geruest nur bauen, wenn es fehlt - beim ersten Schritt oder nachdem etwas anderes
@@ -13620,11 +13682,26 @@
 
     // Einschraenkungen (glutenfrei/laktosefrei) sind eine Mehrfachauswahl und schalten um -
     // deshalb ein eigener Handler neben [data-opt], das immer einen Einzelwert setzt.
-    // Kein onbAutoNext: Wer eine Einschraenkung waehlt, will vielleicht noch eine zweite.
     view.querySelectorAll("[data-avoid]").forEach(b => b.addEventListener("click", () => {
       onb.cur.avoid = toggleAvoid(onb.cur.avoid, b.dataset.avoid);
       renderOnboardStep(true);          // gleicher Bildschirm, nur eine Auswahl mehr
     }));
+
+    // "Rechnerische Richtwerte" auf dem Ergebnis klappt nach UNTEN auf - auf kleinen Bildschirmen
+    // ausserhalb des Sichtbaren. Es oeffnete sich also, man sah nur nichts davon (Meldung Paddy
+    // 18.10.2026). Darum beim Oeffnen ins Bild ruecken.
+    view.querySelectorAll(".onb-note").forEach(d => d.addEventListener("toggle", () => {
+      if (d.open) d.scrollIntoView({ block: "nearest", behavior: reducedMotion() ? "auto" : "smooth" });
+    }));
+
+    const bfAuf = view.querySelector("[data-bf-toggle]");
+    if (bfAuf) bfAuf.addEventListener("click", () => {
+      onb.cur.bfOffen = bfAuf.getAttribute("aria-expanded") !== "true";
+      renderOnboardStep(true);
+      // renderOnboardStep() setzt den Fokus auf die Frage - wer per Tastatur aufklappt,
+      // soll aber am Knopf bleiben.
+      setTimeout(() => { const k = view.querySelector("[data-bf-toggle]"); if (k) k.focus(); }, 40);
+    });
 
     view.querySelectorAll("[data-opt]").forEach(b => b.addEventListener("click", () => {
       const grp = b.dataset.opt;
@@ -13646,14 +13723,7 @@
       // committet werden durfte – sonst sprang der Ablauf ohne sichtbaren Haken weiter).
       if (grp === "weightConsent") { setWeightConsent(b.dataset.v === "yes"); save(); }
       renderOnboardStep(true);          // gleicher Bildschirm, nur eine Auswahl mehr
-      // Weiterspringen statt einen zweiten Tipp zu verlangen – aber nur auf Bildschirmen,
-      // die mit dieser einen Antwort fertig beantwortet sind. Kurz warten, damit die
-      // Auswahl noch zu sehen ist; ohne Bewegungswunsch sofort.
-      if (!onbAutoNext(id)) return;
-      setTimeout(() => {
-        if (!onb || onbSteps()[onb.i] !== id) return;   // inzwischen woanders
-        onbGo(1);
-      }, reducedMotion() ? 0 : 260);
+      // Kein automatisches Weiter mehr (18.10.2026) - siehe Kommentar ueber onbGo().
     }));
 
     // Auf den Sammel-Bildschirmen stehen mehrere Zahlenfelder nebeneinander, deshalb
@@ -13913,14 +13983,16 @@
       <div class="mark"></div>
       <h2>Willkommen bei Paddy’s Mealplan</h2>
       <p class="lead">Plane deine Woche, triff deine Makros, koche vor.</p>
-      <button class="btn primary" id="a-local">Ohne Konto loslegen</button>
-      ${cloudDa ? `<div class="auth-or">oder</div>
-      <button class="btn" id="a-cloud">Mit Konto anmelden</button>
-      <p class="auth-note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></svg><span>Ohne Konto bleibt alles <strong>auf diesem Gerät</strong> – vollständig nutzbar, ohne Zeitlimit. Ein Konto bringt deinen Plan auf alle Geräte und das gemeinsame Planen (<strong>Pro</strong>).</span></p>` : ""}
+      <button class="btn primary" id="a-local">Loslegen</button>
+      ${cloudDa ? `<p class="auth-switch"><button type="button" class="btn link inline" id="a-cloud">Ich habe schon ein Konto</button></p>` : ""}
     </div></div>`;
+    // Eine Entscheidung statt zwei (18.10.2026): Neue starten ohne Konto, wie bei MyFitnessPal,
+    // Lifesum, Yazio und nach Apples HIG ("Delay sign-in as long as possible"). Das Konto kommt
+    // spaeter ueber "Auf allen Geraeten nutzen" im Profilmenue; startCloudSync() nimmt die
+    // lokalen Daten dabei mit. Die Kennungen #a-local/#a-cloud bleiben - Pruefer tippen darauf.
     view.querySelector("#a-local").addEventListener("click", () => { cloudSignalled = true; authMode = "local"; renderAuthLocal(); });
     const cloudBtn = view.querySelector("#a-cloud");
-    if (cloudBtn) cloudBtn.addEventListener("click", () => { cloudSignalled = true; renderAuthCloud(); });
+    if (cloudBtn) cloudBtn.addEventListener("click", () => { cloudSignalled = true; cloudMode = "login"; renderAuthCloud(); });
   }
 
   function renderAuthLocal() {
@@ -13939,20 +14011,20 @@
       <!-- D1b: Die E-Mail-Adresse ist im lokalen Profil OPTIONAL geworden. Sie verlaesst das
            Geraet nie und wird fuer nichts gebraucht - sie zwingend abzufragen war das
            Gegenteil von Datenminimierung (Art. 5 Abs. 1 lit. c DSGVO) und eine Huerde vor
-           dem ersten Meal. Wer schon eine hinterlegt hat, sieht sie weiterhin. -->
-      <div class="field"><label for="a-email">E-Mail-Adresse <span class="hint">– optional</span></label><input type="email" id="a-email" placeholder="du@beispiel.de" value="${back ? esc(last.email || "") : ""}" autocomplete="email"></div>
+           dem ersten Meal. Seit 18.10.2026 wird sie gar nicht mehr abgefragt; nur wer schon
+           eine hinterlegt hat, sieht sie weiterhin und kann sie leeren. -->
+      ${back && last.email ? `<div class="field"><label for="a-email">E-Mail-Adresse <span class="hint">– optional</span></label><input type="email" id="a-email" placeholder="du@beispiel.de" value="${esc(last.email)}" autocomplete="email"></div>` : ""}
       <button class="btn primary" id="a-go">${back ? "Weiter" : "Loslegen"}</button>
       ${hasData ? `<p class="auth-switch">Deine bisherigen Meals und dein Plan auf diesem Gerät bleiben erhalten.</p>` : ""}
-      <p class="auth-note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></svg><span>Dies ist ein <strong>lokales Profil</strong> auf diesem Gerät – kein Konto, kein Passwort, keine Daten bei uns.
       ${pendingShare && window.CloudShare && window.CloudShare.enabled
-        ? `Geteilte Links brauchen ein Cloud-Konto – <button type="button" class="btn link inline" id="a-use-cloud">stattdessen mit Cloud-Konto anmelden</button>.`
-        : "Zum gemeinsamen Planen teilst du deine Woche per Einladungs-Code."}</span></p>
+        ? `<p class="auth-switch">Geteilte Links brauchen ein Konto – <button type="button" class="btn link inline" id="a-use-cloud">stattdessen mit Konto anmelden</button>.</p>`
+        : ""}
     </div></div>`;
     const nameEl = view.querySelector("#a-name");
-    const emailEl = view.querySelector("#a-email");
+    const emailEl = view.querySelector("#a-email");   // nur, wenn schon eine Adresse hinterlegt ist
     function submit() {
       const name = nameEl.value.trim();
-      const email = emailEl.value.trim();
+      const email = emailEl ? emailEl.value.trim() : "";
       if (!name) { nameEl.focus(); nameEl.style.borderColor = "var(--danger)"; toast("Gib deinen Namen ein"); return; }
       // Leer ist erlaubt (D1b), eine falsch getippte Adresse nicht: wer etwas eintraegt,
       // meint auch etwas - stillschweigend zu verwerfen waere schlechter als der Hinweis.
@@ -13961,7 +14033,7 @@
       enterApp(); toast("Angemeldet als " + name);
     }
     view.querySelector("#a-go").addEventListener("click", submit);
-    [nameEl, emailEl].forEach(inp => inp.addEventListener("keydown", e => { if (e.key === "Enter") submit(); }));
+    [nameEl, emailEl].filter(Boolean).forEach(inp => inp.addEventListener("keydown", e => { if (e.key === "Enter") submit(); }));
     // Paket B5: wer ueber einen Teilen-Link kommt, aber noch kein lokales Profil hat, kann hier
     // direkt zur Cloud-Anmeldung wechseln statt erst ein lokales Profil anzulegen und dann in
     // loadSharedById() an der fehlenden Cloud-Authentifizierung zu scheitern (Sackgasse).
@@ -14212,27 +14284,37 @@
     drawCloudCard();
   }
 
+  // Ohne Reiter seit 18.10.2026: zwei schlanke Ansichten, unten ein Wechsel-Link. Google steht
+  // oben - der kuerzeste Weg, fuer Neue wie Bestehende derselbe Knopf. Zurueck gibt es nur,
+  // wenn hinter der Maske etwas liegt: das lokale Profil (kam ueber das Profilmenue oder
+  // "Gemeinsam planen") oder der Startbildschirm. Ein abgemeldetes Cloud-Profil hat nichts
+  // dahinter - ohne Anmeldung waere die App leer (handleCloudUser).
+  function cloudZurueck() {
+    if (profile && !profile.cloud) return () => { authMode = "local"; enterApp(); };
+    if (!profile) return () => { authMode = "local"; renderAuthChoice(); };
+    return null;
+  }
+
   function drawCloudCard() {
     const reg = cloudMode === "register";
+    const zurueck = cloudZurueck();
     view.innerHTML = `<div class="auth"><div class="auth-card">
       <div class="mark"></div>
       <h2>${reg ? "Konto erstellen" : "Willkommen zurück"}</h2>
       <p class="lead">${reg ? "Registriere dich, um deinen Plan auf allen Geräten zu nutzen." : "Melde dich an, um weiterzuplanen."}</p>
       ${pendingShare ? `<p class="lead" style="color:var(--accent-strong);font-weight:600;margin-top:-8px">Du wurdest eingeladen, ein Meal oder einen Wochenplan zu übernehmen – melde dich an.</p>` : ""}
-      <div class="segbar" role="tablist" aria-label="Anmelden oder registrieren">
-        <button type="button" role="tab" data-m="register" aria-selected="${reg}">Registrieren</button>
-        <button type="button" role="tab" data-m="login" aria-selected="${!reg}">Anmelden</button>
-      </div>
-      ${reg ? `<div class="field"><label for="c-name">Name</label><input type="text" id="c-name" placeholder="Wie heißt du?" maxlength="40" autocomplete="name"></div>` : ""}
+      <button class="btn social" id="c-google" type="button">${GOOGLE_SVG}<span>Weiter mit Google</span></button>
+      ${APPLE_ENABLED ? `<button class="btn social apple" id="c-apple" type="button">${APPLE_SVG}<span>Weiter mit Apple</span></button>` : ""}
+      <div class="auth-or">oder mit E-Mail</div>
+      ${reg ? `<div class="field"><label for="c-name">Name</label><input type="text" id="c-name" placeholder="Wie heißt du?" maxlength="40" autocomplete="name" value="${profile && !profile.cloud ? esc(profile.name || "") : ""}"></div>` : ""}
       <div class="field"><label for="c-email">E-Mail-Adresse</label><input type="email" id="c-email" placeholder="du@beispiel.de" autocomplete="email"></div>
       <div class="field"><label for="c-pw">Passwort</label><input type="password" id="c-pw" placeholder="${reg ? "Mindestens 6 Zeichen" : "Dein Passwort"}" autocomplete="${reg ? "new-password" : "current-password"}"></div>
       ${reg ? "" : `<button type="button" class="btn link auth-forgot" id="c-forgot">Passwort vergessen?</button>`}
       <p class="auth-err" id="c-err" role="alert"></p>
       <button class="btn primary" id="c-go">${reg ? "Konto erstellen" : "Anmelden"}</button>
-      <div class="auth-or">oder</div>
-      <button class="btn social" id="c-google" type="button">${GOOGLE_SVG}<span>Mit Google ${reg ? "registrieren" : "anmelden"}</span></button>
-      ${APPLE_ENABLED ? `<button class="btn social apple" id="c-apple" type="button">${APPLE_SVG}<span>Mit Apple ${reg ? "registrieren" : "anmelden"}</span></button>` : ""}
-      <p class="auth-note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg><span>Dein Konto liegt sicher in der Cloud – du kannst dich von jedem Gerät aus anmelden. Nach der Registrierung schicken wir dir eine <strong>Bestätigungsmail</strong>.${reg ? ` Mit der Registrierung bestätigst du, dass du mindestens <strong>16 Jahre</strong> alt bist. Es gilt unsere <button type="button" class="btn link inline" data-action="datenschutz">Datenschutzerklärung</button>.` : " Meldest du dich zum ersten Mal mit Google an, bestätigst du, dass du mindestens <strong>16 Jahre</strong> alt bist."}</span></p>
+      <p class="auth-note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg><span>${reg ? "Wir schicken dir eine <strong>Bestätigungsmail</strong>. Mit der Registrierung bestätigst du" : `Neu mit Google${APPLE_ENABLED ? " oder Apple" : ""}? Damit bestätigst du`}, dass du mindestens <strong>16 Jahre</strong> alt bist. Es gilt unsere <button type="button" class="btn link inline" data-action="datenschutz">Datenschutzerklärung</button>.</span></p>
+      <p class="auth-switch">${reg ? "Schon ein Konto?" : "Neu hier?"} <button type="button" class="btn link inline" id="c-switch">${reg ? "Anmelden" : "Konto erstellen"}</button></p>
+      ${zurueck ? `<button type="button" class="btn ghost sm auth-back" id="c-back">Zurück</button>` : ""}
     </div></div>`;
 
     const card = view.querySelector(".auth-card");
@@ -14250,9 +14332,10 @@
       window.CloudAuth.redirectError = null;
     }
 
-    view.querySelectorAll(".segbar button").forEach(b => b.addEventListener("click", () => {
-      cloudMode = b.getAttribute("data-m"); drawCloudCard();
-    }));
+    view.querySelector("#c-switch").addEventListener("click", () => {
+      cloudMode = reg ? "login" : "register"; drawCloudCard();
+    });
+    if (zurueck) view.querySelector("#c-back").addEventListener("click", zurueck);
 
     async function doPrimary() {
       showErr("");
