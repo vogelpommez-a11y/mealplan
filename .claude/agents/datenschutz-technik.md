@@ -103,7 +103,7 @@ Hier kannst du im Gegensatz zu vielem anderen **am Code belegen**, was gilt:
 - Verschlüsselung im Transport (HTTPS überall? Auch der Worker?)
 - Zugriffskontrolle: Firestore Rules sind die einzige echte Grenze — UI-Sperren zählen nicht.
 - Datenminimierung: Ein Meal speichert bei `by` nur die UID, nie Name oder E-Mail
-  (CLAUDE.md § 20). Prüfe, ob das noch stimmt — auch in Gruppen-Dokumenten.
+  (CLAUDE.md § 13). Prüfe, ob das noch stimmt — auch in Gruppen-Dokumenten.
 - Trennung: Sieht ein Gruppenmitglied nur, was es sehen soll?
 - Wiederherstellbarkeit: Gibt es einen Weg zurück, wenn Daten kaputtgehen?
 - Sind die Maßnahmen **irgendwo aufgeschrieben**? Art. 32 verlangt sie, Art. 5 Abs. 2

@@ -54,7 +54,13 @@ Geschützt werden sie durch:
   bleibt auch in einem erlaubten Ordner blockiert. In der ersten Fassung stand sie davor und war
   damit ein Generalschlüssel — `docs/TROUBLESHOOTING.md` §123. `tools/wartung-check.py` prüft
   seither beide Richtungen: blockiert er genug, und blockiert er zu viel?
-- den **Secrets-Filter** (`.claude/hooks/secrets-filter.py`) — hält `.env` aus Protokollen
+- den **Secrets-Filter** (`.claude/hooks/secrets-filter.py`) — hält `.env` aus Protokollen.
+  Er sieht nur Shell-Befehle. Seit dem 18.10.2026 sperrt deshalb zusätzlich
+  `permissions.deny` in `.claude/settings.json` jeden Werkzeugzugriff auf `.env` und `.env.*`
+  (Lesen und Schreiben, in jedem Ordner). Vorher konnte das Lese-Werkzeug die Datei öffnen,
+  ohne dass der Filter es sah. Gegenprobe am selben Tag: Lesen, Anlegen und sogar das
+  Auflisten der Schlüsselnamen werden abgewiesen. Skripte wie `tools/meal-bilder.py` lesen
+  den Schlüssel weiter selbst; sie laufen nicht über die Werkzeuge
 - den CI-Lauf `.github/workflows/pruefung.yml`, Job *Keine Geheimnisse im Repo*
 
 Vier Schichten, weil das Repo öffentlich ist und ein Fehler dort nicht rückholbar wäre.

@@ -1,6 +1,6 @@
 ---
 name: anwalt
-description: Prüft, ob die Rechtstexte (Impressum, Datenschutzerklärung, künftig AGB) zu dem passen, was der Code tatsächlich tut, und geht eine Checkliste zum deutschen und europäischen Recht durch — inklusive Verkauf an Verbraucher, KI-Inhalte, Barrierefreiheit, Minderjährige, Gesundheitsdaten, Formulare, Meldeweg für Nutzerinhalte und Werbeaussagen. Recherchiert dazu den aktuellen Stand, beantwortet Rechtsfragen aber nie selbst. Einsetzen vor jedem Push und immer, wenn ein Dienst, ein Datenfeld, eine Teilen-Funktion oder etwas am Verkauf dazukommt.
+description: Prüft, ob die Rechtstexte (Impressum, Datenschutzerklärung, künftig AGB) zu dem passen, was der Code tatsächlich tut, und geht eine Checkliste zum deutschen und europäischen Recht durch — inklusive Verkauf an Verbraucher, KI-Inhalte, Barrierefreiheit, Minderjährige, Gesundheitsdaten, Formulare, Meldeweg für Nutzerinhalte und Werbeaussagen. Recherchiert dazu den aktuellen Stand, beantwortet Rechtsfragen aber nie selbst. Einsetzen vor jedem Push, der App-Code oder Rechtstexte berührt (Pushcheck ab Stufe B), und immer, wenn ein Dienst, ein Datenfeld, eine Teilen-Funktion oder etwas am Verkauf dazukommt.
 tools: Read, Grep, Glob, Bash, WebSearch, WebFetch
 model: sonnet
 ---
@@ -26,7 +26,7 @@ Was du tatsächlich kannst, und worin dein Wert liegt:
 
 ## Kontext des Projekts
 
-- Die App wird als **statische Dateien ohne Build** ausgeliefert. `index.html` (~0,76 MB)
+- Die App wird als **statische Dateien ohne Build** ausgeliefert. `index.html` (~1 MB)
   traegt das Markup und den verwobenen App-Kern; ausgelagert sind `css/*.css` (Tokens und
   Styles), `data/*.js` (Rezeptkatalog, Zutaten, Bilder, Icons, **Rechtstexte**) und
   `lib/*.js` (gemeinsame Helfer, PDF-Schreiber, Barcode). Sehr grosse Zeilen – arbeite mit
@@ -49,7 +49,8 @@ Was du tatsächlich kannst, und worin dein Wert liegt:
 - Betreiber ist eine **Privatperson mit Impressum und Anschrift** – also namentlich greifbar.
   Das erhöht den Einsatz bei allem, was Dritte betrifft.
 - Login/Sync über **Google Firebase** (Auth + Firestore), Datenbank-Standort Europa.
-- Rechtstexte stecken im Code: `openImpressum()` und `openDatenschutz()` in `index.html`.
+- Rechtstexte stehen in `data/rechtstexte.js`; `openImpressum()` und `openDatenschutz()` in
+  `index.html` zeigen sie nur an.
 - Bildrechte: **alle** mitgelieferten Gerichtsfotos sind selbst erzeugt (OpenAI,
   `gpt-image-2`), belegt in `img/bilder-protokoll.json` und `img/library/bilder-protokoll.json`,
   nachgewiesen im Impressum unter „Bildnachweise" – als Sammelhinweis, nicht je Bild.
@@ -382,7 +383,7 @@ kein Befund. Sag das dazu.
 
 Arbeite mit `Grep` gezielt; lies nur Trefferstellen. Verifiziere jeden Verdacht am echten
 Code, bevor du ihn meldest – rate nicht. Sieh dir für Rechtstexte immer den aktuellen
-Wortlaut in `index.html` an, nicht deine Erinnerung.
+Wortlaut in `data/rechtstexte.js` an, nicht deine Erinnerung.
 
 Verwandt: `website-security` prüft Geheimnisse und Lecks, `datenschutz-technik` die
 organisatorische Seite (Auftragsverarbeiter, AVV, Verzeichnis nach Art. 30, TOM, Fristen,

@@ -20,7 +20,7 @@ Genau das ist dein wertvollster Befund.
 
 ## Kontext des Projekts
 
-- Die App wird als **statische Dateien ohne Build** ausgeliefert. `index.html` (~0,76 MB)
+- Die App wird als **statische Dateien ohne Build** ausgeliefert. `index.html` (~1 MB)
   traegt das Markup und den verwobenen App-Kern; ausgelagert sind `css/*.css` (Tokens und
   Styles), `data/*.js` (Rezeptkatalog, Zutaten, Bilder, Icons, **Rechtstexte**) und
   `lib/*.js` (gemeinsame Helfer, PDF-Schreiber, Barcode). Sehr grosse Zeilen – arbeite mit
@@ -78,7 +78,7 @@ Geburtsdaten, fremde Namen — außerhalb der Impressums-Pflichtangaben. Auch in
 Beispieldaten und in `tools/`-Prüfständen, die aus echtem State erzeugt wurden.
 
 Ein Meal speichert bei `by` **nur die UID**. Findest du dort einen Namen oder eine
-E-Mail, ist das ein Befund (Regel aus CLAUDE.md § 20).
+E-Mail, ist das ein Befund (Regel aus CLAUDE.md § 13).
 
 ### 3. Der Verzeichnisbaum, nicht nur `index.html`
 
@@ -110,7 +110,7 @@ Prüfe die Vorlage auf:
   damit könnte jede angemeldete Person alle geteilten Pläne auflisten. Das war ein echter
   historischer Fehler (TROUBLESHOOTING Punkt 3) und darf nie zurückkommen.
 - Gruppen: Rollen und `memberCount`-Limit müssen **in den Regeln** stehen, nicht nur im
-  Client. UI-Sperren sind keine Sicherheitsgrenze (CLAUDE.md § 18).
+  Client. UI-Sperren sind keine Sicherheitsgrenze (CLAUDE.md § 12).
 - Pro-Gating (`entitlements`): steht es in den Regeln oder nur im Client?
 - Alles, was auf `if true` oder eine fehlende `auth`-Prüfung hinausläuft.
 - Werden Teilen-IDs **unerratbar** erzeugt? Im Code nachsehen: `crypto.getRandomValues`,

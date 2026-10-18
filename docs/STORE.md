@@ -228,6 +228,15 @@ passen, damit Formular und Rechtstext dieselben Speicher nennen.
 Ein falsch ausgefülltes Formular ist ein eigener Ablehnungsgrund — und später ein
 Rechtsrisiko, weil es eine Zusage gegenüber den Nutzenden ist.
 
+**Google Play: „Health apps declaration“ — ein drittes Formular, Pflicht für jede App.**
+Unter *Richtlinien → App-Inhalte* muss **jede** App erklären, welche Gesundheitsfunktionen sie
+hat, auch schon im geschlossenen Test. Für uns trifft **„Nutrition and Weight Management“**
+(Mahlzeiten planen, Ernährung, Gewichtsziel), wohl auch **„Activity and Fitness“** (Gewicht und
+Körperzusammensetzung). Health Connect nutzen wir nicht, es entfallen also die Begründungen je
+Datentyp. Quelle: support.google.com/googleplay/android-developer/answer/14738291, abgerufen
+18.10.2026. Nachgetragen beim Abgleich der Prüfer am 18.10.2026: Es stand vorher weder hier
+noch in `store-check`.
+
 ---
 
 ## 6. Berechtigungen
@@ -527,6 +536,7 @@ Alternativtexte sind dafür nicht geprüft.
 | **Bezahlweg (Apple 3.1.1)** | 🟡 **entschieden: Abo** (26.08.2026) — zu bauen: StoreKit + Play Billing |
 | **Kaufbeleg serverseitig prüfen** | 🔴 zu bauen — Cloud Function, setzt den Blaze-Wechsel voraus |
 | Nutrition Labels / Data Safety | 🟡 Datengrundlage steht (Abschnitt 5), Formulare nicht ausgefüllt |
+| Health apps declaration (Google Play) | 🟡 Pflicht für jede App, bei uns „Nutrition and Weight Management“ — beim Einrichten der Play Console (Abschnitt 5) |
 | `NSCameraUsageDescription` | 🟡 zu prüfen, sobald das Capacitor-Projekt existiert |
 | Privacy Manifest (Apple) | 🟡 beim D7-Build prüfen — ohne scheitert der Upload (Abschnitt 8) |
 | **Barrierefreiheit (BFSG)** | 🟢 **Codeseite gemessen und behoben** (20.09.2026, 0 Befunde). Rechtsfrage weiter offen: Kleinstunternehmer-Ausnahme? Erklärung fehlt. Abschnitt 7b |

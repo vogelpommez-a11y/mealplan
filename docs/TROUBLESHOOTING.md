@@ -6,7 +6,7 @@ Dieses Dokument enthält bekannte Fehlerquellen, historische Bugs und Probleme, 
 
 <!-- REGISTER-ANFANG (erzeugt aus den Ueberschriften: python tools/register.py - nicht von Hand pflegen) -->
 
-**Register — 190.** Chronologisch gewachsen: je hoeher die Nummer,
+**Register — 191.** Chronologisch gewachsen: je hoeher die Nummer,
 desto juenger der Fund. Wer eine Falle sucht, sucht hier zuerst; die Ueberschrift sagt
 jeweils, worum es geht. **Nicht die ganze Datei lesen** — sie ist rund 310 KB gross.
 
@@ -202,6 +202,7 @@ jeweils, worum es geht. **Nicht die ganze Datei lesen** — sie ist rund 310 KB 
 | 188 | „Rückgängig“ nach dem Auto-Planer löschte, was die Gruppe inzwischen eingetragen hatte |
 | 189 | Ohne Gruppe gewann beim Wochenplan der letzte Schreiber — auch ein veralteter |
 | 190 | „Rechnerische Richtwerte“ auf „Dein Ziel steht“ ließ sich scheinbar nicht öffnen |
+| 191 | Zwei Prüfer waren an einer Stelle blind — und meldeten trotzdem „sauber“ |
 
 <!-- REGISTER-ENDE -->
 
@@ -7261,3 +7262,40 @@ Text bei 520 von 520 px, **Gegenprobe** ohne Zuhörer bei 623 — unter dem Rand
 
 **Lehre:** „Lässt sich nicht öffnen“ heißt nicht, dass es sich nicht öffnet. Erst `open` messen,
 dann, ob man es **sieht**.
+
+## 191. Zwei Prüfer waren an einer Stelle blind — und meldeten trotzdem „sauber“
+
+**Gefunden (18.10.2026)** beim Abgleich aller Prüfer mit den offiziellen Anthropic-Plugins
+(`plans/abgleich-pruefer-2026-10-18.md`), nicht durch einen Fehler in der App.
+
+**Was nicht stimmte:**
+
+* `doku-waechter` kannte in seiner Zuordnung vier von zehn Dateien unter `docs/`.
+  `docs/ABDECKUNG.md` schrieb ihm „`docs/` als Ganzes“ zu. DESIGN, SECURITY, STORE, RUNBOOK,
+  BAUSTEINE und ABDECKUNG prüfte also niemand, und das Register glaubte das Gegenteil.
+* `store-check` las `docs/STORE.md` nie, die Prüfliste des Projekts. Pflichten, die nur dort
+  stehen (Privacy Manifest, Mindest-SDK), kannte er nicht. Die Google-„Health apps
+  declaration“ fehlte in beiden.
+* Vier Agenten verwiesen auf falsche oder nicht vorhandene Abschnitte von `CLAUDE.md`
+  (§31, §18, zweimal §20). Dazu kamen eine alte Dateigröße (0,76 statt ~1 MB) und „Python ist nicht
+  installiert“ in `kvp`.
+* `.env` war nur für Shell-Befehle gesperrt, nicht für das Lese-Werkzeug.
+
+**Warum die Wartung es nicht sah:** `wartung-check.py` prüfte Dateiverweise, aber keine
+Abschnittsnummern. Bei Größenangaben ließ sie fest 0,25 MB Spielraum, die 0,76 MB lagen
+mit 0,21 knapp darunter. Ob ein Agent alle Dateien kennt, die ihm das Register zuschreibt,
+fragte niemand.
+
+**Behoben:** beide Agenten erweitert; neue Wartungsprüfungen `pruefe_abschnitte`,
+`pruefe_doku_abdeckung`, `pruefe_groessen` (Startgewicht +10 % seit der letzten Wartung),
+Größenspielraum relativ (15 %); `permissions.deny` für `.env`. **Gegenprobe:** Die neue
+`wartung-check.py` gegen den alten Stand meldete §31, §33 (ARCHITECTURES), beide
+Agentenblindheiten, vier Größenangaben und zwei §18-Verweise. Gegen den neuen Stand meldete
+sie nichts davon. Nicht gefunden wurden die beiden §20-Verweise: Den Abschnitt gibt es, und
+die Wortheuristik reicht dort nicht. Das steht im Docstring. Nach dem Ausbau von §11 (Push-Stufen)
+fand sie zusätzlich `docs/ARCHITECTURES.md` „§18“ (gemeint war §12) und schlug einmal falsch an
+(`docs/TESTING.md` „§1“, richtig). Das Trefferbild war bei beiden gleich. Der richtige Verweis
+steht deshalb nachgesehen in `BESTAETIGT`, nicht in einer gelockerten Schwelle.
+
+**Lehre:** Ein Register, das einem Prüfer einen Bereich zuschreibt, ist eine Behauptung. Erst
+die Gegenfrage „steht der Bereich auch **im Prüfer**?“ macht sie zur Tatsache.

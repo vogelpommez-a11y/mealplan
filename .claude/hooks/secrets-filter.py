@@ -71,8 +71,9 @@ def main():
         "GESTOPPT - dieser Befehl wuerde Zugangsdaten in den Sitzungsverlauf schreiben.\n\n"
         ".env enthaelt einen echten Schluessel. Steht er einmal im Protokoll, hilft nur noch\n"
         "Rotation - Loeschen reicht nicht.\n\n"
-        "Wenn du nur wissen willst, WELCHE Schluessel gesetzt sind, geht das ohne die Werte:\n\n"
-        "  sed -E 's/=.*/=<WERT>/' .env\n\n"
+        "Seit dem 18.10.2026 sperrt zusaetzlich permissions.deny in .claude/settings.json\n"
+        "jeden Zugriff auf .env ueber die Werkzeuge - auch das Auflisten der Namen. Ob ein\n"
+        "Schluessel fehlt, meldet das Skript, das ihn braucht (z. B. tools/meal-bilder.py).\n\n"
         "Braucht ein Skript den Schluessel, soll es ihn selbst aus der Umgebung lesen -\n"
         "nicht ueber den Umweg der Ausgabe."
     )

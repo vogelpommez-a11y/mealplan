@@ -169,10 +169,10 @@ Erhoben aus den Abschnittsmarken im Code, nicht von Hand gepflegt.
 |---|---|---|---|---|
 | anwalt | sonnet | Read, Grep, Glob, Bash, WebSearch, WebFetch | nein | bilder-protokoll.json, data/cookbook.js, data/rechtstexte.js, docs/MODULE.md, docs/PRODUCT.md, docs/RUNBOOK.md, docs/STORE.md, firestore-backup.py, firestore-restore.py, firestore.rules, img/bilder-protokoll.json, img/library/bilder-protokoll.json, index.html, manifest.webmanifest, tools/meal-bilder.py, worker/og.js |
 | datenschutz-technik | sonnet | Read, Grep, Glob, Bash, WebSearch, WebFetch | nein | worker/og.js |
-| doku-waechter | sonnet | Read, Grep, Glob, Bash | nein | CLAUDE.md, dashboard.html, data/rechtstexte.js, docs/ARCHITECTURES.md, docs/PRODUCT.md, docs/TESTING.md, docs/TROUBLESHOOTING.md |
-| kvp | haiku | Read, Grep, Glob, Bash | nein | css/mobil.css, css/tokens.css, index.html |
+| doku-waechter | sonnet | Read, Grep, Glob, Bash | nein | CLAUDE.md, dashboard.html, data/rechtstexte.js, docs/ABDECKUNG.md, docs/ABNAHME-MENSCH.md, docs/ARCHITECTURES.md, docs/BAUSTEINE.md, docs/DESIGN.md, docs/MODULE.md, docs/PRODUCT.md, docs/RUNBOOK.md, docs/SECURITY.md, docs/STORE.md, docs/TESTING.md, docs/TROUBLESHOOTING.md |
+| kvp | sonnet | Read, Grep, Glob, Bash | nein | css/mobil.css, css/tokens.css, index.html |
 | lieferkette | sonnet | Read, Grep, Glob, Bash, WebSearch, WebFetch | nein | ./firebase-app.js, firebase-app.js, index.html, lib/barcode.js, package.json, sw.js, tools/firebase-vendor.py, vendor/HERKUNFT.md, vendor/zxing.min.js |
-| store-check | sonnet | Read, Grep, Glob, Bash, WebSearch, WebFetch | nein | FIREBASE-SETUP.md, bilder-protokoll.json, docs/MODULE.md, docs/PRODUCT.md, docs/SECURITY.md, firestore.rules, index.html, manifest.webmanifest, sw.js |
+| store-check | sonnet | Read, Grep, Glob, Bash, WebSearch, WebFetch | nein | FIREBASE-SETUP.md, bilder-protokoll.json, docs/MODULE.md, docs/PRODUCT.md, docs/SECURITY.md, docs/STORE.md, firestore.rules, index.html, manifest.webmanifest, sw.js |
 | ux-reviewer | haiku | Read, Grep, Glob, Bash, Skill | nein | css/CLAUDE.md, css/basis.css, css/komponenten.css, css/mobil.css, css/tokens.css, docs/DESIGN.md |
 | website-security | sonnet | Read, Grep, Glob, Bash | nein | FIREBASE-SETUP.md, dashboard.html, data/rechtstexte.js, docs/MODULE.md, docs/SECURITY.md, firestore.rules, index.html, lib/barcode.js, sw.js, tools/firebase-vendor.py, worker/og.js |
 
@@ -184,7 +184,7 @@ ausserhalb des Repositories und gehoeren nicht zu seinem Zustand.
 | Skill | Referenzierte Pfade |
 |---|---|
 | abnahme | docs/TESTING.md |
-| deploy | .claude/hooks/push-waechter.py, firestore.rules, sw.js |
+| deploy | .claude/hooks/push-waechter.py, CLAUDE.md, firestore.rules, sw.js |
 | pruefstand | data/cookbook.js, docs/TESTING.md, index.html, tools/quelle.py |
 | rezeptcharge | CLAUDE.md, data/cookbook.js, data/foods.js, data/rechtstexte.js, docs/DESIGN.md, docs/PRODUCT.md, docs/TROUBLESHOOTING.md, img/library/bilder-protokoll.json, pruefstand-rezepttexte.py, quelle.py, rezept-makros.py, syntax-check.py, tools/pruefstand-rezepttexte.py, tools/quelle.py |
 | smoke | dump.html |
@@ -198,6 +198,7 @@ ausserhalb des Repositories und gehoeren nicht zu seinem Zustand.
 | PreToolUse | Bash|PowerShell | `python "$CLAUDE_PROJECT_DIR/.claude/hooks/secrets-filter.py"` |
 | PreToolUse | Bash|PowerShell | `python "$CLAUDE_PROJECT_DIR/.claude/hooks/push-waechter.py"` |
 | SessionStart | — | `python "$CLAUDE_PROJECT_DIR/.claude/hooks/wartung-erinnerung.py"` |
+| Stop | — | `python "$CLAUDE_PROJECT_DIR/.claude/hooks/syntax-am-ende.py"` |
 
 ## 7. Externe Dienste
 
@@ -300,31 +301,32 @@ _keine_
 
 | Pfad | Zeilen | Bytes |
 |---|---|---|
-| .claude/Skills/abnahme/SKILL.md | 80 | 3793 |
-| .claude/Skills/deploy/SKILL.md | 102 | 3702 |
+| .claude/Skills/abnahme/SKILL.md | 81 | 3824 |
+| .claude/Skills/deploy/SKILL.md | 103 | 3844 |
 | .claude/Skills/pruefstand/SKILL.md | 126 | 5263 |
 | .claude/Skills/rezeptcharge/SKILL.md | 482 | 26234 |
-| .claude/Skills/smoke/SKILL.md | 82 | 3392 |
-| .claude/agents/anwalt.md | 417 | 26041 |
+| .claude/Skills/smoke/SKILL.md | 82 | 3390 |
+| .claude/agents/anwalt.md | 418 | 26147 |
 | .claude/agents/datenschutz-technik.md | 174 | 9879 |
-| .claude/agents/doku-waechter.md | 106 | 5377 |
-| .claude/agents/kvp.md | 162 | 9060 |
+| .claude/agents/doku-waechter.md | 118 | 6532 |
+| .claude/agents/kvp.md | 162 | 9034 |
 | .claude/agents/lieferkette.md | 124 | 6016 |
-| .claude/agents/store-check.md | 176 | 9368 |
+| .claude/agents/store-check.md | 190 | 10233 |
 | .claude/agents/ux-reviewer.md | 71 | 3776 |
-| .claude/agents/website-security.md | 195 | 10652 |
-| .claude/commands/pushcheck.md | 70 | 2657 |
+| .claude/agents/website-security.md | 195 | 10649 |
+| .claude/commands/pushcheck.md | 109 | 5790 |
 | .claude/commands/rechtspruefung.md | 97 | 4974 |
 | .claude/hooks/commit-waechter.py | 178 | 8147 |
-| .claude/hooks/push-waechter.py | 95 | 3107 |
-| .claude/hooks/secrets-filter.py | 93 | 3856 |
+| .claude/hooks/push-waechter.py | 96 | 3218 |
+| .claude/hooks/secrets-filter.py | 94 | 3997 |
+| .claude/hooks/syntax-am-ende.py | 150 | 5444 |
 | .claude/hooks/syntax-nach-edit.py | 100 | 3777 |
 | .claude/hooks/wartung-erinnerung.py | 152 | 6753 |
-| .claude/settings.json | 56 | 1526 |
+| .claude/settings.json | 78 | 2008 |
 | .gitattributes | 21 | 594 |
 | .github/workflows/pruefung.yml | 188 | 8066 |
-| .gitignore | 134 | 6081 |
-| CLAUDE.md | 813 | 36136 |
+| .gitignore | 142 | 6411 |
+| CLAUDE.md | 827 | 37828 |
 | CNAME | 1 | 21 |
 | FIREBASE-SETUP.md | 197 | 9363 |
 | LICENSE | 40 | 1907 |
@@ -349,10 +351,10 @@ _keine_
 | docs/MODULE.md | — | — (erzeugt) |
 | docs/PRODUCT.md | 1866 | 108506 |
 | docs/RUNBOOK.md | 376 | 19508 |
-| docs/SECURITY.md | 603 | 36666 |
-| docs/STORE.md | 541 | 32559 |
-| docs/TESTING.md | 5609 | 336151 |
-| docs/TROUBLESHOOTING.md | 7264 | 424645 |
+| docs/SECURITY.md | 609 | 37178 |
+| docs/STORE.md | 551 | 33427 |
+| docs/TESTING.md | 5619 | 336957 |
+| docs/TROUBLESHOOTING.md | 7302 | 427185 |
 | docs/module-index.json | — | — (erzeugt) |
 | firestore.rules | 552 | 32127 |
 | img/apple-touch-icon.png | — | 35163 |
@@ -556,7 +558,7 @@ _keine_
 | tools/test-meal-bilder.py | 156 | 8295 |
 | tools/vergleich-bausteine.js | 618 | 31417 |
 | tools/vorfuehren.py | 120 | 4661 |
-| tools/wartung-check.py | 687 | 31783 |
+| tools/wartung-check.py | 854 | 39849 |
 | vendor/HERKUNFT.md | 105 | 4816 |
 | vendor/firebase/10.12.5/LICENSE | 203 | 11358 |
 | vendor/firebase/10.12.5/README.md | 27 | 1063 |

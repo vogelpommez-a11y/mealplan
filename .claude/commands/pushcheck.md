@@ -1,43 +1,65 @@
 ---
-description: Führt die Push-Checks aus — anwalt und website-security auf Sonnet, ux-reviewer und kvp auf Haiku, weitere Agenten je nach Änderung
+description: Führt die Push-Checks in drei Stufen aus — website-security immer, anwalt, kvp und /code-review ab Stufe B, ux-reviewer in Stufe C, weitere Agenten nach Auslöser
 ---
 
-Führe die Prüfungen vor dem Push aus.
+Führe die Prüfungen vor dem Push aus — **so viel wie nötig, nicht mehr.**
 
-## Zuerst: was hat sich geändert?
+## Zuerst: was hat sich geändert, und welche Stufe ist das?
 
 ```bash
 git diff --name-only @{u}..
 ```
 
 Falls kein Upstream gesetzt ist, nimm die Commits seit dem letzten Push bzw. den
-uncommitteten Stand. Nenne die geänderten Dateien kurz, bevor du startest — daran hängt,
-welche Agenten laufen.
+uncommitteten Stand. Nenne die geänderten Dateien kurz und **die Stufe**, bevor du startest:
 
-## Immer laufen (auf Sonnet)
+| Stufe | Geändert | Beispiele |
+|---|---|---|
+| **A** | **nichts an der App** | `docs/`, `plans/`, `.claude/`, `tools/`, `README.md`, `.github/` |
+| **B** | App-Code, aber nichts, was man **sieht oder bedient** | Sync, Rechnen, Speichern, `firestore.rules`, `sw.js`, `worker/`, Werkzeuge, die Nutzerdaten anfassen (`tools/firestore-*.py`, `shared-aufraeumen.py`, `konten-inaktiv.py`) |
+| **C** | etwas, das man **sieht oder bedient** | Markup, `css/`, UI-Texte, Rechtstexte, Bilder, Abläufe |
 
-Diese beiden prüfen das, was im Fehlerfall nicht rückholbar ist. Sie laufen bei **jedem**
-Push und ausdrücklich **nicht** auf Haiku:
+**Im Zweifel die höhere Stufe.** Die Stufe gilt auch für die Prüfstände davor
+(`CLAUDE.md` Abschnitt 11): Ab B muss `alle-pruefstaende.py` gelaufen sein, in C zusätzlich
+`abnahme-mobil.py`. Ist das nicht passiert, sag es, statt den Pushcheck trotzdem grün zu melden.
 
-1. **`anwalt`** — Rechtstext gegen Code · `model: sonnet`
-2. **`website-security`** — Geheimnisse, personenbezogene Daten, Rules, Service Worker,
-   Worker, Historie · `model: sonnet`
+Warum Stufen (18.10.2026): Bis dahin liefen `anwalt`, `kvp` und die übrigen bei **jedem** Push,
+auch wenn sich nur Doku oder Prüfer geändert hatten. `anwalt` prüft Rechtstext gegen App-Code —
+ohne geänderten App-Code gibt es dort nichts Neues zu finden. Die ganze App sieht er ohnehin
+monatlich in `/rechtspruefung`.
 
-## Laufen bei passender Änderung (auf Haiku)
+## Stufe A — immer
 
-3. **`ux-reviewer`** — nur wenn UI geändert wurde (HTML/CSS, Screens, Komponenten)
-4. **`kvp`** — bei jeder inhaltlichen Änderung, nicht bei reinen Doku-Commits
+1. **`website-security`** · `model: sonnet` — Geheimnisse, personenbezogene Daten, Rules,
+   Service Worker, Worker, Historie. Läuft in **jeder** Stufe: Das Repo ist öffentlich, ein
+   Leck in einem Doku- oder Werkzeugtext ist genauso wenig rückholbar wie eines im App-Code.
+2. **`doku-waechter`** · `model: sonnet` — bei jeder nicht-trivialen Änderung, in jeder Stufe.
+3. Bei Änderungen unter `.claude/`: `python tools/wartung-check.py` — muss ohne Rot sein.
+
+## Stufe B — zusätzlich
+
+4. **`anwalt`** · `model: sonnet` — Rechtstext gegen Code.
+5. **`kvp`** · `model: sonnet` — bei jeder inhaltlichen Änderung
+   (seit 18.10.2026 auf Sonnet: Er soll Nährwerte und Mengen nachrechnen, dafür ist Haiku zu knapp).
+6. **`/code-review`** (eingebauter Skill, Stufe `medium`) — wenn `index.html`, `data/*.js`,
+   `lib/*.js`, `sw.js` oder `worker/` geändert wurden. Ziel sind die Änderungen seit dem letzten
+   Push. Er ist die **Fehlersuche**: `kvp` verweist Korrektheitsfehler ausdrücklich hierher, und
+   bis zum 18.10.2026 rief ihn kein Ablauf auf. Nebenbei prüft er, ob die Änderung die Regeln
+   aus `CLAUDE.md` einhält. Seine Funde laufen durch dieselbe Gegenprüfung wie alle anderen.
+
+## Stufe C — zusätzlich
+
+7. **`ux-reviewer`** · `model: haiku` — Übersichtlichkeit der geänderten UI.
 
 ## Laufen bei bestimmten Auslösern
 
-Starte zusätzlich, wenn der Diff das berührt:
+Starte zusätzlich, **unabhängig von der Stufe**, wenn der Diff das berührt:
 
 | Agent | Auslöser | Modell |
 |---|---|---|
 | `store-check` | Pro/Bezahlung, Konto/Löschung, Login, Kamera, `vendor/`, `manifest.webmanifest` | sonnet |
 | `lieferkette` | alles unter `vendor/`, `tools/firebase-vendor.py`, neue externe Verweise | sonnet |
 | `datenschutz-technik` | neuer Dienst, neues Datenfeld, Sharing, Gruppen, Löschlogik | sonnet |
-| `doku-waechter` | jede nicht-triviale Änderung an `index.html` | sonnet |
 
 Wenn ein Auslöser nicht zutrifft, sag in einer Zeile, dass der Agent bewusst nicht lief —
 nicht einfach weglassen.
@@ -50,7 +72,24 @@ unkritische Hinweise mit 🟡. Findet ein Check nichts: „Keine kritischen Punk
 **Prüfe jeden 🔴-Fund am echten Code gegen, bevor du ihn meldest.** Fehlalarme kommen vor,
 und ein falscher 🔴 kostet mehr Zeit als die Gegenprüfung.
 
+**So wird gegengeprüft: widerlegen, nicht bestätigen.** Versuche, den Fund zu Fall zu bringen,
+aus drei Blickwinkeln (übernommen aus dem Anthropic-Plugin `claude-security`, Agent
+`scan-verifier`):
+
+| Blickwinkel | Frage |
+|---|---|
+| **Erreichbarkeit** | Kommt ein Nutzer, ein fremdes Gruppenmitglied oder ein geteilter Link überhaupt an diese Stelle? Gibt es den Weg in der ausgelieferten App, nicht nur im Prüfstand? |
+| **Wirkung** | Was passiert dann wirklich: Datenverlust, Leck, falscher Rechtstext, falsche Zahl? Oder nur „sieht unschön aus“? |
+| **Schutz** | Hält schon etwas anderes dagegen: eine Firestore-Regel, `esc()`, ein Fallback, eine Prüfung eine Ebene höher? **Nur gelesenen Schutz zählen**, keinen vermuteten |
+
+Ein 🔴 bleibt nur stehen, wenn für alle drei eine Fundstelle (`datei:zeile`) genannt werden kann.
+Fehlt eine, wird er 🟡 mit dem Satz, was ihn bestätigen würde. Umgekehrt: Einen Fund nie mit
+einem **erfundenen** Schutz wegerklären, das ist derselbe Fehler in die andere Richtung.
+Rechtliche Funde (`anwalt`) lassen sich nicht immer so zerlegen. Dort gilt die Belegart des
+Agenten (*beobachtet* oder *abgeleitet*).
+
 Fasse am Ende zusammen:
+- Welche Stufe, und an welcher Datei sie sich entschieden hat?
 - Liegt mindestens ein 🔴 vor?
 - Welche Agenten liefen, welche bewusst nicht?
 - Was ist von hier aus grundsätzlich nicht prüfbar (Firebase-Konsole, Cloudflare-Secrets,

@@ -106,6 +106,10 @@ tools/pruefstand-*.html
 # im Repo waere er nur ein fremder, sofort falscher Stand.
 .claude/.letzter-pushcheck
 
+# Merker von .claude/hooks/syntax-am-ende.py: Fingerabdruck des zuletzt gruen geprueften
+# Arbeitsstands. Rechnergebunden wie der Pushcheck-Merker.
+.claude/.letzter-syntaxlauf
+
 # Interne Datenschutz-Unterlagen: Vertragsstaende (AVV), offene Pflichten, der Notfallweg
 # und die Aufsichtsbehoerde. Gleiche Begruendung wie bei plans/ und ROADMAP.html - das
 # beschreibt, wo das Projekt verwundbar ist, und gehoert nicht oeffentlich auf Pages.
@@ -130,4 +134,8 @@ tools/vorher/
 # Datum der letzten Wartungspruefung (tools/wartung-check.py --setze). Rechnergebunden wie
 # der Pushcheck-Merker; im Repo waere es ein fremder, sofort falscher Stand.
 .claude/.letzte-wartung
+
+# Startgewicht der App beim letzten --setze (tools/wartung-check.py, pruefe_groessen).
+# Rechnergebunden wie das Wartungsdatum.
+.claude/.groessen-stand
 _abnahme-*.html

@@ -23,6 +23,18 @@ Du bist **kein Apple- und kein Google-Prüfer**. Du sagst nie, etwas werde „si
 angenommen". Du sagst: „Das ist ein bekannter Ablehnungsgrund", „das ist eine Pflichtangabe",
 „das ist ungeklärt". Eine falsche Beruhigung ist schlimmer als gar keine Prüfung.
 
+## Zuerst: `docs/STORE.md` lesen
+
+Dort steht die Prüfliste **des Projekts**: mit Stand, Entscheidungen, Quellen und der
+Übersicht „Stand und offene Punkte“ in Abschnitt 9. Lies sie vor allem anderen und prüfe
+**gegen sie**. Die Liste unten ist deine Arbeitsweise, nicht der vollständige Stand.
+
+Zwei Gründe: Ohne die Datei meldest du Entschiedenes erneut (Fehlalarm). Schwerer wiegt,
+dass du Pflichten übersiehst, die nur dort stehen (Privacy Manifest, Mindest-SDK, KI-Deklaration).
+Bis zum 18.10.2026 las dieser Agent `docs/STORE.md` nie und meldete trotzdem „vollständig
+geprüft“. Melde umgekehrt, wenn du eine Pflicht findest, die **dort noch fehlt**: Das ist
+dein wertvollster Befund.
+
 ## Die Prüfliste
 
 ### 1. Bezahlung — der teuerste Punkt (Apple 3.1.1, Play Payments)
@@ -99,6 +111,8 @@ lokal ausgeliefert werden und ohne Netz starten.
 - **Apple Privacy Nutrition Labels**: Für jeden erhobenen Datentyp muss angegeben werden,
   ob er mit der Person verknüpft ist und wozu er dient.
 - **Google Play Data Safety**: dieselbe Idee, eigenes Formular.
+- **Google Play „Health apps declaration“**: Pflicht für **jede** App. Bei uns greift
+  „Nutrition and Weight Management“ (`docs/STORE.md` Abschnitt 5).
 
 Beides muss zur **tatsächlichen** Implementierung passen. Deine Aufgabe: aus dem Code
 ableiten, was erhoben wird, und daraus eine Liste bauen, die in beide Formulare passt.
@@ -155,7 +169,7 @@ erfinde keine Richtliniennummern.
 
 ## Vorgehen
 
-`Grep` statt Ganzlesen (`index.html` ist ~0,76 MB; dazu kommen `css/`, `data/` und `lib/` –
+`Grep` statt Ganzlesen (`index.html` ist ~1 MB; dazu kommen `css/`, `data/` und `lib/` –
 die Liste steht in `docs/MODULE.md`). Belege jeden Befund mit `datei:zeile`.
 Prüfe auch `manifest.webmanifest`, `sw.js`, `firestore.rules` und `docs/PRODUCT.md`
 (Abschnitt „Premium") — die Produktentscheidung steht dort, die Umsetzung im Code, und

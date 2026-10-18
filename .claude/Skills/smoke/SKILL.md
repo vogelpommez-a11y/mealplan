@@ -67,7 +67,7 @@ Aus `dump.html` gezielt lesen:
 - Kommt eine der erwarteten Überschriften vor (siehe Tabelle oben)?
 - Steht im DOM eine Fehlermeldung aus `window.noteError`?
 
-Nie die ganze Datei in den Kontext laden — sie enthält Base64-Fotos. Gezielt greppen.
+Nie die ganze Datei in den Kontext laden — sie ist rund 1 MB gross. Gezielt greppen.
 
 ## Schritt 5: Ergebnis benennen
 

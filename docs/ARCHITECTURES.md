@@ -1412,7 +1412,7 @@ geschätzt (siehe `docs/TESTING.md`).
 den letzten bekannten zu behalten. Das ist bewusst restriktiv (fail closed): Eine Berechtigung,
 die bei Netz- oder Regelfehlern weiterläuft, ist keine Grenze. Der Preis ist, dass ein zahlender
 Zugang bei einem Ausfall kurz auf Gratis fällt — sobald mit D2b tatsächlich gesperrt wird, ist
-das erneut abzuwägen (`CLAUDE.md` §33: Sicherheit vor Komfort).
+das erneut abzuwägen (`CLAUDE.md` §24: Sicherheit vor Komfort).
 
 **Offen, bewusst unverändert:** Das JSON-LD im `<head>` nennt `"price": "0"`. Das bleibt richtig,
 solange es nichts zu kaufen gibt — nachzuziehen ist es erst mit der Bezahlabwicklung (D7/Store),
@@ -3189,7 +3189,7 @@ Sekunde**. Der Puffer trägt den Tagesstempel mit, damit er über Mitternacht ni
 
 Der Planer ist die einzige Pro-Sperre, die **rein in der UI** liegt — und darf es sein: Er
 schreibt nur Slots, die derselbe Nutzer auch von Hand schreiben dürfte. Es gibt nichts
-serverseitig durchzusetzen, weil keine Datengrenze berührt wird (`CLAUDE.md` §18 betrifft den
+serverseitig durchzusetzen, weil keine Datengrenze berührt wird (`CLAUDE.md` §12 betrifft den
 Zugriff auf Daten, nicht den Komfort). In einer Gruppe (`syncGid`) entfällt die Sperre ganz —
 dort zahlt der Inhaber.
 

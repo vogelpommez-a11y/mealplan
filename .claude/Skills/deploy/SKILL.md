@@ -1,5 +1,6 @@
 ---
 name: deploy
+disable-model-invocation: true
 description: Bringt Paddy's Mealplan live — Push auf main, Verifikation, dass Remote und lokaler HEAD übereinstimmen, und die Prüfung, dass GitHub Pages die neue Fassung tatsächlich ausliefert. Enthält auch den Rückweg, wenn live etwas kaputt ist.
 ---
 
@@ -10,13 +11,13 @@ Zwischenschritt und keine Freigabe. Entsprechend sorgfältig.
 
 ## Vorher
 
-1. `python syntax-check.py --alles` — grün.
-2. `/smoke` — `#view` gefüllt.
-3. `/pushcheck` — kein offenes 🔴.
-4. `git diff` gelesen, keine unbeabsichtigten Änderungen.
-5. Betroffene Doku aktualisiert (`/doku-waechter` oder selbst geprüft).
+1. Die Prüfungen der **Stufe** gelaufen (`CLAUDE.md` Abschnitt 11): A nur Doku/Prüfer,
+   B App-Code ohne Sichtbares, C sichtbar. Der Syntax-Check läuft von selbst.
+2. `/pushcheck` in derselben Stufe — kein offenes 🔴.
+3. `git diff` gelesen, keine unbeabsichtigten Änderungen.
+4. Betroffene Doku aktualisiert (Agent `doku-waechter` oder selbst geprüft).
 
-Der Push-Wächter (`.claude/hooks/push-waechter.py`) fragt nach, wenn Schritt 3 für diesen
+Der Push-Wächter (`.claude/hooks/push-waechter.py`) fragt nach, wenn Schritt 2 für diesen
 Stand nicht dokumentiert ist. Das ist eine Rückfrage, kein Verbot — aber sie ernst nehmen.
 
 ## Push

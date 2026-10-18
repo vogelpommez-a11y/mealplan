@@ -1,5 +1,6 @@
 ---
 name: abnahme
+disable-model-invocation: true
 description: Fährt eine Abnahme am echten Cloud-Konto über tools/cdp.py — sichtbarer Chrome per DevTools-Protokoll, der Nutzer meldet sich selbst an, danach liest und klickt das Skript. Verwenden für alles, was ein echtes Firebase-Konto braucht: Anmeldung, Firestore-Schreibvorgänge, Zwei-Geräte-Verhalten.
 ---
 

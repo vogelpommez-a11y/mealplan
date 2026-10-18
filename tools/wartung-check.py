@@ -86,13 +86,17 @@ def pruefe_fakten():
     if os.path.exists("index.html"):
         mb = os.path.getsize("index.html") / (1024 * 1024)
         for p in dateien(".claude") + dateien("docs"):
+            if p.endswith("TROUBLESHOOTING.md"):
+                continue   # Fallarchiv: nennt bewusst die Groesse von damals
             for m in re.finditer(r"~\s*([\d,\.]+)\s*(MB|KB)", lies(p)):
                 umfeld = lies(p)[max(0, m.start() - 120): m.end() + 120]
                 if "index.html" not in umfeld:
                     continue
                 wert = float(m.group(1).replace(",", "."))
                 genannt_mb = wert if m.group(2) == "MB" else wert / 1024
-                if abs(genannt_mb - mb) > 0.25:
+                # Relativ statt fest: 0,25 MB Spielraum liessen am 18.10.2026 eine
+                # Angabe von 0,76 MB bei tatsaechlich 0,97 MB durch (22 % daneben).
+                if abs(genannt_mb - mb) > max(0.1, 0.15 * mb):
                     gelb(bereich, "%s nennt ~%s %s fuer index.html, tatsaechlich %.2f MB"
                          % (p, m.group(1), m.group(2), mb))
 
@@ -163,6 +167,8 @@ def pruefe_verweise():
         ".claude/.letzte-wartung",
         ".claude/.letzter-pushcheck",
         ".claude/.letzter-regelvergleich",   # schreibt tools/regeln-live.py
+        ".claude/.letzter-syntaxlauf",       # schreibt .claude/hooks/syntax-am-ende.py
+        ".claude/.groessen-stand",           # schreibt wartung-check.py --setze
     }
 
     muster = re.compile(r"`((?:docs|tools|\.claude|worker|vendor)/[A-Za-z0-9_./-]+"
@@ -624,6 +630,165 @@ def rechtspruefung_frisch(ordner="plans", heute=None):
     return True, juengste.isoformat()
 
 
+# --------------------------------------------------------------------------- 5b
+def _claude_abschnitte():
+    """Die Abschnitte von CLAUDE.md als {Nummer: Text}, z. B. {"12": "...", "18a": "..."}."""
+    claude = lies("CLAUDE.md")
+    stellen = [(m.group(1), m.start())
+               for m in re.finditer(r"^# (\d+[a-z]?)\. ", claude, re.M)]
+    teile = {}
+    for k, (nr, anfang) in enumerate(stellen):
+        ende = stellen[k + 1][1] if k + 1 < len(stellen) else len(claude)
+        teile[nr] = claude[anfang:ende]
+    return teile
+
+
+def _woerter(text):
+    return {w.lower() for w in re.findall(r"[A-Za-zÄÖÜäöüß][A-Za-zÄÖÜäöüß-]{5,}", text)}
+
+
+def pruefe_abschnitte():
+    """Zeigt ein Verweis "CLAUDE.md §N" auf den Abschnitt, den er meint?
+
+    Am 18.10.2026 beim Abgleich der Pruefer gefunden: Vier Agenten verwiesen auf Abschnitte,
+    die es nicht mehr gibt oder die heute etwas anderes regeln (§31 statt §22, §18 statt §12,
+    §20 statt §13). pruefe_verweise() kennt nur Dateipfade, deshalb fiel das nie auf - und
+    ein Agent, der die UID-Regel in "§20 Arbeitsweise" sucht, findet sie nicht.
+
+    Zwei Stufen:
+      ROT  - der Abschnitt existiert nicht.
+      GELB - das Umfeld des Verweises teilt mit einem ANDEREN Abschnitt deutlich mehr
+             Woerter als mit dem genannten. Eine Heuristik: Sie fand in der Gegenprobe gegen
+             den alten Stand zwei der vier Fehler (§31, §18), die beiden §20 nicht, weil
+             §20 existiert und das Umfeld zu kurz ist. Besser als nichts, kein Beweis.
+
+    docs/TROUBLESHOOTING.md ist ausgenommen: Das Fallarchiv nennt bewusst die Nummern von
+    damals, sonst waere jeder alte Eintrag nach einer Umnummerierung falsch.
+    """
+    bereich = "Abschnitte"
+
+    # Von Hand nachgesehen und richtig, obwohl die Wortheuristik anschlaegt: (Datei, Nummer).
+    # Die Heuristik kann diese Faelle nicht von echten Fehlern trennen - dasselbe Trefferbild
+    # (4:1) hatte der echte Fehler in website-security.md. Nur nach Nachsehen eintragen,
+    # nie, damit Ruhe ist (CLAUDE.md 18b).
+    BESTAETIGT = {
+        ("docs/TESTING.md", "1"),   # netz-ohne-konto: "Start ohne Netz" ist Abschnitt 1 (18.10.2026)
+    }
+    teile = _claude_abschnitte()
+    if not teile:
+        gelb(bereich, "CLAUDE.md hat keine erkennbaren Abschnitte '# N. Titel'")
+        return
+    fuell = _woerter("Claude Projekt Abschnitt pruefe nicht werden einen eine einer "
+                     "dieser diese Regel")
+    wortschatz = {nr: _woerter(t) - fuell for nr, t in teile.items()}
+
+    quellen = [p for p in dateien(".claude") + dateien("docs") + ["CLAUDE.md"]
+               if "/worktrees/" not in p and not p.endswith("TROUBLESHOOTING.md")]
+    for p in quellen:
+        t = lies(p)
+        muster = [(r"CLAUDE\.md`?\s*(?:§|Abschnitt)\s*(\d+[a-z]?)\b", True)]
+        if p == "CLAUDE.md":
+            # In CLAUDE.md selbst heisst ein Selbstverweis "Abschnitt 18" ohne Dateinamen.
+            # Hier nur auf Existenz pruefen: Das Umfeld eines Selbstverweises passt immer
+            # zum eigenen Abschnitt, und "Abschnitt 3-5" meint mitunter eine andere Datei
+            # (docs/ABDECKUNG.md) - die Wortheuristik schlug darauf sechsmal falsch an.
+            muster.append((r"\bAbschnitt (\d+[a-z]?)\b", False))
+        for rx, mit_umfeld in muster:
+            for m in re.finditer(rx, t):
+                nr = m.group(1)
+                zeile = t[: m.start()].count("\n") + 1
+                if nr not in teile:
+                    rot(bereich, "%s:%d verweist auf CLAUDE.md %s - den Abschnitt gibt es "
+                                 "nicht" % (p, zeile, nr))
+                    continue
+                if not mit_umfeld or (p, nr) in BESTAETIGT:
+                    continue
+                umfeld = _woerter(t[max(0, m.start() - 200): m.end() + 60]) - fuell
+                treffer = {k: len(umfeld & w) for k, w in wortschatz.items()}
+                bester = max(treffer, key=treffer.get)
+                if bester != nr and treffer[bester] >= treffer[nr] + 3:
+                    gelb(bereich, "%s:%d verweist auf CLAUDE.md %s - das Umfeld passt eher "
+                                  "zu Abschnitt %s" % (p, zeile, nr, bester))
+
+
+def pruefe_doku_abdeckung():
+    """Kennt doku-waechter jede Datei unter docs/?
+
+    Bis zum 18.10.2026 nannte seine Zuordnung vier von zehn Doku-Dateien, waehrend
+    docs/ABDECKUNG.md ihm "docs/ als Ganzes" zuschrieb. Sechs Dateien blieben ungeprueft,
+    und der Bericht lautete trotzdem "stimmig" - die Falle aus CLAUDE.md 18b.
+    """
+    bereich = "Doku-Waechter"
+    agent = lies(".claude/agents/doku-waechter.md")
+    if not agent:
+        rot(bereich, ".claude/agents/doku-waechter.md fehlt")
+        return
+    for p in dateien("docs"):
+        if p.endswith("DATENSCHUTZ-INTERN.md"):
+            continue   # gitignored, Sache von datenschutz-technik
+        if "`%s`" % p not in agent:
+            rot(bereich, "%s steht nicht in der Zuordnung von doku-waechter - die Datei "
+                         "wird nie geprueft" % p)
+
+
+GROESSEN_STAND = os.path.join(".claude", ".groessen-stand")
+GROESSEN_SPIELRAUM = 0.10
+
+
+def _startgewicht():
+    """Was jeder Nutzer beim Start laedt: index.html und die eigenen CSS/JS-Dateien.
+
+    Bilder und vendor/ zaehlen nicht - Bilder kommen einzeln und spaeter, vendor/ wird nur
+    mit Anlass aktualisiert und hat mit lieferkette einen eigenen Pruefer.
+    """
+    teile = {}
+    for p in ["index.html", "sw.js"] + dateien("css", ".css") + dateien("data", ".js") \
+            + dateien("lib", ".js"):
+        if os.path.isfile(p):
+            teile[p] = os.path.getsize(p)
+    return teile
+
+
+def pruefe_groessen():
+    """Waechst das Startgewicht der App unbemerkt?
+
+    Am 18.10.2026 beim Abgleich der Pruefer als Luecke gefunden: index.html war still von
+    0,76 auf 1,0 MB gewachsen, und ein langsamer Start im Instagram-Browser war schon am
+    26.07.2026 ein Befund. abdeckung.py kennt Bereiche, keine Eigenschaften wie Ladezeit.
+
+    Verglichen wird mit dem Stand der letzten Wartung (--setze schreibt ihn). Gelb ab
+    +10 % - nicht als Verbot, sondern als Frage: Ist das Wachstum gewollt?
+    """
+    bereich = "Groesse"
+    jetzt = _startgewicht()
+    summe = sum(jetzt.values())
+    try:
+        vorher = json.loads(io.open(GROESSEN_STAND, encoding="utf-8").read())
+    except Exception:
+        gelb(bereich, "Noch kein Groessenstand gespeichert - entsteht beim naechsten "
+                      "'wartung-check.py --setze' (Startgewicht jetzt %.2f MB)"
+                      % (summe / 1048576))
+        return
+    alt = vorher.get("summe") or 0
+    if alt and summe > alt * (1 + GROESSEN_SPIELRAUM):
+        zuwachs = sorted(((jetzt.get(p, 0) - vorher.get("teile", {}).get(p, 0), p)
+                          for p in jetzt), reverse=True)[:3]
+        gelb(bereich, "Startgewicht seit der Wartung vom %s um %.0f %% gewachsen "
+                      "(%.2f -> %.2f MB). Groesster Zuwachs: %s. Gewollt?"
+                      % (vorher.get("datum", "?"), (summe / alt - 1) * 100,
+                         alt / 1048576, summe / 1048576,
+                         ", ".join("%s +%d KB" % (p, d // 1024) for d, p in zuwachs if d > 0)))
+
+
+def schreibe_groessenstand():
+    teile = _startgewicht()
+    io.open(GROESSEN_STAND, "w", encoding="utf-8").write(json.dumps({
+        "datum": datetime.date.today().isoformat(),
+        "summe": sum(teile.values()),
+        "teile": teile,
+    }, indent=1) + "\n")
+
+
 def main():
     print("Wartungspruefung - Paddy's Mealplan Setup")
     print("=" * 62)
@@ -651,11 +816,13 @@ def main():
             print("Danach erneut:  python tools/wartung-check.py --setze")
             return 3
         io.open(MARKER, "w", encoding="utf-8").write(datetime.date.today().isoformat() + "\n")
+        schreibe_groessenstand()
         print("Wartungsdatum auf %s gesetzt.\n" % datetime.date.today().isoformat())
 
     for fn in (pruefe_fakten, pruefe_verweise, pruefe_agenten,
                pruefe_hooks, pruefe_skills, pruefe_abdeckung, pruefe_landkarte, pruefe_register,
-               pruefe_alter, pruefe_regelstand, pruefe_bausteine):
+               pruefe_alter, pruefe_regelstand, pruefe_bausteine,
+               pruefe_abschnitte, pruefe_doku_abdeckung, pruefe_groessen):
         try:
             fn()
         except Exception as e:

@@ -193,8 +193,16 @@
         "CLAUDE.md",
         "dashboard.html",
         "data/rechtstexte.js",
+        "docs/ABDECKUNG.md",
+        "docs/ABNAHME-MENSCH.md",
         "docs/ARCHITECTURES.md",
+        "docs/BAUSTEINE.md",
+        "docs/DESIGN.md",
+        "docs/MODULE.md",
         "docs/PRODUCT.md",
+        "docs/RUNBOOK.md",
+        "docs/SECURITY.md",
+        "docs/STORE.md",
         "docs/TESTING.md",
         "docs/TROUBLESHOOTING.md"
       ],
@@ -208,7 +216,7 @@
     },
     {
       "datei": ".claude/agents/kvp.md",
-      "modell": "haiku",
+      "modell": "sonnet",
       "name": "kvp",
       "pfade": [
         "css/mobil.css",
@@ -258,6 +266,7 @@
         "docs/MODULE.md",
         "docs/PRODUCT.md",
         "docs/SECURITY.md",
+        "docs/STORE.md",
         "firestore.rules",
         "index.html",
         "manifest.webmanifest",
@@ -1143,14 +1152,14 @@
   ],
   "dateien": [
     {
-      "bytes": 3793,
+      "bytes": 3824,
       "pfad": ".claude/Skills/abnahme/SKILL.md",
-      "zeilen": 80
+      "zeilen": 81
     },
     {
-      "bytes": 3702,
+      "bytes": 3844,
       "pfad": ".claude/Skills/deploy/SKILL.md",
-      "zeilen": 102
+      "zeilen": 103
     },
     {
       "bytes": 5263,
@@ -1163,14 +1172,14 @@
       "zeilen": 482
     },
     {
-      "bytes": 3392,
+      "bytes": 3390,
       "pfad": ".claude/Skills/smoke/SKILL.md",
       "zeilen": 82
     },
     {
-      "bytes": 26041,
+      "bytes": 26147,
       "pfad": ".claude/agents/anwalt.md",
-      "zeilen": 417
+      "zeilen": 418
     },
     {
       "bytes": 9879,
@@ -1178,12 +1187,12 @@
       "zeilen": 174
     },
     {
-      "bytes": 5377,
+      "bytes": 6532,
       "pfad": ".claude/agents/doku-waechter.md",
-      "zeilen": 106
+      "zeilen": 118
     },
     {
-      "bytes": 9060,
+      "bytes": 9034,
       "pfad": ".claude/agents/kvp.md",
       "zeilen": 162
     },
@@ -1193,9 +1202,9 @@
       "zeilen": 124
     },
     {
-      "bytes": 9368,
+      "bytes": 10233,
       "pfad": ".claude/agents/store-check.md",
-      "zeilen": 176
+      "zeilen": 190
     },
     {
       "bytes": 3776,
@@ -1203,14 +1212,14 @@
       "zeilen": 71
     },
     {
-      "bytes": 10652,
+      "bytes": 10649,
       "pfad": ".claude/agents/website-security.md",
       "zeilen": 195
     },
     {
-      "bytes": 2657,
+      "bytes": 5790,
       "pfad": ".claude/commands/pushcheck.md",
-      "zeilen": 70
+      "zeilen": 109
     },
     {
       "bytes": 4974,
@@ -1223,14 +1232,19 @@
       "zeilen": 178
     },
     {
-      "bytes": 3107,
+      "bytes": 3218,
       "pfad": ".claude/hooks/push-waechter.py",
-      "zeilen": 95
+      "zeilen": 96
     },
     {
-      "bytes": 3856,
+      "bytes": 3997,
       "pfad": ".claude/hooks/secrets-filter.py",
-      "zeilen": 93
+      "zeilen": 94
+    },
+    {
+      "bytes": 5444,
+      "pfad": ".claude/hooks/syntax-am-ende.py",
+      "zeilen": 150
     },
     {
       "bytes": 3777,
@@ -1243,9 +1257,9 @@
       "zeilen": 152
     },
     {
-      "bytes": 1526,
+      "bytes": 2008,
       "pfad": ".claude/settings.json",
-      "zeilen": 56
+      "zeilen": 78
     },
     {
       "bytes": 594,
@@ -1258,14 +1272,14 @@
       "zeilen": 188
     },
     {
-      "bytes": 6081,
+      "bytes": 6411,
       "pfad": ".gitignore",
-      "zeilen": 134
+      "zeilen": 142
     },
     {
-      "bytes": 36136,
+      "bytes": 37828,
       "pfad": "CLAUDE.md",
-      "zeilen": 813
+      "zeilen": 827
     },
     {
       "bytes": 21,
@@ -1387,24 +1401,24 @@
       "zeilen": 376
     },
     {
-      "bytes": 36666,
+      "bytes": 37178,
       "pfad": "docs/SECURITY.md",
-      "zeilen": 603
+      "zeilen": 609
     },
     {
-      "bytes": 32559,
+      "bytes": 33427,
       "pfad": "docs/STORE.md",
-      "zeilen": 541
+      "zeilen": 551
     },
     {
-      "bytes": 336151,
+      "bytes": 336957,
       "pfad": "docs/TESTING.md",
-      "zeilen": 5609
+      "zeilen": 5619
     },
     {
-      "bytes": 424645,
+      "bytes": 427185,
       "pfad": "docs/TROUBLESHOOTING.md",
-      "zeilen": 7264
+      "zeilen": 7302
     },
     {
       "erzeugt": true,
@@ -2335,9 +2349,9 @@
       "zeilen": 120
     },
     {
-      "bytes": 31783,
+      "bytes": 39849,
       "pfad": "tools/wartung-check.py",
-      "zeilen": 687
+      "zeilen": 854
     },
     {
       "bytes": 4816,
@@ -2531,6 +2545,11 @@
       "ereignis": "SessionStart",
       "kommando": "python \"$CLAUDE_PROJECT_DIR/.claude/hooks/wartung-erinnerung.py\"",
       "matcher": ""
+    },
+    {
+      "ereignis": "Stop",
+      "kommando": "python \"$CLAUDE_PROJECT_DIR/.claude/hooks/syntax-am-ende.py\"",
+      "matcher": ""
     }
   ],
   "ladereihenfolge": [
@@ -2568,6 +2587,7 @@
       "name": "deploy",
       "pfade": [
         ".claude/hooks/push-waechter.py",
+        "CLAUDE.md",
         "firestore.rules",
         "sw.js"
       ],

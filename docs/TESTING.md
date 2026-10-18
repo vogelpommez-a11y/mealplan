@@ -1231,7 +1231,7 @@ Beispiele:
   `isPro()` — eine App, die über Mitternacht offen bleibt, darf Pro nicht behalten).
   Nicht automatisiert prüfbar ist die eigentliche Sicherheitsgrenze: dass `entitlements/{uid}`
   vom Client **nicht schreibbar** ist. Das hängt am veröffentlichten Regelstand in der
-  Firebase-Konsole (`CLAUDE.md` §18) und ist nur dort nachweisbar.
+  Firebase-Konsole (`CLAUDE.md` §12) und ist nur dort nachweisbar.
 * **Pro-Grenze (D2b)**: `sanitizeEntitlement()`, `isPro()`, `syncStatusInfo()`/`setSyncStatus()`,
   `syncRecipes()` und `pushNow()` werden geschnitten; die Cloud-Objekte sind Zähl-Attrappen.
   21 Prüfungen, alle grün.
@@ -4287,6 +4287,16 @@ Der Hook `syntax-nach-edit.py` prüft die **geänderte** Datei gezielt und schwe
 allem, was kein App-JavaScript ist. Er prüft bewusst nicht ersatzweise `index.html`: eine
 Prüfung, die etwas anderes ansieht als das Geänderte, meldet „sauber“ und beweist
 nichts.
+
+Seit dem 18.10.2026 gibt es dazu `syntax-am-ende.py` (Stop-Hook). Er fragt nicht, welches
+Werkzeug lief, sondern welche Datei laut `git status` geändert ist. Damit fängt er auch
+Änderungen über Skripte, `sed` oder PowerShell, an denen `syntax-nach-edit.py` vorbeiläuft.
+Ist sie rot, hält er das Antwortende an. Einen schon grün geprüften Stand (Fingerabdruck
+in `.claude/.letzter-syntaxlauf`) prüft er nicht erneut. **Gegenprobe** in einem
+Wegwerf-Repo, sieben Fälle: keine Änderung → still; kaputte `data/a.js` → hält an; derselbe
+Fehler aus einer Blockade heraus (`stop_hook_active`) → nur Meldung, keine Schleife;
+repariert → still und Merker geschrieben; gleicher Stand erneut → still in 0,3 s; neue,
+ungetrackte kaputte Datei → hält an; Datei außerhalb der Ziele → still.
 
 **2. Prüfstände laden die Seite über `tools/quelle.py`.**
 

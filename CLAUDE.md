@@ -274,7 +274,7 @@ python syntax-check.py --alles
 
 Rund eine Sekunde. Ein Syntaxfehler beendet das gesamte App-Script — die Seite liefert
 weiter HTTP 200, aber `#view` bleibt leer. Deshalb läuft der Syntax-Check **vor** allem
-anderen. (Ein Hook erledigt das inzwischen automatisch, siehe Abschnitt 15.)
+anderen. (Ein Hook erledigt das inzwischen automatisch, siehe Abschnitt 18.)
 
 Die Verfahren gibt es als Skill:
 
@@ -295,12 +295,23 @@ python tools/alle-pruefstaende.py
 Achtung: Bei Prüfständen, die `OFFEN` von `REGRESSION` trennen, heißt „grün" dort nur
 **keine Regression** — offene Punkte kann es trotzdem geben. Der Läufer weist das aus.
 
-**Prüfaufwand nach Größe der Änderung** (Festlegung Paddy, 17.10.2026):
+**Prüfaufwand nach Größe der Änderung** (Festlegung Paddy, 17.10.2026, Stufen seit 18.10.2026):
 
-* Während der Arbeit nur Schnelles: Syntax-Check und der **eine** betroffene Prüfstand.
-* `alle-pruefstaende.py` (~5 min) und `abnahme-mobil.py` (~5 min) laufen **einmal am Ende,
-  vor dem Push** — `abnahme-mobil.py` nur, wenn sich etwas Sichtbares geändert hat. Nicht nach
-  jeder Text-, Doku- oder Pushcheck-Korrektur erneut.
+* Während der Arbeit nur Schnelles: `/smoke` und der **eine** betroffene Prüfstand. Der
+  Syntax-Check läuft dabei von selbst (Hooks, Abschnitt 18).
+* **Vor dem Push** entscheidet die **Stufe**, was läuft — einmal am Ende, nicht nach jeder
+  Text-, Doku- oder Pushcheck-Korrektur erneut:
+
+| Stufe | Wenn sich das geändert hat | Was vor dem Push läuft |
+|---|---|---|
+| **A** | **Nichts an der App**: nur `docs/`, `plans/`, `.claude/`, `tools/`, README, CI | `/pushcheck` Stufe A (`website-security`, `doku-waechter`); bei `.claude/` zusätzlich `python tools/wartung-check.py` |
+| **B** | App-Code, aber **nichts, was man sieht oder bedient** (Sync, Rechnen, Speichern, Regeln, `sw.js`, Worker) | `alle-pruefstaende.py` (~5 min) + `/pushcheck` Stufe B |
+| **C** | Etwas, das man **sieht oder bedient** (Markup, `css/`, Texte, Bilder, Abläufe) | Vorführung vor der Arbeit (§21b) + `alle-pruefstaende.py` + `abnahme-mobil.py` (~5 min) + `/pushcheck` Stufe C |
+
+  Im Zweifel die höhere Stufe. Ein Werkzeug unter `tools/`, das Nutzerdaten anfasst
+  (`firestore-*.py`, `shared-aufraeumen.py`, `konten-inaktiv.py`), zählt als **B**: Die
+  Datenschutzerklärung sagt zu, was es tut. `/smoke` entfällt vor dem Push, sobald
+  `alle-pruefstaende.py` läuft — `pruefstand-reiter.py` prüft dort jeden Reiter, nicht nur den Start.
 * Bricht ein langer Test ab: **nicht neu starten**, sondern in `docs/TROUBLESHOOTING.md`
   nachsehen und den Nutzer fragen. `WebSocketTimeoutException` ist ein bekannter Werkzeug-Flake.
 
@@ -368,7 +379,7 @@ Bei Änderungen an Sharing, Sync, Gruppen, Datenfeldern, Löschlogik oder person
 Daten: Rechtstexte gegen die tatsächliche Implementierung prüfen und die Agenten `anwalt`
 und `datenschutz-technik` einsetzen.
 
-Impressum und Datenschutzerklärung stehen in `index.html`. **Der Footer muss auch ohne
+Impressum und Datenschutzerklärung stehen in `data/rechtstexte.js`. **Der Footer muss auch ohne
 Anmeldung sichtbar bleiben**, das Impressum darf nicht hinter das Auth-Gate.
 
 Die Rechtstexte enthalten konkrete technische Zusagen — eine Änderung am Verhalten kann
@@ -467,8 +478,8 @@ Regel gilt unabhängig davon.
 Nicht öffentlich, deshalb gitignored: `plans/`, `dashboard.html`, `Fotos/`, `Marketing/`,
 `Instagram/`, `.env`, `docs/DATENSCHUTZ-INTERN.md`, die zugekauften Skills.
 
-**Vor jedem Push `/pushcheck`.** Er fährt `anwalt` und `website-security` auf Sonnet, dazu
-`ux-reviewer` und `kvp` auf Haiku.
+**Vor jedem Push `/pushcheck`** — wie viel er fährt, hängt an der Stufe (Abschnitt 11):
+`website-security` immer, `anwalt`, `kvp` und `/code-review` ab Stufe B, `ux-reviewer` in Stufe C.
 
 → Rollback, Notfälle, Credential-Manager-Workaround: `docs/RUNBOOK.md` und `/deploy`
 
@@ -483,9 +494,10 @@ In `.claude/settings.json`, Skripte unter `.claude/hooks/`. Sie greifen ohne Zut
 | Hook | Wirkung |
 |---|---|
 | `commit-waechter.py` | **Blockiert** `git commit`, wenn Nichtöffentliches im Index liegt |
-| `secrets-filter.py` | **Blockiert** Befehle, die `.env` ausgeben würden |
+| `secrets-filter.py` | **Blockiert** Befehle, die `.env` ausgeben würden. Dazu sperrt `permissions.deny` in `settings.json` jeden Werkzeugzugriff auf `.env` |
 | `push-waechter.py` | **Fragt nach** bei `git push`, wenn `/pushcheck` für diesen Stand fehlt |
 | `syntax-nach-edit.py` | Fährt `syntax-check.py` gezielt auf die geänderte Datei — `index.html`, `data/*.js`, `lib/*.js`, `sw.js` |
+| `syntax-am-ende.py` | Dasselbe **am Ende jeder Antwort** für alles, was laut `git status` geändert ist — fängt Änderungen über Skripte und Shell, die `syntax-nach-edit.py` nicht sieht. **Hält an**, wenn rot |
 | `wartung-erinnerung.py` | Meldet beim Sitzungsstart, wenn die Wartung überfällig ist |
 
 Zusätzlich läuft `.github/workflows/pruefung.yml` bei jedem Push: Syntax und Secret-Scan.
@@ -583,16 +595,18 @@ diesen Bereich dauerhaft ab, und niemand sieht es je wieder.
 
 Acht Agenten in `.claude/agents/`. Sie ändern **nie** etwas, sie melden.
 
-**Vor jedem Push, über `/pushcheck`:**
+**Über `/pushcheck`, je nach Stufe (Abschnitt 11):**
 
 | Agent | Modell | Prüft |
 |---|---|---|
-| `website-security` | sonnet | Geheimnisse, personenbezogene Daten, XSS, Rules, `sw.js`, Worker, `vendor/`, Historie |
-| `anwalt` | sonnet | Rechtstext gegen Code |
-| `ux-reviewer` | haiku | Übersichtlichkeit geänderter UI (ruft vorher `ui-ux-pro-max`) |
-| `kvp` | haiku | Fitness-/Wochenplan-Bezug, Design, Mobile, Bedienbarkeit, Wartbarkeit, Sync |
+| `website-security` | sonnet | **jede Stufe**: Geheimnisse, personenbezogene Daten, XSS, Rules, `sw.js`, Worker, `vendor/`, Historie |
+| `anwalt` | sonnet | ab Stufe B: Rechtstext gegen Code |
+| `ux-reviewer` | haiku | Stufe C: Übersichtlichkeit geänderter UI (ruft vorher `ui-ux-pro-max`) |
+| `kvp` | sonnet | ab Stufe B: Fitness-/Wochenplan-Bezug, Design, Mobile, Bedienbarkeit, Wartbarkeit, Sync |
 
-Die beiden ersten laufen **nicht** auf Haiku.
+Nur `ux-reviewer` läuft auf Haiku. Ab Stufe B kommt `/code-review` (eingebauter
+Skill) als Fehlersuche dazu. Rote Funde werden **widerlegt, nicht bestätigt**: Erreichbarkeit,
+Wirkung, Schutz, je mit Fundstelle (`/pushcheck`).
 
 **Nach Auslöser, alle auf sonnet:**
 
@@ -669,7 +683,7 @@ Beides bleibt in `.gitignore`. **Nie committen.**
 
 ## Danach
 
-1. `python syntax-check.py --alles`, dann `/smoke`.
+1. `/smoke` (der Syntax-Check läuft von selbst). Vor dem Push dann die Stufe aus Abschnitt 11.
 2. Isolierter Prüfstand, wenn die Funktion es erfordert — mit Gegenprobe.
 3. Bei UI: mobile, Light und Dark, A11y.
 4. Bei Cloud-/Sync-Änderungen: Sync-Szenarien, notfalls `/abnahme`.
