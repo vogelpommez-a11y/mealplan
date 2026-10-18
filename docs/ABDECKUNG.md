@@ -89,7 +89,7 @@ merkt.
 | CI | `pfad:.github/` | `website-security` | Änderung am Workflow |
 | Dokumentation | `pfad:docs/` | `doku-waechter` | jede nicht-triviale Änderung |
 | Meal-Fotos und ihre Lizenzen | `pfad:img/` | `anwalt` (Bildrechte) | neues Bild, neue Quelle |
-| Werkzeuge und Prüfstände | `pfad:tools/` | `kvp` | neuer Prüfstand, neues Werkzeug |
+| Werkzeuge und Prüfstände | `pfad:tools/` | `doku-waechter` (Absatz in `docs/TESTING.md`), `website-security` (keine Geheimnisse, keine Personendaten); `kvp` nur bei Werkzeugen, die Nutzerdaten anfassen (Pushcheck Stufe B). Ein Prüfstand beweist sich selbst über seine Gegenprobe (`CLAUDE.md` §11) | neuer Prüfstand, neues Werkzeug |
 | Fristen und Aufräumen | `pfad:tools/` (`shared-aufraeumen.py`, `konten-inaktiv.py`) | `tools/pruefstand-share-frist.py` (drei Fristzahlen gegeneinander), `tools/pruefstand-konten-inaktiv.py` (Einstufung an den Grenzen), `datenschutz-technik` (Art. 30, Art. 5 Abs. 1 lit. e), `anwalt` (Zusage in Ziffer 8 und 10) | Änderung an einer Löschfrist, neue Sammlung mit Personenbezug |
 | Sicherung der Nutzerdaten | `pfad:tools/` (`firestore-backup.py`, `firestore-restore.py`, `firestore_api.py`) | `tools/pruefstand-firestore-backup.py` (Vollständigkeit, Ablageort, Rückspielung), `datenschutz-technik` (Aufbewahrung, Art. 30), `website-security` (Zugang, keine Geheimnisse auf der Platte) | neue Sammlung in Firestore, Änderung an Aufbewahrung oder Ablageort |
 | Fremdcode | `pfad:vendor/` | `lieferkette`, `tools/netz-ohne-konto.py` (was der Fremdcode ohne Konto tatsächlich anfragt — vier Browserkennungen, weil das SDK an der Kennung verzweigt) | jede Änderung, plus regelmäßig ohne Anlass |

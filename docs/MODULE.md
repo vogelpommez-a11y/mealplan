@@ -326,7 +326,7 @@ _keine_
 | .gitattributes | 21 | 594 |
 | .github/workflows/pruefung.yml | 188 | 8066 |
 | .gitignore | 142 | 6411 |
-| CLAUDE.md | 827 | 37828 |
+| CLAUDE.md | 827 | 37860 |
 | CNAME | 1 | 21 |
 | FIREBASE-SETUP.md | 197 | 9363 |
 | LICENSE | 40 | 1907 |
@@ -343,7 +343,7 @@ _keine_
 | data/foods.js | 244 | 17334 |
 | data/ikonen.js | 170 | 19768 |
 | data/rechtstexte.js | 208 | 34439 |
-| docs/ABDECKUNG.md | 192 | 13718 |
+| docs/ABDECKUNG.md | 192 | 13969 |
 | docs/ABNAHME-MENSCH.md | 154 | 8239 |
 | docs/ARCHITECTURES.md | 3433 | 221526 |
 | docs/BAUSTEINE.md | 106 | 14052 |

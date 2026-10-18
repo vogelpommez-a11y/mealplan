@@ -615,7 +615,7 @@ Wirkung, Schutz, je mit Fundstelle (`/pushcheck`).
 | `store-check` | Pro/Bezahlung, Konto, Login, Kamera, `vendor/`, Manifest |
 | `lieferkette` | alles unter `vendor/`, neue externe Verweise — und regelmäßig ohne Anlass |
 | `datenschutz-technik` | neuer Dienst, neues Datenfeld, Sharing, Gruppen, Löschlogik |
-| `doku-waechter` | jede nicht-triviale Änderung an `index.html` |
+| `doku-waechter` | jede nicht-triviale Änderung — in `/pushcheck` jeder Stufe fest eingeplant |
 
 Nicht für jede triviale Textkorrektur alle Agenten starten. Bei sicherheits-, daten-,
 sync-, sharing-, store- oder rechtlich relevanten Änderungen aber sehr wohl.
