@@ -167,7 +167,7 @@ Erhoben aus den Abschnittsmarken im Code, nicht von Hand gepflegt.
 
 | Agent | Modell | Werkzeuge | Alle Werkzeuge? | Referenzierte Pfade |
 |---|---|---|---|---|
-| anwalt | sonnet | Read, Grep, Glob, Bash, WebSearch, WebFetch | nein | bilder-protokoll.json, data/rechtstexte.js, docs/MODULE.md, docs/PRODUCT.md, docs/STORE.md, firestore-backup.py, firestore-restore.py, firestore.rules, img/bilder-protokoll.json, img/library/bilder-protokoll.json, index.html, tools/meal-bilder.py, worker/og.js |
+| anwalt | sonnet | Read, Grep, Glob, Bash, WebSearch, WebFetch | nein | bilder-protokoll.json, data/cookbook.js, data/rechtstexte.js, docs/MODULE.md, docs/PRODUCT.md, docs/RUNBOOK.md, docs/STORE.md, firestore-backup.py, firestore-restore.py, firestore.rules, img/bilder-protokoll.json, img/library/bilder-protokoll.json, index.html, manifest.webmanifest, tools/meal-bilder.py, worker/og.js |
 | datenschutz-technik | sonnet | Read, Grep, Glob, Bash, WebSearch, WebFetch | nein | worker/og.js |
 | doku-waechter | sonnet | Read, Grep, Glob, Bash | nein | CLAUDE.md, dashboard.html, data/rechtstexte.js, docs/ARCHITECTURES.md, docs/PRODUCT.md, docs/TESTING.md, docs/TROUBLESHOOTING.md |
 | kvp | haiku | Read, Grep, Glob, Bash | nein | css/mobil.css, css/tokens.css, index.html |
@@ -305,7 +305,7 @@ _keine_
 | .claude/Skills/pruefstand/SKILL.md | 126 | 5263 |
 | .claude/Skills/rezeptcharge/SKILL.md | 482 | 26234 |
 | .claude/Skills/smoke/SKILL.md | 82 | 3392 |
-| .claude/agents/anwalt.md | 329 | 19721 |
+| .claude/agents/anwalt.md | 415 | 25825 |
 | .claude/agents/datenschutz-technik.md | 174 | 9879 |
 | .claude/agents/doku-waechter.md | 106 | 5377 |
 | .claude/agents/kvp.md | 162 | 9060 |
@@ -314,7 +314,7 @@ _keine_
 | .claude/agents/ux-reviewer.md | 71 | 3776 |
 | .claude/agents/website-security.md | 195 | 10652 |
 | .claude/commands/pushcheck.md | 70 | 2657 |
-| .claude/commands/rechtspruefung.md | 86 | 3966 |
+| .claude/commands/rechtspruefung.md | 97 | 4974 |
 | .claude/hooks/commit-waechter.py | 178 | 8147 |
 | .claude/hooks/push-waechter.py | 95 | 3107 |
 | .claude/hooks/secrets-filter.py | 93 | 3856 |
@@ -461,7 +461,7 @@ _keine_
 | tools/abnahme-scan-kamera.py | 388 | 15492 |
 | tools/abnahme-zutaten-sortieren.py | 461 | 20440 |
 | tools/alle-pruefstaende.py | 226 | 9699 |
-| tools/bausteine.py | 264 | 10875 |
+| tools/bausteine.py | 264 | 10933 |
 | tools/bildsatz-stichworte.json | 1061 | 20704 |
 | tools/cdp.py | 261 | 11294 |
 | tools/dashboard.py | 392 | 15577 |

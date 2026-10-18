@@ -6715,6 +6715,15 @@ Ursachen, gleiches Erscheinungsbild:
 * **Der fehlende Server.** Chrome lädt die Fehlerseite, `requestAnimationFrame` läuft dort
   nicht wie erwartet, `bild_abwarten()` wartet ins Leere.
 
+**Wiederkehr am 18.10.2026, Ursache offen.** Dreimal in Folge `WebSocketTimeoutException` in
+`bild_abwarten()` — einmal nach 18 sauberen Stationen, zweimal schon in der ersten. Beim ersten
+Lauf hielt noch das Fenster von `vorfuehren.py` (Profil `mp-chrome-vorfuehrung`) offen; nur
+dessen Prozesse beendet, nicht den Alltags-Chrome. Bei Lauf zwei und drei liefen **kein**
+`chrome.exe` und der Server antwortete mit 200 — keine der beiden Ursachen oben lag vor.
+Entscheidung Paddy: ohne die Abnahme live (Änderung: ein Satz am Registrierformular, Text im
+Impressum; 59 Prüfstände grün). Die dritte Ursache ist noch zu finden. Bis dahin: Nach
+`vorfuehren.py` dessen Fenster schließen, **bevor** `abnahme-mobil.py` startet.
+
 **Behoben am 22.09.2026.** `Sitzung.start()` prüft jetzt den Server, bevor Chrome
 überhaupt öffnet (und startet ihn notfalls, wie `vorfuehren.py` es tat), und `laden()`
 sieht nach **jedem** Laden nach, ob `.app` und `#view` da sind — sonst bricht der Lauf mit

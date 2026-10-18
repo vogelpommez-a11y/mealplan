@@ -32,8 +32,10 @@ Auftrag sinngemäß:
 > Prüfe nicht den Diff, sondern die ganze App: alle Rechtstexte (`data/rechtstexte.js`,
 > Impressum/Datenschutz in `index.html`) gegen den gesamten Code, `firestore.rules`,
 > `worker/`, `sw.js`, `tools/firestore-backup.py` und `tools/firestore-restore.py`. Gehe
-> **alle** Prüfpunkte 1–13 durch, besonders 12 (Art. 13 im Einzelnen) und 13
-> (Betroffenenrechte technisch). Recherchiere den aktuellen Stand von Recht und
+> **alle** Prüfpunkte 1–16 durch, besonders 12 (Art. 13 im Einzelnen), 13
+> (Betroffenenrechte technisch), 6 (Impressum samt Erreichbarkeit vor der Anmeldung) und
+> 15 (Meldeweg gegen den Ablauf in `docs/RUNBOOK.md`). Punkt 7 (Verkauf) und 16 (Marketing)
+> sind Vorbereitungslisten, solange es keinen Kaufweg bzw. keine Werbung gibt. Recherchiere den aktuellen Stand von Recht und
 > Rechtsprechung zu jedem Punkt, an dem sich seit dem letzten Bericht etwas geändert
 > haben kann; Quelle und Abrufdatum dahinter. Offene Fragen für den Anwalt stehen in
 > `docs/DATENSCHUTZ-INTERN.md` — nenne nur neue, keine Wiederholungen.
@@ -73,13 +75,22 @@ Aufbau:
 
 1. **Einzeiler:** Widerspruch zwischen Rechtstext und Code — ja oder nein. Netzmessung
    sauber — ja oder nein.
-2. **Geprüfter Stand:** Commit, gepusht ja/nein, Datum.
-3. **Befunde**, 🔴 vor 🟡, je mit Fundort, Widerspruch, Fix, Belegart.
-4. **Vergleich mit dem Vorbericht:** neu · erledigt · weiter offen. Ohne Vorbericht: „erster
+2. **Ampel in Alltagssprache** — eine Zeile je Prüfpunkt 1–16: 🔴 fehlt oder falsch
+   (Abmahnung/Bußgeld möglich) · 🟡 Risiko oder unklar · 🟢 in Ordnung · ⚪ trifft (noch)
+   nicht zu, mit einem Satz warum. Spalten: *was gefunden* · *was schlimmstenfalls passiert*
+   (ein Satz, ohne Juristendeutsch) · *wie man es behebt*. Das ist der Teil für den Nutzer —
+   verständlich ohne Jura- und IT-Wissen (Vorbild: Rechts-Check vom 18.10.2026).
+3. **Geprüfter Stand:** Commit, gepusht ja/nein, Datum.
+4. **Befunde**, 🔴 vor 🟡, je mit Fundort, Widerspruch, Fix, Belegart.
+5. **Vergleich mit dem Vorbericht:** neu · erledigt · weiter offen. Ohne Vorbericht: „erster
    Durchgang“.
-5. **Netzmessung:** je Kennung OK/FEHLER, fremde Hosts falls vorhanden.
-6. **Für den Anwalt** — nur neue Fragen.
-7. **Nicht prüfbar** — wie im Agenten.
-8. Schluss: keine Rechtsberatung.
+6. **Netzmessung:** je Kennung OK/FEHLER, fremde Hosts falls vorhanden.
+7. **Für den Anwalt** — nur neue Fragen.
+8. **Nicht prüfbar** — wie im Agenten.
+9. **To-do für den Betreiber** — höchstens fünf Punkte, nach Wichtigkeit: was sich **nicht**
+   im Code lösen lässt (Angaben, Verträge, Einstellungen bei Anbietern, Anwaltsfragen,
+   offene Meldungen nach dem Ablauf in `docs/RUNBOOK.md`).
+10. Schluss: keine Rechtsberatung — und ein Satz, wann zusätzlich ein Anwalt gefragt werden
+    sollte.
 
 Danach dem Nutzer vorschlagen, welche Befunde behoben werden sollen — nicht selbst beheben.

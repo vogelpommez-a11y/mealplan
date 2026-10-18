@@ -131,8 +131,8 @@ BAUSTEINE = [
      u"muss 0 bleiben - das Aussehen gehoert .btn.link"),
 
     (u"Textknopf: Variante genutzt", "index.html",
-     r'class="btn link\b', 6,
-     u"3 Orte + 2 inline + 1 leise"),
+     r'class="btn link\b', 7,
+     u"3 Orte + 3 inline + 1 leise (dritter inline: Datenschutz am Registrieren, 18.10.2026)"),
 
     # .btn.del-ic war am 21.09.2026 tot (nur CSS, kein Markup) und wurde entfernt.
     (u"Button: tote Variante del-ic", "css/basis.css",

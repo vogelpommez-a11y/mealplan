@@ -142,9 +142,11 @@
       "name": "anwalt",
       "pfade": [
         "bilder-protokoll.json",
+        "data/cookbook.js",
         "data/rechtstexte.js",
         "docs/MODULE.md",
         "docs/PRODUCT.md",
+        "docs/RUNBOOK.md",
         "docs/STORE.md",
         "firestore-backup.py",
         "firestore-restore.py",
@@ -152,6 +154,7 @@
         "img/bilder-protokoll.json",
         "img/library/bilder-protokoll.json",
         "index.html",
+        "manifest.webmanifest",
         "tools/meal-bilder.py",
         "worker/og.js"
       ],
@@ -1165,9 +1168,9 @@
       "zeilen": 82
     },
     {
-      "bytes": 19721,
+      "bytes": 25825,
       "pfad": ".claude/agents/anwalt.md",
-      "zeilen": 329
+      "zeilen": 415
     },
     {
       "bytes": 9879,
@@ -1210,9 +1213,9 @@
       "zeilen": 70
     },
     {
-      "bytes": 3966,
+      "bytes": 4974,
       "pfad": ".claude/commands/rechtspruefung.md",
-      "zeilen": 86
+      "zeilen": 97
     },
     {
       "bytes": 8147,
@@ -1857,7 +1860,7 @@
       "zeilen": 226
     },
     {
-      "bytes": 10875,
+      "bytes": 10933,
       "pfad": "tools/bausteine.py",
       "zeilen": 264
     },
