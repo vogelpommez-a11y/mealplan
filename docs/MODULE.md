@@ -153,11 +153,11 @@ Erhoben aus den Abschnittsmarken im Code, nicht von Hand gepflegt.
 | index.html | Einstieg (D1b) | 13969-14048 | 80 |
 | index.html | Cloud-Anmeldung (Firebase) | 14049-14065 | 17 |
 | index.html | Startbildschirm (#splash, statisch im Markup) | 14066-14119 | 54 |
-| index.html | Marken-Lader (docs/DESIGN.md "Der Marken-Lader") | 14120-14834 | 715 |
-| index.html | Gemeinsam planen (Gruppe) | 14835-15944 | 1110 |
-| index.html | Teilen ueber den nativen Dialog des Geraets (Web Share API) | 15945-15978 | 34 |
-| index.html | Einkaufsliste als PDF (Paket B3) | 15979-16218 | 240 |
-| index.html | Boot | 16219-16237 | 19 |
+| index.html | Marken-Lader (docs/DESIGN.md "Der Marken-Lader") | 14120-14838 | 719 |
+| index.html | Gemeinsam planen (Gruppe) | 14839-15947 | 1109 |
+| index.html | Teilen ueber den nativen Dialog des Geraets (Web Share API) | 15948-15981 | 34 |
+| index.html | Einkaufsliste als PDF (Paket B3) | 15982-16221 | 240 |
+| index.html | Boot | 16222-16240 | 19 |
 | lib/barcode.js | Barcode-Scan (Open Food Facts) | 14-163 | 150 |
 | lib/pdf.js | PDF selbst erzeugen (kein window.print, sandbox-sicher) | 14-38 | 25 |
 | lib/pdf.js | Marken-Kopf fuer die PDFs (Logo, "PADDY'S MEALPLAN", Slogan) | 39-106 | 68 |
@@ -345,16 +345,16 @@ _keine_
 | data/rechtstexte.js | 208 | 34439 |
 | docs/ABDECKUNG.md | 192 | 13969 |
 | docs/ABNAHME-MENSCH.md | 154 | 8239 |
-| docs/ARCHITECTURES.md | 3447 | 222867 |
+| docs/ARCHITECTURES.md | 3449 | 223056 |
 | docs/BAUSTEINE.md | 106 | 14052 |
 | docs/DESIGN.md | 1439 | 80261 |
 | docs/MODULE.md | — | — (erzeugt) |
 | docs/PRODUCT.md | 1866 | 108506 |
 | docs/RUNBOOK.md | 387 | 20402 |
 | docs/SECURITY.md | 609 | 37178 |
-| docs/STORE.md | 552 | 33909 |
-| docs/TESTING.md | 5643 | 338569 |
-| docs/TROUBLESHOOTING.md | 7356 | 431083 |
+| docs/STORE.md | 553 | 34231 |
+| docs/TESTING.md | 5644 | 338687 |
+| docs/TROUBLESHOOTING.md | 7357 | 431238 |
 | docs/module-index.json | — | — (erzeugt) |
 | firestore.rules | 552 | 32127 |
 | img/apple-touch-icon.png | — | 35163 |
@@ -446,7 +446,7 @@ _keine_
 | img/waffle.webp | — | 52546 |
 | img/wrap.webp | — | 43594 |
 | img/wurst.webp | — | 54064 |
-| index.html | 16237 | 1027961 |
+| index.html | 16240 | 1028266 |
 | lib/barcode.js | 163 | 9247 |
 | lib/basis.js | 21 | 836 |
 | lib/pdf.js | 241 | 13120 |
@@ -493,7 +493,7 @@ _keine_
 | tools/pruefstand-cache-reset.py | 202 | 8848 |
 | tools/pruefstand-cloud-laden.py | 283 | 12712 |
 | tools/pruefstand-css-pfade.py | 95 | 3572 |
-| tools/pruefstand-daten-loeschen.py | 171 | 8376 |
+| tools/pruefstand-daten-loeschen.py | 176 | 8862 |
 | tools/pruefstand-einkauf-gruppe.py | 331 | 17363 |
 | tools/pruefstand-einkaufsliste.py | 803 | 38728 |
 | tools/pruefstand-einladung-verbrauch.py | 236 | 11752 |

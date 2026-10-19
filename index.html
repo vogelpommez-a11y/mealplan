@@ -14670,6 +14670,10 @@
   // statt still zu bleiben) - alle Aufrufer brauchen deshalb ein eigenes try/catch, das eine
   // ehrliche Meldung statt "geloescht" zeigt und NICHT neu laedt.
   async function wipeLocalData() {
+    // Sperre ZUERST: Ein save() waehrend der Wartezeiten unten (IndexedDB, Firestore-Cache)
+    // schriebe den noch im Speicher liegenden state zurueck - auch, wenn wipeCache() danach
+    // scheitert und nicht neu geladen wird. Bis zum Reload speichert die App nichts mehr.
+    datenGeloescht = true;
     // LETZTE_UID_KEY und PLAN_BASE_KEY tragen die uid - Ziffer 10 der Datenschutzerklaerung
     // verspricht "saemtliche auf diesem Geraet gespeicherten Daten" (Audit 17.10.2026). THEME_KEY
     // und SPLASH_INTRO_KEY tragen nichts Persoenliches, fallen aber unter dieselbe Zusage
@@ -15754,16 +15758,15 @@
             Wochenplan bleiben, wie sie sind – du planst danach wieder für dich.</p>`,
           okLabel: "Lösen",
           onConfirm: async () => {
-            state.groupId = "";
-            save();
             // Auch in der Cloud raeumen, sonst holt der naechste Start den Zeiger von dort
             // zurueck (wantGid = remote.groupId || state.groupId, siehe Selbstheilung).
-            // Scheitert das, holt der naechste Start den Zeiger zurueck - dann nicht "gelöst"
-            // melden (stille Fehler, 19.10.2026). Wiederholbar: Der Knopf bleibt, solange die
-            // Gruppe nicht erreichbar ist.
+            // Cloud ZUERST und lokal erst bei Erfolg (stille Fehler, 19.10.2026): Der Knopf
+            // haengt an state.groupId - lokal vorher geleert, verschwaende er, und "versuch's
+            // nochmal" fuehrte ins Leere.
             let geloest = true;
             try { await window.CloudSync.save(syncUid, { groupId: "" }); }
             catch (e) { noteError("group:loesen", e); geloest = false; }
+            if (geloest) { state.groupId = ""; save(); }
             closeModal();
             toast(geloest
               ? "Verbindung gelöst – du planst wieder für dich"

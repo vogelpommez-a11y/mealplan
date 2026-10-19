@@ -156,7 +156,7 @@ damit genauso verlieren. Drei Cloud-Pfade waren betroffen und haben jetzt ihre K
 | `sync:recipes` | Rezept-Batch in die Cloud | „Deine Meal-Fotos konnten gerade nicht …" |
 | `save:localStorage` | `save()` schlägt fehl | „Der Speicher dieses Geräts ist voll …" |
 | `group:leaveSaveOwn` | Gruppe verlassen, Zeiger + Plan zurückschreiben (Toast seit 19.10.2026) | „Dein Austritt ist nicht ganz gespeichert – schreib uns kurz, wir helfen." |
-| `group:loesen` | Verbindung lösen, Zeiger leeren (Toast seit 19.10.2026) | „Hat nicht geklappt – versuch’s nochmal" |
+| `group:loesen` | Verbindung lösen, Zeiger leeren; lokal erst nach Erfolg, damit der Knopf bleibt (Toast seit 19.10.2026) | „Hat nicht geklappt – versuch’s nochmal" |
 
 Der Nutzen zeigte sich sofort: Beim ersten Lauf über `localhost` meldete `group:switch` die
 Ursache, die vorher niemand sehen konnte — **„Missing or insufficient permissions."**, also ein
@@ -436,8 +436,10 @@ Alle drei Aufrufer (`await wipeLocalData()`) warten das ab, bevor sie den Reload
 Fotospeicher kam „Alle Daten löschen“ nie ans Ziel, und der nächste `save()` schrieb alles zurück.
 Ob Fotos bleiben, entscheidet `idbOpen()` (nicht `idbOK`, das auch fällt, wenn nur das erste Lesen
 scheiterte). Die Aufrufer laden trotzdem neu und sagen „Ein paar Fotos ließen sich … nicht
-entfernen – lösch sie in den Browser-Einstellungen.“ `nachLoeschenNeuladen()` setzt dafür
-`datenGeloescht`: Bis zum Reload ist `save()` gesperrt, die Meldung bleibt stehen. Ausnahme ist der
+entfernen – lösch sie in den Browser-Einstellungen.“ `wipeLocalData()` setzt als **erstes**
+`datenGeloescht`: Ab da bis zum Reload ist `save()` gesperrt — auch während der Wartezeiten und
+wenn `wipeCache()` scheitert und nicht neu geladen wird. `nachLoeschenNeuladen()` lässt die Meldung
+bis zum Reload stehen. Ausnahme ist der
 Zweig `dataAlreadyDeleted` — dort ist „Zugang entfernen“ die wichtigere Nachricht. Prüfer:
 `tools/pruefstand-daten-loeschen.py`.
 

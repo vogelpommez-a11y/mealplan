@@ -67,11 +67,13 @@ def teile(text):
   var AUFRUFE = { idb: 0, cache: 0 };
   var STEUER = { idbFehler: false, dbOffen: true };
   var idbOK = true;
+  var datenGeloescht = false, SPERRE_BEI_IDB = null;
   function idbOpen() { return STEUER.dbOffen ? Promise.resolve({}) : Promise.reject(new Error("kein IndexedDB")); }
   function isTestOrigin() { return false; }
   function noteError() {}
   function idbRW(fn) {
     AUFRUFE.idb++;
+    SPERRE_BEI_IDB = datenGeloescht;   // ist save() schon gesperrt, wenn die erste Wartezeit beginnt?
     if (STEUER.idbFehler) return Promise.reject(new Error("Fotospeicher gesperrt"));
     fn({ clear: function () {} }); return Promise.resolve();
   }
@@ -80,7 +82,8 @@ def teile(text):
 """
     keys = ", ".join("%s: %s" % (k, k) for k in SCHLUESSEL)
     return rand + "\n".join(stuecke) + \
-        "\nreturn { wipe: wipeLocalData, aufrufe: AUFRUFE, steuer: STEUER, keys: { %s } };" % keys
+        "\nreturn { wipe: wipeLocalData, aufrufe: AUFRUFE, steuer: STEUER, keys: { %s },\n" \
+        "  sperreBeiIdb: function () { return SPERRE_BEI_IDB; } };" % keys
 
 
 neu = io.open(os.path.join(WURZEL, "index.html"), encoding="utf-8").read()
@@ -123,6 +126,7 @@ function uebrig() {
   pruef("NEU: ohne Fehler meldet es keine gebliebenen Fotos", normal === false, String(normal));
   pruef("NEU: danach liegt kein wochenkueche_-Schluessel mehr", uebrig().length === 0, uebrig().join(", "));
   pruef("NEU: Fotos (IndexedDB) wurden geleert", NEU.aufrufe.idb === 1);
+  pruef("NEU: save() ist gesperrt, bevor die erste Wartezeit beginnt", NEU.sperreBeiIdb() === true, String(NEU.sperreBeiIdb()));
   pruef("NEU: Firestore-Cache wurde geleert", NEU.aufrufe.cache === 1);
   pruef("NEU: fremder Schluessel ohne App-Bezug bleibt unberuehrt", localStorage.getItem("fremd_ohne_app_bezug") === "bleibt");
 
@@ -150,6 +154,7 @@ function uebrig() {
   pruef("GEGENPROBE ALT (%(alt_id)s): der Fehler ist dort messbar (Theme bleibt)", rest.indexOf("wochenkueche_theme_v1") >= 0, rest.join(", "));
   pruef("GEGENPROBE ALT: Intro-Merker bleibt dort", rest.indexOf("wochenkueche_intro_v1") >= 0, rest.join(", "));
   pruef("GEGENPROBE ALT: sonst raeumt der alte Stand dieselben Schluessel", rest.length === 2, rest.join(", "));
+  pruef("GEGENPROBE ALT: dort ist save() waehrend des Loeschens offen", ALT.sperreBeiIdb() === false, String(ALT.sperreBeiIdb()));
   ALT.steuer.idbFehler = true;
   e = await ergebnis(ALT);
   pruef("GEGENPROBE ALT: Fotofehler wird dort verschluckt (meldet nichts)", !e.wurf && e.wert !== true, JSON.stringify(e));

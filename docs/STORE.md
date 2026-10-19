@@ -537,6 +537,7 @@ Alternativtexte sind dafür nicht geprüft.
 | **Kaufbeleg serverseitig prüfen** | 🔴 zu bauen — Cloud Function, setzt den Blaze-Wechsel voraus |
 | Nutrition Labels / Data Safety | 🟡 Datengrundlage steht (Abschnitt 5), Formulare nicht ausgefüllt |
 | Health apps declaration (Google Play) | 🟡 Pflicht für jede App, bei uns „Nutrition and Weight Management“ — beim Einrichten der Play Console (Abschnitt 5) |
+| Hinweis „lösch sie in den Browser-Einstellungen“ | 🟡 beim D7-Build umformulieren: Lassen sich beim Löschen Fotos nicht entfernen, verweist die Meldung (`FOTOS_GEBLIEBEN`, `index.html`) auf Browser-Einstellungen — die gibt es in der Capacitor-App nicht (Gerät → App-Daten löschen). Vorgemerkt 19.10.2026 |
 | `NSCameraUsageDescription` | 🟡 zu prüfen, sobald das Capacitor-Projekt existiert |
 | Privacy Manifest (Apple) | 🟡 beim D7-Build prüfen — ohne scheitert der Upload (Abschnitt 8) |
 | **Barrierefreiheit (BFSG)** | 🟢 **Codeseite gemessen und behoben** (20.09.2026, 0 Befunde). Rechtsfrage weiter offen: Kleinstunternehmer-Ausnahme? Erklärung fehlt. Abschnitt 7b |

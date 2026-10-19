@@ -1087,38 +1087,38 @@
       "zeilen": 54
     },
     {
-      "bis": 14834,
+      "bis": 14838,
       "datei": "index.html",
       "titel": "Marken-Lader (docs/DESIGN.md \"Der Marken-Lader\")",
       "von": 14120,
-      "zeilen": 715
+      "zeilen": 719
     },
     {
-      "bis": 15944,
+      "bis": 15947,
       "datei": "index.html",
       "titel": "Gemeinsam planen (Gruppe)",
-      "von": 14835,
-      "zeilen": 1110
+      "von": 14839,
+      "zeilen": 1109
     },
     {
-      "bis": 15978,
+      "bis": 15981,
       "datei": "index.html",
       "titel": "Teilen ueber den nativen Dialog des Geraets (Web Share API)",
-      "von": 15945,
+      "von": 15948,
       "zeilen": 34
     },
     {
-      "bis": 16218,
+      "bis": 16221,
       "datei": "index.html",
       "titel": "Einkaufsliste als PDF (Paket B3)",
-      "von": 15979,
+      "von": 15982,
       "zeilen": 240
     },
     {
-      "bis": 16237,
+      "bis": 16240,
       "datei": "index.html",
       "titel": "Boot",
-      "von": 16219,
+      "von": 16222,
       "zeilen": 19
     },
     {
@@ -1372,9 +1372,9 @@
       "zeilen": 154
     },
     {
-      "bytes": 222867,
+      "bytes": 223056,
       "pfad": "docs/ARCHITECTURES.md",
-      "zeilen": 3447
+      "zeilen": 3449
     },
     {
       "bytes": 14052,
@@ -1406,19 +1406,19 @@
       "zeilen": 609
     },
     {
-      "bytes": 33909,
+      "bytes": 34231,
       "pfad": "docs/STORE.md",
-      "zeilen": 552
+      "zeilen": 553
     },
     {
-      "bytes": 338569,
+      "bytes": 338687,
       "pfad": "docs/TESTING.md",
-      "zeilen": 5643
+      "zeilen": 5644
     },
     {
-      "bytes": 431083,
+      "bytes": 431238,
       "pfad": "docs/TROUBLESHOOTING.md",
-      "zeilen": 7356
+      "zeilen": 7357
     },
     {
       "erzeugt": true,
@@ -1789,9 +1789,9 @@
       "pfad": "img/wurst.webp"
     },
     {
-      "bytes": 1027961,
+      "bytes": 1028266,
       "pfad": "index.html",
-      "zeilen": 16237
+      "zeilen": 16240
     },
     {
       "bytes": 9247,
@@ -2024,9 +2024,9 @@
       "zeilen": 95
     },
     {
-      "bytes": 8376,
+      "bytes": 8862,
       "pfad": "tools/pruefstand-daten-loeschen.py",
-      "zeilen": 171
+      "zeilen": 176
     },
     {
       "bytes": 17363,

@@ -5622,7 +5622,8 @@ gemessen: genau diese zwei.
 `idbOpen` auf „geht nicht auf“. Bei offener Datenbank muss `wipeLocalData()` `true` zurückmelden,
 darf **nicht** werfen und leert trotzdem Firestore-Cache und `localStorage`; geht die Datenbank gar
 nicht auf, meldet es `false`; ohne Fehler `false`. Gegenprobe gegen `9b0cc8f`: Dort wird der
-Fotofehler verschluckt. 17 Prüfungen.
+Fotofehler verschluckt. Dazu: `save()` ist gesperrt (`datenGeloescht`), bevor die erste
+Wartezeit beginnt — Gegenprobe: in `9b0cc8f` offen. 19 Prüfungen.
 
 ## `tools/pruefstand-gruppe-verlassen-zeiger.py` — bleibt nach dem Austritt die alte `groupId` stehen? (19.10.2026)
 

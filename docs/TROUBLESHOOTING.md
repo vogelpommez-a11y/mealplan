@@ -7331,7 +7331,8 @@ nach und hielt „der Abgleich holt es nach“ für gemessen. Seitdem prüft er 
 (`store:wipeImages`). Die Aufrufer meldeten „gelöscht“, obwohl die Fotos auf dem Gerät blieben —
 gegen Ziffer 10 der Datenschutzerklärung. **Behoben:** `wipeLocalData()` meldet gebliebene Fotos
 zurück, das Löschen läuft durch und lädt neu, die Meldung verweist auf die Browser-Einstellungen;
-bis zum Reload ist `save()` gesperrt. Bewusste Lücke: im Zweig `dataAlreadyDeleted` sagt es die
+ab dem ersten Löschschritt bis zum Reload ist `save()` gesperrt (`datenGeloescht`) — das schließt
+auch das ältere Fenster, in dem ein `save()` während des Löschens alles zurückschrieb. Bewusste Lücke: im Zweig `dataAlreadyDeleted` sagt es die
 Meldung nicht (zwei Hinweise passen in keinen Toast). Prüfer: `tools/pruefstand-daten-loeschen.py`.
 
 **Auch hier war der erste Fix schlimmer** (`f813adf`/`f12e1db`, nie gepusht): `wipeLocalData()`
