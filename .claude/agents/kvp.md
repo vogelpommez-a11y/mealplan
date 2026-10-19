@@ -117,6 +117,14 @@ Wenn ein Feld dazukommt: Wandert es sauber durch `save()` → `scheduleCloudPush
 und über `sanitizeIng`/den Import wieder zurück? Übersteht es den Teilen-Payload? Ein Feld,
 das nur lokal existiert, führt zu unterschiedlichen Ständen auf zwei Geräten.
 
+**Wird ein Fehler still verschluckt?** Ein `catch`, das leer ist oder nur `noteError()`
+aufruft, ist an Speichern, Abgleich, Löschen und Gruppenwechsel ein Befund, wenn danach
+trotzdem eine Erfolgsmeldung kommt oder ein Zustand in der Cloud stehen bleibt, der beim
+nächsten Start in die Irre führt. Frage jeweils: Sieht der Nutzer, dass es nicht geklappt
+hat, oder holt ein späterer Lauf es nachweislich nach? Begründete leere `catch`
+(abgebrochenes Teilen-Blatt, Pointer-Capture, Cache-Schreiben im Service Worker) sind kein
+Befund.
+
 ## Was KEIN Vorschlag ist (nie melden)
 
 - **Umbenennen von `wochenkueche`, `recipe`, `state.recipes`, `grams` usw.** Die

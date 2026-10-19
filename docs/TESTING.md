@@ -16,7 +16,7 @@ Die primäre Verifikation erfolgt deshalb über den Browser und gezielte isolier
 
 <!-- REGISTER-ANFANG (erzeugt aus den Ueberschriften: python tools/register.py - nicht von Hand pflegen) -->
 
-**Register — 88.** Vorne (0 bis 9) die geltenden Verfahren: Syntax-Check,
+**Register — 89.** Vorne (0 bis 9) die geltenden Verfahren: Syntax-Check,
 Smoke-Test, Ausschneide-Pruefstand, Sync-Tests. Dahinter das datierte Fallarchiv —
 einzelne Pruefstaende und was ihre Gegenprobe gezeigt hat.
 
@@ -114,6 +114,7 @@ Die Verfahren gibt es auch als Skill: `/smoke`, `/pruefstand`, `/abnahme`, `/dep
 | · | `tools/pruefstand-gruppe-fuer-alle.py` — ein Hinweis, der an fünf Stellen hängen muss (05.10.2026, erweitert 07.10.2026) |
 | · | `tools/pruefstand-plan-slots.py` — persönlicher Plan slotweise, Rückgängig in der richtigen Woche (17.10.2026) |
 | · | `tools/pruefstand-daten-loeschen.py` — räumt „Alle Daten löschen“ wirklich alles? (18.10.2026) |
+| · | `tools/pruefstand-gruppe-verlassen-zeiger.py` — bleibt nach dem Austritt die alte `groupId` stehen? (19.10.2026) |
 
 <!-- REGISTER-ENDE -->
 
@@ -731,8 +732,8 @@ blasse Farbe geben und prüfen, dass der Messstand darauf anschlägt.
 
 Gebaut am 16.09.2026. Fährt **selbstständig** durch Auth-Gate, alle Schritte der Einführung
 (seit 18.10.2026 neun; das Körperfett ist zugeklappt und freiwillig, der Automat lässt es zu), die vier Reiter, Meal-Picker, Einkaufsliste und Vorkochen — in drei
-Gerätebreiten (360/375/393) und **beiden** Farbschemata. 18 Stationen je Lauf, 108
-insgesamt. Baut auf 2e auf: eine durchgehende Verbindung, echte Touch-Ereignisse.
+Gerätebreiten (360/375/393) und **beiden** Farbschemata. 16 Stationen je Lauf, 96
+insgesamt (nachgezählt am 19.10.2026, vorher 18/108). Baut auf 2e auf: eine durchgehende Verbindung, echte Touch-Ereignisse.
 
 ```powershell
 python tools/abnahme-mobil.py                 # alle sechs Läufe
@@ -5616,3 +5617,24 @@ gemessen: genau diese zwei.
 
 **Was er nicht kann:** die beiden IndexedDBs des Firebase-SDK prüfen. Die bleiben bewusst
 (`docs/ARCHITECTURES.md`, „`wipeLocalData()` deckt beide Speicher ab“).
+
+**Seit 19.10.2026 zusätzlich (stille Fehler):** `idbRW` lässt sich auf Ablehnung stellen. Bei
+laufender IndexedDB muss `wipeLocalData()` werfen, trotzdem den Firestore-Cache und den
+`localStorage` leeren; ohne IndexedDB (`idbOK` false) darf es nicht werfen. Gegenprobe gegen
+`9b0cc8f`: Dort wird der Fotofehler verschluckt. 15 Prüfungen.
+
+## `tools/pruefstand-gruppe-verlassen-zeiger.py` — bleibt nach dem Austritt die alte `groupId` stehen? (19.10.2026)
+
+Anlass: einmalige Durchsicht stiller Fehler (`plans/abgleich-pruefer-2026-10-18.md`, L8),
+`docs/TROUBLESHOOTING.md` 192.
+
+Ausgeschnitten: `leaveGroup()` im Original. Gestubbt ist alles, was er aufruft; die
+vorgespielte Cloud lehnt wahlweise den Plan oder jeden Schreibvorgang ab. Gemessen wird nur,
+was danach als `groupId` in der Cloud steht und welcher Toast kommt: normal leer und
+Erfolg; Plan abgelehnt trotzdem leer; alles abgelehnt kein Erfolgs-Toast, sondern der ehrliche.
+
+**Gegenprobe im selben Lauf** gegen `a365436`: Bei abgelehntem Plan bleibt dort `g1` stehen,
+und der Erfolgs-Toast kommt trotzdem. 10 Prüfungen.
+
+**Was er nicht kann:** den nächsten Start nachspielen. Dass `startCloudSync()` die lokal
+behaltenen Meals mit der Cloud zusammenführt, ist am Code nachverfolgt, nicht gemessen.

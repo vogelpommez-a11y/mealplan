@@ -6,7 +6,7 @@ Dieses Dokument enthält bekannte Fehlerquellen, historische Bugs und Probleme, 
 
 <!-- REGISTER-ANFANG (erzeugt aus den Ueberschriften: python tools/register.py - nicht von Hand pflegen) -->
 
-**Register — 191.** Chronologisch gewachsen: je hoeher die Nummer,
+**Register — 192.** Chronologisch gewachsen: je hoeher die Nummer,
 desto juenger der Fund. Wer eine Falle sucht, sucht hier zuerst; die Ueberschrift sagt
 jeweils, worum es geht. **Nicht die ganze Datei lesen** — sie ist rund 310 KB gross.
 
@@ -203,6 +203,7 @@ jeweils, worum es geht. **Nicht die ganze Datei lesen** — sie ist rund 310 KB 
 | 189 | Ohne Gruppe gewann beim Wochenplan der letzte Schreiber — auch ein veralteter |
 | 190 | „Rechnerische Richtwerte“ auf „Dein Ziel steht“ ließ sich scheinbar nicht öffnen |
 | 191 | Zwei Prüfer waren an einer Stelle blind — und meldeten trotzdem „sauber“ |
+| 192 | Zwei stille Fehler: Austritt ließ die alte Gruppe stehen, Löschen meldete „gelöscht“ trotz Fotos |
 
 <!-- REGISTER-ENDE -->
 
@@ -7299,3 +7300,37 @@ steht deshalb nachgesehen in `BESTAETIGT`, nicht in einer gelockerten Schwelle.
 
 **Lehre:** Ein Register, das einem Prüfer einen Bereich zuschreibt, ist eine Behauptung. Erst
 die Gegenfrage „steht der Bereich auch **im Prüfer**?“ macht sie zur Tatsache.
+
+## 192. Zwei stille Fehler: Austritt ließ die alte Gruppe stehen, Löschen meldete „gelöscht“ trotz Fotos
+
+Gefunden am 19.10.2026 bei der einmaligen Durchsicht stiller Fehler
+(`plans/abgleich-pruefer-2026-10-18.md`, L8). Beide selten, beide mit falscher Erfolgsmeldung.
+
+**1. Gruppe verlassen.** `leaveGroup()` schrieb `{ groupId: "", plans: keepPlans }` in einem
+Vorgang. Lehnte die Regel den Plan ab, blieb auch die alte `groupId` stehen — `leaveAtomic()`
+hatte die Mitgliedschaft aber schon beendet. Der nächste Start ging in eine Gruppe, die ihn nicht
+mehr liest: `enterGroupSync()` → `"error"`, bei **jedem** Start „Die Gruppe ist gerade nicht
+erreichbar“, und `groupSyncFailed` hielt den eigenen Plan dauerhaft aus der Cloud. Der Toast
+sagte trotzdem „deine Meals sind mitgekommen“. Dieselbe Form wie Nr. 79, nur mit anderem Auslöser.
+
+**Behoben:** `groupId: ""` als eigener Schreibvorgang vor dem Plan; scheitert auch der, sagt der
+Toast „Dein Austritt ist nicht ganz gespeichert – schreib uns kurz, wir helfen.“ Selbst beheben
+kann der Nutzer es nicht, der Betreiberweg steht in `docs/RUNBOOK.md` §4. Prüfer:
+`tools/pruefstand-gruppe-verlassen-zeiger.py`.
+
+**2. Daten löschen.** `wipeLocalData()` verschluckte einen Fehler beim Leeren der Foto-IndexedDB
+(`store:wipeImages`). Die Aufrufer meldeten „gelöscht“, obwohl die Fotos auf dem Gerät blieben —
+gegen Ziffer 10 der Datenschutzerklärung. **Behoben:** Fehler merken, nach `wipeCache()` werfen;
+nur bei `idbOK`. Prüfer: `tools/pruefstand-daten-loeschen.py` (erweitert).
+
+**Nebenbei:** `deletePlanWeek` im Gruppenabgleich protokolliert jetzt (`sync:deletePlanWeek`),
+statt leer zu fangen. Der nächste Zyklus versucht es weiter von selbst.
+
+**Durchgesehen und bewusst gelassen:** Abbruch des Teilen-Blatts, Pointer-Capture,
+Cache-Schreiben im Service Worker, Auth-Persistenz, das Mitbringen der eigenen Woche beim
+Beitritt (Plan bleibt im eigenen Konto). Damit es nicht bei einer einmaligen Durchsicht bleibt,
+fragt `kvp` in Abschnitt 6 jetzt danach.
+
+**Lehre:** Ein `catch` mit `noteError()` ist nicht automatisch harmlos. Die Frage ist nicht
+„wird der Fehler protokolliert?“, sondern „was steht danach in der Cloud, und was glaubt der
+Nutzer?“.

@@ -429,6 +429,12 @@ hält genau so eine — und bliebe still in `onblocked` hängen.
 
 Alle drei Aufrufer (`await wipeLocalData()`) warten das ab, bevor sie den Reload planen.
 
+**Scheitert das Leeren der Fotos, wirft `wipeLocalData()` (seit 19.10.2026)** — aber erst
+**nach** `wipeCache()`, damit der Rest trotzdem aufgeräumt wird. Die Aufrufer zeigen dann ihre
+ehrliche Meldung statt „gelöscht“. Nur wenn IndexedDB in Betrieb war (`idbOK`): ohne sie lagen
+die Fotos im `localStorage` und sind schon mitgegangen. Prüfer:
+`tools/pruefstand-daten-loeschen.py`.
+
 Das ist keine Kosmetik: Ziffer 10 der Datenschutzerklärung sagt wörtlich „sämtliche auf diesem
 Gerät gespeicherten Daten sofort entfernen".
 
@@ -677,7 +683,10 @@ Jetzt gilt das Muster des Gruppenplans (`pushGroupPlan()`), nur im Kontodokument
 
 Die Baseline wächst erst **nach** der Serverbestätigung; ein eingehender Snapshot setzt sie
 auf den Cloud-Stand. In der Gruppe ruht sie (`dropPlanBase()`), `leaveGroup()` schreibt den Plan
-weiterhin als ganzes Feld und setzt sie danach neu. `lastPushedJSON` wird in `onRemote()` **ohne**
+weiterhin als ganzes Feld und setzt sie danach neu. `groupId: ""` schreibt `leaveGroup()`
+seit 19.10.2026 in einem **eigenen** Vorgang davor: Ein abgelehnter Plan darf den Zeiger nicht
+mitreißen, sonst landet jeder Start in der Gruppe, die man gerade verlassen hat
+(`docs/TROUBLESHOOTING.md` 192). `lastPushedJSON` wird in `onRemote()` **ohne**
 Plan gebildet — `pushNow()` vergleicht `dataJSON(d)` stets mit leerem Plan.
 
 Grenze: Zwei Geräte, die **denselben** Slot ändern, entscheidet weiter der letzte Schreiber —

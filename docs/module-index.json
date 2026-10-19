@@ -1087,38 +1087,38 @@
       "zeilen": 54
     },
     {
-      "bis": 14810,
+      "bis": 14818,
       "datei": "index.html",
       "titel": "Marken-Lader (docs/DESIGN.md \"Der Marken-Lader\")",
       "von": 14116,
-      "zeilen": 695
+      "zeilen": 703
     },
     {
-      "bis": 15901,
+      "bis": 15921,
       "datei": "index.html",
       "titel": "Gemeinsam planen (Gruppe)",
-      "von": 14811,
-      "zeilen": 1091
+      "von": 14819,
+      "zeilen": 1103
     },
     {
-      "bis": 15935,
+      "bis": 15955,
       "datei": "index.html",
       "titel": "Teilen ueber den nativen Dialog des Geraets (Web Share API)",
-      "von": 15902,
+      "von": 15922,
       "zeilen": 34
     },
     {
-      "bis": 16175,
+      "bis": 16195,
       "datei": "index.html",
       "titel": "Einkaufsliste als PDF (Paket B3)",
-      "von": 15936,
+      "von": 15956,
       "zeilen": 240
     },
     {
-      "bis": 16194,
+      "bis": 16214,
       "datei": "index.html",
       "titel": "Boot",
-      "von": 16176,
+      "von": 16196,
       "zeilen": 19
     },
     {
@@ -1192,9 +1192,9 @@
       "zeilen": 118
     },
     {
-      "bytes": 9034,
+      "bytes": 9574,
       "pfad": ".claude/agents/kvp.md",
-      "zeilen": 162
+      "zeilen": 170
     },
     {
       "bytes": 6016,
@@ -1372,9 +1372,9 @@
       "zeilen": 154
     },
     {
-      "bytes": 221526,
+      "bytes": 222165,
       "pfad": "docs/ARCHITECTURES.md",
-      "zeilen": 3433
+      "zeilen": 3442
     },
     {
       "bytes": 14052,
@@ -1396,9 +1396,9 @@
       "zeilen": 1866
     },
     {
-      "bytes": 19508,
+      "bytes": 20086,
       "pfad": "docs/RUNBOOK.md",
-      "zeilen": 376
+      "zeilen": 384
     },
     {
       "bytes": 37178,
@@ -1406,19 +1406,19 @@
       "zeilen": 609
     },
     {
-      "bytes": 33427,
+      "bytes": 33909,
       "pfad": "docs/STORE.md",
-      "zeilen": 551
+      "zeilen": 552
     },
     {
-      "bytes": 336957,
+      "bytes": 338393,
       "pfad": "docs/TESTING.md",
-      "zeilen": 5619
+      "zeilen": 5641
     },
     {
-      "bytes": 427185,
+      "bytes": 429554,
       "pfad": "docs/TROUBLESHOOTING.md",
-      "zeilen": 7302
+      "zeilen": 7337
     },
     {
       "erzeugt": true,
@@ -1789,9 +1789,9 @@
       "pfad": "img/wurst.webp"
     },
     {
-      "bytes": 1024769,
+      "bytes": 1026249,
       "pfad": "index.html",
-      "zeilen": 16194
+      "zeilen": 16214
     },
     {
       "bytes": 9247,
@@ -1849,7 +1849,7 @@
       "zeilen": 324
     },
     {
-      "bytes": 44502,
+      "bytes": 44501,
       "pfad": "tools/abnahme-mobil.py",
       "zeilen": 959
     },
@@ -2024,9 +2024,9 @@
       "zeilen": 95
     },
     {
-      "bytes": 6318,
+      "bytes": 7749,
       "pfad": "tools/pruefstand-daten-loeschen.py",
-      "zeilen": 136
+      "zeilen": 164
     },
     {
       "bytes": 17363,
@@ -2097,6 +2097,11 @@
       "bytes": 17821,
       "pfad": "tools/pruefstand-gruppe-verlassen-dubletten.py",
       "zeilen": 348
+    },
+    {
+      "bytes": 6796,
+      "pfad": "tools/pruefstand-gruppe-verlassen-zeiger.py",
+      "zeilen": 147
     },
     {
       "bytes": 11367,

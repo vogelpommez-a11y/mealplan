@@ -104,6 +104,14 @@ obwohl niemand etwas tut, schreiben sich die Geräte gegenseitig hoch
 → Ein Sync-Feld braucht **zwei** Merge-Stellen. Ein isolierter Prüfstand sieht einen
 fehlenden Aufrufer nicht — Beweis sind der Cloud-Lauf und der `git diff`.
 
+**„Dein Austritt ist nicht ganz gespeichert“ / nach dem Austritt bei jedem Start
+„Die Gruppe ist gerade nicht erreichbar“**
+→ Die Mitgliedschaft ist beendet, im Kontodokument steht aber noch die alte `groupId`. Der
+Nutzer kann das nicht selbst lösen. In der Firebase-Konsole unter `users/{uid}` das Feld
+`groupId` auf `""` setzen (uid vom Nutzer erfragen oder in Authentication nachsehen), danach
+App neu laden lassen. Vorher prüfen, dass `groups/{gid}/members/{uid}` wirklich fehlt —
+sonst ist er noch Mitglied und das Problem ein anderes (TROUBLESHOOTING 192).
+
 **Die Linkvorschau zeigt nichts**
 → Der Cloudflare Worker fällt bei jedem Fehler still auf die GitHub-Pages-Antwort zurück.
 Das ist Absicht: Er darf die App nie blockieren. Prüfen: Route aktiv? Secrets gesetzt?

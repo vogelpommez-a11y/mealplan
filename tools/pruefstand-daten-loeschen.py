@@ -12,8 +12,13 @@ Geprueft wird der echte wipeLocalData() samt der echten Schluessel-Konstanten, a
 aus index.html, gegen einen echten localStorage (headless Edge, file://). Gestubbt sind nur die
 Randstuecke: idbRW (Meal-Fotos), CloudSync.wipeCache (Firestore-Cache), noteError.
 
+Seit 19.10.2026 zusaetzlich (stille Fehler, plans/abgleich-pruefer-2026-10-18.md L8): Laesst
+sich der Fotospeicher nicht leeren, muss wipeLocalData() werfen - sonst meldet die App "geloescht",
+obwohl die Fotos auf dem Geraet bleiben. Ohne IndexedDB (idbOK false) ist das KEIN Fehler.
+
 GEGENPROBE: Dieselben Pruefungen laufen gegen wipeLocalData() aus Commit ALT (vor dem Fix, aus
-Git gelesen). Dort MUESSEN Theme und Intro-Merker stehen bleiben.
+Git gelesen). Dort MUESSEN Theme und Intro-Merker stehen bleiben, und ein Fotofehler wird dort
+verschluckt.
 
     python tools/pruefstand-daten-loeschen.py
 """
@@ -58,15 +63,22 @@ def teile(text):
     # Randstuecke: zaehlen nur mit, damit sichtbar bleibt, dass beide Speicher drankommen.
     rand = u"""
   var AUFRUFE = { idb: 0, cache: 0 };
+  var STEUER = { idbFehler: false };
+  var idbOK = true;
   function isTestOrigin() { return false; }
   function noteError() {}
-  function idbRW(fn) { AUFRUFE.idb++; fn({ clear: function () {} }); return Promise.resolve(); }
+  function idbRW(fn) {
+    AUFRUFE.idb++;
+    if (STEUER.idbFehler) return Promise.reject(new Error("Fotospeicher gesperrt"));
+    fn({ clear: function () {} }); return Promise.resolve();
+  }
   var planBase = {}, imgSaved = new Map();
   var window = { CloudSync: { wipeCache: function () { AUFRUFE.cache++; return Promise.resolve(); } } };
 """
     keys = ", ".join("%s: %s" % (k, k) for k in SCHLUESSEL)
     return rand + "\n".join(stuecke) + \
-        "\nreturn { wipe: wipeLocalData, aufrufe: AUFRUFE, keys: { %s } };" % keys
+        "\nreturn { wipe: wipeLocalData, aufrufe: AUFRUFE, steuer: STEUER, keys: { %s },\n" \
+        "  setIdbOK: function (v) { idbOK = v; } };" % keys
 
 
 neu = io.open(os.path.join(WURZEL, "index.html"), encoding="utf-8").read()
@@ -111,6 +123,20 @@ function uebrig() {
   pruef("NEU: Firestore-Cache wurde geleert", NEU.aufrufe.cache === 1);
   pruef("NEU: fremder Schluessel ohne App-Bezug bleibt unberuehrt", localStorage.getItem("fremd_ohne_app_bezug") === "bleibt");
 
+  // --- Fotospeicher laesst sich nicht leeren -----------------------------
+  async function wirft(k) {
+    try { await k.wipe(); return false; } catch (e) { return true; }
+  }
+  befuellen(NEU);
+  NEU.steuer.idbFehler = true; NEU.setIdbOK(true);
+  var cacheVorher = NEU.aufrufe.cache;
+  pruef("NEU: Fotofehler bei laufender IndexedDB wird gemeldet (wirft)", await wirft(NEU));
+  pruef("NEU: trotz Fotofehler wird der Firestore-Cache geleert", NEU.aufrufe.cache === cacheVorher + 1);
+  pruef("NEU: trotz Fotofehler ist der localStorage leer", uebrig().length === 0, uebrig().join(", "));
+  NEU.setIdbOK(false);
+  pruef("NEU: ohne IndexedDB (privater Modus) ist das kein Fehler", !(await wirft(NEU)));
+  NEU.steuer.idbFehler = false; NEU.setIdbOK(true);
+
   // --- Gegenprobe gegen den alten Stand ---------------------------------
   befuellen(ALT);
   await ALT.wipe();
@@ -118,6 +144,8 @@ function uebrig() {
   pruef("GEGENPROBE ALT (%(alt_id)s): der Fehler ist dort messbar (Theme bleibt)", rest.indexOf("wochenkueche_theme_v1") >= 0, rest.join(", "));
   pruef("GEGENPROBE ALT: Intro-Merker bleibt dort", rest.indexOf("wochenkueche_intro_v1") >= 0, rest.join(", "));
   pruef("GEGENPROBE ALT: sonst raeumt der alte Stand dieselben Schluessel", rest.length === 2, rest.join(", "));
+  ALT.steuer.idbFehler = true;
+  pruef("GEGENPROBE ALT: Fotofehler wird dort verschluckt (wirft nicht)", !(await wirft(ALT)));
 
   localStorage.clear();
   LOG.push(bad ? "FEHLGESCHLAGEN: " + bad + " von " + (ok + bad) : "ALLE " + ok + " PRUEFUNGEN GRUEN");

@@ -2811,7 +2811,7 @@
       try {
         await window.CloudGroup.deletePlanWeek(syncGid, wk);
         Array.from(prev.keys()).forEach(k => { if (k.indexOf(wk + ".") === 0) prev.delete(k); });
-      } catch (e) { /* naechster Zyklus versucht es erneut */ }
+      } catch (e) { noteError("sync:deletePlanWeek", e); /* naechster Zyklus versucht es erneut */ }
     }
     const wkList = Object.keys(patches);
     if (!wkList.length) { if (!lastPushedSlots) lastPushedSlots = prev; return; }
@@ -14673,10 +14673,18 @@
     [STORE_KEY, PROFILE_KEY, LAST_KEY, SHOP_DONE_KEY, LETZTE_UID_KEY, PLAN_BASE_KEY, THEME_KEY, SPLASH_INTRO_KEY].forEach(k => { try { localStorage.removeItem(k); } catch (e) { noteError("store:wipeLocal", e); } });
     planBase = null;
     imgSaved = new Map();   // Baseline mitleeren, sonst gilt ein spaeter gleich benanntes Bild als schon gespeichert
-    try { await idbRW(store => store.clear()); } catch (e) { noteError("store:wipeImages", e); }
+    // Scheitert das Leeren der Fotos, lief bis 19.10.2026 trotzdem "geloescht" ueber den
+    // Bildschirm, obwohl die Fotos auf dem Geraet blieben. Jetzt wird der Fehler gemerkt und
+    // NACH dem Firestore-Cache geworfen - so raeumt der Rest trotzdem auf, und die Aufrufer
+    // zeigen ihre ehrliche Meldung. Nur wenn IndexedDB in Betrieb war: ohne idbOK lagen die
+    // Fotos im localStorage und sind oben schon mitgegangen.
+    let fotoFehler = null;
+    try { await idbRW(store => store.clear()); }
+    catch (e) { noteError("store:wipeImages", e); if (idbOK) fotoFehler = e; }
     // Zuletzt: nach terminate() ist die Firestore-Instanz tot, die vorigen Schritte muessen
     // also zuerst durch. Kein leeres catch - der Fehler propagiert bewusst an die Aufrufer.
     if (window.CloudSync && window.CloudSync.wipeCache) await window.CloudSync.wipeCache();
+    if (fotoFehler) throw fotoFehler;
   }
 
   // Konto vollstaendig loeschen (Cloud-Konten, Art. 17 DSGVO / Datenschutz Ziffer 10).
@@ -15470,8 +15478,16 @@
     state.recipes = keepRecipes;
     state.plans = keepPlans;
     setViewWeek(state.viewWeek);
+    // groupId:"" als EIGENER Schreibvorgang, getrennt vom Plan (19.10.2026, stille Fehler).
+    // Frueher standen beide in einem: Lehnte die Regel den Plan ab, blieb auch die alte
+    // groupId in der Cloud stehen. Der naechste Start wollte dann in eine Gruppe, deren
+    // Mitglied man nicht mehr ist (leaveAtomic ist da schon durch) -> "error", bei JEDEM Start
+    // derselbe Toast, und groupSyncFailed hielt den eigenen Plan dauerhaft aus der Cloud.
+    let austrittGespeichert = true;
+    try { await window.CloudSync.save(syncUid, { groupId: "" }); }
+    catch (e) { noteError("group:leaveSaveGroupId", e); austrittGespeichert = false; }
     try {
-      await window.CloudSync.save(syncUid, { groupId: "", plans: keepPlans });
+      await window.CloudSync.save(syncUid, { plans: keepPlans });
       setPlanBase(planSlots(keepPlans));   // das Feld ist eben ganz geschrieben worden - genau das hat die Cloud
       // Baseline leeren, damit der naechste Zyklus alle Meals als "neu" ins eigene
       // Konto schreibt - dort liegen sie ja noch nicht.
@@ -15492,7 +15508,11 @@
       await window.CloudSync.save(syncUid, { inviteCodes: state.inviteCodes || [] });
     } catch (e) { noteError("group:leaveSaveCodes", e); }
     await switchGroup(null);
-    toast("Du planst wieder für dich – deine Meals sind mitgekommen");
+    // Selbst beheben kann der Nutzer das nicht mehr - er ist laut Gruppe schon draussen. Den
+    // Zeiger raeumt der Betreiber in der Konsole weg (docs/RUNBOOK.md).
+    toast(austrittGespeichert
+      ? "Du planst wieder für dich – deine Meals sind mitgekommen"
+      : "Dein Austritt ist nicht ganz gespeichert – schreib uns kurz, wir helfen.");
   }
 
   // QR-Code fuer eine Einladungs-URL in einen (bereits im DOM stehenden) Container laden.

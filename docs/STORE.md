@@ -443,7 +443,7 @@ amtlichen Text nachsehen.
 **Was auf der Codeseite bereits getan ist** (16.09.2026): Textkontrast erreicht in Light
 und Dark durchgängig 4,5:1, Trefferflächen liegen bei 44 px und mehr — **erstmals
 systematisch gemessen** über Auth-Gate, alle Onboarding-Schritte (damals zehn, seit 18.10.2026 neun) und die vier Reiter
-in drei Gerätebreiten, Light und Dark (`tools/abnahme-mobil.py`, 108 Stationen).
+in drei Gerätebreiten, Light und Dark (`tools/abnahme-mobil.py`, damals 108 Stationen, seit 18.10.2026 96).
 
 **Die zweite Hälfte, gemessen und behoben am 20.09.2026** (`tools/a11y-pruefung.py`,
 24 Stationen, 298 Tab-Stopps, Gegenprobe in **beide** Richtungen grün). Was
@@ -544,6 +544,7 @@ Alternativtexte sind dafür nicht geprüft.
 | Apple-EU-Bedingungen ab 01.10.2026 | ✅ geprüft (20.09.2026): **ohne praktische Wirkung**, solange nur IAP im regulären App Store. Beim Signieren die Standard-EU-Terms wählen, nicht die Marktplatz-Variante |
 | KI-Deklaration in der Play Console | 🟡 **Formularfeld, leicht zu übersehen**: pro hochgeladenem Store-Asset ein Kästchen. Greift, falls Screenshots die KI-Gerichtsfotos zeigen |
 | Rechts-Durchgang vor der Einreichung | 🟡 **Pflicht vor jeder Einreichung:** `/rechtspruefung` (ganze App + Netzmessung ohne Konto), Bericht nicht älter als die letzte Code-Änderung |
+| Sicherheits-Durchgang vor der Einreichung | 🟡 **Einmal vor der ersten Einreichung:** offizielles Plugin `claude-security` über die ganze App (`website-security` sieht im Pushcheck nur den Diff). ⚠️ Es legt `CLAUDE-SECURITY-<Zeit>/` **im Repo** an — den Ordner **vorher** in `.gitignore` und `commit-waechter.py` aufnehmen, sonst steht der Schwachstellenbericht öffentlich. Vorgemerkt 19.10.2026 (`plans/abgleich-pruefer-2026-10-18.md`, L9) |
 | Accessibility Nutrition Labels (Apple) | 🟢 **freiwillig**, kein Zulassungskriterium. Nach dem Release nachtragen — kostenlose Sichtbarkeit |
 
 **Nicht aus diesem Repo prüfbar:** alles, was in App Store Connect, der Play Console oder
