@@ -2171,7 +2171,11 @@
   // stillschweigend passieren: der Nutzer legt sonst weiter Meals an, die beim naechsten
   // Laden alle weg sind. Einmalig warnen statt bei jedem Tastendruck.
   let storageFullWarned = false;
+  // Nach "Konto/Alle Daten loeschen" bis zum Reload: state liegt noch im Speicher, ein save()
+  // in diesem Fenster schriebe die eben geloeschten Daten zurueck (Pushcheck 19.10.2026).
+  let datenGeloescht = false;
   function save() {
+    if (datenGeloescht) return;
     try {
       // Paket A3: Meal-Fotos (r.image) und das Profilbild NICHT mehr ins localStorage-JSON -
       // sie liegen in IndexedDB (persistImagesNow). Hier bleibt nur Text/IDs, das war der
@@ -14673,19 +14677,30 @@
     [STORE_KEY, PROFILE_KEY, LAST_KEY, SHOP_DONE_KEY, LETZTE_UID_KEY, PLAN_BASE_KEY, THEME_KEY, SPLASH_INTRO_KEY].forEach(k => { try { localStorage.removeItem(k); } catch (e) { noteError("store:wipeLocal", e); } });
     planBase = null;
     imgSaved = new Map();   // Baseline mitleeren, sonst gilt ein spaeter gleich benanntes Bild als schon gespeichert
-    // Scheitert das Leeren der Fotos, lief bis 19.10.2026 trotzdem "geloescht" ueber den
-    // Bildschirm, obwohl die Fotos auf dem Geraet blieben. Jetzt wird der Fehler gemerkt und
-    // NACH dem Firestore-Cache geworfen - so raeumt der Rest trotzdem auf, und die Aufrufer
-    // zeigen ihre ehrliche Meldung. Nur wenn IndexedDB in Betrieb war: ohne idbOK lagen die
-    // Fotos im localStorage und sind oben schon mitgegangen.
-    let fotoFehler = null;
+    // Scheitert das Leeren der Fotos, lief bis 19.10.2026 "geloescht" ueber den Bildschirm,
+    // obwohl die Fotos blieben. Rueckgabe statt Wurf (Pushcheck 19.10.2026): Ein Wurf hielt den
+    // Reload auf, bei dauerhaft kaputtem Fotospeicher kam "Alle Daten loeschen" nie ans Ziel, und
+    // der naechste save() schrieb alles zurueck. So laeuft das Loeschen durch, nur die Meldung
+    // sagt es ehrlich. Ob Fotos bleiben, entscheidet das Oeffnen der Datenbank, nicht idbOK:
+    // idbOK faellt auch, wenn nur das erste Lesen scheiterte - die Fotos lagen dann trotzdem dort.
+    let fotosGeblieben = false;
     try { await idbRW(store => store.clear()); }
-    catch (e) { noteError("store:wipeImages", e); if (idbOK) fotoFehler = e; }
+    catch (e) { noteError("store:wipeImages", e); fotosGeblieben = await idbOpen().then(() => true, () => false); }
     // Zuletzt: nach terminate() ist die Firestore-Instanz tot, die vorigen Schritte muessen
     // also zuerst durch. Kein leeres catch - der Fehler propagiert bewusst an die Aufrufer.
     if (window.CloudSync && window.CloudSync.wipeCache) await window.CloudSync.wipeCache();
-    if (fotoFehler) throw fotoFehler;
+    return fotosGeblieben;
   }
+
+  // Gemeinsamer Abschluss der Loeschwege: save() sperren, Meldung bis zum Reload stehen lassen
+  // (der normale Toast verschwindet nach 1,9 s), dann neu laden.
+  function nachLoeschenNeuladen(text, ms) {
+    datenGeloescht = true;
+    toast(text);
+    clearTimeout(toastTimer);
+    setTimeout(() => location.reload(), ms);
+  }
+  const FOTOS_GEBLIEBEN = "Ein paar Fotos ließen sich auf diesem Gerät nicht entfernen – lösch sie in den Browser-Einstellungen.";
 
   // Konto vollstaendig loeschen (Cloud-Konten, Art. 17 DSGVO / Datenschutz Ziffer 10).
   // Loescht zusaetzlich alle bekannten Teilen-Links, damit kein Snapshot verwaist zurueckbleibt.
@@ -14762,20 +14777,15 @@
         // nicht dazwischenfahren. wipeLocalData() kann seit dem Firestore-Cache fehlschlagen -
         // dann ehrlich melden statt "gelöscht" zu behaupten, und NICHT neu laden.
         try {
-          await wipeLocalData();
-          toast("Konto und Daten wurden gelöscht");
+          const fotosGeblieben = await wipeLocalData();
           // Neu laden statt nur weiterzurendern: wipeLocalData() leert die lokalen Speicher,
           // nicht das im Speicher gehaltene state-Objekt (Rezepte, Plan,
           // Ziel) - ohne Reload wuerde ein direkt danach neu registriertes Konto genau
           // diese stehengebliebenen Daten wieder hochsynchronisieren, als waeren sie neu.
-          setTimeout(() => location.reload(), 900);
+          if (fotosGeblieben) nachLoeschenNeuladen("Dein Konto ist gelöscht. " + FOTOS_GEBLIEBEN, 4000);
+          else nachLoeschenNeuladen("Konto und Daten wurden gelöscht", 900);
         } catch (wipeErr) {
-          // Das Konto ist hier schon weg - "noch einmal versuchen" gibt es nicht mehr. Trotzdem
-          // neu laden: Ohne Reload blieb state im Speicher, der naechste save() schrieb ihn
-          // zurueck, und ein sofort neu registriertes Konto luede ihn hoch (Pushcheck 19.10.2026).
-          // Die restlichen Fotos raeumt "Alle Daten loeschen" im lokalen Profil weg.
-          toast("Dein Konto ist gelöscht. Ein paar Fotos blieben auf dem Gerät – wähle nach dem Neuladen „Alle Daten löschen“.");
-          setTimeout(() => location.reload(), 2500);
+          toast("Ein Teil der lokalen Daten ließ sich gerade nicht entfernen. Lad die Seite neu und versuch es noch einmal.");
         }
       } catch (e) {
         if (e && e.dataAlreadyDeleted) {
@@ -14787,8 +14797,9 @@
           try {
             await wipeLocalData();
             try { window.CloudAuth.logout(); } catch (er) { noteError("auth:logoutAfterDelete", er); }
-            toast("Deine Daten wurden gelöscht. Melde dich einmal neu an und wiederhole „Konto löschen“, um auch den Zugang zu entfernen.");
-            setTimeout(() => location.reload(), 900);
+            // Bleiben hier zusaetzlich Fotos, sagt es die Meldung NICHT: Den Zugang zu entfernen
+            // ist die wichtigere Nachricht, und zwei Hinweise passen in keinen Toast (TS 192).
+            nachLoeschenNeuladen("Deine Daten wurden gelöscht. Melde dich einmal neu an und wiederhole „Konto löschen“, um auch den Zugang zu entfernen.", 900);
           } catch (wipeErr) {
             toast("Ein Teil der lokalen Daten ließ sich gerade nicht entfernen. Lad die Seite neu und versuch es noch einmal.");
           }
@@ -14810,10 +14821,10 @@
       okLabel: "Alle Daten löschen",
       onConfirm: async () => {
         try {
-          await wipeLocalData();
+          const fotosGeblieben = await wipeLocalData();
           profile = null;
-          toast("Alle Daten wurden gelöscht");
-          setTimeout(() => location.reload(), 900); // kurz sichtbar, dann sauberer Neustart
+          if (fotosGeblieben) nachLoeschenNeuladen("Deine Daten sind gelöscht. " + FOTOS_GEBLIEBEN, 4000);
+          else nachLoeschenNeuladen("Alle Daten wurden gelöscht", 900); // kurz sichtbar, dann sauberer Neustart
         } catch (wipeErr) {
           toast("Ein Teil der lokalen Daten ließ sich gerade nicht entfernen. Lad die Seite neu und versuch es noch einmal.");
         }
@@ -15748,14 +15759,15 @@
             // Auch in der Cloud raeumen, sonst holt der naechste Start den Zeiger von dort
             // zurueck (wantGid = remote.groupId || state.groupId, siehe Selbstheilung).
             // Scheitert das, holt der naechste Start den Zeiger zurueck - dann nicht "gelöst"
-            // melden (stille Fehler, 19.10.2026). Derselbe Text und Betreiberweg wie leaveGroup().
+            // melden (stille Fehler, 19.10.2026). Wiederholbar: Der Knopf bleibt, solange die
+            // Gruppe nicht erreichbar ist.
             let geloest = true;
             try { await window.CloudSync.save(syncUid, { groupId: "" }); }
             catch (e) { noteError("group:loesen", e); geloest = false; }
             closeModal();
             toast(geloest
               ? "Verbindung gelöst – du planst wieder für dich"
-              : "Dein Austritt ist nicht ganz gespeichert – schreib uns kurz, wir helfen.");
+              : "Hat nicht geklappt – versuch’s nochmal");
             render();
           }
         });

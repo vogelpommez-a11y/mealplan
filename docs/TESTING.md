@@ -5618,10 +5618,11 @@ gemessen: genau diese zwei.
 **Was er nicht kann:** die beiden IndexedDBs des Firebase-SDK prüfen. Die bleiben bewusst
 (`docs/ARCHITECTURES.md`, „`wipeLocalData()` deckt beide Speicher ab“).
 
-**Seit 19.10.2026 zusätzlich (stille Fehler):** `idbRW` lässt sich auf Ablehnung stellen. Bei
-laufender IndexedDB muss `wipeLocalData()` werfen, trotzdem den Firestore-Cache und den
-`localStorage` leeren; ohne IndexedDB (`idbOK` false) darf es nicht werfen. Gegenprobe gegen
-`9b0cc8f`: Dort wird der Fotofehler verschluckt. 15 Prüfungen.
+**Seit 19.10.2026 zusätzlich (stille Fehler):** `idbRW` lässt sich auf Ablehnung stellen,
+`idbOpen` auf „geht nicht auf“. Bei offener Datenbank muss `wipeLocalData()` `true` zurückmelden,
+darf **nicht** werfen und leert trotzdem Firestore-Cache und `localStorage`; geht die Datenbank gar
+nicht auf, meldet es `false`; ohne Fehler `false`. Gegenprobe gegen `9b0cc8f`: Dort wird der
+Fotofehler verschluckt. 17 Prüfungen.
 
 ## `tools/pruefstand-gruppe-verlassen-zeiger.py` — bleibt nach dem Austritt die alte `groupId` stehen? (19.10.2026)
 

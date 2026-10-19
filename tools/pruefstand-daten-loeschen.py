@@ -13,8 +13,10 @@ aus index.html, gegen einen echten localStorage (headless Edge, file://). Gestub
 Randstuecke: idbRW (Meal-Fotos), CloudSync.wipeCache (Firestore-Cache), noteError.
 
 Seit 19.10.2026 zusaetzlich (stille Fehler, plans/abgleich-pruefer-2026-10-18.md L8): Laesst
-sich der Fotospeicher nicht leeren, muss wipeLocalData() werfen - sonst meldet die App "geloescht",
-obwohl die Fotos auf dem Geraet bleiben. Ohne IndexedDB (idbOK false) ist das KEIN Fehler.
+sich der Fotospeicher nicht leeren, muss wipeLocalData() das zurueckmelden (true) - sonst meldet
+die App "geloescht", obwohl die Fotos auf dem Geraet bleiben. Werfen darf es dafuer NICHT (ein Wurf
+hielt den Reload auf, Pushcheck 19.10.2026). Laesst sich die Datenbank gar nicht oeffnen, gab es
+dort keine Fotos: false.
 
 GEGENPROBE: Dieselben Pruefungen laufen gegen wipeLocalData() aus Commit ALT (vor dem Fix, aus
 Git gelesen). Dort MUESSEN Theme und Intro-Merker stehen bleiben, und ein Fotofehler wird dort
@@ -63,8 +65,9 @@ def teile(text):
     # Randstuecke: zaehlen nur mit, damit sichtbar bleibt, dass beide Speicher drankommen.
     rand = u"""
   var AUFRUFE = { idb: 0, cache: 0 };
-  var STEUER = { idbFehler: false };
+  var STEUER = { idbFehler: false, dbOffen: true };
   var idbOK = true;
+  function idbOpen() { return STEUER.dbOffen ? Promise.resolve({}) : Promise.reject(new Error("kein IndexedDB")); }
   function isTestOrigin() { return false; }
   function noteError() {}
   function idbRW(fn) {
@@ -77,8 +80,7 @@ def teile(text):
 """
     keys = ", ".join("%s: %s" % (k, k) for k in SCHLUESSEL)
     return rand + "\n".join(stuecke) + \
-        "\nreturn { wipe: wipeLocalData, aufrufe: AUFRUFE, steuer: STEUER, keys: { %s },\n" \
-        "  setIdbOK: function (v) { idbOK = v; } };" % keys
+        "\nreturn { wipe: wipeLocalData, aufrufe: AUFRUFE, steuer: STEUER, keys: { %s } };" % keys
 
 
 neu = io.open(os.path.join(WURZEL, "index.html"), encoding="utf-8").read()
@@ -117,25 +119,29 @@ function uebrig() {
   pruef("NEU: Intro-Schluessel heisst wochenkueche_intro_v1", NEU.keys.SPLASH_INTRO_KEY === "wochenkueche_intro_v1");
   befuellen(NEU);
   pruef("NEU: vorher liegen alle " + Object.keys(NEU.keys).length + " App-Schluessel", uebrig().length === Object.keys(NEU.keys).length, uebrig().join(", "));
-  await NEU.wipe();
+  var normal = await NEU.wipe();
+  pruef("NEU: ohne Fehler meldet es keine gebliebenen Fotos", normal === false, String(normal));
   pruef("NEU: danach liegt kein wochenkueche_-Schluessel mehr", uebrig().length === 0, uebrig().join(", "));
   pruef("NEU: Fotos (IndexedDB) wurden geleert", NEU.aufrufe.idb === 1);
   pruef("NEU: Firestore-Cache wurde geleert", NEU.aufrufe.cache === 1);
   pruef("NEU: fremder Schluessel ohne App-Bezug bleibt unberuehrt", localStorage.getItem("fremd_ohne_app_bezug") === "bleibt");
 
   // --- Fotospeicher laesst sich nicht leeren -----------------------------
-  async function wirft(k) {
-    try { await k.wipe(); return false; } catch (e) { return true; }
+  async function ergebnis(k) {
+    try { return { wurf: false, wert: await k.wipe() }; } catch (e) { return { wurf: true }; }
   }
   befuellen(NEU);
-  NEU.steuer.idbFehler = true; NEU.setIdbOK(true);
+  NEU.steuer.idbFehler = true; NEU.steuer.dbOffen = true;
   var cacheVorher = NEU.aufrufe.cache;
-  pruef("NEU: Fotofehler bei laufender IndexedDB wird gemeldet (wirft)", await wirft(NEU));
+  var e = await ergebnis(NEU);
+  pruef("NEU: Fotofehler wirft NICHT (Reload darf nicht haengen)", !e.wurf);
+  pruef("NEU: Fotofehler bei offener Datenbank meldet gebliebene Fotos", e.wert === true, JSON.stringify(e));
   pruef("NEU: trotz Fotofehler wird der Firestore-Cache geleert", NEU.aufrufe.cache === cacheVorher + 1);
   pruef("NEU: trotz Fotofehler ist der localStorage leer", uebrig().length === 0, uebrig().join(", "));
-  NEU.setIdbOK(false);
-  pruef("NEU: ohne IndexedDB (privater Modus) ist das kein Fehler", !(await wirft(NEU)));
-  NEU.steuer.idbFehler = false; NEU.setIdbOK(true);
+  NEU.steuer.dbOffen = false;
+  e = await ergebnis(NEU);
+  pruef("NEU: Datenbank laesst sich gar nicht oeffnen (privater Modus) - keine Fotos gemeldet", !e.wurf && e.wert === false, JSON.stringify(e));
+  NEU.steuer.idbFehler = false; NEU.steuer.dbOffen = true;
 
   // --- Gegenprobe gegen den alten Stand ---------------------------------
   befuellen(ALT);
@@ -145,7 +151,8 @@ function uebrig() {
   pruef("GEGENPROBE ALT: Intro-Merker bleibt dort", rest.indexOf("wochenkueche_intro_v1") >= 0, rest.join(", "));
   pruef("GEGENPROBE ALT: sonst raeumt der alte Stand dieselben Schluessel", rest.length === 2, rest.join(", "));
   ALT.steuer.idbFehler = true;
-  pruef("GEGENPROBE ALT: Fotofehler wird dort verschluckt (wirft nicht)", !(await wirft(ALT)));
+  e = await ergebnis(ALT);
+  pruef("GEGENPROBE ALT: Fotofehler wird dort verschluckt (meldet nichts)", !e.wurf && e.wert !== true, JSON.stringify(e));
 
   localStorage.clear();
   LOG.push(bad ? "FEHLGESCHLAGEN: " + bad + " von " + (ok + bad) : "ALLE " + ok + " PRUEFUNGEN GRUEN");

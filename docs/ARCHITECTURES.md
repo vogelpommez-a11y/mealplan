@@ -155,7 +155,8 @@ damit genauso verlieren. Drei Cloud-Pfade waren betroffen und haben jetzt ihre K
 | `group:switch` | Gruppe laden/wechseln | „Die Gruppe ist gerade nicht erreichbar …" |
 | `sync:recipes` | Rezept-Batch in die Cloud | „Deine Meal-Fotos konnten gerade nicht …" |
 | `save:localStorage` | `save()` schlägt fehl | „Der Speicher dieses Geräts ist voll …" |
-| `group:leaveSaveOwn` / `group:loesen` | Gruppe verlassen bzw. Verbindung lösen, Zeiger leeren (Toast seit 19.10.2026) | „Dein Austritt ist nicht ganz gespeichert – schreib uns kurz, wir helfen." |
+| `group:leaveSaveOwn` | Gruppe verlassen, Zeiger + Plan zurückschreiben (Toast seit 19.10.2026) | „Dein Austritt ist nicht ganz gespeichert – schreib uns kurz, wir helfen." |
+| `group:loesen` | Verbindung lösen, Zeiger leeren (Toast seit 19.10.2026) | „Hat nicht geklappt – versuch’s nochmal" |
 
 Der Nutzen zeigte sich sofort: Beim ersten Lauf über `localhost` meldete `group:switch` die
 Ursache, die vorher niemand sehen konnte — **„Missing or insufficient permissions."**, also ein
@@ -302,7 +303,7 @@ Die Initialisierung sitzt in einem eigenen `try/catch` mit Fallback auf `getFire
 
 **Wichtigste Konsequenz: `fromCache` ist kein Beweis.** Mit dem flüchtigen Cache warf `getDoc`/`getDocs` offline zuverlässig — erkennbar als Fehler. Mit Persistenz liefern beide still den letzten bekannten Stand aus IndexedDB, kenntlich nur über `snap.metadata.fromCache`. `CloudGroup.fetch()` und `fetchMembers()` geben dieses Flag deshalb mit zurück (`{ data, fromCache }` bzw. `{ members, fromCache }`), `watchMembers()` reicht es als zweiten Callback-Parameter durch. `enterGroupSync()` leitet aus einem `fromCache`-Ergebnis **nie** `"gone"` ab, sondern `"error"` — siehe „Drei Zustände statt true/false" unten, ausführlicher Fehlerfall in `docs/TROUBLESHOOTING.md`.
 
-**Löschung:** `CloudSync.wipeCache()` ruft `terminate(db)` gefolgt von `clearIndexedDbPersistence(db)` — Reihenfolge zwingend, `clearIndexedDbPersistence()` verlangt eine beendete Instanz. `wipeLocalData()` ruft das als letzten Schritt auf, nach `localStorage` und der Bild-IndexedDB. Seitdem kann `wipeLocalData()` erstmals fehlschlagen (seit 19.10.2026 auch am Leeren der Foto-IndexedDB, siehe „`wipeLocalData()` deckt beide Speicher ab“); alle drei Aufrufer (`deleteAccountFlow()` beide Zweige, `deleteLocalDataFlow()`) fangen den Fehler mit einer ehrlichen Meldung ab, statt „gelöscht" zu behaupten und neu zu laden.
+**Löschung:** `CloudSync.wipeCache()` ruft `terminate(db)` gefolgt von `clearIndexedDbPersistence(db)` — Reihenfolge zwingend, `clearIndexedDbPersistence()` verlangt eine beendete Instanz. `wipeLocalData()` ruft das als letzten Schritt auf, nach `localStorage` und der Bild-IndexedDB. Seitdem kann `wipeLocalData()` erstmals fehlschlagen; alle drei Aufrufer (`deleteAccountFlow()` beide Zweige, `deleteLocalDataFlow()`) fangen den Fehler mit einer ehrlichen Meldung ab, statt „gelöscht" zu behaupten und neu zu laden.
 
 ## Brücke zwischen Firebase und App
 
@@ -430,10 +431,14 @@ hält genau so eine — und bliebe still in `onblocked` hängen.
 
 Alle drei Aufrufer (`await wipeLocalData()`) warten das ab, bevor sie den Reload planen.
 
-**Scheitert das Leeren der Fotos, wirft `wipeLocalData()` (seit 19.10.2026)** — aber erst
-**nach** `wipeCache()`, damit der Rest trotzdem aufgeräumt wird. Die Aufrufer zeigen dann ihre
-ehrliche Meldung statt „gelöscht“. Nur wenn IndexedDB in Betrieb war (`idbOK`): ohne sie lagen
-die Fotos im `localStorage` und sind schon mitgegangen. Prüfer:
+**Scheitert das Leeren der Fotos, meldet `wipeLocalData()` das zurück (`true`, seit
+19.10.2026)** — es wirft dafür **nicht**: Ein Wurf hielt den Reload auf, bei dauerhaft kaputtem
+Fotospeicher kam „Alle Daten löschen“ nie ans Ziel, und der nächste `save()` schrieb alles zurück.
+Ob Fotos bleiben, entscheidet `idbOpen()` (nicht `idbOK`, das auch fällt, wenn nur das erste Lesen
+scheiterte). Die Aufrufer laden trotzdem neu und sagen „Ein paar Fotos ließen sich … nicht
+entfernen – lösch sie in den Browser-Einstellungen.“ `nachLoeschenNeuladen()` setzt dafür
+`datenGeloescht`: Bis zum Reload ist `save()` gesperrt, die Meldung bleibt stehen. Ausnahme ist der
+Zweig `dataAlreadyDeleted` — dort ist „Zugang entfernen“ die wichtigere Nachricht. Prüfer:
 `tools/pruefstand-daten-loeschen.py`.
 
 Das ist keine Kosmetik: Ziffer 10 der Datenschutzerklärung sagt wörtlich „sämtliche auf diesem

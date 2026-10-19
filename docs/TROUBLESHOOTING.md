@@ -7329,10 +7329,15 @@ nach und hielt „der Abgleich holt es nach“ für gemessen. Seitdem prüft er 
 
 **2. Daten löschen.** `wipeLocalData()` verschluckte einen Fehler beim Leeren der Foto-IndexedDB
 (`store:wipeImages`). Die Aufrufer meldeten „gelöscht“, obwohl die Fotos auf dem Gerät blieben —
-gegen Ziffer 10 der Datenschutzerklärung. **Behoben:** Fehler merken, nach `wipeCache()` werfen;
-nur bei `idbOK`. Im Konto-Pfad (Konto schon gelöscht) lädt die App danach trotzdem neu und
-verweist auf „Alle Daten löschen“ — ohne Reload schriebe der nächste `save()` den State zurück.
-Prüfer: `tools/pruefstand-daten-loeschen.py` (erweitert).
+gegen Ziffer 10 der Datenschutzerklärung. **Behoben:** `wipeLocalData()` meldet gebliebene Fotos
+zurück, das Löschen läuft durch und lädt neu, die Meldung verweist auf die Browser-Einstellungen;
+bis zum Reload ist `save()` gesperrt. Bewusste Lücke: im Zweig `dataAlreadyDeleted` sagt es die
+Meldung nicht (zwei Hinweise passen in keinen Toast). Prüfer: `tools/pruefstand-daten-loeschen.py`.
+
+**Auch hier war der erste Fix schlimmer** (`f813adf`/`f12e1db`, nie gepusht): `wipeLocalData()`
+**warf** bei Fotofehlern. Die Aufrufer luden dann nicht neu — bei dauerhaft kaputtem Fotospeicher
+kam „Alle Daten löschen“ nie ans Ziel, und der nächste `save()` schrieb die gelöschten Daten
+zurück. Vorher war wenigstens alles außer den Fotos weg. Gefunden: zweiter `/code-review`-Lauf.
 
 **Nebenbei:** `deletePlanWeek` im Gruppenabgleich protokolliert jetzt (`sync:deletePlanWeek`),
 statt leer zu fangen. Der nächste Zyklus versucht es weiter von selbst.
