@@ -109,7 +109,10 @@ fehlenden Aufrufer nicht — Beweis sind der Cloud-Lauf und der `git diff`.
 → Die Mitgliedschaft ist beendet, im Kontodokument steht aber noch die alte `groupId`. Der
 Nutzer kann das nicht selbst lösen. In der Firebase-Konsole unter `users/{uid}` das Feld
 `groupId` auf `""` setzen (uid vom Nutzer erfragen oder in Authentication nachsehen), danach
-App neu laden lassen. Vorher prüfen, dass `groups/{gid}/members/{uid}` wirklich fehlt —
+App neu laden lassen. ⚠️ Grenze: Schon der erste Start im hängenden Zustand hat Wochen, die es
+auch im Cloud-Plan von vor dem Beitritt gab, durch diese ersetzt (keine Plan-Baseline nach der
+Gruppe, `mergePlansSlotwise()`). Das holt der Konsolen-Eingriff nicht zurück; dem Nutzer ehrlich
+sagen, dass er diese Wochen neu planen muss. Vorher prüfen, dass `groups/{gid}/members/{uid}` wirklich fehlt —
 sonst ist er noch Mitglied und das Problem ein anderes (TROUBLESHOOTING 192).
 
 **Die Linkvorschau zeigt nichts**

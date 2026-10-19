@@ -7306,22 +7306,33 @@ die Gegenfrage „steht der Bereich auch **im Prüfer**?“ macht sie zur Tatsac
 Gefunden am 19.10.2026 bei der einmaligen Durchsicht stiller Fehler
 (`plans/abgleich-pruefer-2026-10-18.md`, L8). Beide selten, beide mit falscher Erfolgsmeldung.
 
-**1. Gruppe verlassen.** `leaveGroup()` schrieb `{ groupId: "", plans: keepPlans }` in einem
-Vorgang. Lehnte die Regel den Plan ab, blieb auch die alte `groupId` stehen — `leaveAtomic()`
+**1. Gruppe verlassen.** `leaveGroup()` schreibt `{ groupId: "", plans: keepPlans }` in einem
+Vorgang. Scheiterte der, blieb die alte `groupId` stehen — `leaveAtomic()`
 hatte die Mitgliedschaft aber schon beendet. Der nächste Start ging in eine Gruppe, die ihn nicht
 mehr liest: `enterGroupSync()` → `"error"`, bei **jedem** Start „Die Gruppe ist gerade nicht
 erreichbar“, und `groupSyncFailed` hielt den eigenen Plan dauerhaft aus der Cloud. Der Toast
 sagte trotzdem „deine Meals sind mitgekommen“. Dieselbe Form wie Nr. 79, nur mit anderem Auslöser.
 
-**Behoben:** `groupId: ""` als eigener Schreibvorgang vor dem Plan; scheitert auch der, sagt der
-Toast „Dein Austritt ist nicht ganz gespeichert – schreib uns kurz, wir helfen.“ Selbst beheben
-kann der Nutzer es nicht, der Betreiberweg steht in `docs/RUNBOOK.md` §4. Prüfer:
+**Behoben:** Scheitert der Vorgang, sagt der Toast „Dein Austritt ist nicht ganz gespeichert –
+schreib uns kurz, wir helfen.“ Selbst beheben kann der Nutzer es nicht, der Betreiberweg steht
+in `docs/RUNBOOK.md` §4. „Verbindung lösen“ meldet seinen Fehlschlag genauso. Prüfer:
 `tools/pruefstand-gruppe-verlassen-zeiger.py`.
+
+**⚠️ Der erste Fix war schlimmer als der Fehler** (`f813adf`, nie gepusht): `groupId: ""` als
+eigener Schreibvorgang **vor** dem Plan. Offline wartet das erste `await` auf den Server, der
+Plan wird gar nicht erst abgeschickt; geht die App vorher zu, kommt nur der Zeiger an. Ohne
+Plan-Baseline (in der Gruppe per `dropPlanBase()` geleert) nimmt `mergePlansSlotwise()` dann je
+Woche den Cloud-Plan von **vor** dem Beitritt — die mitgenommenen Wochen wären weg. Gefunden hat
+es `/code-review` im Pushcheck, nicht der eigene Prüfstand: Der spielte den nächsten Start nicht
+nach und hielt „der Abgleich holt es nach“ für gemessen. Seitdem prüft er zusätzlich, dass
+`groupId` nie ohne `plans` hinausgeht (Gegenprobe gegen `f813adf`).
 
 **2. Daten löschen.** `wipeLocalData()` verschluckte einen Fehler beim Leeren der Foto-IndexedDB
 (`store:wipeImages`). Die Aufrufer meldeten „gelöscht“, obwohl die Fotos auf dem Gerät blieben —
 gegen Ziffer 10 der Datenschutzerklärung. **Behoben:** Fehler merken, nach `wipeCache()` werfen;
-nur bei `idbOK`. Prüfer: `tools/pruefstand-daten-loeschen.py` (erweitert).
+nur bei `idbOK`. Im Konto-Pfad (Konto schon gelöscht) lädt die App danach trotzdem neu und
+verweist auf „Alle Daten löschen“ — ohne Reload schriebe der nächste `save()` den State zurück.
+Prüfer: `tools/pruefstand-daten-loeschen.py` (erweitert).
 
 **Nebenbei:** `deletePlanWeek` im Gruppenabgleich protokolliert jetzt (`sync:deletePlanWeek`),
 statt leer zu fangen. Der nächste Zyklus versucht es weiter von selbst.
@@ -7331,6 +7342,9 @@ Cache-Schreiben im Service Worker, Auth-Persistenz, das Mitbringen der eigenen W
 Beitritt (Plan bleibt im eigenen Konto). Damit es nicht bei einer einmaligen Durchsicht bleibt,
 fragt `kvp` in Abschnitt 6 jetzt danach.
 
-**Lehre:** Ein `catch` mit `noteError()` ist nicht automatisch harmlos. Die Frage ist nicht
+**Lehre:** Ein Schreibvorgang, der zwei Felder gemeinsam trägt, ist eine Zusage. Wer ihn teilt,
+muss jede Reihenfolge durchspielen, in der nur einer ankommt — offline vor allem.
+
+Und: Ein `catch` mit `noteError()` ist nicht automatisch harmlos. Die Frage ist nicht
 „wird der Fehler protokolliert?“, sondern „was steht danach in der Cloud, und was glaubt der
 Nutzer?“.

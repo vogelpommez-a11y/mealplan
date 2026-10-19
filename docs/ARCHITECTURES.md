@@ -155,6 +155,7 @@ damit genauso verlieren. Drei Cloud-Pfade waren betroffen und haben jetzt ihre K
 | `group:switch` | Gruppe laden/wechseln | „Die Gruppe ist gerade nicht erreichbar …" |
 | `sync:recipes` | Rezept-Batch in die Cloud | „Deine Meal-Fotos konnten gerade nicht …" |
 | `save:localStorage` | `save()` schlägt fehl | „Der Speicher dieses Geräts ist voll …" |
+| `group:leaveSaveOwn` / `group:loesen` | Gruppe verlassen bzw. Verbindung lösen, Zeiger leeren (Toast seit 19.10.2026) | „Dein Austritt ist nicht ganz gespeichert – schreib uns kurz, wir helfen." |
 
 Der Nutzen zeigte sich sofort: Beim ersten Lauf über `localhost` meldete `group:switch` die
 Ursache, die vorher niemand sehen konnte — **„Missing or insufficient permissions."**, also ein
@@ -301,7 +302,7 @@ Die Initialisierung sitzt in einem eigenen `try/catch` mit Fallback auf `getFire
 
 **Wichtigste Konsequenz: `fromCache` ist kein Beweis.** Mit dem flüchtigen Cache warf `getDoc`/`getDocs` offline zuverlässig — erkennbar als Fehler. Mit Persistenz liefern beide still den letzten bekannten Stand aus IndexedDB, kenntlich nur über `snap.metadata.fromCache`. `CloudGroup.fetch()` und `fetchMembers()` geben dieses Flag deshalb mit zurück (`{ data, fromCache }` bzw. `{ members, fromCache }`), `watchMembers()` reicht es als zweiten Callback-Parameter durch. `enterGroupSync()` leitet aus einem `fromCache`-Ergebnis **nie** `"gone"` ab, sondern `"error"` — siehe „Drei Zustände statt true/false" unten, ausführlicher Fehlerfall in `docs/TROUBLESHOOTING.md`.
 
-**Löschung:** `CloudSync.wipeCache()` ruft `terminate(db)` gefolgt von `clearIndexedDbPersistence(db)` — Reihenfolge zwingend, `clearIndexedDbPersistence()` verlangt eine beendete Instanz. `wipeLocalData()` ruft das als letzten Schritt auf, nach `localStorage` und der Bild-IndexedDB. Seitdem kann `wipeLocalData()` erstmals fehlschlagen; alle drei Aufrufer (`deleteAccountFlow()` beide Zweige, `deleteLocalDataFlow()`) fangen den Fehler mit einer ehrlichen Meldung ab, statt „gelöscht" zu behaupten und neu zu laden.
+**Löschung:** `CloudSync.wipeCache()` ruft `terminate(db)` gefolgt von `clearIndexedDbPersistence(db)` — Reihenfolge zwingend, `clearIndexedDbPersistence()` verlangt eine beendete Instanz. `wipeLocalData()` ruft das als letzten Schritt auf, nach `localStorage` und der Bild-IndexedDB. Seitdem kann `wipeLocalData()` erstmals fehlschlagen (seit 19.10.2026 auch am Leeren der Foto-IndexedDB, siehe „`wipeLocalData()` deckt beide Speicher ab“); alle drei Aufrufer (`deleteAccountFlow()` beide Zweige, `deleteLocalDataFlow()`) fangen den Fehler mit einer ehrlichen Meldung ab, statt „gelöscht" zu behaupten und neu zu laden.
 
 ## Brücke zwischen Firebase und App
 
@@ -683,10 +684,9 @@ Jetzt gilt das Muster des Gruppenplans (`pushGroupPlan()`), nur im Kontodokument
 
 Die Baseline wächst erst **nach** der Serverbestätigung; ein eingehender Snapshot setzt sie
 auf den Cloud-Stand. In der Gruppe ruht sie (`dropPlanBase()`), `leaveGroup()` schreibt den Plan
-weiterhin als ganzes Feld und setzt sie danach neu. `groupId: ""` schreibt `leaveGroup()`
-seit 19.10.2026 in einem **eigenen** Vorgang davor: Ein abgelehnter Plan darf den Zeiger nicht
-mitreißen, sonst landet jeder Start in der Gruppe, die man gerade verlassen hat
-(`docs/TROUBLESHOOTING.md` 192). `lastPushedJSON` wird in `onRemote()` **ohne**
+weiterhin als ganzes Feld und setzt sie danach neu. `groupId: ""` und Plan gehen **im selben**
+Vorgang hinaus — nie getrennt: Käme nur der Zeiger an, gewänne beim nächsten Start ohne
+Baseline der Cloud-Plan von vor dem Beitritt (`docs/TROUBLESHOOTING.md` 192). `lastPushedJSON` wird in `onRemote()` **ohne**
 Plan gebildet — `pushNow()` vergleicht `dataJSON(d)` stets mit leerem Plan.
 
 Grenze: Zwei Geräte, die **denselben** Slot ändern, entscheidet weiter der letzte Schreiber —

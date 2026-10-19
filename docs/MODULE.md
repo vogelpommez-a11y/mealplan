@@ -153,11 +153,11 @@ Erhoben aus den Abschnittsmarken im Code, nicht von Hand gepflegt.
 | index.html | Einstieg (D1b) | 13965-14044 | 80 |
 | index.html | Cloud-Anmeldung (Firebase) | 14045-14061 | 17 |
 | index.html | Startbildschirm (#splash, statisch im Markup) | 14062-14115 | 54 |
-| index.html | Marken-Lader (docs/DESIGN.md "Der Marken-Lader") | 14116-14818 | 703 |
-| index.html | Gemeinsam planen (Gruppe) | 14819-15921 | 1103 |
-| index.html | Teilen ueber den nativen Dialog des Geraets (Web Share API) | 15922-15955 | 34 |
-| index.html | Einkaufsliste als PDF (Paket B3) | 15956-16195 | 240 |
-| index.html | Boot | 16196-16214 | 19 |
+| index.html | Marken-Lader (docs/DESIGN.md "Der Marken-Lader") | 14116-14823 | 708 |
+| index.html | Gemeinsam planen (Gruppe) | 14824-15932 | 1109 |
+| index.html | Teilen ueber den nativen Dialog des Geraets (Web Share API) | 15933-15966 | 34 |
+| index.html | Einkaufsliste als PDF (Paket B3) | 15967-16206 | 240 |
+| index.html | Boot | 16207-16225 | 19 |
 | lib/barcode.js | Barcode-Scan (Open Food Facts) | 14-163 | 150 |
 | lib/pdf.js | PDF selbst erzeugen (kein window.print, sandbox-sicher) | 14-38 | 25 |
 | lib/pdf.js | Marken-Kopf fuer die PDFs (Logo, "PADDY'S MEALPLAN", Slogan) | 39-106 | 68 |
@@ -345,16 +345,16 @@ _keine_
 | data/rechtstexte.js | 208 | 34439 |
 | docs/ABDECKUNG.md | 192 | 13969 |
 | docs/ABNAHME-MENSCH.md | 154 | 8239 |
-| docs/ARCHITECTURES.md | 3442 | 222165 |
+| docs/ARCHITECTURES.md | 3442 | 222443 |
 | docs/BAUSTEINE.md | 106 | 14052 |
 | docs/DESIGN.md | 1439 | 80261 |
 | docs/MODULE.md | — | — (erzeugt) |
 | docs/PRODUCT.md | 1866 | 108506 |
-| docs/RUNBOOK.md | 384 | 20086 |
+| docs/RUNBOOK.md | 387 | 20402 |
 | docs/SECURITY.md | 609 | 37178 |
 | docs/STORE.md | 552 | 33909 |
 | docs/TESTING.md | 5641 | 338393 |
-| docs/TROUBLESHOOTING.md | 7337 | 429554 |
+| docs/TROUBLESHOOTING.md | 7351 | 430645 |
 | docs/module-index.json | — | — (erzeugt) |
 | firestore.rules | 552 | 32127 |
 | img/apple-touch-icon.png | — | 35163 |
@@ -446,7 +446,7 @@ _keine_
 | img/waffle.webp | — | 52546 |
 | img/wrap.webp | — | 43594 |
 | img/wurst.webp | — | 54064 |
-| index.html | 16214 | 1026249 |
+| index.html | 16225 | 1027137 |
 | lib/barcode.js | 163 | 9247 |
 | lib/basis.js | 21 | 836 |
 | lib/pdf.js | 241 | 13120 |
@@ -508,7 +508,7 @@ _keine_
 | tools/pruefstand-gruppe-plan-mitbringen.py | 318 | 14800 |
 | tools/pruefstand-gruppe-sperre.py | 268 | 12117 |
 | tools/pruefstand-gruppe-verlassen-dubletten.py | 348 | 17821 |
-| tools/pruefstand-gruppe-verlassen-zeiger.py | 147 | 6796 |
+| tools/pruefstand-gruppe-verlassen-zeiger.py | 152 | 6827 |
 | tools/pruefstand-gruppenlimit.py | 243 | 11367 |
 | tools/pruefstand-home-eine-seite.py | 405 | 22404 |
 | tools/pruefstand-jahresumschalter.py | 234 | 9867 |

@@ -5629,12 +5629,13 @@ Anlass: einmalige Durchsicht stiller Fehler (`plans/abgleich-pruefer-2026-10-18.
 `docs/TROUBLESHOOTING.md` 192.
 
 Ausgeschnitten: `leaveGroup()` im Original. Gestubbt ist alles, was er aufruft; die
-vorgespielte Cloud lehnt wahlweise den Plan oder jeden Schreibvorgang ab. Gemessen wird nur,
-was danach als `groupId` in der Cloud steht und welcher Toast kommt: normal leer und
-Erfolg; Plan abgelehnt trotzdem leer; alles abgelehnt kein Erfolgs-Toast, sondern der ehrliche.
+vorgespielte Cloud protokolliert jeden Schreibvorgang und lehnt auf Wunsch ab. Gemessen wird:
+normal `groupId` leer und Erfolgs-Toast; abgelehnt kein Erfolgs-Toast, sondern der ehrliche; und
+**`groupId` geht nie ohne `plans` hinaus** — getrennt verlöre der Austritt offline die
+mitgenommenen Wochen (`docs/TROUBLESHOOTING.md` 192).
 
-**Gegenprobe im selben Lauf** gegen `a365436`: Bei abgelehntem Plan bleibt dort `g1` stehen,
-und der Erfolgs-Toast kommt trotzdem. 10 Prüfungen.
+**Gegenproben im selben Lauf:** `a365436` (vor dem Fix) zeigt bei Ablehnung den Erfolgs-Toast;
+`f813adf` (Fehlversuch, nie gepusht) schickt `groupId` ohne Plan. 8 Prüfungen.
 
 **Was er nicht kann:** den nächsten Start nachspielen. Dass `startCloudSync()` die lokal
 behaltenen Meals mit der Cloud zusammenführt, ist am Code nachverfolgt, nicht gemessen.

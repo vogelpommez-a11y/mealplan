@@ -14770,7 +14770,12 @@
           // diese stehengebliebenen Daten wieder hochsynchronisieren, als waeren sie neu.
           setTimeout(() => location.reload(), 900);
         } catch (wipeErr) {
-          toast("Ein Teil der lokalen Daten ließ sich gerade nicht entfernen. Lad die Seite neu und versuch es noch einmal.");
+          // Das Konto ist hier schon weg - "noch einmal versuchen" gibt es nicht mehr. Trotzdem
+          // neu laden: Ohne Reload blieb state im Speicher, der naechste save() schrieb ihn
+          // zurueck, und ein sofort neu registriertes Konto luede ihn hoch (Pushcheck 19.10.2026).
+          // Die restlichen Fotos raeumt "Alle Daten loeschen" im lokalen Profil weg.
+          toast("Dein Konto ist gelöscht. Ein paar Fotos blieben auf dem Gerät – wähle nach dem Neuladen „Alle Daten löschen“.");
+          setTimeout(() => location.reload(), 2500);
         }
       } catch (e) {
         if (e && e.dataAlreadyDeleted) {
@@ -15478,16 +15483,17 @@
     state.recipes = keepRecipes;
     state.plans = keepPlans;
     setViewWeek(state.viewWeek);
-    // groupId:"" als EIGENER Schreibvorgang, getrennt vom Plan (19.10.2026, stille Fehler).
-    // Frueher standen beide in einem: Lehnte die Regel den Plan ab, blieb auch die alte
-    // groupId in der Cloud stehen. Der naechste Start wollte dann in eine Gruppe, deren
-    // Mitglied man nicht mehr ist (leaveAtomic ist da schon durch) -> "error", bei JEDEM Start
-    // derselbe Toast, und groupSyncFailed hielt den eigenen Plan dauerhaft aus der Cloud.
+    // groupId:"" und Plan bewusst in EINEM Schreibvorgang. Getrennt (Versuch 19.10.2026) kam
+    // offline nur der erste an, wenn die App vorher zuging - und ohne Plan-Baseline gewinnt
+    // beim naechsten Start der Cloud-Plan von VOR dem Beitritt (mergePlansSlotwise ohne base):
+    // die mitgenommenen Wochen waeren weg (Pushcheck /code-review). Scheitert der Vorgang,
+    // bleibt die alte groupId stehen und jeder Start landet in "error" - das kann der Nutzer
+    // nicht selbst loesen, deshalb der ehrliche Toast unten statt "mitgekommen"
+    // (docs/TROUBLESHOOTING.md 192, Betreiberweg docs/RUNBOOK.md).
     let austrittGespeichert = true;
-    try { await window.CloudSync.save(syncUid, { groupId: "" }); }
-    catch (e) { noteError("group:leaveSaveGroupId", e); austrittGespeichert = false; }
     try {
-      await window.CloudSync.save(syncUid, { plans: keepPlans });
+      try { await window.CloudSync.save(syncUid, { groupId: "", plans: keepPlans }); }
+      catch (e) { austrittGespeichert = false; throw e; }
       setPlanBase(planSlots(keepPlans));   // das Feld ist eben ganz geschrieben worden - genau das hat die Cloud
       // Baseline leeren, damit der naechste Zyklus alle Meals als "neu" ins eigene
       // Konto schreibt - dort liegen sie ja noch nicht.
@@ -15741,10 +15747,15 @@
             save();
             // Auch in der Cloud raeumen, sonst holt der naechste Start den Zeiger von dort
             // zurueck (wantGid = remote.groupId || state.groupId, siehe Selbstheilung).
+            // Scheitert das, holt der naechste Start den Zeiger zurueck - dann nicht "gelöst"
+            // melden (stille Fehler, 19.10.2026). Derselbe Text und Betreiberweg wie leaveGroup().
+            let geloest = true;
             try { await window.CloudSync.save(syncUid, { groupId: "" }); }
-            catch (e) { noteError("group:loesen", e); }
+            catch (e) { noteError("group:loesen", e); geloest = false; }
             closeModal();
-            toast("Verbindung gelöst – du planst wieder für dich");
+            toast(geloest
+              ? "Verbindung gelöst – du planst wieder für dich"
+              : "Dein Austritt ist nicht ganz gespeichert – schreib uns kurz, wir helfen.");
             render();
           }
         });
