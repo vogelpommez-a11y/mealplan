@@ -710,6 +710,7 @@ gegen die Offline-Zusage des Produkts und gegen eine Store-Anforderung (Prüfer 
 Flugmodus).
 
 Festgehalten als bekannte Grenze in `docs/SECURITY.md`, Abschnitt 6 — nicht versteckt.
+Mit dem Web-Verkauf (Nr. 5) wird das bei der ersten Zahlung im Web wirksam, nicht erst im Store.
 
 ### 4. Künftige Pro-Rezepte kommen aus Firestore, nicht aus dem ausgelieferten Quelltext
 
@@ -747,7 +748,8 @@ hat Pro an allen dreien, synchron.
 
 Anlass: Web-Nutzer aus dem Marktstart (Phase 2) sollen Pro kaufen können, ohne auf die
 Store-App zu warten. Wie gebaut wird (fertiger Dienst oder selbst, Server-Ort, Reihenfolge),
-steht noch aus — Recherche in `plans/`.
+steht noch aus. Rechtliches (Widerruf, Verkäufer, Steuer, AGB) wird **vor** dem ersten Web-Verkauf
+geklärt, nicht erst vor dem Store.
 
 
 ## Rezeptbuch (15.08.2026)

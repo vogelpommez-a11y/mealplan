@@ -1350,7 +1350,9 @@ Ausblenden. Wo er hängt, verschiebt er nur das **Zeichnen**, nie das Rechnen od
 Der Pro-Status liegt in einer **eigenen Firestore-Sammlung**, die der Client nur lesen darf:
 
 ```
-entitlements/{uid} = { pro: true, source: "manual"|"apple"|"google", until: timestamp|null }
+entitlements/{uid} = { pro: true, source: "manual"|"apple"|"google"|"web", until: timestamp|null }
+                      // "web" geplant (21.10.2026, PRODUCT "Wie Pro verkauft wird" Nr. 5), nicht gebaut.
+                      // Alle Quellen schreiben serverseitig; der Client schreibt nie.
 ```
 
 **Warum nicht in `users/{uid}` oder in `state`:** Beides darf der Client schreiben. Ein Feld

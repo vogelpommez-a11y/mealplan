@@ -56,8 +56,9 @@ fehlt `css/`, `data/` oder `lib/` im Bundle — nichts anderes.
 
 Apple verlangt für digitale Inhalte und Funktionen, die **in der App** freigeschaltet
 werden, In-App-Purchase. Ein Pro-Zugang, der über einen Web-Bezahlweg (Stripe, PayPal,
-eigene Seite) verkauft oder auch nur **verlinkt** wird, ist ein klassischer
-Ablehnungsgrund. Google Play verlangt Entsprechendes über Google Play Billing.
+eigene Seite) **in der App** verkauft oder auch nur **verlinkt** wird, ist ein klassischer
+Ablehnungsgrund. Google Play verlangt Entsprechendes über Google Play Billing. Der Web-Verkauf
+außerhalb der Apps (21.10.2026) ist davon getrennt — siehe „Pro auch im Web“ weiter unten.
 
 ### Was Pro heute umfasst — zwei Beine, nicht eines
 
@@ -107,7 +108,7 @@ serverseitig rechnen lassen.
 das Dokument heute **von Hand in der Firebase-Konsole** (`FIREBASE-SETUP.md:147`).
 
 Für echten Store-Betrieb braucht es dazwischen einen Server, der die Quittung bei Apple bzw.
-Google validiert und dann `entitlements/{uid}` schreibt. **Das kollidiert mit dem aktuellen
+Google validiert, die Zahlungsmeldung der Web-Kasse entgegennimmt und dann `entitlements/{uid}` schreibt. **Das kollidiert mit dem aktuellen
 Firebase-Tarif:** Cloud Functions verlangen **Blaze** (Pay-as-you-go); das Projekt läuft auf
 **Spark**. Ohne Tarifwechsel gibt es serverseitig gar keinen Ort für die Prüfung.
 
@@ -144,7 +145,9 @@ zusätzlich im Web verkauft, mit eigener Kasse. Store-relevant daran: (1) Pro mu
 freischalten (Apple 3.1.3(b) „Multiplatform Services“). (2) Die Apps verlinken oder bewerben
 die Web-Kasse nicht, solange die aktuell geltenden EU-Regeln nicht ausdrücklich geprüft sind.
 (3) `entitlements/{uid}` bekommt drei schreibende Quellen statt einer — alle serverseitig.
-Vor dem Bau mit `store-check` gegen den dann gültigen Stand prüfen.
+Vor dem Bau mit `store-check` gegen den dann gültigen Stand prüfen. Stand der Aussage zu (1):
+Regeltext 3.1.3(b) plus Praxisbericht im Apple-Entwicklerforum (21.10.2026), keine offizielle
+Einzelauskunft. Bei Kontolöschung muss ein laufendes Web-Abo mit gekündigt werden (§3).
 
 ---
 
@@ -543,7 +546,8 @@ Alternativtexte sind dafür nicht geprüft.
 | „Mit Apple anmelden" (4.8) | 🔴 **fehlt**, obwohl Google-Login aktiv ist |
 | „Wiederherstellen" | 🔴 fehlt (existiert erst mit dem ersten Kauf) |
 | **Bezahlweg (Apple 3.1.1)** | 🟡 **entschieden: Abo** (26.08.2026) — zu bauen: StoreKit + Play Billing |
-| **Kaufbeleg serverseitig prüfen** | 🔴 zu bauen — Cloud Function, setzt den Blaze-Wechsel voraus |
+| **Kaufbeleg serverseitig prüfen** | 🔴 zu bauen — drei Quellen (Apple, Google, Web); Cloud Function mit Blaze **oder** der Cloudflare Worker, offen |
+| **Web-Kasse (Pro im Web)** | 🔴 entschieden 21.10.2026, nicht gebaut: Dienst (fertig oder selbst), Gewerbe, Steuer, AGB/Widerruf vor dem ersten Verkauf |
 | Nutrition Labels / Data Safety | 🟡 Datengrundlage steht (Abschnitt 5), Formulare nicht ausgefüllt |
 | Health apps declaration (Google Play) | 🟡 Pflicht für jede App, bei uns „Nutrition and Weight Management“ — beim Einrichten der Play Console (Abschnitt 5) |
 | Hinweis „lösch sie in den Browser-Einstellungen“ | 🟡 beim D7-Build umformulieren: Lassen sich beim Löschen Fotos nicht entfernen, verweist die Meldung (`FOTOS_GEBLIEBEN`, `index.html`) auf Browser-Einstellungen — die gibt es in der Capacitor-App nicht (Gerät → App-Daten löschen). Vorgemerkt 19.10.2026 |
@@ -551,7 +555,7 @@ Alternativtexte sind dafür nicht geprüft.
 | Privacy Manifest (Apple) | 🟡 beim D7-Build prüfen — ohne scheitert der Upload (Abschnitt 8) |
 | **Barrierefreiheit (BFSG)** | 🟢 **Codeseite gemessen und behoben** (20.09.2026, 0 Befunde). Rechtsfrage weiter offen: Kleinstunternehmer-Ausnahme? Erklärung fehlt. Abschnitt 7b |
 | KI-Kennzeichnung (KI-VO Art. 50) | 🟡 Abs. 4 trifft nur Deepfakes — Einordnung bestätigt (20.09.2026). Offen: gelten die 36 rezeptgebundenen Bilder als Deepfake? |
-| Apple-EU-Bedingungen ab 01.10.2026 | ✅ geprüft (20.09.2026): **ohne praktische Wirkung**, solange nur IAP im regulären App Store. Beim Signieren die Standard-EU-Terms wählen, nicht die Marktplatz-Variante |
+| Apple-EU-Bedingungen ab 01.10.2026 | 🟡 **neu zu prüfen** seit dem Web-Verkauf (21.10.2026). Stand 20.09.2026: ohne praktische Wirkung, solange nur IAP im regulären App Store. Beim Signieren die Standard-EU-Terms wählen, nicht die Marktplatz-Variante |
 | KI-Deklaration in der Play Console | 🟡 **Formularfeld, leicht zu übersehen**: pro hochgeladenem Store-Asset ein Kästchen. Greift, falls Screenshots die KI-Gerichtsfotos zeigen |
 | Rechts-Durchgang vor der Einreichung | 🟡 **Pflicht vor jeder Einreichung:** `/rechtspruefung` (ganze App + Netzmessung ohne Konto), Bericht nicht älter als die letzte Code-Änderung |
 | Sicherheits-Durchgang vor der Einreichung | 🟡 **Einmal vor der ersten Einreichung:** offizielles Plugin `claude-security` über die ganze App (`website-security` sieht im Pushcheck nur den Diff). ⚠️ Es legt `CLAUDE-SECURITY-<Zeit>/` **im Repo** an — den Ordner **vorher** in `.gitignore` und `commit-waechter.py` aufnehmen, sonst steht der Schwachstellenbericht öffentlich. Vorgemerkt 19.10.2026 (`plans/abgleich-pruefer-2026-10-18.md`, L9) |
