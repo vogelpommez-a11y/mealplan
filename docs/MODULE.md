@@ -345,7 +345,7 @@ _keine_
 | data/rechtstexte.js | 208 | 34439 |
 | docs/ABDECKUNG.md | 192 | 13969 |
 | docs/ABNAHME-MENSCH.md | 154 | 8239 |
-| docs/ARCHITECTURES.md | 3462 | 223911 |
+| docs/ARCHITECTURES.md | 3466 | 224115 |
 | docs/BAUSTEINE.md | 106 | 14052 |
 | docs/DESIGN.md | 1439 | 80261 |
 | docs/MODULE.md | — | — (erzeugt) |
@@ -353,7 +353,7 @@ _keine_
 | docs/RUNBOOK.md | 387 | 20402 |
 | docs/SECURITY.md | 609 | 37178 |
 | docs/STORE.md | 553 | 34231 |
-| docs/TESTING.md | 5678 | 340735 |
+| docs/TESTING.md | 5679 | 340784 |
 | docs/TROUBLESHOOTING.md | 7379 | 432718 |
 | docs/module-index.json | — | — (erzeugt) |
 | firestore.rules | 552 | 32127 |
