@@ -763,6 +763,21 @@
 
   .hm-body { padding: 13px 16px; }
 
+  /* Vorbereitung am Vortag ("Für morgen auftauen · Chili", vorabHtml). Steht nur da, wenn es
+     etwas zu tun gibt - deshalb flex:none: Im Kartenlayout (.week-nut als Spalte) gibt der
+     Deckel die Hoehe her, nicht diese Zeile. Bewusst OHNE Kasten (Paddy, 21.10.2026): Eine
+     zweite Karte unter der Hauptkarte konkurrierte mit ihr; Uhr und fetter Satz tragen genug. */
+  .hm-vorab { flex: none; display: flex; flex-direction: column; gap: 4px; margin-top: 10px; padding: 0 4px; }
+  .hm-vorab p { display: flex; align-items: center; gap: 8px; margin: 0;
+    font-size: 13px; line-height: 1.35; color: var(--text-muted); }
+  /* Eine Zeile je Hinweis, lange Namen mit "…": Gemessen am 21.10.2026 auf 360x640 mit drei
+     Hinweisen und langen Namen schoben sechs Umbruchzeilen "Anpassen/Neu berechnen" hinter
+     die Reiterleiste. Der volle Text bleibt im DOM (Screenreader), min-width:0 laesst das
+     Ellipsis im Flex-Element ueberhaupt greifen. */
+  .hm-vorab span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .hm-vorab b { color: var(--text); font-weight: 700; }
+  .hm-vorab svg { flex: none; width: 16px; height: 16px; color: var(--accent-strong); }
+
   /* Ohne Ziel gibt es nur noch die Kalorien-Kachel - die frueheren Makro-Kacheln sind
      entfallen (siehe weekNutHtml), deshalb nur noch eine schmale Kachel statt Raster. */
   /* Kein max-width mehr: eine schmale 220px-Kachel wirkte neben der breiten Ring-Ansicht

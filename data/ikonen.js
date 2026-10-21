@@ -150,6 +150,11 @@
   // Zwei-Personen-Icon fuer den "Zuweisung aendern"-Knopf einer geplanten Karte (ersetzt
   // den Stift, der wie "bearbeiten" liest, obwohl die Aktion "wer isst mit" bedeutet).
   const ICON_PEOPLE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8.5" cy="8" r="3"/><path d="M2.5 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><path d="M15.3 6.3a3 3 0 0 1 0 5.7"/><path d="M17 14.4c2.3.6 4 2.8 4 5.6"/></svg>';
+  // Uhr fuer die Vorbereitung am Vortag auf der Startseite ("Für morgen auftauen").
+  // Pfad aus Lucide ("clock", dort aus Feather uebernommen - MIT-Lizenz, Hinweis in LICENSE).
+  // Uhr statt Glocke (Paddy, 21.10.2026): Eine Glocke verspricht eine Nachricht, die es erst
+  // mit der Store-App gibt. Die Uhr traegt alle drei Hinweise und sagt nur "rechtzeitig".
+  const ICON_CLOCK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>';
   // Haken fuer einen geplanten Tag im Monatsgitter des Fortschritt-Kalenders.
   // Bewusst nur der Haken ohne Kreis darum: den Kreis zeichnet CSS (.kal-t.on .kal-sym),
   // damit "geplant" Flaeche UND Symbol traegt und nicht allein an der Farbe haengt.

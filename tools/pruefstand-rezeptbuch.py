@@ -95,6 +95,7 @@ function safeImage(x) { return x || null; }
 function migrateCat(c) { return c; }
 function sanitizeIng(x) { return x; }
 function sanitizeTags(t) { return Array.isArray(t) && t.length ? t.slice() : null; }
+function sanitizeVorab(t) { return Array.isArray(t) && t.length ? t.slice() : null; }  // seit 21.10.2026, wie sanitizeTags
 function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
   return ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]; }); }
 function libraryRecipes() { return state.recipes.filter(function (r) { return r.quick !== true; }); }

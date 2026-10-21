@@ -180,6 +180,7 @@ function safeImage(x) { return x || null; }
 function migrateCat(c) { return c; }
 function sanitizeIng(x) { return x; }
 function sanitizeTags(t) { return Array.isArray(t) && t.length ? t.slice() : null; }
+function sanitizeVorab(t) { return Array.isArray(t) && t.length ? t.slice() : null; }  // seit 21.10.2026, wie sanitizeTags
 function esc(s) { return String(s == null ? "" : s); }
 
 // ---- Firestore-Attrappe fuer copyOwnRecipesToGroup() ----
@@ -293,6 +294,23 @@ function alleEintraege(plan) {
       state.recipes.some(function (r) { return r.id === kopie.id; }), false);
     pruef("und der Slot zeigt wieder auf die Katalog-id",
       state.plan.mon.mi, [vorlage.id]);
+  })();
+
+  // ---- Zusage 4a (21.10.2026): eine Kopie, die sich NUR durch "Am Vortag" unterscheidet, ist
+  // veraendert. Fehlte `vorab` in DEDUPE_FELDER, loeschte die Migration sie - und der Hinweis
+  // war still weg (Pushcheck-Fund kvp). Gegenprobe: gegen 10f4372 faellt dieser Fall durch.
+  (function () {
+    frisch();
+    var vorlage = COOKBOOK.filter(function (r) { return r.category === "Hauptgericht"; })[0];
+    var mitHinweis = copyFromCookbook(vorlage);
+    mitHinweis.vorab = ["auftauen"];
+    state.recipes = [mitHinweis];
+    state.plan.mon.ab.push(mitHinweis.id);
+    dedupeAgainstCatalog();
+    pruef("eine Kopie nur mit 'Am Vortag: Auftauen' bleibt stehen",
+      state.recipes.some(function (r) { return r.id === mitHinweis.id; }), true);
+    pruef("und ihr Plan-Eintrag zeigt weiter auf sie, nicht auf das Original",
+      state.plan.mon.ab, [mitHinweis.id]);
   })();
 
   // ---- Zusage 4: die Migration raeumt Altlasten auf, ohne Planeintraege zu verlieren ----

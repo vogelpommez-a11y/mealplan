@@ -1285,6 +1285,16 @@
   ];
   const RECIPE_TAG_KEYS = RECIPE_TAGS.map(t => t.key);
   function tagLabel(k) { const t = RECIPE_TAGS.find(x => x.key === k); return t ? t.label : k; }
+  // Vorbereitung am Vortag (21.10.2026): was am Tag VOR dem Meal zu tun ist. Dieselbe feste
+  // Liste wie RECIPE_TAGS und aus demselben Grund - die Startseite und spaeter die lokale
+  // Erinnerung der Store-App (docs/STORE.md) rechnen mit dem Schluessel, nicht mit Freitext.
+  // `morgen` ist die Zeile auf der Startseite am Vortag.
+  const VORAB_HINWEISE = [
+    { key: "auftauen",   label: "Auftauen",   morgen: "Für morgen auftauen" },
+    { key: "einweichen", label: "Einweichen", morgen: "Über Nacht einweichen" },
+    { key: "marinieren", label: "Marinieren", morgen: "Für morgen marinieren" },
+  ];
+  const VORAB_KEYS = VORAB_HINWEISE.map(t => t.key);
 
     // ---------- Ernaehrungsprofil (state.goal.diet / state.goal.avoid) ----------
   // Zwei GETRENNTE Angaben, bewusst nicht eine Mehrfachauswahl:
@@ -3857,7 +3867,9 @@
   // fehl. Unangetastet bleiben veraenderte Kopien, Meals ohne lib, Barcode-Produkte (quick)
   // und Favoriten - ein eigenes Foto (image) zaehlt dabei NICHT als Abweichung, es reist mit
   // der id ohnehin weiter mit (siehe rewritePlanIds()).
-  const DEDUPE_FELDER = ["name", "category", "nutrition", "ingredients", "steps", "time", "tags", "mealPrep"];
+  // `vorab` (21.10.2026) gehoert dazu: Wer an einer Kopie nur "Am Vortag: Auftauen" setzt, hat sie
+  // veraendert - ohne den Eintrag galt sie als gleich, wurde geloescht, und der Hinweis war weg.
+  const DEDUPE_FELDER = ["name", "category", "nutrition", "ingredients", "steps", "time", "tags", "mealPrep", "vorab"];
   function kopieEntsprichtKatalog(kopie, original) {
     const sauber = sanitizeRecipe(original);
     return DEDUPE_FELDER.every(f => canonJSON(kopie[f]) === canonJSON(sauber[f]));
@@ -4008,6 +4020,13 @@
     const out = RECIPE_TAG_KEYS.filter(k => set.has(k));
     return out.length ? out : null;
   }
+  // Vorbereitung am Vortag: dieselbe Pruefung wie sanitizeTags(), gegen VORAB_KEYS.
+  function sanitizeVorab(v) {
+    if (!Array.isArray(v)) return null;
+    const set = new Set(v.filter(x => typeof x === "string"));
+    const out = VORAB_KEYS.filter(k => set.has(k));
+    return out.length ? out : null;
+  }
   // Ein komplettes Rezept aus fremder Quelle auf unbedenkliche Werte bringen.
   function sanitizeRecipe(r) {
     if (!r || typeof r !== "object") return null;
@@ -4020,6 +4039,10 @@
     // Feld und damit einen ueberfluessigen Cloud-Schreibvorgang.
     const tags = sanitizeTags(r.tags);
     if (tags) out.tags = tags; else delete out.tags;
+    // Pflicht, nicht Zierde: sanitizeRecipe kopiert per Object.assign alles mit - ohne diese
+    // Zeile kaeme `vorab` aus Cloud, Gruppe und Teilen-Link ungeprueft in die Chips.
+    const vorab = sanitizeVorab(r.vorab);
+    if (vorab) out.vorab = vorab; else delete out.vorab;
     // Bildschluessel aus dem Rezeptbuch (photoFor). Er kommt bei uebernommenen Meals
     // ueber Object.assign mit und wandert von dort in die Cloud und in geteilte Meals.
     // Geprueft wird hier nur die FORM, nicht die Gueltigkeit: Ein Abgleich gegen PHOTOS
@@ -5315,6 +5338,7 @@
         ${nextMealHtml(curPlan, d, morgenPlan, morgenKey)}
         <div class="hm-body">${goalRingHtml(s.kcal, rest1.kcal, dayTrainAdd, dayHeadHtml, dayRight, "Grundbedarf", dayTrainAdd > 0 ? trLbl : "")}</div>
       </div>
+      ${vorabHtml(morgenPlan, morgenKey)}
       <div class="wg-actions">${recalcLink}</div>`;
   }
 
@@ -5426,6 +5450,39 @@
     return { meal: null, r: null, wann: (tagHatFremdes && !tagHatMeins) ? "fremd" : "leer" };
   }
 
+  // Vorbereitung am Vortag (21.10.2026): "Für morgen auftauen · Chili". Erscheint NUR, wenn
+  // morgen ein Meal fuer mich eingeplant ist, das einen Hinweis traegt - sonst gar nichts,
+  // der Reiter bleibt schlank (siehe Kommentar in weekNutHtml). Je Hinweis eine Zeile, die
+  // Meals mit Komma, jedes Meal je Hinweis nur einmal (zweimal Chili am Tag = einmal auftauen).
+  // Der Filter `meins` ist derselbe wie in nextMealOfDay() - bewusst abgeschrieben statt
+  // herausgezogen, weil Pruefstaende nextMealOfDay() als ein Stueck ausschneiden.
+  function vorabFuerMorgen(morgenPlan, morgenKey) {
+    const md = (morgenPlan && morgenPlan[morgenKey]) || {};
+    const meins = e => {
+      if (!syncUid) return true;
+      const u = entryUids(e);
+      return !u || u.indexOf(syncUid) !== -1;
+    };
+    const je = {};
+    MEALS.forEach(m => (md[m.key] || []).forEach(e => {
+      if (!meins(e)) return;
+      const r = getRecipe(entryId(e));
+      if (!r || !Array.isArray(r.vorab)) return;
+      r.vorab.forEach(k => {
+        if (VORAB_KEYS.indexOf(k) === -1) return;
+        const liste = je[k] || (je[k] = []);
+        if (liste.indexOf(r.name) === -1) liste.push(r.name);
+      });
+    }));
+    return VORAB_HINWEISE.filter(t => je[t.key]).map(t => ({ hinweis: t, namen: je[t.key] }));
+  }
+  function vorabHtml(morgenPlan, morgenKey) {
+    const zeilen = vorabFuerMorgen(morgenPlan, morgenKey);
+    if (!zeilen.length) return "";
+    return `<div class="hm-vorab" role="note">${zeilen.map(z =>
+      `<p>${ICON_CLOCK}<span><b>${esc(z.hinweis.morgen)}</b> · ${z.namen.map(esc).join(", ")}</span></p>`).join("")}</div>`;
+  }
+
   function nextMealHtml(plan, d, morgenPlan, morgenKey) {
     const n = nextMealOfDay(plan, d.key, morgenPlan, morgenKey);
     if (!n) return "";
@@ -5513,15 +5570,26 @@
     const parts = [];
     if (r.mealPrep) parts.push(`<span class="on">Meal-Prep</span>`);
     (r.tags || []).forEach(k => parts.push(`<span>${esc(tagLabel(k))}</span>`));
-    return parts.length ? `<div class="mflags">${parts.join("")}</div>` : "";
+    // "Am Vortag" als EIGENE Zeile mit einer Ueberschrift, wie im Bearbeiten-Zweig - nicht je
+    // Marke "Am Vortag: ..." (ux-reviewer, 21.10.2026: dreimal dasselbe Wort in einer Reihe).
+    const vorab = VORAB_HINWEISE.filter(t => (r.vorab || []).indexOf(t.key) !== -1)
+      .map(t => `<span>${esc(t.label)}</span>`);
+    return (parts.length ? `<div class="mflags">${parts.join("")}</div>` : "")
+      + (vorab.length ? `<h4 class="sec-h ms-vorab-h">Am Vortag</h4><div class="mflags ms-vorab">${vorab.join("")}</div>` : "");
   }
   function mealMetaEditHtml(r) {
     const tags = r.tags || [];
+    const vorab = r.vorab || [];
     const chips = [`<button type="button" data-flag="mealPrep" aria-pressed="${r.mealPrep ? "true" : "false"}">Meal-Prep</button>`]
       .concat(RECIPE_TAGS.map(t => `<button type="button" data-tag="${t.key}" aria-pressed="${tags.indexOf(t.key) !== -1 ? "true" : "false"}">${esc(t.label)}</button>`));
+    // Eigene Zeile statt in den Merkmalen (Paddys Wahl, 21.10.2026): Merkmale sagen, was ein
+    // Meal IST, diese Zeile, was man am Vortag TUN muss. Gleicher Chip-Baustein (.mtags).
+    const vorabChips = VORAB_HINWEISE.map(t => `<button type="button" data-vorab="${t.key}" aria-pressed="${vorab.indexOf(t.key) !== -1 ? "true" : "false"}">${esc(t.label)}</button>`);
     return `<div class="ms-meta">
           <h4 class="sec-h">Merkmale</h4>
           <div class="mtags" id="f-tags">${chips.join("")}</div>
+          <h4 class="sec-h">Am Vortag</h4>
+          <div class="mtags" id="f-vorab">${vorabChips.join("")}</div>
         </div>`;
   }
 
@@ -9006,7 +9074,8 @@
         nutrition: r.nutrition || null,
         steps: r.steps || "",
         tags: (r.tags && r.tags.length) ? r.tags : null,
-        mealPrep: !!r.mealPrep
+        mealPrep: !!r.mealPrep,
+        vorab: (r.vorab && r.vorab.length) ? r.vorab : null
       });
     }
     // Einmal beim Oeffnen. Bei einem neuen Meal ist das die Signatur des leeren Entwurfs -
@@ -9035,6 +9104,10 @@
         .filter(b => b.getAttribute("aria-pressed") === "true").map(b => b.dataset.tag);
       if (tags.length) target.tags = tags; else delete target.tags;
       target.mealPrep = node.querySelector("#f-tags [data-flag='mealPrep']").getAttribute("aria-pressed") === "true";
+      // Vorbereitung am Vortag - wie die Merkmale: Reihenfolge aus VORAB_KEYS, leer = loeschen.
+      const vorab = Array.from(node.querySelectorAll("#f-vorab [data-vorab]"))
+        .filter(b => b.getAttribute("aria-pressed") === "true").map(b => b.dataset.vorab);
+      if (vorab.length) target.vorab = vorab; else delete target.vorab;
     }
     function commitNow() {
       clearTimeout(idleTimer);
@@ -9079,7 +9152,7 @@
     // aus und brauchen deshalb einen eigenen Klickweg. Sofort committen statt zu warten:
     // ein Tipp ist eine abgeschlossene Entscheidung, anders als ein halb getippter Name.
     node.addEventListener("click", e => {
-      const chip = e.target.closest("#f-tags button");
+      const chip = e.target.closest("#f-tags button, #f-vorab button");
       if (!chip) return;
       chip.setAttribute("aria-pressed", chip.getAttribute("aria-pressed") === "true" ? "false" : "true");
       commitNow();

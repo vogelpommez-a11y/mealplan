@@ -3471,7 +3471,8 @@ an.** `mutateLocal()` normalisiert nebenbei: Ein Meal ohne `steps` bekommt `""`,
 `tags: []` wird gelöscht. Das ist keine Nutzeränderung, zählte aber als eine.
 
 **Die Signatur beschreibt jetzt ausdrücklich nur die Felder, die dieses Formular schreibt** —
-`name`, `category`, `ingredients`, `nutrition`, `steps`, `tags`, `mealPrep` — und zwar in
+`name`, `category`, `ingredients`, `nutrition`, `steps`, `tags`, `mealPrep` (seit 21.10.2026
+auch `vorab`) — und zwar in
 derselben normalisierten Form, in der `mutateLocal()` sie ablegt. `image` bleibt draußen (ein
 eigenes Foto ist Base64; der Vergleich wäre ein megabytegroßer String bei jedem `focusout`), die
 beiden Foto-Knöpfe melden sich stattdessen selbst.

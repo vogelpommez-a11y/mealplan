@@ -613,5 +613,56 @@ var BAUSTEINE = [
         nutrition: { kcal: 540, carbs: 55, protein: 42, fat: 14 }, ingredients: [] }
     ] },
     schritte: ['[data-action="tab"][data-tab="recipes"]']
+  },
+
+  // Vorbereitung am Vortag (21.10.2026). Der Plan wird fuer MORGEN gebaut - zur Ladezeit der
+  // Probe, mit derselben ISO-Wochenrechnung wie isoWeekKey() in index.html. Am Sonntag liegt
+  // morgen in der naechsten Woche, das deckt die Rechnung mit ab.
+  {
+    id: "vorab-hinweis",
+    titel: "Vorbereitung am Vortag: Startseite",
+    was: "Morgen sind Chili (Auftauen) und Overnight Oats (Einweichen) eingeplant. Rechts steht "
+       + "unter der Karte je Hinweis eine Zeile mit Uhr, links (alt) nichts.",
+    stellen: ["vorabHtml()/vorabFuerMorgen() — index.html, Aufruf in weekGoalHtml()",
+              ".hm-vorab — css/basis.css"],
+    zustand: vorabZustand()
+  },
+  {
+    id: "vorab-hinweis-blatt",
+    titel: "Vorbereitung am Vortag: Meal bearbeiten",
+    // Overnight Oats statt Chili: Die Meal-Liste klappt nur die erste Gruppe (Frühstück) auf,
+    // das Chili unter "Hauptgericht" waere fuer den Klick unsichtbar.
+    was: "Overnight Oats im Bearbeiten-Zweig, nach unten scrollen: rechts unter „Merkmale“ die neue "
+       + "Zeile „Am Vortag“ mit Auftauen, Einweichen (gedrückt), Marinieren. Links fehlt sie.",
+    stellen: ["mealMetaEditHtml()/mealFlagsHtml() — index.html",
+              "mutateLocal()/sheetSig()/Klick-Selektor in openMealSheet()"],
+    zustand: vorabZustand(),
+    schritte: ['[data-action="tab"][data-tab="recipes"]',
+               '[data-action="view"][data-id="rvgoats"]', '[data-edit]']
   }
 ];
+
+function vorabZustand() {
+  function wochenKey(date) {
+    var d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+    var tag = d.getUTCDay() || 7;
+    d.setUTCDate(d.getUTCDate() + 4 - tag);
+    var start = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+    var w = Math.ceil((((d - start) / 864e5) + 1) / 7);
+    return d.getUTCFullYear() + "-W" + String(w).padStart(2, "0");
+  }
+  var morgen = new Date(); morgen.setDate(morgen.getDate() + 1);
+  var tagKey = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"][morgen.getDay()];
+  var plans = {};
+  plans[wochenKey(morgen)] = {};
+  plans[wochenKey(morgen)][tagKey] = { fr: ["rvgoats"], mi: [], ab: ["rvgchili"], sn: [] };
+  return {
+    recipes: [
+      { id: "rvgchili", name: "Chili con Carne", category: "Hauptgericht", vorab: ["auftauen"],
+        nutrition: { kcal: 560, carbs: 48, protein: 42, fat: 20 }, ingredients: [] },
+      { id: "rvgoats", name: "Overnight Oats", category: "Frühstück", vorab: ["einweichen"],
+        nutrition: { kcal: 420, carbs: 55, protein: 22, fat: 12 }, ingredients: [] }
+    ],
+    plans: plans
+  };
+}

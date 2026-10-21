@@ -399,6 +399,9 @@
     border: 1px solid var(--border); white-space: nowrap;
   }
   .mflags span.on { color: var(--accent-strong); background: color-mix(in srgb, var(--accent) 12%, var(--surface)); border-color: color-mix(in srgb, var(--accent) 30%, transparent); }
+  /* "Am Vortag" im Nur-Lese-Zweig: eigene Zeile mit Ueberschrift, wie im Bearbeiten-Zweig. */
+  .ms-vorab-h { margin: 16px 0 0; }
+  .mflags.ms-vorab { margin-top: 8px; }
   /* Fusszeile der Meal-Ansicht (Nachtrag Abnahme Phase 1): "Meal loeschen"/"Verwerfen" und
      "Fertig" stehen jetzt zusammen im modal-foot statt getrennt im Body. space-between statt
      eines festen 8px-gap gibt der destruktiven Aktion spuerbaren Abstand zur bestaetigenden -

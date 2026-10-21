@@ -1117,6 +1117,28 @@ Bewusst **kein** Filter nach Zeit: Die Zubereitungszeit (`time`) steht nur in de
 Beispiel-Meals, im Editor gibt es kein Feld dafür. Ein Filter auf ein Feld, das niemand pflegt,
 findet zuverlässig nichts. Kommt das Feld, kommt der Filter.
 
+### Umgesetzt seit 21.10.2026: Vorbereitung am Vortag
+
+Paddys eigener Alltag: Das Fleisch fürs Abendessen wird regelmäßig vergessen. Am Meal lässt
+sich wählen, was am Tag davor zu tun ist: **Auftauen, Einweichen, Marinieren**. Steht ein solches
+Meal morgen im Plan, zeigt die Startseite unter der Karte „Für morgen auftauen · Chili con Carne“.
+Ist nichts vorzubereiten, steht dort **nichts**.
+
+Feature-Regel: spart Zeit (kein gefrorenes Fleisch um 18 Uhr), schaut nach vorne und hängt am
+Wochenplan. Das Vorbild ist die „Defrost note“ von Plan to Eat, die dort nur für Gerichte aus
+dem Gefrierfach gilt. Konkurrenten wie Mealime oder Paprika haben nichts Vergleichbares
+(Recherche 21.10.2026).
+
+Bewusste Entscheidungen:
+* **Eigene Zeile „Am Vortag“** unter den Merkmalen, nicht mitten in ihnen. Merkmale sagen, was ein
+  Meal *ist*, der Hinweis sagt, was man *tun* muss.
+* **Am Meal, nicht am Planeintrag.** Wer jede Woche neu antippen muss, vergisst genau das.
+* **Nur drei feste Hinweise, kein Freitext.** Alle drei gelten am Vortag. „Vorkochen“ ist
+  abgewählt, dafür gibt es `mealPrep` und die Vorkochliste.
+* **Die Push-Nachricht kommt mit der Store-App** (lokale Erinnerung, Standard 18 Uhr, Uhrzeit
+  einstellbar), siehe `docs/STORE.md` Abschnitt 9. Die Uhrzeit-Einstellung entsteht erst dann,
+  vorher hätte sie keine Wirkung.
+
 ## Bewusste Produktentscheidung: Vier Reiter, vier Fragen
 
 Seit 13.08.2026 gibt es einen vierten Reiter **Fortschritt**. Danach beantwortet jeder Reiter

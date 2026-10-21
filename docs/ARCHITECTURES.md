@@ -1866,6 +1866,30 @@ kopierte `Object.assign()` ihn aus Altdaten und geteilten Meals dauerhaft weiter
 Die Faustregel daraus: Ein Datenfeld wird angelegt, wenn ein konkretes Feature es liest — nicht,
 weil es später einmal nützlich sein könnte.
 
+### Vorbereitung am Vortag: `vorab[]`
+
+Optionales Feld seit 21.10.2026. Array aus festen Schlüsseln `auftauen`, `einweichen`,
+`marinieren` (Quelle: `VORAB_HINWEISE`, Reihenfolge = `VORAB_KEYS`). Gleiche Regeln wie bei
+`tags`: Schlüssel nie ändern, leer heißt **Feld löschen**, kein Freitext.
+
+* **Gelesen von** `vorabFuerMorgen()`/`vorabHtml()` (Startseite, Aufruf in `weekGoalHtml()`):
+  Alle Einträge von **morgen**, die für mich gelten (derselbe `meins`-Filter wie
+  `nextMealOfDay()`), am Sonntag aus der nächsten Woche. Später liest die lokale Erinnerung der
+  Store-App dasselbe Feld (`docs/STORE.md` Abschnitt 9).
+* **Geschrieben von** `mutateLocal()` im Meal-Blatt (Chip-Zeile `#f-vorab`), mitgezählt in
+  `sheetSig()`.
+* **`sanitizeVorab()` ist Pflicht:** `sanitizeRecipe()` kopiert per `Object.assign()` jedes Feld
+  mit. Ohne die Prüfung kämen fremde Werte aus Cloud, Gruppe und Teilen-Link ungefiltert in die
+  Chips. Sync, Gruppe und `shared/` nehmen das Feld ohne Änderung mit (keine Whitelist, die
+  Regeln haben kein `hasOnly`). Es enthält keine personenbezogenen Daten.
+* **Steht in `DEDUPE_FELDER`:** Eine Rezeptbuch-Kopie, an der nur `vorab` gesetzt ist, gilt als
+  verändert und wird von `dedupeAgainstCatalog()` nicht gelöscht.
+* **Bekannte Grenze, bewusst so gelassen (Paddy, 21.10.2026):** `copyOwnRecipesToGroup()`
+  gleicht beim Gruppenbeitritt **nur über `lib`** ab. Hat die Gruppe dasselbe Rezeptbuch-Gericht
+  schon, wird die eigene Kopie nicht hochgeladen, und der Plan zeigt auf die Gruppen-Kopie. Ein
+  dort gesetztes `vorab` geht damit verloren, wie jede andere eigene Änderung an der Kopie
+  (das war schon vor `vorab` so). Der Hinweis lässt sich an der Gruppen-Kopie neu setzen.
+
 ### Nährwerte an den Zutaten — und warum sie dort stehen müssen
 
 Ein Rezept, dessen Zutaten keine eigenen Nährwerte tragen, lässt sich **nicht nachrechnen**:

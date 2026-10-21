@@ -16,7 +16,7 @@ Die primäre Verifikation erfolgt deshalb über den Browser und gezielte isolier
 
 <!-- REGISTER-ANFANG (erzeugt aus den Ueberschriften: python tools/register.py - nicht von Hand pflegen) -->
 
-**Register — 90.** Vorne (0 bis 9) die geltenden Verfahren: Syntax-Check,
+**Register — 91.** Vorne (0 bis 9) die geltenden Verfahren: Syntax-Check,
 Smoke-Test, Ausschneide-Pruefstand, Sync-Tests. Dahinter das datierte Fallarchiv —
 einzelne Pruefstaende und was ihre Gegenprobe gezeigt hat.
 
@@ -116,6 +116,7 @@ Die Verfahren gibt es auch als Skill: `/smoke`, `/pruefstand`, `/abnahme`, `/dep
 | · | `tools/pruefstand-plan-slots.py` — persönlicher Plan slotweise, Rückgängig in der richtigen Woche (17.10.2026) |
 | · | `tools/pruefstand-daten-loeschen.py` — räumt „Alle Daten löschen“ wirklich alles? (18.10.2026) |
 | · | `tools/pruefstand-gruppe-verlassen-zeiger.py` — bleibt nach dem Austritt die alte `groupId` stehen? (19.10.2026) |
+| · | `tools/pruefstand-vorab-hinweis.py` — Vorbereitung am Vortag (21.10.2026) |
 
 <!-- REGISTER-ENDE -->
 
@@ -5676,3 +5677,54 @@ mitgenommenen Wochen (`docs/TROUBLESHOOTING.md` 192).
 
 **Was er nicht kann:** den nächsten Start nachspielen. Dass `startCloudSync()` die lokal
 behaltenen Meals mit der Cloud zusammenführt, ist am Code nachverfolgt, nicht gemessen.
+
+
+## `tools/pruefstand-vorab-hinweis.py` — Vorbereitung am Vortag (21.10.2026)
+
+Ausgeschnitten: `VORAB_HINWEISE`, `sanitizeVorab()`, `sanitizeRecipe()` samt `sanitizeTags()`,
+`mealMetaEditHtml()`, `mealFlagsHtml()`, `vorabFuerMorgen()`, `vorabHtml()`, dazu `sheetSig()`
+und `mutateLocal()` aus `openMealSheet()` (Fabrik mit `rec`, `node`, `collectIngs`). Den
+Klick-Selektor des Blatts liest er als Zeichenkette aus dem Code und wendet ihn auf die echten
+Chips an. Durchgereicht werden nur `safeImage`, `migrateCat` und `sanitizeIng`, die `vorab` nicht
+berühren.
+
+25 Prüfungen: Der Sanitizer lässt nur bekannte Schlüssel durch, in fester Reihenfolge und
+ohne Doppel, leer heißt Feld weg. Ein Bestands-Meal bekommt kein Feld. Das Blatt hat drei Chips,
+Speichern setzt und löscht das Feld, und `sheetSig()` ändert sich mit. Die Startseite zählt
+nur „meins“, nennt zweimal Chili am Tag nur einmal, ignoriert unbekannte Schlüssel, maskiert
+Namen, zeigt ohne Hinweis gar nichts und hängt in `weekGoalHtml()`.
+
+**Falle beim Bau:** Die erste Signatur entstand vor dem ersten `mutateLocal()` und verglich
+deshalb auch Felder, die das Testobjekt anfangs nicht trug. Das Blatt liest beim ersten Tippen
+ebenfalls zuerst, also liest der Prüfstand jetzt auch zuerst.
+
+**Mitgezogen:** `pruefstand-autoplaner.py`, `pruefstand-katalog-plan.py` und
+`pruefstand-rezeptbuch.py` schneiden `sanitizeRecipe()` aus und stubben `sanitizeTags()`. Sie
+brauchten denselben Stub für `sanitizeVorab()`, sonst brechen sie mit `ReferenceError` ab.
+Bekommt `sanitizeRecipe()` einen neuen Helfer, gilt das für diese drei jedes Mal.
+
+**Pushcheck-Fund (kvp):** `DEDUPE_FELDER` kannte `vorab` nicht. Eine Rezeptbuch-Kopie, an der
+nur „Am Vortag“ gesetzt war, galt als unverändert, und `dedupeAgainstCatalog()` löschte sie
+samt Hinweis. Behoben, abgedeckt in `pruefstand-katalog-plan.py` (Zusage 4a). Die Gegenprobe
+gegen `10f4372` fällt dort mit 2 Prüfungen durch. **Allgemein:** Ein neues Meal-Feld gehört auch in
+`DEDUPE_FELDER`, sonst gilt eine Änderung daran nicht als Änderung.
+
+**Gegenprobe im selben Lauf** gegen `10f4372` (vor der Änderung): Dort kam ein fremder
+`vorab`-Wert ungeprüft durch, es gab keine Chips, `sheetSig()` sah das Feld nicht und
+`weekGoalHtml()` hatte keine Zeile. 29 Prüfungen insgesamt.
+
+**Was er nicht kann** (Fund `/code-review`): `weekGoalHtml()` wird nicht ausgeführt, nur der
+Aufruf `vorabHtml(morgenPlan, morgenKey)` im Quelltext gefunden. Den Wochenübertrag am Sonntag
+(`morgenPlan` aus `weekKeyFor("next")`) misst er also nicht, er ist am Code nachverfolgt.
+Derselbe `morgenPlan` speist seit dem 06.09.2026 auch „Als Nächstes · Morgen“.
+
+**Kleine Handys, gezielt gemessen (21.10.2026):** `abnahme-mobil.py` brach zweimal am Werkzeug
+ab (`WebSocketTimeoutException`, dann „Execution context was destroyed“, beides in der ersten
+Station). Statt der 96 Stationen hat eine Probe mit der `Sitzung` aus `abnahme-mobil.py`
+(Geräte-Emulation) die Startseite mit **drei** Hinweisen und langen Namen auf 360×640 und
+375×667 vermessen, hell und dunkel. Erster Befund: Bei 360×640 lagen „Anpassen/Neu berechnen“
+hinter der Reiterleiste (`elementFromPoint`), weil sechs Umbruchzeilen entstanden. Seitdem gilt
+eine Zeile je Hinweis mit „…“. Danach liegen die Knöpfe auf beiden Größen frei, und nichts scrollt.
+
+Vorführung: `python tools/vorfuehren.py vorab-hinweis` (Startseite) und `vorab-hinweis-blatt`
+(Meal bearbeiten, Overnight Oats, weil nur die Gruppe „Frühstück“ aufgeklappt ist).
