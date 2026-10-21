@@ -48,7 +48,7 @@ Erhoben aus den Abschnittsmarken im Code, nicht von Hand gepflegt.
 | css/basis.css | Header | 20-274 | 255 |
 | css/basis.css | Section head | 275-308 | 34 |
 | css/basis.css | Buttons | 309-405 | 97 |
-| css/basis.css | Week grid | 406-1570 | 1165 |
+| css/basis.css | Week grid | 406-1575 | 1170 |
 | css/komponenten.css | Recipe grid | 8-327 | 320 |
 | css/komponenten.css | Meal-Ansicht (openMealSheet) | 328-554 | 227 |
 | css/komponenten.css | Empty state | 555-566 | 12 |
@@ -334,7 +334,7 @@ _keine_
 | README.md | 46 | 1990 |
 | SECURITY.md | 71 | 3006 |
 | css/CLAUDE.md | 92 | 4167 |
-| css/basis.css | 1570 | 111913 |
+| css/basis.css | 1575 | 112343 |
 | css/komponenten.css | 1613 | 121114 |
 | css/mobil.css | 1128 | 75107 |
 | css/tokens.css | 298 | 16653 |
@@ -346,7 +346,7 @@ _keine_
 | data/rechtstexte.js | 208 | 34439 |
 | docs/ABDECKUNG.md | 192 | 13969 |
 | docs/ABNAHME-MENSCH.md | 154 | 8239 |
-| docs/ARCHITECTURES.md | 3487 | 225580 |
+| docs/ARCHITECTURES.md | 3492 | 226047 |
 | docs/BAUSTEINE.md | 107 | 14510 |
 | docs/DESIGN.md | 1439 | 80261 |
 | docs/MODULE.md | — | — (erzeugt) |
@@ -354,7 +354,7 @@ _keine_
 | docs/RUNBOOK.md | 387 | 20402 |
 | docs/SECURITY.md | 609 | 37178 |
 | docs/STORE.md | 567 | 36800 |
-| docs/TESTING.md | 5722 | 343733 |
+| docs/TESTING.md | 5730 | 344413 |
 | docs/TROUBLESHOOTING.md | 7380 | 432749 |
 | docs/module-index.json | — | — (erzeugt) |
 | firestore.rules | 552 | 32127 |
@@ -559,7 +559,7 @@ _keine_
 | tools/shared-aufraeumen.py | 115 | 3755 |
 | tools/smoke-mit-daten.py | 145 | 8236 |
 | tools/test-meal-bilder.py | 156 | 8295 |
-| tools/vergleich-bausteine.js | 669 | 33989 |
+| tools/vergleich-bausteine.js | 669 | 33986 |
 | tools/vorfuehren.py | 123 | 4955 |
 | tools/wartung-check.py | 854 | 39849 |
 | vendor/HERKUNFT.md | 105 | 4816 |
