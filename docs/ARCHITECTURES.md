@@ -2521,6 +2521,10 @@ KI-generiert“ — ein Strichsymbol ist keines von beidem. Prüfer
 `tools/pruefstand-meal-symbol.py`, Sichtprobe `tools/probe-symbole.html`, Begründung in
 `docs/PRODUCT.md`.
 
+**Mitgelieferte Fotos sind Dateien** in `img/` und `img/library/`, nicht mehr Base64 im
+Quelltext. Was zur Laufzeit als `data:image;base64` auftaucht, sind Bilder des Nutzers aus
+`localStorage`/Firestore.
+
 **Fremde Bilder** bräuchten wieder einen Einzelnachweis — heute reicht ein Sammelhinweis im
 Impressum, weil alle mitgelieferten Bilder selbst erzeugt sind (Herkunft je Datei im
 `bilder-protokoll.json` neben dem Werkzeug).
@@ -2881,7 +2885,7 @@ sehr schmalen Karten rutscht die ganze Gruppe als Block nach unten, statt KH/P/F
 umzubrechen.
 
 **`macroLineHtml(n)` — ein Helfer für die Makro-Kompaktzeile.** Kalorien und Makros folgen app-weit
-derselben Regel (`CLAUDE.md`, Abschnitt „Makros und Nährwerte"): Kürzel `KH`/`P`/`F`, Reihenfolge
+derselben Regel (`CLAUDE.md` §7, ausführlich `docs/DESIGN.md`): Kürzel `KH`/`P`/`F`, Reihenfolge
 `kcal → KH → P → F`, kein `g` in der Kompaktform, Farbe ausschließlich über `--prot`/`--carb`/
 `--fat` per `t-*`-Klasse. Statt das an jeder Stelle einzeln nachzubauen, liefert `macroLineHtml(n,
 fmt)` (neben `nfmt()`) ausschließlich den KH/P/F-Teil als fertige `<span>`-Gruppe; kcal rendert

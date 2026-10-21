@@ -572,7 +572,8 @@ Der Prüfstand meldet solche Zeilen jetzt als `BEHOBEN`.
 Gegenprüfung in einer zweiten Sitzung, die verstellte Kopien des Katalogs durch das Skript
 schickte (erfundene Zutat, leere `steps`, fehlendes Bild, behobener Grundlinienfall). Das
 ist der Weg, der bei einem neuen Prüfer verbindlich ist: **Ein Prüfer, den niemand geprüft
-hat, meldet „sauber" — und man glaubt ihm** (`CLAUDE.md` §18b).
+hat, meldet „sauber" — und man glaubt ihm** (`docs/TROUBLESHOOTING.md` §119, §123; Regel in
+`CLAUDE.md` §18b).
 
 ## 2c. Bildstichworte — `pruefstand-bildstichworte.py`
 
