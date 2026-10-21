@@ -253,7 +253,7 @@
 
      Unangetastet bleibt sie, solange NIEMAND angemeldet ist: das Profilmenue gibt es erst
      nach der Anmeldung, das Impressum darf nicht hinter das Auth-Gate wandern
-     (CLAUDE.md §23). Waehrend der ersten Schritte ebenfalls - dort ist die Reiterleiste
+     (CLAUDE.md §13). Waehrend der ersten Schritte ebenfalls - dort ist die Reiterleiste
      ausgeblendet, und ein Weg weniger waere genau der falsche Moment. */
   .site-foot { border-top: 1px solid var(--border); margin-top: auto; background: color-mix(in srgb, var(--surface-2) 40%, var(--bg)); }
   .foot-inner { display: flex; align-items: center; justify-content: space-between; gap: 12px 18px; padding: 16px 0; flex-wrap: wrap; }

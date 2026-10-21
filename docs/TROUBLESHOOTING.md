@@ -1606,7 +1606,7 @@ ausdrücklich als `--tabbar-h + 24px + safe-area` definiert ist; die Fußzeile k
 die Seite beim Messen gescrollt ist. Deshalb `+ window.scrollY`.
 
 **Nebenbefund:** Die Fußzeile kostet 53 px, die aus dem Sheet abgezogen werden müssen. Sie
-auszublenden wäre der bequeme Weg — das Impressum muss aber erreichbar bleiben (CLAUDE.md §23).
+auszublenden wäre der bequeme Weg — das Impressum muss aber erreichbar bleiben (CLAUDE.md §13).
 Die 64 px Bodenluft von `<main>` entfallen im Plan-Reiter dagegen zu Recht: Sie sind Abstand für
 eine Seite, die gescrollt wird.
 
@@ -2029,7 +2029,7 @@ die einen Fehler an die globalen Handler weiterreicht. Sie zu überschreiben wä
 Nebeneffekt an genau der Stelle, an der es um das Gegenteil geht. Der Hook heißt `noteError`.
 
 **Was der Melder ausdrücklich nicht tut:** verschicken oder persistieren. Beides würde die
-Datenschutzerklärung berühren (`CLAUDE.md` §20/§23). Er hält 50 Fälle im Speicher und schreibt
+Datenschutzerklärung berühren (`CLAUDE.md` §13). Er hält 50 Fälle im Speicher und schreibt
 gedrosselt nach `console.warn`. Der eigentliche Nutzen entsteht erst mit Store-Telemetrie in
 Phase D — dann ist er die eine Stelle, an der sie andockt, statt 38 Stellen.
 
