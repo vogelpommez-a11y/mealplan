@@ -62,11 +62,11 @@ drei mit Zeilennummer.
 | `docs/ABDECKUNG.md` | Welcher Prüfer welchen Bereich abdeckt — neuer Agent, Hook, Reiter, Dienst oder Ordner |
 | `docs/ABNAHME-MENSCH.md` | Was nur ein Mensch am Gerät abnehmen kann — neuer Ablauf, der dort fehlt |
 | `docs/MODULE.md` | **Erzeugt**, nicht gepflegt: nur melden, dass `python tools/karte.py` fehlt — nie Text vorschlagen |
+| `CLAUDE.md` | Nur die **Regel**, nie die Begründung. Die Begründung gehört in die Doku oben. |
 
 Bis zum 18.10.2026 standen hier nur vier `docs/`-Dateien, während `docs/ABDECKUNG.md` dir
 „`docs/` als Ganzes“ zuschrieb. Sechs Dateien waren damit ungeprüft, und der Bericht lautete
 trotzdem „stimmig“. Kommt eine Datei unter `docs/` dazu, gehört sie in diese Tabelle.
-| `CLAUDE.md` | Nur die **Regel**, nie die Begründung. Die Begründung gehört in die Doku oben. |
 
 Eine Änderung darf mehrere Dateien betreffen. Das ist der Normalfall, kein Sonderfall.
 

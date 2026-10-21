@@ -217,7 +217,7 @@
        Scroll-Problem, kostete aber dauerhaft Platz und stoerte im Bild - zurueckgebaut.
 
        Sie bleibt, solange NIEMAND angemeldet ist: das Menue gibt es erst danach, und das
-       Impressum darf nicht hinter das Auth-Gate wandern (CLAUDE.md §23). Waehrend der
+       Impressum darf nicht hinter das Auth-Gate wandern (CLAUDE.md §13). Waehrend der
        ersten Schritte ebenfalls - dort ist die Reiterleiste ausgeblendet. */
     .app:not(.authing):not(.onboarding) .site-foot { display: none; }
   }
