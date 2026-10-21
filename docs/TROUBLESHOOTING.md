@@ -6,7 +6,7 @@ Dieses Dokument enthält bekannte Fehlerquellen, historische Bugs und Probleme, 
 
 <!-- REGISTER-ANFANG (erzeugt aus den Ueberschriften: python tools/register.py - nicht von Hand pflegen) -->
 
-**Register — 192.** Chronologisch gewachsen: je hoeher die Nummer,
+**Register — 193.** Chronologisch gewachsen: je hoeher die Nummer,
 desto juenger der Fund. Wer eine Falle sucht, sucht hier zuerst; die Ueberschrift sagt
 jeweils, worum es geht. **Nicht die ganze Datei lesen** — sie ist rund 310 KB gross.
 
@@ -204,6 +204,7 @@ jeweils, worum es geht. **Nicht die ganze Datei lesen** — sie ist rund 310 KB 
 | 190 | „Rechnerische Richtwerte“ auf „Dein Ziel steht“ ließ sich scheinbar nicht öffnen |
 | 191 | Zwei Prüfer waren an einer Stelle blind — und meldeten trotzdem „sauber“ |
 | 192 | Zwei stille Fehler: Austritt ließ die alte Gruppe stehen, Löschen meldete „gelöscht“ trotz Fotos |
+| 193 | `alle-pruefstaende.py` blieb ohne Ausgabe stehen, wenn der Testserver nicht lief |
 
 <!-- REGISTER-ENDE -->
 
@@ -7354,3 +7355,24 @@ muss jede Reihenfolge durchspielen, in der nur einer ankommt — offline vor all
 Und: Ein `catch` mit `noteError()` ist nicht automatisch harmlos. Die Frage ist nicht
 „wird der Fehler protokolliert?“, sondern „was steht danach in der Cloud, und was glaubt der
 Nutzer?“.
+
+## 193. `alle-pruefstaende.py` blieb ohne Ausgabe stehen, wenn der Testserver nicht lief
+
+**Symptom (20. und 21.10.2026):** Der Reihenlauf stand nach dem vierten Prüfstand, über zehn
+Minuten, ohne Meldung. Es lief kein Prüfstand mehr, die Zeitgrenze von 300 s griff nicht.
+Einzeln war `pruefstand-cloud-laden.py` in Sekunden grün.
+
+**Ursache:** Lief `test-server.ps1` beim Start nicht, startete der erste Prüfstand, der ihn
+braucht, ihn selbst (`server_starten()` in `tools/pruefstand-reiter.py`) — per `Popen` ohne eigene
+Handles. Der Server erbte damit die Ausgabe-Leitung, die `alle-pruefstaende.py` über
+`capture_output` mitliest. Der Prüfstand endete, der Server lief weiter, und `subprocess.run()`
+wartete auf das Ende einer Leitung, die nie zuging. Die Zeitgrenze half nicht: Sie beendet nur
+den Prüfstand, nicht den Server, der die Leitung hält.
+
+**Behoben:** `stdin`/`stdout`/`stderr=subprocess.DEVNULL` beim Serverstart — an allen vier Stellen,
+die ihn so starten: `pruefstand-reiter.py`, `abnahme-mobil.py`, `netz-ohne-konto.py`,
+`vorfuehren.py`. Gegenprobe: Server aus, `python tools/alle-pruefstaende.py cloud-laden` — alter
+Stand hängt (>90 s), neuer Stand grün in 18 s.
+
+**Lehre:** Ein Hintergrundprozess, der länger lebt als sein Starter, bekommt nie dessen Leitungen.
+Und ein Hänger, der nur im Reihenlauf auftritt, liegt eher am Läufer als am Prüfstand.

@@ -68,7 +68,10 @@ def server_sicherstellen():
     print(u"Der lokale Server laeuft nicht - starte test-server.ps1 ...")
     subprocess.Popen(["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-WindowStyle", "Minimized",
                       "-File", os.path.join(WURZEL, "test-server.ps1")],
-                     cwd=WURZEL)
+                     cwd=WURZEL,
+                     # Ohne eigene Handles erbt der Server die Ausgabe-Leitung des Aufrufers.
+                     # alle-pruefstaende.py wartet dann ewig auf deren Ende (TROUBLESHOOTING 193).
+                     stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     for _ in range(30):
         time.sleep(0.5)
         if server_laeuft():
