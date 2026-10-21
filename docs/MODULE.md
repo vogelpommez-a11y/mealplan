@@ -349,10 +349,10 @@ _keine_
 | docs/BAUSTEINE.md | 106 | 14052 |
 | docs/DESIGN.md | 1439 | 80261 |
 | docs/MODULE.md | — | — (erzeugt) |
-| docs/PRODUCT.md | 1866 | 108506 |
+| docs/PRODUCT.md | 1883 | 109575 |
 | docs/RUNBOOK.md | 387 | 20402 |
 | docs/SECURITY.md | 609 | 37178 |
-| docs/STORE.md | 553 | 34231 |
+| docs/STORE.md | 562 | 34989 |
 | docs/TESTING.md | 5679 | 340784 |
 | docs/TROUBLESHOOTING.md | 7379 | 432718 |
 | docs/module-index.json | — | — (erzeugt) |

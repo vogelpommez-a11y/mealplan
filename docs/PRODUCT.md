@@ -732,6 +732,23 @@ Unknackbarkeit.
 **Folge für die Planung:** Die Firestore-Sammlung und ihre Regel gehören angelegt, **bevor**
 die erste Pro-Charge ausgerollt wird. Ein späterer Umzug ist teurer.
 
+### 5. Pro gilt überall — ein Konto, drei Kassen (21.10.2026)
+
+Pro ist **im Web, in der iPhone- und in der Android-App** kaufbar. Wer an einer Stelle kauft,
+hat Pro an allen dreien, synchron.
+
+* **Pro hängt am Konto, nicht am Gerät oder Store.** Drei Kassen — Web-Zahlung, Apple In-App-
+  Purchase, Google Play Billing — melden Kauf, Verlängerung, Kündigung und Erstattung an
+  **eine** serverseitige Stelle, die `entitlements/{uid}` schreibt. Web und Apps lesen nur
+  dieses Feld. Der Türsteher aus Abschnitt 2 gilt unverändert: Der Client gibt sich nie selbst Pro.
+* **Ohne Konto kein Pro.** Lokal ohne Anmeldung bleibt die App gratis nutzbar (CLAUDE.md §1).
+* **Gekündigt wird dort, wo gekauft wurde.** Die App sagt, wo das ist.
+* **Die Store-Apps verweisen nicht auf die Web-Kasse** (Apple 3.1.1/3.1.3, `docs/STORE.md` §2).
+
+Anlass: Web-Nutzer aus dem Marktstart (Phase 2) sollen Pro kaufen können, ohne auf die
+Store-App zu warten. Wie gebaut wird (fertiger Dienst oder selbst, Server-Ort, Reihenfolge),
+steht noch aus — Recherche in `plans/`.
+
 
 ## Rezeptbuch (15.08.2026)
 

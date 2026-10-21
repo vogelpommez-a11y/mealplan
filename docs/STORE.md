@@ -121,6 +121,7 @@ Der Tarifwechsel gehört damit **vor** den Bau der Bezahlung, nicht danach.
 | Wann Blaze? | **Beim Baubeginn der Bezahlung**, nicht vorher — aber fest eingeplant |
 | Auto-Planer trotz Client-Lücke Pro? | **Ja**, als bekannte Grenze dokumentiert |
 | Wo liegen künftige Pro-Rezepte? | **In Firestore** hinter `hasPro()`, nicht in `index.html` |
+| Pro auch im Web? *(21.10.2026)* | **Ja.** Ein Konto, drei Kassen (Web, Apple, Google), Pro gilt überall |
 
 Begründungen: `docs/PRODUCT.md`, Abschnitt „Bewusste Produktentscheidung: Wie Pro verkauft
 wird". Umgesetzt ist davon **noch nichts** — die Entscheidungen legen fest, wie gebaut wird.
@@ -136,6 +137,14 @@ am 19.09.2026). Die Core Technology Fee entfällt zugunsten einer Provision von 
 Vertrieb außerhalb des App Store, die Wege für alternative Zahlungen sind neu geordnet. Ob
 das für eine App im regulären App Store überhaupt einen günstigeren Weg eröffnet, ist
 **offen**. Das gehört vor dem Bau der Bezahlung geklärt.
+
+**Pro auch im Web (21.10.2026, `docs/PRODUCT.md` „Wie Pro verkauft wird“ Nr. 5):** Pro wird
+zusätzlich im Web verkauft, mit eigener Kasse. Store-relevant daran: (1) Pro muss in den Apps
+**auch** über IAP bzw. Play Billing kaufbar sein — dann dürfen die Apps ein im Web gekauftes Pro
+freischalten (Apple 3.1.3(b) „Multiplatform Services“). (2) Die Apps verlinken oder bewerben
+die Web-Kasse nicht, solange die aktuell geltenden EU-Regeln nicht ausdrücklich geprüft sind.
+(3) `entitlements/{uid}` bekommt drei schreibende Quellen statt einer — alle serverseitig.
+Vor dem Bau mit `store-check` gegen den dann gültigen Stand prüfen.
 
 ---
 
