@@ -1277,9 +1277,9 @@
       "zeilen": 142
     },
     {
-      "bytes": 37860,
+      "bytes": 25960,
       "pfad": "CLAUDE.md",
-      "zeilen": 827
+      "zeilen": 575
     },
     {
       "bytes": 21,
@@ -1372,9 +1372,9 @@
       "zeilen": 154
     },
     {
-      "bytes": 223056,
+      "bytes": 223911,
       "pfad": "docs/ARCHITECTURES.md",
-      "zeilen": 3449
+      "zeilen": 3462
     },
     {
       "bytes": 14052,
@@ -1411,14 +1411,14 @@
       "zeilen": 553
     },
     {
-      "bytes": 338687,
+      "bytes": 340735,
       "pfad": "docs/TESTING.md",
-      "zeilen": 5644
+      "zeilen": 5678
     },
     {
-      "bytes": 431238,
+      "bytes": 432718,
       "pfad": "docs/TROUBLESHOOTING.md",
-      "zeilen": 7357
+      "zeilen": 7379
     },
     {
       "erzeugt": true,
@@ -1849,9 +1849,9 @@
       "zeilen": 324
     },
     {
-      "bytes": 44501,
+      "bytes": 44795,
       "pfad": "tools/abnahme-mobil.py",
-      "zeilen": 959
+      "zeilen": 962
     },
     {
       "bytes": 21730,
@@ -1949,9 +1949,9 @@
       "zeilen": 146
     },
     {
-      "bytes": 12118,
+      "bytes": 12433,
       "pfad": "tools/netz-ohne-konto.py",
-      "zeilen": 271
+      "zeilen": 275
     },
     {
       "bytes": 8797,
@@ -2189,9 +2189,9 @@
       "zeilen": 501
     },
     {
-      "bytes": 17050,
+      "bytes": 17365,
       "pfad": "tools/pruefstand-reiter.py",
-      "zeilen": 370
+      "zeilen": 374
     },
     {
       "bytes": 13133,
@@ -2349,9 +2349,9 @@
       "zeilen": 618
     },
     {
-      "bytes": 4661,
+      "bytes": 4955,
       "pfad": "tools/vorfuehren.py",
-      "zeilen": 120
+      "zeilen": 123
     },
     {
       "bytes": 39849,

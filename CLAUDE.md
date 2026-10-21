@@ -3,8 +3,8 @@
 Anleitung für Claude Code in diesem Repository.
 
 **Diese Datei enthält Regeln und Zeiger — keine Begründungen.** Sie wird bei jeder Sitzung
-vollständig geladen; jedes Wort hier kostet Kontext in jeder einzelnen Anfrage. Das *Warum*
-steht in `docs/`, dort wo man es sucht, wenn man es braucht.
+vollständig geladen; jedes Wort hier kostet Kontext in jeder Anfrage. Das *Warum* steht in
+`docs/`. Neue Geschichten, Daten und Beispiele gehören dorthin, nicht hierher.
 
 ---
 
@@ -13,14 +13,11 @@ steht in `docs/`, dort wo man es sucht, wenn man es braucht.
 **Paddy's Mealplan erscheint im App Store und bei Google Play.** Das ist der Maßstab für
 **alle** Entscheidungen — Architektur, Bezahlung, Fremdcode, Berechtigungen.
 
-Die drei Regeln, die daraus unmittelbar folgen:
-
-* **Kein Code wird zur Laufzeit nachgeladen** (Apple 2.5.2). Deshalb liegt das
-  Firebase-SDK in `vendor/`, nicht auf einem CDN. Kein neuer `<script src="https://…">`,
-  kein `import()` auf eine fremde URL.
+* **Kein Code wird zur Laufzeit nachgeladen** (Apple 2.5.2). Kein neuer
+  `<script src="https://…">`, kein `import()` auf eine fremde URL.
 * **Die App startet ohne Netz** und ist ohne Anmeldung sinnvoll nutzbar.
-* **Digitale Funktionen in der App brauchen In-App-Purchase** (Apple 3.1.1). Bevor etwas
-  an Pro/Bezahlung gebaut wird: `docs/STORE.md` lesen, Abschnitt 2.
+* **Digitale Funktionen in der App brauchen In-App-Purchase** (Apple 3.1.1). Vor allem an
+  Pro/Bezahlung: `docs/STORE.md` Abschnitt 2 lesen.
 
 → Prüfliste und Stand: `docs/STORE.md` · Prüfer: Agent `store-check`
 
@@ -28,13 +25,11 @@ Die drei Regeln, die daraus unmittelbar folgen:
 
 # 2. Projektgrundsätze
 
-Die Kommunikation im gesamten Projekt läuft auf **Deutsch** — Antworten,
-Code-Kommentare, Dokumentation, Commit-Messages.
+Kommunikation im gesamten Projekt auf **Deutsch** — Antworten, Code-Kommentare,
+Dokumentation, Commit-Messages. Commit-Messages in ASCII: `geprueft`, `geaendert`.
 
-Commit-Messages bewusst in ASCII: `geprueft`, `geaendert`, `aktualisiert`.
-
-**Paddy's Mealplan** ist ein deutschsprachiger Wochen-Essensplaner. Ausgeliefert werden
-statische Dateien **ohne Build-Prozess**:
+**Paddy's Mealplan** ist ein deutschsprachiger Wochen-Essensplaner aus statischen Dateien
+**ohne Build-Prozess**:
 
 | Ort | Inhalt |
 |---|---|
@@ -43,64 +38,37 @@ statische Dateien **ohne Build-Prozess**:
 | `data/` | Rezeptkatalog, Zutaten, Bilder, Icons, **Rechtstexte** — nur Daten, keine Logik |
 | `lib/` | gemeinsame Helfer (`window.PM`), PDF-Schreiber, Barcode-Infrastruktur |
 
-Die Dateien sind **klassische Skripte in Dokumentreihenfolge**, keine ES-Module: Module
-laufen nicht über `file://`, und genau darauf bauen Smoke-Test und Prüfstände auf.
+**Klassische Skripte in Dokumentreihenfolge**, keine ES-Module — Module laufen nicht über
+`file://`, darauf bauen Smoke-Test und Prüfstände. Wo was liegt: `docs/MODULE.md` (erzeugt,
+`python tools/karte.py`).
 
-**Welche Datei welchen Bereich trägt, steht in `docs/MODULE.md`** — erzeugt, nicht
-gepflegt (`python tools/karte.py`).
-
-| Thema | Datei |
-|---|---|
-| Produktdefinition | `docs/PRODUCT.md` |
-| Technische Architektur | `docs/ARCHITECTURES.md` |
-| Design-System „Performance Dark" | `docs/DESIGN.md` |
-| Test- und Verifikationsverfahren | `docs/TESTING.md` |
-| UI-Bausteine: wer lebt wo, woher stammt er | `docs/BAUSTEINE.md` |
-| Bekannte Fehler, Fallen, Workarounds | `docs/TROUBLESHOOTING.md` |
-| Sicherheitsmodell | `docs/SECURITY.md` |
-| Store-Anforderungen | `docs/STORE.md` |
-| Wer prüft was | `docs/ABDECKUNG.md` |
-| Deploy, Rollback, Notfälle | `docs/RUNBOOK.md` |
-| Technische Landkarte (erzeugt) | `docs/MODULE.md` |
-| Regeln für Styles | `css/CLAUDE.md` |
-| Regeln für Daten und Rechtstexte | `data/CLAUDE.md` |
-| Datenschutz-Pflichten (gitignored) | `docs/DATENSCHUTZ-INTERN.md` |
-| Firebase-Einrichtung | `FIREBASE-SETUP.md` |
-
-## Wichtige Arbeitsregel
+Neben Abschnitt 3: `docs/BAUSTEINE.md` (UI-Bausteine), `docs/ABDECKUNG.md` (wer prüft was),
+`docs/RUNBOOK.md` (Deploy, Rollback, Notfälle), `css/CLAUDE.md`, `data/CLAUDE.md`,
+`docs/DATENSCHUTZ-INTERN.md` (gitignored), `FIREBASE-SETUP.md`.
 
 **Code, Dokumentation und Projektstatus müssen nach einer Änderung konsistent sein.**
-Dokumentation ist kein späterer Aufräumschritt, sondern Bestandteil der Änderung.
 
 ---
 
 # 3. Dokumentation automatisch synchron halten
 
-Wenn eine Änderung eine dokumentierte Produktregel, Architektur, Testmethode oder
-Fehlerquelle betrifft, wird die Dokumentation **im selben Arbeitsschritt** aktualisiert.
-Claude erkennt das selbstständig; der Nutzer muss nicht darum bitten.
+Betrifft eine Änderung eine dokumentierte Regel, Architektur, Testmethode oder Fehlerquelle,
+wird die Doku **im selben Arbeitsschritt** aktualisiert — ohne dass der Nutzer darum bittet.
 
 | Datei | Aktualisieren bei Änderungen an |
 |---|---|
-| `docs/PRODUCT.md` | Produktphilosophie, Feature-Regeln, UX-Grundsätze, Markenstimme, Premium, Meal-Datenbank, bewussten Produktentscheidungen |
-| `docs/ARCHITECTURES.md` | Architektur, Datenmodell, State, localStorage, Firebase, Auth, Cloud-Sync, Gruppenmodus, Firestore-Struktur, Rollen, Datenflüssen, Schnittstellen |
-| `docs/DESIGN.md` | Tokens, Typografie, Theme, Makro-Darstellung, Abschnittsformen, Bewegungssprache |
-| `docs/TESTING.md` | Testverfahren, neuen Prüfständen, Regressionen, Prüfregeln |
-| `docs/TROUBLESHOOTING.md` | neuen Fallen, Bugs, Browser-/Firebase-/Sync-Fallen, Workarounds, behobenen historischen Fehlern |
+| `docs/PRODUCT.md` | Feature-Regeln, UX, Markenstimme, Premium, Meal-Datenbank, Produktentscheidungen |
+| `docs/ARCHITECTURES.md` | Datenmodell, State, localStorage, Firebase, Auth, Sync, Gruppen, Firestore, Rollen, Datenflüssen |
+| `docs/DESIGN.md` | Tokens, Typografie, Theme, Makro-Darstellung, Bewegung |
+| `docs/TESTING.md` | Testverfahren, Prüfständen, Regressionen, Prüfregeln |
+| `docs/TROUBLESHOOTING.md` | Fallen, Bugs, Workarounds, behobenen Fehlern |
 | `docs/SECURITY.md` | Regeln, Bedrohungen, Geheimnissen, bewussten Kompromissen |
 | `docs/STORE.md` | Bezahlung, Konto, Berechtigungen, Fremdcode, Store-Angaben |
 
-Eine Änderung darf mehrere Dateien betreffen — das ist der Normalfall.
-
-## Dokumentations-Gate
-
-Vor Abschluss jeder Aufgabe prüfen, ob eine der obigen Dateien durch die Änderung falsch
-oder widersprüchlich geworden ist. Wenn ja: im selben Arbeitsschritt korrigieren.
-
-Bei nicht-trivialen Änderungen macht das der Agent **`doku-waechter`** — er nimmt den
-`git diff` und nennt die betroffenen Stellen mit Zeilennummer.
-
-Keine Dokumentation künstlich verändern, wenn die Änderung dort keine Relevanz hat.
+**Dokumentations-Gate:** Vor Abschluss jeder Aufgabe prüfen, ob eine dieser Dateien falsch
+oder widersprüchlich geworden ist, und im selben Schritt korrigieren. Bei nicht-trivialen
+Änderungen macht das der Agent **`doku-waechter`** über den `git diff`. Keine Doku künstlich
+ändern, wo die Änderung keine Relevanz hat.
 
 ---
 
@@ -109,174 +77,122 @@ Keine Dokumentation künstlich verändern, wenn die Änderung dort keine Relevan
 Paddy's Mealplan ist **kein Kalorien-Tracker**. Ein Tracker schaut zurück — *was habe ich
 gegessen?* Paddy's Mealplan schaut nach vorne — *was werde ich essen?*
 
-Jedes Feature muss mindestens einen echten Produktnutzen erzeugen: Zeit sparen,
-Entscheidungen reduzieren, Ernährung vereinfachen, die Nutzererfahrung verbessern.
-
 **Qualität vor Quantität. Einfachheit vor unnötigen Funktionen.** Technische Machbarkeit
-allein ist kein Grund für ein Feature. „Wäre auch ganz nett" ist kein ausreichender Grund.
+oder „wäre auch ganz nett" ist kein Grund für ein Feature.
 
-## Feature-Entscheidungsregel
-
-Vor jeder neuen Funktion — auch vor einem bloßen Vorschlag — prüfen:
+**Feature-Entscheidungsregel** — vor jeder neuen Funktion, auch vor einem bloßen Vorschlag:
 
 1. Spart sie Zeit?
 2. Reduziert sie Entscheidungen des Nutzers?
 3. Verbessert sie die Nutzererfahrung?
 4. Passt sie zum Wochenplan-Konzept, zu Fitness/Abnehmen und zu `state.goal`?
 
-Wird keine dieser Fragen sinnvoll mit Ja beantwortet: **Feature nicht umsetzen.** Nicht als
-Kompromiss, nicht als abgespeckte Variante.
-
-→ Ausführlich: `docs/PRODUCT.md`
+Kein sinnvolles Ja: **nicht umsetzen** — auch nicht als abgespeckte Variante.
+→ `docs/PRODUCT.md`
 
 ---
 
 # 5. UX-Grundsätze
 
-Jeder Screen löst möglichst genau ein Problem.
-
-* möglichst wenige Nutzerinteraktionen
-* geringe kognitive Last
-* klare nächste Aktion
-* wenige statt viele Optionen
-* keine unnötigen Erklärungen
-* möglichst kurze Nutzerwege
-
-Bei zwei technisch gleichwertigen Lösungen gewinnt die mit weniger Interaktionen.
+Jeder Screen löst möglichst genau ein Problem: wenige Interaktionen, geringe kognitive Last,
+klare nächste Aktion, wenige Optionen, keine unnötigen Erklärungen, kurze Wege. Bei zwei
+gleichwertigen Lösungen gewinnt die mit weniger Interaktionen.
 
 ---
 
 # 6. Markenstimme und Textmenge
 
-Paddy's Mealplan fühlt sich an wie ein erfahrener Trainingspartner: motivierend,
-freundlich, modern, vertrauenswürdig. Nicht wie Behörden-, Medizin- oder komplizierte
-Ernährungsfachsoftware.
-
-**Die Marke hilft dem Nutzer. Sie bewertet ihn niemals.** Besonders bei Gewicht, Kalorien,
+Wie ein erfahrener Trainingspartner: motivierend, freundlich, modern, vertrauenswürdig.
+**Die Marke hilft dem Nutzer. Sie bewertet ihn niemals** — besonders bei Gewicht, Kalorien,
 Zielen, Fortschritt, Fehlern und leeren Zuständen.
 
-UI-Texte sind kurz, freundlich, motivierend, positiv, leicht verständlich. Zu vermeiden:
-Behörden-Deutsch, Roboter-Sprache, unnötige Fachsprache, lange Erklärungen, wertende
-Formulierungen, Slang („Bro", „Digga").
+UI-Texte kurz, positiv, leicht verständlich. Kein Behörden-Deutsch, keine Roboter- oder
+Fachsprache, nichts Wertendes, kein Slang („Bro", „Digga"). Buttons aktiv: `Meal anlegen`,
+nicht `Neues Meal wird angelegt`. Fehlermeldungen nicht anklagend.
 
-Buttons aktiv formulieren: `Meal anlegen`, nicht `Neues Meal wird angelegt`.
-Fehlermeldungen sind freundlich und nicht anklagend. Erfolgsmeldungen dürfen motivieren.
-
-**So wenig Text wie möglich.** Keinen Erklärungssatz schreiben, wenn die Information bereits
-aus Frage, Label, Option, Beispiel oder Platzhalter hervorgeht. Rechtlich oder fachlich
-notwendige Hinweise möglichst kompakt, wenn passend hinter `<details>`.
+**So wenig Text wie möglich.** Kein Erklärungssatz, wenn Frage, Label, Option, Beispiel oder
+Platzhalter es schon sagen. Notwendige Hinweise kompakt, wenn passend hinter `<details>`.
 
 ---
 
 # 7. Design
 
-**Jede neue oder geänderte UI wird im bestehenden Design „Performance Dark" umgesetzt.**
-Kein eigener Stil, keine fremden Farbpaletten, keine externen Fonts, keine
-Design-Neuerfindung.
-
-Die Kurzfassung:
+**Jede neue oder geänderte UI im bestehenden Design „Performance Dark".** Kein eigener Stil,
+keine fremden Paletten, keine externen Fonts.
 
 * Vorhandene CSS-Tokens verwenden (`--accent`, `--bg`, `--surface`, `--text`, `--border`,
-  `--radius`, `--shadow`, `--fr`/`--mi`/`--ab` …), keine Werte hartkodieren, für die ein
-  Token existiert.
+  `--radius`, `--shadow`, `--fr`/`--mi`/`--ab` …), nichts hartkodieren, wofür es ein Token gibt.
 * Nur System-Fonts: `var(--font-display)` für Headlines, `var(--font-body)` für Fließtext.
 * Light **und** Dark pflegen — `@media (prefers-color-scheme: dark)` und
   `:root[data-theme=…]`.
 * Makros immer als `kcal → KH → P → F`, in einer der **drei** erlaubten Formen. Keine
-  vierte erfinden. Nie wieder `K` für Kohlenhydrate oder `Eiw.`/`Fett` in Wertzeilen.
+  vierte. Nie `K` für Kohlenhydrate oder `Eiw.`/`Fett` in Wertzeilen.
 * Abschnittsüberschriften bekommen `.sec-h`, keine eigenen Werte.
-* Mehrstufige Abläufe verwenden die durchgängige Progress-Bar (`.wg-progress-bar`), die
-  **nicht anklickbar** ist. Zurück nur über einen eigenen `Zurück`-Button.
+* Mehrstufige Abläufe: durchgängige Progress-Bar (`.wg-progress-bar`), **nicht anklickbar**.
+  Zurück nur über einen eigenen `Zurück`-Button.
 * Ansichtswechsel folgen dem Schiebe-Schema; `MOTION`-Tokens sind die einzige Quelle für
   Dauer und Kurve (Ausnahme nur `--dur-marke*`/`--ease-marke` für Startbildschirm und
   Marken-Lader); `reducedMotion()` immer berücksichtigen.
 * **In einem Snap-Streifen niemals einen zweiten Scroll-Container anlegen.**
 
-**→ Die vollständigen Regeln samt Begründungen: `docs/DESIGN.md`. Bei jeder Design-Änderung
-zuerst dort nachsehen.**
+**→ Vollständige Regeln: `docs/DESIGN.md` — bei jeder Design-Änderung zuerst dort.**
 
-## Design-Skills
-
-Bei jeder Design-Änderung vorab berücksichtigen, in dieser Reihenfolge:
-
+**Design-Skills** bei jeder Design-Änderung vorab, in dieser Reihenfolge:
 1. `ui-ux-pro-max:ui-ux-pro-max` (UI-Zustände, UX, A11y, Farben) bzw.
    `ui-ux-pro-max:design` (Branding, Logo, Banner)
 2. `apple-design` (fluide Interaktion, Motion, Materialien)
 3. `emil-design-eng` (Detailpolitur, Press-States)
 
-**Empfehlungen auf Performance Dark mappen** — nie die Variablen, Farben oder Kurven der
-Skills direkt übernehmen. Projekt-Tokens haben Vorrang.
-
-Animations-Skills (`find-animation-opportunities`, `improve-animations`) nur, wenn Bewegung
-tatsächlich Teil der Änderung ist.
+Empfehlungen **auf Performance Dark mappen**, nie Variablen, Farben oder Kurven der Skills
+übernehmen. Animations-Skills (`find-animation-opportunities`, `improve-animations`) nur,
+wenn Bewegung Teil der Änderung ist.
 
 ---
 
 # 8. Mobile
 
-Mobile Darstellung ist Bestandteil **jeder** UI-Änderung, nicht ein späterer Schritt.
+Mobile ist Bestandteil **jeder** UI-Änderung. Breakpoints `max-width: 720px` und
+`max-width: 560px`. Eingaben bei 16 px lassen, sonst zoomt iOS.
 
-Breakpoints: `max-width: 720px` und `max-width: 560px`.
-Bei Eingaben 16 px beibehalten, sonst zoomt iOS automatisch.
-
-Relevante mobile Zustände tatsächlich prüfen, nicht nur Desktop — mit echter
-Geräte-Emulation, nie über die Fensterbreite:
+Prüfen mit echter Geräte-Emulation, nie über die Fensterbreite:
 
 ```powershell
 python tools/abnahme-mobil.py        # 3 Breiten x Light/Dark, 96 Stationen
 ```
 
-⚠️ **Einen `@media`-Block nie mitten in einen bestehenden einfügen** — das hat am
-16.08.2026 den 680-px-Block zerschnitten und die ganze mobile Ansicht lahmgelegt.
+⚠️ **Einen `@media`-Block nie mitten in einen bestehenden einfügen** (`docs/TROUBLESHOOTING.md` §97).
 
 ---
 
 # 9. Keine Toolchain erfinden
 
 Es gibt **kein** Node, PHP, npm, `package.json`, Bundler, Build, Test-Framework, Linter.
-**Keine npm-Befehle erfinden.** Eine Änderung an `index.html` ist unmittelbar die fertige App.
-
-Python ist vorhanden und wird für Hilfs- und Testskripte verwendet.
+**Keine npm-Befehle erfinden.** Eine Änderung an `index.html` ist unmittelbar die fertige
+App. Python ist vorhanden für Hilfs- und Testskripte.
 
 ---
 
 # 10. Lesen und Bearbeiten des Codes
 
-`index.html` ist **rund 1 MB groß und weit über 13.000 Zeilen lang** — bewusst ohne genaue Zahl, sie wäre nach dem nächsten Commit wieder falsch. Die früher über 4.000 Zeichen
-langen Zeilen sind mit den Rechtstexten nach `data/rechtstexte.js` gewandert.
+`index.html` ist **rund 1 MB und weit über 13.000 Zeilen lang**. **Nie die komplette Datei
+blind lesen** — kein `cat`, keine überlangen Zeilen ungefiltert. Mit `Grep` suchen, nur die
+Stelle mit Offset/Limit lesen.
 
-**Niemals die komplette Datei blind lesen.** Kein `cat`, keine überlangen Zeilen ungefiltert
-in den Kontext.
+**Immer über alle Code-Dateien suchen, nicht nur `index.html`** — Tokens, Rezeptkatalog,
+Rechtstexte, PDF und Barcode liegen woanders (`docs/MODULE.md`).
 
-Stattdessen: mit `Grep` die relevante Stelle suchen, nur diese mit Offset/Limit lesen.
+`data:image;base64` im Umlauf sind Nutzerbilder aus `localStorage`/Firestore — über Skripte
+bearbeiten, nie durch den Kontext kopieren.
 
-**Und immer über alle Code-Dateien suchen, nicht nur `index.html`.** Wer nur dort sucht,
-sucht seit der Aufteilung an Tokens, Rezeptkatalog, Rechtstexten, PDF und Barcode vorbei —
-und findet nichts, ohne dass das auffällt. `docs/MODULE.md` sagt, wo was liegt.
-
-Die Meal-Fotos liegen als Dateien in `img/` und `img/library/`, **nicht** mehr als Base64 in der Datei. Was
-noch als `data:image;base64` vorkommt, sind Bilder des Nutzers aus `localStorage`/Firestore —
-zur Laufzeit, nicht im Quelltext. Trifft man sie doch einmal an: über Skripte arbeiten, nie
-durch den Kontext kopieren.
-
-Wenn Code getestet werden soll: **niemals abtippen oder manuell nachbauen** — den echten
-Code aus `index.html` ausschneiden.
+Zum Testen **nie abtippen oder nachbauen** — den echten Code aus `index.html` ausschneiden.
 
 ---
 
 # 11. Testen und Verifikation
 
-**Nach jeder Änderung an JavaScript zuerst:**
-
-```powershell
-python syntax-check.py --alles
-```
-
-Rund eine Sekunde. Ein Syntaxfehler beendet das gesamte App-Script — die Seite liefert
-weiter HTTP 200, aber `#view` bleibt leer. Deshalb läuft der Syntax-Check **vor** allem
-anderen. (Ein Hook erledigt das inzwischen automatisch, siehe Abschnitt 18.)
-
-Die Verfahren gibt es als Skill:
+**Nach jeder Änderung an JavaScript zuerst** `python syntax-check.py --alles` (rund eine
+Sekunde; ein Hook erledigt das automatisch, Abschnitt 18). Ein Syntaxfehler beendet das
+ganze App-Script — HTTP 200, aber `#view` bleibt leer.
 
 | Skill | Wofür |
 |---|---|
@@ -286,21 +202,12 @@ Die Verfahren gibt es als Skill:
 | `/deploy` | Push, Verifikation, Rollback |
 | `/rezeptcharge` | Neue Rezepte für `COOKBOOK` — Recherche, Nährwerte, Anleitung, Bilder |
 
-Für den Blick aufs Ganze vor einem größeren Commit:
+Gesamtlauf: `python tools/alle-pruefstaende.py`. Bei Prüfständen, die `OFFEN` von
+`REGRESSION` trennen, heißt „grün" nur **keine Regression** — der Läufer weist das aus.
 
-```powershell
-python tools/alle-pruefstaende.py
-```
-
-Achtung: Bei Prüfständen, die `OFFEN` von `REGRESSION` trennen, heißt „grün" dort nur
-**keine Regression** — offene Punkte kann es trotzdem geben. Der Läufer weist das aus.
-
-**Prüfaufwand nach Größe der Änderung** (Festlegung Paddy, 17.10.2026, Stufen seit 18.10.2026):
-
-* Während der Arbeit nur Schnelles: `/smoke` und der **eine** betroffene Prüfstand. Der
-  Syntax-Check läuft dabei von selbst (Hooks, Abschnitt 18).
-* **Vor dem Push** entscheidet die **Stufe**, was läuft — einmal am Ende, nicht nach jeder
-  Text-, Doku- oder Pushcheck-Korrektur erneut:
+**Prüfaufwand:** Während der Arbeit nur `/smoke` und der **eine** betroffene Prüfstand.
+**Vor dem Push** entscheidet die **Stufe** — einmal am Ende, nicht nach jeder Text-, Doku-
+oder Pushcheck-Korrektur erneut:
 
 | Stufe | Wenn sich das geändert hat | Was vor dem Push läuft |
 |---|---|---|
@@ -308,162 +215,118 @@ Achtung: Bei Prüfständen, die `OFFEN` von `REGRESSION` trennen, heißt „grü
 | **B** | App-Code, aber **nichts, was man sieht oder bedient** (Sync, Rechnen, Speichern, Regeln, `sw.js`, Worker) | `alle-pruefstaende.py` (~5 min) + `/pushcheck` Stufe B |
 | **C** | Etwas, das man **sieht oder bedient** (Markup, `css/`, Texte, Bilder, Abläufe) | Vorführung vor der Arbeit (§21b) + `alle-pruefstaende.py` + `abnahme-mobil.py` (~5 min) + `/pushcheck` Stufe C |
 
-  Im Zweifel die höhere Stufe. Ein Werkzeug unter `tools/`, das Nutzerdaten anfasst
-  (`firestore-*.py`, `shared-aufraeumen.py`, `konten-inaktiv.py`), zählt als **B**: Die
-  Datenschutzerklärung sagt zu, was es tut. `/smoke` entfällt vor dem Push, sobald
-  `alle-pruefstaende.py` läuft — `pruefstand-reiter.py` prüft dort jeden Reiter, nicht nur den Start.
-* Bricht ein langer Test ab: **nicht neu starten**, sondern in `docs/TROUBLESHOOTING.md`
-  nachsehen und den Nutzer fragen. `WebSocketTimeoutException` ist ein bekannter Werkzeug-Flake.
+Im Zweifel die höhere Stufe. Ein Werkzeug unter `tools/`, das Nutzerdaten anfasst
+(`firestore-*.py`, `shared-aufraeumen.py`, `konten-inaktiv.py`), zählt als **B**. `/smoke`
+entfällt vor dem Push, sobald `alle-pruefstaende.py` läuft.
 
-Zwei Regeln, die dabei nicht verhandelbar sind:
+Bricht ein langer Test ab: **nicht neu starten**, `docs/TROUBLESHOOTING.md` lesen, Nutzer
+fragen (`WebSocketTimeoutException` ist ein bekannter Flake). Ein Hänger kann der Befund sein.
 
+Nicht verhandelbar:
 * **Getestet wird echter, ausgeschnittener Produktionscode** — kein Nachbau.
 * **Ohne Gegenprobe zählt kein Ergebnis.** Derselbe Prüfstand muss gegen den alten Stand
-  **durchfallen**, sonst misst er nicht das, was er zu messen vorgibt.
+  **durchfallen**.
 
-Wenn ein Test hängt: nicht automatisch annehmen, der Prüfstand sei kaputt. Ein Hänger kann
-der Befund sein.
-
-→ Ausführlich: `docs/TESTING.md` (Teil A: Verfahren, Teil B: Fallarchiv)
+→ `docs/TESTING.md` (Teil A: Verfahren, Teil B: Fallarchiv)
 
 ---
 
 # 12. Firebase, Cloud-Sync und Security
 
-Die App muss **auch ohne Firebase funktionieren**. Wenn `firebaseConfig` Platzhalter
-enthält, das CDN blockiert wird oder die Initialisierung fehlschlägt, fällt sie auf den
-lokalen Login zurück. Beide Modi — `authMode = "local"` und `"cloud"` — bleiben
-funktionsfähig.
-
-## Security — die eine Regel
+Die App muss **auch ohne Firebase funktionieren** (Platzhalter-Config, blockiertes Netz,
+fehlgeschlagene Initialisierung → lokaler Login). `authMode = "local"` und `"cloud"` bleiben
+beide funktionsfähig.
 
 > **Die Firestore Security Rules sind die einzige Sicherheitsgrenze. Alles andere ist
 > Bequemlichkeit.**
 
 UI-Sperren sind **keine** Sicherheitsgrenze; DevTools umgehen sie in Sekunden. Jede neue
-Berechtigung wird **zuerst in den Regeln** durchgesetzt, dann im Client abgebildet.
+Berechtigung **zuerst in den Regeln**, dann im Client.
 
-* `allow read` ist **nicht** `allow get` — `read` umfasst `list`. Wo eine unerratbare ID der
-  Schutz ist, gehört `allow get` hin und `list` ausgeschaltet.
-* `firestore.rules` im Repo ist nur eine **Vorlage**. Verbindlich ist der in der
-  Firebase-Konsole veröffentlichte Stand. Vergleichen, nur lesend:
-  `python tools/regeln-live.py` (braucht `gcloud auth login`); die Wartung mahnt ihn nach
-  30 Tagen an. Ohne diesen Lauf bei jeder Aussage über den Live-Zustand dazusagen, dass er
-  nicht geprüft ist.
-* **Vor jedem Veröffentlichen** `python tools/regeln-pruefen.py` — es gibt keinen Emulator,
-  und ein Tippfehler in einer `allow`-Zeile fällt sonst erst bei echten Nutzern auf.
+* `allow read` ist **nicht** `allow get` — `read` umfasst `list`. Wo eine unerratbare ID
+  schützt: `allow get`, `list` aus.
+* `firestore.rules` im Repo ist nur **Vorlage**; verbindlich ist der Stand in der Konsole.
+  Vergleich, nur lesend: `python tools/regeln-live.py` (braucht `gcloud auth login`). Ohne
+  diesen Lauf bei jeder Aussage zum Live-Zustand sagen, dass er nicht geprüft ist.
+* **Vor jedem Veröffentlichen** `python tools/regeln-pruefen.py` (es gibt keinen Emulator).
   **Veröffentlicht wird von Hand in der Konsole**, nie aus einem Skript.
-* Die **Firebase-Web-Config in `index.html` ist kein Secret.** Web-Keys identifizieren das
+* Die **Firebase-Web-Config in `index.html` ist kein Secret** — Web-Keys identifizieren das
   Projekt, sie autorisieren nichts. Nie als Leck behandeln.
 
-→ Bedrohungsmodell, bewusste Kompromisse, Notfälle: `docs/SECURITY.md`
+→ `docs/SECURITY.md`
 
-## Geheimnisse
-
-Es gibt genau zwei echte Geheimnisse: den `OPENAI_API_KEY` in `.env` und den
-GCP-Service-Account-Schlüssel des Cloudflare Workers (nur in den Cloudflare-Secrets).
-
-* **Nie ausgeben** — nicht mit `cat`, nicht in eine Fehlermeldung, nicht in ein Protokoll.
-* **Nie in einen Prüfstand oder ein Skript kopieren.** Skripte lesen sie aus der Umgebung.
-* Steht ein Schlüssel einmal irgendwo, hilft nur **Rotation**. Löschen reicht nicht.
+**Geheimnisse** gibt es genau zwei: `OPENAI_API_KEY` in `.env` und den GCP-Service-Account-
+Schlüssel des Cloudflare Workers (nur in den Cloudflare-Secrets). **Nie ausgeben**, **nie in
+einen Prüfstand oder ein Skript kopieren** (Skripte lesen aus der Umgebung). Stand ein
+Schlüssel einmal irgendwo, hilft nur **Rotation**.
 
 ---
 
 # 13. Daten und Datenschutz
 
 Ein Meal speichert bei `by` **ausschließlich die UID** — nie Name, E-Mail oder andere
-personenbezogene Daten. Der Name wird bei der Anzeige aus `groupMembers` aufgelöst.
-E-Mail-Adressen gehören nicht in Gruppen-Mitgliederdokumente.
+personenbezogene Daten; der Name kommt bei der Anzeige aus `groupMembers`. E-Mail-Adressen
+gehören nicht in Gruppen-Mitgliederdokumente.
 
 Bei Änderungen an Sharing, Sync, Gruppen, Datenfeldern, Löschlogik oder personenbezogenen
-Daten: Rechtstexte gegen die tatsächliche Implementierung prüfen und die Agenten `anwalt`
-und `datenschutz-technik` einsetzen.
+Daten: Rechtstexte gegen die Implementierung prüfen, Agenten `anwalt` und
+`datenschutz-technik` einsetzen. Die Rechtstexte (`data/rechtstexte.js`) enthalten konkrete
+technische Zusagen.
 
-Impressum und Datenschutzerklärung stehen in `data/rechtstexte.js`. **Der Footer muss auch ohne
-Anmeldung sichtbar bleiben**, das Impressum darf nicht hinter das Auth-Gate.
+**Der Footer bleibt ohne Anmeldung sichtbar**, das Impressum nie hinter dem Auth-Gate.
 
-Die Rechtstexte enthalten konkrete technische Zusagen — eine Änderung am Verhalten kann
-sie inhaltlich falsch machen.
-
-→ Auftragsverarbeiter, Art. 30, TOM, Meldeweg: `docs/DATENSCHUTZ-INTERN.md`
+→ `docs/DATENSCHUTZ-INTERN.md`
 
 ---
 
 # 14. Namensdualität
 
-Sichtbar heißt die App **Paddy's Mealplan**, die sichtbare Entität heißt **Meal**.
-Intern bleibt es bei `wochenkueche` und `recipe`:
+Sichtbar: **Paddy's Mealplan** und **Meal**. Intern: `wochenkueche` und `recipe`:
 
 ```text
 wochenkueche_v1 · wochenkueche_profile_v1 · app: "wochenkueche"
 state.recipes · getRecipe · data-tab="recipes" · .rcard · .recipes
 ```
 
-**Nicht „aufräumen".** Die internen Namen stecken in bestehenden Daten und in bereits
-verschickten Sharing-Links. Eine Umbenennung bricht beides.
+**Nicht „aufräumen".** Die Namen stecken in bestehenden Daten und verschickten Sharing-Links.
 
 ---
 
 # 15. Bilder und Lizenzen
 
-`photoFor(r)` verwendet die Priorität: eigenes Bild → Bibliotheksbild aus
-`img/library/` → kuratierter Schlüssel `r.photo` → Stichwort/`PHOTO_RULES` →
-Kategorie/`CAT_PHOTO` → `PHOTOS.neutral`. Keine alten Emoji-/Gradient-Fallbacks wieder
-einführen.
+`photoFor(r)`: eigenes Bild → `img/library/` → `r.photo` → `PHOTO_RULES` → `CAT_PHOTO` →
+`PHOTOS.neutral`. Keine Emoji-/Gradient-Fallbacks. Davor entscheidet `mealIcon(r)`:
+Schnelleinträge und gescannte Produkte zeigen ein Symbol (`docs/ARCHITECTURES.md`, „Bilder").
 
-**Davor sitzt seit dem 12.09.2026 `mealIcon(r)`:** Schnelleinträge (`quick` + `qf`) und
-gescannte Produkte (`quick` + `barcode`) zeigen ein **Symbol** statt eines geratenen
-Stichwortfotos — in Plan, Startreiter, Meal-Blatt, Picker und Vorkochliste. Das eigene Foto
-des Nutzers gewinnt auch dort. `photoFor()` selbst bleibt unverändert: Das Teilen-Vorschaubild
-(`worker/og.js`) braucht eine Bild-URL. Wo ein Symbol steht, entfällt „Symbolbild ·
-KI-generiert" — ein Strichsymbol ist keines von beidem. Prüfer:
-`tools/pruefstand-meal-symbol.py`, Sichtprobe `tools/probe-symbole.html`.
-
-**Alle mitgelieferten Gerichtsfotos sind selbst erzeugt** — seit dem 07.09.2026 auch die
-44 Stichwortbilder in `img/`, nicht mehr nur die Katalogbilder in `img/library/`. Neue
-Bilder entstehen über `tools/meal-bilder.py`, nie von Hand und nie aus fremden Quellen;
-die Motive stehen in `tools/bildsatz-stichworte.json`, die Herkunft je Datei im
-`bilder-protokoll.json` daneben. Der Stil-Baustein im Werkzeug ist **eingefroren**.
-Fremde Bilder bräuchten wieder einen Einzelnachweis — heute reicht ein Sammelhinweis
-im Impressum.
-
-Dateinamen in `PHOTOS` **nie ändern**, Endung inklusive: Die Pfade stehen in bereits
-verschickten Sharing-Links, und `img/neutral.jpg` steht fest in `worker/og.js`.
-Wird ein Bild ausgetauscht, muss `VERSION` in `sw.js` hoch — Bilder kommen cache-first.
-
-Bei Stichwort-Matching auf Teilwort-Kollisionen achten: `eis` steckt in `Rindfleisch`,
-`reis` in `Preiselbeere`, `braten` in `gebratener Reis`. Prüfer:
-`tools/pruefstand-bildstichworte.py`.
-
-**Nährwerte nie schätzen** — vor jedem neuen Rezept `tools/rezept-makros.py` gegenrechnen.
-
-**Katalogrezepte entstehen über `/rezeptcharge`**, nicht freihändig. Die Zubereitung ist eine
-nummerierte Schritt-für-Schritt-Anleitung, in der **jede Zutat vorkommt** — auch Gewürze.
-Regeln in `data/CLAUDE.md`, Prüfer `tools/pruefstand-rezepttexte.py`.
+* Neue Bilder **nur über `tools/meal-bilder.py`**, nie von Hand, nie aus fremden Quellen.
+  Der Stil-Baustein ist **eingefroren**.
+* Dateinamen in `PHOTOS` **nie ändern**, Endung inklusive (Sharing-Links, `img/neutral.jpg`
+  in `worker/og.js`). Bild ausgetauscht → `VERSION` in `sw.js` hoch.
+* Stichworte: Teilwort-Kollisionen beachten (`eis` in `Rindfleisch`, `reis` in
+  `Preiselbeere`) — `tools/pruefstand-bildstichworte.py`.
+* **Nährwerte nie schätzen** — `tools/rezept-makros.py` gegenrechnen.
+* **Katalogrezepte nur über `/rezeptcharge`.** Nummerierte Anleitung, in der **jede Zutat
+  vorkommt**, auch Gewürze (`data/CLAUDE.md`, `tools/pruefstand-rezepttexte.py`).
 
 ---
 
 # 16. Fremdcode unter `vendor/`
 
-Firebase-SDK und ZXing liegen **lokal**, nicht auf einem CDN. Grund: Apple 2.5.2 und
-Offline-Start (Abschnitt 1). Diese Entscheidung wird nicht zurückgedreht — auch nicht mit
-dem Argument, ein CDN sei einfacher zu aktualisieren.
+Firebase-SDK und ZXing liegen **lokal**, nicht auf einem CDN (Abschnitt 1). Wird nicht
+zurückgedreht, auch nicht „weil ein CDN einfacher zu aktualisieren ist".
 
-* Aktualisiert wird über `tools/firebase-vendor.py`, nicht von Hand. Version, Quelle
-  und SHA-256 je Datei stehen in **`vendor/HERKUNFT.md`** — nach jedem Update dort
-  nachtragen, sonst ist die Unversehrtheit beim nächsten Mal wieder unbelegbar.
-* Ein Update **nur mit Anlass** — Sicherheitslücke oder konkreter Fehler. Es gibt keine
-  Testsuite, die ein Update auffängt; eine höhere Versionsnummer ist kein Grund.
-* Es gibt kein npm und kein Dependabot: **niemand merkt von selbst, wenn eine Bibliothek
-  altert.** Dafür gibt es den Agenten `lieferkette`.
-* Apache-2.0-Lizenzhinweise müssen mitgeliefert bleiben (siehe `LICENSE`).
+* Aktualisieren nur über `tools/firebase-vendor.py`; danach Version, Quelle und SHA-256 in
+  **`vendor/HERKUNFT.md`** nachtragen.
+* Update **nur mit Anlass** (Sicherheitslücke, konkreter Fehler) — nie wegen einer höheren
+  Versionsnummer.
+* Niemand merkt von selbst, wenn eine Bibliothek altert: dafür Agent `lieferkette`.
+* Apache-2.0-Lizenzhinweise bleiben mitgeliefert (`LICENSE`).
 
 ---
 
 # 17. Git und Deployment
 
-Deployment ist ein Push auf `main`; GitHub Pages baut automatisch. Es gibt keinen Schritt
-dazwischen.
+Deployment ist ein Push auf `main`; GitHub Pages baut automatisch.
 
 ```powershell
 git push origin main
@@ -471,17 +334,14 @@ git ls-remote origin refs/heads/main   # muss mit...
 git rev-parse HEAD                     # ...uebereinstimmen
 ```
 
-**Nie `git add .`** Alles im Repo landet öffentlich, und Gelöschtes bleibt in der Historie.
-Immer gezielt einzelne Pfade stagen. Ein Hook prüft das zusätzlich (Abschnitt 18), aber die
-Regel gilt unabhängig davon.
+**Nie `git add .`** Alles im Repo ist öffentlich, Gelöschtes bleibt in der Historie. Immer
+einzelne Pfade stagen.
 
-Nicht öffentlich, deshalb gitignored: `plans/`, `dashboard.html`, `Fotos/`, `Marketing/`,
-`Instagram/`, `.env`, `docs/DATENSCHUTZ-INTERN.md`, die zugekauften Skills.
+Gitignored, nie committen: `plans/`, `dashboard.html`, `Fotos/`, `Marketing/`, `Instagram/`,
+`.env`, `docs/DATENSCHUTZ-INTERN.md`, die zugekauften Skills.
 
-**Vor jedem Push `/pushcheck`** — wie viel er fährt, hängt an der Stufe (Abschnitt 11):
-`website-security` immer, `anwalt`, `kvp` und `/code-review` ab Stufe B, `ux-reviewer` in Stufe C.
-
-→ Rollback, Notfälle, Credential-Manager-Workaround: `docs/RUNBOOK.md` und `/deploy`
+**Vor jedem Push `/pushcheck`** in der Stufe aus Abschnitt 11.
+→ Rollback, Notfälle: `docs/RUNBOOK.md` und `/deploy`
 
 Lokaler Server: `powershell -NoProfile -ExecutionPolicy Bypass -File test-server.ps1` → `http://localhost:8000/`
 
@@ -489,105 +349,59 @@ Lokaler Server: `powershell -NoProfile -ExecutionPolicy Bypass -File test-server
 
 # 18. Hooks — was automatisch läuft
 
-In `.claude/settings.json`, Skripte unter `.claude/hooks/`. Sie greifen ohne Zutun:
+In `.claude/settings.json`, Skripte unter `.claude/hooks/`:
 
 | Hook | Wirkung |
 |---|---|
 | `commit-waechter.py` | **Blockiert** `git commit`, wenn Nichtöffentliches im Index liegt |
-| `secrets-filter.py` | **Blockiert** Befehle, die `.env` ausgeben würden. Dazu sperrt `permissions.deny` in `settings.json` jeden Werkzeugzugriff auf `.env` |
+| `secrets-filter.py` | **Blockiert** Befehle, die `.env` ausgeben würden; dazu sperrt `permissions.deny` jeden Werkzeugzugriff auf `.env` |
 | `push-waechter.py` | **Fragt nach** bei `git push`, wenn `/pushcheck` für diesen Stand fehlt |
-| `syntax-nach-edit.py` | Fährt `syntax-check.py` gezielt auf die geänderte Datei — `index.html`, `data/*.js`, `lib/*.js`, `sw.js` |
-| `syntax-am-ende.py` | Dasselbe **am Ende jeder Antwort** für alles, was laut `git status` geändert ist — fängt Änderungen über Skripte und Shell, die `syntax-nach-edit.py` nicht sieht. **Hält an**, wenn rot |
+| `syntax-nach-edit.py` | `syntax-check.py` auf die geänderte Datei — `index.html`, `data/*.js`, `lib/*.js`, `sw.js` |
+| `syntax-am-ende.py` | Dasselbe **am Ende jeder Antwort** für alles laut `git status` Geänderte. **Hält an**, wenn rot |
 | `wartung-erinnerung.py` | Meldet beim Sitzungsstart, wenn die Wartung überfällig ist |
 
-Zusätzlich läuft `.github/workflows/pruefung.yml` bei jedem Push: Syntax und Secret-Scan.
-Das ist die einzige Prüfung, die auch dann greift, wenn sie jemand vergisst.
+Dazu `.github/workflows/pruefung.yml` bei jedem Push: Syntax und Secret-Scan.
 
-Wird ein Hook zum Hindernis, ist das ein Befund — melden, nicht umgehen.
-
-**Hooks nie relativ adressieren.** In `settings.json` gilt
-`python "$CLAUDE_PROJECT_DIR/.claude/hooks/…"`, im Skript wird die Projektwurzel aus
-`__file__` abgeleitet — sonst legt ein `cd` in einen Unterordner das Prüfsystem still oder,
-schlimmer, lässt es stumm durchlaufen (`docs/TROUBLESHOOTING.md` §140).
+Wird ein Hook zum Hindernis: melden, nicht umgehen. **Hooks nie relativ adressieren** —
+`python "$CLAUDE_PROJECT_DIR/.claude/hooks/…"`, im Skript die Wurzel aus `__file__`
+(`docs/TROUBLESHOOTING.md` §140).
 
 ---
 
 # 18a. Wartung — das Prüfsystem prüft sich selbst
 
-**Ein Prüfer mit veralteten Fakten prüft das Falsche und meldet trotzdem „sauber".** Das ist
-gefährlicher als gar keine Prüfung. Deshalb wird das Setup selbst regelmäßig geprüft.
+**Ein Prüfer mit veralteten Fakten prüft das Falsche und meldet trotzdem „sauber".** Deshalb
+alle 30 Tage:
 
-Anlass war der Aufbautag: Das System war nach einem halben Tag an fünf Stellen falsch —
-eine Produktentscheidung, ein geklärter Vertrag, korrigierte Zahlen. Über Monate passiert
-das garantiert.
+1. `python tools/wartung-check.py` — mechanisch, Sekunden.
+2. **`/rechtspruefung`**, `store-check` und `lieferkette` — was das Skript nicht sehen kann.
+3. `python tools/wartung-check.py --setze` — verweigert ohne Sicherung der letzten 24 h
+   (`tools/firestore-backup.py`) und ohne `plans/rechtspruefung-*.md` der letzten 30 Tage.
 
-**Alle 30 Tage, drei Ebenen:**
-
-```powershell
-python tools/wartung-check.py          # mechanisch, Sekunden
-```
-
-Prüft Zahlen gegen die Wirklichkeit, tote Verweise, das Modell jedes Agenten gegen das,
-was diese Datei verspricht, den Commit-Wächter in **beiden** Richtungen (blockiert er zu
-wenig — oder zu viel?) — und die Falle, die schon zugeschlagen hat: **ein Agent ohne
-`tools:`-Zeile hat ALLE Werkzeuge**, auch wenn seine Beschreibung „ändert nichts"
-verspricht.
-
-Was das Skript **nicht** kann: sehen, ob sich Recht, Store-Richtlinien oder die
-Sicherheitslage von Fremdcode geändert haben. Dafür **`/rechtspruefung`** (`anwalt` auf Opus
-über die ganze App plus Netzmessung ohne Konto), `store-check` und `lieferkette` laufen lassen.
-
-Danach `python tools/wartung-check.py --setze` — das datiert den Stand neu und bringt den
-Erinnerungs-Hook zum Schweigen. **Es verweigert das ohne Sicherung der letzten 24 h**: Die
-Sicherung (`tools/firestore-backup.py`) räumt abgelaufene Löschsperren weg, und Ziffer 10 der
-Datenschutzerklärung sagt das „bei unserer nächsten Wartung“ zu. **Ebenso ohne Bericht
-`plans/rechtspruefung-*.md` der letzten 30 Tage** — der Pushcheck sieht nur den Diff.
-
-**Monatlich läuft dieselbe Prüfung zusätzlich in der Cloud** (Routine „Monatliche
-Wartungsprüfung", 1. des Monats), damit sie auch dann stattfindet, wenn wochenlang niemand
-das Projekt öffnet. Sie ändert nichts und berichtet nur — und sie sieht **nur, was gepusht
-ist**.
+Monatlich läuft die Prüfung zusätzlich in der Cloud (Routine „Monatliche Wartungsprüfung") —
+sie sieht nur, was gepusht ist. → Umfang und Begründung: `docs/TESTING.md` 2k
 
 ---
 
 # 18b. Abdeckung — hat jeder Bereich einen Prüfer?
 
-Abschnitt 18a fragt: *Sind die Fakten der Prüfer noch aktuell?* Hier ist die andere Frage:
-**Gibt es für alles überhaupt einen Prüfer?**
-
-Das ist keine Wortklauberei. `wartung-check.py` prüft Konsistenz zwischen Dingen, **die es
-gibt**. Ein Bereich **ohne** Prüfer fällt ihm nie auf — er kennt nur die Agenten, die
-existieren. Käme ein Marketing-Bereich in die App, meldete das ganze System weiter „keine
-Befunde": Es weiß nicht, dass es etwas nicht weiß.
+`wartung-check.py` prüft nur, was es gibt. Ob es für alles einen Prüfer gibt, prüft:
 
 ```powershell
 python tools/abdeckung.py              # Bericht
 python tools/abdeckung.py --gegenprobe # wuerde sie eine Luecke ueberhaupt bemerken?
 ```
 
-Das Register steht in **`docs/ABDECKUNG.md`**. Erkannt werden vier Arten von Bereichen:
-Pfade (`git ls-files`), Dateien in `docs/`, **Reiter der App** (`data-tab="…"`) und externe
-Verbindungen. Läuft mit in `wartung-check.py`, im Sitzungsstart-Hook und in der
-Monatsroutine.
+Register: **`docs/ABDECKUNG.md`**. **Entsteht ein neuer Produktbereich, gehört die Frage nach
+seinem Prüfer zur Änderung** — das Skript ist das Netz darunter, nicht der Plan.
 
-## Die Regel, die nicht vom Skript abhängt
-
-**Entsteht ein neuer Produktbereich, gehört die Frage nach seinem Prüfer zur Änderung —
-nicht in einen späteren Aufräumschritt.** Das Skript ist das Netz darunter, nicht der Plan.
-
-Meldet es eine Lücke, sind drei Wege richtig — und einer ist falsch:
-
+Meldet es eine Lücke:
 1. Gehört zu einem bestehenden Prüfer → Zeile in `docs/ABDECKUNG.md` Abschnitt 3–5.
-2. Braucht wirklich einen neuen → **Agenten entwerfen und dem Nutzer zur Abnahme vorlegen.**
-   Nie still anlegen.
-3. Braucht bewusst keinen → Zeile in Abschnitt 6, **mit Begründung**.
+2. Braucht einen neuen → **Agenten entwerfen und dem Nutzer zur Abnahme vorlegen.** Nie still
+   anlegen; ein neuer Agent wird **abgenommen**, bevor er scharf geht.
+3. Braucht bewusst keinen → Abschnitt 6, **mit Begründung**.
 
-**Falsch ist, eine Kennung einzutragen, damit Ruhe ist.** Das schaltet die Prüfung für
-diesen Bereich dauerhaft ab, und niemand sieht es je wieder.
-
-> **Ein Prüfer, den niemand geprüft hat, meldet „sauber" — und man glaubt ihm.** Genau das
-> ist am 26.08. und am 27.08.2026 je einmal passiert (`docs/TROUBLESHOOTING.md` §119, §123).
-> Deshalb wird ein neuer Agent **abgenommen**, bevor er scharf geht.
+**Falsch ist, eine Kennung einzutragen, damit Ruhe ist.** Das schaltet die Prüfung dauerhaft ab.
 
 ---
 
@@ -604,9 +418,8 @@ Acht Agenten in `.claude/agents/`. Sie ändern **nie** etwas, sie melden.
 | `ux-reviewer` | haiku | Stufe C: Übersichtlichkeit geänderter UI (ruft vorher `ui-ux-pro-max`) |
 | `kvp` | sonnet | ab Stufe B: Fitness-/Wochenplan-Bezug, Design, Mobile, Bedienbarkeit, Wartbarkeit, Sync |
 
-Nur `ux-reviewer` läuft auf Haiku. Ab Stufe B kommt `/code-review` (eingebauter
-Skill) als Fehlersuche dazu. Rote Funde werden **widerlegt, nicht bestätigt**: Erreichbarkeit,
-Wirkung, Schutz, je mit Fundstelle (`/pushcheck`).
+Ab Stufe B zusätzlich `/code-review`. Rote Funde werden **widerlegt, nicht bestätigt**:
+Erreichbarkeit, Wirkung, Schutz, je mit Fundstelle (`/pushcheck`).
 
 **Nach Auslöser, alle auf sonnet:**
 
@@ -617,113 +430,73 @@ Wirkung, Schutz, je mit Fundstelle (`/pushcheck`).
 | `datenschutz-technik` | neuer Dienst, neues Datenfeld, Sharing, Gruppen, Löschlogik |
 | `doku-waechter` | jede nicht-triviale Änderung — in `/pushcheck` jeder Stufe fest eingeplant |
 
-Nicht für jede triviale Textkorrektur alle Agenten starten. Bei sicherheits-, daten-,
-sync-, sharing-, store- oder rechtlich relevanten Änderungen aber sehr wohl.
-
-**🔴-Funde vor dem Melden am echten Code gegenprüfen** — Fehlalarme kommen vor.
-
-Ein neu angelegter Agent ist in einer bereits laufenden Sitzung eventuell noch nicht als
-`subagent_type` verfügbar. Dann Sitzung neu starten.
+Nicht für jede Textkorrektur alle Agenten, bei Sicherheit, Daten, Sync, Sharing, Store oder
+Recht aber sehr wohl. **🔴-Funde vor dem Melden am echten Code gegenprüfen.** Ein neuer Agent
+fehlt in einer laufenden Sitzung eventuell als `subagent_type` — dann neu starten.
 
 ---
 
 # 20. Arbeitsweise
 
-## Modellwahl
+**Modellwahl:** Größere Pläne von **Sonnet** umsetzen lassen, danach mit **Opus**
+gegenprüfen. Bei komplexen Aufgaben von selbst ein Modell vorschlagen.
 
-Größere Pläne von **Sonnet** umsetzen lassen, danach mit **Opus** gegenprüfen. Bei
-komplexen Aufgaben von selbst vorschlagen, welches Modell sinnvoll ist.
+**Pläne:** Nach `ExitPlanMode` den Plan aus `.claude/plans` mit sprechendem Namen nach
+`plans/` kopieren. Umgesetzte und dokumentierte Pläne ohne Rückfrage löschen.
 
-## Pläne
-
-Nach `ExitPlanMode` den Plan aus `.claude/plans` nach `plans/` kopieren, mit sprechendem
-Namen. Umgesetzte und dokumentierte Pläne direkt löschen — ohne Rückfrage.
-
-## `dashboard.html` — die Projektübersicht
-
-**Erzeugt, nicht gepflegt.** Nach jedem abgeschlossenen Feature den Stand in
-`plans/app-karte.json` nachziehen und `python tools/dashboard.py` fahren. Wer die HTML von
-Hand bearbeitet, verliert es beim nächsten Lauf.
-
-Die Karte trägt drei Phasen, und die Reihenfolge ist der rote Faden des Projekts:
-
-| Phase | Inhalt | Zustand |
-|---|---|---|
-| **1** | Die App fertig machen | **jetzt** |
-| **2** | Marktstart (Landingpage, Instagram, Tester) | **geparkt**, bis Phase 1 durch ist |
-| **3** | App Store, Pro und Bezahlung | danach |
-
-`python tools/dashboard.py --pruefen` hält die Karte gegen den Code. Es prüft die
-**Struktur** (welche Reiter `data-tab` wirklich kennt), nicht den **Status** — der ist eine
-Bewertung und bleibt Handarbeit. Genau an dieser Grenze ist die Vorgängerin gealtert:
-`ROADMAP.html` wurde von Hand gepflegt und behauptete über einen Monat lang einen Stand, den
-es nicht mehr gab. Sie liegt als `plans/ROADMAP-Archiv-2026-09-20.html`.
-
-Beides bleibt in `.gitignore`. **Nie committen.**
+**`dashboard.html` ist erzeugt, nicht gepflegt.** Nach jedem abgeschlossenen Feature
+`plans/app-karte.json` nachziehen und `python tools/dashboard.py` fahren. Drei Phasen in
+fester Reihenfolge: **1** App fertig machen, **2** Marktstart, **3** App Store, Pro und
+Bezahlung — der Stand steht in der Karte. `--pruefen` prüft die **Struktur** gegen den Code,
+der **Status** bleibt Handarbeit. Beides gitignored, **nie committen.**
 
 ---
 
 # 21. Ablauf bei jeder Änderung
 
-## Vorher
+**Vorher:** Aufgabe verstehen, Code mit `Grep` suchen, `docs/*.md` über das Register am
+Dateikopf lesen (bei UI `docs/DESIGN.md` + Design-Skills, bei Problemfeldern
+`docs/TROUBLESHOOTING.md`).
 
-1. Aufgabe vollständig verstehen.
-2. Relevanten Code mit `Grep` suchen, nur benötigte Ausschnitte lesen.
-3. Relevante `docs/*.md` lesen — über das Register am Dateikopf, nicht am Stück.
-4. Bei UI: `docs/DESIGN.md` und die drei Design-Skills.
-5. Bei bekannten Problemfeldern: `docs/TROUBLESHOOTING.md`.
+**Währenddessen:** Architektur und Tokens respektieren. Keine unnötigen Abstraktionen, keine
+Funktion entfernen, weil sie alt aussieht, keine Security nur über UI, keine Daten unnötig
+duplizieren.
 
-## Währenddessen
-
-* Bestehende Architektur respektieren, bestehende Tokens verwenden.
-* Keine unnötigen neuen Abstraktionen.
-* Keine Funktion entfernen, nur weil sie alt aussieht.
-* Keine internen Namen ohne Migrationsgrund umbenennen.
-* Keine Security nur über UI lösen, keine Daten unnötig duplizieren.
-
-## Danach
-
-1. `/smoke` (der Syntax-Check läuft von selbst). Vor dem Push dann die Stufe aus Abschnitt 11.
-2. Isolierter Prüfstand, wenn die Funktion es erfordert — mit Gegenprobe.
+**Danach:**
+1. `/smoke`; vor dem Push die Stufe aus Abschnitt 11.
+2. Isolierter Prüfstand, wenn nötig — mit Gegenprobe.
 3. Bei UI: mobile, Light und Dark, A11y.
 4. Bei Cloud-/Sync-Änderungen: Sync-Szenarien, notfalls `/abnahme`.
-5. Rechtstexte prüfen, wenn betroffen.
-6. Passende Agenten einsetzen.
-7. Dokumentation aktualisieren, `plans/app-karte.json` + `tools/dashboard.py` bei Bedarf.
-8. `git diff` auf unbeabsichtigte Änderungen prüfen.
-9. Erst danach committen. Nach dem Push Remote-Commit verifizieren.
+5. Rechtstexte prüfen, wenn betroffen; passende Agenten einsetzen.
+6. Doku aktualisieren, bei Bedarf `plans/app-karte.json` + `tools/dashboard.py`.
+7. `git diff` auf Unbeabsichtigtes prüfen, dann committen. Nach dem Push Remote verifizieren.
 
 ---
 
 # 21a. Bevor etwas Neues entsteht — drei Stufen
 
-Gilt fuer **UI-Bausteine und Interaktionsmuster** (alles, was der Nutzer sieht und antippt),
-nicht fuer jede interne Hilfsfunktion.
+Gilt für **UI-Bausteine und Interaktionsmuster**, nicht für jede interne Hilfsfunktion.
 
 | Stufe | Frage | Wenn ja |
 |---|---|---|
-| 1 | **Gibt es das in der App schon?** (`Grep` ueber `index.html`, `css/`, `lib/`) | Den bestehenden Baustein verwenden, **nicht danebenbauen**. Entscheidung in `docs/BAUSTEINE.md` eintragen |
+| 1 | **Gibt es das in der App schon?** (`Grep` über `index.html`, `css/`, `lib/`) | Bestehenden Baustein verwenden, **nicht danebenbauen**. In `docs/BAUSTEINE.md` eintragen |
 | 2 | **Gibt es das anderswo schon?** (Watermelon, Origin UI, Base UI, React Aria, MDN, WCAG) | **Nachbauen statt erfinden** — besonders bei Tastatur und ARIA. Quelle im Kommentar nennen **und dem Nutzer melden** |
-| 3 | Nirgends vorhanden? | **Neu bauen** und festhalten, *warum* nichts passte. Das verhindert, dass beim naechsten Mal wieder gesucht wird |
+| 3 | Nirgends vorhanden? | **Neu bauen** und festhalten, *warum* nichts passte |
 
-**Und wenn ein Baustein angefasst wird, werden ALLE seine Fundstellen angefasst.** Wer nur
-eine von vier Stellen verbessert, hat aus einem Muster zwei gemacht.
+**Wird ein Baustein angefasst, werden ALLE seine Fundstellen angefasst** — sonst entstehen aus
+einem Muster zwei.
 
-> Vier Dropdowns, sieben leere Zustaende, drei Tab-Muster: Die entstanden nicht aus
-> Nachlaessigkeit, sondern weil Stufe 1 nie stattgefunden hat.
+**Die Herkunft wird dem Nutzer nach jeder Änderung genannt** — Vorbild mit Link und was davon
+übernommen wurde, oder „eigene Lösung, weil …“.
 
-**Die Herkunft wird dem Nutzer nach jeder Änderung genannt** — wie das Vorbild dort
-heißt, mit Link, und was genau davon übernommen wurde. Auch wenn nichts übernommen wurde:
-dann steht da „eigene Lösung, weil …“. Er soll nicht raten müssen, woher eine Idee kommt.
-
-Register und Fundstellen: **`docs/BAUSTEINE.md`** · Pruefer: `python tools/bausteine.py`
+Register: **`docs/BAUSTEINE.md`** · Prüfer: `python tools/bausteine.py`
 
 ---
 
 # 21b. Sichtbare Änderungen werden vorgeführt, bevor sie live gehen
 
-**Jede Änderung, die man sehen kann, wird dem Nutzer zuerst im Browser als Vorher/Nachher
-gezeigt.** Erst nach seiner Zustimmung wird committet und gepusht.
+**Jede sichtbare Änderung wird dem Nutzer zuerst im Browser als Vorher/Nachher gezeigt.**
+Erst nach seiner Zustimmung wird committet und gepusht.
 
 ```powershell
 python tools/schnappschuss.py <baustein>   # Vorher-Stand einfrieren, VOR der Arbeit
@@ -731,73 +504,51 @@ python tools/schnappschuss.py <baustein>   # Vorher-Stand einfrieren, VOR der Ar
 python tools/vorfuehren.py <baustein>      # oeffnet sichtbar, in EIGENEM Profil
 ```
 
-⚠️ **Nie im Alltagsbrowser vorführen.** Dort ist ein Cloud-Konto angemeldet, und die
-Vergleichsseite bricht ab — zu Recht: Sie schreibt einen erfundenen Zustand, und der
-`__test`-Suffix trennt nur den lokalen Speicher, nicht die Cloud. `vorfuehren.py` nimmt
-dafür ein eigenes Profil, in dem nie jemand angemeldet ist.
-
-Der Schnappschuss entsteht **vor** der Änderung. Wer ihn danach zieht, friert den neuen
-Stand ein und vergleicht zweimal dasselbe.
-
-Was nicht auf einem Bild zu sehen ist — Tastaturwege, Bewegung, Zustände nach einem Klick —
-wird **dazugesagt oder vorgeführt**, nicht verschwiegen. Ein Standbild zeigt keinen
-Pfeiltastenweg.
-
-Ausgenommen: Was der Nutzer ohnehin nicht sieht (Werkzeuge, Prþfstände, Dokumentation,
-Messungen). Dort gilt weiter der normale Weg über `/pushcheck`.
-
-→ Wie die Vergleichsseite funktioniert: `docs/TESTING.md` 2g-ter
+⚠️ **Nie im Alltagsbrowser vorführen** — dort ist ein Cloud-Konto angemeldet; `__test`
+trennt nur den lokalen Speicher. Was kein Bild zeigt (Tastaturwege, Bewegung, Zustände nach
+einem Klick), wird **dazugesagt oder vorgeführt**. Unsichtbares (Werkzeuge, Prüfstände, Doku)
+ist ausgenommen. → `docs/TESTING.md` 2g-ter
 
 ---
 
 # 21c. Änderungswünsche: erst das Vorgehen anbieten
 
-Gilt für alles, was der Nutzer **sieht oder bedient**, und für **neue Funktionen**. **Nicht** für
-Fehlerbehebungen, Tippfehler, Doku, Werkzeuge und Prüfstände — dort normal weiter.
+Gilt für alles, was der Nutzer **sieht oder bedient**, und für **neue Funktionen** — **nicht**
+für Fehlerbehebungen, Tippfehler, Doku, Werkzeuge und Prüfstände.
 
-**Zuerst fragen (Auswahlbildschirm), ob vorher recherchiert werden soll.** „Ohne Recherche“ ist
-eine gültige Antwort. Bei Ja, in dieser Reihenfolge:
+**Zuerst per Auswahlbildschirm fragen, ob vorher recherchiert werden soll.** „Ohne Recherche“
+ist eine gültige Antwort. Bei Ja:
 
-1. **Recherche:** Wie lösen es die besten Konkurrenten (Fitness-, Ernährungs-, Planer-Apps, z. B.
-   MyFitnessPal, Lifesum, Yazio, Mealime)? Was ist üblich (Apple HIG, Material Design, NN/g,
-   Baymard, WCAG)? Mit **Quellen**, Lücken offen benennen.
-2. **Vorschläge:** 2–3 Varianten mit Skizze, Empfehlung zuerst, jeweils was dafür und dagegen
-   spricht — gegen die Feature-Regel (§4) und Performance Dark (§7) gespiegelt.
+1. **Recherche:** Konkurrenten (z. B. MyFitnessPal, Lifesum, Yazio, Mealime) und Üblichkeit
+   (Apple HIG, Material, NN/g, Baymard, WCAG), mit **Quellen**, Lücken offen benannt.
+2. **Vorschläge:** 2–3 Varianten mit Skizze, Empfehlung zuerst, Für und Wider gegen §4 und §7.
 3. **Erst nach der Auswahl bauen.** Dann Vorher/Nachher (§21b), Prüfungen, Livegang.
-4. **Größere Umbauten** (neuer Ablauf, mehrere Bildschirme): Vor dem Livegang die
-   Geräte-Nachbildung (`tools/abnahme-mobil.py`), **direkt danach** bittet Claude den Nutzer, es
-   am eigenen Handy anzusehen. Der Testserver ist nur am PC erreichbar — vorher geht es nicht.
-   Fällt dort etwas auf: Rückweg über `/deploy`.
+4. **Größere Umbauten** (neuer Ablauf, mehrere Bildschirme): vor dem Livegang
+   `tools/abnahme-mobil.py`, **direkt danach** den Nutzer bitten, es am eigenen Handy
+   anzusehen (der Testserver ist nur am PC erreichbar). Fällt etwas auf: Rückweg über `/deploy`.
 
-Vorbild ist der Umbau des Anmeldebereichs am 18.10.2026 (`docs/PRODUCT.md`, „eine Entscheidung
-statt zwei“).
+Vorbild: Umbau des Anmeldebereichs (`docs/PRODUCT.md`, „eine Entscheidung statt zwei“).
 
 ---
 
 # 22. Minimalprinzip
 
-**Ändere nur, was für die Aufgabe notwendig ist.**
+**Ändere nur, was für die Aufgabe notwendig ist.** Keine ungefragten Refactorings,
+Umbenennungen, Design-Neuentwürfe, Architekturumbauten, Dependency-Wechsel,
+Toolchain-Einführungen oder „Aufräumarbeiten".
 
-Keine ungefragten Refactorings, Umbenennungen, Design-Neuentwürfe, Architekturumbauten,
-Dependency-Wechsel, Toolchain-Einführungen oder „Aufräumarbeiten".
-
-Wird ein Problem außerhalb des Auftrags entdeckt: nicht ungefragt umbauen, sondern
-dokumentieren und den Nutzer kurz darauf hinweisen.
-
-**Ausnahme:** Gefährdet das Problem Sicherheit, Datenintegrität oder die korrekte Umsetzung
-der aktuellen Aufgabe, muss es vor Abschluss berücksichtigt werden.
+Problem außerhalb des Auftrags entdeckt: dokumentieren und kurz darauf hinweisen, nicht
+umbauen. **Ausnahme:** Gefährdet es Sicherheit, Datenintegrität oder die aktuelle Aufgabe,
+wird es vor Abschluss berücksichtigt.
 
 ---
 
 # 23. Definition of Done
 
-Eine Aufgabe ist abgeschlossen, wenn die Funktion korrekt umgesetzt ist, nichts
-Bestehendes beschädigt wurde, die relevanten Tests und UI-Zustände geprüft sind, Design,
-Mobile und A11y berücksichtigt wurden, Security und Rechtstexte bei Relevanz geprüft sind,
-die betroffene Dokumentation aktualisiert ist, das Dashboard stimmt und der `git diff`
-gesichtet wurde.
-
-**Code, Dokumentation und Projektstatus beschreiben danach denselben Stand.**
+Funktion korrekt umgesetzt, nichts Bestehendes beschädigt, relevante Tests und UI-Zustände
+geprüft, Design, Mobile und A11y berücksichtigt, Security und Rechtstexte bei Relevanz
+geprüft, Doku aktualisiert, Dashboard stimmt, `git diff` gesichtet.
+**Code, Dokumentation und Projektstatus beschreiben denselben Stand.**
 
 ---
 
@@ -818,9 +569,6 @@ Keine Regel rechtfertigt eine Sicherheitsverletzung oder Datenbeschädigung.
 
 # 25. Wichtigste Grundregel
 
-**Nicht nur Code schreiben. Das Projekt als Ganzes konsistent halten.**
-
-> Produkt → UX → Design → Architektur → Daten → Security → Store → Tests → Dokumentation → Dashboard
-
-Betrifft eine Änderung einen dieser Bereiche tatsächlich, wird er ebenfalls aktualisiert
-und geprüft.
+**Nicht nur Code schreiben. Das Projekt als Ganzes konsistent halten:**
+Produkt → UX → Design → Architektur → Daten → Security → Store → Tests → Dokumentation →
+Dashboard. Betrifft eine Änderung einen dieser Bereiche, wird er mit aktualisiert und geprüft.

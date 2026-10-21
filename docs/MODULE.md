@@ -326,7 +326,7 @@ _keine_
 | .gitattributes | 21 | 594 |
 | .github/workflows/pruefung.yml | 188 | 8066 |
 | .gitignore | 142 | 6411 |
-| CLAUDE.md | 827 | 37860 |
+| CLAUDE.md | 575 | 25960 |
 | CNAME | 1 | 21 |
 | FIREBASE-SETUP.md | 197 | 9363 |
 | LICENSE | 40 | 1907 |
@@ -345,7 +345,7 @@ _keine_
 | data/rechtstexte.js | 208 | 34439 |
 | docs/ABDECKUNG.md | 192 | 13969 |
 | docs/ABNAHME-MENSCH.md | 154 | 8239 |
-| docs/ARCHITECTURES.md | 3449 | 223056 |
+| docs/ARCHITECTURES.md | 3462 | 223911 |
 | docs/BAUSTEINE.md | 106 | 14052 |
 | docs/DESIGN.md | 1439 | 80261 |
 | docs/MODULE.md | — | — (erzeugt) |
@@ -353,8 +353,8 @@ _keine_
 | docs/RUNBOOK.md | 387 | 20402 |
 | docs/SECURITY.md | 609 | 37178 |
 | docs/STORE.md | 553 | 34231 |
-| docs/TESTING.md | 5644 | 338687 |
-| docs/TROUBLESHOOTING.md | 7357 | 431238 |
+| docs/TESTING.md | 5678 | 340735 |
+| docs/TROUBLESHOOTING.md | 7379 | 432718 |
 | docs/module-index.json | — | — (erzeugt) |
 | firestore.rules | 552 | 32127 |
 | img/apple-touch-icon.png | — | 35163 |
@@ -458,7 +458,7 @@ _keine_
 | test-server.ps1 | 66 | 2182 |
 | tools/a11y-pruefung.py | 529 | 24702 |
 | tools/abdeckung.py | 324 | 13049 |
-| tools/abnahme-mobil.py | 959 | 44501 |
+| tools/abnahme-mobil.py | 962 | 44795 |
 | tools/abnahme-plan-sortieren.py | 483 | 21730 |
 | tools/abnahme-scan-kamera.py | 388 | 15492 |
 | tools/abnahme-zutaten-sortieren.py | 461 | 20440 |
@@ -478,7 +478,7 @@ _keine_
 | tools/mailnamen-aufraeumen.py | 197 | 8874 |
 | tools/meal-bilder.py | 473 | 24139 |
 | tools/mobilprobe-rezeptbuch.html | 146 | 8092 |
-| tools/netz-ohne-konto.py | 271 | 12118 |
+| tools/netz-ohne-konto.py | 275 | 12433 |
 | tools/probe-farbstimmungen.html | 167 | 8797 |
 | tools/probe-fortschritt.html | 351 | 20064 |
 | tools/probe-marken-lader.html | 47 | 3118 |
@@ -526,7 +526,7 @@ _keine_
 | tools/pruefstand-picker-quellen.py | 198 | 7217 |
 | tools/pruefstand-plan-slots.py | 224 | 11890 |
 | tools/pruefstand-plan-sortieren.py | 501 | 24539 |
-| tools/pruefstand-reiter.py | 370 | 17050 |
+| tools/pruefstand-reiter.py | 374 | 17365 |
 | tools/pruefstand-rezept-id-format.py | 295 | 13133 |
 | tools/pruefstand-rezeptbuch-ansicht.py | 188 | 10795 |
 | tools/pruefstand-rezeptbuch-filter.py | 222 | 10222 |
@@ -558,7 +558,7 @@ _keine_
 | tools/smoke-mit-daten.py | 145 | 8236 |
 | tools/test-meal-bilder.py | 156 | 8295 |
 | tools/vergleich-bausteine.js | 618 | 31417 |
-| tools/vorfuehren.py | 120 | 4661 |
+| tools/vorfuehren.py | 123 | 4955 |
 | tools/wartung-check.py | 854 | 39849 |
 | vendor/HERKUNFT.md | 105 | 4816 |
 | vendor/firebase/10.12.5/LICENSE | 203 | 11358 |

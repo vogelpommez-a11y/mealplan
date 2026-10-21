@@ -2512,6 +2512,19 @@ stecken in verschickten Sharing-Links, und `img/neutral.jpg` steht fest in `work
 Geprüft von `tools/pruefstand-bildstichworte.py`: Existenz jeder Datei, Vollständigkeit
 jedes Schlüssels, Verdeckung zwischen Regeln und 66 echte Gerichtnamen.
 
+**Davor sitzt seit dem 12.09.2026 `mealIcon(r)`:** Schnelleinträge (`quick` + `qf`) und
+gescannte Produkte (`quick` + `barcode`) zeigen ein **Symbol** statt eines geratenen
+Stichwortfotos — in Plan, Startreiter, Meal-Blatt, Picker und Vorkochliste. Das eigene Foto
+des Nutzers gewinnt auch dort. `photoFor()` selbst bleibt unverändert: Das Teilen-Vorschaubild
+(`worker/og.js`) braucht eine Bild-URL. Wo ein Symbol steht, entfällt „Symbolbild ·
+KI-generiert“ — ein Strichsymbol ist keines von beidem. Prüfer
+`tools/pruefstand-meal-symbol.py`, Sichtprobe `tools/probe-symbole.html`, Begründung in
+`docs/PRODUCT.md`.
+
+**Fremde Bilder** bräuchten wieder einen Einzelnachweis — heute reicht ein Sammelhinweis im
+Impressum, weil alle mitgelieferten Bilder selbst erzeugt sind (Herkunft je Datei im
+`bilder-protokoll.json` neben dem Werkzeug).
+
 ### `thumbHtml(r, cls, eager)`
 
 `eager` lässt `loading="lazy"` weg und setzt `decoding="sync"`. **Nur** der Plan-Slot in

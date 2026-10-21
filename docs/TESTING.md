@@ -16,7 +16,7 @@ Die primäre Verifikation erfolgt deshalb über den Browser und gezielte isolier
 
 <!-- REGISTER-ANFANG (erzeugt aus den Ueberschriften: python tools/register.py - nicht von Hand pflegen) -->
 
-**Register — 89.** Vorne (0 bis 9) die geltenden Verfahren: Syntax-Check,
+**Register — 90.** Vorne (0 bis 9) die geltenden Verfahren: Syntax-Check,
 Smoke-Test, Ausschneide-Pruefstand, Sync-Tests. Dahinter das datierte Fallarchiv —
 einzelne Pruefstaende und was ihre Gegenprobe gezeigt hat.
 
@@ -41,6 +41,7 @@ Die Verfahren gibt es auch als Skill: `/smoke`, `/pruefstand`, `/abnahme`, `/dep
 | 2h | Prüfstand mit nachgebautem Transport — `pruefstand-firestore-backup.py` |
 | 2i | Netz ohne Konto — `tools/netz-ohne-konto.py` |
 | 2j | Rechts-Durchgang über die ganze App — `/rechtspruefung` |
+| 2k | Wartung des Prüfsystems — `tools/wartung-check.py` |
 | 3 | Ergebnisfortschritt |
 | 4 | Was isoliert getestet werden kann |
 | 5 | UI-Testregeln |
@@ -1160,6 +1161,36 @@ gesetzt.
 `leaveGroup()` und `startCloudSync()` sie aufrufen) und Abschnitt 15 in
 `tools/pruefstand-firestore-backup.py` (tote Kennungen beim Rückspiel). Gegenproben: alter
 Stand und zwei gezielte Sabotagen fallen durch bzw. 6 rot bei abgeschalteten Stellen.
+
+---
+
+## 2k. Wartung des Prüfsystems — `tools/wartung-check.py`
+
+Regel und Ablauf stehen kurz in `CLAUDE.md` §18a, hier das *Warum* und der Umfang.
+
+**Anlass war der Aufbautag (26.08.2026):** Das frisch gebaute Prüfsystem war nach einem halben
+Tag an fünf Stellen falsch — eine Produktentscheidung, ein geklärter Vertrag, korrigierte
+Zahlen. Über Monate passiert das garantiert. Ein Prüfer mit veralteten Fakten prüft das
+Falsche und meldet trotzdem „sauber“ — gefährlicher als gar keine Prüfung.
+
+**Was das Skript mechanisch prüft:** Zahlen gegen die Wirklichkeit (Größe von `index.html`,
+Firebase-Version, Domain), tote Verweise, Abschnittsverweise auf `CLAUDE.md`, das Modell jedes
+Agenten gegen das, was `CLAUDE.md` und `pushcheck.md` versprechen, den Commit-Wächter in
+**beiden** Richtungen (blockiert er zu wenig — oder zu viel?), Doku-Abdeckung,
+Größenbudget — und die Falle, die schon zugeschlagen hat: **ein Agent ohne `tools:`-Zeile hat
+ALLE Werkzeuge**, auch wenn seine Beschreibung „ändert nichts“ verspricht.
+
+**Was es nicht kann:** sehen, ob sich Recht, Store-Richtlinien oder die Sicherheitslage von
+Fremdcode geändert haben. Dafür `/rechtspruefung` (2j), `store-check` und `lieferkette`.
+
+**`--setze` verweigert** ohne Sicherung der letzten 24 h (`tools/firestore-backup.py` räumt
+abgelaufene Löschsperren weg, Ziffer 10 der Datenschutzerklärung sagt das „bei unserer nächsten
+Wartung“ zu, siehe `docs/RUNBOOK.md` §5) und ohne Bericht `plans/rechtspruefung-*.md` der
+letzten 30 Tage (2j).
+
+**Die Cloud-Routine** („Monatliche Wartungsprüfung“, 1. des Monats) läuft, damit die Prüfung
+auch stattfindet, wenn wochenlang niemand das Projekt öffnet. Sie ändert nichts, berichtet
+nur — und sieht **nur, was gepusht ist**, also auch kein `plans/`.
 
 ---
 
