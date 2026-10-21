@@ -3728,6 +3728,9 @@ Satz dazu, was noch offen ist.
 **Die Lehre:** Ein Läufer, der falschen Alarm schlägt, wird abgeschaltet — und dann läuft
 gar nichts mehr. Lieber eine Zeile mehr Erklärung als ein Signal, dem niemand glaubt.
 
+**Hängt der Reihenlauf ohne Ausgabe**, obwohl der Prüfstand einzeln grün ist:
+`docs/TROUBLESHOOTING.md` §193 (der Testserver erbte die Ausgabe-Leitung des Läufers).
+
 **Und die Gegenrichtung, seit 29.08.2026:** `TEILWEISE` ist eine **Ausnahme auf Zeit**. Ist
 der Umbau fertig, gehören beide Gruppen wieder in den Rückgabewert und der Eintrag heraus —
 sonst bleibt genau die Hälfte der Zeilen dauerhaft zahnlos, und niemand bemerkt es je wieder.
