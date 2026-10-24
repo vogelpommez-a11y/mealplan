@@ -16,7 +16,7 @@ Die primäre Verifikation erfolgt deshalb über den Browser und gezielte isolier
 
 <!-- REGISTER-ANFANG (erzeugt aus den Ueberschriften: python tools/register.py - nicht von Hand pflegen) -->
 
-**Register — 92.** Vorne (0 bis 9) die geltenden Verfahren: Syntax-Check,
+**Register — 93.** Vorne (0 bis 9) die geltenden Verfahren: Syntax-Check,
 Smoke-Test, Ausschneide-Pruefstand, Sync-Tests. Dahinter das datierte Fallarchiv —
 einzelne Pruefstaende und was ihre Gegenprobe gezeigt hat.
 
@@ -118,6 +118,7 @@ Die Verfahren gibt es auch als Skill: `/smoke`, `/pruefstand`, `/abnahme`, `/dep
 | · | `tools/pruefstand-daten-loeschen.py` — räumt „Alle Daten löschen“ wirklich alles? (18.10.2026) |
 | · | `tools/pruefstand-gruppe-verlassen-zeiger.py` — bleibt nach dem Austritt die alte `groupId` stehen? (19.10.2026) |
 | · | `tools/pruefstand-vorab-hinweis.py` — Vorbereitung am Vortag (21.10.2026) |
+| · | `tools/pruefstand-foto-ohne-code.py` — Foto ohne Barcode, kaputtes Bild (24.10.2026) |
 
 <!-- REGISTER-ENDE -->
 
@@ -396,6 +397,12 @@ schreibt (`result_server.py` im Scratchpad-Muster). Edge dann **ohne**
 `--virtual-time-budget` und ohne `--dump-dom` starten, danach beenden.
 
 `file:///` scheidet für IndexedDB ohnehin aus — über HTTP laden.
+
+**Dasselbe gilt für das Dekodieren von Bildern** (24.10.2026): `img.decode()` und
+`createImageBitmap()` „dauerten“ unter `--virtual-time-budget` bis zu 20 s (im Android-WebView
+22 ms) — ein Prüfstand mit Frist meldete dadurch eine richtige Korrektur als „hängt“. Wer
+Bilder dekodiert, fährt in **Echtzeit** (DevTools-Port, `#log` abfragen), wie
+`tools/pruefstand-foto-ohne-code.py`.
 
 ### Ablauf-Trace statt Raten
 
@@ -5761,3 +5768,27 @@ eine Zeile je Hinweis mit „…“. Danach liegen die Knöpfe auf beiden Größ
 
 Vorführung: `python tools/vorfuehren.py vorab-hinweis` (Startseite) und `vorab-hinweis-blatt`
 (Meal bearbeiten, Overnight Oats, weil nur die Gruppe „Frühstück“ aufgeklappt ist).
+
+## `tools/pruefstand-foto-ohne-code.py` — Foto ohne Barcode, kaputtes Bild (24.10.2026)
+
+```powershell
+python tools/pruefstand-foto-ohne-code.py               # 3 gruen
+python tools/pruefstand-foto-ohne-code.py --gegenprobe  # lib/barcode.js aus ff7dae3: leer + kaputt rot
+```
+
+**Was er misst:** `detectBarcode()` aus `lib/barcode.js` mit der echten `vendor/zxing.min.js`,
+`BarcodeDetector` abgeschaltet (ZXing-Zweig): leeres Bild → `null`, EAN-13 → Code, Datei ohne
+Bild → sofort `BildUnlesbar`. Davor warf ZXing bei „nichts gefunden“ (Meldung „offline?“) und
+antwortete bei unlesbaren Bildern nie (`docs/TROUBLESHOOTING.md` §196).
+
+**Zwei Lehren aus dem Bau:**
+1. Der erste Entwurf lief über `pruefstand_lauf.fahren()`. Der zählt nur Zeilen, die dastehen —
+   ein Fall, der nie antwortete, fiel still heraus, und „1 grün, 0 rot“ bei einem von drei
+   Fällen hieß grün. Deshalb: **Frist je Fall** (5 s, danach „hängt“ = rot) und **grün nur bei
+   genau 3 OK**.
+2. Unter `--virtual-time-budget` meldete die Frist die richtige Korrektur als „hängt“ (Bild-
+   Dekodieren, siehe oben bei IndexedDB). Erst die Messung im Android-WebView zeigte: Code
+   richtig, Messung falsch. Deshalb Echtzeit mit eigenem Edge auf Port 9353.
+
+Der Text, den `scanBarcodeCode()` für `BildUnlesbar` zeigt, wird hier nicht geprüft — er ist im
+Emulator vorgeführt (Vorher „Erkennung nicht möglich (offline?)“, Nachher „Kein Barcode erkannt“).

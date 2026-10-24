@@ -10267,7 +10267,11 @@
       if (!code) { toast("Kein Barcode erkannt – geh näher heran oder trag die Werte selbst ein"); return null; }
       return code;
     } catch (e) {
-      toast("Erkennung nicht möglich (offline?) – trag die Werte selbst ein");
+      // "offline?" nur, wenn wirklich ZXing nicht kam - ein unlesbares Bild ist kein Netzproblem
+      // (Wortlaut wie an der Zutatenzeile, TROUBLESHOOTING 196).
+      toast(e && e.name === "BildUnlesbar"
+        ? "Das Bild ließ sich nicht auslesen – trag die Werte selbst ein"
+        : "Erkennung nicht möglich (offline?) – trag die Werte selbst ein");
       return null;
     }
   }

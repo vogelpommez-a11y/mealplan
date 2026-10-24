@@ -6,7 +6,7 @@ Dieses Dokument enthält bekannte Fehlerquellen, historische Bugs und Probleme, 
 
 <!-- REGISTER-ANFANG (erzeugt aus den Ueberschriften: python tools/register.py - nicht von Hand pflegen) -->
 
-**Register — 195.** Chronologisch gewachsen: je hoeher die Nummer,
+**Register — 196.** Chronologisch gewachsen: je hoeher die Nummer,
 desto juenger der Fund. Wer eine Falle sucht, sucht hier zuerst; die Ueberschrift sagt
 jeweils, worum es geht. **Nicht die ganze Datei lesen** — sie ist rund 310 KB gross.
 
@@ -207,6 +207,7 @@ jeweils, worum es geht. **Nicht die ganze Datei lesen** — sie ist rund 310 KB 
 | 193 | `alle-pruefstaende.py` blieb ohne Ausgabe stehen, wenn der Testserver nicht lief |
 | 194 | Zwei Fallen beim ersten Capacitor-Build: Java 25 und das Facebook-SDK im Login-Plugin |
 | 195 | Der Prüfstand-Läufer hielt „10 rot“ für grün |
+| 196 | Kamera in der Android-Hülle: „Foto aufnehmen“ führte ins Leere oder in die Galerie |
 
 <!-- REGISTER-ENDE -->
 
@@ -7438,3 +7439,43 @@ Prüfstände neu gefahren, um weitere verdeckte Fälle zu finden.
 Funktion ausschneidet, bricht still, wenn die Funktion einen neuen Helfer aus ihrer Umgebung
 braucht. Wer einer ausgeschnittenen Funktion einen Helfer gibt, sucht vorher mit Grep, welche
 Prüfstände sie schneiden.
+
+## 196. Kamera in der Android-Hülle: „Foto aufnehmen“ führte ins Leere oder in die Galerie
+
+**Symptom 1 (24.10.2026, D7 Etappe 3):** Nach dem Eintrag von `CAMERA` ins Manifest: Kamera im
+Scanner abgelehnt, dann „Stattdessen Foto aufnehmen“ — Android fragt erneut, bei „Nein“ passiert
+**nichts**, man steht wieder im Wochenplan. Logcat: `Capacitor/FileChooser: Camera permission not granted`.
+
+**Ursache:** Steht `CAMERA` im Manifest, darf die App auch das Kamera-Intent
+(`ACTION_IMAGE_CAPTURE`) nur mit Erlaubnis starten. Capacitors `BridgeWebChromeClient.
+onShowFileChooser` fragt deshalb und gibt bei Ablehnung `null` an das `<input capture>` zurück —
+wie ein Abbruch. **Behoben** in `MainActivity.java` (Nachbar-Repo): `FotoAuswegClient` erkennt
+`null` bei fehlender Erlaubnis und öffnet dieselbe Anfrage ohne `capture` — die Fotoauswahl.
+Abbruch in der Kamera-App (Erlaubnis da) bleibt Abbruch.
+
+**Symptom 2 (24.10.2026):** Mit erteilter Erlaubnis öffnete „Foto aufnehmen“ trotzdem die
+Galerie statt der Kamera. Logcat: `Media capture intent could not be launched. Falling back to
+default file picker.` Das war **schon vor Etappe 3** so.
+
+**Ursache:** Paketsichtbarkeit seit Android 11 — `resolveActivity()` findet die Kamera-App nur,
+wenn das Manifest sie unter `<queries>` anmeldet. **Behoben:** `<queries><intent><action
+android:name="android.media.action.IMAGE_CAPTURE"/></intent></queries>`.
+
+`app-bauen.py` prüft beides im gemergten Manifest (Gegenprobe gegen den Stand davor: rot).
+Abgenommen im Emulator: ohne Erlaubnis → Fotoauswahl → EAN gelesen, Open Food Facts gefragt;
+Abbruch in der Auswahl → App läuft normal weiter; mit Erlaubnis → Kamera-App → Foto kommt an.
+
+**Nebenfund, behoben am selben Tag (Web-App, nicht Hülle):** Ein Foto **ohne** lesbaren Barcode
+meldete „Erkennung nicht möglich (offline?)“ statt „Kein Barcode erkannt“, an der Zutatenzeile
+„Das Bild ließ sich nicht auslesen“. `detectBarcode()` (`lib/barcode.js`) fällt nach leerem
+`BarcodeDetector`-Ergebnis auf ZXing durch, und ZXings `decodeFromImageUrl` **wirft** bei „nichts
+gefunden“ (`NotFoundException`, Klassenname in `zxing.min.js` verkürzt → Prüfung per
+`instanceof`). Schlimmer: Bei einer Datei, die kein lesbares Bild ist, antwortete ZXing **nie** —
+„Lese Barcode …“ blieb stehen. Gilt beides auch im Browser. **Behoben:** `NotFoundException` →
+`null`; vorher `img.decode()`, das bei unlesbaren Dateien sofort ablehnt → Fehler `BildUnlesbar`,
+`scanBarcodeCode()` zeigt dafür „Das Bild ließ sich nicht auslesen – trag die Werte selbst ein“
+(Wortlaut der Zutatenzeile). `decodeFromImageElement(img)` statt `…Url` hing dagegen beim leeren
+Bild — nicht verwenden. Prüfstand `tools/pruefstand-foto-ohne-code.py` (Echtzeit, mit Gegenprobe).
+
+**Lehre:** Eine neue Berechtigung im Manifest verändert auch Wege, die sie gar nicht benutzen
+wollen. Nach jedem Manifest-Eintrag jeden Weg zur selben Hardware einzeln durchspielen.
