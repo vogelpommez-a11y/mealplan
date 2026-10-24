@@ -112,6 +112,11 @@ Liegt `../Paddys Mealplan App` nicht neben dem Repo, sag das und überspring den
 - **Exakt gepinnt?** In `package.json` keine `^`/`~`. In `.npmrc` stehen weiter
   `save-exact=true` und `ignore-scripts=true` — fehlt eines, ist das ein 🔴 (Installations-
   skripte fremder Pakete laufen sonst mit den Rechten des Nutzers).
+- **Capacitor-Hooks laufen trotz `ignore-scripts`:** Plugins können ein Skript für
+  `npx cap sync` mitbringen (`capacitor:sync:before` in ihrer `package.json`), das die CLI
+  selbst startet — z. B. `@capgo/capacitor-social-login/scripts/configure-dependencies.js`
+  (schreibt nur seine `gradle.properties`, geprüft 24.10.2026). Bei jedem Plugin-Update dieses
+  Skript neu lesen.
 - **Bekannte Lücken:** `npm audit --omit=dev` (was in die App kommt) getrennt von
   `npm audit` (Bauwerkzeuge). Nur Erstes kann Nutzer treffen. Bekannt und bewertet (24.10.2026):
   3× moderate über `uuid` ← `xcode` ← `@capacitor/cli`, reines Bauwerkzeug — siehe README dort.

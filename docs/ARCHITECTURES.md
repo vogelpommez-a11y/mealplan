@@ -207,8 +207,9 @@ nehmen `loginGoogle` und die Google-Bestätigung in `deleteAccount` keinen Popup
 `googleNativCredential()`: Plugin `SocialLogin` (Androids Kontoauswahl) → Google-ID-Token für
 den Web-Client `GOOGLE_WEB_CLIENT_ID` → `GoogleAuthProvider.credential` →
 `signInWithCredential` / `reauthenticateWithCredential`. Das Web-SDK bleibt die einzige
-Anmeldestelle, derselbe Firebase-Nutzer wie im Web. `logout` lässt dort zusätzlich Android die
-gemerkte Kontoauswahl vergessen. Fehlt das Plugin, gibt es eine Meldung, nie den Popup (den
+Anmeldestelle, derselbe Firebase-Nutzer wie im Web. `logout` und `wipeLocalData()` rufen dort
+`googleNativVergessen()`: Android vergisst die Kontoauswahl, das Plugin löscht die Tokens, die es
+selbst in den SharedPreferences ablegt. Fehlt das Plugin, gibt es eine Meldung, nie den Popup (den
 Google in WebViews blockt). Abbruch → `auth/cancelled-popup-request`. → `docs/STORE.md` Abschnitt 4.
 
 **Aber nur, wer ihn benutzt.** Auth wird mit `initializeAuth(app, { persistence: [...] })`

@@ -6982,7 +6982,8 @@ bei jedem.
 **Was bleibt:** Klickt jemand „Mit Google anmelden“ (seit 18.10.2026 „Weiter mit Google“), lädt die App `apis.google.com` weiterhin —
 so arbeitet Firebase im Browser, Ziffer 6 sagt es jetzt ausdrücklich. Für den Store (Apple 2.5.2)
 ist das ein offener Punkt für D7: In einer nativen Hülle gehört die Google-Anmeldung in ein
-natives Plugin.
+natives Plugin. Android-Hülle seit 24.10.2026 gelöst (D7 Etappe 2, §194, `STORE.md` Abschnitt 4);
+iOS offen.
 
 Prüfer: `tools/netz-ohne-konto.py` — vier Kennungen, frisches Profil, vier Phasen, fällt bei
 jedem fremden Host durch. `--gegenprobe`: der alte Stand (live, vor dem Push) muss durchfallen,
@@ -7386,7 +7387,7 @@ Und ein Hänger, der nur im Reihenlauf auftritt, liegt eher am Läufer als am Pr
 
 **Ursache:** Android Studio 2026.2 bringt ein JDK 25 mit (Klassenversion 69). Das Gradle 8.14.3
 aus Capacitor 8 kann nur bis Java 24, Capacitor nennt JDK 21. **Behoben:** Temurin JDK 21
-zusätzlich installiert; `tools/app-bauen.py` im Nachbar-Repo sucht es selbst (oder `PM_JDK21`).
+zusätzlich installiert; `app-bauen.py` im Nachbar-Repo sucht es selbst (oder `PM_JDK21`).
 
 **Symptom 2 (24.10.2026, vor dem Bau bemerkt):** `@capgo/capacitor-social-login` packt per
 Voreinstellung **alle** Anbieter ein — auch das Facebook-SDK, und mit ihm die Berechtigung
@@ -7396,7 +7397,7 @@ enthalten, und die Play Console hätte die Werbe-ID-Erklärung verlangt.
 **Behoben:** `plugins.SocialLogin.providers` in `capacitor.config.json` mit `facebook: false`
 (dazu `apple`, `twitter` aus, bis sie gebraucht werden). Das Plugin schreibt daraus bei
 `npx cap sync` seine `gradle.properties` und kompiliert einen Platzhalter statt des SDK.
-`tools/app-bauen.py` durchsucht danach jede APK nach `Lcom/facebook/` und das Manifest nach
+`app-bauen.py` (Nachbar-Repo) durchsucht danach jede APK nach `Lcom/facebook/` und das Manifest nach
 `AD_ID` und bricht ab. Gegenprobe: mit `facebook: true` meldet es Code in drei DEX-Dateien und
 `AD_ID`, mit `false` ist es grün.
 
@@ -7405,7 +7406,7 @@ ungefragt mitbringt. Und eine Voreinstellung kann mit einem Update kippen — de
 im Bau, nicht nur die Einstellung.
 
 **Symptom 3 (24.10.2026):** Im Reihenlauf wurden `pruefstand-reiter.py` und
-`pruefstand-grpm-zoom.py` rot: „Edge kam nicht hoch (Port 9333)“. Ursache: `tools/webview-js.py`
+`pruefstand-grpm-zoom.py` rot: „Edge kam nicht hoch (Port 9333)“. Ursache: `webview-js.py` (Nachbar-Repo)
 im Nachbar-Repo hatte per `adb forward tcp:9333` genau den Port belegt, den beide für ihr Edge
 brauchen; danach blieben zwei Test-Edges liegen und hielten ihn weiter. **Behoben:**
 `webview-js.py` nimmt Port 9343. Nach einem solchen Abbruch: `adb forward --remove-all` und die

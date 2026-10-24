@@ -74,6 +74,9 @@ siehe Punkt 1.9.
       Safari und Instagram erneut bestanden (30.09.2026).
 - [x] Anmeldung per E-Mail: Die Bestätigungsmail kommt an und der Link führt zurück.
 - [x] Bei der Registrierung steht der Hinweis auf **mindestens 16 Jahre**.
+- [ ] **Store-App Android:** „Weiter mit Google“ zeigt Androids Kontoauswahl, die Anmeldung
+      gelingt (Emulator, echtes Konto, 24.10.2026: ✓); **Konto löschen** mit einem
+      Google-**Test**-Konto bestätigt über die Kontoauswahl — offen. Auf einem echten Gerät offen.
 
 ### 1.8 Zur Startseite hinzufügen (PWA)
 - [x] Über *Teilen → Zum Home-Bildschirm* installieren.

@@ -206,7 +206,7 @@ Handy, iOS und Safari selbst `apis.google.com/js/api.js` nach, schon beim Seiten
 Konto (`docs/TROUBLESHOOTING.md` §181). Behoben durch `initializeAuth` ohne Popup-Resolver.
 Gemessen wird das seitdem im Browser, nicht per Grep: `python tools/netz-ohne-konto.py`.
 
-**Offen für D7:** Wer „Weiter mit Google“ antippt, lädt diesen Google-Code weiterhin — so
+**Web-Popup — gilt weiter für den Browser und für iOS:** Wer „Weiter mit Google“ antippt, lädt diesen Google-Code weiterhin — so
 arbeitet der Web-Popup von Firebase. In der nativen Hülle gehört die Google-Anmeldung deshalb in
 ein **natives Plugin**, sonst bleibt 2.5.2 genau an dieser Stelle angreifbar. Wichtiger noch:
 Google verweigert OAuth in eingebetteten WebViews **serverseitig** (`disallowed_useragent`,
@@ -219,7 +219,7 @@ Google-Regel, keine Apple-Guideline.
 `deleteUser()` per `reauthenticateWithPopup` (`CloudAuth.deleteAccount` in `index.html`). In der
 WebView scheitert dieser Popup genauso — die Löschung in der App ginge für Google-Konten nicht,
 und 5.1.1(v) verlangt sie dort. Das native Plugin muss deshalb auch die **Re-Authentifizierung**
-übernehmen, nicht nur die Anmeldung.
+übernehmen, nicht nur die Anmeldung. (Android: gelöst, siehe unten; iOS offen.)
 
 **Stand 24.10.2026 — für Android gelöst (D7 Etappe 2):** In der Hülle (`window.Capacitor`,
 `isNativePlatform()`) nehmen `CloudAuth.loginGoogle` und die Bestätigung in `deleteAccount`
@@ -228,13 +228,33 @@ nicht mehr den Popup, sondern Androids Kontoauswahl (Credential Manager) über d
 (`signInWithCredential` bzw. `reauthenticateWithCredential`) — derselbe Firebase-Nutzer wie im
 Web. Kein nachgeladener Google-Code, kein Popup. Im Browser bleibt alles beim Popup. Das Plugin
 bringt per Voreinstellung das **Facebook-SDK samt `AD_ID`** mit; abgeschaltet in
-`capacitor.config.json` (`facebook: false`), `tools/app-bauen.py` dort bricht ab, wenn es doch in
+`capacitor.config.json` (`facebook: false`), `app-bauen.py` im Nachbar-Repo bricht ab, wenn es doch in
 der APK steckt. Neu im Manifest durch Credential Manager: `USE_CREDENTIALS`, `USE_BIOMETRIC`,
 `USE_FINGERPRINT` (normale Berechtigungen, keine Nachfrage beim Nutzer) — für Data Safety
 (Abschnitt 5) unkritisch, aber zu kennen. In Firebase ist die Android-App
 `de.paddysmealplan.app` mit dem SHA-1 des **Debug**-Schlüssels angelegt. **Offen:** SHA-1 des
 Upload- und des Play-App-Signing-Schlüssels nachtragen, sobald es sie gibt; „Konto löschen“
 mit einem Test-Konto im Emulator abnehmen; Apple (iOS am Mac, mit Developer-Konto).
+
+**Das Plugin speichert selbst** (`datenschutz-technik`, 24.10.2026): Nach jeder Anmeldung legt es
+ID- und Access-Token (mit E-Mail und Name) in den SharedPreferences der App ab und löscht sie nur
+in seinem `logout()`. `googleNativVergessen()` ruft das beim Abmelden **und** in `wipeLocalData()`
+(Konto löschen, Alle Daten löschen) — Ziffer 10 verspricht „sämtliche auf diesem Gerät
+gespeicherten Daten“. Geprüft im Prüfstand `pruefstand-google-nativ.py`.
+
+**Vor der ersten Store-Veröffentlichung (Prüfer-Funde 24.10.2026, nicht vorher nötig):**
+* **Datenschutzerklärung Ziffer 6** beschreibt den Web-Popup (`apis.google.com`). Für die
+  Store-App ein Satz zur Kontoauswahl des Geräts (Google Play-Dienste); Ziffer 5/7 sagen
+  „Browser“. Anwaltsfrage: ist Credential Manager eigene Verarbeitung von Google? (`anwalt`)
+* **Art.-30-Verzeichnis:** Eintrag Google-Anmeldung um den Kanal „Store-App über Play-Dienste“
+  ergänzen (`docs/DATENSCHUTZ-INTERN.md`).
+* **Android-Auto-Backup:** `android:allowBackup="true"` (Capacitor-Vorgabe) — Android kann
+  `localStorage`, IndexedDB und SharedPreferences ins Google-Backup des Nutzers sichern, außerhalb
+  unserer Löschroutine. Entscheiden: abschalten, Regeln (`dataExtractionRules`) oder benennen.
+* **Lizenzen:** Plugin ist MPL-2.0, seine Android-Bibliotheken Apache-2.0 — in der Lizenzliste
+  der App nennen (D7 Etappe 4).
+* Ungenutzte Plugin-Activities (`TwitterLoginActivity`, `OAuth2LoginActivity`, `exported=false`)
+  stehen im Manifest — harmlos, beim Feinschliff ansehen.
 
 ---
 

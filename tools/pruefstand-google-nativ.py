@@ -61,12 +61,25 @@ def bis_zeile(lines, sig, bis):
     raise SystemExit("NICHT GEFUNDEN: " + sig + " ... " + bis)
 
 
+def nativ_block(lines, neu):
+    """Von `const CAP` bis zum Ende der LETZTEN Funktion des Blocks (googleNativVergessen)."""
+    try:
+        a = next(i for i, z in enumerate(lines) if z.startswith("      const CAP = window.Capacitor;"))
+    except StopIteration:
+        if neu:
+            raise SystemExit("NICHT GEFUNDEN: const CAP")
+        return ""
+    b = next(i for i, z in enumerate(lines) if z.startswith("      function googleNativVergessen() {"))
+    e = next(j for j in range(b + 1, len(lines)) if lines[j] == "      }")
+    return "\n".join(lines[a:e + 1])
+
+
 def stuecke(text, neu):
     lines = text.split("\n")
     s = {
         "ID": zeile(lines, "  const GOOGLE_WEB_CLIENT_ID") or "",
         "FALLBACK": schnitt(lines, "      function popupFallback(e, provider) {", "      }"),
-        "NATIV": schnitt(lines, "      const CAP = window.Capacitor;", "      }", pflicht=neu),
+        "NATIV": nativ_block(lines, neu),
         "LOGIN": schnitt(lines, "        loginGoogle: function () {", "        },"),
         "LOGOUT": schnitt(lines, "        logout: function () {", "        },"),
         "LOESCHEN": bis_zeile(lines, "        deleteAccount: async function (opts) {", "const uid = user.uid;"),
@@ -76,7 +89,8 @@ def stuecke(text, neu):
 
 neu = stuecke(pm_quelle.lade_seite(QUELLE), True)
 # Sicherungen gegen einen stillen Fehlschnitt - auf Aufrufe pruefen, nicht auf Woerter.
-if "sl.login(" not in neu["NATIV"] or "GoogleAuthProvider.credential(token)" not in neu["NATIV"]:
+if ("sl.login(" not in neu["NATIV"] or "GoogleAuthProvider.credential(token)" not in neu["NATIV"]
+        or 'sl.logout({ provider: "google" })' not in neu["NATIV"]):
     raise SystemExit("googleNativCredential() nicht vollstaendig geschnitten")
 if "signInWithCredential(auth, c)" not in neu["LOGIN"]:
     raise SystemExit("loginGoogle nimmt den nativen Weg nicht")
@@ -90,6 +104,17 @@ alt = stuecke(alt_text, False)
 if alt["NATIV"]:
     raise SystemExit("die Gegenprobe enthaelt schon den nativen Weg - ALT_COMMIT pruefen")
 
+# wipeLocalData() (klassisches Skript, nicht im Modul) muss die Plugin-Daten mitloeschen
+# (datenschutz-technik 24.10.2026). Ob es den AUFRUF gibt, zeigt nur der Text - der Prueflauf
+# unten prueft, was googleNativVergessen() dann tut.
+AUFRUF_WIPE = "await window.CloudAuth.googleNativVergessen();"
+def wipe_ruft(text):
+    lines = text.split("\n")
+    return AUFRUF_WIPE in schnitt(lines, "  async function wipeLocalData() {", "  }")
+WIPE_NEU, WIPE_ALT = wipe_ruft(pm_quelle.lade_seite(QUELLE)), wipe_ruft(alt_text)
+if not WIPE_NEU:
+    raise SystemExit("wipeLocalData() ruft googleNativVergessen() nicht")
+
 FABRIK = u"""function __NAME__(capacitor) {
   window.Capacitor = capacitor;
   var auth = { currentUser: NUTZER };
@@ -98,6 +123,7 @@ __ID__
 __FALLBACK__
 __NATIV__
   return {
+    vergessen: typeof googleNativVergessen === "function" ? googleNativVergessen : undefined,
 __LOGIN__
 __LOGOUT__
 __LOESCHEN__
@@ -160,14 +186,22 @@ function plugin(modus) {
       if (modus === "ohneToken") return Promise.resolve({ provider: "google", result: {} });
       return Promise.resolve({ provider: "google", result: { idToken: "T1" } });
     },
-    logout: function () { RUF.push("sl.logout"); return Promise.resolve(); }
+    logout: function () {
+      RUF.push("sl.logout");
+      return modus === "logoutFehler" ? Promise.reject({ message: "User is not logged in" }) : Promise.resolve();
+    }
   };
 }
 function app(modus) { return { isNativePlatform: function () { return true; }, Plugins: modus ? { SocialLogin: plugin(modus) } : {} }; }
 async function ruf(fn) {
   RUF = []; NOTIZ = [];
-  try { await fn(); return "ok"; } catch (e) { return "fehler:" + (e && e.code); }
+  try { await fn(); } catch (e) { return "fehler:" + (e && e.code); }
+  // logout() wartet das Plugin bewusst nicht ab - dessen Mikroaufgaben hier ausklingen lassen
+  await new Promise(function (r) { setTimeout(r, 0); });
+  return "ok";
 }
+function sortiert(a) { return a.slice().sort(); }
+var WIPE_NEU = __WIPE_NEU__, WIPE_ALT = __WIPE_ALT__;
 
 __NEU__
 __ALT__
@@ -191,7 +225,20 @@ __ALT__
     [await ruf(a.loginGoogle), RUF], ["ok", ["sl.login:google", "credential:T1", "signInWithCredential:T1"]]);
   pruef("App: Konto loeschen bestaetigt mit Credential, kein Popup",
     [await ruf(function () { return a.deleteAccount({}); }), RUF], ["ok", ["sl.login:google", "credential:T1", "reauthCredential:T1"]]);
-  pruef("App: Abmelden vergisst auch Androids Kontoauswahl", [await ruf(a.logout), RUF], ["ok", ["sl.logout", "signOut"]]);
+  pruef("App: Abmelden vergisst auch Androids Kontoauswahl", [await ruf(a.logout), sortiert(RUF)], ["ok", ["signOut", "sl.logout"]]);
+
+  // ===== 2b. Plugin-Daten loeschen (wipeLocalData, Ziffer 10) =====
+  pruef("wipeLocalData() ruft googleNativVergessen() (Text)", WIPE_NEU, true);
+  a = NEU(undefined);
+  pruef("Web: Vergessen tut nichts", [await ruf(a.vergessen), RUF], ["ok", []]);
+  a = NEU(app("ok"));
+  pruef("App, frisch gestartet: Vergessen initialisiert und loescht",
+    [await ruf(a.vergessen), RUF], ["ok", ["sl.initialize:web-id", "sl.logout"]]);
+  a = NEU(app("logoutFehler"));
+  pruef("App: scheitert das Loeschen im Plugin, wirft es nicht - notiert nur",
+    [await ruf(a.vergessen), NOTIZ], ["ok", ["auth:googleNativVergessen"]]);
+  a = NEU(app(null));
+  pruef("App ohne Plugin: Vergessen laeuft still durch", [await ruf(a.vergessen), RUF, NOTIZ], ["ok", [], []]);
 
   // ===== 3. Store-App: Abbruch und Fehler =====
   a = NEU(app("abbruch"));
@@ -203,7 +250,8 @@ __ALT__
   a = NEU(app("ohneToken"));
   pruef("App: kein Token -> eigene Meldung, keine Anmeldung", [await ruf(a.loginGoogle), RUF.indexOf("popup")], ["fehler:auth/google-nativ", -1]);
   a = NEU(app(null));
-  pruef("App ohne Plugin: Meldung statt Popup (das Google dort blockt)", [await ruf(a.loginGoogle), RUF], ["fehler:auth/google-nativ", []]);
+  pruef("App ohne Plugin: Meldung statt Popup (das Google dort blockt) + Notiz",
+    [await ruf(a.loginGoogle), RUF, NOTIZ], ["fehler:auth/google-nativ", [], ["auth:googleNativFehlt"]]);
   a = NEU(app("initFehltEinmal"));
   erg = await ruf(a.loginGoogle);
   pruef("App: scheitert das Initialisieren ...", erg, "fehler:auth/google-nativ");
@@ -214,6 +262,7 @@ __ALT__
   pruef("GEGENPROBE: alter Stand oeffnet in der App das Popup (von Google blockiert)", [await ruf(a.loginGoogle), RUF], ["ok", ["popup"]]);
   pruef("GEGENPROBE: alter Stand bestaetigt das Loeschen per Popup", [await ruf(function () { return a.deleteAccount({}); }), RUF], ["ok", ["reauthPopup"]]);
   pruef("GEGENPROBE: alter Stand ruft das Plugin beim Abmelden nicht", [await ruf(a.logout), RUF], ["ok", ["signOut"]]);
+  pruef("GEGENPROBE: alter Stand loescht in wipeLocalData() keine Plugin-Daten", WIPE_ALT, false);
 
   LOG.push("");
   LOG.push(bad ? ("FEHLGESCHLAGEN: " + bad + " von " + (ok + bad)) : ("ALLE " + ok + " PRUEFUNGEN GRUEN"));
@@ -222,7 +271,8 @@ __ALT__
 </script>
 """
 
-seite = seite.replace("__NEU__", fabrik("NEU", neu)).replace("__ALT__", fabrik("ALT", alt))
+seite = (seite.replace("__NEU__", fabrik("NEU", neu)).replace("__ALT__", fabrik("ALT", alt))
+              .replace("__WIPE_NEU__", json.dumps(WIPE_NEU)).replace("__WIPE_ALT__", json.dumps(WIPE_ALT)))
 io.open(ZIEL, "w", encoding="utf-8").write(seite)
 print("geschrieben: " + ZIEL)
 

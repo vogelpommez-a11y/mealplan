@@ -346,16 +346,24 @@
       const NATIV = !!(CAP && CAP.isNativePlatform && CAP.isNativePlatform());
       let googleNativBereit = null;
       function nativFehler(code) { return Object.assign(new Error(code), { code: code }); }
-      async function googleNativCredential() {
-        const sl = CAP && CAP.Plugins && CAP.Plugins.SocialLogin;
-        if (!sl || !GOOGLE_WEB_CLIENT_ID) throw nativFehler("auth/google-nativ");
+      function googleNativPlugin() { return NATIV && CAP.Plugins && CAP.Plugins.SocialLogin; }
+      function googleNativInit(sl) {
         if (!googleNativBereit) {
           googleNativBereit = sl.initialize({ google: { webClientId: GOOGLE_WEB_CLIENT_ID } });
           googleNativBereit.catch(function () { googleNativBereit = null; });
         }
+        return googleNativBereit;
+      }
+      async function googleNativCredential() {
+        const sl = googleNativPlugin();
+        if (!sl || !GOOGLE_WEB_CLIENT_ID) {
+          // Store-App ohne Plugin: Nachbar-Repo nicht synchronisiert - sonst unsichtbar
+          window.noteError("auth:googleNativFehlt", new Error("SocialLogin fehlt"));
+          throw nativFehler("auth/google-nativ");
+        }
         let res;
         try {
-          await googleNativBereit;
+          await googleNativInit(sl);
           // Ohne "scopes": email, profile und openid sind Voreinstellung. Eigene Scopes
           // verlangen laut Plugin eine umgebaute MainActivity.
           res = await sl.login({ provider: "google", options: {} });
@@ -367,6 +375,19 @@
         const token = res && res.result && res.result.idToken;
         if (!token) throw nativFehler("auth/google-nativ");
         return GoogleAuthProvider.credential(token);
+      }
+      // Das Plugin legt nach jeder Anmeldung ID- und Access-Token (mit E-Mail und Name) in den
+      // SharedPreferences der App ab und loescht sie nur in logout(). Deshalb rufen es nicht nur
+      // das Abmelden, sondern auch wipeLocalData() - Ziffer 10 verspricht "saemtliche auf diesem
+      // Geraet gespeicherten Daten" (datenschutz-technik, 24.10.2026). Nebenbei vergisst Android
+      // die Kontoauswahl (Googles Empfehlung beim Abmelden). Wirft nie: Abmelden und Loeschen in
+      // Firebase haengen nicht daran, ein Fehlschlag wird notiert.
+      function googleNativVergessen() {
+        const sl = googleNativPlugin();
+        if (!sl || !GOOGLE_WEB_CLIENT_ID) return Promise.resolve();
+        return googleNativInit(sl)
+          .then(function () { return sl.logout({ provider: "google" }); })
+          .catch(function (e) { window.noteError("auth:googleNativVergessen", e); });
       }
 
       Object.assign(window.CloudAuth, {
@@ -402,12 +423,10 @@
           return auth.currentUser ? auth.currentUser.reload().then(function () { return auth.currentUser; }) : Promise.resolve(null);
         },
         logout: function () {
-          // Store-App: auch Androids gemerkte Kontoauswahl vergessen (Googles Empfehlung beim
-          // Abmelden), sonst schlaegt die naechste Anmeldung womoeglich still dasselbe Konto vor.
-          const sl = NATIV && CAP.Plugins && CAP.Plugins.SocialLogin;
-          if (sl) sl.logout({ provider: "google" }).catch(function () {});
+          googleNativVergessen();
           return signOut(auth);
         },
+        googleNativVergessen: googleNativVergessen,
         current: function () { return auth.currentUser; },
         // Konto vollstaendig loeschen (Art. 17 DSGVO). Reihenfolge ist wichtig: die
         // Firestore-Dokumente muessen VOR deleteUser() weg, weil die Security Rules
@@ -14393,7 +14412,7 @@
       "auth/unauthorized-domain": "Diese Domain ist in Firebase nicht freigegeben (Authentication → Settings → Authorized domains).",
       "auth/requires-recent-login": "Aus Sicherheitsgründen musst du dich für diese Aktion erneut bestätigen.",
       // Bestaetigung (Konto loeschen) mit einem anderen Google-Konto als dem angemeldeten
-      "auth/user-mismatch": "Wähl dasselbe Google-Konto wie bei der Anmeldung.",
+      "auth/user-mismatch": "Das war ein anderes Google-Konto. Nimm das, mit dem du angemeldet bist.",
       // Nur Store-App: Androids Kontoauswahl lieferte kein Ergebnis (Ursache in noteError)
       "auth/google-nativ": "Die Anmeldung mit Google hat nicht geklappt. Versuch es gleich noch einmal."
     };
@@ -14812,6 +14831,9 @@
     let fotosGeblieben = false;
     try { await idbRW(store => store.clear()); }
     catch (e) { noteError("store:wipeImages", e); fotosGeblieben = await idbOpen().then(() => true, () => false); }
+    // Store-App: die Google-Anmeldedaten, die das Plugin ausserhalb von localStorage ablegt
+    // (siehe googleNativVergessen im Modul-Script). Im Browser ein leeres Versprechen, wirft nie.
+    if (window.CloudAuth && window.CloudAuth.googleNativVergessen) await window.CloudAuth.googleNativVergessen();
     // Zuletzt: nach terminate() ist die Firestore-Instanz tot, die vorigen Schritte muessen
     // also zuerst durch. Kein leeres catch - der Fehler propagiert bewusst an die Aufrufer.
     if (window.CloudSync && window.CloudSync.wipeCache) await window.CloudSync.wipeCache();
