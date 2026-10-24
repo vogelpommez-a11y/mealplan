@@ -6,7 +6,7 @@ Dieses Dokument enthält bekannte Fehlerquellen, historische Bugs und Probleme, 
 
 <!-- REGISTER-ANFANG (erzeugt aus den Ueberschriften: python tools/register.py - nicht von Hand pflegen) -->
 
-**Register — 196.** Chronologisch gewachsen: je hoeher die Nummer,
+**Register — 197.** Chronologisch gewachsen: je hoeher die Nummer,
 desto juenger der Fund. Wer eine Falle sucht, sucht hier zuerst; die Ueberschrift sagt
 jeweils, worum es geht. **Nicht die ganze Datei lesen** — sie ist rund 310 KB gross.
 
@@ -208,6 +208,7 @@ jeweils, worum es geht. **Nicht die ganze Datei lesen** — sie ist rund 310 KB 
 | 194 | Zwei Fallen beim ersten Capacitor-Build: Java 25 und das Facebook-SDK im Login-Plugin |
 | 195 | Der Prüfstand-Läufer hielt „10 rot“ für grün |
 | 196 | Kamera in der Android-Hülle: „Foto aufnehmen“ führte ins Leere oder in die Galerie |
+| 197 | OFFEN: `abnahme-mobil.py` rot in Schritt 5 der Einführung (iPhone SE) — Knopf unter der Kopfleiste |
 
 <!-- REGISTER-ENDE -->
 
@@ -7487,3 +7488,23 @@ Formular offen (`ux-reviewer`, 24.10.2026, vorbestehend).
 
 **Lehre:** Eine neue Berechtigung im Manifest verändert auch Wege, die sie gar nicht benutzen
 wollen. Nach jedem Manifest-Eintrag jeden Weg zur selben Hardware einzeln durchspielen.
+
+## 197. OFFEN: `abnahme-mobil.py` rot in Schritt 5 der Einführung (iPhone SE) — Knopf unter der Kopfleiste
+
+**Symptom (24.10.2026):** `abnahme-mobil.py` meldet „Knopf nimmt dem Nachbarn den Tipp weg“:
+`button.onb-opt.on` („Abnehmen“) in „Was ist dein Ziel?“, getroffen wird `header.site` — 2x,
+`iphone_se` hell und dunkel, alle anderen 94 Stationen ohne Befund. Neu: In den Läufen davor
+stand das nirgends.
+
+**Beobachtet:** Nach der Wahl von „Abnehmen“ scrollt die Einführung selbst zu „Wie schnell?“
+(Bildschirmfoto der Station). Der gewählte Knopf liegt dann ganz unter der klebenden Kopfleiste;
+sichtbar ist nichts Falsches, der nächste Schritt liegt frei. Vermutung, **nicht belegt:** das
+Werkzeug misst je nach Timing vor oder nach diesem Scrollen, und ein weggescrollter Knopf unter
+`header.site` zählt als „Tipp weggenommen“.
+
+**Nicht verursacht durch** die Änderungen dieses Tages (nur Toast-Text in `scanBarcodeCode()`
+und `lib/barcode.js`; Einführung und `css/` unberührt). Auf Paddys Entscheidung trotzdem
+gepusht (24.10.2026). **Zu klären:** Lauf wiederholen; wenn stabil rot, ob das Werkzeug
+weggescrollte Elemente ausnehmen muss oder ob die Einführung auf kleinen Bildschirmen falsch
+scrollt.
+
