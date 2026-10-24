@@ -75,6 +75,12 @@ kennt, kann genau das, was jeder Besucher der Seite ohnehin kann. Der Schutz kom
 **Authorized Domains** und den **Security Rules**. Das ist kein Leck und wird nie als
 solches gemeldet.
 
+**`GOOGLE_WEB_CLIENT_ID` in `index.html`** (seit 24.10.2026, `…apps.googleusercontent.com`).
+Eine OAuth-Client-ID, kein Client-Secret: Sie steht bei jeder Google-Anmeldung im Web ohnehin
+in der Adresszeile. Die Store-App braucht sie, damit Androids Kontoauswahl das ID-Token für
+genau diesen Client ausstellt. Was Google annimmt, entscheidet die in der Konsole registrierte
+Kombination aus Paketname und Signatur-SHA-1 (`docs/STORE.md` Abschnitt 4).
+
 **`firestore.rules` im Repo.** Eine Regel, die nur funktioniert, solange niemand sie kennt,
 ist keine Regel. Die Offenlegung ist beabsichtigt und unproblematisch, solange die Regeln
 selbst tragen — geprüft und bestätigt am 26.08.2026.

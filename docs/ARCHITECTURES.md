@@ -202,6 +202,15 @@ Nicht lokalisierbar bleibt der OAuth-Popup-Weg: `signInWithPopup` öffnet ein if
 `https://paddys-mealplan.firebaseapp.com/__/auth/…` und lädt `apis.google.com/js/api.js`. Das
 ist Google-Infrastruktur, kein Bundle — es verschwindet erst mit dem nativen Login aus D7.
 
+**In der Store-App (seit 24.10.2026, Android):** Ist `window.Capacitor.isNativePlatform()` wahr,
+nehmen `loginGoogle` und die Google-Bestätigung in `deleteAccount` keinen Popup, sondern
+`googleNativCredential()`: Plugin `SocialLogin` (Androids Kontoauswahl) → Google-ID-Token für
+den Web-Client `GOOGLE_WEB_CLIENT_ID` → `GoogleAuthProvider.credential` →
+`signInWithCredential` / `reauthenticateWithCredential`. Das Web-SDK bleibt die einzige
+Anmeldestelle, derselbe Firebase-Nutzer wie im Web. `logout` lässt dort zusätzlich Android die
+gemerkte Kontoauswahl vergessen. Fehlt das Plugin, gibt es eine Meldung, nie den Popup (den
+Google in WebViews blockt). Abbruch → `auth/cancelled-popup-request`. → `docs/STORE.md` Abschnitt 4.
+
 **Aber nur, wer ihn benutzt.** Auth wird mit `initializeAuth(app, { persistence: [...] })`
 **ohne** `popupRedirectResolver` gestartet, nicht mit `getAuth(app)`. `getAuth` hängt den
 Resolver fest an, und der lädt sich auf Handy, iOS und Safari schon beim Seitenaufruf —

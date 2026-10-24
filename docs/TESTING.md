@@ -16,7 +16,7 @@ Die primäre Verifikation erfolgt deshalb über den Browser und gezielte isolier
 
 <!-- REGISTER-ANFANG (erzeugt aus den Ueberschriften: python tools/register.py - nicht von Hand pflegen) -->
 
-**Register — 91.** Vorne (0 bis 9) die geltenden Verfahren: Syntax-Check,
+**Register — 92.** Vorne (0 bis 9) die geltenden Verfahren: Syntax-Check,
 Smoke-Test, Ausschneide-Pruefstand, Sync-Tests. Dahinter das datierte Fallarchiv —
 einzelne Pruefstaende und was ihre Gegenprobe gezeigt hat.
 
@@ -58,6 +58,7 @@ Die Verfahren gibt es auch als Skill: `/smoke`, `/pruefstand`, `/abnahme`, `/dep
 | · | Katalog als Nachschlagequelle: eine Erwartung dreht sich um (17.08.2026) |
 | · | Stapelkontext und Trefferflächen: `elementFromPoint()` im echten Browser (15.08.2026) |
 | · | Eine Regel als Attrappe: die Auflösesperre (18.09.2026) |
+| · | Google-Anmeldung in der Store-App (24.10.2026) |
 | · | Die Gegenprobe aus Git: die Löschsperre fürs Konto (19.09.2026) |
 | · | Ein Listener als Prüfobjekt: die Attrappe muss den Nebeneffekt haben (17.08.2026) |
 | · | Ein absichtlich zufälliger Planer braucht festgenagelten Zufall (17.08.2026) |
@@ -2782,6 +2783,24 @@ Dass danach auch `fetch()` `permission-denied` liefert, ist **kein** Beleg für 
 entweder ganz oder gar nicht ausgeführt wird. Dass der Regeltext live wirklich dem im Repo
 entspricht, zeigt ein Vergleich über die Firebase-Rules-API am selben Tag: Nur Kommentare
 weichen ab (siehe Kopf von `firestore.rules`).
+
+## Google-Anmeldung in der Store-App (24.10.2026)
+
+`tools/pruefstand-google-nativ.py` — 18 Prüfungen. Schneidet `GOOGLE_WEB_CLIENT_ID`,
+`popupFallback()`, den Block ab `const CAP` (`googleNativCredential`), `loginGoogle`, `logout` und
+den Anfang von `deleteAccount` bis zur Bestätigung aus. Attrappen: Firebase-Funktionen und das
+Plugin `SocialLogin`, die nur protokollieren. Geprüft: Im Browser (auch mit `Capacitor`-Objekt
+ohne native Plattform) bleibt alles beim Popup; in der App laufen Anmelden, Bestätigen beim
+Löschen und Abmelden über das Plugin; Abbruch, Plugin-Fehler, fehlendes Token, fehlendes Plugin
+und ein einmal gescheitertes `initialize` (nächster Tipp versucht es neu).
+
+* **Gegenprobe aus Git** (`845a388`, vor Etappe 2): Dieselben Stücke landen in der App beim
+  Popup — genau der Weg, den Google dort blockt.
+* **Zeilen-Gegenprobe:** Ohne die eine Zeile `if (NATIV) return googleNativCredential()…` in
+  `loginGoogle` fallen 9 von 18 Prüfungen.
+* **Was er nicht zeigt:** ob Google das Token wirklich ausstellt (Firebase-Android-App, SHA-1).
+  Das zeigte der Lauf im Emulator am 24.10.2026: Kontoauswahl, Anmeldung mit echtem Konto,
+  Pro-Status, Abmelden, Abbruch. Offen: „Konto löschen“ mit Test-Konto.
 
 ## Die Gegenprobe aus Git: die Löschsperre fürs Konto (19.09.2026)
 

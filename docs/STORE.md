@@ -56,8 +56,8 @@ Bau mit **JDK 21** (das JDK aus Android Studio bricht ab). Das Kopierskript `web
 `index.html`, `manifest.webmanifest`, `LICENSE`, `css/`, `data/`, `lib/`, `img/`, `vendor/` nach
 `www/` und bricht ab, wenn eine Datei der Ladereihenfolge aus `docs/MODULE.md` fehlt
 (Gegenprobe gefahren). **`sw.js` kommt bewusst nicht mit** — in der Hülle liegt alles lokal.
-Im Emulator **im Flugmodus** gestartet: Startbildschirm da. Offen: Etappe 2 (nativer
-Google-/Apple-Login, Konto löschen), 3 (Kamera/D8, Drehsperre, Scanner), 4 (StatusBar, Splash,
+Im Emulator **im Flugmodus** gestartet: Startbildschirm da. Etappe 2 für Android-Google
+erledigt (Abschnitt 4, „Stand 24.10.2026“). Offen: Apple-Login (iOS), 3 (Kamera/D8, Drehsperre, Scanner), 4 (StatusBar, Splash,
 Zurück-Taste, Text „Browser-Einstellungen“, Privacy Manifest); iOS folgt am Mac.
 
 **Folge für jede Änderung an der App:** Die Website ist sofort live, die Store-Apps erst mit
@@ -220,6 +220,21 @@ Google-Regel, keine Apple-Guideline.
 WebView scheitert dieser Popup genauso — die Löschung in der App ginge für Google-Konten nicht,
 und 5.1.1(v) verlangt sie dort. Das native Plugin muss deshalb auch die **Re-Authentifizierung**
 übernehmen, nicht nur die Anmeldung.
+
+**Stand 24.10.2026 — für Android gelöst (D7 Etappe 2):** In der Hülle (`window.Capacitor`,
+`isNativePlatform()`) nehmen `CloudAuth.loginGoogle` und die Bestätigung in `deleteAccount`
+nicht mehr den Popup, sondern Androids Kontoauswahl (Credential Manager) über das Plugin
+`@capgo/capacitor-social-login` 8.5.15 im Nachbar-Repo; mit dem ID-Token meldet das Web-SDK an
+(`signInWithCredential` bzw. `reauthenticateWithCredential`) — derselbe Firebase-Nutzer wie im
+Web. Kein nachgeladener Google-Code, kein Popup. Im Browser bleibt alles beim Popup. Das Plugin
+bringt per Voreinstellung das **Facebook-SDK samt `AD_ID`** mit; abgeschaltet in
+`capacitor.config.json` (`facebook: false`), `tools/app-bauen.py` dort bricht ab, wenn es doch in
+der APK steckt. Neu im Manifest durch Credential Manager: `USE_CREDENTIALS`, `USE_BIOMETRIC`,
+`USE_FINGERPRINT` (normale Berechtigungen, keine Nachfrage beim Nutzer) — für Data Safety
+(Abschnitt 5) unkritisch, aber zu kennen. In Firebase ist die Android-App
+`de.paddysmealplan.app` mit dem SHA-1 des **Debug**-Schlüssels angelegt. **Offen:** SHA-1 des
+Upload- und des Play-App-Signing-Schlüssels nachtragen, sobald es sie gibt; „Konto löschen“
+mit einem Test-Konto im Emulator abnehmen; Apple (iOS am Mac, mit Developer-Konto).
 
 ---
 

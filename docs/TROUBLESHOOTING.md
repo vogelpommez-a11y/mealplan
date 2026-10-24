@@ -6,7 +6,7 @@ Dieses Dokument enthält bekannte Fehlerquellen, historische Bugs und Probleme, 
 
 <!-- REGISTER-ANFANG (erzeugt aus den Ueberschriften: python tools/register.py - nicht von Hand pflegen) -->
 
-**Register — 193.** Chronologisch gewachsen: je hoeher die Nummer,
+**Register — 194.** Chronologisch gewachsen: je hoeher die Nummer,
 desto juenger der Fund. Wer eine Falle sucht, sucht hier zuerst; die Ueberschrift sagt
 jeweils, worum es geht. **Nicht die ganze Datei lesen** — sie ist rund 310 KB gross.
 
@@ -205,6 +205,7 @@ jeweils, worum es geht. **Nicht die ganze Datei lesen** — sie ist rund 310 KB 
 | 191 | Zwei Prüfer waren an einer Stelle blind — und meldeten trotzdem „sauber“ |
 | 192 | Zwei stille Fehler: Austritt ließ die alte Gruppe stehen, Löschen meldete „gelöscht“ trotz Fotos |
 | 193 | `alle-pruefstaende.py` blieb ohne Ausgabe stehen, wenn der Testserver nicht lief |
+| 194 | Zwei Fallen beim ersten Capacitor-Build: Java 25 und das Facebook-SDK im Login-Plugin |
 
 <!-- REGISTER-ENDE -->
 
@@ -7377,3 +7378,36 @@ Stand hängt (>90 s), neuer Stand grün in 18 s.
 
 **Lehre:** Ein Hintergrundprozess, der länger lebt als sein Starter, bekommt nie dessen Leitungen.
 Und ein Hänger, der nur im Reihenlauf auftritt, liegt eher am Läufer als am Prüfstand.
+
+## 194. Zwei Fallen beim ersten Capacitor-Build: Java 25 und das Facebook-SDK im Login-Plugin
+
+**Symptom 1 (24.10.2026):** Der erste Android-Build der Hülle brach ab mit
+`BUG! exception in phase 'semantic analysis' … Unsupported class file major version 69`.
+
+**Ursache:** Android Studio 2026.2 bringt ein JDK 25 mit (Klassenversion 69). Das Gradle 8.14.3
+aus Capacitor 8 kann nur bis Java 24, Capacitor nennt JDK 21. **Behoben:** Temurin JDK 21
+zusätzlich installiert; `tools/app-bauen.py` im Nachbar-Repo sucht es selbst (oder `PM_JDK21`).
+
+**Symptom 2 (24.10.2026, vor dem Bau bemerkt):** `@capgo/capacitor-social-login` packt per
+Voreinstellung **alle** Anbieter ein — auch das Facebook-SDK, und mit ihm die Berechtigung
+`com.google.android.gms.permission.AD_ID`. Ohne Gegenmaßnahme hätte die App Facebook-Code
+enthalten, und die Play Console hätte die Werbe-ID-Erklärung verlangt.
+
+**Behoben:** `plugins.SocialLogin.providers` in `capacitor.config.json` mit `facebook: false`
+(dazu `apple`, `twitter` aus, bis sie gebraucht werden). Das Plugin schreibt daraus bei
+`npx cap sync` seine `gradle.properties` und kompiliert einen Platzhalter statt des SDK.
+`tools/app-bauen.py` durchsucht danach jede APK nach `Lcom/facebook/` und das Manifest nach
+`AD_ID` und bricht ab. Gegenprobe: mit `facebook: true` meldet es Code in drei DEX-Dateien und
+`AD_ID`, mit `false` ist es grün.
+
+**Lehre:** Bei einem Plugin, das „alle Anbieter in einem“ verspricht, zuerst nachsehen, was es
+ungefragt mitbringt. Und eine Voreinstellung kann mit einem Update kippen — deshalb die Prüfung
+im Bau, nicht nur die Einstellung.
+
+**Symptom 3 (24.10.2026):** Im Reihenlauf wurden `pruefstand-reiter.py` und
+`pruefstand-grpm-zoom.py` rot: „Edge kam nicht hoch (Port 9333)“. Ursache: `tools/webview-js.py`
+im Nachbar-Repo hatte per `adb forward tcp:9333` genau den Port belegt, den beide für ihr Edge
+brauchen; danach blieben zwei Test-Edges liegen und hielten ihn weiter. **Behoben:**
+`webview-js.py` nimmt Port 9343. Nach einem solchen Abbruch: `adb forward --remove-all` und die
+liegengebliebenen `msedge --headless` mit `mp-edge-*`-Profil beenden, dann einzeln nachfahren —
+beide grün.

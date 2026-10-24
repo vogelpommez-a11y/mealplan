@@ -268,7 +268,7 @@
     signInWithEmailAndPassword, sendEmailVerification, signOut,
     updateProfile, sendPasswordResetEmail, setPersistence,
     browserLocalPersistence, GoogleAuthProvider, OAuthProvider, signInWithPopup,
-    signInWithRedirect, getRedirectResult,
+    signInWithRedirect, getRedirectResult, signInWithCredential,
     deleteUser, reauthenticateWithPopup, reauthenticateWithCredential, EmailAuthProvider
   } from "./vendor/firebase/10.12.5/firebase-auth.js";
   import {
@@ -289,6 +289,11 @@
     appId: "1:1045496121634:web:c43390145fe7b52789bd7b"
   };
   /* ▲▲▲ ------------------------------------------------------- ▲▲▲ */
+
+  /* OAuth-Client "Webanwendung" desselben Projekts (Authentication → Google → Web-SDK-
+     Konfiguration). Kein Geheimnis, wie die Config oben. Nur die Store-App braucht ihn:
+     Androids Kontoauswahl stellt das Google-ID-Token fuer genau diesen Client aus. */
+  const GOOGLE_WEB_CLIENT_ID = "1045496121634-5rf9m9iv9b40mp1cio1d9pb7ihgcv134.apps.googleusercontent.com";
 
   const CONFIGURED = firebaseConfig.apiKey && firebaseConfig.apiKey.indexOf("DEIN_") !== 0;
   window.CloudAuth = { configured: !!CONFIGURED };
@@ -332,6 +337,38 @@
         getRedirectResult(auth, RESOLVER).catch(function (e) { window.CloudAuth.redirectError = e; });
       }
 
+      // Store-App (Capacitor, D7 Etappe 2): Google verweigert OAuth-Popups in eingebetteten
+      // WebViews serverseitig (disallowed_useragent, docs/STORE.md Abschnitt 4). Dort holt
+      // Androids Kontoauswahl (Credential Manager ueber @capgo/capacitor-social-login im
+      // Nachbar-Repo) ein Google-ID-Token, und Firebase meldet damit an - derselbe Nutzer wie
+      // im Web. Im Browser gibt es window.Capacitor nicht, dort bleibt alles beim Popup.
+      const CAP = window.Capacitor;
+      const NATIV = !!(CAP && CAP.isNativePlatform && CAP.isNativePlatform());
+      let googleNativBereit = null;
+      function nativFehler(code) { return Object.assign(new Error(code), { code: code }); }
+      async function googleNativCredential() {
+        const sl = CAP && CAP.Plugins && CAP.Plugins.SocialLogin;
+        if (!sl || !GOOGLE_WEB_CLIENT_ID) throw nativFehler("auth/google-nativ");
+        if (!googleNativBereit) {
+          googleNativBereit = sl.initialize({ google: { webClientId: GOOGLE_WEB_CLIENT_ID } });
+          googleNativBereit.catch(function () { googleNativBereit = null; });
+        }
+        let res;
+        try {
+          await googleNativBereit;
+          // Ohne "scopes": email, profile und openid sind Voreinstellung. Eigene Scopes
+          // verlangen laut Plugin eine umgebaute MainActivity.
+          res = await sl.login({ provider: "google", options: {} });
+        } catch (e) {
+          if (e && e.code === "USER_CANCELLED") throw nativFehler("auth/cancelled-popup-request");
+          window.noteError("auth:googleNativ", e);
+          throw nativFehler("auth/google-nativ");
+        }
+        const token = res && res.result && res.result.idToken;
+        if (!token) throw nativFehler("auth/google-nativ");
+        return GoogleAuthProvider.credential(token);
+      }
+
       Object.assign(window.CloudAuth, {
         registerEmail: async function (name, email, pw) {
           const cred = await createUserWithEmailAndPassword(auth, email, pw);
@@ -346,6 +383,7 @@
         // vollen Seitenwechsel (signInWithRedirect) umsteigen. Das Ergebnis holt getRedirectResult()
         // weiter unten ab, sobald die Seite danach neu laedt.
         loginGoogle: function () {
+          if (NATIV) return googleNativCredential().then(function (c) { return signInWithCredential(auth, c); });
           const p = new GoogleAuthProvider(); p.setCustomParameters({ prompt: "select_account" });
           return signInWithPopup(auth, p, RESOLVER).catch(function (e) { return popupFallback(e, p); });
         },
@@ -363,7 +401,13 @@
         reloadUser: function () {
           return auth.currentUser ? auth.currentUser.reload().then(function () { return auth.currentUser; }) : Promise.resolve(null);
         },
-        logout: function () { return signOut(auth); },
+        logout: function () {
+          // Store-App: auch Androids gemerkte Kontoauswahl vergessen (Googles Empfehlung beim
+          // Abmelden), sonst schlaegt die naechste Anmeldung womoeglich still dasselbe Konto vor.
+          const sl = NATIV && CAP.Plugins && CAP.Plugins.SocialLogin;
+          if (sl) sl.logout({ provider: "google" }).catch(function () {});
+          return signOut(auth);
+        },
         current: function () { return auth.currentUser; },
         // Konto vollstaendig loeschen (Art. 17 DSGVO). Reihenfolge ist wichtig: die
         // Firestore-Dokumente muessen VOR deleteUser() weg, weil die Security Rules
@@ -379,7 +423,8 @@
             if (!opts || !opts.password) throw new Error("password-required");
             await reauthenticateWithCredential(user, EmailAuthProvider.credential(user.email, opts.password));
           } else if (pid === "google.com") {
-            await reauthenticateWithPopup(user, new GoogleAuthProvider(), RESOLVER);
+            if (NATIV) await reauthenticateWithCredential(user, await googleNativCredential());
+            else await reauthenticateWithPopup(user, new GoogleAuthProvider(), RESOLVER);
           } else if (pid === "apple.com") {
             await reauthenticateWithPopup(user, new OAuthProvider("apple.com"), RESOLVER);
           }
@@ -14346,7 +14391,11 @@
       "unavailable": "Keine Verbindung. Prüf dein Internet.",
       "auth/operation-not-allowed": "Diese Anmeldeart ist in Firebase noch nicht aktiviert.",
       "auth/unauthorized-domain": "Diese Domain ist in Firebase nicht freigegeben (Authentication → Settings → Authorized domains).",
-      "auth/requires-recent-login": "Aus Sicherheitsgründen musst du dich für diese Aktion erneut bestätigen."
+      "auth/requires-recent-login": "Aus Sicherheitsgründen musst du dich für diese Aktion erneut bestätigen.",
+      // Bestaetigung (Konto loeschen) mit einem anderen Google-Konto als dem angemeldeten
+      "auth/user-mismatch": "Wähl dasselbe Google-Konto wie bei der Anmeldung.",
+      // Nur Store-App: Androids Kontoauswahl lieferte kein Ergebnis (Ursache in noteError)
+      "auth/google-nativ": "Die Anmeldung mit Google hat nicht geklappt. Versuch es gleich noch einmal."
     };
     return map[c] || ("Es ist ein Fehler aufgetreten." + (c ? " (" + c + ")" : ""));
   }
