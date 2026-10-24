@@ -160,6 +160,9 @@ Im Nachbar-Repo selbst (aktiv, wenn Claude Code **dort** gestartet wird): Hooks
 `kopie-schutz.py` (kein Bearbeiten der kopierten Web-App) und `befehls-waechter.py` (keine
 ungeprüften Paket-Updates, kein Ausgeben des Signaturschlüssels), dazu `/app-bauen` als
 Startbeweis im Flugmodus — seit 24.10.2026, Vorschläge des Plugins „Claude Code Setup“.
+`app-bauen.py` prüft außerdem jede APK auf Facebook-Code/`AD_ID` und gleicht die Berechtigungen
+im gemergten Manifest gegen eine feste Liste ab (Kamera optional, `<queries>`, Drehsperre;
+`docs/STORE.md` Abschnitt 6).
 
 ## 6. Bewusst ohne Prüfer
 

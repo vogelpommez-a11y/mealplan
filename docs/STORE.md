@@ -57,7 +57,8 @@ Bau mit **JDK 21** (das JDK aus Android Studio bricht ab). Das Kopierskript `web
 `www/` und bricht ab, wenn eine Datei der Ladereihenfolge aus `docs/MODULE.md` fehlt
 (Gegenprobe gefahren). **`sw.js` kommt bewusst nicht mit** — in der Hülle liegt alles lokal.
 Im Emulator **im Flugmodus** gestartet: Startbildschirm da. Etappe 2 für Android-Google
-erledigt (Abschnitt 4, „Stand 24.10.2026“). Offen: Apple-Login (iOS), 3 (Kamera/D8, Drehsperre, Scanner), 4 (StatusBar, Splash,
+erledigt (Abschnitt 4, „Stand 24.10.2026“). Etappe 3 (Kamera, Drehsperre) für Android erledigt
+(Abschnitt 6, „Stand 24.10.2026“). Offen: Apple-Login (iOS), nativer Scanner (nur iOS), 4 (StatusBar, Splash,
 Zurück-Taste, Text „Browser-Einstellungen“, Privacy Manifest); iOS folgt am Mac.
 
 **Folge für jede Änderung an der App:** Die Website ist sofort live, die Store-Apps erst mit
@@ -310,6 +311,41 @@ noch in `store-check`.
   Zweck nennen („um Barcodes von Lebensmitteln zu scannen").
 - Die Abfrage gehört in den **Moment der Nutzung**, nicht in den App-Start.
 - Keine Berechtigung anfordern, die nicht gebraucht wird.
+
+**Stand 24.10.2026 — Android erledigt (D7 Etappe 3).** Im Manifest der Hülle: `CAMERA`,
+`uses-feature android.hardware.camera required="false"` (sonst blendet Play die App für Geräte
+ohne Kamera aus), `<queries>` für `IMAGE_CAPTURE` und `screenOrientation="portrait"` für die ganze
+App. Gefragt wird **beim ersten Scan**: `getUserMedia` im WebView löst über Capacitors
+`BridgeWebChromeClient.onPermissionRequest` die Android-Abfrage aus — **keine Änderung an der
+Web-App**, keine eigene Erklärseite davor (Googles Rat: nur wenn der Zweck unklar ist; hier hat
+man gerade „Scannen“ getippt). Abgelehnt → der bestehende Text „Kamerazugriff wurde abgelehnt.
+Erlaube ihn in den Einstellungen.“ samt Foto-Ausweg; zweimal abgelehnt → Android fragt nie wieder,
+die Absage kommt sofort, kein Hänger. Im Emulator abgenommen: Erlauben (hintere Kamera,
+`focusMode: continuous`), einmal/zweimal Ablehnen, Foto-Ausweg mit und ohne Erlaubnis, Abbruch.
+`BarcodeDetector` ist im Android-WebView vorhanden und las einen EAN-13 — ZXing bleibt dort
+Rückfall. **Ein nativer Scanner (ML Kit) ist für Android nicht nötig**, Dauerfokus kommt von
+selbst; er bleibt ein iOS-Thema (Autofokus, `capacitor-kamera-orientierung-fokus`).
+
+Zwei Fallen, beide jetzt in `MainActivity.java` bzw. im Manifest gelöst
+(`docs/TROUBLESHOOTING.md` §196):
+- **Mit `CAMERA` im Manifest braucht auch „Foto aufnehmen“ die Erlaubnis.** Capacitor gab bei
+  Ablehnung still `null` zurück — der Foto-Ausweg führte ins Leere. Eigener `FotoAuswegClient`
+  fällt dann auf die Fotoauswahl (Galerie) zurück.
+- **Ohne `<queries>` findet die App die Kamera-App nicht** (Paketsichtbarkeit seit Android 11);
+  „Foto aufnehmen“ öffnete deshalb auch mit Erlaubnis immer die Galerie, schon vor Etappe 3.
+
+`tools/app-bauen.py` (Nachbar-Repo) prüft im gemergten Manifest die **vollständige Liste** der
+Berechtigungen (jede neue bricht den Bau ab, bis sie hier begründet ist), Kamera optional,
+`<queries>` und die Drehsperre — Gegenprobe gegen den Stand vor Etappe 3 gefahren.
+Ab Android 16 ignoriert das System die Drehsperre auf Tablets und Faltgeräten (≥ 600 dp), sobald
+targetSdk 36 ist; auf Handys gilt sie. Das Opt-out (`PROPERTY_COMPAT_ALLOW_RESTRICTED_RESIZABILITY`)
+gibt es nur für 36 und entfällt mit 37 — also nicht darauf bauen: Querformat auf dem Tablet
+(samt Scanner) gehört zur Abnahme (Abschnitt 8). Die Sperre sitzt an `MainActivity`, der einzigen
+Activity; kommt eine zweite dazu, braucht sie dieselbe Angabe (`store-check`, 24.10.2026).
+
+**Für iOS nicht übertragbar:** `getUserMedia` im WKWebView hat eigene Regeln (Abfrage je Seite,
+kein `focusMode`, Drehung) — der Android-Befund „funktioniert“ gilt dort nicht, die iOS-Etappe
+prüft Scanner und „Foto aufnehmen“ neu.
 
 ---
 
@@ -602,7 +638,7 @@ iOS erst am Mac.
 | Nutrition Labels / Data Safety | 🟡 Datengrundlage steht (Abschnitt 5), Formulare nicht ausgefüllt |
 | Health apps declaration (Google Play) | 🟡 Pflicht für jede App, bei uns „Nutrition and Weight Management“ — beim Einrichten der Play Console (Abschnitt 5) |
 | Hinweis „lösch sie in den Browser-Einstellungen“ | 🟡 D7 Etappe 4 umformulieren: Lassen sich beim Löschen Fotos nicht entfernen, verweist die Meldung (`FOTOS_GEBLIEBEN`, `index.html`) auf Browser-Einstellungen — die gibt es in der Capacitor-App nicht (Gerät → App-Daten löschen). Vorgemerkt 19.10.2026 |
-| `NSCameraUsageDescription` | 🟡 iOS-Etappe am Mac; Android-Gegenstück (`CAMERA` im Manifest) in D7 Etappe 3 |
+| `NSCameraUsageDescription` | 🟡 iOS-Etappe am Mac, Text: „Um Barcodes von Lebensmitteln zu scannen und Fotos davon aufzunehmen.“ (deckt Live-Scanner und „Foto aufnehmen“); Android-Gegenstück (`CAMERA` im Manifest) seit 24.10.2026 erledigt (Abschnitt 6) |
 | **Erinnerung „Am Vortag“ als Nachricht** | 🟡 nach D7 Etappe 4 bauen (entschieden 21.10.2026, Plan `plans/vorab-hinweis-auftauen.md`). Das Feld `vorab` und die Zeile auf der Startseite sind seit 21.10. live. Dazu kommt: Plugin `@capacitor/local-notifications`, **lokal**, kein Server, kein Push-Token, kein Blaze. Beim Start und nach jeder Planänderung die eigenen Erinnerungen löschen und für 7 Tage neu stellen (Vortag, Uhrzeit einstellbar, Standard 18:00; schon vorbei → keine). Berechtigung erst beim ersten Wählen eines Hinweises erfragen (Apple: nur eine Chance). **Kein** `SCHEDULE_EXACT_ALARM`/`USE_EXACT_ALARM`, ein paar Minuten Verzug sind egal. Grenze: Eine Planänderung auf einem anderen Gerät wirkt erst, wenn die App hier geöffnet wird. Beim Bau mitdenken (`datenschutz-technik`, 21.10.2026): „Alle Daten löschen“ und Kontolöschung müssen auch die geplanten Erinnerungen löschen (in `wipeLocalData()`); entscheiden, ob der Meal-Name auf dem Sperrbildschirm erscheint (Art. 25); eigener Eintrag im Art.-30-Verzeichnis (rein lokal, kein Empfänger); Privacy Manifest des Plugins prüfen. Datenschutzerklärung ergänzen (`anwalt`) |
 | Privacy Manifest (Apple) | 🟡 D7 Etappe 4 / iOS prüfen — ohne scheitert der Upload (Abschnitt 8) |
 | **Barrierefreiheit (BFSG)** | 🟢 **Codeseite gemessen und behoben** (20.09.2026, 0 Befunde). Rechtsfrage weiter offen: Kleinstunternehmer-Ausnahme? Erklärung fehlt. Abschnitt 7b |
