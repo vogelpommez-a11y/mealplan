@@ -391,7 +391,9 @@
       function googleNativVergessen() {
         const sl = googleNativPlugin();
         if (!sl || !GOOGLE_WEB_CLIENT_ID) return Promise.resolve();
-        const vergessen = googleNativInit(sl)
+        // In die Kette, damit auch ein synchroner Wurf von initialize() nur notiert wird
+        const vergessen = Promise.resolve()
+          .then(function () { return googleNativInit(sl); })
           .then(function () { return sl.logout({ provider: "google" }); })
           .catch(function (e) { window.noteError("auth:googleNativVergessen", e); });
         return Promise.race([vergessen, new Promise(function (res) { setTimeout(res, 2000); })]);

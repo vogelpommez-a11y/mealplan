@@ -203,10 +203,12 @@ function plugin(modus) {
 function app(modus) { return { isNativePlatform: function () { return true; }, Plugins: modus ? { SocialLogin: plugin(modus) } : {} }; }
 async function ruf(fn) {
   RUF = []; NOTIZ = [];
-  try { await fn(); } catch (e) { return "fehler:" + (e && e.code); }
-  // logout() wartet das Plugin bewusst nicht ab - dessen Mikroaufgaben hier ausklingen lassen
+  var erg = "ok";
+  try { await fn(); } catch (e) { erg = "fehler:" + (e && e.code); }
+  // logout() und mitVergessenBeiFehler() warten das Plugin bewusst nicht ab - dessen
+  // Mikroaufgaben hier ausklingen lassen, auch im Fehlerfall
   await new Promise(function (r) { setTimeout(r, 0); });
-  return "ok";
+  return erg;
 }
 function sortiert(a) { return a.slice().sort(); }
 var WIPE_NEU = __WIPE_NEU__, WIPE_ALT = __WIPE_ALT__;

@@ -427,6 +427,9 @@ Seit die Meal-Fotos und das Profilbild in IndexedDB liegen (Paket A3) und nicht 
   Persönliches, aber dieselbe Zusage; danach gelten wieder Gerätefarbe und Erst-Intro
 * den ObjectStore `images` der IndexedDB
 * die Baseline `imgSaved`
+* Store-App (Android): die Google-Tokens, die das Plugin `SocialLogin` in den SharedPreferences
+  ablegt, über `CloudAuth.googleNativVergessen()` (seit 24.10.2026; wirft nie, nach 2 s geht es
+  weiter; im Browser ein leeres Versprechen) → `docs/STORE.md` Abschnitt 4
 
 **Bewusst nicht gelöscht** (Entscheidung Paddy, 18.10.2026): die beiden IndexedDBs des
 Firebase-SDK, `firebaseLocalStorageDb` (Auth) und `firebase-heartbeat-database`. Sie tragen

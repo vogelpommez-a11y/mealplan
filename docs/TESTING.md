@@ -2812,7 +2812,10 @@ Plugin-Daten wieder vergessen; und dass `wipeLocalData()` es aufruft (Text, alte
 `CloudAuth.deleteAccount()` und `kontoDatenLoeschen()` im Original aus. Nachgebaut ist nur die
 Regel `nichtImLoeschen()`: Anlegen und Ändern unter `users/ich`, `shared/` und `invites/` scheitert,
 solange eine gültige Sperre steht. Das Zweitgerät schreibt in der Attrappe genau im Moment von
-`deleteUser()`, denn da ist sein Token noch gültig.
+`deleteUser()`, denn da ist sein Token noch gültig. Attrappen für die Modul-Helfer, die
+`deleteAccount()` im Google-Zweig braucht (`RESOLVER`, `NATIV = false`, `mitVergessenBeiFehler`);
+fehlte einer, brach der Lauf mit `ReferenceError` ab — seit 30.09. unbemerkt (§195). Wer einer
+ausgeschnittenen Funktion einen Helfer gibt, sucht vorher per Grep, welche Prüfstände sie schneiden.
 
 * **Die Gegenprobe kommt aus Git** (`git show 5b11b8c:index.html`), nicht aus einer Textersetzung.
   Denn der Fix ist zweiteilig, Sperre **und** Serverliste, und eine erfundene Rückdrehung träfe
@@ -4222,6 +4225,10 @@ Blindgänger heraus — zusammen **436 Zusagen**, die nie liefen, darunter alle 
 Gruppen-Prüfstände. Behoben über `tools/pruefstand_lauf.py`: Der gemeinsame Läufer hängt der
 **erzeugten** Seite einen Beobachter an und liest ihr `#log` aus; die acht Prüfstände selbst
 bleiben unangetastet (acht Umbauten wären acht Gelegenheiten, eine Zusage zu verändern).
+
+**Und der Läufer selbst las falsch** (24.10.2026): Bis dahin entschied `pruefstand_lauf.py` mit
+`endswith("0 rot")` — „10 rot“ und „20 rot“ gaben Exit 0. Jetzt wird die ganze Zahl verglichen.
+→ `docs/TROUBLESHOOTING.md` §195
 
 **Einer war sofort rot.** `pruefstand-einladung-verbrauch.py` fiel beim ersten echten Lauf
 durch — `mergeOwnPlanIntoGroup()` war nicht mitgeschnitten, der Aufruf lief in einen
