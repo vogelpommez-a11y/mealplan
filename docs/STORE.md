@@ -48,6 +48,21 @@ sie ist die Prüfliste für den ersten Capacitor-Build.
 **Erste Prüfung im nativen Projekt:** App starten, `#view` muss gefüllt sein. Ist es leer,
 fehlt `css/`, `data/` oder `lib/` im Bundle — nichts anderes.
 
+**Stand 24.10.2026 — D7 Etappe 1 erledigt (Android):** Die Hülle liegt im **privaten** Repo
+`paddys-mealplan-app`, als Ordner `Paddys Mealplan App` **neben** diesem Repo. So bleibt dieses
+Repo ohne npm, und Signatur-Einstellungen stehen nicht öffentlich. Feste Werte: appId
+`de.paddysmealplan.app` (nie ändern), Capacitor 8.5.3 exakt gepinnt, Installationsskripte aus,
+Bau mit **JDK 21** (das JDK aus Android Studio bricht ab). Das Kopierskript `web-kopieren.py` im App-Repo kopiert
+`index.html`, `manifest.webmanifest`, `LICENSE`, `css/`, `data/`, `lib/`, `img/`, `vendor/` nach
+`www/` und bricht ab, wenn eine Datei der Ladereihenfolge aus `docs/MODULE.md` fehlt
+(Gegenprobe gefahren). **`sw.js` kommt bewusst nicht mit** — in der Hülle liegt alles lokal.
+Im Emulator **im Flugmodus** gestartet: Startbildschirm da. Offen: Etappe 2 (nativer
+Google-/Apple-Login, Konto löschen), 3 (Kamera/D8, Drehsperre, Scanner), 4 (StatusBar, Splash,
+Zurück-Taste, Text „Browser-Einstellungen“, Privacy Manifest); iOS folgt am Mac.
+
+**Folge für jede Änderung an der App:** Die Website ist sofort live, die Store-Apps erst mit
+einem neuen Build — iOS nur am Mac.
+
 ---
 
 ## 2. Bezahlung — Apple 3.1.1

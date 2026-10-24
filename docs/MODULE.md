@@ -327,7 +327,7 @@ _keine_
 | .gitattributes | 21 | 594 |
 | .github/workflows/pruefung.yml | 188 | 8066 |
 | .gitignore | 142 | 6411 |
-| CLAUDE.md | 575 | 25960 |
+| CLAUDE.md | 579 | 26171 |
 | CNAME | 1 | 21 |
 | FIREBASE-SETUP.md | 197 | 9363 |
 | LICENSE | 89 | 4343 |
@@ -353,7 +353,7 @@ _keine_
 | docs/PRODUCT.md | 1907 | 111130 |
 | docs/RUNBOOK.md | 387 | 20402 |
 | docs/SECURITY.md | 609 | 37178 |
-| docs/STORE.md | 567 | 36800 |
+| docs/STORE.md | 582 | 37968 |
 | docs/TESTING.md | 5730 | 344413 |
 | docs/TROUBLESHOOTING.md | 7380 | 432749 |
 | docs/module-index.json | — | — (erzeugt) |

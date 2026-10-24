@@ -170,6 +170,10 @@ Es gibt **kein** Node, PHP, npm, `package.json`, Bundler, Build, Test-Framework,
 **Keine npm-Befehle erfinden.** Eine Änderung an `index.html` ist unmittelbar die fertige
 App. Python ist vorhanden für Hilfs- und Testskripte.
 
+**Ausnahme nur außerhalb dieses Repos:** die Capacitor-Hülle im privaten Nachbar-Repo
+`Paddys Mealplan App` (npm, Gradle, Xcode). Sie kopiert die Web-App, sie ändert sie nie
+→ `docs/STORE.md` Abschnitt 1.
+
 ---
 
 # 10. Lesen und Bearbeiten des Codes
