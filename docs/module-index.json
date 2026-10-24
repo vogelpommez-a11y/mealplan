@@ -914,221 +914,221 @@
       "zeilen": 310
     },
     {
-      "bis": 10426,
+      "bis": 10430,
       "datei": "index.html",
       "titel": "Picker",
       "von": 10046,
-      "zeilen": 381
+      "zeilen": 385
     },
     {
-      "bis": 10645,
+      "bis": 10649,
       "datei": "index.html",
       "titel": "Shopping list",
-      "von": 10427,
+      "von": 10431,
       "zeilen": 219
     },
     {
-      "bis": 10862,
+      "bis": 10866,
       "datei": "index.html",
       "titel": "Vorkochen (C3)",
-      "von": 10646,
+      "von": 10650,
       "zeilen": 217
     },
     {
-      "bis": 10948,
+      "bis": 10952,
       "datei": "index.html",
       "titel": "Actions",
-      "von": 10863,
+      "von": 10867,
       "zeilen": 86
     },
     {
-      "bis": 10974,
+      "bis": 10978,
       "datei": "index.html",
       "titel": "Rechtstexte (Impressum / Datenschutz)",
-      "von": 10949,
+      "von": 10953,
       "zeilen": 26
     },
     {
-      "bis": 11081,
+      "bis": 11085,
       "datei": "index.html",
       "titel": "Auto-Wochenplaner (D2)",
-      "von": 10975,
+      "von": 10979,
       "zeilen": 107
     },
     {
-      "bis": 11100,
+      "bis": 11104,
       "datei": "index.html",
       "titel": "Wiederholung: was zuletzt dran war, rutscht nach hinten",
-      "von": 11082,
+      "von": 11086,
       "zeilen": 19
     },
     {
-      "bis": 11107,
+      "bis": 11111,
       "datei": "index.html",
       "titel": "Passt die Groesse zum Slot?",
-      "von": 11101,
+      "von": 11105,
       "zeilen": 7
     },
     {
-      "bis": 11535,
+      "bis": 11539,
       "datei": "index.html",
       "titel": "In der Gruppe: was zu MEHR Profilen passt, kommt weiter nach vorn",
-      "von": 11108,
+      "von": 11112,
       "zeilen": 428
     },
     {
-      "bis": 11545,
+      "bis": 11549,
       "datei": "index.html",
       "titel": "Toast",
-      "von": 11536,
+      "von": 11540,
       "zeilen": 10
     },
     {
-      "bis": 11581,
+      "bis": 11585,
       "datei": "index.html",
       "titel": "Toast mit Rueckgaengig (Paket B1)",
-      "von": 11546,
+      "von": 11550,
       "zeilen": 36
     },
     {
-      "bis": 11805,
+      "bis": 11809,
       "datei": "index.html",
       "titel": "Event delegation",
-      "von": 11582,
+      "von": 11586,
       "zeilen": 224
     },
     {
-      "bis": 11911,
+      "bis": 11915,
       "datei": "index.html",
       "titel": "Meals im Plan per Ziehen sortieren",
-      "von": 11806,
+      "von": 11810,
       "zeilen": 106
     },
     {
-      "bis": 11943,
+      "bis": 11947,
       "datei": "index.html",
       "titel": "Foto per Drag & Drop auf eine Meal-Karte (Desktop)",
-      "von": 11912,
+      "von": 11916,
       "zeilen": 32
     },
     {
-      "bis": 11975,
+      "bis": 11979,
       "datei": "index.html",
       "titel": "Foto per Strg+V auf eine Meal-Karte einfuegen",
-      "von": 11944,
+      "von": 11948,
       "zeilen": 32
     },
     {
-      "bis": 12022,
+      "bis": 12026,
       "datei": "index.html",
       "titel": "Profil (lokal) & Teilen",
-      "von": 11976,
+      "von": 11980,
       "zeilen": 47
     },
     {
-      "bis": 12808,
+      "bis": 12812,
       "datei": "index.html",
       "titel": "Kontowechsel auf demselben Geraet",
-      "von": 12023,
+      "von": 12027,
       "zeilen": 786
     },
     {
-      "bis": 12899,
+      "bis": 12903,
       "datei": "index.html",
       "titel": "Kalorienrechner (Baustein 1: Tages-/Wochenbedarf → state.goal)",
-      "von": 12809,
+      "von": 12813,
       "zeilen": 91
     },
     {
-      "bis": 12975,
+      "bis": 12979,
       "datei": "index.html",
       "titel": "Wiegen: speichern, loeschen, ans Ziel koppeln",
-      "von": 12900,
+      "von": 12904,
       "zeilen": 76
     },
     {
-      "bis": 13973,
+      "bis": 13977,
       "datei": "index.html",
       "titel": "Erste Schritte (Onboarding)",
-      "von": 12976,
+      "von": 12980,
       "zeilen": 998
     },
     {
-      "bis": 14000,
+      "bis": 14004,
       "datei": "index.html",
       "titel": "Erscheinungsbild",
-      "von": 13974,
+      "von": 13978,
       "zeilen": 27
     },
     {
-      "bis": 14124,
+      "bis": 14128,
       "datei": "index.html",
       "titel": "Einstellungen",
-      "von": 14001,
+      "von": 14005,
       "zeilen": 124
     },
     {
-      "bis": 14204,
+      "bis": 14208,
       "datei": "index.html",
       "titel": "Einstieg (D1b)",
-      "von": 14125,
+      "von": 14129,
       "zeilen": 80
     },
     {
-      "bis": 14221,
+      "bis": 14225,
       "datei": "index.html",
       "titel": "Cloud-Anmeldung (Firebase)",
-      "von": 14205,
+      "von": 14209,
       "zeilen": 17
     },
     {
-      "bis": 14275,
+      "bis": 14279,
       "datei": "index.html",
       "titel": "Startbildschirm (#splash, statisch im Markup)",
-      "von": 14222,
+      "von": 14226,
       "zeilen": 54
     },
     {
-      "bis": 15001,
+      "bis": 15005,
       "datei": "index.html",
       "titel": "Marken-Lader (docs/DESIGN.md \"Der Marken-Lader\")",
-      "von": 14276,
+      "von": 14280,
       "zeilen": 726
     },
     {
-      "bis": 16110,
+      "bis": 16114,
       "datei": "index.html",
       "titel": "Gemeinsam planen (Gruppe)",
-      "von": 15002,
+      "von": 15006,
       "zeilen": 1109
     },
     {
-      "bis": 16144,
+      "bis": 16148,
       "datei": "index.html",
       "titel": "Teilen ueber den nativen Dialog des Geraets (Web Share API)",
-      "von": 16111,
+      "von": 16115,
       "zeilen": 34
     },
     {
-      "bis": 16384,
+      "bis": 16388,
       "datei": "index.html",
       "titel": "Einkaufsliste als PDF (Paket B3)",
-      "von": 16145,
+      "von": 16149,
       "zeilen": 240
     },
     {
-      "bis": 16403,
+      "bis": 16407,
       "datei": "index.html",
       "titel": "Boot",
-      "von": 16385,
+      "von": 16389,
       "zeilen": 19
     },
     {
-      "bis": 163,
+      "bis": 176,
       "datei": "lib/barcode.js",
       "titel": "Barcode-Scan (Open Food Facts)",
       "von": 14,
-      "zeilen": 150
+      "zeilen": 163
     },
     {
       "bis": 38,
@@ -1364,14 +1364,14 @@
       "zeilen": 208
     },
     {
-      "bytes": 14711,
+      "bytes": 14930,
       "pfad": "docs/ABDECKUNG.md",
-      "zeilen": 201
+      "zeilen": 204
     },
     {
-      "bytes": 8525,
+      "bytes": 8624,
       "pfad": "docs/ABNAHME-MENSCH.md",
-      "zeilen": 157
+      "zeilen": 158
     },
     {
       "bytes": 227383,
@@ -1384,9 +1384,9 @@
       "zeilen": 107
     },
     {
-      "bytes": 80261,
+      "bytes": 81405,
       "pfad": "docs/DESIGN.md",
-      "zeilen": 1439
+      "zeilen": 1455
     },
     {
       "erzeugt": true,
@@ -1403,24 +1403,24 @@
       "zeilen": 391
     },
     {
-      "bytes": 37835,
+      "bytes": 39369,
       "pfad": "docs/SECURITY.md",
-      "zeilen": 617
+      "zeilen": 634
     },
     {
-      "bytes": 41144,
+      "bytes": 44186,
       "pfad": "docs/STORE.md",
-      "zeilen": 618
+      "zeilen": 654
     },
     {
-      "bytes": 346777,
+      "bytes": 349055,
       "pfad": "docs/TESTING.md",
-      "zeilen": 5760
+      "zeilen": 5795
     },
     {
-      "bytes": 436840,
+      "bytes": 439944,
       "pfad": "docs/TROUBLESHOOTING.md",
-      "zeilen": 7441
+      "zeilen": 7482
     },
     {
       "erzeugt": true,
@@ -1791,14 +1791,14 @@
       "pfad": "img/wurst.webp"
     },
     {
-      "bytes": 1038607,
+      "bytes": 1038889,
       "pfad": "index.html",
-      "zeilen": 16403
+      "zeilen": 16407
     },
     {
-      "bytes": 9247,
+      "bytes": 10176,
       "pfad": "lib/barcode.js",
-      "zeilen": 163
+      "zeilen": 176
     },
     {
       "bytes": 836,
@@ -2049,6 +2049,11 @@
       "bytes": 39171,
       "pfad": "tools/pruefstand-firestore-backup.py",
       "zeilen": 811
+    },
+    {
+      "bytes": 9313,
+      "pfad": "tools/pruefstand-foto-ohne-code.py",
+      "zeilen": 190
     },
     {
       "bytes": 3706,

@@ -128,37 +128,37 @@ Erhoben aus den Abschnittsmarken im Code, nicht von Hand gepflegt.
 | index.html | Zutaten-Zeilen (Name, Menge, Naehrwerte pro 100 g, Barcode-Scan) | 9367-9598 | 232 |
 | index.html | Zutaten-Suche (ARIA-Combobox auf dem Namensfeld) | 9599-9735 | 137 |
 | index.html | Zutaten per Ziehen sortieren (Paket 3) | 9736-10045 | 310 |
-| index.html | Picker | 10046-10426 | 381 |
-| index.html | Shopping list | 10427-10645 | 219 |
-| index.html | Vorkochen (C3) | 10646-10862 | 217 |
-| index.html | Actions | 10863-10948 | 86 |
-| index.html | Rechtstexte (Impressum / Datenschutz) | 10949-10974 | 26 |
-| index.html | Auto-Wochenplaner (D2) | 10975-11081 | 107 |
-| index.html | Wiederholung: was zuletzt dran war, rutscht nach hinten | 11082-11100 | 19 |
-| index.html | Passt die Groesse zum Slot? | 11101-11107 | 7 |
-| index.html | In der Gruppe: was zu MEHR Profilen passt, kommt weiter nach vorn | 11108-11535 | 428 |
-| index.html | Toast | 11536-11545 | 10 |
-| index.html | Toast mit Rueckgaengig (Paket B1) | 11546-11581 | 36 |
-| index.html | Event delegation | 11582-11805 | 224 |
-| index.html | Meals im Plan per Ziehen sortieren | 11806-11911 | 106 |
-| index.html | Foto per Drag & Drop auf eine Meal-Karte (Desktop) | 11912-11943 | 32 |
-| index.html | Foto per Strg+V auf eine Meal-Karte einfuegen | 11944-11975 | 32 |
-| index.html | Profil (lokal) & Teilen | 11976-12022 | 47 |
-| index.html | Kontowechsel auf demselben Geraet | 12023-12808 | 786 |
-| index.html | Kalorienrechner (Baustein 1: Tages-/Wochenbedarf → state.goal) | 12809-12899 | 91 |
-| index.html | Wiegen: speichern, loeschen, ans Ziel koppeln | 12900-12975 | 76 |
-| index.html | Erste Schritte (Onboarding) | 12976-13973 | 998 |
-| index.html | Erscheinungsbild | 13974-14000 | 27 |
-| index.html | Einstellungen | 14001-14124 | 124 |
-| index.html | Einstieg (D1b) | 14125-14204 | 80 |
-| index.html | Cloud-Anmeldung (Firebase) | 14205-14221 | 17 |
-| index.html | Startbildschirm (#splash, statisch im Markup) | 14222-14275 | 54 |
-| index.html | Marken-Lader (docs/DESIGN.md "Der Marken-Lader") | 14276-15001 | 726 |
-| index.html | Gemeinsam planen (Gruppe) | 15002-16110 | 1109 |
-| index.html | Teilen ueber den nativen Dialog des Geraets (Web Share API) | 16111-16144 | 34 |
-| index.html | Einkaufsliste als PDF (Paket B3) | 16145-16384 | 240 |
-| index.html | Boot | 16385-16403 | 19 |
-| lib/barcode.js | Barcode-Scan (Open Food Facts) | 14-163 | 150 |
+| index.html | Picker | 10046-10430 | 385 |
+| index.html | Shopping list | 10431-10649 | 219 |
+| index.html | Vorkochen (C3) | 10650-10866 | 217 |
+| index.html | Actions | 10867-10952 | 86 |
+| index.html | Rechtstexte (Impressum / Datenschutz) | 10953-10978 | 26 |
+| index.html | Auto-Wochenplaner (D2) | 10979-11085 | 107 |
+| index.html | Wiederholung: was zuletzt dran war, rutscht nach hinten | 11086-11104 | 19 |
+| index.html | Passt die Groesse zum Slot? | 11105-11111 | 7 |
+| index.html | In der Gruppe: was zu MEHR Profilen passt, kommt weiter nach vorn | 11112-11539 | 428 |
+| index.html | Toast | 11540-11549 | 10 |
+| index.html | Toast mit Rueckgaengig (Paket B1) | 11550-11585 | 36 |
+| index.html | Event delegation | 11586-11809 | 224 |
+| index.html | Meals im Plan per Ziehen sortieren | 11810-11915 | 106 |
+| index.html | Foto per Drag & Drop auf eine Meal-Karte (Desktop) | 11916-11947 | 32 |
+| index.html | Foto per Strg+V auf eine Meal-Karte einfuegen | 11948-11979 | 32 |
+| index.html | Profil (lokal) & Teilen | 11980-12026 | 47 |
+| index.html | Kontowechsel auf demselben Geraet | 12027-12812 | 786 |
+| index.html | Kalorienrechner (Baustein 1: Tages-/Wochenbedarf → state.goal) | 12813-12903 | 91 |
+| index.html | Wiegen: speichern, loeschen, ans Ziel koppeln | 12904-12979 | 76 |
+| index.html | Erste Schritte (Onboarding) | 12980-13977 | 998 |
+| index.html | Erscheinungsbild | 13978-14004 | 27 |
+| index.html | Einstellungen | 14005-14128 | 124 |
+| index.html | Einstieg (D1b) | 14129-14208 | 80 |
+| index.html | Cloud-Anmeldung (Firebase) | 14209-14225 | 17 |
+| index.html | Startbildschirm (#splash, statisch im Markup) | 14226-14279 | 54 |
+| index.html | Marken-Lader (docs/DESIGN.md "Der Marken-Lader") | 14280-15005 | 726 |
+| index.html | Gemeinsam planen (Gruppe) | 15006-16114 | 1109 |
+| index.html | Teilen ueber den nativen Dialog des Geraets (Web Share API) | 16115-16148 | 34 |
+| index.html | Einkaufsliste als PDF (Paket B3) | 16149-16388 | 240 |
+| index.html | Boot | 16389-16407 | 19 |
+| lib/barcode.js | Barcode-Scan (Open Food Facts) | 14-176 | 163 |
 | lib/pdf.js | PDF selbst erzeugen (kein window.print, sandbox-sicher) | 14-38 | 25 |
 | lib/pdf.js | Marken-Kopf fuer die PDFs (Logo, "PADDY'S MEALPLAN", Slogan) | 39-106 | 68 |
 | lib/pdf.js | Echtes Logo-PNG fuer die PDFs vorbereiten (einmalig, async, gecacht) | 107-241 | 135 |
@@ -344,18 +344,18 @@ _keine_
 | data/foods.js | 244 | 17334 |
 | data/ikonen.js | 175 | 20364 |
 | data/rechtstexte.js | 208 | 34439 |
-| docs/ABDECKUNG.md | 201 | 14711 |
-| docs/ABNAHME-MENSCH.md | 157 | 8525 |
+| docs/ABDECKUNG.md | 204 | 14930 |
+| docs/ABNAHME-MENSCH.md | 158 | 8624 |
 | docs/ARCHITECTURES.md | 3508 | 227383 |
 | docs/BAUSTEINE.md | 107 | 14510 |
-| docs/DESIGN.md | 1439 | 80261 |
+| docs/DESIGN.md | 1455 | 81405 |
 | docs/MODULE.md | — | — (erzeugt) |
 | docs/PRODUCT.md | 1907 | 111130 |
 | docs/RUNBOOK.md | 391 | 20639 |
-| docs/SECURITY.md | 617 | 37835 |
-| docs/STORE.md | 618 | 41144 |
-| docs/TESTING.md | 5760 | 346777 |
-| docs/TROUBLESHOOTING.md | 7441 | 436840 |
+| docs/SECURITY.md | 634 | 39369 |
+| docs/STORE.md | 654 | 44186 |
+| docs/TESTING.md | 5795 | 349055 |
+| docs/TROUBLESHOOTING.md | 7482 | 439944 |
 | docs/module-index.json | — | — (erzeugt) |
 | firestore.rules | 552 | 32127 |
 | img/apple-touch-icon.png | — | 35163 |
@@ -447,8 +447,8 @@ _keine_
 | img/waffle.webp | — | 52546 |
 | img/wrap.webp | — | 43594 |
 | img/wurst.webp | — | 54064 |
-| index.html | 16403 | 1038607 |
-| lib/barcode.js | 163 | 9247 |
+| index.html | 16407 | 1038889 |
+| lib/barcode.js | 176 | 10176 |
 | lib/basis.js | 21 | 836 |
 | lib/pdf.js | 241 | 13120 |
 | manifest.webmanifest | 22 | 798 |
@@ -499,6 +499,7 @@ _keine_
 | tools/pruefstand-einkaufsliste.py | 803 | 38728 |
 | tools/pruefstand-einladung-verbrauch.py | 236 | 11752 |
 | tools/pruefstand-firestore-backup.py | 811 | 39171 |
+| tools/pruefstand-foto-ohne-code.py | 190 | 9313 |
 | tools/pruefstand-foto-tokens.py | 89 | 3706 |
 | tools/pruefstand-fremdbezug.py | 235 | 9852 |
 | tools/pruefstand-google-nativ.py | 315 | 15813 |
