@@ -2804,7 +2804,10 @@ Plugin-Daten wieder vergessen; und dass `wipeLocalData()` es aufruft (Text, alte
   `loginGoogle` fallen 10 von 28 Prüfungen.
 * **Was er nicht zeigt:** ob Google das Token wirklich ausstellt (Firebase-Android-App, SHA-1).
   Das zeigte der Lauf im Emulator am 24.10.2026: Kontoauswahl, Anmeldung mit echtem Konto,
-  Pro-Status, Abmelden, Abbruch. Offen: „Konto löschen“ mit Test-Konto.
+  Pro-Status, Abmelden, Abbruch. Später am selben Tag „Konto löschen“ mit Test-Konto: Bestätigung
+  über die Kontoauswahl, danach Anmeldung, `localStorage`, IndexedDB und Plugin-Datei leer;
+  in der Cloud Auth-Nutzer, `users/{uid}` samt Meals, `entitlements` und `shared` weg (per REST
+  gegen die Sicherung von vorher gezählt), nur `loeschsperren/{uid}` steht wie vorgesehen.
 
 ## Die Gegenprobe aus Git: die Löschsperre fürs Konto (19.09.2026)
 

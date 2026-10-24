@@ -233,8 +233,8 @@ der APK steckt. Neu im Manifest durch Credential Manager: `USE_CREDENTIALS`, `US
 `USE_FINGERPRINT` (normale Berechtigungen, keine Nachfrage beim Nutzer) — für Data Safety
 (Abschnitt 5) unkritisch, aber zu kennen. In Firebase ist die Android-App
 `de.paddysmealplan.app` mit dem SHA-1 des **Debug**-Schlüssels angelegt. **Offen:** SHA-1 des
-Upload- und des Play-App-Signing-Schlüssels nachtragen, sobald es sie gibt; „Konto löschen“
-mit einem Test-Konto im Emulator abnehmen; Apple (iOS am Mac, mit Developer-Konto).
+Upload- und des Play-App-Signing-Schlüssels nachtragen, sobald es sie gibt; Apple (iOS am Mac,
+mit Developer-Konto). „Konto löschen“ mit Test-Konto im Emulator abgenommen (24.10.2026).
 
 **Das Plugin speichert selbst** (`datenschutz-technik`, 24.10.2026): Nach jeder Anmeldung legt es
 ID- und Access-Token (mit E-Mail und Name) in den SharedPreferences der App ab und löscht sie nur

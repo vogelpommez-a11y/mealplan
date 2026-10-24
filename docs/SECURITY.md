@@ -212,6 +212,23 @@ ohne die Entscheidung zu kennen:
 - **Die 36 Katalog-Rezepte in `data/cookbook.js` sind für jeden lesbar.** Sie sind der
   Gratis-Grundstock, das ist gewollt. Künftige **Pro**-Rezepte kommen dagegen aus Firestore
   hinter `hasPro()` — sonst wären sie ab Veröffentlichung im Quelltext öffentlich.
+- **Google hängt sich an ein bestehendes E-Mail-Konto an, ohne nach dem Passwort zu fragen**
+  (beobachtet am 24.10.2026 im Emulator, Paddy fragte „extreme Sicherheitslücke?“). Projekt-
+  einstellung „ein Konto je E-Mail-Adresse“ (`allowDuplicateEmails` aus) und
+  `enableImprovedEmailPrivacy` an, beides per Identity-Toolkit-Admin-API nur lesend abgefragt.
+  Ein Passwort-Konto mit **bestätigter** Adresse bekam bei „Weiter mit Google“ unter derselben
+  Adresse `google.com` als zweiten Anbieter dazu, das Passwort blieb gültig; die App verknüpft
+  nichts selbst (kein `linkWithCredential`). **Keine Lücke:** Ein Google-Konto mit fremder
+  Adresse (z. B. gmx) setzt einen Code aus genau diesem Postfach voraus — wer das Postfach hat,
+  kommt über „Passwort vergessen“ ohnehin hinein. Den gefährlichen umgekehrten Fall
+  (Fremder legt mit unbestätigter Adresse ein Passwort-Konto vorab an, „classic-federated
+  merge“, [MSRC 2022](https://msrc.microsoft.com/blog/2022/05/pre-hijacking-attacks))
+  entschärft Firebase, indem es unbestätigte Anmeldewege beim Anmelden über einen
+  vertrauenswürdigen Anbieter entfernt. **Nicht belegt:** Googles Doku nennt für nicht
+  zuständige Anbieter (Google bei gmx) eigentlich `account-exists-with-different-credential`;
+  das automatische Verknüpfen hängt vermutlich an `enableImprovedEmailPrivacy` — eine
+  Fundstelle dafür fehlt. Keine Benachrichtigung beim Verknüpfen; nicht gebaut, weil sie am
+  Schutz nichts ändert (Feature-Regel CLAUDE.md §4).
 
 ---
 

@@ -76,7 +76,8 @@ siehe Punkt 1.9.
 - [x] Bei der Registrierung steht der Hinweis auf **mindestens 16 Jahre**.
 - [ ] **Store-App Android:** „Weiter mit Google“ zeigt Androids Kontoauswahl, die Anmeldung
       gelingt (Emulator, echtes Konto, 24.10.2026: ✓); **Konto löschen** mit einem
-      Google-**Test**-Konto bestätigt über die Kontoauswahl — offen. Auf einem echten Gerät offen.
+      Google-**Test**-Konto bestätigt über die Kontoauswahl (Emulator, 24.10.2026: ✓ — Gerät
+      und Cloud danach leer, nur `loeschsperren/{uid}` wie vorgesehen). Auf einem echten Gerät offen.
 
 ### 1.8 Zur Startseite hinzufügen (PWA)
 - [x] Über *Teilen → Zum Home-Bildschirm* installieren.
