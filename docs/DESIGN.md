@@ -149,6 +149,22 @@ Insbesondere:
 
 Nicht nur einen Theme-Zustand pflegen.
 
+**Standard bleibt „System“ (entschieden 24.10.2026).** Ohne eigene Wahl folgt die App der
+Einstellung des Geräts (`getTheme()` fällt auf `"system"` zurück); Hell, Dunkel und System
+stehen in den Einstellungen unter „Erscheinungsbild“. Paddy hatte einen Dunkel-Standard
+erwogen, weil das Design „Performance Dark“ heißt — verworfen nach Recherche:
+
+* Apple rät von einer app-eigenen Abweichung ab; wer seine Systemwahl ignoriert sieht, hält
+  die App für kaputt. Reines Dunkel nur für Ausnahmen wie Medien-Apps
+  ([HIG Dark Mode](https://developer.apple.com/design/human-interface-guidelines/dark-mode)).
+* Google empfiehlt genau Hell/Dunkel/System mit „System“ als Standard
+  ([Android: Dark theme](https://developer.android.com/develop/ui/views/theming/darktheme)).
+* Bei normalem Sehvermögen liest sich heller Grund messbar besser (Studien laut NN/g-Übersicht,
+  nur aus Zusammenfassungen belegt). Yazio folgt ebenfalls dem System.
+
+Verworfen: Dunkel nur für Neue, Dunkel für alle ohne Wahl, nur Dunkel. Der einheitliche
+Markenauftritt entsteht über Store-Bilder, Instagram und Vorführungen im dunklen Theme.
+
 ### Form
 
 Bestehende Werte für:
