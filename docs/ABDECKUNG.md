@@ -156,6 +156,10 @@ Alles, was nach draußen geht, ist entweder eine **Verarbeitung** (Datenschutz) 
 seit 24.10.2026). `tools/abdeckung.py` sieht sie nicht, deshalb steht sie hier als Absatz statt
 als Zeile mit Kennung. Prüfer: `lieferkette` (npm-Pakete, Punkt 8), GitHub-Dependabot-Warnungen
 im privaten Repo (nur Meldung), `store-check` (Berechtigungen, Privacy Manifest, SDK-Stand).
+Im Nachbar-Repo selbst (aktiv, wenn Claude Code **dort** gestartet wird): Hooks
+`kopie-schutz.py` (kein Bearbeiten der kopierten Web-App) und `befehls-waechter.py` (keine
+ungeprüften Paket-Updates, kein Ausgeben des Signaturschlüssels), dazu `/app-bauen` als
+Startbeweis im Flugmodus — seit 24.10.2026, Vorschläge des Plugins „Claude Code Setup“.
 
 ## 6. Bewusst ohne Prüfer
 
