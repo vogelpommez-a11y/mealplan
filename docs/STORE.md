@@ -540,7 +540,8 @@ Alternativtexte sind dafür nicht geprüft.
 - **Mindest-SDK beim Einreichen** (laut `store-check`, Stand 19.09.2026): Apple verlangt seit
   28.04.2026 Xcode 26 und das iOS-26-SDK, ab April 2027 das iOS-27-SDK. Google Play verlangt
   seit 31.08.2026 für neue Einreichungen Android 16 (API 36), für Updates bestehender Apps
-  mindestens API 35. Beides wird erst mit dem Capacitor-Projekt prüfbar.
+  mindestens API 35. Android ist seit 24.10.2026 im Nachbar-Repo prüfbar (`targetSdk` dort),
+iOS erst am Mac.
 - **„Mit Apple anmelden“, privates Relay:** Apple hat am 24.08.2026 die Relay-Domain von
   `privaterelay.appleid.com` auf `private.icloud.com` umgestellt. Das betrifft uns erst, wenn
   `APPLE_ENABLED` umgelegt wird. Dann müssen beide Domains durchgelassen werden, wo E-Mails
@@ -553,7 +554,7 @@ Alternativtexte sind dafür nicht geprüft.
 | Punkt | Stand |
 |---|---|
 | Kein CDN-Code (2.5.2) | ✅ seit 23.08.2026, `vendor/` |
-| Offline-Start | ✅ Service Worker, lokale SDKs |
+| Offline-Start | ✅ Web: Service Worker, lokale SDKs. Hülle: alles lokal in `www/`, im Flugmodus geprüft 24.10.2026 (Android) |
 | Nutzung ohne Konto | ✅ lokaler Modus |
 | Konto-Löschung in der App | ✅ vorhanden, bei Änderungen nachprüfen |
 | Pro-Gating serverseitig | 🟡 **nur zur Hälfte** — Gruppe ja, Auto-Planer nur im Client. Am 26.08.2026 bewusst so entschieden |
@@ -565,10 +566,10 @@ Alternativtexte sind dafür nicht geprüft.
 | **Web-Kasse (Pro im Web)** | 🔴 entschieden 21.10.2026, nicht gebaut: Dienst (fertig oder selbst), Gewerbe, Steuer, AGB/Widerruf vor dem ersten Verkauf |
 | Nutrition Labels / Data Safety | 🟡 Datengrundlage steht (Abschnitt 5), Formulare nicht ausgefüllt |
 | Health apps declaration (Google Play) | 🟡 Pflicht für jede App, bei uns „Nutrition and Weight Management“ — beim Einrichten der Play Console (Abschnitt 5) |
-| Hinweis „lösch sie in den Browser-Einstellungen“ | 🟡 beim D7-Build umformulieren: Lassen sich beim Löschen Fotos nicht entfernen, verweist die Meldung (`FOTOS_GEBLIEBEN`, `index.html`) auf Browser-Einstellungen — die gibt es in der Capacitor-App nicht (Gerät → App-Daten löschen). Vorgemerkt 19.10.2026 |
-| `NSCameraUsageDescription` | 🟡 zu prüfen, sobald das Capacitor-Projekt existiert |
-| **Erinnerung „Am Vortag“ als Nachricht** | 🟡 beim D7-Build bauen (entschieden 21.10.2026, Plan `plans/vorab-hinweis-auftauen.md`). Das Feld `vorab` und die Zeile auf der Startseite sind seit 21.10. live. Dazu kommt: Plugin `@capacitor/local-notifications`, **lokal**, kein Server, kein Push-Token, kein Blaze. Beim Start und nach jeder Planänderung die eigenen Erinnerungen löschen und für 7 Tage neu stellen (Vortag, Uhrzeit einstellbar, Standard 18:00; schon vorbei → keine). Berechtigung erst beim ersten Wählen eines Hinweises erfragen (Apple: nur eine Chance). **Kein** `SCHEDULE_EXACT_ALARM`/`USE_EXACT_ALARM`, ein paar Minuten Verzug sind egal. Grenze: Eine Planänderung auf einem anderen Gerät wirkt erst, wenn die App hier geöffnet wird. Beim Bau mitdenken (`datenschutz-technik`, 21.10.2026): „Alle Daten löschen“ und Kontolöschung müssen auch die geplanten Erinnerungen löschen (in `wipeLocalData()`); entscheiden, ob der Meal-Name auf dem Sperrbildschirm erscheint (Art. 25); eigener Eintrag im Art.-30-Verzeichnis (rein lokal, kein Empfänger); Privacy Manifest des Plugins prüfen. Datenschutzerklärung ergänzen (`anwalt`) |
-| Privacy Manifest (Apple) | 🟡 beim D7-Build prüfen — ohne scheitert der Upload (Abschnitt 8) |
+| Hinweis „lösch sie in den Browser-Einstellungen“ | 🟡 D7 Etappe 4 umformulieren: Lassen sich beim Löschen Fotos nicht entfernen, verweist die Meldung (`FOTOS_GEBLIEBEN`, `index.html`) auf Browser-Einstellungen — die gibt es in der Capacitor-App nicht (Gerät → App-Daten löschen). Vorgemerkt 19.10.2026 |
+| `NSCameraUsageDescription` | 🟡 iOS-Etappe am Mac; Android-Gegenstück (`CAMERA` im Manifest) in D7 Etappe 3 |
+| **Erinnerung „Am Vortag“ als Nachricht** | 🟡 nach D7 Etappe 4 bauen (entschieden 21.10.2026, Plan `plans/vorab-hinweis-auftauen.md`). Das Feld `vorab` und die Zeile auf der Startseite sind seit 21.10. live. Dazu kommt: Plugin `@capacitor/local-notifications`, **lokal**, kein Server, kein Push-Token, kein Blaze. Beim Start und nach jeder Planänderung die eigenen Erinnerungen löschen und für 7 Tage neu stellen (Vortag, Uhrzeit einstellbar, Standard 18:00; schon vorbei → keine). Berechtigung erst beim ersten Wählen eines Hinweises erfragen (Apple: nur eine Chance). **Kein** `SCHEDULE_EXACT_ALARM`/`USE_EXACT_ALARM`, ein paar Minuten Verzug sind egal. Grenze: Eine Planänderung auf einem anderen Gerät wirkt erst, wenn die App hier geöffnet wird. Beim Bau mitdenken (`datenschutz-technik`, 21.10.2026): „Alle Daten löschen“ und Kontolöschung müssen auch die geplanten Erinnerungen löschen (in `wipeLocalData()`); entscheiden, ob der Meal-Name auf dem Sperrbildschirm erscheint (Art. 25); eigener Eintrag im Art.-30-Verzeichnis (rein lokal, kein Empfänger); Privacy Manifest des Plugins prüfen. Datenschutzerklärung ergänzen (`anwalt`) |
+| Privacy Manifest (Apple) | 🟡 D7 Etappe 4 / iOS prüfen — ohne scheitert der Upload (Abschnitt 8) |
 | **Barrierefreiheit (BFSG)** | 🟢 **Codeseite gemessen und behoben** (20.09.2026, 0 Befunde). Rechtsfrage weiter offen: Kleinstunternehmer-Ausnahme? Erklärung fehlt. Abschnitt 7b |
 | KI-Kennzeichnung (KI-VO Art. 50) | 🟡 Abs. 4 trifft nur Deepfakes — Einordnung bestätigt (20.09.2026). Offen: gelten die 36 rezeptgebundenen Bilder als Deepfake? |
 | Apple-EU-Bedingungen ab 01.10.2026 | 🟡 **neu zu prüfen** seit dem Web-Verkauf (21.10.2026). Stand 20.09.2026: ohne praktische Wirkung, solange nur IAP im regulären App Store. Beim Signieren die Standard-EU-Terms wählen, nicht die Marktplatz-Variante |
@@ -578,4 +579,4 @@ Alternativtexte sind dafür nicht geprüft.
 | Accessibility Nutrition Labels (Apple) | 🟢 **freiwillig**, kein Zulassungskriterium. Nach dem Release nachtragen — kostenlose Sichtbarkeit |
 
 **Nicht aus diesem Repo prüfbar:** alles, was in App Store Connect, der Play Console oder
-im Capacitor-Projekt steht.
+im Capacitor-Projekt steht (privates Repo `Paddys Mealplan App`, neben diesem).

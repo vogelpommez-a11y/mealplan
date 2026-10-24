@@ -7,7 +7,7 @@ Paddy's Mealplan besitzt derzeit keinen klassischen Test-Stack.
 Es gibt:
 
 * kein Node
-* kein npm
+* kein npm (in diesem Repo; die Capacitor-Hülle im Nachbar-Repo hat eigenes npm, `docs/STORE.md` Abschnitt 1)
 * kein Test-Framework
 * keinen Linter
 * keinen Bundler

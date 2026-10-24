@@ -152,6 +152,11 @@ Alles, was nach draußen geht, ist entweder eine **Verarbeitung** (Datenschutz) 
 | Open Food Facts | `domain:world.openfoodfacts.org` | `anwalt` | Lizenzverweis |
 | ODbL-Lizenz | `domain:opendatacommons.org` | `anwalt` | Lizenzverweis |
 
+**Außerhalb dieses Repos — die Capacitor-Hülle** (privates Nachbar-Repo `Paddys Mealplan App`,
+seit 24.10.2026). `tools/abdeckung.py` sieht sie nicht, deshalb steht sie hier als Absatz statt
+als Zeile mit Kennung. Prüfer: `lieferkette` (npm-Pakete, Punkt 8), GitHub-Dependabot-Warnungen
+im privaten Repo (nur Meldung), `store-check` (Berechtigungen, Privacy Manifest, SDK-Stand).
+
 ## 6. Bewusst ohne Prüfer
 
 Hier stehen Bereiche, für die es **absichtlich** keinen gibt. Ein Eintrag hier ist eine

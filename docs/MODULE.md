@@ -171,7 +171,7 @@ Erhoben aus den Abschnittsmarken im Code, nicht von Hand gepflegt.
 | datenschutz-technik | sonnet | Read, Grep, Glob, Bash, WebSearch, WebFetch | nein | worker/og.js |
 | doku-waechter | sonnet | Read, Grep, Glob, Bash | nein | CLAUDE.md, dashboard.html, data/rechtstexte.js, docs/ABDECKUNG.md, docs/ABNAHME-MENSCH.md, docs/ARCHITECTURES.md, docs/BAUSTEINE.md, docs/DESIGN.md, docs/MODULE.md, docs/PRODUCT.md, docs/RUNBOOK.md, docs/SECURITY.md, docs/STORE.md, docs/TESTING.md, docs/TROUBLESHOOTING.md |
 | kvp | sonnet | Read, Grep, Glob, Bash | nein | css/mobil.css, css/tokens.css, index.html |
-| lieferkette | sonnet | Read, Grep, Glob, Bash, WebSearch, WebFetch | nein | ./firebase-app.js, firebase-app.js, index.html, lib/barcode.js, package.json, sw.js, tools/firebase-vendor.py, vendor/HERKUNFT.md, vendor/zxing.min.js |
+| lieferkette | sonnet | Read, Grep, Glob, Bash, WebSearch, WebFetch | nein | ./firebase-app.js, docs/STORE.md, firebase-app.js, index.html, lib/barcode.js, package-lock.json, package.json, sw.js, tools/firebase-vendor.py, vendor/HERKUNFT.md, vendor/zxing.min.js |
 | store-check | sonnet | Read, Grep, Glob, Bash, WebSearch, WebFetch | nein | FIREBASE-SETUP.md, bilder-protokoll.json, docs/MODULE.md, docs/PRODUCT.md, docs/SECURITY.md, docs/STORE.md, firestore.rules, index.html, manifest.webmanifest, sw.js |
 | ux-reviewer | haiku | Read, Grep, Glob, Bash, Skill | nein | css/CLAUDE.md, css/basis.css, css/komponenten.css, css/mobil.css, css/tokens.css, docs/DESIGN.md |
 | website-security | sonnet | Read, Grep, Glob, Bash | nein | FIREBASE-SETUP.md, dashboard.html, data/rechtstexte.js, docs/MODULE.md, docs/SECURITY.md, firestore.rules, index.html, lib/barcode.js, sw.js, tools/firebase-vendor.py, worker/og.js |
@@ -311,7 +311,7 @@ _keine_
 | .claude/agents/datenschutz-technik.md | 174 | 9879 |
 | .claude/agents/doku-waechter.md | 118 | 6532 |
 | .claude/agents/kvp.md | 170 | 9574 |
-| .claude/agents/lieferkette.md | 124 | 6016 |
+| .claude/agents/lieferkette.md | 151 | 8157 |
 | .claude/agents/store-check.md | 190 | 10233 |
 | .claude/agents/ux-reviewer.md | 71 | 3776 |
 | .claude/agents/website-security.md | 195 | 10649 |
@@ -344,17 +344,17 @@ _keine_
 | data/foods.js | 244 | 17334 |
 | data/ikonen.js | 175 | 20364 |
 | data/rechtstexte.js | 208 | 34439 |
-| docs/ABDECKUNG.md | 192 | 13969 |
+| docs/ABDECKUNG.md | 197 | 14355 |
 | docs/ABNAHME-MENSCH.md | 154 | 8239 |
-| docs/ARCHITECTURES.md | 3492 | 226047 |
+| docs/ARCHITECTURES.md | 3495 | 226265 |
 | docs/BAUSTEINE.md | 107 | 14510 |
 | docs/DESIGN.md | 1439 | 80261 |
 | docs/MODULE.md | — | — (erzeugt) |
 | docs/PRODUCT.md | 1907 | 111130 |
-| docs/RUNBOOK.md | 387 | 20402 |
-| docs/SECURITY.md | 609 | 37178 |
-| docs/STORE.md | 582 | 37968 |
-| docs/TESTING.md | 5730 | 344413 |
+| docs/RUNBOOK.md | 391 | 20639 |
+| docs/SECURITY.md | 611 | 37381 |
+| docs/STORE.md | 583 | 38168 |
+| docs/TESTING.md | 5730 | 344513 |
 | docs/TROUBLESHOOTING.md | 7380 | 432749 |
 | docs/module-index.json | — | — (erzeugt) |
 | firestore.rules | 552 | 32127 |

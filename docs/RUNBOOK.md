@@ -34,6 +34,10 @@ einer Zeichenfolge, die es nur im neuen Stand gibt. **HTTP 200 beweist nichts.**
 
 Bei Änderung an `sw.js`: `VERSION` erhöht?
 
+Der Push erreicht nur die Website. Die Store-Apps bekommen eine Änderung erst mit einem neuen
+Build der Capacitor-Hülle (Nachbar-Repo `Paddys Mealplan App`: `npm run sync`, dann bauen;
+iOS nur am Mac) — `docs/STORE.md` Abschnitt 1.
+
 ---
 
 ## 2. Erste Diagnose: die Seite lädt, aber ist leer

@@ -64,7 +64,10 @@ Es gibt aktuell:
 * kein Test-Framework
 * keinen Linter
 
-Firebase wird vom CDN geladen.
+Das gilt für dieses Repo. Die Capacitor-Hülle (npm, Gradle) liegt im privaten Nachbar-Repo
+`Paddys Mealplan App` und kopiert die Web-App nur (`docs/STORE.md` Abschnitt 1).
+
+Firebase-SDK und ZXing liegen lokal unter `vendor/`, nicht auf einem CDN.
 
 ## Struktur von `index.html`
 

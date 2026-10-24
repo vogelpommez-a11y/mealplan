@@ -237,9 +237,11 @@
       "name": "lieferkette",
       "pfade": [
         "./firebase-app.js",
+        "docs/STORE.md",
         "firebase-app.js",
         "index.html",
         "lib/barcode.js",
+        "package-lock.json",
         "package.json",
         "sw.js",
         "tools/firebase-vendor.py",
@@ -1197,9 +1199,9 @@
       "zeilen": 170
     },
     {
-      "bytes": 6016,
+      "bytes": 8157,
       "pfad": ".claude/agents/lieferkette.md",
-      "zeilen": 124
+      "zeilen": 151
     },
     {
       "bytes": 10233,
@@ -1362,9 +1364,9 @@
       "zeilen": 208
     },
     {
-      "bytes": 13969,
+      "bytes": 14355,
       "pfad": "docs/ABDECKUNG.md",
-      "zeilen": 192
+      "zeilen": 197
     },
     {
       "bytes": 8239,
@@ -1372,9 +1374,9 @@
       "zeilen": 154
     },
     {
-      "bytes": 226047,
+      "bytes": 226265,
       "pfad": "docs/ARCHITECTURES.md",
-      "zeilen": 3492
+      "zeilen": 3495
     },
     {
       "bytes": 14510,
@@ -1396,22 +1398,22 @@
       "zeilen": 1907
     },
     {
-      "bytes": 20402,
+      "bytes": 20639,
       "pfad": "docs/RUNBOOK.md",
-      "zeilen": 387
+      "zeilen": 391
     },
     {
-      "bytes": 37178,
+      "bytes": 37381,
       "pfad": "docs/SECURITY.md",
-      "zeilen": 609
+      "zeilen": 611
     },
     {
-      "bytes": 37968,
+      "bytes": 38168,
       "pfad": "docs/STORE.md",
-      "zeilen": 582
+      "zeilen": 583
     },
     {
-      "bytes": 344413,
+      "bytes": 344513,
       "pfad": "docs/TESTING.md",
       "zeilen": 5730
     },

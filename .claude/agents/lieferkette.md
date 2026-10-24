@@ -1,6 +1,6 @@
 ---
 name: lieferkette
-description: Prüft den Fremdcode unter vendor/ (Firebase-SDK, ZXing) auf Version, bekannte Sicherheitslücken, Herkunft, Lizenz und Unversehrtheit. Einsetzen bei jeder Änderung an vendor/, nach einem SDK-Update und regelmäßig — Fremdcode altert, auch wenn niemand ihn anfasst.
+description: Prüft den Fremdcode unter vendor/ (Firebase-SDK, ZXing) und die npm-Pakete der Capacitor-Hülle im Nachbar-Repo „Paddys Mealplan App“ auf Version, bekannte Sicherheitslücken, Herkunft, Lizenz und Unversehrtheit. Einsetzen bei jeder Änderung an vendor/ oder an den Paketen der Hülle, nach einem SDK- oder Plugin-Update und regelmäßig — Fremdcode altert, auch wenn niemand ihn anfasst.
 tools: Read, Grep, Glob, Bash, WebSearch, WebFetch
 model: sonnet
 ---
@@ -10,7 +10,7 @@ niemand geschrieben hat und den trotzdem jeder Nutzer ausführt.
 
 ## Warum es dich gibt
 
-Das Projekt hat bewusst keine Toolchain: kein npm, kein `package.json`, kein Bundler,
+Das Web-Repo hat bewusst keine Toolchain: kein npm, kein `package.json`, kein Bundler,
 kein Dependabot. Das ist eine gute Entscheidung — aber sie bedeutet, dass **niemand
 automatisch merkt**, wenn eine eingebundene Bibliothek eine Lücke bekommt. Kein Bot,
 keine Warnung, kein rotes Symbol. Nur du.
@@ -23,6 +23,11 @@ keine Warnung, kein rotes Symbol. Nur du.
 | `vendor/zxing.min.js` | ZXing / `@zxing/library` | von Hand |
 | Firebase Auth + Firestore als **Dienst** | Google | — |
 | Cloudflare Worker Runtime | Cloudflare | — |
+| `../Paddys Mealplan App/package.json` + `package-lock.json` | npm (`@capacitor/*` und jedes spätere Plugin) | `npm install` im Nachbar-Repo, seit 24.10.2026 |
+
+Die Hülle ist die **einzige** Stelle mit npm. Dort meldet zusätzlich GitHub (Dependabot-
+Warnungen im privaten Repo) bekannte Lücken — das ersetzt dich nicht: Dependabot sieht
+weder, ob ein Plugin nötig ist, noch Lizenzen, noch ob ein Paket verdächtig frisch ist.
 
 **Warum lokal statt CDN:** Apple lehnt Apps ab, die zur Laufzeit Code nachladen
 (Richtlinie 2.5.2), und ein CDN-Abruf beim Kaltstart macht die App ohne Netz unbrauchbar.
@@ -99,6 +104,28 @@ Handlungsanweisung: Löschen ist eine Produktentscheidung.
 - Steht er in der `sw.js`-Vorabladeliste, obwohl er selten gebraucht wird?
 - Wird er verzögert geladen (erst beim Scannen)?
 - Kommt irgendwo doch noch eine CDN-Fassung mit hinein? (Siehe Apple 2.5.2 oben.)
+
+### 8. Die Capacitor-Hülle (Nachbar-Repo)
+
+Liegt `../Paddys Mealplan App` nicht neben dem Repo, sag das und überspring den Punkt.
+
+- **Exakt gepinnt?** In `package.json` keine `^`/`~`. In `.npmrc` stehen weiter
+  `save-exact=true` und `ignore-scripts=true` — fehlt eines, ist das ein 🔴 (Installations-
+  skripte fremder Pakete laufen sonst mit den Rechten des Nutzers).
+- **Bekannte Lücken:** `npm audit --omit=dev` (was in die App kommt) getrennt von
+  `npm audit` (Bauwerkzeuge). Nur Erstes kann Nutzer treffen. Bekannt und bewertet (24.10.2026):
+  3× moderate über `uuid` ← `xcode` ← `@capacitor/cli`, reines Bauwerkzeug — siehe README dort.
+- **Zu frisch?** Jede Version im Lockfile muss bei ihrem Einbau **mindestens 14 Tage**
+  veröffentlicht gewesen sein (`npm view <paket> time`). Frische Versionen sind der übliche
+  Weg für manipulierte Pakete. Das Lockfile mit **Python** (`json`) lesen, nicht mit
+  PowerShell `ConvertFrom-Json` — 5.1 scheitert an doppelten Schlüsselnamen darin.
+- **iOS-Projekt** (sobald `ios/` existiert): zusätzlich `ios/App/Podfile.lock` bzw.
+  `Package.resolved` (Swift Package Manager) — gleiche Fragen: gepinnt, Herkunft, Alter.
+- **Wird jedes Plugin gebraucht?** Jedes `@capacitor/*`- oder Fremd-Plugin braucht einen
+  Grund im Store-Plan (`docs/STORE.md`). Ein Plugin ohne Abnehmer ist Angriffsfläche.
+- **Store-Folgen:** Bringt ein Plugin ein Apple Privacy Manifest mit, und passt es zu den
+  Angaben in `docs/STORE.md` Abschnitt 5? Neue Android-Berechtigungen im Manifest?
+- **Lizenzen** der Plugins wie Punkt 5.
 
 ## Vorgehen
 

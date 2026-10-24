@@ -456,7 +456,9 @@ GitHub blockiert einen erkannten Schlüssel also schon serverseitig, bevor der P
 Der Secret-Scan in der eigenen CI ist damit eine **zweite** Schicht, nicht die einzige.
 
 Dependabot ist deaktiviert — folgerichtig, weil es ohne `package.json` nichts zu prüfen
-gäbe. Diese Rolle hat der Agent `lieferkette`.
+gäbe. Diese Rolle hat der Agent `lieferkette`. Im privaten Nachbar-Repo der Capacitor-Hülle
+gibt es npm; dort sind die Dependabot-**Warnungen** an (keine automatischen Änderungen), und
+`lieferkette` prüft es mit (`docs/ABDECKUNG.md` Abschnitt 5).
 
 ## Rezept-IDs aus dem Gruppen-Sync (gefunden 05.09.2026, Wurzel geschlossen 06.09.2026)
 
