@@ -355,7 +355,7 @@ _keine_
 | docs/SECURITY.md | 634 | 39369 |
 | docs/STORE.md | 654 | 44186 |
 | docs/TESTING.md | 5801 | 349691 |
-| docs/TROUBLESHOOTING.md | 7490 | 440672 |
+| docs/TROUBLESHOOTING.md | 7511 | 442032 |
 | docs/module-index.json | — | — (erzeugt) |
 | firestore.rules | 552 | 32127 |
 | img/apple-touch-icon.png | — | 35163 |
