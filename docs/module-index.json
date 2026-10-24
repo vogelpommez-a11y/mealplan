@@ -1124,11 +1124,11 @@
       "zeilen": 19
     },
     {
-      "bis": 188,
+      "bis": 192,
       "datei": "lib/barcode.js",
       "titel": "Barcode-Scan (Open Food Facts)",
       "von": 14,
-      "zeilen": 175
+      "zeilen": 179
     },
     {
       "bis": 38,
@@ -1796,9 +1796,9 @@
       "zeilen": 16407
     },
     {
-      "bytes": 10787,
+      "bytes": 11045,
       "pfad": "lib/barcode.js",
-      "zeilen": 188
+      "zeilen": 192
     },
     {
       "bytes": 836,

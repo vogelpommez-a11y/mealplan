@@ -158,7 +158,7 @@ Erhoben aus den Abschnittsmarken im Code, nicht von Hand gepflegt.
 | index.html | Teilen ueber den nativen Dialog des Geraets (Web Share API) | 16115-16148 | 34 |
 | index.html | Einkaufsliste als PDF (Paket B3) | 16149-16388 | 240 |
 | index.html | Boot | 16389-16407 | 19 |
-| lib/barcode.js | Barcode-Scan (Open Food Facts) | 14-188 | 175 |
+| lib/barcode.js | Barcode-Scan (Open Food Facts) | 14-192 | 179 |
 | lib/pdf.js | PDF selbst erzeugen (kein window.print, sandbox-sicher) | 14-38 | 25 |
 | lib/pdf.js | Marken-Kopf fuer die PDFs (Logo, "PADDY'S MEALPLAN", Slogan) | 39-106 | 68 |
 | lib/pdf.js | Echtes Logo-PNG fuer die PDFs vorbereiten (einmalig, async, gecacht) | 107-241 | 135 |
@@ -448,7 +448,7 @@ _keine_
 | img/wrap.webp | — | 43594 |
 | img/wurst.webp | — | 54064 |
 | index.html | 16407 | 1038889 |
-| lib/barcode.js | 188 | 10787 |
+| lib/barcode.js | 192 | 11045 |
 | lib/basis.js | 21 | 836 |
 | lib/pdf.js | 241 | 13120 |
 | manifest.webmanifest | 22 | 798 |
