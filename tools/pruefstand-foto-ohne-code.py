@@ -23,9 +23,13 @@ waehrend Bilder im Hintergrund dekodiert werden - img.decode() und createImageBi
 dort bis zu 20 s, im Android-WebView 22 ms. Der Lauf meldete die Korrektur faelschlich rot und
 zaehlte Faelle, die nie fertig wurden, gar nicht mit ("1 gruen, 0 rot" bei einem von drei).
 Deshalb ein eigener Edge mit DevTools-Port (9353, kein anderer Pruefstand nutzt ihn), und
-gruen heisst: genau 3 OK, 0 FEHL. Jeder Fall hat eine Frist (5 s) - wer nie antwortet, wird
-als "haengt" rot, statt still aus dem Protokoll zu fallen.
-Scanner-Text bei "BildUnlesbar": scanBarcodeCode() in index.html (nicht hier geprueft).
+gruen heisst: genau 4 OK, 0 FEHL. Jeder Fall hat eine Frist (25 s, laenger als die 20-s-Frist
+in detectBarcode) - wer nie antwortet, wird als "haengt" rot, statt still aus dem Protokoll zu
+fallen. Gefunden wird nur DIE Seite dieses Laufs (genaue URL), nie ein liegengebliebener Edge.
+
+Vierte Pruefung (Python, Vertrag): Der Fehlername "BildUnlesbar" steht in lib/barcode.js als
+Wurf UND in index.html (scanBarcodeCode) als Weiche. Ein Tippfehler auf einer Seite brachte
+still den "offline?"-Text zurueck. Den angezeigten Text selbst prueft nur die Vorfuehrung.
 
 Aufruf:  python tools/pruefstand-foto-ohne-code.py [--gegenprobe [<commit>]]
 Hintergrund: docs/TROUBLESHOOTING.md 196.
@@ -33,7 +37,8 @@ Hintergrund: docs/TROUBLESHOOTING.md 196.
 import io, json, os, re, shutil, subprocess, sys, tempfile, time, urllib.request
 
 BASIS = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-# Stand vor der Korrektur: der Commit, der sie einfuehrt, hat ihn als Elternteil.
+# Letzter Stand VOR der Korrektur (lib/barcode.js und index.html unveraendert seit Monaten).
+# Bewusst fest: Die Gegenprobe soll gegen genau diesen Fehlerstand laufen, nicht gegen HEAD~.
 ALT_STANDARD = "ff7dae3"
 
 SEITE = u"""<!doctype html><meta charset="utf-8"><title>Pruefstand Foto ohne Code</title>
@@ -67,7 +72,7 @@ SEITE = u"""<!doctype html><meta charset="utf-8"><title>Pruefstand Foto ohne Cod
   async function lauf(name, file) {
     // Frist statt endlosem Warten: ein Fall, der nie antwortet, ist ein Befund ("haengt")
     // und darf nicht still aus dem Protokoll fallen.
-    var frist = new Promise(function (ok) { setTimeout(function () { ok({ haengt: true }); }, 5000); });
+    var frist = new Promise(function (ok) { setTimeout(function () { ok({ haengt: true }); }, 25000); });
     return Promise.race([frist, PM.barcode.detectBarcode(file).then(
       function (w) { return { wert: w }; }, function (e) { return { fehler: e }; })]);
   }
@@ -84,7 +89,7 @@ SEITE = u"""<!doctype html><meta charset="utf-8"><title>Pruefstand Foto ohne Cod
     var kaputt = await lauf("kaputt", new File(["kein Bild"], "foto.png", { type: "image/png" }));
     pruef(!!kaputt.fehler && kaputt.fehler.name === "BildUnlesbar",
       "kaputt: eine Datei, die kein Bild ist, meldet sofort BildUnlesbar - " +
-      (kaputt.haengt ? "haengt (keine Antwort in 5 s)" : kaputt.fehler ? "warf " + kaputt.fehler.name : "lieferte " + JSON.stringify(kaputt.wert)));
+      (kaputt.haengt ? "haengt (keine Antwort in 25 s)" : kaputt.fehler ? "warf " + kaputt.fehler.name : "lieferte " + JSON.stringify(kaputt.wert)));
   } catch (e) { pruef(false, "Absturz: " + (e && e.message)); }
   log.textContent += rot.length ? "FEHLGESCHLAGEN: " + rot.length + "\\n" : "ALLE 3 PRUEFUNGEN GRUEN\\n";
 })();
@@ -103,9 +108,13 @@ def url(pfad):
     return "file:///" + pfad.replace("\\", "/")
 
 
-def protokoll(seite, tmp, sekunden=40):
+def protokoll(seite, tmp, sekunden=90):
     u"""Seite headless in ECHTZEIT fahren und #log lesen, bis die Schlusszeile steht."""
-    import websocket
+    try:
+        import websocket
+    except ImportError:
+        print(u"Paket websocket-client fehlt (pip install websocket-client) - Lauf unklar, nicht rot.")
+        return None
     exe = next((p for p in EDGE_PFADE if os.path.isfile(p)), None)
     if not exe:
         print(u"Edge nicht gefunden.")
@@ -121,7 +130,7 @@ def protokoll(seite, tmp, sekunden=40):
             try:
                 with urllib.request.urlopen("http://127.0.0.1:%d/json" % PORT, timeout=5) as r:
                     ziel = next((s for s in json.loads(r.read().decode("utf-8"))
-                                 if s.get("type") == "page" and "foto-ohne-code" in s.get("url", "")), None)
+                                 if s.get("type") == "page" and s.get("url") == url(seite)), None)
                 if ziel:
                     break
             except Exception:
@@ -153,20 +162,25 @@ def protokoll(seite, tmp, sekunden=40):
                 ws.close()
         except Exception:
             pass
-        proc.kill()
+        # Ganzer Prozessbaum: proc.kill() traf nur den Startprozess, Edge-Kinder hielten sonst
+        # den Port und der naechste Lauf (z. B. --gegenprobe) laese deren altes Protokoll.
+        subprocess.run(["taskkill", "/F", "/T", "/PID", str(proc.pid)],
+                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
 
 def main():
     tmp = tempfile.mkdtemp(prefix="foto-ohne-code-")
     try:
         barcode = os.path.join(BASIS, "lib", "barcode.js")
+        index = io.open(os.path.join(BASIS, "index.html"), encoding="utf-8").read()
         if "--gegenprobe" in sys.argv:
             i = sys.argv.index("--gegenprobe")
             ref = sys.argv[i + 1] if len(sys.argv) > i + 1 else ALT_STANDARD
             alt = subprocess.check_output(["git", "show", ref + ":lib/barcode.js"], cwd=BASIS)
             barcode = os.path.join(tmp, "barcode-alt.js")
             io.open(barcode, "wb").write(alt)
-            print(u"GEGENPROBE gegen lib/barcode.js aus " + ref + u" - 'leer' muss rot werden.")
+            index = subprocess.check_output(["git", "show", ref + ":index.html"], cwd=BASIS).decode("utf-8")
+            print(u"GEGENPROBE gegen lib/barcode.js und index.html aus " + ref + u" - leer, kaputt, Vertrag rot.")
         seite = os.path.join(tmp, "pruefstand-foto-ohne-code.html")
         io.open(seite, "w", encoding="utf-8").write(SEITE % {
             "zxing": url(os.path.join(BASIS, "vendor", "zxing.min.js")),
@@ -175,12 +189,16 @@ def main():
         if text is None:
             return 2
         zeilen = [z for z in text.splitlines() if z.strip()]
+        lib = io.open(barcode, encoding="utf-8").read()
+        vertrag = 'name = "BildUnlesbar"' in lib and 'e.name === "BildUnlesbar"' in index
+        zeilen.append(("OK   " if vertrag else "FEHL ") +
+                      'vertrag: "BildUnlesbar" in lib/barcode.js geworfen und in index.html abgefragt')
         for z in zeilen:
             print(z)
         gruen = sum(1 for z in zeilen if z.startswith("OK "))
         rot = sum(1 for z in zeilen if z.startswith("FEHL "))
         print("ERGEBNIS %d gruen, %d rot" % (gruen, rot))
-        return 0 if rot == 0 and gruen == 3 else 1
+        return 0 if rot == 0 and gruen == 4 else 1
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
 

@@ -158,7 +158,7 @@ Erhoben aus den Abschnittsmarken im Code, nicht von Hand gepflegt.
 | index.html | Teilen ueber den nativen Dialog des Geraets (Web Share API) | 16115-16148 | 34 |
 | index.html | Einkaufsliste als PDF (Paket B3) | 16149-16388 | 240 |
 | index.html | Boot | 16389-16407 | 19 |
-| lib/barcode.js | Barcode-Scan (Open Food Facts) | 14-176 | 163 |
+| lib/barcode.js | Barcode-Scan (Open Food Facts) | 14-188 | 175 |
 | lib/pdf.js | PDF selbst erzeugen (kein window.print, sandbox-sicher) | 14-38 | 25 |
 | lib/pdf.js | Marken-Kopf fuer die PDFs (Logo, "PADDY'S MEALPLAN", Slogan) | 39-106 | 68 |
 | lib/pdf.js | Echtes Logo-PNG fuer die PDFs vorbereiten (einmalig, async, gecacht) | 107-241 | 135 |
@@ -354,8 +354,8 @@ _keine_
 | docs/RUNBOOK.md | 391 | 20639 |
 | docs/SECURITY.md | 634 | 39369 |
 | docs/STORE.md | 654 | 44186 |
-| docs/TESTING.md | 5795 | 349055 |
-| docs/TROUBLESHOOTING.md | 7482 | 439944 |
+| docs/TESTING.md | 5801 | 349691 |
+| docs/TROUBLESHOOTING.md | 7490 | 440672 |
 | docs/module-index.json | — | — (erzeugt) |
 | firestore.rules | 552 | 32127 |
 | img/apple-touch-icon.png | — | 35163 |
@@ -448,7 +448,7 @@ _keine_
 | img/wrap.webp | — | 43594 |
 | img/wurst.webp | — | 54064 |
 | index.html | 16407 | 1038889 |
-| lib/barcode.js | 176 | 10176 |
+| lib/barcode.js | 188 | 10787 |
 | lib/basis.js | 21 | 836 |
 | lib/pdf.js | 241 | 13120 |
 | manifest.webmanifest | 22 | 798 |
@@ -499,7 +499,7 @@ _keine_
 | tools/pruefstand-einkaufsliste.py | 803 | 38728 |
 | tools/pruefstand-einladung-verbrauch.py | 236 | 11752 |
 | tools/pruefstand-firestore-backup.py | 811 | 39171 |
-| tools/pruefstand-foto-ohne-code.py | 190 | 9313 |
+| tools/pruefstand-foto-ohne-code.py | 208 | 10727 |
 | tools/pruefstand-foto-tokens.py | 89 | 3706 |
 | tools/pruefstand-fremdbezug.py | 235 | 9852 |
 | tools/pruefstand-google-nativ.py | 315 | 15813 |

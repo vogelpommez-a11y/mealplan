@@ -7472,10 +7472,18 @@ meldete „Erkennung nicht möglich (offline?)“ statt „Kein Barcode erkannt�
 gefunden“ (`NotFoundException`, Klassenname in `zxing.min.js` verkürzt → Prüfung per
 `instanceof`). Schlimmer: Bei einer Datei, die kein lesbares Bild ist, antwortete ZXing **nie** —
 „Lese Barcode …“ blieb stehen. Gilt beides auch im Browser. **Behoben:** `NotFoundException` →
-`null`; vorher `img.decode()`, das bei unlesbaren Dateien sofort ablehnt → Fehler `BildUnlesbar`,
+`null`; vorher das Bild nur **laden** (`load`/`error`), bei `error` sofort Fehler `BildUnlesbar`,
+dazu eine Frist von 20 s um ZXing für jeden anderen Hänger (ebenfalls `BildUnlesbar`; diese Frist
+ist nicht eigens geprüft — sie lässt sich ohne Nachbau nicht auslösen). **Nicht `img.decode()`:**
+der erste Entwurf nahm es, `/code-review` wandte ein, dass es auf WebKit große Kamerafotos
+ablehnen kann, die ZXing liest — und es dekodiert jedes Foto ein zweites Mal.
 `scanBarcodeCode()` zeigt dafür „Das Bild ließ sich nicht auslesen – trag die Werte selbst ein“
 (Wortlaut der Zutatenzeile). `decodeFromImageElement(img)` statt `…Url` hing dagegen beim leeren
 Bild — nicht verwenden. Prüfstand `tools/pruefstand-foto-ohne-code.py` (Echtzeit, mit Gegenprobe).
+Offen, bewusst gelassen: Die Zutatenzeile meldet jeden Wurf als „Bild ließ sich nicht auslesen“,
+auch einen ZXing-Ladefehler (seit `vendor/` lokal selten). Die Floskel „trag die Werte selbst
+ein“ führt im Schnellweg über den Wochenplan (`quickAddByBarcode`) ins Leere — dort ist kein
+Formular offen (`ux-reviewer`, 24.10.2026, vorbestehend).
 
 **Lehre:** Eine neue Berechtigung im Manifest verändert auch Wege, die sie gar nicht benutzen
 wollen. Nach jedem Manifest-Eintrag jeden Weg zur selben Hardware einzeln durchspielen.

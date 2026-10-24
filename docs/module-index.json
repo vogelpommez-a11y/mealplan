@@ -1124,11 +1124,11 @@
       "zeilen": 19
     },
     {
-      "bis": 176,
+      "bis": 188,
       "datei": "lib/barcode.js",
       "titel": "Barcode-Scan (Open Food Facts)",
       "von": 14,
-      "zeilen": 163
+      "zeilen": 175
     },
     {
       "bis": 38,
@@ -1413,14 +1413,14 @@
       "zeilen": 654
     },
     {
-      "bytes": 349055,
+      "bytes": 349691,
       "pfad": "docs/TESTING.md",
-      "zeilen": 5795
+      "zeilen": 5801
     },
     {
-      "bytes": 439944,
+      "bytes": 440672,
       "pfad": "docs/TROUBLESHOOTING.md",
-      "zeilen": 7482
+      "zeilen": 7490
     },
     {
       "erzeugt": true,
@@ -1796,9 +1796,9 @@
       "zeilen": 16407
     },
     {
-      "bytes": 10176,
+      "bytes": 10787,
       "pfad": "lib/barcode.js",
-      "zeilen": 176
+      "zeilen": 188
     },
     {
       "bytes": 836,
@@ -2051,9 +2051,9 @@
       "zeilen": 811
     },
     {
-      "bytes": 9313,
+      "bytes": 10727,
       "pfad": "tools/pruefstand-foto-ohne-code.py",
-      "zeilen": 190
+      "zeilen": 208
     },
     {
       "bytes": 3706,

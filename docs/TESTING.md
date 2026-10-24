@@ -5772,23 +5772,29 @@ Vorführung: `python tools/vorfuehren.py vorab-hinweis` (Startseite) und `vorab-
 ## `tools/pruefstand-foto-ohne-code.py` — Foto ohne Barcode, kaputtes Bild (24.10.2026)
 
 ```powershell
-python tools/pruefstand-foto-ohne-code.py               # 3 gruen
-python tools/pruefstand-foto-ohne-code.py --gegenprobe  # lib/barcode.js aus ff7dae3: leer + kaputt rot
+python tools/pruefstand-foto-ohne-code.py               # 4 gruen
+python tools/pruefstand-foto-ohne-code.py --gegenprobe  # Stand ff7dae3: leer, kaputt, Vertrag rot
 ```
 
 **Was er misst:** `detectBarcode()` aus `lib/barcode.js` mit der echten `vendor/zxing.min.js`,
 `BarcodeDetector` abgeschaltet (ZXing-Zweig): leeres Bild → `null`, EAN-13 → Code, Datei ohne
-Bild → sofort `BildUnlesbar`. Davor warf ZXing bei „nichts gefunden“ (Meldung „offline?“) und
+Bild → sofort `BildUnlesbar`; dazu als vierte Prüfung der Vertrag, dass `index.html` genau diesen
+Fehlernamen abfragt (ein Tippfehler brächte still „offline?“ zurück). Davor warf ZXing bei „nichts gefunden“ (Meldung „offline?“) und
 antwortete bei unlesbaren Bildern nie (`docs/TROUBLESHOOTING.md` §196).
 
 **Zwei Lehren aus dem Bau:**
 1. Der erste Entwurf lief über `pruefstand_lauf.fahren()`. Der zählt nur Zeilen, die dastehen —
    ein Fall, der nie antwortete, fiel still heraus, und „1 grün, 0 rot“ bei einem von drei
    Fällen hieß grün. Deshalb: **Frist je Fall** (5 s, danach „hängt“ = rot) und **grün nur bei
-   genau 3 OK**.
+   genau 4 OK**.
 2. Unter `--virtual-time-budget` meldete die Frist die richtige Korrektur als „hängt“ (Bild-
    Dekodieren, siehe oben bei IndexedDB). Erst die Messung im Android-WebView zeigte: Code
-   richtig, Messung falsch. Deshalb Echtzeit mit eigenem Edge auf Port 9353.
+   richtig, Messung falsch. Deshalb Echtzeit mit eigenem Edge auf Port 9353 — angesprochen wird
+   nur die Seite mit der genauen URL dieses Laufs, beendet wird der ganze Prozessbaum (`taskkill
+   /T`), sonst läse eine Gegenprobe das Protokoll eines liegengebliebenen Edge (`/code-review`).
 
-Der Text, den `scanBarcodeCode()` für `BildUnlesbar` zeigt, wird hier nicht geprüft — er ist im
-Emulator vorgeführt (Vorher „Erkennung nicht möglich (offline?)“, Nachher „Kein Barcode erkannt“).
+Die angezeigten Texte prüft der Prüfstand nicht. Im Emulator vorgeführt ist der Fall **Foto ohne
+Barcode** (Vorher „Erkennung nicht möglich (offline?)“, Nachher „Kein Barcode erkannt – geh näher
+heran …“). Für `BildUnlesbar` zeigt `scanBarcodeCode()` „Das Bild ließ sich nicht auslesen – trag
+die Werte selbst ein“ — gemessen nur der Fehlername im Android-WebView (4 ms), nicht der Toast.
+Nicht geprüft: die 20-s-Frist um ZXing (ohne Nachbau nicht auslösbar).
