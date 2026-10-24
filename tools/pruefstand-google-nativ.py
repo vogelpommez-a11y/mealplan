@@ -62,14 +62,14 @@ def bis_zeile(lines, sig, bis):
 
 
 def nativ_block(lines, neu):
-    """Von `const CAP` bis zum Ende der LETZTEN Funktion des Blocks (googleNativVergessen)."""
+    """Von `const CAP` bis zum Ende der LETZTEN Funktion des Blocks (hatGoogle)."""
     try:
         a = next(i for i, z in enumerate(lines) if z.startswith("      const CAP = window.Capacitor;"))
     except StopIteration:
         if neu:
             raise SystemExit("NICHT GEFUNDEN: const CAP")
         return ""
-    b = next(i for i, z in enumerate(lines) if z.startswith("      function googleNativVergessen() {"))
+    b = next(i for i, z in enumerate(lines) if z.startswith("      function hatGoogle(user) {"))
     e = next(j for j in range(b + 1, len(lines)) if lines[j] == "      }")
     return "\n".join(lines[a:e + 1])
 
@@ -164,9 +164,16 @@ function OAuthProvider() { this.addScope = function () {}; }
 var EmailAuthProvider = { credential: function () { return {}; } };
 function signInWithPopup() { RUF.push("popup"); return Promise.resolve("popup-nutzer"); }
 function signInWithRedirect() { RUF.push("redirect"); return Promise.resolve(); }
-function signInWithCredential(a, c) { RUF.push("signInWithCredential:" + c.token); return Promise.resolve("nutzer"); }
+var FIREBASE_LEHNT_AB = null;   // z. B. "auth/user-mismatch" - Firebase scheitert NACH der Kontoauswahl
+function signInWithCredential(a, c) {
+  RUF.push("signInWithCredential:" + c.token);
+  return FIREBASE_LEHNT_AB ? Promise.reject({ code: FIREBASE_LEHNT_AB }) : Promise.resolve("nutzer");
+}
 function reauthenticateWithPopup() { RUF.push("reauthPopup"); return Promise.resolve(); }
-function reauthenticateWithCredential(u, c) { RUF.push("reauthCredential:" + c.token); return Promise.resolve(); }
+function reauthenticateWithCredential(u, c) {
+  RUF.push("reauthCredential:" + c.token);
+  return FIREBASE_LEHNT_AB ? Promise.reject({ code: FIREBASE_LEHNT_AB }) : Promise.resolve();
+}
 function signOut() { RUF.push("signOut"); return Promise.resolve(); }
 
 // Das Plugin. modus: ok | abbruch | ohneToken | fehler | initFehltEinmal
@@ -188,6 +195,7 @@ function plugin(modus) {
     },
     logout: function () {
       RUF.push("sl.logout");
+      if (modus === "haengt") return new Promise(function () {});
       return modus === "logoutFehler" ? Promise.reject({ message: "User is not logged in" }) : Promise.resolve();
     }
   };
@@ -239,6 +247,28 @@ __ALT__
     [await ruf(a.vergessen), NOTIZ], ["ok", ["auth:googleNativVergessen"]]);
   a = NEU(app(null));
   pruef("App ohne Plugin: Vergessen laeuft still durch", [await ruf(a.vergessen), RUF, NOTIZ], ["ok", [], []]);
+  // Die echte Wartezeit (2 s) liesse den Laeufer "fertig" annehmen - die Uhr hier raffen und
+  // dafuer festhalten, welche Frist der Produktionscode einstellt.
+  a = NEU(app("haengt"));
+  var echtesTimeout = window.setTimeout, fristen = [];
+  window.setTimeout = function (fn, ms) { fristen.push(ms || 0); return echtesTimeout(fn, 0); };
+  erg = await ruf(a.vergessen);
+  window.setTimeout = echtesTimeout;
+  pruef("App: haengt das Plugin, geht es nach 2 s trotzdem weiter (Konto loeschen bleibt nicht stehen)",
+    [erg, fristen.indexOf(2000) > -1], ["ok", true]);
+
+  // ===== 2c. Nur Google-Konten vergessen beim Abmelden; Fehlschlag nach der Kontoauswahl =====
+  a = NEU(app("ok"));
+  NUTZER.providerData = [{ providerId: "password" }];
+  pruef("App, E-Mail-Konto: Abmelden ruft das Plugin nicht (keine Fehlnotiz)", [await ruf(a.logout), RUF, NOTIZ], ["ok", ["signOut"], []]);
+  NUTZER.providerData = [{ providerId: "google.com" }];
+  FIREBASE_LEHNT_AB = "auth/user-disabled";
+  pruef("App: lehnt Firebase nach der Kontoauswahl ab, werden die Plugin-Daten wieder vergessen",
+    [await ruf(a.loginGoogle), RUF.indexOf("sl.logout") > -1], ["fehler:auth/user-disabled", true]);
+  FIREBASE_LEHNT_AB = "auth/user-mismatch";
+  pruef("App: anderes Konto beim Bestaetigen -> Meldung + Plugin-Daten vergessen",
+    [await ruf(function () { return a.deleteAccount({}); }), RUF.indexOf("sl.logout") > -1], ["fehler:auth/user-mismatch", true]);
+  FIREBASE_LEHNT_AB = null;
 
   // ===== 3. Store-App: Abbruch und Fehler =====
   a = NEU(app("abbruch"));
@@ -248,7 +278,8 @@ __ALT__
   a = NEU(app("fehler"));
   pruef("App: Plugin-Fehler -> eigene Meldung + Notiz fuer die Diagnose", [await ruf(a.loginGoogle), NOTIZ], ["fehler:auth/google-nativ", ["auth:googleNativ"]]);
   a = NEU(app("ohneToken"));
-  pruef("App: kein Token -> eigene Meldung, keine Anmeldung", [await ruf(a.loginGoogle), RUF.indexOf("popup")], ["fehler:auth/google-nativ", -1]);
+  pruef("App: kein Token -> eigene Meldung, keine Anmeldung, Notiz fuer die Diagnose",
+    [await ruf(a.loginGoogle), RUF.indexOf("popup"), NOTIZ], ["fehler:auth/google-nativ", -1, ["auth:googleNativOhneToken"]]);
   a = NEU(app(null));
   pruef("App ohne Plugin: Meldung statt Popup (das Google dort blockt) + Notiz",
     [await ruf(a.loginGoogle), RUF, NOTIZ], ["fehler:auth/google-nativ", [], ["auth:googleNativFehlt"]]);

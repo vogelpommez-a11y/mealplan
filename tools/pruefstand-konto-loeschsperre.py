@@ -167,6 +167,11 @@ function deleteUser(u) {
 }
 var auth = { currentUser: nutzer };
 window.noteError = function (k) { notizen.push(k); };
+// Modul-Helfer, die deleteAccount() seit dem 30.09. (RESOLVER) bzw. 24.10.2026 (Store-App) im
+// Google-Zweig braucht. Ohne sie brach jeder Lauf mit ReferenceError ab - und galt wegen eines
+// Laeuferfehlers trotzdem als gruen (TROUBLESHOOTING §195). Hier: Browser, also Popup-Weg.
+var RESOLVER = "RESOLVER", NATIV = false;
+function mitVergessenBeiFehler(p) { return p; }
 
 __DATEN__
 var NEU = { __LOESCHEN__ };

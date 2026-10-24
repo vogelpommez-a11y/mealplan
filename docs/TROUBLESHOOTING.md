@@ -6,7 +6,7 @@ Dieses Dokument enthält bekannte Fehlerquellen, historische Bugs und Probleme, 
 
 <!-- REGISTER-ANFANG (erzeugt aus den Ueberschriften: python tools/register.py - nicht von Hand pflegen) -->
 
-**Register — 194.** Chronologisch gewachsen: je hoeher die Nummer,
+**Register — 195.** Chronologisch gewachsen: je hoeher die Nummer,
 desto juenger der Fund. Wer eine Falle sucht, sucht hier zuerst; die Ueberschrift sagt
 jeweils, worum es geht. **Nicht die ganze Datei lesen** — sie ist rund 310 KB gross.
 
@@ -206,6 +206,7 @@ jeweils, worum es geht. **Nicht die ganze Datei lesen** — sie ist rund 310 KB 
 | 192 | Zwei stille Fehler: Austritt ließ die alte Gruppe stehen, Löschen meldete „gelöscht“ trotz Fotos |
 | 193 | `alle-pruefstaende.py` blieb ohne Ausgabe stehen, wenn der Testserver nicht lief |
 | 194 | Zwei Fallen beim ersten Capacitor-Build: Java 25 und das Facebook-SDK im Login-Plugin |
+| 195 | Der Prüfstand-Läufer hielt „10 rot“ für grün |
 
 <!-- REGISTER-ENDE -->
 
@@ -7406,9 +7407,34 @@ ungefragt mitbringt. Und eine Voreinstellung kann mit einem Update kippen — de
 im Bau, nicht nur die Einstellung.
 
 **Symptom 3 (24.10.2026):** Im Reihenlauf wurden `pruefstand-reiter.py` und
-`pruefstand-grpm-zoom.py` rot: „Edge kam nicht hoch (Port 9333)“. Ursache: `webview-js.py` (Nachbar-Repo)
+`pruefstand-grpm-zoom.py` rot: „Edge kam nicht hoch (Port 9333)“. Ursache: `webview-js.py`
 im Nachbar-Repo hatte per `adb forward tcp:9333` genau den Port belegt, den beide für ihr Edge
 brauchen; danach blieben zwei Test-Edges liegen und hielten ihn weiter. **Behoben:**
 `webview-js.py` nimmt Port 9343. Nach einem solchen Abbruch: `adb forward --remove-all` und die
 liegengebliebenen `msedge --headless` mit `mp-edge-*`-Profil beenden, dann einzeln nachfahren —
 beide grün.
+
+## 195. Der Prüfstand-Läufer hielt „10 rot“ für grün
+
+**Symptom (24.10.2026):** `pruefstand-konto-loeschsperre.py` meldete einzeln „ERGEBNIS 7 gruen,
+10 rot“, im Reihenlauf stand er als „gruen“. Aufgefallen beim Nachfahren nach D7 Etappe 2.
+
+**Ursache, zwei Fehler übereinander:**
+1. `tools/pruefstand_lauf.py` entschied mit `letzte.endswith("0 rot")`. „10 rot“, „20 rot“ …
+   enden auch so — jeder Prüfstand mit einer runden Zahl roter Prüfungen gab Exit 0 zurück, und
+   `alle-pruefstaende.py` zählt nach dem Exit-Code.
+2. Der Prüfstand selbst war seit dem Auth-Umbau vom 30.09.2026 (§181) kaputt: `deleteAccount()`
+   reicht im Google-Zweig `RESOLVER` an `reauthenticateWithPopup`, der Prüfstand kannte ihn nicht —
+   jeder Lauf brach mit `ReferenceError` ab, genau 10 Prüfungen wurden rot. Seit Etappe 2 kamen
+   `NATIV` und `mitVergessenBeiFehler` dazu.
+
+**Behoben:** Der Läufer vergleicht die ganze Zahl (`(\d+) rot$`, `== 0`). Gegenprobe: alte
+Regel liefert für „10 rot“ und „20 rot“ 0, neue 1; der unreparierte Prüfstand gibt mit neuem
+Läufer Exit 1. Der Prüfstand hat Attrappen für `RESOLVER`, `NATIV = false` und
+`mitVergessenBeiFehler` und ist wieder 17/17 grün (mit seiner Git-Gegenprobe). Danach alle
+Prüfstände neu gefahren, um weitere verdeckte Fälle zu finden.
+
+**Lehre:** Ein Ergebnis nie über das Zeilenende einer Zahl lesen. Und: Ein Prüfstand, der eine
+Funktion ausschneidet, bricht still, wenn die Funktion einen neuen Helfer aus ihrer Umgebung
+braucht. Wer einer ausgeschnittenen Funktion einen Helfer gibt, sucht vorher mit Grep, welche
+Prüfstände sie schneiden.

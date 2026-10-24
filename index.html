@@ -373,7 +373,11 @@
           throw nativFehler("auth/google-nativ");
         }
         const token = res && res.result && res.result.idToken;
-        if (!token) throw nativFehler("auth/google-nativ");
+        if (!token) {
+          // typisch bei falscher Web-Client-ID oder fehlendem SHA-1 in Firebase
+          window.noteError("auth:googleNativOhneToken", new Error("kein idToken"));
+          throw nativFehler("auth/google-nativ");
+        }
         return GoogleAuthProvider.credential(token);
       }
       // Das Plugin legt nach jeder Anmeldung ID- und Access-Token (mit E-Mail und Name) in den
@@ -382,12 +386,24 @@
       // Geraet gespeicherten Daten" (datenschutz-technik, 24.10.2026). Nebenbei vergisst Android
       // die Kontoauswahl (Googles Empfehlung beim Abmelden). Wirft nie: Abmelden und Loeschen in
       // Firebase haengen nicht daran, ein Fehlschlag wird notiert.
+      // Nach 2 s geht es trotzdem weiter (wie beim Abmelden in der App): Haengen Play-Dienste,
+      // darf "Konto loeschen" nicht ohne Reload und Meldung stehen bleiben (/code-review).
       function googleNativVergessen() {
         const sl = googleNativPlugin();
         if (!sl || !GOOGLE_WEB_CLIENT_ID) return Promise.resolve();
-        return googleNativInit(sl)
+        const vergessen = googleNativInit(sl)
           .then(function () { return sl.logout({ provider: "google" }); })
           .catch(function (e) { window.noteError("auth:googleNativVergessen", e); });
+        return Promise.race([vergessen, new Promise(function (res) { setTimeout(res, 2000); })]);
+      }
+      // Scheitert Firebase NACH der Kontoauswahl (anderes Konto beim Bestaetigen, gesperrtes
+      // Konto ...), hat das Plugin die Tokens schon abgelegt - fuer ein Konto, das hier nicht
+      // angemeldet ist. Dann sofort wieder vergessen.
+      function mitVergessenBeiFehler(p) {
+        return p.catch(function (e) { googleNativVergessen(); throw e; });
+      }
+      function hatGoogle(user) {
+        return !!(user && (user.providerData || []).some(function (p) { return p && p.providerId === "google.com"; }));
       }
 
       Object.assign(window.CloudAuth, {
@@ -404,7 +420,7 @@
         // vollen Seitenwechsel (signInWithRedirect) umsteigen. Das Ergebnis holt getRedirectResult()
         // weiter unten ab, sobald die Seite danach neu laedt.
         loginGoogle: function () {
-          if (NATIV) return googleNativCredential().then(function (c) { return signInWithCredential(auth, c); });
+          if (NATIV) return googleNativCredential().then(function (c) { return mitVergessenBeiFehler(signInWithCredential(auth, c)); });
           const p = new GoogleAuthProvider(); p.setCustomParameters({ prompt: "select_account" });
           return signInWithPopup(auth, p, RESOLVER).catch(function (e) { return popupFallback(e, p); });
         },
@@ -423,7 +439,8 @@
           return auth.currentUser ? auth.currentUser.reload().then(function () { return auth.currentUser; }) : Promise.resolve(null);
         },
         logout: function () {
-          googleNativVergessen();
+          // Nur Google-Konten haben Plugin-Daten - sonst je Abmelden eine Fehlnotiz
+          if (hatGoogle(auth.currentUser)) googleNativVergessen();
           return signOut(auth);
         },
         googleNativVergessen: googleNativVergessen,
@@ -442,7 +459,7 @@
             if (!opts || !opts.password) throw new Error("password-required");
             await reauthenticateWithCredential(user, EmailAuthProvider.credential(user.email, opts.password));
           } else if (pid === "google.com") {
-            if (NATIV) await reauthenticateWithCredential(user, await googleNativCredential());
+            if (NATIV) await mitVergessenBeiFehler(reauthenticateWithCredential(user, await googleNativCredential()));
             else await reauthenticateWithPopup(user, new GoogleAuthProvider(), RESOLVER);
           } else if (pid === "apple.com") {
             await reauthenticateWithPopup(user, new OAuthProvider("apple.com"), RESOLVER);

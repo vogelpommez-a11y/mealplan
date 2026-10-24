@@ -2786,7 +2786,7 @@ weichen ab (siehe Kopf von `firestore.rules`).
 
 ## Google-Anmeldung in der Store-App (24.10.2026)
 
-`tools/pruefstand-google-nativ.py` — 24 Prüfungen. Schneidet `GOOGLE_WEB_CLIENT_ID`,
+`tools/pruefstand-google-nativ.py` — 28 Prüfungen. Schneidet `GOOGLE_WEB_CLIENT_ID`,
 `popupFallback()`, den Block ab `const CAP` (`googleNativCredential`), `loginGoogle`, `logout` und
 den Anfang von `deleteAccount` bis zur Bestätigung aus. Attrappen: Firebase-Funktionen und das
 Plugin `SocialLogin`, die nur protokollieren. Geprüft: Im Browser (auch mit `Capacitor`-Objekt
@@ -2794,12 +2794,14 @@ ohne native Plattform) bleibt alles beim Popup; in der App laufen Anmelden, Best
 Löschen und Abmelden über das Plugin; Abbruch, Plugin-Fehler, fehlendes Token, fehlendes Plugin
 und ein einmal gescheitertes `initialize` (nächster Tipp versucht es neu). Dazu
 `googleNativVergessen()`: im Web nichts, in der App `initialize` + `logout` des Plugins, ein
-Fehlschlag wirft nicht; und dass `wipeLocalData()` es aufruft (Text, alter Stand: nein).
+Fehlschlag wirft nicht, hängt das Plugin, geht es nach 2 s weiter; E-Mail-Konten rufen es beim
+Abmelden nicht; scheitert Firebase nach der Kontoauswahl (anderes Konto, gesperrt), werden die
+Plugin-Daten wieder vergessen; und dass `wipeLocalData()` es aufruft (Text, alter Stand: nein).
 
 * **Gegenprobe aus Git** (`845a388`, vor Etappe 2): Dieselben Stücke landen in der App beim
   Popup — genau der Weg, den Google dort blockt.
 * **Zeilen-Gegenprobe:** Ohne die eine Zeile `if (NATIV) return googleNativCredential()…` in
-  `loginGoogle` fallen 9 von 24 Prüfungen.
+  `loginGoogle` fallen 10 von 28 Prüfungen.
 * **Was er nicht zeigt:** ob Google das Token wirklich ausstellt (Firebase-Android-App, SHA-1).
   Das zeigte der Lauf im Emulator am 24.10.2026: Kontoauswahl, Anmeldung mit echtem Konto,
   Pro-Status, Abmelden, Abbruch. Offen: „Konto löschen“ mit Test-Konto.

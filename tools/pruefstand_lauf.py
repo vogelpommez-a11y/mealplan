@@ -107,6 +107,10 @@ def fahren(html_pfad, zeitbudget=12000):
         if not letzte:
             print(u"Kein ERGEBNIS - das Protokoll ist nicht fertig geworden.")
             return 2
-        return 0 if letzte[-1].endswith("0 rot") else 1
+        # Die ganze Zahl vergleichen, nicht das Zeilenende: endswith("0 rot") hielt auch
+        # "10 rot", "20 rot" ... fuer gruen - pruefstand-konto-loeschsperre.py lief so seit dem
+        # 30.09.2026 rot und galt im Reihenlauf als gruen (TROUBLESHOOTING §195).
+        m = re.search(r"(\d+) rot\s*$", letzte[-1])
+        return 0 if m and int(m.group(1)) == 0 else 1
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
