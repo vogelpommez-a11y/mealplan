@@ -90,7 +90,8 @@ Eine Änderung darf mehrere Dateien betreffen. Das ist der Normalfall, kein Sond
   Dann ist nicht die Doku, sondern der Datenschutztext in `data/rechtstexte.js` betroffen — verweise
   auf die Agenten `anwalt` und `datenschutz-technik`, prüfe das nicht selbst.
 - **`plans/app-karte.json`** (gitignored, speist `dashboard.html`): Ist ein Feature fertig,
-  das dort noch als `geplant` steht? Oder fehlt eine neue Funktion ganz?
+  das dort noch als `geplant` steht? Oder fehlt eine neue Funktion ganz? Stimmt der Netzplan
+  (`etappen`): ist eine Etappe fertig oder begonnen, die dort noch anders steht?
 
 ## Was du nicht tust
 

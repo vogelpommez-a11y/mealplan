@@ -449,7 +449,8 @@ gegenprüfen. Bei komplexen Aufgaben von selbst ein Modell vorschlagen.
 `plans/` kopieren. Umgesetzte und dokumentierte Pläne ohne Rückfrage löschen.
 
 **`dashboard.html` ist erzeugt, nicht gepflegt.** Nach jedem abgeschlossenen Feature
-`plans/app-karte.json` nachziehen und `python tools/dashboard.py` fahren. Drei Phasen in
+`plans/app-karte.json` nachziehen, **auch die `etappen`** (Netzplan: was wartet auf was),
+und `python tools/dashboard.py` fahren. Drei Phasen in
 fester Reihenfolge: **1** App fertig machen, **2** Marktstart, **3** App Store, Pro und
 Bezahlung — der Stand steht in der Karte. `--pruefen` prüft die **Struktur** gegen den Code,
 der **Status** bleibt Handarbeit. Beides gitignored, **nie committen.**

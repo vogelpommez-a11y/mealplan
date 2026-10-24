@@ -19,6 +19,10 @@ verliert seine Aenderung beim naechsten Lauf - das ist Absicht.
 
     python tools/dashboard.py
     python tools/dashboard.py --pruefen   # nur melden, ob die Karte zum Code passt
+
+Ganz oben steht der Netzplan aus "etappen": welche Etappe auf welche wartet. Den Zustand
+"kann starten" rechnet das Skript aus; --pruefen meldet Pfeile ins Leere, Kreise und
+Fertiges, das auf Offenes wartet.
 """
 import io, json, os, re, sys
 
@@ -65,7 +69,336 @@ def pruefen(daten):
             if f.get("phase") not in (1, 2, 3):
                 befunde.append(u"%s / %s: unbekannte Phase '%s'"
                                % (b["name"], f["name"], f.get("phase")))
+    return befunde + etappen_pruefen(daten)
+
+
+# ---------------------------------------------------------------------------------------
+# Netzplan: die Etappen als Kaestchen mit Pfeilen, von links (frueh) nach rechts (spaet).
+#
+# Vorbild fuer die Zustaende: Lars Wirzenius, "roadmap visualisation" (2018) -
+# https://blog.liw.fi/posts/2018/12/13/roadmap_visualisation/ - fertig / verfuegbar /
+# blockiert, je mit eigener Farbe UND eigener Form. Uebernommen: die Idee, "kann starten"
+# auszurechnen statt zu pflegen, und keine Termine fuer Offenes. Eigene Loesung statt
+# Mermaid/Graphviz: beide waeren ein Fremdpaket bzw. Programm fuer rund 40 Kaestchen.
+# ---------------------------------------------------------------------------------------
+
+ETAPPEN_STATUS = ("fertig", "arbeit", "geplant")
+ETAPPEN_ART = (None, "meilenstein", "extern")
+
+
+def etappen_pruefen(daten):
+    u"""Pfeile ins Leere, Kreise, und Fertiges, das auf Offenes wartet."""
+    etappen = daten.get("etappen", [])
+    befunde = []
+    ids = [e["id"] for e in etappen]
+    nach_id = {e["id"]: e for e in etappen}
+    for doppelt in sorted({i for i in ids if ids.count(i) > 1}):
+        befunde.append(u"Etappe '%s' gibt es mehrfach." % doppelt)
+    funktionen = {f["name"] for b in daten["bereiche"] for f in b["funktionen"]}
+    for e in etappen:
+        wer = u"Etappe '%s'" % e["id"]
+        if e.get("status") not in ETAPPEN_STATUS:
+            befunde.append(u"%s: unbekannter Status '%s'" % (wer, e.get("status")))
+        if e.get("art") not in ETAPPEN_ART:
+            befunde.append(u"%s: unbekannte Art '%s'" % (wer, e.get("art")))
+        if e.get("status") == "fertig" and not e.get("am"):
+            befunde.append(u"%s ist fertig, aber ohne Datum (am)." % wer)
+        if e.get("status") != "fertig" and e.get("am"):
+            befunde.append(u"%s hat ein Datum, ist aber nicht fertig." % wer)
+        for v in e.get("nach", []):
+            if v not in nach_id:
+                befunde.append(u"%s wartet auf '%s' - die gibt es nicht." % (wer, v))
+            elif e.get("status") in ("fertig", "arbeit") and nach_id[v]["status"] != "fertig":
+                befunde.append(u"%s ist '%s', aber '%s' davor ist noch nicht fertig."
+                               % (wer, e["status"], v))
+        for name in e.get("umfasst", []):
+            if name not in funktionen:
+                befunde.append(u"%s umfasst '%s' - keine solche Funktion in den Bereichen."
+                               % (wer, name))
+    if kreis_in(etappen):
+        befunde.append(u"Die Etappen warten im Kreis aufeinander: %s"
+                       % u" -> ".join(kreis_in(etappen)))
     return befunde
+
+
+def kreis_in(etappen):
+    u"""Gibt einen Kreis als Liste von ids zurueck, sonst eine leere Liste."""
+    nach = {e["id"]: [v for v in e.get("nach", [])] for e in etappen}
+    farbe = {}
+
+    def tief(k, pfad):
+        farbe[k] = 1
+        for v in nach.get(k, []):
+            if v not in nach:
+                continue
+            if farbe.get(v) == 1:
+                return pfad[pfad.index(v):] + [v] if v in pfad else [k, v]
+            if not farbe.get(v):
+                r = tief(v, pfad + [v])
+                if r:
+                    return r
+        farbe[k] = 2
+        return []
+
+    for k in nach:
+        if not farbe.get(k):
+            r = tief(k, [k])
+            if r:
+                return r
+    return []
+
+
+def zustand(e, nach_id):
+    u"""fertig | arbeit | bereit (kann starten) | wartet - 'bereit' wird nie gepflegt."""
+    if e["status"] in ("fertig", "arbeit"):
+        return e["status"]
+    if all(nach_id[v]["status"] == "fertig" for v in e.get("nach", []) if v in nach_id):
+        return "bereit"
+    return "wartet"
+
+
+NZ_B, NZ_H = 186, 74          # Kaestchen
+NZ_SX, NZ_SY = 232, 88        # Abstand von Spalte zu Spalte, von Zeile zu Zeile
+NZ_RAND = 14
+NZ_ZEICHEN = {"fertig": u"●", "arbeit": u"◐", "bereit": u"○", "wartet": u"○"}
+NZ_WORT = {"arbeit": u"läuft", "bereit": u"kann starten", "wartet": u"wartet"}
+STRANG_RANG = {None: 0, "store": 1, "markt": 2}
+
+
+def datum_kurz(iso):
+    return u"%s.%s." % (iso[8:10], iso[5:7])
+
+
+def netzplan_lage(etappen):
+    u"""Spalte = laengster Weg vom Start; Zeile = Mittel der Vorgaenger (weniger Kreuzungen)."""
+    nach_id = {e["id"]: e for e in etappen}
+    spalte = {}
+
+    def stufe(k):
+        if k not in spalte:
+            vor = [v for v in nach_id[k].get("nach", []) if v in nach_id]
+            spalte[k] = 1 + max(stufe(v) for v in vor) if vor else 0
+        return spalte[k]
+
+    for e in etappen:
+        stufe(e["id"])
+    spalten = {}
+    for i, e in enumerate(etappen):
+        spalten.setdefault(spalte[e["id"]], []).append((i, e))
+    hoehe = max(len(v) for v in spalten.values())
+    zeile = {}
+    for s in sorted(spalten):
+        def schluessel(paar):
+            i, e = paar
+            vor = [zeile[v] for v in e.get("nach", []) if v in zeile]
+            mitte = sum(vor) / float(len(vor)) if vor else 0.0
+            return (STRANG_RANG.get(e.get("strang"), 0), mitte, i)
+        reihe = sorted(spalten[s], key=schluessel)
+        versatz = (hoehe - len(reihe)) / 2.0
+        for n, (_, e) in enumerate(reihe):
+            zeile[e["id"]] = versatz + n
+    lage = {k: (NZ_RAND + spalte[k] * NZ_SX, NZ_RAND + zeile[k] * NZ_SY) for k in spalte}
+    breite = NZ_RAND * 2 + max(spalte.values()) * NZ_SX + NZ_B
+    hoch = NZ_RAND * 2 + (hoehe - 1) * NZ_SY + NZ_H
+    return lage, breite, hoch
+
+
+def netzplan(daten):
+    etappen = daten.get("etappen", [])
+    if not etappen or kreis_in(etappen):
+        return u""
+    nach_id = {e["id"]: e for e in etappen}
+    fn_nach_name = {f["name"]: f for b in daten["bereiche"] for f in b["funktionen"]}
+    lage, breite, hoch = netzplan_lage(etappen)
+    zu = {e["id"]: zustand(e, nach_id) for e in etappen}
+
+    pfeile = []
+    for e in etappen:
+        x2, y2 = lage[e["id"]]
+        for v in e.get("nach", []):
+            if v not in lage:
+                continue
+            x1, y1 = lage[v]
+            ax, ay = x1 + NZ_B, y1 + NZ_H / 2.0
+            bx, by = x2 - 6, y2 + NZ_H / 2.0
+            dx = (bx - ax) / 2.0
+            art = "ok" if zu[v] == "fertig" else "offen"
+            pfeile.append(u'<path class="nz-p %s" d="M%.0f %.0f C%.0f %.0f %.0f %.0f %.0f %.0f" '
+                          u'marker-end="url(#nz-spitze-%s)"/>'
+                          % (art, ax, ay, ax + dx, ay, bx - dx, by, bx, by, art))
+
+    kaestchen, infos = [], []
+    for e in etappen:
+        k, z = e["id"], zu[e["id"]]
+        x, y = lage[k]
+        if z == "fertig":
+            unten = datum_kurz(e["am"])
+        elif e.get("art") == "extern":
+            unten = NZ_WORT[z] + u" · deine Aufgabe"
+        else:
+            unten = NZ_WORT[z]
+        klassen = u"nz-k %s%s" % (z, u" " + e["art"] if e.get("art") else u"")
+        kaestchen.append(
+            u'<button type="button" class="%s" style="left:%dpx;top:%dpx" data-id="%s" '
+            u'aria-expanded="false" aria-controls="nz-i-%s">'
+            u'<span class="nz-z" aria-hidden="true">%s</span>'
+            u'<span class="nz-n">%s</span><span class="nz-u">%s</span></button>'
+            % (klassen, x, y, esc(k), esc(k), NZ_ZEICHEN[z], esc(e["name"]), esc(unten)))
+
+        vor = [nach_id[v] for v in e.get("nach", []) if v in nach_id]
+        danach = [d for d in etappen if k in d.get("nach", [])]
+        zeilen = []
+        if e.get("note"):
+            zeilen.append(u'<p class="nz-note">%s</p>' % esc(e["note"]))
+        if vor:
+            zeilen.append(u'<p><span class="nz-l">Wartet auf</span> %s</p>' % u", ".join(
+                u'<span class="nz-ref %s">%s %s</span>'
+                % (zu[w["id"]], NZ_ZEICHEN[zu[w["id"]]], esc(w["name"])) for w in vor))
+        if danach:
+            zeilen.append(u'<p><span class="nz-l">Danach möglich</span> %s</p>' % u", ".join(
+                esc(d["name"]) for d in danach))
+        fns = [fn_nach_name[n] for n in e.get("umfasst", []) if n in fn_nach_name]
+        if fns:
+            zeilen.append(u'<ul>%s</ul>' % u"".join(knoten(f) for f in fns))
+        status_text = (u"fertig am " + datum_kurz(e["am"]) + e["am"][:4]) if z == "fertig" \
+            else NZ_WORT[z]
+        infos.append(
+            u'<div class="nz-info" id="nz-i-%s" hidden>'
+            u'<h3><span class="nz-ref %s">%s</span> %s <small>%s</small></h3>%s</div>'
+            % (esc(k), z, NZ_ZEICHEN[z], esc(e["name"]), esc(status_text), u"".join(zeilen)))
+
+    fertig = sum(1 for z in zu.values() if z == "fertig")
+    laeuft = [e["name"] for e in etappen if zu[e["id"]] == "arbeit"]
+    bereit = [e["name"] for e in etappen if zu[e["id"]] == "bereit"]
+    bilanz = u"%d von %d Etappen geschafft" % (fertig, len(etappen))
+    if laeuft:
+        bilanz += u" · läuft: " + u", ".join(esc(n) for n in laeuft)
+    legende = u" ".join(
+        u'<span class="nz-ref %s">%s %s</span>' % (z, NZ_ZEICHEN[z], w)
+        for z, w in (("fertig", u"fertig"), ("arbeit", u"läuft"),
+                     ("bereit", u"kann starten"), ("wartet", u"wartet")))
+    return NETZPLAN % {
+        "bilanz": bilanz,
+        "bereit": u", ".join(esc(n) for n in bereit) or u"—",
+        "legende": legende,
+        "breite": breite, "hoch": hoch,
+        "pfeile": u"\n".join(pfeile),
+        "kaestchen": u"\n".join(kaestchen),
+        "infos": u"\n".join(infos),
+    }
+
+
+NETZPLAN = u"""
+  <section class="nz" aria-labelledby="nz-titel">
+    <h2 class="abs" id="nz-titel">Der Weg in den Store<small>Was geschafft ist, was läuft, was als Nächstes geht</small></h2>
+    <p class="nz-bilanz">%(bilanz)s</p>
+    <p class="nz-bilanz"><strong>Kann jetzt starten:</strong> %(bereit)s</p>
+    <div class="legende nz-legende">%(legende)s</div>
+    <div class="nz-scroll" tabindex="0" aria-label="Netzplan, seitlich verschiebbar">
+      <div class="nz-flaeche" style="width:%(breite)dpx;height:%(hoch)dpx">
+        <svg class="nz-svg" width="%(breite)d" height="%(hoch)d" aria-hidden="true">
+          <defs>
+            <marker id="nz-spitze-ok" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L8 4 L0 8 z" style="fill:var(--ok)"/></marker>
+            <marker id="nz-spitze-offen" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L8 4 L0 8 z" style="fill:var(--border-strong)"/></marker>
+          </defs>
+%(pfeile)s
+        </svg>
+%(kaestchen)s
+      </div>
+    </div>
+    <div class="nz-infos" aria-live="polite">
+      <p class="nz-tipp">Tippe auf ein Kästchen für die Einzelheiten.</p>
+%(infos)s
+    </div>
+  </section>
+"""
+
+NETZPLAN_CSS = u"""
+  /* ---- Netzplan ---- */
+  .nz-bilanz { margin: -4px 0 4px; font-size: 13px; color: var(--text-muted); }
+  .nz-bilanz strong { color: var(--text); font-weight: 600; }
+  .nz-legende { margin: 8px 0 12px; }
+  .nz-scroll { overflow-x: auto; border: 1px solid var(--border); border-radius: var(--radius);
+               background: var(--surface-2); }
+  .nz-scroll:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .nz-flaeche { position: relative; }
+  .nz-svg { position: absolute; inset: 0; }
+  .nz-p { fill: none; stroke-width: 1.6; }
+  .nz-p.ok { stroke: var(--ok); opacity: .55; }
+  .nz-p.offen { stroke: var(--border-strong); stroke-dasharray: 4 4; }
+
+  .nz-k { position: absolute; width: 186px; height: 74px; padding: 7px 10px 7px 26px;
+          text-align: left; font: inherit; color: var(--text); cursor: pointer;
+          background: var(--surface); border: 1px solid var(--border);
+          border-radius: var(--radius-sm); display: flex; flex-direction: column;
+          justify-content: center; gap: 1px; transition: transform .12s ease; }
+  .nz-k:active { transform: scale(.97); }
+  .nz-k:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .nz-k[aria-expanded="true"] { box-shadow: 0 0 0 2px var(--text); }
+  .nz-z { position: absolute; left: 9px; top: 8px; font-size: 11px; }
+  .nz-n { font-size: 13px; line-height: 1.25; font-weight: 600; overflow: hidden;
+          display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+          hyphens: auto; overflow-wrap: anywhere; }
+  .nz-u { font-size: 11px; color: var(--text-muted); font-variant-numeric: tabular-nums;
+          white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  .nz-k.fertig { border-color: color-mix(in srgb, var(--ok) 55%, transparent);
+                 background: color-mix(in srgb, var(--ok) 12%, var(--surface)); }
+  .nz-k.fertig .nz-z { color: var(--ok); }
+  .nz-k.arbeit { border: 2px solid var(--accent);
+                 background: color-mix(in srgb, var(--accent) 12%, var(--surface)); }
+  .nz-k.arbeit .nz-z, .nz-k.arbeit .nz-u { color: var(--accent-strong); font-weight: 600; }
+  .nz-k.bereit { border: 2px solid var(--text-muted); }
+  .nz-k.bereit .nz-u { color: var(--text); font-weight: 600; }
+  .nz-k.wartet { border-style: dashed; background: var(--surface-2); }
+  .nz-k.wartet .nz-n, .nz-k.wartet .nz-z { color: var(--text-muted); font-weight: 500; }
+  .nz-k.meilenstein { border-radius: 99px; padding-left: 30px; }
+  .nz-k.meilenstein .nz-z { left: 13px; }
+  .nz-k.meilenstein .nz-n { font-family: var(--font-display); font-weight: 800; }
+  .nz-k.extern .nz-u { font-style: italic; }
+
+  .nz-ref.fertig { color: var(--ok); }
+  .nz-ref.arbeit { color: var(--accent-strong); }
+  .nz-ref.bereit { color: var(--text); }
+  .nz-ref.wartet { color: var(--text-muted); }
+
+  .nz-infos { margin: 12px 0 34px; }
+  .nz-tipp { margin: 0; font-size: 12.5px; color: var(--text-muted); }
+  .nz-info { background: var(--surface); border: 1px solid var(--border);
+             border-radius: var(--radius); padding: 13px 15px; font-size: 13.5px; }
+  .nz-info h3 { font-family: var(--font-display); font-size: 16px; margin: 0 0 6px; }
+  .nz-info h3 small { font-family: var(--font-body); font-weight: 500; font-size: 12px;
+                      color: var(--text-muted); margin-left: 6px; }
+  .nz-info p { margin: 0 0 6px; }
+  .nz-note { color: var(--text-muted); }
+  .nz-l { display: inline-block; min-width: 118px; font-size: 12px; color: var(--text-muted); }
+  .nz-info ul { list-style: none; margin: 8px 0 0; padding: 0; }
+  @media (max-width: 560px) { .nz-l { display: block; } }
+  @media (prefers-reduced-motion: reduce) { .nz-k { transition: none; } }
+"""
+
+NETZPLAN_JS = u"""
+<script>
+(function () {
+  var flaeche = document.querySelector(".nz-flaeche");
+  if (!flaeche) return;
+  var tipp = document.querySelector(".nz-tipp");
+  var offen = null;
+  flaeche.addEventListener("click", function (ev) {
+    var k = ev.target.closest(".nz-k");
+    if (!k) return;
+    var info = document.getElementById("nz-i-" + k.dataset.id);
+    if (offen) { offen.k.setAttribute("aria-expanded", "false"); offen.info.hidden = true; }
+    if (offen && offen.k === k) { offen = null; tipp.hidden = false; return; }
+    k.setAttribute("aria-expanded", "true"); info.hidden = false; tipp.hidden = true;
+    offen = { k: k, info: info };
+  });
+  // Beim Oeffnen dorthin schieben, wo es gerade weitergeht - der Anfang liegt links davon.
+  var jetzt = flaeche.querySelector(".nz-k.arbeit") || flaeche.querySelector(".nz-k.bereit");
+  if (jetzt) flaeche.parentNode.scrollLeft = Math.max(0, jetzt.offsetLeft - 2 * %(schritt)d);
+})();
+</script>
+"""
 
 
 def knoten(f):
@@ -146,6 +479,9 @@ def bauen(daten):
         for f in offen1)
 
     return VORLAGE % {
+        "netzplan": netzplan(daten),
+        "netzplan_css": NETZPLAN_CSS,
+        "netzplan_js": NETZPLAN_JS % {"schritt": NZ_SX} if daten.get("etappen") else u"",
         "legende": legende,
         "proz1": proz1, "f1": f1, "g1": g1,
         "leitsatz1": esc(daten["phasen"]["1"]["leitsatz"]),
@@ -310,6 +646,7 @@ VORLAGE = u"""<!DOCTYPE html>
     .bar-txt { flex-direction: column; gap: 2px; }
     h2.abs { flex-direction: column; gap: 1px; }
   }
+%(netzplan_css)s
 </style>
 </head>
 <body>
@@ -329,6 +666,7 @@ VORLAGE = u"""<!DOCTYPE html>
     Wer hier hineinschreibt, verliert es beim nächsten Lauf — Änderungen gehören in die
     JSON. %(gesamt)s Funktionen erfasst.
   </p>
+%(netzplan)s
 
   <div class="fortschritt">
     <div class="bar-txt">
@@ -356,6 +694,7 @@ VORLAGE = u"""<!DOCTYPE html>
   </footer>
 
 </div>
+%(netzplan_js)s
 </body>
 </html>
 """

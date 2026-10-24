@@ -1189,9 +1189,9 @@
       "zeilen": 174
     },
     {
-      "bytes": 6532,
+      "bytes": 6633,
       "pfad": ".claude/agents/doku-waechter.md",
-      "zeilen": 118
+      "zeilen": 119
     },
     {
       "bytes": 9574,
@@ -1279,9 +1279,9 @@
       "zeilen": 142
     },
     {
-      "bytes": 26171,
+      "bytes": 26227,
       "pfad": "CLAUDE.md",
-      "zeilen": 579
+      "zeilen": 580
     },
     {
       "bytes": 21,
@@ -1364,9 +1364,9 @@
       "zeilen": 208
     },
     {
-      "bytes": 14355,
+      "bytes": 14711,
       "pfad": "docs/ABDECKUNG.md",
-      "zeilen": 197
+      "zeilen": 201
     },
     {
       "bytes": 8239,
@@ -1891,9 +1891,9 @@
       "zeilen": 261
     },
     {
-      "bytes": 15577,
+      "bytes": 31309,
       "pfad": "tools/dashboard.py",
-      "zeilen": 392
+      "zeilen": 731
     },
     {
       "bytes": 2957,

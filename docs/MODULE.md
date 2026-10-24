@@ -309,7 +309,7 @@ _keine_
 | .claude/Skills/smoke/SKILL.md | 82 | 3390 |
 | .claude/agents/anwalt.md | 418 | 26147 |
 | .claude/agents/datenschutz-technik.md | 174 | 9879 |
-| .claude/agents/doku-waechter.md | 118 | 6532 |
+| .claude/agents/doku-waechter.md | 119 | 6633 |
 | .claude/agents/kvp.md | 170 | 9574 |
 | .claude/agents/lieferkette.md | 151 | 8157 |
 | .claude/agents/store-check.md | 190 | 10233 |
@@ -327,7 +327,7 @@ _keine_
 | .gitattributes | 21 | 594 |
 | .github/workflows/pruefung.yml | 188 | 8066 |
 | .gitignore | 142 | 6411 |
-| CLAUDE.md | 579 | 26171 |
+| CLAUDE.md | 580 | 26227 |
 | CNAME | 1 | 21 |
 | FIREBASE-SETUP.md | 197 | 9363 |
 | LICENSE | 89 | 4343 |
@@ -344,7 +344,7 @@ _keine_
 | data/foods.js | 244 | 17334 |
 | data/ikonen.js | 175 | 20364 |
 | data/rechtstexte.js | 208 | 34439 |
-| docs/ABDECKUNG.md | 197 | 14355 |
+| docs/ABDECKUNG.md | 201 | 14711 |
 | docs/ABNAHME-MENSCH.md | 154 | 8239 |
 | docs/ARCHITECTURES.md | 3495 | 226265 |
 | docs/BAUSTEINE.md | 107 | 14510 |
@@ -467,7 +467,7 @@ _keine_
 | tools/bausteine.py | 265 | 11047 |
 | tools/bildsatz-stichworte.json | 1061 | 20704 |
 | tools/cdp.py | 261 | 11294 |
-| tools/dashboard.py | 392 | 15577 |
+| tools/dashboard.py | 731 | 31309 |
 | tools/firebase-vendor.py | 75 | 2957 |
 | tools/firestore-backup.py | 304 | 12982 |
 | tools/firestore-restore.py | 463 | 19568 |
