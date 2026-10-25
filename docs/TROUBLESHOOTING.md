@@ -212,7 +212,7 @@ jeweils, worum es geht. **Nicht die ganze Datei lesen** — sie ist rund 310 KB 
 | 198 | Store-App: Zurück-Taste beendete die App, Startbild mit schwarzer Lücke |
 | 199 | Fenster nach `confirmModal()` + `await` ging sofort wieder zu |
 | 200 | Trefferfläche in der Android-App 43 statt 44 px (Meal-Auswahl) — behoben |
-| 201 | „Konto löschen“: Ergebnis ging verloren, wenn das Fenster schon zu war |
+| 201 | „Konto löschen“: Ergebnis ging verloren, wenn das Fenster schon zu war — behoben |
 
 <!-- REGISTER-ENDE -->
 
@@ -7655,9 +7655,19 @@ Frist (offline wartet ein Firestore-Schreiben endlos), also brauchte sie einen N
 Verbindung“; nach dem Notausgang war der Ursprungsfehler wieder da; dazu Tab-Falle und
 Fokus-Sonderfälle. Paddy, 25.10.2026: „Einfacher Weg“.
 
-**Offen, bewusst nicht angefasst:**
+**Offen — dritte `/code-review`-Runde, alles schon vor 201 vorhanden, eigene Sitzung (Paddy):**
+* ⚠️ **Datenschutz:** Der Cloud-Sync läuft bis nach `deleteAccount()` weiter, die Meal-Liste ist
+  vorher geladen. Wer bei geschlossenem Fenster in diesen Sekunden ein Meal anlegt, hinterlässt
+  `users/{uid}/recipes/{neu}` — gegen die Zusage in Ziffer 10 (Art. 17). Unwahrscheinlich, echt.
 * Ein zweites „Konto löschen“, während das erste noch läuft (Fenster zu, neu öffnen), startet
-  einen zweiten Vorgang. Gab es vorher genauso; ein gemeinsamer „Löschen läuft“-Merker wäre der Weg.
+  einen zweiten Vorgang.
+* Bleiben Fotos (`fotosGebliebenMelden()`) oder scheitert nur der Zugang (`dataAlreadyDeleted`),
+  trifft das Ende ein inzwischen offenes fremdes Fenster: ersetzt (Hook überschrieben, Scanner
+  läuft weiter) bzw. offen bis zum Neuladen nach 900 ms. Der Prüfstand stubbt beide Zweige nicht.
+* Der Fehler-Toast bei geschlossenem Fenster steht nur ~1,9 s; „Abbrechen“ aus, ✕ an; Fokus
+  fällt beim Deaktivieren auf `<body>`.
+* Naheliegende Gesamtlösung: während des Löschens die ganze App sperren (Marken-Lader, `appEl.inert`)
+  mit Anzeige und Frist — klärt alle Punkte auf einmal. Vorher mit Paddy entscheiden.
 * Andere Fenster mit `await` vor `closeModal()` haben dieselbe Grundlücke — Profil speichern,
   Passwort zurücksetzen, Gruppe auflösen/verlassen über `confirmModal`. Nicht Teil dieses
   Auftrags (CLAUDE.md §22).
