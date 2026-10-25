@@ -162,7 +162,9 @@ ungeprüften Paket-Updates, kein Ausgeben des Signaturschlüssels), dazu `/app-b
 Startbeweis im Flugmodus — seit 24.10.2026, Vorschläge des Plugins „Claude Code Setup“.
 `app-bauen.py` prüft außerdem jede APK auf Facebook-Code/`AD_ID` und gleicht die Berechtigungen
 im gemergten Manifest gegen eine feste Liste ab (Kamera optional, `<queries>`, Drehsperre;
-`docs/STORE.md` Abschnitt 6).
+`docs/STORE.md` Abschnitt 6). Die Bedienung **in** der Hülle misst `tools/abnahme-app.py`
+(dieses Repo, seit 25.10.2026): die 16 Stationen von `abnahme-mobil.py` in der echten
+WebView im Emulator, Hell und Dunkel über das System — vor jeder Store-Abgabe.
 
 ## 6. Bewusst ohne Prüfer
 

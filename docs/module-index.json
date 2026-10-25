@@ -1372,9 +1372,9 @@
       "zeilen": 208
     },
     {
-      "bytes": 15054,
+      "bytes": 15283,
       "pfad": "docs/ABDECKUNG.md",
-      "zeilen": 204
+      "zeilen": 206
     },
     {
       "bytes": 8685,
@@ -1416,19 +1416,19 @@
       "zeilen": 634
     },
     {
-      "bytes": 46246,
+      "bytes": 46505,
       "pfad": "docs/STORE.md",
-      "zeilen": 674
+      "zeilen": 675
     },
     {
-      "bytes": 357082,
+      "bytes": 359237,
       "pfad": "docs/TESTING.md",
-      "zeilen": 5901
+      "zeilen": 5934
     },
     {
-      "bytes": 449229,
+      "bytes": 450434,
       "pfad": "docs/TROUBLESHOOTING.md",
-      "zeilen": 7608
+      "zeilen": 7629
     },
     {
       "erzeugt": true,
@@ -1857,6 +1857,11 @@
       "bytes": 13049,
       "pfad": "tools/abdeckung.py",
       "zeilen": 324
+    },
+    {
+      "bytes": 10874,
+      "pfad": "tools/abnahme-app.py",
+      "zeilen": 249
     },
     {
       "bytes": 56243,

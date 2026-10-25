@@ -345,7 +345,7 @@ _keine_
 | data/foods.js | 244 | 17334 |
 | data/ikonen.js | 175 | 20364 |
 | data/rechtstexte.js | 208 | 34439 |
-| docs/ABDECKUNG.md | 204 | 15054 |
+| docs/ABDECKUNG.md | 206 | 15283 |
 | docs/ABNAHME-MENSCH.md | 158 | 8685 |
 | docs/ARCHITECTURES.md | 3542 | 229914 |
 | docs/BAUSTEINE.md | 107 | 14773 |
@@ -354,9 +354,9 @@ _keine_
 | docs/PRODUCT.md | 1907 | 111130 |
 | docs/RUNBOOK.md | 391 | 20639 |
 | docs/SECURITY.md | 634 | 39369 |
-| docs/STORE.md | 674 | 46246 |
-| docs/TESTING.md | 5901 | 357082 |
-| docs/TROUBLESHOOTING.md | 7608 | 449229 |
+| docs/STORE.md | 675 | 46505 |
+| docs/TESTING.md | 5934 | 359237 |
+| docs/TROUBLESHOOTING.md | 7629 | 450434 |
 | docs/module-index.json | — | — (erzeugt) |
 | firestore.rules | 552 | 32127 |
 | img/apple-touch-icon.png | — | 35163 |
@@ -460,6 +460,7 @@ _keine_
 | test-server.ps1 | 66 | 2182 |
 | tools/a11y-pruefung.py | 529 | 24702 |
 | tools/abdeckung.py | 324 | 13049 |
+| tools/abnahme-app.py | 249 | 10874 |
 | tools/abnahme-mobil.py | 1165 | 56243 |
 | tools/abnahme-plan-sortieren.py | 483 | 21730 |
 | tools/abnahme-scan-kamera.py | 388 | 15492 |

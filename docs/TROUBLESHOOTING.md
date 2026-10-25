@@ -6,7 +6,7 @@ Dieses Dokument enthält bekannte Fehlerquellen, historische Bugs und Probleme, 
 
 <!-- REGISTER-ANFANG (erzeugt aus den Ueberschriften: python tools/register.py - nicht von Hand pflegen) -->
 
-**Register — 199.** Chronologisch gewachsen: je hoeher die Nummer,
+**Register — 200.** Chronologisch gewachsen: je hoeher die Nummer,
 desto juenger der Fund. Wer eine Falle sucht, sucht hier zuerst; die Ueberschrift sagt
 jeweils, worum es geht. **Nicht die ganze Datei lesen** — sie ist rund 310 KB gross.
 
@@ -211,6 +211,7 @@ jeweils, worum es geht. **Nicht die ganze Datei lesen** — sie ist rund 310 KB 
 | 197 | `abnahme-mobil.py` rot in Schritt 5 der Einführung (iPhone SE) — Knopf unter der Kopfleiste |
 | 198 | Store-App: Zurück-Taste beendete die App, Startbild mit schwarzer Lücke |
 | 199 | Fenster nach `confirmModal()` + `await` ging sofort wieder zu |
+| 200 | Trefferfläche in der Android-App 43 statt 44 px (Meal-Auswahl) |
 
 <!-- REGISTER-ENDE -->
 
@@ -7605,3 +7606,23 @@ Sekunde später passiert — genau dort lag dieser Fehler.
   `fotohinweis` löscht Theme-/Intro-Key nur im Testprofil (Theme kommt dort aus der Emulation).
   Die allgemeine D5-Lücke oben hat heute keinen zweiten Auslöser (alle `confirmModal` mit
   `await` durchgesehen).
+
+## 200. Trefferfläche in der Android-App 43 statt 44 px (Meal-Auswahl)
+
+**Symptom (25.10.2026):** Erster Lauf von `tools/abnahme-app.py` (echte App im Emulator):
+„Trefferfläche unter 44 px“ für `.pmore .btn` („Alle anzeigen“, 43,2 px) und `button.pq-h`
+(„Schnell“, 43,5 px) im Meal-Auswahlfenster, Hell und Dunkel. `abnahme-mobil.py` (Chrome
+emuliert) meldet beides nie.
+
+**Ursache:** Der hitSlop ist relativ zum Kasten gebaut — `inset: -8px 0` bzw. `-9px 0`
+(`css/komponenten.css`). Der Kasten hängt an der Schrift, und die Android-WebView (Roboto,
+Dichte 2,625) setzt sie niedriger als Chrome am PC. Am PC reicht es knapp, in der App fehlt
+knapp ein Pixel.
+
+**Offen** — sichtbare Änderung, erst mit Paddy. Naheliegend: hitSlop mit fester Höhe
+(`top: 50%; height: 44px; translate`) statt Abstand zum Kasten, dann hängt er nicht mehr an
+der Schrift. Vorher prüfen, ob er dann einem Nachbarn den Tipp wegnimmt (`.pq-h` steht direkt
+unter `.pmore`).
+
+**Lehre:** Ein hitSlop „Kasten plus Rand“ ist nur so groß wie die Schrift auf dem Gerät.
+Genau dafür gibt es den zweiten Durchgang in der echten App.

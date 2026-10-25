@@ -885,6 +885,39 @@ Zusätzlich muss die Messung **gegen den alten Stand durchfallen**. Am 16.09.202
 189 Trefferflächen- und 3 Kontrastbefunde an 36 Stellen vorher, 0 nachher, keine einzige
 Stelle neu hinzugekommen.
 
+### Zweiter Durchgang in der echten Android-App — `tools/abnahme-app.py`
+
+Seit 25.10.2026 (Entscheidung Paddy, „A2“). **Nur vor Store-Abgaben**, nicht im Alltag.
+Dieselben 16 Stationen, dieselbe Messung, derselbe Bericht — aber in der WebView der
+Capacitor-Hülle im Emulator statt in emuliertem Chrome. Kein zweites Gerüst: das Skript lädt
+`abnahme-mobil.py` und ersetzt nur drei Dinge in der `Sitzung`:
+
+| Ersetzt | Wie |
+|---|---|
+| Verbinden | Debug-Build öffnet `webview_devtools_remote_<pid>`; `adb forward` auf Port 9344, nach jedem Neustart neu (die pid wechselt) |
+| Theme | Dunkelmodus **des Systems** (`cmd uimode night yes/no`), keine Emulation. Vor jedem Lauf wird geprüft, ob die WebView ihn als `prefers-color-scheme` sieht — sonst Abbruch statt still falsch gemessen |
+| Laden | `pm clear` + Neustart: frische App, nur lokal, nie ein Konto (Cloud-Falle) |
+
+```powershell
+python tools/abnahme-app.py               # baut die App (app-bauen.py im App-Repo), Hell + Dunkel (~4 min)
+python tools/abnahme-app.py --ohne-bauen  # installierte App
+python tools/abnahme-app.py --gegenprobe  # misst sich selbst, in der App
+```
+
+Gerät: der Emulator, wie er ist (Medium Phone, 411×914 CSS-px, Dichte 2,625). Die Breiten
+deckt `abnahme-mobil.py` ab. Gegenprobe in der App grün (alle sechs Messgrößen), dazu die
+Theme-Kontrolle gegengeprüft (System dunkel, Lauf behauptet hell → Abbruch).
+
+**Erster Lauf, 25.10.2026:** 32 Stationen, 2 Befunde, die der Browser nie zeigte — „Alle
+anzeigen“ und die Abschnittsüberschrift „Schnell“ im Meal-Auswahlfenster haben in der App
+nur 43,2 bzw. 43,5 px Trefferfläche. Ursache: Ihr hitSlop ist `inset: -8px 0` bzw.
+`-9px 0` um den Kasten, und der Kasten hängt an der Schrift — Android (Roboto) setzt
+niedriger als Chrome am PC. Offen in `TROUBLESHOOTING` 200.
+
+⚠️ **Falle:** Der frisch gestartete Emulator aktualisiert im Hintergrund die System-WebView
+und beendet dabei die App (`killDueToPackageUpdate` im `logcat`) — der Lauf bricht mit
+„Connection to remote host was lost“ ab. Kein Fehler der App: einfach erneut fahren.
+
 ---
 
 ## 2g-bis. Die unsichtbare Hälfte — `tools/a11y-pruefung.py`
