@@ -63,6 +63,10 @@ nicht einfach weglassen.
 Gib die Ergebnisse gebündelt und klar getrennt aus. Markiere kritische Funde mit 🔴,
 unkritische Hinweise mit 🟡. Findet ein Check nichts: „Keine kritischen Punkte gefunden."
 
+**Nur echte Fehler:** 🟡 und Vorschläge sind optional; sie werden nur auf Paddys Wunsch umgesetzt und
+**nicht automatisch zu neuen Regeln** in CLAUDE.md oder docs. Prüfer melden nur, was Korrektheit,
+Sicherheit, Recht oder Store betrifft.
+
 **Prüfe jeden 🔴-Fund am echten Code gegen, bevor du ihn meldest.** Fehlalarme kommen vor,
 und ein falscher 🔴 kostet mehr Zeit als die Gegenprüfung.
 

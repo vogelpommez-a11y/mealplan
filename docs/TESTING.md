@@ -1322,6 +1322,10 @@ abgelaufene Löschsperren weg, Ziffer 10 der Datenschutzerklärung sagt das „b
 Wartung“ zu, siehe `docs/RUNBOOK.md` §5) und ohne Bericht `plans/rechtspruefung-*.md` der
 letzten 30 Tage (2j).
 
+**Anthropic-Empfehlungen nachlesen** (code.claude.com/docs/en/best-practices und …/memory): Hat sich
+etwas geändert, z. B. die Richtgröße für CLAUDE.md (heute unter 200 Zeilen; `wartung-check.py` meldet
+gelb ab 220) oder das Format von `.claude/rules/`? Dann Setup und Richtwert nachziehen.
+
 **Die Cloud-Routine** („Monatliche Wartungsprüfung“, 1. des Monats) läuft, damit die Prüfung
 auch stattfindet, wenn wochenlang niemand das Projekt öffnet. Sie ändert nichts, berichtet
 nur — und sieht **nur, was gepusht ist**, also auch kein `plans/`.

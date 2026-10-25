@@ -6,7 +6,7 @@ Dieses Dokument enthält bekannte Fehlerquellen, historische Bugs und Probleme, 
 
 <!-- REGISTER-ANFANG (erzeugt aus den Ueberschriften: python tools/register.py - nicht von Hand pflegen) -->
 
-**Register — 200.** Chronologisch gewachsen: je hoeher die Nummer,
+**Register — 201.** Chronologisch gewachsen: je hoeher die Nummer,
 desto juenger der Fund. Wer eine Falle sucht, sucht hier zuerst; die Ueberschrift sagt
 jeweils, worum es geht. **Nicht die ganze Datei lesen** — sie ist rund 310 KB gross.
 
@@ -208,11 +208,11 @@ jeweils, worum es geht. **Nicht die ganze Datei lesen** — sie ist rund 310 KB 
 | 194 | Zwei Fallen beim ersten Capacitor-Build: Java 25 und das Facebook-SDK im Login-Plugin |
 | 195 | Der Prüfstand-Läufer hielt „10 rot“ für grün |
 | 196 | Kamera in der Android-Hülle: „Foto aufnehmen“ führte ins Leere oder in die Galerie |
-| 197 | `abnahme-mobil.py` rot in Schritt 5 der Einführung (iPhone SE) — Knopf unter der Kopfleiste — geklärt (Messfehler) |
+| 197 | `abnahme-mobil.py` rot in Schritt 5 der Einführung (iPhone SE) — Knopf unter der Kopfleiste |
 | 198 | Store-App: Zurück-Taste beendete die App, Startbild mit schwarzer Lücke |
 | 199 | Fenster nach `confirmModal()` + `await` ging sofort wieder zu |
-| 200 | Trefferfläche in der Android-App 43 statt 44 px (Meal-Auswahl) — behoben |
-| 201 | „Konto löschen“: Ergebnis ging verloren, wenn das Fenster schon zu war — behoben |
+| 200 | Trefferfläche in der Android-App 43 statt 44 px (Meal-Auswahl) |
+| 201 | „Konto löschen“: Ergebnis ging verloren, wenn das Fenster schon zu war |
 
 <!-- REGISTER-ENDE -->
 

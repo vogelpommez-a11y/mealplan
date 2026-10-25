@@ -94,3 +94,7 @@ Aufbau:
     sollte.
 
 Danach dem Nutzer vorschlagen, welche Befunde behoben werden sollen — nicht selbst beheben.
+
+**Nur echte Fehler:** 🟡 und Vorschläge sind optional; sie werden nur auf Paddys Wunsch umgesetzt und
+**nicht automatisch zu neuen Regeln** in CLAUDE.md oder docs. Gemeldet wird nur, was Korrektheit,
+Sicherheit, Recht oder Store betrifft.

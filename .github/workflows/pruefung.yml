@@ -131,7 +131,7 @@ jobs:
 
           # Muster, die ein echtes Geheimnis anzeigen. Die Firebase-Web-Config
           # (apiKey: "AIzaSy...") steht hier BEWUSST NICHT: sie ist oeffentlich by design
-          # und identifiziert nur das Projekt. Siehe CLAUDE.md, Abschnitt 19.
+          # und identifiziert nur das Projekt. Siehe CLAUDE.md, §12.
           MUSTER = [
               (r"sk-[A-Za-z0-9_\-]{20,}",        "OpenAI-Schluessel"),
               (r"sk-ant-[A-Za-z0-9_\-]{20,}",    "Anthropic-Schluessel"),

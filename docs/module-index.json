@@ -1162,7 +1162,7 @@
   ],
   "dateien": [
     {
-      "bytes": 3824,
+      "bytes": 3826,
       "pfad": ".claude/Skills/abnahme/SKILL.md",
       "zeilen": 81
     },
@@ -1227,17 +1227,17 @@
       "zeilen": 195
     },
     {
-      "bytes": 5785,
+      "bytes": 6029,
       "pfad": ".claude/commands/pushcheck.md",
-      "zeilen": 103
+      "zeilen": 107
     },
     {
-      "bytes": 4974,
+      "bytes": 5217,
       "pfad": ".claude/commands/rechtspruefung.md",
-      "zeilen": 97
+      "zeilen": 101
     },
     {
-      "bytes": 8147,
+      "bytes": 8145,
       "pfad": ".claude/hooks/commit-waechter.py",
       "zeilen": 178
     },
@@ -1267,6 +1267,21 @@
       "zeilen": 152
     },
     {
+      "bytes": 1752,
+      "pfad": ".claude/rules/firebase.md",
+      "zeilen": 32
+    },
+    {
+      "bytes": 5476,
+      "pfad": ".claude/rules/ui.md",
+      "zeilen": 102
+    },
+    {
+      "bytes": 698,
+      "pfad": ".claude/rules/vendor.md",
+      "zeilen": 18
+    },
+    {
       "bytes": 2008,
       "pfad": ".claude/settings.json",
       "zeilen": 78
@@ -1277,7 +1292,7 @@
       "zeilen": 21
     },
     {
-      "bytes": 8066,
+      "bytes": 8058,
       "pfad": ".github/workflows/pruefung.yml",
       "zeilen": 188
     },
@@ -1287,9 +1302,9 @@
       "zeilen": 142
     },
     {
-      "bytes": 27462,
+      "bytes": 14801,
       "pfad": "CLAUDE.md",
-      "zeilen": 593
+      "zeilen": 220
     },
     {
       "bytes": 21,
@@ -1342,9 +1357,9 @@
       "zeilen": 298
     },
     {
-      "bytes": 7491,
+      "bytes": 7934,
       "pfad": "data/CLAUDE.md",
-      "zeilen": 162
+      "zeilen": 168
     },
     {
       "bytes": 9143,
@@ -1416,19 +1431,19 @@
       "zeilen": 634
     },
     {
-      "bytes": 46505,
+      "bytes": 46623,
       "pfad": "docs/STORE.md",
       "zeilen": 675
     },
     {
-      "bytes": 359861,
+      "bytes": 360159,
       "pfad": "docs/TESTING.md",
-      "zeilen": 5943
+      "zeilen": 5947
     },
     {
-      "bytes": 453326,
+      "bytes": 454191,
       "pfad": "docs/TROUBLESHOOTING.md",
-      "zeilen": 7668
+      "zeilen": 7678
     },
     {
       "erzeugt": true,
@@ -2399,9 +2414,9 @@
       "zeilen": 432
     },
     {
-      "bytes": 39849,
+      "bytes": 40873,
       "pfad": "tools/wartung-check.py",
-      "zeilen": 854
+      "zeilen": 877
     },
     {
       "bytes": 4816,

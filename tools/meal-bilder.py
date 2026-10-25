@@ -173,7 +173,7 @@ KAT_GESCHIRR = {
 # Avocado auf Vollkornbrot" ist Fruehstueck und bekaeme damit eine Schuessel - eine Scheibe
 # Brot in einer Schuessel sieht falsch aus, und zwar sofort. Dasselbe bei Pancakes und
 # Ofengemuese vom Blech. Bewusst nur wenige, sehr eindeutige Stichwoerter: Jede weitere
-# Regel ist eine neue Gelegenheit fuer eine Teilwort-Kollision (CLAUDE.md §22).
+# Regel ist eine neue Gelegenheit fuer eine Teilwort-Kollision (CLAUDE.md §15).
 NAME_GESCHIRR = [
     (("brot", "toast", "sandwich", "pancake", "pfannkuchen", "waffel", "steak", "blech"), "on a plate"),
     # Getrunken wird aus einem Glas, egal welche Kategorie das Rezept traegt. Aufgefallen am

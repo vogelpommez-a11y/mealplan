@@ -1232,7 +1232,7 @@ ein **ISO-Wochenschlüssel** (`"2026-W33"`) — dasselbe Format wie `state.plans
 Tagesschwankungen größer sind als der Fortschritt einer Woche.
 
 Das Feld heißt weiterhin `m` — es steckt in gespeicherten Daten und in der Cloud
-(Namensdualität, `CLAUDE.md` §21).
+(Namensdualität, `CLAUDE.md` §14).
 
 `sanitizeWeights()` rechnet **beide Altformate** um, statt sie zu verwerfen:
 
@@ -2193,7 +2193,7 @@ Zutaten nennen. „Grüner Smoothie mit Spinat" landete über die Regel `spinat`
 **Salatfoto**, „Schoko-Protein-Quark" über `quark` auf **Porridge**, „Dattel-Nuss-Bissen mit
 Kakao" über `kakao` auf einem **Getränk**. An den Regeln zu drehen wäre der falsche Hebel: Sie
 wirken auf jedes Nutzer-Meal, und Teilwort-Kollisionen sind dort die bekannte Falle
-(`CLAUDE.md` §22). Gesetzt ist `photo` deshalb nur bei den elf Einträgen, bei denen die Regel
+(`CLAUDE.md` §15). Gesetzt ist `photo` deshalb nur bei den elf Einträgen, bei denen die Regel
 falsch liegt — nicht überall, sonst wäre die Zuordnung doppelt gepflegt.
 
 Es ist ein **Schlüssel**, kein Pfad. Ein unbekannter Wert fällt still auf die Regeln zurück,

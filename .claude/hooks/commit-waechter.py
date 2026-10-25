@@ -55,7 +55,7 @@ VERBOTEN = [
 # git ankommt, haengt an core.ignorecase des jeweiligen Rechners.
 #
 # WER EINEN EIGENEN SKILL ANLEGT, TRAEGT IHN AN DREI STELLEN NACH: hier, in der .gitignore
-# (auch dort in beiden Schreibweisen) und in der Skill-Tabelle in CLAUDE.md 11. Fehlt der
+# (auch dort in beiden Schreibweisen) und in der Skill-Liste in CLAUDE.md 11. Fehlt der
 # Eintrag hier, ist der Skill zwar getrackt, aber nicht mehr aenderbar - der Waechter
 # blockiert jeden Commit mit einer Begruendung, die nicht stimmt. Aufgefallen am
 # 29.08.2026 beim Anlegen von /rezeptcharge, gemeldet von tools/wartung-check.py.

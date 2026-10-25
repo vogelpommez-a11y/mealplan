@@ -303,7 +303,7 @@ _keine_
 
 | Pfad | Zeilen | Bytes |
 |---|---|---|
-| .claude/Skills/abnahme/SKILL.md | 81 | 3824 |
+| .claude/Skills/abnahme/SKILL.md | 81 | 3826 |
 | .claude/Skills/deploy/SKILL.md | 103 | 3844 |
 | .claude/Skills/pruefstand/SKILL.md | 126 | 5263 |
 | .claude/Skills/rezeptcharge/SKILL.md | 482 | 26234 |
@@ -316,19 +316,22 @@ _keine_
 | .claude/agents/store-check.md | 190 | 10233 |
 | .claude/agents/ux-reviewer.md | 71 | 3776 |
 | .claude/agents/website-security.md | 195 | 10649 |
-| .claude/commands/pushcheck.md | 103 | 5785 |
-| .claude/commands/rechtspruefung.md | 97 | 4974 |
-| .claude/hooks/commit-waechter.py | 178 | 8147 |
+| .claude/commands/pushcheck.md | 107 | 6029 |
+| .claude/commands/rechtspruefung.md | 101 | 5217 |
+| .claude/hooks/commit-waechter.py | 178 | 8145 |
 | .claude/hooks/push-waechter.py | 96 | 3201 |
 | .claude/hooks/secrets-filter.py | 94 | 3997 |
 | .claude/hooks/syntax-am-ende.py | 150 | 5444 |
 | .claude/hooks/syntax-nach-edit.py | 100 | 3777 |
 | .claude/hooks/wartung-erinnerung.py | 152 | 6753 |
+| .claude/rules/firebase.md | 32 | 1752 |
+| .claude/rules/ui.md | 102 | 5476 |
+| .claude/rules/vendor.md | 18 | 698 |
 | .claude/settings.json | 78 | 2008 |
 | .gitattributes | 21 | 594 |
-| .github/workflows/pruefung.yml | 188 | 8066 |
+| .github/workflows/pruefung.yml | 188 | 8058 |
 | .gitignore | 142 | 6411 |
-| CLAUDE.md | 593 | 27462 |
+| CLAUDE.md | 220 | 14801 |
 | CNAME | 1 | 21 |
 | FIREBASE-SETUP.md | 197 | 9363 |
 | LICENSE | 89 | 4343 |
@@ -339,7 +342,7 @@ _keine_
 | css/komponenten.css | 1617 | 121677 |
 | css/mobil.css | 1128 | 75107 |
 | css/tokens.css | 298 | 16653 |
-| data/CLAUDE.md | 162 | 7491 |
+| data/CLAUDE.md | 168 | 7934 |
 | data/bilder.js | 142 | 9143 |
 | data/cookbook.js | 569 | 52083 |
 | data/foods.js | 244 | 17334 |
@@ -354,9 +357,9 @@ _keine_
 | docs/PRODUCT.md | 1907 | 111130 |
 | docs/RUNBOOK.md | 391 | 20639 |
 | docs/SECURITY.md | 634 | 39369 |
-| docs/STORE.md | 675 | 46505 |
-| docs/TESTING.md | 5943 | 359861 |
-| docs/TROUBLESHOOTING.md | 7668 | 453326 |
+| docs/STORE.md | 675 | 46623 |
+| docs/TESTING.md | 5947 | 360159 |
+| docs/TROUBLESHOOTING.md | 7678 | 454191 |
 | docs/module-index.json | — | — (erzeugt) |
 | firestore.rules | 552 | 32127 |
 | img/apple-touch-icon.png | — | 35163 |
@@ -568,7 +571,7 @@ _keine_
 | tools/vergleich-bausteine.js | 755 | 39021 |
 | tools/vorfuehren.py | 123 | 4955 |
 | tools/vorher-nachher.py | 432 | 21563 |
-| tools/wartung-check.py | 854 | 39849 |
+| tools/wartung-check.py | 877 | 40873 |
 | vendor/HERKUNFT.md | 105 | 4816 |
 | vendor/firebase/10.12.5/LICENSE | 203 | 11358 |
 | vendor/firebase/10.12.5/README.md | 27 | 1063 |

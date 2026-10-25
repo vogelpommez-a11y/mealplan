@@ -672,6 +672,8 @@ def pruefe_abschnitte():
     # (4:1) hatte der echte Fehler in website-security.md. Nur nach Nachsehen eintragen,
     # nie, damit Ruhe ist (CLAUDE.md 18b).
     BESTAETIGT = {
+        (".claude/agents/datenschutz-technik.md", "13"),  # UID-Regel steht in 13 (25.10.2026)
+        ("docs/ARCHITECTURES.md", "12"),   # "Zugriff auf Daten": Rules, 12 (25.10.2026)
         ("docs/TESTING.md", "1"),   # netz-ohne-konto: "Start ohne Netz" ist Abschnitt 1 (18.10.2026)
     }
     teile = _claude_abschnitte()
@@ -780,6 +782,26 @@ def pruefe_groessen():
                          ", ".join("%s +%d KB" % (p, d // 1024) for d, p in zuwachs if d > 0)))
 
 
+CLAUDE_MD_MAX_ZEILEN = 220
+
+
+def pruefe_claude_md_laenge(text=None):
+    """Bleibt CLAUDE.md schlank?
+
+    Anthropic empfiehlt unter 200 Zeilen je CLAUDE.md, laengere Dateien senken die
+    Befolgung (code.claude.com/docs/en/memory). Am 25.10.2026 von 592 auf rund 220 Zeilen
+    gekuerzt; Ortsgebundenes steht in .claude/rules/. Gelb ab 220 Zeilen - nicht als Verbot,
+    sondern als Frage: Gehoert das neue Wort in eine rules-Datei oder nach docs/?
+    """
+    bereich = "CLAUDE.md"
+    if text is None:
+        text = lies("CLAUDE.md")
+    zeilen = len(text.splitlines())
+    if zeilen > CLAUDE_MD_MAX_ZEILEN:
+        gelb(bereich, "CLAUDE.md hat %d Zeilen (Richtwert hoechstens %d) - Neues besser in "
+                      ".claude/rules/ oder docs/ ablegen" % (zeilen, CLAUDE_MD_MAX_ZEILEN))
+
+
 def schreibe_groessenstand():
     teile = _startgewicht()
     io.open(GROESSEN_STAND, "w", encoding="utf-8").write(json.dumps({
@@ -822,7 +844,8 @@ def main():
     for fn in (pruefe_fakten, pruefe_verweise, pruefe_agenten,
                pruefe_hooks, pruefe_skills, pruefe_abdeckung, pruefe_landkarte, pruefe_register,
                pruefe_alter, pruefe_regelstand, pruefe_bausteine,
-               pruefe_abschnitte, pruefe_doku_abdeckung, pruefe_groessen):
+               pruefe_abschnitte, pruefe_doku_abdeckung, pruefe_groessen,
+               pruefe_claude_md_laenge):
         try:
             fn()
         except Exception as e:

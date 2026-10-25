@@ -130,6 +130,12 @@ tools/bildsatz-stichworte.json --out img`. Diese Steuerdatei ist **kein Rezeptka
 Ihre Zahlen sind Bildbeschreibung, ihre `category` steuert nur das Geschirr. Deshalb liegt
 sie unter `tools/` und nicht hier.
 
+Zuordnung: `photoFor(r)` nimmt eigenes Bild → `img/library/` → `r.photo` → `PHOTO_RULES` →
+`CAT_PHOTO` → `PHOTOS.neutral`. Keine Emoji-/Gradient-Fallbacks. Davor entscheidet
+`mealIcon(r)`: Schnelleinträge und gescannte Produkte zeigen ein Symbol
+(`docs/ARCHITECTURES.md`, „Bilder“). Der Stil-Baustein von `tools/meal-bilder.py` ist
+**eingefroren**; neue Bilder nie von Hand. Katalogrezepte entstehen nur über `/rezeptcharge`.
+
 Zwei Dinge, die nicht verhandelbar sind:
 
 * **Kein fremdes Bild ohne belegte freie Lizenz.** Käme je eines dazu, bräuchte es
