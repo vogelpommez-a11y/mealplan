@@ -3034,7 +3034,11 @@ gesetzt, ruft er ihn (und leert ihn) statt des Standard-Schließens. `openMealSh
 um beim Schließen ohne Namen abzubrechen (Fokus + Toast statt Verwerfen) und um die FLIP-Exit-
 Animation zu spielen, bevor `modalRoot` geleert wird. Escape, Backdrop-Klick, das ✕ im Kopf und
 „Fertig" im Fuß laufen alle über `closeModal()` — der Hook greift dadurch überall gleich, ohne
-dass jeder Aufrufer ihn einzeln kennen müsste. `openModal(node, opts)` erlaubt zusätzlich ein
+dass jeder Aufrufer ihn einzeln kennen müsste. `deleteAccountFlow()` nutzt ihn als reine
+Schließsperre, solange „Wird gelöscht …“ läuft (Abbrechen und ✕ dazu ausgegraut, nach 30 s gibt
+sie nach). Wer den Hook
+`false` liefern lässt, muss ihn dabei **neu setzen** — `closeModal()` hat ihn vor dem Aufruf
+geleert, sonst ginge der zweite Versuch durch (`TROUBLESHOOTING` 201). `openModal(node, opts)` erlaubt zusätzlich ein
 eigenes Fokusziel (`opts.focus`) statt der Standardsuche und eine zusätzliche Klasse am Overlay
 (`opts.overlayClass`, heute nur `sheet-overlay`).
 

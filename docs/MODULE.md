@@ -52,10 +52,10 @@ Erhoben aus den Abschnittsmarken im Code, nicht von Hand gepflegt.
 | css/komponenten.css | Recipe grid | 8-327 | 320 |
 | css/komponenten.css | Meal-Ansicht (openMealSheet) | 328-554 | 227 |
 | css/komponenten.css | Empty state | 555-566 | 12 |
-| css/komponenten.css | Modal | 567-992 | 426 |
-| css/komponenten.css | Profil (Login) & Teilen | 993-1095 | 103 |
-| css/komponenten.css | Profilbild-Zuschnitt (Kreis-Crop) | 1096-1518 | 423 |
-| css/komponenten.css | PDF / Druck | 1519-1613 | 95 |
+| css/komponenten.css | Modal | 567-998 | 432 |
+| css/komponenten.css | Profil (Login) & Teilen | 999-1101 | 103 |
+| css/komponenten.css | Profilbild-Zuschnitt (Kreis-Crop) | 1102-1524 | 423 |
+| css/komponenten.css | PDF / Druck | 1525-1619 | 95 |
 | css/mobil.css | Mobile / Smartphone | 8-1061 | 1054 |
 | css/mobil.css | Gemeinsam planen (Gruppe) | 1062-1128 | 67 |
 | data/bilder.js | Gerichtsfotos (nach Namen zugeordnet) | 11-142 | 132 |
@@ -153,11 +153,11 @@ Erhoben aus den Abschnittsmarken im Code, nicht von Hand gepflegt.
 | index.html | Einstieg (D1b) | 14169-14248 | 80 |
 | index.html | Cloud-Anmeldung (Firebase) | 14249-14265 | 17 |
 | index.html | Startbildschirm (#splash, statisch im Markup) | 14266-14319 | 54 |
-| index.html | Marken-Lader (docs/DESIGN.md "Der Marken-Lader") | 14320-15070 | 751 |
-| index.html | Gemeinsam planen (Gruppe) | 15071-16179 | 1109 |
-| index.html | Teilen ueber den nativen Dialog des Geraets (Web Share API) | 16180-16213 | 34 |
-| index.html | Einkaufsliste als PDF (Paket B3) | 16214-16453 | 240 |
-| index.html | Boot | 16454-16472 | 19 |
+| index.html | Marken-Lader (docs/DESIGN.md "Der Marken-Lader") | 14320-15110 | 791 |
+| index.html | Gemeinsam planen (Gruppe) | 15111-16219 | 1109 |
+| index.html | Teilen ueber den nativen Dialog des Geraets (Web Share API) | 16220-16253 | 34 |
+| index.html | Einkaufsliste als PDF (Paket B3) | 16254-16493 | 240 |
+| index.html | Boot | 16494-16512 | 19 |
 | lib/barcode.js | Barcode-Scan (Open Food Facts) | 14-192 | 179 |
 | lib/pdf.js | PDF selbst erzeugen (kein window.print, sandbox-sicher) | 14-38 | 25 |
 | lib/pdf.js | Marken-Kopf fuer die PDFs (Logo, "PADDY'S MEALPLAN", Slogan) | 39-106 | 68 |
@@ -328,15 +328,15 @@ _keine_
 | .gitattributes | 21 | 594 |
 | .github/workflows/pruefung.yml | 188 | 8066 |
 | .gitignore | 142 | 6411 |
-| CLAUDE.md | 592 | 27354 |
+| CLAUDE.md | 593 | 27462 |
 | CNAME | 1 | 21 |
 | FIREBASE-SETUP.md | 197 | 9363 |
 | LICENSE | 89 | 4343 |
 | README.md | 46 | 1990 |
 | SECURITY.md | 71 | 3006 |
 | css/CLAUDE.md | 92 | 4167 |
-| css/basis.css | 1575 | 112343 |
-| css/komponenten.css | 1613 | 121114 |
+| css/basis.css | 1575 | 112491 |
+| css/komponenten.css | 1619 | 121821 |
 | css/mobil.css | 1128 | 75107 |
 | css/tokens.css | 298 | 16653 |
 | data/CLAUDE.md | 162 | 7491 |
@@ -347,16 +347,16 @@ _keine_
 | data/rechtstexte.js | 208 | 34439 |
 | docs/ABDECKUNG.md | 206 | 15283 |
 | docs/ABNAHME-MENSCH.md | 158 | 8685 |
-| docs/ARCHITECTURES.md | 3542 | 229914 |
-| docs/BAUSTEINE.md | 107 | 14773 |
-| docs/DESIGN.md | 1462 | 82024 |
+| docs/ARCHITECTURES.md | 3546 | 230254 |
+| docs/BAUSTEINE.md | 109 | 15058 |
+| docs/DESIGN.md | 1467 | 82388 |
 | docs/MODULE.md | — | — (erzeugt) |
 | docs/PRODUCT.md | 1907 | 111130 |
 | docs/RUNBOOK.md | 391 | 20639 |
 | docs/SECURITY.md | 634 | 39369 |
 | docs/STORE.md | 675 | 46505 |
-| docs/TESTING.md | 5934 | 359237 |
-| docs/TROUBLESHOOTING.md | 7629 | 450434 |
+| docs/TESTING.md | 5945 | 360121 |
+| docs/TROUBLESHOOTING.md | 7672 | 453650 |
 | docs/module-index.json | — | — (erzeugt) |
 | firestore.rules | 552 | 32127 |
 | img/apple-touch-icon.png | — | 35163 |
@@ -448,7 +448,7 @@ _keine_
 | img/waffle.webp | — | 52546 |
 | img/wrap.webp | — | 43594 |
 | img/wurst.webp | — | 54064 |
-| index.html | 16472 | 1043621 |
+| index.html | 16512 | 1045901 |
 | lib/barcode.js | 192 | 11045 |
 | lib/basis.js | 21 | 836 |
 | lib/pdf.js | 241 | 13120 |
@@ -522,6 +522,7 @@ _keine_
 | tools/pruefstand-katalog-plan.py | 563 | 27054 |
 | tools/pruefstand-konten-inaktiv.py | 133 | 5890 |
 | tools/pruefstand-konto-loeschsperre.py | 256 | 12652 |
+| tools/pruefstand-konto-schliesssperre.py | 251 | 12489 |
 | tools/pruefstand-kontowechsel.py | 215 | 9393 |
 | tools/pruefstand-makro-abweichung.py | 125 | 6483 |
 | tools/pruefstand-marken-lader.py | 171 | 8398 |
@@ -564,7 +565,7 @@ _keine_
 | tools/smoke-mit-daten.py | 145 | 8236 |
 | tools/tempo-mobil.py | 320 | 13479 |
 | tools/test-meal-bilder.py | 156 | 8295 |
-| tools/vergleich-bausteine.js | 722 | 36875 |
+| tools/vergleich-bausteine.js | 755 | 39021 |
 | tools/vorfuehren.py | 123 | 4955 |
 | tools/vorher-nachher.py | 432 | 21563 |
 | tools/wartung-check.py | 854 | 39849 |

@@ -14995,14 +14995,32 @@
     // ein Fehler landete in #del-err eines Fensters, das niemand mehr sah. Der Hook sperrt
     // alle Wege zugleich (sie laufen ueber closeModal()); er legt sich nach einer Weigerung
     // neu an, weil closeModal() ihn vor dem Aufruf leert - wie attemptClose im Meal-Blatt.
-    let loeschtGerade = false;
+    // Er steht NUR waehrend des Loeschens, sonst erbte ihn ein Fenster, das dieses ersetzt.
+    //
+    // Notausgang: Das Loeschen hat keine eigene Frist - offline wartet ein Firestore-Schreiben
+    // auf den Server, unter Umstaenden endlos. Nach SPERRE_MAX_MS gibt die Sperre nach und sagt
+    // warum; der Vorgang selbst laeuft weiter wie vorher (Entscheidung Paddy, 25.10.2026: 30 s).
+    const SPERRE_MAX_MS = 30000;
+    let notausgang = null;
+    const titel = node.querySelector(".modal-head h2");
+    function schliessSperre() { modalCloseHook = schliessSperre; return false; }
     function sperren(an) {
-      loeschtGerade = an;
       schliesser.forEach(b => { b.disabled = an; });
-    }
-    function schliessSperre() {
-      if (loeschtGerade) { modalCloseHook = schliessSperre; return false; }
-      return closeModal();
+      node.setAttribute("aria-busy", an ? "true" : "false");
+      clearTimeout(notausgang);
+      if (an) {
+        modalCloseHook = schliessSperre;
+        // Der fokussierte Knopf wird gleich disabled - ohne Ziel fiele der Fokus auf <body>, und
+        // Tab liefe hinter das Fenster (modalKeys greift nur am ersten/letzten Element).
+        // Vorbild: .onb-q in der Einfuehrung (tabindex="-1", kein sichtbarer Ring).
+        titel.tabIndex = -1; titel.focus();
+        notausgang = setTimeout(() => {
+          sperren(false);
+          err.textContent = "Das dauert länger als sonst. Prüf deine Verbindung.";
+        }, SPERRE_MAX_MS);
+      } else if (modalCloseHook === schliessSperre) {
+        modalCloseHook = null;
+      }
     }
     btn.addEventListener("click", async () => {
       const pw = isPw ? node.querySelector("#del-pw").value : null;
@@ -15064,10 +15082,10 @@
         sperren(false);
         err.textContent = cloudErrMsg(e);
         btn.disabled = false; btn.textContent = "Konto löschen";
+        btn.focus();
       }
     });
     openModal(node);
-    modalCloseHook = schliessSperre;
   }
 
   // Lokales Profil (kein Cloud-Konto): Daten liegen ausschliesslich auf diesem Geraet,

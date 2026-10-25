@@ -664,6 +664,8 @@
   }
   .modal-head { display: flex; align-items: center; gap: 12px; padding: 16px 18px; border-bottom: 1px solid var(--border); }
   .modal-head :is(h2, h3) { font-family: var(--font-display); font-size: 19px; margin: 0; flex: 1; }
+  /* Fokusziel, waehrend ein Fenster arbeitet (deleteAccountFlow) - wie .onb-q kein Ring. */
+  .modal-head :is(h2, h3):focus { outline: none; }
   .modal-head .kicker { font-size: 11.5px; text-transform: uppercase; letter-spacing: .05em; color: var(--text-muted); }
   /* hitSlop wie .toast-undo::after: Trefferflaeche auf 44px (Apple HIG), Aussehen
      unveraendert. Gemessen am 16.09.2026 mit tools/abnahme-mobil.py. */

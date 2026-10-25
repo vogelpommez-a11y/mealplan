@@ -7648,8 +7648,24 @@ Schließen. Alle fünf Wege laufen über `closeModal()`.
 das Neuanlegen ginge der zweite Versuch durch (dasselbe wie `attemptClose` im Meal-Blatt). Die
 Zurück-Taste legt ihren Eintrag bei einer Weigerung schon von selbst wieder an (`popstate`).
 Abbrechen und ✕ sind währenddessen ausgegraut; nach Fehler oder Erfolg ist alles wieder frei.
+Der Hook steht **nur während des Löschens** (`sperren(true/false)`), sonst erbte ihn ein
+Fenster, das dieses per `openModal()` ersetzt. Der Fokus geht währenddessen auf die
+Überschrift (`tabindex=-1`, kein Ring, wie `.onb-q`), sonst fiele er auf `<body>` und Tab liefe
+hinter das Fenster; nach einem Fehler zurück auf „Konto löschen“.
+
+**Notausgang nach 30 s** (Code-Review, Entscheidung Paddy): `CloudAuth.deleteAccount()` hat keine
+eigene Frist, offline wartet ein Firestore-Schreiben unter Umständen endlos — mit der Sperre
+käme man dann gar nicht mehr aus dem Fenster. Nach `SPERRE_MAX_MS` gibt die Sperre nach und
+zeigt „Das dauert länger als sonst. Prüf deine Verbindung.“; der Vorgang läuft weiter wie früher.
+
 Im selben Zug: `fotosGebliebenMelden()` fokussiert „Verstanden“ statt des ✕ (`opts.focus`).
-Prüfstand `tools/pruefstand-konto-schliesssperre.py`, 19 Prüfungen, Gegenprobe aus Git.
+Prüfstand `tools/pruefstand-konto-schliesssperre.py`, 25 Prüfungen, Gegenprobe aus Git über
+alle fünf Schließwege.
+
+**Offen, bewusst nicht angefasst (Code-Review 25.10.2026):** Andere Fenster mit `await` vor
+`closeModal()` haben dieselbe Grundlücke — Profil speichern, Passwort zurücksetzen, Gruppe
+auflösen/verlassen über `confirmModal`. Eine gemeinsame „Fenster arbeitet“-Sperre in
+`closeModal()` wäre der saubere Weg; nicht Teil dieses Auftrags (CLAUDE.md §22).
 
 **Lehre:** Ein laufender Vorgang in einem Fenster braucht zwei Sperren — den Auslöser **und**
 das Schließen. Wer nur den Knopf sperrt, lässt den Fehlerweg ins Leere laufen.

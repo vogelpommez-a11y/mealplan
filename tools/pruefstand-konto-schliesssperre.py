@@ -57,6 +57,13 @@ if len(HILFEN) != 2:
 NEU = funktion(lines, "  function deleteAccountFlow() {") + "\n" + funktion(lines, "  function fotosGebliebenMelden(titel) {")
 if "modalCloseHook = schliessSperre" not in NEU:
     raise SystemExit("deleteAccountFlow() setzt die Schliesssperre nicht - Schnitt oder Code pruefen")
+# Die einzige Abweichung vom Produktionscode: der Notausgang nach 1 s statt 30 s, sonst
+# wartete der Pruefstand eine halbe Minute. Fall 2 dauert rund 0,3 s, bleibt also darunter;
+# und unter 1,5 s, weil pruefstand_lauf.py so lange Ruhe im Protokoll als "fertig" wertet.
+FRIST = "const SPERRE_MAX_MS = 30000;"
+if FRIST not in NEU:
+    raise SystemExit("Notausgang nicht gefunden: " + FRIST)
+NEU = NEU.replace(FRIST, "const SPERRE_MAX_MS = 1000;")
 
 alt_lines = subprocess.check_output(["git", "show", GEGEN_COMMIT + ":index.html"], cwd=BASIS).decode("utf-8").split("\n")
 ALT = funktion(alt_lines, "  function deleteAccountFlow() {") + "\n" + funktion(alt_lines, "  function fotosGebliebenMelden(titel) {")
@@ -138,6 +145,7 @@ async function alleWege() {
   // ---- 1. Vor dem Loeschen schliesst Abbrechen wie immer ----
   deleteAccountFlow();
   pruef("Fenster offen, ein Eintrag auf dem Stapel", [offen(), tiefe()], [true, 1]);
+  pruef("vor dem Loeschen haengt kein Hook (sonst erbte ihn ein Folgefenster)", modalCloseHook, null);
   q(".modal-foot [data-close]").click();
   await warte(120);
   pruef("vor dem Loeschen: Abbrechen schliesst, Stapel leer", [offen(), tiefe()], [false, 0]);
@@ -147,6 +155,7 @@ async function alleWege() {
   await warte(20);
   pruef("Knopf zeigt den Fortschritt", q("[data-confirm]").textContent, "Wird gelöscht …");
   pruef("Abbrechen und X ausgegraut", [q(".modal-foot [data-close]").disabled, q(".modal-head [data-close]").disabled], [true, true]);
+  pruef("Fokus auf der Ueberschrift, Fenster aria-busy", [document.activeElement === q(".modal-head h2"), q(".modal").getAttribute("aria-busy")], [true, "true"]);
   // Ausgegraute Knoepfe feuern kein click - die Sperre muss trotzdem halten, falls doch
   // jemand closeModal() ruft. Deshalb direkt UND ueber Escape, Hintergrund, Zurueck.
   pruef("closeModal() wird verweigert", [closeModal(), offen()], [false, true]);
@@ -160,9 +169,22 @@ async function alleWege() {
   await warte(30);
   pruef("nach dem Fehler: Fenster offen, Meldung sichtbar", [offen(), q("#del-err").textContent], [true, "Fehler: Netz weg"]);
   pruef("Knoepfe wieder frei", [q("[data-confirm]").disabled, q(".modal-foot [data-close]").disabled, q(".modal-head [data-close]").disabled], [false, false, false]);
+  pruef("Fokus zurueck auf Konto loeschen, Hook weg", [document.activeElement === q("[data-confirm]"), modalCloseHook], [true, null]);
   escape();
   await warte(120);
   pruef("Escape schliesst wieder, Stapel leer", [offen(), tiefe()], [false, 0]);
+
+  // ---- 3b. Notausgang: das Loeschen antwortet nie ----
+  starten(deleteAccountFlow);
+  await warte(1200);
+  pruef("nach der Frist: Fenster offen, Hinweis steht", [offen(), q("#del-err").textContent], [true, "Das dauert länger als sonst. Prüf deine Verbindung."]);
+  pruef("Abbrechen und X wieder frei, Knopf bleibt bei Wird geloescht", [q(".modal-foot [data-close]").disabled, q(".modal-head [data-close]").disabled, q("[data-confirm]").disabled], [false, false, true]);
+  escape();
+  await warte(120);
+  pruef("Escape schliesst nach der Frist", [offen(), tiefe()], [false, 0]);
+  loesen.nein(new Error("spaet"));   // der haengende Vorgang endet irgendwann - darf nichts anrichten
+  await warte(60);
+  pruef("spaetes Ende oeffnet nichts neu", offen(), false);
 
   // ---- 4. Erfolg: das Fenster schliesst sich selbst ----
   starten(deleteAccountFlow);
@@ -179,15 +201,30 @@ async function alleWege() {
   modalCloseHook = null; closeModal(); datenGeloescht = false;
   await warte(80);
 
-  // ---- GEGENPROBE: der Stand vor dem Fix ----
-  starten(deleteAccountFlowALT);
-  await warte(20);
-  pruef("GEGENPROBE alt: Abbrechen ist mitten im Loeschen nicht ausgegraut", q(".modal-foot [data-close]").disabled, false);
-  q(".modal-foot [data-close]").click();
-  pruef("GEGENPROBE alt: das Fenster ist zu, obwohl noch geloescht wird", offen(), false);
-  loesen.nein(new Error("Netz weg"));
-  await warte(30);
-  pruef("GEGENPROBE alt: der Fehler ist unsichtbar", [offen(), toasts.length], [false, 0]);
+  // ---- GEGENPROBE: der Stand vor dem Fix - JEDER der fuenf Wege schloss mitten im Loeschen ----
+  var wege = {
+    "Abbrechen": function () { q(".modal-foot [data-close]").click(); },
+    "X": function () { q(".modal-head [data-close]").click(); },
+    "Escape": escape,
+    "Hintergrund": function () { q(".overlay").dispatchEvent(new MouseEvent("mousedown", { bubbles: true })); },
+    "Zurueck": function () { history.back(); }
+  };
+  var zu = [];
+  for (var w in wege) {
+    starten(deleteAccountFlowALT);
+    await warte(20);
+    var errEl = q("#del-err");
+    wege[w]();
+    await warte(120);
+    zu.push(w + ":" + (offen() ? "offen" : "zu"));
+    loesen.nein(new Error("Netz weg"));
+    await warte(30);
+    if (w === "Abbrechen") {
+      pruef("GEGENPROBE alt: Fehlertext steht in einem abgehaengten Fenster", [errEl.textContent, document.contains(errEl)], ["Fehler: Netz weg", false]);
+    }
+  }
+  pruef("GEGENPROBE alt: alle fuenf Wege schliessen mitten im Loeschen", zu, ["Abbrechen:zu", "X:zu", "Escape:zu", "Hintergrund:zu", "Zurueck:zu"]);
+  overlayStack.length = 0;
   await warte(120);
 
   fotosGebliebenMeldenALT("Konto gelöscht");

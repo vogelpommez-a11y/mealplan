@@ -2971,7 +2971,10 @@ und der danach wieder gelöscht wurde, und das Kontodokument mit unverändertem 
 `deleteAccountFlow()` und `fotosGebliebenMelden()` aus; `CloudAuth.deleteAccount()` ist ein
 Versprechen, das der Prüfstand von außen auflöst. Geprüft: alle fünf Schließwege während des
 Löschens (auch zweimal hintereinander und über `pmZurueck()`), der Fehlerweg mit sichtbarer
-Meldung, der Erfolgsweg und der Fokus auf „Verstanden“. Gegenprobe aus Git (`48bf979`).
+Meldung, der Erfolgsweg, der Notausgang (im Prüfstand nach 1 s statt 30 s — die einzige
+Abweichung vom Produktionscode, und sie muss unter 1,5 s bleiben: so lange Ruhe im Protokoll
+wertet `pruefstand_lauf.py` als „fertig“ und meldet sonst ein vorzeitiges Grün) und der Fokus.
+Gegenprobe aus Git (`48bf979`): alle fünf Wege schlossen dort mitten im Löschen. 25 Prüfungen.
 
 | Probe | Ergebnis |
 |---|---|
