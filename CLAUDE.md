@@ -226,7 +226,8 @@ Dunkel, und `/pushcheck` startet außer `website-security`/`doku-waechter` nur A
 **Die volle Runde** (`alle-pruefstaende.py`, `abnahme-mobil.py --voll`, alle Agenten) läuft in der
 monatlichen Wartung, vor Store-Abgaben und nach großen Umbauten. `abnahme-mobil.py` vergleicht mit
 dem Stand im Netz (Hinweis, kein Rot). `python tools/tempo-mobil.py` nur in der Wartung, vor
-Store-Abgaben und bei Änderungen am App-Start (`docs/TESTING.md` 2g-quater). Ein Werkzeug unter `tools/`, das Nutzerdaten anfasst
+Store-Abgaben und bei Änderungen am App-Start (`docs/TESTING.md` 2g-quater).
+`python tools/abnahme-app.py` (echte Android-App im Emulator) nur vor Store-Abgaben (`docs/TESTING.md` 2g). Ein Werkzeug unter `tools/`, das Nutzerdaten anfasst
 (`firestore-*.py`, `shared-aufraeumen.py`, `konten-inaktiv.py`), zählt als **B**. `/smoke`
 entfällt vor dem Push, sobald `alle-pruefstaende.py` läuft.
 
