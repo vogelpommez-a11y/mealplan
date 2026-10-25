@@ -335,7 +335,7 @@
      einmal den Stretched Link .rcard-open::after ueberlagert (TROUBLESHOOTING 90).
      Gemessen am 16.09.2026 mit tools/abnahme-mobil.py. */
   .section-head .btn.primary { position: relative; }
-  .section-head .btn.primary::after { content: ""; position: absolute; inset: -3px 0; }
+  .section-head .btn.primary::after { content: ""; position: absolute; inset: min(-3px, calc(50% - 22px)) 0; }
   /* "Neues Meal" steht in einer Zeile mit den Umschaltern "Meine Meals"/"Rezeptbuch".
      Ohne nowrap bricht die Beschriftung bei 360-390 px um, der Knopf wird 63px hoch und
      ragt oben wie unten ueber die 34px hohen Umschalter hinaus. Gemessen bei der
@@ -459,7 +459,7 @@
   /* hitSlop wie .toast-undo::after: die Trefferflaeche waechst auf 44px (Apple HIG),
      das Aussehen bleibt. Gemessen am 16.09.2026 mit tools/abnahme-mobil.py.
      inset zaehlt ab PADDING BOX - der 1px-Rand ist nicht dabei. */
-  .ws-btn::after { content: ""; position: absolute; inset: -6px 0; }
+  .ws-btn::after { content: ""; position: absolute; inset: min(-6px, calc(50% - 22px)) 0; }
   /* OHNE .ws-ind (Jahres-Umschalter im Rueckblick) traegt der Knopf die Flaeche selbst -
      dieselbe Optik, nur hart umgeschaltet statt gleitend. */
   .ws-btn.active { color: var(--accent-contrast); background: linear-gradient(135deg, var(--accent-solid), var(--accent-solid-strong)); box-shadow: 0 2px 8px color-mix(in srgb, var(--accent) 34%, transparent); }
@@ -988,7 +988,7 @@
   /* hitSlop wie .toast-undo::after: die Trefferflaeche waechst auf 44px (Apple HIG),
      das Aussehen bleibt. Gemessen am 16.09.2026 mit tools/abnahme-mobil.py.
      inset zaehlt ab PADDING BOX - der 1px-Rand ist nicht dabei. */
-  .kal-seg button::after { content: ""; position: absolute; inset: -6px 0; }
+  .kal-seg button::after { content: ""; position: absolute; inset: min(-6px, calc(50% - 22px)) 0; }
   .kal-seg button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
   /* Flaeche und Schatten stehen im gemeinsamen Fundament oben. Hier nur Geometrie:
      zwei Segmente, 3px Einzug. Der hartkodierte Schatten (0 1px 4px rgba(0,0,0,.18))
@@ -1019,7 +1019,7 @@
   .zeitraum .kal-nb[disabled] { opacity: .35; background: var(--surface); }
   /* Die Tastflaeche bleibt 44 px, auch wenn der Knopf 30 px misst - unsichtbar nach
      aussen erweitert, damit der Daumen nicht zielen muss. */
-  .zeitraum .kal-nb::after { content: ""; position: absolute; inset: -8px; }
+  .zeitraum .kal-nb::after { content: ""; position: absolute; inset: min(-8px, calc(50% - 22px)) -8px; }
   .zeitraum .kal-nav { position: relative; }
   .zeitraum .kal-nb { position: relative; }
   .zeitraum .kal-nm { min-width: 128px; text-align: center; }
@@ -1488,7 +1488,7 @@
      Kartenrand. Deshalb nicht ein einzelner kleiner Wert fuer alles, sondern je Seite
      so viel wie moeglich: 32 + 8 + 8 = 48px hoch, ueber der von Apple HIG und WCAG 2.5.5
      geforderten Mindestgroesse von 44px. */
-  .slot .filled .x::after, .slot .filled .pencil::after { content: ""; position: absolute; inset: -8px; }
+  .slot .filled .x::after, .slot .filled .pencil::after { content: ""; position: absolute; inset: min(-8px, calc(50% - 22px)) -8px; }
   /* Steht der Stift (jetzt Personen-Icon) daneben (nur im Gruppenmodus, ab zwei
      Mitgliedern), reichen die 8px Abstand der Karte nicht fuer zwei volle Flaechen: jeder
      Knopf will 8px hitSlop nach aussen, zwei benachbarte brauchen also 16px sichtbaren
@@ -1547,7 +1547,7 @@
      heraus, und am linken Rand der Tageskarte ist genau dort der Platz, den die
      Wischgeste zum Nachbartag braucht (docs/TROUBLESHOOTING.md 58 und 61). Auf dem Handy
      ist der Anfasser ohnehin nie erreichbar - dort nimmt das Halten die Karte auf. */
-  .pm-grip::after { content: ""; position: absolute; inset: -7px 0; }
+  .pm-grip::after { content: ""; position: absolute; inset: min(-7px, calc(50% - 22px)) 0; }
   @media (hover: hover) {
     /* Nur auf Zeigegeraeten: nur dort gibt es ein Ueberfahren, das den Anfasser zeigen
        koennte, und nur dort ist Platz fuer den Einzug. */

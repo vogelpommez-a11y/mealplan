@@ -211,7 +211,7 @@ jeweils, worum es geht. **Nicht die ganze Datei lesen** — sie ist rund 310 KB 
 | 197 | `abnahme-mobil.py` rot in Schritt 5 der Einführung (iPhone SE) — Knopf unter der Kopfleiste |
 | 198 | Store-App: Zurück-Taste beendete die App, Startbild mit schwarzer Lücke |
 | 199 | Fenster nach `confirmModal()` + `await` ging sofort wieder zu |
-| 200 | Trefferfläche in der Android-App 43 statt 44 px (Meal-Auswahl) |
+| 200 | Trefferfläche in der Android-App 43 statt 44 px (Meal-Auswahl) — behoben |
 
 <!-- REGISTER-ENDE -->
 
@@ -7619,10 +7619,15 @@ emuliert) meldet beides nie.
 Dichte 2,625) setzt sie niedriger als Chrome am PC. Am PC reicht es knapp, in der App fehlt
 knapp ein Pixel.
 
-**Offen** — sichtbare Änderung, erst mit Paddy. Naheliegend: hitSlop mit fester Höhe
-(`top: 50%; height: 44px; translate`) statt Abstand zum Kasten, dann hängt er nicht mehr an
-der Schrift. Vorher prüfen, ob er dann einem Nachbarn den Tipp wegnimmt (`.pq-h` steht direkt
-unter `.pmore`).
+**Behoben (25.10.2026)** — an allen 16 handgerechneten Stellen, nicht nur an den beiden
+gemeldeten: senkrecht `inset: min(-Npx, calc(50% - 22px))`. Das ist mindestens der alte Rand,
+aber nie weniger als 22 px beiderseits der Mitte. Größere Flächen bleiben (Entscheidung
+Paddy: „behalten, nur auffüllen“, kein Umzug in `.hit`, der `.toast-undo` und das X am Meal
+auf 44 px geschrumpft hätte). Waagerecht unverändert. Kein Transform nötig, die Prozente
+zählen ab der padding box. `abnahme-app.py` Hell und Dunkel grün (32 Stationen),
+Gegenprobe mit dem alten CSS rot (genau diese 2 Befunde), `abnahme-mobil.py` grün und
+pixelgleich zum Netz. `.pmore` und `.pq-h` stoßen jetzt aneinander, ohne sich zu überdecken
+(`verdeckteKnoepfe` leer). Vorher/Nachher: Baustein `tippflaechen`.
 
 **Lehre:** Ein hitSlop „Kasten plus Rand“ ist nur so groß wie die Schrift auf dem Gerät.
 Genau dafür gibt es den zweiten Durchgang in der echten App.

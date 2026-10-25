@@ -59,21 +59,23 @@ hierher, sondern nach Abschnitt 3 oder 6.
 
 ---
 
-### Bekannter Rest: 15 Trefferflaechen sind noch handgerechnet
+### Bekannter Rest: 16 Trefferflaechen rechnen senkrecht selbst
 
-Der Mechanismus oben deckt die quadratischen Icon-Knoepfe und den Fuss ab. Fuenfzehn
-weitere Stellen rechnen ihr `inset` weiter selbst — die meisten **asymmetrisch**
-(`inset: -6px 0`), weil dort nur die Hoehe wachsen muss und die Breite ohnehin reicht:
+Der Mechanismus oben deckt die quadratischen Icon-Knoepfe und den Fuss ab. Sechzehn
+weitere Stellen rechnen ihr `inset` weiter selbst — **nur senkrecht mit Untergrenze**
+(`inset: min(-6px, calc(50% - 22px)) 0`, seit 25.10.2026, TROUBLESHOOTING 200), weil dort
+nur die Hoehe wachsen muss und die Breite ohnehin reicht. Die waagerechten Werte sind
+unveraendert, damit keine Flaeche einem Nachbarn den Tipp wegnimmt:
 
 `.section-head .btn.primary` · `.ws-btn` · `.kal-seg button` · `.zeitraum .kal-nb` ·
 `.slot .filled .x` / `.pencil` · `.pm-grip` · `.cathead` · `.rfilters button` ·
 `.ing-grip` · `.modal-head .btn.ghost` · `.pmore .btn` · `button.pq-h` · `.toast-undo` ·
-`.profile-btn` · `.auth-card .btn`
+`.profile-btn` · `.auth-card .btn` (dazu `.auth-switch .btn`, das nur dessen `inset` ueberschreibt)
 
-`max(100%, 44px)` traegt diese Faelle mit — bei einem breiten Element bleibt die Breite
-stehen und nur die Hoehe waechst. Sie wurden am 21.09.2026 bewusst **nicht** mitgezogen:
-Der Auftrag war der Icon-Knopf, und `.ing-grip` (`-7px -12px`) sowie `.toast-antworten`
-sind Ziehgriffe mit absichtlich anderer Form. Wer sie angeht, geht sie alle an.
+`max(100%, 44px)` truege diese Faelle zwar mit, liess aber jede Flaeche auf genau 44 px
+schrumpfen, die heute groesser ist (`.toast-undo`, das X am Meal) und wuerde auch waagerecht
+wachsen. Am 25.10.2026 deshalb bewusst die `min()`-Untergrenze statt eines Umzugs in `.hit`
+(Entscheidung Paddy: „Behalten, nur auffuellen“). Alle 16 sind dabei gemeinsam angefasst.
 
 ---
 

@@ -247,13 +247,18 @@ mit drin. Damit entfällt genau die Fehlerquelle, die unten beschrieben ist. Bei
 breiten Element (Fußzeilen-Link) bleibt die Breite stehen, weil `100%` größer als 44 px
 ist, und nur die Höhe wächst — dasselbe, was früher `inset: -6px 0` von Hand tat.
 
-**Fünfzehn Stellen rechnen weiterhin selbst** (`inset: -6px 0` und Verwandte). Sie sind
-nicht falsch, nur älter; die Liste steht in `docs/BAUSTEINE.md`. Der alte Weg:
+**Sechzehn Stellen rechnen weiterhin selbst** — senkrecht, und seit dem 25.10.2026 mit
+eingebauter Untergrenze; die Liste steht in `docs/BAUSTEINE.md`:
 
 ```css
 .beispiel { position: relative; }
-.beispiel::after { content: ""; position: absolute; inset: -6px; }
+.beispiel::after { content: ""; position: absolute; inset: min(-6px, calc(50% - 22px)) 0; }
 ```
+
+`min()` nimmt den größeren Abstand: mindestens den alten Rand, aber nie weniger als 22 px
+beiderseits der Mitte. Ein reines `inset: -6px` war nur so hoch wie die Schrift auf dem
+Gerät — in der Android-WebView fehlte zwei Stellen deshalb 1 px (`docs/TROUBLESHOOTING.md`
+200). Die Prozente zählen ab der padding box, die Mitte bleibt also dieselbe.
 
 Zwei Dinge, die dabei regelmäßig schiefgehen:
 

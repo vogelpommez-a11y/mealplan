@@ -16,7 +16,7 @@
   /* hitSlop wie .toast-undo::after: Trefferflaeche auf 44px (Apple HIG), Aussehen
      unveraendert. Gemessen am 16.09.2026 mit tools/abnahme-mobil.py. */
   .cathead { position: relative; }
-  .cathead::after { content: ""; position: absolute; inset: -6px 0; }
+  .cathead::after { content: ""; position: absolute; inset: min(-6px, calc(50% - 22px)) 0; }
   /* Waehrend der Suche ist die Kopfzeile nur Beschriftung, kein Knopf - siehe paintRecipeGroups(). */
   .cathead.static { cursor: default; padding-left: 25px; }
   .cathead.static:hover { border-bottom-color: var(--border); }
@@ -51,7 +51,7 @@
   /* hitSlop wie .toast-undo::after: Trefferflaeche auf 44px (Apple HIG), Aussehen
      unveraendert. Gemessen am 16.09.2026 mit tools/abnahme-mobil.py. */
   .rfilters button { position: relative; }
-  .rfilters button::after { content: ""; position: absolute; inset: -3px 0; }
+  .rfilters button::after { content: ""; position: absolute; inset: min(-3px, calc(50% - 22px)) 0; }
   .recipe-search svg { position: absolute; left: 11px; top: 50%; transform: translateY(-50%);
     width: 16px; height: 16px; color: var(--text-muted); pointer-events: none; }
   /* Attributselektor, nicht nur "input": input[type="search"] (Zeile ~1113) hat dieselbe
@@ -288,7 +288,7 @@
   /* 44 px Tastflaeche in der SENKRECHTEN Achse (TROUBLESHOOTING 38: die Enge gilt nur in
      einer Achse). Waagerecht ist der Anfasser nicht das einzige Ziel - auf dem Handy nimmt
      das Halten die ganze Zeile auf. */
-  .ing-grip::after { content: ""; position: absolute; inset: -7px -12px; }
+  .ing-grip::after { content: ""; position: absolute; inset: min(-7px, calc(50% - 22px)) -12px; }
   .ing-grip svg { width: 14px; height: 14px; }
   .ing-view.ro .ing-grip { display: none; }
   @media (hover: hover) {
@@ -668,7 +668,7 @@
   /* hitSlop wie .toast-undo::after: Trefferflaeche auf 44px (Apple HIG), Aussehen
      unveraendert. Gemessen am 16.09.2026 mit tools/abnahme-mobil.py. */
   .modal-head .btn.ghost { position: relative; }
-  .modal-head .btn.ghost::after { content: ""; position: absolute; inset: -8px -6px; }
+  .modal-head .btn.ghost::after { content: ""; position: absolute; inset: min(-8px, calc(50% - 22px)) -6px; }
   .modal-body { padding: 18px; }
   .modal-foot { display: flex; gap: 8px; justify-content: flex-end; padding: 14px 18px; border-top: 1px solid var(--border); background: var(--surface-2); flex-wrap: wrap; }
 
@@ -761,7 +761,7 @@
   /* hitSlop wie .toast-undo::after: Trefferflaeche auf 44px (Apple HIG), Aussehen
      unveraendert. Gemessen am 16.09.2026 mit tools/abnahme-mobil.py. */
   .pmore .btn { position: relative; }
-  .pmore .btn::after { content: ""; position: absolute; inset: -8px 0; }
+  .pmore .btn::after { content: ""; position: absolute; inset: min(-8px, calc(50% - 22px)) 0; }
   /* Schnelleintrag (zaehlbare Lebensmittel). Die Ueberschrift traegt .sec-h, hier steht
      nur der Abstand - Ort-abhaengig ist der Abstand, nie die Schrift (siehe .sec-h). */
   .pq-h { margin: 15px 4px 5px; }
@@ -781,7 +781,7 @@
   /* hitSlop wie .toast-undo::after: Trefferflaeche auf 44px (Apple HIG), Aussehen
      unveraendert. Gemessen am 16.09.2026 mit tools/abnahme-mobil.py. */
   button.pq-h { position: relative; }
-  button.pq-h::after { content: ""; position: absolute; inset: -9px 0; }
+  button.pq-h::after { content: ""; position: absolute; inset: min(-9px, calc(50% - 22px)) 0; }
   /* Suchzeile des Pickers: Ein <input> kann kein Pseudoelement tragen - der
      hitSlop-Weg steht hier nicht offen. Deshalb echte Hoehe, und zwar fuer BEIDE
      Elemente der Zeile: 44px nur am Feld liesse den Barcode-Knopf daneben 3px
@@ -967,8 +967,12 @@
     cursor: pointer; transition: background var(--dur-fast) var(--ease-out);
   }
   /* Zeitkritisch (5 s Fenster) am Daumen - die sichtbare Pille bleibt kompakt, die Trefferflaeche
-     erreicht trotzdem 44px, gleiches hitSlop-Muster wie .btn.icon-gh::after. */
-  .toast-undo::after { content: ""; position: absolute; inset: -10px; }
+     erreicht trotzdem 44px, gleiches hitSlop-Muster wie .btn.icon-gh::after.
+     Senkrecht min(-Npx, calc(50% - 22px)): mindestens der alte Rand, aber nie weniger als
+     22 px beiderseits der Mitte. Ein reines -Npx hing an der Schrifthoehe - in der Android-
+     WebView fehlte .pmore .btn und .pq-h damit 1 px (TROUBLESHOOTING 200). Alle Stellen mit
+     "hitSlop wie .toast-undo::after" rechnen so. */
+  .toast-undo::after { content: ""; position: absolute; inset: min(-10px, calc(50% - 22px)) -10px; }
   .toast-undo:hover { background: color-mix(in srgb, currentColor 15%, transparent); }
   /* Rueckfaelle wie bei Kopf und Reiterleiste (basis.css): halbtransparent OHNE Blur hiesse
      Text auf Text - dann lieber deckend. */
@@ -998,7 +1002,7 @@
   /* hitSlop wie .toast-undo::after: Trefferflaeche auf 44px (Apple HIG), Aussehen
      unveraendert. Gemessen am 16.09.2026 mit tools/abnahme-mobil.py. */
   .profile-btn { position: relative; }
-  .profile-btn::after { content: ""; position: absolute; inset: -4px 0; }
+  .profile-btn::after { content: ""; position: absolute; inset: min(-4px, calc(50% - 22px)) 0; }
   .avatar { width: 30px; height: 30px; border-radius: 50%; flex: none; display: grid; place-items: center; font-size: 12.5px; font-weight: 700; color: var(--accent-contrast); background: linear-gradient(150deg, var(--accent-solid), var(--accent-solid-strong)); overflow: hidden; }
   .avatar img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; display: block; }
   .profile-btn .pname { font-size: 13.5px; font-weight: 550; max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -1469,14 +1473,14 @@
   /* hitSlop wie .toast-undo::after: "Mit Konto anmelden" ist ein .btn und damit 41px
      hoch. Auf die Karte begrenzt - Begruendung bei .section-head .btn.primary. */
   .auth-card .btn { position: relative; }
-  .auth-card .btn::after { content: ""; position: absolute; inset: -3px 0; }
+  .auth-card .btn::after { content: ""; position: absolute; inset: min(-3px, calc(50% - 22px)) 0; }
   .auth-card .field { text-align: left; }
   .auth-card .btn.primary { width: 100%; justify-content: center; padding: 12px; font-size: 15px; margin-top: 4px; }
   .auth-switch { margin: 14px 0 0; font-size: 12.5px; color: var(--text-muted); }
   /* Textlinks hier stehen allein in ihrer Zeile ("Ich habe schon ein Konto", "Neu hier?") -
      die Trefferflaeche darf deshalb ueber die Schrift hinaus auf 44 px wachsen, ohne einen
      Nachbarn zu ueberdecken. Im Fliesstext (.auth-note) bleibt es bei -3px. */
-  .auth-switch .btn::after { inset: -12px -6px; }
+  .auth-switch .btn::after { inset: min(-12px, calc(50% - 22px)) -6px; }
   .auth-back { margin-top: 12px; }
   .auth-note { font-size: 12px; color: var(--text-muted); margin: 16px 0 0; line-height: 1.5; display: flex; gap: 8px; align-items: flex-start; text-align: left; border-top: 1px solid var(--border); padding-top: 14px; }
   .auth-note svg { width: 15px; height: 15px; flex: none; margin-top: 1px; color: var(--accent); }

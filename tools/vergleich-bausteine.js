@@ -692,6 +692,39 @@ var BAUSTEINE = [
     zustand: vorabZustand(),
     schritte: ['[data-action="tab"][data-tab="recipes"]',
                '[data-action="view"][data-id="rvgoats"]', '[data-edit]']
+  },
+
+  // TROUBLESHOOTING 200 (25.10.2026): hitSlop mit Mindesthoehe statt "Kasten plus Rand".
+  // Unsichtbar - deshalb faerbt der Film die Trefferflaechen ein. Die Faerbung gehoert nur
+  // zur Probe, nicht zur App. Gemessen wird in Chrome; der fehlende Pixel zeigte sich nur in
+  // der Android-WebView (tools/abnahme-app.py), hier ist der Unterschied entsprechend klein.
+  {
+    id: "tippflaechen",
+    titel: "Tippflächen: feste Mindesthöhe 44 px",
+    was: "Meal-Auswahl: „Alle anzeigen“ und „Schnell“ mit eingefärbter Tippfläche. Aussehen der "
+       + "Knöpfe gleich, die Fläche hängt rechts nicht mehr an der Schrift.",
+    stellen: ["16 hitSlop-Stellen mit inset: min(-Npx, calc(50% - 22px)) — css/basis.css, css/komponenten.css"],
+    ist: "Die Tippfläche ist „Knopf plus ein paar Pixel“ — fällt die Schrift kleiner aus (Android), wird sie unter 44 px.",
+    soll: "Die Tippfläche ist immer mindestens 44 px hoch, egal wie die Schrift ausfällt. Größere Flächen bleiben, wie sie sind.",
+    // Ein Hauptgericht passt nicht ins Fruehstueck - erst dann erscheint .pmore ("Alle anzeigen").
+    zustand: { recipes: [
+      { id: "rvgoats", name: "Overnight Oats", category: "Frühstück",
+        nutrition: { kcal: 420, carbs: 55, protein: 22, fat: 12 }, ingredients: [] },
+      { id: "rvgchili", name: "Chili con Carne", category: "Hauptgericht",
+        nutrition: { kcal: 560, carbs: 48, protein: 42, fat: 20 }, ingredients: [] }
+    ] },
+    film: [
+      { text: "Wochenplan", dauer: 800, tippe: function (doc) {
+          return doc.querySelector('[data-action="tab"][data-tab="plan"]'); } },
+      { text: "„Meal wählen“ tippen", dauer: 1000, tippe: function (doc) {
+          return doc.querySelector('[data-action="pick"]'); } },
+      { text: "Tippflächen eingefärbt", dauer: 2400, vorbereiten: function (doc) {
+          var s = doc.createElement("style");
+          s.textContent = ".pmore .btn::after, button.pq-h::after, .modal-head .btn.ghost::after"
+            + "{ background: rgba(255,200,0,.35); outline: 1px dashed #c90; }";
+          doc.head.appendChild(s);
+        } }
+    ]
   }
 ];
 

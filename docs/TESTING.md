@@ -912,7 +912,8 @@ Theme-Kontrolle gegengeprüft (System dunkel, Lauf behauptet hell → Abbruch).
 anzeigen“ und die Abschnittsüberschrift „Schnell“ im Meal-Auswahlfenster haben in der App
 nur 43,2 bzw. 43,5 px Trefferfläche. Ursache: Ihr hitSlop ist `inset: -8px 0` bzw.
 `-9px 0` um den Kasten, und der Kasten hängt an der Schrift — Android (Roboto) setzt
-niedriger als Chrome am PC. Offen in `TROUBLESHOOTING` 200.
+niedriger als Chrome am PC. Behoben am selben Tag (`TROUBLESHOOTING` 200), danach 32
+Stationen grün, Gegenprobe mit dem alten CSS rot.
 
 ⚠️ **Falle:** Der frisch gestartete Emulator aktualisiert im Hintergrund die System-WebView
 und beendet dabei die App (`killDueToPackageUpdate` im `logcat`) — der Lauf bricht mit
