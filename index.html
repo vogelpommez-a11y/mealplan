@@ -14934,7 +14934,9 @@
       <div class="modal-foot"><button class="btn primary" data-close>Verstanden</button></div>
     </div>`);
     node.querySelectorAll("[data-close]").forEach(b => b.addEventListener("click", closeModal));
-    openModal(node, { ohneZurueck: true });
+    // Fokus auf "Verstanden" statt auf das ✕ (erster Knopf): Es gibt hier nichts abzuwaegen,
+    // beide schliessen - Enter soll das Naheliegende tun und ein Screenreader die Antwort nennen.
+    openModal(node, { ohneZurueck: true, focus: node.querySelector(".modal-foot .btn.primary") });
     modalCloseHook = () => { location.reload(); };
   }
 
@@ -14984,14 +14986,30 @@
       </div>
       <div class="modal-foot"><button class="btn ghost" data-close>Abbrechen</button><button class="btn danger" data-confirm>Konto löschen</button></div>
     </div>`);
-    node.querySelectorAll("[data-close]").forEach(b => b.addEventListener("click", closeModal));
+    const schliesser = node.querySelectorAll("[data-close]");
+    schliesser.forEach(b => b.addEventListener("click", closeModal));
     const btn = node.querySelector("[data-confirm]");
     const err = node.querySelector("#del-err");
+    // Waehrend "Wird gelöscht …" bleibt das Fenster offen. Vorher schlossen Abbrechen, ✕,
+    // Escape, Hintergrund und die Zurueck-Taste es mitten im Loeschen - das lief weiter, und
+    // ein Fehler landete in #del-err eines Fensters, das niemand mehr sah. Der Hook sperrt
+    // alle Wege zugleich (sie laufen ueber closeModal()); er legt sich nach einer Weigerung
+    // neu an, weil closeModal() ihn vor dem Aufruf leert - wie attemptClose im Meal-Blatt.
+    let loeschtGerade = false;
+    function sperren(an) {
+      loeschtGerade = an;
+      schliesser.forEach(b => { b.disabled = an; });
+    }
+    function schliessSperre() {
+      if (loeschtGerade) { modalCloseHook = schliessSperre; return false; }
+      return closeModal();
+    }
     btn.addEventListener("click", async () => {
       const pw = isPw ? node.querySelector("#del-pw").value : null;
       if (isPw && !pw) { err.textContent = "Gib dein Passwort ein."; return; }
       err.textContent = "";
       btn.disabled = true; btn.textContent = "Wird gelöscht …";
+      sperren(true);
       try {
         // Frisch aus der Cloud laden statt state.recipes zu nehmen: auf einem zweiten
         // Geraet angelegte Rezepte, die dieses Geraet noch nicht per Live-Sync erhalten
@@ -15007,6 +15025,7 @@
           password: pw, shareIds: state.shares || [], recipeIds: cloudRecipeIds,
           groupId: syncGid || "", inviteCodes: state.inviteCodes || []
         });
+        sperren(false);
         closeModal();
         stopCloudSync();
         // await: die Bilder-Loeschung in IndexedDB laeuft asynchron, der Reload unten darf ihr
@@ -15028,6 +15047,7 @@
           // Firestore-Daten sind schon weg, nur das Loeschen des Login-Zugangs selbst
           // ist fehlgeschlagen. Sauber abmelden statt einen Zwischenzustand zu zeigen -
           // ein erneuter Versuch nach dem Wieder-Anmelden schliesst die Loeschung ab.
+          sperren(false);
           closeModal();
           stopCloudSync();
           try {
@@ -15041,11 +15061,13 @@
           }
           return;
         }
+        sperren(false);
         err.textContent = cloudErrMsg(e);
         btn.disabled = false; btn.textContent = "Konto löschen";
       }
     });
     openModal(node);
+    modalCloseHook = schliessSperre;
   }
 
   // Lokales Profil (kein Cloud-Konto): Daten liegen ausschliesslich auf diesem Geraet,

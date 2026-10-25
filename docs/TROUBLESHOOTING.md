@@ -208,10 +208,11 @@ jeweils, worum es geht. **Nicht die ganze Datei lesen** — sie ist rund 310 KB 
 | 194 | Zwei Fallen beim ersten Capacitor-Build: Java 25 und das Facebook-SDK im Login-Plugin |
 | 195 | Der Prüfstand-Läufer hielt „10 rot“ für grün |
 | 196 | Kamera in der Android-Hülle: „Foto aufnehmen“ führte ins Leere oder in die Galerie |
-| 197 | `abnahme-mobil.py` rot in Schritt 5 der Einführung (iPhone SE) — Knopf unter der Kopfleiste |
+| 197 | `abnahme-mobil.py` rot in Schritt 5 der Einführung (iPhone SE) — Knopf unter der Kopfleiste — geklärt (Messfehler) |
 | 198 | Store-App: Zurück-Taste beendete die App, Startbild mit schwarzer Lücke |
 | 199 | Fenster nach `confirmModal()` + `await` ging sofort wieder zu |
 | 200 | Trefferfläche in der Android-App 43 statt 44 px (Meal-Auswahl) — behoben |
+| 201 | „Konto löschen“ ließ sich mitten im Löschen schließen — Fehler unsichtbar |
 
 <!-- REGISTER-ENDE -->
 
@@ -7631,3 +7632,24 @@ pixelgleich zum Netz. `.pmore` und `.pq-h` stoßen jetzt aneinander, ohne sich z
 
 **Lehre:** Ein hitSlop „Kasten plus Rand“ ist nur so groß wie die Schrift auf dem Gerät.
 Genau dafür gibt es den zweiten Durchgang in der echten App.
+
+## 201. „Konto löschen“ ließ sich mitten im Löschen schließen — Fehler unsichtbar
+
+**Symptom (Pushcheck-Hinweis 25.10.2026, am Code bestätigt):** Während „Wird gelöscht …“
+schlossen Abbrechen, ✕, Escape, ein Tipp auf den Hintergrund und die Zurück-Taste das Fenster.
+Das Löschen lief weiter. Schlug es fehl (Netz, falsches Passwort), stand die Meldung in
+`#del-err` eines Fensters, das schon weg war — der Nutzer erfuhr nichts.
+
+**Ursache:** `deleteAccountFlow()` sperrte nur den eigenen Knopf (`btn.disabled`), nicht das
+Schließen. Alle fünf Wege laufen über `closeModal()`.
+
+**Behoben (25.10.2026):** ein `modalCloseHook` (`schliessSperre`), der während des Löschens
+`false` liefert und sich dabei neu anlegt — `closeModal()` leert den Hook vor dem Aufruf, ohne
+das Neuanlegen ginge der zweite Versuch durch (dasselbe wie `attemptClose` im Meal-Blatt). Die
+Zurück-Taste legt ihren Eintrag bei einer Weigerung schon von selbst wieder an (`popstate`).
+Abbrechen und ✕ sind währenddessen ausgegraut; nach Fehler oder Erfolg ist alles wieder frei.
+Im selben Zug: `fotosGebliebenMelden()` fokussiert „Verstanden“ statt des ✕ (`opts.focus`).
+Prüfstand `tools/pruefstand-konto-schliesssperre.py`, 19 Prüfungen, Gegenprobe aus Git.
+
+**Lehre:** Ein laufender Vorgang in einem Fenster braucht zwei Sperren — den Auslöser **und**
+das Schließen. Wer nur den Knopf sperrt, lässt den Fehlerweg ins Leere laufen.

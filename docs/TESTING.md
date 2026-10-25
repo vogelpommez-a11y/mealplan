@@ -2966,6 +2966,13 @@ ausgeschnittenen Funktion einen Helfer gibt, sucht vorher per Grep, welche Prüf
 Sperre war nur 60 s gesetzt. Als Schreibprobe dienten ein Teilen-Link, den die App nie anzeigt
 und der danach wieder gelöscht wurde, und das Kontodokument mit unverändertem `tab`.
 
+**Dazu, eine Ebene höher: `tools/pruefstand-konto-schliesssperre.py` (25.10.2026,
+`TROUBLESHOOTING` 201).** Schneidet den Zurück-/Modal-Block (wie `pruefstand-zurueck-taste.py`),
+`deleteAccountFlow()` und `fotosGebliebenMelden()` aus; `CloudAuth.deleteAccount()` ist ein
+Versprechen, das der Prüfstand von außen auflöst. Geprüft: alle fünf Schließwege während des
+Löschens (auch zweimal hintereinander und über `pmZurueck()`), der Fehlerweg mit sichtbarer
+Meldung, der Erfolgsweg und der Fokus auf „Verstanden“. Gegenprobe aus Git (`48bf979`).
+
 | Probe | Ergebnis |
 |---|---|
 | Sperre mit `bis` in 4 h | `permission-denied`, die Regel erlaubt höchstens 3 h |
