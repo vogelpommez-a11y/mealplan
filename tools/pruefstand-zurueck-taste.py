@@ -12,7 +12,10 @@ Backdrop) - dabei muss der Eintrag per history.back() weg, ohne dass der eigene 
 Handler daraufhin ein zweites Mal schliesst. Genau diese Schleife laesst sich nur messen, indem
 man sie laufen laesst.
 
-Geprueft werden acht Faelle plus zwei Gegenproben. Der Scanner wird nicht mitgeschnitten
+Geprueft werden die Faelle 1 bis 11 mit Gegenproben; Fall 8 ist die Frage, die die Android-App
+(D7 Etappe 4) bei jedem Druck auf Zurueck an window.pmZurueck() stellt, 9 Doppeldruck (Fund widerlegt), 10 ein
+Fehler darin, 11 die Rueckkehr aus dem bfcache nach dem Loeschen (nur die Logik - ein echter
+bfcache-Sprung laesst sich hier nicht ausloesen, das Ereignis wird nachgestellt). Der Scanner wird nicht mitgeschnitten
 (Kamera), sondern ueber denselben Vertrag simuliert, den er benutzt: overlayOpened(fn) beim
 Anhaengen, overlayClosed(fn) im cleanup. Dass er das wirklich so tut, prueft dieses Skript
 zusaetzlich am Quelltext.
@@ -70,7 +73,7 @@ for muss in ["function overlayOpened", "function overlayClosed", 'addEventListen
         raise SystemExit("Ausschnitt unvollstaendig, fehlt: " + muss)
 
 # ---- Gegenprobe 1: openModal ohne History-Eintrag (der Stand VOR D5) ----
-OHNE = KERN.replace("    if (!ersetztOffenes) overlayOpened(closeModal);\n", "")
+OHNE = KERN.replace("    if (!ersetztOffenes && !(opts && opts.ohneZurueck)) overlayOpened(closeModal);\n", "")
 if OHNE == KERN:
     raise SystemExit("Gegenprobe 1 nicht bildbar - die Anbindung sieht anders aus")
 OHNE = OHNE.replace("function openModal(", "function openModalOHNE(")
@@ -93,6 +96,13 @@ m = re.search(r"  function closeModalLECK\(\) \{.*?\n  \}\n", LECK, re.S)
 if not m:
     raise SystemExit("closeModalLECK nicht isolierbar")
 LECK_FN = m.group(0)
+
+# ---- Fall 11: die pageshow-Zeile (liegt weit vor dem Schnitt, bei save()) ----
+# location.reload() wird zum Zaehler - neu laden wuerde den Pruefstand selbst beenden.
+PS = next((z for z in lines if 'addEventListener("pageshow"' in z and "datenGeloescht" in z), None)
+if PS is None or "location.reload()" not in PS:
+    raise SystemExit("pageshow-Zeile nach dem Loeschen nicht gefunden")
+PS = PS.replace("location.reload()", "neuGeladen++")
 
 # ---- Der Scanner wird nicht mitgeschnitten, aber sein Vertrag geprueft ----
 scan = text[text.index("  function scanBarcodeLive("):]
@@ -121,7 +131,12 @@ function warte(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
 // ---- Randstuecke ----
 var hoveredCardId = null, liveScanStop = null, groupModalRepaint = null;
 var gemeldet = [];
+// Fuer window.pmZurueck() (Fall 8): Reiter, Anmeldemaske, render() - nur das, was sie liest
+var appEl = document.createElement("div"), state = { tab: "home" }, renderZahl = 0, onb = null;
+function render() { renderZahl++; }
 function noteError(k, e) { gemeldet.push(k); }
+var datenGeloescht = false, neuGeladen = 0;
+function pageshowAnmelden() { __PAGESHOW__ }
 
 __KERN__
 __OHNE__
@@ -295,6 +310,90 @@ function marke() { return (history.state && history.state.pmOverlay) || 0; }
   await warte(120);
   pruef("kein Overlay, kein Schaden", [offen(), tiefe(), gemeldet.length], [false, 0, 0]);
 
+  // ---- 8. Store-App: MainActivity fragt window.pmZurueck() (D7 Etappe 4) ----
+  // Capacitor reicht die Android-Taste nicht an die WebView weiter; MainActivity (Nachbar-
+  // Repo) wertet genau diesen Ausdruck aus und gibt die Taste nur bei false an Android.
+  // Vor Etappe 4 gab es die Funktion nicht: false, und die App ging trotz offenem Fenster zu.
+  function nativZurueck() { return __NATIV_AUSDRUCK__; }
+  openModal(baueKnoten("App-Fenster"));
+  await warte(20);
+  pruef("App: offenes Fenster -> die App erledigt es", nativZurueck(), true);
+  await warte(150);
+  pruef("App: das Fenster ist zu, Stapel und History leer", [offen(), tiefe(), marke()], [false, 0, 0]);
+  state.tab = "recipes"; renderZahl = 0;
+  pruef("App: anderer Reiter -> die App erledigt es", nativZurueck(), true);
+  pruef("App: und steht jetzt auf Home", [state.tab, renderZahl], ["home", 1]);
+  pruef("App: auf Home -> Android darf die App verlassen", nativZurueck(), false);
+  appEl.classList.add("authing"); state.tab = "plan";
+  pruef("App: Anmeldemaske -> Android darf, kein Reiterwechsel dahinter", [nativZurueck(), state.tab], [false, "plan"]);
+  appEl.classList.remove("authing");
+  // Einfuehrung: render() zeichnet dann nichts - ein Reiterwechsel waere ein toter Druck
+  onb = { schritt: 1 }; renderZahl = 0;
+  pruef("App: Einfuehrung -> Android darf, kein Reiterwechsel", [nativZurueck(), state.tab, renderZahl], [false, "plan", 0]);
+  onb = null;
+  // Offenes Menue (attachMenuDismiss): schliesst ueber Escape am document, Reiter bleibt
+  var escapes = 0;
+  var zaehleEscape = function (e) { if (e.key === "Escape") { escapes++; menue.remove(); } };
+  document.addEventListener("keydown", zaehleEscape, true);
+  var menue = el('<div class="menu" role="menu"></div>'); document.body.appendChild(menue);
+  pruef("App: offenes Menue -> die App erledigt es", nativZurueck(), true);
+  pruef("App: Menue per Escape zu, Reiter bleibt", [escapes, menue.isConnected, state.tab], [1, false, "plan"]);
+  document.removeEventListener("keydown", zaehleEscape, true);
+  // Marken-Lader laeuft (appEl.inert): Taste schlucken, darunter nichts umschalten
+  appEl.inert = true; renderZahl = 0;
+  pruef("App: Lader laeuft -> geschluckt, kein Reiterwechsel", [nativZurueck(), state.tab, renderZahl], [true, "plan", 0]);
+  appEl.inert = false; state.tab = "home";
+  // Fenster ohne History-Eintrag (openModal ohneZurueck): Zurueck schliesst es direkt
+  openModal(baueKnoten("Schlussmeldung"), { ohneZurueck: true });
+  await warte(20);
+  pruef("App: Fenster ohne Eintrag steht, Stapel leer", [offen(), tiefe()], [true, 0]);
+  pruef("App: Zurueck schliesst es trotzdem", [nativZurueck(), offen()], [true, false]);
+  await warte(150);
+
+  // ---- 9. Doppeldruck: zwei Fenster gestapelt, zweimal schnell Zurueck ----
+  // Code-Review 24.10.2026 vermutete: das zweite back() kaeme vor dem popstate und risse das
+  // untere Fenster mit. Gemessen: das popstate ist nach unter 1 ms da, der zweite Druck (eigener
+  // Task, wie zwei evaluateJavascript-Aufrufe) schliesst dann zu Recht das naechste Fenster;
+  // zwei back() im selben Tick fasst der Browser zusammen (Fall 5b). Darum keine Sperre.
+  var obenZu = 0;
+  function obenSchliessen() { obenZu++; }
+  openModal(baueKnoten("Unten"));
+  await warte(20);
+  overlayOpened(obenSchliessen);   // wie der Scanner ueber einem Fenster
+  await warte(20);
+  pruef("Doppeldruck: zwei Fenster gestapelt", tiefe(), 2);
+  pruef("Doppeldruck: erster Druck", nativZurueck(), true);
+  await warte(1);
+  pruef("Doppeldruck: nach 1 ms ist das obere schon zu", [obenZu, offen(), tiefe()], [1, true, 1]);
+  pruef("Doppeldruck: zweiter Druck", nativZurueck(), true);
+  await warte(150);
+  pruef("Doppeldruck: je Druck genau ein Fenster", [obenZu, offen(), tiefe(), marke()], [1, false, 0, 0]);
+
+  // ---- 10. Fehler in pmZurueck ----
+  // Die Antwort bleibt false (wie bei einem Wurf in MainActivity), der Fehler wird gemeldet.
+  var echtRender = render;
+  gemeldet.length = 0; state.tab = "plan";
+  render = function () { throw new Error("kaputt"); };
+  pruef("Fehler: Antwort false, Fehler gemeldet", [nativZurueck(), gemeldet.indexOf("back:pmZurueck") >= 0], [false, true]);
+  var warf = false; state.tab = "plan";
+  try { pmZurueckSchritt(); } catch (e) { warf = true; }
+  pruef("GEGENPROBE ohne Abfang laeuft der Fehler ungemeldet bis MainActivity", warf, true);
+  render = echtRender; state.tab = "home"; gemeldet.length = 0;
+
+  // ---- 11. Rueckkehr aus dem bfcache nach dem Loeschen ----
+  function seiteZurueck(p) { window.dispatchEvent(new PageTransitionEvent("pageshow", { persisted: p })); }
+  datenGeloescht = true;
+  seiteZurueck(true);
+  pruef("GEGENPROBE ohne die Zeile bleibt die geloeschte Seite mit alten Daten stehen", neuGeladen, 0);
+  pageshowAnmelden();
+  datenGeloescht = false; seiteZurueck(true);
+  pruef("bfcache ohne Loeschen: kein Neuladen", neuGeladen, 0);
+  datenGeloescht = true; seiteZurueck(false);
+  pruef("normaler Seitenaufruf nach Loeschen: kein zweites Neuladen", neuGeladen, 0);
+  seiteZurueck(true);
+  pruef("bfcache nach Loeschen: neu laden", neuGeladen, 1);
+  datenGeloescht = false;
+
   // ---- Gegenprobe 1: ohne History-Eintrag schliesst Zurueck nichts ----
   openModalOHNE(baueKnoten("Gegenprobe"));
   await warte(20);
@@ -318,6 +417,18 @@ function marke() { return (history.state && history.state.pmOverlay) || 0; }
   pruef("GEGENPROBE das erste Zurueck laeuft ins Leere", offen(), false);
   overlayStack.length = 0;
 
+  // ---- Gegenprobe 3: der Stand vor D7 Etappe 4 - es gibt kein pmZurueck ----
+  // Dann antwortet der Ausdruck aus MainActivity false, und Android beendet die App,
+  // obwohl ein Fenster offen ist. Genau der Fehler, den Fall 8 abstellt.
+  var echt = window.pmZurueck;
+  delete window.pmZurueck;
+  openModal(baueKnoten("Gegenprobe-App"));
+  await warte(20);
+  pruef("GEGENPROBE ohne pmZurueck: Android bekaeme die Taste trotz offenem Fenster", [nativZurueck(), offen()], [false, true]);
+  window.pmZurueck = echt;
+  closeModal();
+  await warte(150);
+
   LOG.push("");
   LOG.push("Scanner-Vertrag im Quelltext (nicht mitgeschnitten): __SCAN__");
   LOG.push(bad ? ("FEHLGESCHLAGEN: " + bad + " von " + (ok + bad)) : ("ALLE " + ok + " PRUEFUNGEN GRUEN"));
@@ -327,7 +438,21 @@ function marke() { return (history.state && history.state.pmOverlay) || 0; }
 """
 
 seite = seite.replace("__KERN__", KERN).replace("__OHNE__", OHNE).replace("__LECK__", LECK_FN)
+seite = seite.replace("__PAGESHOW__", PS)
 seite = seite.replace("__SCAN__", "OK" if scanner_ok else "FEHLT - scanBarcodeLive haengt nicht am Stapel")
+
+# Fall 8 benutzt den Ausdruck, den MainActivity.java im privaten Nachbar-Repo auswertet. Liegt
+# das Repo daneben, muss er dort woertlich stehen - sonst prueft Fall 8 eine Frage, die die App
+# gar nicht stellt. Ohne Nachbar-Repo (Cloud, CI) wird das nur gemeldet.
+NATIV_AUSDRUCK = "typeof window.pmZurueck === 'function' && window.pmZurueck() === true"
+MAIN = os.path.join(os.path.dirname(BASIS), "Paddys Mealplan App", "android", "app", "src", "main",
+                    "java", "de", "paddysmealplan", "app", "MainActivity.java")
+if os.path.isfile(MAIN):
+    if NATIV_AUSDRUCK not in io.open(MAIN, encoding="utf-8").read():
+        raise SystemExit("MainActivity.java fragt nicht mehr woertlich: " + NATIV_AUSDRUCK)
+else:
+    print("Hinweis: Nachbar-Repo fehlt - Ausdruck in MainActivity.java nicht abgeglichen")
+seite = seite.replace("__NATIV_AUSDRUCK__", NATIV_AUSDRUCK)
 
 io.open(ZIEL, "w", encoding="utf-8").write(seite)
 print("geschrieben: " + ZIEL)

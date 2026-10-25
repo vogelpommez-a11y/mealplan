@@ -2267,6 +2267,11 @@
   // Nach "Konto/Alle Daten loeschen" bis zum Reload: state liegt noch im Speicher, ein save()
   // in diesem Fenster schriebe die eben geloeschten Daten zurueck (Pushcheck 19.10.2026).
   let datenGeloescht = false;
+  // Verlaesst der Nutzer die Seite nach dem Loeschen ohne Reload (im Browser: Zurueck beim
+  // Fenster "Daten geloescht", das bewusst keinen History-Eintrag hat) und kommt per Vorwaerts
+  // zurueck, holt der Browser sie aus dem bfcache: alte Daten im Speicher, save() gesperrt -
+  // alles danach Eingetragene ginge verloren (Code-Review 24.10.2026). Dann sauber neu laden.
+  window.addEventListener("pageshow", e => { if (e.persisted && datenGeloescht) location.reload(); });
   function save() {
     if (datenGeloescht) return;
     try {
@@ -8294,6 +8299,39 @@
     }
   });
 
+  // Store-App (D7 Etappe 4): Capacitor reicht die Android-Zuruecktaste nicht an die WebView
+  // weiter - ohne Hilfe beendete sie die App auch bei offenem Fenster. MainActivity im
+  // Nachbar-Repo fragt deshalb hier nach: true = erledigt, sonst darf Android die App
+  // verlassen. Reihenfolge nach Androids Navigationsgrundsatz: erst die Fenster (ueber den
+  // Stapel oben, history.back() loest das popstate aus), dann von jedem Reiter zum Start-
+  // Reiter, erst dort hinaus. Im Browser ruft niemand diese Funktion.
+  // Nicht am Stapel haengen: Menues (attachMenuDismiss) - sie schliessen wie mit Escape - und
+  // der Marken-Lader (appEl.inert), unter dem kein Reiter wechseln darf; dort wird die Taste
+  // geschluckt. Einfuehrung und Anmeldemaske: wie im Browser an Android (render() zeichnet
+  // waehrend der Einfuehrung nichts - ein Reiterwechsel dort waere ein toter Tastendruck).
+  // Keine Doppeldruck-Sperre (Code-Review 24.10.2026, widerlegt im Pruefstand): Das popstate
+  // kommt nach unter 1 ms, ein zweiter Druck findet den Stapel schon gekuerzt vor und schliesst
+  // zu Recht das naechste Fenster; zwei back() im selben Tick fasst der Browser zusammen.
+  // Ein Fehler hier soll im Fehlerprotokoll landen; die Antwort bleibt die alte (false =
+  // Android verlaesst die App), die MainActivity bei einem Wurf ohnehin bekam.
+  window.pmZurueck = function () {
+    try { return pmZurueckSchritt(); }
+    catch (e) { noteError("back:pmZurueck", e); return false; }
+  };
+  function pmZurueckSchritt() {
+    if (overlayStack.length) { history.back(); return true; }
+    // Fenster ohne History-Eintrag (openModal ohneZurueck, z. B. "Daten geloescht"): direkt zu
+    if (modalRoot.childElementCount) { closeModal(); return true; }
+    if (document.querySelector(".menu:not(.menu-zu)")) {
+      document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+      return true;
+    }
+    if (appEl.inert) return true;
+    if (onb || appEl.classList.contains("authing")) return false;
+    if (state.tab !== "home") { state.tab = "home"; render(); return true; }
+    return false;
+  }
+
   // ---------- Modal ----------
   const modalRoot = document.getElementById("modal-root");
   const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
@@ -8362,7 +8400,9 @@
     document.addEventListener("keydown", modalKeys);
     const focusEl = (opts && "focus" in opts) ? opts.focus : node.querySelector("input, textarea, select, button");
     if (focusEl) setTimeout(() => focusEl.focus(), 30);
-    if (!ersetztOffenes) overlayOpened(closeModal);
+    // opts.ohneZurueck: Fenster ohne History-Eintrag - fuer Schlussmeldungen, nach denen die
+    // Seite ohnehin neu laedt (fotosGebliebenMelden).
+    if (!ersetztOffenes && !(opts && opts.ohneZurueck)) overlayOpened(closeModal);
   }
 
   // Einheitlicher Ja/Nein-Dialog. Ersetzt fuenf fast identische Modal-Bloecke; damit
@@ -14871,7 +14911,32 @@
     clearTimeout(toastTimer);
     setTimeout(() => location.reload(), ms);
   }
-  const FOTOS_GEBLIEBEN = "Ein paar Fotos ließen sich auf diesem Gerät nicht entfernen – lösch sie in den Browser-Einstellungen.";
+  // In der Android-App gibt es keine Browser-Einstellungen - dort fuehrt der Weg ueber die
+  // App-Einstellungen des Handys (D7 Etappe 4). Der Name folgt dem App-Namen, wie Android ihn
+  // dort anzeigt (strings.xml im Nachbar-Repo). iOS bekommt seinen Text mit der iOS-Etappe.
+  const FOTOS_GEBLIEBEN = (window.Capacitor && window.Capacitor.getPlatform && window.Capacitor.getPlatform() === "android")
+    ? "Ein paar Fotos ließen sich nicht entfernen. Lösch sie in den Einstellungen deines Handys unter Apps → Paddy's Mealplan → Speicher und Cache."
+    : "Ein paar Fotos ließen sich auf diesem Gerät nicht entfernen. Lösch sie in den Browser-Einstellungen.";
+  // Bleiben Fotos zurueck, muss der Nutzer selbst etwas tun - das liest niemand in einem Toast,
+  // der nach 4 s mit dem Neuladen verschwindet (ux-reviewer, 24.10.2026). Darum ein Dialog, der
+  // stehen bleibt; neu geladen wird beim Schliessen. Jeder Weg hinaus (Verstanden, ✕, Escape,
+  // Hintergrund) laeuft ueber closeModal() und damit ueber den Hook.
+  // OHNE History-Eintrag (ohneZurueck): "Alle Daten loeschen" kommt aus dem Bestaetigungsdialog, der sich
+  // vor dem Loeschen schliesst und seinen Eintrag per history.go() zuruecknimmt. Dessen popstate
+  // kommt erst nach dem await an - und schloss dann DIESES Fenster mit, die App lud sofort neu
+  // (gefunden von tools/vorher-nachher.py, 24.10.2026). Zurueck braucht es hier nicht: Danach
+  // laedt die Seite ohnehin neu.
+  function fotosGebliebenMelden(titel) {
+    datenGeloescht = true;
+    const node = el(`<div class="modal" role="dialog" aria-modal="true" aria-label="${esc(titel)}">
+      <div class="modal-head"><h2>${esc(titel)}</h2><button class="btn ghost sm" data-close aria-label="Schließen">✕</button></div>
+      <div class="modal-body"><p style="margin:0">${esc(FOTOS_GEBLIEBEN)}</p></div>
+      <div class="modal-foot"><button class="btn primary" data-close>Verstanden</button></div>
+    </div>`);
+    node.querySelectorAll("[data-close]").forEach(b => b.addEventListener("click", closeModal));
+    openModal(node, { ohneZurueck: true });
+    modalCloseHook = () => { location.reload(); };
+  }
 
   // Konto vollstaendig loeschen (Cloud-Konten, Art. 17 DSGVO / Datenschutz Ziffer 10).
   // Loescht zusaetzlich alle bekannten Teilen-Links, damit kein Snapshot verwaist zurueckbleibt.
@@ -14953,7 +15018,7 @@
           // nicht das im Speicher gehaltene state-Objekt (Rezepte, Plan,
           // Ziel) - ohne Reload wuerde ein direkt danach neu registriertes Konto genau
           // diese stehengebliebenen Daten wieder hochsynchronisieren, als waeren sie neu.
-          if (fotosGeblieben) nachLoeschenNeuladen("Dein Konto ist gelöscht. " + FOTOS_GEBLIEBEN, 4000);
+          if (fotosGeblieben) fotosGebliebenMelden("Konto gelöscht");
           else nachLoeschenNeuladen("Konto und Daten wurden gelöscht", 900);
         } catch (wipeErr) {
           toast("Ein Teil der lokalen Daten ließ sich gerade nicht entfernen. Lad die Seite neu und versuch es noch einmal.");
@@ -14994,7 +15059,7 @@
         try {
           const fotosGeblieben = await wipeLocalData();
           profile = null;
-          if (fotosGeblieben) nachLoeschenNeuladen("Deine Daten sind gelöscht. " + FOTOS_GEBLIEBEN, 4000);
+          if (fotosGeblieben) fotosGebliebenMelden("Daten gelöscht");
           else nachLoeschenNeuladen("Alle Daten wurden gelöscht", 900); // kurz sichtbar, dann sauberer Neustart
         } catch (wipeErr) {
           toast("Ein Teil der lokalen Daten ließ sich gerade nicht entfernen. Lad die Seite neu und versuch es noch einmal.");

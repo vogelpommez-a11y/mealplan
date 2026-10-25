@@ -18,6 +18,16 @@
 // laufen lassen. Kein neues HTML-Geruest - das ist der Unterschied zu den
 // Einzelproben probe-symbole.html/probe-fortschritt.html.
 
+// Fotohinweis: Das Leeren des Fotospeichers scheitert, die Datenbank laesst sich aber oeffnen -
+// genau dann meldet wipeLocalData() "Fotos geblieben".
+function fotoFehlerStellen(doc) {
+  doc.defaultView.IDBObjectStore.prototype.clear = function () { throw new Error("Probe: Fotos bleiben"); };
+}
+function menuePunkt(doc, muster) {
+  return Array.prototype.find.call(doc.querySelectorAll(".menu [role='menuitem']"),
+    function (b) { return muster.test(b.textContent); });
+}
+
 // Zweiergruppe (Paddy + Anna, "Einkauf fuer alle rechnen: An") nachstellen, OHNE dass etwas
 // ans Netz geht - wie bei cloud-laden, nur dass load() hier antwortet. Alles, was die App
 // sonst noch an CloudSync/CloudGroup fragt (Speichern, Listener, Mitgliedseintrag), faengt
@@ -272,6 +282,49 @@ var BAUSTEINE = [
       t.classList.add("show", "has-undo");
       return "Toast mit „Rückgängig“ dauerhaft eingeblendet";
     }
+  },
+
+  {
+    id: "fotohinweis",
+    titel: "Fotos blieben beim Löschen: Toast oder Dialog?",
+    was: "„Alle Daten löschen“, wenn sich Fotos nicht entfernen lassen. Links der alte Toast "
+       + "(4 s, dann lädt die Seite neu), rechts ein Dialog, der stehen bleibt. "
+       + "Der Android-Text erscheint nur in der App, hier steht der Browser-Text.",
+    stellen: [
+      "fotosGebliebenMelden() — index.html, „Alle Daten löschen“ und „Konto löschen“",
+      "FOTOS_GEBLIEBEN — Browser- und Android-Text"
+    ],
+    ist: "Der Hinweis steht 4 Sekunden unten, dann startet die App neu — wer langsam liest, verpasst ihn.",
+    soll: "Ein Fenster bleibt stehen, bis du „Verstanden“ tippst. Erst dann startet die App neu.",
+    schritte: ['[data-action="profile-menu"]'],
+    // Echter Loeschweg (deleteLocalDataFlow -> wipeLocalData), nur das Leeren des Foto-
+    // speichers schlaegt fehl - genau der Fall "Datenbank offen, clear() scheitert", in dem
+    // wipeLocalData() fotosGeblieben meldet. Danach ist das Testprofil des Rahmens geloescht:
+    // fuer einen zweiten Blick die Probe neu laden.
+    oeffnen: function (doc) {
+      fotoFehlerStellen(doc);
+      var item = menuePunkt(doc, /Alle Daten löschen/);
+      if (!item) return "„Alle Daten löschen“ im Profilmenü nicht gefunden";
+      item.click();
+      var ok = doc.querySelector("[data-confirm]");
+      if (!ok) return "Bestätigung nicht offen";
+      ok.click();
+      return "Gelöscht, Fotos „blieben“ — links Toast (4 s), rechts Dialog";
+    },
+    // Fuer tools/vorher-nachher.py: dieselben Handgriffe, je Schritt ein Bild. `tippe` liefert
+    // den Knopf - das Werkzeug zeigt ihn mit gelbem "Finger" und tippt dann selbst.
+    film: [
+      { text: "Startseite", dauer: 800 },
+      { text: "Auf dein Profil tippen", dauer: 1000, tippe: function (doc) {
+          return doc.querySelector('[data-action="profile-menu"]'); } },
+      { text: "„Alle Daten löschen“ tippen", dauer: 1000, tippe: function (doc) {
+          return menuePunkt(doc, /Alle Daten löschen/); } },
+      { text: "Bestätigen — die Fotos lassen sich dabei nicht entfernen", dauer: 1400,
+        vorbereiten: fotoFehlerStellen,
+        tippe: function (doc) { return doc.querySelector("[data-confirm]"); } },
+      { text: "3 Sekunden später", dauer: 1600 },
+      { text: "6 Sekunden später", dauer: 3000 }
+    ]
   },
 
   {

@@ -82,7 +82,7 @@ merkt.
 | Bereich | Kennung | Prüfer | Auslöser |
 |---|---|---|---|
 | Die App selbst | `pfad:index.html` | alle, je nach Änderung | siehe `CLAUDE.md` §19 |
-| Styles und Design-Tokens | `pfad:css/` | `ux-reviewer` (Tokens, Zustände), `kvp` (Mobile), `tools/abnahme-mobil.py` (Trefferflächen, Kontrast, Überlauf), `tools/a11y-pruefung.py` (Namen, Labels, Fokus, Tabweg), `tools/probe-vergleich.html` (Sichtprobe vorher/nachher) | jede UI-Änderung |
+| Styles und Design-Tokens | `pfad:css/` | `ux-reviewer` (Tokens, Zustände), `kvp` (Mobile), `tools/abnahme-mobil.py` (Trefferflächen, Kontrast, Überlauf), `tools/a11y-pruefung.py` (Namen, Labels, Fokus, Tabweg), `tools/vorher-nachher.py` (Ist/Soll-Film zur Abnahme, seit 24.10.2026), `tools/probe-vergleich.html` (zum Selbst-Ausprobieren) | jede UI-Änderung |
 | Daten und Rechtstexte | `pfad:data/` | `anwalt` (Rechtstexte, Bildlizenzen), `kvp` (Katalog, Nährwerte), `tools/pruefstand-rezepttexte.py` (Zubereitungen), `tools/pruefstand-stueckliste.py` (Schnellauswahl) | neues Meal, neues Bild, geänderter Rechtstext |
 | Eigenständige Bibliotheken | `pfad:lib/` | `website-security` (Open Food Facts, Kamera), `lieferkette` (ZXing-Anbindung) | Änderung an Barcode, PDF oder den gemeinsamen Helfern |
 | Prüfsystem (Agenten, Hooks, Skills) | `pfad:.claude/` | `tools/wartung-check.py` | jede Änderung am Setup |
@@ -95,7 +95,7 @@ merkt.
 | Fremdcode | `pfad:vendor/` | `lieferkette`, `tools/netz-ohne-konto.py` (was der Fremdcode ohne Konto tatsächlich anfragt — vier Browserkennungen, weil das SDK an der Kennung verzweigt) | jede Änderung, plus regelmäßig ohne Anlass |
 | Cloudflare Worker | `pfad:worker/` | `website-security`, `datenschutz-technik` | Deploy, neue Verarbeitung |
 | Firestore-Regeln | `pfad:firestore.rules` | `website-security` (Inhalt), `tools/regeln-live.py` (Repo gegen Live), `tools/regeln-pruefen.py` (Syntax, ohne zu veröffentlichen — es gibt keinen Emulator), `tools/pruefstand-share-frist.py` und `tools/pruefstand-gruppe-anonymisieren.py` (je eine Regel gegen den Client) | jede Regeländerung, und vor jedem Veröffentlichen |
-| Service Worker | `pfad:sw.js` | `website-security` | Cache-Strategie, neue Assets |
+| Service Worker | `pfad:sw.js` | `website-security`, `tools/tempo-mobil.py` (Wiederkehr mit warmem Cache) | Cache-Strategie, neue Assets |
 | Store-Manifest | `pfad:manifest.webmanifest` | `store-check` | Name, Icons, Berechtigungen |
 | Syntax-Prüfung | `pfad:syntax-check.py` | `tools/wartung-check.py` | Änderung am Prüfverfahren |
 | Lokaler Server | `pfad:test-server.ps1` | — nur Werkzeug, nicht ausgeliefert — | — |

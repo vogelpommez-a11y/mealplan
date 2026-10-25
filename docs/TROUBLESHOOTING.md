@@ -6,7 +6,7 @@ Dieses Dokument enthält bekannte Fehlerquellen, historische Bugs und Probleme, 
 
 <!-- REGISTER-ANFANG (erzeugt aus den Ueberschriften: python tools/register.py - nicht von Hand pflegen) -->
 
-**Register — 197.** Chronologisch gewachsen: je hoeher die Nummer,
+**Register — 199.** Chronologisch gewachsen: je hoeher die Nummer,
 desto juenger der Fund. Wer eine Falle sucht, sucht hier zuerst; die Ueberschrift sagt
 jeweils, worum es geht. **Nicht die ganze Datei lesen** — sie ist rund 310 KB gross.
 
@@ -208,7 +208,9 @@ jeweils, worum es geht. **Nicht die ganze Datei lesen** — sie ist rund 310 KB 
 | 194 | Zwei Fallen beim ersten Capacitor-Build: Java 25 und das Facebook-SDK im Login-Plugin |
 | 195 | Der Prüfstand-Läufer hielt „10 rot“ für grün |
 | 196 | Kamera in der Android-Hülle: „Foto aufnehmen“ führte ins Leere oder in die Galerie |
-| 197 | OFFEN: `abnahme-mobil.py` rot in Schritt 5 der Einführung (iPhone SE) — Knopf unter der Kopfleiste |
+| 197 | `abnahme-mobil.py` rot in Schritt 5 der Einführung (iPhone SE) — Knopf unter der Kopfleiste |
+| 198 | Store-App: Zurück-Taste beendete die App, Startbild mit schwarzer Lücke |
+| 199 | Fenster nach `confirmModal()` + `await` ging sofort wieder zu |
 
 <!-- REGISTER-ENDE -->
 
@@ -6693,7 +6695,7 @@ Wer eine Station ergänzt, ergänzt sie in beiden Dateien. Das ist die Schwachst
 sinnvollen Entscheidung, kein zweites Gerüst zu bauen (`docs/TESTING.md` 2g-bis).
 
 **Stand nach allen drei Korrekturen:** 0 Befunde über 24 Stationen und 298 Tab-Stopps,
-Gegenprobe in beide Richtungen grün, `abnahme-mobil.py` weiter grün über 108 Stationen.
+Gegenprobe in beide Richtungen grün, `abnahme-mobil.py` weiter grün über 108 Stationen (damals; seit 18.10.2026 96).
 
 ---
 
@@ -6732,6 +6734,7 @@ dessen Prozesse beendet, nicht den Alltags-Chrome. Bei Lauf zwei und drei liefen
 Entscheidung Paddy: ohne die Abnahme live (Änderung: ein Satz am Registrierformular, Text im
 Impressum; 59 Prüfstände grün). Die dritte Ursache ist noch zu finden. Bis dahin: Nach
 `vorfuehren.py` dessen Fenster schließen, **bevor** `abnahme-mobil.py` startet.
+**Gefunden am 25.10.2026:** das verdeckte sichtbare Fenster — siehe §197.
 
 **Behoben am 22.09.2026.** `Sitzung.start()` prüft jetzt den Server, bevor Chrome
 überhaupt öffnet (und startet ihn notfalls, wie `vorfuehren.py` es tat), und `laden()`
@@ -7489,7 +7492,7 @@ Formular offen (`ux-reviewer`, 24.10.2026, vorbestehend).
 **Lehre:** Eine neue Berechtigung im Manifest verändert auch Wege, die sie gar nicht benutzen
 wollen. Nach jedem Manifest-Eintrag jeden Weg zur selben Hardware einzeln durchspielen.
 
-## 197. OFFEN: `abnahme-mobil.py` rot in Schritt 5 der Einführung (iPhone SE) — Knopf unter der Kopfleiste
+## 197. `abnahme-mobil.py` rot in Schritt 5 der Einführung (iPhone SE) — Knopf unter der Kopfleiste
 
 **Symptom (24.10.2026):** `abnahme-mobil.py` meldet „Knopf nimmt dem Nachbarn den Tipp weg“:
 `button.onb-opt.on` („Abnehmen“) in „Was ist dein Ziel?“, getroffen wird `header.site` — 2x,
@@ -7508,3 +7511,97 @@ gepusht (24.10.2026). **Zu klären:** Lauf wiederholen; wenn stabil rot, ob das 
 weggescrollte Elemente ausnehmen muss oder ob die Einführung auf kleinen Bildschirmen falsch
 scrollt.
 
+**Geklärt am 25.10.2026 — ein Messfehler, kein App-Fehler.** Stabil rot, iPhone SE hell und
+dunkel; dazu dasselbe in `40_fortschritt`: „⋯“ und „+“ der Gewicht-Karte halb unter der
+Reiterleiste (das Bildschirmfoto zeigt sie am unteren Rand angeschnitten — weiterscrollen
+genügt). Die Prüfung „nimmt den Tipp weg“ ist für hitSlops gebaut, die über den Nachbarn
+reichen, und zählte jedes **gerade weggescrollte** Element unter einer festen Leiste mit.
+**Lösung:** Trifft der Mittelpunkt eine `fixed`/`sticky`-Leiste, die den Knopf nicht enthält,
+scrollt die Messung ihn per `scrollIntoView({block:'center'})` frei, tippt erneut und stellt
+den Scrollstand aller Vorfahren zurück. Danach 96 Stationen ohne Befund. Gegenprobe
+`unterFesterLeiste` (fixe Leiste über dem ganzen Bild): 0 → 12, wird also weiter gefunden.
+
+**Zweiter Fund, derselbe Tag: die Hänger in `bild_abwarten()`** (die „dritte Ursache“ aus
+§174, Wiederkehr 18.10. und 21.10.). Ursache: Das Werkzeug startete Chrome **sichtbar**. Liegt
+das Fenster hinter einem anderen, hält Chrome es für verdeckt (Native Window Occlusion) und
+zeichnet kein neues Bild — das `requestAnimationFrame` in `bild_abwarten()` kommt nie. Seit
+25.10. startet `Sitzung.start()` unsichtbar (`--headless=new`, `--disable-gpu`,
+`--disable-backgrounding-occluded-windows`, `--disable-renderer-backgrounding`,
+`--disable-background-timer-throttling`), wie `vorher-nachher.py`. `--zeigen` startet wie früher
+sichtbar und kann dort wieder hängen. Drei Volläufe ohne Hänger.
+
+## 198. Store-App: Zurück-Taste beendete die App, Startbild mit schwarzer Lücke
+
+**Symptom 1 (24.10.2026, D7 Etappe 4):** In der Android-Hülle schloss die Zurück-Taste die App
+sofort — auch mit offenem Fenster („Neues Meal“, `history.length` 2). Im Browser schloss sie es.
+
+**Ursache:** Capacitor 8 leitet die Taste ohne das Plugin `@capacitor/app` nicht an die WebView
+weiter; `BridgeActivity` hat keinen eigenen Callback, also beendet Android die Activity. Die
+History-Einträge aus D5 liegen ungenutzt da. **Behoben:** `OnBackPressedCallback` in
+`MainActivity.java` fragt `window.pmZurueck()` (`docs/ARCHITECTURES.md`, Zurück-Taste, „In der
+Store-App“). Prüfstand: Fall 8 in `pruefstand-zurueck-taste.py`.
+
+**Symptom 2:** Das neue Startbild (Logo auf Fast-Schwarz) verschwand nach ~1,6 s, dann **0,8 s
+nur Schwarz**, dann tauchte das Logo des Web-Startbildschirms 28 dp höher wieder auf (Video im
+Emulator, Bild für Bild vermessen).
+
+**Ursache:** Androids Startbild geht mit dem ersten Bild des **Fensters** — die WebView braucht
+danach noch, bis `index.html` steht. Und das Web-Logo sitzt nicht in der Mitte: Unter ihm steht
+der Slogan, die Spalte ist als Ganzes zentriert. **Behoben:** `setKeepOnScreenCondition` hält
+das Startbild, bis `WebViewListener.onPageCommitVisible` kommt (Notbremse 4 s), Abgang ohne
+Animation; `symbole.py` (Nachbar-Repo) setzt das Logo 28 dp über die Mitte. Gemessen danach: Logo von
+1,19 s bis zum App-Start durchgehend an derselben Stelle (y 976–1277 px), keine Lücke, App
+insgesamt 0,3 s früher da. Beim Erst-Intro steht zusätzlich der Schriftzug darüber — dort
+springt das Logo einmal, hingenommen.
+
+**Nachgeschärft nach `/code-review` (selber Tag):** Die erste Fassung von `pmZurueck()` kannte
+nur Stapel, `authing` und Reiter. Drei Lücken: In der Einführung wechselte sie den Reiter, obwohl
+`render()` dort nichts zeichnet (erster Druck tot, zweiter schloss die App); ein offenes Menü
+(`attachMenuDismiss`, nicht am Stapel) blieb stehen, während darunter Home erschien; unter dem
+laufenden Marken-Lader wechselte der Reiter. Jetzt: Menü per Escape, Lader schluckt, Einführung
+geht an Android. Prüfstand (heute 61 Prüfungen), im Emulator mit dem echten Profilmenü nachgeprüft.
+
+**Falle beim Bau:** `--` ist in XML-Kommentaren verboten. Ein Kommentar mit dem Token-Namen
+`--splash-bg` in `styles.xml` brach `mergeDebugResources` ab („Zeichenfolge "--" ist in
+Kommentaren nicht zulässig“).
+
+**Lehre (198):** Eine Hülle übernimmt nicht automatisch, was die Web-App im Browser vom Browser
+geschenkt bekommt — Zurück-Taste, Startbild-Übergang. Jede Browser-Leistung, auf die sich die
+Web-App verlässt, in der Hülle einzeln nachmessen.
+
+## 199. Fenster nach `confirmModal()` + `await` ging sofort wieder zu
+
+**Symptom (24.10.2026):** Das neue Fenster „Daten gelöscht“ (Fotos blieben beim Löschen) war
+im Ist/Soll-Film nach dem Bestätigen gar nicht zu sehen — die App lud sofort neu. Im
+Browser beim Bauen übersehen; `tools/vorher-nachher.py` zeigte es im ersten Lauf.
+
+**Ursache:** `confirmModal()` schließt sich **vor** `onConfirm()`. `closeModal()` nimmt seinen
+History-Eintrag gebündelt per `history.go(-1)` zurück (`setTimeout 0`, D5). Das `popstate`
+dazu kommt erst an, wenn `onConfirm` schon hinter einem `await` (hier `wipeLocalData()`) ein
+neues Fenster geöffnet hat: Marke 0, Stapel 1 — der D5-Handler schließt das neue Fenster, sein
+Schließ-Hook lädt neu. Das gilt für **jedes** „schließen, `await`, öffnen“; der Fall „im selben
+Tick“ (Teilen) ist abgefangen, der mit `await` dazwischen nicht.
+
+**Behoben (hier):** `openModal(node, { ohneZurueck: true })` legt keinen History-Eintrag an;
+`fotosGebliebenMelden()` nutzt das — nach dem Fenster lädt die Seite ohnehin neu, Zurück
+braucht es nicht. **Offen, bewusst nicht angefasst:** die allgemeine Lücke im D5-Stapel.
+Betroffen wäre jeder künftige Ablauf mit `confirmModal` → `await` → `openModal`. Wer so etwas
+baut: `ohneZurueck` oder das neue Fenster erst nach dem `popstate` öffnen. Prüfstand
+`pruefstand-zurueck-taste.py` (Gegenprobe 1 kennt die neue Zeile).
+
+**Lehre:** Ein Standbild zeigt den Zustand, den man herstellt. Ein Film zeigt auch, was eine
+Sekunde später passiert — genau dort lag dieser Fehler.
+
+**Nachtrag 25.10.2026 (zweite `/code-review`-Runde, am Code gegengeprüft):**
+* **Behoben:** Im Browser verlässt Zurück beim Fenster „Daten gelöscht“ (kein History-Eintrag)
+  die Seite ohne Reload. Kommt sie per Vorwärts aus dem bfcache zurück, stünden alte Daten im
+  Speicher und `save()` bliebe gesperrt. Jetzt: `pageshow` mit `persisted` + `datenGeloescht`
+  → `location.reload()` (bei `save()`). `pmZurueck` fängt Fehler ab und meldet sie
+  (`back:pmZurueck`), Antwort bleibt `false`. Prüfstand Fall 10 und 11.
+* **Widerlegt:** „Doppeldruck schließt zwei Fenster“ — das `popstate` ist nach unter 1 ms da,
+  ein zweiter Druck schließt zu Recht das nächste Fenster (Fall 9).
+* **Bewusst gelassen:** Zurück direkt nach dem Schließen schneidet die Exit-Animation ab (rein
+  optisch); der iOS-Text für `FOTOS_GEBLIEBEN` kommt mit der iOS-Etappe; die Probe
+  `fotohinweis` löscht Theme-/Intro-Key nur im Testprofil (Theme kommt dort aus der Emulation).
+  Die allgemeine D5-Lücke oben hat heute keinen zweiten Auslöser (alle `confirmModal` mit
+  `await` durchgesehen).

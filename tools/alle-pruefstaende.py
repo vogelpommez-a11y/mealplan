@@ -32,8 +32,16 @@ absichtlich 0 ist. Ein Laeufer, der falsch Alarm schlaegt, wird abgeschaltet - d
 Unterscheidung.
 
 Aufruf:
-    python tools/alle-pruefstaende.py           # alle
-    python tools/alle-pruefstaende.py rezept    # nur die, deren Name "rezept" enthaelt
+    python tools/alle-pruefstaende.py              # alle (Wartung, Store, grosse Umbauten)
+    python tools/alle-pruefstaende.py --betroffen  # Alltag vor dem Push: nur der geaenderte Bereich
+    python tools/alle-pruefstaende.py rezept       # nur die, deren Name "rezept" enthaelt
+
+--betroffen (25.10.2026, Paddy: "nicht mehr pruefen als umsetzen"): Verglichen wird der
+Arbeitsstand mit origin/main. Gefahren wird ein Pruefstand, wenn er selbst neu oder geaendert
+ist, eine geaenderte Datei beim Namen nennt (barcode.js, rechtstexte ...) oder eine Funktion
+aus index.html, in der sich etwas geaendert hat. Dazu immer KERN (startet die ganze App).
+Bewusster Preis: Eine Nebenwirkung in einem Bereich, den kein Pruefstand mit der Aenderung
+verbindet, faellt erst im vollen Lauf auf - der laeuft monatlich und vor Store-Abgaben.
 """
 import glob
 import os
@@ -115,10 +123,80 @@ UEBERSPRINGEN = {
 ZEITGRENZE = 300
 
 
+# Laeuft bei --betroffen immer: startet die echte App ueber alle Reiter.
+KERN = ["tools/pruefstand-reiter.py"]
+APP_DATEIEN = ("index.html", "sw.js", "manifest.webmanifest", "firestore.rules", "css/", "data/",
+               "lib/", "worker/", "vendor/")
+FUNKTION = re.compile(r"^(\s*)(?:async\s+)?function\s*\*?\s*([A-Za-z_$][\w$]*)\s*\(")
+
+
+def _git(*args):
+    return subprocess.run(["git"] + list(args), capture_output=True, text=True,
+                          encoding="utf-8").stdout
+
+
+def geaenderte_funktionen():
+    u"""Funktionen in index.html, in denen sich gegenueber origin/main etwas geaendert hat -
+    die innerste und alle umschliessenden (ein Pruefstand schneidet oft die aeussere aus)."""
+    zeilen = open("index.html", encoding="utf-8").read().split("\n")
+    beruehrt = set()
+    for kopf in re.findall(r"^@@ -\S+ \+(\d+)(?:,(\d+))? @@", _git("diff", "-U0", "origin/main", "--", "index.html"), re.M):
+        start, anzahl = int(kopf[0]), int(kopf[1] or 1)
+        beruehrt.update(range(start, start + max(anzahl, 1)))
+    namen = set()
+    for nr in beruehrt:
+        einzug = None
+        for i in range(min(nr, len(zeilen)) - 1, -1, -1):
+            m = FUNKTION.match(zeilen[i])
+            if m and (einzug is None or len(m.group(1)) < einzug):
+                namen.add(m.group(2))
+                einzug = len(m.group(1))
+                if einzug <= 2:
+                    break
+    return namen
+
+
+def betroffene(dateien):
+    geaendert = [d for d in _git("diff", "--name-only", "origin/main").splitlines()]
+    geaendert += _git("ls-files", "--others", "--exclude-standard").splitlines()
+    app = [d for d in geaendert if d.startswith(APP_DATEIEN)]
+    funktionen = geaenderte_funktionen() if "index.html" in app else set()
+    stichworte = {os.path.splitext(os.path.basename(d))[0] for d in app if d != "index.html"}
+    gruende = {}
+    for pfad in dateien:
+        norm = pfad.replace("\\", "/")
+        if norm in KERN:
+            gruende[pfad] = "Kern"
+            continue
+        if norm in geaendert:
+            gruende[pfad] = "selbst geaendert"
+            continue
+        quelle = open(pfad, encoding="utf-8", errors="replace").read()
+        # Kurze Namen (load, save, esc) stehen auch in fremdem Text, etwa json.load - dort zaehlt
+        # nur die Funktion selbst, wie ein Pruefstand sie ausschneidet: "function load".
+        treffer = [f for f in funktionen if re.search((r"\b%s\b" if len(f) > 5 else r"function\s+%s\b") % re.escape(f), quelle)]
+        treffer += [s for s in stichworte if len(s) > 3 and s in quelle]
+        if treffer:
+            gruende[pfad] = ", ".join(sorted(treffer)[:4])
+    return gruende, len(funktionen), app
+
+
 def main():
-    filter_wort = sys.argv[1].lower() if len(sys.argv) > 1 else None
+    args = [a for a in sys.argv[1:] if a != "--betroffen"]
+    nur_betroffene = "--betroffen" in sys.argv[1:]
+    filter_wort = args[0].lower() if args else None
 
     dateien = sorted(glob.glob("tools/pruefstand-*.py"))
+    if nur_betroffene:
+        _git("fetch", "--quiet", "origin", "main")
+        gruende, n_funktionen, app = betroffene(dateien)
+        print("Nur betroffene: %d App-Datei(en) geaendert, %d Funktion(en) in index.html"
+              % (len(app), n_funktionen))
+        for pfad in sorted(gruende):
+            print("  + %-42s %s" % (os.path.basename(pfad), gruende[pfad]))
+        print("  (%d weitere uebersprungen - die volle Runde faehrt sie)\n"
+              % (len(dateien) - len(gruende)))
+        dateien = sorted(gruende)
     if filter_wort:
         dateien = [d for d in dateien if filter_wort in os.path.basename(d).lower()]
     if not dateien:

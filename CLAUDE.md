@@ -157,7 +157,8 @@ Mobile ist Bestandteil **jeder** UI-Änderung. Breakpoints `max-width: 720px` un
 Prüfen mit echter Geräte-Emulation, nie über die Fensterbreite:
 
 ```powershell
-python tools/abnahme-mobil.py        # 3 Breiten x Light/Dark, 96 Stationen
+python tools/abnahme-mobil.py        # Alltag: iPhone SE, Hell + Dunkel (~2 min)
+python tools/abnahme-mobil.py --voll # 3 Breiten x Light/Dark, 96 Stationen
 ```
 
 ⚠️ **Einen `@media`-Block nie mitten in einen bestehenden einfügen** (`docs/TROUBLESHOOTING.md` §97).
@@ -215,11 +216,17 @@ oder Pushcheck-Korrektur erneut:
 
 | Stufe | Wenn sich das geändert hat | Was vor dem Push läuft |
 |---|---|---|
-| **A** | **Nichts an der App**: nur `docs/`, `plans/`, `.claude/`, `tools/`, README, CI | `/pushcheck` Stufe A (`website-security`, `doku-waechter`); bei `.claude/` zusätzlich `python tools/wartung-check.py` |
-| **B** | App-Code, aber **nichts, was man sieht oder bedient** (Sync, Rechnen, Speichern, Regeln, `sw.js`, Worker) | `alle-pruefstaende.py` (~5 min) + `/pushcheck` Stufe B |
-| **C** | Etwas, das man **sieht oder bedient** (Markup, `css/`, Texte, Bilder, Abläufe) | Vorführung vor der Arbeit (§21b) + `alle-pruefstaende.py` + `abnahme-mobil.py` (~5 min) + `/pushcheck` Stufe C |
+| **A** | **Nichts an der App**: nur `docs/`, `plans/`, `.claude/`, `tools/`, README, CI | `/pushcheck`; bei `.claude/` zusätzlich `python tools/wartung-check.py` |
+| **B** | App-Code, aber **nichts, was man sieht oder bedient** (Sync, Rechnen, Speichern, Regeln, `sw.js`, Worker) | `alle-pruefstaende.py --betroffen` + `/pushcheck` |
+| **C** | Etwas, das man **sieht oder bedient** (Markup, `css/`, Texte, Bilder, Abläufe) | Vorführung vor der Arbeit (§21b) + `alle-pruefstaende.py --betroffen` + `abnahme-mobil.py` (~2 min) + `/pushcheck` |
 
-Im Zweifel die höhere Stufe. Ein Werkzeug unter `tools/`, das Nutzerdaten anfasst
+Im Zweifel die höhere Stufe. **Kurzfassung im Alltag (25.10.2026, Paddy):** `--betroffen` fährt
+nur die Prüfstände des geänderten Bereichs, `abnahme-mobil.py` nur das kleinste Gerät in Hell und
+Dunkel, und `/pushcheck` startet außer `website-security`/`doku-waechter` nur Agenten mit Anlass.
+**Die volle Runde** (`alle-pruefstaende.py`, `abnahme-mobil.py --voll`, alle Agenten) läuft in der
+monatlichen Wartung, vor Store-Abgaben und nach großen Umbauten. `abnahme-mobil.py` vergleicht mit
+dem Stand im Netz (Hinweis, kein Rot). `python tools/tempo-mobil.py` nur in der Wartung, vor
+Store-Abgaben und bei Änderungen am App-Start (`docs/TESTING.md` 2g-quater). Ein Werkzeug unter `tools/`, das Nutzerdaten anfasst
 (`firestore-*.py`, `shared-aufraeumen.py`, `konten-inaktiv.py`), zählt als **B**. `/smoke`
 entfällt vor dem Push, sobald `alle-pruefstaende.py` läuft.
 
@@ -378,7 +385,9 @@ Wird ein Hook zum Hindernis: melden, nicht umgehen. **Hooks nie relativ adressie
 alle 30 Tage:
 
 1. `python tools/wartung-check.py` — mechanisch, Sekunden.
-2. **`/rechtspruefung`**, `store-check` und `lieferkette` — was das Skript nicht sehen kann.
+2. **`/rechtspruefung`**, `store-check` und `lieferkette` — was das Skript nicht sehen kann;
+   dazu die volle Runde: `alle-pruefstaende.py`, `abnahme-mobil.py --voll`,
+   `tempo-mobil.py --live`.
 3. `python tools/wartung-check.py --setze` — verweigert ohne Sicherung der letzten 24 h
    (`tools/firestore-backup.py`) und ohne `plans/rechtspruefung-*.md` der letzten 30 Tage.
 
@@ -413,17 +422,18 @@ Meldet es eine Lücke:
 
 Acht Agenten in `.claude/agents/`. Sie ändern **nie** etwas, sie melden.
 
-**Über `/pushcheck`, je nach Stufe (Abschnitt 11):**
+**Über `/pushcheck`** — `website-security` immer, die übrigen **nur nach Anlass im Diff**
+(Auslöser-Tabelle in `.claude/commands/pushcheck.md`, seit 25.10.2026):
 
 | Agent | Modell | Prüft |
 |---|---|---|
-| `website-security` | sonnet | **jede Stufe**: Geheimnisse, personenbezogene Daten, XSS, Rules, `sw.js`, Worker, `vendor/`, Historie |
-| `anwalt` | sonnet | ab Stufe B: Rechtstext gegen Code |
-| `ux-reviewer` | haiku | Stufe C: Übersichtlichkeit geänderter UI (ruft vorher `ui-ux-pro-max`) |
-| `kvp` | sonnet | ab Stufe B: Fitness-/Wochenplan-Bezug, Design, Mobile, Bedienbarkeit, Wartbarkeit, Sync |
+| `website-security` | sonnet | **jeder Push**: Geheimnisse, personenbezogene Daten, XSS, Rules, `sw.js`, Worker, `vendor/`, Historie |
+| `anwalt` | sonnet | Anlass: Rechtstexte, Datenfelder, Dienste, Teilen, Gruppen, Konto, Bezahlung |
+| `ux-reviewer` | haiku | Anlass: neuer oder umgebauter Bildschirm (ruft vorher `ui-ux-pro-max`) |
+| `kvp` | sonnet | Anlass: neue Funktion oder umgebauter Ablauf |
 
-Ab Stufe B zusätzlich `/code-review`. Rote Funde werden **widerlegt, nicht bestätigt**:
-Erreichbarkeit, Wirkung, Schutz, je mit Fundstelle (`/pushcheck`).
+`/code-review` bei Sync, Speichern, Löschen, Rechnen, Login, `sw.js`, Worker, Rules. Rote Funde
+werden **widerlegt, nicht bestätigt**: Erreichbarkeit, Wirkung, Schutz, je mit Fundstelle.
 
 **Nach Auslöser, alle auf sonnet:**
 
@@ -432,7 +442,7 @@ Erreichbarkeit, Wirkung, Schutz, je mit Fundstelle (`/pushcheck`).
 | `store-check` | Pro/Bezahlung, Konto, Login, Kamera, `vendor/`, Manifest |
 | `lieferkette` | alles unter `vendor/`, neue externe Verweise — und regelmäßig ohne Anlass |
 | `datenschutz-technik` | neuer Dienst, neues Datenfeld, Sharing, Gruppen, Löschlogik |
-| `doku-waechter` | jede nicht-triviale Änderung — in `/pushcheck` jeder Stufe fest eingeplant |
+| `doku-waechter` | jede nicht-triviale Änderung — in `/pushcheck` immer eingeplant |
 
 Nicht für jede Textkorrektur alle Agenten, bei Sicherheit, Daten, Sync, Sharing, Store oder
 Recht aber sehr wohl. **🔴-Funde vor dem Melden am echten Code gegenprüfen.** Ein neuer Agent
@@ -500,13 +510,15 @@ Register: **`docs/BAUSTEINE.md`** · Prüfer: `python tools/bausteine.py`
 
 # 21b. Sichtbare Änderungen werden vorgeführt, bevor sie live gehen
 
-**Jede sichtbare Änderung wird dem Nutzer zuerst im Browser als Vorher/Nachher gezeigt.**
-Erst nach seiner Zustimmung wird committet und gepusht.
+**Jede sichtbare Änderung wird dem Nutzer zuerst als Ist/Soll gezeigt** — als fertiger Film
+mit Bildpaaren, die er nur ansieht, nicht bedient. Erst nach seiner Zustimmung wird
+committet und gepusht.
 
 ```powershell
-python tools/schnappschuss.py <baustein>   # Vorher-Stand einfrieren, VOR der Arbeit
-# ... Aenderung bauen ...
-python tools/vorfuehren.py <baustein>      # oeffnet sichtbar, in EIGENEM Profil
+python tools/schnappschuss.py <baustein>   # Ist-Stand einfrieren, VOR der Arbeit
+# ... Aenderung bauen, in tools/vergleich-bausteine.js `film` mit `tippe` je Schritt ...
+python tools/vorher-nachher.py <baustein>  # Film + Bildpaare, Hell/Dunkel, oeffnet die Seite
+python tools/vorfuehren.py <baustein>      # nur zum Selbst-Ausprobieren, EIGENES Profil
 ```
 
 ⚠️ **Nie im Alltagsbrowser vorführen** — dort ist ein Cloud-Konto angemeldet; `__test`

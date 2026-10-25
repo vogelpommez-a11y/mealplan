@@ -54,12 +54,17 @@ Repo ohne npm, und Signatur-Einstellungen stehen nicht öffentlich. Feste Werte:
 `de.paddysmealplan.app` (nie ändern), Capacitor 8.5.3 exakt gepinnt, Installationsskripte aus,
 Bau mit **JDK 21** (das JDK aus Android Studio bricht ab). Das Kopierskript `web-kopieren.py` im App-Repo kopiert
 `index.html`, `manifest.webmanifest`, `LICENSE`, `css/`, `data/`, `lib/`, `img/`, `vendor/` nach
-`www/` und bricht ab, wenn eine Datei der Ladereihenfolge aus `docs/MODULE.md` fehlt
+`www/` (dazu `LICENSE-APP` aus dem Nachbar-Repo) und bricht ab, wenn eine Datei der Ladereihenfolge aus `docs/MODULE.md` fehlt
 (Gegenprobe gefahren). **`sw.js` kommt bewusst nicht mit** — in der Hülle liegt alles lokal.
 Im Emulator **im Flugmodus** gestartet: Startbildschirm da. Etappe 2 für Android-Google
 erledigt (Abschnitt 4, „Stand 24.10.2026“). Etappe 3 (Kamera, Drehsperre) für Android erledigt
-(Abschnitt 6, „Stand 24.10.2026“). Offen: Apple-Login (iOS), nativer Scanner (nur iOS), 4 (StatusBar, Splash,
-Zurück-Taste, Text „Browser-Einstellungen“, Privacy Manifest); iOS folgt am Mac.
+(Abschnitt 6, „Stand 24.10.2026“). **Etappe 4 (Feinschliff) für Android erledigt (24.10.2026):**
+App-Symbol und Startbild aus dem Logo (`symbole.py` im Nachbar-Repo, `docs/DESIGN.md`),
+Zurück-Taste (Fenster → Home → raus, `docs/ARCHITECTURES.md`), Fotohinweis ohne
+„Browser-Einstellungen“, keine Android-Sicherung (Abschnitt 4), Lizenzliste `LICENSE-APP`,
+unbenutzte Plugin-Fenster entfernt. Die Statusleiste passt ohne Eingriff (hell und dunkel im
+Emulator angesehen). Offen: Apple-Login (iOS), nativer Scanner (nur iOS), Privacy Manifest und
+iOS-Text des Fotohinweises; iOS folgt am Mac.
 
 **Folge für jede Änderung an der App:** Die Website ist sofort live, die Store-Apps erst mit
 einem neuen Build — iOS nur am Mac.
@@ -249,13 +254,21 @@ gespeicherten Daten“. Geprüft im Prüfstand `pruefstand-google-nativ.py`.
   „Browser“. Anwaltsfrage: ist Credential Manager eigene Verarbeitung von Google? (`anwalt`)
 * **Art.-30-Verzeichnis:** Eintrag Google-Anmeldung um den Kanal „Store-App über Play-Dienste“
   ergänzen (`docs/DATENSCHUTZ-INTERN.md`).
-* **Android-Auto-Backup:** `android:allowBackup="true"` (Capacitor-Vorgabe) — Android kann
-  `localStorage`, IndexedDB und SharedPreferences ins Google-Backup des Nutzers sichern, außerhalb
-  unserer Löschroutine. Entscheiden: abschalten, Regeln (`dataExtractionRules`) oder benennen.
-* **Lizenzen:** Plugin ist MPL-2.0, seine Android-Bibliotheken Apache-2.0 — in der Lizenzliste
-  der App nennen (D7 Etappe 4).
-* Ungenutzte Plugin-Activities (`TwitterLoginActivity`, `OAuth2LoginActivity`, `exported=false`)
-  stehen im Manifest — harmlos, beim Feinschliff ansehen.
+* **Android-Auto-Backup: ERLEDIGT 24.10.2026 — abgeschaltet** (Paddy). `allowBackup="false"`,
+  `fullBackupContent="false"` und `dataExtractionRules` (`res/xml/keine_sicherung.xml`), das alle
+  Bereiche für Google-Backup **und** Gerätewechsel ausschließt — `allowBackup` allein lässt ab
+  Android 12 die Übertragung von Gerät zu Gerät weiterlaufen. Damit bleibt nichts außerhalb von
+  `wipeLocalData()`. Preis: Wer ohne Konto plant und das Handy wechselt, fängt neu an; Cloud-
+  Konten liegen in Firestore. Im Emulator: `ALLOW_BACKUP` fehlt in den Paket-Flags.
+* **Lizenzen: ERLEDIGT 24.10.2026.** `LICENSE-APP` im Nachbar-Repo (Capacitor MIT, Plugin
+  MPL-2.0 mit Quelle, AndroidX/Browser Helper/OkHttp/JWTDecode Apache-2.0, MIT und Apache im
+  vollen Wortlaut; Play-Dienste-Auth und `googleid` stehen laut ihrem POM unter der
+  **Android SDK License**, nicht Apache) wird nach `www/` kopiert und liegt in der APK neben
+  `LICENSE`. Einen Lizenz-Bildschirm gibt es nicht. Anwaltsfragen (`anwalt`, 24.10.2026):
+  Reicht die Datei im Paket ohne Menüpunkt? NOTICE-Dateien der Apache-Bestandteile sind nicht
+  geprüft. „Unverändert“ beim MPL-Plugin gilt nur, solange niemand es anpasst.
+* **Ungenutzte Plugin-Activities: ERLEDIGT 24.10.2026.** `TwitterLoginActivity` und
+  `OAuth2LoginActivity` per `tools:node="remove"` aus dem Manifest genommen.
 
 ---
 
@@ -334,7 +347,7 @@ Zwei Fallen, beide jetzt in `MainActivity.java` bzw. im Manifest gelöst
 - **Ohne `<queries>` findet die App die Kamera-App nicht** (Paketsichtbarkeit seit Android 11);
   „Foto aufnehmen“ öffnete deshalb auch mit Erlaubnis immer die Galerie, schon vor Etappe 3.
 
-`tools/app-bauen.py` (Nachbar-Repo) prüft im gemergten Manifest die **vollständige Liste** der
+`app-bauen.py` (Nachbar-Repo) prüft im gemergten Manifest die **vollständige Liste** der
 Berechtigungen (jede neue bricht den Bau ab, bis sie hier begründet ist), Kamera optional,
 `<queries>` und die Drehsperre — Gegenprobe gegen den Stand vor Etappe 3 gefahren.
 Ab Android 16 ignoriert das System die Drehsperre auf Tablets und Faltgeräten (≥ 600 dp), sobald
@@ -611,8 +624,15 @@ Alternativtexte sind dafür nicht geprüft.
 - **Mindest-SDK beim Einreichen** (laut `store-check`, Stand 19.09.2026): Apple verlangt seit
   28.04.2026 Xcode 26 und das iOS-26-SDK, ab April 2027 das iOS-27-SDK. Google Play verlangt
   seit 31.08.2026 für neue Einreichungen Android 16 (API 36), für Updates bestehender Apps
-  mindestens API 35. Android ist seit 24.10.2026 im Nachbar-Repo prüfbar (`targetSdk` dort),
-iOS erst am Mac.
+  mindestens API 35 (⚠️ die Play-Seite nannte am 24.10.2026 auch für Updates API 36 — vor der
+  Einreichung neu nachlesen). Android ist seit 24.10.2026 im Nachbar-Repo prüfbar (`targetSdk`
+  36 dort), iOS erst am Mac.
+- **Android 15/16-Verhalten (`store-check`, 24.10.2026):** Ab `targetSdk` 35 erzwingt Android
+  Edge-to-Edge, ab 36 laufen die Predictive-Back-Animationen per Vorgabe. Im Emulator (API 37,
+  Gestennavigation) geprüft: Statusleiste hell und dunkel, Zurück-Taste Fenster → Home → raus.
+  Solange der Zurück-Callback aktiv ist, fehlt die Zurück-zum-Startbildschirm-Animation —
+  Qualitäts-, kein Ablehnungsthema. Offen: Dreitasten-Navigation und ein echtes Gerät mit
+  Notch; die AAB-Prüfung der Play Console zur 16-KB-Seitengröße beim ersten Upload beachten.
 - **„Mit Apple anmelden“, privates Relay:** Apple hat am 24.08.2026 die Relay-Domain von
   `privaterelay.appleid.com` auf `private.icloud.com` umgestellt. Das betrifft uns erst, wenn
   `APPLE_ENABLED` umgelegt wird. Dann müssen beide Domains durchgelassen werden, wo E-Mails
@@ -637,10 +657,10 @@ iOS erst am Mac.
 | **Web-Kasse (Pro im Web)** | 🔴 entschieden 21.10.2026, nicht gebaut: Dienst (fertig oder selbst), Gewerbe, Steuer, AGB/Widerruf vor dem ersten Verkauf |
 | Nutrition Labels / Data Safety | 🟡 Datengrundlage steht (Abschnitt 5), Formulare nicht ausgefüllt |
 | Health apps declaration (Google Play) | 🟡 Pflicht für jede App, bei uns „Nutrition and Weight Management“ — beim Einrichten der Play Console (Abschnitt 5) |
-| Hinweis „lösch sie in den Browser-Einstellungen“ | 🟡 D7 Etappe 4 umformulieren: Lassen sich beim Löschen Fotos nicht entfernen, verweist die Meldung (`FOTOS_GEBLIEBEN`, `index.html`) auf Browser-Einstellungen — die gibt es in der Capacitor-App nicht (Gerät → App-Daten löschen). Vorgemerkt 19.10.2026 |
+| Hinweis „lösch sie in den Browser-Einstellungen“ | ✅ Android seit 24.10.2026: In der App verweist `FOTOS_GEBLIEBEN` (`index.html`) auf „Einstellungen deines Handys unter Apps → Paddy's Mealplan → Speicher und Cache“ (Menüname je Hersteller verschieden, am echten Gerät prüfen), im Browser bleibt der alte Text. 🟡 iOS-Text mit der iOS-Etappe |
 | `NSCameraUsageDescription` | 🟡 iOS-Etappe am Mac, Text: „Um Barcodes von Lebensmitteln zu scannen und Fotos davon aufzunehmen.“ (deckt Live-Scanner und „Foto aufnehmen“); Android-Gegenstück (`CAMERA` im Manifest) seit 24.10.2026 erledigt (Abschnitt 6) |
-| **Erinnerung „Am Vortag“ als Nachricht** | 🟡 nach D7 Etappe 4 bauen (entschieden 21.10.2026, Plan `plans/vorab-hinweis-auftauen.md`). Das Feld `vorab` und die Zeile auf der Startseite sind seit 21.10. live. Dazu kommt: Plugin `@capacitor/local-notifications`, **lokal**, kein Server, kein Push-Token, kein Blaze. Beim Start und nach jeder Planänderung die eigenen Erinnerungen löschen und für 7 Tage neu stellen (Vortag, Uhrzeit einstellbar, Standard 18:00; schon vorbei → keine). Berechtigung erst beim ersten Wählen eines Hinweises erfragen (Apple: nur eine Chance). **Kein** `SCHEDULE_EXACT_ALARM`/`USE_EXACT_ALARM`, ein paar Minuten Verzug sind egal. Grenze: Eine Planänderung auf einem anderen Gerät wirkt erst, wenn die App hier geöffnet wird. Beim Bau mitdenken (`datenschutz-technik`, 21.10.2026): „Alle Daten löschen“ und Kontolöschung müssen auch die geplanten Erinnerungen löschen (in `wipeLocalData()`); entscheiden, ob der Meal-Name auf dem Sperrbildschirm erscheint (Art. 25); eigener Eintrag im Art.-30-Verzeichnis (rein lokal, kein Empfänger); Privacy Manifest des Plugins prüfen. Datenschutzerklärung ergänzen (`anwalt`) |
-| Privacy Manifest (Apple) | 🟡 D7 Etappe 4 / iOS prüfen — ohne scheitert der Upload (Abschnitt 8) |
+| **Erinnerung „Am Vortag“ als Nachricht** | 🟡 kann gebaut werden — D7 Etappe 4 ist für Android durch (24.10.2026), iOS folgt am Mac (entschieden 21.10.2026, Plan `plans/vorab-hinweis-auftauen.md`). Das Feld `vorab` und die Zeile auf der Startseite sind seit 21.10. live. Dazu kommt: Plugin `@capacitor/local-notifications`, **lokal**, kein Server, kein Push-Token, kein Blaze. Beim Start und nach jeder Planänderung die eigenen Erinnerungen löschen und für 7 Tage neu stellen (Vortag, Uhrzeit einstellbar, Standard 18:00; schon vorbei → keine). Berechtigung erst beim ersten Wählen eines Hinweises erfragen (Apple: nur eine Chance). **Kein** `SCHEDULE_EXACT_ALARM`/`USE_EXACT_ALARM`, ein paar Minuten Verzug sind egal. Grenze: Eine Planänderung auf einem anderen Gerät wirkt erst, wenn die App hier geöffnet wird. Beim Bau mitdenken (`datenschutz-technik`, 21.10.2026): „Alle Daten löschen“ und Kontolöschung müssen auch die geplanten Erinnerungen löschen (in `wipeLocalData()`); entscheiden, ob der Meal-Name auf dem Sperrbildschirm erscheint (Art. 25); eigener Eintrag im Art.-30-Verzeichnis (rein lokal, kein Empfänger); Privacy Manifest des Plugins prüfen. Datenschutzerklärung ergänzen (`anwalt`) |
+| Privacy Manifest (Apple) | 🟡 iOS-Etappe am Mac — ohne scheitert der Upload (Abschnitt 8). Für Android gibt es kein Gegenstück |
 | **Barrierefreiheit (BFSG)** | 🟢 **Codeseite gemessen und behoben** (20.09.2026, 0 Befunde). Rechtsfrage weiter offen: Kleinstunternehmer-Ausnahme? Erklärung fehlt. Abschnitt 7b |
 | KI-Kennzeichnung (KI-VO Art. 50) | 🟡 Abs. 4 trifft nur Deepfakes — Einordnung bestätigt (20.09.2026). Offen: gelten die 36 rezeptgebundenen Bilder als Deepfake? |
 | Apple-EU-Bedingungen ab 01.10.2026 | 🟡 **neu zu prüfen** seit dem Web-Verkauf (21.10.2026). Stand 20.09.2026: ohne praktische Wirkung, solange nur IAP im regulären App Store. Beim Signieren die Standard-EU-Terms wählen, nicht die Marktplatz-Variante |

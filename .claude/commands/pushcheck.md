@@ -1,5 +1,5 @@
 ---
-description: Führt die Push-Checks in drei Stufen aus — website-security immer, anwalt, kvp und /code-review ab Stufe B, ux-reviewer in Stufe C, weitere Agenten nach Auslöser
+description: Führt die Push-Checks aus — website-security und doku-waechter immer, alle anderen Agenten und /code-review nur nach Anlass im Diff
 ---
 
 Führe die Prüfungen vor dem Push aus — **so viel wie nötig, nicht mehr.**
@@ -19,47 +19,41 @@ uncommitteten Stand. Nenne die geänderten Dateien kurz und **die Stufe**, bevor
 | **B** | App-Code, aber nichts, was man **sieht oder bedient** | Sync, Rechnen, Speichern, `firestore.rules`, `sw.js`, `worker/`, Werkzeuge, die Nutzerdaten anfassen (`tools/firestore-*.py`, `shared-aufraeumen.py`, `konten-inaktiv.py`) |
 | **C** | etwas, das man **sieht oder bedient** | Markup, `css/`, UI-Texte, Rechtstexte, Bilder, Abläufe |
 
-**Im Zweifel die höhere Stufe.** Die Stufe gilt auch für die Prüfstände davor
-(`CLAUDE.md` Abschnitt 11): Ab B muss `alle-pruefstaende.py` gelaufen sein, in C zusätzlich
-`abnahme-mobil.py`. Ist das nicht passiert, sag es, statt den Pushcheck trotzdem grün zu melden.
+**Im Zweifel die höhere Stufe.** Die Stufe gilt für die Prüfstände davor
+(`CLAUDE.md` Abschnitt 11): Ab B muss `alle-pruefstaende.py --betroffen` gelaufen sein, in C
+zusätzlich `abnahme-mobil.py`. Ist das nicht passiert, sag es, statt den Pushcheck trotzdem grün
+zu melden. **Die Agenten richten sich NICHT nach der Stufe, sondern nach dem Anlass** (unten).
 
-Warum Stufen (18.10.2026): Bis dahin liefen `anwalt`, `kvp` und die übrigen bei **jedem** Push,
-auch wenn sich nur Doku oder Prüfer geändert hatten. `anwalt` prüft Rechtstext gegen App-Code —
-ohne geänderten App-Code gibt es dort nichts Neues zu finden. Die ganze App sieht er ohnehin
-monatlich in `/rechtspruefung`.
+**Warum nach Anlass:** Bis 18.10.2026 liefen alle Agenten bei jedem Push, danach je nach Stufe.
+Auch so dauerte der Pushcheck oft 15–25 Minuten, länger als die Änderung selbst (Paddy, 25.10.2026). Was ein Agent ohne Anlass prüfen
+würde, sieht er ohnehin in der monatlichen Wartung (`/rechtspruefung` über die ganze App).
 
-## Stufe A — immer
+## Immer
 
 1. **`website-security`** · `model: sonnet` — Geheimnisse, personenbezogene Daten, Rules,
-   Service Worker, Worker, Historie. Läuft in **jeder** Stufe: Das Repo ist öffentlich, ein
+   Service Worker, Worker, Historie. Läuft bei **jedem** Push: Das Repo ist öffentlich, ein
    Leck in einem Doku- oder Werkzeugtext ist genauso wenig rückholbar wie eines im App-Code.
-2. **`doku-waechter`** · `model: sonnet` — bei jeder nicht-trivialen Änderung, in jeder Stufe.
+2. **`doku-waechter`** · `model: sonnet` — bei jeder nicht-trivialen Änderung.
 3. Bei Änderungen unter `.claude/`: `python tools/wartung-check.py` — muss ohne Rot sein.
 
-## Stufe B — zusätzlich
+## Nur nach Anlass im Diff
 
-4. **`anwalt`** · `model: sonnet` — Rechtstext gegen Code.
-5. **`kvp`** · `model: sonnet` — bei jeder inhaltlichen Änderung
-   (seit 18.10.2026 auf Sonnet: Er soll Nährwerte und Mengen nachrechnen, dafür ist Haiku zu knapp).
-6. **`/code-review`** (eingebauter Skill, Stufe `medium`) — wenn `index.html`, `data/*.js`,
-   `lib/*.js`, `sw.js` oder `worker/` geändert wurden. Ziel sind die Änderungen seit dem letzten
-   Push. Er ist die **Fehlersuche**: `kvp` verweist Korrektheitsfehler ausdrücklich hierher, und
-   bis zum 18.10.2026 rief ihn kein Ablauf auf. Nebenbei prüft er, ob die Änderung die Regeln
-   aus `CLAUDE.md` einhält. Seine Funde laufen durch dieselbe Gegenprüfung wie alle anderen.
-
-## Stufe C — zusätzlich
-
-7. **`ux-reviewer`** · `model: haiku` — Übersichtlichkeit der geänderten UI.
-
-## Laufen bei bestimmten Auslösern
-
-Starte zusätzlich, **unabhängig von der Stufe**, wenn der Diff das berührt:
-
-| Agent | Auslöser | Modell |
+| Agent | Läuft, wenn der Diff das berührt | Modell |
 |---|---|---|
+| `/code-review` (Skill, `medium`) | Sync, Speichern, Löschen, Gruppen, Teilen, Rechnen (Makros, Mengen), Login/Konto, `sw.js`, `worker/`, `firestore.rules`, `lib/*.js`. **Nicht** bei reinen Texten, Styles, Markup | — |
+| `anwalt` | `data/rechtstexte.js`, neues Datenfeld, neuer Dienst/externer Verweis, Teilen, Gruppen, Löschlogik, Konto, Bezahlung, Werbeaussagen in UI-Texten | sonnet |
+| `kvp` | neue Funktion oder umgebauter Ablauf (mehr als eine Stelle). **Nicht** bei Fehlerbehebung, Text, kleinen Styles | sonnet |
+| `ux-reviewer` | neuer oder umgebauter Bildschirm/Dialog. **Nicht** bei Textkorrektur oder einzelnem Style | haiku |
 | `store-check` | Pro/Bezahlung, Konto/Löschung, Login, Kamera, `vendor/`, `manifest.webmanifest` | sonnet |
 | `lieferkette` | alles unter `vendor/`, `tools/firebase-vendor.py`, neue externe Verweise | sonnet |
 | `datenschutz-technik` | neuer Dienst, neues Datenfeld, Sharing, Gruppen, Löschlogik | sonnet |
+
+Die Anlass-Agenten **parallel** starten, nicht nacheinander.
+
+## Zeiten festhalten
+
+Nenne am Ende, was wie lange gedauert hat (Prüfstände, Handy-Prüfung, jeder Agent). Paddy
+entscheidet damit, ob weiter gekürzt wird (25.10.2026).
 
 Wenn ein Auslöser nicht zutrifft, sag in einer Zeile, dass der Agent bewusst nicht lief —
 nicht einfach weglassen.

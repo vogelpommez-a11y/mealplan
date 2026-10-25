@@ -16,7 +16,7 @@ Die primäre Verifikation erfolgt deshalb über den Browser und gezielte isolier
 
 <!-- REGISTER-ANFANG (erzeugt aus den Ueberschriften: python tools/register.py - nicht von Hand pflegen) -->
 
-**Register — 93.** Vorne (0 bis 9) die geltenden Verfahren: Syntax-Check,
+**Register — 94.** Vorne (0 bis 9) die geltenden Verfahren: Syntax-Check,
 Smoke-Test, Ausschneide-Pruefstand, Sync-Tests. Dahinter das datierte Fallarchiv —
 einzelne Pruefstaende und was ihre Gegenprobe gezeigt hat.
 
@@ -37,7 +37,8 @@ Die Verfahren gibt es auch als Skill: `/smoke`, `/pruefstand`, `/abnahme`, `/dep
 | 2f | Kontrast messen: CSS-Farbe plus Pixel-Grund |
 | 2g | Vollständige Geräteabnahme — `tools/abnahme-mobil.py` |
 | 2g-bis | Die unsichtbare Hälfte — `tools/a11y-pruefung.py` |
-| 2g-ter | Vorher neben Nachher — `tools/probe-vergleich.html` |
+| 2g-ter | Ist neben Soll — `tools/vorher-nachher.py` (Standard) und `tools/probe-vergleich.html` |
+| 2g-quater | Tempo am günstigen Handy — `tools/tempo-mobil.py` |
 | 2h | Prüfstand mit nachgebautem Transport — `pruefstand-firestore-backup.py` |
 | 2i | Netz ohne Konto — `tools/netz-ohne-konto.py` |
 | 2j | Rechts-Durchgang über die ganze App — `/rechtspruefung` |
@@ -747,13 +748,48 @@ Gerätebreiten (360/375/393) und **beiden** Farbschemata. 16 Stationen je Lauf, 
 insgesamt (nachgezählt am 19.10.2026, vorher 18/108). Baut auf 2e auf: eine durchgehende Verbindung, echte Touch-Ereignisse.
 
 ```powershell
-python tools/abnahme-mobil.py                 # alle sechs Läufe
+python tools/abnahme-mobil.py                 # Alltag: iPhone SE, Hell + Dunkel (~2 min)
+python tools/abnahme-mobil.py --voll          # alle sechs Läufe (Wartung, Store, große Umbauten)
 python tools/abnahme-mobil.py --geraet 360x800 --theme light
 python tools/abnahme-mobil.py --gegenprobe    # misst sich selbst
-python tools/abnahme-mobil.py --zeigen        # Browser offen lassen
+python tools/abnahme-mobil.py --zeigen        # sichtbarer Browser, am Ende offen lassen
 ```
 
 Braucht `test-server.ps1`. Eigenes Profil auf Port 9225, bewusst **nicht angemeldet**.
+
+**Kurzfassung im Alltag (25.10.2026, Paddy):** Ohne `--voll` nur das iPhone SE (375×667) —
+schmal **und** kurz, dort zeigen sich Überlauf und verdeckte Knöpfe zuerst (TROUBLESHOOTING 197
+war nur dort rot). Dasselbe gilt für `alle-pruefstaende.py --betroffen`: nur die Prüfstände, die
+eine geänderte Datei nennen oder eine geänderte Funktion aus `index.html` ausschneiden (innerste
+und umschließende; Namen bis 5 Zeichen nur als `function name`, sonst trifft `load` auch
+`json.load`), plus `pruefstand-reiter.py` als Kern. Gegenprobe: gedachte Änderung an
+`makeEmptyPlan` wählt alle sechs Prüfstände, die sie ausschneiden. Gemessen: 24 s statt rund
+5 min. Preis: Nebenwirkungen ohne erkennbare Verbindung fallen erst in der vollen Runde auf
+(Wartung, Store, große Umbauten).
+
+**Seit 25.10.2026 unsichtbar** (`--headless=new` plus die drei `--disable-*`-Flags aus
+`vorher-nachher.py`), rund 5 Minuten für alle 96 Stationen (`--voll`). Das sichtbare Fenster blieb hängen,
+sobald es verdeckt war (TROUBLESHOOTING 197). Die rAF-Falle aus TROUBLESHOOTING 164 greift hier
+nicht: sie gilt nur mit `--virtual-time-budget`, das dieses Werkzeug nicht setzt.
+
+**Knöpfe hinter einer festen Leiste** (Kopf- oder Reiterleiste) scrollt die Messung selbst in
+die Bildmitte und prüft erneut — wie ein Mensch, der weiterscrollt. Nur was auch dann verdeckt
+bleibt, ist ein Befund; die Gegenprobe `unterFesterLeiste` legt dazu eine Leiste über das ganze
+Bild und muss anschlagen.
+
+**Vorher/Nachher läuft mit (seit 25.10.2026, Entscheidung Paddy).** Am Ende jedes Laufs vergleicht
+das Werkzeug seine Bilder mit denen des Stands im Netz (`origin/main`) und meldet veränderte
+Bildschirme als **Hinweis** mit Bildpaaren (`vorher-nachher.html` im Bildordner) — kein Rot, meist
+ist eine Änderung gewollt. Kein eigener Lauf, rund 10 Sekunden. Bezug ohne Handfreigabe: Jeder
+**volle** Lauf legt seine Bilder unter einem Fingerabdruck der App-Dateien ab
+(`%LOCALAPPDATA%\paddys-mealplan\abnahme-bezug`, die letzten sechs); nach dem Push hat
+`origin/main` denselben Abdruck wie der Lauf davor. Gibt es für den Stand im Netz noch keine
+Bilder, sagt der Lauf das und vergleicht ab dem nächsten Push. Schwelle 1 % der Bildfläche:
+Zwei Läufe ohne Änderung waren in 104 von 112 Bildern pixelgleich, der Rest unter 0,4 %
+(laufende Animation). Gegenprobe: `--vergleich-mit <ordner>` gegen eine Kopie mit einem
+übermalten Bild — genau dieses eine wird gemeldet, ohne Übermalung keines. Grenze: Datum und
+Uhrzeit stehen in den Bildern (Kalender, „Als Nächstes“); an einem anderen Tag kann der
+Fortschritt-Reiter deshalb als verändert erscheinen.
 
 **Seit 17.10.2026 wartet `laden()` auf das Verschwinden von `#splash`.** Der Startbildschirm
 liegt über allem und fängt Tipps ab. Ohne das Warten träfe der erste Tipp ihn statt
@@ -962,7 +998,7 @@ gar nicht existiert, braucht auch keinen Namen.
 
 ---
 
-## 2g-ter. Vorher neben Nachher — `tools/probe-vergleich.html`
+## 2g-ter. Ist neben Soll — `tools/vorher-nachher.py` (Standard) und `tools/probe-vergleich.html`
 
 Angelegt am 20.09.2026 für die UI-Überarbeitung (`plans/UI-Grundlagen.MD`). Stellt einen
 Baustein zweimal nebeneinander: links der eingefrorene Stand, rechts der Arbeitsbaum.
@@ -991,6 +1027,33 @@ als rechts.
 
 > **Ein Schnappschuss wird nie nachgezogen.** Er ist ein Zeugnis, kein lebendes Dokument.
 > Wer ihn aktualisiert, vergleicht am Ende zwei Stände des Nachher.
+
+### Standard seit 24.10.2026: `tools/vorher-nachher.py` — ansehen statt bedienen
+
+Paddy sah in der Klick-Seite nicht, **was** er drücken soll, und die türkis gestrichelte
+Gegenprobe wirkte wie „hier drücken“. Recherche: Abnahmen laufen anderswo als fertige
+Bildpaare (Chromatic, BackstopJS, Playwright) — der Abnehmer schaut, er bedient nicht.
+
+```powershell
+python tools/vorher-nachher.py fotohinweis     # Film + Bildpaare, Hell und Dunkel, oeffnet
+python tools/vorher-nachher.py                 # Liste, "(mit Film-Schritten)" markiert
+```
+
+* **Gleiche Quelle wie die Klick-Seite:** Ist = `tools/vorher/<id>/`, Soll = Arbeitsbaum,
+  Schritte aus `tools/vergleich-bausteine.js`. Neu je Baustein: `film` — eine Liste
+  `{ text, dauer, tippe(doc) → Knopf, vorbereiten(doc) }`, dazu `ist`/`soll` (je ein Satz).
+  Ohne `film` entsteht aus `schritte`/`oeffnen` ein einziges Bildpaar.
+* **Der Finger:** Vor jedem `tippe` steht 0,8 s ein gelber Kreis auf dem Knopf, der Knopf ist
+  gelb umrandet — Gelb kommt in der App nicht vor. Das Bild des Schritts ist dieser Moment
+  (wohin getippt wird); das Ergebnis zeigen Film und nächster Schritt.
+* **Headless, 390 × 844, Touch, eigenes frisches Profil** — kein Konto, keine Cloud. Ergebnis
+  in `%TEMP%\mp-vorher-nachher\<id>\`, **nicht** im Repo (Bilder alter Stände).
+* **Film:** beide Seiten je Schritt gleich viele Bilder (Takt 0,2 s), dadurch synchron;
+  600 px je Seite, WebP Qualität 90 — 300 px wirkten verwaschen.
+* **Foto während eines Neuladens:** `Page.captureScreenshot` antwortet dann erst spät oder nie.
+  Nach 4 s wird das letzte Bild wiederholt statt abzubrechen.
+* **Erster Fund am selben Tag:** Das neue Fenster „Daten gelöscht“ ging sofort wieder zu —
+  im Browser übersehen, im Film auf einen Blick (`docs/TROUBLESHOOTING.md` 199).
 
 ### Es gibt keinen Übertragungsschritt
 
@@ -1034,6 +1097,33 @@ geladen werden.** Ihr Markup trägt bewusst kein `src=`; das setzt JavaScript na
 Prüfung.
 
 ---
+
+## 2g-quater. Tempo am günstigen Handy — `tools/tempo-mobil.py`
+
+Gebaut am 25.10.2026. Profil wie Googles Lighthouse „mobile“: Prozessor 4x langsamer, 150 ms
+Laufzeit, 1,6 Mbit/s, Gerät 360×800 mit Pixeldichte 2. Je dreimal, gemeldet der Median:
+Erstbesuch (erstes Bild, App geladen, Intro vorbei), Wiederkehr, Reiterwechsel (Event Timing,
+wie Googles INP). **Grenzen (Paddy): App geladen und Wiederkehr ≤ 3 s, Reiterwechsel < 1 s.**
+
+```powershell
+python tools/tempo-mobil.py                # Arbeitsstand über eigenen gzip-Server (Port 8010)
+python tools/tempo-mobil.py --live         # die echte Seite, ohne Konto, nur lesend
+python tools/tempo-mobil.py --gegenprobe   # künstliche Bremse (3 s Start, 1,2 s je Klick) muss überall rot werden
+```
+
+**Wann:** monatliche Wartung, vor jeder Store-Abgabe und bei Änderungen am **Start** der App
+(große neue Dateien, Startablauf, `sw.js`, `vendor/`) — **nicht** bei jedem Push (Paddy: nicht
+mehr prüfen als umsetzen). Bildschirm-Änderungen machen den Start nicht langsamer.
+
+**Falle: `test-server.ps1` komprimiert nicht.** Darüber gemessen dauerte der Erstbesuch 12,9 s
+bei 2,4 MB; GitHub Pages schickt gzip (0,75 MB). Deshalb startet das Werkzeug einen eigenen
+kleinen Server, der wie GitHub Pages gzip und `max-age=600` liefert. Lokal und live lagen danach
+gleich: erstes Bild 1,1 s, App geladen 3,0 s, Intro vorbei 6,1 s, Wiederkehr 1,6–1,7 s,
+Reiterwechsel 16–40 ms.
+
+**„App geladen“ statt „Intro vorbei“:** Das Erst-Intro startet erst mit dem Script
+(`splashStart()` in `boot()`) und läuft dann `SPLASH_INTRO_MS`; „Loslegen“ steht schon dahinter.
+Die Grenze gilt deshalb für „App geladen“; die Intro-Zeit wird nur ausgewiesen.
 
 ## 2h. Prüfstand mit nachgebautem Transport — `pruefstand-firestore-backup.py`
 
@@ -2958,7 +3048,7 @@ Dokumente, `used: true` ohne UID — wird in `pruefstand-gruppenlimit.py` gemess
 
 ## `tools/pruefstand-zurueck-taste.py` — die Zurück-Taste schließt Overlays (D5)
 
-48 Prüfungen, zwei Gegenproben. Geprüft wird der Overlay-Stapel aus D5
+61 Prüfungen, drei Gegenproben. Geprüft wird der Overlay-Stapel aus D5
 (`docs/ARCHITECTURES.md`, „Zurück-Taste und Overlay-Stapel").
 
 **Warum dieser Prüfstand einen echten Browser braucht.** `history.back()` ist asynchron, und der
@@ -2984,6 +3074,15 @@ das Ergebnis unter das Protokoll.
 `openModal()` ohne History-Eintrag (der Stand vor D5 — Zurück darf dann nichts schließen) und
 `closeModal()` ohne Rücknahme (der tote Eintrag — das erste Zurück muss dann ins Leere laufen).
 Der Extraktor bricht ab, wenn sich eine davon nicht mehr bilden lässt.
+
+**Fall 8 — die Store-App (D7 Etappe 4).** Geprüft wird `window.pmZurueck()` mit **genau dem
+Ausdruck**, den `MainActivity.java` auswertet: offenes Fenster → `true` und zu, anderer Reiter →
+`true` und Home, auf Home → `false`, Anmeldemaske und Einführung → `false` ohne
+Reiterwechsel, offenes Menü → Escape, laufender Marken-Lader → geschluckt, Fenster ohne History-Eintrag
+→ zu. Liegt das
+Nachbar-Repo daneben, bricht der Extraktor ab, wenn der Ausdruck dort nicht mehr wörtlich
+steht; ohne Nachbar-Repo (Cloud) meldet er das nur. Gegenprobe 3 im Lauf: ohne `pmZurueck` bekäme Android
+die Taste trotz offenem Fenster. Gegen den Stand vor Etappe 4: rot (8 Fälle, 24.10.2026). Die echte Taste prüft nur der Emulator (Fenster → zu, Meals → Home, Home → raus).
 
 Beide Ladewege funktionieren, `file://` wie HTTP.
 
@@ -3693,7 +3792,8 @@ cdp.messen(720, 900, "dark", js, mobil=False)   # pointer: fine
   `print()` mit `UnicodeEncodeError` abbrechen zu lassen — die Messung war gelaufen und trotzdem
   verloren. `cdp.py` stellt stdout jetzt selbst auf UTF-8.
 
-Was so **nicht** prüfbar bleibt: die Android-Zurück-Taste (echte Geste), Wischen (drei Anläufe,
+Was so **nicht** prüfbar bleibt: die Android-Zurück-Taste (echte Geste — die Funktion dahinter,
+`pmZurueck()`, prüft Fall 8 in `pruefstand-zurueck-taste.py`, die echte Taste der Emulator), Wischen (drei Anläufe,
 siehe oben) und alles, was am Gerät „sich richtig anfühlen" muss.
 
 ## `tools/pruefstand-rueckblick-ziel.py` — der Beweis, dass eine Woche fehlt (26.08.2026)

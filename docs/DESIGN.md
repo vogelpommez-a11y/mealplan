@@ -1371,6 +1371,13 @@ hinterher aus. Vorbild ist die Logo-Enthüllung der früheren Twitter-iOS-App.
   Startbildschirm schließt an das Startbild des Systems an, und das kommt aus
   `background_color` im Manifest (`#0C0A0B`). Ein heller Splash im Light-Theme blitzte
   dunkel → hell auf.
+* **In der Android-App** kommt davor Androids eigenes Startbild: dasselbe Logo, 116 dp, auf
+  `#0C0A0B`, 28 dp über der Mitte — genau dort, wo `.splash-logo` in der Kurzfassung steht. Es
+  bleibt, bis die WebView ihr erstes Bild hat, und geht ohne Animation; der Übergang ist
+  dadurch unsichtbar (Paddy, 24.10.2026: immer dunkel). Erzeugt von `symbole.py` im
+  Nachbar-Repo aus `img/logo.svg` — wer `.splash-logo` in Größe oder Lage ändert, muss dort
+  `START_SKALA`/`START_VERSATZ` mitziehen (`docs/TROUBLESHOOTING.md` 198). Das App-Symbol
+  kommt aus derselben Quelle: Mütze und Hantel weiß auf Logo-Rot.
 * **Notbremse ohne JavaScript:** Bricht das App-Script ab, verschwindet er nach 15 s über die
   CSS-Animation `splash-notaus` (längster Rückfall: 6 s Cloud + 4 s IndexedDB).
 * **Reduzierte Bewegung:** kein Intro (das Inline-Script setzt `splash-intro` gar nicht erst),

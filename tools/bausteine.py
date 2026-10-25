@@ -98,8 +98,8 @@ BAUSTEINE = [
      u"muss 0 bleiben - dafuer gibt es --shadow (css/CLAUDE.md)"),
 
     (u"Modal: zentraler Helfer", "index.html",
-     r"\bopenModal\s*\(", 28,
-     u"VORBILD - 27 Aufrufe + Definition. Faellt die Zahl, ist er umgangen worden"),
+     r"\bopenModal\s*\(", 29,
+     u"VORBILD - 28 Aufrufe + Definition (24.10.: fotosGebliebenMelden). Faellt die Zahl, ist er umgangen worden"),
 
     (u"Bestaetigung: zentraler Helfer", "index.html",
      r"\bconfirmModal\s*\(", 12,

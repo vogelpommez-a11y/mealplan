@@ -451,8 +451,12 @@ Alle drei Aufrufer (`await wipeLocalData()`) warten das ab, bevor sie den Reload
 19.10.2026)** — es wirft dafür **nicht**: Ein Wurf hielt den Reload auf, bei dauerhaft kaputtem
 Fotospeicher kam „Alle Daten löschen“ nie ans Ziel, und der nächste `save()` schrieb alles zurück.
 Ob Fotos bleiben, entscheidet `idbOpen()` (nicht `idbOK`, das auch fällt, wenn nur das erste Lesen
-scheiterte). Die Aufrufer laden trotzdem neu und sagen „Ein paar Fotos ließen sich … nicht
-entfernen – lösch sie in den Browser-Einstellungen.“ `wipeLocalData()` setzt als **erstes**
+scheiterte). Die Aufrufer zeigen seit 24.10.2026 ein Fenster (`fotosGebliebenMelden()`, „Konto/Daten
+gelöscht“ + „Verstanden“; neu geladen wird erst beim Schließen, ohne History-Eintrag,
+`docs/TROUBLESHOOTING.md` 199) statt 4 s Toast und sagen „Ein paar Fotos ließen sich … nicht
+entfernen. Lösch sie in den Browser-Einstellungen.“ — in der Android-App (`Capacitor.getPlatform()
+=== "android"`) stattdessen „…in den Einstellungen deines Handys unter Apps → Paddy's Mealplan →
+Speicher und Cache.“ (D7 Etappe 4; iOS bekommt seinen Text mit der iOS-Etappe). `wipeLocalData()` setzt als **erstes**
 `datenGeloescht`: Ab da bis zum Reload ist `save()` gesperrt — auch während der Wartezeiten und
 wenn `wipeCache()` scheitert und nicht neu geladen wird. `nachLoeschenNeuladen()` lässt die Meldung
 bis zum Reload stehen. Ausnahme ist der
@@ -2877,16 +2881,46 @@ einen zweiten anzulegen.
 * **Ein Modal, das seinen Inhalt tauscht, bleibt ein Eintrag.** `openMealSheet()` wechselt per
   `openModal()` in den Bearbeiten-Zweig, ohne vorher zu schließen. `openModal()` misst deshalb
   **vor** dem Leeren, ob schon etwas offen war.
-* **Reiterwechsel und der Onboarding-Wizard hängen nicht am Stapel.** Zurück verlässt dort die
-  App. Das ist eine Entscheidung, keine Lücke: D5 deckt Overlays ab. Ein Wizard-Schritt zurück
+* **Reiterwechsel und der Onboarding-Wizard hängen nicht am Stapel.** Im Browser verlässt Zurück
+  dort die Seite; die Store-App hat dafür eine eigene Regel (unten). Das ist eine Entscheidung,
+  keine Lücke: D5 deckt Overlays ab. Ein Wizard-Schritt zurück
   hätte einen eigenen Zustandsbegriff gebraucht und wäre mit dem separaten `Zurück`-Knopf in
   Konkurrenz getreten (CLAUDE.md, Ziffer 10).
 * **Nach einem Neuladen mit offenem Overlay** steht ein Eintrag ohne zugehöriges Overlay in der
   History. Der erste Druck auf Zurück tut dann nichts Sichtbares. Ein Overlay über einen Reload
   hinweg wiederherzustellen wäre der falsche Preis dafür.
 
-Belegt durch `tools/pruefstand-zurueck-taste.py` (48 Prüfungen, zwei Gegenproben) und einen
-Durchlauf gegen die echte `index.html`.
+### In der Store-App: `window.pmZurueck()` (D7 Etappe 4, 24.10.2026)
+
+**Capacitor reicht die Android-Zurück-Taste nicht an die WebView weiter.** Ohne Hilfe beendete
+sie die App sofort — auch mit offenem Fenster, D5 kam gar nicht zum Zug (im Emulator gemessen).
+`MainActivity.java` im Nachbar-Repo hängt deshalb einen `OnBackPressedCallback` ein und wertet
+bei jedem Druck `typeof window.pmZurueck === 'function' && window.pmZurueck() === true` aus. Erst
+bei `false` bekommt Android die Taste und schickt die App in den Hintergrund. Kein Plugin
+(`@capacitor/app`) — die zwanzig Zeilen sparen eine Abhängigkeit.
+
+`pmZurueck()` steht direkt unter dem `popstate`-Handler und entscheidet in dieser Reihenfolge:
+
+1. Overlay offen → `history.back()`, der D5-Stapel schließt es wie im Browser.
+2. Fenster ohne History-Eintrag (`openModal(…, { ohneZurueck: true })`) → `closeModal()`.
+   Offenes Menü (`attachMenuDismiss`, nicht am Stapel) → `Escape` am `document`, es schließt
+   wie per Tastatur.
+3. Marken-Lader läuft (`appEl.inert`) → `true`, Taste geschluckt: Unter der Animation darf
+   kein Reiter wechseln.
+4. Einführung (`onb`) oder Anmeldemaske (`authing`) → `false`. `render()` zeichnet während der
+   Einführung nichts; ein Reiterwechsel dort war ein toter Tastendruck (`/code-review`).
+5. Nicht auf Home → `state.tab = "home"`, `render()`.
+6. Sonst `false` — auf Home, im Fehlerfall.
+
+Verweigert ein Fenster das Schließen (Meal-Formular ohne Namen), meldet `pmZurueck()` trotzdem
+`true`: Das Fenster zeigt selbst, warum es bleibt, und die App darf dann nicht stattdessen
+zugehen. Regel 5 folgt Androids Navigationsgrundsatz: Der Start-Reiter ist der letzte Bildschirm vor dem
+Verlassen (Paddy, 24.10.2026). Im Browser ruft niemand die Funktion; dort bleibt alles wie oben.
+Bewusst nicht: Die Anmeldemaske hat einen eigenen „Zurück“-Knopf (`cloudZurueck()`), die Taste
+geht dort an Android. Der Einführungs-Wizard bleibt wie im Browser.
+
+Belegt durch `tools/pruefstand-zurueck-taste.py` (61 Prüfungen, drei Gegenproben, Fall 8 =
+Store-App, gegen den Stand vor Etappe 4 rot) und einen Durchlauf gegen die echte `index.html`.
 
 ## Meal-Ansicht: eine Oberfläche statt zweier (`openMealSheet`)
 

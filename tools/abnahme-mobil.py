@@ -8,10 +8,14 @@ waere. Hier laeuft echte Geraete-Emulation ueber das DevTools-Protokoll:
 setDeviceMetricsOverride + setTouchEmulationEnabled + setEmulatedMedia, und getippt wird
 mit Input.dispatchTouchEvent. Drei Geraetebreiten, Light UND Dark, 16 Stationen je Lauf (96 gesamt, gezaehlt am 19.10.2026).
 
-  python tools/abnahme-mobil.py                  # alle sechs Laeufe
+  python tools/abnahme-mobil.py                  # Alltag: kleinstes Geraet, Hell + Dunkel (~2 min)
+  python tools/abnahme-mobil.py --voll           # alle sechs Laeufe (Wartung, Store, grosse Umbauten)
   python tools/abnahme-mobil.py --geraet 360x800 --theme light
   python tools/abnahme-mobil.py --gegenprobe     # misst sich selbst (siehe unten)
-  python tools/abnahme-mobil.py --zeigen         # Browser am Ende offen lassen
+  python tools/abnahme-mobil.py --zeigen         # sichtbarer Browser, am Ende offen lassen
+
+Laeuft unsichtbar (headless); --zeigen nur zum Zusehen - ein verdecktes Fenster kann dort
+wieder haengen (TROUBLESHOOTING 197).
 
 Braucht den lokalen Server: powershell -NoProfile -ExecutionPolicy Bypass -File test-server.ps1
 Eigenes Profil auf Port 9225, bewusst NICHT angemeldet - die Cloud-Falle aus
@@ -101,6 +105,10 @@ WUNSCH = {"age": "30", "height": "180", "weight": "82", "weightGoal": "78"}
 # Zahlenfelder, die das Onboarding verlangt, die aber in WUNSCH fehlen. Modulweit, weil
 # sie im Bericht landen muessen und nicht im Durchlauf untergehen duerfen.
 UNBEKANNTE_FELDER = set()
+
+# Die Bilder DIESES Laufs. SCHUESSE enthaelt auch Reste frueherer Laeufe mit inzwischen
+# umbenannten Stationen - verglichen wird nur, was jetzt entstanden ist.
+GESCHOSSEN = []
 
 
 MESSEN = r"""(() => {
@@ -252,13 +260,40 @@ MESSEN = r"""(() => {
     .filter(e => { const st = getComputedStyle(e);
       return st.display !== 'none' && st.visibility !== 'hidden' && +st.opacity > 0
              && e.getBoundingClientRect().width > 0; }).pop() || null;
-  const verdeckteKnoepfe = bedienbar.filter(e => !oberstesOverlay || oberstesOverlay.contains(e)).map(e => {
+  const tippTest = e => {
     const r = e.getBoundingClientRect();
     const mx = r.left + r.width/2, my = r.top + r.height/2;
-    if (mx < 0 || my < 0 || mx > W || my > H) return null;
+    if (mx < 0 || my < 0 || mx > W || my > H) return { aussen: true };
     const t = document.elementFromPoint(mx, my);
-    if (!t || t === e || e.contains(t) || t.contains(e)) return null;
-    return { pfad: pfad(e), text: txt(e), stattdessen: pfad(t), fremderText: txt(t) };
+    return { t, frei: !t || t === e || e.contains(t) || t.contains(e) };
+  };
+  // Die erste feste oder klebende Leiste, in der ein Element steckt (Kopfleiste, Reiterleiste).
+  const festeLeiste = el => {
+    for (let a = el; a && a !== document.documentElement; a = a.parentElement) {
+      const p = getComputedStyle(a).position;
+      if (p === 'fixed' || p === 'sticky') return a;
+    }
+    return null;
+  };
+  const verdeckteKnoepfe = bedienbar.filter(e => !oberstesOverlay || oberstesOverlay.contains(e)).map(e => {
+    let g = tippTest(e);
+    if (g.aussen || g.frei) return null;
+    // Liegt der Knopf nur gerade hinter einer festen Leiste, weil die Seite so gescrollt ist,
+    // wuerde ein Mensch weiterscrollen. Genau das tut die Messung: Knopf in die Mitte
+    // scrollen, erneut tippen, Scrollstand zurueck. Bleibt er auch dann verdeckt, ist es ein
+    // Befund - ein dauerhaft unerreichbarer Knopf faellt NICHT heraus (Gegenprobe STOERUNG3).
+    // Vorher zaehlte schon das Wegscrollen als Fehler (TROUBLESHOOTING 197).
+    const leiste = festeLeiste(g.t);
+    if (leiste && !leiste.contains(e)) {
+      const gemerkt = [];
+      for (let a = e.parentElement; a; a = a.parentElement) gemerkt.push([a, a.scrollTop, a.scrollLeft]);
+      e.scrollIntoView({ block: 'center', inline: 'nearest', behavior: 'instant' });
+      g = tippTest(e);
+      for (const [a, oben, links] of gemerkt) { a.scrollTop = oben; a.scrollLeft = links; }
+      if (g.frei) return null;
+      if (g.aussen) return { pfad: pfad(e), text: txt(e), stattdessen: '(auch nach Scrollen nicht im Bild)', fremderText: '' };
+    }
+    return { pfad: pfad(e), text: txt(e), stattdessen: pfad(g.t), fremderText: txt(g.t) };
   }).filter(Boolean).slice(0, 12);
 
   // 4. Abgeschnittener Text
@@ -408,9 +443,10 @@ MESSEN = r"""(() => {
 # durchgehende Verbindung - sonst ist beim Messen das Theme wieder das des Systems und
 # der Zeiger wieder `fine`, und die Abnahme misst etwas anderes, als sie behauptet.
 class Sitzung(object):
-    def __init__(self):
+    def __init__(self, zeigen=False):
         self.ws = None
         self.kennung = 0
+        self.zeigen = zeigen
 
     def _seiten(self):
         with urllib.request.urlopen("http://127.0.0.1:%d/json/list" % PORT, timeout=5) as r:
@@ -431,9 +467,19 @@ class Sitzung(object):
             pass
         if frisch and os.path.isdir(PROFIL):
             shutil.rmtree(PROFIL, ignore_errors=True)
-        subprocess.Popen([
-            CHROME, "--remote-debugging-port=%d" % PORT, "--remote-allow-origins=*",
-            "--user-data-dir=" + PROFIL, "--no-first-run", "--no-default-browser-check", URL])
+        # Unsichtbar wie tools/vorher-nachher.py: Ein sichtbares Fenster, das hinter einem
+        # anderen liegt, haelt Chrome fuer verdeckt und zeichnet kein neues Bild mehr
+        # (Native Window Occlusion) - bild_abwarten wartete dann auf ein rAF, das nie kam
+        # (TROUBLESHOOTING 197). Die drei --disable-*-Flags halten auch den Hintergrund wach.
+        # --zeigen startet wie frueher sichtbar, damit man zusehen kann.
+        sichtbar = [] if self.zeigen else ["--headless=new", "--disable-gpu"]
+        subprocess.Popen([CHROME] + sichtbar + [
+            "--disable-backgrounding-occluded-windows", "--disable-renderer-backgrounding",
+            "--disable-background-timer-throttling",
+            # Nur der eigene Zugang darf steuern, nicht jede Seite (website-security, wie vorher-nachher.py)
+            "--remote-debugging-port=%d" % PORT, "--remote-allow-origins=http://127.0.0.1:%d" % PORT,
+            "--user-data-dir=" + PROFIL, "--no-first-run", "--no-default-browser-check", URL],
+            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         for _ in range(60):
             time.sleep(0.5)
             try:
@@ -574,6 +620,7 @@ class Sitzung(object):
         os.makedirs(os.path.dirname(pfad), exist_ok=True)
         with open(pfad, "wb") as f:
             f.write(base64.b64decode(r["data"]))
+        GESCHOSSEN.append(pfad)
 
 
 # --------------------------------------------------------- Onboarding-Weg ----
@@ -835,6 +882,138 @@ def bericht(alle):
     return len(gruppen)
 
 
+# ---------------------------------------------------------- Bildvergleich ----
+# Die Regeln oben finden zu kleine Knoepfe und blasse Schrift - aber nicht, dass ein Bildschirm
+# ploetzlich ANDERS aussieht, an dem gar niemand gearbeitet hat. Dafuer vergleicht jeder Lauf
+# seine Bilder mit denen des Stands, der gerade im Netz ist (origin/main). Kein eigener Lauf:
+# es sind die Bilder, die ohnehin entstehen (Entscheidung Paddy, 25.10.2026).
+#
+# Welcher Lauf gehoert zum Stand im Netz? Jeder volle Lauf legt seine Bilder unter einem
+# Fingerabdruck der App-Dateien ab. Nach dem Push sind die Dateien in origin/main genau die,
+# mit denen der Lauf vor dem Push gefahren ist - derselbe Fingerabdruck. Keine Handfreigabe.
+# Ergebnis ist ein HINWEIS mit Bildpaaren, kein Rot: Meist ist eine Aenderung gewollt.
+APP_PFADE = ["index.html", "sw.js", "manifest.webmanifest", "css", "data", "lib", "img", "vendor"]
+BEZUG = os.path.join(os.environ.get("LOCALAPPDATA") or os.environ.get("TEMP", "."),
+                     "paddys-mealplan", "abnahme-bezug")
+SCHWELLE = 1.0   # Prozent der Bildflaeche. Zwei Laeufe ohne Aenderung: hoechstens 0,4 % (Animation)
+BEZUG_BEHALTEN = 6
+
+
+def _git(*args):
+    return subprocess.run(["git"] + list(args), cwd=WURZEL, capture_output=True,
+                          text=True, encoding="utf-8").stdout
+
+
+def fingerabdruck(stand=None):
+    u"""Fingerabdruck der App-Dateien - im Arbeitsverzeichnis (stand=None) oder in einem Commit.
+    git hash-object wendet dieselben Filter an wie git selbst (Zeilenenden), sonst haetten
+    Arbeitsverzeichnis und Commit nie denselben Abdruck."""
+    import hashlib
+    if stand:
+        zeilen = [z.split("\t", 1) for z in _git("ls-tree", "-r", stand, "--", *APP_PFADE).splitlines()]
+        paare = sorted((pfad, kopf.split()[2]) for kopf, pfad in zeilen)
+    else:
+        pfade = sorted(_git("ls-files", "--", *APP_PFADE).splitlines())
+        pfade = [x for x in pfade if os.path.isfile(os.path.join(WURZEL, x))]
+        r = subprocess.run(["git", "hash-object", "--stdin-paths"], cwd=WURZEL, input="\n".join(pfade),
+                           capture_output=True, text=True, encoding="utf-8")
+        paare = list(zip(pfade, r.stdout.split()))
+    return hashlib.sha1("\n".join("%s %s" % p for p in paare).encode("utf-8")).hexdigest()[:16]
+
+
+def bezug_ablegen(abdruck):
+    # Zusammenfuehren statt ersetzen: Ein Alltagslauf (nur iPhone SE) soll die Bilder eines
+    # vollen Laufs desselben Stands nicht wegwerfen.
+    ziel = os.path.join(BEZUG, abdruck)
+    os.makedirs(ziel, exist_ok=True)
+    for pfad in GESCHOSSEN:
+        shutil.copy2(pfad, ziel)
+    with open(os.path.join(ziel, "stand.json"), "w", encoding="utf-8") as f:
+        json.dump({"zeit": time.strftime("%Y-%m-%d %H:%M"), "head": _git("rev-parse", "HEAD").strip(),
+                   "bilder": len(GESCHOSSEN)}, f)
+    # Nur die juengsten behalten - 96 Bilder sind rund 20 MB.
+    alle = sorted((os.path.getmtime(os.path.join(BEZUG, d)), d) for d in os.listdir(BEZUG))
+    for _, d in alle[:-BEZUG_BEHALTEN]:
+        shutil.rmtree(os.path.join(BEZUG, d), ignore_errors=True)
+
+
+def bilder_vergleichen(ordner_alt, bilder_neu):
+    u"""Liefert [(anteil_prozent, name)] fuer jedes Bild ueber der Schwelle."""
+    from PIL import Image, ImageChops
+    geaendert = []
+    for neu in bilder_neu:
+        name = os.path.basename(neu)
+        alt = os.path.join(ordner_alt, name)
+        if not os.path.isfile(alt):
+            # Kein Gegenstueck: Station neu oder umbenannt - oder der Bezug war ein Alltagslauf
+            # mit nur einem Geraet. Nicht vergleichbar ist keine Aenderung.
+            continue
+        a, b = Image.open(alt).convert("RGB"), Image.open(neu).convert("RGB")
+        if a.size != b.size:
+            geaendert.append((100.0, name))
+            continue
+        # Kleine Farbabweichungen (Kantenglaettung) zaehlen nicht, erst ein echter Unterschied.
+        maske = ImageChops.difference(a, b).convert("L").point(lambda v: 255 if v > 24 else 0)
+        anteil = maske.histogram()[255] * 100.0 / (a.size[0] * a.size[1])
+        if anteil > SCHWELLE:
+            geaendert.append((anteil, name))
+    return sorted(geaendert, reverse=True)
+
+
+def vergleichsseite(ordner_alt, geaendert, ziel):
+    import html as h
+    url = lambda p: "file:///" + p.replace("\\", "/")
+    zeilen = []
+    for anteil, name in geaendert:
+        alt = os.path.join(ordner_alt, name)
+        neu = os.path.join(SCHUESSE, name)
+        links = '<img src="%s">' % h.escape(url(alt)) if os.path.isfile(alt) else "<p>(neu)</p>"
+        zeilen.append('<section><h2>%s <small>%.1f %%</small></h2><div class="paar">'
+                      '<figure>%s<figcaption>Im Netz</figcaption></figure>'
+                      '<figure><img src="%s"><figcaption>Jetzt</figcaption></figure></div></section>'
+                      % (h.escape(name[:-4]), anteil, links, h.escape(url(neu))))
+    with open(ziel, "w", encoding="utf-8") as f:
+        f.write('<!doctype html><meta charset="utf-8"><title>Vorher/Nachher</title><style>'
+                'body{font-family:system-ui;background:#111;color:#eee;margin:16px}'
+                '.paar{display:flex;gap:16px;flex-wrap:wrap}figure{margin:0}'
+                'img{width:300px;border:1px solid #444}small{color:#aaa;font-weight:400}</style>'
+                '<h1>%d veraenderte Bildschirme</h1>%s' % (len(geaendert), "".join(zeilen)))
+
+
+def vergleich_melden(voll, bezug_ordner=None):
+    u"""Gibt nur Text aus: der Vergleich ist ein Hinweis, kein Befund. bezug_ordner ersetzt
+    den Stand im Netz (--vergleich-mit, fuer Gegenproben)."""
+    print("\n" + "-" * 74)
+    print("Vorher/Nachher gegen den Stand im Netz (Hinweis, kein Befund)")
+    hier = fingerabdruck()
+    if bezug_ordner:
+        ordner, gleich = bezug_ordner, False
+    else:
+        _git("fetch", "--quiet", "origin", "main")
+        netz = fingerabdruck("origin/main")
+        ordner, gleich = os.path.join(BEZUG, netz), hier == netz
+    if gleich:
+        print("  Die App-Dateien sind die im Netz - nichts zu vergleichen.")
+    elif not os.path.isdir(ordner):
+        print("  Fuer den Stand im Netz liegen keine Bilder vor. Der Vergleich gilt ab dem")
+        print("  naechsten Push, vor dem dieses Werkzeug gelaufen ist.")
+    else:
+        geaendert = bilder_vergleichen(ordner, GESCHOSSEN)
+        if not geaendert:
+            print("  Alle %d Bildschirme sehen aus wie im Netz." % len(GESCHOSSEN))
+        else:
+            seite = os.path.join(SCHUESSE, "vorher-nachher.html")
+            vergleichsseite(ordner, geaendert, seite)
+            print("  %d von %d Bildschirmen sehen anders aus:" % (len(geaendert), len(GESCHOSSEN)))
+            for anteil, name in geaendert[:12]:
+                print("    %5.1f %%  %s" % (anteil, name[:-4]))
+            print("  Bildpaare: %s" % seite)
+            print("  Gewollt? Dann ist alles gut. Sonst: Station ansehen.")
+    if voll and not bezug_ordner:
+        bezug_ablegen(hier)
+    return ordner
+
+
 # ------------------------------------------------------------ Gegenprobe -----
 STOERUNG = (
     "(()=>{const st=document.createElement('style');st.id='gegenprobe';"
@@ -848,6 +1027,13 @@ STOERUNG2 = (
     "(()=>{const st=document.createElement('style');st.id='gegenprobe2';"
     "st.textContent='.rfilters button::after{inset:-3px -60px !important}';"
     "document.head.appendChild(st);})()"
+)
+# Eine feste Leiste ueber dem ganzen Bild: Kein Scrollen macht einen Knopf darunter frei.
+# Prueft, dass das Freiscrollen (3b in MESSEN) dauerhaft verdeckte Knoepfe nicht verschluckt.
+STOERUNG3 = (
+    "(()=>{const d=document.createElement('div');d.id='gegenprobe3';"
+    "d.style.cssText='position:fixed;inset:0;z-index:2147483647';"
+    "document.body.appendChild(d);})()"
 )
 WEG = "(()=>{const e=document.getElementById('%s'); if(e) e.remove();})()"
 
@@ -895,6 +1081,15 @@ def gegenprobe(s):
     if not erkannt:
         offen.append("Ueberlappung")
 
+    s.js(STOERUNG3)
+    n3 = s.js(MESSEN)
+    s.js(WEG % "gegenprobe3")
+    erkannt = len(n3["verdeckteKnoepfe"]) > len(v2["verdeckteKnoepfe"])
+    print("  %-18s %d -> %d  %s" % ("unterFesterLeiste", len(v2["verdeckteKnoepfe"]),
+                                    len(n3["verdeckteKnoepfe"]), "ERKANNT" if erkannt else "NICHT ERKANNT"))
+    if not erkannt:
+        offen.append("dauerhaft verdeckt")
+
     print("")
     if offen:
         print("ROT - diese Messgroessen finden nichts: %s" % ", ".join(offen))
@@ -908,19 +1103,25 @@ def main():
     p.add_argument("--geraet", help="z. B. 360x800; ohne Angabe alle drei")
     p.add_argument("--theme", choices=["light", "dark"], help="ohne Angabe beide")
     p.add_argument("--gegenprobe", action="store_true", help="misst sich selbst")
-    p.add_argument("--zeigen", action="store_true", help="Browser am Ende offen lassen")
+    p.add_argument("--voll", action="store_true", help="alle drei Geraete statt nur des kleinsten")
+    p.add_argument("--vergleich-mit", help="Bildordner statt des Stands im Netz (Gegenprobe)")
+    p.add_argument("--zeigen", action="store_true", help="sichtbarer Browser, am Ende offen lassen")
     a = p.parse_args()
 
-    s = Sitzung()
+    s = Sitzung(zeigen=a.zeigen)
     s.start()
     try:
         if a.gegenprobe:
             return gegenprobe(s)
 
-        geraete = GERAETE
+        # Alltag (Paddy, 25.10.2026): nur das iPhone SE - kurzer UND schmaler Schirm, dort
+        # zeigen sich Ueberlauf und verdeckte Knoepfe zuerst. Die volle Runde mit --voll.
+        geraete = GERAETE if a.voll else [g for g in GERAETE if g[2] == "iphone_se"]
         if a.geraet:
             b, h = a.geraet.lower().split("x")
-            geraete = [(int(b), int(h), a.geraet)]
+            # Bekannte Groessen behalten ihren Namen - sonst passen die Bilder nicht zum Bezug.
+            name = next((n for gb, gh, n in GERAETE if (gb, gh) == (int(b), int(h))), a.geraet)
+            geraete = [(int(b), int(h), name)]
         themes = [a.theme] if a.theme else ["dark", "light"]
 
         alle = []
@@ -934,6 +1135,8 @@ def main():
         print("\n" + "=" * 74)
         anzahl = bericht(alle)
         print("\nBilder: %s" % SCHUESSE)
+        # Nur ein voller Lauf wird Bezug - ein Teillauf haette Luecken.
+        vergleich_melden(voll=not (a.geraet or a.theme), bezug_ordner=a.vergleich_mit)
         # Ein Lauf, der Pflichtangaben geraten hat, misst einen Zustand, den so nie
         # jemand erzeugt. Das ist KEIN gruener Lauf, auch wenn die Seiten sauber aussahen.
         if UNBEKANNTE_FELDER:

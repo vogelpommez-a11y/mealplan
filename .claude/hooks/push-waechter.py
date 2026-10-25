@@ -74,9 +74,9 @@ def main():
         + lage +
         "\n\nEin Push auf main veroeffentlicht sofort ueber GitHub Pages. Es gibt keinen\n"
         "Zwischenschritt, an dem noch jemand draufschaut.\n\n"
-        "Empfohlen: erst /pushcheck, dann pushen. Er richtet sich nach der Stufe der\n"
-        "Aenderung - bei reiner Doku oder Pruefern (Stufe A) laufen nur website-security\n"
-        "und doku-waechter, das dauert wenige Minuten.\n\n"
+        "Empfohlen: erst /pushcheck, dann pushen. website-security und doku-waechter\n"
+        "laufen immer, die uebrigen Agenten nur, wenn der Diff einen Anlass bietet -\n"
+        "das dauert meist wenige Minuten.\n\n"
         "Wenn die Aenderung gar nichts braucht - ein zurueckgenommener Commit -\n"
         "ist Durchwinken voellig in Ordnung. Es soll nur eine Entscheidung sein, kein Versehen."
     )
