@@ -14986,48 +14986,24 @@
       </div>
       <div class="modal-foot"><button class="btn ghost" data-close>Abbrechen</button><button class="btn danger" data-confirm>Konto löschen</button></div>
     </div>`);
-    const schliesser = node.querySelectorAll("[data-close]");
-    schliesser.forEach(b => b.addEventListener("click", closeModal));
+    node.querySelectorAll("[data-close]").forEach(b => b.addEventListener("click", closeModal));
     const btn = node.querySelector("[data-confirm]");
+    const abbrechen = node.querySelector(".modal-foot [data-close]");
     const err = node.querySelector("#del-err");
-    // Waehrend "Wird gelöscht …" bleibt das Fenster offen. Vorher schlossen Abbrechen, ✕,
-    // Escape, Hintergrund und die Zurueck-Taste es mitten im Loeschen - das lief weiter, und
-    // ein Fehler landete in #del-err eines Fensters, das niemand mehr sah. Der Hook sperrt
-    // alle Wege zugleich (sie laufen ueber closeModal()); er legt sich nach einer Weigerung
-    // neu an, weil closeModal() ihn vor dem Aufruf leert - wie attemptClose im Meal-Blatt.
-    // Er steht NUR waehrend des Loeschens, sonst erbte ihn ein Fenster, das dieses ersetzt.
-    //
-    // Notausgang: Das Loeschen hat keine eigene Frist - offline wartet ein Firestore-Schreiben
-    // auf den Server, unter Umstaenden endlos. Nach SPERRE_MAX_MS gibt die Sperre nach und sagt
-    // warum; der Vorgang selbst laeuft weiter wie vorher (Entscheidung Paddy, 25.10.2026: 30 s).
-    const SPERRE_MAX_MS = 30000;
-    let notausgang = null;
-    const titel = node.querySelector(".modal-head h2");
-    function schliessSperre() { modalCloseHook = schliessSperre; return false; }
-    function sperren(an) {
-      schliesser.forEach(b => { b.disabled = an; });
-      node.setAttribute("aria-busy", an ? "true" : "false");
-      clearTimeout(notausgang);
-      if (an) {
-        modalCloseHook = schliessSperre;
-        // Der fokussierte Knopf wird gleich disabled - ohne Ziel fiele der Fokus auf <body>, und
-        // Tab liefe hinter das Fenster (modalKeys greift nur am ersten/letzten Element).
-        // Vorbild: .onb-q in der Einfuehrung (tabindex="-1", kein sichtbarer Ring).
-        titel.tabIndex = -1; titel.focus();
-        notausgang = setTimeout(() => {
-          sperren(false);
-          err.textContent = "Das dauert länger als sonst. Prüf deine Verbindung.";
-        }, SPERRE_MAX_MS);
-      } else if (modalCloseHook === schliessSperre) {
-        modalCloseHook = null;
-      }
-    }
+    // Das Fenster darf waehrend "Wird gelöscht …" zugehen (✕, Escape, Zurueck) - das Loeschen
+    // laeuft dann einfach weiter. Frueher landete ein spaeter Fehler aber in #del-err eines
+    // Fensters, das niemand mehr sah, und ein spaetes Ende schloss per closeModal() das Fenster,
+    // das inzwischen offen war. Beides haengt jetzt an offen(). Eine Schliesssperre war gebaut
+    // und wieder verworfen: Das Loeschen hat keine Frist, sie brauchte einen Notausgang, und
+    // der zaehlte die Google-/Apple-Anmeldung mit (TROUBLESHOOTING 201).
+    // "Abbrechen" ist waehrenddessen aus - es braeche nichts ab.
+    const offen = () => document.contains(node);
     btn.addEventListener("click", async () => {
       const pw = isPw ? node.querySelector("#del-pw").value : null;
       if (isPw && !pw) { err.textContent = "Gib dein Passwort ein."; return; }
       err.textContent = "";
       btn.disabled = true; btn.textContent = "Wird gelöscht …";
-      sperren(true);
+      abbrechen.disabled = true;
       try {
         // Frisch aus der Cloud laden statt state.recipes zu nehmen: auf einem zweiten
         // Geraet angelegte Rezepte, die dieses Geraet noch nicht per Live-Sync erhalten
@@ -15043,8 +15019,7 @@
           password: pw, shareIds: state.shares || [], recipeIds: cloudRecipeIds,
           groupId: syncGid || "", inviteCodes: state.inviteCodes || []
         });
-        sperren(false);
-        closeModal();
+        if (offen()) closeModal();
         stopCloudSync();
         // await: die Bilder-Loeschung in IndexedDB laeuft asynchron, der Reload unten darf ihr
         // nicht dazwischenfahren. wipeLocalData() kann seit dem Firestore-Cache fehlschlagen -
@@ -15065,8 +15040,7 @@
           // Firestore-Daten sind schon weg, nur das Loeschen des Login-Zugangs selbst
           // ist fehlgeschlagen. Sauber abmelden statt einen Zwischenzustand zu zeigen -
           // ein erneuter Versuch nach dem Wieder-Anmelden schliesst die Loeschung ab.
-          sperren(false);
-          closeModal();
+          if (offen()) closeModal();
           stopCloudSync();
           try {
             await wipeLocalData();
@@ -15079,10 +15053,10 @@
           }
           return;
         }
-        sperren(false);
+        if (!offen()) { toast("Konto nicht gelöscht: " + cloudErrMsg(e)); return; }
         err.textContent = cloudErrMsg(e);
         btn.disabled = false; btn.textContent = "Konto löschen";
-        btn.focus();
+        abbrechen.disabled = false;
       }
     });
     openModal(node);

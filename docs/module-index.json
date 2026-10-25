@@ -390,31 +390,31 @@
       "zeilen": 12
     },
     {
-      "bis": 998,
+      "bis": 996,
       "datei": "css/komponenten.css",
       "titel": "Modal",
       "von": 567,
-      "zeilen": 432
+      "zeilen": 430
     },
     {
-      "bis": 1101,
+      "bis": 1099,
       "datei": "css/komponenten.css",
       "titel": "Profil (Login) & Teilen",
-      "von": 999,
+      "von": 997,
       "zeilen": 103
     },
     {
-      "bis": 1524,
+      "bis": 1522,
       "datei": "css/komponenten.css",
       "titel": "Profilbild-Zuschnitt (Kreis-Crop)",
-      "von": 1102,
+      "von": 1100,
       "zeilen": 423
     },
     {
-      "bis": 1619,
+      "bis": 1617,
       "datei": "css/komponenten.css",
       "titel": "PDF / Druck",
-      "von": 1525,
+      "von": 1523,
       "zeilen": 95
     },
     {
@@ -1097,38 +1097,38 @@
       "zeilen": 54
     },
     {
-      "bis": 15110,
+      "bis": 15084,
       "datei": "index.html",
       "titel": "Marken-Lader (docs/DESIGN.md \"Der Marken-Lader\")",
       "von": 14320,
-      "zeilen": 791
+      "zeilen": 765
     },
     {
-      "bis": 16219,
+      "bis": 16193,
       "datei": "index.html",
       "titel": "Gemeinsam planen (Gruppe)",
-      "von": 15111,
+      "von": 15085,
       "zeilen": 1109
     },
     {
-      "bis": 16253,
+      "bis": 16227,
       "datei": "index.html",
       "titel": "Teilen ueber den nativen Dialog des Geraets (Web Share API)",
-      "von": 16220,
+      "von": 16194,
       "zeilen": 34
     },
     {
-      "bis": 16493,
+      "bis": 16467,
       "datei": "index.html",
       "titel": "Einkaufsliste als PDF (Paket B3)",
-      "von": 16254,
+      "von": 16228,
       "zeilen": 240
     },
     {
-      "bis": 16512,
+      "bis": 16486,
       "datei": "index.html",
       "titel": "Boot",
-      "von": 16494,
+      "von": 16468,
       "zeilen": 19
     },
     {
@@ -1327,9 +1327,9 @@
       "zeilen": 1575
     },
     {
-      "bytes": 121821,
+      "bytes": 121677,
       "pfad": "css/komponenten.css",
-      "zeilen": 1619
+      "zeilen": 1617
     },
     {
       "bytes": 75107,
@@ -1382,12 +1382,12 @@
       "zeilen": 158
     },
     {
-      "bytes": 230254,
+      "bytes": 230249,
       "pfad": "docs/ARCHITECTURES.md",
-      "zeilen": 3546
+      "zeilen": 3545
     },
     {
-      "bytes": 15058,
+      "bytes": 15057,
       "pfad": "docs/BAUSTEINE.md",
       "zeilen": 109
     },
@@ -1421,14 +1421,14 @@
       "zeilen": 675
     },
     {
-      "bytes": 360121,
+      "bytes": 359861,
       "pfad": "docs/TESTING.md",
-      "zeilen": 5945
+      "zeilen": 5943
     },
     {
-      "bytes": 453650,
+      "bytes": 453326,
       "pfad": "docs/TROUBLESHOOTING.md",
-      "zeilen": 7672
+      "zeilen": 7668
     },
     {
       "erzeugt": true,
@@ -1799,9 +1799,9 @@
       "pfad": "img/wurst.webp"
     },
     {
-      "bytes": 1045901,
+      "bytes": 1044791,
       "pfad": "index.html",
-      "zeilen": 16512
+      "zeilen": 16486
     },
     {
       "bytes": 11045,
@@ -2164,14 +2164,14 @@
       "zeilen": 133
     },
     {
+      "bytes": 10617,
+      "pfad": "tools/pruefstand-konto-loeschfenster.py",
+      "zeilen": 242
+    },
+    {
       "bytes": 12652,
       "pfad": "tools/pruefstand-konto-loeschsperre.py",
       "zeilen": 256
-    },
-    {
-      "bytes": 12489,
-      "pfad": "tools/pruefstand-konto-schliesssperre.py",
-      "zeilen": 251
     },
     {
       "bytes": 9393,

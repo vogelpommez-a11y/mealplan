@@ -2966,15 +2966,13 @@ ausgeschnittenen Funktion einen Helfer gibt, sucht vorher per Grep, welche Prüf
 Sperre war nur 60 s gesetzt. Als Schreibprobe dienten ein Teilen-Link, den die App nie anzeigt
 und der danach wieder gelöscht wurde, und das Kontodokument mit unverändertem `tab`.
 
-**Dazu, eine Ebene höher: `tools/pruefstand-konto-schliesssperre.py` (25.10.2026,
+**Dazu, eine Ebene höher: `tools/pruefstand-konto-loeschfenster.py` (25.10.2026,
 `TROUBLESHOOTING` 201).** Schneidet den Zurück-/Modal-Block (wie `pruefstand-zurueck-taste.py`),
 `deleteAccountFlow()` und `fotosGebliebenMelden()` aus; `CloudAuth.deleteAccount()` ist ein
-Versprechen, das der Prüfstand von außen auflöst. Geprüft: alle fünf Schließwege während des
-Löschens (auch zweimal hintereinander und über `pmZurueck()`), der Fehlerweg mit sichtbarer
-Meldung, der Erfolgsweg, der Notausgang (im Prüfstand nach 1 s statt 30 s — die einzige
-Abweichung vom Produktionscode, und sie muss unter 1,5 s bleiben: so lange Ruhe im Protokoll
-wertet `pruefstand_lauf.py` als „fertig“ und meldet sonst ein vorzeitiges Grün) und der Fokus.
-Gegenprobe aus Git (`48bf979`): alle fünf Wege schlossen dort mitten im Löschen. 25 Prüfungen.
+Versprechen, das der Prüfstand von außen auflöst. Geprüft: Fehler und Erfolg bei offenem
+**und** bei inzwischen geschlossenem Fenster (Toast statt verlorener Meldung; ein fremdes
+Fenster samt Hook bleibt unberührt), „Abbrechen“ aus, Fokus auf „Verstanden“. Gegenprobe aus
+Git (`48bf979`). 17 Prüfungen.
 
 | Probe | Ergebnis |
 |---|---|

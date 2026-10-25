@@ -212,7 +212,7 @@ jeweils, worum es geht. **Nicht die ganze Datei lesen** — sie ist rund 310 KB 
 | 198 | Store-App: Zurück-Taste beendete die App, Startbild mit schwarzer Lücke |
 | 199 | Fenster nach `confirmModal()` + `await` ging sofort wieder zu |
 | 200 | Trefferfläche in der Android-App 43 statt 44 px (Meal-Auswahl) — behoben |
-| 201 | „Konto löschen“ ließ sich mitten im Löschen schließen — Fehler unsichtbar |
+| 201 | „Konto löschen“: Ergebnis ging verloren, wenn das Fenster schon zu war |
 
 <!-- REGISTER-ENDE -->
 
@@ -7633,39 +7633,35 @@ pixelgleich zum Netz. `.pmore` und `.pq-h` stoßen jetzt aneinander, ohne sich z
 **Lehre:** Ein hitSlop „Kasten plus Rand“ ist nur so groß wie die Schrift auf dem Gerät.
 Genau dafür gibt es den zweiten Durchgang in der echten App.
 
-## 201. „Konto löschen“ ließ sich mitten im Löschen schließen — Fehler unsichtbar
+## 201. „Konto löschen“: Ergebnis ging verloren, wenn das Fenster schon zu war
 
-**Symptom (Pushcheck-Hinweis 25.10.2026, am Code bestätigt):** Während „Wird gelöscht …“
-schlossen Abbrechen, ✕, Escape, ein Tipp auf den Hintergrund und die Zurück-Taste das Fenster.
-Das Löschen lief weiter. Schlug es fehl (Netz, falsches Passwort), stand die Meldung in
-`#del-err` eines Fensters, das schon weg war — der Nutzer erfuhr nichts.
+**Symptom (Pushcheck-Hinweis 25.10.2026, am Code bestätigt):** Während „Wird gelöscht …“ ließ
+sich das Fenster schließen (Abbrechen, ✕, Escape, Hintergrund, Zurück). Das Löschen lief weiter.
+Schlug es danach fehl, stand die Meldung in `#del-err` eines Fensters, das niemand mehr sah. Ging
+es gut, schloss `closeModal()` das Fenster, das inzwischen offen war — samt dessen Hook (etwa
+`attemptClose` im Meal-Blatt).
 
-**Ursache:** `deleteAccountFlow()` sperrte nur den eigenen Knopf (`btn.disabled`), nicht das
-Schließen. Alle fünf Wege laufen über `closeModal()`.
+**Behoben (25.10.2026):** Schließen bleibt erlaubt, das Ergebnis hängt an
+`offen() = document.contains(node)`: Fehler bei geschlossenem Fenster als Toast „Konto nicht
+gelöscht: …“, `closeModal()` nur, solange es das eigene Fenster ist. „Abbrechen“ ist
+währenddessen aus — es bräche nichts ab. Im selben Zug: `fotosGebliebenMelden()` fokussiert
+„Verstanden“ statt des ✕ (`opts.focus`). Prüfstand `tools/pruefstand-konto-loeschfenster.py`,
+17 Prüfungen, Gegenprobe aus Git.
 
-**Behoben (25.10.2026):** ein `modalCloseHook` (`schliessSperre`), der während des Löschens
-`false` liefert und sich dabei neu anlegt — `closeModal()` leert den Hook vor dem Aufruf, ohne
-das Neuanlegen ginge der zweite Versuch durch (dasselbe wie `attemptClose` im Meal-Blatt). Die
-Zurück-Taste legt ihren Eintrag bei einer Weigerung schon von selbst wieder an (`popstate`).
-Abbrechen und ✕ sind währenddessen ausgegraut; nach Fehler oder Erfolg ist alles wieder frei.
-Der Hook steht **nur während des Löschens** (`sperren(true/false)`), sonst erbte ihn ein
-Fenster, das dieses per `openModal()` ersetzt. Der Fokus geht währenddessen auf die
-Überschrift (`tabindex=-1`, kein Ring, wie `.onb-q`), sonst fiele er auf `<body>` und Tab liefe
-hinter das Fenster; nach einem Fehler zurück auf „Konto löschen“.
+**Verworfen: eine Schließsperre** (`modalCloseHook`, der sich nach Weigerung neu anlegt). Zwei
+`/code-review`-Runden zeigten, was sie nach sich zieht: `CloudAuth.deleteAccount()` hat keine
+Frist (offline wartet ein Firestore-Schreiben endlos), also brauchte sie einen Notausgang; der
+30-s-Zähler lief schon während der Google-/Apple-Neuanmeldung und meldete dort „Prüf deine
+Verbindung“; nach dem Notausgang war der Ursprungsfehler wieder da; dazu Tab-Falle und
+Fokus-Sonderfälle. Paddy, 25.10.2026: „Einfacher Weg“.
 
-**Notausgang nach 30 s** (Code-Review, Entscheidung Paddy): `CloudAuth.deleteAccount()` hat keine
-eigene Frist, offline wartet ein Firestore-Schreiben unter Umständen endlos — mit der Sperre
-käme man dann gar nicht mehr aus dem Fenster. Nach `SPERRE_MAX_MS` gibt die Sperre nach und
-zeigt „Das dauert länger als sonst. Prüf deine Verbindung.“; der Vorgang läuft weiter wie früher.
+**Offen, bewusst nicht angefasst:**
+* Ein zweites „Konto löschen“, während das erste noch läuft (Fenster zu, neu öffnen), startet
+  einen zweiten Vorgang. Gab es vorher genauso; ein gemeinsamer „Löschen läuft“-Merker wäre der Weg.
+* Andere Fenster mit `await` vor `closeModal()` haben dieselbe Grundlücke — Profil speichern,
+  Passwort zurücksetzen, Gruppe auflösen/verlassen über `confirmModal`. Nicht Teil dieses
+  Auftrags (CLAUDE.md §22).
 
-Im selben Zug: `fotosGebliebenMelden()` fokussiert „Verstanden“ statt des ✕ (`opts.focus`).
-Prüfstand `tools/pruefstand-konto-schliesssperre.py`, 25 Prüfungen, Gegenprobe aus Git über
-alle fünf Schließwege.
-
-**Offen, bewusst nicht angefasst (Code-Review 25.10.2026):** Andere Fenster mit `await` vor
-`closeModal()` haben dieselbe Grundlücke — Profil speichern, Passwort zurücksetzen, Gruppe
-auflösen/verlassen über `confirmModal`. Eine gemeinsame „Fenster arbeitet“-Sperre in
-`closeModal()` wäre der saubere Weg; nicht Teil dieses Auftrags (CLAUDE.md §22).
-
-**Lehre:** Ein laufender Vorgang in einem Fenster braucht zwei Sperren — den Auslöser **und**
-das Schließen. Wer nur den Knopf sperrt, lässt den Fehlerweg ins Leere laufen.
+**Lehre:** Wer ein Fenster während eines langen Vorgangs offen hält, muss auch erklären, wie
+man herauskommt, wenn der Vorgang nie endet. Oft ist es einfacher, das Fenster gehen zu lassen
+und dafür zu sorgen, dass das **Ergebnis** trotzdem ankommt.
