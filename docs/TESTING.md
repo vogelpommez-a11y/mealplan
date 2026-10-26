@@ -2946,8 +2946,10 @@ Plugin-Daten wieder vergessen; und dass `wipeLocalData()` es aufruft (Text, alte
 
 ## Die Gegenprobe aus Git: die Löschsperre fürs Konto (19.09.2026)
 
-`tools/pruefstand-konto-loeschsperre.py` — 17 Prüfungen für `TROUBLESHOOTING.md` §172. Er schneidet
-`CloudAuth.deleteAccount()` und `kontoDatenLoeschen()` im Original aus. Nachgebaut ist nur die
+`tools/pruefstand-konto-loeschsperre.py` — 20 Prüfungen für `TROUBLESHOOTING.md` §172. Er schneidet
+`CloudAuth.deleteAccount()`, `kontoLoeschenNachBestaetigung()` (dort stehen seit §201 Sperre,
+Aufräumen und `deleteUser()`), den Schalter `kontoLoescht` und `kontoDatenLoeschen()` im Original
+aus; geprüft ist auch, dass der Schalter nach einem Fehlschlag wieder fällt. Nachgebaut ist nur die
 Regel `nichtImLoeschen()`: Anlegen und Ändern unter `users/ich`, `shared/` und `invites/` scheitert,
 solange eine gültige Sperre steht. Das Zweitgerät schreibt in der Attrappe genau im Moment von
 `deleteUser()`, denn da ist sein Token noch gültig. Attrappen für die Modul-Helfer, die

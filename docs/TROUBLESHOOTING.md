@@ -7683,6 +7683,11 @@ Fenster (ersetzt samt Hook, Scanner lief weiter); Fehler-Toast nur ~1,9 s; Fokus
 * Prüfstände `pruefstand-konto-loeschfenster.py` (39) und `pruefstand-fenster-nach-warten.py`
   (13), Gegenprobe `d316ca9`; `pruefstand-google-nativ.py` schneidet `deleteAccount` jetzt bis
   „Ab hier ist bestaetigt“.
+* Nachgezogen 26.10.2026: `pruefstand-konto-loeschsperre.py` (§172) war seit `49d9880` rot —
+  er suchte die Sperre in `deleteAccount()`, sie steht jetzt in `kontoLoeschenNachBestaetigung()`.
+  Er schneidet nun beide samt `kontoLoescht` aus (20 Prüfungen) und prüft dazu, dass der Schalter
+  nach einem Fehlschlag fällt (Gegenprobe: ohne das Zurücksetzen 2 rot). Wer eine Funktion
+  aufteilt, sucht per Grep, welche Prüfstände sie schneiden.
 
 **Lehre:** Wer ein Fenster während eines langen Vorgangs offen hält, muss auch erklären, wie
 man herauskommt, wenn der Vorgang nie endet. Oft ist es einfacher, das Fenster gehen zu lassen

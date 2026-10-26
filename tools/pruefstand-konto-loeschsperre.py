@@ -46,13 +46,21 @@ def schnitt(lines, sig, tiefe):
 
 lines = pm_quelle.lade_seite(QUELLE).split("\n")
 LOESCHEN = schnitt(lines, "        deleteAccount: async function (opts) {", 8)
+# Seit der Gesamtloesung (49d9880, TROUBLESHOOTING 201) bestaetigt deleteAccount() nur noch und
+# setzt die Schreibsperre der App; Sperre, Aufraeumen und deleteUser() stehen dahinter.
+NACH = schnitt(lines, "      async function kontoLoeschenNachBestaetigung(", 6)
 DATEN = schnitt(lines, "      async function kontoDatenLoeschen(", 6)
+SCHALTER = "      let kontoLoescht = false;"
+if SCHALTER not in lines:
+    raise SystemExit("NICHT GEFUNDEN: " + SCHALTER.strip())
 
 # Sicherung gegen einen stillen Fehlschnitt.
+if "kontoLoeschenNachBestaetigung(user, opts)" not in LOESCHEN:
+    raise SystemExit("deleteAccount() ruft kontoLoeschenNachBestaetigung() nicht - Schnitt oder Code pruefen")
 SPERRE = 'const sperre = doc(db, "loeschsperren", uid);'
-if SPERRE not in LOESCHEN:
-    raise SystemExit("deleteAccount() sperrt nicht - Schnitt oder Code pruefen")
-if LOESCHEN.index(SPERRE) > LOESCHEN.index("kontoDatenLoeschen(uid, opts)"):
+if SPERRE not in NACH:
+    raise SystemExit("kontoLoeschenNachBestaetigung() sperrt nicht - Schnitt oder Code pruefen")
+if NACH.index(SPERRE) > NACH.index("kontoDatenLoeschen(uid, opts)"):
     raise SystemExit("die Sperre steht NACH dem Aufraeumen - genau der Fehler")
 if "getDocsFromServer(collection(db, \"users\", uid, \"recipes\"))" not in DATEN:
     raise SystemExit("kontoDatenLoeschen() listet die Meals nicht vom Server")
@@ -109,7 +117,7 @@ function frisch() {
     "shared/s1": { uid: "ich" },
     "shared/s2": { uid: "ich" }          // ebenso
   };
-  fehler = {}; notizen = []; geloeschtUser = false;
+  fehler = {}; notizen = []; geloeschtUser = false; kontoLoescht = false;
 }
 // Nachbau der Regel nichtImLoeschen(): Anlegen/Aendern unter users/ich, shared/, invites/ wird
 // abgelehnt, solange eine GUELTIGE Sperre steht. Loeschen bleibt frei. Mehr ist nicht nachgebaut.
@@ -173,6 +181,8 @@ window.noteError = function (k) { notizen.push(k); };
 var RESOLVER = "RESOLVER", NATIV = false;
 function mitVergessenBeiFehler(p) { return p; }
 
+__SCHALTER__
+__NACH__
 __DATEN__
 var NEU = { __LOESCHEN__ };
 var ALT = { __LOESCHEN_ALT__ };
@@ -197,6 +207,7 @@ function lauf(fn) { return fn(AUFRUF).then(function () { return "durch"; }, func
     pruef("die Sperre bleibt stehen und traegt nur ein Ablaufdatum", s ? Object.keys(s) : null, ["bis"]);
     var h = s ? (s.bis - new Date()) / 36e5 : 0;
     pruef("sie laeuft in rund zwei Stunden ab (die Regel erlaubt hoechstens drei)", h > 1.9 && h <= 2, true);
+    pruef("die App schreibt danach nichts mehr in die Cloud", kontoLoescht, true);
 
     // ================= 2. Gegenprobe =================
     frisch();
@@ -224,6 +235,7 @@ function lauf(fn) { return fn(AUFRUF).then(function () { return "durch"; }, func
     pruef("scheitert die Sperre am Netz, bricht die Loeschung ab", erg, "abgebrochen:unavailable");
     pruef("und nichts ist geloescht", reste().length, 5);
     pruef("der Zugang besteht weiter", geloeschtUser, false);
+    pruef("die App darf wieder schreiben", kontoLoescht, false);
 
     // ================= 5. Das Aufraeumen scheitert NACH der Sperre =================
     frisch();
@@ -234,6 +246,7 @@ function lauf(fn) { return fn(AUFRUF).then(function () { return "durch"; }, func
     pruef("die Sperre wird zurueckgenommen - das Konto laeuft nicht zwei Stunden ins Leere",
       "loeschsperren/ich" in server, false);
     pruef("der Zugang besteht weiter", geloeschtUser, false);
+    pruef("die App darf wieder schreiben - Liegengebliebenes holt sie nach", kontoLoescht, false);
 
     LOG.push("");
     LOG.push(bad ? ("FEHLGESCHLAGEN: " + bad + " von " + (ok + bad)) : ("ALLE " + ok + " PRUEFUNGEN GRUEN"));
@@ -246,6 +259,8 @@ function lauf(fn) { return fn(AUFRUF).then(function () { return "durch"; }, func
 seite = (seite.replace("__REGEL_BEFUND__", json.dumps(regel_befund))
               .replace("__LOESCHEN_ALT__", LOESCHEN_ALT)
               .replace("__LOESCHEN__", LOESCHEN)
+              .replace("__SCHALTER__", SCHALTER)
+              .replace("__NACH__", NACH)
               .replace("__DATEN__", DATEN))
 io.open(ZIEL, "w", encoding="utf-8").write(seite)
 print("geschrieben: " + ZIEL)
