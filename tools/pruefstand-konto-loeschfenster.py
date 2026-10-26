@@ -13,6 +13,10 @@ nichts mehr (kontoLoeschen = "loescht"), die Bruecke lehnt jedes Schreiben ab (k
 Scheitert es, wird beides aufgehoben und nachgeholt. Ein zweiter Start zeigt einen Toast.
 Schlussmeldungen treffen kein fremdes Fenster mehr (fensterZuNachLoeschen).
 
+Stufe 3, die 🟡 der Gesamtloesung (26.10.2026): Schlussmeldung 2,5 statt 0,9 s, eigener Satz
+nach der Frist des Laders (nennt das Neuladen), "noch nicht vollständig" statt "nicht gelöscht"
+und "Verbindung lösen" in der Gruppe ohne zweites closeModal(). Gegenprobe dafuer: VORHER_COMMIT.
+
 Echter Code:
   * App: der Zurueck-/Modal-Block, scheduleCloudPush() samt kontoLoeschen, der Marken-Lader
     (Frist ML_ECHT_MAX_MS gestaucht auf 800 ms), deleteAccountFlow(), fensterZuNachLoeschen(),
@@ -35,6 +39,8 @@ QUELLE = os.path.join(BASIS, "index.html")
 ZIEL = os.path.join(BASIS, "tools", "pruefstand-konto-loeschfenster.html")
 # Der Stand vor der Gesamtloesung. Fest verdrahtet, damit die Gegenprobe nicht mitwandert.
 GEGEN_COMMIT = "d316ca9"
+# Der Stand vor Stufe 3 (Gesamtloesung live, die 🟡 noch offen).
+VORHER_COMMIT = "279c493"
 
 
 def funktion(lines, sig, ende="  }"):
@@ -106,6 +112,22 @@ ALT = ALT.replace("function deleteAccountFlow(", "function deleteAccountFlowALT(
     "function fotosGebliebenMelden(", "function fotosGebliebenMeldenALT(")
 BR_ALT = bruecke(alt_lines)
 
+vorher_lines = subprocess.check_output(["git", "show", VORHER_COMMIT + ":index.html"], cwd=BASIS).decode("utf-8").split("\n")
+ML_VORHER = funktion(vorher_lines, "  function markenLader(o) {").replace("function markenLader(", "function markenLaderVORHER(")
+ML_VORHER += "\n" + funktion(vorher_lines, "  function deleteAccountFlow() {").replace("function deleteAccountFlow(", "function deleteAccountFlowVORHER(")
+
+
+def loesen(lines):
+    """Der Klick-Handler von "Verbindung lösen" aus dem Gruppenfenster."""
+    a = next((i for i, z in enumerate(lines) if z.startswith('      const loesenBtn = body.querySelector("#grp-loesen");')), None)
+    if a is None:
+        raise SystemExit("Schnitt Verbindung loesen nicht gefunden")
+    e = next(i for i in range(a + 1, len(lines)) if lines[i] == "      });")
+    return "\n".join(lines[a:e + 1])
+LOESEN_NEU, LOESEN_VORHER = loesen(lines), loesen(vorher_lines)
+if "window.CloudSync.save(syncUid" not in LOESEN_NEU:
+    raise SystemExit("Verbindung loesen speichert nicht mehr in der Cloud - Schnitt pruefen")
+
 # ---- Schnitt 4: syncRecipes() - ein Push, der beim Bestaetigen schon lief (Code-Review 26.10.) ----
 SYNC_NEU = funktion(lines, "  async function syncRecipes() {")
 if '"konto-loescht"' not in SYNC_NEU:
@@ -153,10 +175,10 @@ var syncGid = "", groupMembers = [];
 function groupRole() { return null; }
 function confirmModal() { throw new Error("confirmModal unerwartet"); }
 function openGroupModal() {}
-var gestoppt = 0, gewischt = 0, neuladen = [], toasts = [], fotosBleiben = false, wischFehler = false;
+var gestoppt = 0, gewischt = 0, neuladen = [], neuDauer = [], toasts = [], fotosBleiben = false, wischFehler = false;
 function stopCloudSync() { gestoppt++; }
 function wipeLocalData() { gewischt++; return wischFehler ? Promise.reject(new Error("idb")) : Promise.resolve(fotosBleiben); }
-function nachLoeschenNeuladen(t) { neuladen.push(t); }
+function nachLoeschenNeuladen(t, ms) { neuladen.push(t); neuDauer.push(ms); }
 function toast(t, ms) { toasts.push([t, ms || 0]); }
 function cloudErrMsg(e) { return "Fehler: " + e.message; }
 var FOTOS_GEBLIEBEN = "Fotos blieben.";
@@ -180,6 +202,26 @@ __PUSH__
 __ML__
 __NEU__
 __ALT__
+__ML_VORHER__
+
+// ---- "Verbindung lösen": eigener Rahmen, zaehlt closeModal() NACH dem Bestaetigen ----
+var LOESEN_NEU = __LOESEN_NEU__, LOESEN_VORHER = __LOESEN_VORHER__;
+async function loesenLauf(quelltext) {
+  var body = document.createElement("div");
+  body.innerHTML = '<button id="grp-loesen"></button>';
+  var umg = { zu: 0, toasts: [], bestaetigen: null };
+  var f = new Function("umg", "body",
+    "var confirmModal = function (o) { umg.bestaetigen = o.onConfirm; };" +
+    "var closeModal = function () { umg.zu++; }, toast = function (t) { umg.toasts.push(t); };" +
+    "var render = function () {}, save = function () {}, noteError = function () {};" +
+    "var state = { groupId: 'g1' }, syncUid = 'u1';" +
+    "var window = { CloudSync: { save: function () { return new Promise(function (r) { setTimeout(r, 20); }); } } };\\n" + quelltext);
+  f(umg, body);
+  body.querySelector("#grp-loesen").click();
+  // confirmModal() schliesst sich selbst und ruft dann onConfirm - gezaehlt wird nur danach
+  await umg.bestaetigen();
+  return [umg.zu, umg.toasts];
+}
 
 // ---- syncRecipes(): Randstuecke ----
 var lastPushedRecipes = null, recipesSyncFailed = false, CLOUD_DOC_MAX = 1e6;
@@ -232,7 +274,7 @@ function fremdesFenster() {
   modalCloseHook = function () { fremdHook++; modalCloseHook = null; return false; };
 }
 function aufraeumen() { modalCloseHook = null; closeModal(); }
-function zuruecksetzen() { toasts = []; neuladen = []; gemeldet = []; fremdHook = 0; fotosBleiben = false; wischFehler = false; }
+function zuruecksetzen() { toasts = []; neuladen = []; neuDauer = []; gemeldet = []; fremdHook = 0; fotosBleiben = false; wischFehler = false; }
 
 (async function () {
   history.pushState({ polster: 1 }, "");
@@ -273,7 +315,8 @@ function zuruecksetzen() { toasts = []; neuladen = []; gemeldet = []; fremdHook 
   toasts = [];
   lauf.nein(new Error("Netz weg"));
   await warte(30);
-  pruef("spaeter Fehler bei geschlossenem Fenster: langer Toast", toasts, [["Konto nicht gelöscht: Fehler: Netz weg", 6000]]);
+  pruef("spaeter Fehler VOR der Bestaetigung bei geschlossenem Fenster: nichts geloescht, Grund sichtbar, langer Toast",
+        toasts, [["Konto nicht gelöscht: Fehler: Netz weg", 6000]]);
   zuruecksetzen();
 
   // ---- 5. Neuanmeldung bestaetigt: Fenster zu, Lader, Sperre ----
@@ -293,7 +336,7 @@ function zuruecksetzen() { toasts = []; neuladen = []; gemeldet = []; fremdHook 
   await warte(700);
   pruef("Fehler nach der Bestaetigung: Lader weg, App frei", [!!lader(), appEl.inert], [false, false]);
   pruef("Sperre aus und Abgleich nachgeholt", [kontoLoeschen, pushTimer !== null], [null, true]);
-  pruef("Meldung als langer Toast", toasts, [["Konto nicht gelöscht: Fehler: Netz weg", 6000]]);
+  pruef("Meldung als langer Toast, \\"noch nicht vollständig\\" (ein Teil kann schon weg sein)", toasts, [["Dein Konto ist noch nicht vollständig gelöscht – versuch es gleich noch einmal.", 6000]]);
   clearTimeout(pushTimer); pushTimer = null;
   zuruecksetzen();
 
@@ -308,6 +351,7 @@ function zuruecksetzen() { toasts = []; neuladen = []; gemeldet = []; fremdHook 
   pruef("Erfolg: lokal geloescht, Neuladen angekuendigt, Lader weg",
         [gewischt - vorher, neuladen.length, !!lader()], [1, 1, false]);
   pruef("kein Fehler gemeldet", gemeldet, []);
+  pruef("Schlussmeldung steht 2,5 s bis zum Neuladen", neuDauer, [2500]);
   kontoLoeschen = null; zuruecksetzen();
 
   // ---- 8. Frist: Lader geht nach ML_ECHT_MAX_MS, App wieder bedienbar, Sperre bleibt ----
@@ -319,7 +363,8 @@ function zuruecksetzen() { toasts = []; neuladen = []; gemeldet = []; fremdHook 
   pruef("Lader steht vor der Frist", !!lader(), true);
   await warte(1050);
   pruef("nach der Frist: Lader weg, Toast sagt es, Sperre bleibt",
-        [!!lader(), appEl.inert, toasts.length > 0 && /Hintergrund/.test(toasts[0][0]), kontoLoeschen], [false, false, true, "loescht"]);
+        [!!lader(), appEl.inert, toasts.length > 0 && toasts[0], kontoLoeschen],
+        [false, false, ["Das Löschen dauert länger – du bekommst Bescheid. Hängt es, lad die Seite neu.", 6000], "loescht"]);
   // ... inzwischen ist ein fremdes Fenster offen; dann Erfolg mit gebliebenen Fotos
   fremdesFenster();
   fotosBleiben = true;
@@ -384,6 +429,41 @@ function zuruecksetzen() { toasts = []; neuladen = []; gemeldet = []; fremdHook 
   pruef("syncRecipes: Schreibsperre ohne Hinweis und ohne Fehlerprotokoll", [toasts.length, gemeldet, recipesSyncFailed], [0, [], false]);
   pruef("syncRecipes: Baseline bleibt fuers Nachholen", lastPushedRecipes.size, 0);
 
+  // ---- 13. "Verbindung lösen": nach dem await kein zweites closeModal() ----
+  var lz = await loesenLauf(LOESEN_NEU);
+  pruef("Verbindung lösen: kein closeModal() nach dem Speichern, Toast kommt", lz, [0, ["Verbindung gelöst – du planst wieder für dich"]]);
+
+  // ---- GEGENPROBE Stufe 3: der Stand davor ----
+  lz = await loesenLauf(LOESEN_VORHER);
+  pruef("GEGENPROBE vorher: Verbindung lösen ruft nach dem await closeModal() (traefe ein fremdes Fenster)", lz[0], 1);
+  var mlNeu = markenLader;
+  markenLader = markenLaderVORHER;
+  starten(deleteAccountFlow);
+  await warte(20);
+  lauf.anmelden();
+  await warte(250);
+  pruef("GEGENPROBE vorher: Lader steht", !!lader(), true);
+  await warte(1050);
+  pruef("GEGENPROBE vorher: nach der Frist nur der allgemeine Satz, kurz", toasts.length > 0 && [/Hintergrund/.test(toasts[0][0]), toasts[0][1]], [true, 0]);
+  lauf.ja();
+  await warte(200);
+  markenLader = mlNeu; kontoLoeschen = null; zuruecksetzen();
+  starten(deleteAccountFlowVORHER);
+  await warte(20);
+  lauf.anmelden();
+  await warte(250);
+  lauf.nein(new Error("Netz weg"));
+  await warte(700);
+  pruef("GEGENPROBE vorher: Fehler nach der Bestaetigung meldet \\"nicht gelöscht\\", obwohl ein Teil weg sein kann",
+        toasts, [["Konto nicht gelöscht: Fehler: Netz weg", 6000]]);
+  clearTimeout(pushTimer); pushTimer = null; kontoLoeschen = null; zuruecksetzen();
+  starten(deleteAccountFlowALT);
+  await warte(20);
+  lauf.ja();
+  await warte(200);
+  pruef("GEGENPROBE alt: Schlussmeldung nur 0,9 s", neuDauer, [900]);
+  zuruecksetzen();
+
   // ---- GEGENPROBE: der Stand vor der Gesamtloesung ----
   starten(deleteAccountFlowALT);
   await warte(20);
@@ -438,7 +518,8 @@ function zuruecksetzen() { toasts = []; neuladen = []; gemeldet = []; fremdHook 
 import json
 seite = (seite.replace("__HILFEN__", "\n".join(HILFEN)).replace("__KERN__", KERN)
          .replace("__PUSH__", PUSH).replace("__ML__", ML)
-         .replace("__NEU__", NEU).replace("__ALT__", ALT)
+         .replace("__NEU__", NEU).replace("__ALT__", ALT).replace("__ML_VORHER__", ML_VORHER)
+         .replace("__LOESEN_NEU__", json.dumps(LOESEN_NEU)).replace("__LOESEN_VORHER__", json.dumps(LOESEN_VORHER))
          .replace("__SYNC_NEU__", SYNC_NEU).replace("__SYNC_ALT__", SYNC_ALT)
          .replace("__BR_NEU__", json.dumps(BR_NEU)).replace("__BR_ALT__", json.dumps(BR_ALT)))
 io.open(ZIEL, "w", encoding="utf-8").write(seite)

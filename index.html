@@ -380,6 +380,20 @@
         }
         return GoogleAuthProvider.credential(token);
       }
+      // Frist fuer die Bestaetigung beim Konto-Loeschen (TROUBLESHOOTING 201): Haengt die
+      // Kontoauswahl, blieb deleteAccountFlow() im Zustand "bestaetigen" und wies jeden neuen
+      // Versuch ab ("wird gerade geloescht"), bis die App neu startete. Nach der Frist zaehlt es
+      // als abgebrochen - geloescht ist bis dahin nichts. Kommt das Token spaeter doch noch, hat
+      // das Plugin es schon abgelegt: dann gleich wieder vergessen.
+      const GOOGLE_NATIV_FRIST_MS = 120000;
+      function googleNativMitFrist(ms) {
+        let abgelaufen = false, uhr;
+        const anfrage = googleNativCredential();
+        anfrage.then(function () { if (abgelaufen) googleNativVergessen(); }, function () {});
+        return Promise.race([anfrage, new Promise(function (_, nein) {
+          uhr = setTimeout(function () { abgelaufen = true; nein(nativFehler("auth/cancelled-popup-request")); }, ms);
+        })]).finally(function () { clearTimeout(uhr); });
+      }
       // Das Plugin legt nach jeder Anmeldung ID- und Access-Token (mit E-Mail und Name) in den
       // SharedPreferences der App ab und loescht sie nur in logout(). Deshalb rufen es nicht nur
       // das Abmelden, sondern auch wipeLocalData() - Ziffer 10 verspricht "saemtliche auf diesem
@@ -461,7 +475,7 @@
             if (!opts || !opts.password) throw new Error("password-required");
             await reauthenticateWithCredential(user, EmailAuthProvider.credential(user.email, opts.password));
           } else if (pid === "google.com") {
-            if (NATIV) await mitVergessenBeiFehler(reauthenticateWithCredential(user, await googleNativCredential()));
+            if (NATIV) await mitVergessenBeiFehler(reauthenticateWithCredential(user, await googleNativMitFrist(GOOGLE_NATIV_FRIST_MS)));
             else await reauthenticateWithPopup(user, new GoogleAuthProvider(), RESOLVER);
           } else if (pid === "apple.com") {
             await reauthenticateWithPopup(user, new OAuthProvider("apple.com"), RESOLVER);
@@ -14368,7 +14382,9 @@
         timer.push(setTimeout(zeigen, ML_ECHT_ZEIGEN_MS));
         timer.push(setTimeout(() => {
           if (zu) return;
-          toast("Das dauert länger – es läuft im Hintergrund weiter.");
+          // zuLang nennt einen Ausweg - das braucht Lesezeit (docs/DESIGN.md "Wie lange eine Meldung steht")
+          if (o.zuLang) toast(o.zuLang, 6000);
+          else toast("Das dauert länger – es läuft im Hintergrund weiter.");
           schliessen();
         }, ML_ECHT_MAX_MS));
         Promise.resolve(o.warten).then(r => { ergebnis = r; }, e => { fehlschlag = { e: e }; }).then(() => {
@@ -14865,7 +14881,8 @@
   }
 
   // Gemeinsamer Abschluss der Loeschwege: save() sperren, Meldung bis zum Reload stehen lassen
-  // (der normale Toast verschwindet nach 1,9 s), dann neu laden.
+  // (der normale Toast verschwindet nach 1,9 s), dann neu laden. Die Aufrufer geben 2,5 s -
+  // 0,9 s reichten nicht zum Lesen (Paddy, 26.10.2026; Regel in docs/DESIGN.md "Meldungen").
   function nachLoeschenNeuladen(text, ms) {
     datenGeloescht = true;
     toast(text);
@@ -14985,7 +15002,10 @@
       const bestaetigt = () => {
         kontoLoeschen = "loescht";
         if (offen()) closeModal();
-        lader = markenLader({ text: "Dein Konto wird gelöscht …", warten: ende })
+        // Nach der Frist bleibt die Schreibsperre bis zum Ergebnis - die Meldung nennt darum
+        // den Ausweg, falls keins mehr kommt (TROUBLESHOOTING 201).
+        lader = markenLader({ text: "Dein Konto wird gelöscht …", warten: ende,
+                              zuLang: "Das Löschen dauert länger – du bekommst Bescheid. Hängt es, lad die Seite neu." })
           .catch(e => noteError("konto:loeschLader", e));
       };
       // Erst der Lader weg, dann das Fenster oder die Meldung - sonst laege es unter der Karte.
@@ -15021,7 +15041,7 @@
             fensterZuNachLoeschen();   // nach der Frist konnte inzwischen eines aufgehen
             fotosGebliebenMelden("Konto gelöscht");
           } else {
-            nachLoeschenNeuladen("Konto und Daten wurden gelöscht", 900);
+            nachLoeschenNeuladen("Konto und Daten wurden gelöscht", 2500);
             laderFertig();
           }
         } catch (wipeErr) {
@@ -15041,7 +15061,7 @@
             try { window.CloudAuth.logout(); } catch (er) { noteError("auth:logoutAfterDelete", er); }
             // Bleiben hier zusaetzlich Fotos, sagt es die Meldung NICHT: Den Zugang zu entfernen
             // ist die wichtigere Nachricht, und zwei Hinweise passen in keinen Toast (TS 192).
-            nachLoeschenNeuladen("Deine Daten wurden gelöscht. Melde dich einmal neu an und wiederhole „Konto löschen“, um auch den Zugang zu entfernen.", 900);
+            nachLoeschenNeuladen("Deine Daten wurden gelöscht. Melde dich einmal neu an und wiederhole „Konto löschen“, um auch den Zugang zu entfernen.", 2500);
             laderFertig();
           } catch (wipeErr) {
             await nachDemLader();
@@ -15049,12 +15069,20 @@
           }
           return;
         }
-        // Nichts geloescht (die Daten stehen noch): wieder schreiben lassen und nachholen, was
-        // waehrend der Sperre liegen blieb - das Konto besteht ja weiter.
+        // Das Konto besteht weiter: wieder schreiben lassen und nachholen, was waehrend der Sperre
+        // liegen blieb. War die Neuanmeldung schon bestaetigt ("loescht"), kann ein Teil der Daten
+        // schon weg sein - dann "noch nicht vollstaendig" statt "nicht geloescht"; davor (Abbruch,
+        // Frist, falsches Passwort) ist nichts geloescht, und der Grund bleibt sichtbar
+        // (TROUBLESHOOTING 201).
+        const mittendrin = kontoLoeschen === "loescht";
         kontoLoeschen = null;
         await nachDemLader();
         scheduleCloudPush();
-        if (!offen()) { toast("Konto nicht gelöscht: " + cloudErrMsg(e), 6000); return; }
+        if (!offen()) {
+          toast(mittendrin ? "Dein Konto ist noch nicht vollständig gelöscht – versuch es gleich noch einmal."
+                           : "Konto nicht gelöscht: " + cloudErrMsg(e), 6000);
+          return;
+        }
         err.textContent = cloudErrMsg(e);
         btn.disabled = false; btn.textContent = "Konto löschen";
         abbrechen.disabled = false;
@@ -15086,7 +15114,7 @@
           const fotosGeblieben = await wipeLocalData();
           profile = null;
           if (fotosGeblieben) fotosGebliebenMelden("Daten gelöscht");
-          else nachLoeschenNeuladen("Alle Daten wurden gelöscht", 900); // kurz sichtbar, dann sauberer Neustart
+          else nachLoeschenNeuladen("Alle Daten wurden gelöscht", 2500); // kurz sichtbar, dann sauberer Neustart
         } catch (wipeErr) {
           toast("Ein Teil der lokalen Daten ließ sich gerade nicht entfernen. Lad die Seite neu und versuch es noch einmal.");
         }
@@ -16025,7 +16053,8 @@
             try { await window.CloudSync.save(syncUid, { groupId: "" }); }
             catch (e) { noteError("group:loesen", e); geloest = false; }
             if (geloest) { state.groupId = ""; save(); }
-            closeModal();
+            // Kein closeModal() mehr: confirmModal hat das Fenster schon geschlossen, ein
+            // zweites nach dem await traf ein inzwischen geoeffnetes fremdes (TROUBLESHOOTING 201).
             toast(geloest
               ? "Verbindung gelöst – du planst wieder für dich"
               : "Hat nicht geklappt – versuch’s nochmal");

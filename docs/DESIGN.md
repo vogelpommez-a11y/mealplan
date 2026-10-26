@@ -28,7 +28,7 @@ In `CLAUDE.md` steht weiterhin die kurze Fassung: die Regel und der Zeiger hierh
 | Die ersten Schritte bewegen sich wie der Rest | Wizard: `slideIn()`, Höhenübergang, `.onb-still` |
 | Der Fortschritt-Kalender | zwei Gitter in einer Karte, `max-width: 420px`, Symbolsprache |
 | Ein Symbol je Lebensmittel | die Symbolfläche `.msym`, zwei Größen, Lesbarkeit bei 28 px |
-| Der Toast ist aus Glas | `--glass-*`-Tokens der Reiterleiste, Rückfälle, Position am Handy |
+| Der Toast ist aus Glas | `--glass-*`-Tokens der Reiterleiste, Rückfälle, Position am Handy; wie lange eine Meldung steht |
 | Der Scanner antwortet dort, wo der Blick liegt | `.ing-msg` in der Zeile statt Toast bei Fehlschlägen |
 
 ---
@@ -1212,6 +1212,24 @@ Verworfen: die **Akzentkante** — an der Pillenrundung wird der Streifen zur ro
 Rot ist die Aktionsfarbe (siehe oben). **Immer dunkel** hätte ein neues Token in vier Blöcken
 gebraucht, für eine Wirkung, die im Dark Mode kaum von der Fläche zu unterscheiden war.
 
+### Wie lange eine Meldung steht (Regel seit 26.10.2026)
+
+Bis dahin entschied jede Stelle selbst (`docs/TROUBLESHOOTING.md` 201). Die Regel gilt für neue
+und geänderte Meldungen; die bestehenden wurden bewusst **nicht** angeglichen (Paddy, 26.10.2026).
+
+| Meldung | Dauer | Aufruf |
+|---|---|---|
+| kurze Bestätigung („Zum Plan hinzugefügt“) | 1,9 s | `toast(msg)` |
+| Fehler oder Satz mit Handlungsaufforderung („… versuch es gleich noch einmal.“) | 6 s | `toast(msg, 6000)` |
+| zurücknehmbar (Slot entfernen, Woche leeren …) | 5 s, mit Knopf | `undoToast()` |
+| letzte Meldung vor einem Neuladen | 2,5 s, dann Neuladen | `nachLoeschenNeuladen(text, 2500)` |
+| der Nutzer muss danach selbst etwas tun, das in 6 s keiner liest | kein Toast, ein Dialog | Vorbild `fotosGebliebenMelden()` |
+
+**Vorlesen:** Der Toast bleibt `role="status"` (höflich), auch bei Fehlern — er unterbricht den
+Screenreader nicht, und die Dauer gibt ihm Zeit. `role="alert"` nur für eine Fehlerzeile **im**
+Formular, das der Nutzer gerade bedient (`#del-err`, `.auth-err`): Dort hat er die Aktion eben
+ausgelöst und wartet auf genau diese Antwort.
+
 ## Der Scanner antwortet dort, wo der Blick liegt (seit 14.09.2026)
 
 Der Toast ist die richtige Form für eine Nachricht **an die App** — „Zum Plan hinzugefügt",
@@ -1399,7 +1417,7 @@ Toast). Anders als der Startbildschirm folgt er dem **Theme**: Er liegt in der A
 | Art | Wo | Ablauf |
 |---|---|---|
 | **inszeniert** | Auto-Planer und Ziel-Berechnung (je 3 Schritte à 0,7 s + 0,3 s Halten ≈ 2,4 s), „Nochmal“ 0,6 s | **Ein Schritt zur Zeit** auf einer Bühne: kleiner Titel, darunter der Wert groß in `--font-display` (28 px). Der vorige geht nach oben, der neue kommt von unten. Darunter läuft die Linie über die ganze Dauer (`--ml-dauer`, `--ease-in-out`), Punkte zeigen „Schritt 2 von 3“. Tippen/Escape/Enter/Leertaste überspringt |
-| **echt** | erster Cloud-Abgleich (im Inhalt, `markenLaderHtml`), Gruppe beitreten, Gruppe auflösen/verlassen, Konto löschen | Ein Satz in Fließtext, die Linie pendelt (`--dur-marke-lang` × 2), bis das Warten vorbei ist. Als Karte über der Ansicht (Gruppe beitreten): erst nach 150 ms sichtbar, dann mindestens 400 ms — kein Aufflackern —, und **höchstens 12 s**; danach geht sie mit dem Hinweis „Das dauert länger – es läuft im Hintergrund weiter.“, damit die App nie gesperrt bleibt. Im Inhalt (Cloud-Abgleich) steht sie genau so lange, wie `render()` sie zeichnet. Konto löschen („Dein Konto wird gelöscht …“) erst nach der Neuanmeldung; nach den 12 s bleibt dort die Schreibsperre, das Ergebnis kommt als Toast (`docs/TROUBLESHOOTING.md` 201) |
+| **echt** | erster Cloud-Abgleich (im Inhalt, `markenLaderHtml`), Gruppe beitreten, Gruppe auflösen/verlassen, Konto löschen | Ein Satz in Fließtext, die Linie pendelt (`--dur-marke-lang` × 2), bis das Warten vorbei ist. Als Karte über der Ansicht (Gruppe beitreten): erst nach 150 ms sichtbar, dann mindestens 400 ms — kein Aufflackern —, und **höchstens 12 s**; danach geht sie mit dem Hinweis „Das dauert länger – es läuft im Hintergrund weiter.“, damit die App nie gesperrt bleibt. Im Inhalt (Cloud-Abgleich) steht sie genau so lange, wie `render()` sie zeichnet. Konto löschen („Dein Konto wird gelöscht …“) erst nach der Neuanmeldung; nach den 12 s bleibt dort die Schreibsperre, das Ergebnis kommt als Toast; der Hinweis heißt dort eigens „Das Löschen dauert länger – du bekommst Bescheid. Hängt es, lad die Seite neu.“ (`zuLang`, `docs/TROUBLESHOOTING.md` 201) |
 
 * **Ein Schema für alle.** Jede Lade-Inszenierung und jedes sichtbare Warten in Markenoptik
   läuft über `markenLader()`/`markenLaderHtml()` — dieselbe Karte, dasselbe Logo, dieselbe

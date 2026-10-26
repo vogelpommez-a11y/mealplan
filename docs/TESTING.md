@@ -2921,7 +2921,7 @@ weichen ab (siehe Kopf von `firestore.rules`).
 
 ## Google-Anmeldung in der Store-App (24.10.2026)
 
-`tools/pruefstand-google-nativ.py` — 28 Prüfungen. Schneidet `GOOGLE_WEB_CLIENT_ID`,
+`tools/pruefstand-google-nativ.py` — 33 Prüfungen. Schneidet `GOOGLE_WEB_CLIENT_ID`,
 `popupFallback()`, den Block ab `const CAP` (`googleNativCredential`), `loginGoogle`, `logout` und
 den Anfang von `deleteAccount` bis zur Bestätigung aus. Attrappen: Firebase-Funktionen und das
 Plugin `SocialLogin`, die nur protokollieren. Geprüft: Im Browser (auch mit `Capacitor`-Objekt
@@ -2932,6 +2932,8 @@ und ein einmal gescheitertes `initialize` (nächster Tipp versucht es neu). Dazu
 Fehlschlag wirft nicht, hängt das Plugin, geht es nach 2 s weiter; E-Mail-Konten rufen es beim
 Abmelden nicht; scheitert Firebase nach der Kontoauswahl (anderes Konto, gesperrt), werden die
 Plugin-Daten wieder vergessen; und dass `wipeLocalData()` es aufruft (Text, alter Stand: nein).
+Seit 26.10.2026: Hängt die Kontoauswahl beim Konto-Löschen, gilt sie nach 2 min als abgebrochen
+(Uhr gerafft), ein spätes Token wird vergessen statt verwendet (Gegenprobe `279c493` wartet ewig).
 
 * **Gegenprobe aus Git** (`845a388`, vor Etappe 2): Dieselben Stücke landen in der App beim
   Popup — genau der Weg, den Google dort blockt.
@@ -2985,7 +2987,9 @@ nachgeholt, 6-s-Toast), Erfolg, Frist, gebliebene Fotos und `dataAlreadyDeleted`
 fremdem Fenster (zu ohne Hook, Zurück-Eintrag weg), Fokus nicht auf `<body>`; Brücke lehnt
 Schreiben ab, Lesen geht, Sperre fällt nur, solange die Daten noch da sind (auch bei einem Wurf im
 Rückruf); ein `syncRecipes()`, das beim Bestätigen schon lief, bleibt still (Code-Review 26.10.).
-Gegenprobe aus Git (`d316ca9`). 39 Prüfungen. **Falle:** Der Läufer hält einen Lauf nach 1,5 s ohne neue Zeile für
+Seit 26.10.2026 dazu: Schlussmeldung 2,5 s, eigener Frist-Hinweis, „noch nicht vollständig“
+und „Verbindung lösen“ ohne zweites `closeModal()` (Gegenprobe `279c493`, der Lader von dort
+per Tausch). Gegenprobe aus Git (`d316ca9`). 46 Prüfungen. **Falle:** Der Läufer hält einen Lauf nach 1,5 s ohne neue Zeile für
 beendet — längeres Warten (Frist) braucht eine Zwischenprüfung.
 
 **Daneben `tools/pruefstand-fenster-nach-warten.py` (26.10.2026):** Passwort zurücksetzen, Profil

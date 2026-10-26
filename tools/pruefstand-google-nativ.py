@@ -14,6 +14,10 @@ Bestaetigung. Attrappen: die Firebase-Funktionen und das Plugin - sie protokolli
 Gegenprobe: dieselben Stuecke aus ALT_COMMIT (vor Etappe 2) muessen in der App beim Popup
 landen - genau der Weg, den Google dort blockiert.
 
+Seit 26.10.2026 (TROUBLESHOOTING 201): Haengt die Kontoauswahl beim Konto-Loeschen, gilt sie
+nach GOOGLE_NATIV_FRIST_MS als abgebrochen; ein spaetes Token wird vergessen. Gegenprobe:
+FRIST_COMMIT (davor) wartet ewig.
+
 Was hier NICHT geprueft wird: ob Google das Token wirklich ausstellt (Konsole, SHA-1) - das
 zeigt nur der Lauf im Emulator mit echtem Konto.
 """
@@ -27,6 +31,8 @@ QUELLE = os.path.join(BASIS, "index.html")
 ZIEL = os.path.join(BASIS, "tools", "pruefstand-google-nativ.html")
 # Der Stand vor Etappe 2. Fest verdrahtet, damit die Gegenprobe nicht mitwandert.
 ALT_COMMIT = "845a388"
+# Der Stand vor der Frist fuer die Kontoauswahl beim Konto-Loeschen.
+FRIST_COMMIT = "279c493"
 
 
 def zeile(lines, anfang):
@@ -97,7 +103,7 @@ if ("sl.login(" not in neu["NATIV"] or "GoogleAuthProvider.credential(token)" no
     raise SystemExit("googleNativCredential() nicht vollstaendig geschnitten")
 if "signInWithCredential(auth, c)" not in neu["LOGIN"]:
     raise SystemExit("loginGoogle nimmt den nativen Weg nicht")
-if "reauthenticateWithCredential(user, await googleNativCredential())" not in neu["LOESCHEN"]:
+if "reauthenticateWithCredential(user, await googleNativMitFrist(GOOGLE_NATIV_FRIST_MS))" not in neu["LOESCHEN"]:
     raise SystemExit("deleteAccount bestaetigt nativ nicht mit Credential")
 if ".apps.googleusercontent.com" not in neu["ID"]:
     raise SystemExit("GOOGLE_WEB_CLIENT_ID fehlt oder ist leer")
@@ -106,6 +112,10 @@ alt_text = subprocess.check_output(["git", "show", ALT_COMMIT + ":index.html"], 
 alt = stuecke(alt_text, False)
 if alt["NATIV"]:
     raise SystemExit("die Gegenprobe enthaelt schon den nativen Weg - ALT_COMMIT pruefen")
+
+vorFrist = stuecke(subprocess.check_output(["git", "show", FRIST_COMMIT + ":index.html"], cwd=BASIS).decode("utf-8"), True)
+if "googleNativMitFrist" in vorFrist["NATIV"]:
+    raise SystemExit("die Gegenprobe enthaelt schon die Frist - FRIST_COMMIT pruefen")
 
 # wipeLocalData() (klassisches Skript, nicht im Modul) muss die Plugin-Daten mitloeschen
 # (datenschutz-technik 24.10.2026). Ob es den AUFRUF gibt, zeigt nur der Text - der Prueflauf
@@ -179,7 +189,9 @@ function reauthenticateWithCredential(u, c) {
 }
 function signOut() { RUF.push("signOut"); return Promise.resolve(); }
 
-// Das Plugin. modus: ok | abbruch | ohneToken | fehler | initFehltEinmal
+// Das Plugin. modus: ok | abbruch | ohneToken | fehler | initFehltEinmal | loginHaengt
+// loginHaengt: die Kontoauswahl antwortet erst, wenn der Pruefstand SPAET(...) ruft.
+var SPAET = null;
 function plugin(modus) {
   var initVersuche = 0;
   return {
@@ -191,6 +203,7 @@ function plugin(modus) {
     },
     login: function (o) {
       RUF.push("sl.login:" + o.provider);
+      if (modus === "loginHaengt") return new Promise(function (r) { SPAET = r; });
       if (modus === "abbruch") return Promise.reject({ code: "USER_CANCELLED", message: "cancelled" });
       if (modus === "fehler") return Promise.reject({ message: "[28444] Developer console is not set up correctly" });
       if (modus === "ohneToken") return Promise.resolve({ provider: "google", result: {} });
@@ -218,6 +231,7 @@ var WIPE_NEU = __WIPE_NEU__, WIPE_ALT = __WIPE_ALT__;
 
 __NEU__
 __ALT__
+__VORFRIST__
 
 (async function () {
   var a, erg;
@@ -293,12 +307,37 @@ __ALT__
   pruef("App: scheitert das Initialisieren ...", erg, "fehler:auth/google-nativ");
   pruef("... versucht der naechste Tipp es erneut", [await ruf(a.loginGoogle), RUF[0]], ["ok", "sl.initialize:web-id"]);
 
+  // ===== 3b. Kontoauswahl haengt beim Konto-Loeschen: Frist, spaetes Token vergessen =====
+  a = NEU(app("loginHaengt"));
+  fristen = [];
+  window.setTimeout = function (fn, ms) { fristen.push(ms || 0); return echtesTimeout(fn, ms === 120000 ? 0 : ms); };
+  erg = await ruf(function () { return a.deleteAccount({}); });
+  window.setTimeout = echtesTimeout;
+  pruef("App: haengt die Kontoauswahl beim Loeschen, gilt sie nach 2 Minuten als abgebrochen (nichts bestaetigt)",
+    [erg, fristen.indexOf(120000) > -1, RUF.indexOf("reauthCredential:T2")], ["fehler:auth/cancelled-popup-request", true, -1]);
+  RUF = [];
+  SPAET({ provider: "google", result: { idToken: "T2" } });
+  await new Promise(function (r) { setTimeout(r, 30); });
+  pruef("... kommt das Token danach doch, wird es vergessen und nicht verwendet",
+    [RUF.indexOf("sl.logout") > -1, RUF.indexOf("reauthCredential:T2")], [true, -1]);
+  a = NEU(app("ok"));
+  pruef("App: antwortet die Kontoauswahl rechtzeitig, wird nichts vergessen",
+    [await ruf(function () { return a.deleteAccount({}); }), RUF.indexOf("sl.logout")], ["ok", -1]);
+
   // ===== 4. Gegenprobe: der Stand vor Etappe 2 =====
   a = ALT(app("ok"));
   pruef("GEGENPROBE: alter Stand oeffnet in der App das Popup (von Google blockiert)", [await ruf(a.loginGoogle), RUF], ["ok", ["popup"]]);
   pruef("GEGENPROBE: alter Stand bestaetigt das Loeschen per Popup", [await ruf(function () { return a.deleteAccount({}); }), RUF], ["ok", ["reauthPopup"]]);
   pruef("GEGENPROBE: alter Stand ruft das Plugin beim Abmelden nicht", [await ruf(a.logout), RUF], ["ok", ["signOut"]]);
   pruef("GEGENPROBE: alter Stand loescht in wipeLocalData() keine Plugin-Daten", WIPE_ALT, false);
+  a = VORFRIST(app("loginHaengt"));
+  var vorErg = "haengt";
+  a.deleteAccount({}).then(function () { vorErg = "ok"; }, function (e) { vorErg = e && e.code; });
+  await new Promise(function (r) { setTimeout(r, 50); });
+  pruef("GEGENPROBE: Stand vor der Frist wartet bei haengender Kontoauswahl ewig", vorErg, "haengt");
+  SPAET({ provider: "google", result: { idToken: "T3" } });
+  await new Promise(function (r) { setTimeout(r, 30); });
+  pruef("GEGENPROBE: ... und bestaetigt mit dem spaeten Token doch noch", [vorErg, RUF.indexOf("reauthCredential:T3") > -1], ["ok", true]);
 
   LOG.push("");
   LOG.push(bad ? ("FEHLGESCHLAGEN: " + bad + " von " + (ok + bad)) : ("ALLE " + ok + " PRUEFUNGEN GRUEN"));
@@ -308,6 +347,7 @@ __ALT__
 """
 
 seite = (seite.replace("__NEU__", fabrik("NEU", neu)).replace("__ALT__", fabrik("ALT", alt))
+              .replace("__VORFRIST__", fabrik("VORFRIST", vorFrist))
               .replace("__WIPE_NEU__", json.dumps(WIPE_NEU)).replace("__WIPE_ALT__", json.dumps(WIPE_ALT)))
 io.open(ZIEL, "w", encoding="utf-8").write(seite)
 print("geschrieben: " + ZIEL)

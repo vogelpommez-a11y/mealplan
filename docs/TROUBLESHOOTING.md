@@ -7690,6 +7690,27 @@ Fenster (ersetzt samt Hook, Scanner lief weiter); Fehler-Toast nur ~1,9 s; Fokus
   nach einem Fehlschlag fällt (Gegenprobe: ohne das Zurücksetzen 2 rot). Wer eine Funktion
   aufteilt, sucht per Grep, welche Prüfstände sie schneiden.
 
+**Nachgezogen, die Hinweise aus dem Pushcheck (26.10.2026, Paddy hat je entschieden):**
+* „Verbindung lösen“ in der Gruppe rief nach dem `await` noch `closeModal()` — dieselbe
+  Grundlücke wie oben, `confirmModal` schließt schon. Entfernt.
+* Die Schlussmeldung vor dem Neuladen steht 2,5 statt 0,9 s (alle drei Löschwege) — die Regel
+  dazu steht jetzt in `docs/DESIGN.md`, „Wie lange eine Meldung steht“.
+* Nach der 12-s-Frist des Laders sagt der Hinweis beim Konto-Löschen, was bleibt und wie man
+  herauskommt: „Das Löschen dauert länger – du bekommst Bescheid. Hängt es, lad die Seite neu.“
+  (`markenLader({ zuLang })`).
+* Store-App: Hing Androids Kontoauswahl beim Bestätigen, blieb `kontoLoeschen = "bestaetigen"`
+  stehen, jeder neue Versuch bekam „wird gerade gelöscht“ — bis zum Neustart. Jetzt
+  `googleNativMitFrist()`: nach 2 min gilt es als abgebrochen („Anmeldung abgebrochen.“, gelöscht
+  ist bis dahin nichts); ein danach noch ankommendes Token wird nicht verwendet, sondern sofort
+  vergessen (das Plugin hat es schon abgelegt).
+* Bricht das Löschen nach der Bestätigung mittendrin ab, kann ein Teil schon weg sein — der Toast
+  sagt „Dein Konto ist noch nicht vollständig gelöscht – versuch es gleich noch einmal.“ statt
+  „Konto nicht gelöscht: …“. Scheitert es **vor** der Bestätigung (Abbruch, Frist, Passwort),
+  bleibt „Konto nicht gelöscht: <Grund>“ — da stimmt es (`/code-review`). Der Frist-Hinweis
+  `zuLang` steht 6 s, wie die neue Regel es für einen Satz mit Ausweg verlangt.
+* Prüfstände: `pruefstand-konto-loeschfenster.py` 46 (Gegenprobe zusätzlich `279c493`),
+  `pruefstand-google-nativ.py` 33 (Gegenprobe Frist `279c493`).
+
 **Lehre:** Wer ein Fenster während eines langen Vorgangs offen hält, muss auch erklären, wie
 man herauskommt, wenn der Vorgang nie endet. Oft ist es einfacher, das Fenster gehen zu lassen
 und dafür zu sorgen, dass das **Ergebnis** trotzdem ankommt.

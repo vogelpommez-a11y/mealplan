@@ -211,6 +211,9 @@ Anmeldestelle, derselbe Firebase-Nutzer wie im Web. `logout` und `wipeLocalData(
 `googleNativVergessen()`: Android vergisst die Kontoauswahl, das Plugin löscht die Tokens, die es
 selbst in den SharedPreferences ablegt. Fehlt das Plugin, gibt es eine Meldung, nie den Popup (den
 Google in WebViews blockt). Abbruch → `auth/cancelled-popup-request`. → `docs/STORE.md` Abschnitt 4.
+Beim Konto-Löschen läuft die Bestätigung über `googleNativMitFrist()`: Hängt die Kontoauswahl,
+gilt sie nach 2 min als abgebrochen (derselbe Code), ein später ankommendes Token wird sofort
+vergessen (`docs/TROUBLESHOOTING.md` 201).
 
 **Aber nur, wer ihn benutzt.** Auth wird mit `initializeAuth(app, { persistence: [...] })`
 **ohne** `popupRedirectResolver` gestartet, nicht mit `getAuth(app)`. `getAuth` hängt den
@@ -868,7 +871,7 @@ Die Regel-Sperre greift erst mit `setDoc(sperre)`. Davor, direkt nach der erneut
   holt nach, was inzwischen angelegt wurde. Derselbe Wert verhindert einen zweiten Löschvorgang.
 * **Bedienung:** `deleteAccountFlow()` schließt sein Fenster in `bestaetigt` und zeigt den
   Marken-Lader, bis das Ergebnis feststeht (Frist `ML_ECHT_MAX_MS`, danach läuft es im Hintergrund
-  weiter, die Sperre bleibt). Schlussmeldungen schließen vorher ein inzwischen offenes fremdes
+  weiter, die Sperre bleibt, und der Hinweis `zuLang` nennt den Ausweg „Seite neu laden“). Schlussmeldungen schließen vorher ein inzwischen offenes fremdes
   Fenster ohne dessen Hook (`fensterZuNachLoeschen()`).
 
 ### Migration
