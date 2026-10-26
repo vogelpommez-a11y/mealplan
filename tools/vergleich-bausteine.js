@@ -34,7 +34,7 @@ function menuePunkt(doc, muster) {
 // ein Proxy als stilles Nichts ab: eine Funktion, die zugleich als Promise taugt - Listener
 // geben sie als Abmelder zurueck, await liest sie als "erledigt".
 // Genutzt von gruppe-fuer-alle und einkauf-minus.
-function zweiergruppeNachstellen(w) {
+function attrappe(w, basis) {
   function nichts() {
     var f = function () {};
     f.then = function (ok) { return w.Promise.resolve(ok ? ok() : undefined); };
@@ -42,9 +42,9 @@ function zweiergruppeNachstellen(w) {
     f.finally = function (g) { if (g) g(); return f; };
     return f;
   }
-  function attrappe(basis) {
-    return new w.Proxy(basis, { get: function (t, k) { return k in t ? t[k] : nichts; } });
-  }
+  return new w.Proxy(basis, { get: function (t, k) { return k in t ? t[k] : nichts; } });
+}
+function zweiergruppeNachstellen(w) {
   var MEAL = { id: "rvgbowl", name: "Hähnchen-Reis-Bowl", category: "Hauptgericht",
     nutrition: { kcal: 540, carbs: 55, protein: 42, fat: 14 },
     ingredients: [{ name: "Hähnchenbrust", grams: 150 }, { name: "Reis", grams: 80 },
@@ -60,17 +60,42 @@ function zweiergruppeNachstellen(w) {
     ingredients: [{ name: "Haferflocken", grams: 50 }, { name: "Banane", grams: 120 }] };
   var GOAL = { mode: "cut", kcal: 1950, protein: 150, carbs: 180, fat: 60, activity: "pal14", training: [] };
   w.CloudEntitlement = null;
-  w.CloudSync = attrappe({ enabled: true,
+  w.CloudSync = attrappe(w, { enabled: true,
     load: function () { return w.Promise.resolve({ groupId: "vg-gruppe", onboarded: true, goal: GOAL }); },
     loadRecipes: function () { return w.Promise.resolve([MEAL, NUDELN, SHAKE]); }
   });
-  w.CloudGroup = attrappe({ enabled: true,
+  w.CloudGroup = attrappe(w, { enabled: true,
     fetch: function () { return w.Promise.resolve({ data: { name: "Wir", settings: { shopForAll: true } }, fromCache: false }); },
     fetchMembers: function () { return w.Promise.resolve({ fromCache: false, members: [
       { uid: "vergleich", name: "Paddy", role: "owner" }, { uid: "vg-anna", name: "Anna", role: "edit" }] }); },
     loadPlans: function () { return w.Promise.resolve([]); }
   });
   w.__onCloudAuth({ uid: "vergleich", emailVerified: true, displayName: "Paddy", email: "" });
+}
+
+// Ein Cloud-Konto ohne Gruppe, Anmeldung per Passwort - fuer "Konto loeschen". Das Loeschen
+// selbst ist eine Attrappe: erst 0,6 s "Neuanmeldung", dann meldet es die Bestaetigung (neuer
+// Rueckruf opts.bestaetigt, der alte Stand kennt ihn nicht und ignoriert ihn) und braucht noch
+// 2,5 s. Danach laeuft der echte Rest (wipeLocalData, Neuladen) im Testprofil des Rahmens.
+function einzelkontoNachstellen(w) {
+  var USER = { uid: "vergleich", email: "paddy@example.org", providerData: [{ providerId: "password" }] };
+  w.CloudEntitlement = null;
+  w.CloudSync = attrappe(w, { enabled: true,
+    load: function () { return w.Promise.resolve({ onboarded: true, goal: { mode: "cut", kcal: 1950, protein: 150, carbs: 180, fat: 60, activity: "pal14", training: [] } }); },
+    loadRecipes: function () { return w.Promise.resolve([]); }
+  });
+  w.CloudAuth = attrappe(w, {
+    current: function () { return USER; },
+    deleteAccount: function (opts) {
+      return new w.Promise(function (ok) {
+        w.setTimeout(function () {
+          if (opts && opts.bestaetigt) opts.bestaetigt();
+          w.setTimeout(ok, 2500);
+        }, 600);
+      });
+    }
+  });
+  w.__onCloudAuth({ uid: "vergleich", emailVerified: true, displayName: "Paddy", email: USER.email });
 }
 
 var BAUSTEINE = [
@@ -724,6 +749,73 @@ var BAUSTEINE = [
             + "{ background: rgba(255,200,0,.35); outline: 1px dashed #c90; }";
           doc.head.appendChild(s);
         } }
+    ]
+  },
+
+  {
+    id: "konto-loeschen",
+    titel: "Konto löschen: App gesperrt, bis es fertig ist",
+    was: "Cloud-Konto mit Passwort, „Konto löschen“ wird bestätigt. Links bleibt das Fenster mit "
+       + "„Wird gelöscht …“ offen und lässt sich wegklicken, die App darunter läuft weiter. Rechts "
+       + "geht das Fenster nach der Bestätigung zu, der Marken-Lader „Dein Konto wird gelöscht …“ "
+       + "sperrt die App, bis es fertig ist.",
+    stellen: [
+      "deleteAccountFlow() — index.html, Fenster, Lader, Schreibsperre",
+      "CloudAuth.deleteAccount() — Rueckruf opts.bestaetigt nach der Neuanmeldung",
+      "markenLader() — gleicher Lader wie beim Gruppenbeitritt"
+    ],
+    ist: "Das Fenster zeigt „Wird gelöscht …“, lässt sich aber schließen – die App läuft weiter und schreibt in die Cloud.",
+    soll: "Nach der Passwort-Bestätigung geht das Fenster zu, „Dein Konto wird gelöscht …“ sperrt die App, bis es fertig ist.",
+    profil: { name: "Paddy", email: "", uid: "vergleich", cloud: true },
+    nurInhalt: true,
+    film: [
+      { text: "Angemeldet mit Cloud-Konto", dauer: 1500, tun: function (doc) {
+          einzelkontoNachstellen(doc.defaultView); } },
+      { text: "Auf dein Profil tippen", dauer: 1000, tippe: function (doc) {
+          return doc.querySelector('[data-action="profile-menu"]'); } },
+      { text: "„Konto löschen“ tippen", dauer: 1000, tippe: function (doc) {
+          return menuePunkt(doc, /Konto löschen/); } },
+      { text: "Passwort eintragen", dauer: 600, tun: function (doc) {
+          var f = doc.querySelector("#del-pw"); if (f) f.value = "geheim123"; } },
+      { text: "„Konto löschen“ bestätigen", dauer: 800, tippe: function (doc) {
+          return doc.querySelector("[data-confirm]"); } },
+      { text: "Das Löschen läuft", dauer: 2000 },
+      { text: "Fertig", dauer: 2000 }
+    ]
+  },
+
+  {
+    id: "gruppe-aufloesen",
+    titel: "Gruppe auflösen: Marken-Lader statt stillem Warten",
+    was: "Zweiergruppe (Paddy ist Inhaber), „Gruppe auflösen“ wird bestätigt, das Auflösen "
+       + "dauert 3,5 s. Links passiert sichtbar nichts, bis es fertig ist. Rechts begleitet "
+       + "„Die Gruppe wird aufgelöst …“ das Warten. Verlassen (Mitglied) zeigt „Du verlässt die Gruppe …“.",
+    stellen: [
+      "openGroupModal() — #grp-leave, confirmModal → onConfirm",
+      "markenLader() — gleicher Lader wie beim Gruppenbeitritt"
+    ],
+    ist: "Nach „Auflösen“ ist das Fenster zu, und bis die Gruppe weg ist, passiert sichtbar nichts.",
+    soll: "Nach „Auflösen“ zeigt die App „Die Gruppe wird aufgelöst …“, bis es fertig ist.",
+    zustand: { goal: null, onboarded: false, recipes: [], plans: {} },
+    profil: { name: "Paddy", email: "", uid: "vergleich", cloud: true },
+    nurInhalt: true,
+    film: [
+      { text: "Angemeldet, in einer Zweiergruppe", dauer: 2000, tun: function (doc) {
+          var w = doc.defaultView;
+          zweiergruppeNachstellen(w);
+          // Das Aufloesen dauert 3,5 s - sonst waere es fertig, bevor man etwas sieht.
+          w.CloudGroup.dissolve = function () { return new w.Promise(function (ok) { w.setTimeout(ok, 3500); }); };
+        } },
+      { text: "Auf dein Profil tippen", dauer: 1000, tippe: function (doc) {
+          return doc.querySelector('[data-action="profile-menu"]'); } },
+      { text: "„Gruppe“ tippen", dauer: 1200, tippe: function (doc) {
+          return menuePunkt(doc, /^\s*Gruppe\s*$/); } },
+      { text: "„Gruppe auflösen“ tippen", dauer: 1000, tippe: function (doc) {
+          return doc.querySelector("#grp-leave"); } },
+      { text: "„Auflösen“ bestätigen", dauer: 1000, tippe: function (doc) {
+          return doc.querySelector("[data-confirm]"); } },
+      { text: "Die Gruppe wird aufgelöst", dauer: 1800 },
+      { text: "Fertig", dauer: 2500 }
     ]
   }
 ];

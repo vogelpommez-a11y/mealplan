@@ -2970,13 +2970,27 @@ ausgeschnittenen Funktion einen Helfer gibt, sucht vorher per Grep, welche Prüf
 Sperre war nur 60 s gesetzt. Als Schreibprobe dienten ein Teilen-Link, den die App nie anzeigt
 und der danach wieder gelöscht wurde, und das Kontodokument mit unverändertem `tab`.
 
-**Dazu, eine Ebene höher: `tools/pruefstand-konto-loeschfenster.py` (25.10.2026,
-`TROUBLESHOOTING` 201).** Schneidet den Zurück-/Modal-Block (wie `pruefstand-zurueck-taste.py`),
-`deleteAccountFlow()` und `fotosGebliebenMelden()` aus; `CloudAuth.deleteAccount()` ist ein
-Versprechen, das der Prüfstand von außen auflöst. Geprüft: Fehler und Erfolg bei offenem
-**und** bei inzwischen geschlossenem Fenster (Toast statt verlorener Meldung; ein fremdes
-Fenster samt Hook bleibt unberührt), „Abbrechen“ aus, Fokus auf „Verstanden“. Gegenprobe aus
-Git (`48bf979`). 17 Prüfungen.
+**Dazu, eine Ebene höher: `tools/pruefstand-konto-loeschfenster.py` (25.10.2026, Gesamtlösung
+26.10.2026, `TROUBLESHOOTING` 201).** Schneidet den Zurück-/Modal-Block (wie
+`pruefstand-zurueck-taste.py`), `scheduleCloudPush()` samt `kontoLoeschen`, den Marken-Lader (Frist
+gestaucht auf 800 ms), `deleteAccountFlow()`, `fensterZuNachLoeschen()` und
+`fotosGebliebenMelden()` aus. `CloudAuth.deleteAccount()` ist ein Versprechen in zwei Schritten
+(Neuanmeldung, dann Ergebnis), die der Prüfstand von außen auslöst. Dazu die **Brücke**:
+`deleteAccount()` mit `kontoLoeschenNachBestaetigung()` und die Sperr-Schleife, in einer eigenen
+Funktion mit eigenem `window`, Firebase als Stubs. Geprüft: falsches Passwort im Fenster,
+Doppelstart, Fenster zu + Lader + Abgleich-Sperre nach der Bestätigung, Fehler danach (Sperre aus,
+nachgeholt, 6-s-Toast), Erfolg, Frist, gebliebene Fotos und `dataAlreadyDeleted` bei offenem
+fremdem Fenster (zu ohne Hook, Zurück-Eintrag weg), Fokus nicht auf `<body>`; Brücke lehnt
+Schreiben ab, Lesen geht, Sperre fällt nur, solange die Daten noch da sind (auch bei einem Wurf im
+Rückruf); ein `syncRecipes()`, das beim Bestätigen schon lief, bleibt still (Code-Review 26.10.).
+Gegenprobe aus Git (`d316ca9`). 39 Prüfungen. **Falle:** Der Läufer hält einen Lauf nach 1,5 s ohne neue Zeile für
+beendet — längeres Warten (Frist) braucht eine Zwischenprüfung.
+
+**Daneben `tools/pruefstand-fenster-nach-warten.py` (26.10.2026):** Passwort zurücksetzen, Profil
+speichern und Gruppe auflösen/verlassen schließen nach dem `await` nur ihr eigenes Fenster, ein
+Fehler bei geschlossenem Fenster kommt als Toast; die Gruppe zeigt den Marken-Lader. Echter
+Code (`openForgotPassword`, `openProfileForm`, der `#grp-leave`-Block, `confirmModal`), Gegenprobe
+`d316ca9`. 13 Prüfungen.
 
 | Probe | Ergebnis |
 |---|---|

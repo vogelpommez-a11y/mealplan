@@ -853,6 +853,23 @@ Konto ab, also das eines Zweitgeräts mit noch gültigem Token (`docs/TROUBLESHO
 * Lehnen die Regeln die Sperre ab (noch nicht veröffentlicht), wird ohne sie gelöscht.
 * Abgelaufene Sperren räumt `tools/firestore-backup.py` bei jeder Sicherung weg, also bei der monatlichen Wartung. Eine TTL-Richtlinie bräuchte den Blaze-Tarif.
 
+**Und dieses Gerät schreibt ab der Bestätigung nichts mehr (seit 26.10.2026, TROUBLESHOOTING 201).**
+Die Regel-Sperre greift erst mit `setDoc(sperre)`. Davor, direkt nach der erneuten Anmeldung, setzt
+`deleteAccount()` die Schreibsperre der Brücke (`kontoLoescht`) und ruft `opts.bestaetigt()`:
+
+* **Brücke:** Jede Methode von `CloudSync`, `CloudShare` und `CloudGroup`, die nicht nur liest oder
+  zuhört (Name beginnt nicht mit `load`/`fetch`/`watch`/`istMitglied`/`wipeCache`), lehnt mit
+  `code: "konto-loescht"` ab — auch Schreibwege, die erst später dazukommen. Das Löschen selbst
+  (`kontoDatenLoeschen()`) schreibt direkt und ist nicht betroffen. Scheitert das Löschen, bevor die
+  Daten weg sind, fällt die Sperre; bei `dataAlreadyDeleted` bleibt sie, die App lädt neu.
+* **App:** `kontoLoeschen = "loescht"` hält `scheduleCloudPush()`/`pushSofort()`/`pushNow()` an,
+  ohne die Baselines anzufassen. Scheitert das Löschen, wird es `null`, und `scheduleCloudPush()`
+  holt nach, was inzwischen angelegt wurde. Derselbe Wert verhindert einen zweiten Löschvorgang.
+* **Bedienung:** `deleteAccountFlow()` schließt sein Fenster in `bestaetigt` und zeigt den
+  Marken-Lader, bis das Ergebnis feststeht (Frist `ML_ECHT_MAX_MS`, danach läuft es im Hintergrund
+  weiter, die Sperre bleibt). Schlussmeldungen schließen vorher ein inzwischen offenes fremdes
+  Fenster ohne dessen Hook (`fensterZuNachLoeschen()`).
+
 ### Migration
 
 `migrateMemberCount()` trägt das Feld bei einer Gruppe aus der Zeit davor einmalig nach —

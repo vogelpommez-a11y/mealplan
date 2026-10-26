@@ -82,7 +82,10 @@ def stuecke(text, neu):
         "NATIV": nativ_block(lines, neu),
         "LOGIN": schnitt(lines, "        loginGoogle: function () {", "        },"),
         "LOGOUT": schnitt(lines, "        logout: function () {", "        },"),
-        "LOESCHEN": bis_zeile(lines, "        deleteAccount: async function (opts) {", "const uid = user.uid;"),
+        # Seit 26.10.2026 endet die Neuanmeldung an "Ab hier ist bestaetigt" (opts.bestaetigt,
+        # TROUBLESHOOTING 201); der alte Stand der Gegenprobe noch an "const uid".
+        "LOESCHEN": bis_zeile(lines, "        deleteAccount: async function (opts) {",
+                              "// Ab hier ist bestaetigt:" if neu else "const uid = user.uid;"),
     }
     return s
 

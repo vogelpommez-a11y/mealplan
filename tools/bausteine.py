@@ -60,8 +60,8 @@ BAUSTEINE = [
      u"faellt er weg, ist jemand zurueckgefallen"),
 
     (u"Marken-Lader: Aufrufe", "index.html",
-     r"\bmarkenLader(?:Html)?\(", 6,
-     u"4 Aufrufe (Planer, Ziel, Beitreten, Cloud-Abgleich) + 2 Definitionen"),
+     r"\bmarkenLader(?:Html)?\(", 8,
+     u"6 Aufrufe (Planer, Ziel, Beitreten, Cloud-Abgleich, Gruppe aufloesen/verlassen, Konto loeschen) + 2 Definitionen"),
 
     (u"Leere Zustaende: alte Klassen", "index.html",
      r'class="(?:wch-empty|ms-empty-ings|wl-empty|pempty|shop-empty)\b', 0,

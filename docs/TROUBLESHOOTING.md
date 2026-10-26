@@ -7655,22 +7655,34 @@ Frist (offline wartet ein Firestore-Schreiben endlos), also brauchte sie einen N
 Verbindung“; nach dem Notausgang war der Ursprungsfehler wieder da; dazu Tab-Falle und
 Fokus-Sonderfälle. Paddy, 25.10.2026: „Einfacher Weg“.
 
-**Offen — dritte `/code-review`-Runde, alles schon vor 201 vorhanden, eigene Sitzung (Paddy):**
-* ⚠️ **Datenschutz:** Der Cloud-Sync läuft bis nach `deleteAccount()` weiter, die Meal-Liste ist
-  vorher geladen. Wer bei geschlossenem Fenster in diesen Sekunden ein Meal anlegt, hinterlässt
-  `users/{uid}/recipes/{neu}` — gegen die Zusage in Ziffer 10 (Art. 17). Unwahrscheinlich, echt.
-* Ein zweites „Konto löschen“, während das erste noch läuft (Fenster zu, neu öffnen), startet
-  einen zweiten Vorgang.
-* Bleiben Fotos (`fotosGebliebenMelden()`) oder scheitert nur der Zugang (`dataAlreadyDeleted`),
-  trifft das Ende ein inzwischen offenes fremdes Fenster: ersetzt (Hook überschrieben, Scanner
-  läuft weiter) bzw. offen bis zum Neuladen nach 900 ms. Der Prüfstand stubbt beide Zweige nicht.
-* Der Fehler-Toast bei geschlossenem Fenster steht nur ~1,9 s; „Abbrechen“ aus, ✕ an; Fokus
-  fällt beim Deaktivieren auf `<body>`.
-* Naheliegende Gesamtlösung: während des Löschens die ganze App sperren (Marken-Lader, `appEl.inert`)
-  mit Anzeige und Frist — klärt alle Punkte auf einmal. Vorher mit Paddy entscheiden.
-* Andere Fenster mit `await` vor `closeModal()` haben dieselbe Grundlücke — Profil speichern,
-  Passwort zurücksetzen, Gruppe auflösen/verlassen über `confirmModal`. Nicht Teil dieses
-  Auftrags (CLAUDE.md §22).
+**Behoben, Gesamtlösung (26.10.2026, Paddy nach Recherche):** Die dritte `/code-review`-Runde
+fand Lücken, die alle schon vor 201 bestanden — vor allem ⚠️ **Datenschutz:** Der Cloud-Sync lief
+bis nach `deleteAccount()` weiter; ein in diesen Sekunden angelegtes Meal konnte als
+`users/{uid}/recipes/{neu}` liegen bleiben (gegen Ziffer 10, Art. 17). Dazu: zweiter Löschvorgang
+bei erneutem Öffnen; Fotohinweis bzw. `dataAlreadyDeleted` trafen ein inzwischen offenes fremdes
+Fenster (ersetzt samt Hook, Scanner lief weiter); Fehler-Toast nur ~1,9 s; Fokus fiel auf `<body>`.
+
+* **Fenster bis zur Bestätigung, dann Marken-Lader.** Neuer Rückruf `opts.bestaetigt` in
+  `CloudAuth.deleteAccount()` direkt nach der Neuanmeldung, vor der Regel-Sperre. Erst dann geht
+  das Fenster zu und „Dein Konto wird gelöscht …“ sperrt die App (`appEl.inert`) — so verdeckt
+  der Lader kein Google-/Apple-Fenster, und seine Frist (12 s) zählt die Anmeldung nicht mit.
+  Knopf währenddessen „Wird bestätigt …“, falsches Passwort wie bisher in `#del-err`.
+* **Schreibsperre:** Brücke (`kontoLoescht`, alles außer Lesen/Zuhören lehnt mit
+  `konto-loescht` ab) und App (`kontoLoeschen`, Abgleich hält an). Scheitert es, fällt beides, und
+  `scheduleCloudPush()` holt nach (`docs/ARCHITECTURES.md`, „Konto löschen sperrt zuerst“).
+* **Doppelstart:** `deleteAccountFlow()` zeigt „Dein Konto wird gerade gelöscht …“.
+* **Schlussmeldungen:** `fensterZuNachLoeschen()` schließt ein fremdes Fenster ohne dessen Hook,
+  bevor Fotohinweis oder Neuladen kommen. Fehler-Toasts stehen 6 s (`toast(msg, ms)`). Fokus
+  geht beim Deaktivieren auf die Überschrift.
+* **Gleiche Grundlücke in anderen Fenstern:** Passwort zurücksetzen und Profil speichern schließen
+  nur noch mit `offen()`; Gruppe auflösen/verlassen ruft kein zweites `closeModal()` mehr
+  (`confirmModal` schließt schon), stattdessen begleitet der Marken-Lader das Warten.
+* Nachgezogen nach `/code-review`: Ein Abgleich, der beim Bestätigen schon lief, bekommt `konto-loescht`
+  und bleibt still (`syncRecipes()`, Plan-Slots, `pushNow()` — kein Toast, kein Protokolleintrag,
+  Baseline bleibt); `opts.bestaetigt()` läuft im `try`, damit die Sperre bei einem Wurf darin fällt.
+* Prüfstände `pruefstand-konto-loeschfenster.py` (39) und `pruefstand-fenster-nach-warten.py`
+  (13), Gegenprobe `d316ca9`; `pruefstand-google-nativ.py` schneidet `deleteAccount` jetzt bis
+  „Ab hier ist bestaetigt“.
 
 **Lehre:** Wer ein Fenster während eines langen Vorgangs offen hält, muss auch erklären, wie
 man herauskommt, wenn der Vorgang nie endet. Oft ist es einfacher, das Fenster gehen zu lassen

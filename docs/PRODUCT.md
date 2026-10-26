@@ -115,13 +115,16 @@ Illusion“, Buell & Norton, Harvard 2011). Das gilt aber nur an wenigen besonde
   0,7 s, gut 2 s insgesamt — eine erste Fassung mit 1,4 s für drei Zeilen war nicht zu lesen.
   Überspringbar, bei „Nochmal“ nur die Kurzfassung.
 * **Echtes Warten in Markenoptik**, nie künstlich verlängert: erster Cloud-Abgleich, einer
-  Gruppe beitreten. Gruppe gründen bleibt beim Knopftext „Wird erstellt …“ — das Warten
+  Gruppe beitreten, Gruppe auflösen/verlassen („Die Gruppe wird aufgelöst …“ / „Du verlässt die
+  Gruppe …“) und Konto löschen („Dein Konto wird gelöscht …“, seit 26.10.2026). Beim Konto erst
+  **nach** der Passwort-/Google-/Apple-Bestätigung — der Lader sperrt die App, damit währenddessen
+  nichts Neues entsteht (`docs/TROUBLESHOOTING.md` 201). Gruppe gründen bleibt beim Knopftext „Wird erstellt …“ — das Warten
   dauert dort nur einen Sekundenbruchteil, eine Karte würde aufflackern.
 * **Bewusst nicht:** Einkaufs- und Vorkochliste, Einplanen, Sortieren, Schnelleintrag,
   Woche leeren (oft und unterwegs), PDF und Teilen (man will die Datei; das Teilen-Fenster muss
   sofort aufgehen), Barcode-Scan (hat eigenes echtes Warten), Rezeptbuch und Suche (Stöbern),
   Gewicht, Kalender, Rückblick (kein Rechenmoment — „wird ausgewertet“ wäre beim Gewicht
-  sogar wertend), Anmeldung, Konto löschen.
+  sogar wertend), Anmeldung.
 
 ## Produktidentität
 

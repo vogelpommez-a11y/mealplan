@@ -466,6 +466,32 @@
           } else if (pid === "apple.com") {
             await reauthenticateWithPopup(user, new OAuthProvider("apple.com"), RESOLVER);
           }
+          // Ab hier ist bestaetigt: Die App schliesst ihr Fenster und zeigt den Marken-Lader
+          // (deleteAccountFlow). Erst jetzt, damit er das Google-/Apple-Fenster nicht verdeckt
+          // und dessen Dauer nicht mitzaehlt. Zugleich schreibt die App nichts mehr in die Cloud
+          // (kontoLoescht unten) - die Sperre in den Regeln gilt erst ab setDoc(sperre).
+          kontoLoescht = true;
+          try {
+            if (opts && opts.bestaetigt) opts.bestaetigt();
+            await kontoLoeschenNachBestaetigung(user, opts);
+          } catch (e) {
+            // Daten noch da: wieder schreiben lassen, die App holt Liegengebliebenes nach.
+            // Sind sie schon weg (dataAlreadyDeleted), bleibt es gesperrt - die App laedt neu.
+            if (!e || !e.dataAlreadyDeleted) kontoLoescht = false;
+            throw e;
+          }
+        }
+      });
+
+      // Schreibsperre fuer "Konto loeschen" (TROUBLESHOOTING 201): Von der bestaetigten
+      // Neuanmeldung an schreibt die App ueber CloudSync/CloudShare/CloudGroup nichts mehr -
+      // ein in diesen Sekunden angelegtes Meal bliebe sonst als Rest ohne Konto liegen (Art. 17,
+      // Ziffer 10). Gesperrt wird alles ausser Lesen und Zuhoeren (Schleife nach CloudGroup), so
+      // trifft es auch Schreibwege, die spaeter dazukommen. Das Loeschen selbst laeuft nicht ueber
+      // diese Objekte, kontoDatenLoeschen() schreibt direkt.
+      let kontoLoescht = false;
+
+      async function kontoLoeschenNachBestaetigung(user, opts) {
           const uid = user.uid;
           // Erst die Tuer abschliessen, dann aufraeumen (TROUBLESHOOTING §172, wie §171 beim
           // Aufloesen einer Gruppe). Ein zweites angemeldetes Geraet behaelt sein Token bis zu
@@ -502,8 +528,7 @@
             e.dataAlreadyDeleted = true;
             throw e;
           }
-        }
-      });
+      }
 
       // Loescht alles, was zum Konto gehoert - aufgerufen von deleteAccount(), NACH der Sperre.
       //
@@ -1119,6 +1144,25 @@
         },
         deleteInvite: function (code) { return deleteDoc(doc(db, "invites", code)); }
       };
+
+      // Die Schreibsperre (kontoLoescht, bei CloudAuth.deleteAccount) vor jede Methode, die
+      // nicht nur liest oder zuhoert. Abgelehnt mit code "konto-loescht" - die Aufrufer fangen
+      // Fehler ohnehin, und eine Ablehnung laesst ihre Baselines stehen, sodass nichts als
+      // "geschrieben" gilt. Nach einem gescheiterten Loeschen holt der naechste Push es nach.
+      [window.CloudSync, window.CloudShare, window.CloudGroup].forEach(function (api) {
+        Object.keys(api).forEach(function (name) {
+          const f = api[name];
+          if (typeof f !== "function" || /^(load|fetch|watch|istMitglied|wipeCache)/.test(name)) return;
+          api[name] = function () {
+            if (kontoLoescht) {
+              const e = new Error("Konto wird gelöscht");
+              e.code = "konto-loescht";
+              return Promise.reject(e);
+            }
+            return f.apply(this, arguments);
+          };
+        });
+      });
 
       onAuthStateChanged(auth, function (user) {
         if (typeof window.__onCloudAuth === "function") window.__onCloudAuth(user);
@@ -2760,8 +2804,13 @@
   function canonJSON(v) { return JSON.stringify(canonValue(v)); }
   function dataJSON(d) { return canonJSON({ plans: (syncGid || groupSyncFailed) ? null : plansField(d), goal: (d && d.goal) || null, shares: (d && d.shares) || [], onboarded: !!(d && d.onboarded), weights: (d && d.weights) || [], weightGoals: (d && d.weightGoals) || {}, profileImage: (d && d.profileImage) || null, weightConsent: (d && d.weightConsent) || noConsent(), weekStats: sanitizeWeekStats(d && d.weekStats), shopPersons: sanitizeShopPersons(d && d.shopPersons), inviteCodes: (d && d.inviteCodes) || [], favs: sanitizeFavs(d && d.favs), planned: sanitizePlanned(d && d.planned), deleted: sanitizeTombstones(d && d.deleted) }); }
 
+  // kontoLoeschen: null | "bestaetigen" (Fenster offen, Neuanmeldung laeuft) | "loescht" (ab der
+  // bestaetigten Neuanmeldung). Waehrend "loescht" schreibt der Abgleich nichts - siehe
+  // deleteAccountFlow() und die Schreibsperre der Bruecke (TROUBLESHOOTING 201). Scheitert das
+  // Loeschen, holt scheduleCloudPush() nach, was inzwischen angelegt wurde.
+  let kontoLoeschen = null;
   function scheduleCloudPush() {
-    if (!syncUid) return;
+    if (!syncUid || kontoLoeschen === "loescht") return;
     clearTimeout(pushTimer); pushTimer = null;
     pushTimer = setTimeout(() => { pushTimer = null; pushNow(); }, 800);   // null: pushSofort() erkennt "nichts offen"
   }
@@ -2770,7 +2819,7 @@
   // 800 ms abwarten - die Seite ist dann womoeglich schon eingefroren. Wasserdicht ist das
   // nicht (iOS gibt kaum Zeit); das Netz darunter ist die gemerkte Plan-Baseline (planBase).
   function pushSofort() {
-    if (!syncUid || !pushTimer) return;
+    if (!syncUid || !pushTimer || kontoLoeschen === "loescht") return;
     clearTimeout(pushTimer); pushTimer = null;
     pushNow();
   }
@@ -2824,6 +2873,11 @@
       // mutiert dieselbe Map) wieder verloren gehen.
       recipesSyncFailed = false;
     } catch (e) {
+      // Schreibsperre beim Konto-Loeschen (kontoLoescht, TROUBLESHOOTING 201): Dieser Lauf hatte
+      // schon vor der Bestaetigung begonnen. Kein Fehler, kein Hinweis - die Baseline bleibt, und
+      // scheitert das Loeschen, holt scheduleCloudPush() es nach. Ebenso unten in den Plan-Slots
+      // und in pushNow().
+      if (e && e.code === "konto-loescht") return;
       // Still bleiben wie bei "offline" waere hier gefaehrlich: der Hauptdokument-Push
       // laeuft unabhaengig weiter und zeigt "synced", waehrend Rezeptfotos nie ankommen -
       // z.B. wenn die neue Firestore-Regel noch nicht veroeffentlicht wurde. Einmalig
@@ -2871,6 +2925,7 @@
       p.dead.forEach(wk => Array.from(b.keys()).forEach(k => { if (k.indexOf(wk + ".") === 0) b.delete(k); }));
       setPlanBase(b);
     } catch (e) {
+      if (e && e.code === "konto-loescht") return;   // Schreibsperre, siehe syncRecipes()
       noteError("sync:plaene", e);   // Baseline bleibt -> naechster Zyklus versucht denselben Diff
       if (lauf === pushLauf) setSyncStatus("offline");
     }
@@ -2952,7 +3007,7 @@
   }
 
   async function pushNow() {
-    if (!syncUid || !window.CloudSync) return;
+    if (!syncUid || !window.CloudSync || kontoLoeschen === "loescht") return;
     await syncRecipes();
     await pushGroupPlan();
     // Kein Kontodokument schreiben, bevor der Cloud-Stand dieser Sitzung eingemischt ist -
@@ -3015,6 +3070,7 @@
       cloudPushFailed = false;
       if (lauf === pushLauf) setSyncStatus("synced");
     } catch (e) {
+      if (e && e.code === "konto-loescht") return;   // Schreibsperre, siehe syncRecipes()
       lastPushedJSON = null; if (lauf === pushLauf) setSyncStatus("offline"); /* z. B. offline – nächster Save versucht es erneut */
       // Ein Netzfehler heilt von selbst, ein DATENfehler nie: Er wiederholt sich bei jedem
       // save() und blockiert dabei das ganze Kontodokument - Ziel, Gewichte, Favoriten,
@@ -11579,13 +11635,14 @@
 
   // ---------- Toast ----------
   let toastTimer = null;
-  function toast(msg) {
+  // ms: laenger stehen lassen, wo die Meldung wichtiger ist als der Takt (Konto nicht geloescht).
+  function toast(msg, ms) {
     const t = document.getElementById("toast");
     if (!t) return;   // wird u. a. aus save() gerufen, das sehr frueh laufen kann
     t.classList.remove("has-undo");
     t.textContent = msg; t.classList.add("show");
     clearTimeout(toastTimer); clearTimeout(undoTimer);
-    toastTimer = setTimeout(() => t.classList.remove("show"), 1900);
+    toastTimer = setTimeout(() => t.classList.remove("show"), ms || 1900);
   }
   // ---------- Toast mit Rueckgaengig (Paket B1) ----------
   // Fuer destruktive Aktionen, die sich direkt danach noch leicht zuruecknehmen lassen (Slot
@@ -14648,13 +14705,16 @@
       <div class="modal-foot"><button class="btn ghost" data-close>Abbrechen</button><button class="btn primary" data-send>Link senden</button></div>
     </div>`);
     node.querySelectorAll("[data-close]").forEach(b => b.addEventListener("click", closeModal));
+    // Nach dem await nur das EIGENE Fenster schliessen - ist es schon zu, haette closeModal()
+    // ein inzwischen geoeffnetes fremdes getroffen (wie beim Konto-Loeschen, TROUBLESHOOTING 201).
+    const offen = () => document.contains(node);
     node.querySelector("[data-send]").addEventListener("click", async () => {
       const email = node.querySelector("#fp-email").value.trim();
       const err = node.querySelector("#fp-err");
       if (!validEmail(email)) { err.textContent = "Gib eine gültige E-Mail-Adresse ein."; return; }
       err.textContent = "";
-      try { await window.CloudAuth.resetPassword(email); closeModal(); toast("E-Mail zum Zurücksetzen gesendet"); }
-      catch (e) { err.textContent = cloudErrMsg(e); }
+      try { await window.CloudAuth.resetPassword(email); if (offen()) closeModal(); toast("E-Mail zum Zurücksetzen gesendet"); }
+      catch (e) { if (offen()) err.textContent = cloudErrMsg(e); else toast(cloudErrMsg(e), 6000); }
     });
     openModal(node);
     setTimeout(() => { const f = node.querySelector("#fp-email"); if (f && !prefill) f.focus(); }, 40);
@@ -14811,12 +14871,15 @@
       toast("Foto entfernt");
       openProfileForm(keepName || undefined);
     });
+    // Nach dem await nur das EIGENE Fenster schliessen (wie beim Konto-Loeschen, TROUBLESHOOTING 201).
+    const offen = () => document.contains(node);
     node.querySelector("[data-save]").addEventListener("click", async () => {
       const name = node.querySelector("#p-name").value.trim();
       if (!name) { toast("Gib deinen Namen ein"); return; }
       if (authMode === "cloud") {
         try { await applyDisplayName(name); } catch (e) { toast("Hat nicht geklappt – versuch’s nochmal"); return; }
-        closeModal(); toast("Profil gespeichert");
+        if (offen()) closeModal();
+        toast("Profil gespeichert");
         return;
       }
       const email = node.querySelector("#p-email").value.trim();
@@ -14943,6 +15006,9 @@
   // Konto vollstaendig loeschen (Cloud-Konten, Art. 17 DSGVO / Datenschutz Ziffer 10).
   // Loescht zusaetzlich alle bekannten Teilen-Links, damit kein Snapshot verwaist zurueckbleibt.
   function deleteAccountFlow() {
+    // Laeuft schon ein Loeschen (Fenster geschlossen, Menue erneut geoeffnet), keinen zweiten
+    // Vorgang starten (TROUBLESHOOTING 201).
+    if (kontoLoeschen) { toast("Dein Konto wird gerade gelöscht …"); return; }
     // Als Inhaber einer Gruppe erst eine Entscheidung erzwingen: bliebe die Gruppe ohne
     // Inhaber zurueck, koennte niemand mehr Rollen vergeben oder sie aufloesen - und die
     // Zusage aus Ziffer 10 der Datenschutzerklaerung waere nicht mehr wahr.
@@ -14990,20 +15056,42 @@
     const btn = node.querySelector("[data-confirm]");
     const abbrechen = node.querySelector(".modal-foot [data-close]");
     const err = node.querySelector("#del-err");
-    // Das Fenster darf waehrend "Wird gelöscht …" zugehen (✕, Escape, Zurueck) - das Loeschen
-    // laeuft dann einfach weiter. Frueher landete ein spaeter Fehler aber in #del-err eines
-    // Fensters, das niemand mehr sah, und ein spaetes Ende schloss per closeModal() das Fenster,
-    // das inzwischen offen war. Beides haengt jetzt an offen(). Eine Schliesssperre war gebaut
-    // und wieder verworfen: Das Loeschen hat keine Frist, sie brauchte einen Notausgang, und
-    // der zaehlte die Google-/Apple-Anmeldung mit (TROUBLESHOOTING 201).
-    // "Abbrechen" ist waehrenddessen aus - es braeche nichts ab.
+    // Ablauf (TROUBLESHOOTING 201): Das Fenster bleibt offen, bis die Neuanmeldung durch ist -
+    // ein falsches Passwort landet so wie gewohnt in #del-err. Danach meldet sich
+    // CloudAuth.deleteAccount() ueber opts.bestaetigt: Das Fenster geht zu, der Abgleich schreibt
+    // nichts mehr (kontoLoeschen = "loescht"), und der Marken-Lader sperrt die App, bis das
+    // Ergebnis feststeht. Erst nach der Neuanmeldung, damit er das Google-/Apple-Fenster nicht
+    // verdeckt und seine Frist (ML_ECHT_MAX_MS) dessen Dauer nicht mitzaehlt. Nach der Frist
+    // geht der Lader von selbst zu; die Sperre bleibt, das Ergebnis kommt spaeter als Meldung.
+    // Fruehere Fassung: Das Fenster blieb waehrend des ganzen Loeschens offen und schliessbar,
+    // die App lief darunter weiter und konnte noch in die Cloud schreiben.
+    // Das Fenster kann waehrend der Neuanmeldung trotzdem zugehen (✕, Escape, Zurueck) - darum
+    // haengt das Ergebnis an offen(). "Abbrechen" ist waehrenddessen aus, es braeche nichts ab.
     const offen = () => document.contains(node);
     btn.addEventListener("click", async () => {
       const pw = isPw ? node.querySelector("#del-pw").value : null;
       if (isPw && !pw) { err.textContent = "Gib dein Passwort ein."; return; }
       err.textContent = "";
-      btn.disabled = true; btn.textContent = "Wird gelöscht …";
+      // Der Fokus soll nicht mit dem deaktivierten Knopf auf <body> fallen - die Ueberschrift
+      // nennt, worum es geht (wie .onb-q in der Einfuehrung).
+      const titel = node.querySelector("h2");
+      titel.tabIndex = -1; titel.focus({ preventScroll: true });
+      btn.disabled = true; btn.textContent = "Wird bestätigt …";
       abbrechen.disabled = true;
+      kontoLoeschen = "bestaetigen";
+      // Der Lader wartet auf `ende`, nicht auf deleteAccount(): So steht er, bis auch das lokale
+      // Aufraeumen durch und die Meldung gesetzt ist.
+      let laderFertig = () => {};
+      const ende = new Promise(r => { laderFertig = r; });
+      let lader = null;
+      const bestaetigt = () => {
+        kontoLoeschen = "loescht";
+        if (offen()) closeModal();
+        lader = markenLader({ text: "Dein Konto wird gelöscht …", warten: ende })
+          .catch(e => noteError("konto:loeschLader", e));
+      };
+      // Erst der Lader weg, dann das Fenster oder die Meldung - sonst laege es unter der Karte.
+      const nachDemLader = async () => { laderFertig(); if (lader) await lader; };
       try {
         // Frisch aus der Cloud laden statt state.recipes zu nehmen: auf einem zweiten
         // Geraet angelegte Rezepte, die dieses Geraet noch nicht per Live-Sync erhalten
@@ -15017,9 +15105,9 @@
         // nicht mitgeloescht.
         await window.CloudAuth.deleteAccount({
           password: pw, shareIds: state.shares || [], recipeIds: cloudRecipeIds,
-          groupId: syncGid || "", inviteCodes: state.inviteCodes || []
+          groupId: syncGid || "", inviteCodes: state.inviteCodes || [], bestaetigt
         });
-        if (offen()) closeModal();
+        fensterZuNachLoeschen();
         stopCloudSync();
         // await: die Bilder-Loeschung in IndexedDB laeuft asynchron, der Reload unten darf ihr
         // nicht dazwischenfahren. wipeLocalData() kann seit dem Firestore-Cache fehlschlagen -
@@ -15030,17 +15118,25 @@
           // nicht das im Speicher gehaltene state-Objekt (Rezepte, Plan,
           // Ziel) - ohne Reload wuerde ein direkt danach neu registriertes Konto genau
           // diese stehengebliebenen Daten wieder hochsynchronisieren, als waeren sie neu.
-          if (fotosGeblieben) fotosGebliebenMelden("Konto gelöscht");
-          else nachLoeschenNeuladen("Konto und Daten wurden gelöscht", 900);
+          if (fotosGeblieben) {
+            await nachDemLader();
+            fensterZuNachLoeschen();   // nach der Frist konnte inzwischen eines aufgehen
+            fotosGebliebenMelden("Konto gelöscht");
+          } else {
+            nachLoeschenNeuladen("Konto und Daten wurden gelöscht", 900);
+            laderFertig();
+          }
         } catch (wipeErr) {
-          toast("Ein Teil der lokalen Daten ließ sich gerade nicht entfernen. Lad die Seite neu und versuch es noch einmal.");
+          await nachDemLader();
+          toast("Ein Teil der lokalen Daten ließ sich gerade nicht entfernen. Lad die Seite neu und versuch es noch einmal.", 6000);
         }
       } catch (e) {
         if (e && e.dataAlreadyDeleted) {
           // Firestore-Daten sind schon weg, nur das Loeschen des Login-Zugangs selbst
           // ist fehlgeschlagen. Sauber abmelden statt einen Zwischenzustand zu zeigen -
           // ein erneuter Versuch nach dem Wieder-Anmelden schliesst die Loeschung ab.
-          if (offen()) closeModal();
+          // Die Schreibsperre bleibt (kontoLoeschen) - es gibt nichts mehr zu schreiben.
+          fensterZuNachLoeschen();
           stopCloudSync();
           try {
             await wipeLocalData();
@@ -15048,18 +15144,36 @@
             // Bleiben hier zusaetzlich Fotos, sagt es die Meldung NICHT: Den Zugang zu entfernen
             // ist die wichtigere Nachricht, und zwei Hinweise passen in keinen Toast (TS 192).
             nachLoeschenNeuladen("Deine Daten wurden gelöscht. Melde dich einmal neu an und wiederhole „Konto löschen“, um auch den Zugang zu entfernen.", 900);
+            laderFertig();
           } catch (wipeErr) {
-            toast("Ein Teil der lokalen Daten ließ sich gerade nicht entfernen. Lad die Seite neu und versuch es noch einmal.");
+            await nachDemLader();
+            toast("Ein Teil der lokalen Daten ließ sich gerade nicht entfernen. Lad die Seite neu und versuch es noch einmal.", 6000);
           }
           return;
         }
-        if (!offen()) { toast("Konto nicht gelöscht: " + cloudErrMsg(e)); return; }
+        // Nichts geloescht (die Daten stehen noch): wieder schreiben lassen und nachholen, was
+        // waehrend der Sperre liegen blieb - das Konto besteht ja weiter.
+        kontoLoeschen = null;
+        await nachDemLader();
+        scheduleCloudPush();
+        if (!offen()) { toast("Konto nicht gelöscht: " + cloudErrMsg(e), 6000); return; }
         err.textContent = cloudErrMsg(e);
         btn.disabled = false; btn.textContent = "Konto löschen";
         abbrechen.disabled = false;
       }
     });
     openModal(node);
+  }
+
+  // Ende des Konto-Loeschens: Ist inzwischen ein Fenster offen (nach der Frist des Laders war
+  // die App wieder bedienbar), geht es zu, bevor die Schlussmeldung kommt - sonst ersetzte
+  // fotosGebliebenMelden() es samt Hook (der Scanner liefe weiter), oder es stuende bis zum
+  // Neuladen offen. Ohne den Hook: Ein Meal ohne Namen darf hier nicht verweigern, die Daten
+  // sind ohnehin weg. closeModal() stoppt den Scanner und nimmt den History-Eintrag zurueck.
+  function fensterZuNachLoeschen() {
+    if (!modalRoot.childElementCount) return;
+    modalCloseHook = null;
+    closeModal();
   }
 
   // Lokales Profil (kein Cloud-Konto): Daten liegen ausschliesslich auf diesem Geraet,
@@ -16109,9 +16223,15 @@
             ? "Alle verlieren den Zugriff auf den gemeinsamen Plan. Deine Meals und dein Wochenplan bleiben dir erhalten."
             : "Du planst danach wieder für dich. Deine Meals und der Wochenplan kommen als Kopie mit.",
           okLabel: owner ? "Auflösen" : "Verlassen",
+          // confirmModal hat das Fenster schon geschlossen - ein zweites closeModal() nach dem
+          // await traf ein inzwischen geoeffnetes fremdes Fenster (TROUBLESHOOTING 201). Das
+          // Warten begleitet der Marken-Lader, wie beim Beitritt. dissolveGroup()/leaveGroup()
+          // fangen ihre Fehler selbst und melden sie per Toast; das catch ist nur das Netz darunter.
           onConfirm: async () => {
-            if (owner) await dissolveGroup(); else await leaveGroup();
-            closeModal();
+            try {
+              await markenLader({ text: owner ? "Die Gruppe wird aufgelöst …" : "Du verlässt die Gruppe …",
+                                  warten: owner ? dissolveGroup() : leaveGroup() });
+            } catch (e) { noteError("group:leaveLader", e); }
           }
         });
       });
