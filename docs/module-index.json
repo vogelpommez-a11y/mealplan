@@ -364,11 +364,11 @@
       "zeilen": 97
     },
     {
-      "bis": 1575,
+      "bis": 1577,
       "datei": "css/basis.css",
       "titel": "Week grid",
       "von": 406,
-      "zeilen": 1170
+      "zeilen": 1172
     },
     {
       "bis": 327,
@@ -1332,9 +1332,9 @@
       "zeilen": 92
     },
     {
-      "bytes": 112494,
+      "bytes": 112665,
       "pfad": "css/basis.css",
-      "zeilen": 1575
+      "zeilen": 1577
     },
     {
       "bytes": 119960,
@@ -1392,9 +1392,9 @@
       "zeilen": 158
     },
     {
-      "bytes": 230690,
+      "bytes": 230762,
       "pfad": "docs/ARCHITECTURES.md",
-      "zeilen": 3542
+      "zeilen": 3543
     },
     {
       "bytes": 15263,
@@ -1402,7 +1402,7 @@
       "zeilen": 109
     },
     {
-      "bytes": 82624,
+      "bytes": 82611,
       "pfad": "docs/DESIGN.md",
       "zeilen": 1467
     },
@@ -1411,7 +1411,7 @@
       "pfad": "docs/MODULE.md"
     },
     {
-      "bytes": 111390,
+      "bytes": 111417,
       "pfad": "docs/PRODUCT.md",
       "zeilen": 1905
     },
@@ -1431,14 +1431,14 @@
       "zeilen": 675
     },
     {
-      "bytes": 361378,
+      "bytes": 361616,
       "pfad": "docs/TESTING.md",
-      "zeilen": 5960
+      "zeilen": 5962
     },
     {
-      "bytes": 455310,
+      "bytes": 455843,
       "pfad": "docs/TROUBLESHOOTING.md",
-      "zeilen": 7690
+      "zeilen": 7696
     },
     {
       "erzeugt": true,
@@ -2184,9 +2184,9 @@
       "zeilen": 450
     },
     {
-      "bytes": 12652,
+      "bytes": 13607,
       "pfad": "tools/pruefstand-konto-loeschsperre.py",
-      "zeilen": 256
+      "zeilen": 271
     },
     {
       "bytes": 9393,
@@ -2399,9 +2399,9 @@
       "zeilen": 156
     },
     {
-      "bytes": 44210,
+      "bytes": 47394,
       "pfad": "tools/vergleich-bausteine.js",
-      "zeilen": 847
+      "zeilen": 908
     },
     {
       "bytes": 4955,

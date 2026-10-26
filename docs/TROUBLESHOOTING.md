@@ -6599,7 +6599,8 @@ und wollte die Löschreihenfolge umdrehen. `pushNow()` schreibt die Meals aber *
 die Regel hätte also den ersten Sync jedes neuen Kontos gebrochen.
 
 **Behoben:** wie in §171 erst sperren, dann vom Server listen, dann löschen.
-`deleteAccount()` schreibt nach der erneuten Anmeldung `loeschsperren/{uid}` mit genau einem Feld,
+`deleteAccount()` schreibt nach der erneuten Anmeldung (seit §201 in `kontoLoeschenNachBestaetigung()`)
+`loeschsperren/{uid}` mit genau einem Feld,
 `bis` (jetzt + 2 h). `nichtImLoeschen()` in `firestore.rules` lehnt Anlegen und Ändern ab, solange
 `bis` in der Zukunft liegt. Das gilt für `users/{uid}`, `users/{uid}/recipes`, `shared/`,
 `invites/`, das Gründen einer Gruppe und den Beitritt. **Löschen bleibt erlaubt**, sonst sperrte
@@ -6613,7 +6614,7 @@ sich die Löschung selbst aus. Erst danach liest `kontoDatenLoeschen()` Profil u
   nicht:** `gcloud firestore fields ttls update` lehnte mit „billing disabled“ ab, TTL braucht
   Blaze. Nach dem Löschen darf niemand sonst die Sperre entfernen, denn das Konto, dem sie
   gehört, gibt es nicht mehr. Ohne diesen Schritt bliebe sie für immer liegen.
-* **Scheitert das Aufräumen**, nimmt `deleteAccount()` die Sperre zurück. Sonst liefe das Konto
+* **Scheitert das Aufräumen**, nimmt die Löschung (`kontoLoeschenNachBestaetigung()`) die Sperre zurück. Sonst liefe das Konto
   zwei Stunden ins Leere. Scheitert auch das, endet der Zustand mit `bis` von selbst.
 * **Lehnen die Regeln schon die Sperre ab** (`permission-denied`, also noch nicht
   veröffentlicht), löscht die App ohne Sperre weiter wie bisher und notiert

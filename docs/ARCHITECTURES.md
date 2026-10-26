@@ -842,8 +842,9 @@ ohne Elterndokument liegen bleiben (`docs/TROUBLESHOOTING.md` §171).
 ### Konto löschen sperrt zuerst (seit 19.09.2026)
 
 Dasselbe Muster fürs Konto, aber mit einem eigenen Dokument, weil es nach dem Löschen stehen
-bleiben muss: `loeschsperren/{uid} = { bis: timestamp }`. `CloudAuth.deleteAccount()` schreibt es
-nach der erneuten Anmeldung (`bis` = jetzt + 2 h) und ruft dann `kontoDatenLoeschen()`. Das liest
+bleiben muss: `loeschsperren/{uid} = { bis: timestamp }`. `CloudAuth.deleteAccount()` ruft
+nach der erneuten Anmeldung `kontoLoeschenNachBestaetigung()`; die schreibt es (`bis` = jetzt + 2 h)
+und ruft dann `kontoDatenLoeschen()`. Das liest
 Profil und Meals **vom Server** und ergänzt damit die Listen des Aufrufers. Danach löscht es wie
 bisher Links, Meals, Mitgliedschaft, Einladungen, `entitlements` und `users/{uid}`, zuletzt folgt
 `deleteUser()`. `nichtImLoeschen()` in den Regeln lehnt so lange jedes Anlegen und Ändern unter dem

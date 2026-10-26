@@ -48,7 +48,7 @@ Erhoben aus den Abschnittsmarken im Code, nicht von Hand gepflegt.
 | css/basis.css | Header | 20-274 | 255 |
 | css/basis.css | Section head | 275-308 | 34 |
 | css/basis.css | Buttons | 309-405 | 97 |
-| css/basis.css | Week grid | 406-1575 | 1170 |
+| css/basis.css | Week grid | 406-1577 | 1172 |
 | css/komponenten.css | Recipe grid | 8-327 | 320 |
 | css/komponenten.css | Meal-Ansicht (openMealSheet) | 328-554 | 227 |
 | css/komponenten.css | Empty state | 555-566 | 12 |
@@ -337,7 +337,7 @@ _keine_
 | README.md | 46 | 1990 |
 | SECURITY.md | 71 | 3006 |
 | css/CLAUDE.md | 92 | 4156 |
-| css/basis.css | 1575 | 112494 |
+| css/basis.css | 1577 | 112665 |
 | css/komponenten.css | 1594 | 119960 |
 | css/mobil.css | 1116 | 74425 |
 | css/tokens.css | 298 | 16653 |
@@ -349,16 +349,16 @@ _keine_
 | data/rechtstexte.js | 208 | 34439 |
 | docs/ABDECKUNG.md | 206 | 15283 |
 | docs/ABNAHME-MENSCH.md | 158 | 8685 |
-| docs/ARCHITECTURES.md | 3542 | 230690 |
+| docs/ARCHITECTURES.md | 3543 | 230762 |
 | docs/BAUSTEINE.md | 109 | 15263 |
-| docs/DESIGN.md | 1467 | 82624 |
+| docs/DESIGN.md | 1467 | 82611 |
 | docs/MODULE.md | — | — (erzeugt) |
-| docs/PRODUCT.md | 1905 | 111390 |
+| docs/PRODUCT.md | 1905 | 111417 |
 | docs/RUNBOOK.md | 391 | 20639 |
 | docs/SECURITY.md | 634 | 39369 |
 | docs/STORE.md | 675 | 46623 |
-| docs/TESTING.md | 5960 | 361378 |
-| docs/TROUBLESHOOTING.md | 7690 | 455310 |
+| docs/TESTING.md | 5962 | 361616 |
+| docs/TROUBLESHOOTING.md | 7696 | 455843 |
 | docs/module-index.json | — | — (erzeugt) |
 | firestore.rules | 552 | 32127 |
 | img/apple-touch-icon.png | — | 35163 |
@@ -525,7 +525,7 @@ _keine_
 | tools/pruefstand-katalog-plan.py | 563 | 27054 |
 | tools/pruefstand-konten-inaktiv.py | 133 | 5890 |
 | tools/pruefstand-konto-loeschfenster.py | 450 | 23176 |
-| tools/pruefstand-konto-loeschsperre.py | 256 | 12652 |
+| tools/pruefstand-konto-loeschsperre.py | 271 | 13607 |
 | tools/pruefstand-kontowechsel.py | 215 | 9393 |
 | tools/pruefstand-makro-abweichung.py | 125 | 6483 |
 | tools/pruefstand-marken-lader.py | 171 | 8398 |
@@ -568,7 +568,7 @@ _keine_
 | tools/smoke-mit-daten.py | 145 | 8236 |
 | tools/tempo-mobil.py | 320 | 13479 |
 | tools/test-meal-bilder.py | 156 | 8295 |
-| tools/vergleich-bausteine.js | 847 | 44210 |
+| tools/vergleich-bausteine.js | 908 | 47394 |
 | tools/vorfuehren.py | 123 | 4955 |
 | tools/vorher-nachher.py | 432 | 21563 |
 | tools/wartung-check.py | 877 | 40873 |
