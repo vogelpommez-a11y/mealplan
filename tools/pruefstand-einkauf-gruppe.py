@@ -1,20 +1,22 @@
 # -*- coding: utf-8 -*-
 u"""
-Einkaufsliste und Vorkochliste in der Gruppe: was zaehlt fuer wen?
+Einkaufsliste in der Gruppe: was zaehlt fuer wen?
+
+(Bis zum 26.10.2026 prueften die Abschnitte 7b, 8 und 9 auch die Vorkochliste - die
+Ansicht ist entfallen, die Abschnitte mit ihr.)
 
 `tools/pruefstand-einkaufsliste.py` deckt den Abhak-Zustand, die Wochenbindung, die
 Personenzahl und den PDF-Kopf ab - aber KEINE Zuweisungen. Genau dort verlaeuft in der
 Gruppe die interessante Grenze, denn ein Slot-Eintrag ist entweder ein String ("fuer alle")
 oder `{id, uids}`.
 
-Der Vertrag, den beide Listen einhalten muessen:
+Der Vertrag, den die Liste einhalten muss:
 
     Endsumme = sharedQty * per + assignedQty
 
   * "fuer alle" wird mit dem globalen Personenfaktor `per` hochgerechnet
   * zugewiesene Gerichte sind bereits pro Gericht auf `uids.length` skaliert und
     duerfen den globalen Faktor NICHT noch einmal abbekommen
-  * beide Listen beschreiben dieselbe Woche (planDaysAhead) und zaehlen dieselben Esser
 
 Abschnitt 7 haelt zusaetzlich fest, dass "Einkauf fuer alle rechnen: Aus" fuer BEIDE
 Summanden gilt. Bis zum 28.08.2026 folgte ihr nur der "fuer alle"-Anteil - zugewiesene
@@ -206,31 +208,8 @@ var altWert = 50 * 2;   // die alte Formel: immer mal uids.length
 pr("neue Fassung: einfache Menge", neuWert === 50, String(neuWert));
 pr("alte Fassung haette verdoppelt", altWert === 100 && altWert !== neuWert,
    "alt=" + altWert + " neu=" + neuWert);
-
-console.log("--- 7b. Auch die Vorkochliste folgt der Einstellung ---");
-// Beide Listen muessen dieselben Esser zaehlen - sonst kocht man fuer eine andere Zahl,
-// als man eingekauft hat.
-gruppenEinstellungen.shopForAll = false;
-state.plan = leererPlan();
-state.plan.mon.mi = [{ id:"nudeln", uids:["ich","du"] }];
-var bAus = buildBatchList().items.filter(function (i) { return i.r.id === "nudeln"; })[0];
+// Zuruecksetzen - frueher erledigte das der Vorkoch-Abschnitt 7b nebenbei.
 gruppenEinstellungen.shopForAll = true;
-var bAn = buildBatchList().items.filter(function (i) { return i.r.id === "nudeln"; })[0];
-pr("Aus -> 1 Portion", bAus && bAus.portions === 1, bAus ? bAus.portions + "" : "-");
-pr("An  -> 2 Portionen", bAn && bAn.portions === 2, bAn ? bAn.portions + "" : "-");
-
-console.log("--- 8. Vorkochliste zaehlt dieselben Esser ---");
-state.plan = leererPlan();
-state.plan.mon.mi = ["nudeln"];                          // fuer alle -> persons = 2
-state.plan.tue.mi = [{ id:"nudeln", uids:["ich"] }];     // nur ich   -> 1
-var b = buildBatchList();
-var nudPort = b.items.filter(function(i){ return i.r.id === "nudeln"; })[0];
-pr("Portionen 2 + 1 = 3", nudPort && nudPort.portions === 3, nudPort ? nudPort.portions + "" : "-");
-pr("an zwei Tagen", nudPort && nudPort.days.length === 2, nudPort ? nudPort.days.length + "" : "-");
-
-console.log("--- 9. Beide Listen beschreiben DIESELBE Woche ---");
-// Gemeinsame Quelle planDaysAhead(); zwei Kopien waeren eine Frage der Zeit.
-pr("gleicher todayIdx", buildShoppingList().todayIdx === buildBatchList().todayIdx);
 
 console.log("--- 10. Waisen koennen die Summe nicht mehr verfaelschen (Ziffer 130) ---");
 // uids: [] haette factor 0 ergeben - die Zutat waere lautlos aus der Liste gefallen.
@@ -290,9 +269,6 @@ def main():
     tage2 = schneide(quelle, u"function planDaysAhead()", u"return { todayIdx: todayIdx", u"\n  }")
     einkauf = schneide(quelle, u"function buildShoppingList(persons)",
                        u"return { items, groups, todayIdx, persons: per };", u"\n  }")
-    vorkoch = schneide(quelle, u"function buildBatchList()",
-                       u"return { items: items, total: Math.round(total * 10) / 10, todayIdx: todayIdx };",
-                       u"\n  }")
 
     tmp = tempfile.mkdtemp(prefix="mp-einkgrp-")
     try:
@@ -302,7 +278,7 @@ def main():
             u"\n" + makeEmpty + u"\n" + unflat + u"\n" + nutnum + u"\n" + ingu + u"\n" + ingo +
             u"\n" + ingl + u"\n" + inghas + u"\n" + ingcon + u"\n" + ingmin + u"\n" + ingwue +
             u"\n" + shopsan + u"\n" + shoppers + u"\n" + zaehlt + u"\n" + tage2 +
-            u"\n" + einkauf + u"\n" + vorkoch + u"\n" + TEST + u"\n</script>")
+            u"\n" + einkauf + u"\n" + TEST + u"\n</script>")
         p = subprocess.run(
             [EDGE, "--headless=new", "--disable-gpu", "--virtual-time-budget=6000",
              "--user-data-dir=" + os.path.join(tmp, "profil"),

@@ -481,16 +481,9 @@ def lauf(s, breite, hoehe, theme, name):
         time.sleep(1.0)
         station("22_einkaufsliste")
         AM.modal_zu(s)
-    # Die Vorkochliste gehoert dazu: `abnahme-mobil.py` faehrt sie an, und ein Bereich, den
-    # nur einer der beiden Pruefstaende kennt, faellt niemandem auf (Fund von `kvp`,
-    # 20.09.2026). Solange der Stationsweg in beiden Dateien getrennt steht, ist genau das
-    # das Risiko - siehe docs/TESTING.md 2g-bis.
-    if s.tippen_auf('[data-action="plan-menu"]'):
-        time.sleep(0.6)
-        if s.tippen_auf('[data-mi="batch"]'):
-            time.sleep(1.0)
-            station("23_vorkochen")
-        AM.modal_zu(s)
+    # Station 23 war bis zum 26.10.2026 die Vorkochliste - die Ansicht ist entfallen. Die
+    # Nummer bleibt frei, damit alte Berichte vergleichbar bleiben. Der Stationsweg steht
+    # weiter in beiden Dateien getrennt - siehe docs/TESTING.md 2g-bis.
     return ergebnisse
 
 

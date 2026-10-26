@@ -1126,8 +1126,8 @@ welcher das ist.
 ## Ein Symbol je Lebensmittel, und es reicht bis in den Plan (seit 12.09.2026)
 
 Die vier Gruppen oben waren richtig, solange das Symbol nur in der Auswahl stand. Seit dem
-12.09.2026 steht es auch im Wochenplan, auf dem Startreiter, im Meal-Blatt und in der
-Vorkochliste — und dort fällt „alles Obst sieht gleich aus" sofort auf. Deshalb hat jede
+12.09.2026 steht es auch im Wochenplan, auf dem Startreiter, im Meal-Blatt (bis 26.10.2026 auch
+in der Vorkochliste) — und dort fällt „alles Obst sieht gleich aus" sofort auf. Deshalb hat jede
 **unterscheidbare Form** ihr eigenes Symbol: Banane, Birne, Kiwi, Erdbeere, Kirsche, Mango,
 Feige, Karotte, Paprika, Tomate, Gurke, Radieschen, Avocado, Olive, Brötchen, Brezel,
 Croissant, Reiswaffel, Donut, Berliner, Muffin.
@@ -1148,7 +1148,7 @@ unverändert und ist hier vierfach bestätigt.
 ### Die Symbolfläche `.msym`
 
 Wo ein Symbol steht, steht kein Bild. Die Fläche übernimmt die **Maße des Fotos**, das sie
-ersetzt — Breite, Höhe und Radius bleiben deshalb bei `.r-thumb`, `.pthumb`, `.bc-thumb`,
+ersetzt — Breite, Höhe und Radius bleiben deshalb bei `.r-thumb`, `.pthumb`,
 `.hm-sym` und `.ms-cover-sym`; `.msym` trägt nur das Aussehen: `--surface-2` als Grund,
 `--text-muted` für den Strich, der Rand als **inset-Schatten**. Kein `border`: Ohne globales
 `box-sizing: border-box` bliese er die geerbten Maße um 2 px auf und verschöbe die Symbolzeile
@@ -1158,7 +1158,7 @@ Drei Größen, alle gegengeprüft:
 
 | Ort | Fläche | Symbol |
 |---|---|---|
-| Plan, Picker, Vorkochliste | 28 px bzw. 38 × 28 px | 62 % der Fläche |
+| Plan, Picker | 28 px bzw. 38 × 28 px | 62 % der Fläche |
 | Meal-Blatt (`.msym-big`) | 220 px hoch | `min(88px, 62%)`, Strich 1,1 |
 | Startreiter (`.hm-sym`) | 72 bis ~380 px hoch | `max(24px, min(132px, 74%))`, Strich 0,8 |
 

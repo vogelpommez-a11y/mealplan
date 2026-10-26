@@ -817,6 +817,39 @@ var BAUSTEINE = [
       { text: "Die Gruppe wird aufgelöst", dauer: 1800 },
       { text: "Fertig", dauer: 2500 }
     ]
+  },
+
+  {
+    id: "plan-menue",
+    titel: "Wochenplan: „⋯“ und „Vorkochen“ entfallen",
+    was: "Plan wird gefüllt. Links: „⋯“ mit „Vorkochen“ und „Woche leeren“. Rechts: kein „⋯“ "
+       + "mehr, „Woche leeren“ steht leise unter dem Plan.",
+    stellen: [
+      "renderPlan() — .plan-menu raus, .plan-foot mit [data-action=clear-week] dazu",
+      "buildBatchList()/openBatchCooking()/togglePlanMenu() entfernt",
+      "css/mobil.css — 359px-Block entfallen (der Planer passt wieder in die Zeile)"
+    ],
+    ist: "Oben rechts „⋯“ mit zwei Einträgen: „Vorkochen“ (Liste nach Gericht) und „Woche leeren“.",
+    soll: "Kein „⋯“ mehr. „Woche leeren“ steht als leiser Knopf am Ende des Plans, mit Rückgängig.",
+    // Gefuellter Plan als Zustand (Werkzeug-Daten): Ohne Eintraege zeigt rechts der Knopf
+    // "Woche leeren" gar nicht erst, und der Auto-Planer fuellt mit dem Standard-Testmeal nichts.
+    zustand: planMenueZustand(),
+    film: [
+      { text: "Wochenplan, gefüllt", dauer: 1500, tippe: function (doc) {
+          return doc.querySelector('[data-action="tab"][data-tab="plan"]'); } },
+      { text: "Oben: links mit „⋯“, rechts ohne", dauer: 1800, tun: function (doc) {
+          doc.defaultView.scrollTo(0, 0); } },
+      { text: "„⋯“ antippen (nur links)", dauer: 1800, tippe: function (doc) {
+          return doc.querySelector('[data-action="plan-menu"]'); } },
+      { text: "Menü wieder zu", dauer: 600, tippe: function (doc) {
+          return doc.querySelector('[data-action="plan-menu"]'); } },
+      { text: "Ans Ende des Plans", dauer: 2200, tun: function (doc) {
+          var w = doc.defaultView;
+          w.scrollTo(0, doc.documentElement.scrollHeight); } },
+      { text: "„Woche leeren“ antippen (nur rechts)", dauer: 1000, tippe: function (doc) {
+          return doc.querySelector('[data-action="clear-week"]'); } },
+      { text: "Geleert – „Rückgängig“ im Hinweis", dauer: 2500 }
+    ]
   }
 ];
 
@@ -839,6 +872,34 @@ function vorabZustand() {
       { id: "rvgchili", name: "Chili con Carne", category: "Hauptgericht", vorab: ["auftauen"],
         nutrition: { kcal: 560, carbs: 48, protein: 42, fat: 20 }, ingredients: [] },
       { id: "rvgoats", name: "Overnight Oats", category: "Frühstück", vorab: ["einweichen"],
+        nutrition: { kcal: 420, carbs: 55, protein: 22, fat: 12 }, ingredients: [] }
+    ],
+    plans: plans
+  };
+}
+
+// Aktuelle Woche komplett gefuellt - fuer "plan-menue". Wochenschluessel wie in vorabZustand().
+function planMenueZustand() {
+  function wochenKey(date) {
+    var d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+    var tag = d.getUTCDay() || 7;
+    d.setUTCDate(d.getUTCDate() + 4 - tag);
+    var start = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+    var w = Math.ceil((((d - start) / 864e5) + 1) / 7);
+    return d.getUTCFullYear() + "-W" + String(w).padStart(2, "0");
+  }
+  var woche = {};
+  ["mon", "tue", "wed", "thu", "fri", "sat", "sun"].forEach(function (t) {
+    woche[t] = { fr: ["rpmoats"], mi: ["rpmchili"], ab: ["rpmchili"], sn: [] };
+  });
+  var plans = {};
+  plans[wochenKey(new Date())] = woche;
+  return {
+    tab: "plan",
+    recipes: [
+      { id: "rpmchili", name: "Chili con Carne", category: "Hauptgericht", mealPrep: true,
+        nutrition: { kcal: 560, carbs: 48, protein: 42, fat: 20 }, ingredients: [] },
+      { id: "rpmoats", name: "Overnight Oats", category: "Frühstück", mealPrep: true,
         nutrition: { kcal: 420, carbs: 55, protein: 22, fat: 12 }, ingredients: [] }
     ],
     plans: plans

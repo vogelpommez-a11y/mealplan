@@ -743,9 +743,9 @@ blasse Farbe geben und prüfen, dass der Messstand darauf anschlägt.
 ## 2g. Vollständige Geräteabnahme — `tools/abnahme-mobil.py`
 
 Gebaut am 16.09.2026. Fährt **selbstständig** durch Auth-Gate, alle Schritte der Einführung
-(seit 18.10.2026 neun; das Körperfett ist zugeklappt und freiwillig, der Automat lässt es zu), die vier Reiter, Meal-Picker, Einkaufsliste und Vorkochen — in drei
-Gerätebreiten (360/375/393) und **beiden** Farbschemata. 16 Stationen je Lauf, 96
-insgesamt (nachgezählt am 19.10.2026, vorher 18/108). Baut auf 2e auf: eine durchgehende Verbindung, echte Touch-Ereignisse.
+(seit 18.10.2026 neun; das Körperfett ist zugeklappt und freiwillig, der Automat lässt es zu), die vier Reiter, Meal-Picker und Einkaufsliste (Vorkochen bis 26.10.2026) — in drei
+Gerätebreiten (360/375/393) und **beiden** Farbschemata. 15 Stationen je Lauf, 90
+insgesamt (seit 26.10.2026 ohne `23_vorkochen`; vorher 16/96, davor 18/108). Baut auf 2e auf: eine durchgehende Verbindung, echte Touch-Ereignisse.
 
 ```powershell
 python tools/abnahme-mobil.py                 # Alltag: iPhone SE, Hell + Dunkel (~2 min)
@@ -1513,7 +1513,7 @@ Beispiele:
   **Unsinnswerte**: `portions: 0`, negativ oder als Text dürfen nichts verändern (keine Division
   durch null, keine erfundenen Mengen). Dazu: Freitext-Zutaten bleiben unangetastet, Einheiten
   überleben, gerundet wird auf eine Nachkommastelle.
-* **Vorkochen (C3)**: `buildBatchList()` braucht nur Stubs für `getRecipe`, `shopPersons` und
+* **Vorkochen (C3, entfallen am 26.10.2026)**: `buildBatchList()` brauchte nur Stubs für `getRecipe`, `shopPersons` und
   `todayDayKey` — dazu `planDaysAhead()`, die gemeinsame Zeitraum-Quelle. 17 Prüfungen, alle grün — Bündelung, Sortierung, Portionsfaktor, aufgerundete
   Kochdurchgänge, Zuweisung statt Personenzahl, leerer Plan. Zwei Fälle, die man leicht
   vergisst: **ein Rezept ohne `portions`** darf keine erfundene Durchgangszahl bekommen, und
@@ -4311,8 +4311,8 @@ Personenzahl und den PDF-Kopf ab — und kennt **keine einzige Zuweisung**. Gena
 in der Gruppe die interessante Grenze: Ein Slot-Eintrag ist entweder ein String („für alle")
 oder `{id, uids}`.
 
-Dieser Prüfstand hält den Vertrag fest, den `buildShoppingList()` und `buildBatchList()`
-gemeinsam einhalten müssen:
+Dieser Prüfstand hält den Vertrag fest, den `buildShoppingList()` einhalten muss (bis
+26.10.2026 auch `buildBatchList()`, die Vorkochliste ist entfallen):
 
     Endsumme = sharedQty * per + assignedQty
 
@@ -4326,9 +4326,8 @@ Abschnitt 11 ist die Gegenprobe zum Aufbau: Mit zwei Mitgliedern muss 200 heraus
 drei 300. Ohne sie bestünden die Abschnitte 2–4 auch dann, wenn überall stumpf mit 1 gerechnet
 würde.
 
-Abschnitt 9 prüft die Zusage aus `planDaysAhead()`: Einkaufsliste und Vorkochliste müssen
-**dieselbe** Woche beschreiben — sonst kauft man für einen Tag ein, den die Vorkochliste nicht
-mehr kennt.
+Die Abschnitte 7b, 8 und 9 prüften bis zum 26.10.2026 die Vorkochliste (gleiche Esser, gleiche
+Woche) und sind mit ihr entfallen.
 
 ### Ein Abschnitt, der misst statt zu urteilen
 

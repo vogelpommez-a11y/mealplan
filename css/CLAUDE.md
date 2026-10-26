@@ -12,7 +12,7 @@ Design-Änderung zuerst dort nachsehen.
 |---|---|
 | `tokens.css` | ausschließlich Design-Tokens und Themes |
 | `basis.css` | Notch/safe-area, Header, Fußzeile, Buttons, Wochenraster, Trainingstag, Makrozeilen, `.sec-h` |
-| `komponenten.css` | Rezeptraster, Zutatenzeilen, Meal-Ansicht, Bottom-Sheet, Modal, Picker, Listen, Vorkochen, Toast, Profil, Intro/Rechner, Druck |
+| `komponenten.css` | Rezeptraster, Zutatenzeilen, Meal-Ansicht, Bottom-Sheet, Modal, Picker, Listen, Toast, Profil, Intro/Rechner, Druck |
 | `mobil.css` | alles ab der Marke „Mobile / Smartphone" bis zum Ende — Breakpoints, Wisch-Karussell, Onboarding, sehr schmale Geräte, Gruppen-Dialog |
 
 Die Dateien werden in genau dieser Reihenfolge eingebunden.

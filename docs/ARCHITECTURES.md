@@ -997,15 +997,14 @@ Eintrag entfernt (derselbe Pfad wie `unassign`, inklusive Undo-Toast) — ein Ge
 zugewiesene Person darf nie im Datenmodell existieren.
 
 **Geprüft seit dem 28.08.2026** durch `tools/pruefstand-einkauf-gruppe.py`: der Vertrag
-`sharedQty * per + assignedQty`, dieselbe Zutat aus beiden Arten im selben Lauf, und die
-Zusage aus `planDaysAhead()`, dass Einkaufs- und Vorkochliste dieselbe Woche beschreiben.
-`buildBatchList()` zählt dieselben Esser (`uids ? uids.length : persons`).
+`sharedQty * per + assignedQty` und dieselbe Zutat aus beiden Arten im selben Lauf. Die
+Abschnitte zur Vorkochliste (`buildBatchList()`) sind am 26.10.2026 mit der Ansicht entfallen.
 
 **„Einkauf für alle rechnen“ steuert BEIDE Summanden** (28.08.2026). Bis dahin folgte nur der
 „für alle“-Anteil der Einstellung; der zugewiesene trug seinen Faktor fest im Eintrag
 (`uids.length`) und blieb bei **Aus** doppelt — bei einem Schalter, der „Mengen × Mitglieder“
-heißt. `shopCountsMembers()` ist die gemeinsame Bedingung für `buildShoppingList()` und
-`buildBatchList()`; bewusst **nicht** an `per` gehängt, weil `per` auch aus einer von Hand
+heißt. `shopCountsMembers()` ist die Bedingung für `buildShoppingList()` (bis 26.10.2026
+auch für `buildBatchList()`); bewusst **nicht** an `per` gehängt, weil `per` auch aus einer von Hand
 gesetzten Personenzahl stammen kann. Die Zuweisung sagt weiterhin, *wer* isst — nur nicht mehr
 allein, *wie viel* eingekauft wird. `docs/TROUBLESHOOTING.md` 132.
 
@@ -1472,25 +1471,6 @@ das erneut abzuwägen (`CLAUDE.md` §24: Sicherheit vor Komfort).
 **Offen, bewusst unverändert:** Das JSON-LD im `<head>` nennt `"price": "0"`. Das bleibt richtig,
 solange es nichts zu kaufen gibt — nachzuziehen ist es erst mit der Bezahlabwicklung (D7/Store),
 nicht mit D1.
-
-### Vorkochen: `buildBatchList()`
-
-Dritte Auswertung desselben Wochenbestands, neben `buildShoppingList()` (Zutaten) und dem
-Wochenplan selbst (Tage). Gruppiert nach Rezept-ID:
-
-```
-{ r, portions, days[] }
-```
-
-* `portions` = Σ Esser je Eintrag, wobei Esser = `uids.length` bzw. `shopPersons()`.
-  Seit dem 15.08.2026 ist das zugleich die **Anzahl der Meals** — ein Eintrag ist eine Portion.
-* `runs`/`perRun` (Kochdurchgänge) sind entfallen: Mit `portions` am Rezept fiel der Nenner weg,
-  „4× kochen à 1 Portion" wäre nur eine umständliche Wiederholung der Zahl daneben.
-* Zeitraum identisch zu `buildShoppingList()`: aktuelle Woche ab heute, nächste Woche ganz
-
-Kein eigener State, kein neues Datenfeld — reine Ableitung. Die Ansicht (`openBatchCooking()`)
-ist ein Modal ohne Bedienzustand, der Einstieg liegt im Überlaufmenü des Wochenplans
-(`togglePlanMenu()`).
 
 ### Wochenarchiv `state.weekStats`
 
@@ -2577,7 +2557,7 @@ jedes Schlüssels, Verdeckung zwischen Regeln und 66 echte Gerichtnamen.
 
 **Davor sitzt seit dem 12.09.2026 `mealIcon(r)`:** Schnelleinträge (`quick` + `qf`) und
 gescannte Produkte (`quick` + `barcode`) zeigen ein **Symbol** statt eines geratenen
-Stichwortfotos — in Plan, Startreiter, Meal-Blatt, Picker und Vorkochliste. Das eigene Foto
+Stichwortfotos — in Plan, Startreiter, Meal-Blatt, Picker. Das eigene Foto
 des Nutzers gewinnt auch dort. `photoFor()` selbst bleibt unverändert: Das Teilen-Vorschaubild
 (`worker/og.js`) braucht eine Bild-URL. Wo ein Symbol steht, entfällt „Symbolbild ·
 KI-generiert“ — ein Strichsymbol ist keines von beidem. Prüfer
@@ -3369,7 +3349,7 @@ Personenzahl überlebt.
 ### `planScopeLabel(todayIdx)` — welche Woche steht im Kopf?
 
 Gegenstück zu `planDaysAhead()`: dieselbe Frage, nur in Worten. **Eine** Quelle für
-Einkaufsliste, Vorkochliste *und* das PDF — alle drei ziehen ihre Tage aus `planDaysAhead()`
+Einkaufsliste *und* das PDF — beide ziehen ihre Tage aus `planDaysAhead()`
 und müssen deshalb auch dieselbe Woche benennen.
 
 `planScopeTitle()` ist dieselbe Angabe groß geschrieben, für den PDF-Kopf, wo der Zeitraum
@@ -3404,7 +3384,7 @@ Prüfung, nachdem die Doku hier bereits „eine Quelle" behauptete.
 
 ### Der Dialogname trägt die Woche mit
 
-`openShopping()` und `openBatchCooking()` setzen `aria-label="Einkaufsliste, diese Woche ab
+`openShopping()` setzt (bis 26.10.2026 auch `openBatchCooking()`) `aria-label="Einkaufsliste, diese Woche ab
 heute"` statt nur `"Einkaufsliste"`. Grund: `openModal()` fokussiert den ersten Knopf, und
 angesagt wird der **Dialogname** — der sichtbare Kicker wird erst beim Weiterlesen erreicht.
 Solange die Überschrift „Einkaufsliste der Woche" hieß, trug wenigstens sie einen Hinweis;

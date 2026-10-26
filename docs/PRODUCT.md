@@ -34,7 +34,7 @@ vergessen — wer es aendern will, aendert eine Entscheidung.
 | · | Meal-Datenbank |
 | · | Bewusste Produktentscheidung: Vier Reiter, vier Fragen |
 | · | Bewusste Produktentscheidungen für Fitness & Meal-Prep (13.08.2026) |
-| · | Bewusste Produktentscheidung: Vorkochen ist eine eigene Ansicht |
+| · | Bewusste Produktentscheidung: Vorkochen entfällt (26.10.2026) |
 | · | Bewusste Produktentscheidung: Der Wizard endet im Wochenplan |
 | · | Bewusste Produktentscheidung: Der Fortschritt misst gegen das Ziel |
 | · | Bewusste Produktentscheidung: Der Kalender zeigt Planung, nicht Zensuren (30.08.2026) |
@@ -120,7 +120,7 @@ Illusion“, Buell & Norton, Harvard 2011). Das gilt aber nur an wenigen besonde
   **nach** der Passwort-/Google-/Apple-Bestätigung — der Lader sperrt die App, damit währenddessen
   nichts Neues entsteht (`docs/TROUBLESHOOTING.md` 201). Gruppe gründen bleibt beim Knopftext „Wird erstellt …“ — das Warten
   dauert dort nur einen Sekundenbruchteil, eine Karte würde aufflackern.
-* **Bewusst nicht:** Einkaufs- und Vorkochliste, Einplanen, Sortieren, Schnelleintrag,
+* **Bewusst nicht:** Einkaufsliste, Einplanen, Sortieren, Schnelleintrag,
   Woche leeren (oft und unterwegs), PDF und Teilen (man will die Datei; das Teilen-Fenster muss
   sofort aufgehen), Barcode-Scan (hat eigenes echtes Warten), Rezeptbuch und Suche (Stöbern),
   Gewicht, Kalender, Rückblick (kein Rechenmoment — „wird ausgewertet“ wäre beim Gewicht
@@ -289,7 +289,7 @@ Premium soll **mehr leisten**, nicht künstlich weniger freischalten.
 ### Die Pro-Grenze (festgelegt 10.08.2026, Grundlage seit 13.08.2026 im Code)
 
 **Gratis läuft vollständig lokal — und dort uneingeschränkt.** Wochenplan, Einkaufsliste,
-Barcode, Ziele, Gewicht, Vorkochen, Meal-Teilen per Link: alles ohne Konto, ohne Sperre,
+Barcode, Ziele, Gewicht, Meal-Teilen per Link: alles ohne Konto, ohne Sperre,
 ohne Zähler.
 
 **Pro bringt das, was tatsächlich Server kostet oder echte Automatik ist:** gemeinsam planen,
@@ -1032,7 +1032,7 @@ genau diesen Fehler.
 **Was dadurch einfacher wird:**
 
 * Die Einkaufsliste stimmt zum ersten Mal mit den Nährwerten überein.
-* Die Vorkochen-Ansicht sagt „Hähnchen 4× diese Woche" statt „4 Portionen, 2 Durchgänge" — die
+* Die Vorkochen-Ansicht (entfallen am 26.10.2026) sagte „Hähnchen 4× diese Woche" statt „4 Portionen, 2 Durchgänge" — die
   Frage, wie viel in einen Topf passt, beantwortet ohnehin nur der Topf.
 * **Der Auto-Planer bekommt eine verlässliche Einheit.** Unterschiedliche Kalorienziele in einer
   Gruppe lassen sich damit über die **Anzahl** der Einträge abbilden: Alle essen dasselbe
@@ -1137,7 +1137,7 @@ Bewusste Entscheidungen:
   Meal *ist*, der Hinweis sagt, was man *tun* muss.
 * **Am Meal, nicht am Planeintrag.** Wer jede Woche neu antippen muss, vergisst genau das.
 * **Nur drei feste Hinweise, kein Freitext.** Alle drei gelten am Vortag. „Vorkochen“ ist
-  abgewählt, dafür gibt es `mealPrep` und die Vorkochliste.
+  abgewählt, dafür gibt es `mealPrep`.
 * **Die Push-Nachricht kommt mit der Store-App** (lokale Erinnerung, Standard 18 Uhr, Uhrzeit
   einstellbar), siehe `docs/STORE.md` Abschnitt 9. Die Uhrzeit-Einstellung entsteht erst dann,
   vorher hätte sie keine Wirkung.
@@ -1204,7 +1204,7 @@ Reiter nach vorne — und er nutzt endlich die Meal-Fotos, die es längst gibt.
 
 **Home hat bewusst keine Primäraktion.** Ein Durchgang durch alle vier Reiter am 05.09.2026 hat
 gezeigt: „Einkaufsliste“ und „Woche planen“ stehen in der Werkzeugleiste des *Wochenplans*, ein
-„⋯“-Menü gibt es dort, an der Gewichtskarte und im Profil. Auf Home bleiben die zwei Aktionen,
+„⋯“-Menü gibt es an der Gewichtskarte und im Profil. Auf Home bleiben die zwei Aktionen,
 die es nur dort gibt: „Anpassen“ und „Neu berechnen“. Der Reiter beantwortet „wie steht meine
 Woche?“ — geplant wird im Wochenplan. **Zeigen, nicht handeln.**
 
@@ -1250,32 +1250,27 @@ wie viele Taps kostet es sie?
   zusammen mit der Zuweisung, nicht als zweiter Knopf daneben.
 * **„Woche leeren" steht nicht mehr neben der Einkaufsliste.** Eine destruktive Aktion mit
   derselben Prominenz wie das meistgenutzte Werkzeug ist ein Fehlerangebot; die Rückfrage
-  allein ist keine Entschuldigung dafür.
+  allein ist keine Entschuldigung dafür. Bis 26.10.2026 im „⋯“-Menü, seitdem als leiser
+  Knopf unter dem Plan (siehe „Vorkochen entfällt“).
 
 Bewusst **keine** freie Portionszahl: vier Stufen decken den Alltag ab, ein Zahlenfeld wäre
 mehr Eingabe für weniger Klarheit.
 
-## Bewusste Produktentscheidung: Vorkochen ist eine eigene Ansicht
+## Bewusste Produktentscheidung: Vorkochen entfällt (26.10.2026)
 
-Der Wochenplan beantwortet „was esse ich wann?", die Einkaufsliste „was muss ich kaufen?".
-Beim Meal-Prep fehlte die dritte Frage: **„was koche ich am Sonntag, und wie viel davon?"**
+Vom 13.08. bis 26.10.2026 gab es „Vorkochen“ im Überlaufmenü „⋯“ des Wochenplans: derselbe
+Wochenbestand nach **Gericht** statt nach Tag gebündelt („Hähnchen-Bowl · 4× · Mo · Di · Mi · Do“),
+gedacht für die Frage „was koche ich am Sonntag, und wie viel davon?“.
 
-„Vorkochen" (seit 13.08.2026, im Überlaufmenü des Wochenplans) bündelt denselben Wochenbestand
-nach **Gericht** statt nach Tag. Je Gericht zwei Zahlen, und die zweite ist die eigentlich
-nützliche:
+**Entfernt, weil sie niemand verstand und nichts tun ließ.** Paddy fand den Sinn nicht heraus —
+und eine reine Anzeige, deren Zahlen der Wochenplan ohnehin zeigt, spart keine Zeit und nimmt
+keine Entscheidung ab (CLAUDE.md §4). Ohne sie hätte das „⋯“ nur noch „Woche leeren“ getragen;
+ein Menü für einen Eintrag ist ein Umweg ohne Gegenwert. **„Woche leeren“ steht seitdem als
+leiser Ghost-Knopf unter dem Plan** — weit weg von der Einkaufsliste (siehe 13.08.2026 oben),
+nur bei vollem Plan und mit Schreibrecht, ohne Rückfrage, mit Rückgängig im Toast.
 
-* **Portionen** — ein Eintrag je Esser (bei Zuweisung) bzw. je eingestellter Person
-* **Durchgänge** — `Portionen / portions` des Rezepts, aufgerundet: so oft muss der Topf auf
-  den Herd. Ohne gepflegtes `portions` entfällt die Angabe, statt eine Eins zu erfinden.
-
-Sortiert nach Portionen absteigend — danach richtet sich, womit man anfängt.
-
-**Derselbe Zeitraum wie die Einkaufsliste** (aktuelle Woche ab heute, nächste Woche ganz).
-Beide Ansichten müssen dieselbe Woche beschreiben, sonst kauft man für einen Tag ein, den die
-Vorkochliste nicht mehr kennt.
-
-Bewusst **keine** eigene Kochreihenfolge, keine Zeitplanung, keine Ofen-Belegung. Das wäre eine
-Küchen-App; hier geht es um die Frage, was in welcher Menge auf die Liste kommt.
+Bleibt: die Rezept-Eigenschaft `mealPrep` („lässt sich vorkochen“) samt Filter im Katalog — sie
+hilft beim Auswählen, nicht beim Nachzählen.
 
 ## Bewusste Produktentscheidung: Der Wizard endet im Wochenplan
 
@@ -1809,7 +1804,7 @@ keinen Weg. **Es sähe nur besser aus.**
 Auswahl: Sobald die Banane eingeplant war, zeigte die Karte ein geratenes Stichwortfoto — eine
 Obstschale, beim Ei ein Salatteller. Ein Lebensmittel ist kein Gericht, und ein Foto, das etwas
 anderes zeigt, ist schlechter als gar keines. Seither entscheidet `mealIcon()`, und dieselbe
-Banane trägt in Plan, Startreiter, Meal-Blatt, Auswahl und Vorkochliste dasselbe Bild.
+Banane trägt in Plan, Startreiter, Meal-Blatt und Auswahl dasselbe Bild.
 
 Dazu hat **jede unterscheidbare Form ihr eigenes Symbol** bekommen, statt der fünf
 Sammelsymbole von vorher. Bewusst nicht jeder Name ein eigenes: Orange, Mandarine und Grapefruit

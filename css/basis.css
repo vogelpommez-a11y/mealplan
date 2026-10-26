@@ -407,10 +407,16 @@
   /* Wochenplan-Kopf: Titel oben, Werkzeugleiste eine Zeile darunter */
   .plan-head { flex-direction: column; align-items: stretch; gap: 16px; }
   .plan-tools { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-  /* Ankerpunkt fuer das Ueberlaufmenue (.menu ist position:absolute; right:0) - ohne ihn
-     haengt es an der ganzen Kopfzeile und rutscht an deren rechten Rand. Gleiches Muster
-     wie .wch-menu bei der Gewichtskarte. */
-  .plan-menu { position: relative; flex: none; }
+  /* "Woche leeren" unter dem Plan (seit 26.10.2026, vorher im Ueberlaufmenue der Leiste).
+     Leise: Ghost in --text-muted, erst beim Hover rot wie .btn.danger:hover - destruktiv,
+     aber per Rueckgaengig im Toast umkehrbar. --accent-strong statt --accent: auf der
+     Hover-Flaeche (--surface-2) erreicht --accent im Light-Theme nur ~4,1:1 (ux-reviewer,
+     26.10.2026). 44px Hoehe als Touch-Ziel auf allen Geraeten; im Ruhezustand hat der
+     Ghost-Knopf keine sichtbare Flaeche, die Hoehe aendert am Bild also nichts. */
+  .plan-foot { display: flex; margin-top: 16px; }
+  .plan-clear { min-height: 44px; gap: 8px; }
+  .plan-clear svg { width: 15px; height: 15px; }
+  .btn.ghost.plan-clear:hover { color: var(--accent-strong); }
   /* Einstieg in die Einkaufsliste - EIN Knopf, auf beiden Geraeten an derselben Stelle
      in der Werkzeugleiste. Vorher waren es zwei: ein breiter Gradient-Knopf unter dem Plan
      am Rechner und dieses Symbol im Kopf auf dem Handy. Dieselbe Aktion an zwei Orten in
@@ -443,10 +449,6 @@
      Einkaufsknopf: ein Muster fuer denselben Platzmangel, nicht zwei. */
   .btn.icon-gh.plan-auto { width: auto; padding: 0 12px; gap: 8px; font-size: 13px; font-weight: 600; }
   .plan-auto svg { color: var(--accent); }
-  /* Derselbe Befehl steht zusaetzlich im Ueberlaufmenue - aber nur auf sehr schmalen
-     Geraeten, siehe den 359px-Block. Im Regelfall ist er dort ausgeblendet, damit es nicht
-     zwei sichtbare Wege zu derselben Aktion gibt. */
-  .plan-menu .menu [data-mi="autoplan"] { display: none; }
   /* Klebende Tagesbilanz: nur auf dem Handy. Am Rechner steht sie in jeder der sieben
      Tageskarten - eine achte, gemeinsame Leiste waere dort sinnlos. Hier ist das
      Nur-auf-einem-Geraet richtig, weil dieselbe INFORMATION am Rechner schon woanders

@@ -18,7 +18,7 @@ WAS ER PRUEFT - am ECHTEN, ausgeschnittenen Code:
     auf das Fruchtsymbol zurueck
 
 Dazu eine QUELLTEXT-Pruefung: alle vier Ansichten muessen die Weiche auch AUFRUFEN.
-thumbHtml() deckt Plan, Picker und Vorkochliste ab, nextMealHtml() den Startreiter,
+thumbHtml() deckt Plan und Picker ab, nextMealHtml() den Startreiter,
 msPhotoInnerHtml() das Meal-Blatt. Ohne diese Pruefung koennte eine Ansicht still
 zurueckfallen und wieder ein fremdes Gericht zeigen.
 
@@ -213,7 +213,7 @@ def main():
     # ---- Alle vier Ansichten muessen die Weiche auch aufrufen ----
     quelle = io.open(INDEX, encoding="utf-8").read()
     schief = []
-    for name, ruft in (("thumbHtml", "mealIcon"),            # Plan, Picker, Vorkochliste
+    for name, ruft in (("thumbHtml", "mealIcon"),            # Plan, Picker
                        ("nextMealHtml", "mealIcon"),         # Startreiter
                        ("msPhotoInnerHtml", "mealIcon")):    # Meal-Blatt
         s = schneide(quelle, name)

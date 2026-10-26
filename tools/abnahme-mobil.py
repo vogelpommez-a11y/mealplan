@@ -819,12 +819,7 @@ def lauf(s, breite, hoehe, theme, name, still=False):
         time.sleep(1.0)
         station(s, "22_einkaufsliste", lauf_name, ergebnisse, still)
         modal_zu(s)
-    if s.tippen_auf('[data-action="plan-menu"]'):
-        time.sleep(0.6)
-        if s.tippen_auf('[data-mi="batch"]'):
-            time.sleep(1.0)
-            station(s, "23_vorkochen", lauf_name, ergebnisse, still)
-        modal_zu(s)
+    # Station 23 (Vorkochliste) ist am 26.10.2026 mit der Ansicht entfallen.
     return ergebnisse
 
 

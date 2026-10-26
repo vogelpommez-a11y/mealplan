@@ -31,7 +31,7 @@
     // ---------- Ein Symbol je Lebensmittel (12.09.2026) ----------
     // Bis hierher trugen die 36 Eintraege der Schnellauswahl fuenf Sammelsymbole, und seit
     // dem Umbau vom 12.09.2026 stehen sie auch im Wochenplan, auf dem Startreiter, im
-    // Meal-Blatt und in der Vorkochliste - dort faellt "alles Obst sieht gleich aus" sofort
+    // Meal-Blatt (bis 26.10.2026 auch in der Vorkochliste) - dort faellt "alles Obst sieht gleich aus" sofort
     // auf. Deshalb bekommt jede unterscheidbare FORM ihr eigenes Symbol.
     //
     // Bewusst NICHT jeder Name ein eigenes: Orange, Mandarine und Grapefruit sind dieselbe

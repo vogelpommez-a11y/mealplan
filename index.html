@@ -7625,11 +7625,9 @@
           ${canEdit() && goalTargets(1) ? `<button class="btn ghost icon-gh plan-auto" data-action="auto-plan" title="Woche automatisch planen" aria-label="Woche automatisch planen">${TOOL_ICONS.wand}<span class="pa-w">Woche planen</span></button>` : ""}
           <!-- B3: "Woche leeren" stand hier bis 13.08.2026 gleichrangig neben der
                Einkaufsliste - eine destruktive Aktion mit derselben Prominenz wie das
-               meistgenutzte Werkzeug, direkt daneben. Jetzt im Ueberlaufmenue; die
-               Rueckfrage im confirmModal bleibt zusaetzlich bestehen. -->
-          ${canEdit() ? `<div class="plan-menu">
-            <button class="btn ghost icon-gh" data-action="plan-menu" aria-haspopup="menu" aria-expanded="false" title="Weitere Aktionen" aria-label="Weitere Aktionen">⋯</button>
-          </div>` : ""}
+               meistgenutzte Werkzeug, direkt daneben. Danach im Ueberlaufmenue "⋯"; seit
+               26.10.2026 (Vorkochen entfernt, das Menue haette nur noch einen Eintrag gehabt)
+               als leiser Knopf UNTER dem Plan (.plan-foot), weit weg von der Einkaufsliste. -->
         </div>
       </div>`;
 
@@ -7769,6 +7767,10 @@
     // Kommentar bei .week). Nur auf dem Handy sichtbar; am Rechner traegt jede der sieben
     // Spalten ihre eigene Bilanz in der Karte. Gefuellt von paintDayBalance().
     html += `</div><div class="day-bal" id="day-bal" aria-live="polite"></div></div>`;
+    // "Woche leeren" am Ende des Plans: selten gebraucht und destruktiv, also weit weg von den
+    // Werkzeugen oben. Keine Rueckfrage, das Rueckgaengig im Toast traegt (clearWeek). In einer
+    // leeren Woche gibt es nichts zu leeren - dann steht der Knopf gar nicht erst da.
+    if (canEdit() && planStats() > 0) html += `<div class="plan-foot"><button type="button" class="btn ghost sm plan-clear" data-action="clear-week">${TOOL_ICONS.clear}<span>Woche leeren</span></button></div>`;
     view.innerHTML = html;
     // Waagerechte Position SOFORT wiederherstellen - noch vor resetCarousels()/initCarousel(),
     // damit deren Messungen (markActive/fitHeight/syncIndicator) nie den Montag-Zwischenstand
@@ -10707,22 +10709,16 @@
   }
 
   // Welche Tage der gezeigten Woche zaehlen noch? In der aktuellen Woche nur heute und die
-  // kommenden - fuer vergangene Tage wird nicht mehr eingekauft und nicht mehr vorgekocht,
-  // ihre Mengen sollen die Summe nicht aufblaehen. In der naechsten Woche gibt es aus
-  // heutiger Sicht kein "vergangen", dort zaehlt die ganze Woche.
-  //
-  // Gemeinsame Quelle fuer Einkaufsliste UND Vorkochliste (Befund aus dem pushcheck zu C3):
-  // Beide Ansichten MUESSEN dieselbe Woche beschreiben - sonst kauft man fuer einen Tag ein,
-  // den die Vorkochliste nicht mehr kennt. Als zwei Kopien derselben zwei Zeilen waere genau
-  // das eine Frage der Zeit.
+  // kommenden - fuer vergangene Tage wird nicht mehr eingekauft, ihre Mengen sollen die
+  // Summe nicht aufblaehen. In der naechsten Woche gibt es aus heutiger Sicht kein
+  // "vergangen", dort zaehlt die ganze Woche.
   function planDaysAhead() {
     const todayIdx = DAYS.findIndex(d => d.key === todayDayKey());
     return { todayIdx: todayIdx, relevantDays: state.viewWeek === "next" ? DAYS : DAYS.slice(todayIdx) };
   }
 
   // Welchen Zeitraum beschreibt die Liste? Gegenstueck zu planDaysAhead(): dieselbe Frage,
-  // nur in Worten. Eine Stelle fuer Einkaufsliste UND Vorkochliste - sie ziehen ihre Tage aus
-  // derselben Quelle und muessen deshalb auch dieselbe Woche benennen.
+  // nur in Worten.
   //
   // Vorher stand fuer die naechste Woche faelschlich "diese Woche" da: der ternaere Ausdruck
   // `viewWeek !== "next" && todayIdx > 0 ? "ab heute" : "diese Woche"` fiel fuer "next" in
@@ -10741,84 +10737,6 @@
   function planScopeTitle(todayIdx) {
     const s = planScopeLabel(todayIdx);
     return s.charAt(0).toUpperCase() + s.slice(1);
-  }
-
-  // ---------- Vorkochen (C3) ----------
-  // Die Einkaufsliste beantwortet "was muss ich kaufen?", der Wochenplan "was esse ich wann?".
-  // Beim Meal-Prep fehlt die dritte Frage: "was koche ich am Sonntag, und wie viel davon?"
-  // Dafuer wird derselbe Wochenbestand nach GERICHT gruppiert statt nach Tag.
-  //
-  // EINE Zahl je Gericht: wie viele Meals davon in diesem Zeitraum gebraucht werden - ein
-  // Eintrag je Esser (Zuweisung) bzw. je Person (Einkaufsliste-Einstellung).
-  //
-  // Die frueheren "Kochdurchgaenge" (Portionen / portions des Rezepts) sind am 15.08.2026
-  // entfallen: Seit ein Meal eine Portion IST, waere der Nenner immer 1 und die Zeile
-  // "4x kochen a 1 Portion" bloss eine umstaendliche Wiederholung der Zahl daneben.
-  // Wie viel in einen Topf passt, weiss ohnehin nur der Topf.
-  // Zeitraum wie bei der Einkaufsliste: in der aktuellen Woche ab heute, in der naechsten die
-  // ganze Woche. Beide Ansichten muessen dieselbe Woche beschreiben, sonst kauft man fuer
-  // Montag ein, was man laut Vorkochliste gar nicht mehr kocht.
-  function buildBatchList() {
-    const { todayIdx, relevantDays } = planDaysAhead();
-    const persons = shopPersons();
-    const map = new Map();   // rid -> { r, portions, days:Set }
-    relevantDays.forEach(d => MEALS.forEach(m => state.plan[d.key][m.key].forEach(entry => {
-      const r = getRecipe(entryId(entry));
-      if (!r) return;
-      const uids = entryUids(entry);
-      // Gleiche Bedingung wie in buildShoppingList(): Beide Listen muessen dieselben Esser
-      // zaehlen, sonst kocht man fuer eine andere Zahl, als man eingekauft hat.
-      const esser = uids ? (shopCountsMembers() ? uids.length : 1) : persons;
-      const hit = map.get(r.id) || { r: r, portions: 0, days: new Set() };
-      hit.portions += esser;
-      hit.days.add(d.key);
-      map.set(r.id, hit);
-    })));
-    const items = Array.from(map.values()).map(it => ({
-      r: it.r,
-      portions: Math.round(it.portions * 10) / 10,
-      days: DAYS.filter(d => it.days.has(d.key))
-    }));
-    // Das Groesste zuerst - danach richtet sich, womit man am Sonntag anfaengt.
-    items.sort((a, b) => b.portions - a.portions || a.r.name.localeCompare(b.r.name, "de"));
-    const total = items.reduce((s, it) => s + it.portions, 0);
-    return { items: items, total: Math.round(total * 10) / 10, todayIdx: todayIdx };
-  }
-  function openBatchCooking() {
-    const { items, total, todayIdx } = buildBatchList();
-    const body = items.length
-      ? `<div class="bc-list">${items.map(it => `
-          <div class="bc-item">
-            ${thumbHtml(it.r, "bc-thumb", true)}
-            <div class="bc-body">
-              <div class="bc-name">${esc(it.r.name)}</div>
-              <div class="bc-days">${it.days.map(d => esc(d.short)).join(" · ")}</div>
-            </div>
-            <div class="bc-qty"><b>${nfmt(it.portions)}×</b><small>Meal${it.portions === 1 ? "" : "s"}</small></div>
-          </div>`).join("")}</div>`
-      : leerZustand({ klasse: "im-dialog",
-          icon: `<path d="M4 9.5h16v6a4.5 4.5 0 0 1-4.5 4.5h-7A4.5 4.5 0 0 1 4 15.5v-6Z"/><path d="M2.5 9.5h19"/><path d="M12 6.5V4.5"/>`,
-          titel: "Noch nichts eingeplant",
-          text: "Plane erst ein paar Meals, dann steht hier, was du vorkochen kannst.",
-          aktion: { text: "Zum Wochenplan", attr: 'data-close data-zum-plan="1"' } });
-    // Woche im Dialognamen, gleiche Begruendung wie bei der Einkaufsliste.
-    const node = el(`<div class="modal" role="dialog" aria-modal="true" aria-label="Vorkochen, ${esc(planScopeLabel(todayIdx))}">
-      <div class="modal-head">
-        <div class="shop-head" style="flex:1">
-          <div class="cart" aria-hidden="true">${iconSvg("pot", "")}</div>
-          <div><div class="kicker">${items.length} Gericht${items.length === 1 ? "" : "e"} · ${nfmt(total)} Meal${total === 1 ? "" : "s"} · ${esc(planScopeLabel(todayIdx))}</div><h2 style="margin:2px 0 0">Vorkochen</h2></div>
-        </div>
-        <button class="btn ghost sm" data-close aria-label="Schließen">✕</button>
-      </div>
-      <div class="modal-body">${body}</div>
-      <div class="modal-foot"><button class="btn primary" data-close>Schließen</button></div>
-    </div>`);
-    node.querySelectorAll("[data-close]").forEach(b => b.addEventListener("click", closeModal));
-    // Der leere Zustand verspricht einen Weg in den Wochenplan - hier wird er eingeloest.
-    // data-close schliesst schon, dieser Zuhoerer bringt nur noch den Reiterwechsel.
-    node.querySelectorAll("[data-zum-plan]").forEach(b =>
-      b.addEventListener("click", () => { state.tab = "plan"; save(); render(); }));
-    openModal(node);
   }
 
   function openShopping() {
@@ -11734,11 +11652,9 @@
   // "delete" und "share-recipe" standen hier mit, obwohl es die Aktionen nicht mehr gibt:
   // Meal loeschen und teilen laufen ueber die data-del-/data-share-Knoepfe im Meal-Sheet,
   // und dorthin kommt eine Nur-Lese-Rolle gar nicht erst (canEdit() in openMealSheet).
-  // "clear-week" ist seit B3 keine data-action mehr: der Eintrag steht im Ueberlaufmenue
-  // (togglePlanMenu) und ruft clearWeek() direkt auf. Das Menue selbst wird nur bei
-  // canEdit() gerendert - dieselbe Lage wie bei den data-del-/data-share-Knoepfen im
-  // Meal-Sheet.
-  const WRITE_ACTIONS = ["new-recipe", "pick", "unassign", "assign"];
+  // "clear-week" ist seit 26.10.2026 wieder eine data-action (Knopf unter dem Plan). Er wird
+  // nur bei canEdit() gerendert, steht aber trotzdem hier - eine Pruefung mehr kostet nichts.
+  const WRITE_ACTIONS = ["new-recipe", "pick", "unassign", "assign", "clear-week"];
   function blockedByRole() {
     if (canEdit()) return false;
     toast("Du kannst diesen Plan ansehen – zum Mitplanen bitten die Inhaberin oder den Inhaber um Rechte.");
@@ -11896,7 +11812,7 @@
     else if (a === "weight-menu") toggleWeightMenu(t);
     else if (a === "weight-consent-in") weightConsentModal();
     else if (a === "weight-manage") openWeighForm(true);
-    else if (a === "plan-menu") togglePlanMenu(t);
+    else if (a === "clear-week") clearWeek();
     else if (a === "tune-goal") openGoalTuneForm();
     else if (a === "recalc-goal") startOnboarding({ first: false });
     else if (a === "profile-menu") toggleProfileMenu();
@@ -12691,24 +12607,6 @@
       });
     }
     return { menu, close };
-  }
-
-  // Ueberlaufmenue der Wochenplan-Werkzeugleiste (B3).
-  function togglePlanMenu(btn) {
-    const wrap = btn.closest(".plan-menu");
-    if (!wrap) return;
-    // "Woche planen" steht hier NUR fuer sehr schmale Geraete (unter 360px, siehe CSS) - dort
-    // passt der Knopf nicht mehr in die Werkzeugzeile. Der Eintrag ist immer im Markup und
-    // wird per Media Query ein- bzw. ausgeblendet: ein zweiter JS-Zweig fuer dieselbe Aktion
-    // waere ein zweiter Ort, an dem man die Bedingung pflegen muesste.
-    openMenu(wrap, btn, [
-      { id: "autoplan", text: "Woche planen", icon: TOOL_ICONS.wand,
-        wenn: !!goalTargets(1), tun: autoPlanWeek },
-      { id: "batch", text: "Vorkochen", icon: iconSvg("pot", ""), tun: openBatchCooking },
-      "trenner",
-      { id: "clear", text: "Woche leeren", icon: TOOL_ICONS.clear,
-        klasse: "destructive", tun: clearWeek }
-    ]);
   }
 
   function toggleProfileMenu() {

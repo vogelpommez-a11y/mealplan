@@ -266,7 +266,7 @@
     /* Einkaufsknopf auf das Symbol zurueck - dieselbe Rechnung wie beim Wochenumschalter
        darueber: die Werkzeugzeile ist bei 360px Geraetebreite bis auf wenige Pixel voll,
        ein Wort mehr bricht sie um und kostet 44px, die den Meals fehlen. Das Symbol steht
-       neben dem Wochenumschalter und dem Muelleimer; der volle Text bleibt im aria-label.
+       neben dem Wochenumschalter; der volle Text bleibt im aria-label.
        Damit greift wieder .btn.icon-gh: 34px + 5px hitSlop = 44px Trefferflaeche. */
     .btn.icon-gh.shop-ic { width: 34px; padding: 0; }
     .sh-w { display: none; }
@@ -682,23 +682,11 @@
     .app:has(.week-nut .hm-card) { padding-bottom: calc(var(--tabbar-h, 58px) + 12px + env(safe-area-inset-bottom, 0px)); }
   }
 
-  /* ---------- Sehr schmale Geraete: der vierte Knopf passt nicht mehr ----------
-     Gemessen am 16.08.2026: Bei 320px braucht die Werkzeugzeile 300px (Wochenumschalter 168
-     + drei Symbole a 34 + drei Abstaende a 10) und hat 277px. Sie bricht um, und die
-     Kopfzeile waechst von 42 auf 86px - genau die Hoehe, die im Sheet den Tageskarten fehlt
-     (TROUBLESHOOTING 60). Ab 360px passt es mit 32px Luft.
-
-     Unter 360px wandert der Planer deshalb ins Ueberlaufmenue, statt eine zweite Zeile
-     aufzumachen. Es bleibt bei EINEM sichtbaren Weg: Was hier erscheint, verschwindet oben.
-
-     DIESER BLOCK STEHT BEWUSST HINTER DEM 680px-BLOCK, nicht darin. Ein erster Anlauf hat ihn
-     mittendrin eingefuegt und dabei den 680px-Block vorzeitig geschlossen - alles Folgende
-     (Wischstreifen, Tagesleiste, Wochenziele) galt danach nur noch unter 360px, und auf dem
-     Handy stand die ganze App untereinander. Siehe TROUBLESHOOTING 97. */
-  @media (max-width: 359px) {
-    .plan-tools .plan-auto { display: none; }
-    .plan-menu .menu [data-mi="autoplan"] { display: flex; }
-  }
+  /* Sehr schmale Geraete: Bis zum 26.10.2026 stand hier ein 359px-Block, der den Planer ins
+     Ueberlaufmenue "⋯" verschob - mit "⋯" brauchte die Werkzeugzeile bei 320px 300px und hatte
+     277px. Das Menue ist entfallen (Vorkochen entfernt, "Woche leeren" unter dem Plan), damit
+     sind es 168 + zwei Symbole a 34 + zwei Abstaende a 10 = 256px: der Planer passt wieder in
+     die Zeile, der Block ist ersatzlos weg. */
 
   /* ---------- Erste Schritte (Onboarding) ----------
      Eine Frage je Bildschirm. Waehrend der Einfuehrung ist die Reiterleiste weg, damit auf
